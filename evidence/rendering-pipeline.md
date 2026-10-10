@@ -77,6 +77,17 @@ The simple flat-material path is now traced:
 
 The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_140b2e470`, and `FUN_140b2e580`; these are candidate callback/dispatch connections, not yet proof of the main frame loop.
 
+### Camera-to-scene frame dispatch and pass order
+
+- The `Scene` constructor at `0x1400c0ca0` installs the vtable address point `0x140d8dd30`.
+- `Camera::RenderScene` at `0x14005a5d0` dispatches through the attached scene pointer at call site `0x14005b208`, vtable byte offset `+0x18`. The target is the `Scene::Render` entry at `0x140d8dd48` (`0x140d8dd30 + 0x18`), function `0x1400cc730`.
+- `Scene::Render` manages scene BSP/lighting and calls `AddPartsToDrawBuckets` at `0x1400c38f0`; its indirect call at `0x1400ccdc9` uses vtable byte offset `+0x210`.
+- The `Scene` vtable entry at `0x140d8df40` (`0x140d8dd30 + 0x210`) targets `Scene::RenderSinglePass` at `0x1400d0f10`.
+- `RenderSinglePass` initializes the main-scene framebuffer, obtains shadow lights when enabled, calls pre/post scene hooks, and consumes draw buckets in the observed order: `0`, skyboxes, `1`, `7`, dynamic-shadow/projection work, `5`, fade bucket `8`, static-shadow work, `6`, optional wireframe repeats (`0`, `1`, `7`, `8`, `2`, `3`, `5`, `6`), then bucket `4`, framebuffer effects, drawable squares, and optional light-range diagnostics.
+- Individual mesh buckets are consumed by `Scene::RenderDrawBucket` at `0x1400cd210`; this is the route that reaches the already-mapped `PartTriMesh::Draw` and `GLRender::RenderVertexData` path.
+
+This establishes a per-scene camera -> Scene::Render -> collect parts -> RenderSinglePass -> draw-bucket -> PartTriMesh::Draw chain. The outer application frame scheduler and normal window/context creation and teardown remain **Open**. Bucket numeric meanings should remain provisional until each `DrawBucketManager` classification and consumer are cross-checked.
+
 ## Inferences (not yet confirmed)
 
 - NWN:EE's Windows renderer uses WGL/OpenGL rather than Direct3D for this target build.

@@ -24,8 +24,9 @@
 - [x] Trace model attributes into GPU buffer upload and indexed draw calls.
 - [x] Trace shader/buffer procedure loading and bitmap-backed mesh materials.
 - [ ] Trace the normal render-context creation path (bootstrap context is mapped; normal path remains open).
-- [ ] Trace callers above low-level geometry submission to scene/world draw orchestration.
-- [ ] Map renderer initialization, frame loop, and shutdown paths.
+- [x] Trace Camera::RenderScene through Scene::Render into RenderSinglePass.
+- [x] Record the ordered scene bucket/render passes.
+- [ ] Map the outer application frame scheduler, normal context lifecycle, and renderer shutdown.
 - [ ] Inventory dynamically loaded GL extensions and shader/program setup.
 
 Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeline.md).
