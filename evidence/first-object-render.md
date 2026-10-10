@@ -34,8 +34,9 @@ Browser validation reported:
 - Desktop browser viewport displayed the textured mesh without shader errors after constructing Three.js `DataTexture` objects from TGALoader's parsed image data
 - `dag_obelisk`: 12 base-geometry nodes, 3 meshes, 45 vertices, 76 faces; renders without textures using a bitmap-derived material color
 - No browser console warnings/errors after filtering `bitmap NULL` and constructing valid DataTexture UV matrices
+- Binary `dag_batstatue.mdl` is rejected with a viewport-level “ASCII MDL files only” message; the failure is no longer silent
 
-The Electron shell was launched as a separate native window with a styled 1440x960 layout after configuring Vite's production base as relative (`./`). The native window styling was verified from a direct `PrintWindow` capture; its startup position is explicitly on the primary desktop. The user confirmed the native file picker opened, but the first selected file was a binary MDL and was correctly rejected by the current ASCII-only parser. Native-window mesh rendering still needs the extracted ASCII chest sample selected.
+The Electron shell was launched as a separate native window with a styled 1440x960 layout after configuring Vite's production base as relative (`./`). The native window styling was verified from a direct `PrintWindow` capture; its startup position is explicitly on the primary desktop. The user confirmed the native file picker opened, but the first selected file was a binary MDL and was correctly rejected by the current ASCII-only parser. The exact ASCII sample paths are documented in `README.md`; native-window mesh rendering still needs that sample selected.
 
 The selective extractor `scripts/extract_key_bif_resource.py` parses KEY resource names/type IDs and BIF resource offsets, then writes only the requested payload. `npm audit --omit=dev` reports zero runtime dependency vulnerabilities; the full development dependency tree currently reports six advisories.
 

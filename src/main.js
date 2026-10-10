@@ -97,7 +97,10 @@ fileInput.addEventListener('change', async (event) => {
     setStatus('MODEL RENDERED', true);
   } catch (error) {
     console.error(error);
-    setStatus(error.message || 'MODEL LOAD FAILED', false);
+    emptyState.querySelector('strong').textContent = 'Model could not be loaded';
+    emptyState.querySelector('span').textContent = error.message || 'Check the selected file.';
+    emptyState.classList.remove('hidden');
+    setStatus('MODEL LOAD FAILED', false);
   } finally {
     fileInput.value = '';
   }
