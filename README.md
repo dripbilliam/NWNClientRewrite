@@ -23,7 +23,30 @@ The executable and Ghidra project are shared research inputs in the original `Fu
 ## Current entry points
 
 - [Initial Windows executable inventory](evidence/binary-inventory.md)
+- [First object-render milestone](evidence/first-object-render.md)
 - [Research tracker](RESEARCH_TRACKER.md)
 - [Initial OpenGL render-path findings](evidence/rendering-pipeline.md)
 
-Ghidra label persistence is checked by [VerifyRendererLabels.java](scripts/VerifyRendererLabels.java). Local snapshots under `backups/` are excluded from Git.
+Ghidra label persistence is checked by [VerifyRendererLabels.java](scripts/VerifyRendererLabels.java). The PartTriMesh RTTI scan is in [InspectPartTriMeshVtable.java](scripts/InspectPartTriMeshVtable.java), and local snapshots under `backups/` are excluded from Git.
+
+## Desktop model viewer
+
+The Electron/Three.js viewer builds and launches with:
+
+```powershell
+npm install
+npm start
+```
+
+Use **Open Assets** to choose one ASCII `.mdl` and any matching `.tga` bitmaps together. The viewer currently supports static trimesh nodes, parent transforms, face UVs, and local TGA textures. Binary MDL encodings, skin animation, emitters, and dynamic game state are not implemented.
+
+To extract one named resource from the existing installation without unpacking an archive into this repository:
+
+```powershell
+py scripts/extract_key_bif_resource.py `
+	'C:\path\to\NwnRootInstall\data\nwn_base.key' `
+	'C:\path\to\NwnRootInstall' `
+	plc_creats.tga `
+	"$env:TEMP\plc_creats.tga" `
+	--bif data/textures_02.bif
+```

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e9ece5" />
+    <title>NWN Model Lab</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="NWN Model Lab home">
+          <span class="brand-mark">N</span>
+          <span>NWN <b>MODEL LAB</b></span>
+        </a>
+        <div class="topbar-meta">
+          <span class="status-light" id="connection-light"></span>
+          <span id="status-text">READY FOR ASCII MDL</span>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="viewer-column" aria-label="3D model viewport">
+          <div class="viewer-toolbar">
+            <div class="asset-heading">
+              <span class="eyebrow">ASSET VIEWER</span>
+              <h1 id="model-title">No model loaded</h1>
+            </div>
+            <div class="toolbar-actions">
+              <button class="tool-button" id="wireframe-button" type="button" aria-pressed="false">Wireframe</button>
+              <button class="tool-button primary" id="open-button" type="button">Open Assets</button>
+              <input id="model-file" type="file" accept=".mdl,.tga,text/plain" multiple hidden />
+            </div>
+          </div>
+          <div class="viewport-frame" id="viewport-frame">
+            <canvas id="model-canvas" aria-label="Rendered NWN model"></canvas>
+            <div class="empty-state" id="empty-state">
+              <div class="empty-glyph">△</div>
+              <strong>Open an ASCII NWN model</strong>
+              <span>The mesh and node hierarchy will appear here.</span>
+            </div>
+            <div class="viewport-caption"><span id="view-caption">SCENE · Z-UP SOURCE</span><span>ORBIT · SCROLL TO ZOOM</span></div>
+          </div>
+          <div class="bottom-strip">
+            <div><span class="metric-label">NODES</span><strong id="node-count">—</strong></div>
+            <div><span class="metric-label">MESHES</span><strong id="mesh-count">—</strong></div>
+            <div><span class="metric-label">VERTICES</span><strong id="vertex-count">—</strong></div>
+            <div><span class="metric-label">FACES</span><strong id="face-count">—</strong></div>
+          </div>
+        </section>
+
+        <aside class="inspector" aria-label="Model details">
+          <div class="inspector-section">
+            <span class="eyebrow">INSPECTOR</span>
+            <h2>Model data</h2>
+          </div>
+          <dl class="details-list">
+            <div><dt>Format</dt><dd id="format-value">—</dd></div>
+            <div><dt>Geometry</dt><dd id="geometry-value">—</dd></div>
+            <div><dt>Hierarchy</dt><dd id="hierarchy-value">—</dd></div>
+            <div><dt>Source axes</dt><dd>X · Y · Z up</dd></div>
+          </dl>
+          <div class="inspector-section material-section">
+            <span class="eyebrow">BITMAP REFERENCES</span>
+            <div id="material-list" class="material-list"><span class="muted">No materials</span></div>
+          </div>
+          <div class="inspector-note" id="inspector-note">Binary MDL and animated nodes are not handled yet. Loaded bitmap references use matching TGA files.</div>
+          <div class="source-tag"><span class="source-dot"></span> LOCAL FILE · NOT UPLOADED</div>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

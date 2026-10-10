@@ -20,13 +20,28 @@
 - [x] Find a concrete geometry-submission function and inspect its decompilation.
 - [x] Find the imported frame-present call and inspect its direct caller.
 - [x] Trace object transforms into mesh collection and draw-bucket dispatch.
-- [ ] Resolve the concrete PartTriMesh virtual draw target and its vertex/index data path.
+- [x] Resolve the concrete PartTriMesh virtual draw target and its vertex/index data path.
+- [x] Trace model attributes into GPU buffer upload and indexed draw calls.
+- [x] Trace shader/buffer procedure loading and bitmap-backed mesh materials.
 - [ ] Trace the normal render-context creation path (bootstrap context is mapped; normal path remains open).
 - [ ] Trace callers above low-level geometry submission to scene/world draw orchestration.
 - [ ] Map renderer initialization, frame loop, and shutdown paths.
 - [ ] Inventory dynamically loaded GL extensions and shader/program setup.
 
 Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeline.md).
+
+## Milestone 2: First object rendered
+
+**Status: Browser proof complete; native desktop asset selection pending**
+
+- [x] Extract one ASCII MDL and its referenced TGA textures into the OS temp directory only.
+- [x] Render the model's static trimesh nodes, hierarchy, and bitmap maps in the Three.js viewer.
+- [x] Validate a second ASCII prop model and geometry-block boundaries.
+- [x] Verify the desktop Electron shell loads the styled production bundle.
+- [ ] Load the test model in the Electron window and verify the textured desktop render.
+- [ ] Extend the parser to binary MDL and animated/model-state paths.
+
+Evidence: [First object-render milestone](evidence/first-object-render.md).
 
 Ghidra names applied to the WGL loader, bootstrap-context initializer, and buffer-swap wrapper are backed up locally at `backups/milestone-20261010-wgl-labels-saved/`. The copied project was reopened read-only and the names were verified with `scripts/VerifyRendererLabels.java`.
 

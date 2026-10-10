@@ -56,6 +56,21 @@ The function has callers including `DrawLines`, `RenderBox`, `DrawFromVerts`, `D
 
 This establishes object transforms -> part tree -> `PartTriMesh` collection -> material/effect draw buckets -> virtual mesh draw -> renderer vertex submission as the static data path. The virtual target and the loaded vertex/index-buffer lifecycle remain to be mapped before implementing equivalent object rendering.
 
+### Concrete mesh-to-GPU path
+
+The RTTI scan in `scripts/InspectPartTriMeshVtable.java` found the x64 `PartTriMesh` complete-object locator at `0x140ee6940`, vtable at `0x140d88308`, and inherited `Part::Draw` slot 25 at `0x140d883d0`. That slot points to `PartTriMesh::Draw` at `0x1400a24c0`.
+
+The simple flat-material path is now traced:
+
+1. `PartTriMesh::Draw` (`0x1400a24c0`) selects the flat, environment-mapped, or bumpy/shiny path.
+2. `RenderFlat` (`0x1400a4710`) selects a render hint and passes its `VertexDataObject` item to the render interface.
+3. `GLRender::RenderVertexData` (`0x1400b59b0`) binds the `VertexDataObject`, chooses a shader program from vertex/state flags, and dispatches `glDrawElements` using 16-bit indices or `glDrawArrays` for the non-indexed mode.
+4. `GLRender::SetVertexDataObject` (`0x1400ba770`) binds element/array buffer objects and configures enabled vertex attributes through the dynamically loaded `glVertexAttribPointer`.
+5. `VertexPrimitiveFlat::SetupArrays` (`0x1400abca0`) combines mesh channels and face UV indices into static/dynamic `VertexDataObject` pools. `MdlNodeTriMesh::GenerateVertexData` (`0x1400a7790`) creates per-mesh source pools for position, UV, and optional normal/tangent/color channels.
+6. `GLRender::UnlockPool` (`0x1400bbad0`) uploads or updates pool storage with dynamically loaded `glGenBuffers`, `glBufferData`, and `glBufferSubData`.
+
+`FUN_140b7a0f0` is the WGL loader for buffer/query entry points; `FUN_140b7a350` loads shader, uniform, and vertex-attribute entry points. These names remain evidence-derived notes rather than Ghidra symbols for now. Together with the earlier scene-bucket findings, this identifies both the object path and the data required to issue a mesh draw.
+
 ### Frame presentation
 
 `SwapBuffers` has a computed call from `FUN_140af3a60` at `0x140af3a6f`. Decompilation of `FUN_140af3a60` shows a small wrapper that calls `SwapBuffers` with an HDC reached through its second argument, then calls an error-reporting function if the Win32 call fails. The higher-level caller/frame loop remains **Open**.
@@ -72,9 +87,9 @@ The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_
 
 1. Trace the normal application-window/context creation path and distinguish it from the mapped hidden bootstrap context.
 2. Trace callers of `FUN_140af3a60` to identify frame presentation and the main loop boundary.
-3. Walk upward from world-specific callers of `RenderVertexStreamData`; separate world geometry from GUI, text, debug, and effects.
-4. Find `wglGetProcAddress` callers and the associated GL procedure-name strings; inventory shader, buffer, and framebuffer extensions.
-5. Record each path with function entry/call-site addresses and distinguish direct evidence from interpretation.
+3. Trace which scene passes consume each material/shadow bucket and connect `Camera::RenderScene` to the main world frame loop.
+4. Map shader source selection, uniform setup, texture upload/sampler semantics, and the remaining environment/shadow rendering branches.
+5. Reconcile ASCII and binary MDL variants, animation/skinning, and dynamic object state with the viewer's bounded static implementation.
 
 ## Reproduction
 

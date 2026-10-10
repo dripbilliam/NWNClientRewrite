@@ -1,4 +1,8 @@
 # Keep installed executables and extracted game data out of this research repo.
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
 *.exe
 *.dll
 *.gpr
@@ -10,4 +14,6 @@
 *.pcap
 *.pcapng
 captures/
+backups/
+*.gar
 .env
