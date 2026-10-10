@@ -9,15 +9,17 @@
 - Ghidra 11.3.2 project exists at `../FullDecomp/ghidra-projects/NWN-EE-8193.37-17.gpr`.
 - At initial setup, the Ghidra process was running and its local MCP HTTP endpoint returned successfully.
 - No binary or Ghidra database changes were made for this setup.
+- SHA-256 and file-version inventory recorded for the installed Windows executables in `evidence/binary-inventory.md`.
 
 ## Milestone 1: Static architecture map
 
 **Status: In progress**
 
 - [x] Identify the graphics API from imports.
+- [x] Trace WGL library loading and bootstrap-context setup.
 - [x] Find a concrete geometry-submission function and inspect its decompilation.
 - [x] Find the imported frame-present call and inspect its direct caller.
-- [ ] Trace pixel format and OpenGL context creation.
+- [ ] Trace the normal render-context creation path (bootstrap context is mapped; normal path remains open).
 - [ ] Trace callers above low-level geometry submission to scene/world draw orchestration.
 - [ ] Map renderer initialization, frame loop, and shutdown paths.
 - [ ] Inventory dynamically loaded GL extensions and shader/program setup.

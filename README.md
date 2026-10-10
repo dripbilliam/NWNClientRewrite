@@ -22,5 +22,6 @@ The executable and Ghidra project are shared research inputs in the original `Fu
 
 ## Current entry points
 
+- [Initial Windows executable inventory](evidence/binary-inventory.md)
 - [Research tracker](RESEARCH_TRACKER.md)
 - [Initial OpenGL render-path findings](evidence/rendering-pipeline.md)

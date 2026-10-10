@@ -25,6 +25,12 @@ Ghidra's import table contains 43 matching OpenGL/WGL and pixel-format procedure
 
 This establishes a native Win32/OpenGL render path. `wglGetProcAddress` makes dynamic GL extension loading a strong lead, but the exact loaded extension set remains **Open** until its caller and lookup strings are traced.
 
+### WGL library and bootstrap context
+
+The strings `wglCreateContext` (`0x140e95548`) and `wglMakeCurrent` (`0x140e95578`) both reference `FUN_140af3390` (`0x140af3390`). Its decompilation reads `SDL_OPENGL_LIBRARY` and defaults to `OPENGL32.DLL`, loads that library, and resolves `wglGetProcAddress`, `wglCreateContext`, `wglDeleteContext`, `wglMakeCurrent`, and `wglShareLists`. It then calls `FUN_140af3000`.
+
+`FUN_140af3000` creates a hidden 10x10 Win32 window, obtains its device context, chooses and applies a pixel format, creates and activates a temporary legacy WGL context, and queries `wglGetExtensionsStringARB`. It conditionally resolves WGL extensions including `WGL_ARB_pixel_format` and `WGL_EXT_swap_control`, checks additional context flags, then clears and deletes the temporary context and destroys the window. This is an observed bootstrap/extension-discovery path; the separate normal application-window/context creation path is still **Open**.
+
 ### Geometry submission
 
 `GLRender::RenderVertexStreamData` begins at `0x1400b5c20`; an imported `glDrawElements` computed call is at `0x1400b5d59`.
@@ -43,6 +49,8 @@ The function has callers including `DrawLines`, `RenderBox`, `DrawFromVerts`, `D
 
 `SwapBuffers` has a computed call from `FUN_140af3a60` at `0x140af3a6f`. Decompilation of `FUN_140af3a60` shows a small wrapper that calls `SwapBuffers` with an HDC reached through its second argument, then calls an error-reporting function if the Win32 call fails. The higher-level caller/frame loop remains **Open**.
 
+The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_140b2e470`, and `FUN_140b2e580`; these are candidate callback/dispatch connections, not yet proof of the main frame loop.
+
 ## Inferences (not yet confirmed)
 
 - NWN:EE's Windows renderer uses WGL/OpenGL rather than Direct3D for this target build.
@@ -51,7 +59,7 @@ The function has callers including `DrawLines`, `RenderBox`, `DrawFromVerts`, `D
 
 ## Next probes
 
-1. Trace `ChoosePixelFormat`, `SetPixelFormat`, `wglCreateContext`, `wglMakeCurrent`, and `wglDeleteContext` references to recover context lifecycle. The WGL context functions may be imported or dynamically looked up.
+1. Trace the normal application-window/context creation path and distinguish it from the mapped hidden bootstrap context.
 2. Trace callers of `FUN_140af3a60` to identify frame presentation and the main loop boundary.
 3. Walk upward from world-specific callers of `RenderVertexStreamData`; separate world geometry from GUI, text, debug, and effects.
 4. Find `wglGetProcAddress` callers and the associated GL procedure-name strings; inventory shader, buffer, and framebuffer extensions.

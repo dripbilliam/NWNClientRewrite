@@ -1,0 +1,13 @@
+# Keep installed executables and extracted game data out of this research repo.
+*.exe
+*.dll
+*.gpr
+*.rep/
+*.pdb
+*.map
+*.bin
+*.dmp
+*.pcap
+*.pcapng
+captures/
+.env
