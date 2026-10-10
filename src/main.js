@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TGALoader } from 'three/addons/loaders/TGALoader.js';
+import { parseBinaryMdl } from './binary_mdl.js';
 import './style.css';
 
 const canvas = document.querySelector('#model-canvas');
@@ -74,7 +75,7 @@ fileInput.addEventListener('change', async (event) => {
   try {
     setStatus('PARSING MODEL', false);
     const [parsed, textures] = await Promise.all([
-      file.text().then(parseAsciiMdl),
+      file.arrayBuffer().then(parseModel),
       loadTextures(files.filter((item) => item.name.toLowerCase().endsWith('.tga')))
     ]);
     const object = buildObject(parsed, textures);
@@ -170,6 +171,7 @@ function parseAsciiMdl(text) {
         parent: 'NULL',
         position: [0, 0, 0],
         orientation: [0, 0, 0, 1],
+        scale: 1,
         bitmap: '',
         verts: [],
         tverts: [],
@@ -220,7 +222,14 @@ function parseAsciiMdl(text) {
 
   const byName = new Map(nodes.map((node) => [node.name, node]));
   const materialNames = [...new Set(nodes.filter((node) => node.type === 'trimesh' && node.bitmap && node.bitmap.toLowerCase() !== 'null').map((node) => node.bitmap))];
-  return { modelName, nodes, byName, materialNames };
+  return { modelName, format: 'ASCII MDL', nodes, byName, materialNames };
+}
+
+function parseModel(buffer) {
+  const header = new TextDecoder('ascii').decode(new Uint8Array(buffer, 0, Math.min(16, buffer.byteLength)));
+  return header.startsWith('#MAXMODEL ASCII')
+    ? parseAsciiMdl(header + new TextDecoder('ascii').decode(buffer.slice(16)))
+    : parseBinaryMdl(buffer);
 }
 
 function parseNumberList(value, length, name) {
@@ -260,6 +269,7 @@ function buildObject(parsed, textures) {
     const group = new THREE.Group();
     group.name = node.name;
     group.position.set(node.position[0], node.position[2], -node.position[1]);
+    group.scale.setScalar(node.scale || 1);
     const source = node.orientation;
     const sourceLength = Math.hypot(...source);
     const orientation = sourceLength > 1e-6
@@ -357,7 +367,7 @@ function updateInspector(parsed, filename, textures) {
   document.querySelector('#mesh-count').textContent = meshes.length.toLocaleString();
   document.querySelector('#vertex-count').textContent = vertices.toLocaleString();
   document.querySelector('#face-count').textContent = faces.toLocaleString();
-  document.querySelector('#format-value').textContent = 'ASCII MDL';
+  document.querySelector('#format-value').textContent = parsed.format;
   document.querySelector('#geometry-value').textContent = `${meshes.length} meshes`;
   document.querySelector('#hierarchy-value').textContent = `${parsed.nodes.length} nodes`;
   const list = document.querySelector('#material-list');
@@ -377,5 +387,5 @@ function updateInspector(parsed, filename, textures) {
       list.append(row);
     }
   }
-  document.querySelector('#view-caption').textContent = `${parsed.modelName.toUpperCase()} · ASCII MDL`;
+  document.querySelector('#view-caption').textContent = `${parsed.modelName.toUpperCase()} · ${parsed.format.toUpperCase()}`;
 }
