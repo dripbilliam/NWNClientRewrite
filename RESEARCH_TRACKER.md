@@ -45,7 +45,7 @@ Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeli
 
 Evidence: [First object-render milestone](evidence/first-object-render.md).
 
-Ghidra names applied to the WGL loader, bootstrap-context initializer, and buffer-swap wrapper are backed up locally at `backups/milestone-20261010-wgl-labels-saved/`. The copied project was reopened read-only and the names were verified with `scripts/VerifyRendererLabels.java`.
+Nine reviewed Ghidra names across the WGL loader, bootstrap context, SDL window/HDC, pixel-format, and context activation path are backed up locally at `backups/milestone-20261010-window-context-labels-saved/`. The copied project was reopened read-only and all names were verified with `scripts/VerifyRendererLabels.java`; the pre-edit recovery point is `backups/milestone-20261010-scene-context-pre/`.
 
 ## Later subsystem tracks
 

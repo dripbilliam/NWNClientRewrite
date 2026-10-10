@@ -31,7 +31,7 @@ The strings `wglCreateContext` (`0x140e95548`) and `wglMakeCurrent` (`0x140e9557
 
 `FUN_140af3000` creates a hidden 10x10 Win32 window, obtains its device context, chooses and applies a pixel format, creates and activates a temporary legacy WGL context, and queries `wglGetExtensionsStringARB`. It conditionally resolves WGL extensions including `WGL_ARB_pixel_format` and `WGL_EXT_swap_control`, checks additional context flags, then clears and deletes the temporary context and destroys the window. This is the bootstrap/extension-discovery path.
 
-The normal context path is mapped at the control-flow level. `FUN_140b2e470` installs the WGL callback table, including `LoadOpenGLLibraryAndWGLFunctions` and `SwapWindowBuffers`, then enters `FUN_140af2c10`. That routine creates a context for the actual window HDC, using legacy `wglCreateContext` when the requested configuration permits or resolving `wglCreateContextAttribsARB` for the requested GL version/profile. It then calls `FUN_140af3510`, which activates the HDC/HGLRC pair via the loaded `wglMakeCurrent` pointer and reports failure. Normal window creation/destruction and renderer teardown are still **Open**.
+The normal context path is mapped at the control-flow level. `FUN_140b2e470` installs the WGL callback table, including `LoadOpenGLLibraryAndWGLFunctions` and `SwapWindowBuffers`, then enters `CreateSDLWindowWGLContext` (`0x140af2c10`). That routine creates a context for the actual window HDC, using legacy `wglCreateContext` when the requested configuration permits or resolving `wglCreateContextAttribsARB` for the requested GL version/profile. It then calls `MakeSDLWindowWGLContextCurrent` (`0x140af3510`), which activates the HDC/HGLRC pair via the loaded `wglMakeCurrent` pointer and reports failure. The normal SDL window path runs through `CreateSDLWin32Window` (`0x140aefcb0`), `InitializeSDLWin32WindowData` (`0x140aef960`), and `SetSDLWindowPixelFormat` (`0x140af37f0`). Normal window destruction and renderer teardown are still **Open**.
 
 ### Geometry submission
 
@@ -130,8 +130,14 @@ After the read-only baseline snapshot was verified, three high-confidence Ghidra
 | `0x140af3390` | `LoadOpenGLLibraryAndWGLFunctions` | Loads `SDL_OPENGL_LIBRARY` or `OPENGL32.DLL`; resolves core WGL procedures |
 | `0x140af3000` | `InitializeWGLBootstrapContext` | Creates a hidden bootstrap window/context and probes WGL extensions |
 | `0x140af3a60` | `SwapWindowBuffers` | Direct wrapper around `SwapBuffers` with failure handling |
+| `0x140aefcb0` | `CreateSDLWin32Window` | Creates the sized application HWND and optional parent window |
+| `0x140aef960` | `InitializeSDLWin32WindowData` | Acquires/stores the HWND's HDC and initializes SDL window state |
+| `0x140af37f0` | `SetSDLWindowPixelFormat` | Chooses/applies the primary window pixel format |
+| `0x140af3790` | `InitializeSDLWindowOpenGLContext` | Combines pixel format setup with WGL context creation/activation |
+| `0x140af2c10` | `CreateSDLWindowWGLContext` | Selects legacy or attribs-based context creation |
+| `0x140af3510` | `MakeSDLWindowWGLContextCurrent` | Calls the loaded `wglMakeCurrent` and checks its result |
 
-The saved milestone copy at `backups/milestone-20261010-wgl-labels-saved/` was reopened read-only with analysis disabled. `scripts/VerifyRendererLabels.java` confirmed all three names at their expected addresses. The earlier snapshot was retained as the pre-edit baseline.
+The saved milestone copy at `backups/milestone-20261010-window-context-labels-saved/` was reopened read-only with analysis disabled. `scripts/VerifyRendererLabels.java` confirmed all nine names at their expected addresses. `backups/milestone-20261010-scene-context-pre/` is the preceding recovery point; `backups/milestone-20261010-wgl-labels-saved/` remains the earlier WGL baseline.
 
 ## Follow-up Corrections
 
