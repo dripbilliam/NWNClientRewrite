@@ -35,7 +35,7 @@ Browser validation reported:
 - `dag_obelisk`: 12 base-geometry nodes, 3 meshes, 45 vertices, 76 faces; renders without textures using a bitmap-derived material color
 - No browser console warnings/errors after filtering `bitmap NULL` and constructing valid DataTexture UV matrices
 
-The Electron shell was launched as a separate native window with a styled 1440x960 layout after configuring Vite's production base as relative (`./`). The native window styling was verified from a direct `PrintWindow` capture; its startup position is explicitly on the primary desktop. The user confirmed the native file picker opened; native-window mesh rendering remains the final validation step for this milestone.
+The Electron shell was launched as a separate native window with a styled 1440x960 layout after configuring Vite's production base as relative (`./`). The native window styling was verified from a direct `PrintWindow` capture; its startup position is explicitly on the primary desktop. The user confirmed the native file picker opened, but the first selected file was a binary MDL and was correctly rejected by the current ASCII-only parser. Native-window mesh rendering still needs the extracted ASCII chest sample selected.
 
 The selective extractor `scripts/extract_key_bif_resource.py` parses KEY resource names/type IDs and BIF resource offsets, then writes only the requested payload. `npm audit --omit=dev` reports zero runtime dependency vulnerabilities; the full development dependency tree currently reports six advisories.
 
