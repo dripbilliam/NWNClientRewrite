@@ -50,3 +50,15 @@ py scripts/extract_key_bif_resource.py `
 	"$env:TEMP\plc_creats.tga" `
 	--bif data/textures_02.bif
 ```
+
+For the verified sample, extract one ASCII model and its referenced maps, then select all four files together in the desktop viewer:
+
+```powershell
+$install = (Resolve-Path '..\FullDecomp\NwnRootInstall').Path
+$assets = Join-Path $env:TEMP 'nwn-model-test-assets'
+$key = Join-Path $install 'data\nwn_base.key'
+py scripts/extract_key_bif_resource.py $key $install dag_chest.mdl (Join-Path $assets 'dag_chest.mdl') --bif data/os_models.bif
+py scripts/extract_key_bif_resource.py $key $install plc_creats.tga (Join-Path $assets 'plc_creats.tga') --bif data/textures_02.bif
+py scripts/extract_key_bif_resource.py $key $install plc_flag07.tga (Join-Path $assets 'plc_flag07.tga') --bif data/textures_02.bif
+py scripts/extract_key_bif_resource.py $key $install plc_rck.tga (Join-Path $assets 'plc_rck.tga') --bif data/textures_02.bif
+```
