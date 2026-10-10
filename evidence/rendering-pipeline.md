@@ -23,13 +23,15 @@ Ghidra's import table contains 43 matching OpenGL/WGL and pixel-format procedure
 | `SetPixelFormat` | `EXTERNAL:000001a6` | Win32 pixel-format application |
 | `SwapBuffers` | `EXTERNAL:000001a7` | Win32/OpenGL buffer presentation |
 
-This establishes a native Win32/OpenGL render path. `wglGetProcAddress` makes dynamic GL extension loading a strong lead, but the exact loaded extension set remains **Open** until its caller and lookup strings are traced.
+This establishes a native Win32/OpenGL render path. Dynamic GL extension loading is confirmed below through `wglGetProcAddress` lookups and their loader routines.
 
 ### WGL library and bootstrap context
 
 The strings `wglCreateContext` (`0x140e95548`) and `wglMakeCurrent` (`0x140e95578`) both reference `FUN_140af3390` (`0x140af3390`). Its decompilation reads `SDL_OPENGL_LIBRARY` and defaults to `OPENGL32.DLL`, loads that library, and resolves `wglGetProcAddress`, `wglCreateContext`, `wglDeleteContext`, `wglMakeCurrent`, and `wglShareLists`. It then calls `FUN_140af3000`.
 
-`FUN_140af3000` creates a hidden 10x10 Win32 window, obtains its device context, chooses and applies a pixel format, creates and activates a temporary legacy WGL context, and queries `wglGetExtensionsStringARB`. It conditionally resolves WGL extensions including `WGL_ARB_pixel_format` and `WGL_EXT_swap_control`, checks additional context flags, then clears and deletes the temporary context and destroys the window. This is an observed bootstrap/extension-discovery path; the separate normal application-window/context creation path is still **Open**.
+`FUN_140af3000` creates a hidden 10x10 Win32 window, obtains its device context, chooses and applies a pixel format, creates and activates a temporary legacy WGL context, and queries `wglGetExtensionsStringARB`. It conditionally resolves WGL extensions including `WGL_ARB_pixel_format` and `WGL_EXT_swap_control`, checks additional context flags, then clears and deletes the temporary context and destroys the window. This is the bootstrap/extension-discovery path.
+
+The normal context path is mapped at the control-flow level. `FUN_140b2e470` installs the WGL callback table, including `LoadOpenGLLibraryAndWGLFunctions` and `SwapWindowBuffers`, then enters `FUN_140af2c10`. That routine creates a context for the actual window HDC, using legacy `wglCreateContext` when the requested configuration permits or resolving `wglCreateContextAttribsARB` for the requested GL version/profile. It then calls `FUN_140af3510`, which activates the HDC/HGLRC pair via the loaded `wglMakeCurrent` pointer and reports failure. Normal window creation/destruction and renderer teardown are still **Open**.
 
 ### Geometry submission
 
@@ -48,11 +50,11 @@ The function has callers including `DrawLines`, `RenderBox`, `DrawFromVerts`, `D
 ### World objects, parts, and mesh buckets
 
 - `Gob::Render` at `0x1400a4280` applies a Gob's position/orientation and accumulated scale, then calls `Gob::PartDraw` (`0x1400a3440`) on its root part.
-- `Gob::PartDraw` applies each part's local transform, calls a virtual method at vtable offset `0xc8` (byte offset 200), and recursively visits child parts. The concrete override for a `PartTriMesh` is not yet resolved.
+- `Gob::PartDraw` applies each part's local transform, calls a virtual method at vtable offset `0xc8` (byte offset 200), and recursively visits child parts. RTTI/vtable analysis resolves the `PartTriMesh` override to `PartTriMesh::Draw` at `0x1400a24c0`.
 - `Scene::AddPartsTreeToDrawBuckets` at `0x1400c4620` recursively transforms a part tree. For mesh parts it checks `PartTriMesh::IsPartRenderable`, copies the current model matrix into mesh-associated state, classifies the part by material/opacity/effect state, and queues it with `DrawBucketManager::AddPartToBucket`.
 - `Scene::AddPartsToDrawBuckets` at `0x1400c38f0` resets the bucket manager and walks the global mesh, fade, cap, and static-shadow collections. It filters non-renderable meshes and assigns material/effect-specific buckets.
 - `Scene::RenderDrawBucket` at `0x1400cd210` consumes bucket items, obtains associated `PartTriMesh` and `MdlNodeTriMesh` data, sets model and shader parameters, applies fog/dissolve state, then dispatches a virtual draw operation. Debug bounds/pivots are handled separately.
-- `Scene::Render` at `0x1400cc730` performs scene-level setup and calls `AddPartsToDrawBuckets`. The exact top-level caller/pass order for the buckets is still **Open**.
+- `Scene::Render` at `0x1400cc730` performs scene-level setup and calls `AddPartsToDrawBuckets`; its post-collection virtual dispatch and pass order are detailed below.
 
 This establishes object transforms -> part tree -> `PartTriMesh` collection -> material/effect draw buckets -> virtual mesh draw -> renderer vertex submission as the static data path. The virtual target and the loaded vertex/index-buffer lifecycle remain to be mapped before implementing equivalent object rendering.
 
@@ -73,7 +75,7 @@ The simple flat-material path is now traced:
 
 ### Frame presentation
 
-`SwapBuffers` has a computed call from `FUN_140af3a60` at `0x140af3a6f`. Decompilation of `FUN_140af3a60` shows a small wrapper that calls `SwapBuffers` with an HDC reached through its second argument, then calls an error-reporting function if the Win32 call fails. The higher-level caller/frame loop remains **Open**.
+`SwapBuffers` has a computed call from `FUN_140af3a60` at `0x140af3a6f`. Decompilation of `FUN_140af3a60` shows a small wrapper that calls `SwapBuffers` with an HDC reached through its second argument, then calls an error-reporting function if the Win32 call fails. `FUN_140b2e470` installs this wrapper in the Win32 video-driver callback table. The outer application frame scheduler and exact invocation point of the presentation callback remain **Open**.
 
 The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_140b2e470`, and `FUN_140b2e580`; these are candidate callback/dispatch connections, not yet proof of the main frame loop.
 
@@ -97,7 +99,6 @@ These are bucket insertion rules, not a complete description of each material sh
 - The `Scene` constructor at `0x1400c0ca0` installs the vtable address point `0x140d8dd30`.
 - `Camera::RenderScene` at `0x14005a5d0` dispatches through the attached scene pointer at call site `0x14005b208`, vtable byte offset `+0x18`. The target is the `Scene::Render` entry at `0x140d8dd48` (`0x140d8dd30 + 0x18`), function `0x1400cc730`.
 - `Scene::Render` manages scene BSP/lighting and calls `AddPartsToDrawBuckets` at `0x1400c38f0`; its indirect call at `0x1400ccdc9` uses vtable byte offset `+0x210`.
-- The `Scene` vtable is installed by `Scene::Scene` (`0x1400c0ca0`) at `0x140d8dd30`. Its `Render` slot at `0x140d8dd48` is called from `Camera::RenderScene` at `0x14005b208` through vtable offset `+0x18`.
 - The `Scene` vtable entry at `0x140d8df40` (`0x140d8dd30 + 0x210`) targets `Scene::RenderSinglePass` at `0x1400d0f10`.
 - `RenderSinglePass` initializes the main-scene framebuffer, obtains shadow lights when enabled, calls pre/post scene hooks, and consumes draw buckets in the observed order: `0`, skyboxes, `1`, `7`, dynamic-shadow/projection work, `5`, fade bucket `8`, static-shadow work, `6`, optional wireframe repeats (`0`, `1`, `7`, `8`, `2`, `3`, `5`, `6`), then bucket `4`, framebuffer effects, drawable squares, and optional light-range diagnostics.
 - Individual mesh buckets are consumed by `Scene::RenderDrawBucket` at `0x1400cd210`; this is the route that reaches the already-mapped `PartTriMesh::Draw` and `GLRender::RenderVertexData` path.
@@ -131,3 +132,9 @@ After the read-only baseline snapshot was verified, three high-confidence Ghidra
 | `0x140af3a60` | `SwapWindowBuffers` | Direct wrapper around `SwapBuffers` with failure handling |
 
 The saved milestone copy at `backups/milestone-20261010-wgl-labels-saved/` was reopened read-only with analysis disabled. `scripts/VerifyRendererLabels.java` confirmed all three names at their expected addresses. The earlier snapshot was retained as the pre-edit baseline.
+
+## Follow-up Corrections
+
+These findings supersede the earlier open-status statements in this note. The normal WGL context path is mapped: `FUN_140b2e470` installs the Win32 OpenGL callback table and enters `FUN_140af2c10`; that function creates a context through legacy `wglCreateContext` or `wglCreateContextAttribsARB`, then `FUN_140af3510` activates it with `wglMakeCurrent`. Window creation/destruction and context teardown remain open.
+
+The Scene vtable address point is `0x140d8dd30`, installed by `Scene::Scene` at `0x1400c0ca0`. `Camera::RenderScene` dispatches `Scene::Render` at call site `0x14005b208` through slot `+0x18`. After bucket population, `Scene::Render` dispatches `Scene::RenderSinglePass` at call site `0x1400ccdc9` through slot `+0x210`; that pass consumes world draw buckets before final presentation. The outer application frame scheduler and exact SwapBuffers callback invocation remain open.

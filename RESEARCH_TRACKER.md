@@ -23,11 +23,11 @@
 - [x] Resolve the concrete PartTriMesh virtual draw target and its vertex/index data path.
 - [x] Trace model attributes into GPU buffer upload and indexed draw calls.
 - [x] Trace shader/buffer procedure loading and bitmap-backed mesh materials.
-- [ ] Trace the normal render-context creation path (bootstrap context is mapped; normal path remains open).
+- [x] Trace normal WGL context creation and activation.
 - [x] Trace Camera::RenderScene through Scene::Render into RenderSinglePass.
 - [x] Record the ordered scene bucket/render passes.
-- [ ] Map the outer application frame scheduler, normal context lifecycle, and renderer shutdown.
-- [ ] Inventory dynamically loaded GL extensions and shader/program setup.
+- [ ] Map the outer application frame scheduler, window/context teardown, and renderer shutdown.
+- [ ] Complete the shader source/uniform and remaining extension inventory.
 
 Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeline.md).
 
