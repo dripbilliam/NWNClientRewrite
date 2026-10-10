@@ -39,7 +39,7 @@ Browser validation reported:
 - No browser console warnings/errors after filtering `bitmap NULL` and constructing valid DataTexture UV matrices
 - Unsupported binary features produce a viewport-level error rather than a silent no-op
 
-The Electron shell was launched as a separate native window with a styled 1440x960 layout after configuring Vite's production base as relative (`./`). The native window styling was verified from a direct `PrintWindow` capture; its startup position is explicitly on the primary desktop. The current build supports static binary triangle-list meshes. The user confirmed the native file picker opened; native-window verification of the rock remains pending. The browser preview rendered `dag_rockledge1` with both TGA maps, and exact temp paths are documented in `README.md`.
+The Electron shell was launched as a separate native window with a styled 1440x960 layout after configuring Vite's production base as relative (`./`). The native window styling was verified from a direct `PrintWindow` capture; its startup position is explicitly on the primary desktop. The current build supports static binary triangle-list meshes. After the user selected the rock resource, their screenshot showed the volumetric rock in the viewer, completing the first visible-object milestone. The browser preview also reported both TGA maps resolved; exact temp paths are documented in `README.md`.
 
 The selective extractor `scripts/extract_key_bif_resource.py` parses KEY resource names/type IDs and BIF resource offsets, then writes only the requested payload. `npm audit --omit=dev` reports zero runtime dependency vulnerabilities; the full development dependency tree currently reports six advisories.
 

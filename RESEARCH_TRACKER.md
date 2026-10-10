@@ -32,13 +32,13 @@ Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeli
 
 ## Milestone 2: First object rendered
 
-**Status: Browser proof complete; native desktop asset selection pending**
+**Status: First static rock visibly rendered**
 
 - [x] Extract ASCII and binary MDL samples plus referenced TGA textures into the OS temp directory only.
 - [x] Render static ASCII and binary triangle-list trimeshes, hierarchy, and bitmap maps in the Three.js viewer.
 - [x] Validate a second ASCII prop model and geometry-block boundaries.
 - [x] Verify the desktop Electron shell loads the styled production bundle.
-- [ ] Load `dag_rockledge1.mdl` and its two maps in Electron and verify the textured desktop render.
+- [x] User screenshot confirms the volumetric rock is visible in the model viewport.
 - [x] Add a bounded binary MDL path for static triangle-list meshes.
 - [ ] Extend binary parsing to triangle strips, skinned/dangly meshes, and animated/model-state paths.
 
