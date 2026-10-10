@@ -38,7 +38,7 @@ npm install
 npm start
 ```
 
-Use **Open Assets** to choose one ASCII `.mdl` and any matching `.tga` bitmaps together. The viewer currently supports static trimesh nodes, parent transforms, face UVs, and local TGA textures. Binary MDL encodings, skin animation, emitters, and dynamic game state are not implemented.
+Use **Open Assets** to choose one ASCII or supported static binary `.mdl` and its matching `.tga` bitmaps together. The viewer handles static triangle-list meshes, node transforms, UVs, and local TGA textures. Skinning, animation, dangly meshes, triangle strips, emitters, and dynamic game state remain unsupported.
 
 To extract one named resource from the existing installation without unpacking an archive into this repository:
 
@@ -51,14 +51,13 @@ py scripts/extract_key_bif_resource.py `
 	--bif data/textures_02.bif
 ```
 
-For the verified sample, extract one ASCII model and its referenced maps, then select all four files together in the desktop viewer:
+For the volumetric rock sample, extract `dag_rockledge1.mdl` and its two referenced maps, then select all three files together in the desktop viewer:
 
 ```powershell
 $install = (Resolve-Path '..\FullDecomp\NwnRootInstall').Path
 $assets = Join-Path $env:TEMP 'nwn-model-test-assets'
 $key = Join-Path $install 'data\nwn_base.key'
-py scripts/extract_key_bif_resource.py $key $install dag_chest.mdl (Join-Path $assets 'dag_chest.mdl') --bif data/os_models.bif
-py scripts/extract_key_bif_resource.py $key $install plc_creats.tga (Join-Path $assets 'plc_creats.tga') --bif data/textures_02.bif
-py scripts/extract_key_bif_resource.py $key $install plc_flag07.tga (Join-Path $assets 'plc_flag07.tga') --bif data/textures_02.bif
-py scripts/extract_key_bif_resource.py $key $install plc_rck.tga (Join-Path $assets 'plc_rck.tga') --bif data/textures_02.bif
+py scripts/extract_key_bif_resource.py $key $install dag_rockledge1.mdl (Join-Path $assets 'dag_rockledge1.mdl') --bif data/os_models.bif
+py scripts/extract_key_bif_resource.py $key $install ttu01_rock02.tga (Join-Path $assets 'ttu01_rock02.tga') --bif data/xp2_tiles.bif
+py scripts/extract_key_bif_resource.py $key $install ttu01_moss.tga (Join-Path $assets 'ttu01_moss.tga') --bif data/xp2_tiles.bif
 ```

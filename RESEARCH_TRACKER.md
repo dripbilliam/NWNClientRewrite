@@ -34,12 +34,13 @@ Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeli
 
 **Status: Browser proof complete; native desktop asset selection pending**
 
-- [x] Extract one ASCII MDL and its referenced TGA textures into the OS temp directory only.
-- [x] Render the model's static trimesh nodes, hierarchy, and bitmap maps in the Three.js viewer.
+- [x] Extract ASCII and binary MDL samples plus referenced TGA textures into the OS temp directory only.
+- [x] Render static ASCII and binary triangle-list trimeshes, hierarchy, and bitmap maps in the Three.js viewer.
 - [x] Validate a second ASCII prop model and geometry-block boundaries.
 - [x] Verify the desktop Electron shell loads the styled production bundle.
-- [ ] Load the test model in the Electron window and verify the textured desktop render.
-- [ ] Extend the parser to binary MDL and animated/model-state paths.
+- [ ] Load `dag_rockledge1.mdl` and its two maps in Electron and verify the textured desktop render.
+- [x] Add a bounded binary MDL path for static triangle-list meshes.
+- [ ] Extend binary parsing to triangle strips, skinned/dangly meshes, and animated/model-state paths.
 
 Evidence: [First object-render milestone](evidence/first-object-render.md).
 
