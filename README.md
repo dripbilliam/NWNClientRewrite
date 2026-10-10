@@ -25,3 +25,5 @@ The executable and Ghidra project are shared research inputs in the original `Fu
 - [Initial Windows executable inventory](evidence/binary-inventory.md)
 - [Research tracker](RESEARCH_TRACKER.md)
 - [Initial OpenGL render-path findings](evidence/rendering-pipeline.md)
+
+Ghidra label persistence is checked by [VerifyRendererLabels.java](scripts/VerifyRendererLabels.java). Local snapshots under `backups/` are excluded from Git.

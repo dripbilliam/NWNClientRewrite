@@ -19,12 +19,16 @@
 - [x] Trace WGL library loading and bootstrap-context setup.
 - [x] Find a concrete geometry-submission function and inspect its decompilation.
 - [x] Find the imported frame-present call and inspect its direct caller.
+- [x] Trace object transforms into mesh collection and draw-bucket dispatch.
+- [ ] Resolve the concrete PartTriMesh virtual draw target and its vertex/index data path.
 - [ ] Trace the normal render-context creation path (bootstrap context is mapped; normal path remains open).
 - [ ] Trace callers above low-level geometry submission to scene/world draw orchestration.
 - [ ] Map renderer initialization, frame loop, and shutdown paths.
 - [ ] Inventory dynamically loaded GL extensions and shader/program setup.
 
 Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeline.md).
+
+Ghidra names applied to the WGL loader, bootstrap-context initializer, and buffer-swap wrapper are backed up locally at `backups/milestone-20261010-wgl-labels-saved/`. The copied project was reopened read-only and the names were verified with `scripts/VerifyRendererLabels.java`.
 
 ## Later subsystem tracks
 

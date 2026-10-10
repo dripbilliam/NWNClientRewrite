@@ -45,6 +45,17 @@ The decompilation shows this routine:
 
 The function has callers including `DrawLines`, `RenderBox`, `DrawFromVerts`, `DrawBoundingBox`, and `RenderDrawableSquares`. It is a low-level geometry helper used by multiple rendering/UI/effect paths; this alone does not identify the main world-scene traversal.
 
+### World objects, parts, and mesh buckets
+
+- `Gob::Render` at `0x1400a4280` applies a Gob's position/orientation and accumulated scale, then calls `Gob::PartDraw` (`0x1400a3440`) on its root part.
+- `Gob::PartDraw` applies each part's local transform, calls a virtual method at vtable offset `0xc8` (byte offset 200), and recursively visits child parts. The concrete override for a `PartTriMesh` is not yet resolved.
+- `Scene::AddPartsTreeToDrawBuckets` at `0x1400c4620` recursively transforms a part tree. For mesh parts it checks `PartTriMesh::IsPartRenderable`, copies the current model matrix into mesh-associated state, classifies the part by material/opacity/effect state, and queues it with `DrawBucketManager::AddPartToBucket`.
+- `Scene::AddPartsToDrawBuckets` at `0x1400c38f0` resets the bucket manager and walks the global mesh, fade, cap, and static-shadow collections. It filters non-renderable meshes and assigns material/effect-specific buckets.
+- `Scene::RenderDrawBucket` at `0x1400cd210` consumes bucket items, obtains associated `PartTriMesh` and `MdlNodeTriMesh` data, sets model and shader parameters, applies fog/dissolve state, then dispatches a virtual draw operation. Debug bounds/pivots are handled separately.
+- `Scene::Render` at `0x1400cc730` performs scene-level setup and calls `AddPartsToDrawBuckets`. The exact top-level caller/pass order for the buckets is still **Open**.
+
+This establishes object transforms -> part tree -> `PartTriMesh` collection -> material/effect draw buckets -> virtual mesh draw -> renderer vertex submission as the static data path. The virtual target and the loaded vertex/index-buffer lifecycle remain to be mapped before implementing equivalent object rendering.
+
 ### Frame presentation
 
 `SwapBuffers` has a computed call from `FUN_140af3a60` at `0x140af3a6f`. Decompilation of `FUN_140af3a60` shows a small wrapper that calls `SwapBuffers` with an HDC reached through its second argument, then calls an error-reporting function if the Win32 call fails. The higher-level caller/frame loop remains **Open**.
@@ -68,3 +79,13 @@ The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_
 ## Reproduction
 
 The existing helper is `../FullDecomp/tooling/NWN-Ghidra.ps1`. `Status` confirmed the Ghidra process and MCP endpoint were online during this inspection. Relevant HTTP bridge reads were `/imports`, `/xrefs_to`, `/function_xrefs`, and `/decompile`; no mutating endpoint was used.
+
+After the read-only baseline snapshot was verified, three high-confidence Ghidra labels were applied and read back:
+
+| Address | Label | Basis |
+|---|---|---|
+| `0x140af3390` | `LoadOpenGLLibraryAndWGLFunctions` | Loads `SDL_OPENGL_LIBRARY` or `OPENGL32.DLL`; resolves core WGL procedures |
+| `0x140af3000` | `InitializeWGLBootstrapContext` | Creates a hidden bootstrap window/context and probes WGL extensions |
+| `0x140af3a60` | `SwapWindowBuffers` | Direct wrapper around `SwapBuffers` with failure handling |
+
+The saved milestone copy at `backups/milestone-20261010-wgl-labels-saved/` was reopened read-only with analysis disabled. `scripts/VerifyRendererLabels.java` confirmed all three names at their expected addresses. The earlier snapshot was retained as the pre-edit baseline.
