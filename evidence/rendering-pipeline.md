@@ -79,6 +79,14 @@ The simple flat-material path is now traced:
 
 The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_140b2e470`, and `FUN_140b2e580`; these are candidate callback/dispatch connections, not yet proof of the main frame loop.
 
+### Outer client frame loop and presentation
+
+- `SDL_main` at `0x140046340` initializes SDL, creates the `Neverwinter Nights` window and GL context, then enters `while (g_bExitProgram == 0)`. Its call to `Update(nullptr)` is at `0x140046dc4`. On exit it calls `RenderInterface::Shutdown(1)`, destroys the server and app-manager components, and calls `SDL_Quit` when SDL video remains initialized.
+- `Update` at `0x1400448b0` drains `SDL_PollEvent` through `WinMessageHandler`, handles Aurora reinitialization and frame limiting, then calls the client-app manager wrapper `FUN_1406ac470` at `0x140044de5`. That wrapper forwards to `FUN_1406db800` at `0x1406ac474`; the client worker updates world-time snapshots and delta time, updates resources, calls `AurMakeCurrent`, processes network/client state, and calls `CGuiMan::UpdateAndRender` (`0x1401f70e0`).
+- `Update` calls the separate `CServerExoApp::MainLoop` wrapper at `0x140044e09`. The wrapper calls `CServerExoAppInternal::MainLoop` at call site `0x14055bcb4` (entry `0x140567380`). The internal loop is server/network/simulation work (`CNetLayer`, `CServerAIMaster`, `UpdateClientGameObjects`, resource/config updates), not the client frame scheduler.
+- After those updates, `Update` calls `BeginScene` at `0x140044eb6`, draws posted strings through `AurRenderStrings`, calls `EndScene` at `0x14004509a`, and presents through `SwapBuffers(g_pWindow)` at `0x1400450a6`. The post-present app-manager helper call is at `0x1400450c8`.
+- `Camera::RenderScene` at `0x14005a5d0` is independently confirmed to dispatch `Scene::Render` at call site `0x14005b208`, and the scene pass chain is mapped above. The dispatch that invokes `Camera::RenderScene` from the client frame worker is still **Open**: the inspected client worker has no direct call to it, so a virtual/callback path remains to be identified. The renderer abstraction's `SwapBuffers` call is connected to the outer frame, but the complete dispatch from that abstraction to the installed Win32/WGL callback is also **Open**.
+
 ### Scene bucket categories
 
 Observed in `Scene::AddPartsToDrawBuckets` (`0x1400c38f0`) and `Scene::AddPartsTreeToDrawBuckets` (`0x1400c4620`):
@@ -113,9 +121,9 @@ This establishes a per-scene camera -> Scene::Render -> collect parts -> RenderS
 
 ## Next probes
 
-1. Trace the normal application-window/context creation path and distinguish it from the mapped hidden bootstrap context.
-2. Trace callers of `FUN_140af3a60` to identify frame presentation and the main loop boundary.
-3. Trace which scene passes consume each material/shadow bucket and connect `Camera::RenderScene` to the main world frame loop.
+1. Map normal window/context destruction and GL resource teardown.
+2. Trace the renderer abstraction's `SwapBuffers` dispatch to the installed Win32/WGL callback.
+3. Identify the virtual/callback path from the client frame worker to `Camera::RenderScene`, then connect it to the scene bucket passes.
 4. Map shader source selection, uniform setup, texture upload/sampler semantics, and the remaining environment/shadow rendering branches.
 5. Reconcile ASCII and binary MDL variants, animation/skinning, and dynamic object state with the viewer's bounded static implementation.
 
@@ -143,4 +151,4 @@ The saved milestone copy at `backups/milestone-20261010-window-context-labels-sa
 
 These findings supersede the earlier open-status statements in this note. The normal WGL context path is mapped: `FUN_140b2e470` installs the Win32 OpenGL callback table and enters `FUN_140af2c10`; that function creates a context through legacy `wglCreateContext` or `wglCreateContextAttribsARB`, then `FUN_140af3510` activates it with `wglMakeCurrent`. Window creation/destruction and context teardown remain open.
 
-The Scene vtable address point is `0x140d8dd30`, installed by `Scene::Scene` at `0x1400c0ca0`. `Camera::RenderScene` dispatches `Scene::Render` at call site `0x14005b208` through slot `+0x18`. After bucket population, `Scene::Render` dispatches `Scene::RenderSinglePass` at call site `0x1400ccdc9` through slot `+0x210`; that pass consumes world draw buckets before final presentation. The outer application frame scheduler and exact SwapBuffers callback invocation remain open.
+The Scene vtable address point is `0x140d8dd30`, installed by `Scene::Scene` at `0x1400c0ca0`. `Camera::RenderScene` dispatches `Scene::Render` at call site `0x14005b208` through slot `+0x18`. After bucket population, `Scene::Render` dispatches `Scene::RenderSinglePass` at call site `0x1400ccdc9` through slot `+0x210`; that pass consumes world draw buckets before final presentation. The outer scheduler is now mapped from `SDL_main` through `Update` to the overlay `SwapBuffers` call. The client-worker-to-camera dispatch, callback-to-WGL presentation dispatch, and normal window/context teardown remain open.
