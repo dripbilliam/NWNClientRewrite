@@ -77,11 +77,27 @@ The simple flat-material path is now traced:
 
 The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_140b2e470`, and `FUN_140b2e580`; these are candidate callback/dispatch connections, not yet proof of the main frame loop.
 
+### Scene bucket categories
+
+Observed in `Scene::AddPartsToDrawBuckets` (`0x1400c38f0`) and `Scene::AddPartsTreeToDrawBuckets` (`0x1400c4620`):
+
+| Bucket ID | Direct classification evidence |
+|---:|---|
+| 0 / 1 | Global mesh path separates the ordinary opaque/default case from its alternate opacity case |
+| 2 / 3 | Recursive part-tree path separates opaque from non-opaque parts |
+| 4 / 5 / 6 | Material/effect-specific branches; bucket 6 includes bumpy-shiny or a related material effect path |
+| 7 | Cap-mesh collection |
+| 8 | Fade-mesh collection |
+| 9 / 10 | Static-shadow collection; selected according to the shadow flip-order state |
+
+These are bucket insertion rules, not a complete description of each material shader. Keep labels such as “opaque” for 0/1 and 2/3 as **inferred** from `GetIsOpaque` branches until every `DrawBucketManager` consumer is reviewed.
+
 ### Camera-to-scene frame dispatch and pass order
 
 - The `Scene` constructor at `0x1400c0ca0` installs the vtable address point `0x140d8dd30`.
 - `Camera::RenderScene` at `0x14005a5d0` dispatches through the attached scene pointer at call site `0x14005b208`, vtable byte offset `+0x18`. The target is the `Scene::Render` entry at `0x140d8dd48` (`0x140d8dd30 + 0x18`), function `0x1400cc730`.
 - `Scene::Render` manages scene BSP/lighting and calls `AddPartsToDrawBuckets` at `0x1400c38f0`; its indirect call at `0x1400ccdc9` uses vtable byte offset `+0x210`.
+- The `Scene` vtable is installed by `Scene::Scene` (`0x1400c0ca0`) at `0x140d8dd30`. Its `Render` slot at `0x140d8dd48` is called from `Camera::RenderScene` at `0x14005b208` through vtable offset `+0x18`.
 - The `Scene` vtable entry at `0x140d8df40` (`0x140d8dd30 + 0x210`) targets `Scene::RenderSinglePass` at `0x1400d0f10`.
 - `RenderSinglePass` initializes the main-scene framebuffer, obtains shadow lights when enabled, calls pre/post scene hooks, and consumes draw buckets in the observed order: `0`, skyboxes, `1`, `7`, dynamic-shadow/projection work, `5`, fade bucket `8`, static-shadow work, `6`, optional wireframe repeats (`0`, `1`, `7`, `8`, `2`, `3`, `5`, `6`), then bucket `4`, framebuffer effects, drawable squares, and optional light-range diagnostics.
 - Individual mesh buckets are consumed by `Scene::RenderDrawBucket` at `0x1400cd210`; this is the route that reaches the already-mapped `PartTriMesh::Draw` and `GLRender::RenderVertexData` path.
