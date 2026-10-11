@@ -30,7 +30,7 @@
 - [x] Map the SDL_main application loop, per-frame Update ordering, overlay pass, and renderer shutdown call.
 - [ ] Connect the client frame worker to Camera::RenderScene and trace the presentation callback to WGL.
 - [ ] Map normal window/context teardown.
-- [ ] Decode shader ID/feature-bit semantics, exact stock source pairings, custom material parameters, and the remaining extension inventory.
+- [ ] Decode shader ID/feature-bit semantics, exact stock source pairings, material-level parameter names/types, and the remaining extension inventory.
 
 Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeline.md).
 
