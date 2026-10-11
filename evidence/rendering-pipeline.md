@@ -86,6 +86,15 @@ The simple flat-material path is now traced:
 
 These findings are from Ghidra decompilation and reference/disassembly queries against NWN:EE `89.8193.37-17` in the existing Ghidra 11.3.2 project. No Ghidra database edits were made for this shader pass.
 
+### Skinned mesh draw path
+
+- `PartSkin::Draw` (`0x1400deb40`) checks `PartTriMesh::IsPartRenderable`, performs the part draw setup, retrieves its `VertexPrimitiveSkinned`, and calls `RenderSkinned` at `0x1400deb7c`.
+- `RenderSkinned` (`0x1400e0410`) gathers the part hierarchy's bone transforms with `GatherBones` (`0x1400df000`) and calls `ExecuteSkinGPU` at `0x1400e0636`. The inspected `GatherBones` code accumulates positions and quaternions recursively through child parts.
+- `ExecuteSkinGPU` (`0x1400deb90`) processes at most 64 bone slots, composes a transform per available bone, and calls `RenderInterface::SetBoneMatrix` at `0x1400dee43`. The renderer implementation (`0x1400b6950`) rejects indices above 63, transposes each matrix, and stores it in the renderer's bone array. Shader reflection resolves `skinmesh` and `m_bones[0..63]`, matching the 64-bone compile limit.
+- After enabling render state `0x15`, `ExecuteSkinGPU` selects the normal `RenderFlat` or `RenderEnvironmentMapped` path according to material/environment-map state. The evidence supports vertex-shader skinning through bone uniforms, not a compute-shader pass. State bit `0x15`'s semantic name remains **Open**.
+
+This maps the engine path only; the Electron viewer's bounded binary MDL parser still does not support skin weights, bone hierarchies, animation, or skinned draw state.
+
 ### Frame presentation
 
 `SwapBuffers` has a computed call from `FUN_140af3a60` at `0x140af3a6f`. Decompilation of `FUN_140af3a60` shows a small wrapper that calls `SwapBuffers` with an HDC reached through its second argument, then calls an error-reporting function if the Win32 call fails. `FUN_140b2e470` installs this wrapper in the Win32 video-driver callback table. The outer application frame scheduler and exact invocation point of the presentation callback remain **Open**.
@@ -99,6 +108,7 @@ The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_
 - `Update` calls the separate `CServerExoApp::MainLoop` wrapper at `0x140044e09`. The wrapper calls `CServerExoAppInternal::MainLoop` at call site `0x14055bcb4` (entry `0x140567380`). The internal loop is server/network/simulation work (`CNetLayer`, `CServerAIMaster`, `UpdateClientGameObjects`, resource/config updates), not the client frame scheduler.
 - After those updates, `Update` calls `BeginScene` at `0x140044eb6`, draws posted strings through `AurRenderStrings`, calls `EndScene` at `0x14004509a`, and presents through `SwapBuffers(g_pWindow)` at `0x1400450a6`. The post-present app-manager helper call is at `0x1400450c8`.
 - `Camera::RenderScene` at `0x14005a5d0` is independently confirmed to dispatch `Scene::Render` at call site `0x14005b208`, and the scene pass chain is mapped above. The dispatch that invokes `Camera::RenderScene` from the client frame worker is still **Open**: the inspected client worker has no direct call to it, so a virtual/callback path remains to be identified. The renderer abstraction's `SwapBuffers` call is connected to the outer frame, but the complete dispatch from that abstraction to the installed Win32/WGL callback is also **Open**.
+- The confirmed `NewCAurCamera` (`0x140059f70`) consumers include `CSceneView::CSceneView` (`0x1401f37f0`) and `CGuiPanel::CreateSceneView` (`0x1401fc230`), which create a paired `CAurScene`/`CAurCamera` for GUI scene views. `CGuiPanel::RenderSceneViewFirst` (`0x1401fc940`) and `RenderSceneViewLast` (`0x1401fc9b0`) only reorder the GUI manager's scene-view list. This establishes a GUI camera path, not the live-world camera owner. Another xref to `NewCAurCamera` exists at `0x1407cd3b9`, but Ghidra finds no containing function there, so its owner and role are **Open**.
 
 ### Scene bucket categories
 

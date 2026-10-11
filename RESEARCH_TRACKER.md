@@ -24,6 +24,7 @@
 - [x] Trace model attributes into GPU buffer upload and indexed draw calls.
 - [x] Trace shader/buffer procedure loading and bitmap-backed mesh materials.
 - [x] Map stock shader reload, source loading, attribute-based selection, and uniform upload paths.
+- [x] Trace PartSkin through bone gathering, 64-slot matrix upload, and the skinned vertex-shader draw path.
 - [x] Trace normal WGL context creation and activation.
 - [x] Trace Camera::RenderScene through Scene::Render into RenderSinglePass.
 - [x] Record the ordered scene bucket/render passes.
