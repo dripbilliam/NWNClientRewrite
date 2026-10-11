@@ -99,9 +99,9 @@ The viewer now parses the `0xC0` skin extension, per-vertex weight/index streams
 
 ### Frame presentation
 
-`SwapBuffers` has a computed call from `FUN_140af3a60` at `0x140af3a6f`. Decompilation of `FUN_140af3a60` shows a small wrapper that calls `SwapBuffers` with an HDC reached through its second argument, then calls an error-reporting function if the Win32 call fails. `FUN_140b2e470` installs this wrapper in the Win32 video-driver callback table. The outer scheduler's instruction-level presentation call is mapped (`Update` calls `RenderInterface::SwapBuffers` at `0x1400450a6`); dispatch from that abstraction to the installed Win32 callback remains **Open**.
+`SwapBuffers` has a computed call from `FUN_140af3a60` at `0x140af3a6f`. Decompilation shows that this WGL wrapper passes the SDL window HDC to Win32 `SwapBuffers`; `FUN_140b2e470` installs it in the Windows video-device callback slot at `+0x190`. The frame call at `0x1400450a6` now traces through `RenderInterface::SwapBuffers` (`0x1400bf390`) to `GLRender::SwapBuffers` (`0x1400bb640`, SDL call site `0x1400bb79a`), the SDL DYNAPI thunk `SDL_GL_SwapWindow` (`0x140ab16b0`), its implementation `FUN_140ad0ed0` (`+0x190` dispatch at `0x140ad0f4a`), and `SwapWindowBuffers` (`0x140af3a60`) to Win32 `SwapBuffers`. SDL video initialization selects the Windows device and sets the active-device pointer in `FUN_140ad4c60` (`0x140ad4dc7`); `FUN_140ab9cf0` builds its callback table. The presentation tail is mapped; normal window/context teardown remains **Open**.
 
-The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_140b2e470`, and `FUN_140b2e580`; these are candidate callback/dispatch connections, not yet proof of the main frame loop.
+The code references confirm the SDL DYNAPI pointer, active video-device selection, and Windows callback-table registration described above; the SDL implementation itself performs the indirect `+0x190` callback dispatch.
 
 ### Outer client frame loop and presentation
 
@@ -110,7 +110,7 @@ The function-reference query returns data references from `FUN_140ab9cf0`, `FUN_
 - `Update` calls the separate `CServerExoApp::MainLoop` wrapper at `0x140044e09`. The wrapper calls `CServerExoAppInternal::MainLoop` at call site `0x14055bcb4` (entry `0x140567380`). The internal loop is server/network/simulation work (`CNetLayer`, `CServerAIMaster`, `UpdateClientGameObjects`, resource/config updates), not the client frame scheduler.
 - After those updates, `Update` calls `BeginScene` at `0x140044eb6`, draws posted strings through `AurRenderStrings`, calls `EndScene` at `0x14004509a`, and presents through `SwapBuffers(g_pWindow)` at `0x1400450a6`. The post-present app-manager helper call is at `0x1400450c8`.
 - `FUN_1406db800` calls `CGuiMan::UpdateAndRender` at `0x1406dc26a` (also called by `UpdateScreen` at `0x1400452e4`). The manager iterates its `CSceneView` list at `this + 0x18`: `Scene::Animate` is dispatched through each view's first field at `0x1401f7491`, then its camera field at `CSceneView + 8` invokes Camera vtable slot `+0x10` at `0x1401f75df`. That slot is `Camera::RenderScene` (`0x14005a5d0`), which dispatches `Scene::Render` at `0x14005b208`; the scene pass chain is mapped above. This closes the client worker-to-scene-render handoff. Which registered `CSceneView` is the live gameplay view remains **Open**; confirmed GUI callers include character/model preview panels.
-- The renderer abstraction's `SwapBuffers` call is connected to the outer frame, but dispatch from that abstraction to the installed Win32/WGL callback remains **Open**.
+- The renderer abstraction's `SwapBuffers` call is connected to the outer frame and to the installed Win32/WGL callback through SDL's active video-device function table, as detailed above.
 - The confirmed `NewCAurCamera` (`0x140059f70`) consumers include `CSceneView::CSceneView` (`0x1401f37f0`) and `CGuiPanel::CreateSceneView` (`0x1401fc230`), which create a paired `CAurScene`/`CAurCamera` for GUI scene views. `CGuiPanel::RenderSceneViewFirst` (`0x1401fc940`) and `RenderSceneViewLast` (`0x1401fc9b0`) only reorder the GUI manager's scene-view list. This establishes a GUI camera path, not the live-world camera owner. Another xref to `NewCAurCamera` exists at `0x1407cd3b9`, but Ghidra finds no containing function there, so its owner and role are **Open**.
 
 ### Scene bucket categories
@@ -176,6 +176,8 @@ After the read-only baseline snapshot was verified, three high-confidence Ghidra
 The saved milestone copy at `backups/milestone-20261010-window-context-labels-saved/` was reopened read-only with analysis disabled. `scripts/VerifyRendererLabels.java` confirmed all nine names at their expected addresses. `backups/milestone-20261010-scene-context-pre/` is the preceding recovery point; `backups/milestone-20261010-wgl-labels-saved/` remains the earlier WGL baseline.
 
 ## Follow-up Corrections
+**Current status (supersedes older open-status statements below):** the SDL_main frame scheduler, client `CSceneView` camera dispatch, scene render passes, and SDL-to-WGL presentation chain are mapped. Remaining render-path gaps are identifying the live gameplay `CSceneView` and mapping normal window/context teardown.
+
 The later client-frame trace supersedes the earlier statement that the client-worker-to-camera handoff is open: `FUN_1406db800` calls `CGuiMan::UpdateAndRender` at `0x1406dc26a`; its `CSceneView` loop calls `Scene::Animate` at `0x1401f7491` and the camera's `RenderScene` vtable slot at `0x1401f75df`. That reaches `Camera::RenderScene` -> `Scene::Render` -> `RenderSinglePass`. The registered view's identity as the live gameplay viewport remains **Open**.
 
 
