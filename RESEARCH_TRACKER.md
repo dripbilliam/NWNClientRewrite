@@ -23,13 +23,14 @@
 - [x] Resolve the concrete PartTriMesh virtual draw target and its vertex/index data path.
 - [x] Trace model attributes into GPU buffer upload and indexed draw calls.
 - [x] Trace shader/buffer procedure loading and bitmap-backed mesh materials.
+- [x] Map stock shader reload, source loading, attribute-based selection, and uniform upload paths.
 - [x] Trace normal WGL context creation and activation.
 - [x] Trace Camera::RenderScene through Scene::Render into RenderSinglePass.
 - [x] Record the ordered scene bucket/render passes.
 - [x] Map the SDL_main application loop, per-frame Update ordering, overlay pass, and renderer shutdown call.
 - [ ] Connect the client frame worker to Camera::RenderScene and trace the presentation callback to WGL.
 - [ ] Map normal window/context teardown.
-- [ ] Complete the shader source/uniform and remaining extension inventory.
+- [ ] Decode shader ID/feature-bit semantics, exact stock source pairings, custom material parameters, and the remaining extension inventory.
 
 Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeline.md).
 
