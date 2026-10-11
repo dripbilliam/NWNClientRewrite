@@ -30,7 +30,8 @@
 - [x] Trace Camera::RenderScene through Scene::Render into RenderSinglePass.
 - [x] Record the ordered scene bucket/render passes.
 - [x] Map the SDL_main application loop, per-frame Update ordering, overlay pass, and renderer shutdown call.
-- [ ] Connect the client frame worker to Camera::RenderScene and trace the presentation callback to WGL.
+- [x] Connect the client frame worker through CGuiMan/CSceneView to Camera::RenderScene, Scene::Render, and RenderSinglePass.
+- [ ] Identify the live gameplay CSceneView and trace the presentation callback from RenderInterface to WGL.
 - [ ] Map normal window/context teardown.
 - [ ] Decode shader ID/feature-bit semantics, exact stock source pairings, material-level parameter names/types, and the remaining extension inventory.
 
