@@ -43,6 +43,14 @@ The Electron shell was launched as a separate native window with a styled 1440x9
 
 The selective extractor `scripts/extract_key_bif_resource.py` parses KEY resource names/type IDs and BIF resource offsets, then writes only the requested payload. `npm audit --omit=dev` reports zero runtime dependency vulnerabilities; the full development dependency tree currently reports six advisories.
 
+## Static skin-block preview
+
+`c_magetail.mdl` from `data/models_01.bif` is a 64,862-byte specimen with five nodes. Its `Lizwiz_tail` node has flags `0x61` (mesh plus skin) and 140 vertices/64 faces. The skin extension starts immediately after the existing mesh block; the shared xoreos NWN reader independently skips `0x64` bytes for this node flag, matching the specimen boundary.
+
+The binary reader now bounds-checks and skips that fixed block, marks the node as skinned, and renders its stored vertex positions without applying weights or animation. The viewer reports `STATIC SKIN PREVIEW` and displays that limitation in the inspector. A fresh Playwright capture showed the model; the UI reported five nodes, four meshes, 212 total vertices, and 100 faces. `dag_rockledge1.mdl` was re-parsed afterward with unchanged counts (10 nodes, 9 meshes, 1,347 vertices, 419 faces).
+
+This is not skin-weight decoding or skeletal deformation. The `weights`, quaternion, vector, and bone-index data remain unsupported, as do animated pose evaluation and triangle strips/dangly meshes.
+
 ## Limits and next work
 
 This proves representative static ASCII and binary triangle-list models can be rendered independently; it does not prove full NWNee visual equivalence. Missing parts include triangle strips, skinning/animation, dangly meshes, emitters/effects, lighting/material semantics beyond supplied TGA maps, dynamic scene state, and EE-only resource variations. Continue validating binary offsets and transforms against more assets and map the Ghidra texture/shader path before making stronger compatibility claims.

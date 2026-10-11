@@ -69,7 +69,7 @@ fileInput.addEventListener('change', async (event) => {
   const files = [...(event.target.files || [])];
   const file = files.find((item) => item.name.toLowerCase().endsWith('.mdl'));
   if (!file) {
-    setStatus('SELECT AN ASCII MDL', false);
+    setStatus('SELECT AN MDL FILE', false);
     return;
   }
   try {
@@ -95,7 +95,7 @@ fileInput.addEventListener('change', async (event) => {
     frameObject(object);
     updateInspector(parsed, file.name, textures);
     emptyState.classList.add('hidden');
-    setStatus('MODEL RENDERED', true);
+    setStatus(parsed.hasSkinnedMeshes ? 'STATIC SKIN PREVIEW' : 'MODEL RENDERED', true);
   } catch (error) {
     console.error(error);
     emptyState.querySelector('strong').textContent = 'Model could not be loaded';
@@ -370,6 +370,9 @@ function updateInspector(parsed, filename, textures) {
   document.querySelector('#format-value').textContent = parsed.format;
   document.querySelector('#geometry-value').textContent = `${meshes.length} meshes`;
   document.querySelector('#hierarchy-value').textContent = `${parsed.nodes.length} nodes`;
+  document.querySelector('#inspector-note').textContent = parsed.hasSkinnedMeshes
+    ? 'Skinned geometry uses stored base vertices; bone weights and animation are not applied. Matching TGA files load as bitmap textures.'
+    : 'Animation and dangly-mesh behavior are not applied. Matching TGA files load as bitmap textures.';
   const list = document.querySelector('#material-list');
   list.replaceChildren();
   if (parsed.materialNames.length === 0) {

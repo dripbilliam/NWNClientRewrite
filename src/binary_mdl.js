@@ -59,6 +59,7 @@ export function parseBinaryMdl(buffer) {
       orientation: [0, 0, 0, 1],
       scale: 1,
       bitmap: '',
+      skinned: false,
       verts: [],
       tverts: [],
       faces: []
@@ -70,7 +71,10 @@ export function parseBinaryMdl(buffer) {
     if (flags & FLAG_HAS_EMITTER) cursor += 0xd8;
     if (flags & FLAG_HAS_REFERENCE) cursor += 0x44;
     if (flags & FLAG_HAS_MESH) cursor = readMesh(node, cursor);
-    if (flags & FLAG_HAS_SKIN) throw new Error(`Skinned binary meshes are not supported yet (${name}).`);
+    if (flags & FLAG_HAS_SKIN) {
+      node.skinned = true;
+      cursor += 0x64;
+    }
     if (flags & FLAG_HAS_ANIM) cursor += 56;
     if (flags & FLAG_HAS_DANGLY) throw new Error(`Dangly binary meshes are not supported yet (${name}).`);
     if (flags & FLAG_HAS_AABB) cursor += 4;
@@ -178,6 +182,7 @@ export function parseBinaryMdl(buffer) {
     modelName,
     format: 'Binary MDL',
     nodes,
+    hasSkinnedMeshes: nodes.some((node) => node.skinned),
     materialNames: [...new Set(nodes.filter((node) => node.type === 'trimesh' && node.bitmap).map((node) => node.bitmap))]
   };
 }

@@ -45,7 +45,8 @@ Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeli
 - [x] Verify the desktop Electron shell loads the styled production bundle.
 - [x] User screenshot confirms the volumetric rock is visible in the model viewport.
 - [x] Add a bounded binary MDL path for static triangle-list meshes.
-- [ ] Extend binary parsing to triangle strips, skinned/dangly meshes, and animated/model-state paths.
+- [x] Preview skin-flag nodes after skipping the specimen-verified 0x64-byte extension; label the result as static/base-vertex-only.
+- [ ] Decode skin weights/bone indices and apply deformation/animation; add triangle strips and dangly-mesh support.
 
 Evidence: [First object-render milestone](evidence/first-object-render.md).
 
