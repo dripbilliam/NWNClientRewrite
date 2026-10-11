@@ -8,6 +8,7 @@ const FLAG_HAS_ANIM = 0x00000080;
 const FLAG_HAS_DANGLY = 0x00000100;
 const FLAG_HAS_AABB = 0x00000200;
 const RESOURCE_TYPE = { TGA: 3, MDL: 2002, DDS: 2033 };
+const SKIN_EXTENSION_SIZE = 0x000000c0;
 
 export function parseBinaryMdl(buffer) {
   const data = new DataView(buffer);
@@ -60,6 +61,7 @@ export function parseBinaryMdl(buffer) {
       scale: 1,
       bitmap: '',
       skinned: false,
+      skinData: null,
       verts: [],
       tverts: [],
       faces: []
@@ -73,7 +75,8 @@ export function parseBinaryMdl(buffer) {
     if (flags & FLAG_HAS_MESH) cursor = readMesh(node, cursor);
     if (flags & FLAG_HAS_SKIN) {
       node.skinned = true;
-      cursor += 0x64;
+      node.skinData = readSkin(node, cursor);
+      cursor += SKIN_EXTENSION_SIZE;
     }
     if (flags & FLAG_HAS_ANIM) cursor += 56;
     if (flags & FLAG_HAS_DANGLY) throw new Error(`Dangly binary meshes are not supported yet (${name}).`);
@@ -172,6 +175,54 @@ export function parseBinaryMdl(buffer) {
     if (normalOffset !== 0xffffffff) requireRange(data, rawDataOffset + normalOffset, vertexCount * 12);
     if (colorOffset !== 0xffffffff) requireRange(data, rawDataOffset + colorOffset, vertexCount * 4);
     return cursor;
+  }
+
+  function readSkin(node, cursor) {
+    requireRange(data, cursor, SKIN_EXTENSION_SIZE);
+    const vertexCount = node.verts.length;
+    const weightsOffset = readU32(data, cursor + 0x0c);
+    const boneIndicesOffset = readU32(data, cursor + 0x10);
+    const boneIndexTableOffset = readU32(data, cursor + 0x14);
+    const boneIndexTableCount = readU32(data, cursor + 0x18);
+    const qboneOffset = readU32(data, cursor + 0x1c);
+    const qboneCount = readU32(data, cursor + 0x20);
+    const tboneOffset = readU32(data, cursor + 0x28);
+    const tboneCount = readU32(data, cursor + 0x2c);
+    const boneConstantOffset = readU32(data, cursor + 0x34);
+    const boneConstantCount = readU32(data, cursor + 0x38);
+
+    requireRange(data, rawDataOffset + weightsOffset, vertexCount * 16);
+    requireRange(data, rawDataOffset + boneIndicesOffset, vertexCount * 8);
+    requireRange(data, modelDataOffset + boneIndexTableOffset, boneIndexTableCount * 2);
+    requireRange(data, modelDataOffset + qboneOffset, qboneCount * 16);
+    requireRange(data, modelDataOffset + tboneOffset, tboneCount * 12);
+    requireRange(data, modelDataOffset + boneConstantOffset, boneConstantCount * 4);
+
+    return {
+      weights: Array.from({ length: vertexCount }, (_, vertexIndex) => {
+        const offset = rawDataOffset + weightsOffset + vertexIndex * 16;
+        return Array.from({ length: 4 }, (_, component) => readF32(data, offset + component * 4));
+      }),
+      boneIndices: Array.from({ length: vertexCount }, (_, vertexIndex) => {
+        const offset = rawDataOffset + boneIndicesOffset + vertexIndex * 8;
+        return Array.from({ length: 4 }, (_, component) => readU16(data, offset + component * 2));
+      }),
+      boneIndexTable: Array.from({ length: boneIndexTableCount }, (_, index) =>
+        readU16(data, modelDataOffset + boneIndexTableOffset + index * 2)),
+      qboneRefInv: readVectorArray(qboneOffset, qboneCount, 4),
+      tboneRefInv: readVectorArray(tboneOffset, tboneCount, 3),
+      boneConstantIndices: Array.from({ length: boneConstantCount }, (_, index) =>
+        data.getInt32(modelDataOffset + boneConstantOffset + index * 4, true)),
+      boneConstantSlots: Array.from({ length: 64 }, (_, index) =>
+        data.getInt16(cursor + 0x40 + index * 2, true))
+    };
+  }
+
+  function readVectorArray(offset, count, components) {
+    return Array.from({ length: count }, (_, index) => {
+      const start = modelDataOffset + offset + index * components * 4;
+      return Array.from({ length: components }, (_, component) => readF32(data, start + component * 4));
+    });
   }
 
   readNode(rootOffset);

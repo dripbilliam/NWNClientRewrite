@@ -95,7 +95,9 @@ fileInput.addEventListener('change', async (event) => {
     frameObject(object);
     updateInspector(parsed, file.name, textures);
     emptyState.classList.add('hidden');
-    setStatus(parsed.hasSkinnedMeshes ? 'STATIC SKIN PREVIEW' : 'MODEL RENDERED', true);
+    setStatus(parsed.hasSkinnedMeshes
+      ? (hasStaticSkinMapping(parsed) ? 'STATIC SKINNED POSE' : 'STATIC SKIN PREVIEW')
+      : 'MODEL RENDERED', true);
   } catch (error) {
     console.error(error);
     emptyState.querySelector('strong').textContent = 'Model could not be loaded';
@@ -119,6 +121,11 @@ wireButton.addEventListener('click', () => {
 function setStatus(message, success) {
   statusText.textContent = message.toUpperCase();
   statusLight.style.background = success ? '#45a79a' : '#ce613b';
+}
+
+function hasStaticSkinMapping(parsed) {
+  return parsed.nodes.some((node) => node.skinned &&
+    node.skinData.boneConstantSlots.some((nodeIndex) => nodeIndex >= 0 && nodeIndex < parsed.nodes.length));
 }
 
 function parseAsciiMdl(text) {
@@ -279,10 +286,6 @@ function buildObject(parsed, textures) {
     group.quaternion.copy(basis).multiply(orientation).multiply(basis.clone().invert());
     groups.set(node.name, group);
 
-    if (node.type === 'trimesh') {
-      const mesh = buildMesh(node, textures);
-      if (mesh) group.add(mesh);
-    }
   }
 
   for (const node of parsed.nodes) {
@@ -290,10 +293,46 @@ function buildObject(parsed, textures) {
     const parent = groups.get(node.parent);
     (parent || root).add(group);
   }
+
+  root.updateMatrixWorld(true);
+  for (const node of parsed.nodes) {
+    if (node.type !== 'trimesh') continue;
+    const transformedVertices = node.skinned
+      ? deformSkinnedVertices(node, parsed.nodes, groups, groups.get(node.name))
+      : null;
+    const mesh = buildMesh(node, textures, transformedVertices);
+    if (mesh) groups.get(node.name).add(mesh);
+  }
   return root;
 }
 
-function buildMesh(node, textures) {
+function deformSkinnedVertices(node, nodes, groups, skinGroup) {
+  const inverseSkinMatrix = skinGroup.matrixWorld.clone().invert();
+  const boneMatrices = node.skinData.boneConstantSlots.map((nodeIndex) => {
+    const boneNode = nodes[nodeIndex];
+    if (!boneNode) return null;
+    const boneGroup = groups.get(boneNode.name);
+    return boneGroup ? inverseSkinMatrix.clone().multiply(boneGroup.matrixWorld) : null;
+  });
+
+  return node.verts.map((vertex, vertexIndex) => {
+    const basePosition = new THREE.Vector3(vertex[0], vertex[2], -vertex[1]);
+    const skinnedPosition = new THREE.Vector3();
+    let totalWeight = 0;
+
+    for (let component = 0; component < 4; component += 1) {
+      const weight = node.skinData.weights[vertexIndex][component];
+      const matrix = boneMatrices[node.skinData.boneIndices[vertexIndex][component]];
+      if (weight <= 0 || !matrix) continue;
+      skinnedPosition.add(basePosition.clone().applyMatrix4(matrix).multiplyScalar(weight));
+      totalWeight += weight;
+    }
+
+    return totalWeight > 0 ? skinnedPosition.toArray() : basePosition.toArray();
+  });
+}
+
+function buildMesh(node, textures, transformedVertices = null) {
   if (node.verts.length === 0 || node.faces.length === 0) return null;
   const positions = [];
   const uvs = [];
@@ -306,7 +345,9 @@ function buildMesh(node, textures) {
     for (let corner = 0; corner < 3; corner += 1) {
       const vertex = node.verts[vertexIndices[corner]];
       if (!vertex || vertex.length < 3) throw new Error(`Face index outside vertex array in ${node.name}.`);
-      positions.push(vertex[0], vertex[2], -vertex[1]);
+      const transformedVertex = transformedVertices?.[vertexIndices[corner]];
+      if (transformedVertex) positions.push(...transformedVertex);
+      else positions.push(vertex[0], vertex[2], -vertex[1]);
       const uv = node.tverts[uvIndices[corner]];
       uvs.push(uv?.[0] ?? 0, uv ? 1 - uv[1] : 0);
     }
@@ -371,7 +412,9 @@ function updateInspector(parsed, filename, textures) {
   document.querySelector('#geometry-value').textContent = `${meshes.length} meshes`;
   document.querySelector('#hierarchy-value').textContent = `${parsed.nodes.length} nodes`;
   document.querySelector('#inspector-note').textContent = parsed.hasSkinnedMeshes
-    ? 'Skinned geometry uses stored base vertices; bone weights and animation are not applied. Matching TGA files load as bitmap textures.'
+    ? (hasStaticSkinMapping(parsed)
+      ? 'Bone weights are applied through the static part hierarchy; animation is not evaluated. Unmapped bones remain in base pose.'
+      : 'Skin weight data is present but no bone slots map to model nodes, so base vertices are shown.')
     : 'Animation and dangly-mesh behavior are not applied. Matching TGA files load as bitmap textures.';
   const list = document.querySelector('#material-list');
   list.replaceChildren();

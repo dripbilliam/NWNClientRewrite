@@ -25,6 +25,7 @@
 - [x] Trace shader/buffer procedure loading and bitmap-backed mesh materials.
 - [x] Map stock shader reload, source loading, attribute-based selection, and uniform upload paths.
 - [x] Trace PartSkin through bone gathering, 64-slot matrix upload, and the skinned vertex-shader draw path.
+- [x] Trace PartSkin::PostProcess bone-name remapping through vIndex/vWeight pools to the stock GLSL weighted-matrix equation.
 - [x] Trace normal WGL context creation and activation.
 - [x] Trace Camera::RenderScene through Scene::Render into RenderSinglePass.
 - [x] Record the ordered scene bucket/render passes.
@@ -45,8 +46,9 @@ Evidence so far: [Initial OpenGL render-path findings](evidence/rendering-pipeli
 - [x] Verify the desktop Electron shell loads the styled production bundle.
 - [x] User screenshot confirms the volumetric rock is visible in the model viewport.
 - [x] Add a bounded binary MDL path for static triangle-list meshes.
-- [x] Preview skin-flag nodes after skipping the specimen-verified 0x64-byte extension; label the result as static/base-vertex-only.
-- [ ] Decode skin weights/bone indices and apply deformation/animation; add triangle strips and dangly-mesh support.
+- [x] Decode the full 0xC0 skin extension, four-weight/four-index streams, inverse-bind arrays, and 64-slot constant map across multiple assets.
+- [x] Apply parsed skin weights through mapped static hierarchy matrices.
+- [ ] Evaluate animated poses and unmapped skin variants; add triangle strips and dangly-mesh support.
 
 Evidence: [First object-render milestone](evidence/first-object-render.md).
 

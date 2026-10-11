@@ -26,7 +26,8 @@ public class InspectSceneRenderSlots extends GhidraScript {
 			{"Scene", "1412a4208"},
 			{"CAurScene", "1412a41b0"},
 			{"Camera", "1412a2d38"},
-			{"CClientExoApp", "1412bc4f0"}
+			{"CClientExoApp", "1412bc4f0"},
+			{"PartSkin", "1412a3750"}
 		};
 		Memory memory = currentProgram.getMemory();
 		Address imageBase = currentProgram.getImageBase();
@@ -85,7 +86,7 @@ public class InspectSceneRenderSlots extends GhidraScript {
 								if (function == null) {
 									break;
 								}
-								if (type[0].equals("CClientExoApp") ||
+								if (type[0].equals("CClientExoApp") || type[0].equals("PartSkin") ||
 									(slot >= 45 || function.getName().contains("Render"))) {
 									println("    slot " + slot + " @ " + pointer + " -> " + target + " " + function.getName());
 								}
