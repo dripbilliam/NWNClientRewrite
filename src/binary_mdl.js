@@ -1,3 +1,5 @@
+import { parseBinaryAnimations } from './mdl_animation.js';
+
 const SUPPORTED_NODE_FLAGS = 0x000003f7;
 const FLAG_HAS_LIGHT = 0x00000002;
 const FLAG_HAS_EMITTER = 0x00000004;
@@ -53,17 +55,30 @@ export function parseBinaryMdl(buffer) {
     }
 
     const node = {
+      unsupportedFeatures: [
+        [FLAG_HAS_LIGHT, 'Binary light payload'], [FLAG_HAS_EMITTER, 'Binary emitter payload'],
+        [FLAG_HAS_REFERENCE, 'Referenced model attachment'], [FLAG_HAS_ANIM, 'Animated vertex/UV channels'],
+        [FLAG_HAS_DANGLY, 'Dangly-mesh simulation']
+      ].filter(([flag]) => flags & flag).map(([, feature]) => feature),
       type: flags & FLAG_HAS_MESH ? 'trimesh' : 'dummy',
       name,
       parent: parentName,
       position: [0, 0, 0],
       orientation: [0, 0, 0, 1],
       scale: 1,
+      alpha: 1,
       bitmap: '',
+      ambient: null,
+      diffuse: null,
+      specular: null,
+      shininess: 0,
+      render: true,
+      textureLayers: [],
       skinned: false,
       skinData: null,
       verts: [],
       tverts: [],
+      tvertsByLayer: [],
       faces: []
     };
     readStaticControllers(node, controllerKeys, controllerValues);
@@ -79,7 +94,7 @@ export function parseBinaryMdl(buffer) {
       cursor += SKIN_EXTENSION_SIZE;
     }
     if (flags & FLAG_HAS_ANIM) cursor += 56;
-    if (flags & FLAG_HAS_DANGLY) throw new Error(`Dangly binary meshes are not supported yet (${name}).`);
+    if (flags & FLAG_HAS_DANGLY) cursor += 0x18;
     if (flags & FLAG_HAS_AABB) cursor += 4;
     requireRange(data, start, cursor - start);
 
@@ -112,6 +127,8 @@ export function parseBinaryMdl(buffer) {
       if (type === 8 && columns === 3) node.position = valuesAtTime;
       else if (type === 20 && columns === 4) node.orientation = valuesAtTime;
       else if (type === 36 && columns === 1) node.scale = valuesAtTime[0];
+      // Controller IDs overlap with emitter fields; 128 is opacity only on meshes.
+      else if (type === 128 && columns === 1 && node.type === 'trimesh') node.alpha = valuesAtTime[0];
     }
   }
 
@@ -120,7 +137,19 @@ export function parseBinaryMdl(buffer) {
     cursor += 8;
     const faces = readArrayDefinition(cursor);
     cursor += 12;
-    cursor += 24 + 4 + 12 + 12 + 12 + 12 + 4;
+    cursor += 24 + 4 + 12;
+    node.ambient = Array.from({ length: 3 }, (_, index) => readF32(data, cursor + index * 4));
+    cursor += 12;
+    node.diffuse = Array.from({ length: 3 }, (_, index) => readF32(data, cursor + index * 4));
+    cursor += 12;
+    node.specular = Array.from({ length: 3 }, (_, index) => readF32(data, cursor + index * 4));
+    cursor += 12;
+    node.shininess = readF32(data, cursor);
+    cursor += 4;
+    node.shadow = readU32(data, cursor) === 1;
+    node.beaming = readU32(data, cursor + 4) === 1;
+    node.render = readU32(data, cursor + 8) === 1;
+    node.transparencyHint = readU32(data, cursor + 12) === 1;
     cursor += 16 + 4;
     const textureNamesOffset = cursor;
     cursor += 64 * 4;
@@ -139,6 +168,9 @@ export function parseBinaryMdl(buffer) {
     const colorOffset = readU32(data, cursor);
     cursor += 4 + 24 + 1 + 1 + 2 + 4 + 4;
 
+    if (isEmptyBinaryMeshRecord(triangleMode, faces.count, vertexCount, textureCount)) {
+      return cursor;
+    }
     if (triangleMode !== 3) throw new Error(`Binary mesh ${node.name} has mode ${triangleMode} at 0x${triangleModeOffset.toString(16)} (mesh 0x${meshStart.toString(16)}).`);
     if (!vertexCount || !faces.count || vertexCount > 1000000 || faces.count > 1000000) {
       throw new Error(`Invalid binary mesh counts in ${node.name}.`);
@@ -146,20 +178,26 @@ export function parseBinaryMdl(buffer) {
     requireRange(data, rawDataOffset + vertexOffset, vertexCount * 12);
     requireRange(data, modelDataOffset + faces.offset, faces.count * 32);
 
-    const textureName = readString(data, textureNamesOffset, 64);
-    node.bitmap = textureName && textureName.toLowerCase() !== 'null' ? textureName : '';
+    const textureLayerCount = Math.min(textureCount, 4);
+    node.textureLayers = Array.from({ length: textureLayerCount }, (_, index) =>
+      readString(data, textureNamesOffset + index * 64, 64));
+    node.bitmap = node.textureLayers[0] && node.textureLayers[0].toLowerCase() !== 'null'
+      ? node.textureLayers[0]
+      : '';
     node.verts = Array.from({ length: vertexCount }, (_, index) => {
       const offset = rawDataOffset + vertexOffset + index * 12;
       return [readF32(data, offset), readF32(data, offset + 4), readF32(data, offset + 8)];
     });
 
-    if (textureCount > 0 && textureOffsets[0] !== 0xffffffff) {
-      requireRange(data, rawDataOffset + textureOffsets[0], vertexCount * 8);
-      node.tverts = Array.from({ length: vertexCount }, (_, index) => {
-        const offset = rawDataOffset + textureOffsets[0] + index * 8;
+    node.tvertsByLayer = textureOffsets.slice(0, textureLayerCount).map((textureOffset) => {
+      if (textureOffset === 0xffffffff) return [];
+      requireRange(data, rawDataOffset + textureOffset, vertexCount * 8);
+      return Array.from({ length: vertexCount }, (_, index) => {
+        const offset = rawDataOffset + textureOffset + index * 8;
         return [readF32(data, offset), readF32(data, offset + 4), 0];
       });
-    }
+    });
+    node.tverts = node.tvertsByLayer[0] ?? [];
 
     node.faces = Array.from({ length: faces.count }, (_, index) => {
       const offset = modelDataOffset + faces.offset + index * 32 + 26;
@@ -226,21 +264,28 @@ export function parseBinaryMdl(buffer) {
   }
 
   readNode(rootOffset);
-  if (nodes.length !== declaredNodeCount) {
-    throw new Error(`Binary MDL declares ${declaredNodeCount} nodes, parsed ${nodes.length}.`);
-  }
+  let animationMetadata;
+  try { animationMetadata = parseBinaryAnimations(buffer); }
+  catch (error) { animationMetadata = { animations: [], supermodel: readString(data, modelDataOffset + 168, 64), animationScale: 1, unsupportedAnimations: [error.message] }; }
   return {
     modelName,
+    ...animationMetadata,
     format: 'Binary MDL',
     nodes,
     hasSkinnedMeshes: nodes.some((node) => node.skinned),
-    materialNames: [...new Set(nodes.filter((node) => node.type === 'trimesh' && node.bitmap).map((node) => node.bitmap))]
+    materialNames: [...new Set(nodes.filter((node) => node.type === 'trimesh')
+      .flatMap((node) => node.textureLayers.length ? node.textureLayers : [node.bitmap])
+      .filter((name) => name && name.toLowerCase() !== 'null'))]
   };
+}
+
+export function isEmptyBinaryMeshRecord(triangleMode, faceCount, vertexCount, textureCount) {
+  return triangleMode === 0 && faceCount === 0 && vertexCount === 0 && textureCount === 0;
 }
 
 function requireRange(data, offset, length) {
   if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || offset < 0 || length < 0 || offset + length > data.byteLength) {
-    throw new Error('Binary MDL contains an out-of-range offset.');
+    throw new Error(`Binary MDL range 0x${offset.toString(16)} + 0x${length.toString(16)} exceeds file size 0x${data.byteLength.toString(16)}.`);
   }
 }
 

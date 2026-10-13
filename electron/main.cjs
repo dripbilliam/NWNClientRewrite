@@ -1,5 +1,7 @@
 const path = require('node:path');
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
+const { registerRuntimeLog, observeWindow, flushOnClose } = require('./runtime_log.cjs');
+let runtimeLog;
 
 function createWindow() {
   const window = new BrowserWindow({
@@ -12,6 +14,7 @@ function createWindow() {
     backgroundColor: '#e9ece5',
     show: false,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
@@ -19,11 +22,13 @@ function createWindow() {
   });
 
   window.setMenuBarVisibility(false);
+  flushOnClose(window, observeWindow(window, runtimeLog));
   window.once('ready-to-show', () => window.show());
   window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
 }
 
 app.whenReady().then(() => {
+  runtimeLog = registerRuntimeLog(ipcMain, path.join(__dirname, '..', 'runtime-logs'));
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -15,5 +15,6 @@ __pycache__/
 *.pcapng
 captures/
 backups/
+runtime-logs/
 *.gar
 .env

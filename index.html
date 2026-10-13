@@ -15,7 +15,7 @@
         </a>
         <div class="topbar-meta">
           <span class="status-light" id="connection-light"></span>
-          <span id="status-text">READY FOR ASCII MDL</span>
+          <span id="status-text">READY FOR MODEL OR AREA</span>
         </div>
       </header>
 
@@ -28,16 +28,36 @@
             </div>
             <div class="toolbar-actions">
               <button class="tool-button" id="wireframe-button" type="button" aria-pressed="false">Wireframe</button>
-              <button class="tool-button primary" id="open-button" type="button">Open Assets</button>
+              <button class="tool-button" id="game-mode-button" type="button" aria-pressed="false">Game UI</button>
+              <button class="tool-button" id="language-data-button" type="button">Language Data</button>
+              <button class="tool-button" id="character-data-button" type="button">Load Character</button>
+              <button class="tool-button" id="game-data-button" type="button">Game Data</button>
+              <button class="tool-button" id="hak-data-button" type="button">HAK Data</button>
+              <button class="tool-button" id="open-area-button" type="button">Open Area</button>
+              <button class="tool-button primary" id="open-button" type="button">Open Model</button>
+              <select class="tool-select" id="area-select" aria-label="Area in module" hidden></select>
+              <input id="area-file" type="file" accept=".mod,.erf" hidden />
+              <input id="character-file" type="file" accept=".bic" hidden />
+              <input id="game-data-folder" type="file" webkitdirectory directory multiple hidden />
+              <input id="hak-data-folder" type="file" webkitdirectory directory multiple hidden />
+              <input id="language-data-folder" type="file" webkitdirectory directory multiple hidden />
               <input id="model-file" type="file" accept=".mdl,.tga,text/plain" multiple hidden />
             </div>
           </div>
           <div class="viewport-frame" id="viewport-frame">
             <canvas id="model-canvas" aria-label="Rendered NWN model"></canvas>
+            <div class="movement-hud" id="movement-hud" hidden>
+              <span>Left click · use · Right click · radial menu · WASD · move · Esc · cancel · F · player camera</span>
+              <div class="toolbar-actions">
+                <button class="tool-button" id="door-action" type="button" disabled>Approach a door · E to interact</button>
+                <button class="tool-button" id="player-actions" type="button">Player actions</button>
+              </div>
+              <span id="door-feedback" role="status" aria-live="polite"></span>
+            </div>
             <div class="empty-state" id="empty-state">
               <div class="empty-glyph">△</div>
-              <strong>Open an NWN model</strong>
-              <span>The mesh and node hierarchy will appear here.</span>
+              <strong>Open an NWN model or area</strong>
+              <span>Static geometry will appear here.</span>
             </div>
             <div class="viewport-caption"><span id="view-caption">SCENE · Z-UP SOURCE</span><span>ORBIT · SCROLL TO ZOOM</span></div>
           </div>
@@ -50,6 +70,20 @@
         </section>
 
         <aside class="inspector" aria-label="Model details">
+          <details class="runtime-diagnostics">
+            <summary>Runtime diagnostics</summary>
+            <pre id="diagnostic-status" style="white-space:pre-wrap;overflow-wrap:anywhere">Starting log…</pre>
+            <button id="diagnostic-export" class="tool-button" type="button">Export session log</button>
+            <button id="diagnostic-history-export" class="tool-button" type="button" hidden>Export saved browser logs</button>
+            <button id="diagnostic-retry" class="tool-button" type="button">Retry saving</button>
+            <pre id="diagnostic-recent" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto"></pre>
+          </details>
+          <label for="ui-panel-select" class="eyebrow">GAME UI PANELS</label>
+          <select id="ui-panel-select" class="tool-select"><option value="">Load a module</option></select>
+          <label for="ui-resource-select" class="eyebrow">NATIVE UI RESOURCES</label>
+          <select id="ui-resource-select" class="tool-select"><option value="">Load game data and a module</option></select>
+          <button id="release-test-cutscene" class="tool-button" type="button">Release cutscene (testing)</button>
+          <label class="preview-sun-toggle"><input id="run-module-startup" type="checkbox" checked>Run startup and initial area-entry scripts (next load)</label>
           <div class="inspector-section">
             <span class="eyebrow">INSPECTOR</span>
             <h2>Model data</h2>
@@ -60,11 +94,48 @@
             <div><dt>Hierarchy</dt><dd id="hierarchy-value">—</dd></div>
             <div><dt>Source axes</dt><dd>X · Y · Z up</dd></div>
           </dl>
+          <section class="preview-lighting" aria-label="Preview lighting controls">
+            <div class="preview-lighting-heading">
+              <span class="eyebrow">PREVIEW LIGHTING</span>
+              <div class="preview-lighting-toggles">
+                <label class="preview-sun-toggle"><input id="preview-effects-enabled" type="checkbox" /><span>Preview effects</span></label>
+                <label class="preview-sun-toggle"><input id="preview-sun-enabled" type="checkbox" /><span>Preview sun</span></label>
+              </div>
+            </div>
+            <div class="preview-lighting-controls">
+              <label for="preview-sun-intensity">Intensity</label>
+              <output id="preview-sun-value" for="preview-sun-intensity">1.00x</output>
+              <input id="preview-sun-intensity" type="range" min="0" max="4" step="0.05" value="1" />
+              <label for="preview-sun-direction">Direction</label>
+              <select id="preview-sun-direction" class="tool-select">
+                <option value="overhead">High</option>
+                <option value="front-left">Front left</option>
+                <option value="front-right">Front right</option>
+                <option value="rear-left">Rear left</option>
+                <option value="rear-right">Rear right</option>
+              </select>
+            </div>
+          </section>
+          <label class="preview-sun-toggle"><input id="animation-tools-enabled" type="checkbox">Animation tools</label>
+          <section id="animation-panel" class="animation-panel" aria-label="Animation preview" hidden>
+            <span class="eyebrow">ANIMATION PREVIEW</span>
+            <label for="animation-object">Object</label>
+            <select id="animation-object" class="tool-select"></select>
+            <label for="animation-clip">Clip</label>
+            <select id="animation-clip" class="tool-select"></select>
+            <div class="animation-actions">
+              <button id="animation-play" class="tool-button" type="button">Pause</button>
+              <button id="animation-focus" class="tool-button" type="button">Focus</button>
+            </div>
+            <label class="preview-sun-toggle"><input id="animation-isolate" type="checkbox">Isolate selected object</label>
+            <output id="animation-time" class="muted" aria-label="Animation time"></output>
+            <span id="animation-summary" class="muted"></span>
+          </section>
           <div class="inspector-section material-section">
             <span class="eyebrow">BITMAP REFERENCES</span>
             <div id="material-list" class="material-list"><span class="muted">No materials</span></div>
           </div>
-          <div class="inspector-note" id="inspector-note">Animation and dangly-mesh behavior are not applied. Matching TGA files load as bitmap textures.</div>
+          <div class="inspector-note" id="inspector-note">Load a model or module to inspect its geometry and animation clips.</div>
           <div class="source-tag"><span class="source-dot"></span> LOCAL FILE · NOT UPLOADED</div>
         </aside>
       </main>
