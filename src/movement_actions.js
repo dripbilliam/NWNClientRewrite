@@ -28,6 +28,19 @@ export async function addPathfindingWaitFront(actor,group,p){
   return 1;
 }
 
+// AIActionCheckMoveToPointRadius1403b5b00. Action18 uses horizontal
+// distance +0.01 tolerance and retains the original group on retry.
+export async function checkMovePointRadius(actor,node,p){
+  if(await p.dead(actor)===1||await p.dying(actor)===1)return 3;
+  const point=[0,1,2].map(i=>actionParameter(node,i)),areaId=actionParameter(node,3),target=actionParameter(node,4),run=actionParameter(node,5),range=actionParameter(node,6);
+  if(!await p.moduleArea(areaId))return 3;
+  const area=await p.area(actor),dx=f(f(actor.position[0])-f(point[0])),dy=f(f(-actor.position[2])-f(point[1])),tolerance=f(f(range)+f(.01));
+  if((!area||area.id===areaId)&&f(f(f(dx*dx)+f(dy*dy))+0)<=f(tolerance*tolerance))return 2;
+  addObjectAction(actor.objectActionState,18,node.groupId,Array.from({length:7},(_,i)=>({type:node.parameterTypes[i],value:node.parameterData[i]})),true);
+  await addMoveToPointFront(actor,node.groupId,[point[0],point[2],f(-point[1])],areaId,target,run,range,0,0,0,0,0,0,0,p);
+  await addPathfindingWaitFront(actor,node.groupId,p);return 2;
+}
+
 // AIActionCheckMoveToObjectRadius1403b4580..1403b5107. A failed use check
 // can tighten blocked-LOS stop distance and queue wait/move/check in order.
 export async function checkMoveRadius(actor,node,p){
@@ -99,6 +112,14 @@ export async function checkInterArea(actor,node,p){
 // argument slots/bit packing; later movement owners interpret these flags.
 // point uses renderer[X,Z,-Y], while action float slots store native[X,Y,Z].
 export async function addMoveToPointFront(actor, group, point, areaId, targetId, arg6, distance, arg8, arg9, arg10, arg11, arg12, arg13, arg14, p) {
+  return addMoveToPoint(actor,group,point,areaId,targetId,arg6,distance,arg8,arg9,arg10,arg11,arg12,arg13,arg14,p,true);
+}
+// AddMoveToPointAction14037f940 appends; parameter encoding and orientation
+// lock clearing are identical to the front-inserting variant.
+export async function addMoveToPointBack(actor,group,point,areaId,targetId,arg6,distance,arg8,arg9,arg10,arg11,arg12,arg13,arg14,p){
+  return addMoveToPoint(actor,group,point,areaId,targetId,arg6,distance,arg8,arg9,arg10,arg11,arg12,arg13,arg14,p,false);
+}
+async function addMoveToPoint(actor, group, point, areaId, targetId, arg6, distance, arg8, arg9, arg10, arg11, arg12, arg13, arg14, p,front) {
   if (!Array.isArray(point) || point.length !== 3 || !point.every(Number.isFinite) || ![distance,arg8].every(Number.isFinite))
     throw new Error('Native movement point/distance is unavailable');
   [group,areaId,targetId,arg6,arg9,arg10,arg11,arg12,arg13,arg14].forEach(v=>integer(v,'argument'));
@@ -113,13 +134,13 @@ export async function addMoveToPointFront(actor, group, point, areaId, targetId,
     {type:3,value:areaId},{type:3,value:targetId},{type:1,value:flags},
     {type:2,value:floatBits(distance)},{type:1,value:arg10},{type:2,value:floatBits(arg8)},
   ];
-  addObjectAction(actor.objectActionState,1,group,params,true);
+  addObjectAction(actor.objectActionState,1,group,params,front);
   await p.setLock(actor,OBJECT_INVALID);
   return 1;
 }
 
 // Approach branch of AIActionAttackObject1403dd99f..1403dded1.
-// Result2 replaces the executing attack with move1/check19/check17/attack12.
+// Result2 replaces the executing attack with move1/face19/check17/attack12.
 // No preview movement or guessed path result is applied by this owner.
 export async function queueAttackApproach(actor, node, eligibility, p) {
   const required = name => { if (typeof p[name] !== 'function') throw new Error(`Native attack approach provider ${name} is unavailable`); return p[name]; };

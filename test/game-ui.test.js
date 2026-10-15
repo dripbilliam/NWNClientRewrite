@@ -4,6 +4,7 @@ import { parseTalkTable, GameText } from '../src/talk_table.js';
 import { GameUiState, journalRows, nativeControlKind } from '../src/game_ui_state.js';
 import { GameObjectArray } from '../src/game_object_array.js';
 import { buildUiModel, poseUiModel } from '../src/native_ui_assets.js';
+import {initializeQuickbar,setQuickbarButton,quickbarRequest} from '../src/quickbar.js';
 
 function tlk(strings) {
   const chunks = strings.map(text => new TextEncoder().encode(text)), table = 20 + strings.length * 40;
@@ -50,12 +51,13 @@ test('native GUI widget types distinguish sliders, checkbox switches and provide
   assert.equal(nativeControlKind({ Obj_Type: 8, Obj_ResRef: 'ctl_cg_edit_s' }), 'edit');
 });
 test('quickbar retains uint32 references and rejects deleted objects', () => {
-  const registry = new GameObjectArray(), actor = { areaId: 7 }, target = {};
+  const registry = new GameObjectArray(), actor = { areaId: 7 }, target = {objectType:6};
   registry.addInternalObject(actor); registry.addInternalObject(target);
-  const state = new GameUiState(); state.bind(1, 3, { action: 'door.use', targetId: target.id });
-  assert.deepEqual(state.activate(1, 3, registry, actor.id), { action: 'door.use', targetId: target.id, actorId: 0, areaId: 7 });
-  registry.delete(target.id); assert.equal(state.activate(1, 3, registry, actor.id), null);
-  assert.throws(() => state.bind(3, 0, {}), /slot/);
+  initializeQuickbar(actor);setQuickbarButton(actor,15,{type:1,itemId:target.id});
+  const request=quickbarRequest(actor,actor.nativeQuickbar4e0[15],registry);
+  assert.equal(request.action,'item.use');assert.equal(request.itemId,target.id);assert.equal(request.actorId,0);
+  registry.delete(target.id);assert.equal(quickbarRequest(actor,actor.nativeQuickbar4e0[15],registry),null);
+  assert.equal(setQuickbarButton(actor,36,{}),false);
 });
 test('native UI model keeps source XY coordinates, separate UV indices and hook transforms', () => {
   const model = { nodes: [{ name: 'root', parent: 'NULL', type: 'dummy', position: [1, -2, 0], orientation: [0, 0, 0, 1] }, { name: 'hook', parent: 'root', type: 'dummy', position: [.5, -.5, 0], orientation: [0, 0, 0, 1] }, { name: 'plane', parent: 'root', type: 'trimesh', position: [0, 0, 0], orientation: [0, 0, 0, 1], verts: [[0, 0, 0], [1, 0, 0], [0, -1, 0]], tverts: [[0, 0], [1, 0], [0, 1]], faces: [[0, 1, 2, 0, 2, 0, 1, 0]] }] };

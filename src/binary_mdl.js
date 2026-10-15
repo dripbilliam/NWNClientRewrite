@@ -38,7 +38,7 @@ export function parseBinaryMdl(buffer) {
     };
   }
 
-  function readNode(relativeOffset, parentName = 'NULL') {
+  function readNode(relativeOffset, parentName = 'NULL', parentIndex = -1) {
     if (nodes.length >= declaredNodeCount) throw new Error('Binary MDL node count exceeded.');
     if (visited.has(relativeOffset)) throw new Error('Binary MDL node cycle detected.');
     visited.add(relativeOffset);
@@ -63,6 +63,7 @@ export function parseBinaryMdl(buffer) {
       type: flags & FLAG_HAS_MESH ? 'trimesh' : 'dummy',
       name,
       parent: parentName,
+      parentIndex,
       position: [0, 0, 0],
       orientation: [0, 0, 0, 1],
       scale: 1,
@@ -98,11 +99,11 @@ export function parseBinaryMdl(buffer) {
     if (flags & FLAG_HAS_AABB) cursor += 4;
     requireRange(data, start, cursor - start);
 
-    nodes.push(node);
+    const nodeIndex=nodes.length;nodes.push(node);
     const childBytes = children.count * 4;
     requireRange(data, modelDataOffset + children.offset, childBytes);
     for (let index = 0; index < children.count; index += 1) {
-      readNode(readU32(data, modelDataOffset + children.offset + index * 4), name);
+      readNode(readU32(data, modelDataOffset + children.offset + index * 4), name,nodeIndex);
     }
   }
 
@@ -153,7 +154,9 @@ export function parseBinaryMdl(buffer) {
     cursor += 16 + 4;
     const textureNamesOffset = cursor;
     cursor += 64 * 4;
-    cursor += 4 + 12 + 12 + 12 + 12 + 8;
+    cursor += 4 + 12 + 12;
+    const drawCounts = readArrayDefinition(cursor); cursor += 12;
+    const drawOffsets = readArrayDefinition(cursor); cursor += 12 + 8;
     const triangleModeOffset = cursor;
     const triangleMode = data.getUint8(cursor);
     cursor += 1 + 3 + 4;
@@ -172,7 +175,7 @@ export function parseBinaryMdl(buffer) {
       return cursor;
     }
     if (triangleMode !== 3) throw new Error(`Binary mesh ${node.name} has mode ${triangleMode} at 0x${triangleModeOffset.toString(16)} (mesh 0x${meshStart.toString(16)}).`);
-    if (!vertexCount || !faces.count || vertexCount > 1000000 || faces.count > 1000000) {
+    if (!vertexCount || (!faces.count && !drawOffsets.count) || vertexCount > 1000000 || faces.count > 1000000) {
       throw new Error(`Invalid binary mesh counts in ${node.name}.`);
     }
     requireRange(data, rawDataOffset + vertexOffset, vertexCount * 12);
@@ -209,6 +212,30 @@ export function parseBinaryMdl(buffer) {
       }
       return [a, b, c, 0, a, b, c, 0];
     });
+
+    // FUN_14007be10 loads draw counts at serialized node +0x204 and
+    // raw-data index offsets at +0x210 into runtime +0x248/+0x258.
+    // Optimized/combined meshes retain only the original MaxFace list;
+    // the draw buffers include the additional joined geometry.
+    if (drawOffsets.count) {
+      if (drawOffsets.count !== drawCounts.count || drawOffsets.count > 1000000)
+        throw new Error(`Invalid binary draw groups in ${node.name}.`);
+      requireRange(data, modelDataOffset + drawCounts.offset, drawCounts.count * 4);
+      requireRange(data, modelDataOffset + drawOffsets.offset, drawOffsets.count * 4);
+      const renderedFaces = [];
+      for (let group = 0; group < drawOffsets.count; group++) {
+        const count = readU32(data, modelDataOffset + drawCounts.offset + group * 4);
+        const offset = rawDataOffset + readU32(data, modelDataOffset + drawOffsets.offset + group * 4);
+        if (count % 3 || count > 3000000) throw new Error(`Invalid binary triangle-list draw count in ${node.name}.`);
+        requireRange(data, offset, count * 2);
+        for (let index = 0; index < count; index += 3) {
+          const indices = [0, 1, 2].map(corner => readU16(data, offset + (index + corner) * 2));
+          if (indices.some(vertex => vertex >= vertexCount)) throw new Error(`Binary draw index outside ${node.name} vertex array.`);
+          renderedFaces.push([...indices, 0, ...indices, 0]);
+        }
+      }
+      node.faces = renderedFaces;
+    }
 
     if (normalOffset !== 0xffffffff) requireRange(data, rawDataOffset + normalOffset, vertexCount * 12);
     if (colorOffset !== 0xffffffff) requireRange(data, rawDataOffset + colorOffset, vertexCount * 4);

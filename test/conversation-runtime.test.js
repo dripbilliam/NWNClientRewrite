@@ -13,7 +13,7 @@ function fixture() {
   const owner = session.register('creature', 'npc', { tag: 'NPC', position: [0, 0, 0], authored: { CurrentHitPoints: 10, Race: 1, ClassList: [{ Class: 10 }] } });
   const area = session.register('area', 'area', { objects: [owner.id], scripts: {} });
   owner.areaId = area.id;
-  const player = session.register('player', 'pc', { isPC: true, position: [1, 0, 0], areaId: area.id, journal: new Map(), stats: { currentHP: 10 } });
+  const player = session.register('player', 'pc', { isPC: true, nativeField89c:1, position: [1, 0, 0], areaId: area.id, journal: new Map(), stats: { currentHP: 10 } });
   area.objects.push(player.id); session.player = player; session.currentArea = area;
   session.program = async name => name;
   session.vm = { run: async (name, self) => { calls.push({ name, self, speaker: session.commands.GetPCSpeaker([], { self }) }); return { stack: [{ type: 3, value: name === 'false' ? 0 : 1 }] }; } };

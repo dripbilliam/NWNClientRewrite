@@ -69,6 +69,8 @@ test('canonical creature field708 aliases passive/changed state and script attac
 test('native field8d4 word and perception byte share storage, preserving upper byte and detecting contradictory imports',()=>{
   const {session,pc}=fixture();assert.equal(pc.nativeMovementFlags8d4,65535);pc.nativeMovementFlags8d4&=0xfffd;assert.equal(pc.perceptionUpdateFlags,253);
   pc.perceptionUpdateFlags=132;assert.equal(pc.nativeField8d4,0xff84);assert.equal(pc.nativeMovementFlags8d4,0xff84);
+  assert.equal(pc.nativeDeathWord8d4,0xff84);pc.nativeDeathWord8d4=0;
+  assert.equal(pc.nativeField8d4,0);assert.equal(pc.nativeMovementFlags8d4,0);assert.equal(pc.perceptionUpdateFlags,0);
   assert.throws(()=>session.register('creature','bad8d4',{nativeMovementFlags8d4:0xfffd,perceptionUpdateFlags:255}),/Conflicting/);
 });
 
@@ -82,6 +84,43 @@ test('live native replacement query uses canonical ordered storage and native ra
 });
 
 const bits=value=>{const raw=new DataView(new ArrayBuffer(4));raw.setFloat32(0,value,true);return raw.getInt32(0,true);};
+test('live action19 faces canonical targets without clearing paths; action49 uses native XY, action4 owns the path reset',async()=>{
+  const {session,pc,npc}=fixture(),path=pc.nativePathInfo;
+  pc.position=[1,2,-2];npc.position=[4,100,-6];
+  const route=new Float32Array([1,2,3,4]);path.allocations.set(0x80,route);
+  const run=()=>session.combat.runActions(pc,1,100,0n,{microseconds:()=>0n});
+  addObjectAction(pc.objectActionState,19,7,[{type:3,value:npc.id}]);await run();
+  assert.deepEqual(pc.orientation,[Math.fround(.6),0,Math.fround(-.8)]);
+  assert.equal(path.allocations.get(0x80),route);assert.equal(pc.objectActionState.list.count,0);
+  addObjectAction(pc.objectActionState,49,7,[{type:2,value:bits(-2)},{type:2,value:bits(-2)},{type:2,value:bits(-100)}]);await run();
+  assert.deepEqual(pc.orientation,[Math.fround(-.6),0,Math.fround(.8)]);
+  assert.equal(path.allocations.get(0x80),route);
+  addObjectAction(pc.objectActionState,4,7,[]);
+  await session.combat.runActions(pc,1,100,0n,{microseconds:()=>1001n});
+  assert.equal(path.allocations.has(0x80),false);assert.equal(pc.objectActionState.list.head.action.actionId,30);
+  assert.equal(actionParameter(pc.objectActionState.list.head.action,0),.75);
+});
+test('live facing uses trigger polygon center/area height and preserves unavailable geometry with diagnostics',async()=>{
+  const {session,pc}=fixture(),area=session.registry.get(pc.areaId);pc.position=[1,2,-2];
+  const trigger=session.register('trigger','trigger',{areaId:area.id,position:[100,100,100],geometry:[[0,0],[8,0],[8,12],[0,12]]});
+  const heightPoints=[];area.nativeGeometry={height:async point=>{heightPoints.push([...point]);return 300;}};
+  addObjectAction(pc.objectActionState,19,7,[{type:3,value:trigger.id}]);
+  await session.combat.runActions(pc,1,100,0n,{microseconds:()=>0n});
+  assert.deepEqual(heightPoints,[[4,6,0]]);assert.deepEqual(trigger.nativeFacingBounds,[0,8,0,12]);
+  assert.deepEqual(pc.orientation,[Math.fround(.6),0,Math.fround(-.8)]);
+  trigger.nativeFacingBounds.fill(0);trigger.geometry=[];
+  const node=addObjectAction(pc.objectActionState,19,7,[{type:3,value:trigger.id}]);
+  await assert.rejects(session.combat.runActions(pc,1,100,0n,{microseconds:()=>0n}),/no first vertex/);
+  assert.equal(pc.objectActionState.list.head.action,node);
+  assert.ok(session.diagnostics.some(message=>message.includes('no first vertex')));
+});
+test('live cast wait retains an active round but releases for any due spell; future spells do not release it',async()=>{
+  const {session,pc}=fixture(),round=pc.combatRound;round.started=true;round.timer=100;
+  const node=addObjectAction(pc.objectActionState,16,7,[]),run=()=>session.combat.runActions(pc,1,100,0n,{microseconds:()=>0n});
+  round.actions=[{nativeActionType:1,time:0},{nativeActionType:2,time:101}];await run();
+  assert.equal(pc.objectActionState.list.head.action,node);
+  round.actions[1].time=100;await run();assert.equal(pc.objectActionState.list.count,0);
+});
 test('native wait supports live dispatch, strict boundary, unsigned duration and day remainder quirks',async()=>{
   const {session,pc}=fixture(),state=pc.objectActionState;
   const wait=seconds=>addObjectAction(state,30,7,[{type:2,value:bits(seconds)}]);

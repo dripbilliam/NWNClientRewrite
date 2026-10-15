@@ -1,4 +1,5 @@
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
+import {scriptTalent} from './talent.js';
 export const OBJECT_INVALID = 0x7f000000;
 const TYPES = { int: 3, float: 4, string: 5, object: 6, effect: 0x10, event: 0x11, location: 0x12, talent: 0x13, itemproperty: 0x14, sqlquery: 0x15, cassowary: 0x16, json: 0x17 };
 const clone = cell => ({ type: cell.type, value: typeof cell.value === 'object' && cell.value !== null ? structuredClone(cell.value) : cell.value });
@@ -12,13 +13,14 @@ export class NwScriptVm {
   constructor({ api, command, instructionLimit = 100_000, stackLimit = 65_536, diagnostics = runtimeDiagnostics, diagnosticContext = () => ({}), limitations = {} }) {
     Object.assign(this, { api, command, instructionLimit, stackLimit, diagnostics, diagnosticContext, limitations });
   }
-  async run(program, self = OBJECT_INVALID, { situation = null, budget = { remaining: this.instructionLimit }, depth = 0 } = {}) {
+  async run(program, self = OBJECT_INVALID, { situation = null, budget = { remaining: this.instructionLimit }, depth = 0, scriptEventContext=-1 } = {}) {
+    if(!Number.isInteger(scriptEventContext))throw new Error('Native script event context is unavailable');
     if (depth >= 8) {
       const error = new ScriptError(program, 13, 'Nested script limit exceeded');
       error.diagnosticCode = 'script.failure'; error.diagnosticContext = { ...this.diagnosticContext(self), script: program.name, pc: 13, objectId: self };
       this.diagnostics.error(error); throw error;
     }
-    const frame = { program, self, pc: situation?.pc ?? 13, stack: situation?.stack.map(clone) ?? [], bp: situation?.bp ?? 0, returns: [], stored: null, budget, depth };
+    const frame = { program, self, pc: situation?.pc ?? 13, stack: situation?.stack.map(clone) ?? [], bp: situation?.bp ?? 0, returns: [], stored: null, budget, depth,scriptEventContext:scriptEventContext|0 };
     let executingPc = frame.pc;
     try {
       while (frame.pc !== null) {
@@ -82,7 +84,9 @@ export class NwScriptVm {
       }
       case 2:
         if (![3, 4, 5, 6].includes(i.type) && (i.type < 0x10 || i.type > 0x19)) throw new Error('Invalid RSADD type');
-        push(i.type, i.type === 5 ? '' : i.type === 6 ? OBJECT_INVALID : i.type >= 0x10 ? null : 0); return;
+        // CreateGameDefinedStructure14050d208..14050d222 allocates a
+        // constructor-initialized talent for RSADD, never a null pointer.
+        push(i.type, i.type === 5 ? '' : i.type === 6 ? OBJECT_INVALID : i.type===0x13?scriptTalent():i.type >= 0x10 ? null : 0); return;
       case 4:
         if (i.type === 6) push(6, i.value === 0 ? f.self : OBJECT_INVALID);
         else if (i.type === 0x12) { if (i.value !== 0) throw new Error('Invalid location constant'); push('location', null); }

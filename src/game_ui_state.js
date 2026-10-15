@@ -30,19 +30,10 @@ export function journalRows(player, definitions, text, { tab = 'quests', sort = 
 // This is client presentation state. Game objects, journal quest state and item
 // ownership stay in ModuleSession, never in a second UI object registry.
 export class GameUiState {
-  constructor() { this.stack = []; this.quickbarPage = 0; this.quickbar = Array.from({ length: 3 }, () => Array(12).fill(null)); this.journalTab = 'quests'; this.journalSort = 'name'; this.selectedQuest = null; this.notes = new Map(); }
+  constructor() { this.stack = []; this.quickbarPage = 0; this.journalTab = 'quests'; this.journalSort = 'name'; this.selectedQuest = null; this.notes = new Map(); }
   get panel() { return this.stack.at(-1) ?? null; }
   open(panel) { if (this.panel === panel) return; this.stack.push(panel); }
   toggle(panel) { if (this.panel === panel) this.close(); else { this.stack = []; this.open(panel); } }
   close() { return this.stack.pop(); }
-  reset() { this.stack = []; this.quickbar = Array.from({ length: 3 }, () => Array(12).fill(null)); this.quickbarPage = 0; this.selectedQuest = null; this.notes.clear(); }
-  bind(page, slot, request) {
-    if (!Number.isInteger(page) || page < 0 || page > 2 || !Number.isInteger(slot) || slot < 0 || slot > 11) throw new Error('Invalid quickbar slot');
-    this.quickbar[page][slot] = request ? { ...request } : null;
-  }
-  activate(page, slot, registry, actorId) {
-    const request = this.quickbar[page]?.[slot]; if (!request) return null;
-    if (!registry.get(actorId) || request.targetId !== undefined && !registry.get(request.targetId)) return null;
-    return { ...request, actorId, areaId: registry.get(actorId).areaId };
-  }
+  reset() { this.stack = []; this.quickbarPage = 0; this.selectedQuest = null; this.notes.clear(); }
 }

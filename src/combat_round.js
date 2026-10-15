@@ -74,6 +74,28 @@ export function addParryIndex(round){
   if(Number(round.started)!==0)addRoundAction(round,createRoundAction(8));
 }
 
+// AddCircleKickAttack1403744a0 / AddCleaveAttack140374600. Both insert
+// BEFORE the captured head (not through the sorted AddAction owner), even
+// for an idle round. Constructor +18 remains1: unlike AoO/Parry these actions
+// follow the current target. Counts are signed dwords, then truncated to BYTE.
+function addFollowupAttack(round, targetId, feat) {
+  if (!Number.isInteger(targetId) || targetId < 0 || targetId > 0xffffffff) throw new Error('Native follow-up target ID is unavailable');
+  const counts = [round.onhandAttacks, round.offhandAttacks, round.additionalAttacks, round.bonusEffectAttacks];
+  if (!counts.every(Number.isInteger) || !Array.isArray(round.actions)) throw new Error('Native follow-up round storage is unavailable');
+  const total = counts.reduce((sum, value) => (sum + value) | 0, 0), count = total > 1 ? total & 255 : 1;
+  const cost = Math.min(count * 750 + 500, 3000);
+  const duration = Math.trunc(f32(f32(cost) / f32(f32((count - 3) * 0.5) + 3)));
+  decrementRoundLength(round, duration, true);
+  round.actions.unshift(createRoundAction(1, targetId >>> 0, { type: 'attack', time: 0, animation: 9, duration, count: 1 }));
+  round.additionalAttacks = (round.additionalAttacks + 1) | 0;
+  insertSpecialAttack(round, feat, 0);
+}
+export function addCircleKickAttack(round, targetId) { addFollowupAttack(round, targetId, 409); }
+export function addCleaveAttack(round, targetId, great) {
+  if (!Number.isInteger(great)) throw new Error('Native Great Cleave flag is unavailable');
+  addFollowupAttack(round, targetId, great === 1 ? 391 : 6);
+}
+
 // InitializeNumberOfAttacks 0x1403773a0. Mutates combat mode when Flurry or
 // Rapid Shot are no longer legal for the current equipment.
 function* numberOfAttacksSteps(round, actor, items, rules) {
@@ -141,6 +163,13 @@ export function decrementRoundLength(round, amount, allowBleed = false) {
 export function addCombatStep(round,time,targetId){
   addRoundAction(round,createRoundAction(4,targetId,{type:'combatStep',time:time|0,duration:500}));
   decrementRoundLength(round,500);
+}
+
+// AddReaction140374d10..140374d9f inserts type3 at timer+delay only
+// when the round's started DWORD is nonzero. Ties preserve insertion order.
+export function addReaction(round,delay,duration){
+  if(Number(round.started)!==0)addRoundAction(round,createRoundAction(3,OBJECT_INVALID,
+    {time:((round.timer|0)+(delay|0))|0,duration:duration|0}));
 }
 
 // InitializeAttackActions 0x140376ee0 uses three animation groups, rather

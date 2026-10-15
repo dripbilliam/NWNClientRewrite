@@ -12,11 +12,15 @@ const objectId = payload => (payload.objectIds?.[0] ?? OBJECT_INVALID) >>> 0;
 export async function dispatchSubareaEvent(target, eventId, payload, p) {
   if (eventId !== 10) return;
   const code = payload.scriptEvent & 65535;
+  // Encounter EventHandler14043c049 queues native exhausted slot3. It
+  // does not change LastEntered/LastLeft or manufacture a caller object.
+  if(target.objectType===13&&code===21){await required(p,'runScript')(target,3);return;}
   if (![12, 13].includes(code)) throw new Error(`Native subarea script event ${code} is not implemented`);
   if (![7, 13].includes(target.objectType)) throw new Error(`Native subarea event object type ${target.objectType} is not implemented`);
   const id = objectId(payload), entering = code === 12;
   target.eventObjects ??= {};
   target.eventObjects[entering ? 'entering' : 'exiting'] = id;
+  if(target.objectType===13)target[entering?'nativeEncounterLastEntered3cc':'nativeEncounterLastLeft3d0']=id;
   if (target.objectType === 7) {
     if ((target.authored?.TrapFlag ?? 0) !== 0) {
       if (entering) { await required(p, 'enterTrap')(target, payload.integers?.[0] ?? 0); return; }
@@ -27,10 +31,10 @@ export async function dispatchSubareaEvent(target, eventId, payload, p) {
     if (entering) {
       const before = await required(p, 'encounterEnterBeforeSpawn')();
       if (before !== 0) await required(p, 'runScript')(target, 0);
-      await required(p, 'activateEncounter')(target, id, 0);
+      await required(p, 'activateEncounter')(target, id, -1);
       if (before === 0) await required(p, 'runScript')(target, 0);
     } else {
-      await required(p, 'removeEncounterCreatures')(target, OBJECT_INVALID);
+      await required(p, 'updateEncounterActivation')(target, OBJECT_INVALID);
       await required(p, 'runScript')(target, 1);
     }
   }

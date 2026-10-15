@@ -92,6 +92,17 @@ export async function broadcastSavingThrow(actor,data,p){
 export async function broadcastSkillData(actor,data,p){
   return broadcastOwnedCheck(actor,data,9,p);
 }
+// BroadcastFloatyData140383e60 uses faction membership and the30m gate,
+// then type11 delivery. NPCs without clients never receive a UI record.
+export async function broadcastFloatyData(actor,data,p){
+  required(p,['members','client','send']);let members=await p.members(actor);if(members===null)return;
+  if(!Array.isArray(members))throw new Error('Native floating feedback faction list is unavailable');
+  for(let index=0;;index++){
+    members=await p.members(actor);if(members===null)return;if(index>=members.length)return;
+    const client=await p.client(members[index]),viewer=client?.object;
+    if(viewer&&viewer.areaId===actor.areaId&&near(actor,viewer))await p.send(client,11,structuredClone(data));
+  }
+}
 async function broadcastOwnedCheck(actor,data,type,p){
   required(p,['client','ownerId','send']);
   const owner=integer(await p.ownerId(actor),'save owner ID')>>>0;

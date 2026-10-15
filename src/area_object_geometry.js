@@ -2,6 +2,7 @@ import { NativeAreaCollisionStore } from './area_collision_store.js';
 import { noNonWalkPolysDetailed, queryDoorPolygons, handleTransparentDoor } from './area_collision.js';
 import { nativePlacementOrientation, doorMeshBoundingBox, noDoorPolygons } from './object_surface_mesh.js';
 import { intEntry } from './combat_stats.js';
+import {doorTileCoordinates} from './sound_path.js';
 
 const f = Math.fround;
 const restingAnimations = [22, 50, 51, 72];
@@ -76,6 +77,21 @@ export class NativeAreaObjectGeometry {
     providers.doorPolygons = (...args) => queryDoorPolygons(...args, providers);
     providers.transparentDoor = (...args) => handleTransparentDoor(...args, providers);
     return providers;
+  }
+  async soundDoors(tile){
+    await this.load();
+    const result=[];
+    for(const id of this.area.objects){
+      const door=this.registry.get(id);if(door?.objectType!==10)continue;
+      if(this.snapshots.get(id)!==signature(door))throw new Error('Native sound door insertion/position/orientation lifecycle is unavailable');
+      if(!doorTileCoordinates(door.nativePosition.slice(0,2),this.area.width,this.area.height).some(([x,y])=>x===tile.x&&y===tile.y))continue;
+      const descriptor=this.descriptors.get(id),block=intEntry(descriptor.table,descriptor.index,'BlockSight');
+      // GetINTEntry writes its native fallback to the caller even on failure.
+      if(descriptor.visibleModel===0&&!block.found)this.report(new Error('Native sound door BlockSight lookup returned its table fallback'),door,'native-sound-door-blocksight');
+      result.push({id,visibleModel:descriptor.visibleModel,blockSight:block.value,openState:this.providers().doorOpenState(door),
+        position:door.nativePosition.slice(0,2),orientation:door.nativeOrientation});
+    }
+    return result;
   }
   async query(...args) {
     try {

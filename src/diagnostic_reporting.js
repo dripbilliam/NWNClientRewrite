@@ -49,6 +49,7 @@ export function installDiagnosticReporting() {
   window.addEventListener('unhandledrejection', event => log.error(event.reason, 'runtime.unhandled-rejection'));
   // Main-process close waits for this hook before closing the window.
   window.flushRuntimeDiagnostics = () => log.flush();
+  setInterval(() => { void log.flush().catch(() => {}); }, 10000);
   void attachDiagnosticStorage();
   const status = document.querySelector('#diagnostic-status');
   const recent = document.querySelector('#diagnostic-recent');

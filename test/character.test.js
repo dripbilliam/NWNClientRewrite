@@ -3,6 +3,7 @@ import test from 'node:test';
 import { ABILITIES, validateCharacter, characterStats, experienceAward, equipmentAbilityBonuses, importedObjectIds } from '../src/character.js';
 import { ModuleSession } from '../src/module_session.js';
 import { OBJECT_INVALID } from '../src/game_object_array.js';
+import {setCreatureGold} from '../src/creature_gold.js';
 
 function fixture() {
   const root = { IsPC: 1, Race: 0, Gender: 0, Appearance_Type: 0, Experience: 500, Gold: 17,
@@ -56,6 +57,7 @@ test('native favored class selection preserves first ties and excludes prerequis
 test('script character and equipment accessors resolve canonical ID zero, owner IDs and native slot masks', () => {
   const { root, rules } = fixture(), s = new ModuleSession(null);
   const pc = s.register('player', 'player', { authored: root, stats: characterStats(root, rules), inventory: [], isPC: true });
+  setCreatureGold(pc,root.Gold);
   const item = s.register('item', 'sword', { ownerId: pc.id, equipmentSlot: 16 }); pc.inventory.push(item.id);
   assert.equal(pc.id, 0); assert.equal(s.commands.GetClassByPosition([1, 0]), 0);
   assert.equal(s.commands.GetClassByPosition([0, 0]), 255); assert.equal(s.commands.GetClassByPosition([1, OBJECT_INVALID]), 0);

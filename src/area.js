@@ -1,21 +1,28 @@
 import { parseGff } from './gff.js';
 import { decodeResourceText, RESOURCE_TYPE } from './resource_archive.js';
-import { parseWalkmesh } from './walkmesh.js';
+import { parseTileSurfaceMesh, rotateTilePoint } from './tile_surface_mesh.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 
 const MAX_AREA_TILES = 65_536;
 
 export async function loadAreaWalkmesh(area, resolver) {
   const table = parse2da(decodeResourceText(await resolver.getResource('surfacemat', RESOURCE_TYPE.TWO_DA)));
-  const surfaces = [];
-  for (const [id, row] of table.rows) surfaces[id] = row.Walk === '1';
   const triangles = [];
   const missing = [];
   for (const [index, tile] of area.tiles.entries()) {
-    const position = [index % area.width * 10 + 5, Math.floor(index / area.width) * 10 + 5, tile.height * area.tileHeight];
+    const x = index % area.width, y = Math.floor(index / area.width);
     try {
       const bytes = await resolver.getResource(tile.model, RESOURCE_TYPE.WOK);
-      triangles.push(...parseWalkmesh(bytes, surfaces, { position, orientation: tile.orientation }));
+      // Use the same native loader as simulation: f32 node transforms, integer
+      // vertex snapping, physical surface rows and exact tile quarter turns.
+      // Exporter residues otherwise leave invisible cracks between adjacent WOKs.
+      const mesh = parseTileSurfaceMesh(bytes, table);
+      const vertices = mesh.vertices.map(([vx, vy, vz]) => {
+        const [worldX, worldY] = rotateTilePoint({ x, y, orientation: tile.orientation ?? 0 },
+          [Math.fround(x * 10 + vx), Math.fround(y * 10 + vy)], false);
+        return [worldX, Math.fround(vz + Math.fround(tile.height * area.tileHeight)), -worldY];
+      });
+      triangles.push(...mesh.faces.map((face, i) => ({ vertices: face.map(index => vertices[index]), surfaceType: mesh.materials[i] })));
     } catch (error) {
       runtimeDiagnostics.error(error, 'scene.walkmesh-unavailable', { area: area.resRef, model: tile.model, tileIndex: index });
       missing.push({ model: tile.model, reason: error.message });
@@ -273,7 +280,10 @@ export function parseTileset(text) {
   }
   if (!Number.isFinite(transition) || transition < 0) throw new Error('Tileset has an invalid height transition.');
   const tiles = Array.from({ length: count }, (_, index) => ({
-    model: sections[`TILE${index}`]?.Model?.toLowerCase() ?? ''
+    model: sections[`TILE${index}`]?.Model?.toLowerCase() ?? '',
+    // Preserve native SET fields independently of the shared WOK resource.
+    pathNodeFields: Object.fromEntries(['PathNode','Orientation','VisibilityNode','VisibilityOrientation','DoorVisibilityNode','DoorVisibilityOrientation','Doors']
+      .map(key=>[key,sections[`TILE${index}`]?.[key]]))
   }));
   return { transition, tiles };
 }
@@ -292,6 +302,7 @@ export function parse2da(text) {
   const rows = new Map();
   // C2DA integer access uses physical row position, not the printed row label.
   const orderedRows = [];
+  const orderedCells = [];
   for (let index = headerLine + 1; index < lines.length; index += 1) {
     const line = lines[index];
     if (!line || line.startsWith(';')) continue;
@@ -302,9 +313,10 @@ export function parse2da(text) {
       if (!Object.hasOwn(row, columns[column])) row[columns[column]] = tokens[column + 1] ?? defaultValue;
     }
     orderedRows.push(row);
+    orderedCells.push(columns.map((_name, column) => tokens[column + 1] ?? defaultValue));
     if (Number.isInteger(rowId)) rows.set(rowId, row);
   }
-  return { defaultValue, columns, rows, orderedRows };
+  return { defaultValue, columns, rows, orderedRows, orderedCells };
 }
 
 function parseIni(text) {

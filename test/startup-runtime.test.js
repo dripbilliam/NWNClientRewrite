@@ -7,7 +7,7 @@ import { GameAudio } from '../src/game_audio.js';
 
 function fixture() {
   const messages = [], sounds = [], s = new ModuleSession({}, { onMessage: m => messages.push(m), onSound: m => sounds.push(m) });
-  const pc = s.register('player', 'pc', { isPC: true, position: [0, 0, 0], stats: { xp: 100, level: 1, nextXP: 1000, currentHP: 5, maxHP: 10 }, authored: { LvlStatList: [{}] } });
+  const pc = s.register('player', 'pc', { isPC: true, nativeField89c:1, position: [0, 0, 0], stats: { xp: 100, level: 1, nextXP: 1000, currentHP: 5, maxHP: 10 }, authored: { LvlStatList: [{}] } });
   const area = s.register('area', 'area', { objects: [pc.id] }); pc.areaId = area.id; s.player = pc;
   return { s, pc, area, messages, sounds, self: { self: pc.id } };
 }
@@ -59,11 +59,11 @@ test('heal clamps to maximum HP, consumes even permanent effects, and does not r
   const heal = s.commands.EffectHeal([500], self);
   assert.equal(heal.subtype, 8); assert.equal(s.commands.GetEffectType([heal]), 0); assert.equal(s.commands.GetEffectType([heal, 1]), 96);
   s.commands.ApplyEffectToObject([2, heal, pc.id]);
-  assert.equal(pc.stats.currentHP, 10); assert.equal(messages.at(-1).amount, 5); assert.equal(pc.effects, undefined);
+  assert.equal(pc.stats.currentHP, 10); assert.equal(messages.at(-1).amount, 5); assert.deepEqual(pc.effects, []);
   pc.stats.currentHP = -10; s.commands.ApplyEffectToObject([0, heal, pc.id]); assert.equal(pc.stats.currentHP, -10);
   pc.stats.currentHP = -3; s.commands.ApplyEffectToObject([0, heal, pc.id]); assert.equal(pc.stats.currentHP, 10);
   for (const n of [0, -10]) assert.equal(s.commands.EffectHeal([n], self).type, 0);
-  assert.throws(() => s.effects.apply(0, { type: 1 }, pc.id), /not implemented/);
+  assert.throws(() => s.effects.apply(0, { type: 99 }, pc.id), /not implemented/);
 });
 
 test('enumeration has an object-local cursor, restarts after exhaustion, and rejects saved unknown effects', () => {

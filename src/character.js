@@ -6,6 +6,7 @@ import { abilityModifier, baseCombatStats, rulesetDuplicates } from './combat_st
 import { finalCombatStats, equipmentRecords } from './combat_modifiers.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 import { creatureMaxHitPoints, restoredCreatureHitPoints } from './creature_hit_points.js';
+import {abilityEffectBonus,nativeAbilityScore} from './ability_effect.js';
 
 export const ABILITIES = ['Str', 'Dex', 'Con', 'Int', 'Wis', 'Cha'];
 export const EQUIPMENT_SLOTS = ['Head', 'Chest', 'Boots', 'Arms', 'Right hand', 'Left hand', 'Cloak', 'Left ring', 'Right ring', 'Neck', 'Belt', 'Arrows', 'Bullets', 'Bolts', 'Creature weapon 1', 'Creature weapon 2', 'Creature weapon 3', 'Creature armor'];
@@ -73,6 +74,14 @@ export async function loadCharacterRules(resolver) {
   catch(error){tables.repadjust=null;runtimeDiagnostics.record('rules.optional-table-unavailable',`repadjust.2da: ${error.message}`,{resource:'repadjust',outcome:'Native combat reputation adjustments are unavailable',stack:error.stack});}
   try { tables.ranges=parse2da(decodeResourceText(await resolver.getResource('ranges',RESOURCE_TYPE.TWO_DA))); }
   catch(error){tables.ranges=null;runtimeDiagnostics.record('rules.optional-table-unavailable',`ranges.2da: ${error.message}`,{resource:'ranges',outcome:'Native perception range initialization is unavailable',stack:error.stack});}
+  try { tables.xptable=parse2da(decodeResourceText(await resolver.getResource('xptable',RESOURCE_TYPE.TWO_DA))); }
+  catch(error){tables.xptable=null;runtimeDiagnostics.record('rules.optional-table-unavailable',`XPTable.2da: ${error.message}`,{resource:'xptable',outcome:'Native death experience lookup is unavailable',stack:error.stack});}
+  try { tables.visualeffects=parse2da(decodeResourceText(await resolver.getResource('visualeffects',RESOURCE_TYPE.TWO_DA))); }
+  catch(error){tables.visualeffects=null;runtimeDiagnostics.record('rules.optional-table-unavailable',`visualeffects.2da: ${error.message}`,{resource:'visualeffects',outcome:'Native death visual preservation lookup is unavailable',stack:error.stack});}
+  for(const name of ['encumbrance','iprp_weightinc','itemprops','itempropdef','iprp_meleecost','iprp_spells','spellschools','domains','usemagicdevice','fractionalcr','encdifficulty']){
+    try{tables[name]=parse2da(decodeResourceText(await resolver.getResource(name,RESOURCE_TYPE.TWO_DA)));}
+    catch(error){tables[name]=null;runtimeDiagnostics.record('rules.optional-table-unavailable',`${name}.2da: ${error.message}`,{resource:name,outcome:'Native dependent rule table is unavailable',stack:error.stack});}
+  }
   tables.abilityCosts = new Map();
   tables.itemCosts = new Map();
   for (const id of [1, 2, 20, 21]) {
@@ -94,11 +103,12 @@ export async function loadCharacterRules(resolver) {
   return tables;
 }
 
-export function characterStats(root, rules, { currentHP: liveHP, items = equipmentRecords(root), effects = [], areaFlags = 0, limits, acCache, possessedFamiliar = false, itemCombatEffects } = {}) {
+export function characterStats(root, rules, { currentHP: liveHP, items = equipmentRecords(root), effects = [], areaFlags = 0, limits, acCache, possessedFamiliar = false, itemCombatEffects,abilityItem } = {}) {
   const classes = root.ClassList.map(c => ({ id: c.Class, level: c.ClassLevel }));
   const level = classes.reduce((n, c) => n + c.level, 0);
   const race = rules.racialtypes.rows.get(root.Race);
   if (!race || classes.some(c => !rules.classes.rows.has(c.id))) throw new Error('Character race or class missing from module rules');
+  const parts={};
   const baseAbilities = Object.fromEntries(ABILITIES.map(field => {
     let gain = 0;
     for (const c of classes) {
@@ -108,10 +118,15 @@ export function characterStats(root, rules, { currentHP: liveHP, items = equipme
       for (let l = 1; table && l <= c.level; l++) classGain += number(table.rows.get(l - 1)?.[field.toUpperCase()]);
       gain += i8(classGain);
     }
-    return [field, root[field] + number(race[`${field}Adjust`]) + Math.max(-128, Math.min(127, gain))];
+    parts[field]={base:root[field],race:number(race[`${field}Adjust`]),gain:Math.max(-128,Math.min(127,gain))};
+    return [field, root[field] + parts[field].race + parts[field].gain];
   }));
   const equippedBonuses = equipmentAbilityBonuses(items.map(item => item.data), rules);
-  const equippedAbilities = Object.fromEntries(ABILITIES.map(f => [f, Math.max(3, baseAbilities[f] + equippedBonuses[f]) & 255]));
+  const abilityEffects=[...equipmentAbilityEffects(items,rules),...effects.filter(e=>[36,37].includes(e.type))].sort((a,b)=>a.type-b.type),abilityBonuses={};
+  const equippedAbilities=Object.fromEntries(ABILITIES.map((field,index)=>{
+    const bonus=abilityEffectBonus(abilityEffects,index,{item:abilityItem??(id=>items.find(i=>i.id===id)??null),bonusLimit:()=>limits?.abilityBonus??12,penaltyLimit:()=>limits?.abilityPenalty??30}).total;
+    abilityBonuses[field]=bonus;const p=parts[field];return[field,nativeAbilityScore(p.base,p.race,p.gain,bonus)];
+  }));
   const con = abilityModifier(equippedAbilities.Con, rules);
   const feats = new Set((root.FeatList ?? []).map(f => f.Feat));
   const maxHP = creatureMaxHitPoints(root, con, rules, { possessedFamiliar });
@@ -122,13 +137,25 @@ export function characterStats(root, rules, { currentHP: liveHP, items = equipme
     ? baseCombatStats(root, rules, { charismaModifier: abilityModifier(equippedAbilities.Cha, rules) }) : null;
   if (combat && rules.armor && rules.parts_chest && rules.itemCosts) Object.assign(combat,
     finalCombatStats(root, rules, equippedAbilities, combat, { items, effects, areaFlags, limits, acCache, itemCombatEffects }));
-  return { classes, level, baseAbilities, equippedBonuses, equippedAbilities, combat, maxHP, currentHP, xp: root.Experience >>> 0, gold: root.Gold ?? 0,
+  return { classes, level, baseAbilities, equippedBonuses,abilityBonuses, equippedAbilities, combat, maxHP, currentHP, xp: root.Experience >>> 0, gold: root.Gold ?? 0,
     race: root.Race, gender: root.Gender, subrace: root.Subrace ?? '', feats: [...feats], skills: (root.SkillList ?? []).map(s => s.Rank), skillPoints: root.SkillPoints ?? 0,
     nextXP, canLevelUp: level < 40 && nextXP !== null && root.Experience >= nextXP,
     // Saved combat snapshots are retained in authored data, not used as live rules.
-    limitations: ['Equipment ability modifiers are applied. Temporary ability effects and broader item property execution remain pending.',
+    limitations: ['Ability effect aggregation is applied; broader item property execution remains pending.',
       combat?.saves ? 'Displayed armor class, melee/ranged bonuses and saving throw modifiers are available. Bonuses against particular attackers, save rolls and combat resolution remain pending.'
         : combat ? 'Base attack and base saves are available. Final combat rules are unavailable.' : 'Combat stat rules are unavailable.'] };
+}
+
+export function equipmentAbilityEffects(items,rules){
+  const effects=[];
+  for(const [index,item] of items.entries())for(const prop of item.data.PropertiesList??[]){
+    if(![0,27].includes(prop.PropertyName)||prop.Subtype<0||prop.Subtype>5)continue;
+    const table=rules.abilityCosts?.get(prop.PropertyName===0?1:21),row=table?.rows.get(prop.CostValue);
+    if(!row||!Number.isFinite(Number(row.Value)))throw new Error('Unknown equipment ability modifier cost value');
+    const amount=Math.max(0,Number(row.Value))|0;
+    effects.push({type:prop.PropertyName===0?36:37,integers:[prop.Subtype,amount],sourceItemId:item.id??item.source??`equipment:${index}`,spellId:-1});
+  }
+  return effects;
 }
 
 export function equipmentAbilityBonuses(items, rules) {

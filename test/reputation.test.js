@@ -34,6 +34,12 @@ test('native FAC loading and lookup retain asymmetry, defaults, clamp, invalid I
   assert.equal(clamped.get(1, 0), 0); assert.equal(clamped.get(1, 1), 100);
 });
 
+test('encounter reactions do not require creature-pair PvP inputs even inside an area',()=>{
+  const {pc,objects,providers}=fixture();objects.set(77,{id:77,objectType:13,factionId:1,areaId:100});
+  providers.pvp=()=>assert.fail('Native noncreature pair does not query PvP');
+  assert.equal(aiStateReaction(pc,77,providers),2);
+});
+
 test('native world-time subtraction preserves unsigned borrow and invalid-output status', () => {
   assert.deepEqual(subtractWorldTimes({ day: 10, time: 20 }, { day: 9, time: 99 }, 100), { status: 0, days: 0, milliseconds: 21 });
   assert.deepEqual(subtractWorldTimes({ day: 10, time: 20 }, { day: 10, time: 21 }, 100), { status: -2 });

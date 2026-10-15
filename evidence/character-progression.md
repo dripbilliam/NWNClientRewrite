@@ -1,6 +1,6 @@
 # Character rules and stored-history progression
 
-Current combat-linked feat-use, NPC loading, skill cache and live provider status: [Combat action-loop checkpoint](combat-action-loop.md). Earlier unavailable-provider lists below are historical; manual creation/selection remains unfinished.
+Current combat-linked feat-use, NPC loading, skill cache and live provider status: [Combat action-loop checkpoint](combat-action-loop.md). Earlier unavailable-provider lists below are historical. First-level creation and selection now have a [separate checkpoint](character-creation.md); manual level-up remains unfinished.
 
 Checkpoint: 2026-10-12. This implements the PC XP/history mutation slice. It does **not** complete character creation, manual level-up validation, combat stats or every native LevelUp/LevelDown side effect.
 

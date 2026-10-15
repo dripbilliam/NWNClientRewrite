@@ -2,29 +2,64 @@ import { parseGff } from './gff.js';
 import { OBJECT_INVALID } from './game_object_array.js';
 import { areaObjectsByX, nativeDistanceSquared } from './nearest_objects.js';
 
-export function parseConversation(bytes) {
+export function parseConversation(bytes, { oneLiner = false } = {}) {
   const root = parseGff(bytes, 'DLG ').root;
-  for (const field of ['EntryList', 'ReplyList', 'StartingList']) if (!Array.isArray(root[field])) throw new Error(`DLG ${field} is missing`);
+  for (const field of oneLiner ? ['EntryList', 'StartingList'] : ['EntryList', 'ReplyList', 'StartingList']) if (!Array.isArray(root[field])) throw new Error(`DLG ${field} is missing`);
   const validate = (links, count) => {
     for (const link of links ?? []) if (!Number.isInteger(link.Index) || link.Index < 0 || link.Index >= count) throw new Error('DLG link index is out of bounds');
   };
   validate(root.StartingList, root.EntryList.length);
-  for (const node of root.EntryList) validate(node.RepliesList, root.ReplyList.length);
-  for (const node of root.ReplyList) validate(node.EntriesList, root.EntryList.length);
+  if (!oneLiner) {
+    for (const node of root.EntryList) validate(node.RepliesList, root.ReplyList.length);
+    for (const node of root.ReplyList) validate(node.EntriesList, root.EntryList.length);
+  }
   return root;
 }
 
 export class Conversation {
-  constructor(session) { this.session = session; this.state = null; this.version = 0; this.busy = false; this.resources = new Map(); }
+  constructor(session) { this.session = session; this.state = null; this.version = 0; this.busy = false; this.resources = new Map(); this.oneLinerResources = new Map(); }
   changed() { this.version++; this.session.onConversation(this.state); }
   async script(name, params = [], condition = false, frame = null) {
+    return this.ownerScript(this.state.ownerId, name, params, condition, frame);
+  }
+  async ownerScript(ownerId, name, params = [], condition = false, frame = null) {
     if (!name) return condition ? true : undefined;
     if (params.length) throw new Error('DLG script parameters are not implemented');
-    const result = await this.session.vm.run(await this.session.program(name), this.state.ownerId,
+    const result = await this.session.runScript(name, ownerId,
       frame ? { budget: frame.budget, depth: frame.depth + 1 } : {});
     if (!condition) return;
+    if(result.executed===false)return false; // CNWSDialog::CheckScript14041a211..14041a249.
     if (result.stack.length !== 1 || result.stack[0].type !== 3) throw new Error(`DLG condition ${name} did not return an integer`);
     return result.stack[0].value !== 0;
+  }
+  // RunDialogOneLiner1404994d0 / GetStartEntryOneLiner14041ada0.
+  // This owns no modal conversation, replies, speaker locks or action clearing.
+  async oneLiner(owner, resRef = '', tokenTargetId = OBJECT_INVALID, frame = null) {
+    if (!owner || owner.objectType <= 4) return;
+    resRef = String(resRef || owner.authored?.Conversation || '').toLowerCase().slice(0, 16);
+    if (!resRef) return;
+    let resource;
+    try {
+      if (!this.oneLinerResources.has(resRef)) this.oneLinerResources.set(resRef, parseConversation(await this.session.resolver.getResource(resRef, 2029), { oneLiner: true }));
+      resource = this.oneLinerResources.get(resRef);
+    } catch (error) { this.session.report(error, { ...this.session.diagnosticContext(owner.id), operation: 'dialog-one-liner-load', resRef }); return; }
+    for (const link of resource.StartingList) {
+      const node = resource.EntryList[link.Index];
+      if (node.Speaker) continue;
+      // Native checks the starting condition before rejecting reply-bearing entries.
+      if (!await this.ownerScript(owner.id, link.Active, link.ConditionParams, true, frame) || node.RepliesList?.length) continue;
+      const tokenTarget = this.session.registry.get(tokenTargetId), gender = tokenTarget?.objectType > 4 ? (tokenTarget.authored?.Gender ?? 0) & 255 : 0;
+      // Chat type8 uses same-area, inclusive 20m 3D recipients. The action
+      // script runs even if nobody receives the line (1404997b8,1404997cd).
+      for (const client of this.session.combat.broadcastProviders().clients()) {
+        const player = client.object;
+        if (owner.areaId !== player.areaId || nativeDistanceSquared(owner.position, player.position) > Math.fround(20 * 20)) continue;
+        this.session.onMessage({ type: 'oneLiner', id: owner.id, recipientId: player.id, text: node.Text, tokenTargetId, gender, resRef, sound: node.Sound || '' });
+        if (node.Sound) this.session.onSound({ objectId: owner.id, recipientId: player.id, resRef: node.Sound, position: [...owner.position] });
+      }
+      await this.ownerScript(owner.id, node.Script, node.ActionParams, false, frame);
+      return;
+    }
   }
   speaker(node) {
     const state = this.state, owner = this.session.registry.get(state.ownerId);

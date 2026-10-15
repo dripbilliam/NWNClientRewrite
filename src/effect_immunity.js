@@ -1,5 +1,14 @@
 import { creatureAlignment } from './creature_rules.js';
 
+// ExecuteCommandGetIsImmune1405271d0. Category INT guard is1..32 before
+// narrowing; missing/noncreature subjects return0, versus lookup is optional.
+export function scriptGetIsImmune(args,p){
+  const [id,category,versus=0x7f000000]=args;
+  if(![id,category,versus].every(Number.isInteger))throw new Error('Native GetIsImmune arguments are unavailable');
+  const source=p.creature(versus>>>0),actor=p.creature(id>>>0),kind=category|0;
+  return actor&&kind>0&&kind<33?p.immunity(actor,kind&255,source,1):0;
+}
+
 // GetEffectImmunity 0x140400ab0. Native built-in feats supplement effect type
 // 22; plot grants immunity even when the caller excludes feat checks.
 export function effectImmunity(root, effects, category, versus = null, { includeFeats = true, plot = Boolean(root.Plot) } = {}) {

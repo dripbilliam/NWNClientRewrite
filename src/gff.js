@@ -1,8 +1,11 @@
+import { decodeGffText } from './gff_text.js';
 const HEADER_SIZE = 56;
 const MAX_RECORDS = 1_000_000;
 const MAX_DEPTH = 128;
-const textDecoder = new TextDecoder('windows-1252');
+const textDecoder = { decode: decodeGffText };
 const structTypes = new WeakMap();
+const fieldTypes = new WeakMap();
+export function getGffFieldTypes(record) { return fieldTypes.get(record); }
 // GFF structure type IDs (e.g. equipment slots) are format metadata, not game
 // object IDs. Keep them separate from authored fields and from OBJECT_ID.
 export function getGffStructType(record) { return structTypes.get(record); }
@@ -16,6 +19,7 @@ export function cloneGff(record, seen = new Map()) {
   const result = Array.isArray(record) ? [] : {};
   seen.set(record, result);
   if (structTypes.has(record)) structTypes.set(result, structTypes.get(record));
+  if (fieldTypes.has(record)) fieldTypes.set(result, { ...fieldTypes.get(record) });
   for (const [key, value] of Object.entries(record)) result[key] = cloneGff(value, seen);
   return result;
 }
@@ -188,6 +192,7 @@ export function parseGff(input, expectedType = null) {
     const record = structs[index];
     const result = Object.create(null);
     structTypes.set(result, record.id);
+    fieldTypes.set(result, Object.create(null));
     structCache.set(index, result);
     const fieldIds = record.fieldCount === 0
       ? []
@@ -207,6 +212,7 @@ export function parseGff(input, expectedType = null) {
       const label = labels[field.labelIndex];
       if (Object.hasOwn(result, label)) throw new Error(`Duplicate GFF field label ${label}.`);
       result[label] = readFieldValue(field, depth);
+      fieldTypes.get(result)[label] = field.type;
     }
     return result;
   }

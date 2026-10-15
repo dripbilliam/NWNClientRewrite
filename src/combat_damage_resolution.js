@@ -52,8 +52,8 @@ export async function resolveStrikeDamage(actor, target, rules, p) {
   }
 }
 
-// ResolvePostMeleeDamage 0x1403e8f00..1403e979a, also used after ranged
-// damage. The initial total is retained for Crippling Strike/weapon warning;
+// ResolvePostMeleeDamage 0x1403e8f00..1403e979a. Ranged uses its separate
+// native owner. Initial total is retained for Crippling Strike/weapon warning;
 // Quivering Palm explicitly rereads the current record total.
 export async function resolvePostStrikeDamage(actor, target, rules, p) {
   if (!target) return;

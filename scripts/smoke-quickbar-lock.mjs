@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {openLocalModule} from './local-module.mjs';
+import {ModuleSession} from '../src/module_session.js';
+import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
+const root='../FullDecomp/NwnRootInstall',resolver=await openLocalModule(root,`${root}/data/nwm/Prelude.nwm`),diagnostics=[];
+const session=await new ModuleSession(resolver,{runStartupScripts:false,runNativeAI:false,onDiagnostic:m=>diagnostics.push(m)}).initialize(['m0q1a'],{character:await fs.readFile(`${root}/data/lcv/wizard.bic`)});
+const owner=session.byTag('M1Q0ABim')[0],door=session.byTag('M1Q0A_M1Q0B')[0];owner.conversation={playerId:session.player.id};
+const before=door.locked,start=runtimeDiagnostics.records.length;
+await session.vm.run(await session.program('m0q01a0bimelc1'),owner.id);
+assert.equal(door.locked,0);const unlock=session.scheduler.events.find(e=>e.targetId===door.id&&e.event.payload?.type===29);assert.ok(unlock);assert.equal(unlock.event.callerId,owner.id);
+await session.dispatch(unlock);assert.equal(door.eventObjects.unlocked,owner.id);
+const list=session.savePlayerQuickbar();assert.equal(list.length,36);
+const failures=runtimeDiagnostics.records.slice(start).filter(r=>r.code==='engine.unimplemented'||r.code==='script.failure');assert.deepEqual(failures,[]);
+console.log(JSON.stringify({lockBefore:before,lockAfter:door.locked,unlockCaller:door.eventObjects.unlocked,quickbarTypes:session.player.nativeQuickbar4e0.map(b=>b.type),QBListRecords:list.length,scriptFailures:failures,diagnostics},null,2));

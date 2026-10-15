@@ -15,10 +15,11 @@ function sessionId() {
   return `run-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 export class RuntimeDiagnostics {
-  constructor({ session = sessionId(), context = () => ({}), sink = null } = {}) {
-    Object.assign(this, { session, context, sink });
+  constructor({ session = sessionId(), context = () => ({}), sink = null, now = () => Date.now() } = {}) {
+    Object.assign(this, { session, context, sink, now });
     this.records = []; this.pending = []; this.listeners = new Set(); this.errors = new WeakMap();
     this.writing = null; this.storageError = null; this.location = 'Memory · persistence not attached';
+    this.repeated = new Map();
   }
   subscribe(listener) { this.listeners.add(listener); listener(this); return () => this.listeners.delete(listener); }
   publish() { for (const listener of this.listeners) listener(this); }
@@ -28,8 +29,29 @@ export class RuntimeDiagnostics {
     // Copy metadata at occurrence time. Never retain live objects/asset bytes.
     const snapshot = JSON.parse(diagnosticJson(record));
     this.records.push(snapshot); this.pending.push(snapshot); this.publish();
-    if (this.sink && !this.storageError) void this.flush().catch(() => {});
+    if (this.sink && !this.storageError) void this.flush({ repeated: false }).catch(() => {});
     return snapshot;
+  }
+  // Only explicitly identified polling omissions use aggregation. Script calls,
+  // resource failures and ordinary records remain separate occurrences.
+  repeat(code, message, context = {}, severity = 'warning') {
+    const detail = { ...this.context(), ...context }, key = diagnosticJson([code, message, detail, severity]);
+    const timestamp = new Date(this.now()).toISOString();
+    let entry = this.repeated.get(key);
+    if (!entry) {
+      entry = { code, message, context: JSON.parse(diagnosticJson(detail)), severity, total: 1, pending: 0, first: timestamp, last: timestamp };
+      this.repeated.set(key, entry);
+      return this.record(code, message, { ...detail, occurrences: 1, totalOccurrences: 1, firstOccurrence: timestamp, lastOccurrence: timestamp }, severity);
+    }
+    entry.total++; entry.pending++; entry.last = timestamp;
+  }
+  flushRepeated() {
+    for (const entry of this.repeated.values()) {
+      if (!entry.pending) continue;
+      const count = entry.pending; entry.pending = 0;
+      this.record(entry.code, entry.message, { ...entry.context, occurrences: count, totalOccurrences: entry.total,
+        firstOccurrence: entry.first, lastOccurrence: entry.last }, entry.severity);
+    }
   }
   error(error, code = 'runtime.failure', context = {}) {
     const detail = { ...error?.diagnosticContext, ...context };
@@ -43,8 +65,9 @@ export class RuntimeDiagnostics {
     return this.record(code, String(error), detail);
   }
   attach(sink, location) { this.sink = sink; this.location = location; this.storageError = null; this.publish(); return this.flush(); }
-  async flush() {
-    if (this.writing) { await this.writing; if (this.pending.length) return this.flush(); return; }
+  async flush({ repeated = true } = {}) {
+    if (repeated) this.flushRepeated();
+    if (this.writing) { await this.writing; if (this.pending.length) return this.flush({ repeated: false }); return; }
     if (!this.sink) return;
     this.writing = (async () => {
       while (this.pending.length) {
@@ -61,7 +84,7 @@ export class RuntimeDiagnostics {
     })();
     try { await this.writing; } finally { this.writing = null; }
   }
-  jsonl() { return this.records.map(record => JSON.stringify(record)).join('\n') + (this.records.length ? '\n' : ''); }
+  jsonl() { this.flushRepeated(); return this.records.map(record => JSON.stringify(record)).join('\n') + (this.records.length ? '\n' : ''); }
 }
 
 export const runtimeDiagnostics = new RuntimeDiagnostics();

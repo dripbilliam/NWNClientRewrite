@@ -12,6 +12,16 @@ export function nativeFloatEntry(table,index,column){
   if(!row||!table.columns.some(k=>k.toLowerCase()===column.toLowerCase()))return{found:false,value:float(table.defaultValue)};
   const cell=value(row,column);return cell===undefined||cell===''||cell==='****'?{found:false,value:0}:{found:true,value:float(cell)};
 }
+// Numeric overload1401a6d60 retains physical column values even when names
+// repeat. All return paths write output; invalid indices use the table default.
+export function nativeFloatEntryByIndex(table,index,column){
+  if(!Number.isInteger(index)||!Number.isInteger(column))throw new Error('Native physical FLOAT indices are unavailable');
+  const list=rows(table);
+  if(index<0||index>=list.length||column<0||column>=table.columns.length)return{found:false,value:float(table.defaultValue)};
+  if(!table.orderedCells&&new Set(table.columns).size!==table.columns.length)throw new Error('Native duplicate FLOAT columns require physical cell storage');
+  const cell=table.orderedCells?.[index]?.[column]??list[index]?.[table.columns[column]];
+  return cell===undefined||cell===''||cell==='****'?{found:false,value:0}:{found:true,value:float(cell)};
+}
 
 // SetMovementRate1404160a0..140416410. Category7 resolves appearance
 // MOVERATE against CreatureSpeed.2DAName case-insensitively, in physical order.
@@ -56,6 +66,12 @@ const monkLevel=actor=>{
   for(const entry of list.slice(0,list.length&255))if((integer(entry.Class,'class ID')&255)===5)level=integer(entry.ClassLevel,'class level')&255;
   return level;
 };
+// SetMovementRateFactor1403a3670 scans raw class levels, retaining the last
+// Monk slot; it clamps the stored factor independently of getter flag308.
+export function setNativeMovementFactor(actor,value,rules){
+  if(typeof value!=='number')throw new Error('Native movement factor FLOAT is unavailable');
+  actor.nativeMovementFactor8e8=cap(f(value),monkLevel(actor),rules);
+}
 // GetMovementRateFactor140391fe0..140392214. Monk abilities RESET the
 // barbarian-adjusted local to the stored factor before adding monk speed.
 export async function movementRateFactor(actor,rules,p){

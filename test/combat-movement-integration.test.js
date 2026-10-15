@@ -92,14 +92,14 @@ test('live action1 walks on real tiles through canonical queue, height, subareas
   assert.equal(actor.nativePathInfo.allocations.size,2);assert.equal(actor.nativePathInfo.raw.getInt32(0x78,true),1);
   assert.ok(runtimeDiagnostics.records.slice(before).every(r=>r.severity!=='error'));
 });
-test('unavailable native blocked search preserves live move action identity and reports requesting canonical actor',async()=>{
+test('unavailable path-node input preserves live move action identity and reports requesting canonical actor',async()=>{
   const {s,area,actor}=fixture(0);actor.nativeFrameElapsedD4=100;
   s.module={nativePathfindingLevel464:2};
   await addMoveToPointFront(actor,9,[6,0,-5],area.id,0x7f000000,0,0,0,0,0,0,0,0,0,{setLock:(...args)=>s.combat.setLock(...args)});
   const node=actor.objectActionState.list.head.action,before=runtimeDiagnostics.records.length;
-  await assert.rejects(s.combat.runActions(actor,1,1000),/provider areaPlot/);
+  await assert.rejects(s.combat.runActions(actor,1,1000),/tile path node information/);
   assert.equal(actor.objectActionState.list.head.action,node);assert.deepEqual(actor.position,[4,0,-5]);assert.equal(s.random.draws,0);
-  assert.ok(runtimeDiagnostics.records.slice(before).some(r=>r.context?.objectId===actor.id&&r.message.includes('areaPlot')));
+  assert.ok(runtimeDiagnostics.records.slice(before).some(r=>r.context?.objectId===actor.id&&r.message.includes('tile path node information')));
 });
 
 test('live ClearAllActions cancels an approach group, respects protected records and resets the owned path',async()=>{

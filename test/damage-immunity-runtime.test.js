@@ -57,10 +57,10 @@ test('combined flag effects update the lowest byte and recompute only exact flag
 test('negative decrease constructors are consumed on apply; live plot/immunity gates reject decreases but preserve prior effects', () => {
   const { s, pc, self } = fixture();
   s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, -30], self), pc.id]);
-  assert.equal(pc.effects, undefined);
+  assert.deepEqual(pc.effects, []);
   pc.plot = true;
   s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, 30], self), pc.id]);
-  assert.equal(pc.effects, undefined);
+  assert.deepEqual(pc.effects, []);
   pc.plot = false; pc.authored.Plot = 1;
   s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, 30], self), pc.id]);
   assert.equal(pc.damageImmunityCache[8], -30, 'Live plot flag overrides the authored snapshot');

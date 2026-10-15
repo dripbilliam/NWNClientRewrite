@@ -19,6 +19,15 @@ export function checkActionLength(round, ownerId, duration) {
   return Number(round.started) !== 1 || (duration | 0) <= available;
 }
 
+// CheckActionLengthAtTime140375470..1403754c9. Unlike CheckActionLength,
+// another owner's finite pause can expire before the proposed reaction.
+export function checkActionLengthAtTime(round, ownerId, duration, delay) {
+  const arrival=((round.timer|0)+(delay|0))|0,expiry=((round.timer|0)+(round.pauseTimer|0))|0;
+  if(Number(round.paused)===1&&(round.pausedBy>>>0)!==(ownerId>>>0)&&arrival<expiry)return false;
+  const available=((((((round.length|0)-(round.overlap|0))|0)-(round.timer|0))|0)-(delay|0)+1000)|0;
+  return Number(round.started)!==1||available>=(duration|0);
+}
+
 // GetActionPending/GetAction 0x140375de0/140375da0. GetAction removes the
 // head even when it is too early. The caller must check pending first.
 export const actionPending = round => Boolean(round.actions[0] && round.actions[0].time <= round.timer);

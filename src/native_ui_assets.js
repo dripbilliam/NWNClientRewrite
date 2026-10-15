@@ -6,17 +6,18 @@ import { decodeModelOrientation } from './mdl_format.js';
 import { parseGff } from './gff.js';
 import { RESOURCE_TYPE } from './resource_archive.js';
 import { sampleTrack } from './model_animation.js';
+import {modelParentIndices} from './model_hierarchy.js';
 
 export const UI_PIXELS_PER_UNIT = 100;
 
 // NWN GUI is a model hierarchy, not a collection of flat background images.
 // Render its actual MDL/UVs unlit in the source XY plane, preserving node hooks.
 export function buildUiModel(model, textures = new Map()) {
-  const root = new THREE.Group(), groups = new Map();
+  const root = new THREE.Group(), groups = new Map(),nodeGroups=new Map(),parents=modelParentIndices(model);
   for (const node of model.nodes) {
     const group = new THREE.Group(); group.name = node.name;
     group.position.fromArray(node.position); group.scale.setScalar(node.scale ?? 1);
-    group.quaternion.fromArray(decodeModelOrientation(node.orientation, node.orientationFormat)); groups.set(node.name, group);
+    group.quaternion.fromArray(decodeModelOrientation(node.orientation, node.orientationFormat)); groups.set(node.name, group);nodeGroups.set(node,group);
     if (node.type !== 'trimesh' || node.render === false || node.properties?.render === 0 || !node.faces.length) continue;
     const positions = [], uvs = [];
     for (const face of node.faces) for (let i = 0; i < 3; i++) {
@@ -28,7 +29,7 @@ export function buildUiModel(model, textures = new Map()) {
     const material = new THREE.MeshBasicMaterial({ map: texture ?? null, color: texture ? 0xffffff : new THREE.Color(...diffuse), transparent: true, opacity: node.alpha ?? 1, side: THREE.DoubleSide, depthWrite: false });
     group.add(new THREE.Mesh(geometry, material));
   }
-  for (const node of model.nodes) (groups.get(node.parent) ?? root).add(groups.get(node.name));
+  for (const [i,node] of model.nodes.entries()) (nodeGroups.get(model.nodes[parents[i]]) ?? root).add(nodeGroups.get(node));
   root.updateMatrixWorld(true);
   const bounds = new THREE.Box3().setFromObject(root), hooks = new Map();
   for (const [name, group] of groups) hooks.set(name.toLowerCase(), group.getWorldPosition(new THREE.Vector3()).toArray());

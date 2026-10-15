@@ -23,6 +23,14 @@ export function setCreatureAnimation(actor, requested) {
   if (chair === OBJECT_INVALID || animation === 36) actor.animationState = animation;
   return actor.animationState;
 }
+// RecomputeAmbientAnimationState14039db40 always calls SetAnimation(0),
+// including dead/dying bodies, preserving existing body3/4 in that branch.
+export function recomputeAmbientAnimation(actor,p){
+  if(p.dead(actor)!==0||p.dying(actor)!==0){if(![3,4].includes(actor.nativeBodyState&255))actor.nativeBodyState=4;}
+  else if(actor.chairId!==OBJECT_INVALID)actor.nativeBodyState=1;
+  else{const state=actor.nativeField771&255;actor.nativeBodyState=state===9?4:state===5||state===6?2:0;}
+  return p.setAnimation(actor,0);
+}
 // SetCombatState 0x1403a2f60. Clearing state does not call EndCombatRound.
 export function setCreatureCombatState(actor, state) {
   state = integer(state, 'combat state');
@@ -134,13 +142,14 @@ export async function clearCreatureAttackAction(actor, node, isHead, providers =
   return 1;
 }
 
-// ClearAction1403870b0: movement/check/wait actions have no private cleanup.
+// ClearAction1403870b0: movement/check/wait/do-command/random-walk have no private cleanup.
+// Action45 falls through all comparisons to140387778 and the shared tail.
 // They take the shared tail; ClearAllActions owns the subsequent path reset.
 // Message availability, rather than client ownership, gates stopping a head
 // move. Head != 0 stops movement, but only head == 1 resets the time pair.
 export async function clearCreatureMovementAction(actor, node, isHead, providers = {}) {
   if (node.nativeField9c === 0) return 0;
-  if (![1,17,19,30].includes(node.actionId))
+  if (![1,6,16,17,18,19,30,37,45,49].includes(node.actionId))
     throw new Error(`Native cancellation of action ${node.actionId} is unavailable`);
   if (typeof providers.messageAvailable !== 'function' || typeof providers.setLock !== 'function')
     throw new Error('Native movement cancellation providers are unavailable');

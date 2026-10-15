@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 
-export function deformSkinnedVertices(node, nodes, groups, skinGroup) {
+export function deformSkinnedVertices(node, nodes, groups, skinGroup,nodeGroups=null) {
   const inverseSkinMatrix = skinGroup.matrixWorld.clone().invert();
   const boneMatrices = node.skinData.boneConstantSlots.map((nodeIndex) => {
     const boneNode = nodes[nodeIndex];
     if (!boneNode) return null;
-    const boneGroup = groups.get(boneNode.name);
+    const boneGroup = nodeGroups?.get(boneNode)??groups.get(boneNode.name);
     return boneGroup ? inverseSkinMatrix.clone().multiply(boneGroup.matrixWorld) : null;
   });
 

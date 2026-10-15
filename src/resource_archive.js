@@ -17,6 +17,7 @@ export const RESOURCE_TYPE = Object.freeze({
   IFO: 2014,
   GIT: 2023,
   UTP: 2044,
+  UTI: 2025,
   UTD: 2042,
   JRL: 2056,
   DLG: 2029,

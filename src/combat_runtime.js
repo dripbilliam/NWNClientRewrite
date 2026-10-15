@@ -1,13 +1,22 @@
-import { endCombatRoundAsync, startCombatRoundAsync, initialAttackCombatStep, weaponAttackType, offhandAttack, addAttackOfOpportunity, addParryAttack, addParryIndex } from './combat_round.js';
+import { endCombatRoundAsync, startCombatRoundAsync, initialAttackCombatStep, weaponAttackType, offhandAttack, addAttackOfOpportunity, addParryAttack, addParryIndex, addCircleKickAttack, addCleaveAttack } from './combat_round.js';
+import { resolveMeleeSpecialAttack } from './combat_special_melee.js';
+import { calculateDeathExperience,potentialLevel,effectiveCRForPotentialLevel,officialCampaign,applyDeathExperience,addNativeExperience,nativeCanLevelUp,setNativeExperience } from './combat_experience.js';
 import { actionPending, updateRoundTimer } from './combat_timing.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 import { desiredAttackRange, maximumAttackRange } from './combat_range.js';
 import { dispatchAttackRoundAction } from './combat_action.js';
 import { addAttackRequest } from './combat_request.js';
-import { addObjectAction, computeAIState, runObjectActions, spellOrHealActionQueued, clearObjectActions, removeObjectActionGroup, manageObjectActions } from './object_actions.js';
+import { receiveAttackInput } from './combat_input.js';
+import { clearAllSpecialAttacks } from './combat_attack_data.js';
+import { addObjectAction,addObjectActionAfterFront, computeAIState, runObjectActions, spellOrHealActionQueued, clearObjectActions, removeObjectActionGroup, manageObjectActions,disposeObjectAction } from './object_actions.js';
+import {addEquipItemActions,addRoundEquipAction,executeEquipAction,clearEquipAction,serverPauseState,onServerExclusionList} from './equipment_actions.js';
+import {addUnequipActions,addRoundUnequipAction,executeUnequipAction,clearUnequipAction,processPendingEquipment} from './equipment_unequip.js';
+import {recomputeCombatRound} from './combat_recompute.js';
+import {initializeNumberOfAttacksAsync} from './combat_round.js';
+import {executeDoCommand} from './script_action.js';
 import { evaluateAttackEligibility } from './attack_eligibility.js';
 import { weaponRule, currentAttackWeapon } from './combat_weapon.js';
-import { setCreatureAnimation, setCreatureCombatState, setLockOrientation, changeAttackTarget, clearCreatureAttackAction, clearCreatureMovementAction, clearCreatureCombatMode } from './combat_lifecycle.js';
+import { setCreatureAnimation, setCreatureCombatState, setLockOrientation, changeAttackTarget, clearCreatureAttackAction, clearCreatureMovementAction, clearCreatureCombatMode, normalizeOrientation } from './combat_lifecycle.js';
 import { resolveMeleeGroup, resolveRangedGroup, signalMeleeDamage, signalRangedDamage } from './combat_strike.js';
 import { resolveMeleeAnimations } from './combat_animation.js';
 import { receiveAttackEvent } from './combat_events.js';
@@ -37,9 +46,18 @@ import { attackModifierVersus,favoredEnemyBonus } from './attack_modifier.js';
 import { armorClassVersus, creatureSize } from './combat_context.js';
 import { attackDamageFlags } from './damage_weapon.js';
 import { savingThrowSpell } from './spell_metadata.js';
-import { resolveOnHitProperties, resolveItemOnHitSpells, resolveOnHitVisuals } from './combat_on_hit.js';
+import {spellResistance,resistSpell,spellAbsorption,spellImmunity} from './spell_resistance.js';
+import { resolveOnHitProperties, resolveItemOnHitSpells, resolveOnHitVisuals,itemPropertyByType } from './combat_on_hit.js';
+import { ammunitionAvailable,resolveAmmunition,consumeAmmunition } from './ammunition.js';
+import {computeItemUnitWeight,getItemWeight,updateEncumbrance,calculateContentsWeight} from './inventory_weight.js';
+import {nativeFloatEntry} from './movement_rate.js';
+import { resolvePostRangedDamage } from './combat_ranged_damage.js';
+import { resolveSafeProjectile,receiveSafeProjectile,broadcastSafeProjectile } from './safe_projectile.js';
+import { resolveRangedAnimations } from './combat_ranged_animation.js';
+import { resolveRangedMiss } from './combat_ranged_miss.js';
+import { resolveRangedSpecialAttack } from './combat_special_ranged.js';
 import { attackResultDoesDamage } from './combat_strike.js';
-import { advanceExcitedDuration, advanceCombatStateTimers } from './combat_frame.js';
+import { advanceExcitedDuration, advanceCombatStateTimers,selectActiveTimer,updateCreatureFrame } from './combat_frame.js';
 import { weaponEffective } from './combat_weapon_effectiveness.js';
 import { addPersonalReputation,adjustFactionReputation,adjustCombatReputations,reputationAdjustments } from './combat_reputation.js';
 import { executeAttackAction } from './combat_attack_action.js';
@@ -49,29 +67,128 @@ import { doCombatStep,prepareCombatStep,applyCombatStep } from './combat_step.js
 import { noCreaturesOnLine } from './creature_line.js';
 import { nativeAsinf, nativeAtan2f, nativeCosf, nativeSinf } from './native_math.js';
 import { NativeIdList } from './native_id_list.js';
-import { queueAttackApproach, executeWait, checkMoveRadius, checkInterArea } from './movement_actions.js';
+import { queueAttackApproach, executeWait, checkMoveRadius,checkMovePointRadius, checkInterArea,addMoveToPointFront } from './movement_actions.js';
+import {executeScriptAnimation} from './script_animation.js';
 import { attackClearLine, nearestEnemy, newCombatTarget } from './combat_target.js';
 import { getUseRange, isInUseRange } from './use_range.js';
 import { executeMoveToPoint } from './move_to_point.js';
 import { plotPath } from './path_plot.js';
+import {plotLiveAreaPath} from './area_path_providers.js';
+import {updateActionQueueDisplay} from './action_queue_display.js';
+import {cancelQueueAction} from './action_queue_cancel.js';
 import { walkPath,walkDistance,testWalkDistance } from './path_walk.js';
 import { movementRate } from './movement_rate.js';
 import { intersectSubareas,intersectSubareaPolygon } from './subareas.js';
-import { testSafeLocationPoint } from './safe_location.js';
+import { testSafeLocationPoint,computeSafeLocation } from './safe_location.js';
+import { computeSafeLocationInDirection } from './safe_direction.js';
+import { receiveBlockedMovementEvent } from './blocked_movement.js';
 import { createLocalClientPanelState,autoClosePanels } from './client_panels.js';
 import { plotGridPath } from './path_grid.js';
 import { smoothPath } from './path_smoothing.js';
 import { creatureBumpable } from './creature_bump.js';
+import { bumpFriends } from './bump_friends.js';
 import { spotDetection,listenDetection,stealthDetection,updateCreaturePerception,updateVisibleList } from './perception_detection.js';
 import { clearHostileActionsVersus } from './combat_hostile.js';
 import { receivePerceptionEvent } from './perception_events.js';
+import {receiveInventoryDisturbance} from './inventory_disturbance.js';
+import {executeObjectDoorAction} from './door_actions.js';
+import {executeRandomWalk} from './random_walk.js';
+import {faceObjectAction,facePointAction,normalizeNativeFacing,triggerFacingPosition} from './facing_actions.js';
+import {waitForCastRound,spellActionPending} from './spell_queue.js';
+import {receiveCreatureSpellImpact} from './spell_impact.js';
+import {calculateSpellProjectileTime} from './spell_projectile_time.js';
+import {repositoryContains} from './item_repository.js';
+import {receiveSpellCastAt} from './spell_notification.js';
 import { spawnHeartbeatPerception,cleanPersonalReputations,cleanInvitationLists } from './creature_heartbeat.js';
 
-// Partial local AI frame adapter. It advances round timing before effect
-// expiry. Native AI levels, perception, movement and strike dispatch remain
-// separate required providers, not implicitly successful operations.
+// Local authority adapters for mapped AI/perception/actions/strikes. Missing
+// surrounding owners remain explicit dependencies; this is not a network
+// client or a completed combat implementation.
 export class CombatRuntime {
   constructor(session) { this.session = session; }
+  equipmentActionProviders(){
+    const s=this.session,b=this.broadcastProviders();
+    const p={client:b.client,messageAvailable:()=>true,item:id=>{const o=s.registry.get(id);return o?.objectType===6?o:null;},
+      possessed:o=>Number((o.associateType&65535)===3&&Boolean(b.client(o.id))),
+      cancel:(client,id,slot,explicit)=>s.onCombatMessage({recipientId:client.object.id,type:'inventory-equip-cancel',itemId:id,slot,explicit}),
+      roundCancel:(o,id,slot,explicit)=>s.onCombatMessage({recipientId:o.id,type:'inventory-equip-cancel',itemId:id,slot,explicit}),
+      feedback:(o,code,client)=>sendCombatFeedback(o,code,null,{...b,client:()=>client}),
+      queue:(o,id,params,mode)=>mode==='afterFront'?addObjectActionAfterFront(o.objectActionState,id,65535,params):addObjectAction(o.objectActionState,id,65535,params,mode==='front'),
+      activityManager:(o,n)=>manageCreatureActivities(o,n,(...args)=>s.skills.clearActivity(...args)),
+      pauseState:mask=>serverPauseState(s.nativeServerPause,mask),exclusion:id=>onServerExclusionList(s.nativeServerPause,id),
+      dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),runEquip:(...args)=>s.runEquip(...args),encumbrance:(...args)=>this.encumbrance(...args)};
+    p.roundEquip=(...args)=>addRoundEquipAction(...args,p);return p;
+  }
+  addEquip(...args){return addEquipItemActions(...args,this.equipmentActionProviders());}
+  unequipActionProviders(){
+    const s=this.session,p={...this.equipmentActionProviders(),equipped:(...args)=>s.equipmentSlot(...args),canUnequip:(...args)=>s.canUnequip(...args),
+      cancel:(client,itemId,explicit)=>s.onCombatMessage({recipientId:client.object.id,type:'inventory-unequip-cancel',itemId,explicit}),
+      controlled:id=>Number(Boolean(this.broadcastProviders().client(id))),associatesCanInteract:()=>rulesetInt(s.characterRules,'LL_ASSOCIATES_CAN_INTERACT',0),
+      runUnequip:(...args)=>s.runUnequip(...args)};
+    p.roundUnequip=(...args)=>addRoundUnequipAction(...args,p);return p;
+  }
+  addUnequip(...args){return addUnequipActions(...args,this.unequipActionProviders());}
+  async processPending(actor){
+    try{return await processPendingEquipment(actor,{item:id=>{const o=this.session.registry.get(id);return o?.objectType===6?o:null;},
+      addEquip:(...args)=>this.addEquip(...args),addUnequip:(...args)=>this.addUnequip(...args)});}
+    catch(error){this.session.report(error,this.session.diagnosticContext(actor.id));throw error;}
+  }
+  recomputeRound(actor){
+    const s=this.session;
+    return recomputeCombatRound(actor,{classes:o=>(creatureRoot(o).ClassList??[]).map(c=>c.Class),monkClass:()=>5,discipleClass:()=>40,
+      equipped:(o,slot)=>s.equipmentSlot(o,slot),monkWeapon:i=>intEntry(s.characterRules.baseitems,i.baseItem,'IsMonkWeapon').value,
+      hasFeat:(o,id)=>this.hasFeat(o,id),relativeSize:(o,i)=>s.weaponSelectionProviders(o).relativeSize(o,i),ranged:i=>s.items.baseInfo(i).ranged,
+      feedback:(o,code)=>sendCombatFeedback(o,code,null,this.broadcastProviders()),setMode:(...args)=>this.setCombatMode(...args),
+      initialize:o=>initializeNumberOfAttacksAsync(o.combatRound,o,s.equippedItems(o),s.characterRules,(...args)=>this.setCombatMode(...args))});
+  }
+  experienceProviders(providers={}){
+    const s=this.session;
+    return{module:()=>s.module??null,officialCampaign,maximumLevel:()=>s.nativeMaximumLevelF4,
+      challengeRating:o=>o.nativeChallengeRatingD0,xpTable:()=>s.characterRules?.xptable,
+      level:o=>o.stats?.level,statsIsPC:o=>o.nativeStatsIsPCb0,experience:o=>o.stats?.xp,classes:o=>o.stats?.classes,race:o=>o.stats?.race,
+      threshold:n=>{if(!s.characterRules?.exptable)throw new Error('Native XP threshold table is unavailable');return intEntry(s.characterRules.exptable,n,'XP').value;},...providers};
+  }
+  calculateDeathExperience(actor,potential,effective,providers={}){
+    try{return calculateDeathExperience(actor,potential,effective,this.experienceProviders(providers));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-death-xp-calculation'});throw error;}
+  }
+  potentialLevel(actor,providers={}){
+    try{return potentialLevel(actor,this.experienceProviders(providers));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-potential-level'});throw error;}
+  }
+  effectiveLevel(actor,providers={}){
+    try{return effectiveCRForPotentialLevel(actor,this.session.characterRules,this.experienceProviders(providers));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-effective-level'});throw error;}
+  }
+  async addExperience(actor,amount,providers={}){
+    try{return await addNativeExperience(actor,amount,this.session.characterRules,this.experienceProviders({
+      setExperience:(...args)=>this.setExperience(...args),...providers}));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-add-experience'});throw error;}
+  }
+  async setExperience(actor,xp,update=1,providers={}){
+    const s=this.session;
+    const p=this.experienceProviders({client:id=>this.broadcastProviders().client(id),dm:o=>Number(o.isDM),minimumLevel:()=>s.minimumLevel??1,
+      writeExperience:(o,n)=>{if(!o.stats||!creatureRoot(o))throw new Error('Native XP storage is unavailable');o.stats.xp=n;creatureRoot(o).Experience=n;},
+      historyCount:o=>{const list=creatureRoot(o)?.LvlStatList;if(!Array.isArray(list))throw new Error('Native XP history allocation is unavailable');return list.length;},
+      history:(o,index)=>creatureRoot(o).LvlStatList[index]??null,
+      levelUp:o=>this.unsupported(o,'Native SetExperience LevelUp history side effects are not bound to this owner'),
+      levelDown:o=>this.unsupported(o,'Native SetExperience LevelDown history side effects are not bound to this owner'),
+      feedback:(o,code,data)=>sendCombatFeedback(o,code,data,this.broadcastProviders()),...providers});
+    p.canLevelUp??=o=>nativeCanLevelUp(o,p);
+    try{return await setNativeExperience(actor,xp,update,p);}
+    catch(error){s.report(error,{...s.diagnosticContext(actor.id),operation:'native-set-experience'});throw error;}
+  }
+  async applyDeathExperience(actor,providers={}){
+    const s=this.session;
+    try{return await applyDeathExperience(actor,this.experienceProviders({object:id=>s.registry.get(id)??null,
+      creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},asCreature:o=>o.objectType===5?o:null,
+      asDeathOwner:o=>[7,9,10].includes(o.objectType)?o:null,
+      deathOwnerId:o=>{if(!Number.isInteger(o.nativeTrapCreatorId))throw new Error('Native trap creator ID is unavailable');return o.nativeTrapCreatorId;},
+      faction:o=>o.factionId,factionMembers:o=>s.factionManager.members(o),dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),
+      isPC:o=>o.reputationPCFlag,possessed:o=>Number((o.associateType&65535)===3&&Boolean(this.broadcastProviders().client(o.id))),
+      potentialLevel:o=>this.potentialLevel(o),effectiveLevel:o=>this.effectiveLevel(o),addExperience:(o,n)=>this.addExperience(o,n),...providers}));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-apply-death-experience'});throw error;}
+  }
   async updateSpawnHeartbeat(actor,frame=1,providers={}){
     const s=this.session,p={dayLength:s.worldTimer.dayLength,activeTime:()=>s.worldTimer.time(),worldTime:()=>s.worldTimer.time(),
       random:()=>s.random.next(),dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),pc:o=>Number(o.isPC),
@@ -108,15 +225,24 @@ export class CombatRuntime {
       rollDice:(count,sides)=>s.random.dice(count,sides),client:o=>this.broadcastProviders().client(o.id),
       favoredEnemyBonus:(o,t)=>favoredEnemyBonus(o,t,s.characterRules),rulesetInt:(name,value)=>rulesetInt(s.characterRules,name,value),
       creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},object:id=>{const o=s.registry.get(id);return o&&o.objectType>=5&&o.objectType<=14?o:null;},
-      itemInSlot:(o,slot)=>s.registry.get((o.inventory??[]).find(id=>s.registry.get(id)?.equipmentSlot===slot))??null,
+      itemInSlot:(o,slot)=>s.equipmentSlot(o,slot),
       visibility:(o,id)=>this.visibility(o,id),visualTypes:o=>o.nativeVisualTypes160,timeOfDay:()=>s.module?.nativeTimeOfDay3d4,
       invisibleCreatureIds:()=>s.module?.nativeInvisibleCreatureIds330,
       invisible:(...args)=>this.invisible(...args),clearHostileActions:(o,t)=>this.clearHostileActions(o,t),
       enqueue:(...args)=>this.enqueueEvent(...args),
       dead:o=>Number(s.isDead(o)),pc:o=>Number(o.isPC),controlled:o=>Number(this.broadcastProviders().client(o.id)!==null),
       spatial:area=>area.nativeSpatial,markPerceptionWork:()=>{s.nativeAIFieldB0=1;},
-      updatePerception:(...args)=>this.updatePerception(...args),
+      updatePerception:async(actor,target,force)=>{
+        try { await this.updatePerception(actor,target,force); }
+        catch(error) {
+          // A failed target query retains its prior visibility. It must not
+          // prevent other target queries or freeze this creature's action clock.
+          // No sight/hearing success is substituted for an unavailable owner.
+          s.report(error,{...s.diagnosticContext(actor.id),targetId:target.id,operation:'perception-target-update'});
+        }
+      },
       lineOfSight:(area,...args)=>{if(!area?.nativeGeometry?.lineOfSight)throw new Error('Native perception area LOS is unavailable');return area.nativeGeometry.lineOfSight(...args);},
+      plotSoundPath:(area,path)=>{if(!area?.nativeGeometry?.soundPath)throw new Error('Native perception sound path geometry is unavailable');return area.nativeGeometry.soundPath(path);},
       ...providers};
   }
   async detectStealth(actor,target,clear,out,retained=0,providers={}){
@@ -132,7 +258,7 @@ export class CombatRuntime {
     catch(error){this.session.report(error,this.session.diagnosticContext(actor.id));throw error;}
   }
   async clearHostileActions(actor,target,providers={}){
-    try{return await clearHostileActionsVersus(actor,target,{removeGroup:(o,id)=>removeObjectActionGroup(o,id,{clearAction:(...args)=>this.clearAction(...args)}),...providers});}
+    try{return await clearHostileActionsVersus(actor,target,{removeGroup:(o,id)=>removeObjectActionGroup(o,id,{clearAction:(...args)=>this.clearAction(...args),deleteSituation:s=>this.session.deleteSituation(s)}),...providers});}
     catch(error){this.session.report(error,this.session.diagnosticContext(actor.id));throw error;}
   }
   async updateVisibility(actor,providers={}){
@@ -198,6 +324,9 @@ export class CombatRuntime {
           if([4,5].includes(type))preparedStep=await prepareCombatStep(o,Number(type===4),action.duration|0,id,stepProviders);
         },
         combatStep:o=>applyCombatStep(o,preparedStep,stepProviders),
+        equipment:(o,action)=>action.nativeActionType===6?this.session.runEquip(o,action.targetId,action.equipmentSlot,OBJECT_INVALID):
+          this.session.runUnequip(o,action.targetId,action.repositoryId,action.repositoryX,action.repositoryY,0,OBJECT_INVALID),
+        recomputeRound:o=>this.recomputeRound(o),
         // Unavailable equipment and skip callbacks stay absent so preflight
         // preserves their due record before the native dequeue boundary.
         weaponAttackType:o=>weaponAttackType(o.combatRound,this.session.equippedItems(o),this.session.random),
@@ -224,11 +353,47 @@ export class CombatRuntime {
     return this.session.scheduler.enqueueMilliseconds(targetId >>> 0,
       { type: 'combatAI', eventId: eventId >>> 0, callerId: callerId >>> 0, payload }, milliseconds >>> 0);
   }
+  spellProjectileTime(actor,path){
+    const s=this.session;
+    return calculateSpellProjectileTime(actor,path,{spell:id=>s.spellBook.castingSpell(id),asCreature:o=>o.objectType===5?o:null,
+      item:id=>{const o=s.registry.get(id);return o?.objectType===6?o:null;},object:id=>{const o=s.registry.get(id);return o&&o.objectType>4?o:null;},
+      position:o=>[o.position[0],-o.position[2],o.position[1]],inRepository:(o,item)=>{
+        if(!o.nativeInventoryImported)throw new Error('Native spell projectile inventory is unavailable');
+        return repositoryContains(o.nativeRepository,item,1,{object:id=>s.registry.get(id),baseInfo:i=>s.items.baseInfo(i),repository:i=>i.nativeRepository});},
+      equipped:(o,item)=>{if(!o.nativeInventoryImported||!o.nativeEquipment)throw new Error('Native spell projectile equipment is unavailable');return o.nativeEquipment.contains(item);}});
+  }
+  spellResistance(actor){return spellResistance(actor,this.session.characterRules,{hasFeat:(o,id)=>this.hasFeat(o,id),classes:o=>creatureRoot(o).ClassList});}
+  spellDefenseProviders(){
+    const s=this.session,b=this.broadcastProviders();
+    return{object:id=>s.registry.get(id),spell:id=>{const spell=s.spellBook.castingSpell(id);return spell?{...spell,get school(){return savingThrowSpell(s.characterRules,id).school;}}:null;},
+      effectSpell:o=>{if(!Number.isInteger(o.nativeAreaEffectSpellId))throw new Error('Native area-effect spell context is unavailable');return o.nativeAreaEffectSpellId;},
+      hasFeat:(o,id)=>this.hasFeat(o,id),casterLevel:o=>s.spellBook.casterLevel(o),classType:(o,index)=>creatureRoot(o).ClassList[index]?.Class??255,
+      level:(id,type)=>s.spellBook.level(id,type),effects:o=>o.effects,remove:(o,e)=>s.effects.remove(o.id,e.id),
+      feedback:(...args)=>sendCombatFeedback(...args,b),resistance:o=>this.spellResistance(o),dice:(count,sides)=>s.random.dice(count,sides),client:b.client,send:b.send};
+  }
+  resistSpell(casterId,targetId,self){const p=this.spellDefenseProviders();p.absorption=(...args)=>spellAbsorption(...args,p);p.immunity=(...args)=>spellImmunity(...args,p);return resistSpell(casterId,targetId,self,this.session.characterRules,p);}
+  receiveSpellImpact(actor,event){
+    const s=this.session;
+    return receiveCreatureSpellImpact(actor,event.eventId,event.callerId,event.payload,{object:id=>s.registry.get(id),
+      area:o=>s.registry.get(o.areaId)??null,position:o=>[o.position[0],-o.position[2],o.position[1]],
+      setEffectSpell:(o,id)=>{o.nativeEffectSpellId774=id|0;},projectileTime:(o,path)=>this.spellProjectileTime(o,path),
+      runScript:async(name,id)=>{if(name)await s.runScript(name,id);}});
+  }
+  receiveSpellNotification(actor,payload){
+    const s=this.session,b=this.broadcastProviders();
+    return receiveSpellCastAt(actor,payload,{object:id=>s.registry.get(id),creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},
+      areaEffectCreator:o=>o.nativeAreaEffectCreator330,dead:o=>Number(s.isDead(o)),pc:o=>Number(o.nativeField89c!==0||Boolean(b.client(o.id))),
+      setLastHostile:(o,id,force)=>s.damage.setLastHostile(o,{id},force),scriptName:o=>o.scripts?.spellAt??'',
+      runScript:async(o,index)=>{const name=o.scripts?.spellAt;if(name){try{await s.runScript(name,o.id,{scriptEventContext:(o.objectType&255)*1000+index});}catch(error){s.report(error,{...s.diagnosticContext(o.id),script:name});}}},
+      broadcastState:o=>broadcastCombatState(o,b),initiative:o=>s.damage.initiative(o),excited:(o,state)=>b.excited(o,state),removeInvisibility:o=>this.removeInvisibility(o),
+      faction:o=>o.factionId,factionReputation:(...args)=>adjustFactionReputation(...args,this.reputationMutationProviders()),
+      associateCommand:(...args)=>this.associateCommand(...args),adjustReputations:(...args)=>this.adjustReputations(...args)});
+  }
   async receiveAttack(target, callerId, data, providers = {}) {
     const session = this.session;
     try { return await receiveAttackEvent(target, callerId, data, {
       creature: id => session.registry.get(id)?.objectType === 5 ? session.registry.get(id) : null,
-      equippedItem: (a, slot) => session.registry.get((a.inventory ?? []).find(id => session.registry.get(id)?.equipmentSlot === slot)) ?? null,
+      equippedItem: (a, slot) => session.equipmentSlot(a,slot),
       initiative: a => session.damage.initiative(a), isDead: a => Number(session.isDead(a)),
       broadcastAttack:(t,a,d)=>broadcastAttackData(t,a,callerId,d,this.broadcastProviders()),
       broadcastState:a=>broadcastCombatState(a,this.broadcastProviders()),
@@ -241,16 +406,38 @@ export class CombatRuntime {
     catch (error) { session.report(error, session.diagnosticContext(target.id)); throw error; }
   }
   async dispatchEvent(target, event) {
+    if(target.objectType===11)return this.session.areaEffects.dispatch(target,event);
     // Creature event 5 at 0x14038e51e..0x14038e565. Other combat event
     // handlers remain explicit; never infer completion from a known ID.
+    if(target.objectType===10&&(event.eventId===6||event.eventId===7))return this.session.receiveDoorUseEvent(target,event.callerId,event.eventId===7);
     if (event.eventId === 5) {
       if (target.objectType !== 5) this.unsupported(target, 'Native noncreature combat effect event handler is unavailable');
       if (event.payload?.type === 40) this.unsupported(target, 'Native special effect event flag +180 is not implemented');
-      if (event.payload) await this.session.effects.apply(0, event.payload, target.id);
+      if(event.payload){
+        const durationType=event.payload.durationType??0;
+        if(![0,1,2].includes(durationType))this.unsupported(target,`Native combat effect duration type ${durationType} is not implemented`);
+        await this.session.effects.apply(durationType,event.payload,target.id,event.payload.duration??0);
+      }
     } else if(event.eventId===10){
+      if([9,10].includes(target.objectType)&&[28,29].includes(event.payload?.type)){
+        const locked=event.payload.type===28,index=locked?6:target.objectType===10?10:11;
+        target.eventObjects[locked?'locked':'unlocked']=event.callerId;
+        const name=target.scripts?.[locked?'lock':'unlock'];
+        if(name)await this.session.runScript(name,target.id,{scriptEventContext:target.objectType*1000+index});
+        return;
+      }
+      if(target.objectType===3&&[19,20,39,40].includes(event.payload?.type&65535))return this.session.receiveItemModuleEvent(event.callerId,event.payload);
       if(target.objectType!==5)this.unsupported(target,'Native noncreature perception event handler is unavailable');
-      await receivePerceptionEvent(target,event.payload,{pc:o=>Number(o.isPC),scriptName:o=>o.scripts?.perception??'',
-        runScript:async o=>{const name=o.scripts?.perception;if(name)await this.session.vm.run(await this.session.program(name),o.id);}});
+      if((event.payload?.type&65535)===2)await this.receiveSpellNotification(target,event.payload);
+      else if((event.payload?.type&65535)===31)await receiveBlockedMovementEvent(target,event.callerId,{
+        client:id=>this.broadcastProviders().client(id),possessed:o=>Number((o.associateType&65535)===3&&Boolean(this.broadcastProviders().client(o.id))),
+        rulesetInt:(name,value)=>rulesetInt(this.session.characterRules,name,value),scriptName:o=>o.scripts?.blocked??'',
+        runScript:async o=>{const name=o.scripts?.blocked;if(name)await this.session.runScript(name,o.id);}});
+      else if((event.payload?.type&65535)===27)await receiveInventoryDisturbance(target,event.callerId,event.payload,{
+        setLastHostile:(o,id,force)=>this.session.damage.setLastHostile(o,{id},force),
+        runEventScript:async(o,index)=>{const name=o.scripts?.disturbed;if(name)await this.session.runScript(name,o.id,{scriptEventContext:(o.objectType&255)*1000+index});}});
+      else await receivePerceptionEvent(target,event.payload,{pc:o=>Number(o.isPC),scriptName:o=>o.scripts?.perception??'',
+        runScript:async o=>{const name=o.scripts?.perception;if(name)await this.session.runScript(name,o.id);}});
     } else if(event.eventId===15){
       if(target.objectType!==5)this.unsupported(target,'Native noncreature attack event handler is unavailable');
       await this.receiveAttack(target,event.callerId,event.payload);
@@ -259,12 +446,23 @@ export class CombatRuntime {
       await receiveCombatFeedback(target,event.callerId,event.payload,{
         creature:id=>this.session.registry.get(id)?.objectType===5?this.session.registry.get(id):null,
         savingThrow:(o,d)=>broadcastSavingThrow(o,d,this.broadcastProviders()),feedback:(o,code,d)=>sendCombatFeedback(o,code,d,this.broadcastProviders())});
-    } else if(event.eventId===19)this.unsupported(target,'Native combat AI event 19 spell-impact handler is not implemented');
+    } else if(event.eventId===8||event.eventId===19){
+      if(target.objectType!==5)this.unsupported(target,'Native noncreature spell impact handler is unavailable');
+      await this.receiveSpellImpact(target,event);
+    }
     else if(event.eventId===20){
       if(target.objectType!==5)this.unsupported(target,'Native noncreature opportunity attack handler is unavailable');
       // Payload is a raw object ID cast to void*, not an allocated record.
       const id=event.payload===null||event.payload===undefined||event.payload===0?OBJECT_INVALID:event.payload;
       await this.opportunityAttack(target,id,0);
+    }
+    else if(event.eventId===21){
+      if(target.objectType!==5)this.unsupported(target,'Native noncreature safe projectile handler is unavailable');
+      await this.receiveProjectile(target,event.callerId,event.payload);
+    }
+    else if(event.eventId===16){
+      if(target.objectType!==6)this.unsupported(target,'Native nonitem ammunition consumption handler is unavailable');
+      await this.consumeAmmo(target);
     }
     else this.unsupported(target, `Native combat AI event ${event.eventId} is not implemented`);
   }
@@ -276,7 +474,8 @@ export class CombatRuntime {
       return s.nativeLocalClient;
     };
     return{client,clients:()=>{const local=client(s.player?.id);return local?[local]:[];},
-      members:o=>{if(!Number.isInteger(o.factionId))throw new Error('Native combat faction is unavailable');return[...s.registry.objects.values()].filter(t=>t.objectType===5&&t.factionId===o.factionId).map(t=>t.id);},
+      members:o=>{if(!s.factionManager)throw new Error('Native combat faction manager is unavailable');
+        const faction=s.factionManager.get(o.factionId);return faction?[...faction.members.view()]:null;},
       faction:o=>o.factionId,dm:o=>Number(Boolean(o.isDM)),ownerId:o=>o.masterId,
       send:(c,type,data,attack)=>s.onCombatMessage({recipientId:c.object.id,type,data,attack}),
       excited:(o,state)=>setExcitedState(o,state,s.characterRules,{client,area:o=>s.registry.get(o.areaId)??null,
@@ -393,8 +592,8 @@ export class CombatRuntime {
       },
       unarmed:o=>Number(!session.equippedItems(o).find(i=>i.slot===16)),
       newTarget:(o,id)=>this.newTarget(o,id),
-      circleKick:()=>this.unsupported(actor,'Native Circle Kick round insertion is not implemented'),
-      cleave:()=>this.unsupported(actor,'Native cleave round insertion is not implemented'),
+      circleKick:addCircleKickAttack,
+      cleave:addCleaveAttack,
       weaponEffective:(o,id,offhand)=>this.weaponEffective(o,id,offhand),
       message:(type,fields)=>({type,...fields}),warning:message=>this.warning(actor,message),...providers };
   }
@@ -529,19 +728,149 @@ export class CombatRuntime {
     catch (error) { this.session.report(error, this.session.diagnosticContext(actor.id)); throw error; }
   }
   async resolveMeleeSpecial(actor,index,count,target,duration){
-    const data=actor.combatRound.attacks[Math.min(actor.combatRound.currentAttack&255,49)];
-    // ResolveMeleeSpecialAttack 1403e6660 first uses the normal roll/damage/
-    // animation path. IDs65002/65003 fall through without an extra feat effect.
-    if(![65002,65003].includes(data.attackType))this.unsupported(actor,`Native melee special attack ${data.attackType} is not implemented`);
-    await this.resolveRoll(actor,target);
-    if(attackResultDoesDamage(data.result)){await this.resolveDamage(actor,target);await this.resolvePostDamage(actor,target);}
-    await resolveMeleeAnimations(actor,index,count,target,duration,data,{
-      animationRandom:this.session.random,getLock:t=>t.objectType===5?t.lockOrientationId:OBJECT_INVALID,
-      rangedEquipped:t=>this.rangedEquipped(t)});
+    await resolveMeleeSpecialAttack(actor,index,count,target,duration,{
+      asCreature:t=>t.objectType===5?t:null,remainingUses:(o,id)=>this.remainingUses(o,id),warning:message=>this.warning(actor,message),
+      attackRoll:(...args)=>this.resolveRoll(...args),damage:(...args)=>this.resolveDamage(...args),postDamage:(...args)=>this.resolvePostDamage(...args),
+      animations:(a,i,c,t,d,data)=>resolveMeleeAnimations(a,i,c,t,d,data,{
+        animationRandom:this.session.random,getLock:t=>t.objectType===5?t.lockOrientationId:OBJECT_INVALID,rangedEquipped:t=>this.rangedEquipped(t)}),
+      specialEffect:(a,t,creature,data)=>this.unsupported(a,`Native melee special effect ${data.attackType} is not implemented`),
+    });
   }
   async resolveRanged(actor, target, count, duration, providers) {
-    try { return await resolveRangedGroup(actor, target, count, duration, this.strikeProviders(actor, providers)); }
+    try { return await resolveRangedGroup(actor, target, count, duration, this.strikeProviders(actor, {
+      ammunition:(o,n)=>this.ammunition(o,n),postDamage:(a,t)=>this.resolveRangedPostDamage(a,t),
+      miss:(a,t)=>this.rangedMiss(a,t),animations:(a,t,d)=>this.rangedAnimations(a,t,d),
+      specialAttack:(a,t,d)=>this.rangedSpecial(a,t,d),signal:(a,t,n)=>this.signalRanged(a,t,n),...providers})); }
     catch (error) { this.session.report(error, this.session.diagnosticContext(actor.id)); throw error; }
+  }
+  ammunitionProviders(providers={}){
+    const s=this.session;
+    return{equippedItem:(o,slot)=>s.equipmentSlot(o,slot),
+      propertyExists:(item,type,subtype)=>Number(Boolean(itemPropertyByType({data:item.authored,temporaryProperties:item.temporaryProperties},type,subtype))),
+      baseItem:item=>item.authored?.BaseItem,stack:item=>item.authored?.StackSize,
+      inventoryItemByBase:(o,base,index)=>(o.inventory??[]).map(id=>s.registry.get(id)).filter(item=>item&&!item.equipmentSlot&&item.authored?.BaseItem===base)[index]?.id??OBJECT_INVALID,
+      item:id=>s.registry.get(id)?.objectType===6?s.registry.get(id):null,
+      canEquip:o=>this.unsupported(o,'Native ammunition CanEquipItem eligibility owner is not implemented'),
+      removeRepository:o=>this.unsupported(o,'Native ammunition RemoveItemFromRepository side effects are not implemented'),
+      possessor:item=>item.ownerId,setPossessor:item=>this.unsupported(item,'Native ammunition SetPossessor side effects are not implemented'),
+      equip:o=>this.unsupported(o,'Native ammunition EquipItem side effects are not implemented'),
+      rulesetInt:(name,value)=>rulesetInt(s.characterRules,name,value),pc:o=>o.reputationPCFlag,
+      possessed:o=>Number((o.associateType&65535)===3&&Boolean(this.broadcastProviders().client(o.id))),
+      feedback:(o,code,data)=>sendCombatFeedback(o,code,data,this.broadcastProviders()),
+      creature:id=>s.registry.get(id)?.objectType===5?s.registry.get(id):null,
+      aiMaster:()=>s.aiMaster,baseItemInfo:base=>s.characterRules?.baseitems?.orderedRows?.[base]??null,
+      enqueue:(_ai,...args)=>this.enqueueEvent(...args),...providers};
+  }
+  async ammunition(actor,count,providers={}){
+    try{return await ammunitionAvailable(actor,count,this.ammunitionProviders(providers));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-ammunition-available'});throw error;}
+  }
+  async resolveAmmo(actor,delay,providers={}){
+    try{return await resolveAmmunition(actor,delay,this.ammunitionProviders(providers));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-resolve-ammunition'});throw error;}
+  }
+  weightProviders(providers={}){
+    const s=this.session;
+    return{unitWeight:item=>item.nativeUnitWeight45c??computeItemUnitWeight(item,s.characterRules),stack:item=>item.authored?.StackSize,
+      repository:item=>item.nativeItemLoaded?item.nativeRepository:Array.isArray(item.inventory)?item:null,
+      contents:repository=>this.contentsWeight(repository),...providers};
+  }
+  async contentsWeight(owner){
+    const s=this.session,adapt=o=>{
+      if(typeof o.ids==='function')return o;if(o.nativeInventoryImported)return o.nativeRepository;
+      const ids=(o.inventory??[]).filter(id=>!s.registry.get(id)?.equipmentSlot),nodes=ids.map(id=>({id,next:null}));
+      nodes.forEach((n,i)=>{n.next=nodes[i+1]??null;});return{ownerId:o.id,head:nodes[0]??null,length:nodes.length};
+    },repo=adapt(owner),p={first:r=>r.length===0?null:r.head,next:(_r,n)=>n.next,nodeId:n=>n.id,
+      item:id=>{const o=s.registry.get(id);return o?.objectType===6?o:null;},
+      warning:message=>runtimeDiagnostics.record('inventory.repository-weight-item-unavailable',message,s.diagnosticContext(owner.ownerId??owner.id)),
+      weightReduction:o=>{
+        if(o.nativeItemLoaded)return[...o.activeProperties,...o.passiveProperties].find(p=>(p.type&65535)===32)??null;
+        const p=itemPropertyByType({data:o.authored??{},temporaryProperties:o.temporaryProperties},32,0);return p?{costValue:p.CostValue}:null;
+      },reductionValue:async row=>nativeFloatEntry(await s.items.costTable(15),row,'Value').value,
+      repository:o=>o.nativeItemLoaded?o.nativeRepository:Array.isArray(o.inventory)?adapt(o):null,
+      unitWeight:o=>o.nativeUnitWeight45c??computeItemUnitWeight(o,s.characterRules),stack:o=>o.nativeItemLoaded?o.stackSize:o.authored?.StackSize,
+      contents:(r,path)=>calculateContentsWeight(r,p,path)};
+    return calculateContentsWeight(repo,p);
+  }
+  async initializeEquippedWeight(actor){
+    if(actor.nativeEquippedWeight968!==undefined)return;
+    let weight=0;for(const id of actor.inventory??[]){const item=this.session.registry.get(id);
+      if(!item||item.objectType!==6)throw new Error('Native equipped weight item lookup failed');
+      if(item.equipmentSlot)weight=(weight+await getItemWeight(item,this.weightProviders()))|0;
+    }actor.nativeEquippedWeight968=weight;
+    actor.nativeWeightDirty96c??=0;actor.nativeEncumbrance970??=0;actor.nativeTotalWeight978??=0;
+  }
+  async encumbrance(actor,feedback,providers={}){
+    const s=this.session;
+    return updateEncumbrance(actor,feedback,s.characterRules,{pc:o=>o.reputationPCFlag,client:id=>this.broadcastProviders().client(id),
+      strength:o=>o.stats?.equippedAbilities?.Str,dm:o=>Number(o.isDM),
+      totalWeight:async o=>(o.nativeEquippedWeight968+await this.contentsWeight(o))|0,
+      movementRate:o=>this.unsupported(o,'Native encumbrance ComputeMovementRate transition is not implemented'),
+      feedback:(o,code,data,client)=>sendCombatFeedback(o,code,data,{...this.broadcastProviders(),client:()=>client}),...providers});
+  }
+  async consumeAmmo(item,providers={}){
+    const s=this.session;
+    try{return await consumeAmmunition(item,{...this.ammunitionProviders(),
+      creature:async id=>{const o=s.registry.get(id);if(o?.objectType!==5)return null;await this.initializeEquippedWeight(o);return o;},
+      writeStack:(o,n)=>{o.authored.StackSize=n;},inEquipment:(o,item)=>Number(o.inventory?.includes(item.id)&&Boolean(item.equipmentSlot)),
+      weight:o=>this.weightProviders().unitWeight(o),encumbrance:(o,n)=>this.encumbrance(o,n),...providers});}
+    catch(error){s.report(error,{...s.diagnosticContext(item.id),operation:'native-consume-ammunition'});throw error;}
+  }
+  async resolveRangedPostDamage(actor,target,providers={}){
+    try{return await resolvePostRangedDamage(actor,target,this.session.characterRules,this.damageStageProviders(actor,providers));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-post-ranged-damage'});throw error;}
+  }
+  async safeProjectile(actor,delay,index,providers={}){
+    try{return await resolveSafeProjectile(actor,delay,index,{...this.ammunitionProviders(),warning:message=>this.warning(actor,message),...providers});}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-resolve-safe-projectile'});throw error;}
+  }
+  async rangedAnimations(actor,target,duration,providers={}){
+    const s=this.session;
+    try{return await resolveRangedAnimations(actor,target,duration,{
+      ...this.damageStageProviders(actor),...this.ammunitionProviders(),
+      creature:o=>o.objectType===5?o:null,random:s.random,
+      weaponType:item=>weaponRule({data:item.authored},s.characterRules,'WeaponType'),
+      orientation:o=>{if(!o.orientation)throw new Error('Native ranged orientation storage is unavailable');return[o.orientation[0],-o.orientation[2],o.orientation[1]];},
+      setOrientation:(o,v)=>{if(!o.orientation)throw new Error('Native ranged orientation storage is unavailable');o.orientation[0]=v[0];o.orientation[1]=v[2];o.orientation[2]=Math.fround(-v[1]);},
+      warning:message=>this.warning(actor,message),...providers});}
+    catch(error){s.report(error,{...s.diagnosticContext(actor.id),operation:'native-ranged-animations'});throw error;}
+  }
+  async rangedMiss(actor,target,providers={}){
+    const s=this.session;
+    try{return await resolveRangedMiss(actor,target,s.characterRules,{
+      creature:o=>o.objectType===5?o:null,personalSpace:o=>o.nativePathInfo?.field4,
+      position:o=>[o.position[0],-o.position[2],o.position[1]],random:s.random,
+      area:o=>s.registry.get(o.areaId)??null,
+      lineOfSight:(a,from,to,hit,sourceId,targetId,transparent)=>{
+        if(!a.nativeGeometry?.lineOfSight)throw new Error('Native ranged miss area LOS is unavailable');
+        return a.nativeGeometry.lineOfSight(from,to,hit,{id:OBJECT_INVALID},sourceId,targetId,transparent);
+      },height:(a,v)=>{if(!a.nativeGeometry?.height)throw new Error('Native ranged miss area height is unavailable');return a.nativeGeometry.height(v);},
+      warning:message=>this.warning(actor,message),...providers});}
+    catch(error){s.report(error,{...s.diagnosticContext(actor.id),operation:'native-ranged-miss'});throw error;}
+  }
+  async rangedSpecial(actor,target,duration,providers={}){
+    const s=this.session;
+    try{return await resolveRangedSpecialAttack(actor,target,duration,s.characterRules,{
+      ...this.damageStageProviders(actor),attackRoll:(a,t)=>this.resolveRoll(a,t),damage:(a,t)=>this.resolveDamage(a,t),
+      postDamage:(a,t)=>this.resolveRangedPostDamage(a,t),miss:(a,t)=>this.rangedMiss(a,t),animations:(a,t,d)=>this.rangedAnimations(a,t,d),
+      limb:(o,name)=>{const flag=o[name==='leg'?'nativeField710':'nativeField70c'];
+        if(!Number.isInteger(flag))throw new Error(`Native called-shot ${name} state is unavailable`);return flag;},
+      skill:(...args)=>this.skill(...args),...providers});}
+    catch(error){s.report(error,{...s.diagnosticContext(actor.id),operation:'native-ranged-special'});throw error;}
+  }
+  projectileProviders(providers={}){
+    const s=this.session;
+    return{...this.ammunitionProviders(),position:o=>[o.position[0],-o.position[2],o.position[1]],
+      area:o=>s.registry.get(o.areaId)?.objectType===4?s.registry.get(o.areaId):null,
+      areaIds:a=>areaSpatialIds(s,a),client:id=>this.broadcastProviders().client(id),
+      property:(item,type,subtype)=>itemPropertyByType({data:item.authored,temporaryProperties:item.temporaryProperties},type,subtype),
+      warning:message=>this.warning(s.player??{id:OBJECT_INVALID},message),
+      send:(client,data)=>s.onCombatMessage({recipientId:client.object.id,type:'safeProjectile',data}),
+      broadcast:(o,data)=>broadcastSafeProjectile(o,data,this.projectileProviders()),...providers};
+  }
+  async receiveProjectile(actor,callerId,data,providers={}){
+    try{return await receiveSafeProjectile(actor,callerId,data,this.session.characterRules,this.projectileProviders(providers));}
+    catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-receive-safe-projectile'});throw error;}
   }
   signalProviders(actor, providers) {
     const session = this.session;
@@ -566,7 +895,8 @@ export class CombatRuntime {
     catch (error) { this.session.report(error, this.session.diagnosticContext(actor.id)); throw error; }
   }
   async signalRanged(actor, target, count, providers) {
-    try { return await signalRangedDamage(actor, target, count, this.signalProviders(actor, providers)); }
+    try { return await signalRangedDamage(actor, target, count, this.signalProviders(actor, {
+      ammunition:(o,delay)=>this.resolveAmmo(o,delay),safeProjectile:(o,delay,index)=>this.safeProjectile(o,delay,index),...providers})); }
     catch (error) { this.session.report(error, this.session.diagnosticContext(actor.id)); throw error; }
   }
   setAnimation(actor, state) { return setCreatureAnimation(actor, state); }
@@ -606,11 +936,6 @@ export class CombatRuntime {
       this.unsupported(actor,'Native defensive stance effect removal lifecycle is not implemented');
   }
   setLock(actor, id) { return setLockOrientation(actor, id, target => this.session.registry.get(target) ?? null); }
-  preflightPending(actor) {
-    const round = actor.combatRound;
-    if (actionPending(round) && round.actions.some(a => [6, 7].includes(a.nativeActionType) && this.session.registry.get(a.targetId)?.objectType === 6))
-      throw new Error('Pending combat equipment actions are not implemented');
-  }
   async changeTarget(actor, node, id, providers = {}) {
     try { return await changeAttackTarget(actor, node, id, { setLock: (a, target) => this.setLock(a, target),
       stickyModes:()=>Number(this.session.stickyCombatModes),preflightClearCombatMode:a=>this.preflightClearCombatMode(a),
@@ -619,7 +944,7 @@ export class CombatRuntime {
   }
   async clearAttackAction(actor, node, isHead, providers = {}) {
     try { return await clearCreatureAttackAction(actor, node, isHead, {
-      preflight: a => this.preflightPending(a), processPending: a => this.preflightPending(a),
+      processPending: a => this.processPending(a),
       setLock: (a, target) => this.setLock(a, target), ...providers
     }); }
     catch (error) { this.session.report(error, this.session.diagnosticContext(actor.id)); throw error; }
@@ -627,12 +952,20 @@ export class CombatRuntime {
   async clearActions(actor,providers={}){
     try{return await clearObjectActions(actor,{
       clearAction:(...args)=>this.clearAction(...args),
+      deleteSituation:s=>this.session.deleteSituation(s),
       resetPath:o=>{if(!o.nativePathInfo?.resetAtEnd)throw new Error('Native path reset is unavailable');o.nativePathInfo.resetAtEnd();},
       ...providers});}
     catch(error){this.session.report(error,this.session.diagnosticContext(actor.id));throw error;}
   }
+  async cancelQueuedAction(actor,actionId,groupId,providers={}){
+    try{return await cancelQueueAction(actor,actionId,groupId,{clearAction:(...args)=>this.clearAction(...args),deleteSituation:s=>this.session.deleteSituation(s),...providers});}
+    catch(error){this.session.report(error,this.session.diagnosticContext(actor.id));throw error;}
+  }
   clearAction(actor,node,head){
-    return [1,17,19,30].includes(node.actionId)?clearCreatureMovementAction(actor,node,head,{
+    if(node.actionId===15)return this.session.spells.clear(actor,node,head);
+    if(node.actionId===8)return clearEquipAction(actor,node,head,{...this.equipmentActionProviders(),setLock:(...args)=>this.setLock(...args)});
+    if(node.actionId===11)return clearUnequipAction(actor,node,head,{...this.unequipActionProviders(),setLock:(...args)=>this.setLock(...args)});
+    return [1,6,16,17,18,19,30,37,45,49].includes(node.actionId)?clearCreatureMovementAction(actor,node,head,{
       messageAvailable:()=>true,setLock:(...args)=>this.setLock(...args)
     }):this.clearAttackAction(actor,node,head);
   }
@@ -672,12 +1005,22 @@ export class CombatRuntime {
       throw error;
     }
   }
+  async receiveAttackInput(targetId,providers={}){
+    const client=this.broadcastProviders().client(this.session.player?.id);
+    try{return await receiveAttackInput(client,{
+      clientObject:c=>c?.object??null,asCreature:o=>o.objectType===5?o:null,
+      overflow:()=>0,underflow:()=>0,readObjectId:()=>targetId,
+      addAttack:(...args)=>this.requestAttack(...args),
+      clearSpecial:round=>clearAllSpecialAttacks(round,message=>this.warning(this.session.player,message)),...providers,
+    });}catch(error){this.session.report(error,{...this.session.diagnosticContext(this.session.player?.id),operation:'native-attack-input'});throw error;}
+  }
   async runActions(object, day, time, startedAt, providers={}) {
     const microseconds=()=>BigInt(Math.trunc(performance.now()*1000));
     try { return await runObjectActions(object, day, time, startedAt??microseconds(), {
       microseconds,
+      deleteSituation:s=>this.session.deleteSituation(s),
       preflight:async(o,node)=>{
-        if(o.objectType!==5||![1,12,17,19,30].includes(node.actionId))this.unsupported(o,`Native live action ${node.actionId} dispatch is not implemented`);
+        if(![1,4,6,8,11,12,15,16,17,18,19,20,21,30,37,45,49,54].includes(node.actionId)||o.objectType!==5&&![20,21,30,37].includes(node.actionId))this.unsupported(o,`Native live action ${node.actionId} dispatch is not implemented`);
         if(node.actionId===1){const area=this.session.registry.get(o.areaId);if(area)await this.combatStepProviders().preflightMovement(o,area);}
       },
       dispatch:(o,node)=>{
@@ -686,11 +1029,23 @@ export class CombatRuntime {
           asCreature:o=>o.objectType===5?o:null,moduleArea:id=>this.session.registry.get(id)??null,
           useRange:(...args)=>this.useRange(...args),inUseRange:(...args)=>this.inUseRange(...args),
           setLock:(...args)=>this.setLock(...args),client:id=>this.broadcastProviders().client(id)};
-        return node.actionId===1?this.executeMove(o,node):node.actionId===30?executeWait(o,node,p):node.actionId===17?checkMoveRadius(o,node,p):
-          node.actionId===19?checkInterArea(o,node,p):this.executeAttack(o,node);
+        return [20,21].includes(node.actionId)?executeObjectDoorAction(o,node,{...p,object:id=>this.session.registry.get(id),enqueue:(id,caller,target)=>this.enqueueEvent(id,caller,target,0,null),creatureAction:(a)=>this.unsupported(a,'Native creature door approach, lock evaluation and interaction-animation owner is not implemented')}):
+          node.actionId===37?executeDoCommand(o,node,{...p,runSituation:(s,id)=>this.session.runSituation(s,id)}):
+          node.actionId===8?executeEquipAction(o,node,this.equipmentActionProviders()):
+          node.actionId===11?executeUnequipAction(o,node,this.unequipActionProviders()):
+          node.actionId===54?this.session.skills.execute(o,node):
+          node.actionId===45?this.executeRandomWalk(o,node):
+          node.actionId===6?executeScriptAnimation(o,node,{...p,deleteSituation:s=>this.session.deleteSituation(s),setAnimation:(o,id)=>this.setAnimation(o,id)}):
+          node.actionId===1?this.executeMove(o,node):node.actionId===30?executeWait(o,node,p):node.actionId===17?checkMoveRadius(o,node,p):
+          node.actionId===4?checkInterArea(o,node,p):
+          node.actionId===18?checkMovePointRadius(o,node,p):
+          node.actionId===15?this.session.spells.execute(o,node):
+          node.actionId===16?waitForCastRound(o,{...p,spellPending:o=>spellActionPending(o.combatRound)}):
+          node.actionId===19?faceObjectAction(o,node,this.facingProviders()):
+          node.actionId===49?facePointAction(o,node,this.facingProviders()):this.executeAttack(o,node);
       },
       lastAction:(o,id)=>{this.session.nativeAIFieldBC=id&65535;},
-      completed:o=>{if(o.lockOrientationId!==OBJECT_INVALID)this.setLock(o,OBJECT_INVALID);},
+      completed:o=>{if(o.objectType===5&&o.lockOrientationId!==OBJECT_INVALID)this.setLock(o,OBJECT_INVALID);},
       overflow:o=>{
         const count=o.objectActionState.list.count,effects=o.effects?.length??0;
         if(count>75)this.warning(o,`Native RunActions action-list warning: ${count} actions exceeds 75`);
@@ -760,6 +1115,18 @@ export class CombatRuntime {
     return {object:id=>s.registry.get(id)??null,asObject:o=>o.objectType>=5&&o.objectType<=14?o:null,
       area:o=>s.registry.get(o.areaId)??null,lineOfSight:(...args)=>this.lineOfSight(...args),...providers};
   }
+  facingProviders(){
+    const s=this.session;
+    return {...this.useRangeProviders(),dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),
+      position:o=>[o.position[0],-o.position[2],o.position[1]].map(Math.fround),normalize:normalizeNativeFacing,
+      orientation:(o,v)=>{if(!o.orientation)throw new Error('Native facing orientation storage is unavailable');
+        o.orientation[0]=v[0];o.orientation[1]=v[2];o.orientation[2]=Math.fround(-v[1]);},
+      triggerPoint:o=>triggerFacingPosition(o,(trigger,point)=>{
+        const area=s.registry.get(trigger.areaId);
+        if(!area?.nativeGeometry)throw new Error('Native trigger facing area height is unavailable');
+        return area.nativeGeometry.height(point);
+      })};
+  }
   async useRange(actor,id,out,providers={}){
     try{return await getUseRange(actor,id,out,this.useRangeProviders(providers));}
     catch(error){this.session.report(error,this.session.diagnosticContext(actor.id));throw error;}
@@ -767,6 +1134,14 @@ export class CombatRuntime {
   async inUseRange(actor,id,extra,transparent,providers={}){
     try{return await isInUseRange(actor,id,extra,transparent,this.useRangeProviders(providers));}
     catch(error){this.session.report(error,this.session.diagnosticContext(actor.id));throw error;}
+  }
+  executeRandomWalk(o,node){
+    const s=this.session,m=this.movementProviders(),native=v=>[v[0],-v[2],v[1]].map(Math.fround),render=v=>[v[0],v[2],Math.fround(-v[1])];
+    return executeRandomWalk(o,node,{areaById:id=>{const a=s.registry.get(id);return a?.objectType===4?a:null;},position:o=>native(o.position),
+      dispose:n=>disposeObjectAction(n,situation=>s.deleteSituation(situation)),random:()=>s.random.next(),height:(a,v)=>a.nativeGeometry.height(v),
+      magnitude:v=>Math.fround(Math.sqrt(Math.fround(Math.fround(Math.fround(v[0]*v[0])+Math.fround(v[1]*v[1]))+Math.fround(v[2]*v[2])))),
+      normalize:v=>native(normalizeOrientation(render(v))),directLine:(a,from,to,...args)=>m.testDirectLine(a,render(from),render(to),...args),
+      moveFront:(o,group,point,...args)=>addMoveToPointFront(o,group,render(point),...args,{setLock:(...a)=>this.setLock(...a)})});
   }
   movementProviders(providers={}){
     const s=this.session,geometry=area=>{if(!area?.nativeGeometry)throw new Error('Native movement area geometry is unavailable');return area.nativeGeometry;};
@@ -776,6 +1151,7 @@ export class CombatRuntime {
       lineEncounter:(o,a,b)=>intersectSubareaPolygon(o,a,b,Boolean(s.registry.get(o.areaId)))};
     const base={...this.useRangeProviders(),...this.combatStepProviders(),
       dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),hasModule:()=>Boolean(s.module),
+      useRange:(...args)=>this.useRange(...args),inUseRange:(...args)=>this.inUseRange(...args),
       client:id=>this.broadcastProviders().client(id),setLock:(...args)=>this.setLock(...args),
       height:(area,point)=>geometry(area).height(native(point)),
       rate:(o,run)=>movementRate(o,run,s.characterRules,{
@@ -785,6 +1161,10 @@ export class CombatRuntime {
         }}),
       polygons:(area,from,to,...args)=>geometry(area).detailedPolygons([from[0],-from[1]],[to[0],-to[1]],...args),
       creatureLine:(...args)=>this.creatureLine(...args),
+      blockedEvent:(blockerId,actorId,payload)=>{
+        if(payload.scriptEvent!==31)throw new Error('Native movement blocked script code is unavailable');
+        return this.enqueueEvent(10,blockerId,actorId,0,{type:31,integers:[],objectIds:[]});
+      },
       crossings:(area,from,to,ids)=>intersectSubareas(area,from,to,ids,subareas),
       setOrientation:(o,value)=>{if(!o.orientation)throw new Error('Native movement orientation storage is unavailable');for(let i=0;i<3;i++)o.orientation[i]=Math.fround(value[i]);},
       activityManager:(o,request)=>manageCreatureActivities(o,request,(actor,mask,value)=>setCombatActivity(actor,mask,value,{
@@ -800,7 +1180,27 @@ export class CombatRuntime {
         polygons:(_area,...args)=>geometry(area).detailedPolygons(...args),
         creatureLine:(area,from,to,...args)=>this.creatureLine(area,[from[0],-from[1]],[to[0],-to[1]],...args)}),
       ...providers};
+    base.safeLocation??=async(area,origin,range,path,straight,out)=>{
+      const render=point=>[point[0],point[2],Math.fround(-point[1])],nativeOut={point:native(out.point)};
+      const result=await computeSafeLocation(area,native(origin),range,path,straight,nativeOut,{
+        height:(a,v)=>geometry(a).height(v),safePoint:(a,v,path,flag)=>base.safePoint(a,render(v),path,flag),
+        lineWalkable:(a,from,to)=>geometry(a).lineWalkable(from,to),polygons:(a,...args)=>geometry(a).detailedPolygons(...args),
+        warning:message=>this.warning({id:path?.fieldC8??OBJECT_INVALID},message)});
+      out.point=render(nativeOut.point);return result;
+    };
+    base.safeDirection??=async(area,origin,direction,start,end,path,straight,out)=>{
+      const nativeOut={point:[0,0,0]},render=point=>[point[0],point[2],Math.fround(-point[1])];
+      const result=await computeSafeLocationInDirection(area,native(origin),native(direction),start,end,path,straight,nativeOut,{
+        height:(area,point)=>geometry(area).height(point),safePoint:(area,point,path,flag)=>base.safePoint(area,render(point),path,flag),
+        lineWalkable:(area,from,to)=>geometry(area).lineWalkable(from,to),polygons:(area,...args)=>geometry(area).detailedPolygons(...args),
+        warning:message=>this.warning({id:path.fieldC8},message)});
+      if(result===1)out.point=render(nativeOut.point);return result;
+    };
     return {...base,
+      bumpFriends:(actor,blocker,from,to)=>bumpFriends(actor,blocker,from,to,{
+        ...base,bumpable:(o,target)=>creatureBumpable(o,target,{
+          associates:o=>o.associateIds,reputation:(o,id)=>s.reputation(o,s.registry.get(id)),pc:o=>o.reputationPCFlag,
+          possessedFamiliar:o=>Number((o.associateType&65535)===3&&Boolean(this.broadcastProviders().client(o.id)))})}),
       plot:(path,budget)=>plotPath(path,budget,{...base,
         area:id=>s.registry.get(id)??null,directLine:base.testDirectLine,
         creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},
@@ -810,6 +1210,7 @@ export class CombatRuntime {
         gridPlot:(area,path,budget,force)=>plotGridPath(area,path,budget,force,{
           directLine:base.testDirectLine,microseconds:()=>BigInt(Math.trunc(performance.now()*1000)),
           markGridAI:value=>{s.nativeAIFieldAC=value;},smooth:(area,path)=>smoothPath(area,path,{directLine:base.testDirectLine}),...providers}),
+        areaPlot:(area,path,budget)=>plotLiveAreaPath(s,area,path,budget,{smooth:(area,path)=>smoothPath(area,path,{directLine:base.testDirectLine})}),
         resetInterTile:path=>path.resetInterTile(),resetGrid:path=>path.resetGrid(),markAI:value=>{s.nativeAIFieldA8=value;},...providers}),
       walk:(o,group)=>walkPath(o,group,this.movementProviders(providers)),
       walkDistance:(...args)=>walkDistance(...args,this.movementProviders(providers)),
@@ -915,13 +1316,7 @@ export class CombatRuntime {
   async endRound(object) {
     const session = this.session, round = object.combatRound;
     await endCombatRoundAsync(round, object, session.characterRules, {
-      processPending: () => {
-        // ProcessPendingCombatActions checks the HEAD, then traverses from
-        // the tail and converts all valid equip/unequip actions. Preserve
-        // unavailable operations instead of silently deleting them.
-        if (actionPending(round) && round.actions.some(a => [6, 7].includes(a.nativeActionType) && session.registry.get(a.targetId)?.objectType === 6))
-          this.unsupported(object, 'Pending combat equipment actions are not implemented');
-      },
+      processPending: () => this.processPending(object),
       isDead: actor => session.isDead(actor),
       roundEnd: actor => {
         const name = actor.scripts?.roundEnd ?? '';
@@ -934,11 +1329,7 @@ export class CombatRuntime {
     await updateRoundTimer(object, milliseconds, {
       endRound: actor => this.endRound(actor),
       isDead: actor => this.session.isDead(actor), isDying: actor => this.session.isDying(actor),
-      setAnimation: (actor, state) => {
-        this.setAnimation(actor, state);
-        runtimeDiagnostics.record('combat.presentation-unimplemented', 'Combat pause ended; native animation state set, clip routing remains unimplemented',
-          { ...this.session.diagnosticContext(actor.id), animationState: state });
-      }
+      setAnimation: (actor, state) => this.setAnimation(actor, state)
     });
   }
   async updateExcited(object,milliseconds){
@@ -959,5 +1350,38 @@ export class CombatRuntime {
     await advanceCombatStateTimers(object,milliseconds,{
       dead:o=>Number(this.session.isDead(o)),heartbeat:o=>this.session.damage.runEvent(o,o.scripts?.heartbeat),
       hasFeat:(o,id)=>this.hasFeat(o,id),opportunity:(...args)=>this.opportunityAttack(...args)});
+  }
+  async updateNativeFrame(object,providers={}){
+    const s=this.session;
+    const omission=(o,code,message)=>runtimeDiagnostics.repeat(code,message,s.diagnosticContext(o.id));
+    await updateCreatureFrame(object,{
+      microseconds:()=>BigInt(Math.trunc(performance.now()*1000)),beforeTimer:o=>this.updateBeforeTimer(o),dayLength:s.worldTimer.dayLength,
+      activeTimer:id=>selectActiveTimer(id,{worldTimer:()=>s.worldTimer,pauseFlags:()=>s.nativeActivePauseFlags??0,
+        excluded:()=>{throw new Error('Native active timer exclusion ownership is unavailable');},
+        timer1:()=>{throw new Error('Native active timer1 is unavailable');},timer2:()=>{throw new Error('Native active timer2 is unavailable');}}),
+      roundTimer:(o,ms)=>this.updateTimer(o,ms),excited:(o,ms)=>this.updateExcited(o,ms),
+      effects:o=>s.effects.updateObject(o),actions:(o,now,start)=>this.runActions(o,now.day,now.time,start),
+      area:o=>s.registry.get(o.areaId)??null,
+      height:async(o,area)=>{
+        if(!area?.nativeGeometry)throw new Error('Native frame area height geometry is unavailable');
+        o.position[1]=await area.nativeGeometry.height([Math.fround(o.position[0]),Math.fround(-o.position[2])]);
+      },computeAIState,
+      traps:o=>omission(o,'combat.trap-check-unimplemented','Native UpdateTrapCheck detection and trap recipient owners are not implemented'),
+      combatStateTimers:(o,ms)=>advanceCombatStateTimers(o,ms,{
+        dead:o=>Number(s.isDead(o)),heartbeat:o=>s.damage.runEvent(o,o.scripts?.heartbeat),
+        hasFeat:(o,id)=>this.hasFeat(o,id),opportunity:(...args)=>this.opportunityAttack(...args)}),
+      possessed:o=>Number(Boolean(o.isPossessedFamiliar)),
+      // Normal unpaused local clock adapter. Server pause timer snapshots and
+      // the ten-entry native player queue presentation remain separate owners.
+      pauseTimer:()=>{if((s.nativeActivePauseFlags??0)!==0)throw new Error('Native server pause timer is unavailable');return s.worldTimer;},
+      actionQueue:o=>updateActionQueueDisplay(o,{
+        item:id=>{const item=s.registry.get(id);return item?.objectType===6?item:null;},
+        activeProperty:(item,index)=>item.activeProperties?.[index]??null,
+        spellIndex:async subtype=>{const table=await s.items.table('iprp_spells'),entry=intEntry(table,subtype,'SpellIndex');
+          if(!entry.found)throw new Error('Native action queue item SpellIndex output is unavailable');return entry.value;}}),
+      skillCount:()=>{const table=s.characterRules?.skills;if(!table)throw new Error('Native skill timer rules are unavailable');return(table.orderedRows?.length??table.rows.size)&255;},
+      refreshStats:o=>omission(o,'combat.frame-stat-refresh-unimplemented','Native dirty spell/combat-information refresh owners and movement debug branch are not implemented'),
+      setAILevel:(o,level)=>s.aiMaster.setLevel(o,level),...providers,
+    });
   }
 }

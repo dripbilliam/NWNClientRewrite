@@ -90,7 +90,8 @@ test('tile3D clipping preserves original endpoint heights and interpolates clipp
   assert.deepEqual(clipAreaTileLOS(tile, [12, 25, 1], [18, 25, 7]), { status: 1, entry: [12, 25, 1], exit: [18, 25, 7] });
   assert.deepEqual(clipAreaTileLOS(tile, [5, 25, 0], [25, 25, 20]), { status: 1, entry: [10, 25, 5], exit: [20, 25, 15] });
   tile.orientation = 1;
-  assert.throws(() => clipAreaTileLOS(tile, [5, 25, 0], [25, 25, 20]), /nonfinite/);
+  const rotated=clipAreaTileLOS(tile,[5,25,0],[25,25,20]);assert.equal(rotated.status,1);
+  assert.ok(!Number.isFinite(rotated.entry[2])&&!Number.isFinite(rotated.exit[2]));
 });
 
 test('area tile LOS transforms hits and native zero local output through rotation and tile elevation', () => {

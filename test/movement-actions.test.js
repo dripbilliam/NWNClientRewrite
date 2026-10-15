@@ -70,7 +70,7 @@ test('native move-front action packs native coordinate float bits, all flag fiel
   assert.deepEqual(Array.from({length:9},(_,i)=>actionParameter(node,i)),[4,6,2,0x80000003,0x80000002,863,1.5,23,0.25]);
   assert.deepEqual(trace,[['lock',invalid]]);
 });
-test('native combat approach replaces executing attack with ordered move1/interarea19/radius17/attack12 in the same group',async()=>{
+test('native combat approach replaces executing attack with ordered move1/facing19/radius17/attack12 in the same group',async()=>{
   const {actor,target,node,e,p,trace}=fixture();
   assert.equal(await queueAttackApproach(actor,node,e,p),2);
   const actions=[...actor.objectActionState.list];

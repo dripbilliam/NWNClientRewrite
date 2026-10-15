@@ -3,6 +3,13 @@ import { GameText, parseTalkTable } from './talk_table.js';
 import { GameUiState, GAME_PANELS, journalRows, nativeControlKind } from './game_ui_state.js';
 import { ABILITIES, EQUIPMENT_SLOTS } from './character.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
+import {actionQueueRecords} from './action_queue_display.js';
+import {describeActionQueue} from './action_queue_presentation.js';
+import {parse2da} from './area.js';
+import {RESOURCE_TYPE,decodeResourceText} from './resource_archive.js';
+import {initializeQuickbar,getQuickbarButton,setQuickbarButton,quickbarRequest} from './quickbar.js';
+import {QuickbarLayouts} from './quickbar_storage.js';
+import {quickbarAssignmentMenu} from './quickbar_menu.js';
 
 const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
 const button = (text, action, className = '') => { const b = el('button', `game-button ${className}`, text); b.type = 'button'; b.addEventListener('click', action); return b; };
@@ -19,8 +26,9 @@ const nativeRoutes = {
 };
 
 export class GameUi {
-  constructor(viewport, { getSession, getWorld, getSelected, radialActive, hasPendingAction, onCancelAction, onInputCapture, onRequest, onOpenModule, onSettings } = {}) {
-    Object.assign(this, { viewport, getSession, getWorld, getSelected, radialActive, hasPendingAction, onCancelAction, onInputCapture, onRequest, onOpenModule, onSettings });
+  constructor(viewport, { getSession, getWorld, getSelected, radialActive, hasPendingAction, onCancelAction, onInputCapture, onRequest, onOpenModule, onSettings, onQuickbarMenu } = {}) {
+    Object.assign(this, { viewport, getSession, getWorld, getSelected, radialActive, hasPendingAction, onCancelAction, onInputCapture, onRequest, onOpenModule, onSettings, onQuickbarMenu });
+    this.quickbarLayouts=new QuickbarLayouts();this.quickbarIcons=new Map();this.modifierPage=null;
     this.state = new GameUiState(); this.text = new GameText(); this.assets = null; this.session = null; this.messages = []; this.visible = true; this.renderVersion = 0; this.lastRefresh = 0;
     this.root = el('div', 'game-ui'); this.root.id = 'game-ui'; this.root.hidden = true; viewport.append(this.root);
     this.hud = el('div', 'game-hud'); this.root.append(this.hud);
@@ -29,17 +37,20 @@ export class GameUi {
     this.root.addEventListener('contextmenu', e => e.preventDefault());
     for (const event of ['pointerdown', 'pointerup', 'click', 'dblclick', 'wheel']) this.root.addEventListener(event, e => e.stopPropagation());
     window.addEventListener('keydown', event => this.key(event), true);
-    window.addEventListener('keyup', event => { if (this.captured || this.root.contains(event.target)) event.stopImmediatePropagation(); }, true);
+    window.addEventListener('keyup', event => { if(['Shift','Control'].includes(event.key)){this.modifierPage=event.ctrlKey?2:event.shiftKey?1:null;this.updateQuickbar();} if (this.captured || this.root.contains(event.target)) event.stopImmediatePropagation(); }, true);
+    window.addEventListener('blur',()=>{this.modifierPage=null;this.updateQuickbar();});
     this.catalog = document.querySelector('#ui-resource-select');
     this.catalog?.addEventListener('change', () => { if (this.catalog.value) this.open(`native:${this.catalog.value}`); });
     this.panelCatalog = document.querySelector('#ui-panel-select');
     this.panelCatalog?.addEventListener('change', () => { if (this.panelCatalog.value) this.toggle(this.panelCatalog.value); });
   }
-  get captured() { return Boolean(this.state.panel); }
+  get captured() { return Boolean(this.externalCapture || this.state.panel); }
   async attach(session, resolver) {
     if (this.session === session) return;
     this.renderVersion++; this.layer.replaceChildren(); this.assets?.dispose(); this.session = session; this.state.reset(); this.messages = []; this.signature = '';
-    this.assets = new NativeUiAssets(resolver); this.root.hidden = false; this.portraitKey = null;
+    this.assets = new NativeUiAssets(resolver); this.root.hidden = false; this.portraitKey = null;this.quickbarIcons.clear();
+    if(!session.player.nativeQuickbar4e0)initializeQuickbar(session.player);
+    if(session.quickbarProfileKey)try{const saved=await this.quickbarLayouts.get(session.quickbarProfileKey);if(saved){session.loadPlayerQuickbar(session.player,saved.QBList??saved);for(const [i,source]of (saved.itemSources??[]).entries()){const b=getQuickbarButton(session.player,i);if(b?.type===1&&source&&(session.registry.get(b.itemId)?.sourceKey!==source.primary||(source.secondary&&session.registry.get(b.secondaryItemId)?.sourceKey!==source.secondary))){setQuickbarButton(session.player,i,null);runtimeDiagnostics.record('quickbar.item-not-restored','Saved local shortcut item is absent from the imported character',{slot:i,source});}}}}catch(error){runtimeDiagnostics.error(error,'quickbar.layout-load-failed');}
     await this.assets.initializeFonts();
     this.catalog?.replaceChildren(new Option('Native UI resources', ''), ...this.assets.names().map(n => new Option(n, n)));
     this.panelCatalog?.replaceChildren(new Option('Game UI panels', ''), ...GAME_PANELS.map(([id, title]) => new Option(title, id)));
@@ -84,7 +95,7 @@ export class GameUi {
   closeAll() { this.renderVersion++; this.state.stack = []; this.layer.replaceChildren(); this.root.dataset.panel = ''; this.onInputCapture?.(false); if (!this.session) { this.mode(false); this.root.hidden = true; } }
   notify(message) { this.notice.textContent = message; clearTimeout(this.noticeTimer); this.noticeTimer = setTimeout(() => { this.notice.textContent = ''; }, 6500); }
   message(message, type = 'system') {
-    const text = typeof message === 'string' ? message : message.text;
+    const text = typeof message === 'string' ? message : message.type === 'oneLiner' ? this.dialogueText(message.text, this.session?.registry.get(message.tokenTargetId) ?? null, message.gender) : message.text;
     if (!text || this.messages.at(-1)?.text === text && this.messages.at(-1)?.type === type) return;
     this.messages.push({ text, type }); if (this.messages.length > 100) this.messages.shift();
     this.updateLog(); this.notify(text);
@@ -107,6 +118,16 @@ export class GameUi {
   }
   buildHud() {
     this.hud.replaceChildren();
+    this.queueSignature='';this.queueActions=null;this.queueTableError=false;
+    const queue=el('div','game-action-queue');queue.setAttribute('aria-label','Action queue');this.hud.append(queue);this.queueButtons=[];
+    for(let index=0;index<10;index++){
+      const node=button('',()=>{const record=this.queueRows?.[index];if(record)this.request('action.queue.cancel',{actionId:record.code,groupId:record.group,queueIndex:index});},'game-queued-action');
+      node.hidden=true;node.style.left=`${3+index*43}px`;node.style.top='3px';node.dataset.queueIndex=String(index);queue.append(node);this.queueButtons.push(node);void this.art(node,'ctl_actionqueue');
+    }
+    const session=this.session,assets=this.assets;
+    void assets.resolver.getResource('actions',RESOURCE_TYPE.TWO_DA).then(bytes=>{
+      if(this.session!==session||this.assets!==assets)return;this.queueActions=parse2da(decodeResourceText(bytes));this.queueSignature='';this.refresh(true);
+    }).catch(error=>{if(this.assets===assets){this.queueTableError=true;runtimeDiagnostics.error(error,'ui.action-queue-table-unavailable');}});
     const party = el('div', 'game-party'); party.setAttribute('aria-label', 'Player and party'); this.hud.append(party);
     void this.art(party, 'pnl_party_bar');
     const portrait = button('', () => this.toggle('character'), 'game-portrait'); portrait.title = 'Character Sheet (C)'; portrait.setAttribute('aria-label', portrait.title); party.append(portrait);
@@ -124,10 +145,15 @@ export class GameUi {
     for (let p = 0; p < 3; p++) pages.append(button(String(p + 1), () => { this.state.quickbarPage = p; this.updateQuickbar(); }, 'game-quick-page'));
     const slots = el('div', 'game-quick-slots'); quick.append(slots);
     for (let i = 0; i < 12; i++) {
-      const b = button('', () => this.useQuickbar(this.state.quickbarPage, i), 'game-quick-slot'); b.dataset.slot = i; b.title = `F${i + 1} · Right-click to assign the selected object`; b.setAttribute('aria-label', `Quickbar slot ${i + 1}`);
+      const b = button('', () => this.useQuickbar(this.quickbarPage(), i), 'game-quick-slot'); b.dataset.slot = i; b.title = `F${i + 1} · Drag an item, spell or feat here, or right-click to assign`; b.setAttribute('aria-label', `Quickbar slot ${i + 1}`);
       b.append(el('span', 'game-slot-number', `F${i + 1}`), el('span', 'game-slot-icon'));
       void this.art(b, 'qb_but66');
-      b.addEventListener('contextmenu', e => { e.preventDefault(); const target = this.getSelected?.(); this.state.bind(this.state.quickbarPage, i, target ? { action: target.kind === 'door' ? 'door.use' : 'examine', targetId: target.id, label: target.name || target.tag } : null); this.updateQuickbar(); this.notify(target ? `Assigned ${target.name || target.tag} to F${i + 1}` : `Cleared F${i + 1}`); });
+      b.addEventListener('contextmenu', e => { e.preventDefault();this.onQuickbarMenu?.(quickbarAssignmentMenu(`Assign F${i+1}`,this.quickbarChoices()),this.quickbarPage()*12+i,e); });
+      b.draggable=true;
+      b.addEventListener('dragstart',e=>{const index=this.quickbarPage()*12+i,binding=getQuickbarButton(this.session.player,index);if(!binding?.type){e.preventDefault();return;}this.writeQuickbarDrag(e,binding,index);});
+      b.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('application/x-nwn-quickbar')){e.preventDefault();e.dataTransfer.dropEffect='move';b.classList.add('drag-over');}});
+      b.addEventListener('dragleave',()=>b.classList.remove('drag-over'));
+      b.addEventListener('drop',e=>{e.preventDefault();b.classList.remove('drag-over');try{const payload=JSON.parse(e.dataTransfer.getData('application/x-nwn-quickbar'));if(payload.actorId!==this.session.player.id)throw new Error('Quickbar drag belongs to another character');const index=this.quickbarPage()*12+i;this.assignQuickbar(index,payload.binding);if(Number.isInteger(payload.sourceIndex)&&payload.sourceIndex!==index)this.assignQuickbar(payload.sourceIndex,null);}catch(error){runtimeDiagnostics.error(error,'quickbar.drop-failed');this.notify(error.message);}});
       slots.append(b);
     }
     const log = el('section', 'game-log'); log.setAttribute('aria-label', 'Game messages');
@@ -141,18 +167,51 @@ export class GameUi {
     this.areaLabel = el('div', 'game-area-name'); this.hud.append(this.areaLabel); this.updateQuickbar(); this.updateLog();
   }
   updateQuickbar() {
+    if(!this.session)return;
+    const page=this.quickbarPage();
     for (const b of this.hud.querySelectorAll('.game-quick-slot')) {
-      const action = this.state.quickbar[this.state.quickbarPage][Number(b.dataset.slot)];
-      b.querySelector('.game-slot-icon').textContent = action ? action.action === 'door.use' ? '☞' : '◉' : '';
-      b.title = action?.label ?? `F${Number(b.dataset.slot) + 1} · Right-click to assign the selected object`;
-      b.dataset.targetId = action?.targetId ?? '';
+      const binding=getQuickbarButton(this.session.player,page*12+Number(b.dataset.slot)),description=this.quickbarDescription(binding);
+      const key=JSON.stringify(binding);b.dataset.page=String(page);b.dataset.quickbarIndex=String(page*12+Number(b.dataset.slot));b.dataset.quickbarType=String(binding?.type??0);
+      b.dataset.targetId=binding?.type===1?String(binding.itemId):'';
+      b.title=description?.label??`F${Number(b.dataset.slot)+1} · Drag here or right-click to assign`;
+      if(b.dataset.binding!==key){b.dataset.binding=key;const icon=b.querySelector('.game-slot-icon');icon.replaceChildren();if(description){icon.textContent=description.label.slice(0,4);if(description.icon)void this.quickbarIcon(description.icon,icon,key,b);}}
     }
-    [...this.hud.querySelectorAll('.game-quick-page')].forEach((b, i) => b.setAttribute('aria-pressed', String(i === this.state.quickbarPage)));
+    [...this.hud.querySelectorAll('.game-quick-page')].forEach((b, i) => b.setAttribute('aria-pressed', String(i === page)));
+    this.root.dataset.quickbar=JSON.stringify(this.session.player.nativeQuickbar4e0);
+  }
+  quickbarPage(){return this.modifierPage??this.state.quickbarPage;}
+  writeQuickbarDrag(event,binding,sourceIndex){event.dataTransfer.effectAllowed='copyMove';event.dataTransfer.setData('application/x-nwn-quickbar',JSON.stringify({actorId:this.session.player.id,binding,sourceIndex}));}
+  makeQuickbarSource(node,binding){node.draggable=true;node.dataset.quickbarBinding=JSON.stringify(binding);node.addEventListener('dragstart',e=>this.writeQuickbarDrag(e,binding));return node;}
+  assignQuickbar(index,binding){
+    if(!this.session||!setQuickbarButton(this.session.player,index,binding))return;
+    this.updateQuickbar();this.notify(binding?.type?`Assigned ${this.quickbarDescription(binding)?.label??'action'} to F${index%12+1}`:`Cleared F${index%12+1}`);
+    const session=this.session;if(session.quickbarProfileKey){const saved={QBList:session.savePlayerQuickbar(),itemSources:session.player.nativeQuickbar4e0.map(b=>b.type===1?{primary:session.registry.get(b.itemId)?.sourceKey,secondary:session.registry.get(b.secondaryItemId)?.sourceKey}:null)};this.quickbarSave=(this.quickbarSave??Promise.resolve()).catch(()=>{}).then(()=>this.quickbarLayouts.put(session.quickbarProfileKey,saved));void this.quickbarSave.catch(error=>runtimeDiagnostics.error(error,'quickbar.layout-save-failed'));}
+  }
+  quickbarDescription(b){
+    if(!b?.type)return null;const rules=this.session.characterRules,row=(table,id)=>rules?.[table]?.orderedRows?.[id]??rules?.[table]?.rows?.get(id);
+    if(b.type===1){const item=this.session.registry.get(b.itemId);return {label:item?this.objectName(item):'Unavailable item',icon:row('baseitems',item?.baseItem)?.ItemIcon??null};}
+    if(b.type===2||b.type===44)return {label:this.ruleName('spells',b.intParam),icon:row('spells',b.intParam)?.IconResRef};
+    if(b.type===4)return {label:this.ruleName('feat',b.intParam,'FEAT'),icon:row('feat',b.intParam)?.ICON};
+    if(b.type===3)return {label:this.ruleName('skills',b.intParam),icon:row('skills',b.intParam)?.Icon};
+    return {label:b.commandLabel||b.toolTip||`Quickbar action ${b.type}`,icon:null};
+  }
+  async quickbarIcon(name,host,key,slot){
+    if(!name||name==='****')return;
+    try{if(!this.quickbarIcons.has(name))this.quickbarIcons.set(name,(async()=>{const {image}=await this.assets.texture(name),canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(image.data),image.width,image.height),0,0);return canvas.toDataURL();})());const url=await this.quickbarIcons.get(name);if(slot.dataset.binding===key&&host.isConnected){const img=el('img');img.alt='';img.src=url;host.replaceChildren(img);}}
+    catch(error){runtimeDiagnostics.error(error,'quickbar.icon-unavailable',{resRef:name});}
+  }
+  quickbarChoices(){
+    const p=this.session.player,groups=[{slot:2,label:'Items',icon:'IR_USE',entries:[]},{slot:1,label:'Spells',icon:'IR_CAST',entries:[]},{slot:3,label:'Feats',icon:'IR_XABILITY',entries:[]},{slot:4,label:'Skills',icon:'IR_STEALTH',entries:[]}];
+    for(const id of p.inventory??[]){const item=this.session.registry.get(id);if(item)groups[0].entries.push({label:this.objectName(item),binding:{type:1,itemId:id,intParam:0xff00ff}});}
+    for(const [classIndex,c]of (p.creatureData??p.authored).ClassList?.entries()??[]){const state=p.nativeTalentClasses?.[classIndex];if(!state)continue;const seen=new Set();for(const level of [0,1,2,3,4,5,6,7,8,9])for(const spell of [...state.known[level].map(id=>({id,metamagic:0})),...state.memorized[level].filter(Boolean)]){const key=`${spell.id}:${spell.metamagic??0}`;if(seen.has(key))continue;seen.add(key);groups[1].entries.push({label:`${this.ruleName('spells',spell.id)} · ${this.ruleName('classes',c.Class)}`,binding:{type:2,intParam:spell.id,classIndex,metamagic:spell.metamagic??0,domainLevel:0}});}}
+    for(const id of p.stats?.feats??[])groups[2].entries.push({label:this.ruleName('feat',id,'FEAT'),binding:{type:4,intParam:id}});
+    for(const [id,rank]of (p.stats?.skills??[]).entries())if(rank>0)groups[3].entries.push({label:this.ruleName('skills',id),binding:{type:3,intParam:id}});
+    return groups;
   }
   useQuickbar(page, slot) {
     const session = this.getSession(); if (!session) return;
-    const action = this.state.activate(page, slot, session.registry, session.player.id);
-    if (action) { if (action.action === 'examine') { this.examineId = action.targetId; this.open('examine'); } else this.request(action.action, action); }
+    const action = quickbarRequest(session.player,getQuickbarButton(session.player,page*12+slot),session.registry,this.getSelected?.()?.id);
+    if (action) this.request(action.action,action);
     else this.notify('Quickbar slot is empty or its target is unavailable');
   }
   updateLog() {
@@ -169,14 +228,37 @@ export class GameUi {
     health.title = stats ? `Hit points · ${stats.limitations.join(' ')}` : 'Hit points unavailable until a character is loaded';
     this.root.dataset.characterXP = stats?.xp ?? ''; this.root.dataset.characterLoaded = String(Boolean(session.player.characterLoaded));
     this.root.dataset.cutscene = String(Boolean(session.player.cutscene?.enabled));
+    this.updateActionQueue();
+    this.updateQuickbar();
     if (this.dialogVersion !== session.conversation?.version) this.conversationChanged();
     if (session.player.characterLoaded && this.portraitKey !== session.player.authored.Portrait) {
       this.portraitKey = session.player.authored.Portrait; void this.loadPortrait(this.portraitKey);
     }
-    const sig = JSON.stringify([session.player.id, session.player.areaId, [...session.player.journal], session.player.inventory ?? [], stats]);
+    const sig = JSON.stringify([session.player.id, session.player.areaId, [...session.player.journal], session.player.inventory ?? [], stats,
+      this.state.panel==='spells'?session.player.nativeTalentClasses:null]);
     this.root.dataset.playerId = session.player.id; this.root.dataset.journalEntries = session.player.journal.size;
     if (sig !== this.signature) { this.signature = sig; if (['journal', 'inventory', 'character', 'party', 'spells'].includes(this.state.panel)) void this.renderPanel(); }
     if (this.state.panel === 'map') this.drawMap();
+  }
+  updateActionQueue(){
+    const records=actionQueueRecords(this.session.player);this.root.dataset.nativeActionQueue=JSON.stringify(records);
+    if(!this.queueActions||!this.queueButtons)return;
+    const signature=JSON.stringify(records);if(signature===this.queueSignature)return;this.queueSignature=signature;
+    try{this.queueRows=describeActionQueue(records,this.queueActions,this.session.characterRules?.spells,this.text);}
+    catch(error){runtimeDiagnostics.error(error,'ui.action-queue-description-unavailable');return;}
+    for(let index=0;index<10;index++){
+      const node=this.queueButtons[index],row=this.queueRows[index];node.hidden=!row;if(!row)continue;
+      const target=this.session.registry.get(row.targetId),caption=`${row.label}${target?` · ${target.name||target.tag||target.kind}`:''}`;
+      node.title=caption;node.setAttribute('aria-label',caption);node.dataset.action=String(row.code);node.dataset.groupId=String(row.group);node.dataset.targetId=String(row.targetId);
+      const previous=node.querySelector('.game-queue-icon');previous?.remove();node.dataset.icon=row.icon??'';
+      if(row.icon){const assets=this.assets,name=row.icon;
+        void assets.texture(name).then(texture=>{
+          if(assets!==this.assets||node.dataset.icon!==name||node.hidden)return;
+          const {width,height,data}=texture.image,icon=el('canvas','game-queue-icon');icon.width=width;icon.height=height;
+          icon.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data),width,height),0,0);node.querySelector('.game-queue-icon')?.remove();node.append(icon);
+        }).catch(error=>{if(assets===this.assets)runtimeDiagnostics.error(error,'ui.action-queue-icon-unavailable',{resource:name});});
+      }
+    }
   }
   async loadPortrait(name) {
     const assets = this.assets;
@@ -196,11 +278,13 @@ export class GameUi {
   }
   objectName(object) { return this.text.resolve(object.authored?.LocalizedName) || object.name || object.tag || `${object.kind} ${object.id}`; }
   key(event) {
+    if (this.externalCapture) return;
     if (!this.assets || event.defaultPrevented) return;
     if (this.radialActive?.()) return;
     const editing = /INPUT|TEXTAREA|SELECT/.test(event.target.tagName);
     if (editing) { if (event.key === 'Escape') event.target.blur(); event.stopImmediatePropagation(); return; }
     const key = event.key.toLowerCase(); let handled = true;
+    if(['Shift','Control'].includes(event.key)){this.modifierPage=event.key==='Control'||event.ctrlKey?2:1;this.updateQuickbar();return;}
     const conversation = this.session?.conversation;
     if (this.state.panel === 'dialogue' && conversation?.state && /^[1-9]$/.test(key)) {
       const reply = conversation.state.replies[Number(key) - 1];
@@ -246,9 +330,10 @@ export class GameUi {
     if (version !== this.renderVersion) return;
     panel.querySelector('button')?.focus({ preventScroll: true });
   }
-  dialogueText(value) {
-    const player = this.session.player, tokens = { FIRSTNAME: player.authored?.FirstName ? this.text.resolve(player.authored.FirstName) : player.name, LASTNAME: this.text.resolve(player.authored?.LastName), FULLNAME: player.name, PLAYERNAME: player.playerName };
-    return this.text.resolve(value).replace(/<(FIRSTNAME|LASTNAME|FULLNAME|PLAYERNAME)>/gi, (_, key) => tokens[key.toUpperCase()] ?? '')
+  dialogueText(value, player = this.session.player, gender = null) {
+    const text = gender === null ? this.text : Object.assign(Object.create(this.text), { female: gender === 1 });
+    const tokens = { FIRSTNAME: player?.authored?.FirstName ? text.resolve(player.authored.FirstName) : player?.name, LASTNAME: text.resolve(player?.authored?.LastName), FULLNAME: player?.name, PLAYERNAME: player?.playerName };
+    return text.resolve(value).replace(/<(FIRSTNAME|LASTNAME|FULLNAME|PLAYERNAME)>/gi, (_, key) => tokens[key.toUpperCase()] ?? '')
       .replace(/<\/?(?:StartAction|StartCheck|StartHighlight|Start|End)>/gi, '');
   }
   renderConversation(body) {
@@ -292,14 +377,14 @@ export class GameUi {
       const equipped = el('dl', 'game-equipment');
       for (const [index, name] of EQUIPMENT_SLOTS.entries()) {
         const item = items.find(i => i.equipmentSlot === 1 << index), value = el('dd');
-        if (item) { const b = button(this.objectName(item), () => { this.examineId = item.id; this.open('examine'); }); b.dataset.objectId = item.id; value.append(b); } else value.textContent = '—';
+        if (item) { const b = button(this.objectName(item), () => { this.examineId = item.id; this.open('examine'); });this.makeQuickbarSource(b,{type:1,itemId:item.id,intParam:0xff00ff}); b.dataset.objectId = item.id; value.append(b); } else value.textContent = '—';
         equipped.append(el('dt', '', name), value);
       }
       body.append(equipped);
     } else {
     const grid = el('div', 'game-inventory-grid');
     const carried = items.filter(i => i.equipmentSlot === null);
-    for (let i = 0; i < Math.max(60, carried.length); i++) { const item = carried[i], slot = button(item ? this.objectName(item) : '', () => { if (item) { this.examineId = item.id; this.open('examine'); } }, 'game-item-slot'); slot.dataset.objectId = item?.id ?? ''; if (item) slot.title = `${this.objectName(item)} · Stack ${item.authored.StackSize ?? 1} · Position ${item.inventoryPosition?.join(', ') ?? 'unknown'}`; grid.append(slot); } body.append(grid);
+    for (let i = 0; i < Math.max(60, carried.length); i++) { const item = carried[i], slot = button(item ? this.objectName(item) : '', () => { if (item) { this.examineId = item.id; this.open('examine'); } }, 'game-item-slot'); slot.dataset.objectId = item?.id ?? ''; if (item){this.makeQuickbarSource(slot,{type:1,itemId:item.id,intParam:0xff00ff});slot.title = `${this.objectName(item)} · Stack ${item.authored.StackSize ?? 1} · Position ${item.inventoryPosition?.join(', ') ?? 'unknown'}`;} grid.append(slot); } body.append(grid);
     }
     body.append(el('p', 'game-muted', `Gold ${this.session.player.stats?.gold ?? '—'} · Equip/use and carry-weight rules pending`));
   }
@@ -311,7 +396,7 @@ export class GameUi {
       if (!p.stats) { body.append(el('p', '', `${this.characterTab} unavailable.`)); return; }
       const list = el('dl', 'game-stats');
       if (this.characterTab === 'Skills') for (const [id, rank] of p.stats.skills.entries()) { list.append(el('dt', '', this.ruleName('skills', id)), el('dd', '', `${rank} ranks`)); }
-      else for (const id of p.stats.feats) body.append(el('p', 'game-feat', this.ruleName('feat', id, 'FEAT')));
+      else for (const id of p.stats.feats) body.append(this.makeQuickbarSource(el('p', 'game-feat', this.ruleName('feat', id, 'FEAT')),{type:4,intParam:id}));
       body.append(list); return;
     }
     const stats = el('dl', 'game-stats');
@@ -325,7 +410,7 @@ export class GameUi {
         ['Fortitude', s.combat.saves.fortitude], ['Reflex', s.combat.saves.reflex], ['Will', s.combat.saves.will]] : []),
       ['Experience', s?.xp ?? '—'], ['Next level', s?.canLevelUp ? 'Level up available' : s?.nextXP ?? '—'], ['Gold', s?.gold ?? '—']];
     for (const [name, value] of rows) { const dd = el('dd', '', value); if (name === 'Experience') dd.dataset.stat = 'xp'; stats.append(el('dt', '', name), dd); }
-    body.append(stats, button('Create character', () => this.open('native:cg_main')), button('Load character', () => this.request('character.load')));
+    body.append(stats, button('Create character', () => this.request('character.create')), button('Characters', () => this.request('character.load')));
     if (s) body.append(el('p', 'game-muted', s.limitations.join(' ')));
   }
   renderSpells(body, tabs) {
@@ -334,22 +419,25 @@ export class GameUi {
     if (!player.stats) { body.append(el('p', '', 'No character spell or feat data loaded.')); return; }
     let count = 0;
     if (this.spellTab === 'Feats') {
-      for (const id of player.stats.feats) { body.append(button(this.ruleName('feat', id, 'FEAT'), () => this.request('feat.use', { featId: id }))); count++; }
-    } else for (const c of (player.creatureData ?? player.authored).ClassList) {
+      for (const id of player.stats.feats) { body.append(this.makeQuickbarSource(button(this.ruleName('feat', id, 'FEAT'), () => this.request('feat.use', { featId: id })),{type:4,intParam:id})); count++; }
+    } else for (const [index,c] of (player.creatureData ?? player.authored).ClassList.entries()) {
+      const state=player.nativeTalentClasses?.[index];if(!state)throw new Error('Live spellbook class storage is unavailable');
       const section = el('section', 'game-spell-class'); section.append(el('h3', '', this.ruleName('classes', c.Class)));
       for (let level = 0; level < 10; level++) {
-        const list = c[`${this.spellTab === 'Memorized' ? 'Memorized' : 'Known'}List${level}`] ?? [];
+        const list = this.spellTab==='Memorized'?state.memorized[level]:state.known[level].map(id=>({id,metamagic:0}));
         if (list.length) section.append(el('h4', '', `Spell level ${level}`));
         for (const [slot, spell] of list.entries()) {
           if (!spell) continue;
-          const b = button(`${this.ruleName('spells', spell.Spell)}${this.spellTab === 'Memorized' ? spell.Ready ? ' · Ready' : ' · Used' : ''}${spell.SpellMetaMagic ? ` · Metamagic ${spell.SpellMetaMagic}` : ''}`, () => this.request('spell.cast', { classId: c.Class, spellId: spell.Spell, spellLevel: level, slot, metamagic: spell.SpellMetaMagic ?? 0 }));
-          b.dataset.spellId = spell.Spell; section.append(b); count++;
+          const domainLevel=spell.domain?(level-this.session.spellBook.metamagicCost(spell.metamagic??0))&255:0;
+          const b = button(`${this.ruleName('spells', spell.id)}${this.spellTab === 'Memorized' ? spell.ready ? ' · Ready' : ' · Used' : ''}${spell.metamagic ? ` · Metamagic ${spell.metamagic}` : ''}`, () => this.request('spell.cast', { classIndex:index, spellId: spell.id, metamagic:spell.metamagic??0,domainLevel }));
+          b.dataset.spellId = spell.id;b.dataset.spellClassIndex=index;if(this.spellTab==='Memorized')b.dataset.spellReady=Number(spell.ready!==0);section.append(b); count++;
+          this.makeQuickbarSource(b,{type:2,classIndex:index,intParam:spell.id,metamagic:spell.metamagic??0,domainLevel});
         }
       }
       body.append(section);
     }
     if (!count) body.append(el('p', '', 'No entries in this list.'));
-    body.append(el('p', 'game-muted', 'Casting, memorization changes and feat actions are pending.'));
+    body.append(el('p', 'game-muted', 'Choose a spell, then its target. Memorization changes and feat actions are pending.'));
   }
   renderExamine(body) {
     const object = this.session.registry.get(this.examineId ?? this.getSelected?.()?.id);
@@ -429,7 +517,7 @@ export class GameUi {
     } catch (error) { runtimeDiagnostics.error(error, 'ui.layout-failed', { resRef: name, panel: this.state.panel }); if (version === this.renderVersion) { this.message(`UI resource ${name}: ${error.message}`); this.layer.append(button('Back', () => this.close())); } }
   }
   nativeStatus(name) {
-    if (name.startsWith('cg_')) return 'Character creation rules and BIC writing are pending.';
+    if (name.startsWith('cg_')) return 'Native creation layout preview. Open the working wizard through Create Character.';
     if (/loadgame|savegame/.test(name)) return 'Save-game loading and writing are pending.';
     if (/multi|server|connect/.test(name)) return 'Networking is pending.';
     if (/movie/.test(name)) return 'Movie playback is pending.';
@@ -438,10 +526,11 @@ export class GameUi {
   }
   nativeAction(screen, tag, type) {
     if (/^(XButton|CancelButton|BackButton|CloseButton|ExitButton)$/.test(tag)) { this.close(); return; }
+    if (screen.startsWith('cg_')) { this.request('character.create'); return; }
     const route = nativeRoutes[screen]?.[tag]; if (route) { this.open(`native:${route}`); return; }
     if (/playmod|loadmod/.test(screen) && /load|play|start|open/i.test(tag)) { this.onOpenModule?.(); return; }
     if (screen === 'pre_newgame' && /module|custom|other/i.test(tag)) { this.onOpenModule?.(); return; }
-    if (screen === 'pre_newgame' && /Chapter|Prelude/.test(tag)) { this.open('native:cg_main'); return; }
+    if (screen === 'pre_newgame' && /Chapter|Prelude/.test(tag)) { this.onOpenModule?.(); return; }
     if (screen.startsWith('cg_') && screen !== 'cg_main' && /ok|next|accept|done/i.test(tag)) { this.request('character.creation.step', { screen, control: tag, values: this.nativeDraft }); return; }
     if (type === 2) { this.nativeDraft ??= {}; const key = `${screen}:${tag}`, node = this.root.querySelector(`[data-tag="${CSS.escape(tag)}"]`); this.nativeDraft[key] = !(this.nativeDraft[key] ?? node?.getAttribute('aria-checked') === 'true'); node?.setAttribute('aria-checked', String(this.nativeDraft[key])); node?.setAttribute('aria-pressed', String(this.nativeDraft[key])); }
     this.request('native.control', { screen, control: tag, values: this.nativeDraft ? { ...this.nativeDraft } : {} });

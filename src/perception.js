@@ -65,7 +65,7 @@ export function targetVisibilityAllowsAttack(actor, targetCreature, flags) {
 // must be provided by the caller; static FAC data alone is insufficient.
 export function reactionFromReputation(reputation, sameFaction, pvpSetting, creaturePair, hasArea) {
   if (!Number.isInteger(reputation) || !Number.isInteger(sameFaction) ||
-      hasArea && !Number.isInteger(pvpSetting) || typeof creaturePair !== 'boolean' || typeof hasArea !== 'boolean')
+      creaturePair && hasArea && !Number.isInteger(pvpSetting) || typeof creaturePair !== 'boolean' || typeof hasArea !== 'boolean')
     throw new Error('Native AI reaction inputs are unavailable');
   reputation |= 0;
   if (creaturePair && hasArea) {

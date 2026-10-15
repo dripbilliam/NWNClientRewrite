@@ -48,3 +48,14 @@ test('fixed-rate native snapshots increment signed quotient and keep previous co
   assert.deepEqual(timer.time(),{day:7,time:33});timer.snapshot();assert.equal(timer.counter,66666n);
   timer.fixedRate=0;assert.throws(()=>timer.snapshot(),/divides by zero/);
 });
+test('calendar conversions honor28-day months, unsigned year fallback and native rate-dependent minutes',()=>{
+  const {timer}=clock();
+  assert.deepEqual(timer.calendar(0),{year:0,month:1,day:1});assert.deepEqual(timer.calendar(335),{year:0,month:12,day:28});
+  assert.deepEqual(timer.calendar(32767*336+335),{year:32767,month:12,day:28});
+  assert.deepEqual(timer.calendar(32768*336),{year:1340,month:1,day:1});
+  assert.deepEqual(timer.calendar(0xffffffff),{year:1340,month:10,day:4});
+  timer.setMinutesPerHour(5);assert.deepEqual(timer.timeParts(1859999),{hour:6,minute:0,second:59,millisecond:999});
+  timer.setTime(1,1919007);assert.equal(timer.getHour(),6);assert.equal(timer.getMinute(),1);assert.equal(timer.getSecond(),59);
+  timer.pause();timer.counter=99999999999n;assert.equal(timer.getSecond(),59);
+  timer.minutesPerHour=0;assert.throws(()=>timer.timeParts(1),/divides by zero/);
+});

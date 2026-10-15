@@ -26,7 +26,9 @@ export class ScriptScheduler {
     try {
       // Expiry can execute direct lifecycle scripts. Serialize it with event
       // dispatch so a second render frame cannot interleave another script.
-      await this.beforePump();
+      // The native AI master may own delivery between object updates. Its
+      // true result leaves level0's newly queued events for the NEXT update.
+      if(await this.beforePump()===true)return;
       let count = 0;
       while (this.events[0]?.due <= this.time && count++ < this.maxEventsPerPump) {
         const queued = this.events.shift();

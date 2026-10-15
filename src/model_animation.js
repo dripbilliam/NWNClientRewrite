@@ -29,6 +29,9 @@ export class ModelAnimator {
     this.root = root;
     this.updateSkin = updateSkin;
     this.bindings = new Map();
+    const nodeNameCounts=new Map();for(const node of model.nodes)nodeNameCounts.set(node.name,(nodeNameCounts.get(node.name)??0)+1);
+    const ambiguous=new Set((model.animations??[]).flatMap(clip=>clip.tracks??[]).filter(track=>(nodeNameCounts.get(track.node)??0)>1).map(track=>track.node));
+    if(ambiguous.size)runtimeDiagnostics.record('animation.duplicate-node-binding-unimplemented','Native animation track resolution for duplicate node names is not implemented; the physical model hierarchy is preserved',{model:model.modelName,nodes:[...ambiguous]});
     this.clip = null;
     this.time = 0;
     this.playing = false;

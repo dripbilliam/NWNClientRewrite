@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnHeartbeatPerception,cleanPersonalReputations,cleanInvitationLists} from '../src/creature_heartbeat.js';
-import {NativeAIMaster} from '../src/native_ai_master.js';
+import {NativeAIMaster,scriptSetAILevel} from '../src/native_ai_master.js';
 import {ModuleSession} from '../src/module_session.js';
 const invalid=0x7f000000;
 function fixture(){
@@ -110,4 +110,29 @@ test('canonical master alias makes perception react to associate ID changes and 
   assert.equal(actor.nativeStealthTarget8fc,actor.masterId);actor.masterId=6;assert.equal(actor.nativeStealthTarget8fc,6);
   actor.nativeStealthTarget8fc=0x80000004;assert.equal(actor.masterId,0x80000004);
   assert.throws(()=>session.register('creature','conflict',{masterId:1,nativeStealthTarget8fc:2}),/Conflicting/);
+});
+test('script SetAILevel clamps to0..3, locks after selection, and -1 restores area/combat/master priority',()=>{
+  const {actor}=fixture(),master=new NativeAIMaster(),area={nativePlayerCount150:1};
+  actor.isPC=false;actor.stats={};const p={master,area:()=>area,possessed:()=>0,creature:()=>({stats:{},isPC:true})};
+  scriptSetAILevel(actor,4,p);assert.equal(actor.nativeAILevel7c,3);assert.equal(actor.nativeAILocked80,1);
+  scriptSetAILevel(actor,-9,p);assert.equal(actor.nativeAILevel7c,0);assert.equal(actor.nativeAILocked80,1);
+  scriptSetAILevel(actor,-1,p);assert.equal(actor.nativeAILevel7c,1);assert.equal(actor.nativeAILocked80,0);
+  area.nativePlayerCount150=0;scriptSetAILevel(actor,-1,p);assert.equal(actor.nativeAILevel7c,0);
+  actor.nativeField700=1;scriptSetAILevel(actor,-1,p);assert.equal(actor.nativeAILevel7c,2);
+  actor.masterId=4;scriptSetAILevel(actor,-1,p);assert.equal(actor.nativeAILevel7c,3);
+  p.creature=()=>null;scriptSetAILevel(actor,-1,p);assert.equal(actor.nativeAILevel7c,3);assert.equal(actor.nativeAILocked80,0);
+  actor.nativeAILocked80=1;actor.isPC=true;scriptSetAILevel(actor,-1,p);assert.equal(actor.nativeAILocked80,1);
+  scriptSetAILevel(actor,-1,{master:null});assert.equal(actor.nativeAILocked80,0);
+});
+test('live runtime heartbeat invokes authored spawn before native RNG/perception and uses shared AI level storage',async()=>{
+  const session=new ModuleSession({}),area=session.register('area','area',{nativePlayerCount150:1});
+  const actor=session.register('creature','actor',{areaId:area.id,position:[0,0,0],registerAI:true,scripts:{spawn:'spawn',heartbeat:'beat'},stats:{},combatRound:{}});
+  const trace=[];session.damage.runEvent=(o,name)=>{trace.push(name);session.commands.SetAILevel([o.id,4]);};
+  session.worldTimer.setTime(2,4000);const time=session.worldTimer.time();
+  actor.nativePerceptionDay578=2;actor.nativePerceptionTime57c=0;
+  await session.combat.updateSpawnHeartbeat(actor,1,{updateVisibility:()=>trace.push('visible'),random:()=>{trace.push('rand');return 55;}});
+  assert.deepEqual(trace,['spawn','rand']);assert.equal(actor.nativeAILevel7c,3);assert.equal(actor.nativeAILocked80,1);
+  assert.equal(session.commands.GetAILevel([actor.id]),3);assert.equal(actor.nativePerceptionTime57c,time.time);
+  session.worldTimer.setTime(2,8000);await session.combat.updateSpawnHeartbeat(actor,1,{updateVisibility:()=>trace.push('visible'),random:()=>{trace.push('rand');return 55;}});
+  assert.deepEqual(trace,['spawn','rand','rand','rand','visible']);
 });

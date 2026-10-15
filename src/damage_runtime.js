@@ -13,7 +13,8 @@ import { setLastHostileActor } from './combat_hostile.js';
 import { damageRollAsync, damageDifficulty } from './damage_roll.js';
 import { attackDamageFlags, weaponPower, calculateDamagePower } from './damage_weapon.js';
 import { creatureAlignment } from './creature_rules.js';
-import { broadcastCombatState } from './combat_broadcast.js';
+import { broadcastCombatState,sendCombatFeedback } from './combat_broadcast.js';
+import { deathBlockedByImmunity,preserveDeathEffect,deathVisualType,deathAnimation } from './death_effects.js';
 
 const i16 = n => (n << 16) >> 16;
 const i8 = n => (n << 24) >> 24;
@@ -72,8 +73,7 @@ export class DamageRuntime {
     if (options.energy && (!(Array.isArray(attack.damage) || attack.damage instanceof Int16Array) || attack.damage.length !== 32))
       throw new Error('Native attack damage record is unavailable');
     const rules = this.session.characterRules;
-    const items = (object.inventory ?? []).map(id => this.session.registry.get(id)).filter(item => item?.equipmentSlot)
-      .map(item => ({ id: item.id, slot: item.equipmentSlot, data: item.authored, temporaryProperties: item.temporaryProperties }));
+    const items = this.session.equippedItems(object).map(item=>({...item,temporaryProperties:this.session.registry.get(item.id)?.temporaryProperties}));
     const effects = object => [...(object.itemCombatEffects?.effects ?? []), ...(object.effects ?? [])];
     const result = await damageEffectBonusAsync(object, target, rules, items, this.session.random, {
       ...options, attack, limit: options.limit ?? this.session.combatLimits?.damage ?? 100,
@@ -123,7 +123,7 @@ export class DamageRuntime {
   async runEvent(object, name, context) {
     if (!name) return;
     try {
-      await this.session.vm.run(await this.session.program(name), object.id,
+      await this.session.runScript(name, object.id,
         context ? { budget: context.budget, depth: (context.depth ?? 0) + 1 } : {});
     } catch (error) {
       // RunEventScript failure does not skip the remaining native damage work.
@@ -162,7 +162,8 @@ export class DamageRuntime {
       else if (random.next() % 3 === 0) object.animationState = 77;
       else object.animationState = random.next() % 2 === 0 ? 100 : 99;
     }
-    this.omission(object, 'Damage reaction selected; native combat animation playback/pause scheduling is not connected', effect);
+    runtimeDiagnostics.record('animation.damage-reaction-selected','Native damage reaction selected',
+      {...this.session.diagnosticContext(object.id),effectId:effect.id,animation:object.animationState},'info');
   }
   setLastHostile(object, creator, force = 0) {
     const session = this.session;
@@ -289,26 +290,45 @@ export class DamageRuntime {
         if (this.session.hitPoints(object.id, false) <= 0) { object.stats.currentHP = 1; this.synchronize(object); }
         return;
       }
-      if (object.deathHandled) return;
+      if (!Number.isInteger(object.nativeDeathWord8d4)) throw new Error('Native creature death WORD is unavailable');
+      if ((object.nativeDeathWord8d4&65535)===0) return;
+      if(await deathBlockedByImmunity(object,effect,{
+        creature:id=>{const o=this.session.registry.get(id);return o?.objectType===5?o:null;},
+        immunity:(...args)=>this.session.combat.immunity(...args),
+        feedback:(o,code,data)=>sendCombatFeedback(o,code,data,this.session.combat.broadcastProviders())}))return;
+      await this.session.combat.clearActions(object);
       this.session.onClearActions(object.id);
-      object.lastKillerId = effect.creatorId === object.id ? object.lastDamagerId ?? OBJECT_INVALID : effect.creatorId;
+      const killerId=effect.creatorId===object.id?object.lastDamagerId??OBJECT_INVALID:effect.creatorId;
+      await this.session.combat.adjustReputations(object.id,killerId,2);
+      if([5,6].includes(object.associateType&65535))
+        this.session.combat.unsupported(object,'Native dominated/charmed death associate removal is not implemented');
+      await this.session.combat.clearAttackActivity(object,1,0);
+      await this.session.combat.removeInvisibility(object);
+      object.lastKillerId=killerId;
       await this.runEvent(object, object.scripts?.death, context);
-      this.omission(object, 'Native death XP, witness reputation, associate lifecycle and death presentation are not implemented', effect);
+      await this.session.combat.applyDeathExperience(object);
+      const originalCreator=this.session.registry.get(effect.creatorId),pose=deathAnimation(object,originalCreator?.objectType===5?originalCreator:null);
+      if(pose){object.nativeBodyState=pose.body;this.session.combat.setAnimation(object,pose.animation);}
+      if(object.associateIds?.length)this.omission(object, 'Native death associate cleanup is not implemented', effect);
+      object.actionTimer=0;object.nativeDeathWord8d4=0;
       object.deathHandled = true;
       if (this.session.hitPoints(object.id, false) > -11) object.stats.currentHP = -11;
       this.synchronize(object);
-      object.combatMode = 0; object.currentActionId = 65535;
+      await this.session.combat.setCombatMode(object,0,1);
+      object.currentActionId = 65535;
       // Death purges effects immediately and restarts its live traversal.
       // Internal duration 3/4 and supernatural effects have native exceptions.
       let index = 0;
       while (index < (object.effects ?? []).length) {
         const active = object.effects[index];
-        if ([3, 4].includes(active.durationType) || active.type === 32 ||
-          active.subtype === 32 && ![8, 9, 23].includes(active.type)) index++;
+        if (preserveDeathEffect(active,{visualType:id=>deathVisualType(this.session.characterRules?.visualeffects,id)})) index++;
         else { await this.session.effects.remove(object.id, active.id, context); index = 0; }
       }
       if (object.isPC || object.isPossessedFamiliar) this.playerEvent(10, object);
-      else this.omission(object, 'Native corpse cleanup/body bag and encounter active-count updates are not implemented', effect);
+      else {
+        this.omission(object, 'Native corpse cleanup/body bag scheduling is not implemented', effect);
+        await this.session.encounters.creatureDied(object);
+      }
     } else {
       this.session.onClearActions(object.id);
       if (object.kind === 'door') {

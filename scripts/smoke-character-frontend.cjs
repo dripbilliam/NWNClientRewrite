@@ -1,0 +1,54 @@
+const {app,BrowserWindow}=require('electron');
+const fs=require('node:fs/promises'),path=require('node:path'),assert=require('node:assert/strict');
+const install=path.resolve(process.argv[2]??'../FullDecomp/NwnRootInstall'),moduleFile=path.resolve(process.argv[3]??path.join(install,'data/nwm/Prelude.nwm'));
+const artifacts=path.join(__dirname,'../backups/animations'),profile=path.join(__dirname,`../backups/character-frontend-smoke-${process.pid}`);
+app.setPath('userData',profile);app.setPath('logs',profile);app.setPath('crashDumps',profile);
+app.whenReady().then(async()=>{
+  const win=new BrowserWindow({show:false,width:1440,height:960,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,offscreen:true,backgroundThrottling:false}}),errors=[];
+  win.webContents.on('console-message',(_e,level,message)=>{if(level>=3)errors.push(message);});
+  const evaluate=code=>win.webContents.executeJavaScript(code);
+  const wait=async condition=>{const deadline=Date.now()+120000;while(!await evaluate(condition)){if(Date.now()>deadline)throw new Error('Timeout '+condition+'\n'+await evaluate(`document.body.innerText.slice(0,2500)`));await new Promise(r=>setTimeout(r,100));}};
+  const click=async label=>{assert.ok(await evaluate(`(()=>{const b=[...document.querySelectorAll('#character-frontend button')].find(b=>b.textContent===${JSON.stringify(label)});if(!b||b.disabled)return false;b.click();return true;})()`),`Button unavailable: ${label}`);};
+  const step=async label=>{await evaluate(`[...document.querySelectorAll('.character-steps button')].find(b=>b.dataset.step===${JSON.stringify(label)}).click()`);};
+  const choose=async id=>{await evaluate(`document.querySelector('.character-step-body [data-choice-id="${id}"]').click()`);};
+  const fill=async(label,value)=>{await evaluate(`{const input=document.querySelector(${JSON.stringify(`#character-frontend [aria-label="${label}"]`)});input.value=${JSON.stringify(value)};input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}`);};
+  const screenshot=async name=>{await evaluate(`new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))`);await fs.writeFile(path.join(artifacts,name),(await win.webContents.capturePage()).toPNG());};
+  try{
+    await win.loadFile(path.join(__dirname,'../dist/index.html'));win.webContents.debugger.attach('1.3');
+    const files=async(selector,paths)=>{const {root}=await win.webContents.debugger.sendCommand('DOM.getDocument'),{nodeId}=await win.webContents.debugger.sendCommand('DOM.querySelector',{nodeId:root.nodeId,selector});await win.webContents.debugger.sendCommand('DOM.setFileInputFiles',{nodeId,files:paths});};
+    await files('#game-data-folder',[path.join(install,'data')]);await wait(`document.querySelector('#status-text').textContent.startsWith('GAME DATA READY')`);
+    await files('#language-data-folder',[path.join(install,'lang/en/data')]);await wait(`document.querySelector('#status-text').textContent==='LANGUAGE DATA READY'`);
+    await files('#area-file',[moduleFile]);await wait(`document.querySelector('#character-frontend').dataset.mode==='select'`);
+    assert.equal(await evaluate(`document.querySelector('#model-canvas').dataset.areaResRef??''`),'');
+    await wait(`Boolean(document.querySelector('.character-card img')?.naturalWidth)`);
+    await screenshot('character-selector.png');
+    const installed=await evaluate(`document.querySelectorAll('.character-card').length`);assert.ok(installed>=39);
+    await click('Cancel');await wait(`document.querySelector('#status-text').textContent==='MODULE LOAD CANCELLED'`);assert.equal(await evaluate(`document.querySelector('#model-canvas').dataset.areaResRef??''`),'');
+    await files('#area-file',[moduleFile]);await wait(`document.querySelector('#character-frontend').dataset.mode==='select'`);await click('Create Character');
+    await choose(1);await step('Race');await choose(6);await step('Class');await choose(10);await step('Alignment');await choose(1);await click('Recommended');
+    await wait(`document.querySelector('#character-frontend').dataset.step==='Alignment' && !document.querySelector('.character-error')`);
+    await step('Domains & school');await fill('Spell school','1');
+    await step('Spells');
+    for(let n=0;n<30;n++){const selected=await evaluate(`(()=>{const b=[...document.querySelectorAll('.character-step-body button[data-spell-id]')].find(b=>!b.disabled&&b.getAttribute('aria-pressed')==='false');if(!b)return false;b.click();return true;})()`);if(!selected)break;}
+    const preparation=await evaluate(`document.querySelectorAll('.character-step-body select').length`);assert.ok(preparation>0);
+    await evaluate(`{for(const input of document.querySelectorAll('.character-step-body select')){input.value=input.options[1]?.value??'-1';input.dispatchEvent(new Event('change'));}}`);
+    await step('Appearance');await wait(`Boolean(document.querySelector('.character-model-preview')?.src)`);await screenshot('character-creation-appearance.png');
+    await step('Name');await fill('First name','Parité');await fill('Last name','Test');await fill('Familiar name','Companion');
+    await step('Review');await screenshot('character-creation-review.png');await click('Save Character');await wait(`document.querySelector('#character-frontend').dataset.mode==='select'`);
+    assert.ok(await evaluate(`[...document.querySelectorAll('.character-card strong')].some(n=>n.textContent==='Parité Test')`));
+    await evaluate(`document.querySelector('#run-module-startup').checked=false`);
+    await click('Play');await wait(`document.querySelector('#status-text').textContent.includes('AREA RENDERED')`);
+    const stats=await evaluate(`JSON.parse(document.querySelector('#model-canvas').dataset.characterStats)`);assert.equal(stats.level,1);assert.equal(stats.race,6);
+    const book=await evaluate(`(()=>{const raw=document.querySelector('#model-canvas').dataset.spellBook;return raw?JSON.parse(raw):null;})()`);
+    await screenshot('character-creation-in-world.png');
+    const previousActor=await evaluate(`document.querySelector('#model-canvas').dataset.actorId`),previousArea=await evaluate(`document.querySelector('#model-canvas').dataset.areaResRef`);
+    await files('#area-file',[moduleFile]);await wait(`document.querySelector('#character-frontend').dataset.mode==='select'`);await click('Cancel');await wait(`document.querySelector('#status-text').textContent==='MODULE LOAD CANCELLED'`);
+    assert.equal(await evaluate(`document.querySelector('#model-canvas').dataset.actorId`),previousActor);assert.equal(await evaluate(`document.querySelector('#model-canvas').dataset.areaResRef`),previousArea);
+    const reloaded=new Promise(resolve=>win.webContents.once('did-finish-load',resolve));win.reload();await reloaded;
+    await files('#game-data-folder',[path.join(install,'data')]);await wait(`document.querySelector('#status-text').textContent.startsWith('GAME DATA READY')`);
+    await evaluate(`document.querySelector('#character-data-button').click()`);await wait(`document.querySelector('#character-frontend').dataset.mode==='select'`);
+    assert.ok(await evaluate(`[...document.querySelectorAll('.character-card strong')].some(n=>n.textContent==='Parité Test')`));
+    const result={installedCharacters:installed,gateBeforeWorld:true,cancelBeforeWorld:true,cancelPreservesExistingWorld:true,manualSpecialistCreation:true,preparationSlots:preparation,persistedAcrossReload:true,stats,book,rendererErrors:errors};
+    await fs.writeFile(path.join(artifacts,'character-frontend-smoke.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));app.exit(0);
+  }catch(error){await screenshot('character-frontend-failed.png');console.error(error.stack,errors);app.exit(1);}
+});

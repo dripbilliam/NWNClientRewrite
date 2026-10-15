@@ -2,6 +2,25 @@ const modeMask=[0,0x1000,0x400,0x800,0x2000,0x4000,0x8000,0x10000,0x20000,0x4000
 const combatBits=[0x400,0x800,0x1000,0x2000,0x40000,0x4000,0x8000,0x10000,0x20000,0x80000,0x100000];
 const integer=(v,n)=>{if(!Number.isInteger(v))throw new Error(`Native ${n} is unavailable`);return v|0;};
 
+// ClearActivities1403877e0: fixed order, ignores bits4/16 and other unlisted
+// flags. Re-read activity/lock cells after each SetActivity side effect.
+export async function clearCreatureActivities(actor,mask,setActivity){
+  mask=integer(mask,'clear activity mask')>>>0;
+  if(typeof setActivity!=='function')throw new Error('Native clear activity mutation owner is unavailable');
+  for(const bit of [1,2,8,32,64,128,256,512,...combatBits])
+    if((mask&bit)!==0&&(integer(actor.activities,'activity mask')&bit)!==0&&(integer(actor.lockedActivities,'locked activity mask')&bit)===0)await setActivity(actor,bit,0);
+}
+
+// GetMode140391e70..140391fd8; the script wrapper narrows the requested
+// mode to BYTE. Detect's Keen Senses/idle rules are supplied by GetDetectMode.
+export async function getActionMode(actor,requested,detect){
+  requested=integer(requested,'requested action mode')&255;
+  if(requested===0){if(typeof detect!=='function')throw new Error('Native detect mode provider is unavailable');return Number((integer(await detect(actor),'detect mode')&255)===1);}
+  if(requested===1)return Number((integer(actor.nativeField6ed,'stealth byte')&255)===1);
+  if(requested<=12)return Number((integer(actor.combatMode,'combat mode')&255)===requested-1);
+  return 0;
+}
+
 // SetActivity 1403a275d..1403a2abe, combat-mask branch only. Enabling a
 // combat bit clears unlocked combat bits first, including the same bit.
 // Defensive stance effects are explicit callbacks; locked bits veto a change.

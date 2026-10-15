@@ -24,17 +24,18 @@ test('trap entry uses default integer0 and suppresses ordinary enter; exit scrip
   assert.equal(calls.at(-1),'script');
   await assert.rejects(dispatchSubareaEvent(target,10,{scriptEvent:12},{runScript:()=>assert.fail()}),/enterTrap/);
 });
-test('encounter dispatch preserves configurable enter/spawn order and removes creatures before exit', async () => {
+test('encounter dispatch preserves configurable enter/tally order and refreshes activation before exit', async () => {
   for(const before of [0,1]){
     const target={id:3,objectType:13},calls=[];
     await dispatchSubareaEvent(target,10,{scriptEvent:12,objectIds:[2]}, {
       encounterEnterBeforeSpawn:()=>before,activateEncounter:(o,id,flag)=>calls.push(['spawn',id,flag]),runScript:(o,slot)=>calls.push(['script',slot,o.eventObjects.entering]),
     });
-    assert.deepEqual(calls,before?[['script',0,2],['spawn',2,0]]:[['spawn',2,0],['script',0,2]]);
+    assert.deepEqual(calls,before?[['script',0,2],['spawn',2,-1]]:[['spawn',2,-1],['script',0,2]]);
     await dispatchSubareaEvent(target,10,{scriptEvent:13,objectIds:[2]}, {
-      removeEncounterCreatures:(o,id)=>calls.push(['remove',id]),runScript:(o,slot)=>calls.push(['script',slot,o.eventObjects.exiting]),
+      updateEncounterActivation:(o,id)=>calls.push(['refresh',id]),runScript:(o,slot)=>calls.push(['script',slot,o.eventObjects.exiting]),
     });
-    assert.deepEqual(calls.slice(-2),[['remove',OBJECT_INVALID],['script',1,2]]);
+    assert.deepEqual(calls.slice(-2),[['refresh',OBJECT_INVALID],['script',1,2]]);
+    assert.equal(target.nativeEncounterLastEntered3cc,2);assert.equal(target.nativeEncounterLastLeft3d0,2);
   }
 });
 test('encounter geometry uses local X/Y and native f32 position addition; absent and empty Geometry differ',()=>{

@@ -5,7 +5,10 @@ import { clipTileLine } from './tile_line.js';
 const f = Math.fround;
 const dot = (a, b) => f(f(f(a[0] * b[0]) + f(a[1] * b[1])) + f(a[2] * b[2]));
 const vector = values => {
-  if (!Array.isArray(values) || values.length < 3 || values.slice(0, 3).some(v => !Number.isFinite(v)))
+  // Original quarter-turn clipping can produce an IEEE NaN/Infinity Z.
+  // Keep those computed FLOATs for the verified LOS kernels. XY remain
+  // finite; absent/non-numeric height data is still an unsupported boundary.
+  if (!Array.isArray(values) || values.length < 3 || values.slice(0, 2).some(v => !Number.isFinite(v)) || typeof values[2]!=='number')
     throw new Error('Native LOS vector is unavailable');
   return values.slice(0, 3).map(f);
 };
@@ -117,7 +120,6 @@ export function clipAreaTileLOS(tile, from, to) {
   };
   const height = r => f(f(f(b[2] - a[2]) * r) + a[2]);
   const entryHeight = height(ratio(clipped.entry, ca, 0)), exitHeight = height(ratio(clipped.exit, cb, 1));
-  if (![entryHeight, exitHeight].every(Number.isFinite)) throw new Error('Native LOS rotated height interpolation is nonfinite');
   return { status: clipped.status, entry: [...rotateTilePoint(tile, clipped.entry, false), entryHeight],
     exit: [...rotateTilePoint(tile, clipped.exit, false), exitHeight] };
 }

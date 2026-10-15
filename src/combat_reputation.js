@@ -4,6 +4,14 @@ import { intEntry } from './combat_stats.js';
 const i=(value,name)=>{if(!Number.isInteger(value))throw new Error(`Native ${name} is unavailable`);return value|0;};
 const f=Math.fround;
 const cvtt=value=>Number.isFinite(value)&&value>=-2147483648&&value<2147483648?Math.trunc(value):-2147483648;
+// ClearPersonalReputation1403d3680. NPC->PC redirects to the PC's list;
+// remove every matching record in reverse, preserving allocation capacity.
+export function clearPersonalReputation(actor,targetId,p){
+  targetId=i(targetId,'personal reputation target')>>>0;let target=p.creature(targetId);
+  if(target&&i(target.nativeStatsIsPCb0,'target stats PC')===1&&i(actor.nativeStatsIsPCb0,'owner stats PC')===0){targetId=actor.id>>>0;actor=target;}
+  if(!Array.isArray(actor.personalReputationList))throw new Error('Native personal reputation list is unavailable');
+  for(let index=actor.personalReputationList.length-1;index>=0;index--)if(actor.personalReputationList[index].objectId===targetId)actor.personalReputationList.splice(index,1);
+}
 // LoadReputationAdjustments 140558ad0..14055946e. Four PHYSICAL rows,
 // eleven ints each, returned GetINTEntry values even when status is false.
 // The null table leaves native allocations untouched; do not synthesize rows.

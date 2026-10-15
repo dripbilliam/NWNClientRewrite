@@ -5,6 +5,7 @@ import { intEntry } from './combat_stats.js';
 // 1402b2c1c (A,C,D,E,V,I,N,T). This subset serves contextual saving throws.
 export function savingThrowSpell(rules,id){
   if(!Number.isInteger(id))throw new Error('Native spell ID is unavailable');
+  id|=0;if(id<0)return null;
   const table=rules.spells;
   if(!table)throw new Error('Native spell rules are unavailable');
   const rows=table.orderedRows??[...table.rows.values()];id|=0;
@@ -18,4 +19,52 @@ export function savingThrowSpell(rules,id){
     if(school===undefined)throw new Error(`Native spell ${id} school reads uninitialized loader storage`);
     return school;
   }};
+}
+
+// CNWSpellArray::Load1402afb18..1402afbcb stores Category and derives
+// ranking CR from the full INT Innate; +6f is loaded separately as BYTE.
+// SubRadSpell1..8 are compacted by successful reads, including negative IDs.
+export function talentSpell(rules,id){
+  if(!Number.isInteger(id))throw new Error('Native spell ID is unavailable');
+  id|=0;if(id<0)return null;
+  const table=rules.spells;if(!table)throw new Error('Native spell rules are unavailable');
+  const rows=table.orderedRows??[...table.rows.values()];id|=0;
+  if(id<0||id>=rows.length)return null;
+  const innate=intEntry(table,id,'Innate'),master=intEntry(table,id,'Master'),children=[];
+  for(let i=1;i<=8;i++){const entry=intEntry(table,id,`SubRadSpell${i}`);if(entry.found)children.push(entry.value);}
+  return {id,category:intEntry(table,id,'Category').value,maxCR:(Math.imul(innate.value,2)-1)|0,
+    innate:innate.found?innate.value&255:255,master:master.found?master.value:id,children};
+}
+
+// C2DA GetSTRINGEntry1401a68f0: first physical matching column; empty
+// cells clear output, unavailable row/column copies the table default.
+export function spellStringEntry(table,id,column){
+  const rows=table.orderedRows??[...table.rows.values()],index=table.columns.findIndex(k=>k.toLowerCase()===column.toLowerCase());
+  const cell=index<0||!rows[id]?table.defaultValue:table.orderedCells?table.orderedCells[id][index]:rows[id][table.columns[index]];
+  return cell===undefined||cell===''||cell==='****'?'':String(cell);
+}
+const lower=v=>v.replace(/[A-Z]/g,c=>c.toLowerCase()).split('\0')[0];
+const enumValue=(map,text)=>Object.hasOwn(map,lower(text))?map[lower(text)]:0;
+// CNWSpellArray::Load1402b0862..08f3 /0fce..11ab /1cb4..1eba.
+// Point/touch map to6, attack7: native loops retain their NUL-inclusive
+// character count. They must not be numbered by a guessed enum sequence.
+export const conjureAnimationType=text=>enumValue({hand:1,head:2},text);
+export const castAnimationType=text=>enumValue({out:1,self:2,up:3,area:4,point:6,touch:6,attack:7,creature:8},text);
+export const projectilePathType=text=>enumValue({homing:1,ballistic:2,highballistic:3,accelerating:5,spiral:6,linked:7,bounce:8,burst:9,test:50},text);
+
+// Active physical spell row, using the native loader's widths and strings.
+// This subset is casting metadata, not a hardcoded spell effect database.
+export function castingSpell(rules,id){
+  if(!Number.isInteger(id))throw new Error('Native casting spell ID is unavailable');
+  id|=0;if(id<0)return null;
+  const table=rules.spells;if(!table)throw new Error('Native casting spell table is unavailable');
+  const rows=table.orderedRows??[...table.rows.values()];id|=0;if(id<0||id>=rows.length)return null;
+  const string=key=>spellStringEntry(table,id,key),number=key=>intEntry(table,id,key).value;
+  const master=intEntry(table,id,'Master'),innate=intEntry(table,id,'Innate');
+  return{id,components:string('VS'),range:string('Range').slice(0,1),impactScript:string('ImpactScript'),
+    master:master.found?master.value:id,innate:innate.found?innate.value&255:255,metamagic:number('MetaMagic')&255,
+    targetType:number('TargetType')&65535,conjureTime:number('ConjTime')>>>0,conjureAnimation:conjureAnimationType(string('ConjAnim')),
+    castTime:number('CastTime')>>>0,castAnimation:castAnimationType(string('CastAnim')),useProjectile:number('Proj')|0,
+    projectilePath:projectilePathType(string('ProjType')),userType:number('UserType')&255,spontaneouslyCast:number('SpontaneouslyCast')|0,
+    useConcentration:number('UseConcentration')|0,hasProjectile:number('HasProjectile')|0};
 }

@@ -30,13 +30,13 @@
               <button class="tool-button" id="wireframe-button" type="button" aria-pressed="false">Wireframe</button>
               <button class="tool-button" id="game-mode-button" type="button" aria-pressed="false">Game UI</button>
               <button class="tool-button" id="language-data-button" type="button">Language Data</button>
-              <button class="tool-button" id="character-data-button" type="button">Load Character</button>
+              <button class="tool-button" id="character-data-button" type="button">Characters</button>
               <button class="tool-button" id="game-data-button" type="button">Game Data</button>
               <button class="tool-button" id="hak-data-button" type="button">HAK Data</button>
               <button class="tool-button" id="open-area-button" type="button">Open Area</button>
               <button class="tool-button primary" id="open-button" type="button">Open Model</button>
               <select class="tool-select" id="area-select" aria-label="Area in module" hidden></select>
-              <input id="area-file" type="file" accept=".mod,.erf" hidden />
+              <input id="area-file" type="file" accept=".mod,.erf,.nwm" hidden />
               <input id="character-file" type="file" accept=".bic" hidden />
               <input id="game-data-folder" type="file" webkitdirectory directory multiple hidden />
               <input id="hak-data-folder" type="file" webkitdirectory directory multiple hidden />
@@ -84,6 +84,8 @@
           <select id="ui-resource-select" class="tool-select"><option value="">Load game data and a module</option></select>
           <button id="release-test-cutscene" class="tool-button" type="button">Release cutscene (testing)</button>
           <label class="preview-sun-toggle"><input id="run-module-startup" type="checkbox" checked>Run startup and initial area-entry scripts (next load)</label>
+          <label for="session-pvp-setting" class="eyebrow">PLAYER VS PLAYER (NEXT LOAD)</label>
+          <select id="session-pvp-setting" class="tool-select"><option value="0">No PvP</option><option value="1">Party PvP</option><option value="2">Full PvP</option></select>
           <div class="inspector-section">
             <span class="eyebrow">INSPECTOR</span>
             <h2>Model data</h2>

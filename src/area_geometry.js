@@ -7,6 +7,8 @@ import { intEntry } from './combat_stats.js';
 import { NativeAreaObjectGeometry } from './area_object_geometry.js';
 import { tileLOSMaterials, clipAreaTileLOS, clearAreaTileLOS } from './tile_los.js';
 import { clearAreaLOS } from './area_los.js';
+import {tileNodeOrientation} from './tile_path_node.js';
+import {plotSoundPath} from './sound_path.js';
 
 const f = Math.fround;
 // Shared resolver-scoped resource caches. Never key by a global model name:
@@ -99,7 +101,12 @@ export class NativeAreaGeometry {
         if (!model) throw new Error(`Native tileset has no model for tile ${id}`);
         if (orientation < 0 || orientation > 3) throw new Error('Native tile orientation is not implemented');
         const mesh = await this.resources.mesh(model);
-        return { x, y, orientation, heightOffset: f(f(height | 0) * tileset.transition), mesh, model, tileId: id };
+        const fields=tileset.tiles[id].pathNodeFields;
+        const atoi=value=>{const match=/^\s*([+-]?\d+)/.exec(value??'');return match?Number(match[1])|0:0;};
+        const pathNodes={path:fields.PathNode?.charCodeAt(0)&255,pathOrientation:tileNodeOrientation(atoi(fields.Orientation)),
+          visibility:fields.VisibilityNode?.charCodeAt(0)&255,visibilityOrientation:tileNodeOrientation(atoi(fields.VisibilityOrientation)),
+          doorVisibility:fields.DoorVisibilityNode?.charCodeAt(0)&255,doorVisibilityOrientation:tileNodeOrientation(atoi(fields.DoorVisibilityOrientation)),doors:atoi(fields.Doors)&255};
+        return { x, y, orientation, heightOffset: f(f(height | 0) * tileset.transition), mesh, model, tileId: id,pathNodes };
       } catch (error) {
         this.resources.report(error, { area: area.resRef, areaId: area.id, tileIndex: index, tileset: area.tilesetResRef, model,
           operation: 'native-area-tile-geometry' });
@@ -120,6 +127,11 @@ export class NativeAreaGeometry {
     } };
   }
   lineWalkable(from, to) { return testLineWalkable(this.area, from, to, this.providers()); }
+  async soundPath(path){
+    if(!this.objects)throw new Error('Native sound path door registry is unavailable');
+    try{return await plotSoundPath(this.area,path,{tile:(x,y)=>this.tile(x,y),doors:tile=>this.objects.soundDoors(tile)});}
+    catch(error){this.resources.report(error,{area:this.area.resRef,areaId:this.area.id,operation:'native-area-sound-path'});throw error;}
+  }
   // ComputeHeight14036a210 scans the global32 ten-unit slots using
   // lower-inclusive/upper-exclusive bounds. Outside tiles return native -6.
   async height(point) {

@@ -191,7 +191,7 @@ test('live damage bonuses preserve handles, record dirty state, reject immunity,
   s.scheduler.advance(1); await s.scheduler.pump(); assert.equal(a.effects.length, 0); assert.equal(a.combatInformationDirty, 1);
   const penalty = s.commands.EffectDamageDecrease([0, 1], { self: a.id });
   assert.equal(s.commands.GetEffectType([penalty]), 43);
-  s.commands.ApplyEffectToObject([2, penalty, b.id]); assert.equal(b.effects, undefined);
+  s.commands.ApplyEffectToObject([2, penalty, b.id]); assert.deepEqual(b.effects, []);
   a.effects = [{ type: 22, integers: [21, 28, 0, 0] }];
   s.commands.ApplyEffectToObject([2, penalty, a.id]); assert.equal(a.effects.length, 1);
   s.commands.ApplyEffectToObject([2, { ...penalty, bypassImmunity: true }, a.id]);

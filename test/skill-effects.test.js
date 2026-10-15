@@ -36,7 +36,7 @@ function fixture(){
   return{s,pc,frame:{self:pc.id}};
 }
 test('skill constructors validate active table count, preserve zero/negative magnitudes and accept native all-skills ID',()=>{
-  const{s,pc,frame}=fixture();const buff=s.commands.EffectSkillIncrease([10,0],frame);assert.equal(buff.type,55);assert.equal(buff.creatorId,pc.id);assert.deepEqual(buff.integers,[10,0,28,0,0]);
+  const{s,pc,frame}=fixture();const buff=s.commands.EffectSkillIncrease([10,0],frame);assert.equal(buff.type,55);assert.equal(buff.creatorId,pc.id);assert.deepEqual(buff.integers,[10,0,28,0,0,0,0,0]);
   assert.equal(s.commands.EffectSkillDecrease([255,-3],frame).type,56);
   assert.equal(s.commands.GetEffectType([buff]),54);assert.equal(s.commands.GetEffectType([s.commands.EffectSkillDecrease([255,2],frame)]),55);
   for(const skill of [-1,27,256])assert.equal(s.commands.EffectSkillIncrease([skill,3],frame).type,0);

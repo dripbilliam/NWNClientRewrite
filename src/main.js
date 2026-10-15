@@ -7,6 +7,9 @@ import { deformSkinnedVertices } from './model_skinning.js';
 import { createModelHierarchy } from './model_hierarchy.js';
 import { inheritAnimations } from './mdl_animation.js';
 import { ModelAnimator } from './model_animation.js';
+import {CreatureAnimationPresentation} from './creature_animation_presentation.js';
+import {totalAttackDamage} from './combat_attack_data.js';
+import {attackResultDoesDamage} from './combat_strike.js';
 import { modelMaterialOptions } from './model_material.js';
 import { parseGff } from './gff.js';
 import { groupFacesByMaterial } from './mdl_mesh.js';
@@ -29,13 +32,15 @@ import { pickedWorldObject, pointerRay } from './world_picking.js';
 import { buildRadialActions, buildGroundRadialActions, radialActionRequest } from './radial_actions.js';
 import { RadialMenu } from './radial_menu.js';
 import { GameUi } from './game_ui.js';
-import { parseCharacter } from './character.js';
+import { CharacterFrontend } from './character_frontend.js';
+import { parseCharacter,resolvePlayerModels } from './character.js';
 import { GameAudio } from './game_audio.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 import { installDiagnosticReporting } from './diagnostic_reporting.js';
 import './style.css';
 
 let diagnosticContext = {};
+let moduleLoadBusy = false;
 runtimeDiagnostics.context = () => diagnosticContext;
 installDiagnosticReporting();
 runtimeDiagnostics.record('session.started', 'Runtime diagnostic recording started', {}, 'info');
@@ -74,12 +79,15 @@ let worldObjects = null;
 let actionQueue = null;
 let hoveredObject = null;
 let selectedWorldObject = null;
+let pendingSpellTarget = null;
 let activeAnimations = [];
 const movementHud = document.querySelector('#movement-hud');
 const doorAction = document.querySelector('#door-action');
 const doorFeedback = document.querySelector('#door-feedback');
 let moduleSession = null;
 let gameAudio = null;
+let creatureAnimations=null;
+let dynamicCreatureSync=null;
 const unlockAudio = () => { void gameAudio?.unlock(); };
 window.addEventListener('pointerdown', unlockAudio, { capture: true });
 window.addEventListener('keydown', unlockAudio, { capture: true });
@@ -157,15 +165,26 @@ const effectClock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const delta = effectClock.getDelta();
   const simulationReady = !moduleSession?.scheduler.pumping;
+  if (simulationReady) {
+    dynamicCreatureSync?.();
+    if (playerController?.actor) playerController.position = playerController.actor.position;
+    try { worldObjects?.syncCreaturePositions((actor, shift) => {
+    if (actor !== playerController?.actor) return;
+    playerController.position = actor.position;
+    if (cameraFollowsPlayer) { const deltaPosition = new THREE.Vector3(...shift); controls.target.add(deltaPosition); camera.position.add(deltaPosition); }
+    }); } catch (error) { if (moduleSession) moduleSession.report(error, { operation: 'creature-render-position' }); else runtimeDiagnostics.error(error); }
+  }
   controls.update();
-  if (simulationReady && !moduleSession?.transitioning && !moduleSession?.player.cutscene?.enabled && !moduleSession?.conversation.state) updatePlayerMovement(delta);
-  if (simulationReady && !document.hidden && !moduleSession?.transitioning && (!moduleSession?.player.cutscene?.enabled || moduleSession.player.cutscene.leftClicks) && !moduleSession?.conversation.state) actionQueue?.update(Math.min(delta, 0.05));
-  if (!document.hidden && worldObjects && moduleSession && !moduleSession.transitioning) {
+  updateScriptCamera(delta);
+  if (simulationReady && !moduleLoadBusy && !gameUi.externalCapture && !moduleSession?.transitioning && !moduleSession?.player.cutscene?.enabled && !moduleSession?.conversation.state) updatePlayerMovement(delta);
+  if (simulationReady && !moduleLoadBusy && !gameUi.externalCapture && !document.hidden && !moduleSession?.transitioning && (!moduleSession?.player.cutscene?.enabled || moduleSession.player.cutscene.leftClicks) && !moduleSession?.conversation.state) actionQueue?.update(Math.min(delta, 0.05));
+  if (!document.hidden && worldObjects && moduleSession && !moduleSession.transitioning && !gameUi.externalCapture && !moduleLoadBusy) {
     if (simulationReady) moduleSession.scheduler.advance(Math.min(delta, 0.1) * 1000);
     gameAudio?.update();
     void moduleSession.scheduler.pump().catch(error => moduleSession.report(error));
   }
-  if (!document.hidden) for (const animator of activeAnimations) animator.update(Math.min(delta, 0.1));
+  if (!document.hidden&&simulationReady){creatureAnimations?.update();if(creatureAnimations)canvas.dataset.creatureAnimations=JSON.stringify(creatureAnimations.snapshot());}
+  if (!document.hidden) for (const animator of activeAnimations) if(!animator.presentationOwned||animator.presentationPreview)animator.update(Math.min(delta, 0.1));
   updateAnimationPlaybackStatus();
   updateDoorTarget();
   updateGameplayDiagnostics();
@@ -194,6 +213,7 @@ const radialMenu = new RadialMenu(viewport,{
     return radialIconCache.get(name);
   },
   onAction: (entry,context) => {
+    if(entry.action==='quickbar.assign'){gameUi.assignQuickbar(context.quickbarIndex,entry.binding);return;}
     if (moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state) return;
     const target = worldObjects?.get(context.targetId), actor = playerController?.actor;
     if (!target || !actor || target.areaId !== actor.areaId) { doorFeedback.textContent = 'Radial target is no longer in this area'; return; }
@@ -206,6 +226,16 @@ const radialMenu = new RadialMenu(viewport,{
     if (entry.action === 'object.examine') { gameUi.examineId = target.id; gameUi.open('examine'); return; }
     if (entry.action === 'conversation.start') { actionQueue?.request(target.id, 'talk'); return; }
     if (entry.action === 'placeable.use') { actionQueue?.request(target.id, 'use'); return; }
+    if (entry.action === 'combat.attack' && target.id !== actor.id) {
+      actionQueue?.cancel(); movementKeys.clear();
+      const session = moduleSession;
+      void session.queuePlayerAttack(target.id).then(accepted => {
+        if (moduleSession !== session) return;
+        doorFeedback.textContent = accepted ? `Attack requested: ${target.name || target.tag || target.id}` : 'Attack input was rejected';
+      }).catch(error => { session.report(error, { ...session.diagnosticContext(actor.id), targetId: target.id, operation: 'radial-attack' }); });
+      return;
+    }
+    runtimeDiagnostics.record('ui.radial-action-unimplemented', `${entry.label}: ${entry.system ?? 'this system'} is not implemented`, request);
     console.info('[Radial placeholder]',request);
     doorFeedback.textContent = `${entry.label}: ${entry.system ?? 'this system'} is not implemented`;
   }
@@ -215,13 +245,19 @@ const gameUi = new GameUi(viewport, {
   getWorld: () => ({ triangles: playerController?.triangles ?? [], objects: worldObjects }),
   getSelected: () => selectedWorldObject,
   radialActive: () => radialMenu.active,
-  hasPendingAction: () => Boolean(actionQueue?.current),
-  onCancelAction: () => actionQueue?.cancel(),
+  hasPendingAction: () => Boolean(actionQueue?.current||moduleSession?.player.objectActionState?.list.count),
+  onCancelAction: () => {actionQueue?.cancel();void moduleSession?.queuePlayerClearActions().catch(error=>moduleSession?.report(error));},
   onInputCapture: captured => { if (captured) radialMenu.close(); controls.enabled = !captured && !radialMenu.active && !moduleSession?.player.cutscene?.enabled; movementKeys.clear(); pointerPress = null; },
   onOpenModule: () => areaInput.click(),
   onSettings: settings => { if (settings.wireframe !== wireframe) wireButton.click(); },
+  onQuickbarMenu:(menu,index,event)=>radialMenu.open(menu,event.clientX,event.clientY,{targetId:moduleSession.player.id,quickbarIndex:index}),
   onRequest: request => {
-    if (request.action === 'character.load') { characterInput.click(); return; }
+    if(request.action==='spell.cast'){beginSpellCast(request);return;}
+    if (request.action === 'character.load' || request.action === 'character.create') { void openCharacters(request.action === 'character.create'); return; }
+    if(request.action==='action.queue.cancel'){
+      const session=moduleSession;if(!session)return;
+      void session.queuePlayerCancelAction(request.actionId,request.groupId).catch(error=>session.report(error,{operation:'ui-queue-cancel'}));return;
+    }
     if (request.action === 'door.use') {
       if (worldObjects?.get(request.targetId)?.areaId !== moduleSession?.player.areaId) { gameUi.notify('That object is in another area'); return; }
       actionQueue?.use(request.targetId); return;
@@ -232,37 +268,58 @@ const gameUi = new GameUi(viewport, {
         ? { type: 'dialogReply', ordinal: request.ordinal, version: request.version }
         : { type: 'dialogClose', aborted: request.aborted, version: request.version }); return;
     }
+    runtimeDiagnostics.record('ui.action-unimplemented', `${request.action}: not implemented`, request);
     console.info('[UI placeholder]', request);
     gameUi.message(`${request.action}: not implemented`, 'system');
   }
 });
 
-document.querySelector('#character-data-button').addEventListener('click', () => characterInput.click());
+function cancelSpellTarget(){pendingSpellTarget=null;delete canvas.dataset.spellTarget;canvas.style.cursor='';}
+function submitSpellCast(request,targetId,position,location){
+  const session=moduleSession;if(!session)return;
+  cancelSpellTarget();movementKeys.clear();actionQueue?.cancel();
+  void session.queuePlayerCastSpell({...request,targetId,position,location}).then(accepted=>{
+    if(moduleSession!==session)return;
+    gameUi.message(accepted?'Spell queued':'Spell request rejected','system');
+  }).catch(error=>session.report(error,{...session.diagnosticContext(request.actorId),spellId:request.spellId,operation:'ui-spell-cast'}));
+}
+function beginSpellCast(request){
+  const session=moduleSession;if(!session)return;
+  const spell=session.spellBook.castingSpell(request.spellId);if(!spell){gameUi.notify('Spell unavailable');return;}
+  if(request.actorId!==session.player.id||request.areaId!==session.player.areaId)return;
+  gameUi.closeAll();radialMenu.close();
+  const cast={...request,classIndex:request.classIndex,metamagic:request.metamagic??0,domainLevel:request.domainLevel??0};
+  if(spell.targetType===1){submitSpellCast(cast,session.player.id,[0,0,0],0);return;}
+  pendingSpellTarget={session,request:cast};canvas.dataset.spellTarget=String(spell.id);canvas.style.cursor='crosshair';
+  gameUi.notify('Choose a spell target · Escape or right-click to cancel');
+}
+
+const characterFrontend = new CharacterFrontend(viewport, {
+  text: () => gameUi.text,
+  onCapture: captured => { gameUi.externalCapture = captured; controls.enabled = !captured && !gameUi.captured; movementKeys.clear(); pointerPress = null; radialMenu.close(); },
+  onSelected: entry => { selectedCharacter = entry; },
+  onPreview: (draft,rules) => renderCharacterCreationPreview(draft,rules)
+});
+async function openCharacters(create = false) {
+  if (characterFrontend.active) return;
+  const resolver = activeAreaResolver ?? gameDataResolver;
+  if (!resolver) { setStatus('SELECT GAME DATA FOLDER FIRST', false); gameDataInput.click(); return; }
+  const previousMode = document.body.classList.contains('game-mode');
+  gameUi.closeAll(); gameUi.mode(true);
+  const entry = await characterFrontend.choose(resolver, { files: gameDataFiles.filter(f=>/\.bic$/i.test(f.name)), selected: selectedCharacter, create });
+  if (entry) setStatus('CHARACTER READY · OPEN A NEW MODULE',true);
+  if (!moduleSession && entry) await gameUi.attachFrontend(gameDataResolver); else gameUi.mode(previousMode);
+}
+document.querySelector('#character-data-button').addEventListener('click', () => { void openCharacters(); });
 characterInput.addEventListener('change', async event => {
   const file = event.target.files?.[0]; if (!file) return;
   try {
     const bytes = await file.arrayBuffer();
     // Validate before retaining the selection or changing the current session.
     parseCharacter(bytes);
-    if (moduleSession?.player.characterLoaded) {
-      selectedCharacter = { bytes, name: file.name };
-      setStatus('CHARACTER READY · OPEN A NEW MODULE', true);
-      gameUi.notify(`Selected ${file.name} for the next module`); return;
-    }
-    if (moduleSession) {
-      if (moduleSession.transitioning) throw new Error('Wait for the area transition to finish');
-      moduleSession.transitioning = true;
-      actionQueue?.cancel(); movementKeys.clear(); radialMenu.close();
-      try {
-        while (moduleSession.scheduler.pumping) await new Promise(resolve => setTimeout(resolve, 20));
-        await moduleSession.loadCharacter(bytes, file.name);
-        gameUi.closeAll();
-        await loadAreaScene(moduleSession.currentArea.resRef, activeAreaResolver);
-        gameUi.refresh(true); gameUi.open('character');
-      } finally { moduleSession.transitioning = false; }
-    }
-    selectedCharacter = { bytes, name: file.name };
-    setStatus(moduleSession ? 'AREA RENDERED · CHARACTER LOADED' : 'CHARACTER READY · OPEN A MODULE', true);
+    selectedCharacter = await characterFrontend.vault.add(bytes,file.name,{persist:true});
+    if (characterFrontend.active) { characterFrontend.selected = selectedCharacter; characterFrontend.render(); }
+    setStatus('CHARACTER READY · OPEN A MODULE', true);
   } catch (error) { console.warn('[Character load]', error); gameUi.notify(error.message); setStatus('CHARACTER LOAD FAILED', false); }
   finally { characterInput.value = ''; }
 });
@@ -277,10 +334,11 @@ document.querySelector('#language-data-folder').addEventListener('change', async
   catch (error) { showLoadError('Language data could not be loaded', error); }
 });
 window.addEventListener('keydown', (event) => {
+  if(event.key==='Escape'&&pendingSpellTarget){event.preventDefault();cancelSpellTarget();return;}
   if (event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) return;
   const key = event.key.toLowerCase();
   if (gameUi.captured || moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state) return;
-  if (key === 'escape') { actionQueue?.cancel(); return; }
+  if (key === 'escape') { actionQueue?.cancel();void moduleSession?.queuePlayerClearActions().catch(error=>moduleSession?.report(error));return; }
   if (key === 'f' && playerController) { event.preventDefault(); focusPlayer(playerController.object); return; }
   if (key === 'e' && playerController) {
     event.preventDefault();
@@ -290,6 +348,7 @@ window.addEventListener('keydown', (event) => {
   if (!['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright'].includes(key)) return;
   event.preventDefault();
   actionQueue?.cancel('Movement cancelled the queued action');
+  if(movementKeys.size===0&&!event.repeat)void moduleSession?.queuePlayerClearActions().catch(error=>moduleSession?.report(error));
   movementKeys.add(key);
 });
 window.addEventListener('keyup', (event) => movementKeys.delete(event.key.toLowerCase()));
@@ -323,6 +382,7 @@ canvas.addEventListener('pointerdown', event => {
 });
 canvas.addEventListener('contextmenu',event => { if (worldObjects) event.preventDefault(); });
 canvas.addEventListener('pointerdown',event => {
+  if(event.button===2&&pendingSpellTarget){event.preventDefault();event.stopImmediatePropagation();cancelSpellTarget();return;}
   if (gameUi.captured || moduleSession?.conversation.state || moduleSession?.player.cutscene?.enabled) return;
   if (event.button !== 2 || !worldObjects || !playerController?.actor) return;
   event.preventDefault(); event.stopImmediatePropagation();
@@ -337,7 +397,7 @@ canvas.addEventListener('pointermove', event => {
   if (!worldObjects || !playerController || radialMenu.active || gameUi.captured) return;
   const hit = pickedWorldObject(pointerRay(event.clientX, event.clientY, canvas.getBoundingClientRect(), camera), loadedRoot, worldObjects);
   hoveredObject = hit?.object ?? null;
-  canvas.style.cursor = hoveredObject?.kind === 'door' ? 'pointer' : 'grab';
+  canvas.style.cursor = pendingSpellTarget?'crosshair':hoveredObject?.kind === 'door' ? 'pointer' : 'grab';
   canvas.title = hoveredObject ? `${hoveredObject.tag || hoveredObject.kind}${hoveredObject.kind === 'door' ? ' · click to use' : ''}` : '';
 });
 canvas.addEventListener('pointerleave', () => { hoveredObject = null; canvas.style.cursor = ''; });
@@ -346,6 +406,17 @@ canvas.addEventListener('pointerup', event => {
   if (gameUi.captured || moduleSession?.conversation.state || moduleSession?.player.cutscene?.enabled && !moduleSession.player.cutscene.leftClicks) { pointerPress = null; return; }
   const press = pointerPress; pointerPress = null;
   if (!press || event.button !== 0 || press.id !== event.pointerId || Math.hypot(event.clientX - press.x, event.clientY - press.y) > 5 || !worldObjects) return;
+  if(pendingSpellTarget){
+    const pending=pendingSpellTarget;
+    if(pending.session!==moduleSession||pending.request.areaId!==moduleSession.player.areaId){cancelSpellTarget();return;}
+    const hit=pickedWorldObject(pointerRay(event.clientX,event.clientY,canvas.getBoundingClientRect(),camera),loadedRoot,worldObjects,{includePlayer:true});
+    if(!hit)return;
+    const spell=moduleSession.spellBook.castingSpell(pending.request.spellId),target=hit.object;
+    const mask=target?.id===moduleSession.player.id?1:({5:2,6:8,10:16,9:32})[target?.objectType];
+    if(target&&mask&&(spell.targetType&mask)){submitSpellCast(pending.request,target.id,[0,0,0],0);return;}
+    if(!target&&(spell.targetType&4)){const point=hit.point.toArray();submitSpellCast(pending.request,0x7f000000,[point[0],-point[2],point[1]],1);return;}
+    gameUi.notify('That is not a valid target for this spell');return;
+  }
   const hit = pickedWorldObject(pointerRay(event.clientX, event.clientY, canvas.getBoundingClientRect(), camera), loadedRoot, worldObjects);
   if (!hit?.object) return;
   selectedWorldObject = hit.object;
@@ -362,7 +433,7 @@ fileInput.addEventListener('change', async (event) => {
     setStatus('SELECT AN MDL FILE', false);
     return;
   }
-  gameUi.detach(); gameUi.mode(false); moduleSession = null;
+  gameUi.detach(); gameUi.mode(false); moduleSession?.cancelPendingPlayerInputs(); moduleSession = null;
   diagnosticContext = { modelFile: file.name };
   gameAudio?.dispose(); gameAudio = null;
   try {
@@ -445,6 +516,8 @@ areaButton.addEventListener('click', () => {
 areaInput.addEventListener('change', async (event) => {
   const moduleFile = event.target.files?.[0];
   if (!moduleFile) return;
+  if (moduleLoadBusy || characterFrontend.active) { areaInput.value = ''; return; }
+  moduleLoadBusy = true; areaButton.disabled = true;
   diagnosticContext = { module: moduleFile.name };
   try {
     setStatus('INDEXING MODULE', false);
@@ -457,6 +530,13 @@ areaInput.addEventListener('change', async (event) => {
     if (areaResRefs.length === 0) throw new Error('The module contains no ARE resources.');
     const ifoBytes = resolver.module.entries.get(`module:${RESOURCE_TYPE.IFO}`);
     const entryArea = ifoBytes ? String(parseGff(ifoBytes, 'IFO ').root.Mod_Entry_Area ?? '').toLowerCase() : '';
+    const previousMode = document.body.classList.contains('game-mode');
+    gameUi.closeAll(); gameUi.mode(true);
+    setStatus('SELECT A CHARACTER', false);
+    const chosen = await characterFrontend.choose(resolver, { files: gameDataFiles.filter(f=>/\.bic$/i.test(f.name)), selected: selectedCharacter, moduleName: moduleFile.name });
+    if (!chosen) { gameUi.mode(previousMode); setStatus('MODULE LOAD CANCELLED',Boolean(moduleSession)); return; }
+    selectedCharacter = chosen;
+    setStatus('LOADING MODULE', false);
     activeAreaResolver = resolver;
     gameAudio?.dispose();
     gameAudio = new GameAudio(resolver, {
@@ -464,9 +544,29 @@ areaInput.addEventListener('change', async (event) => {
       onState: state => { canvas.dataset.audio = JSON.stringify(state); },
       onDiagnostic: message => { console.warn('[Audio]', message); canvas.dataset.audioError = message; gameUi.message(message, 'system'); }
     });
+    const previousSession = moduleSession;
+    creatureAnimations?.clear();creatureAnimations=null;
     moduleSession = await new ModuleSession(resolver, {
       runStartupScripts: document.querySelector('#run-module-startup').checked,
+      // Skipping opening scripts must still leave perception and combat active.
+      runNativeAI: true,
+      serverPvpSetting: Number(document.querySelector('#session-pvp-setting').value),
       onSound: event => gameAudio.play(event),
+      onCameraMode: (actor, mode) => {
+        if (actor !== moduleSession?.player) return;
+        cameraFollowsPlayer = true;
+        updateScriptCamera(0, true);
+        if (mode !== 1) runtimeDiagnostics.record('camera.presentation-approximate', 'Chase-camera steering uses a local renderer adapter; native camera smoothing is not reconstructed', { actorId: actor.id, mode }, 'info');
+      },
+      onCombatMessage: event=>{
+        if(moduleSession&&event.recipientId!==moduleSession.player?.id)return;
+        const handled=creatureAnimations?.receive(event);
+        if([5,6].includes(event.type)&&event.attack){
+          const [actorId,targetId]=event.data.objects,actor=moduleSession.registry.get(actorId),target=moduleSession.registry.get(targetId),attack=event.attack;
+          gameUi.message(`${actor?.name||actor?.tag||'Creature'} attacks ${target?.name||target?.tag||'target'}: ${attack.roll} + ${attack.modifier} = ${attack.roll+attack.modifier}; ${attackResultDoesDamage(attack.result)?`hit (${totalAttackDamage(attack)} damage)`:'miss or defended'}`,'combat');
+          if(!handled)runtimeDiagnostics.record('combat.animation-unavailable','Combat attack has no available creature animation binding',{actorId,targetId});
+        }else runtimeDiagnostics.record('combat.presentation-unimplemented','Native combat message presentation is not implemented',{messageType:event.type,recipientId:event.recipientId});
+      },
       onConversation: () => { movementKeys.clear(); radialMenu.close(); gameUi.conversationChanged(); },
       onClearActions: id => { if (id === moduleSession?.player.id) actionQueue?.cancel('Actions cleared'); },
       onCutscene: (actor, enabled) => {
@@ -482,7 +582,7 @@ areaInput.addEventListener('change', async (event) => {
         controls.enabled = !enabled && !gameUi.captured;
       },
       onDiagnostic: message => { console.warn('[NWScript]', message); canvas.dataset.scriptError = message; doorFeedback.textContent = message; gameUi.message(message, 'system'); },
-      onMessage: message => { console.log('[NWScript message]', message); doorFeedback.textContent = message.text; gameUi.message(message, 'message'); },
+      onMessage: message => { console.log('[NWScript message]', message); doorFeedback.textContent = message.type === 'oneLiner' ? gameUi.dialogueText(message.text, moduleSession?.registry.get(message.tokenTargetId) ?? null, message.gender) : message.text; gameUi.message(message, 'message'); },
       onDoorState: (door, previous) => {
         if (playerController?.collisions.doors.includes(door)) {
           updateDoorVisual(door, loadedRoot, previous);
@@ -501,7 +601,9 @@ areaInput.addEventListener('change', async (event) => {
         } finally { areaSelect.disabled = false; }
       }
     }).initialize(areaResRefs, { character: selectedCharacter?.bytes });
+    previousSession?.cancelPendingPlayerInputs();
     if (selectedCharacter) moduleSession.player.characterFile = selectedCharacter.name;
+    moduleSession.quickbarProfileKey=selectedCharacter?.id??null;
     await gameUi.attach(moduleSession, resolver);
     gameUi.mode(true);
     areaResRefs = [...moduleSession.areas.keys()];
@@ -520,6 +622,7 @@ areaInput.addEventListener('change', async (event) => {
     console.error(error);
     showLoadError('Area could not be loaded', error);
   } finally {
+    moduleLoadBusy = false; areaButton.disabled = false;
     areaInput.value = '';
   }
 });
@@ -619,12 +722,46 @@ async function loadTextures(files, resolver = null, pltColorRows = new Map()) {
   return textures;
 }
 
+// A separate scene uses the same model hierarchy, skinning, palette decoding
+// and body-part attachment as the world renderer. It allocates no game objects.
+async function renderCharacterCreationPreview(draft, rules) {
+  const data={Race:draft.raceId,Gender:draft.gender,Appearance_Type:Number(rules.racialtypes.orderedRows[draft.raceId].Appearance),Phenotype:draft.phenotype,Appearance_Head:draft.head,
+    Color_Skin:draft.skin,Color_Hair:draft.hair,Color_Tattoo1:draft.tattoo1,Color_Tattoo2:draft.tattoo2,ArmorPart_RFoot:1};
+  for(const part of ['Neck','Torso','Pelvis','LBicep','LFArm','LHand','LThigh','LShin','LFoot','RBicep','RFArm','RHand','RThigh','RShin'])data[`BodyPart_${part}`]=1;
+  const clothes=rules.chargenclothes.orderedRows[draft.clothes];
+  if(clothes){const armor=parseGff(await rules.creationResolver.getResource(clothes.ItemResRef,RESOURCE_TYPE.UTI),'UTI ').root;for(const[key,value]of Object.entries(armor))if(key.startsWith('ArmorPart_'))data[key.replace('ArmorPart_','BodyPart_')]=value;data.ArmorPart_RFoot=armor.ArmorPart_RFoot??1;for(const material of ['Metal1','Metal2','Cloth1','Cloth2','Leather1','Leather2'])data[`Color_${material}`]=armor[`${material}Color`]??0;}
+  const appearance=resolvePlayerModels(data,rules),resolver=rules.creationResolver,parsed=new Map(),files=[],paletteRows=new Map(),partKeys=new Map();
+  if(!appearance)throw new Error('Character appearance is unavailable');
+  const load=async(primary,fallback)=>{if(parsed.has(primary))return primary;try{parsed.set(primary,parseModel(await resolver.getResource(primary,RESOURCE_TYPE.MDL)));return primary;}catch(error){if(error.code!=='RESOURCE_NOT_FOUND'||!fallback||primary===fallback)throw error;parsed.set(fallback,parseModel(await resolver.getResource(fallback,RESOURCE_TYPE.MDL)));return fallback;}};
+  const bodyName=await load(appearance.model,appearance.fallbackModel);
+  const partNames=new Map();for(const part of appearance.parts){partNames.set(part,await load(part.model,part.fallbackModel));for(const candidate of part.pltCandidates??[]){try{const bytes=await resolver.getResource(candidate,RESOURCE_TYPE.PLT),key=`${candidate}__creation_${partNames.size}`;files.push({name:`${key}.plt`,arrayBuffer:async()=>bytes});paletteRows.set(key,appearance.paletteColors);partKeys.set(part,key);break;}catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}}}
+  const animationSources=new Map(parsed);for(const model of parsed.values())await inheritAnimations(model,async name=>{if(!animationSources.has(name))animationSources.set(name,parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL)));return animationSources.get(name);});
+  for(const name of new Set([...parsed.values()].flatMap(p=>p.materialNames))){if(!name||name.toLowerCase()==='null')continue;paletteRows.set(name,appearance.paletteColors);let found=false;for(const[ext,type]of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){try{const bytes=await resolver.getResource(name,type);files.push({name:`${name}.${ext}`,arrayBuffer:async()=>bytes});found=true;break;}catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}}if(!found)runtimeDiagnostics.record('character.preview-texture-unavailable',`Character preview texture ${name} is unavailable`,{resource:name});}
+  const textures=await loadTextures(files,resolver,paletteRows),previewScene=new THREE.Scene(),previewRenderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}),model=buildObject(parsed.get(bodyName),textures);
+  const previewAnimations=[],originalGeometries=new Set();
+  try{
+    for(const part of appearance.parts){const anchor=findObjectByName(model,part.node);if(!anchor)throw new Error(`Character preview anchor ${part.node} is unavailable`);const instance=buildObject(parsed.get(partNames.get(part)),textures,textures.get(partKeys.get(part)));instance.traverse(o=>{if(o.geometry)originalGeometries.add(o.geometry);});anchor.add(instance);createModelAnimator(parsed.get(partNames.get(part)),instance,'Creation part',previewAnimations);}
+    model.traverse(o=>{if(o.geometry)originalGeometries.add(o.geometry);});createModelAnimator(parsed.get(bodyName),model,'Creation body',previewAnimations);
+    previewScene.add(model,new THREE.HemisphereLight(0xfff1d5,0x343c4a,2));const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(-2,4,-4);previewScene.add(light);
+    model.updateWorldMatrix(true,true);const bounds=new THREE.Box3().setFromObject(model),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
+    const c=new THREE.PerspectiveCamera(35,300/400,.01,100);c.position.set(center.x,center.y,center.z-Math.max(size.y*1.8,size.x*2));c.lookAt(center);
+    previewRenderer.setSize(300,400);previewRenderer.outputColorSpace=THREE.SRGBColorSpace;previewRenderer.setClearColor(0x080d12);previewRenderer.render(previewScene,c);return previewRenderer.domElement.toDataURL();
+  }finally{originalGeometries.forEach(g=>g.dispose());model.traverse(o=>{o.geometry?.dispose();for(const material of Array.isArray(o.material)?o.material:o.material?[o.material]:[])material.dispose();});textures.forEach(t=>t.dispose());previewRenderer.dispose();previewRenderer.forceContextLoss();}
+}
+
 async function loadAreaScene(areaResRef, resolver, jump = null) {
   diagnosticContext = { module: resolver.moduleName, area: areaResRef };
   runtimeDiagnostics.record('load.area-started', `Loading area ${areaResRef}`, {}, 'info');
   setStatus('READING AREA', false);
   const area = await parseAreaModule(areaResRef, resolver);
   const sceneCreatures = [...area.creatures];
+  const staticCreatureKeys=new Set(area.creatures.map((c,index)=>`${area.resRef}:creature:${c.sourceIndex??index}`));
+  for(const id of moduleSession.areas.get(area.resRef)?.objects??[]){const actor=moduleSession.registry.get(id);
+    if(actor?.objectType!==5||actor===moduleSession.player||staticCreatureKeys.has(actor.sourceKey))continue;
+    const appearance=resolvePlayerModels(actor.creatureData,moduleSession.characterRules);
+    if(appearance)sceneCreatures.push({...appearance,sourceKey:actor.sourceKey,x:actor.position[0],y:-actor.position[2],z:actor.position[1],bearing:-Math.atan2(actor.orientation[0],-actor.orientation[2])});
+    else runtimeDiagnostics.record('scene.creature-appearance-unavailable','Runtime creature appearance could not be resolved',{objectId:actor.id});
+  }
   if (moduleSession.player.appearance) sceneCreatures.push({ ...moduleSession.player.appearance, player: true });
   const { triangles: walkableTriangles, missing: missingWalkmeshes } = await loadAreaWalkmesh(area, resolver);
   const collisions = await loadAreaCollisions(area, resolver);
@@ -793,10 +930,15 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   let palettePartsApplied = 0;
   const skippedCreatureParts = [];
   let playerAssembly = null;
+  creatureAnimations?.clear();
+  creatureAnimations=new CreatureAnimationPresentation({object:id=>moduleSession.registry.get(id),rules:()=>moduleSession.characterRules,now:()=>moduleSession.scheduler.time,
+    project:render=>{const p=render.getWorldPosition(new THREE.Vector3());p.y+=.5;p.project(camera);const r=canvas.getBoundingClientRect();return{x:r.left+(p.x+1)*r.width/2,y:r.top+(1-p.y)*r.height/2,z:p.z};},
+    report:(message,context)=>runtimeDiagnostics.record('animation.native-presentation-unavailable',message,context)});
+  let playerAnimator=null;
   for (const [index, creature] of sceneCreatures.entries()) {
     const template = templates.get(creature.model) ?? templates.get(creature.fallbackModel);
     if (!template) {
-      const sourceKey = creature.player ? 'player' : `${area.resRef}:creature:${creature.sourceIndex ?? index}`;
+      const sourceKey = creature.player ? 'player' : creature.sourceKey??`${area.resRef}:creature:${creature.sourceIndex ?? index}`;
       runtimeDiagnostics.record('scene.creature-omitted', `Creature ${creature.tag || creature.model} has no available model`, { sourceKey, objectId: moduleSession.source(sourceKey)?.id, model: creature.model, fallbackModel: creature.fallbackModel });
       skippedCreatures.push(creature.tag || creature.model);
       continue;
@@ -834,7 +976,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     }
     if (creature.player) {
       playerAssembly = assembly;
-      createModelAnimator(parsedModels.get(creature.model) ?? parsedModels.get(creature.fallbackModel), assembly, `Player · ${moduleSession.player.name}`, areaAnimations);
+      playerAnimator=createModelAnimator(parsedModels.get(creature.model) ?? parsedModels.get(creature.fallbackModel), assembly, `Player · ${moduleSession.player.name}`, areaAnimations);
       continue;
     }
     const wrapper = new THREE.Group();
@@ -842,10 +984,11 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     wrapper.rotation.y = creature.bearing;
     wrapper.add(assembly);
     root.add(wrapper);
-    const sourceKey = `${area.resRef}:creature:${creature.sourceIndex ?? index}`;
+    const sourceKey = creature.sourceKey??`${area.resRef}:creature:${creature.sourceIndex ?? index}`;
     areaObjects.add('creature', sourceKey, moduleSession.source(sourceKey), wrapper);
-    createModelAnimator(parsedModels.get(creature.model) ?? parsedModels.get(creature.fallbackModel), assembly,
+    const animator=createModelAnimator(parsedModels.get(creature.model) ?? parsedModels.get(creature.fallbackModel), assembly,
       `Creature · ${creature.tag || creature.model}`, areaAnimations);
+    creatureAnimations.bind(moduleSession.source(sourceKey),animator,wrapper);
     renderedCreatures += 1;
   }
   if (renderedTiles === 0) throw new Error('No area tiles could be rendered.');
@@ -861,6 +1004,59 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   setLoadedScene(root, textures);
   worldObjects = areaObjects;
   activeAnimations = areaAnimations;
+  const pendingCreatures=new Set(),failedCreatures=new Set(),presentation=creatureAnimations;
+  const addRuntimeCreature=async actor=>{
+    const appearance=resolvePlayerModels(actor.creatureData,moduleSession.characterRules);if(!appearance)throw new Error('Runtime creature appearance is unavailable');
+    const models=[appearance.model,appearance.fallbackModel,...appearance.parts.flatMap(p=>[p.model,p.fallbackModel])].filter(Boolean);
+    for(const name of new Set(models))if(!parsedModels.has(name)){
+      try{const model=parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL));parsedModels.set(name,model);animationSources.set(name,model);
+        await inheritAnimations(model,async ref=>{if(!animationSources.has(ref))animationSources.set(ref,parseModel(await resolver.getResource(ref,RESOURCE_TYPE.MDL)));return animationSources.get(ref);});
+      }catch(error){runtimeDiagnostics.error(error,'model.runtime-creature-load-failed',{objectId:actor.id,model:name});}
+    }
+    const files=[],paletteRows=new Map(),partTextures=new Map();
+    for(const [index,part] of appearance.parts.entries())for(const candidate of part.pltCandidates??[]){
+      try{const bytes=await resolver.getResource(candidate,RESOURCE_TYPE.PLT),key=`${candidate}__creature_${actor.id}_${index}`;
+        files.push({name:`${key}.plt`,arrayBuffer:async()=>bytes});paletteRows.set(key,appearance.paletteColors);partTextures.set(part,key);break;
+      }catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
+    }
+    const bitmaps=new Set(models.flatMap(name=>parsedModels.get(name)?.materialNames??[]).map(name=>name.toLowerCase()).filter(name=>name&&name!=='null'));
+    for(const name of bitmaps){paletteRows.set(name,appearance.paletteColors);if(textures.has(name))continue;let loaded=false;
+      for(const [extension,type] of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
+        try{const bytes=await resolver.getResource(name,type);files.push({name:`${name}.${extension}`,arrayBuffer:async()=>bytes});loaded=true;break;}
+        catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
+      }
+      if(!loaded)runtimeDiagnostics.record('texture.runtime-creature-unavailable',`Runtime creature bitmap ${name} is unavailable`,{objectId:actor.id,resource:name});
+    }
+    if(loadedRoot!==root||worldObjects!==areaObjects)return;
+    const extra=await loadTextures(files,resolver,paletteRows);
+    if(loadedRoot!==root||worldObjects!==areaObjects||moduleSession.registry.get(actor.id)!==actor||actor.areaId!==sessionArea.id){extra.forEach(texture=>texture.dispose());return;}
+    extra.forEach((texture,key)=>{textures.set(key,texture);loadedTextures.push(texture);});
+    for(const name of new Set(models))if(!templates.has(name)&&parsedModels.has(name)){const template=buildObject(parsedModels.get(name),textures);templates.set(name,template);root.userData.assetTemplates.push(template);}
+    const modelName=parsedModels.has(appearance.model)?appearance.model:appearance.fallbackModel,template=templates.get(modelName);
+    if(!template)throw new Error('Runtime creature body model is unavailable');
+    const assembly=template.clone(true);
+    for(const part of appearance.parts){const name=parsedModels.has(part.model)?part.model:part.fallbackModel,parsed=parsedModels.get(name),anchor=findObjectByName(assembly,part.node);
+      if(!parsed||!anchor){runtimeDiagnostics.record('scene.runtime-creature-part-unavailable','Runtime creature part or anchor is unavailable',{objectId:actor.id,model:name,anchor:part.node});continue;}
+      const textureKey=partTextures.get(part),partTemplate=textureKey&&textures.has(textureKey)?buildObject(parsed,textures,textures.get(textureKey)):templates.get(name);
+      if(!partTemplate)continue;if(textureKey)root.userData.assetTemplates.push(partTemplate);
+      const instance=partTemplate.clone(true);anchor.add(instance);createModelAnimator(parsed,instance,`Part · ${actor.tag}/${part.node}`,areaAnimations);
+    }
+    // Model/texture reads can span several simulation frames. Bind only the
+    // same live canonical record in this area after all asynchronous work.
+    if(moduleSession.registry.get(actor.id)!==actor||actor.areaId!==sessionArea.id)return;
+    const wrapper=new THREE.Group();wrapper.position.set(...actor.position);wrapper.rotation.y=-Math.atan2(actor.orientation[0],-actor.orientation[2]);wrapper.add(assembly);root.add(wrapper);
+    areaObjects.add('creature',actor.sourceKey,actor,wrapper);
+    const animator=createModelAnimator(parsedModels.get(modelName),assembly,`Creature · ${actor.tag||modelName}`,areaAnimations);presentation.bind(actor,animator,wrapper);
+    runtimeDiagnostics.record('scene.runtime-creature-added','Runtime creature model and animations bound',{objectId:actor.id,sourceKey:actor.sourceKey,model:modelName},'info');
+    configureAnimationPanel();
+  };
+  dynamicCreatureSync=()=>{
+    if(loadedRoot!==root||worldObjects!==areaObjects)return;
+    for(const id of sessionArea.objects){const actor=moduleSession.registry.get(id);
+      if(actor?.objectType!==5||actor===moduleSession.player||actor.areaId!==sessionArea.id||areaObjects.get(id)||pendingCreatures.has(id)||failedCreatures.has(id))continue;
+      pendingCreatures.add(id);void addRuntimeCreature(actor).catch(error=>{failedCreatures.add(id);runtimeDiagnostics.error(error,'scene.runtime-creature-failed',{objectId:id,sourceKey:actor.sourceKey});}).finally(()=>pendingCreatures.delete(id));
+    }
+  };
   animationToolsEnabled.checked = false;
   configureAnimationPanel();
   const lightingMode = setAreaLighting(area.lighting, root);
@@ -879,6 +1075,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     if (arrival) actor.bearing = arrival.bearing;
     player.rotation.y = Math.PI + (actor.bearing ?? 0);
     areaObjects.add('player', 'player', actor, player);
+    creatureAnimations.bind(actor,playerAnimator,player);
     playerController.actor = actor;
     const navigator = new WalkmeshNavigator(walkableTriangles);
     actionQueue = new ActionQueue({
@@ -952,11 +1149,12 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
 }
 
 function clearLoadedScene() {
+  dynamicCreatureSync=null;
   radialMenu.close(); radialIconCache.clear();
   actionQueue?.cancel('Area changed');
-  actionQueue = null; worldObjects = null; hoveredObject = null; selectedWorldObject = null; pointerPress = null;
+  actionQueue = null; worldObjects = null; hoveredObject = null; selectedWorldObject = null; pointerPress = null;cancelSpellTarget();
   canvas.style.cursor = ''; canvas.title = '';
-  for (const key of ['worldObjects', 'actionPhase', 'selectedObject', 'hoveredObject', 'doorStates', 'actorPosition', 'lastRadialAction']) delete canvas.dataset[key];
+  for (const key of ['worldObjects', 'actionPhase', 'selectedObject', 'hoveredObject', 'doorStates', 'actorPosition', 'lastRadialAction', 'cameraMode']) delete canvas.dataset[key];
   restoreAnimationVisibility();
   animationIsolate.checked = false;
   activeAnimations = [];
@@ -1143,17 +1341,17 @@ function updateAreaInspector(area, parsedModels, textures, report) {
 }
 
 function buildObject(parsed, textures, textureOverride = null) {
-  const { root, groups } = createModelHierarchy(parsed);
+  const { root, groups,nodeGroups } = createModelHierarchy(parsed);
   for (const node of parsed.nodes) {
     if (node.type !== 'trimesh' || node.render === false || node.properties?.render === 0 || node.properties?.render === '0') continue;
     const transformedVertices = node.skinned
-      ? deformSkinnedVertices(node, parsed.nodes, groups, groups.get(node.name))
+      ? deformSkinnedVertices(node, parsed.nodes, groups, nodeGroups.get(node),nodeGroups)
       : null;
     const mesh = buildMesh(node, textures, transformedVertices, textureOverride);
-    if (mesh) groups.get(node.name).add(mesh);
+    if (mesh) nodeGroups.get(node).add(mesh);
   }
   for (const node of parsed.nodes) {
-    const group = groups.get(node.name);
+    const group = nodeGroups.get(node);
     if (node.type === 'light') addModelLight(node, group);
     else if (node.type === 'emitter') buildEmitterPreview(node, group, textures, parsed.modelName);
   }
@@ -1396,12 +1594,12 @@ function frameObject(object) {
 
 function createModelAnimator(parsed, instance, label, list) {
   if (!parsed?.animations?.length) return null;
-  const groups = new Map();
+  const groups = new Map(),nodeGroups=new Map();
   instance.traverse(object => {
-    if (object.userData.mdlModel === parsed.modelName && object.userData.mdlNode) groups.set(object.userData.mdlNode, object);
+    if (object.userData.mdlModel === parsed.modelName && object.userData.mdlNode){groups.set(object.userData.mdlNode, object);const node=parsed.nodes[object.userData.mdlNodeIndex];if(node)nodeGroups.set(node,object);}
   });
   const skins = parsed.nodes.filter(node => node.skinned).flatMap(node => {
-    const group = groups.get(node.name);
+    const group = nodeGroups.get(node)??groups.get(node.name);
     const mesh = group?.children.find(child => child.isMesh && child.userData.sourceVertexIndices);
     if (!mesh) return [];
     mesh.geometry = mesh.geometry.clone();
@@ -1409,7 +1607,7 @@ function createModelAnimator(parsed, instance, label, list) {
   });
   const updateSkin = skins.length ? () => {
     for (const { node, group, mesh } of skins) {
-      const vertices = deformSkinnedVertices(node, parsed.nodes, groups, group);
+      const vertices = deformSkinnedVertices(node, parsed.nodes, groups, group,nodeGroups);
       const attribute = mesh.geometry.getAttribute('position');
       mesh.userData.sourceVertexIndices.forEach((source, index) => attribute.setXYZ(index, ...vertices[source]));
       attribute.needsUpdate = true;
@@ -1428,14 +1626,17 @@ function createModelAnimator(parsed, instance, label, list) {
 
 function configureAnimationPanel() {
   animationPanel.hidden = !activeAnimations.length || !animationToolsEnabled.checked;
+  const actorIds=new Map([...creatureAnimations?.bindings.values()??[]].map(binding=>[binding.animator,binding.actor.id]));
   animationObjectSelect.replaceChildren(...activeAnimations.map((animator, index) => {
     const option = new Option(animator.label, String(index));
     option.dataset.clips = String(animator.model.animations.length);
+    if(actorIds.has(animator))option.dataset.objectId=String(actorIds.get(animator));
     return option;
   }));
   updateAnimationClips();
 }
 animationToolsEnabled.addEventListener('change', () => {
+  if(!animationToolsEnabled.checked)for(const animator of activeAnimations)animator.presentationPreview=false;
   if (!animationToolsEnabled.checked) { animationIsolate.checked = false; restoreAnimationVisibility(); }
   configureAnimationPanel();
 });
@@ -1471,6 +1672,7 @@ animationObjectSelect.addEventListener('change', updateAnimationClips);
 animationClipSelect.addEventListener('change', () => {
   const animator = selectedAnimator();
   if (!animator || animator.gameplayTransition) return;
+  animator.presentationPreview=true;
   if (animationClipSelect.value) animator.play(animationClipSelect.value);
   else { animator.playing = false; animator.clip = null; animator.apply(null, 0); }
   updateAnimationClips();
@@ -1655,6 +1857,17 @@ function focusPlayer(player) {
   camera.updateProjectionMatrix();
   controls.minDistance = 2;
   controls.maxDistance = 80;
+  controls.update();
+}
+
+function updateScriptCamera(delta, immediate = false) {
+  const actor = playerController?.actor, mode = actor?.scriptCameraMode;
+  if (mode === undefined) return;
+  canvas.dataset.cameraMode = String(mode);
+  if (mode === 1 || !cameraFollowsPlayer || actor.cutscene?.enabled) return;
+  const offset = camera.position.clone().sub(controls.target), radius = Math.hypot(offset.x, offset.z);
+  const desired = new THREE.Vector3(Math.sin(actor.bearing ?? 0) * radius, offset.y, Math.cos(actor.bearing ?? 0) * radius).add(controls.target);
+  camera.position.lerp(desired, immediate || mode === 2 ? 1 : 1 - Math.exp(-Math.max(0, delta) * 5));
   controls.update();
 }
 

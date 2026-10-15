@@ -8,12 +8,196 @@ Keep the current compatibility target fixed at NWN:EE `89.8193.37-17` unless a l
 
 There are two distinct goals:
 
-- **Single-player replacement:** start and complete representative local modules without launching the original client. This is the first credible target.
+- **Single-player replacement:** play the entire original campaign, Prelude through Chapter4, without launching the original client, with usable combat/casting/UI and persistent progress. This is the current priority. Representative local modules remain regression fixtures, not sufficient completion evidence.
 - **Server-compatible client:** connect to an unmodified NWN:EE server and participate alongside original clients in authoritative multiplayer sessions. This is a required acceptance gate, separately validated from local play; it does not require replacing the server. Server authority and native identities constrain earlier implementation work.
 
 A replacement server, toolset, and broad compatibility with community modules are explicitly beyond the initial target.
 
+The base-game completion gate requires a continuous low-level-character
+playthrough, quest/dialogue/journal and companion progress, normal combat and
+casting, corpse loot, equipment/stores, resting/leveling, authored area/chapter
+transfers, save/reload and final completion. Preserve native IDs and active data
+tables throughout; fixes must not depend on a campaign name, NPC tag or a stock
+high-level test character. Every selected unsupported owner or load failure
+remains recorded until implemented and validated.
+
 ## Current checkpoint
+
+- **2026-10-15 missing script-load behavior:** installed Prelude ARE fields
+  reference absent script1 heartbeat/script2 exit resources; neither NCS nor NSS
+  exists in the module, active base/retail catalogs or installed override folder.
+  Shared named-script execution now returns native failure0/load error-634 while
+  retaining a diagnostic for each attempt. Missing actions/exit scripts permit
+  the caller to continue; missing dialogue conditions reject the branch. Failed
+  loads are retryable, and parser/read/engine failures remain explicit. 1313
+  tests/build and rendered out-and-back traversal pass without missing-script
+  session errors or HUD interruptions. See [native evidence](evidence/missing-script-load-behavior.md).
+
+- **2026-10-15 scripted doors and area exit:** StringToFloat and AngleToVector
+  unblock the standard transition script. ActionOpenDoor/ActionCloseDoor now
+  create native object actions20/21; canonical door AI drains them into deferred
+  open/close events, linked-door state and source callbacks. Both original
+  reported dialogue scripts and the m0q1a to m0q1b transfer pass. Physical binary
+  parent indices prevent duplicate node names from creating self-parent errors
+  during destination loading;106 model resources audit successfully. 1307 tests
+  and build pass. Rendered m0q1a to m0q1b and back passes without renderer errors
+  while retaining canonical IDs. Creature-owned scripted door approaches/locks,
+  native door displacement/automaps and broader transition acceptance remain open.
+  See [native evidence](evidence/door-actions-and-area-transitions.md).
+
+- **2026-10-14 quickbar assignment and scripted unlocking:** the PC owns36 typed
+  quickbar records with native QBList import/export fields and canonical item
+  references reconstructed from equipment/repository coordinates. Inventory,
+  spell and feat drag/drop, right-click assignment/clear, moving shortcuts,
+  modifier rows and per-character local layout restoration pass Electron checks.
+  SetLocked now preserves raw integer state and deferred lock/unlock callbacks;
+  the original Bim unlock script completes. 1298 tests/build pass. Hotbar use
+  emits typed requests; UI execution owners for items/spells/feats and native
+  automatic default layout creation remain open and recorded. Radial category
+  presentation is local, rather than a fully reconstructed native client menu.
+  See [native evidence](evidence/quickbar-assignment-and-locking.md).
+
+- **2026-10-14 dialogue feedback/camera requests:** SpeakOneLinerConversation
+  selects authored DLG starts, routes text/sounds and runs entry actions without
+  opening a modal. SetCameraMode targets the controlling client. Both reported
+  original scripts now execute; rendered Pavel dialogue reaches entry33 and
+  applies top-down mode without error. 1291 tests/build pass. Native speech
+  bubbles, full token/parameter support and chase-camera smoothing remain open.
+  See [native evidence](evidence/dialog-feedback-and-camera.md).
+
+- **2026-10-14 world geometry and movement repair:** binary models now use
+  native draw-index groups, restoring combined floor/furniture/wall geometry.
+  Player movement loads snapped native tile surfaces, removing invisible cracks
+  across tile seams. Repeating polling omissions retain counted records flushed
+  periodically and on close/export. 1286 tests/build, installed floor coverage,
+  animation smoke and keyboard traversal in both directions pass. Other logged
+  engine gaps remain open. See [repair evidence](evidence/world-geometry-and-log-flood.md).
+
+- **2026-10-14 character selection/creation:** module entry now waits for a
+  confirmed character. The first-level wizard writes fresh BICs from active
+  rules, packages and UTIs, with separate local-vault persistence and export.
+  All154 stock race/gender/base-class combinations generate; eleven canonical
+  imports and an Electron specialist-creation/save/reload/world-entry flow pass.
+  Ghidra/native evidence includes2,304 alignment and36 ability-cost comparisons.
+  1282 tests/build pass. Optional native wizard conveniences, arbitrary prestige
+  prerequisites, manual level-up and original server acceptance remain open.
+  See [character creation evidence](evidence/character-creation.md).
+  Backup: `backups/live-character-creation-1282-20261014.zip`.
+
+- **2026-10-14 silence/visibility continuation:** shared silence, invisibility
+  and concealment are connected to hearing/observer checks and combat defense.
+  110 silence plus242 visibility/concealment native cases compare. Installed
+  Silence area callbacks and ordinary/improved Invisibility impact/removal
+  probes pass.1271 tests/build pass.184 impact commands remain unbound; full
+  casts, Darkness/blindness, rendering and campaign acceptance remain open.
+  See [impact/defense evidence](evidence/casting-impact-defense.md).
+
+- **2026-10-14 persistent spell objects:** location and attached area effects
+  use canonical IDs, active VFX_PERSISTENT data, native caster metadata,
+  geometry, enter/exit/heartbeat callbacks and ordinary removal.1067 isolated
+  original-code cases compare; installed Cloudkill/Grease lifecycle fixtures
+  complete without engine errors.1266 tests/build pass. Audit-v7 still has186
+  unbound impact commands/22 missing scripts; separate persistent callbacks
+  expose9 unbound commands/7 missing scripts. Full cast/UI/rendering, harmful
+  target acceptance and campaign playthrough remain open. See
+  [impact/defense evidence](evidence/casting-impact-defense.md).
+
+- **2026-10-14 ability/bag-weight continuation:** ability buffs/debuffs now
+  feed current stats, modifier caches and Constitution injury preservation.
+  Standard six buff scripts and Haste pass direct application/removal checks;
+  reduced bag weight is connected to Strength encumbrance refresh.1262 tests
+  and build pass. All39 imports retain the sole prior PaleMaster HP mismatch.
+  Persistent area effects, full casts/UI/rendering and191 unbound commands
+  remain open. See [impact/defense evidence](evidence/casting-impact-defense.md).
+
+- **2026-10-14 shared control effects:** Haste/Slow and movement controllers,
+  Sleep/paralysis/stun/fear/charm state effects, script immunity queries and
+  native ambient body selection are connected. Domination's association
+  lifecycle remains explicitly unavailable.1257 tests/build pass; installed
+  Haste and Sleep impact branches complete. Active audit still has196 unbound
+  commands/22 missing scripts. Full cast/UI/renderer gates remain open.
+  Next are area effects and ability modifiers; no campaign-specific handlers.
+  See [impact/defense evidence](evidence/casting-impact-defense.md).
+
+- **2026-10-14 linked/location/control foundation:** linked protections/icons,
+  property queries, location visuals and Reflex handling are connected. Bless
+  and Fireball impact probes complete; full casting/UI/render gates remain open.
+  Original command/effect tables exposed and corrected Knockdown's wrong
+  internal ID46→20.1251 tests/build pass; pure Haste/Slow controllers await lower
+  owner binding. See [impact/defense evidence](evidence/casting-impact-defense.md).
+
+- **2026-10-14 impact/defense continuation:** live visual apply/loop expiration,
+  script log, resistance, absorption, immunity and faction equality are connected.
+  Authored Magic Missile impact/deferred situations completes HP17→-11 with no
+  engine-call errors.1241 tests/build pass. Full casting/render acceptance remains
+  open; see [impact/defense evidence](evidence/casting-impact-defense.md).
+
+- **2026-10-14 active full-spell continuation:** release failure ordering,
+  automatic Quicken and concentration are mapped; live GetSpellSaveDC uses
+  active class/spell/rules.3490 cast and2343 DC original traversals compare.
+  Corrected automatic-feat rule labels to EPIC_AUTOMATIC_* and executed the
+  original pre-seeded hash leaf in comparisons. See
+  [release/DC evidence](evidence/casting-release-save-dc.md). Full impact/effect,
+  request/action and presentation binding remains required; work continues.
+
+Latest sealed source/research backup: `backups/live-native-spell-authored-helpers-1236-20261014.zip` (4029 verified files).1236 tests/build and authored combat regression pass. See [release/authored-helper evidence](evidence/casting-release-save-dc.md), [casting metadata/travel evidence](evidence/casting-metadata-projectiles.md), [casting actions evidence](evidence/casting-actions.md) and [spellbook evidence](evidence/casting-spell-book.md) for scope and failed acceptance gates. Full spell ecosystem work remains active.
+
+- **2026-10-14 casting metadata/admission/caster/travel:**1225 tests/build pass. Active spell rows now supply native animation/path enums, timings and master/metamagic/components; ordinary component admission includes exact Silent/Still exemptions and automatic feat thresholds. GetCasterLevel and four further spell-context queries are live, preserving class penalty/scaling and native target-location area semantics. Original capture files contain11361 bounded cases, including the expanded action/context cases; projectile timing is pure and guarded against differing CPU outcomes. Installed-data fixtures check840 spell rows and45 class slots across39 BICs without failures; prior full-import/HP readiness failures remain open. Concurrent authored combat regression passes with the same missing resources/omitted owners. **Casting remains unbound:** release/impact/effects, actions15/18, interruptions and animation integration remain required. Original FMA/process CPU and full-cast/network parity remain open. See [Casting metadata/travel evidence](evidence/casting-metadata-projectiles.md).
+
+- **2026-10-14 resumed casting actions/context:**1211 tests/build pass. Corrected dispatch4/19/49 and bound face-object/point plus wait16, preserving path storage and using trigger polygon centers. Six live spell-context queries use distinct constructor-owned current/history fields. Pure cast queue/timing/round start/removal owners are mapped;1910 bounded original executions cover queues/facing/timing/round/context and an observed ignored-region-query fix. Concurrent authored combat regression passes retaliation, approach and encounter clearing; missing resources and six omitted readiness owners remain recorded. **Casting is still not playable:** action15, admission/release/caster/DC/projectile/impact/effect/script and animation bindings remain required. See [Casting actions evidence](evidence/casting-actions.md). No original full-cast, campaign or network parity claim.
+
+- **2026-10-14 casting foundations:**1194 tests/build pass. Live native spellbook import, readiness/talent/has-spell and class/uses queries now use canonical owned pools. Resource consumption, ability readiness and per-day maximum adjustment match1567 original bounded cases; the pure cast-command/query coordinator matches811 of814 captured cases (three VM-pop failures are separate). The spell panel reads live pools; a rendered wizard shows43 known and34 memorized entries. The installed39-character audit consumes17 caster class slots successfully but keeps `importReady=false` for the Pale Master's102/114 HP mismatch. Prelude's missing resources/startup owners remain recorded; melee retaliation/approach/encounter regression passes. **Casting is not playable:** cast requests and consumption/refresh coordinators still require native queue/action15 timing, caster/impact context, effects, interruptions and cast-animation bindings. See [Casting spellbook evidence](evidence/casting-spell-book.md). No campaign, original full-cast or network parity completion claim.
+
+- **2026-10-14 original campaign startup:**1177 tests/build pass. A fresh-session audit covers all seven base-game modules and321 IFO-listed areas with startup scripts enabled. Fixed the replacement-only256-event fatal limit that aborted five modules' finite spawn batches. Five native script queries plus authored creature/waypoint/door orientation imports match2628 original bounded executions; runtime facing now observes the loaded canonical vector. The authored encounter still passes retaliation/approach and clears all four enemies. The strict startup readiness gate still **fails** on autosave, sitting, effects, casting and other recorded owners; this is not a campaign playthrough or combat completion. Rendered authored-target attacks and cancellation also pass with zero animation failures across26 actors; failed short-lived spawned-target attempts remain recorded. See [Base campaign startup evidence](evidence/base-campaign-startup.md). Corpse copying/loot and full persistence remain open. Sealed source/research backup: `backups/live-base-campaign-startup-1177-20261014.zip` (3544 verified files).
+
+- **2026-10-14 corpse metadata and lifecycle cores:**1167 tests/build pass. Body-bag appearance/get/set matches144/16/48 original executions and installed creature/placeable script queries. Death flag/scheduling/event11 cores match108/432/3456 original bounded cases. Placeable acquisition/corpse collection match360/1296 original complete coordinator cases, with captured copy/storage/acquisition dependencies. Four equipment slots create new loot copies; five size buckets retain physical ordering; raw unsigned gold and native ignored fit returns are preserved. Queries and placeable BodyBag import are live. The lifecycle/transfer coordinators remain **unbound** pending complete item copying, body-bag construction, area removal/destruction and death-effect bridging; live corpse cleanup is still missing. Full combat/casting/original/network parity remains unfinished. Backup: `backups/live-native-corpse-transfer-1167-20261014.zip`.
+
+- **2026-10-14 pending equipment and unequip:**1159 tests/build pass. Native unequip matches1008 original owner executions; eligibility378, pending conversion32, requests1296, round insertion/rescaling180, action dispatch576, cancellation48, page arithmetic400 and script wrappers188. Live attack cancellation and round end now convert pending gear records in native tail order; ordinary/timed unequip and ActionEquipItem/ActionUnequipItem use the same canonical owners. An installed plain-item NPC fixture passes equip/unequip and cancellation with pending gear, with no errors. The full authored encounter passes retaliation/approach and clears its four spawned enemies; six observed omitted owners still prevent readiness. PC item-level restrictions/passive effects, alternate client panels, drops and broader transfer/merge/effect owners remain explicit limitations. Backup: `backups/live-native-unequip-1159-20261014.zip`.
+
+- **2026-10-14 native queue display/cancellation:**1150 tests/build pass. Ten physical queue records match227 original executions; forward normal/special mappings match131072 inputs and the reverse cancellation map matches65536. Cancellation traversal/ownership matches240 original executions. The HUD resolves icons from active actions/spells tables, retains canonical target IDs, and sends cancellation through the local input FIFO. A separate rendered encounter verifies cancellation of group0, fresh radial Attack, approach, swing/fall→held-dead and zero animation failures across26 actors. This establishes the bounded local owners, not packet/network or full combat parity. Corpse/body bags, traps, dirty-stat refresh, automap, voice/achievement presentation and remaining equipment/special/on-hit/casting owners remain open. Backup: `backups/live-native-queue-cancel-1150-20261014.zip`.
+
+- **2026-10-14 rendered spawned combat, corpse fields and LOS:**1144 tests/build pass. A living enemy from the nearest activated encounter is picked by canonical ID through the real radial, approached and killed, with swing/fall→held-dead presentation and zero animation failures across26 actors. Corpse query gates/item count match184 original cases; authored BOOL/BYTE/unsigned decay import matches30. Original rotated LOS generates IEEE nonfinite heights;64 complete clip/rotation and144 box/AABB/polygon executions now verify propagation through the native kernels, removing the replacement-only rejection. The encounter error gate passes again. The all-severity readiness gate deliberately **fails** on seven observed omitted owners (trap checks, queue display, dirty-stat refresh, corpse/body bags, automap, achievement presentation, voices). Remaining special/on-hit/equipment/ranged/casting and original/network comparisons also remain. Backup: `backups/live-native-los-corpse-fields-1144-20261014.zip`.
+
+- **2026-10-14 live area path commit:**1139 tests/build pass. Surface/tile/best-exit/area coordinators match364/577/1731/165 original executions with documented helper boundaries. Native graph and triangle search, corridor collision probes, resumable cache ownership, rotations, route commit and smoothing now drive live attack approach. Installed obstructed geometry commits a route in three passes; the strict authored encounter clears all four spawned goblins with only installed missing-resource diagnostics. Rendered spawned-target radial/animation acceptance is still being checked. Combat remains incomplete: remaining special/on-hit/status and equipment owners, corpse lifecycle, ranged validation, casting and full original/network comparisons are open. Backup: `backups/live-native-area-path-1139-20261014.zip`.
+
+- **2026-10-14 intra-tile collision and successors:**1135 tests pass. Tile/area walkable wrappers match864 original cases; complete triangle successor generation matches960, including hierarchy masks, NPC optimisation, direct/corner goals, midpoint/centre traversal and level/score ordering. Real installed geometry reaches a clear goal in one pass and routes around the goblin-area obstruction in two resumable passes. These core tests do not commit a live area path. Native best-exit, surface/tile/area coordinators and waypoint commit remain to connect, followed by strict full-encounter and rendered spawned-target acceptance. Backup: `backups/live-native-intratile-collision-1135-20261014.zip`.
+
+- **2026-10-14 intra-tile core and hierarchy:**1133 tests pass. Native saved-alternative Create/Delete/Get/Set match240 cases; IntraTileDFS matches312 cases with captured geometry; original subdivision and encoded queries match two passes across five meshes,495 searches and304 getter calls. Path reset now disposes supported resume nodes instead of rejecting every allocation. Native collision checks, intra-tile successor generation/best exits, waypoint commit and the area plot coordinator remain to connect before reliable full encounters. Backup: `backups/live-native-intratile-core-1133-20261014.zip`.
+
+- **2026-10-14 inter-tile geometry and successor ordering:**1129 tests pass. Native successor exclusions/ordering/scoring match1152 original cases; path-node getter/rotation adapters match25968 original cases. Installed Prelude geometry reaches the formerly blocked target tile through7,10→8,10→8,9→8,8 using the verified core. This is an inter-tile graph route, **not a committed walkable path**: intra-tile search/waypoint construction and the live area plot coordinator remain next. No approximate route is substituted. Backup: `backups/live-native-intertile-geometry-1129-20261014.zip`.
+
+- **2026-10-14 inter-tile search core:**1127 tests pass. GenerateInterTilePath/InterTileDFS now match368 original instruction comparisons, retaining two-step iterative deepening, per-region BYTE pruning, avoidance exits, failed route writes and cleanup. This is a verified core with captured successor/exit geometry; it is **not connected as a live area plot provider yet**. Next map native successor ordering and intra-tile routing, then repeat the strict full encounter test and spawned radial/animation test. Backup: `backups/live-native-intertile-core-1127-20261014.zip`.
+
+- **2026-10-14 timed equipment and manual combat cancellation:**1126 tests/build pass. Native equipment request/round queue/execution, owned-item replacement, cancellation and round recalculation are connected;864/3456/768/48/1768/3912 original cases match captured helper boundaries. An installed plain-dagger fixture completes normal and timed switches, keeps canonical ownership/repository membership and applies the1500ms pause without engine errors. WASD/Escape/UI cancellation now clears the native action queue through the local input FIFO. Rendered authored retaliation/Attack/fall→corpse passes with26 actors and zero clip failures; a stricter encounter rerun fails when a wandering enemy requires the unavailable inter-tile path owner. Combat is **not ready**: path reliability, passive item properties, higher unequip/drop/transfer, corpse lifecycle, casting and complete native/network parity remain open. Backup: `backups/live-native-equipment-cycle-1126-20261014.zip`.
+
+- **2026-10-13 complete authored encounter and weapon selection:**1119 tests/build pass. The installed Prelude run includes enemy retaliation, player damage/death handling, all four spawned enemy kills and encounter exhaustion with no engine failures in that capture; two installed resources remain missing. Native shape, associate, inventory enumeration, degree trigonometry/location and melee/ranged/ammunition selection owners now have original instruction comparisons. Lower equip/unequip mutations are connected; queued equipment execution, passive property callbacks, blocked inter-tile plotting, corpse cleanup, encounter AI/respawn, casting and broader native/network parity remain unfinished. Rendered authored attack/fall coverage is retained; a spawned-target keyboard approach test has not passed. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-native-weapon-cycle-1119-20261013.zip`.
+
+- **2026-10-13 encounter combat and dynamic animations:**1109 tests/build pass. Native encounter activation, CR pools, spawn selection/placement, canonical creature template/equipment imports, wandering, lock/location queries, AI removal and death active-count/exhaustion are connected. The authored Prelude test kills an existing goblin and a newly spawned enemy. Rendered radial Attack, enemy swing, player damage and fall→held corpse pass with zero animation failures across26 bound creatures, including dynamically loaded encounter actors. Generic transition selection matches31684 original executions; loop classification matches1712. Corpse cleanup, encounter respawn/AI, shape/associate queries, casting, remaining combat branches and full native/network parity remain unfinished. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-encounter-combat-1109-20261013.zip`.
+
+- **2026-10-13 native skills and transfer:**1095 tests/build pass. Pickpocket request/action, carried item removal, inventory disturbance scripts/getters and ordered activity cleanup are connected;896/486/768/720/24/20/80 original owner observations match captured dependencies. Latest authored campaign run includes enemy damage, player kill and three remaining distinct errors. Other active skills, encounters/corpse, casting and broader combat/presentation/network parity remain unfinished. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-native-skills-1095-20261013.zip`.
+
+- **2026-10-13 combat loot creation:**1086 tests/build pass. Authored creature item creation/acquisition and identification now complete after the goblin kill, preserving canonical IDs, stack merges and module events.1800/384/24 original wrapper/acquire/setter observations match. Old-owner transfer, other inventory owners, make-room dropping, pickpocket skills, encounters, casting and broader combat parity remain unfinished. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-fresh-item-acquisition-1086-20261013.zip`.
+
+- **2026-10-13 authored retaliation and combat animations:**1082 tests/build pass. Noncaster talent selection and eight additional native script queries now let authored enemy AI resolve attacks. Installed-module smoke passes enemy attack, player attack/damage/death; rendered UI passes radial Attack, enemy swing/reaction and fall→held corpse with zero clip failures across14 creatures.541 native query observations pass. Caster eligibility/import, loot acquisition, skills, encounter activation and broader combat/network parity remain open. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-authored-retaliation-1082-20261013.zip`.
+
+- **2026-10-13 canonical inventory import:**1077 tests/build pass. Creature/container loading now uses separate equipment IDs, repository nodes, admitted item properties and mapped possession events. Stack comparison, gold and weapon/import equipment gates match1080/600/6480/8064 original executions; module equipment events match48. Authored player attack still reaches damage/death; enemy talent, item creation and skill owners remain open before a full combat cycle. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-native-inventory-1077-20261013.zip`.
+
+- **2026-10-13 module item-event routing:**1067 tests/build pass. Acquired/lost item events and six NWScript history getters are connected and match288 full native handler observations, with separate histories, canonical IDs/quantities and script contexts. Live native item import/equipment/acquisition/talent/skill integration remains unfinished; the full enemy combat cycle is not ready. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-module-item-events-1067-20261013.zip`.
+
+- **2026-10-13 item possession/presentation owners:**1064 tests/build pass. SetPossessor matches1024 full original executions; active use counts/cache and item visual selection match2430/90/3960 runs. Correct native initial item state and inventory script-event flags are traced. These item owners still need live module-event/import/equipment integration before talent/creation/skill calls can complete the authored combat cycle. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-combat-item-possession-presentation-1064-20261013.zip`.
+
+- **2026-10-13 life/item-owner continuation:**1059 tests, build and authored combat smoke pass. Live radial swings/reactions/fall/death/body sequence passes on installed models. Death/dying reads native object INT89c and actual familiar control, matching432 original executions. Item-property admission/counters match144 runs; repository no-merge insertion/position/panel handling matches384 runs. Item possession/equipment/cost/talent/skill ownership still prevents a full enemy combat cycle; item phases are not yet live import. See [dependency evidence](evidence/live-engine-dependencies.md). Backup: `backups/live-combat-life-item-repository-1059-20261013.zip`.
+
+- **2026-10-13 client combat animations:**1048 tests and build pass. Canonical attack deliveries now select and sample native-named melee/reaction clips on rendered bodies, with separate presentation RNG.30672 native name lookups,2592 selector cases,60 death-animation phase cases and72 body-transition cases pass. Authored radial attack integration passed strikes/reactions/corpse; fall transitions are connected but their follow-up UI camera check is pending. Enemy talent/item/skill calls and other combat owners still prevent a full cycle. See [animation evidence and limits](evidence/combat-client-animation.md). Source/evidence checkpoint: `backups/live-combat-animation-1048-20261013.zip`.
+
+- **2026-10-13 item eligibility/repository continuation:**1038 tests and build pass. Creature inventory allocation now follows native equipment-before-carried order and record limits. Required-provider item eligibility/restrictions/proficiency and repository fit/scan owners are ported;669 eligibility/proficiency and1050 fit comparisons execute the original native bodies. Talent selection, creation/acquisition and ActionUseSkill still need live owners. Authored combat deals damage; seven distinct failures remain in the latest trace, and the other previously observed skill site remains open. See [live dependency evidence](evidence/live-engine-dependencies.md). Source/evidence checkpoint: `backups/live-engine-item-repository-1038-20261013.zip`.
+- **2026-10-13 talent owner continuation:**1028 tests and production build pass. Talent values/accessors and VM reservation are connected; feat/skill selectors match60 read-only original machine-code observations. Generic spell/item selection, category/CR and physical traversal owners are ported with required providers. Live GetCreatureTalentBest/Random still need native spell eligibility, item property/repository and CanUseItem owners; the eight recorded combat failures remain open. See [live dependency evidence](evidence/live-engine-dependencies.md). Source/evidence checkpoint: `backups/live-engine-talent-core-1028-20261013.zip`.
+
+- **2026-10-13 trap/knockdown continuation:**1018 tests and production build pass; full authored Prelude combat passes HP17->-12 with eight distinct errors remaining. Native trap ID/known-ID queries and GIT allocation order, FloatToInt/ASCII case conversion, knockdown pause/control/body state and linked effect cleanup are connected. Effect removal now handles every record sharing a native 64-bit effect ID. Trap detection/firing, status animation presentation and full combat/casting remain incomplete. Continue real skill/talent/item owners and native encounter comparison. See [live dependency evidence](evidence/live-engine-dependencies.md). Source/evidence checkpoint: `backups/live-engine-trap-knockdown-1018-20261013.zip`.
+
+- **2026-10-13 listening/movement/script-animation continuation:**1008 tests and production build pass; the full authored Prelude combat harness passes (HP17->-11), with ten unique errors remaining. Listening parser/matcher matches70 native parse observations and1904 match/capture comparisons; object patterns, associate IDs, imported ExpressionList and actual GetIsListening are connected. Native dawn/dusk, byte-string operations, script movement/force movement, waits, animation queue/timing/cancellation and EffectDeath constructor are implemented. Speech dispatch, client animation presentation and death cleanup are still recorded as incomplete. Continue FloatToInt, knockdown, real skill/talent/trap/item owners and original encounter comparison. See [live dependency evidence](evidence/live-engine-dependencies.md). Source/evidence checkpoint: `backups/live-engine-listen-animation-1008-20261013.zip`.
+
+- **2026-10-13 live engine dependencies:**992 tests, production build and an asserted full Prelude combat smoke test pass (authored goblinHP17->-11). Canonical ActionDoCommand ownership, state queries, client/faction iteration, legacy emotions, commandability, distance/facing and destroyability wrappers are connected. Indoor sound now uses traced SET-selected engine graphs, tile/region DFS and door checks; all480 graph shapes/rotations match read-only native emulation. **Sixteen unique errors remain in the campaign run; combat/casting are not complete.** Continue listening expressions, actual skill/talent/animation actions, death/status/item/trap owners and native encounter comparison. Platform achievement presentation is recorded separately. See [live dependency evidence](evidence/live-engine-dependencies.md). Source/evidence checkpoint: `backups/live-engine-dependencies-992-20261013.zip`.
 
 - Source backup: `backups/combat-reputation-lifecycle-checkpoint-20261012.zip` (source, tests, scripts and evidence; original game/Ghidra state unchanged).
 - Native-traced FAC/PC/associate/PVP/personal reputation, a persistent 50-record attack pool, target changes, attack cancellation, idle/body/orientation state, melee/ranged group sequencing, independent animation RNG, defender timing and delayed strike signaling now extend the shared runtime. Creature damage events reach live HP at the scheduled impact time; other live combat events remain diagnosed. Attack-history script getters translate native internal IDs. All 358 tests and the build pass; installed reputation/action/timing/damage checks cover Prelude and Witch's Wake, with 39-character bonus checks and bundled character rendering. **Ordinary attacks are still not playable and casting is not implemented.** Dynamic perception/LOS/approach, native attack preparation/default strike and post-hit providers, event/associate/ammunition/projectile integration and presentation must be completed, then compared against the original game. The earlier preview-actor startup/UI failure remains open. See [Reputation/lifecycle evidence and limits](evidence/combat-reputation-lifecycle.md). The prior object-action archive is `backups/combat-object-actions-checkpoint-20261012-181210.zip`.
@@ -136,7 +320,23 @@ A replacement server, toolset, and broad compatibility with community modules ar
 
 ## Recommended next milestone
 
-2026-10-13: Native blocked-path selection, grid search, route smoothing, creature bumpability, personal-space initialization and movement/approach cancellation are connected to canonical local state. **785 tests, production build and50,003 independent grid-math instruction comparisons pass; combat is not ready.** A live action-queue fixture now routes around a blocking creature on real tiles. Native tile search, safe-location/friend displacement, perception/frame ownership, encounter activation, presentation and full native encounter comparison remain. Continue these dependencies and the remaining combat owners before casting. See [grid-search evidence](evidence/combat-native-grid.md). Source/evidence checkpoint: `backups/combat-native-grid-checkpoint-20261013.zip`. This supersedes the759 checkpoint below.
+2026-10-13: Interactive combat session configuration now supplies selectable local PvP and keeps native AI/perception active when opening scripts are skipped. Failed individual perception queries are recorded without freezing other queries or action clocks; this is a replacement recovery policy, not native indoor-sound parity. Repeated HUD errors notify once per area while retaining every diagnostic occurrence. An installed Prelude/fighter input trace starts a real round and changes the authored goblin's HP17→−11 without creature overrides; the user observed rolls/damage. **966 tests, build and eight original perception observations pass; combat is not ready.** NPC scripts, indoor sound, presentation and the existing ranged/death/equipment/full-fight gates remain. See [UI session evidence](evidence/combat-ui-session.md). Checkpoint: `backups/combat-ui-session-966-checkpoint-20261013-v2.zip` (active launcher stdout/stderr excluded).
+
+2026-10-13: Native ranged ammunition availability/release/consumption, separate post-hit owner, projectile timing/reactions, miss trajectories, called-shot coordination and event21 recipient delivery are connected. Active2DA data supplies limb, damage-projectile, weight and encumbrance rules. Three replacement fixture strikes consume100→97 arrows and damage20→14HP without engine failures. **963 tests, production build,45 original combat observations, eight perception events and three death/XP observations pass; combat is not ready.** Complete event11 destruction/unequipping and auto-equip side effects, status/on-hit/death owners, remaining frame/faction/movement/presentation and full independent native encounter comparison before the combat gate; casting follows. See [ranged evidence and limits](evidence/combat-native-ranged.md). Checkpoint: `backups/combat-native-ranged-963-checkpoint-20261013.zip`. This supersedes the916 checkpoint below.
+
+Verification for the following death/movement checkpoint: **916 tests, production build,45 original combat observations, eight perception events and the three scripted death/XP observations pass.** Saved source/evidence: `backups/combat-native-death-movement-916-checkpoint-20261013.zip`. Ranged owners are next.
+
+2026-10-13: Independent original scripted death/XP comparison now matches before/OnDeath/after observations, including HP−80 and50XP. It exposed and corrected NWScript GetIsPC to query attached client ownership independently of stats PC flags. Death magic-immunity/bypass/feedback and active visualeffects.2da purge rules are connected. Native safe-direction fallback and blocked movement event31/GetBlockingDoor are connected; both clear and overlapping loaded-fighter approaches complete kills and1806XP awards without engine failures. Full encounter/RNG/network validation, faction/PVP/associates/history, corpse/encounter, status/on-hit/ranged/traps and animation/UI remain open. **Combat is not ready.** See [XP evidence](evidence/combat-native-death-experience.md) and [movement evidence](evidence/combat-native-bump-friends.md). This supersedes the901 checkpoint below.
+
+2026-10-13: Native faction owners now retain ordered canonical member IDs, append-index allocation and deleted slots; normal creature loading and combat broadcasts use these lists. Ordinary creature death clears shared actions, adjusts witnesses, assigns killer/runs OnDeath/applies native XP, clears the same status WORD used by movement/perception, and retains the corpse ID. Native AddExperience/SetExperience award/feedback coordinators are connected; native level-history side effects and full death/corpse owners remain incomplete. Actual loaded fighter input approaches, kills HP20→−11 and receives1806 XP with no engine errors in an explicit authored fixture. Direct BumpFriends displacement and fallback ordering are mapped; safe-direction search/event31 remain open. **901 tests, production build,45 earlier original combat observations and eight perception events pass; combat is not ready.** Continue independent original death/XP encounter comparison, remaining faction/PVP/associate/history, death/corpse/encounter, movement fallback, status/on-hit/ranged/traps and animation/UI owners before combat readiness; casting follows. See [faction evidence](evidence/combat-native-factions.md), [XP evidence](evidence/combat-native-death-experience.md) and [friend displacement](evidence/combat-native-bump-friends.md). Checkpoint: `backups/combat-native-faction-death-901-checkpoint-20261013.zip`. This supersedes the881 checkpoint below.
+
+2026-10-13: Native creature frame timing/active timer selection, decoded normal Attack input, radial target Attack, canonical creature render positions and Cleave/Circle Kick insertion are connected. Death XP calculation/recipient coordinator follows active physical XPTable data but is **not yet bound to native faction storage/death awards**. **881 tests, production build, eight-event original perception comparison and45 earlier original combat observations pass; combat is not ready.** Native-style ordinary NPC melee and decoded-input fixtures repeat attacks/delayed damage without errors; immortal targets and omitted scripts do not validate a complete fight. Continue full death/faction/XP/corpse ownership, status/on-hit/ranged/traps, remaining movement, native clip/presentation and complete original encounter comparisons before the combat gate. See [frame/input evidence](evidence/combat-native-frame-input.md) and [death XP evidence](evidence/combat-native-death-experience.md). Source/evidence checkpoint: `backups/combat-native-player-frame-xp-881-checkpoint-20261013.zip`. This supersedes the849 checkpoint below.
+
+2026-10-13: Native module/area AI rotation, calendar/day/night transitions, heartbeat scripts and shared weather RNG are connected after the AI master traversal. **849 tests, production build and the eight-event original-server perception comparison pass; combat is not ready.** GetTimeHour/Minute/Second now read the same world clock. Continue native creature active-timer/frame ownership, remaining movement/sound, trap/encounter/effect/status/death/ranged owners, combat input/presentation and full original encounter comparisons before the combat gate; casting follows. See [module clock evidence](evidence/combat-native-module-clock.md). Source/evidence checkpoint: `backups/combat-native-module-ai-849-checkpoint-20261013.zip`. This supersedes the837 checkpoint below.
+
+2026-10-13: Native Spot/Listen/stealth, visibility gain/loss, ScriptOnNotice, constructor RNG order, spawn/heartbeat, AI level storage/script locking and AI master event traversal are connected. **837 tests, production build and an eight-event original-server perception comparison pass; combat is not ready.** The live AI loop reproduces those same flags/events with target movement replayed manually. Complete native tile/indoor sound/safe-location/friend displacement, effect/status/death/ranged owners, area/module clock/trap/encounter updates, combat input/presentation and full original encounter comparisons before the combat gate; casting follows. See [perception evidence](evidence/combat-native-perception.md) and [AI evidence](evidence/combat-native-ai.md). Source/evidence checkpoint: `backups/combat-native-perception-ai-837-checkpoint-20261013.zip`. This supersedes the785 checkpoint below.
+
+2026-10-13: Native blocked-path selection, grid search, route smoothing, creature bumpability, personal-space initialization and movement/approach cancellation are connected to canonical local state. **785 tests, production build and 50,003 independent grid-math instruction comparisons pass; combat is not ready.** A live action-queue fixture now routes around a blocking creature on real tiles. Native tile search, safe-location/friend displacement, perception/frame ownership, encounter activation, presentation and full native encounter comparison remain. Continue these dependencies and the remaining combat owners before casting. See [grid-search evidence](evidence/combat-native-grid.md). Source/evidence checkpoint: `backups/combat-native-grid-checkpoint-20261013.zip`. This supersedes the759 checkpoint below.
 
 2026-10-13: Native approach/retarget/use-range owners, retry/wait actions, active CreatureSpeed rates, tile height, direct path plotting, waypoint walking and action1 are now connected to canonical local state. **759 tests and build pass; combat is not ready.** Actual blocked/interarea/safe-location searches, friend/door movement event owners, native perception/frame ownership, encounter activation, presentation and complete encounter comparison remain. See [approach/direct movement evidence](evidence/combat-native-approach.md). Continue those owners and the remaining combat branches; casting follows. Source checkpoint: `backups/combat-native-live-path-checkpoint-20261013.zip`. This supersedes the695 status below.
 

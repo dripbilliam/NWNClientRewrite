@@ -116,7 +116,7 @@ test('move cancellation distinguishes message availability, nonzero head and exa
 });
 
 test('auxiliary movement cancellation preserves animation and protected nodes have no provider calls',async()=>{
-  for(const id of [17,19,30]){
+  for(const id of [17,19,30,45]){
     const a=actor(),node=addObjectAction(a.objectActionState,id);
     assert.equal(await clearCreatureMovementAction(a,node,1,{messageAvailable:()=>true,setLock(){throw new Error('already unlocked');}}),1);
     assert.equal(a.animationState,9);

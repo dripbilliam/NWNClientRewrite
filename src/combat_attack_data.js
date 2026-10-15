@@ -64,9 +64,14 @@ export function clearAllAttacks(round) {
 }
 // ClearAllSpecialAttacks 0x140375570. Already consumed records are retained.
 export function clearAllSpecialAttacks(round, warning) {
-  const total = (round.onhandAttacks + round.offhandAttacks + round.additionalAttacks + round.bonusEffectAttacks) | 0;
-  const count = total > 1 ? total & 255 : 1;
-  for (let i = round.currentAttack & 255; i < count; i++) getAttackData(round, i, warning).attackType = 0;
+  for (let i = round.currentAttack & 255; ; i++) {
+    const total = (round.onhandAttacks + round.offhandAttacks + round.additionalAttacks + round.bonusEffectAttacks) | 0;
+    const count = total > 1 ? total & 255 : 1;
+    if (i >= count) break;
+    // Native re-queries GetAttack for a nonzero type. Out-of-pool indices
+    // warn again before the write; callbacks can change subsequent counts.
+    if(getAttackData(round,i,warning).attackType!==0)getAttackData(round,i,warning).attackType=0;
+  }
   round.specialAttacks.length = 0;
 }
 // UpdateAttackTargetForAllActions 0x14037a140.

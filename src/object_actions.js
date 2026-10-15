@@ -15,6 +15,12 @@ export class ObjectActionList {
     if (link.next) link.next.previous = link.previous; else this.tail = link.previous;
     this.count--; link.previous = link.next = null; return link.action;
   }
+  insertBefore(action,next){
+    if(!next)return this.insert(action);
+    const link={action,previous:next.previous,next};
+    if(link.previous)link.previous.next=link;else this.head=link;
+    next.previous=link;this.count++;return link;
+  }
   shift() { return this.head ? this.remove(this.head) : null; }
   *[Symbol.iterator]() { for (let link = this.head; link; link = link.next) yield link.action; }
 }
@@ -72,6 +78,17 @@ export function addObjectAction(state, actionId, groupId = 65535, parameters = [
     setActionParameter(node, index, parameter.type, parameter.value);
   }
   state.list.insert(node, front); return node;
+}
+
+// AddActionAfterFront14048ced0: after the FIRST CONTIGUOUS GROUP,
+// not merely the first record. Allocation/group/parameters match AddAction.
+export function addObjectActionAfterFront(state,actionId,groupId=65535,parameters=[]){
+  const first=state.list.head;const node=addObjectAction(state,actionId,groupId,parameters);
+  if(!first)return node;
+  const allocated=state.list.tail;let next=first;
+  while(next&&next!==allocated&&next.action.groupId===first.action.groupId)next=next.next;
+  if(next&&next!==allocated){state.list.remove(allocated);state.list.insertBefore(node,next);}
+  return node;
 }
 
 // GetAcceptableAction 1404aba90..1404ababd, verified switch map. This is

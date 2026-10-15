@@ -1,5 +1,5 @@
 param([ValidateSet('Start','Status','Stop')][string]$Action = 'Status', [int]$Port = 5131,
-    [ValidateSet('combat','perception')][string]$Fixture = 'combat')
+    [ValidateSet('combat','perception','xp')][string]$Fixture = 'combat')
 $ErrorActionPreference = 'Stop'
 $oracleWorkspace = Split-Path $PSScriptRoot -Parent
 $oracleModule = 'codex_' + $Fixture + '_oracle'

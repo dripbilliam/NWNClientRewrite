@@ -8,8 +8,9 @@ const required = (p, name) => {
   return p[name];
 };
 const cvtt = value => value >= -2147483648 && value < 2147483648 ? Math.trunc(value) | 0 : -2147483648;
-function vector(value) {
-  if (!Array.isArray(value) || value.length < 3 || value.slice(0, 3).some(n => !Number.isFinite(n))) throw new Error('Native area LOS vector is unavailable');
+function vector(value,nativeHeight=false) {
+  if (!Array.isArray(value) || value.length < 3 || value.slice(0, 2).some(n => !Number.isFinite(n)) ||
+    (nativeHeight?typeof value[2]!=='number':!Number.isFinite(value[2]))) throw new Error('Native area LOS vector is unavailable');
   return value.slice(0, 3).map(f);
 }
 
@@ -41,7 +42,7 @@ export async function clearAreaLOS(area, from, to, output, hit, sourceId, target
     if (await required(p, 'clearTile')(collisionTile, direction, clipped.entry, clipped.exit, tileHit) !== 1) {
       output.splice(0, 3, ...vector(tileHit)); tileResult = 0; break;
     }
-    const exit = vector(clipped.exit);
+    const exit = vector(clipped.exit,true);
     if (exit.slice(0, 2).every((value, axis) => value >= f(to[axis] - tolerance) && value <= f(to[axis] + tolerance))) break;
     if ((direction & 1) && f(exit[0] - f(f(x) * 10)) >= highEdge) x++;
     if ((direction & 8) && f(exit[0] - f(f(x) * 10)) <= tolerance) x--;

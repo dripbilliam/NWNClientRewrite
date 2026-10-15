@@ -61,6 +61,7 @@ export class RadialMenu {
   open(menu,x,y,context) {
     this.close();
     this.context = context; this.stack = []; this.menu = menu; this.clickMode = false; this.moved = false;
+    this.host.dataset.targetObjectId=String(context.targetId);
     this.gestureStart = {x,y}; this.dragged = false; this.initialGesture = true;
     const rect = this.viewport.getBoundingClientRect();
     this.scale = Math.min(1,(rect.width-12)/320,(rect.height-12)/320);

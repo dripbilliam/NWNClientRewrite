@@ -16,6 +16,25 @@ const S = [-0.16666666666666666, 0.008333333333333333, -0.0001984126984126984, 0
 export function nativeCosf(value) { return nativeTrig(value, true); }
 export function nativeSinf(value) { return nativeTrig(value, false); }
 
+// atanf140c94418..140c945f8. Input is float32, reduction/polynomial
+// use SSE doubles, then one CVTSD2SS. NaN/CRT exception flags stay diagnosed.
+export function nativeAtanf(value){
+  value=f(value);
+  if(Number.isNaN(value))throw new Error('Native atanf NaN/CRT exception state is not implemented');
+  const negative=value<0||Object.is(value,-0);let x=Math.abs(value),offset=0;
+  if(x<.4375){}
+  else if(x<.6875){offset=.4636476090008061;x=(x+x-1)/(x+2);}
+  else if(x<1.1875){offset=.7853981633974483;x=(x-1)/(x+1);}
+  else if(x<2.4375){offset=.982793723247329;x=(x-1.5)/(x*1.5+1);}
+  else if(x>5512405943901487000)return negative?-f(1.5707963267948966):f(1.5707963267948966);
+  else{offset=1.5707963267948966;x=-1/x;}
+  const square=x*x;
+  const numerator=((square*.004706779342861492+.19232454640210858)*square+.2965285988192392)*(square*x);
+  const denominator=(square*.2993096999596597+1.1107249999539954)*square+.8895857968624323;
+  const output=offset-(numerator/denominator-x);
+  return f(negative?-output:output);
+}
+
 // CRT asinf140c7a9a8..140c7abc4, finite domain only. Every mulss/addss/
 // subss/divss rounds separately. The truncated root is a bit operation,
 // not a numeric integer conversion. Floating status/errno is not emulated.

@@ -8,11 +8,16 @@ export async function clearHostileActionsVersus(actor,target,p){
   const groups=()=>{const result=[];let previous=-1;for(const node of list){const group=node.groupId&65535;
     if(group!==previous)result.push(node);previous=group;}return result;};
   const count=groups().length;
+  const attempted=new Map();
   for(let index=0;index<count;index++){
     const node=groups()[index];if(!node)continue;
     const action=actionByGroupId(actor.objectActionState,node.groupId);if(!action)continue;
     const id=action.actionId|0,slot=id===12?0:id===15?5:id===46?3:-1;
     if(slot<0||(action.parameterData[slot]>>>0)!==(target.id>>>0))continue;
+    const snapshot=[...list],previous=attempted.get(node.groupId);
+    if(previous&&previous.length===snapshot.length&&previous.every((value,n)=>value===snapshot[n]))
+      throw new Error('Native hostile clearing would repeat an unchanged protected action group indefinitely');
+    attempted.set(node.groupId,snapshot);
     if(typeof p.removeGroup!=='function')throw new Error('Native hostile action group removal is unavailable');
     await p.removeGroup(actor,node.groupId);index=0;
     if(id===15){

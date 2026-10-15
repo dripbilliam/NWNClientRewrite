@@ -41,6 +41,23 @@ export class WorldTimer{
     while(time>=length){day=(day+1)>>>0;time=(time-length)>>>0;}
     return{day,time};
   }
+  // CWorldTimer calendar/time conversions140596e90/140596ee0. Calendar
+  // months are28 days; an out-of-range converted year falls back to1340.
+  calendar(day=this.time().day){
+    day=u32(day,'calendar day');const months=Math.floor(day/28),year=Math.floor(months/12);
+    return{year:year>32767?1340:year,month:months%12+1,day:day%28+1};
+  }
+  timeParts(time=this.time().time){
+    time=u32(time,'calendar time');const rate=u32(this.minutesPerHour,'minutes per hour')&255;
+    if(rate===0)throw new Error('Native calendar conversion divides by zero');
+    const seconds=Math.floor(time/1000),minutes=Math.floor(seconds/60);
+    return{hour:Math.floor(minutes/rate),minute:minutes%rate,second:seconds%60,millisecond:time%1000};
+  }
+  // Native getters140597390/140597480/140597540 read current world time,
+  // including its pause and offset normalization, rather than module caches.
+  getHour(){return this.timeParts().hour;}
+  getMinute(){return this.timeParts().minute;}
+  getSecond(){return Math.floor(this.time().time/1000)%60;}
   setCalendar(year,month,day,hour,minute,second,millisecond,snapshot=0){
     [year,month,day,hour,minute,second,millisecond]=[year,month,day,hour,minute,second,millisecond].map(v=>u32(v,'calendar argument'));
     let date=year<32001?Math.imul(year,336):0x6dec0;

@@ -1,10 +1,12 @@
 """Read-only bounded native combat disassembly for the recorded target build."""
 import argparse
 import hashlib
+import sys
 from functools import lru_cache
 from pathlib import Path
 import pefile
 from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+sys.stdout.reconfigure(errors='backslashreplace')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('addresses', nargs='*', help='Hex function addresses, or start:end ranges for verified leaf functions')
@@ -14,12 +16,60 @@ parser.add_argument('--u8-table', nargs='+', default=[], help='Hex address:decim
 parser.add_argument('--field', nargs='+', default=[], help='Hex native field displacements to locate in bounded unwind functions')
 parser.add_argument('--strings', nargs='+', default=[], help='Hex addresses of null-terminated strings, bounded to 256 bytes')
 parser.add_argument('--find-text', nargs='+', default=[], help='Find exact ASCII text in the read-only image and print containing strings (256 bytes maximum)')
+parser.add_argument('--find-export', nargs='+', default=[], help='Find matching named exports in the verified read-only image (maximum 200 per query)')
+parser.add_argument('--leaf-cfg', nargs='+', default=[], help='Verified direct-call leaf starts: decode reachable direct branches to returns, bounded to 512 bytes; do not infer starts')
+parser.add_argument('--head-block', nargs='+', default=[], help='Verified call/branch targets only: inspect one basic block, bounded128 bytes; not a complete function boundary')
+parser.add_argument('--ascii-range', nargs='+', default=[], help='Hex address:decimal length of a bounded null-separated ASCII string pool (maximum4096 bytes)')
+parser.add_argument('--references', nargs='+', default=[], help='Hex addresses whose RIP-relative or pointer references should be located; candidate references require instruction verification')
+parser.add_argument('--type-vtables', nargs='+', default=[], help='Hex MSVC type-descriptor addresses to locate verified complete-object-locator vtable headers')
 args = parser.parse_args()
 binary = Path(__file__).resolve().parents[2] / 'FullDecomp/NwnRootInstall/bin/win32/nwmain.exe'
 data = binary.read_bytes()
 assert hashlib.sha256(data).hexdigest() == '3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a'
 image = pefile.PE(data=data)
 base = image.OPTIONAL_HEADER.ImageBase
+for value in args.type_vtables:
+    import struct
+    address=int(value,16);needle=struct.pack('<I',address-base);offset=0
+    while (offset:=data.find(needle,offset))>=0:
+        start=offset-12
+        if start>=0 and start+24<=len(data):
+            record=struct.unpack_from('<6I',data,start)
+            rva=image.get_rva_from_offset(start)
+            if record[0]==1 and record[5]==rva:
+                locator=base+rva;pointer=struct.pack('<Q',locator);at=0
+                while (at:=data.find(pointer,at))>=0:
+                    print(f'TYPE VTABLE {base+image.get_rva_from_offset(at)+8:x} LOCATOR {locator:x} TYPE {address:x} OFFSET {record[1]:x}');at+=8
+        offset+=4
+for value in args.ascii_range:
+    address,length=value.split(':');address,length=int(address,16),int(length)
+    assert 0<length<=4096
+    raw=image.get_data(address-base,length);offset=0
+    for piece in raw.split(b'\0'):
+        if piece and all(32<=n<127 for n in piece):print(f'ASCII {address+offset:x}: {piece.decode("ascii")}')
+        offset+=len(piece)+1
+if args.references:
+    import struct
+    section=next(s for s in image.sections if s.Name.rstrip(b'\0')==b'.text')
+    code=section.get_data();origin=base+section.VirtualAddress
+    for value in args.references:
+        address=int(value,16);low=(address-origin-4)&255
+        for offset in range(len(code)-3):
+            if (code[offset]+offset)&255!=low:continue
+            if origin+offset+4+struct.unpack_from('<i',code,offset)[0]!=address:continue
+            rva=section.VirtualAddress+offset
+            runtime=next((e.struct for e in image.DIRECTORY_ENTRY_EXCEPTION if e.struct.BeginAddress<=rva<e.struct.EndAddress),None)
+            print(f'REFERENCE CANDIDATE {origin+offset:x} -> {address:x} FUNCTION {base+runtime.BeginAddress:x}' if runtime else f'REFERENCE CANDIDATE {origin+offset:x} -> {address:x} NO UNWIND')
+        needle=struct.pack('<Q',address);offset=0
+        while (offset:=data.find(needle,offset))>=0:
+            print(f'POINTER REFERENCE {base+image.get_rva_from_offset(offset):x} -> {address:x}');offset+=8
+for value in args.find_export:
+    matches = [entry for entry in image.DIRECTORY_ENTRY_EXPORT.symbols
+               if entry.name and value.lower() in entry.name.decode('ascii').lower()]
+    if len(matches) > 200:
+        raise ValueError('Export query is too broad; use a more specific symbol')
+    for entry in matches:
+        print(f'EXPORT {base+entry.address:x}: {entry.name.decode("ascii")}')
 for value in args.strings:
     address = int(value, 16)
     raw = image.get_data(address-base, 256).split(b'\0', 1)[0]
@@ -53,6 +103,29 @@ if args.data:
         raw = image.get_data(address-base, 8)
         print(f'DATA {address:x}: {raw.hex()} u16={struct.unpack_from("<H", raw)[0]} i32={struct.unpack_from("<i", raw)[0]} f32={struct.unpack_from("<f", raw)[0]}')
 decoder = Cs(CS_ARCH_X86, CS_MODE_64)
+for value in args.head_block:
+    start=int(value,16)
+    print(f'CALLER-SUPPLIED TARGET BASIC BLOCK {start:x} (verify provenance; not complete function evidence)')
+    for ins in decoder.disasm(image.get_data(start-base,128),start):
+        print(f'{ins.address:x}: {ins.mnemonic} {ins.op_str} ; next={ins.address+ins.size:x} bytes={ins.bytes.hex()}')
+        if ins.mnemonic.startswith(('j','ret','call')):break
+for value in args.leaf_cfg:
+    start=int(value,16);pending=[start];visited={}
+    while pending:
+        at=pending.pop()
+        if at in visited:continue
+        if not start<=at<start+512:raise ValueError('Leaf CFG leaves its bounded region; inspect the tail owner separately')
+        ins=next(decoder.disasm(image.get_data(at-base,15),at),None)
+        if not ins:raise ValueError(f'Cannot decode verified CFG instruction {at:x}')
+        visited[at]=ins
+        if ins.mnemonic.startswith('ret'):continue
+        if ins.mnemonic.startswith('j'):
+            if not ins.op_str.startswith('0x'):raise ValueError('Leaf indirect branch requires separate jump-table mapping')
+            pending.append(int(ins.op_str,16))
+            if ins.mnemonic=='jmp':continue
+        pending.append(at+ins.size)
+    print(f'LEAF CFG VERIFIED CALL START {start:x} REACHABLE END {max(at+ins.size for at,ins in visited.items()):x}')
+    for at,ins in sorted(visited.items()):print(f'{at:x}: {ins.mnemonic} {ins.op_str}')
 runtime_by_begin = {entry.struct.BeginAddress: entry.struct for entry in image.DIRECTORY_ENTRY_EXCEPTION}
 if args.field:
     import struct

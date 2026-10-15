@@ -1,3 +1,4 @@
+import {deletePathAlternatives} from './path_alternatives.js';
 // CPathfindInformation constructor 140293a70; creature attachment/owner
 // 14037a5d7..14037a5e2. Local scalar storage, not native pointers or a packet.
 // Owned search allocations are kept separately; pathfinding is still pending.
@@ -34,7 +35,7 @@ export class PathInformation {
     this.raw.setInt32(0x5c,value>=-2147483648&&value<2147483648?Math.trunc(value):-2147483648,true);
   }
   resetInterTile(){
-    if(this.allocations.get(0x118))throw new Error('Native path search-node disposal 140294090 is unavailable');
+    deletePathAlternatives(this);
     for(const offset of [0xd0,0xd8,0xe8,0xf0,0x120]){this.allocations.delete(offset);this.raw.setBigUint64(offset,0n,true);}
     this.raw.setInt32(0xcc,0,true);this.raw.setInt32(0xe0,0,true);this.raw.setBigUint64(0xf8,0n,true);this.raw.setInt32(0x100,0,true);
   }
@@ -50,14 +51,14 @@ export class PathInformation {
   // ResetAtEndOfPath 140294430..45b then ResetInterAreaSearchData
   // 140294750..97b. Preserve radius, owner, target and unrelated scalar bytes.
   resetAtEnd(){
-    if(this.allocations.get(0x118))throw new Error('Native path search-node disposal 140294090 is unavailable');
+    deletePathAlternatives(this);
     for(const [offset,size] of [[0x19c,4],[0x30,16],[0x44,24],[0x60,20]])new Uint8Array(this.raw.buffer,offset,size).fill(0);
     this.resetInterArea();
   }
   // ResetInterAreaSearchData retains goal/start/range and +19c. This is
   // also called directly by action19 and PlotPath, independently of resetAtEnd.
   resetInterArea(){
-    if(this.allocations.get(0x118))throw new Error('Native path search-node disposal 140294090 is unavailable');
+    deletePathAlternatives(this);
     const zero=(offset,size)=>new Uint8Array(this.raw.buffer,offset,size).fill(0);
     [[0x14,8],[0x1c,4],[0xb8,4],
       [0x9c,12],[0x1d8,4],[0x7c,4],[0x88,4],[0x98,4],[0x128,4],[0x134,4],

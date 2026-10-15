@@ -20,10 +20,13 @@ function fixture(options = {}) {
     diffsettings: parse2da('2DA V2.0\n\nName A B C D E\n0 Critical 1 1 1 **** ****\n1 Ranged 1 1 1 **** ****\n2 Potion 1 1 1 **** ****\n3 Min 100 50 **** **** ****\n4 Max 25 50 100 100 200\n5 HP 1 **** **** **** ****\n6 Massive 0 0 0 1 1')
   };
   s.module = s.register('module', 'module', {}); s.ifo = {};
+  // These lifecycle/effect fixtures isolate witness/XP providers. Integrated
+  // faction/XP behavior is exercised separately with loaded active resources.
+  s.combat.adjustReputations=async()=>{};s.combat.applyDeathExperience=async()=>{};
   const area = s.register('area', 'area', { objects: [], pvpSetting: 0 });
   const create = (name, isPC, hp) => {
     const object = s.register(isPC ? 'player' : 'creature', name, {
-      name, isPC, areaId: area.id, position: [0, 0, 0], scripts: {}, factionId: isPC ? 0 : 1,
+      name, isPC, nativeField89c:Number(isPC), areaId: area.id, position: [0, 0, 0], scripts: {}, factionId: isPC ? 0 : 1,
       authored: { Race: 0, FeatList: [], ClassList: [] }, creatureData: { CurrentHitPoints: hp, ClassList: [], Race: 0 },
       stats: { currentHP: hp, maxHP: 40, feats: [], equippedAbilities: { Dex: 10 } },
       combatRound: createCombatRound(s.characterRules), modelType: 'P', animationState: 1
@@ -54,6 +57,15 @@ test('native-shaped strike signaling delivers attack history then delayed HP thr
   assert.equal(s.registry.get(originalId), npc); assert.equal(npc.stats, originalStats); assert.equal(npc.lastDamagerId, pc.id);
 });
 
+test('live death magic immunity preserves killer/status/action state and emits caster feedback before an explicit bypass permits death',async()=>{
+  const {s,pc,npc,cleared}=fixture(),sent=[];s.onCombatMessage=m=>sent.push(m);
+  npc.effects=[{id:'immune',type:22,integers:[32,28,0,0],durationType:2,subtype:0}];
+  const effect=s.effects.create(2,pc.id,[],8);effect.spellId=4;npc.lastKillerId=0x80000001;
+  await s.damage.death(npc,effect);
+  assert.equal(npc.nativeDeathWord8d4,65535);assert.equal(npc.lastKillerId,0x80000001);assert.deepEqual(cleared,[]);
+  assert.equal(sent.length,1);assert.equal(sent[0].recipientId,pc.id);assert.equal(sent[0].data.integers[9],127);assert.deepEqual(sent[0].data.objects,[npc.id]);
+  effect.bypassImmunity=1;await s.damage.death(npc,effect);assert.equal(npc.nativeDeathWord8d4,0);assert.equal(npc.lastKillerId,pc.id);assert.deepEqual(cleared,[npc.id]);
+});
 test('native IsImmortal serialized field protects NPC HP without requiring an invented runtime override', async () => {
   const { npc, effect, apply } = fixture();
   npc.creatureData.IsImmortal = 1; await apply(effect(50)); assert.equal(npc.stats.currentHP, 1);
@@ -144,9 +156,9 @@ test('damage applies immunity, live resistance budgets and reduction in order, w
 
 test('mitigation constructors preserve native signed resistance fields and clamp reduction independently', () => {
   const { s, pc } = fixture(), self = { self: pc.id };
-  assert.deepEqual(s.commands.EffectDamageResistance([-1, -5, -1, 2], self).integers, [8, -5, -1, 2]);
-  assert.deepEqual(s.commands.EffectDamageResistance([0, 5], self).integers, [0, 5, 0, 0]);
-  assert.deepEqual(s.commands.EffectDamageReduction([-2, 23, -10, -1], self).integers, [0, 0, 0, -1]);
+  assert.deepEqual(s.commands.EffectDamageResistance([-1, -5, -1, 2], self).integers, [8, -5, -1, 2, 0, 0, 0, 0]);
+  assert.deepEqual(s.commands.EffectDamageResistance([0, 5], self).integers, [0, 5, 0, 0, 0, 0, 0, 0]);
+  assert.deepEqual(s.commands.EffectDamageReduction([-2, 23, -10, -1], self).integers, [0, 0, 0, -1, 0, 0, 0, 0]);
 });
 
 test('temporary HP and healing share base storage, total getter and immutable authored state', async () => {
@@ -231,6 +243,20 @@ test('NPC death skips OnDamaged, runs OnDeath before effect purge and retains th
   assert.deepEqual(cleared, [npc.id]); assert.equal(s.registry.get(npc.id), npc);
   assert.deepEqual(messages.filter(m => ['damage', 'death'].includes(m.type)).map(m => m.type), ['damage', 'death']);
   await apply(effect(1)); assert.equal(trace.length, 1);
+});
+test('native death clears actions, adjusts witnesses before assigning killer, then runs script and XP before clearing the shared status WORD',async()=>{
+  const {s,pc,npc,effect}=fixture(),trace=[];npc.lastKillerId=OBJECT_INVALID;npc.lastDamagerId=pc.id;
+  s.combat.clearActions=o=>trace.push(['actions',o.nativeField8d4]);
+  s.combat.adjustReputations=(target,killer,kind)=>trace.push(['reputations',target,killer,kind,npc.lastKillerId]);
+  s.combat.clearAttackActivity=(o,bit,value)=>trace.push(['activity',bit,value,o.lastKillerId]);
+  s.combat.removeInvisibility=o=>trace.push(['invisibility',o.lastKillerId]);
+  npc.scripts.death='death';s.program=async()=>({});s.vm={run:async()=>trace.push(['script',npc.lastKillerId,npc.nativeField8d4])};
+  s.combat.applyDeathExperience=o=>trace.push(['xp',o.lastKillerId,o.nativeField8d4]);
+  await s.damage.death(npc,effect(1,4,npc.id));
+  assert.deepEqual(trace,[['actions',65535],['reputations',npc.id,pc.id,2,OBJECT_INVALID],['activity',1,0,OBJECT_INVALID],
+    ['invisibility',OBJECT_INVALID],['script',pc.id,65535],['xp',pc.id,65535]]);
+  assert.equal(npc.nativeMovementFlags8d4,0);assert.equal(npc.perceptionUpdateFlags,0);assert.equal(npc.nativeDeathWord8d4,0);
+  trace.length=0;await s.damage.death(npc,effect(1));assert.deepEqual(trace,[]);
 });
 
 test('PC dying/death enqueue distinct module events after damage, and dying suppresses a death event', async () => {
@@ -381,7 +407,7 @@ test('combat script getters read generic live alignment, trap and canonical targ
   assert.equal(s.commands.GetAlignmentGoodEvil([npc.id]), 5); assert.equal(s.commands.GetAlignmentLawChaos([npc.id]), 2);
   assert.equal(s.commands.GetAlignmentGoodEvil([OBJECT_INVALID]), -1);
   assert.equal(s.commands.GetIsTrapped([npc.id]), 0);
-  const trap = s.register('trigger', 'trap', { authored: { TrapFlag: 1 } });
+  const trap = s.register('trigger', 'trap', { authored: { Type: 2 } });
   assert.equal(s.commands.GetIsTrapped([trap.id]), 1); trap.trapped = 0; assert.equal(s.commands.GetIsTrapped([trap.id]), 0);
   npc.nativeAttackTarget724 = pc.id; npc.attackTargetId = OBJECT_INVALID;
   assert.equal(s.commands.GetAttackTarget([npc.id]), pc.id);

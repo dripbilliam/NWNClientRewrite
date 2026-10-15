@@ -90,6 +90,12 @@ test('hostile group clearing preserves native restart-at-one quirk and cancellat
   assert.deepEqual([...state.list],[second]);assert.deepEqual(cleared,[[first,true],[third,false]]);
   addObjectAction(state,12,4,[{type:3,value:8}]);await removeObjectActionGroup(actor,2,{clearAction:()=>0});assert.equal(state.list.count,2);
 });
+test('hostile clearing records an explicit failure instead of hanging on native protected-group repetition',async()=>{
+  const actor={objectActionState:createObjectActionState()},target={id:8},state=actor.objectActionState;
+  addObjectAction(state,12,1,[{type:3,value:7}]);addObjectAction(state,12,2,[{type:3,value:8}]);
+  await assert.rejects(clearHostileActionsVersus(actor,target,{removeGroup:()=>{}}),/unchanged protected action group/);
+  assert.equal(state.list.count,2);
+});
 test('visible list updates cached entries in reverse, removes stale IDs, then visits new native X candidates only once',async()=>{
   const {actor,target,p,calls,area}=fixture(),left={...target,id:4,position:[-2,0,0]},far={...target,id:5,position:[11,0,0]};
   const objects=new Map([[1,actor],[2,target],[4,left],[5,far]]),spatial=new NativeAreaSpatialArray({get:id=>objects.get(id)});
