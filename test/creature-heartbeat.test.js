@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {spawnHeartbeatPerception,cleanPersonalReputations,cleanInvitationLists} from '../src/creature_heartbeat.js';
 import {NativeAIMaster,scriptSetAILevel} from '../src/native_ai_master.js';
 import {ModuleSession} from '../src/module_session.js';
+import {receiveSummonEvent} from '../src/summon_effect.js';
 const invalid=0x7f000000;
 function fixture(){
   const actor={id:0x80000001,areaId:9,position:[5,0,-5],nativeSpawnState548:1,nativeField948:invalid,
@@ -41,6 +42,15 @@ test('spawn target gates initial heartbeat and visibility; native timer snapshot
   assert.equal(actor.nativeSpawnState548,1);assert.equal(actor.nativeHeartbeatTime550,200);assert.equal(actor.nativePerceptionTime57c,200);
   const other=fixture();other.actor.nativeSpawnState548=0;other.actor.nativeHeartbeatTime550=other.actor.nativePerceptionTime57c=0;other.now.time=200;
   await spawnHeartbeatPerception(other.actor,0,other.p);assert.deepEqual(other.trace,[['script',8]]);assert.equal(other.actor.nativeSpawnState548,1);
+});
+test('summon delivery marks the same spawn cell read by subsequent native heartbeat updates',async()=>{
+ const {actor,trace,area,p}=fixture();actor.nativeSpawnState548=0;
+ await receiveSummonEvent({id:22},{floats:[5,5,0],objectIds:[actor.id],integers:[0]},{
+  creature:()=>actor,area:()=>area,addToArea:()=>{},runEventScript:(o,index)=>p.runEvent(o,index),addAssociate:()=>{},
+ });
+ assert.equal(actor.nativeSpawnState548,1);assert.equal(Object.hasOwn(actor,'nativeField548'),false);
+ await spawnHeartbeatPerception(actor,0,p);await spawnHeartbeatPerception(actor,0,p);
+ assert.deepEqual(trace,[['script',8]]);
 });
 test('zero last time skips first ordinary heartbeat/visibility but still advances caches and random',async()=>{
   const {actor,trace,now,p}=fixture();actor.nativeHeartbeatTime550=actor.nativePerceptionTime57c=0;now.time=7000;

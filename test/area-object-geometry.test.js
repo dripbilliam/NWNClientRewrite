@@ -21,12 +21,21 @@ function fixture(kind = 'placeable') {
   // Resource API returns ArrayBuffers, never a string.
   const original = resolver.getResource.bind(resolver);
   resolver.getResource = async (...args) => new TextEncoder().encode(await original(...args));
-  const object = { id: 0x80000002, objectType: kind === 'door' ? 10 : 9, areaId: 9, position: [0, 0, 0], bearing: 0, animationState: 0, authored: { Appearance: 0 } };
+  const object = { id: 0x80000002, objectType: kind === 'door' ? 10 : 9, areaId: 9, position: [0, 0, 0], bearing: 0, animationState: 0, authored: { Appearance: 0 },nativePlaceableActionPoints550:[[0,0,0],[0,0,0]] };
   const registry = new Map([[object.id, object]]), area = { id: 9, resRef: 'area', objects: [object.id] };
   const resources = new NativeGeometryResources(resolver, (error, context) => reports.push({ error, context }));
   return { calls, reports, resolver, resources, object, registry, area, geometry: new NativeAreaObjectGeometry(area, resources, registry) };
 }
 const query = geometry => geometry.query([0, 0], [4, 0], 0, 1, .1, OBJECT_INVALID, { id: OBJECT_INVALID }, 1, null, 0);
+
+test('explicit native facing survives lazy geometry load and guarded orientation commits retain existing polygons',async()=>{
+ const {geometry,object}=fixture();object.bearing=Math.PI/2;object.nativeOrientation=[2,0,0];await geometry.load();
+ assert.deepEqual(object.nativeOrientation,[2,0,0]);assert.deepEqual(object.orientation,[2,0,-0]);
+ const previous=geometry.preparePlaceableOrientation(object),vertices=geometry.store.vertices.slice();
+ object.nativeOrientation=[2,Math.fround(.0001),0];object.orientation=[2,0,Math.fround(-.0001)];geometry.commitPlaceableOrientation(object,previous);
+ assert.deepEqual(geometry.store.vertices,vertices);await query(geometry);
+ object.position[0]=1;assert.throws(()=>geometry.preparePlaceableOrientation(object),/current collision state/);assert.throws(()=>geometry.commitPlaceableOrientation(object,'invalid'),/changed unexpectedly/);
+});
 test('native bearing uses quaternion arithmetic, normalized facing and signed-zero behavior', () => {
   assert.deepEqual(nativePlacementOrientation(0), [0, 1, 0]);
   assert.deepEqual(nativePlacementOrientation(Math.fround(Math.PI)), [Math.fround(8.742277657347586e-8), -1, 0]);
@@ -87,4 +96,30 @@ test('separate module resolvers retain their own collision meshes for the same m
   second.resolver.getResource = async (_ref, type) => new TextEncoder().encode(type === types.TWO_DA ? '2DA V2.0\n\nModelName\n0 original\n' : 'node dummy decorative\nendnode\n');
   assert.equal(await query(first.geometry), 0); assert.equal(await query(second.geometry), 1);
   assert.notEqual(await first.resources.objectMesh('original', 'placeable'), await second.resources.objectMesh('original', 'placeable'));
+});
+
+test('explicit placeable area operations compact geometry and reuse native holes without rebuilding the store',async()=>{
+ const {geometry,object,area,registry}=fixture();await query(geometry);const store=geometry.store;
+ const add=async(id,x)=>{
+  const next={id,objectType:9,areaId:area.id,authored:{Appearance:0},position:[x,0,0],bearing:0,nativePosition:[x,0,0],nativeOrientation:[0,1,0],nativeCollisionSlot:-1};
+  registry.set(id,next);await geometry.insertPlaceable(next);area.objects.push(id);return next;
+ };
+ const second=await add(0x80000003,10);assert.equal(second.nativeCollisionSlot,1);assert.equal(await query(geometry),0);
+ await geometry.removePlaceable(object);area.objects.splice(area.objects.indexOf(object.id),1);object.areaId=OBJECT_INVALID;
+ assert.equal(object.nativeCollisionSlot,-1);assert.equal(await query(geometry),1);assert.equal(store.objectIds[0],OBJECT_INVALID);assert.equal(store.faceStarts[1],0);assert.equal(store.vertexStarts[1],0);
+ const third=await add(0x80000004,0);assert.equal(third.nativeCollisionSlot,0);assert.equal(store.objectCount,2);assert.equal(store.faceStarts[0],1);assert.equal(store.faceStarts[1],0);assert.equal(store.vertexCount,6);assert.equal(store.faceCount,2);assert.equal(await query(geometry),0);
+ third.position=[5,0,0];third.nativePosition=[5,0,0];await geometry.replacePlaceable(third);
+ assert.equal(await query(geometry),1);assert.deepEqual(store.getBounds(0),[[7,-2,0],[7,2,2]]);assert.equal(geometry.store,store);assert.equal(store.objectCapacity,16);
+ third.orientation=[1,0,0];await assert.rejects(query(geometry),/position\/orientation update lifecycle/);
+});
+
+test('dynamic empty/missing placeable meshes retain canonical membership and diagnosed load failures',async()=>{
+ const {geometry,object,area,registry,resources,reports}=fixture();await query(geometry);await geometry.removePlaceable(object);area.objects=[];
+ const next={id:0x80000009,objectType:9,areaId:area.id,position:[0,0,0],bearing:0,nativePosition:[0,0,0],nativeOrientation:[0,1,0],authored:{Appearance:123},nativeMessageFields:{0x32c:1},nativeCollisionSlot:-1};registry.set(next.id,next);
+ const appearances=[];resources.placeableMesh=async appearance=>{appearances.push(appearance);const error=new Error('Missing runtime PWK');error.code='RESOURCE_NOT_FOUND';error.resourceType=types.PWK;throw error;};
+ assert.equal(await geometry.insertPlaceable(next),-1);area.objects.push(next.id);assert.deepEqual(appearances,[1]);assert.equal(await query(geometry),1);assert.equal(reports.at(-1).context.objectId,next.id);
+ assert.equal(reports.at(-1).context.operation,'native-placeable-pwk-missing-empty-mesh');
+ await geometry.removePlaceable(next);area.objects=[];assert.equal(await query(geometry),1);
+ resources.placeableMesh=async()=>{throw new Error('Corrupt runtime PWK');};await assert.rejects(geometry.insertPlaceable(next),/Corrupt runtime/);assert.equal(geometry.snapshots.has(next.id),false);assert.equal(reports.at(-1).context.operation,'native-area-object-collision-insert');
+ await assert.rejects(geometry.insertPlaceable({...next}),/canonical object/);
 });

@@ -25,7 +25,7 @@ export async function applyHasteOrSlow(actor,effect,p,loading=0){
 }
 export async function removeHasteOrSlow(actor,effect,p){if(actor.objectType===5)await transition(actor,effect,p,true,0);return 1;}
 async function child(actor,parent,type,values,copyIcons,p,loading){
-  const effect=call(p,'copy',parent,copyIcons);effect.type=type;for(const [index,value] of values)effect.integers[index]=value|0;
+  const effect=call(p,'copyConstruct',parent,copyIcons);effect.type=type;for(const [index,value] of values)effect.integers[index]=value|0;
   await call(p,'apply',actor,effect,loading);
 }
 // OnApplyHasteInternal14042d950 and OnApplySlowInternal1404333c0.

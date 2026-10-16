@@ -19,12 +19,13 @@ def hook(u,a,n,_):
     elif a==0x140286330:
         output=dict(type=int.from_bytes(u.mem_read(effect+8,2),'little'),subtype=int.from_bytes(u.mem_read(effect+0xa,2),'little'),integers=[m.si(ints+i*4) for i in range(8)],creatorId=m.si(effect+0x18)&0xffffffff);m.finish(1)
     elif a in [0x140423770,0x140c10360]:m.finish()
-    elif not any(lo<=a<hi for lo,hi in [(0x1405180b0,0x140518a6e),(0x140425210,0x14042521c)]):raise AssertionError(f'Uncaptured control constructor dependency {a:x} ordinal={ordinal}')
+    elif not any(lo<=a<hi for lo,hi in [(0x1405180b0,0x140518a6e),(0x14051ab90,0x14051ac48),(0x140425210,0x14042521c)]):raise AssertionError(f'Uncaptured control constructor dependency {a:x} ordinal={ordinal}')
 u.hook_add(UC_HOOK_CODE,hook);rows=[]
 owners=json.loads((m.root/'backups/animations/native-command-table-observations.json').read_text())['rows']
-for ordinal in [134,148,154,156,157,158,159,160,161,252,270,271,767]:
-    assert owners[ordinal]['handler']=='1405180b0','Wrong native constructor owner'
+for ordinal in [134,148,154,156,157,158,159,160,161,252,270,271,767,583]:
+    owner=0x14051ab90 if ordinal==583 else 0x1405180b0
+    assert owners[ordinal]['handler']==f'{owner:x}','Wrong native constructor owner'
     output=None;u.mem_write(m.heap,bytes(0x100000));m.wi(command+0xc,99);rsp=m.stack+0x1fe08;u.mem_write(rsp-0x200,bytes(0x300));m.wq(rsp,m.stop);u.reg_write(UC_X86_REG_RSP,rsp)
     for reg,value in zip([UC_X86_REG_RCX,UC_X86_REG_RDX,UC_X86_REG_R8],[command,ordinal,0]):u.reg_write(reg,value)
-    u.emu_start(0x1405180b0,m.stop,count=5000);assert u.reg_read(UC_X86_REG_RIP)==m.stop;rows.append(dict(ordinal=ordinal,output=output))
-out=m.root/'backups/animations/native-control-constructor-observations-v3.json';out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2)+'\n');print(json.dumps(dict(rows=len(rows),output=str(out))))
+    u.emu_start(owner,m.stop,count=5000);assert u.reg_read(UC_X86_REG_RIP)==m.stop;rows.append(dict(ordinal=ordinal,output=output))
+out=m.root/'backups/animations/native-control-constructor-observations-v4.json';out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2)+'\n');print(json.dumps(dict(rows=len(rows),output=str(out))))

@@ -28,6 +28,14 @@ export class WorldObjects {
     return object;
   }
   get(id) { return this.objects.get(id); }
+  // Detach this area's view only. Canonical destruction/transfer has its own
+  // lifecycle; rendering must never delete or reallocate game-object IDs.
+  remove(id){
+    const object=this.objects.get(id);if(!object)return null;
+    const render=this.renderBindings.get(id)??null;this.renderBindings.delete(id);this.objects.delete(id);this.sources.delete(object.sourceKey);
+    if(object.tag){const key=object.tag.slice(0,64),ids=this.tags.get(key)??[];this.tags.set(key,ids.filter(value=>value!==id));}
+    return{object,render};
+  }
   byTag(tag) { return (this.tags.get(String(tag).slice(0, 64)) ?? []).map(id => this.get(id)); }
   // A view of canonical state. No simulation objects retain disposed meshes;
   // callers synchronize only between scheduler pumps. Facing/clips have their

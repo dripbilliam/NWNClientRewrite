@@ -4,6 +4,7 @@ import { ABILITIES, characterStats } from '../src/character.js';
 import { reconcileExperience, canLevelUp, updateMemorizedSlots } from '../src/character_progression.js';
 import { ModuleSession } from '../src/module_session.js';
 import { cloneGff } from '../src/gff.js';
+import {parse2da} from '../src/area.js';
 
 function fixture() {
   const rules = { racialtypes: { rows: new Map([[0, {}]]) }, gains: new Map(),
@@ -31,6 +32,12 @@ test('level loss deletes choices, reverses ability/feat/skill deltas and preserv
   assert.equal(down.root.LvlStatList.length, 1); assert.deepEqual(root, before);
   const gain = reconcileExperience(down.root, down.stats, 3000, rules);
   assert.equal(gain.stats.level, 1); assert.equal(gain.stats.canLevelUp, true);
+});
+
+test('level-history great-ability changes use the active EPIC_GREAT_STAT_BONUS rule and reverse the same amount',()=>{
+ const {root,stats,rules}=fixture();rules.ruleset=parse2da('2DA V2.0\n\nLabel Value\n0 EPIC_GREAT_STAT_BONUS 2');
+ const down=reconcileExperience(root,stats,0,rules);assert.equal(down.root.Con,9);
+ const prepared=cloneGff(down.root);prepared.LvlStatList=cloneGff(root.LvlStatList);const up=reconcileExperience(prepared,down.stats,3000,rules);assert.equal(up.root.Con,12);
 });
 
 test('preauthored history replays multiple levels with native HP delta and class-slot order', () => {

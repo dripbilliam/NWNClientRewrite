@@ -14,6 +14,9 @@ export function enumerateItemProperty(item,first,invalid){
   item.effectCursor=0;return invalid();
 }
 export function validItemProperty(effect){return Number(Boolean(effect&&(integer(effect.type,'effect type')&65535)===91));}
+// ExecuteCommandGetItemPropertyDurationType140529240 returns raw low bits,
+// including equipped/innate values; it does not normalize them to permanent.
+export function itemPropertyDurationType(effect){return validItemProperty(effect)?integer(effect.durationType,'duration type')&7:-1;}
 // GetItemPropertyType1405294b0/info1405292e0 return raw stored INTs.
 export function itemPropertyValue(effect,ordinal){
   if(!validItemProperty(effect))return -1;

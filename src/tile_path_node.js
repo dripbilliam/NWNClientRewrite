@@ -38,8 +38,8 @@ export function triangleAt(mesh,point){
   }
   return -1;
 }
-export function closestTileRegion(tile,worldPoint){
-  const graph=tilePathNode(tile.pathNodes.path,tile.pathNodes.pathOrientation);
+export function closestTileRegion(tile,worldPoint,kind=tile.pathNodes.path,orientation=tile.pathNodes.pathOrientation){
+  const graph=tilePathNode(kind,orientation);
   if(!graph)throw new Error('Native tile path node information is unavailable');
   if(graph.centres.length<2)return 0;
   const point=rotateReal(worldPoint.map((v,i)=>f(v-f([tile.x,tile.y][i]*10))),tile.orientation);
@@ -64,8 +64,8 @@ export function closestTileRegion(tile,worldPoint){
     if(d<distance){distance=d;best=index;}
   });return best;
 }
-export function tileRegionEntrance(tile,localPoint){
-  const point=rotateReal(localPoint,tile.orientation),graph=tilePathNode(tile.pathNodes.path,tile.pathNodes.pathOrientation);
+export function tileRegionEntrance(tile,localPoint,kind=tile.pathNodes.path,orientation=tile.pathNodes.pathOrientation){
+  const point=rotateReal(localPoint,tile.orientation),graph=tilePathNode(kind,orientation);
   if(!graph)throw new Error('Native tile path node information is unavailable');
   const epsilon=f(.0001);
   const index=graph.entrances.findIndex(p=>point.every((v,i)=>Math.abs(f(v-p[i]))<=epsilon));

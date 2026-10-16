@@ -57,6 +57,7 @@ button { font: inherit; }
 .radial-entry:disabled { opacity: .38; cursor: default; box-shadow: none; }
 .radial-glyph { display: grid; place-items: center; width: 100%; height: 100%; font-size: 25px; }
 .radial-glyph img { width: 44px; height: 44px; object-fit: contain; image-rendering: auto; }
+.radial-count { position:absolute; right:3px; bottom:2px; color:#fff; font: bold 12px sans-serif; text-shadow:0 1px 2px #000,1px 0 2px #000; pointer-events:none; }
 .radial-label { position: absolute; top: 59px; left: 50%; transform: translateX(-50%); max-width: 105px; width: max-content; padding: 3px 5px; border-radius: 3px; background: rgba(12,18,18,.9); color: #f2e9cc; font: 10px var(--mono); text-align: center; }
 .radial-center { width: 40px; height: 40px; font-size: 24px; }
 .radial-title { position: absolute; width: 130px; left: -65px; top: 29px; padding: 4px; background: rgba(12,18,18,.85); text-align: center; font: 11px var(--mono); overflow-wrap: anywhere; pointer-events: none; }
@@ -126,6 +127,9 @@ button { font: inherit; }
 .game-quick-slots { display:flex; gap:0; }
 .game-quick-slot { width:52px; height:53px; padding:0; position:relative; background-size:100% 100%; background-color:#080a0e; border:0; }
 .game-slot-number { position:absolute; left:5px; top:3px; font-size:10px; color:#ded4a8; }
+.game-slot-uses { position:absolute; right:7px; bottom:4px; color:#fff; font-size:12px; text-shadow:1px 1px #000; pointer-events:none; }
+.game-quick-slot[aria-disabled="true"] .game-slot-icon { opacity:.45; }
+.game-quick-slot[data-equipped="true"] { box-shadow:inset 0 0 0 1px #ccb266; }
 .game-slot-icon { font-size:11px; display:flex; align-items:center; justify-content:center; height:100%; }
 .game-slot-icon img { width:32px; height:32px; object-fit:contain; pointer-events:none; }
 .game-quick-slot.drag-over { outline:2px solid #e2cb82; outline-offset:-3px; }
@@ -160,6 +164,17 @@ button { font: inherit; }
 .game-journal-text { white-space:pre-wrap; font-family:'NWN Default',Georgia,serif; line-height:1.45; margin:9px 4px; overflow-wrap:anywhere; }
 .game-notes { width:100%; height:82%; resize:none; color:#e8dfc1; background:#0d1520; border:1px solid #6e634e; font:14px/1.5 Georgia,serif; padding:8px; }
 .game-inventory-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:1px; }
+.game-repository-grid { position:relative; flex-shrink:0; background-color:#080d14; background-image:linear-gradient(to right,#4c5145 1px,transparent 1px),linear-gradient(to bottom,#4c5145 1px,transparent 1px); background-size:var(--repository-cell) var(--repository-cell); outline:1px solid #4c5145; }
+.game-repository-grid .game-repository-item { position:absolute; margin:0; padding:2px; overflow:hidden; background:#111a21e8; border:1px solid #8c805d; font-size:10px; cursor:grab; color:#e2d6b2; }
+.game-repository-pages { display:flex; gap:3px; margin-bottom:7px; }
+.game-repository-pages [aria-current=true] { border-color:#e6cd71; color:#fff1b3; }
+.game-container-layer { position:absolute; inset:0; pointer-events:none; }
+.game-container-panel { position:absolute; top:120px; pointer-events:auto; background-size:100% 100%; font:12px 'NWN Default',Georgia,serif; color:#e8dfc1; }
+.native-container-control,.native-container-grid { position:absolute; background-size:100% 100%; background-repeat:no-repeat; }
+.native-container-control { padding:0; border:0; background-color:transparent; font:inherit; color:inherit; display:flex; align-items:center; justify-content:center; }
+.native-container-control:disabled { opacity:.4; }
+.native-container-grid .game-repository-grid { position:absolute; background:transparent; outline:0; }
+.game-ui.has-container .game-panel-inventory { right:calc(91px + var(--container-width,360px)); }
 .game-item-slot { height:35px; min-height:35px; background:#0a1119; border:1px solid #424c52; padding:1px; overflow:hidden; font-size:10px; }
 .game-stats { display:grid; grid-template-columns:1fr 70px; line-height:1.8; }
 .game-stats dd { margin:0; text-align:right; color:#e3d3a7; }
@@ -168,6 +183,14 @@ button { font: inherit; }
 .game-equipment dd { margin:0; }
 .game-equipment button { width:100%; text-align:left; }
 .game-spell-class button { display:block; width:100%; margin:4px 0; text-align:left; }
+.game-preparation-controls { display:flex; gap:8px; margin:8px 0; }
+.game-preparation-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; }
+.game-preparation-grid .drag-over { outline:2px solid #e2cb82; }
+.game-panel-spells:has(.game-preparation-grid) { width:min(620px,calc(100% - 100px)); }
+.game-preparation-controls, .game-preparation-grid { background:#101820; }
+.game-rest-timing { position:absolute; left:50%; bottom:85px; transform:translateX(-50%); width:260px; padding:8px; background:#101820ed; border:1px solid #928368; text-align:center; pointer-events:none; }
+.game-rest-timing progress { display:block; width:100%; margin-top:4px; accent-color:#c8ac65; }
+.game-rest-timing[hidden] { display:none; }
 .game-portrait { background-size:cover; background-position:center; }
 .game-map { width:100%; max-width:320px; border:1px solid #625d4d; }
 .game-setting { display:flex; align-items:center; gap:8px; margin:15px 0; }

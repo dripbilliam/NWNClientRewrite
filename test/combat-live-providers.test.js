@@ -273,19 +273,37 @@ test('live melee miss signaling routes Epic Dodge feedback without fixture messa
   assert.equal(s.scheduler.events[1].event.payload.integers[0],234);
 });
 
-test('live script attack request shares canonical queue, reputation, combat state, RNG and cancellation',async()=>{
+test('live item spell payloads schedule offensive and defensive event19 with their own canonical caster and impact delay',async()=>{
+ for(const ranged of [false,true]){
   const {s,actor,target}=meleeFixture();
+  s.characterRules.iprp_onhitspell=table('SpellIndex','0 1');
+  s.characterRules.spells=table('ImpactScript','0 none\n1 fixture_impact');
+  const offensive={id:77,data:{BaseItem:22}},defensive={id:78,data:{BaseItem:16}},property={PropertyName:82,Subtype:0,CostValue:9};
+  const data=actor.combatRound.attacks[0];data.result=1;data.animationDuration=600;data.reactionDelay=40;data.damage[12]=1;
+  await s.combat.itemOnHitSpell(actor,target,property,offensive);
+  await s.combat.itemOnHitSpell(actor,target,property,defensive);
+  assert.equal(data.lists[1][0].casterId,actor.id);assert.equal(data.lists[2][0].casterId,target.id);
+  actor.combatRound.currentAttack=1;
+  if(ranged)await s.combat.signalRanged(actor,target,1,{safeProjectile:()=>{},ammunition:()=>{}});else await s.combat.signalMelee(actor,target,1);
+  const events=s.scheduler.events.filter(e=>e.event.eventId===19);
+  assert.deepEqual(events.map(e=>[e.targetId,e.event.callerId,e.due]),[[actor.id,actor.id,ranged?340:300],[target.id,target.id,ranged?340:300]]);
+  assert.equal(events[0].event.payload.targetId,target.id);assert.equal(events[1].event.payload.targetId,actor.id);
+  assert.ok(events.every(e=>e.event.payload.casterLevel===10&&e.event.payload.areaId===actor.areaId));
+ }
+});
+
+test('live script attack request shares canonical queue, reputation, combat state, RNG and cancellation',async()=>{
+  const {s,actor,target,messages}=meleeFixture();
   s.factionTable=new FactionReputationTable(1,[{FactionID1:0,FactionID2:1,FactionRep:0}]);
   actor.factionId=2;actor.reputationPCFlag=1;actor.factionReputation=[0];target.factionId=1;
   s.registry.get(actor.areaId).objects=[actor.id,target.id];s.random=new NativeRandom(0);
-  const before=runtimeDiagnostics.records.length;
   await s.commands.ActionAttack([target.id,1],{self:actor.id});
   const state=actor.objectActionState,node=state.list.head.action;
   assert.equal(node.actionId,12);assert.equal(node.parameterData[0]>>>0,target.id);
   assert.equal(node.parameterTypes[0],3);assert.equal(state.list.count,1);
   assert.equal(actor.attackActionTargetId,target.id);assert.equal(actor.nativeField700,1);assert.equal(actor.passiveAttack,1);
   assert.equal(s.random.draws,2); // request gate, then nearby local client's cry choice
-  assert.equal(runtimeDiagnostics.records.slice(before).find(r=>r.code==='combat.voice-unimplemented').context.recipientId,actor.id);
+  const voice=messages.find(m=>m.type==='voice-chat');assert.ok(voice);assert.equal(voice.recipientId,actor.id);assert.equal(voice.actorId,actor.id);assert.ok(voice.code>=1&&voice.code<=3);
   await s.commands.ActionAttack([target.id,0],{self:actor.id});
   assert.equal(state.list.count,1);assert.equal(state.list.head.action,node);assert.equal(s.random.draws,2);
   assert.equal(actor.attackActionTargetId,invalid); // native duplicate request clears +728 before suppressing insertion

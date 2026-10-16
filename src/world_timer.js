@@ -1,5 +1,38 @@
 const u32=(value,name)=>{if(!Number.isInteger(value))throw new Error(`Native world ${name} is unavailable`);return value>>>0;};
 const u64=value=>BigInt.asUintN(64,BigInt(value));
+// Complete AddWorldTimes140596b40 and CompareWorldTimes140596e50. Invalid
+// time-of-day inputs return -2; addition wraps DWORD before its single carry.
+export function addWorldTimes(now,delta,dayLength){
+ const day=u32(now.day,'day'),time=u32(now.time,'time'),days=u32(delta.day,'delta day'),milliseconds=u32(delta.time,'delta time'),length=u32(dayLength,'day length');
+ if(time>=length||milliseconds>=length)return{status:-2};
+ let resultDay=(day+days)>>>0,resultTime=(time+milliseconds)>>>0;
+ if(resultTime>=length){resultDay=(resultDay+1)>>>0;resultTime=(resultTime-length)>>>0;}
+ return{status:0,day:resultDay,time:resultTime};
+}
+export function compareWorldTimes(a,b,dayLength){
+ const day=u32(a.day,'day'),time=u32(a.time,'time'),otherDay=u32(b.day,'other day'),otherTime=u32(b.time,'other time'),length=u32(dayLength,'day length');
+ if(time>=length||otherTime>=length)return -2;
+ return day===otherDay?(time===otherTime?0:time>otherTime?1:-1):day>otherDay?1:-1;
+}
+// SubtractWorldTimes140597a20. Invalid time-of-day operands deliberately
+// bypass chronological rejection; unsigned subtraction gets one borrow only.
+export function subtractWorldTimes(a,b,dayLength){
+ const day=u32(a.day,'day'),time=u32(a.time,'time'),otherDay=u32(b.day,'other day'),otherTime=u32(b.time,'other time'),length=u32(dayLength,'day length');
+ if(time<length&&otherTime<length&&(day<otherDay||day===otherDay&&time<otherTime))return{status:-2};
+ let resultDay=(day-otherDay)>>>0,resultTime=(time-otherTime)>>>0;
+ if(resultTime>=length){resultDay=(resultDay-1)>>>0;resultTime=(resultTime+length)>>>0;}
+ return{status:0,day:resultDay,time:resultTime};
+}
+// GetCalendarDayFromSeconds140597010 / GetTimeOfDayFromSeconds140597140.
+// Repeated FLOAT subtraction, not modulo: rounding survives each iteration.
+export function secondsToWorldDelta(value,secondsPerDay){
+  let seconds=Math.fround(value);const length=Math.fround(u32(secondsPerDay,'seconds per day'));let day=0;
+  if(length===0)throw new Error('Native seconds conversion would not advance');
+  while(seconds>=length){const next=Math.fround(seconds-length);if(next===seconds)throw new Error('Native seconds conversion would not advance');seconds=next;day=(day+1)>>>0;}
+  if(seconds<0)return{day,time:0};
+  const scaled=Math.fround(seconds*1000),integer=Number.isFinite(scaled)&&scaled>=-(2**63)&&scaled<2**63?BigInt(Math.trunc(scaled)):-(1n<<63n);
+  return{day,time:Number(BigInt.asUintN(32,integer))};
+}
 // CWorldTimer 140596aa0; GetWorldTime 140597180..140597223;
 // SetWorldTime 1405978d0 / 140597970; SetSnapshotTime 140597880.
 // Clock ticks come from an explicit monotonic provider; epoch is local to the

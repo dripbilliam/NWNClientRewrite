@@ -112,6 +112,16 @@ export function setMemorizedSpellSlot(o,index,slot,id,domainLevel,meta,checkAbil
   if(slot<pool.length){const record=pool[slot]??(pool[slot]={id:0,ready:1,metamagic:0,domain:0});record.id=id;record.ready=0;record.metamagic=meta;record.domain=Number(domainLevel!==0);}
   return 1;
 }
+// ClearMemorizedSpellSlot1403f1fc0 / ClassInfo1403f2070. The slot
+// array/count/capacity survive clearing; only a non-null record is deleted.
+export function clearMemorizedSpellSlot(o,index,level,slot,p={}){
+  index=byte(index,'clear class');level=byte(level,'clear level');slot=byte(slot,'clear slot');
+  if(index>=classes(o).length)p.warning?.('nMultiClass < m_nNumMultiClasses');
+  if(index>=classes(o).length)return;
+  if(level>=10){p.warning?.('nSpellLevel < CNWSPELL_NUM_LEVELS');return;}
+  const pool=stateAt(o,index)?.memorized[level];if(!pool)throw new Error('Native memorized pool is unavailable');
+  if(slot<pool.length&&pool[slot]){const record=pool[slot];pool[slot]=null;p.deleteSlot?.(record);}
+}
 export function addKnownSpell(o,index,id,rules,p){
   index=byte(index,'known class');id=integer(id,'known spell')>>>0;const c=classes(o)[index];if(!c){p.warning?.('nMultiClass < m_nNumMultiClasses');return;}
   const level=spellLevelByClass(rules,id,c.Class);if(level>=10)return;
@@ -277,6 +287,26 @@ export function adjustSpellUsesPerDay(o,rules,p){
       if(((maximum-previous)<<24>>24)<0&&maximum<(state.perDay[level]&255))state.perDay[level]=maximum;
     }
   });
+}
+// ReadySpellLevel1404123b0: refill existing non-null prepared records or
+// reset both spontaneous counters. No SpellCaster gate or new slot creation.
+export function readySpellLevel(o,level,rules,p){
+  level=byte(level,'ready level');if(level>=10)return;
+  classes(o).forEach((c,index)=>{const state=stateAt(o,index);
+    if(classField(rules,c.Class&255,'MemorizesSpells')!==0){
+      const pool=state.memorized[level];for(let slot=0;slot<(pool.length&255);slot++)if(pool[slot])pool[slot].ready=1;
+    }else{const bonus=integer(c.bonusSpellSlots?.[level]??0,'bonus slot counter')>>>0,value=(byte(required(p,'spellGainWithBonus')(o,index,level),'ready spell gain')+Math.min(255,bonus))&255;state.perDay[level]=state.maximumPerDay[level]=value;}
+  });
+}
+// ResetSpellLikeAbilities140412b50. Duplicate IDs/levels remain separate.
+export function resetSpellLikeAbilities(o){
+ if(!Array.isArray(o.nativeSpellLikeAbilities))throw new Error('Native spell-like storage is unavailable');
+ for(const entry of o.nativeSpellLikeAbilities)entry.remaining=1;
+}
+// GetHighestLevelKnown140402950. Known WORD count alone is inspected;
+// memorized slots, class spellcaster flags and remaining uses are irrelevant.
+export function highestKnownSpellLevel(o){
+ let result=0;classes(o).forEach((_c,index)=>{const state=stateAt(o,index);for(let level=0;level<10;level++)if((state.known[level].length&65535)!==0&&result<level)result=level;});return result;
 }
 // GetHasSilencedSpell1404026a0 checks any silent slot at the base level,
 // even an unready different spell. An unavailable level exits the class loop.

@@ -3,12 +3,11 @@ import assert from 'node:assert/strict';
 import { parse2da } from '../src/area.js';
 import { ModuleSession } from '../src/module_session.js';
 import { damageImmunityEffectIntegers, damageImmunityByFlags, setDamageImmunity } from '../src/damage_effect.js';
-import { runtimeDiagnostics } from '../src/runtime_diagnostics.js';
 
 function fixture() {
   const s = new ModuleSession(null);
   s.characterRules = { damagetypes: parse2da(`2DA V2.0\n\nLabel\n${Array.from({ length: 13 }, (_, i) => `${i} Type`).join('\n')}`) };
-  const pc = s.register('player', 'owned-immunity-test', { isPC: true, stats: { currentHP: 10 }, authored: { FeatList: [], Race: 0 } });
+  const pc = s.register('player', 'owned-immunity-test', { isPC: true, stats: { currentHP: 10,feats:[] }, authored: { FeatList: [], Race: 0 } });
   return { s, pc, self: { self: pc.id } };
 }
 
@@ -27,7 +26,7 @@ test('runtime recomputes immunity after capped stacking and deferred removal wit
   const first = s.commands.EffectDamageImmunityIncrease([256, 70], self);
   const second = s.commands.EffectDamageImmunityIncrease([256, 70], self);
   assert.equal(s.commands.GetEffectType([first]), 44); assert.equal(first.subtype, 8);
-  s.commands.ApplyEffectToObject([2, first, id]); s.commands.ApplyEffectToObject([2, second, id]);
+  await s.commands.ApplyEffectToObject([2, first, id]); await s.commands.ApplyEffectToObject([2, second, id]);
   assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 100);
   s.commands.RemoveEffect([id, first], self);
   assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 100, 'Native script removal is deferred');
@@ -35,38 +34,38 @@ test('runtime recomputes immunity after capped stacking and deferred removal wit
   assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 70);
   const decrease = s.commands.EffectDamageImmunityDecrease([256, 30], self);
   assert.equal(s.commands.GetEffectType([decrease]), 45);
-  s.commands.ApplyEffectToObject([1, decrease, id, 0.01]);
+  await s.commands.ApplyEffectToObject([1, decrease, id, 0.01]);
   assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 40);
-  s.scheduler.advance(11); s.effects.update(); assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 70);
+  s.scheduler.advance(11); await s.effects.update(); assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 70);
   assert.equal(s.registry.get(id), pc); assert.equal(pc.stats, shared);
-  assert.ok(runtimeDiagnostics.records.some(r => r.code === 'effects.presentation-unimplemented' && r.context.effectId === first.id));
+  assert.ok(pc.nativeEffectIcons778.records.some(r=>r.iconId===116));
 });
 
-test('combined flag effects update the lowest byte and recompute only exact flag matches', () => {
+test('combined flag effects update the lowest byte and recompute only exact flag matches', async () => {
   const { s, pc, self } = fixture();
   const single = s.commands.EffectDamageImmunityIncrease([1, 20], self);
   const combined = s.commands.EffectDamageImmunityIncrease([3, 60], self);
-  s.commands.ApplyEffectToObject([2, single, pc.id]); s.commands.ApplyEffectToObject([2, combined, pc.id]);
+  await s.commands.ApplyEffectToObject([2, single, pc.id]); await s.commands.ApplyEffectToObject([2, combined, pc.id]);
   assert.equal(pc.damageImmunityCache[0], 60); assert.equal(pc.damageImmunityCache[1], 0);
   assert.equal(damageImmunityByFlags(3, pc.damageImmunityCache), 0);
   s.effects.remove(pc.id, combined.id);
   assert.equal(pc.damageImmunityCache[0], 0, 'Removing flags 3 does not recompute effects whose flags are 1');
-  assert.equal(pc.effects.length, 1);
+  assert.deepEqual(pc.effects.map(e=>e.type),[16,67]);
 });
 
-test('negative decrease constructors are consumed on apply; live plot/immunity gates reject decreases but preserve prior effects', () => {
+test('negative decrease constructors are consumed on apply; live plot/immunity gates reject decreases but preserve prior effects', async () => {
   const { s, pc, self } = fixture();
-  s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, -30], self), pc.id]);
+  await s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, -30], self), pc.id]);
   assert.deepEqual(pc.effects, []);
   pc.plot = true;
-  s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, 30], self), pc.id]);
+  await s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, 30], self), pc.id]);
   assert.deepEqual(pc.effects, []);
   pc.plot = false; pc.authored.Plot = 1;
-  s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, 30], self), pc.id]);
+  await s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, 30], self), pc.id]);
   assert.equal(pc.damageImmunityCache[8], -30, 'Live plot flag overrides the authored snapshot');
   pc.effects.push({ type: 22, integers: [22, 28, 0, 0] });
-  s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, 20], self), pc.id]);
+  await s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityDecrease([256, 20], self), pc.id]);
   assert.equal(pc.damageImmunityCache[8], -30);
-  s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityIncrease([256, 80], self), pc.id]);
+  await s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityIncrease([256, 80], self), pc.id]);
   assert.equal(pc.damageImmunityCache[8], 50);
 });

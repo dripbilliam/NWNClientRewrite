@@ -33,7 +33,7 @@ export function initializeSkillArmorPenalties(object,items,rules){
 
 // ReadStatsFromGff 140410af6 initializes +25e to zero after every loaded
 // class level. Keep the byte on each mutable class record so slot changes and
-// XP cloning retain its identity. Negative-level mutation remains unimplemented.
+// XP cloning retain its identity. Shared negative-level effects mutate this cell.
 export function initializeClassSkillPenalties(object){
   const classes=creatureRoot(object).ClassList;
   if(!Array.isArray(classes))throw new Error('Native skill class records are unavailable');

@@ -12,6 +12,16 @@ export async function receiveInventoryDisturbance(o,caller,payload,p){
   o.nativeDisturbItem1b0=integer(payload.objectIds?.[0]??OBJECT_INVALID,'item ID')>>>0;
   await required(p,'runEventScript')(o,5);
 }
+// Placeable script27 at1404b3789..37b9 ->3878. Same history cells, but
+// there is no creature SetLastHostileActor call on this path.
+export async function receivePlaceableInventoryDisturbance(o,caller,payload,p){
+  if((integer(payload?.type,'event type')&65535)!==27)throw new Error('Native noninventory placeable event owner is unavailable');
+  o.nativeLastDisturbed19c=integer(caller,'caller')>>>0;
+  o.nativeDisturbType1b4=integer(required(p,'integer')(payload,0),'disturb type');
+  o.nativeDisturbItem1b0=integer(required(p,'objectId')(payload,0),'disturb item')>>>0;
+  await required(p,'runEventScript')(o,5,0);
+}
+
 // Wrapper14052a120 accepts only creature/placeable after CNWSObject cast.
 export function lastDisturbed(o){return o&&[5,9].includes(o.objectType)?integer(o.nativeLastDisturbed19c,'last disturber')>>>0:OBJECT_INVALID;}
 // Wrappers140526870/140526920 accept any nonnull CNWSObject cast.

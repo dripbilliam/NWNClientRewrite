@@ -7,6 +7,7 @@ const textDecoder = new TextDecoder('windows-1252');
 export const RESOURCE_TYPE = Object.freeze({
   TGA: 3,
   WAV: 4,
+  SSF: 2060,
   PLT: 6,
   SET: 2013,
   TWO_DA: 2017,

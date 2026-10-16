@@ -1,5 +1,7 @@
 import { cloneGff } from './gff.js';
 import { ABILITIES, characterStats } from './character.js';
+import {rulesetInt} from './combat_stats.js';
+import {featAbilityDeltas} from './feat_ability_bonuses.js';
 
 const byte = n => n & 255;
 const i16 = n => (n << 16) >> 16;
@@ -36,12 +38,9 @@ function threshold(rules, n) {
 // ComputeFeatBonuses changes stored ability bytes; class StatGainTable bonuses
 // are derived separately by the ability providers. These IDs are native engine
 // constants, not class or module-specific choices.
-function featAbilities(root, history, direction) {
-  const feats = new Set((history.FeatList ?? []).map(f => f.Feat));
-  const first = [814, 784, 774, 794, 804, 764];
-  for (let a = 0; a < 6; a++) for (let f = first[a]; f < first[a] + 10; f++) {
-    if (feats.has(f)) root[ABILITIES[a]] = byte(root[ABILITIES[a]] + direction);
-  }
+function featAbilities(root, history, direction,rules) {
+  const deltas=featAbilityDeltas(history.FeatList??[],direction<0?1:0,{hasFeat:(list,id)=>Number(list.some(entry=>(entry.Feat&65535)===id)),rule:(label,fallback)=>rulesetInt(rules,label,fallback)});
+  for(let ability=0;ability<6;ability++)root[ABILITIES[ability]]=byte(root[ABILITIES[ability]]+deltas[ability]);
 }
 
 function spellGain(root, c, spellLevel, rules) {
@@ -172,7 +171,7 @@ function applyHistory(root, history, direction, rules, stats) {
     if (direction < 0) remove(feats, entry => entry.Feat === f.Feat);
     else if (rules.feat.rows.has(f.Feat) && !feats.some(entry => entry.Feat === f.Feat)) feats.push({ Feat: f.Feat });
   }
-  featAbilities(root, history, direction);
+  featAbilities(root, history, direction,rules);
   historySpells(root, c, history, direction, rules);
   if (direction < 0) {
     if (oldClassLevel < 10) c[`MemorizedList${oldClassLevel}`]?.fill(null);

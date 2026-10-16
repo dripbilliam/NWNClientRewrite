@@ -149,7 +149,7 @@ export async function clearCreatureAttackAction(actor, node, isHead, providers =
 // move. Head != 0 stops movement, but only head == 1 resets the time pair.
 export async function clearCreatureMovementAction(actor, node, isHead, providers = {}) {
   if (node.nativeField9c === 0) return 0;
-  if (![1,6,16,17,18,19,30,37,45,49].includes(node.actionId))
+  if (![1,4,5,6,13,16,17,18,19,30,37,40,45,48,49,52,55,58,60].includes(node.actionId))
     throw new Error(`Native cancellation of action ${node.actionId} is unavailable`);
   if (typeof providers.messageAvailable !== 'function' || typeof providers.setLock !== 'function')
     throw new Error('Native movement cancellation providers are unavailable');

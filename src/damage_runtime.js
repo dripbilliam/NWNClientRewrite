@@ -5,7 +5,8 @@ import { damageResistance, damageReduction } from './damage_mitigation.js';
 import { creatureRoot } from './creature_rules.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 import { decrementRoundLength, weaponAttackType } from './combat_round.js';
-import { abilityModifier, rulesetInt } from './combat_stats.js';
+import { abilityModifier, rulesetInt,intEntry } from './combat_stats.js';
+import {resolveDamageShields} from './damage_shield.js';
 import { damageEffectBonusAsync } from './damage_effect_bonus.js';
 import { addAttackDamage } from './attack_damage.js';
 import { setRoundPaused, setPauseTimer, checkActionLength } from './combat_timing.js';
@@ -13,7 +14,9 @@ import { setLastHostileActor } from './combat_hostile.js';
 import { damageRollAsync, damageDifficulty } from './damage_roll.js';
 import { attackDamageFlags, weaponPower, calculateDamagePower } from './damage_weapon.js';
 import { creatureAlignment } from './creature_rules.js';
-import { broadcastCombatState,sendCombatFeedback } from './combat_broadcast.js';
+import { broadcastCombatState,sendCombatFeedback,broadcastSkillData } from './combat_broadcast.js';
+import {checkDamagedCasting} from './damaged_casting.js';
+import {deleteCurrentObjectAction} from './object_actions.js';
 import { deathBlockedByImmunity,preserveDeathEffect,deathVisualType,deathAnimation } from './death_effects.js';
 
 const i16 = n => (n << 16) >> 16;
@@ -193,14 +196,23 @@ export class DamageRuntime {
     if (object.objectType !== 5) return;
     // These branches change scripts, HP or RNG order. Do not silently emulate
     // their absence when a live object actually needs them.
-    const unsupported = (object.effects ?? []).some(e => [8, 61].includes(e.type));
-    if ([15, 16].includes(object.animationState) || unsupported) {
-      this.omission(object, 'Damage during casting or with shield/status effects requires unavailable lifecycle providers', effect);
-      throw new Error('Damage casting/shield/status lifecycle is not implemented');
+    const unsupported = (object.effects ?? []).some(e => e.type===8);
+    if (unsupported) {
+      this.omission(object, 'Damage with enchantment/status effects requires unavailable lifecycle providers', effect);
+      throw new Error('Damage status lifecycle is not implemented');
     }
     this.session.getDifficultyOption(5);
   }
-  async apply(object, effect, context) {
+  shields(object,attacker){const s=this.session,rules=s.characterRules,entry=(table,row,column)=>{if(!table)throw new Error('Native damage-shield table is unavailable');const value=intEntry(table,row,column);if(!value.found)throw new Error(`Native damage-shield ${column} reads indeterminate table scratch`);return value.value;};
+    return resolveDamageShields(object,attacker,{effects:o=>o.effects,dice:(row,column)=>entry(rules.iprp_damagecost,row,column),visual:row=>entry(rules.damagehitvisual,row,'VisualEffectID'),
+      roll:(...a)=>s.random.dice(...a),create:(...a)=>s.effects.create(...a),apply:(o,e)=>s.effects.applyNative(e,o.id)});
+  }
+  damagedCasting(object,creator,amount,loading){const s=this.session,c=s.combat;return checkDamagedCasting(object,creator,amount,s.characterRules,{
+    spell:id=>s.spellBook.castingSpell(id),roll:(...a)=>s.random.dice(...a),skill:(...a)=>c.skill(...a),level:(o,id,index)=>s.spellBook.level(id,creatureRoot(o).ClassList[index]?.Class??255),
+    deleteCurrent:o=>deleteCurrentObjectAction(o,{clearAction:(...a)=>c.clearAction(...a),deleteSituation:situation=>s.deleteSituation(situation)}),animation:(...a)=>c.setAnimation(...a),
+    consume:(...a)=>s.spellBook.consume(...a),feedback:(o,code)=>sendCombatFeedback(o,code,null,c.broadcastProviders()),create:(...a)=>s.effects.create(...a),
+    apply:(o,e,loading)=>s.effects.applyNative(e,o.id,undefined,loading),message:(o,data)=>broadcastSkillData(o,data,c.broadcastProviders())},loading);}
+  async apply(object, effect, context,loading=0) {
     if (effect.integers.length < 39 || this.session.isDead(object)) return;
     const components = effect.integers.slice(0, 32).map(n => n | 0);
     let amount = 0;
@@ -211,10 +223,7 @@ export class DamageRuntime {
     const creator = this.session.registry.get(effect.creatorId), attacker = creator?.objectType === 5 ? creator : null;
     const processed = effect.integers[36] !== 0, reflected = effect.integers[37] !== 0;
     if (!amount && !object.plot) {
-      if (processed && !reflected && attacker && object.objectType === 5 && object.effects?.some(e => e.type === 61)) {
-        this.omission(object, 'Zero-damage combat shield recursion is not implemented', effect);
-        throw new Error('Damage shield resolution is not implemented');
-      }
+      if (processed && !reflected && attacker && object.objectType === 5) await this.shields(object,attacker);
       return;
     }
     if (![5, 9, 10].includes(object.objectType)) return;
@@ -229,7 +238,7 @@ export class DamageRuntime {
       if (object.objectType === 5) for (let i = 0; i < 32; i++) if (components[i] >= 0) components[i] = amount;
     }
     if (object.objectType === 5) {
-      if (amount > 0) { await this.subtract(object, amount, context); this.reaction(object, effect); }
+      if (amount > 0) { await this.subtract(object, amount, context);await this.damagedCasting(object,creator&&creator.objectType>=5&&creator.objectType<=14?creator:null,amount,loading); this.reaction(object, effect); }
       if (attacker) {
         // OnApplyDamage 140428bce..140428be9: each party broadcast
         // precedes that endpoint's initiative, defender before attacker.
@@ -241,7 +250,7 @@ export class DamageRuntime {
       object.lastDamagerId = effect.creatorId;
       this.setLastHostile(object, creator);
       object.lastDamage = [...components];
-      // Shields are preflight-blocked until their recursive handler exists.
+      if(processed&&!reflected&&attacker)await this.shields(object,attacker);
       if (!object.isPossessedFamiliar && !this.session.isDead(object) &&
         !(object.isPC && (object.scripts?.damaged ?? '') === 'default')) await this.runEvent(object, object.scripts?.damaged, context);
       this.session.onMessage({ type: 'damage', id: object.id, creatorId: effect.creatorId, amount,

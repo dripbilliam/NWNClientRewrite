@@ -44,7 +44,7 @@ export async function applyAbilityEffect(actor,effect,p,loading=0){
     }
     if(amount<1||integer(call(p,'plot',actor),'plot')!==0)return 1;
   }else if(amount<1)return 1;
-  const icon=call(p,'copy',effect,1);icon.type=67;
+  const icon=call(p,'copyConstruct',effect,1);icon.type=67;
   if((ability>>>0)<=5)icon.integers[0]=[27,59,61,63,65,67][ability]+Number(down);
   await call(p,'apply',actor,icon,loading);return 0;
 }

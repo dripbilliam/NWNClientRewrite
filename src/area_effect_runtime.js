@@ -2,7 +2,7 @@ import {OBJECT_INVALID} from './game_object_array.js';
 import {RESOURCE_TYPE,decodeResourceText} from './resource_archive.js';
 import {parse2da} from './area.js';
 import {areaSpatialIds,firstAreaSpatialIndex} from './nearest_objects.js';
-import {initializeAreaEffect,loadAreaEffect,setAreaEffectCreator,setAreaEffectDuration,setAreaEffectAnchor,addAreaEffectToArea,inAreaEffect,intersectAreaEffect,updateAreaEffectSubareas,createPersistentAreaEffect,removeAttachedAreaEffect,updateAreaEffect,dispatchAreaEffectEvent,removeAreaEffectFromArea,objectInAreaEffect} from './area_effect.js';
+import {initializeAreaEffect,loadAreaEffect,setAreaEffectCreator,setAreaEffectDuration,setAreaEffectAnchor,addAreaEffectToArea,inAreaEffect,intersectAreaEffect,updateAreaEffectSubareas,createPersistentAreaEffect,removeAttachedAreaEffect,updateAreaEffect,dispatchAreaEffectEvent,removeAreaEffectFromArea,removeAreaEffectSubareas,jumpAreaEffect,objectInAreaEffect} from './area_effect.js';
 import {subtractWorldTimes} from './reputation.js';
 const f=Math.fround,native=v=>[v[0],f(-v[2]),v[1]],render=v=>[v[0],v[2],f(-v[1])];
 export class AreaEffectRuntime{
@@ -33,6 +33,7 @@ export class AreaEffectRuntime{
     microseconds:()=>BigInt(Math.trunc(performance.now()*1000)),worldTime:()=>s.worldTimer.time(),difference:(now,then)=>subtractWorldTimes(now,then,s.worldTimer.dayLength),
     setPosition:(o,point,flag)=>s.setPosition(o,render(point),flag),updateEffects:o=>s.effects.updateObject(o),
     removeFromArea:o=>removeAreaEffectFromArea(o,this.providers()),destroy:o=>this.destroy(o),
+    removeSubareas:(o,flag)=>removeAreaEffectSubareas(o,flag,this.providers()),warning:message=>s.combat.warning(s.player,message),
   };}
   async applyAtPoint(area,effect,point,orientation){await this.table();return createPersistentAreaEffect(area,effect,point,orientation,this.providers());}
   async applyAttached(target,effect,loading){await this.table();return createPersistentAreaEffect(target,effect,null,null,this.providers(),{attached:true,loading});}
@@ -41,6 +42,7 @@ export class AreaEffectRuntime{
   intersects(o,start,end){return intersectAreaEffect(o,native(start),native(end),native(o.position),Boolean(this.session.registry.get(o.areaId)));}
   updateSubareas(o,point){return updateAreaEffectSubareas(o,point,this.providers());}
   async move(o,point){await this.updateSubareas(o,native(point));this.session.setPosition(o,point,0);}
+  jump(o,area,point){return jumpAreaEffect(o,area,native(point),this.providers());}
   update(o){return updateAreaEffect(o,this.providers());}
   dispatch(o,event){return dispatchAreaEffectEvent(o,event,this.providers());}
   enumerate(first,id,filter,zone){return objectInAreaEffect(first,this.session.registry.get(id),filter,zone,this.providers());}

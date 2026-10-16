@@ -41,8 +41,8 @@ test('live item event16 initializes equipped mass before stack decrement and pre
   await s.combat.dispatchEvent(item,{eventId:16,callerId:actor.id});
   assert.equal(item.authored.StackSize,19);assert.equal(actor.nativeEquippedWeight968,57);assert.equal(s.registry.get(item.id),item);
 });
-test('delayed attack effect dispatch retains native temporary duration metadata instead of converting it to instant',async()=>{
+test('delayed effect event preserves native payload timing and equipped/innate duration metadata',async()=>{
   const s=new ModuleSession(null),actor=s.register('creature','target',{}),calls=[];
-  s.effects.apply=(...args)=>calls.push(args);const value={type:11,durationType:1,duration:24};
-  await s.combat.dispatchEvent(actor,{eventId:5,callerId:9,payload:value});assert.deepEqual(calls,[[1,value,actor.id,24]]);
+  s.effects.apply=()=>{throw new Error('Native effect event must not normalize through the script wrapper');};s.effects.applyNative=(...args)=>calls.push(args);
+  for(const durationType of [0,1,2,3,4]){const value={type:11,durationType,duration:24,expiryDay:3,expiryTime:123};await s.combat.dispatchEvent(actor,{eventId:5,callerId:9,payload:value});assert.deepEqual(calls.at(-1),[value,actor.id]);}
 });

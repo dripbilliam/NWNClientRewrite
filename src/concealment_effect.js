@@ -11,5 +11,5 @@ export function concealmentEffect(percent,kind,creator,p){
 export async function applyConcealment(actor,effect,p,loading=0){
   if(loading!==0&&actor&&call(p,'dead',actor)!==0&&![3,4].includes(effect.durationType&7))return 1;
   const percent=integer(effect.integers?.[0],'percent');if(percent>100||percent<1)return 1;
-  const icon=call(p,'copy',effect,1);icon.type=67;icon.integers[0]=108;await call(p,'apply',actor,icon,loading);return 0;
+  const icon=call(p,'copyConstruct',effect,1);icon.type=67;icon.integers[0]=108;await call(p,'apply',actor,icon,loading);return 0;
 }

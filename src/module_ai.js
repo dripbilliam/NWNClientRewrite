@@ -21,6 +21,7 @@ export function moduleTimeOfDay(hour,dawn,dusk){
 }
 
 export function initializeModuleAI(module,ifo,timer){
+  module.nativeLastPCRested380??=0x7f000000;module.nativeLastRestEvent384??=0; // ctor14047865b/665.
   module.nativeAreaIds50??=new NativeIdList();module.nativeAreaUpdateIndex60??=-1;
   module.nativeHeartbeatDay318??=0;module.nativeHeartbeatTime31c??=0;
   module.nativeDawnHour3b9=(ifo.Mod_DawnHour??0)&255;module.nativeDuskHour3ba=(ifo.Mod_DuskHour??0)&255;

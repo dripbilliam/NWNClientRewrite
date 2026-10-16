@@ -65,5 +65,5 @@ test('unsupported object mesh formats, duplicate sections and invalid indices fa
   assert.throws(() => parseObjectSurfaceMesh(`${section('plc_pwk')}\n${section('plc_pwk')}`, 'placeable'), /Repeated/);
   assert.throws(() => parseObjectSurfaceMesh(section('plc_pwk').replace('0 1 2 0 0 0 0 0', '-1 1 2 0 0 0 0 0'), 'placeable'), /negative or invalid/);
   assert.ok(parseObjectSurfaceMesh(section('ignored_DWK_wg_closed'), 'door').states.every(state => state.vertices.length === 0));
-  assert.deepEqual(parseObjectSurfaceMesh('node dummy plc_root\nendnode', 'placeable'), { vertices: [], faces: [], materials: [] });
+  assert.deepEqual(parseObjectSurfaceMesh('node dummy plc_root\nendnode', 'placeable'), { vertices: [], faces: [], materials: [],actionPoints:[[0,0,0],[0,0,0]] });
 });

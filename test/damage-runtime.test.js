@@ -59,7 +59,7 @@ test('native-shaped strike signaling delivers attack history then delayed HP thr
 
 test('live death magic immunity preserves killer/status/action state and emits caster feedback before an explicit bypass permits death',async()=>{
   const {s,pc,npc,cleared}=fixture(),sent=[];s.onCombatMessage=m=>sent.push(m);
-  npc.effects=[{id:'immune',type:22,integers:[32,28,0,0],durationType:2,subtype:0}];
+  npc.effects=[{...s.effects.create(22,OBJECT_INVALID,[32,28,0,0]),durationType:2}];
   const effect=s.effects.create(2,pc.id,[],8);effect.spellId=4;npc.lastKillerId=0x80000001;
   await s.damage.death(npc,effect);
   assert.equal(npc.nativeDeathWord8d4,65535);assert.equal(npc.lastKillerId,0x80000001);assert.deepEqual(cleared,[]);
@@ -116,11 +116,11 @@ test('energy bonus adapter consumes live resistance before updating the caller-o
   const bonus = s.commands.EffectDamageIncrease([1, 8], self);
   const immunity = s.commands.EffectDamageImmunityIncrease([8, 50], self);
   const resistance = s.commands.EffectDamageResistance([8, 4, 3], self);
-  s.commands.ApplyEffectToObject([2, bonus, pc.id]);
+  await s.commands.ApplyEffectToObject([2, bonus, pc.id]);
   // A hand-specific source takes the native exact-flag mitigation path.
   pc.effects[0].integers[5] = 1;
-  s.commands.ApplyEffectToObject([2, immunity, npc.id]);
-  s.commands.ApplyEffectToObject([2, resistance, npc.id]);
+  await s.commands.ApplyEffectToObject([2, immunity, npc.id]);
+  await s.commands.ApplyEffectToObject([2, resistance, npc.id]);
   const attack = { weaponAttackType: 1, ranged: 0, result: 1, damage: Array(32).fill(-1) };
   const query = await s.damage.effectBonus(pc, npc, attack, { energy: true, maximize: true });
   assert.equal(query.total, 2); assert.equal(attack.damage[3], -1);
@@ -139,7 +139,7 @@ test('damage applies immunity, live resistance budgets and reduction in order, w
   const immunity = s.commands.EffectDamageImmunityIncrease([4, 50], self);
   const resist = s.commands.EffectDamageResistance([4, 5, 3], self);
   const reduce = s.commands.EffectDamageReduction([2, 1, 3], self);
-  for (const value of [immunity, resist, reduce]) s.commands.ApplyEffectToObject([2, value, id]);
+  for (const value of [immunity, resist, reduce]) await s.commands.ApplyEffectToObject([2, value, id]);
   assert.equal(s.commands.GetEffectType([resist]), 1); assert.equal(s.commands.GetEffectType([reduce]), 7);
   await apply(effect(20));
   assert.equal(s.hitPoints(id, false), 25, '20 -> 10 immunity -> 7 finite resistance -> 5 reduction');
@@ -168,7 +168,7 @@ test('temporary HP and healing share base storage, total getter and immutable au
   assert.equal(s.commands.GetEffectType([temp]), 9);
   s.commands.ApplyEffectToObject([2, temp, npc.id]);
   assert.equal(npc.stats.currentHP, 20); assert.equal(s.hitPoints(npc.id, false), 28);
-  s.commands.ApplyEffectToObject([0, s.commands.EffectHeal([5], self), npc.id]);
+  await s.commands.ApplyEffectToObject([0, s.commands.EffectHeal([5], self), npc.id]);
   assert.equal(npc.stats.currentHP, 25); assert.equal(s.hitPoints(npc.id, false), 33);
   await apply(effect(6));
   assert.equal(npc.stats.currentHP, 25); assert.equal(npc.stats.temporaryHP, 2);
@@ -234,11 +234,11 @@ test('NPC death skips OnDamaged, runs OnDeath before effect purge and retains th
   const { s, pc, npc, messages, cleared, effect, apply } = fixture(), trace = [], self = { self: pc.id };
   const temp = s.commands.EffectTemporaryHitpoints([2], self);
   s.commands.ApplyEffectToObject([2, temp, npc.id]);
-  s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityIncrease([256, 50], self), npc.id]);
+  await s.commands.ApplyEffectToObject([2, s.commands.EffectDamageImmunityIncrease([256, 50], self), npc.id]);
   npc.scripts = { damaged: 'wrong', death: 'death' };
   s.program = async name => ({ name }); s.vm = { async run(program, id) { trace.push([program.name, id, s.hitPoints(id, false), npc.effects.length, s.commands.GetLastKiller([], { self: id })]); } };
   await apply(effect(40));
-  assert.deepEqual(trace, [['death', npc.id, -8, 1, pc.id]]);
+  assert.deepEqual(trace, [['death', npc.id, -8, 2, pc.id]]);
   assert.equal(npc.effects.length, 0); assert.equal(npc.stats.currentHP, -11); assert.equal(npc.deathHandled, true);
   assert.deepEqual(cleared, [npc.id]); assert.equal(s.registry.get(npc.id), npc);
   assert.deepEqual(messages.filter(m => ['damage', 'death'].includes(m.type)).map(m => m.type), ['damage', 'death']);
@@ -340,14 +340,25 @@ test('plot damage is zero but still invokes OnDamaged; difficulty and immortal c
   npc.plot = false; npc.immortal = 1; await apply(effect(40)); assert.equal(npc.stats.currentHP, 1);
 });
 
-test('unavailable casting/status/shield work fails before HP or RNG changes and is retained in diagnostics', async () => {
+test('unavailable enchantment/status work fails before HP or RNG changes and is retained in diagnostics', async () => {
   const { s, npc, effect, apply } = fixture();
-  for (const setup of [() => { npc.animationState = 15; }, () => { npc.animationState = 1; npc.effects = [{ type: 61, integers: [] }]; }]) {
+  for (const setup of [() => { npc.animationState = 1; npc.effects = [{ type: 8, integers: [] }]; }]) {
     setup(); const draws = s.random.draws;
     await assert.rejects(apply(effect(7)), /not implemented/);
     assert.equal(npc.stats.currentHP, 30); assert.equal(s.random.draws, draws);
   }
-  assert.ok(runtimeDiagnostics.records.some(r => r.code === 'combat.lifecycle-unimplemented' && r.context.objectId === npc.id && /casting/.test(r.message)));
+  assert.ok(runtimeDiagnostics.records.some(r => r.code === 'combat.lifecycle-unimplemented' && r.context.objectId === npc.id && /status/.test(r.message)));
+});
+test('two live shields reflect processed weapon damage once, including zero damage, and skip spell/reflected damage',async()=>{
+ const {s,pc,npc,effect,apply}=fixture();
+ s.characterRules.iprp_damagecost=parse2da('2DA V2.0\n\nNumDice Die\n0 0 4');
+ s.characterRules.damagehitvisual=parse2da('2DA V2.0\n\nVisualEffectID\n'+Array.from({length:13},(_,i)=>`${i} 0`).join('\n'));
+ s.characterRules.visualeffects=parse2da('2DA V2.0\n\nType_FD\n0 F');
+ for(const o of [pc,npc])await s.effects.apply(2,s.commands.EffectDamageShield([3,0,8],{self:o.id}),o.id);
+ const weapon=effect(5);weapon.integers[36]=1;await apply(weapon);assert.equal(npc.stats.currentHP,25);assert.equal(pc.stats.currentHP,33);
+ await apply(effect(5));assert.equal(npc.stats.currentHP,20);assert.equal(pc.stats.currentHP,33,'script damage is not processed weapon damage');
+ const zero=effect(0);zero.integers[36]=1;await apply(zero);assert.equal(npc.stats.currentHP,20);assert.equal(pc.stats.currentHP,26);
+ const reflected=effect(5);reflected.integers[36]=1;reflected.integers[37]=1;await apply(reflected);assert.equal(npc.stats.currentHP,15);assert.equal(pc.stats.currentHP,26);
 });
 
 test('direct OnDamaged script failures are diagnosed and do not prevent damage/death completion', async () => {

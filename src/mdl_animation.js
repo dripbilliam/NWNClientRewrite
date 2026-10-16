@@ -1,4 +1,7 @@
 import { decodeModelOrientation } from './mdl_format.js';
+import { BINARY_LIGHT_CHANNELS, LIGHT_PROPERTIES } from './mdl_light.js';
+import { BINARY_EMITTER_CHANNELS, EMITTER_ASCII_CHANNELS } from './mdl_emitter.js';
+import {readModelControllerStorage} from './model_controller_remap.js';
 
 const CHANNELS = { 8: ['position', 3], 20: ['orientation', 4], 36: ['scale', 1], 128: ['alpha', 1] };
 const MAX_ANIMATION_NODES = 100_000;
@@ -36,7 +39,7 @@ export function parseBinaryAnimations(buffer) {
       time: f32(events.offset + event * 36), name: string(events.offset + event * 36 + 4, 32)
     });
     const visited = new Set();
-    const pending = [u32(start + 72)];
+    const rootRelative=u32(start+72),nativeNodes=new Map(),pending = [rootRelative];
     const declared = u32(start + 76);
     while (pending.length) {
       const relative = pending.pop();
@@ -50,6 +53,8 @@ export function parseBinaryAnimations(buffer) {
       range(children.offset, children.count * 4);
       range(keys.offset, keys.count * 12);
       range(values.offset, values.count * 4);
+      const native=readModelControllerStorage(data,node,range);native.name=name;
+      native.childOffsets=Array.from({length:children.count},(_,i)=>u32(children.offset+i*4));native.childCount70=children.count;nativeNodes.set(relative,native);
       for (let child = 0; child < children.count; child += 1) pending.push(u32(children.offset + child * 4));
       for (let key = 0; key < keys.count; key += 1) {
         const at = keys.offset + key * 12;
@@ -58,7 +63,7 @@ export function parseBinaryAnimations(buffer) {
         const columns = data.getUint8(at + 10);
         if (!rows || rows === 0xffff) { if (rows === 0xffff) unsupported.add(`controller ${type}: sentinel rows`); continue; }
         // Controller IDs overlap across mesh, light and emitter payloads.
-        const channel = type === 128 && !(flags & 0x20) ? null : CHANNELS[type];
+        const channel = flags & 4 && BINARY_EMITTER_CHANNELS[type] ? BINARY_EMITTER_CHANNELS[type] : flags & 2 && BINARY_LIGHT_CHANNELS[type] ? BINARY_LIGHT_CHANNELS[type] : type === 128 && !(flags & 0x20) ? null : CHANNELS[type];
         if (!channel || (columns & 0xf) !== channel[1] || (columns & 0xf0) > 0x10 || (type === 20 && columns !== 4)) {
           unsupported.add(`controller ${type} (${columns} columns)`); continue;
         }
@@ -80,6 +85,8 @@ export function parseBinaryAnimations(buffer) {
         animation.tracks.push({ node: name, property, interpolation: bezier ? 'bezier' : property === 'orientation' ? 'slerp' : 'linear', frames });
       }
     }
+    for(const native of nativeNodes.values()){native.children68=native.childOffsets.map(offset=>nativeNodes.get(offset));delete native.childOffsets;}
+    animation.nativeRoot=nativeNodes.get(rootRelative);
     animations.push(animation);
   }
   return { animations, supermodel: string(base + 168, 64), animationScale: f32(base + 164), unsupportedAnimations: [...unsupported] };
@@ -89,7 +96,8 @@ export function parseAsciiAnimations(text) {
   const lines = text.replaceAll('\r', '').split('\n');
   const animations = [];
   const unsupported = new Set();
-  let animation = null, node = null;
+  let animation = null, node = null, nodeType = null;
+  const lightNames = Object.fromEntries(Object.entries(LIGHT_PROPERTIES).map(([channel, property]) => [property, channel]));
   let supermodel = '', animationScale = 1;
   for (let index = 0; index < lines.length; index += 1) {
     const tokens = lines[index].trim().split(/\s+/);
@@ -109,13 +117,16 @@ export function parseAsciiAnimations(text) {
         animation[command === 'length' ? 'length' : 'transition'] = value;
       } else if (command === 'animroot') animation.root = tokens[1];
       else if (command === 'event') animation.events.push({ time: Number(tokens[1]), name: tokens.slice(2).join(' ') });
-      else if (command === 'node') node = tokens[2];
+      else if (command === 'node') { node = tokens[2]; nodeType = tokens[1]?.toLowerCase(); }
       else if (command === 'endnode') node = null;
       else if (node) {
-        const match = command.match(/^(position|orientation|scale|alpha)(key|bezierkey)?$/);
+        const match = command.match(/^([a-z][a-z0-9_]*?)(bezierkey|key)?$/);
         if (!match) { if (command.endsWith('key')) unsupported.add(command); continue; }
-        const property = match[1];
-        const components = { position: 3, orientation: 4, scale: 1, alpha: 1 }[property];
+        const emitterChannel=nodeType==='emitter'?EMITTER_ASCII_CHANNELS[match[1]]:null;
+        if(!emitterChannel&&!lightNames[match[1]]&&!['position','orientation','scale','alpha'].includes(match[1])){if(match[2])unsupported.add(command);continue;}
+        if (lightNames[match[1]] && nodeType !== 'light') { unsupported.add(command); continue; }
+        const property = emitterChannel?.[0] ?? lightNames[match[1]] ?? match[1];
+        const components = emitterChannel?.[1] ?? (match[1] === 'color' ? 3 : lightNames[match[1]] ? 1 : { position: 3, orientation: 4, scale: 1, alpha: 1 }[property]);
         const bezier = match[2] === 'bezierkey';
         if (bezier && property === 'orientation') { unsupported.add(command); continue; }
         const uncounted = Boolean(match[2] && tokens.length === 1);

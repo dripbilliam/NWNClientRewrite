@@ -1,6 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setCombatMode,setCombatActivity } from '../src/combat_mode.js';
+import {toggleCreatureMode} from '../src/combat_mode.js';
+import {receiveModeInput} from '../src/combat_input.js';
+import fs from 'node:fs';
+import {ModuleSession} from '../src/module_session.js';
+
+test('toggle mode and decoded input match untouched native instructions, including associate notifications',async()=>{
+  const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-mode-toggle-observations.json',import.meta.url)));
+  for(const {case:c,calls:expected,result} of oracle.rows){
+    const calls=[],actor={id:99,combatMode:c.mode??0,nativeField6ed:c.stealth??0};
+    const actual=await toggleCreatureMode(actor,c.requested,{dead:()=>c.dead??0,dying:()=>c.dying??0,
+      detect:()=>{calls.push(['detect']);return c.detect??0;},stealthBusy:()=>Boolean(c.busy),
+      canUseSkill:(_o,id)=>{calls.push(['skill',id]);return Number(c.skills?.includes(id)??false);},
+      hasFeat:(_o,id)=>{calls.push(['feat',id]);return Number(c.feats?.includes(id)??false);},feedback:(_o,id)=>calls.push(['feedback',id]),
+      activity:(_o,mask,value)=>calls.push(['activity',mask,value]),setMode:(_o,mode,force)=>calls.push(['mode',mode,force]),
+      associates:()=>c.associates??[],creature:id=>id===100?{id}:null,event:(o,a,number)=>calls.push(['event',10,o.id,a.id,11,number])});
+    assert.equal(actual,result,JSON.stringify(c));assert.deepEqual(calls,expected,JSON.stringify(c));
+  }
+  for(const {case:c,calls:expected,result} of oracle.inputs){
+    const calls=[],actor={objectType:5,nativeField8ac:0,nativeFieldEc:c.commandable};let overflowCalls=0;
+    const actual=await receiveModeInput({}, {clientObject:()=>c.actor?actor:null,asCreature:o=>o,
+      overflow:()=>{if(overflowCalls++===0)return 0;return Number(c.overflow===overflowCalls-1);},underflow:()=>c.underflow,
+      readByte:()=>{calls.push(['read']);return c.requested;},readObjectId:()=>{calls.push(['target']);return 100;},
+      addCounter:(_o,id)=>calls.push(['counter',id]),toggle:(_o,mode)=>{calls.push(['toggle',mode]);return 0;}});
+    assert.equal(actual,result,JSON.stringify(c));assert.deepEqual(calls,expected,JSON.stringify(c));
+  }
+});
+
+test('serialized defensive casting input owns activity and canonical associate script events',async()=>{
+  const s=new ModuleSession(null,{runStartupScripts:false}),area=s.register('area','area',{resRef:'test'}),actor=s.register('player','player',{areaId:area.id,authored:{},stats:{}}),associate=s.register('creature','associate',{areaId:area.id,authored:{},stats:{}});
+  s.player=actor;actor.stats.currentHP=10;actor.associateIds=[associate.id];associate.scripts={userDefined:'mode_event'};actor.combatRound={started:false};s.combat.broadcastProviders=()=>({client:()=>({object:actor})});
+  s.equippedItems=()=>[];let event;
+  s.combat.enqueueEvent=(eventId,callerId,targetId,delay,payload)=>{event={eventId,callerId,targetId,delay,payload};};
+  let script;s.runScript=async(...args)=>{script=args;};
+  const request=s.queuePlayerMode(10);await s.drainPlayerInputs();assert.equal(await request,10);
+  assert.equal(actor.combatMode,9);assert.equal(actor.nativeField6ee,1);assert.equal(actor.activities&0x40000,0x40000);
+  assert.deepEqual(event,{eventId:10,callerId:actor.id,targetId:associate.id,delay:0,payload:{type:11,integers:[20010],objectIds:[]}});
+  await s.combat.dispatchEvent(associate,event);assert.equal(associate.eventObjects.userDefined,20010);assert.deepEqual(script,['mode_event',associate.id,{scriptEventContext:5011}]);
+  const off=s.queuePlayerMode(10);await s.drainPlayerInputs();await off;assert.equal(actor.combatMode,0);assert.equal(actor.nativeField6ee,0);
+  const stale=s.queuePlayerMode(10);actor.areaId=0x7f000000;await s.drainPlayerInputs();assert.equal(await stale,0);
+});
 
 function fixture(){
   const actor={combatMode:0,pendingCombatMode:0,combatRound:{started:false},activities:0,lockedActivities:0,effects:[]},trace=[],items=new Map();

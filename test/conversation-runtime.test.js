@@ -180,9 +180,9 @@ test('NPC talk range uses both appearance CREPERSPACE fields, combat allowance a
 test('PWK use points preserve their authored indices, transform to world space and choose point two on distance ties', () => {
   const points = parsePlaceableActionPoints('node dummy OBJ_pwk_use02\n position 0 -1 0\nendnode\nnode dummy OBJ_pwk_dp_use_01\n position 0 1 0\nendnode', { position: [10, 20, 2], angle: Math.PI / 2 });
   assert.deepEqual(points, [[9, 2, -20], [11, 2, -20]]);
-  const actor = { position: [10, 2, -20] }, target = { position: [10, 2, -20], actionPoints: points };
-  assert.equal(placeableUsePoint(actor, target), points[1]);
-  target.actionPoints = [null, points[1]]; assert.equal(placeableUsePoint(actor, target), target.position, 'A missing first point falls back to the object origin');
+  const actor = { position: [10, 2, -20] }, target = { position: [10, 2, -20],nativePlaceableActionPoints550:points.map(p=>[p[0],-p[2],p[1]]) };
+  assert.deepEqual(placeableUsePoint(actor, target), points[1]);
+  target.nativePlaceableActionPoints550[0]=[0,0,0];assert.deepEqual(placeableUsePoint(actor, target),target.position,'A native zero first point falls back to the object origin');
   assert.equal(placeableUseRange(actor), Math.fround(Math.fround(Math.fround(.6) + Math.fround(.5)) + Math.fround(.1)));
 });
 

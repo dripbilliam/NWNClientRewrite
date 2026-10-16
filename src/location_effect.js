@@ -5,7 +5,7 @@ const integer=(v,n)=>{if(!Number.isInteger(v))throw new Error(`Native location e
 const vector=(v,n)=>{if(!Array.isArray(v)||v.length!==3||v.some(x=>typeof x!=='number'))throw new Error(`Native location effect ${n} is unavailable`);return v.map(f);};
 const call=(p,n,...args)=>{if(typeof p?.[n]!=='function')throw new Error(`Native location effect provider ${n} is unavailable`);return p[n](...args);};
 // ExecuteCommandApplyEffectAtPoint140510710 delegates only to an existing
-// area. The area owner14035bdf0 admits AoE31, beam6, visual30 and link40;
+// area. The area owner14035bdf0 admits AoE31, summon6, visual30 and link40;
 // all other effect types are consumed without applying to nearby objects.
 export async function applyLocationEffect(durationType,value,location,seconds,p){
   if(!value||!location)throw new Error('Native location effect VM structure is unavailable');
@@ -17,7 +17,7 @@ export async function applyLocationEffect(durationType,value,location,seconds,p)
 export async function applyAreaEffect(area,effect,position,orientation,p){
   const type=integer(effect.type,'type')&65535;
   if(type===31){await call(p,'areaEffect',area,effect,position,orientation);return;}
-  if(type===6){const source=call(p,'object',integer(effect.creatorId,'beam creator')>>>0);if(source?.objectType!==5)return;
+  if(type===6){const source=call(p,'object',integer(effect.creatorId,'summon creator')>>>0);if(source?.objectType!==5)return;
     effect.objectIds[0]=area.id>>>0;position.forEach((v,i)=>effect.floats[i]=f(v));await call(p,'applyObject',source,effect);return;}
   if(type===30){await broadcastLocationVisual(area,effect,position,p);return;}
   if(type!==40)return;

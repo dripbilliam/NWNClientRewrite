@@ -20,7 +20,10 @@ function writePoint(path,offset,value){native(value).forEach((v,i)=>path.raw.set
 // CutWaypointPath14038a500..14038a58d retains current position/orientation
 // when a movement collision truncates the route. All raw neighbors survive.
 export function cutWaypointPath(actor){
-  const {path,count,index}=pathData(actor);
+  const path=actor.nativePathInfo;if(!path)throw new Error('Native cut path information is unavailable');
+  // Native only reads scalar cells; a creature can jump before it has ever
+  // owned a waypoint allocation. Keep walk-only allocation validation separate.
+  const count=path.raw.getInt32(0x7c,true),index=path.raw.getInt32(0x98,true);
   path.raw.setUint8(0x130,(path.raw.getUint8(0x130)+1)&255);path.raw.setInt32(0x128,1,true);path.raw.setInt32(0x12c,0,true);
   path.raw.setInt32(0x134,(count-index)>>1,true);writePoint(path,0x138,point(actor.position));writePoint(path,0x144,point(actor.orientation));
 }

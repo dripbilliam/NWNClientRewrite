@@ -2,6 +2,7 @@ import { abilityModifier, intEntry, rulesetInt } from './combat_stats.js';
 import { getGffStructType } from './gff.js';
 import { effectImmunity } from './effect_immunity.js';
 import { itemDamageEffects, itemVersusCondition } from './damage_item_effects.js';
+import {naturalArmorParts,naturalArmorTotal} from './natural_armor.js';
 
 const i8 = n => (n << 24) >> 24;
 const i16 = n => (n << 16) >> 16;
@@ -201,23 +202,23 @@ export function armorEffectCache(effects) {
   return { up, down };
 }
 
-export function armorClass(root, rules, modifiers, items, effects, { pendingFeats = [], acCache } = {}) {
+export function armorClass(root, rules, modifiers, items, effects, { pendingFeats = [], acCache,actor } = {}) {
   const feats = featSet(root, pendingFeats), chest = items.find(i => i.slot === 2), left = items.find(i => i.slot === 32);
   const computedArmor = itemArmorClass(chest, rules), armorBase = i8(computedArmor), shieldBase = i8(itemArmorClass(left, rules));
   const monk = classLevel(root, 5), shou = classLevel(root, 40);
   const monkAbilities = Boolean((monk || shou) && computedArmor < 4 && (computedArmor < 1 || shou) && ![14, 56, 57].includes(left?.data.BaseItem));
-  const monkWisdom = monkAbilities && feats.has(260) ? Math.max(0, modifiers.Wis) : 0;
-  const monkLevels = monkAbilities ? Math.trunc(monk / 5) : 0;
-  const dwarvenDefender = Math.trunc(classLevel(root, 39) / 3);
-  const armorSkin = feats.has(490) ? rulesetInt(rules, 'EPIC_ARMOR_SKIN_NATURAL_AC_BONUS', 2) : 0;
-  const classGains = root.ClassList.map(c => {
-    const row = rowAt(rules.classes, c.Class), name = field(row, 'StatGainTable');
+  // Offline/import projections have no transitioning creature. Live queries
+  // consume the SAME9f4/97c fields as area transitions and equipment owners.
+  const state=actor??{creatureData:root,nativeField9f4:0,nativeField97c:0,nativeNaturalACD51:0};
+  const natural=naturalArmorParts(state,0,{monkAbilities:()=>Number(monkAbilities),hasFeat:(_o,id)=>Number(feats.has(id)),wisdomModifier:()=>modifiers.Wis,
+    rule:(name,fallback)=>rulesetInt(rules,name,fallback),classCount:()=>rules.classes.orderedRows?.length??rules.classes.rows.size,classGain:(id,level)=>{
+    const row = rowAt(rules.classes, id), name = field(row, 'StatGainTable');
     const table = rules.classTables.get(String(name).toLowerCase());
     if (!table) return 0;
-    if (c.ClassLevel > 60) throw new Error('Native natural AC gain beyond the 60-entry class table is not supported');
-    return i8(sum(Array.from({ length: c.ClassLevel }, (_, index) => intEntry(table, index, 'NaturalAC').value)));
-  });
-  const naturalBase = i8(i8(root.NaturalAC ?? 0) + sum(classGains) + dwarvenDefender + armorSkin + monkWisdom + monkLevels);
+    if (level > 60) throw new Error('Native natural AC gain beyond the 60-entry class table is not supported');
+    return i8(sum(Array.from({ length: level }, (_, index) => intEntry(table, index, 'NaturalAC').value)));
+  }});
+  const naturalBase=naturalArmorTotal(natural);
   const dexterity = cappedDexterityModifier(modifiers.Dex, chest, rules);
   const ranks = Math.min(127, Math.max(-127, i8(root.SkillList?.[21]?.Rank ?? 0)));
   const tumble = ranks > 0 ? i8(divide(ranks, rulesetInt(rules, 'TUMBLE_NUM_RANKS_PER_AC_BONUS', 5))) : 0;
@@ -227,7 +228,7 @@ export function armorClass(root, rules, modifiers, items, effects, { pendingFeat
     deflection: i8(up[4] - down[4]), natural: i8(naturalBase + up[1] - down[1]), dodge, tumble, dexterity };
   // CNWSCreature::GetArmorClass / NWScript GetAC: no size, mode or opponent.
   return { total: i16(10 + sum(Object.values(components))), components, cache,
-    natural: { authored: i8(root.NaturalAC ?? 0), classGains, dwarvenDefender, armorSkin, monkWisdom, monkLevels }, monkAbilities };
+    natural, monkAbilities };
 }
 
 export function attackBonuses(root, rules, modifiers, items, effects, base, { pendingFeats = [], areaFlags = 0, size, touch = false, includeBase = true, limit = 20 } = {}) {
@@ -282,7 +283,7 @@ export function attackBonuses(root, rules, modifiers, items, effects, base, { pe
   return { melee: melee(false), offhand: melee(true), ranged: ranged | 0 };
 }
 
-export function finalCombatStats(root, rules, abilities, base, { items = equipmentRecords(root), effects = [], pendingFeats = [], areaFlags = 0, limits = {}, acCache, itemCombatEffects } = {}) {
+export function finalCombatStats(root, rules, abilities, base, { items = equipmentRecords(root), effects = [], pendingFeats = [], areaFlags = 0, limits = {}, acCache, itemCombatEffects,actor } = {}) {
   if (!rules.baseitems || !rules.armor || !rules.parts_chest || !rules.itemCosts) throw new Error('Final combat rules are not loaded');
   const modifiers = Object.fromEntries(Object.entries(abilities).map(([key, value]) => [key, abilityModifier(value, rules)]));
   const projected = itemCombatEffects ?? equipmentCombatEffects(items, rules, { root }), allEffects = [...projected.effects, ...effects];
@@ -297,7 +298,7 @@ export function finalCombatStats(root, rules, abilities, base, { items = equipme
       total: i8(base.baseSaves[name] + abilityBonus + authored + luck + darkBlessing + effect.total) }];
   }));
   const size = num(rowAt(rules.appearance, root.Appearance_Type), 'SIZECATEGORY', 3);
-  const ac = armorClass(root, rules, modifiers, items, allEffects, { pendingFeats, acCache });
+  const ac = armorClass(root, rules, modifiers, items, allEffects, { pendingFeats, acCache,actor });
   const attack = attackBonuses(root, rules, modifiers, items, allEffects, base, { pendingFeats, areaFlags, size, limit: limits.attack ?? 20 });
   return { armorClass: ac.total, attackBonuses: attack, saves: Object.fromEntries(Object.entries(savesBreakdown).map(([name, value]) => [name, value.total])),
     finalBreakdown: { armor: ac, saves: savesBreakdown }, unsupportedItemProperties: projected.unsupported };

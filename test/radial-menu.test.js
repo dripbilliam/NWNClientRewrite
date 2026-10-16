@@ -32,7 +32,7 @@ test('door radial closes linked doors without choosing default traversal', () =>
 });
 
 test('all object menu families expose commands or explicit placeholder systems', () => {
-  for(const object of [target('door',{animationState:0}),target('creature'),actor,target('placeable'),target('item',{stackSize:2}),target('creature',{ownerId:actor.id})]) {
+  for(const object of [target('door',{animationState:0}),target('creature'),actor,target('placeable'),target('item',{stackSize:2}),target('creature',{masterId:actor.id,associateType:4})]) {
     const menu = buildRadialActions(object,actor);
     assert.equal(new Set(menu.entries.map(entry=>entry.slot)).size,menu.entries.length);
     for(const entry of menu.entries) {
@@ -43,7 +43,7 @@ test('all object menu families expose commands or explicit placeholder systems',
     }
   }
   assert.equal(buildRadialActions(target('creature'),actor).entries.length,8);
-  assert.equal(buildRadialActions(actor,actor).entries.length,8);
+  assert.equal(buildRadialActions(actor,actor).entries.length,7);
 });
 
 test('lazy spell choices paginate without claiming unimplemented actor spells', () => {

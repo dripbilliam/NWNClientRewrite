@@ -1,12 +1,24 @@
 import { GameObjectArray, GAME_OBJECT_TYPE, OBJECT_INVALID } from './game_object_array.js';
+import {ObjectUUIDRegistry} from './object_uuid.js';
+import {WorldTemplateRuntime} from './world_template_runtime.js';
+import {moduleTagKey,addModuleTag,scriptObjectByTag,scriptWaypointByTag} from './module_tag_lookup.js';
+import {readNativeGff} from './native_gff_fields.js';
+import {nativeObjectTag} from './object_tag.js';
+import {readItemGffField} from './item_gff_load.js';
+import {objectTemplateResRef} from './create_object.js';
+import {WorldCreationRuntime} from './world_creation_runtime.js';
+import {loadCreatureTemplateData} from './creature_template.js';
+import {featAbilityDeltas,computeFeatAbilityBonuses} from './feat_ability_bonuses.js';
+import {addUseObjectAction,scriptInteractObject} from './use_object.js';
 import { initializeCreaturePerception } from './perception_detection.js';
 import { loadPerceptionRanges,postProcessPerceptionRanges } from './perception_ranges.js';
-import { parseGff, getGffStructType, cloneGff } from './gff.js';
+import { parseGff, getGffStructType, getGffFieldTypes, cloneGff } from './gff.js';
 import { decodeResourceText, RESOURCE_TYPE } from './resource_archive.js';
 import { parseNcs, parseScriptApi } from './ncs.js';
 import { NwScriptVm } from './nwscript_vm.js';
 import { ScriptScheduler } from './script_scheduler.js';
 import { ScriptVariableTable } from './script_variables.js';
+import {loadScriptVariableRows,loadScriptVariables} from './script_variable_load.js';
 import { parseCharacter, loadCharacterRules, characterStats, experienceAward, resolvePlayerModels, importedObjectIds } from './character.js';
 import { Conversation } from './conversation.js';
 import {loadQuickbar,saveQuickbar,removeQuickbarItem} from './quickbar.js';
@@ -19,9 +31,13 @@ import {spellStringEntry} from './spell_metadata.js';
 import {spellCastAtEvent} from './spell_notification.js';
 import {scriptGetIsImmune} from './effect_immunity.js';
 import {abilityEffect} from './ability_effect.js';
+import {versusEffect} from './versus_effect.js';
 import {spellTimeConversion,scriptSavingThrow} from './script_spell_support.js';
-import {constructVisualEffect} from './visual_effect.js';
-import {enumerateItemProperty,validItemProperty,itemPropertyValue,itemHasProperty} from './item_property_query.js';
+import {constructVisualEffect,constructBeamEffect} from './visual_effect.js';
+import {enumerateItemProperty,validItemProperty,itemPropertyValue,itemHasProperty,itemPropertyDurationType} from './item_property_query.js';
+import {bindItemPropertyFactory} from './item_property_factory.js';
+import {scriptAddItemProperty,scriptRemoveItemProperty} from './item_property_mutation.js';
+import {damageShieldIntegers} from './damage_shield.js';
 import { parse2da } from './area.js';
 import { creatureTalkRange } from './interaction_range.js';
 import { EffectRuntime } from './effect_runtime.js';
@@ -57,14 +73,25 @@ import { NativeAreaSpatialArray, setObjectPosition } from './area_spatial.js';
 import { NativeIdList } from './native_id_list.js';
 import { NativeAIMaster,scriptSetAILevel } from './native_ai_master.js';
 import { initializeCreatureFrame,initializeSkillTimers } from './combat_frame.js';
-import { updateSubareasOnMove, intersectSubareaPolygon } from './subareas.js';
+import { updateSubareasOnMove,updateSubareasOnJump, intersectSubareaPolygon } from './subareas.js';
 import { dispatchSubareaEvent } from './subarea_events.js';
 import { initialMovementFactor,loadMovementRate,nativeFloatEntry } from './movement_rate.js';
 import { intEntry,rulesetInt } from './combat_stats.js';
 import { initializeModuleExperience,initializeCreatureExperience } from './combat_experience.js';
 import { NativeFactionManager,initializeCreatureFaction } from './faction_manager.js';
 import { updatePersonalSpace } from './personal_space.js';
-import { getActionMode } from './combat_mode.js';
+import { getActionMode,setActionMode } from './combat_mode.js';
+import {scriptAppearanceType,scriptCreatureSize,scriptCreatureTail,importCreatureTail,scriptSubrace} from './creature_appearance_state.js';
+import {setBaseAbility} from './base_ability.js';
+import {constructPolymorph} from './polymorph_effect.js';
+import {PolymorphRuntime} from './polymorph_runtime.js';
+import {initializePolymorphState} from './polymorph_form.js';
+import {updateAppearanceInfo} from './appearance_info.js';
+import {receiveCancelPolymorphInput} from './combat_input.js';
+import {constructTurnResistance,turnResistanceHD} from './turn_resistance.js';
+import {nativeFeatSourceClass} from './spell_caster_level.js';
+import {FeatRuntime} from './feat_runtime.js';
+import {scriptSetDroppable,scriptGetDroppable} from './item_droppable.js';
 import {initializeInventoryDisturbance,lastDisturbed,inventoryDisturbItem,inventoryDisturbType} from './inventory_disturbance.js';
 import {EncounterRuntime} from './encounter_runtime.js';
 import {objectInShape} from './shape_query.js';
@@ -75,7 +102,7 @@ import {equipCreatureItem,unequipCreatureItem} from './equipment_mutation.js';
 import {runEquip} from './equipment_actions.js';
 import {runUnequip,canUnequipWeapon,scriptEquipItem,scriptUnequipItem} from './equipment_unequip.js';
 import {scriptSelectWeapon,selectAmmunition,relativeWeaponSize} from './weapon_selection.js';
-import {scriptLocation} from './script_location.js';
+import {scriptLocation,scriptObjectLocation} from './script_location.js';
 import {scriptGetAssociate,creatureAssociateId} from './associate_query.js';
 import {getObjectLocked} from './lock_query.js';
 import {scriptRandomWalk} from './random_walk.js';
@@ -87,20 +114,31 @@ import {floatingText} from './floating_text.js';
 import {reflexAdjustedDamage} from './reflex_damage.js';
 import {broadcastFloatyData} from './combat_broadcast.js';
 import {setObjectDestroyable} from './object_lifecycle.js';
+import {ObjectLifecycleRuntime} from './object_lifecycle_runtime.js';
+import {initializeObjectVisualData,initializeCreatureVisualData} from './object_visual_data.js';
+import {ObjectVisualRuntime} from './object_visual_runtime.js';
+import {setDoorOpenState} from './world_displacement.js';
+import {scriptVoiceChat,sendQuickChatMessage} from './quick_chat.js';
 import {ListenExpression,ListenExpressions} from './listen_expression.js';
+import {MatchedExpressionStrings,matchedSubstring,matchedSubstringCount} from './listen_event.js';
 import {associateListenPatterns} from './associate_listen_patterns.js';
 import {scriptStringLeft,scriptStringRight,scriptStringToInt,scriptStringToFloat,scriptSubString,scriptStringCase} from './script_string.js';
 import {scriptDoorAction,doorEventOpenState} from './door_actions.js';
-import {scriptAssociateType,scriptSittingCreature,scriptObjectFacing,authoredVectorOrientation,authoredBearingOrientation} from './script_object_queries.js';
+import {scriptAssociateType,scriptSittingCreature,scriptObjectFacing,scriptIsOpen,nativeDoorOpenState,authoredVectorOrientation,authoredBearingOrientation} from './script_object_queries.js';
 import {initializeTrapQuery,appendLoadedTrap,nearestTrap} from './trap_query.js';
 import {scriptMoveToObject,scriptMoveToLocation,scriptWait} from './script_movement.js';
+import {scriptForceFollow} from './force_follow.js';
 import {scriptPlayAnimation} from './script_animation.js';
 import {scriptFloatToInt,scriptIntToFloat} from './script_scalar.js';
 import {scriptTalent,talentValid} from './talent.js';
-import {nativeObjectDead,nativeObjectDying} from './object_life_state.js';
+import {nativeObjectDead,nativeObjectDying,commonObjectHitPoints} from './object_life_state.js';
+import {initializeBonusFeats,bonusFeats} from './bonus_feat_effect.js';
+import {featInfo} from './feat_uses.js';
+import {scriptEffectType} from './effect_script_type.js';
 import {initializeModuleItemHistory,receiveModuleItemEvent,moduleItemHistory} from './module_item_events.js';
 import {NativeItemRuntime,canonicalItemData} from './native_item_runtime.js';
-import {ItemRepository,repositoryAdd,repositoryItemsOverlap,repositoryFindPosition,repositoryFit,repositoryRemove,repositoryPage} from './item_repository.js';
+import {ItemRepository,repositoryAdd,repositoryItemsOverlap,repositoryFindPosition,repositoryFit,repositoryRemove,repositoryPage,repositoryContains} from './item_repository.js';
+import {initializeWorldObjectOwnership,importPlaceableInventoryState} from './world_object_state.js';
 import {setItemPossessor} from './item_possession.js';
 import {compareStackItems,nativeItemTag} from './item_stack_compare.js';
 import {EquipmentInventory} from './equipment_inventory.js';
@@ -108,19 +146,37 @@ import {sendCombatFeedback} from './combat_broadcast.js';
 import {setCreatureGold,addCreatureGold} from './creature_gold.js';
 import {importCreatureCorpseFields,getCreatureLootable,setCreatureLootable,getBodyBag,setBodyBag,importPlaceableBodyBag} from './corpse_inventory.js';
 import {canEquipImportedItem,canEquipCreatureItem} from './item_equipment_gate.js';
-import {alignmentRestrictions,classRestrictions,raceRestrictions,itemProficient} from './item_restrictions.js';
+import {alignmentRestrictions,classRestrictions,raceRestrictions,itemProficient,scrollSchoolAllowed} from './item_restrictions.js';
 import {getItemWeight} from './inventory_weight.js';
 import {TalentRuntime,initializeTalentSpellState} from './talent_runtime.js';
+import {talentAccess} from './talent_actions.js';
+import {getScriptItemCharges,setScriptItemCharges} from './item_charge_command.js';
 import {SpellBookRuntime} from './spell_book_runtime.js';
 import {SpellRuntime} from './spell_runtime.js';
+import {constructAppearEffect} from './appear_effect.js';
 import {hasFeatEffectApplied,hasSpellEffectApplied} from './feat_effect.js';
 import {initializeArcaneEquipmentCache,arcaneSpellFailure} from './arcane_spell_failure.js';
 import {abilityModifierCells,refreshAbilityModifierCache,scriptAbilityModifier} from './ability_modifier_cache.js';
 import {playableRacialType} from './playable_race.js';
-import {acquireCreatureItem,scriptCreateItem} from './item_acquisition.js';
+import {acquireCreatureItem,acquirePlaceableItem,removePlaceableItem,scriptCreateItem} from './item_acquisition.js';
 import {setItemIdentified} from './item_identification.js';
+import {scriptItemGoldValue} from './item_price.js';
 import {removeCreatureItem} from './item_removal.js';
 import {SkillRuntime} from './skill_runtime.js';
+import {RestRuntime} from './rest_runtime.js';
+import {initializeRestState} from './rest.js';
+import {AutomapRuntime} from './automap_runtime.js';
+import {automapByteCount} from './automap.js';
+import {scriptExploreArea,scriptTileExploration,scriptAutomapExploration} from './automap_script.js';
+import {importPlaceableStatic,incrementAreaPlayers,decrementAreaPlayers} from './creature_area_lifecycle.js';
+import {importAreaPackEntry,importAreaLoadScreen,scriptSetAreaTransitionBmp,setAreaTransitionBmp} from './client_area_message.js';
+import {initializeAreaMessageName} from './native_message_text.js';
+import {initializeAreaMessageFields,loadAreaMessageHeader,tileMessageMetadata} from './area_message_metadata.js';
+import {AreaMessageRuntime} from './area_message_runtime.js';
+import {loadAreaMessageProperties} from './area_message_properties.js';
+import {loadWaypointMessageState} from './waypoint_message.js';
+import {initializeSoundMessageState,loadSoundMessageState} from './sound_message.js';
+import {initializePlaceableMessageState,loadPlaceableMessageState} from './placeable_message.js';
 
 const label = value => typeof value === 'string' ? value : value?.entries?.[0]?.text ?? '';
 const scriptTypes = { creature: 1, player: 1, item: 2, trigger: 4, door: 8, areaOfEffect: 16, waypoint: 32, placeable: 64, store: 128, encounter: 256 };
@@ -129,12 +185,13 @@ const blueprintTypes = { door: [2042, 'UTD '], placeable: [2044, 'UTP '], creatu
 const position = entry => [Number(entry.XPosition ?? entry.X ?? 0), Number(entry.ZPosition ?? entry.Z ?? 0), -Number(entry.YPosition ?? entry.Y ?? 0)];
 
 export class ModuleSession {
-  constructor(resolver, { onDiagnostic = () => {}, onMessage = () => {}, onCombatMessage = null, onSound = () => {}, onCameraMode = () => {}, onTransition = null, onDoorState = () => {}, onConversation = () => {}, onCutscene = () => {}, onClearActions = () => {}, runStartupScripts = true, runNativeAI = runStartupScripts, difficultyLevel = 2, serverPvpSetting = null, naturalOnesFailSavingThrows = true, stickyCombatModes = false, alwaysResetEncounterSpawns = false, maximumLevel = 40 } = {}) {
+  constructor(resolver, { onDiagnostic = () => {}, onMessage = () => {}, onCombatMessage = null, onSound = () => {}, onCameraMode = () => {}, onTransition = null, onDoorState = () => {}, onConversation = () => {}, onCutscene = () => {}, onClearActions = () => {}, runStartupScripts = true, runNativeAI = runStartupScripts, difficultyLevel = 2, serverPvpSetting = null, naturalOnesFailSavingThrows = true, stickyCombatModes = false, alwaysResetEncounterSpawns = false, itemLevelRestrictions = false, maximumLevel = 40 } = {}) {
     Object.assign(this, { resolver, onDiagnostic, onMessage, onSound, onTransition, onDoorState, onConversation, onCutscene, onClearActions, runStartupScripts });
     this.onCameraMode = onCameraMode;
     if (typeof runNativeAI !== 'boolean') throw new Error('Invalid native AI setting');
     this.runNativeAI = runNativeAI;
     this.registry = new GameObjectArray({ clientMode: true });
+    this.uuids=new ObjectUUIDRegistry({warning:(message,o)=>runtimeDiagnostics.record('object.uuid-warning',message,this.diagnosticContext(o.id))});
     this.nativePCEnumeration=new PlayerEnumeration();
     this.sources = new Map(); this.areas = new Map(); this.tags = new Map(); this.programs = new Map(); this.diagnostics = [];
     this.diagnosticNotifications = new Map();
@@ -153,15 +210,23 @@ export class ModuleSession {
     this.nativeServerPause={flags:0,list100f8:[],list10100:[]};
     this.conversation = new Conversation(this); this.triggerMembers = new Map();
     this.effects = new EffectRuntime(this);
+    this.polymorph=new PolymorphRuntime(this);
     this.areaEffects=new AreaEffectRuntime(this);
     this.items=new NativeItemRuntime(this);
     this.talents=new TalentRuntime(this);
     this.spellBook=new SpellBookRuntime(this);
     this.spells=new SpellRuntime(this);
+    this.feats=new FeatRuntime(this);
     this.skills=new SkillRuntime(this);
+    this.rest=new RestRuntime(this);
     this.aiMaster=new NativeAIMaster();
     this.damage = new DamageRuntime(this);
     this.combat = new CombatRuntime(this);
+    this.lifecycle=new ObjectLifecycleRuntime(this);
+    this.objectVisuals=new ObjectVisualRuntime(this);
+    this.worldTemplates=new WorldTemplateRuntime(this);
+    this.worldCreation=new WorldCreationRuntime(this);
+    this.automap=new AutomapRuntime(this);this.areaMessages=new AreaMessageRuntime(this);
     this.onCombatMessage=onCombatMessage??(message=>runtimeDiagnostics.record('combat.presentation-unimplemented',
       'Native combat message delivered locally; combat UI/animation routing is not implemented',{...this.diagnosticContext(message.recipientId),messageType:message.type}));
     if (!Number.isInteger(difficultyLevel)) throw new Error('Invalid game difficulty');
@@ -179,6 +244,11 @@ export class ModuleSession {
     // 14055b9c0 reads the live server-internal +101f8 value.
     if(typeof stickyCombatModes!=='boolean')throw new Error('Invalid sticky combat mode setting');
     this.stickyCombatModes=stickyCombatModes;
+    // DefineServerConfiguration140574db1..140574df5 default BYTE0;
+    // callback14057ba10 writes ServerInfo134. External configuration loading
+    // is separate. Enabled ILR still requires the minimum-item-level owner.
+    if(typeof itemLevelRestrictions!=='boolean')throw new Error('Invalid item-level restriction setting');
+    this.nativeItemLevelRestriction134=Number(itemLevelRestrictions);
     // DefineServerConfiguration140576bd1 defaults always-reset to byte0;
     // callback14057b4a0 writes CServerInfo160, used by both pool owners.
     if(typeof alwaysResetEncounterSpawns!=='boolean')throw new Error('Invalid encounter always-reset setting');
@@ -207,17 +277,20 @@ export class ModuleSession {
     this.diagnostics.push(message);
     if (this.diagnostics.length > 64) this.diagnostics.shift(); this.onDiagnostic(message);
   }
-  register(kind, sourceKey, data) {
+  register(kind, sourceKey, data,{requestedId=OBJECT_INVALID}={}) {
+    if(!Number.isInteger(requestedId)||requestedId<0||requestedId>0xffffffff)throw new Error('Native requested object ID is unavailable');
     if (this.sources.has(sourceKey)) throw new Error(`Duplicate source placement ${sourceKey}`);
     const object = { ...data, kind, sourceKey, objectType: GAME_OBJECT_TYPE[kind], eventObjects: {} };
+    if(object.objectType===5){initializeBonusFeats(object);initializeCreatureVisualData(object);}
+    if(object.objectType===3)object.nativeMinutesPerHour3b8??=5; // module ctor1404787f9.
     if(object.objectType===3)initializeModuleItemHistory(object);
     initializeTrapQuery(object);
     initializeSpellContext(object);
     if(object.objectType>=5&&object.objectType<=14)object.nativeCreatedAreaEffects170??=new NativeIdList(); // base ctor14048b883/88a.
     if(object.objectType===4)object.nativeTrapIds158??=new NativeIdList();
     // CNWSObject constructor 14048bb36; distinct from effect/AoE spell IDs.
-    if(object.objectType>=5&&object.objectType<=14){object.lastSpellId??=-1;object.plot??=false;object.counterSpellTargetId??=OBJECT_INVALID;object.effects??=[];initializeInventoryDisturbance(object);}
-    if(object.objectType>=5&&object.objectType<=14){object.nativeProjectileRange268??=45;object.nativeLoopingVisuals160??={records:[],capacity:0};} // object ctor14048b875/87c/48bc91.
+    if(object.objectType>=5&&object.objectType<=14){object.areaId??=OBJECT_INVALID;object.position??=[0,0,0];object.lastSpellId??=-1;object.plot??=false;object.counterSpellTargetId??=OBJECT_INVALID;object.effects??=[];initializeInventoryDisturbance(object);}
+    if(object.objectType>=5&&object.objectType<=14){initializeObjectVisualData(object);object.nativeLoopingVisuals160??={records:[],capacity:0};object.nativePortraitId??=65535;object.nativePortraitResRef??='';} // object ctor14048b875/87c/48bc91; portrait40/52.
     // CNWSObject constructor14048ba79 and CNWSModule constructor1404787f0.
     // AI list registration and subsequent level changes have separate owners.
     if(object.objectType>=5&&object.objectType<=14){object.nativeAILevel7c??=-1;object.nativeAILocked80??=0;object.animationState??=0;
@@ -225,12 +298,15 @@ export class ModuleSession {
       if(object.nativeFieldEc!==undefined&&object.commandable!==undefined&&(object.nativeFieldEc|0)!==Number(object.commandable))throw new Error('Conflicting native commandable values');
       object.nativeFieldEc=(object.nativeFieldEc??Number(object.commandable??true))|0;
       Object.defineProperty(object,'commandable',{enumerable:true,configurable:true,get(){return this.nativeFieldEc;},set(value){this.nativeFieldEc=Number(value)|0;}});
-      object.nativeListening1ec??=0;object.nativeListenExpressions??=new ListenExpressions();}
+      object.nativeListening1ec??=0;object.nativeListenExpressions??=new ListenExpressions();
+      object.nativeMatchedStrings??=new MatchedExpressionStrings(); // object ctor14048b8bb/c2.
+      object.lastSpeakerId??=OBJECT_INVALID;object.lastVoiceChatId??=0;object.lastSpeechVolume??=-1;object.lastSpokenText??='';} // ctor14048ba41/14048bc43.
     if(object.objectType>=5&&object.objectType<=14){object.nativeDestroyableF0??=1;object.nativeRaiseableF4??=0;object.nativeSelectableWhenDeadF8??=0;
       object.orientation??=[1,0,-0];} // CNWSObject ctor14048b998..14048b9af.
-    if(object.objectType===9){object.nativeBodyBag59c??=0;object.nativeOccupant36c??=OBJECT_INVALID;} // ctor1404afd3b/1404afd0d.
+    if(object.objectType===9){object.nativeBodyBag59c??=0;object.nativeOccupant36c??=OBJECT_INVALID;object.nativePlaceableActionPoints550??=[[0,0,0],[0,0,0]];initializePlaceableMessageState(object);} // ctor1404afd3b/1404afd0d/1404afae3/1404afd17.
     if(object.objectType===3){object.nativePathfindingLevel464??=2;object.nativeTimeOfDay3d4??=0;object.nativeInvisibleCreatureIds330??=[];}
     if (object.objectType === 5) {
+      initializeRestState(object);
       initializeCreaturePerception(object,this.random);
       initializeCreatureFrame(object,this.worldTimer.time());
       object.isPC??=kind==='player';object.isDM??=false;
@@ -241,6 +317,10 @@ export class ModuleSession {
       for(const field of ['nativeWeightDirty96c','nativeEncumbrance970','nativeTotalWeight978'])object[field]??=0; // ctor14037af28..3a.
       object.nativePickpocketStage830??=0;object.nativePickpocketDetected834??=0; // ctor14037ac89.
       object.nativeField89c??=0; // ctor14037ae7f: high DWORD of zeroed QWORD898.
+      object.nativeField9f4??=0; // ctor14037a53e; area enter/exit suppression.
+      object.nativeField9f8??=0; // same ctor QWORD9f4 write; polymorph lock mode.
+      object.nativeNaturalACD51??=0; // stats ctor1403ee49a zeroes DWORDd4f..d52.
+      initializePolymorphState(object);
       // Both research names refer to the same DWORD97c. Caster/queue and
       // skill/equipment owners must observe each other's mutations.
       if(object.nativeField97c!==undefined&&object.nativeEquipmentLock97c!==undefined&&(object.nativeField97c|0)!==(object.nativeEquipmentLock97c|0))throw new Error('Conflicting native creature field97c values');
@@ -256,6 +336,7 @@ export class ModuleSession {
       object.nativeProjectileRange268??=45; // object constructor14048bc91; DAT140dda4c8.
       object.nativeInvitations7e8??=null;object.nativeInvitations7f0??=null;
       object.nativeAutoMapTileX6e4??=255;object.nativeAutoMapTileY6e5??=255;object.nativeAutoMapArea6e8??=OBJECT_INVALID;
+      this.automap.initialize(object);
       object.nativeSightRange7b0??=0;object.nativeHearingRange7b8??=0;
       object.nativePerceptionRange798??=11;object.nativeSize718??=0;object.nativeAttackRange71c??=0;
       object.nativeVisualTypes160??=[];
@@ -284,7 +365,10 @@ export class ModuleSession {
       object.nativeField6ec??=0;object.nativeField6ee??=0;
       object.creatureAnimation ??= 0; object.currentAITargetId ??= OBJECT_INVALID;
       object.nativeField700 ??= 0;
+      object.nativeField828??=0; // CNWSCreature ctor14037aef7; item-cast guard.
       object.nativeField8ac??=0; // creature constructor14037af9b; input veto.
+      // Creature constructor14037ab82/89 clears these shared command fields.
+      object.lastAssociateCommand??=0;object.nativeField910??=0;object.nativeField914??=0;
       // AddAttackActions writes +708 as its passive argument; retarget owners
       // read/write that SAME native int. Keep semantic accessors on one cell.
       const field708 = [object.nativeField708, object.passiveAttack, object.attackTargetChanged].filter(v => v !== undefined);
@@ -298,9 +382,11 @@ export class ModuleSession {
       object.combatMode ??= 0; object.pendingCombatMode ??= 0;
       object.combatAnimationSpeed??=0; // constructor 14037a97d, byte +6f8
       object.activities ??= 0; object.lockedActivities ??= 0;
+      object.nativeCounterspellers310??=Array(10).fill(OBJECT_INVALID);object.nativeCounterCount338??=0; // ctor14037a901..14037a964.
       object.nativeBodyState ??= 0; object.chairId ??= OBJECT_INVALID; object.lockOrientationId ??= OBJECT_INVALID;
       object.nativeCollisionFlag788??=0;object.cutsceneGhost??=false; // constructor 14037b24a/14037b25c
       object.nativeStatsFieldBC??=0; // stats constructor 1403ee3d1
+      object.enemyAttackBonus??=0; // stats ctor1403ee4b4 clears WORDd53, including BYTEd54.
       for(const field of abilityModifierCells)object[field]??=0; // stats ctor1403ee576/581.
       for(const field of ['nativeArcaneEffectD78','nativeArcaneChestD79','nativeArcaneShieldD7a'])object[field]??=0; // stats ctor1403ee55d/566.
       object.nativeSpellFailuresD7b??=Array(9).fill(0); // stats ctor1403ee638/63f.
@@ -324,6 +410,11 @@ export class ModuleSession {
       object.attackTargetId ??= OBJECT_INVALID;
       object.attackTargetPosition ??= [0, 0, 0]; // constructor14037ae14/14037ae63
       object.nativeMovementAreaId ??= OBJECT_INVALID; object.nativeMovementGoal ??= [0, 0, 0]; // constructor14037a98c..14037a9b5
+      // These native addresses already back movement's pending destination.
+      // AddToArea and jump actions must share those cells, rather than create
+      // a second independent area ID/position with a different lifetime.
+      Object.defineProperty(object,'nativeLastClientArea4f4',{configurable:true,enumerable:true,get(){return this.nativeMovementAreaId;},set(value){this.nativeMovementAreaId=value>>>0;}});
+      Object.defineProperty(object,'nativePendingAreaPosition4f8',{configurable:true,enumerable:true,get(){const p=this.nativeMovementGoal;return[p[0],Math.fround(-p[2]),p[1]];},set(p){this.nativeMovementGoal=[Math.fround(p[0]),Math.fround(p[2]),Math.fround(-p[1])];}});
       object.nativeInventoryEnumeration??={outer:0,inner:0,bagId:OBJECT_INVALID}; // ctor14037a748/755.
       object.nativeEquipmentLock97c??=0;object.nativeField94c??=0; // ctor14037afbd/14037aec8.
       object.nativeField81c??=0; // ctor14037ae6a: independent unlimited spell-use flag.
@@ -345,13 +436,17 @@ export class ModuleSession {
     }
     if ([9, 10].includes(object.objectType)) object.hardness = (object.authored?.Hardness ?? 0) & 255;
     if(object.objectType===9)object.nativeEffectSpellId590??=-1; // placeable ctor1404afcfc.
-    if(object.objectType===10){object.nativeDoorField498??=1;object.nativeDoorHeartbeat49c??=0;object.nativeDoorHeartbeat4a0??=0;object.nativeAnimationD8??=22;}
+    if(object.objectType===10){object.nativeDoorField498??=1;object.nativeDoorHeartbeat49c??=0;object.nativeDoorHeartbeat4a0??=0;object.nativeDoorBounds4c8??=[[0,0,0],[0,0,0]];object.nativeAnimationD8??=({0:22,1:50,2:51,3:72})[object.animationState&255]??22;}
     object.locals = new ScriptVariableTable({ onSetInt: (name, value) => {
       if (object.journal && name.startsWith('NW_JOURNAL_ENTRY')) object.journal.set(name.slice(16), value);
     } });
-    const result = this.registry.addInternalObject(object);
+    const result = requestedId===OBJECT_INVALID?this.registry.addInternalObject(object):this.registry.addObjectAtPos(requestedId,object);
     if (result.status) throw new Error(`Cannot allocate ${kind}`);
+    // Area ctor35a1ae uses its CGameObject subobject+138; base ctor48b967
+    // uses this directly. Both belong to the same canonical JS object record.
+    if(object.objectType>=4&&object.objectType<=14)this.uuids.initialize(object);
     if(object.objectType===6)this.items.initialize(object);
+    initializeWorldObjectOwnership(object,{repository:(...args)=>new ItemRepository(...args),setAILevel:(o,level)=>this.aiMaster.setLevel(o,level)},requestedId);
     // Creature constructor14037a5e5..14037a603 registers level0 only when
     // its explicit AI-registration argument is nonzero. Raw test/client
     // records may omit registration; local authored creatures request it.
@@ -364,12 +459,9 @@ export class ModuleSession {
     this.sources.set(sourceKey, object.id);
     for(const entry of object.authored?.ExpressionList??[])this.setListenPattern(object,entry.ExpressionString??'',entry.ExpressionId??0);
     // Native tag lookup compares byte strings case-sensitively, truncated to 64.
-    const tag = String(object.tag ?? '').slice(0, 64);
-    if (tag&&!data.deferTagLookup) this.tags.set(tag, [object.id, ...(this.tags.get(tag) ?? [])]);
-    for (const entry of data.variables ?? []) {
-      const type = localTypes[entry.Type - 1];
-      if (type) object.locals.set(entry.Name, type, entry.Value);
-    }
+    const tag = String(object.tag ?? '');
+    if (tag&&!data.deferTagLookup) addModuleTag(this.tags,tag,object.id);
+    this.loadNativeVariableRows(object,data.variables??[]);
     return object;
   }
   source(key) { return this.registry.get(this.sources.get(key)); }
@@ -414,11 +506,10 @@ export class ModuleSession {
       unequipEvent:async(o,item,slot)=>{this.module.nativeUnequippedSlot37c=inventory(o).index(slot);await this.receiveItemModuleEvent(o.id,{type:40,objectIds:[item.id,o.id],integers:[]});},
       setPossessor:(...args)=>setItemPossessor(...args,this.itemOwnershipProviders()),contains:(o,item)=>inventory(o).contains(item),
       unequip:(...args)=>this.unequipItem(...args),slot:(o,item)=>inventory(o).slot(item),
-      applyProperties:(item,o)=>{if(!Array.isArray(item.passiveProperties))throw new Error('Native passive item property pool is unavailable');if(item.passiveProperties.length)this.combat.unsupported(o,'Native equipped item property effect materialization is unavailable');},
-      removeProperties:(item,o)=>{if(!Array.isArray(item.passiveProperties))throw new Error('Native passive item property pool is unavailable');if(item.passiveProperties.length||o.effects.some(e=>e.creatorId===item.id))this.combat.unsupported(o,'Native unequipped item property/effect-by-creator removal is unavailable');},
+      applyProperties:(...args)=>this.items.applyEquipped(...args),removeProperties:(...args)=>this.items.removeEquipped(...args),
       put:(o,slot,item)=>{inventory(o).put(slot,item);item.equipmentSlot=inventory(o).slot(item)||null;},remove:(o,item)=>{const result=inventory(o).remove(item);item.equipmentSlot=inventory(o).slot(item)||null;return result;},
       armor:o=>{initializeSkillArmorPenalties(o,this.equippedItems(o),this.characterRules);initializeArcaneEquipmentCache(o,this);
-        o.itemCombatEffects=equipmentCombatEffects(this.equippedItems(o),this.characterRules,{root:creatureRoot(o)});this.refreshCombat(o);},
+        this.items.refreshProjection(o);this.refreshCombat(o);},
       combatInformation:o=>this.refreshCombat(o),weight:item=>getItemWeight(item,this.combat.weightProviders())};return p;
   }
   equipItem(...args){return equipCreatureItem(...args,this.equipmentMutationProviders());}
@@ -430,13 +521,13 @@ export class ModuleSession {
   runUnequip(actor,itemId,repositoryId,x,y,flag,playerId){
     const p=this.weaponSelectionProviders(actor),ownership=this.itemOwnershipProviders();
     return runUnequip(actor,itemId,repositoryId,x,y,flag,playerId,{...p,client:id=>this.combat.broadcastProviders().client(id),messageAvailable:()=>true,
-      inventoryGUI:(client,explicit)=>{if(explicit)throw new Error('Native alternate inventory GUI owner is unavailable');if(!client.inventoryGUI)throw new Error('Native inventory GUI owner is unavailable');return client.inventoryGUI;},
+      inventoryGUI:(client,explicit)=>{const gui=explicit?client.alternateInventoryGUI:client.inventoryGUI;if(!gui)throw new Error('Native inventory GUI owner is unavailable');return gui;},
       creature:id=>{const o=this.registry.get(id);return o?.objectType===5?o:null;},
       inEquipment:(o,i)=>{if(!o.nativeInventoryImported||!o.nativeEquipment)throw new Error('Native equipped item storage is unavailable');return o.nativeEquipment.contains(i);},
       canUnequip:(...args)=>this.canUnequip(...args),addItem:(...args)=>repositoryAdd(...args,this.itemRepositoryProviders()),
       acquire:(...args)=>acquireCreatureItem(...args,this.itemAcquisitionProviders()),removeItem:(...args)=>removeCreatureItem(...args,this.itemAcquisitionProviders()),
       drop:o=>this.combat.unsupported(o,'Native item AddToArea drop owner is unavailable'),setPossessor:(...args)=>setItemPossessor(...args,ownership),page:repositoryPage,
-      selectPanel:(client,gui,page)=>this.combat.unsupported(client.object,'Native inventory SelectPanel/SetPanel owner is unavailable'),
+      selectPanel:(client,gui,page)=>this.lifecycle.inventoryInputProviders().setPanel(gui,client,page),
       cancel:(client,itemId,explicit)=>this.onCombatMessage({recipientId:client.object.id,type:'inventory-unequip-cancel',itemId,explicit}),
       unequippedMessage:(client,itemId,explicit)=>this.onCombatMessage({recipientId:client.object.id,type:'inventory-unequipped',itemId,explicit}),
       equippedMessage:(client,itemId,slot,explicit)=>this.onCombatMessage({recipientId:client.object.id,type:'inventory-equipped',itemId,slot,explicit})});
@@ -477,7 +568,7 @@ export class ModuleSession {
   itemRestrictionProviders(){
     return{hasProperty:(i,type)=>Number([...i.activeProperties,...i.passiveProperties].some(p=>p.type===type)),passiveProperties:i=>i.passiveProperties,
       skillRank:(o,id)=>this.combat.skill(o,id,null,0),canUseSkill:(o,id)=>this.combat.canUseSkill(o,id),
-      itemCost:()=>{throw new Error('Native item price computation is unavailable');},
+      itemCost:(...args)=>this.items.price(...args),
       classIds:o=>(creatureRoot(o).ClassList??[]).map(c=>c.Class),race:o=>creatureRoot(o).Race??0,
       goodEvil:o=>creatureAlignment(creatureRoot(o)).goodEvil,lawChaos:o=>creatureAlignment(creatureRoot(o)).lawChaos};
   }
@@ -487,7 +578,9 @@ export class ModuleSession {
       alignmentRestrictions:(o,i)=>alignmentRestrictions(o,i,rules,r),classRestrictions:(o,i)=>classRestrictions(o,i,rules,r),raceRestrictions:(o,i)=>raceRestrictions(o,i,rules,r),
       proficient:(o,i,slot)=>itemProficient(o,i,slot,{baseInfo:j=>this.items.baseInfo(j),armorClass:j=>itemArmorClass({data:canonicalItemData(j)},rules),hasFeat:(a,id)=>this.combat.hasFeat(a,id)}),
       possessedFamiliar:o=>Number((o.associateType&65535)===3&&Boolean(this.combat.broadcastProviders().client(o.id))),
-      associatesCanInteract:()=>rulesetInt(rules,'LL_ASSOCIATES_CAN_INTERACT',0),
+      associatesCanInteract:()=>rulesetInt(rules,'ALL_ASSOCIATES_CAN_INTERACT',0),
+      itemLevelRestrictions:()=>{if(!Number.isInteger(this.nativeItemLevelRestriction134))throw new Error('Native server item-level restriction setting134 is unavailable');return this.nativeItemLevelRestriction134;},
+      level:o=>o.stats.level,minimumEquipLevel:()=>{throw new Error('Native item minimum equip level/pricing owner is unavailable');},
       weaponClientContext:o=>{
         const client=this.combat.broadcastProviders().client(o.id);if(!client)return null;
         // Import starts with empty hands; existing-hand client preview writes
@@ -495,12 +588,18 @@ export class ModuleSession {
         return{actor:this.registry.get(client.id)??o,preview:null};
       },feedback:(o,code)=>sendCombatFeedback(o,code,null,this.combat.broadcastProviders())};
   }
+  itemUseProviders(){
+    const r=this.itemRestrictionProviders();
+    return {...this.importedEquipmentProviders(),baseItem:i=>i.baseItem,
+      scrollSchoolAllowed:(o,i)=>scrollSchoolAllowed(o,i,this.characterRules,{...r,classSchool:(a,n)=>creatureRoot(a).ClassList[n].School??0,firstActiveProperty:j=>j.activeProperties[0]}),
+      controlledByPlayer:o=>Number(Boolean(this.combat.broadcastProviders().client(o.id))),identified:i=>i.identified};
+  }
   itemRepositoryProviders(){
     return{...this.itemOwnershipProviders(),baseInfo:i=>this.items.baseInfo(i),baseItem:i=>i.baseItem,
       itemById:id=>{const o=this.registry.get(id);return o?.objectType===6?o:null;},
       hasProperty:(i,type)=>[...i.activeProperties,...i.passiveProperties].some(p=>p.type===type),
       compareItems:(a,b)=>compareStackItems(a,b,{baseInfo:i=>this.items.baseInfo(i),tag:i=>nativeItemTag(i.tag)}),
-      addGold:(o,amount,feedback)=>addCreatureGold(o,amount,feedback,{feedback:(o,code,data)=>sendCombatFeedback(o,code,data,this.combat.broadcastProviders())}),destroyItem:i=>this.unregister(i.id),
+      addGold:(o,amount,feedback)=>addCreatureGold(o,amount,feedback,{feedback:(o,code,data)=>sendCombatFeedback(o,code,data,this.combat.broadcastProviders())}),destroyItem:i=>this.lifecycle.destroy(i),
       updateEncumbrance:(...args)=>this.combat.encumbrance(...args),
       mergeFeedback:(repo,existing,incoming,x,y)=>{
         const owner=this.registry.get(repo.ownerId);if(owner?.objectType!==5&&owner?.objectType!==6)return;
@@ -519,17 +618,15 @@ export class ModuleSession {
       fit:(...args)=>repositoryFit(...args,r),add:(...args)=>repositoryAdd(...args,r),
       inEquipment:(o,item)=>{if(!o.nativeInventoryImported)throw new Error('Native equipment membership is unavailable');return o.nativeEquipment.contains(item);},
       runUnequip:(...args)=>this.runUnequip(...args),
-      removePlaceableItem:()=>{throw new Error('Native placeable item-removal owner is unavailable');},
+      removePlaceableItem:(...args)=>removePlaceableItem(...args,p),
+      contains:(repo,item,nested)=>repositoryContains(repo,item,nested,{object:id=>this.registry.get(id),baseInfo:i=>this.items.baseInfo(i),repository:o=>o.nativeRepository}),
       removeRepositoryItem:async(repo,item)=>{
         const result=await repositoryRemove(repo,item,r);
         const owner=this.registry.get(repo.ownerId);if(result===1&&owner?.inventory)owner.inventory=owner.inventory.filter(id=>id!==item.id);
         return result;
       },
       encumbrance:(...args)=>this.combat.encumbrance(...args),
-      removeFromArea:item=>{
-        if(item.areaId!==OBJECT_INVALID)throw new Error('Native world item removal/area owner is unavailable');
-        item.position=[0,0,0]; // RemoveFromArea14046b1d0 resets XYZ even when area NULL.
-      },setPossessor:async(...args)=>{
+      removeFromArea:item=>this.lifecycle.removeItemArea(item),setPossessor:async(...args)=>{
         await setItemPossessor(...args,r);
         // Compatibility UI view only: authoritative membership is still the
         // repository/slot ID cells, and the item's canonical direct owner.
@@ -544,26 +641,26 @@ export class ModuleSession {
     const template=new TextDecoder('windows-1252').decode(Uint8Array.from(bytes.slice(0,length)));
     let data;try{data=await this.instance('item',{InventoryRes:template});}
     catch(error){this.report(error,{...this.diagnosticContext(item.id),operation:'native-item-template',resource:template,resourceType:2025});return 0;}
-    item.templateResRef=template;item.tag=String(data.Tag??'');item.name=label(data.LocalizedName);
+    item.templateResRef=template;item.name=label(data.LocalizedName);
     await this.items.loadData(item,data);
-    for(const variable of data.VarTable??[]){const type=localTypes[variable.Type-1];if(type)item.locals.set(variable.Name,type,variable.Value);}
-    if(newTag.length!==0)item.tag=newTag;
-    const tag=item.tag.slice(0,64);if(tag)this.tags.set(tag,[item.id,...(this.tags.get(tag)??[])]);
+    this.loadNativeVariableRows(item,data.VarTable??[]);
+    if(newTag.length!==0)item.tag=nativeObjectTag(newTag);
+    addModuleTag(this.tags,item.tag,item.id);
     return 1;
   }
+  addNativeItemTag(item){addModuleTag(this.tags,item.tag??'',item.id);}
   createItem(reference,targetId,stack,newTag){
     const acquisition=this.itemAcquisitionProviders();
     return scriptCreateItem(reference,this.registry.get(targetId),stack,newTag,{
       construct:()=>this.register('item',`runtime:item:${this.registry.nextObjectId[0]}`,{areaId:OBJECT_INVALID,position:[0,0,0],authored:{},equipmentSlot:null,deferTagLookup:true}),
-      loadTemplate:(...args)=>this.loadItemTemplate(...args),destroy:item=>{
-        if(item.nativeRepository?.length)throw new Error('Native container destructor/child item ownership is unavailable');this.unregister(item.id);
-      },baseInfo:i=>this.items.baseInfo(i),acquireCreature:(...args)=>acquireCreatureItem(...args,acquisition),
-      acquirePlaceable:()=>{throw new Error('Native placeable item acquisition owner is unavailable');},
+      loadTemplate:(...args)=>this.loadItemTemplate(...args),destroy:item=>this.lifecycle.destroy(item),baseInfo:i=>this.items.baseInfo(i),acquireCreature:(...args)=>acquireCreatureItem(...args,acquisition),
+      acquirePlaceable:(...args)=>acquirePlaceableItem(...args,acquisition),
       addStore:()=>{throw new Error('Native store item creation owner is unavailable');},
       acquireContainer:()=>{throw new Error('Native container item acquisition owner is unavailable');}});
   }
-  async loadInventory(owner, entry) {
-    if(owner.objectType===5||owner.objectType===6)return this.loadNativeInventory(owner,entry);
+  async loadInventory(owner, entry,{loading=0}={}) {
+    if(owner.objectType===5||owner.objectType===6)return this.loadNativeInventory(owner,entry,{loading});
+    if(owner.objectType===9)return this.loadPlaceableInventory(owner,entry);
     runtimeDiagnostics.record('items.inventory-owner-unimplemented','Placeable/store repository import still requires its native owner',this.diagnosticContext(owner.id));
     owner.inventory = [];
     // Creature ReadItemsFromGff14039c2d2 /14039c86d imports equipment
@@ -584,7 +681,25 @@ export class ModuleSession {
       }
     }
   }
-  async loadNativeInventory(owner,entry){
+  async loadPlaceableInventory(owner,entry){
+    importPlaceableInventoryState(owner,entry);
+    if(!owner.nativeRepository)throw new Error('Native placeable constructor repository is unavailable');
+    owner.nativeInventoryImported=true;owner.inventory=[];const acquisition=this.itemAcquisitionProviders();
+    for(const [index,placement]of(entry.ItemList??[]).entries()){
+      const item=this.register('item',`${owner.sourceKey}:ItemList:${index}`,{areaId:OBJECT_INVALID,authored:{},deferTagLookup:true,equipmentSlot:null});
+      try{
+        // Placeable Load1404b654d passes0 for Item::LoadFromGff's last flag.
+        if(await this.items.loadFromGff(item,placement,{insideContainer:0})===0){await this.lifecycle.destroy(item);continue;}
+        const ref={item};await acquirePlaceableItem(owner,ref,OBJECT_INVALID,(placement.Repos_PosX??65535)&255,(placement.Repos_Posy??65535)&255,1,acquisition);
+      }catch(error){
+        if(!item.nativeItemFromGffLoaded)await this.lifecycle.destroy(item);
+        this.report(error,{...this.diagnosticContext(owner.id),itemId:item.id,inventoryList:'ItemList',inventoryIndex:index});
+      }
+    }
+    // Renderer/UI view only; canonical order and membership live in the repo.
+    owner.inventory=[...owner.nativeRepository.ids()];
+  }
+  async loadNativeInventory(owner,entry,{loading=0}={}){
     const creature=owner.objectType===5;
     if(creature){
       initializeCreatureExperience(owner,entry);setCreatureGold(owner,(entry.Gold??owner.nativeGold898)|0);
@@ -600,12 +715,10 @@ export class ModuleSession {
       const cap=creature&&list==='Equip_ItemList'?18:creature&&owner.nativeStatsIsPCb0!==0?360:Infinity;
       for(const [index,placement] of(entry[list]??[]).slice(0,cap).entries()){
         // Native allocation precedes template load; failed loads consume IDs.
-        const item=this.register('item',`${owner.sourceKey}:${list}:${index}`,{areaId:OBJECT_INVALID,authored:{},deferTagLookup:true,equipmentSlot:null});
+        const requestedId=loading!==0?readItemGffField(placement,'dword','ObjectId',OBJECT_INVALID).value:OBJECT_INVALID;
+        const item=this.register('item',`${owner.sourceKey}:${list}:${index}`,{areaId:OBJECT_INVALID,authored:{},deferTagLookup:true,equipmentSlot:null},{requestedId});
         try{
-          const data=await this.instance('item',placement);item.tag=String(data.Tag??'');item.name=label(data.LocalizedName);item.position=position(data);
-          for(const variable of data.VarTable??[]){const type=localTypes[variable.Type-1];if(type)item.locals.set(variable.Name,type,variable.Value);}
-          await this.items.loadData(item,data,{insideContainer:Number(!creature)});
-          const tag=item.tag.slice(0,64);if(tag)this.tags.set(tag,[item.id,...(this.tags.get(tag)??[])]);
+          if(await this.items.loadFromGff(item,placement,{loading,insideContainer:Number(!creature)})===0){await this.lifecycle.destroy(item);continue;}
           const ref={item};
           if(list==='Equip_ItemList'){
             const slot={slot:getGffStructType(placement)};
@@ -628,14 +741,14 @@ export class ModuleSession {
         }catch(error){
           // Resource/property import failures leave no half-loaded item. A
           // later possession/equipment failure retains native state for audit.
-          if(!item.nativeItemLoaded)this.unregister(item.id);
+          if(!item.nativeItemFromGffLoaded)await this.lifecycle.destroy(item);
           this.report(error,{...this.diagnosticContext(owner.id),itemId:item.id,inventoryList:list,inventoryIndex:index});
         }
       }
     }
   }
   byTag(tag, kind = null) {
-    return (this.tags.get(String(tag).slice(0, 64)) ?? []).map(id => this.registry.get(id)).filter(o => o && (!kind || o.kind === kind));
+    return (this.tags.get(moduleTagKey(tag)) ?? []).map(id => this.registry.get(id)).filter(o => o && (!kind || o.kind === kind));
   }
   async initialize(areaResRefs, { character = null } = {}) {
     this.ifo = parseGff(await this.resolver.getResource('module', RESOURCE_TYPE.IFO), 'IFO ').root;
@@ -644,13 +757,15 @@ export class ModuleSession {
     if (Array.isArray(this.ifo.Mod_Area_list)) areaResRefs = this.ifo.Mod_Area_list.map(entry => String(entry.Area_Name).toLowerCase());
     if (!areaResRefs.length || new Set(areaResRefs).size !== areaResRefs.length) throw new Error('Module area list is empty or has duplicates');
     this.module = this.register('module', 'module', { tag: this.ifo.Mod_Tag, name: label(this.ifo.Mod_Name), variables: this.ifo.VarTable,
-      scripts:{heartbeat:this.ifo.Mod_OnHeartbeat??''} });
+      nativeMinutesPerHour3b8:(this.ifo.Mod_MinPerHour??0)&255,scripts:{heartbeat:this.ifo.Mod_OnHeartbeat??''} });
     initializeModuleAI(this.module,this.ifo,this.worldTimer);
+    importAreaPackEntry(this.module,this.ifo);
     initializeModuleExperience(this.module,this.ifo);
     const api = parseScriptApi(decodeResourceText(await this.resolver.getResource('nwscript', RESOURCE_TYPE.NSS)));
     if (api[6]?.name !== 'AssignCommand' || api[385]?.name !== 'JumpToObject') throw new Error('Unrecognized NWScript command table');
+    bindItemPropertyFactory(this,api);
     this.vm = new NwScriptVm({ api, command: name => this.commands[name], diagnosticContext: id => this.diagnosticContext(id), limitations: {
-      SetAreaTransitionBMP: 'Transition bitmap is retained but the transition loading-screen presentation is not implemented',
+      SetAreaTransitionBMP: 'Native per-player transition selection is stored; ClientArea packing/loading-screen presentation is not connected',
       SpeakString: 'Speech is shown in the message UI; native overhead presentation and sound recipients are not implemented',
       SpeakOneLinerConversation: 'Native one-liner selection, local recipients, text and authored sounds are routed; native overhead bubble placement and the complete token vocabulary remain unfinished',
       FloatingTextStringOnCreature: 'Floating text is shown in the message UI; native overhead placement is not implemented',
@@ -688,6 +803,10 @@ export class ModuleSession {
         tilesetResRef: String(are.Tileset ?? '').toLowerCase(), tilePlacements: are.Tile_List,
         scripts: { enter: are.OnEnter ?? '', exit: are.OnExit ?? '',heartbeat:are.OnHeartbeat??'' }, objects: [] });
       initializeAreaAI(area,are,this.worldTimer);this.module.nativeAreaIds50.append(area.id);
+      importAreaLoadScreen(area,are);initializeAreaMessageName(area,are);initializeAreaMessageFields(area);loadAreaMessageHeader(area,are);
+      area.nativeMessageTiles=(are.Tile_List??[]).map(tileMessageMetadata);
+      loadAreaMessageProperties(area,git);
+      area.nativeMapByteCount348=automapByteCount(area.width,area.height);
       area.nativeSoundPath288=new PathInformation();
       area.nativeGeometry = new NativeAreaGeometry(area, this.geometryResources, this.registry);
       area.nativeSpatial = new NativeAreaSpatialArray(this.registry, message => this.report(new Error(message), { areaId: area.id, operation: 'native-area-spatial-query' }));
@@ -707,8 +826,8 @@ export class ModuleSession {
             linkedTo: String(entry.LinkedTo ?? ''), linkedToFlags: Number(entry.LinkedToFlags ?? 0), linkedToModule: String(entry.LinkedToModule ?? ''),
             scripts: { click: entry.OnClick ?? '', open: entry.OnOpen ?? '', closed: entry.OnClosed ?? '', failToOpen: entry.OnFailToOpen ?? '', lock:entry.OnLock??'',unlock:entry.OnUnlock??'',
               dialogue: entry.ScriptDialogue ?? '', used: entry.OnUsed ?? '', enter: entry.ScriptOnEnter ?? '', exit: entry.ScriptOnExit ?? '', userDefined: entry.ScriptUserDefine ?? entry.OnUserDefined ?? '',
-              attacked: entry.ScriptAttacked ?? '', damaged: entry.ScriptDamaged ?? entry.OnDamaged ?? '', death: entry.ScriptDeath ?? entry.OnDeath ?? '',
-              spellAt: entry.ScriptSpellAt ?? entry.OnSpellCastAt ?? '', roundEnd: entry.ScriptEndRound ?? '', heartbeat: entry.ScriptHeartbeat ?? entry.OnHeartbeat ?? '',spawn:entry.ScriptSpawn??'',perception:entry.ScriptOnNotice??'',blocked:entry.ScriptOnBlocked??'',disturbed:entry.ScriptDisturbed??'' },
+              attacked: entry.ScriptAttacked ?? '', damaged: entry.ScriptDamaged ?? entry.OnDamaged ?? '', death: entry.ScriptDeath ?? entry.OnDeath ?? '',rest:entry.ScriptRested??'',
+              spellAt: entry.ScriptSpellAt ?? entry.OnSpellCastAt ?? '', roundEnd: entry.ScriptEndRound ?? '', heartbeat: entry.ScriptHeartbeat ?? entry.OnHeartbeat ?? '',spawn:entry.ScriptSpawn??'',perception:entry.ScriptOnNotice??'',blocked:entry.ScriptOnBlocked??'',disturbed:kind==='placeable'?entry.OnInvDisturbed??'':entry.ScriptDisturbed??'' },
             geometry, factionId: entry.FactionID ?? entry.Faction,
             isPC: kind === 'creature' && Boolean(entry.IsPC), isDM: kind === 'creature' && Boolean(entry.DM), plot: Boolean(entry.Plot), commandable: true,registerAI:kind==='creature' });
           area.objects.push(object.id);
@@ -717,7 +836,9 @@ export class ModuleSession {
             else if(kind==='waypoint')object.orientation=authoredVectorOrientation(entry,true);
             else if(kind==='door'||kind==='placeable')object.orientation=authoredBearingOrientation(placement);
           }catch(error){this.report(error,{...this.diagnosticContext(object.id),operation:'native-authored-orientation-load'});}
-          if(kind==='placeable')importPlaceableBodyBag(object,entry);
+          if(kind==='placeable'){importPlaceableBodyBag(object,entry);importPlaceableStatic(object,entry,0);await loadPlaceableMessageState(object,entry,this.areaMessages.providers(null));}
+          if(kind==='waypoint'){loadWaypointMessageState(object,entry);await this.loadNativeUUID(object,entry);}
+          if(kind==='sound'){initializeSoundMessageState(object);loadSoundMessageState(object,entry);}
           if(kind==='encounter'){
             object.scripts={enter:entry.OnEntered??'',exit:entry.OnExit??'',heartbeat:entry.OnHeartbeat??'',exhausted:entry.OnExhausted??'',userDefined:entry.OnUserDefined??''};
             this.encounters.initialize(object,entry);
@@ -727,6 +848,9 @@ export class ModuleSession {
           // TriggerAddToArea1404ff70c and EncounterAddToArea14043b1e9.
           if (kind === 'trigger' || kind === 'encounter') area.nativeSubareas.append(object.id);
           if (kind === 'creature' || kind === 'placeable' || kind === 'store') await this.loadInventory(object, entry);
+          // LoadPlaceable1404b6637..6678 loads visual data after ItemList.
+          // Other class loaders have separate admission/order owners.
+          if(kind==='placeable')await this.objectVisuals.load(object,entry);
         }
       }
     }
@@ -765,10 +889,10 @@ export class ModuleSession {
     for (const object of [...imported, player]) {
       for (const variable of (object === player ? authored.VarTable : object.authored.VarTable) ?? []) {
         const type = localTypes[variable.Type - 1];
-        if (!type) continue;
+        if (!type) {if(variable.Type===6||variable.Type===7)this.report(new Error('Native BIC structured local import is unavailable'),{...this.diagnosticContext(object.id),variableName:variable.Name,variableType:variable.Type});continue;}
         const value = type === 'object' ? ids.get(variable.Value) ?? OBJECT_INVALID : type === 'location' ? null : variable.Value;
         if (type !== 'location') object.locals.set(variable.Name, type, value);
-        else this.report(new Error(`BIC local location ${variable.Name}: saved area reference cannot be imported into this module`));
+        else{object.locals.deleteIndex(variable.Name,'location');this.report(new Error(`BIC local location ${variable.Name}: saved area reference cannot be imported into this module`));}
       }
     }
     Object.assign(player, { authored, creatureData: initializeBonusSpellSlots(cloneGff(authored)), stats, appearance, characterLoaded: true, characterFile: filename,
@@ -779,14 +903,14 @@ export class ModuleSession {
     initializeCreatureExperience(player,authored);
     importCreatureCorpseFields(player,authored);
     this.characterRules = rules;
-    this.initializeCombatState(player);
+    await this.initializeCombatState(player);
     await this.initializeReputationState(player, player.creatureData, ids);
-    player.itemCombatEffects = equipmentCombatEffects(this.equippedItems(player), rules, { root: player.creatureData });
+    player.itemCombatEffects = this.items.combatProjection(player);
     this.refreshCombat(player);
     for (const property of player.stats.combat?.unsupportedItemProperties ?? []) runtimeDiagnostics.record('rules.item-property-unimplemented', property.reason,
       { ...this.diagnosticContext(player.id), characterFile: filename, ...property });
     const tag = String(authored.Tag ?? '').slice(0, 64);
-    if (tag) { player.tag = tag; this.tags.set(tag, [player.id, ...(this.tags.get(tag) ?? [])]); }
+    if (tag) { player.tag = tag; addModuleTag(this.tags,tag,player.id); }
     return player;
   }
   unregister(id) {
@@ -795,7 +919,7 @@ export class ModuleSession {
     this.registry.get(object.areaId)?.nativeSubareas?.remove(id);
     this.registry.get(object.areaId)?.nativeTrapIds158?.remove(id);
     this.registry.delete(id); this.sources.delete(object.sourceKey);
-    const tag = String(object.tag ?? '').slice(0, 64);
+    const tag = moduleTagKey(object.tag??'');
     if (tag) this.tags.set(tag, (this.tags.get(tag) ?? []).filter(other => other !== id));
   }
   quickbarProviders(){return {object:id=>{const o=this.registry.get(id);return o?.objectType===6?o:null;},equipped:(o,slot)=>this.equipmentSlot(o,slot),
@@ -810,8 +934,9 @@ export class ModuleSession {
     if (!object.stats) throw new Error('Creature stats have not been loaded for this object');
     return object.stats;
   }
-  async loadCreatureStats(object,{finalize=true}={}) {
+  async loadCreatureStats(object,{finalize=true,forceNonPC=false}={}) {
     const data = cloneGff(object.authored);
+    if(forceNonPC)data.IsPC=0; // Template ReadStats last flag1 forces native stats-PCb0 to0.
     if (data.PM_IsPolymorphed || data.EffectList?.length) throw new Error('Saved creature polymorph/effect import is not implemented');
     for (const field of ['Str', 'Dex', 'Con', 'Int', 'Wis', 'Cha', 'Race', 'HitPoints']) if (!Number.isInteger(data[field])) throw new Error(`Creature stat ${field} is missing or invalid`);
     if (!Array.isArray(data.ClassList) || !data.ClassList.length) throw new Error('Creature class list is missing');
@@ -823,32 +948,73 @@ export class ModuleSession {
     initializeCreatureExperience(object,data);
     const items = this.equippedItems(object);
     object.itemCombatEffects = equipmentCombatEffects(items, this.characterRules, { root: data });
+    const nativeTailE18=importCreatureTail(data,object.stats?.nativeTailE18??0);
     object.stats = characterStats(data, this.characterRules, { items, itemCombatEffects: object.itemCombatEffects, areaFlags: this.registry.get(object.areaId)?.flags ?? 0 });
+    object.stats.nativeTailE18=nativeTailE18;
     object.stats.gold=object.nativeGold898;
-    if(finalize){this.initializeCombatState(object);await this.initializeReputationState(object,data);}
+    if(finalize){await this.initializeCombatState(object);await this.initializeReputationState(object,data);}
     for (const property of object.stats.combat?.unsupportedItemProperties ?? []) runtimeDiagnostics.record('rules.item-property-unimplemented', property.reason,
       { ...this.diagnosticContext(object.id), ...property });
     return object.stats;
   }
-  async loadCreatureTemplate(object,resRef){
-    // LoadFromTemplate140397dd0: ReadStats/feat bonuses precede scripts,
-    // personal information and inventory; PostProcess follows spell/effect
-    // import. Reuse the mapped imports, retaining their explicit limitations.
-    resRef=String(resRef).split('\0')[0].slice(0,16);let entry;
-    try{entry=parseGff(await this.resolver.getResource(resRef,2027),'UTC ').root;}
-    catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;this.report(error,{...this.diagnosticContext(object.id),resource:resRef,operation:'native-creature-template-load'});return 0;}
-    object.authored=cloneGff(entry);object.templateResRef=resRef;object.name=label(entry.LocalizedName??entry.LocName)||[label(entry.FirstName),label(entry.LastName)].filter(Boolean).join(' ');
-    await this.loadCreatureStats(object,{finalize:false});
-    object.scripts={dialogue:entry.ScriptDialogue??'',attacked:entry.ScriptAttacked??'',damaged:entry.ScriptDamaged??'',death:entry.ScriptDeath??'',spellAt:entry.ScriptSpellAt??'',
-      roundEnd:entry.ScriptEndRound??'',heartbeat:entry.ScriptHeartbeat??'',spawn:entry.ScriptSpawn??'',perception:entry.ScriptOnNotice??'',blocked:entry.ScriptOnBlocked??'',disturbed:entry.ScriptDisturbed??'',userDefined:entry.ScriptUserDefine??''};
-    object.tag=String(entry.Tag??'');const key=object.tag.slice(0,64);if(key)this.tags.set(key,[object.id,...(this.tags.get(key)??[])]);
-    object.plot=Boolean(entry.Plot);for(const v of entry.VarTable??[]){const type=localTypes[v.Type-1];if(type)object.locals.set(v.Name,type,v.Value);}
-    await this.loadNativeInventory(object,entry);
-    object.itemCombatEffects=equipmentCombatEffects(this.equippedItems(object),this.characterRules,{root:object.creatureData});this.refreshCombat(object);
-    this.initializeCombatState(object);await this.initializeReputationState(object,object.creatureData);
-    return 1;
+  nativeVariableLoadProviders(object){
+    const missing=kind=>{throw new Error(`Native local ${kind} engine-structure load is unavailable`);};
+    return{loadCswy:()=>missing('Cassowary'),setCswy:()=>missing('Cassowary'),createJson:()=>missing('JSON'),parseJson:()=>missing('JSON'),setJson:()=>missing('JSON'),
+      uninitializedStruct:kind=>{throw new Error(`Native ${kind} local Value structure is unavailable; failed first read leaves uninitialized native storage`);}};
   }
-  initializeCombatState(object) {
+  loadNativeVariableRows(object,rows){
+    if(!Array.isArray(rows))return; // Native GetList rejects non-list fields.
+    try{
+      const p=this.nativeVariableLoadProviders(object);
+      if(rows.every(row=>getGffFieldTypes(row)))return loadScriptVariableRows(object.locals,rows,p);
+      for(const row of rows){
+        if(getGffFieldTypes(row))loadScriptVariableRows(object.locals,[row],p);
+        else{
+          // register also accepts already-decoded semantic values from local
+          // callers. Serialized GFF records always take the typed path above.
+          const type=localTypes[row.Type-1];
+          if(type)object.locals.set(row.Name,type,row.Value,1);
+          else if(row.Type===6||row.Type===7)throw new Error('Native structured semantic local import is unavailable');
+        }
+      }
+    }catch(error){this.report(error,{...this.diagnosticContext(object.id),operation:'native-script-variable-load'});throw error;}
+  }
+  loadNativeVariables(object,data){
+    try{return loadScriptVariables(object.locals,data,this.nativeVariableLoadProviders(object));}
+    catch(error){this.report(error,{...this.diagnosticContext(object.id),operation:'native-script-variable-load'});throw error;}
+  }
+  loadNativeUUID(object,data){
+    return this.uuids.load(object,()=>readNativeGff(data,'UUID',10,''));
+  }
+  async loadCreatureTemplate(object,resRef,newTag=''){
+    resRef=objectTemplateResRef(resRef);const context={...this.diagnosticContext(object.id),resource:resRef,operation:'native-creature-template-load'};
+    try{return await loadCreatureTemplateData(object,resRef,newTag,{
+      resource:async(type,signature,name)=>{try{return{loaded:1,data:parseGff(await this.resolver.getResource(name,type),signature).root};}catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;this.report(error,context);return{loaded:0,data:null};}},
+      root:r=>r.data,release:r=>{r.data=null;},warning:message=>runtimeDiagnostics.record('object.template-warning',message,context),
+      readStats:async(o,_r,data)=>{
+        o.authored=cloneGff(data);o.name=label(data.LocalizedName??data.LocName)||[label(data.FirstName),label(data.LastName)].filter(Boolean).join(' ');
+        await this.loadCreatureStats(o,{finalize:false,forceNonPC:true});
+        // ReadStats14040fa36..fac8 applies AsTAG twice, preserving the
+        // existing string as typed-read default; Plot uses its current BYTE.
+        o.tag=nativeObjectTag(nativeObjectTag(readNativeGff(data,'Tag',10,o.tag??'').value));o.plot=Boolean(readNativeGff(data,'Plot',0,Number(o.plot)&255).value&255);
+        initializeTalentSpellState(o,this.characterRules);return 0;
+      },
+      featBonuses:(o,remove)=>computeFeatAbilityBonuses(o,o.creatureData.FeatList??[],remove,{
+        ...this.effects.abilityProviders(),modifier:(_o,score)=>this.effects.abilityProviders().modifier(score),
+        deltas:(feats,remove)=>featAbilityDeltas(feats,remove,{hasFeat:(list,id)=>Number(list.some(entry=>(entry.Feat&65535)===id)),rule:(label,fallback)=>rulesetInt(this.characterRules,label,fallback)}),
+      }),
+      setTemplate:(o,name)=>{o.templateResRef=name;},
+      scripts:(o,_r,data)=>{
+        const previous=o.scripts??{};
+        o.scripts=Object.fromEntries(Object.entries({dialogue:'ScriptDialogue',attacked:'ScriptAttacked',damaged:'ScriptDamaged',death:'ScriptDeath',spellAt:'ScriptSpellAt',rest:'ScriptRested',roundEnd:'ScriptEndRound',heartbeat:'ScriptHeartbeat',spawn:'ScriptSpawn',perception:'ScriptOnNotice',blocked:'ScriptOnBlocked',disturbed:'ScriptDisturbed',userDefined:'ScriptUserDefine'}).map(([key,name])=>[key,objectTemplateResRef(readNativeGff(data,name,11,objectTemplateResRef(previous[key]??'')).value)]));
+      },
+      items:o=>this.loadNativeInventory(o,o.creatureData),spells:o=>this.spellBook.initialize(o,0),variables:(o,_r,data)=>this.loadNativeVariables(o,data),
+      asTag:nativeObjectTag,assignTag:(o,value)=>{o.tag=value;},
+      postProcess:async o=>{o.itemCombatEffects=this.items.combatProjection(o);this.refreshCombat(o);await this.initializeCombatState(o,{initializeSpells:false});await this.initializeReputationState(o,o.creatureData);addModuleTag(this.tags,o.tag,o.id);},
+      updateSpellUses:(o,level)=>this.rest.ready(o,level),
+    });}catch(error){this.report(error,context);throw error;}
+  }
+  async initializeCombatState(object,{initializeSpells=true}={}) {
     refreshAbilityModifierCache(object,this.characterRules);
     // Creature LoadPersonalInformation140397a4e..140397a69 reads BYTE,
     // default0, distinct from SetListening's unrestricted INT assignment.
@@ -856,6 +1022,7 @@ export class ModuleSession {
     for(const entry of creatureRoot(object).ExpressionList??[])this.setListenPattern(object,entry.ExpressionString??'',entry.ExpressionId??0);
     // PostProcess14039b4d3 copies the stats INT into the distinct object cell.
     object.nativeField89c=object.nativeStatsIsPCb0|0;
+    await this.automap.postProcess(object);
     // PostProcess14039b420..14039b43c /14039b4d9..14039b4f0.
     if(Number(object.isPC)===1||Number(object.isDM)===1)this.aiMaster.setLevel(object,4);
     loadMovementRate(object,this.characterRules);
@@ -865,8 +1032,7 @@ export class ModuleSession {
       postProcessPerceptionRanges(object,this.characterRules,{pc:o=>Number(o.isPC),possessed:o=>Number(o.isPossessedFamiliar??false),hasFeat:(o,id)=>this.combat.hasFeat(o,id)});
     }else runtimeDiagnostics.record('combat.perception-ranges-unavailable','Native ranges.2da is unavailable; perception range initialization cannot complete',this.diagnosticContext(object.id));
     this.combat.initializeFeatUses(object);
-    initializeTalentSpellState(object,this.characterRules);
-    this.spellBook.initialize(object,0); // LoadPersonalInformation/LoadFromTemplate callers pass ready-default0.
+    if(initializeSpells){initializeTalentSpellState(object,this.characterRules);this.spellBook.initialize(object,0);} // ReadSpells callers pass ready-default0; template caller readies levels later.
     initializeArcaneEquipmentCache(object,this);
     object.nativeArcaneFailurePropertiesPending=this.equippedItems(object).some(i=>i.data.PropertiesList?.some(p=>p.PropertyName===84));
     initializeSkillTimers(object,this.characterRules);
@@ -875,31 +1041,57 @@ export class ModuleSession {
     object.combatRound = createCombatRound(this.characterRules); object.initiativePending = 1;
     object.combatUpdateTime = Math.trunc(this.scheduler.time);
     object.animationState ??= 1; object.creatureState ??= 0;
-    // UpdateAppearanceDependantInfo 0x1403a6c14..0x1403a6c68 stores the
-    // MODELTYPE string, not the creature's mesh resource name, at +0x6b8.
-    const table = this.characterRules.appearance, column = table.columns.find(c => c.toLowerCase() === 'modeltype');
-    const row = table.orderedRows[(object.creatureData ?? object.authored).Appearance_Type & 65535];
-    const value = row?.[column];
-    const size=intEntry(table,(object.creatureData??object.authored).Appearance_Type&65535,'SIZECATEGORY');
-    object.nativeSize718=size.value;
-    for(const [label,field] of [['haslegs','nativeField710'],['hasarms','nativeField70c']]){
-      const entry=intEntry(table,(object.creatureData??object.authored).Appearance_Type&65535,label);
-      if(entry.found)object[field]=entry.value;
-      else runtimeDiagnostics.record('combat.appearance-limb-unavailable',`Native appearance ${label} cache is unavailable`,this.diagnosticContext(object.id));
-    }
-    const reach=nativeFloatEntry(table,(object.creatureData??object.authored).Appearance_Type&65535,'PREFATCKDIST');
-    object.nativeAttackRange71c=reach.value;
-    if (typeof value === 'string' && value !== '****') object.modelType = value;
-    else runtimeDiagnostics.record('combat.appearance-modeltype-unavailable', 'Native damage reaction MODELTYPE is unavailable', this.diagnosticContext(object.id));
+    updateAppearanceInfo(object,this.characterRules);
   }
   async queuePlayerAttack(targetId) {
     if (!Number.isInteger(targetId) || targetId < 0 || targetId > 0xffffffff) throw new Error('Player attack requires a canonical OBJECT_ID');
     if (!this.player || this.registry.get(this.player.id) !== this.player) throw new Error('Player attack has no controlled creature');
     return new Promise((resolve, reject) => this.pendingPlayerInputs.push({ actor: this.player, actorId: this.player.id, targetId: targetId >>> 0, resolve, reject }));
   }
+  queuePlayerUseObject(targetId,{popup=0,notify=0}={}){
+    popup=Number(popup);notify=Number(notify);
+    if(!Number.isInteger(targetId)||targetId<0||targetId>0xffffffff||![popup,notify].every(v=>Number.isInteger(v)&&v>=-2147483648&&v<=2147483647))return Promise.reject(new Error('Use-object input requires canonical OBJECT_ID and decoded INT flags'));
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Use-object input has no controlled creature'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'use-object',actor:this.player,actorId:this.player.id,targetId,request:{targetId,popup,notify},resolve,reject}));
+  }
+  queuePlayerContainerInput(subtype,ownerId=OBJECT_INVALID){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Container input has no controlled creature'));
+    if(![1,2,3].includes(subtype)||!Number.isInteger(ownerId)||ownerId<0||ownerId>0xffffffff)return Promise.reject(new Error('Container input requires a known subtype and canonical owner ID'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'container',actor:this.player,actorId:this.player.id,request:{subtype,ownerId},resolve,reject}));
+  }
+  queuePlayerRepositoryMove(itemId,destination,x,y){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Repository input has no controlled creature'));
+    if(![itemId,destination].every(v=>Number.isInteger(v)&&v>=0&&v<=0xffffffff)||![x,y].every(v=>Number.isInteger(v)&&v>=0&&v<=255))return Promise.reject(new Error('Repository input requires canonical IDs and BYTE coordinates'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'repository-move',actor:this.player,actorId:this.player.id,request:{itemId,destination,x,y},resolve,reject}));
+  }
+  queuePlayerInventoryStatus(value,ownerId=OBJECT_INVALID){
+    return this.queuePlayerInventoryInput({subtype:1,value,ownerId});
+  }
+  queuePlayerInventoryPanel(panel,primary=1){
+    return this.queuePlayerInventoryInput({subtype:2,panel,value:primary});
+  }
+  queuePlayerInventoryInput(request){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Inventory input has no controlled creature'));
+    if(![1,2].includes(request.subtype)||!Number.isInteger(request.value)||request.value< -2147483648||request.value>2147483647||request.subtype===1&&(!Number.isInteger(request.ownerId)||request.ownerId<0||request.ownerId>0xffffffff)||request.subtype===2&&(!Number.isInteger(request.panel)||request.panel<0||request.panel>255))return Promise.reject(new Error('Inventory input requires decoded INT flags, canonical owner ID and BYTE panel'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'inventory',actor:this.player,actorId:this.player.id,request:{...request},resolve,reject}));
+  }
   queuePlayerClearActions(){
     if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Player cancellation has no controlled creature'));
     return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'clear-actions',actor:this.player,actorId:this.player.id,resolve,reject}));
+  }
+  queuePlayerCancelPolymorph(){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Polymorph cancellation has no controlled creature'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'cancel-polymorph',actor:this.player,actorId:this.player.id,resolve,reject}));
+  }
+  queuePlayerAssociateCommand(targetId,command){
+    if(!Number.isInteger(targetId)||targetId<0||targetId>0xffffffff||!Number.isInteger(command)||command< -2147483648||command>2147483647)return Promise.reject(new Error('Associate command requires canonical OBJECT_ID and signed INT32'));
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Associate command has no controlled creature'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'associate-command',actor:this.player,actorId:this.player.id,targetId,command,resolve,reject}));
+  }
+  queuePlayerMode(mode,targetId=OBJECT_INVALID){
+    if(!Number.isInteger(mode)||mode<0||mode>255||!Number.isInteger(targetId)||targetId<0||targetId>0xffffffff)return Promise.reject(new Error('Player mode requires a BYTE mode and canonical target ID'));
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Player mode has no controlled creature'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'mode',actor:this.player,actorId:this.player.id,areaId:this.player.areaId,mode,targetId,resolve,reject}));
   }
   queuePlayerCastSpell(request){
     if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Player casting has no controlled creature'));
@@ -908,6 +1100,46 @@ export class ModuleSession {
     if(!spell)return Promise.resolve(0);
     const cast={...request,targetType:spell.targetType,position:request.position?.slice()??[0,0,0]};
     return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'cast-spell',actor:this.player,actorId:this.player.id,areaId:this.player.areaId,request:cast,resolve,reject}));
+  }
+  queuePlayerUseItem(request){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Item use has no controlled creature'));
+    if(request.actorId!==undefined&&request.actorId!==this.player.id||request.areaId!==undefined&&request.areaId!==this.player.areaId)return Promise.resolve(0);
+    const item={itemId:request.itemId,propertyIndex:request.propertyIndex??0,variant:request.variant??0,targetId:request.targetId??OBJECT_INVALID,location:request.location??0,position:request.position?.slice()??[0,0,0]};
+    if(![item.itemId,item.propertyIndex,item.variant,item.targetId,item.location].every(Number.isInteger)||item.itemId<0||item.itemId>0xffffffff||item.targetId<0||item.targetId>0xffffffff||item.propertyIndex<0||item.propertyIndex>255||item.variant<0||item.variant>255||item.position.length!==3||!item.position.every(Number.isFinite))return Promise.reject(new Error('Player item input fields are unavailable'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'use-item',actor:this.player,actorId:this.player.id,areaId:this.player.areaId,request:item,resolve,reject}));
+  }
+  queuePlayerLearnScroll(request){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Scroll learning has no controlled creature'));
+    if(request.actorId!==undefined&&request.actorId!==this.player.id||request.areaId!==undefined&&request.areaId!==this.player.areaId)return Promise.resolve(0);
+    if(!Number.isInteger(request.itemId)||request.itemId<0||request.itemId>0xffffffff)return Promise.reject(new Error('Scroll learning requires a canonical item ID'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'learn-scroll',actor:this.player,actorId:this.player.id,areaId:this.player.areaId,request:{itemId:request.itemId},resolve,reject}));
+  }
+  queuePlayerRest(request={}){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Rest has no controlled creature'));
+    if(request.actorId!==undefined&&request.actorId!==this.player.id||request.areaId!==undefined&&request.areaId!==this.player.areaId)return Promise.resolve(0);
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'rest',actor:this.player,actorId:this.player.id,areaId:this.player.areaId,resolve,reject}));
+  }
+  queuePlayerSpellPreparation(request){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Spell preparation has no controlled creature'));
+    if(request.actorId!==undefined&&request.actorId!==this.player.id||request.areaId!==undefined&&request.areaId!==this.player.areaId)return Promise.resolve(0);
+    const clear=request.clear===true,fields=clear?['classIndex','level','slot']:['classIndex','spellId','slot','domainLevel','metamagic'];
+    if(!fields.every(key=>Number.isInteger(request[key])&&request[key]>=0&&request[key]<=(key==='spellId'?0xffffffff:255)))return Promise.reject(new Error('Spell preparation requires native BYTE fields and a DWORD spell ID'));
+    const copy={clear};for(const key of fields)copy[key]=request[key];
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'spell-preparation',actor:this.player,actorId:this.player.id,areaId:this.player.areaId,request:copy,resolve,reject}));
+  }
+  queuePlayerSpellLike(request){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Spell-like casting has no controlled creature'));
+    if(request.actorId!==undefined&&request.actorId!==this.player.id||request.areaId!==undefined&&request.areaId!==this.player.areaId)return Promise.resolve(0);
+    const cast={spellId:request.spellId,casterLevel:request.domainLevel??0,targetId:request.targetId??OBJECT_INVALID,position:request.position?.slice()??[0,0,0],location:request.location??0};
+    if(![cast.spellId,cast.casterLevel,cast.targetId,cast.location].every(Number.isInteger)||cast.position.length!==3||!cast.position.every(Number.isFinite))return Promise.reject(new Error('Player spell-like input fields are unavailable'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'spell-like',actor:this.player,actorId:this.player.id,areaId:this.player.areaId,request:cast,resolve,reject}));
+  }
+  queuePlayerFeat(request){
+    if(!this.player||this.registry.get(this.player.id)!==this.player)return Promise.reject(new Error('Feat activation has no controlled creature'));
+    if(request.actorId!==undefined&&request.actorId!==this.player.id||request.areaId!==undefined&&request.areaId!==this.player.areaId)return Promise.resolve(0);
+    const feat={featId:request.featId,auxiliary:request.auxiliary??0,targetId:request.targetId??OBJECT_INVALID,position:request.position?.slice()??[0,0,0]};
+    if(![feat.featId,feat.auxiliary,feat.targetId].every(Number.isInteger)||feat.position.length!==3||!feat.position.every(Number.isFinite))return Promise.reject(new Error('Player feat input fields are unavailable'));
+    return new Promise((resolve,reject)=>this.pendingPlayerInputs.push({kind:'feat',actor:this.player,actorId:this.player.id,areaId:this.player.areaId,request:feat,resolve,reject}));
   }
   queuePlayerCancelAction(actionId,groupId){
     if(![actionId,groupId].every(value=>Number.isInteger(value)&&value>=0&&value<=65535))return Promise.reject(new Error('Player queue cancellation requires uint16 action/group IDs'));
@@ -921,21 +1153,36 @@ export class ModuleSession {
       // characters must never retarget that click to the replacement PC.
       if (this.player !== input.actor || this.registry.get(input.actorId) !== input.actor) {
         runtimeDiagnostics.record('combat.input-control-changed', 'Queued player input discarded because the controlled creature changed', { actorId: input.actorId, targetId: input.targetId }, 'info');
+        if(input.kind==='learn-scroll')this.items.learnReply(input.request.itemId);
         input.resolve(0); continue;
       }
       try {
         if(input.kind==='clear-actions'){await this.combat.clearActions(input.actor);input.resolve(1);}
+        else if(input.kind==='cancel-polymorph')input.resolve(await receiveCancelPolymorphInput(null,{readObjectId:()=>input.actorId,overflow:()=>0,creature:id=>{const o=this.registry.get(id);return o?.objectType===5?o:null;},effects:o=>o.effects,remove:(o,id)=>this.effects.remove(o.id,id)}));
         else if(input.kind==='cancel-action')input.resolve(await this.combat.cancelQueuedAction(input.actor,input.actionId,input.groupId));
+        else if(input.kind==='use-object')input.resolve(await this.combat.receiveUseObjectInput(input.request));
+        else if(input.kind==='inventory')input.resolve(await this.lifecycle.receiveInventoryInput(input.request));
+        else if(input.kind==='container')input.resolve(await this.lifecycle.receiveContainerInput(input.request));
+        else if(input.kind==='repository-move')input.resolve(await this.combat.receiveRepositoryMoveInput(input.request));
         else if(input.kind==='cast-spell')input.resolve(input.areaId===input.actor.areaId?await this.spells.input(input.request):0);
+        else if(input.kind==='spell-like')input.resolve(input.areaId===input.actor.areaId?await this.spells.inputLike(input.request):0);
+        else if(input.kind==='spell-preparation')input.resolve(input.areaId===input.actor.areaId?await this.spellBook.inputPreparation(input.request):0);
+        else if(input.kind==='rest')input.resolve(input.areaId===input.actor.areaId?await this.rest.input():0);
+        else if(input.kind==='feat')input.resolve(input.areaId===input.actor.areaId?await this.feats.input(input.request):0);
+        else if(input.kind==='use-item')input.resolve(input.areaId===input.actor.areaId?await this.items.input(input.request):0);
+        else if(input.kind==='learn-scroll'){if(input.areaId!==input.actor.areaId){this.items.learnReply(input.request.itemId);input.resolve(0);}else input.resolve(await this.items.inputLearn(input.request));}
+        else if(input.kind==='mode')input.resolve(input.areaId===input.actor.areaId?await this.combat.receiveModeInput(input.mode,input.targetId):0);
+        else if(input.kind==='associate-command')input.resolve(await this.combat.receiveAssociateInput(input.targetId,input.command));
         else input.resolve(await this.combat.receiveAttackInput(input.targetId));
       }
       catch (error) { this.report(error, { ...this.diagnosticContext(input.actorId), targetId: input.targetId, actionId:input.actionId,groupId:input.groupId,
-        operation: input.kind==='cancel-action'?'queued-player-cancel-action':input.kind==='clear-actions'?'queued-player-clear-actions':'queued-player-attack' }); input.reject(error); }
+        operation: `queued-player-${input.kind??'attack'}` }); input.reject(error); }
     }
   }
   cancelPendingPlayerInputs() {
     for (const input of this.pendingPlayerInputs.splice(0)) {
       runtimeDiagnostics.record('combat.input-session-closed', 'Queued player input discarded because its local session closed', { actorId: input.actorId, targetId: input.targetId }, 'info');
+      if(input.kind==='learn-scroll')this.items.learnReply(input.request.itemId);
       input.resolve(0);
     }
   }
@@ -1025,17 +1272,21 @@ export class ModuleSession {
         catch (error) { this.report(error, this.diagnosticContext(object.id)); }
       }else await this.effects.updateObject(object);
   }
-  refreshCombat(object) {
+  refreshCombat(object,{refreshAbilityCaches=true}={}) {
     if (!object?.stats?.combat?.saves) return;
     const items = Array.isArray(object.inventory) ? this.equippedItems(object) : undefined;
     const computed = characterStats(object.creatureData ?? object.authored, this.characterRules, {
-      currentHP: object.stats.currentHP, items, effects: object.effects ?? [],
+      currentHP: object.stats.currentHP, items, abilityProjectionItems:items?this.items.projectionItems(object,items):undefined,effects: object.effects ?? [],
       areaFlags: this.registry.get(object.areaId)?.flags ?? 0, limits: this.combatLimits, acCache: object.acCache, possessedFamiliar: Boolean(object.isPossessedFamiliar), itemCombatEffects: object.itemCombatEffects,
-      abilityItem:id=>{const o=this.registry.get(id);return o?.objectType===6?o:null;}
+      abilityItem:id=>{const o=this.registry.get(id);return o?.objectType===6?o:null;},bonusFeats:bonusFeats(object),actor:object
     });
     computed.gold=object.nativeGold898;
     Object.assign(object.stats, computed);
-    refreshAbilityModifierCache(object,this.characterRules);
+    if(refreshAbilityCaches)refreshAbilityModifierCache(object,this.characterRules);
+  }
+  setBaseAbility(object,ability,value,adjustHP=1){
+    if(object?.objectType!==5)throw new Error('Native base-ability setter requires a canonical creature');
+    return setBaseAbility(object,ability,value,adjustHP,this.effects.abilityProviders());
   }
   equippedItems(object) {
     if(object.nativeInventoryImported)return object.nativeEquipment.ids.map((id,index)=>({item:this.registry.get(id),slot:1<<index})).filter(v=>v.item?.objectType===6)
@@ -1068,6 +1319,7 @@ export class ModuleSession {
       const stats = this.creatureStats(id);
       return maximum ? (stats.maxHP << 16) >> 16 : creatureCurrentHitPoints({ baseHP: stats.currentHP, temporaryHP: stats.temporaryHP ?? 0 });
     }
+    if(object.objectType===6)return commonObjectHitPoints(object,maximum);
     // Doors/placeables have their own object HP fields rather than PC stats.
     if (!['door', 'placeable'].includes(object.kind)) throw new Error('Hit point provider for this object type is not implemented');
     return (((!maximum ? object.currentHP : undefined) ?? object.authored?.[maximum ? 'HP' : 'CurrentHP'] ?? object.authored?.HP ?? 0) << 16) >> 16;
@@ -1226,20 +1478,25 @@ export class ModuleSession {
     if (previous && previous !== next) {
       previous.objects = previous.objects.filter(id => id !== this.player.id);
       previous.nativeSpatial?.remove(this.player.id);
-      if(previous.nativePlayerCount150!==undefined)previous.nativePlayerCount150=(previous.nativePlayerCount150-1)|0;
+      if(previous.nativePlayerCount150!==undefined)await decrementAreaPlayers(previous,this.lifecycle.areaProviders());
       this.player.nativeSubareaMembership.setSize(0);
     }
     this.currentArea = next; this.player.areaId = next.id; this.player.position = spawn;
+    // This local renderer has completed area entry. Mirror the SAME pending
+    // area/destination cells used by ClientArea/MovePlayerToArea, so a native
+    // same-area remove/re-add (e.g. polymorph) does not request another load.
+    this.player.nativeLastClientArea4f4=next.id;
+    this.player.nativePendingAreaPosition4f8=[spawn[0],Math.fround(-spawn[2]),spawn[1]];
     this.refreshCombat(this.player);
     next.objects ??= [];
     if (!next.objects.includes(this.player.id)) next.objects.push(this.player.id);
     next.nativeSpatial?.insert(this.player.id);
     if(previous!==next&&next.nativePlayerCount150!==undefined){
-      // AddObjectToArea14035bbe9..14035bd44: first actual controlled
-      // creature activates level0 creatures; IDs stay in persistent arrays.
-      if(next.nativePlayerCount150===0)for(const id of next.nativeSpatial?.view()??[]){const object=this.registry.get(id);if(object?.objectType===5&&object.nativeAILevel7c===0)this.aiMaster.setLevel(object,1);}
-      next.nativePlayerCount150=(next.nativePlayerCount150+1)|0;
+      await incrementAreaPlayers(next,this.lifecycle.areaProviders());
     }
+    // The local PC adapter also applies AddToArea's verified map update.
+    // The native ClientArea send/ready protocol remains a separate owner.
+    if(this.player.characterLoaded)await this.automap.update(this.player,this.player.id);
     if (!this.started) {
       this.started = true;
       if (this.runStartupScripts) {
@@ -1249,6 +1506,10 @@ export class ModuleSession {
       } else this.onMessage({ type: 'testing', text: 'Testing: module startup and initial area-entry scripts disabled for this session.' });
     }
     if (previous !== next && (!initialEntry || this.runStartupScripts)) this.queueScript(next.scripts.enter, next.id, { entering: this.player.id });
+    // The local scene-transition adapter still owns PC entry until the native
+    // ClientArea handshake is connected. Queue the PC area entry before NPC
+    // AddToArea entry events, then restore companions through the native owner.
+    if(previous!==next&&this.player.associateIds.length)await this.lifecycle.realizeAssociates(this.player);
     if (previous !== next) this.updateTriggers(this.player);
   }
   isDead(object) {
@@ -1278,7 +1539,7 @@ export class ModuleSession {
   }
   lifeStateProviders(){return{creature:o=>o?.objectType===5?o:null,
     possessedFamiliar:o=>Number((o.associateType&65535)===3&&Boolean(this.combat.broadcastProviders().client(o.id))),
-    hitPoints:o=>o.stats||[9,10].includes(o.objectType)?this.hitPoints(o.id,false):o.authored?.CurrentHitPoints};}
+    hitPoints:o=>o.stats||[6,9,10].includes(o.objectType)?this.hitPoints(o.id,false):o.authored?.CurrentHitPoints};}
   factionProviders() {
     const clients=this.combat.broadcastProviders();
     return {creature:id=>{const o=this.registry.get(id);return o?.objectType===5?o:null;},
@@ -1380,7 +1641,7 @@ export class ModuleSession {
   }
   scriptFacing(value,id,point){
     const actor=this.registry.get(id),orientation=scriptFacingVector(actor,value,point);if(!orientation)return;
-    if(actor.objectType===9)throw new Error('Native placeable SetOrientation collision lifecycle is unavailable');
+    if(actor.objectType===9)return this.lifecycle.setOrientation(actor,[orientation[0],-orientation[2],orientation[1]]);
     if(actor.objectType===5)this.combat.setLock(actor,OBJECT_INVALID);
     actor.orientation=orientation;
   }
@@ -1464,6 +1725,20 @@ export class ModuleSession {
       return changed;
     } catch (error) { this.report(error, { ...this.diagnosticContext(actor.id), operation: 'native-subarea-movement' }); throw error; }
   }
+  async updateSubareasOnJump(actor,point,areaId,providers={}){
+    try{
+      const result=await updateSubareasOnJump(actor,point,areaId,{
+        areaById:id=>{const o=this.registry.get(id);if(!o)throw new Error('Native jump subarea target area is unavailable');return o.objectType===4?o:null;},
+        object:id=>this.registry.get(id)??null,aoe:id=>{const o=this.registry.get(id);return o?.objectType===11?o:null;},
+        inTrigger:(o,p)=>Number(inTrigger(o,p)),inEncounter:(o,p)=>Number(inTrigger(o,p)),inAOE:(o,p)=>this.areaEffects.contains(o,p),
+        jumpAOE:(o,area,p)=>this.areaEffects.jump(o,area,p),
+        dm:o=>Number((o.associateType&65535)===0&&Boolean(this.combat.broadcastProviders().client(o.id))&&Boolean(o.isDM)),
+        event:(_code,callerId,targetId,payload)=>this.scheduler.enqueue(targetId,{type:'nativeSubareaScript',eventId:10,callerId,payload}),...providers,
+      });
+      this.triggerMembers.set(actor.id,new Set([...actor.nativeSubareaMembership.view()].filter(id=>this.registry.get(id)?.objectType===7)));
+      return result;
+    }catch(error){this.report(error,{...this.diagnosticContext(actor.id),operation:'native-subarea-jump'});throw error;}
+  }
   leaveTriggers(actor) {
     for (const id of this.triggerMembers.get(actor.id) ?? []) this.queueScript(this.registry.get(id)?.scripts.exit, id, { exiting: actor.id });
     this.triggerMembers.delete(actor.id);
@@ -1493,18 +1768,22 @@ export class ModuleSession {
     door.linkedTargetId = result?.id ?? OBJECT_INVALID;
     return result;
   }
-  setNativeDoorOpenState(door,state){
-    const previous=door.animationState;state=door.nativeDoorField498===0?3:state&255;
-    door.animationState=state;door.nativeAnimationD8=({0:22,1:50,2:51,3:72})[state]??door.nativeAnimationD8;
-    if(state!==previous){door.version=(door.version??0)+1;this.onDoorState(door,previous);}
-    if(state!==0)runtimeDiagnostics.record('door.automap-update-unimplemented','Native UpdatePlayerAutomaps after SetOpenState is not implemented',this.diagnosticContext(door.id));
-    if(state!==previous&&state!==3)runtimeDiagnostics.record('door.budge-unimplemented','Native door BudgeCreatures displacement is not implemented',this.diagnosticContext(door.id));
+  async setNativeDoorOpenState(door,state){
+    const previous=door.animationState,area=this.registry.get(door.areaId);
+    // Native AddToArea has already loaded these bounds/points. Materialize
+    // our lazy geometry before entering that same state-change coordinator.
+    try{if(area?.objectType===4)await area.nativeGeometry.objects.load();await setDoorOpenState(door,state,{
+      area:o=>{const a=this.registry.get(o.areaId);return a?.objectType===4?a:null;},animation:(o,value)=>{o.nativeAnimationD8=value;},
+      position:o=>[o.position[0],-o.position[2],o.position[1]].map(Math.fround),
+      updateMaps:a=>this.automap.updatePlayersInArea(a),budge:(...args)=>this.lifecycle.budgeCreatures(...args),
+    });}catch(error){this.report(error,{...this.diagnosticContext(door.id),operation:'native-door-set-open-state'});throw error;}
+    if(door.animationState!==previous){door.version=(door.version??0)+1;this.onDoorState(door,previous);}
   }
   async receiveDoorUseEvent(door,callerId,open){
     const caller=this.registry.get(callerId),state=open?doorEventOpenState(door,caller):0;
     door.eventObjects[open?'opened':'closed']=callerId;
-    this.setNativeDoorOpenState(door,state);
-    const other=this.transitionTarget(door);if(other?.objectType===10)this.setNativeDoorOpenState(other,state);
+    await this.setNativeDoorOpenState(door,state);
+    const other=this.transitionTarget(door);if(other?.objectType===10)await this.setNativeDoorOpenState(other,state);
     const name=door.scripts?.[open?'open':'closed'];
     if(name)await this.runScript(name,door.id,{scriptEventContext:open?10000:10001});
   }
@@ -1514,10 +1793,14 @@ export class ModuleSession {
       if (door.linkedToModule) { this.report(new Error('Inter-module traversal is not implemented')); return; }
       this.queueScript(event.script && event.script !== 'default' ? event.script : 'nw_g0_transition', door.id, { clicking: actor.id, entering: actor.id });
     } else if (event.type === 'door.stateChanged') {
+      // The preview interaction adapter has already changed the canonical
+      // visible state. Keep its native animation cell in sync until that
+      // adapter is replaced by the full creature-owned door action owner.
+      door.nativeAnimationD8=({0:22,1:50,2:51,3:72})[event.state]??door.nativeAnimationD8;
       const key = event.state ? 'opened' : 'closed'; door.eventObjects[key] = actor.id;
       door.lastUsedBy = actor.id;
       const other = this.transitionTarget(door);
-      if (other?.kind === 'door') { const previous = other.animationState; other.animationState = event.state; this.onDoorState(other, previous); }
+      if (other?.kind === 'door') { const previous = other.animationState; other.animationState = event.state;other.nativeAnimationD8=({0:22,1:50,2:51,3:72})[event.state]??other.nativeAnimationD8; this.onDoorState(other, previous); }
       this.queueScript(event.script, door.id, { [key]: actor.id });
     } else if (event.type === 'door.failedToOpen') this.queueScript(event.script, door.id);
   }
@@ -1532,6 +1815,32 @@ export class ModuleSession {
   }
   local(id, name, type) { return this.registry.get(id)?.locals.get(name, type) ?? (type === 'string' ? '' : type === 'object' ? OBJECT_INVALID : type === 'location' ? null : 0); }
   commands = {
+    CreateObject:(args,f)=>this.worldCreation.create(args,f.self),
+    VersusAlignmentEffect:([effect,lawChaos=0,goodEvil=0])=>versusEffect(effect,355,lawChaos,goodEvil),
+    VersusRacialTypeEffect:([effect,race])=>{
+      const rows=this.characterRules?.racialtypes?.orderedRows;
+      if(!rows)throw new Error('Native versus-effect racialtypes rules are unavailable');
+      return versusEffect(effect,356,race,0,rows.length);
+    },
+    EffectTurnResistanceDecrease:(args,f)=>constructTurnResistance(552,args,f.self,{create:(...a)=>this.effects.create(...a),setCreator:(...a)=>this.effects.setCreator(...a)}),
+    EffectTurnResistanceIncrease:(args,f)=>constructTurnResistance(553,args,f.self,{create:(...a)=>this.effects.create(...a),setCreator:(...a)=>this.effects.setCreator(...a)}),
+    GetTurnResistanceHD:([id])=>{const o=this.registry.get(id);return o?.objectType===5?turnResistanceHD(o):0;},
+    EffectSummonCreature:(args,f)=>this.lifecycle.constructSummon(args,f.self),
+    DestroyObject:([id,seconds=0],f)=>this.lifecycle.requestDestroy(id,seconds,f.self),
+    ActionInteractObject:([id],f)=>scriptInteractObject(f.self,id,{
+      placeable:id=>{const o=this.registry.get(id);return o?.objectType===9?o:null;},creature:id=>{const o=this.registry.get(id);return o?.objectType===5?o:null;},addUse:(o,id)=>addUseObjectAction(o,id),
+    }),
+    EffectAppear:(args,f)=>constructAppearEffect(args,f.self,{create:(...a)=>this.effects.create(...a)}),
+    ActionCounterSpell:async([targetId],f)=>{const actor=this.registry.get(f.self);if(actor?.objectType===5)await this.spells.addCounter(actor,targetId);},
+    TouchAttackMelee:(args,f)=>this.combat.touchAttack(146,args,f.self),
+    TouchAttackRanged:(args,f)=>this.combat.touchAttack(147,args,f.self),
+    ActionCastSpellAtObject:(args,f)=>this.spells.script(48,args,f),
+    ActionUseFeat:(args,f)=>this.feats.script(args,f),
+    ActionUseItemOnObject:Object.assign((args,f)=>this.items.script(910,args,f),{nativeStack:(vm,f)=>this.items.scriptStack(910,vm,f)}),
+    ActionUseItemAtLocation:Object.assign((args,f)=>this.items.script(911,args,f),{nativeStack:(vm,f)=>this.items.scriptStack(911,vm,f)}),
+    ActionCastSpellAtLocation:(args,f)=>this.spells.script(234,args,f),
+    ActionCastFakeSpellAtObject:(args,f)=>this.spells.script(501,args,f),
+    ActionCastFakeSpellAtLocation:(args,f)=>this.spells.script(502,args,f),
     GetCasterLevel:([id],f)=>this.spellBook.casterLevel(this.registry.get(id??f.self)),
     GetSpellSaveDC:(_args,f)=>this.spellBook.saveDC(this.registry.get(f.self)),
     GetMetaMagicFeat:(_args,f)=>scriptSpellContext(this.registry.get(f.self),'GetMetaMagicFeat'),
@@ -1569,6 +1878,7 @@ export class ModuleSession {
     GetFirstItemProperty:([id])=>enumerateItemProperty(this.registry.get(id),true,()=>this.effects.invalid()),
     GetNextItemProperty:([id])=>enumerateItemProperty(this.registry.get(id),false,()=>this.effects.invalid()),
     GetIsItemPropertyValid:([effect])=>validItemProperty(effect),
+    GetItemPropertyDurationType:([effect])=>itemPropertyDurationType(effect),
     GetItemPropertyType:([effect])=>itemPropertyValue(effect,614),
     GetItemPropertySubType:([effect])=>itemPropertyValue(effect,734),
     GetItemPropertyCostTable:([effect])=>itemPropertyValue(effect,769),
@@ -1576,6 +1886,11 @@ export class ModuleSession {
     GetItemPropertyParam1:([effect])=>itemPropertyValue(effect,771),
     GetItemPropertyParam1Value:([effect])=>itemPropertyValue(effect,772),
     GetItemHasItemProperty:([id,type])=>itemHasProperty(this.registry.get(id),type),
+    AddItemProperty:([duration,effect,id,seconds=0],f)=>{
+      if(duration===2&&this.registry.get(id)?.objectType===6&&!Number.isInteger(this.nativeItemLevelRestriction134))throw new Error('Native server item-level restriction setting134 is unavailable');
+      return scriptAddItemProperty(duration,structuredClone(effect),id,seconds,this.items.scriptPropertyProviders(f));
+    },
+    RemoveItemProperty:([id,effect],f)=>scriptRemoveItemProperty(id,structuredClone(effect),f.self,this.items.scriptPropertyProviders(f)),
     GetModuleItemAcquired:()=>moduleItemHistory(this.module,282),
     GetModuleItemAcquiredFrom:()=>moduleItemHistory(this.module,283),
     GetModuleItemLost:()=>moduleItemHistory(this.module,292),
@@ -1607,8 +1922,8 @@ export class ModuleSession {
     GetTag: ([id]) => this.registry.get(id)?.tag ?? '',
     GetName: ([id]) => this.registry.get(id)?.name ?? '',
     GetPCPlayerName: ([id]) => this.registry.get(id)?.playerName ?? '',
-    GetObjectByTag: ([tag, ordinal = 0]) => this.byTag(tag)[ordinal]?.id ?? OBJECT_INVALID,
-    GetWaypointByTag: ([tag]) => this.byTag(tag, 'waypoint')[0]?.id ?? OBJECT_INVALID,
+    GetObjectByTag: ([tag, ordinal = 0]) => scriptObjectByTag(this.tags,tag,ordinal),
+    GetWaypointByTag: ([tag]) => scriptWaypointByTag(this.tags,tag,id=>this.registry.get(id)),
     GetTransitionTarget: ([id]) => this.transitionTarget(this.registry.get(id))?.id ?? OBJECT_INVALID,
     GetEnteringObject: (_, f) => this.registry.get(f.self)?.eventObjects.entering ?? OBJECT_INVALID,
     GetExitingObject: (_, f) => this.registry.get(f.self)?.eventObjects.exiting ?? OBJECT_INVALID,
@@ -1652,6 +1967,11 @@ export class ModuleSession {
       return o.nativeBlockingObject528>>>0;
     },
     GetIsDM: ([id]) => Number(Boolean(this.registry.get(id)?.isDM)),
+    ExploreAreaForPlayer:args=>scriptExploreArea(args,this.automap.scriptProviders()),
+    GetTileExplored:args=>scriptTileExploration(867,args,this.automap.scriptProviders()),
+    SetTileExplored:args=>scriptTileExploration(866,args,this.automap.scriptProviders()),
+    GetCreatureExploresMinimap:args=>scriptAutomapExploration(869,args,this.automap.scriptProviders()),
+    SetCreatureExploresMinimap:args=>scriptAutomapExploration(868,args,this.automap.scriptProviders()),
     GetIsPossessedFamiliar: ([id]) => Number(Boolean(this.registry.get(id)?.isPossessedFamiliar)),
     GetAILevel: ([id]) => this.registry.get(id)?.objectType===5?this.registry.get(id).nativeAILevel7c:0,
     // Native script accessors 140527310/140527140 read their actual creature
@@ -1659,6 +1979,13 @@ export class ModuleSession {
     GetIsInCombat:([id])=>{const o=this.registry.get(id);return o?.objectType===5?o.nativeField700|0:0;},
     GetIsEncounterCreature:([id])=>{const o=this.registry.get(id);return o?.objectType===5?Number((o.nativeField948>>>0)!==OBJECT_INVALID):0;},
     GetActionMode:async([id,mode])=>{const o=this.registry.get(id);return o?.objectType===5?getActionMode(o,mode,a=>detectMode(a,{hasFeat:(c,feat)=>this.combat.hasFeat(c,feat)})):0;},
+    SetActionMode:async([id,mode,value])=>{const o=this.registry.get(id);if(o?.objectType===5)await setActionMode(o,mode,value,{detect:a=>detectMode(a,{hasFeat:(c,feat)=>this.combat.hasFeat(c,feat)}),toggle:(...args)=>this.combat.toggleMode(...args)});},
+    GetAppearanceType:([id])=>scriptAppearanceType(this.registry.get(id)),
+    GetCreatureSize:([id])=>scriptCreatureSize(this.registry.get(id)),
+    GetCreatureTailType:([id])=>scriptCreatureTail(this.registry.get(id)),
+    GetSubRace:([id])=>scriptSubrace(this.registry.get(id)),
+    SetDroppableFlag:([id,value])=>scriptSetDroppable(this.registry.get(id),value),
+    GetDroppableFlag:([id])=>scriptGetDroppable(this.registry.get(id)),
     // ExecuteCommandGetIsNight140527430 reads the cached module BYTE, not
     // an independent hour threshold or the currently rendered area's light.
     GetIsNight:()=>{if(!this.module)return 0;if(!Number.isInteger(this.module.nativeTimeOfDay3d4))throw new Error('Native module time-of-day byte is unavailable');return Number((this.module.nativeTimeOfDay3d4&255)===2);},
@@ -1672,6 +1999,8 @@ export class ModuleSession {
     AngleToVector:([angle])=>scriptAngleToVector(angle),
     GetAssociateType:([id])=>scriptAssociateType(this.registry.get(id)),
     GetSittingCreature:([id])=>scriptSittingCreature(this.registry.get(id)),
+    GetIsOpen:([id])=>scriptIsOpen(id,{object:id=>this.registry.get(id)??null,asDoor:o=>o.objectType===10?o:null,asPlaceable:o=>o.objectType===9?o:null,openState:nativeDoorOpenState}),
+    GetObjectByUUID:([uuid])=>this.uuids.lookup(uuid),
     GetFacing:([id])=>scriptObjectFacing(this.registry.get(id)),
     GetSubString:([text,start,count])=>scriptSubString(text,start,count),
     GetStringLength:([text])=>[...scriptStringRight(text,0x7fffffff)].length,
@@ -1785,6 +2114,9 @@ export class ModuleSession {
       else if (target?.isPC) this.requestTalk(f.self, id, resRef);
     },
     GetListenPatternNumber: (_, f) => this.registry.get(f.self)?.listenPatternNumber ?? -1,
+    GetMatchedSubstring:([index],f)=>matchedSubstring(this.registry.get(f.self),index,{storage:o=>{if(!o.nativeMatchedStrings)throw new Error('Native matched-string storage is unavailable');return o.nativeMatchedStrings;}}),
+    GetMatchedSubstringsCount:(_,f)=>matchedSubstringCount(this.registry.get(f.self),{storage:o=>{if(!o.nativeMatchedStrings)throw new Error('Native matched-string count storage is unavailable');return o.nativeMatchedStrings;}}),
+    GetLastAssociateCommand:([id],f)=>{const o=this.registry.get(id??f.self);return o?.objectType===5?o.lastAssociateCommand|0:0;},
     SetListening:([id,value])=>{const o=this.registry.get(id);if(o)o.nativeListening1ec=value|0;},
     SetListenPattern:([id,pattern,number=0])=>this.setListenPattern(this.registry.get(id),pattern,number),
     SetAssociateListenPatterns:([id],f)=>{
@@ -1802,6 +2134,11 @@ export class ModuleSession {
     GetCommandable: ([id],f) => {const o=this.registry.get(id??f.self);return o?o.nativeFieldEc|0:0;},
     SetCommandable: ([value,id],f) => {const o=this.registry.get(id??f.self);if(o?.objectType>4)o.nativeFieldEc=Number((value|0)!==0);},
     GetCurrentAction: ([id]) => this.registry.get(id)?.currentActionId ?? 65535,
+    ActionRest:async([seen=0],f)=>{const o=this.registry.get(f.self);if(o?.objectType===5)await this.rest.request(o,0,Number((seen|0)!==0));},
+    ForceRest:([id])=>this.rest.force(id),
+    GetIsResting:([id])=>{const o=this.registry.get(id);return Number(o?.objectType===5&&(o.activities&16)!==0);},
+    GetLastPCRested:()=>this.module?.nativeLastPCRested380??OBJECT_INVALID,
+    GetLastRestEventType:()=>this.module?.nativeLastRestEvent384??0,
     // ExecuteCommandAttack 140510e80. The script requests
     // attack actions; it does not directly roll or subtract hit points.
     ActionAttack: async ([id,passive=0],f) => {
@@ -1810,6 +2147,7 @@ export class ModuleSession {
         await this.combat.requestAttack(actor,id,passive,0,0);
     },
     ActionMoveToObject:([id,run=0,range=1],f)=>scriptMoveToObject(this.registry.get(f.self),this.registry.get(id),run,range,0,this.combat.movementProviders()),
+    ActionForceFollowObject:([id,distance=0,flags=0],f)=>scriptForceFollow(this.registry.get(f.self),id,distance,flags),
     ActionForceMoveToObject:([id,run=0,range=1,timeout=30],f)=>scriptMoveToObject(this.registry.get(f.self),this.registry.get(id),run,range,timeout,this.combat.movementProviders()),
     ActionMoveToLocation:([location,run=0],f)=>scriptMoveToLocation(this.registry.get(f.self),location,run,0,this.combat.movementProviders()),
     ActionForceMoveToLocation:([location,run=0,timeout=30],f)=>scriptMoveToLocation(this.registry.get(f.self),location,run,timeout,this.combat.movementProviders()),
@@ -1839,6 +2177,16 @@ export class ModuleSession {
     EffectAbilityIncrease:([ability,amount],f)=>abilityEffect(36,ability,amount,f.self,{create:(...args)=>this.effects.create(...args)}),
     EffectAbilityDecrease:([ability,amount],f)=>abilityEffect(37,ability,amount,f.self,{create:(...args)=>this.effects.create(...args)}),
     EffectVisualEffect:(args,f)=>constructVisualEffect(args,f.self,{create:(...args)=>this.effects.create(...args)}),
+    EffectBeam:(args,f)=>constructBeamEffect(args,f.self,{create:(...a)=>this.effects.create(...a),invalid:()=>this.effects.invalid(),visualType:id=>this.effects.visualProviders().visualType(id)}),
+    EffectBlindness:(_args,f)=>this.effects.create(73,f.self,[16],8),
+    EffectDeaf:(_args,f)=>this.effects.create(21,f.self,[],8),
+    EffectDispelMagicAll:([level=0],f)=>this.effects.create(51,f.self,[level],8),
+    EffectDispelMagicBest:([level=0],f)=>this.effects.create(52,f.self,[level],8),
+    EffectDamageShield:([base,die,flags],f)=>this.effects.create(61,f.self,damageShieldIntegers(base,die,flags,this.characterRules.damagetypes.orderedRows.length),8),
+    EffectDarkness:(_args,f)=>this.effects.create(74,f.self,[],8),
+    EffectSeeInvisible:(_args,f)=>this.effects.create(70,f.self,[],8),
+    EffectUltravision:(_args,f)=>this.effects.create(71,f.self,[],8),
+    EffectTrueSeeing:(_args,f)=>this.effects.create(72,f.self,[],8),
     EffectAreaOfEffect:(args,f)=>constructAreaEffect(args,f.self,{create:(...args)=>this.effects.create(...args)}),
     GetAreaOfEffectCreator:([id])=>areaEffectCreator(this.registry.get(id)),
     GetFirstInPersistentObject:([id,filter=1,zone=0])=>this.areaEffects.enumerate(true,id,filter,zone),
@@ -1865,6 +2213,21 @@ export class ModuleSession {
     EffectMovementSpeedIncrease:([percent],f)=>this.effects.create(28,f.self,[percent|0],8),
     EffectMovementSpeedDecrease:([percent],f)=>this.effects.create(29,f.self,[percent|0],8),
     EffectParalyze:(_,f)=>this.effects.create(8,f.self,[8],8),
+    // Dedicated constructor14051ab90 still produces the shared SetState
+    // type8/kind15; its apply/remove owners already handle petrification.
+    EffectPetrify:(_,f)=>this.effects.create(8,f.self,[15],8),
+    EffectPoison:([id],f)=>this.effects.create(35,f.self,[id|0],8),
+    EffectDisease:([id],f)=>this.effects.create(5,f.self,[id|0],16),
+    EffectRegenerate:([amount,interval],f)=>this.effects.create(7,f.self,[Math.max(0,amount|0),scriptFloatToInt(Math.fround(Math.fround(interval)*1000))],8),
+    EffectResurrection:(_,f)=>this.effects.create(4,f.self,[],8),
+    EffectNegativeLevel:([amount,bonus=0],f)=>{const valid=(amount|0)<=rulesetInt(this.characterRules,'MAX_NEGATIVE_LEVELS',100),effect=this.effects.create(valid?82:0,valid?f.self:OBJECT_INVALID,valid?[amount|0,bonus|0]:[],valid?8:0);if(valid)effect.durationType=1;return effect;},
+    EffectBonusFeat:([id],f)=>{const valid=featInfo(this.characterRules,id)!==null;return this.effects.create(valid?83:0,f.self,valid?[id|0]:[],8);},
+    EffectPolymorph:(args,f)=>{const book=this.spellBook;return constructPolymorph(args,f.self,{
+      create:(...a)=>this.effects.create(...a),setCreator:(...a)=>this.effects.setCreator(...a),
+      creature:id=>{const o=this.registry.get(id);return o?.objectType===5?o:null;},hasStats:o=>Boolean(o.stats),
+      classType:(o,index)=>creatureRoot(o).ClassList[index&255]?.Class??255,
+      featSource:(o,id)=>nativeFeatSourceClass(o,id,message=>book.warning(o,message)),
+      classInfo:type=>({get castingAbility(){return book.classAbility(type);},get primaryAbility(){return book.classAbility(type,true);}})});},
     EffectSleep:(_,f)=>this.effects.create(8,f.self,[9],8),
     EffectCharmed:(_,f)=>this.effects.create(8,f.self,[1],8),
     EffectConfused:(_,f)=>this.effects.create(8,f.self,[2],8),
@@ -1902,7 +2265,7 @@ export class ModuleSession {
     GetFirstEffect: ([id]) => this.effects.enumerate(id, true),
     GetNextEffect: ([id]) => this.effects.enumerate(id),
     GetIsEffectValid: ([effect]) => this.effects.valid(effect),
-    GetEffectType: ([effect, all = 0]) => effect?.type===8?({1:23,2:24,3:25,4:35,5:28,6:29,7:26,8:27,9:30,15:79,20:80})[effect.integers?.[0]]??(all&&effect.integers?.[0]===21?92:0):({ 1:36,3:37,36:38,37:39,28:48,29:49,59:90,2: 1, 12: 7, 93: 83, 10: 40, 11: 41, 13: 42, 14: 43, 15: 9, 16: 44, 17: 45, 22: 15, 26: 50, 27: 51, 30:74,31:20,47:56,76:72,33:52,34:53,50:73,65:68,67:86, 46:34, 48: 46, 49: 47, 55:54, 56:55 })[effect?.type] ?? (all ? ({ 19:94,20:98, 38: 93, 39: 96 })[effect?.type] ?? 0 : 0),
+    GetEffectType:([effect,all=0])=>scriptEffectType(effect,all),
     GetEffectCreator: ([effect]) => effect?.creatorId ?? OBJECT_INVALID,
     // ExecuteCommandObjectToString140536fd0 formats raw DWORD with %x;
     // no lookup, padding, prefix or special invalid-object string.
@@ -1915,8 +2278,10 @@ export class ModuleSession {
     TalentFeat:([id])=>scriptTalent(1,id),
     TalentSkill:([id])=>scriptTalent(2,id),
     GetIsTalentValid:([talent])=>talentValid(talent),
-    GetTalentType:([talent])=>talent.type|0,
-    GetTalentId:([talent])=>talent.id|0,
+    GetTypeFromTalent:([talent])=>talentAccess(362,talent),
+    GetIdFromTalent:([talent])=>talentAccess(363,talent),
+    ActionUseTalentOnObject:Object.assign((args,f)=>this.talents.script(309,args,f),{nativeStack:(vm,f)=>this.talents.scriptStack(309,vm,f)}),
+    ActionUseTalentAtLocation:Object.assign((args,f)=>this.talents.script(310,args,f),{nativeStack:(vm,f)=>this.talents.scriptStack(310,vm,f)}),
     GetCreatureTalentBest:([category,maxCR,id],f)=>this.talents.choose(this.registry.get(id??f.self),category,maxCR),
     GetCreatureTalentRandom:([category,id],f)=>this.talents.choose(this.registry.get(id??f.self),category,-1),
     GetCreatureHasTalent:([talent,id],f)=>this.talents.has(this.registry.get(id??f.self),talent),
@@ -1924,6 +2289,10 @@ export class ModuleSession {
     GetHasSpellEffect:([spell,id])=>{const o=this.registry.get(id);return o&&o.objectType>=5&&o.objectType<=14?hasSpellEffectApplied(o,spell):0;},
     CreateItemOnObject:([reference,id,stack=1,newTag=''],f)=>this.createItem(reference,id??f.self,stack,newTag),
     GetIdentified:([id])=>{const item=this.registry.get(id);return item?.objectType===6?item.identified|0:0;},
+    GetGoldPieceValue:([id])=>scriptItemGoldValue(id,{lookup:id=>this.registry.getGameObject(id),asItem:o=>o?.objectType===6?o:null,price:(...args)=>this.items.price(...args)}),
+    GetItemCharges:([id])=>getScriptItemCharges(id,{item:id=>{const o=this.registry.get(id);return o?.objectType===6?o:null;}}),
+    SetItemCharges:([id,value],f)=>setScriptItemCharges(id,value,f.self,{item:id=>{const o=this.registry.get(id);return o?.objectType===6?o:null;},
+      setCharges:(...a)=>this.items.setCharges(...a),activeChanged:(...a)=>this.items.activeChanged(...a),enqueue:(...a)=>this.combat.enqueueEvent(...a)}),
     SetIdentified:([id,value])=>{const item=this.registry.get(id);if(item?.objectType===6)setItemIdentified(item,value);},
     ActionUseSkill:([skill,target,mode=0,item=OBJECT_INVALID],f)=>this.skills.use(this.registry.get(f.self),skill,target,mode,item),
     ActionRandomWalk:(_args,f)=>scriptRandomWalk(this.registry.get(f.self),{position:o=>[o.position[0],-o.position[2],o.position[1]],area:o=>{const a=this.registry.get(o.areaId);return a?.objectType===4?a:null;}}),
@@ -1962,6 +2331,12 @@ export class ModuleSession {
     },
     GetUserDefinedEventNumber: (_, f) => this.registry.get(f.self)?.eventObjects.userDefined ?? 0,
     SpeakString: ([text, volume = 0], f) => this.onMessage({ type: 'speech', id: f.self, text, volume }),
+    PlayVoiceChat:([code,target=OBJECT_INVALID],f)=>scriptVoiceChat(f.self,code,target,{
+      creature:id=>{const o=this.registry.get(id);return o?.objectType===5?o:null;},message:()=>this,
+      quickChat:(_m,id,voiceCode)=>sendQuickChatMessage(id,voiceCode,{
+        object:id=>this.registry.get(id)??null,asCreature:o=>o.objectType===5?o:null,area:o=>this.registry.get(o.areaId)??null,
+        players:()=>this.combat.broadcastProviders().clients(),clientObject:client=>client.object,
+        send:(client,actorId,code)=>{this.onCombatMessage({type:'quick-chat',recipientId:client.object.id,actorId,code});return 1;}})}),
     PlaySound: ([resRef], f) => {
       const object = this.registry.get(f.self);
       if (object && !['module', 'area'].includes(object.kind) && Number(object.commandable)!==0) this.scheduler.enqueue(object.id, { type: 'playSound', nativeActionId: 23, resRef });
@@ -2046,12 +2421,7 @@ export class ModuleSession {
       return location.position.map(Math.fround);
     },
     Location:([area,position,facing])=>scriptLocation(area,position,facing),
-    GetLocation: ([id]) => {
-      const o = this.registry.get(id); if (!o?.position) return null;
-      // Script locations use native XYZ and degrees, not renderer XZ/-Y or the
-      // ARE/GIT bearing angle. Bearing zero has native facing (0,1,0).
-      return { areaId: o.areaId, position: [o.position[0], -o.position[2], o.position[1]], orientation: ((90 + (o.bearing ?? 0) * 180 / Math.PI) % 360 + 360) % 360 };
-    },
+    GetLocation: ([id]) => scriptObjectLocation(this.registry.get(id)),
     GetLocalInt: ([id, name]) => this.local(id, name, 'int'),
     GetLocalFloat: ([id, name]) => this.local(id, name, 'float'),
     GetLocalString: ([id, name]) => this.local(id, name, 'string'),
@@ -2070,7 +2440,7 @@ export class ModuleSession {
     DeleteLocalString: ([id, name]) => this.registry.get(id)?.locals.deleteIndex(name, 'string'),
     DeleteLocalObject: ([id, name]) => this.registry.get(id)?.locals.deleteIndex(name, 'object'),
     DeleteLocalLocation: ([id, name]) => this.registry.get(id)?.locals.deleteIndex(name, 'location'),
-    SetAreaTransitionBMP: ([index, custom = '']) => { this.transitionBitmap = { index, custom }; },
+    SetAreaTransitionBMP:(args,f)=>scriptSetAreaTransitionBmp(args,f.self,{client:this.combat.broadcastProviders().client,setBmp:setAreaTransitionBmp}),
     ActionJumpToObject: ([destinationId, walkStraight = 1], f) => this.scheduler.enqueue(f.self, { type: 'jump', destinationId, walkStraight }),
     JumpToObject: ([destinationId, walkStraight = 1], f) => {
       // Native adds this jump to the FRONT of the actor action queue (196
@@ -2090,7 +2460,6 @@ export class ModuleSession {
       if (old === undefined || override || state > old) recipient.journal.set(tag, state);
     },
     SendMessageToPC: ([id, text]) => { if (this.registry.get(id)?.isPC) this.onMessage({ type: 'pc', id, text }); },
-    FloatingTextStringOnCreature: ([text, id, broadcast = 1]) => { if (this.registry.get(id)?.objectType === 5) this.onMessage({ type: 'floating', id, text, broadcast }); },
     SendMessageToAllDMs: ([text]) => { for (const object of this.registry.objects.values()) if (object.isDM) this.onMessage({ type: 'dm', id: object.id, text }); },
     IntToString: ([value]) => String(value)
   };

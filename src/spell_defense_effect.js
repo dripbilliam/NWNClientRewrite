@@ -2,7 +2,7 @@ const integer=(v,n)=>{if(!Number.isInteger(v))throw new Error(`Native defense ef
 const call=(p,n,...args)=>{if(typeof p?.[n]!=='function')throw new Error(`Native defense effect provider ${n} is unavailable`);return p[n](...args);};
 const byte=v=>(v<<24)>>24;
 function loadingDead(actor,effect,p,loading){return loading!==0&&actor&&call(p,'dead',actor)!==0&&! [3,4].includes(integer(effect.durationType,'duration type')&7);}
-async function icon(actor,effect,id,p,loading){const copy=structuredClone(effect);copy.type=67;copy.integers[0]=id;copy.exposed=false;await call(p,'applyIcon',actor,copy,loading);}
+async function icon(actor,effect,id,p,loading){const copy=call(p,'copyConstruct',effect,1);copy.type=67;copy.integers[0]=id;await call(p,'applyIcon',actor,copy,loading);}
 // Registered type33/34 owners140433c20/140433aa0. Increased resistance
 // compares with TOTAL resistance. Raw integer storage survives clamping.
 export async function applySpellResistanceEffect(actor,effect,p,loading=0){

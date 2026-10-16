@@ -16,6 +16,41 @@ export function constructVisualEffect(args,creatorId,p){
   return effect;
 }
 
+// EffectBeam140517cb0. Active VISUALEFFECTS Type_FD must uppercase to
+// exactly B; other rows return the original invalid effect. Transform args
+// are read as a group at argc>=7, matching the visual constructor's pattern.
+export function constructBeamEffect(args,creatorId,p){
+  if(args.length<4||args.length===5||args.length===6)throw new Error('Native beam VM argument grouping is unavailable');
+  const id=integer(args[0],'beam visual ID'),kind=call(p,'visualType',id);
+  if(!kind.found||String(kind.value).split('\0')[0].replace(/[a-z]/g,c=>c.toUpperCase())!=='B')return call(p,'invalid');
+  const effect=call(p,'create',32,creatorId,[id,integer(args[2],'beam body part'),integer(args[3],'beam miss flag')],8);
+  effect.objectIds[0]=integer(args[1],'beam source')>>>0;effect.floats[0]=args.length>=7?f(args[4]):1;
+  effect.vectors[0]=args.length>=7?vector(args[5],'beam translation'):[0,0,0];effect.vectors[1]=args.length>=7?vector(args[6],'beam rotation'):[0,0,0];return effect;
+}
+// OnApplyBeam140427a20 retains its record and applies a shared-ID type30
+// child for creature/placeable/door. OnRemoveBeam140435fd0 returns1 only;
+// removal of the copied visual is owned by the effect-ID removal traversal.
+export async function applyBeamEffect(actor,effect,p,loading=0){
+  if([5,9,10].includes(actor.objectType)){
+    const child=call(p,'copyConstruct',effect,0);child.type=30;
+    // The constructor cleared payload. This owner explicitly transfers only
+    // source object0, integers0..2, float0 and the two vectors.
+    child.objectIds[0]=effect.objectIds[0];for(let i=0;i<3;i++)child.integers[i]=effect.integers[i];child.floats[0]=effect.floats[0];child.vectors=effect.vectors.map(v=>v.slice());
+    await call(p,'apply',actor,child,loading);
+  }return 0;
+}
+
+// OnApplyLight14042ed70..14042ee1f. Its native copy constructor resets
+// integer storage before integer0 is written. OnRemoveLight140437810 returns1;
+// the copied type30 is removed by the outer ID/property-ID traversal.
+export async function applyLightEffect(actor,effect,p,loading=0){
+ if(call(p,'asCreature',actor)){
+  const child=call(p,'copyConstruct',effect);child.type=30;child.integers[0]=integer(effect.integers?.[0],'light visual ID');
+  await call(p,'apply',call(p,'asCreature',actor),child,loading|0,0);
+ }
+ return 0;
+}
+
 // The application builds six constant transform channels. Zero scale leaves
 // the native constructor's identity scale intact; translation/rotation do not.
 export function visualTransform(effect){

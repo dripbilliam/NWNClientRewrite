@@ -1,21 +1,25 @@
 """Original invisibility constructor51a3b0, apply42e490/remove4372d0,
 concealment constructor518a70 and apply4280b0.
-VM/base/copy allocation, registry casts, module unique-list mutations and
+The complete original clearing copy constructor executes; VM/base allocation,
+registry casts, module unique-list mutations and
 child application are captured. Native enum/defaults, icon choice, source-ID
 comparison and removal scan execute. No renderer/observer acceptance claim.
 """
 import importlib.util,itertools,json,struct
 from pathlib import Path
+from native_effect_copy_fixture import NativeEffectCopyFixture
 spec=importlib.util.spec_from_file_location('coordinator',Path(__file__).with_name('inspect-native-intratile-coordinator.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 from unicorn import UC_HOOK_CODE
 from unicorn.x86_const import *
 u=m.u;u.hook_del(m.hook_handle);actor,effect,ints,vt,app,stats,pool,module=[m.heap+n*0x2000 for n in range(1,9)]
+copy_fixture=NativeEffectCopyFixture(m)
 def snapshot(ptr):
     flags=int.from_bytes(u.mem_read(ptr+0xa,2),'little');return dict(id=f'{m.q(ptr):016x}',type=int.from_bytes(u.mem_read(ptr+8,2),'little'),subtype=flags&~7,durationType=flags&7,
       spellId=m.si(ptr+0x1c),creatorId=m.si(ptr+0x18)&0xffffffff,casterLevel=m.si(ptr+0x28),showIcon=m.si(ptr+0x24),exposed=m.si(ptr+0x20),integers=[m.si(m.q(ptr+0x48)+i*4) for i in range(8)])
 def hook(u,a,n,_):
     global allocation,output,intReads
     if a==m.stop:u.emu_stop();return
+    if copy_fixture.handle(a):return
     x,y,z,w=[u.reg_read(reg) for reg in [UC_X86_REG_RCX,UC_X86_REG_RDX,UC_X86_REG_R8,UC_X86_REG_R9]]
     if a==m.stop+0x10:m.finish(actor if c.get('objectType',5)==5 else 0)
     elif a==0x14055b6e0:m.finish(module)
@@ -30,8 +34,6 @@ def hook(u,a,n,_):
     elif a==0x140425110:m.wi(x+0x18,y);m.finish()
     elif a==0x140286330:output=snapshot(z);m.finish(1)
     elif a in [0x140423770,0x140c10360]:m.finish()
-    elif a==0x140423570:
-        u.mem_write(x,bytes(u.mem_read(y,0x110)));m.wq(x+0x48,x+0x200);u.mem_write(x+0x200,bytes(u.mem_read(m.q(y+0x48),32)));m.wi(x+0x20,0);m.wi(x+0x24,m.si(y+0x24) if z else 0);m.finish(x)
     elif a==0x14048e350:calls.append(['apply',snapshot(y),z&0xffffffff]);m.finish(1)
     elif not any(lo<=a<hi for lo,hi in [(0x140518a70,0x140518bd0),(0x1404280b0,0x140428197),(0x14051a3b0,0x14051a4c3),(0x14042e490,0x14042e5bc),(0x1404372d0,0x1404373bb),(0x140423fc0,0x140423fcb),(0x140425210,0x14042521c)]):raise AssertionError(f'Uncaptured invisibility dependency {a:x} {c}')
 u.hook_add(UC_HOOK_CODE,hook)
@@ -46,7 +48,7 @@ def run(case):
     if c['mode']=='concealApply':u.mem_write(effect+8,struct.pack('<H',76));m.wi(ints,c.get('amount',50))
     regs=[app,457,1,0] if c['mode']=='constructor' else [app,458,c.get('argc',2),0] if c['mode']=='concealConstructor' else [app,actor,effect,c.get('loading',0)]
     for reg,value in zip([UC_X86_REG_RCX,UC_X86_REG_RDX,UC_X86_REG_R8,UC_X86_REG_R9],regs):u.reg_write(reg,value)
-    u.emu_start(dict(concealConstructor=0x140518a70,concealApply=0x1404280b0,constructor=0x14051a3b0,apply=0x14042e490,remove=0x1404372d0)[c['mode']],m.stop,count=10000);assert u.reg_read(UC_X86_REG_RIP)==m.stop
+    copy_fixture.prepare(effect);u.emu_start(dict(concealConstructor=0x140518a70,concealApply=0x1404280b0,constructor=0x14051a3b0,apply=0x14042e490,remove=0x1404372d0)[c['mode']],m.stop,count=10000);assert u.reg_read(UC_X86_REG_RIP)==m.stop
     return dict(case=c,calls=calls,result=u.reg_read(UC_X86_REG_RAX)&0xffffffff,output=output)
 rows=[]
 for kind in [-3,0,1,2,3,4,5,2147483647]:rows.append(run(dict(mode='constructor',kind=kind)))
@@ -55,4 +57,4 @@ for kind,objectType in itertools.product([47,63,46,64],[5,9]):
     for effects in [[],[dict(type=kind,id=77)],[dict(type=kind,id=78)],[dict(type=47,samePointer=True),dict(type=63,id=78)]]:rows.append(run(dict(mode='remove',objectType=objectType,effects=sorted(effects,key=lambda e:e['type']))))
 for amount,kind,argc in itertools.product([-1,0,1,50,100,101,2147483647],[-1,0,1,2,3],[1,2]):rows.append(run(dict(mode='concealConstructor',amount=amount,kind=kind,argc=argc)))
 for amount,loading,dead,duration in itertools.product([0,1,50,100,101],[0,1],[0,1],[0,1,2,3,4]):rows.append(run(dict(mode='concealApply',amount=amount,loading=loading,dead=dead,durationType=duration)))
-out=m.root/'backups/animations/native-invisibility-concealment-observations.json';out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2)+'\n');print(json.dumps(dict(rows=len(rows),output=str(out))))
+out=m.root/'backups/animations/native-invisibility-concealment-observations-v2.json';out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,copyConstructorExecutions=copy_fixture.executions,rows=rows),indent=2)+'\n');print(json.dumps(dict(rows=len(rows),copies=copy_fixture.executions,output=str(out))))

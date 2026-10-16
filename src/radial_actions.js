@@ -2,6 +2,7 @@
 const entry = (slot, label, icon, action, extra = {}) => ({ slot, label, icon, action, ...extra });
 const menu = (title, entries) => ({ title, entries });
 const placeholder = (slot, label, icon, action, system, extra = {}) => entry(slot,label,icon,action,{ system, ...extra });
+const associateCommand=(slot,label,icon,command)=>placeholder(slot,label,icon,'associate.command','associate command dispatch',{command});
 const choices = (title, values, fallback, system) => {
   if (!values?.length) return menu(title,[placeholder(0,`Select ${title.toLowerCase()}`,fallback.icon,fallback.action,system)]);
   const entries = values.slice(0,7).map((value,slot) => placeholder(slot,value.label,value.icon ?? fallback.icon,value.action ?? fallback.action,system));
@@ -9,9 +10,9 @@ const choices = (title, values, fallback, system) => {
   return menu(title,entries);
 };
 const branch = (slot,label,icon,children,extra = {}) => entry(slot,label,icon,null,{ children, ...extra });
-const cast = actor => choices('Spell',actor.spells,{icon:'IR_CAST',action:'spell.select'},'spellcasting');
+const cast = (actor,options) => options.castMenu?.() ?? choices('Spell',actor.spells,{icon:'IR_CAST',action:'spell.select'},'spellcasting');
 const specialAttacks = actor => choices('Special attack',actor.specialAttacks,{icon:'IR_XATTACK',action:'combat.selectSpecialAttack'},'combat feats');
-const abilities = actor => choices('Special ability',actor.specialAbilities,{icon:'IR_XABILITY',action:'ability.select'},'character abilities');
+const abilities = (actor,options) => options.abilityMenu?.()??choices('Special ability',actor.specialAbilities,{icon:'IR_XABILITY',action:'ability.select'},'character abilities');
 const traps = () => menu('Trap',[
   placeholder(0,'Disarm trap','IR_TRAP','trap.disarm','trap rules'),
   placeholder(2,'Recover trap','IR_TRAP','trap.recover','trap rules'),
@@ -47,22 +48,37 @@ const commands = () => menu('Issue command',[
   ]))
 ]);
 
-export function buildGroundRadialActions(actor) {
+// Owned-associate child14098f8e0. Physical slots, icons and signed command
+// values depend on associate type, not on a particular creature template.
+export function buildOwnedAssociateActions(type){
+  const command=associateCommand;
+  const entries=[placeholder(0,'Examine','IR_EXAMINE','object.examine','object descriptions')];
+  if(type===1)entries.push(
+    placeholder(3,'Dismiss','IR_KICK','associate.dismissHenchman','henchman removal'),
+    command(1,'Unlock','IR_UNLOCK',-18),command(2,'Inventory','IR_INVENTORY',-19),command(4,'Disarm trap','IR_HAND_TRAP',-20),
+    command(7,'Search','IR_SEARCH',-23),command(5,'Cast spells','IR_SPELL',-21),command(6,'Stealth','IR_STEALTH',-22));
+  else if(type===2)entries.push(command(3,'Unsummon','IR_UNSUMMON',-9),placeholder(7,'Talk','IR_DIALOG','conversation.start','conversations'));
+  else if(type===3)entries.push(command(3,'Unsummon','IR_UNSUMMON',-8),placeholder(2,'Possess','IFE_POSSESS','associate.possess','familiar possession'));
+  else if(type===4)entries.push(command(3,'Unsummon','IR_UNSUMMON',-10));
+  else if(type===5)entries.push(command(3,'Release domination','IR_RELDOM',-12));
+  return menu('Associate actions',entries);
+}
+
+export function buildGroundRadialActions(actor,options = {}) {
   return menu('Ground',[
-    branch(1,'Cast spell','IR_CAST',() => cast(actor)),
+    branch(1,'Cast spell','IR_CAST',() => cast(actor,options)),
     placeholder(2,'Move to','IR_MOVETO','movement.moveTo','ground movement requests'),
     branch(3,'More actions','IR_TILEACTION',() => choices('Ground action',actor.groundActions,{icon:'IR_TILEACTION',action:'ground.selectAction'},'ground-targeted actions')),
-    branch(6,'Special abilities','IR_XABILITY',() => abilities(actor))
+    branch(6,'Special abilities','IR_XABILITY',() => abilities(actor,options))
   ]);
 }
 
-// Only the door Open/Close leaf currently has an implemented simulation handler.
-// Other leaves are real UI actions with explicit system placeholders, not fake
-// successful gameplay. Spell/feat choices are populated from actor data later.
-export function buildRadialActions(target, actor) {
-  const title = target.tag || target.name || target.kind;
+// Simulation handlers re-resolve canonical targets at selection. A live spell
+// provider supplies the native class/level tree; unavailable systems stay logged.
+export function buildRadialActions(target, actor, options = {}) {
+  const title = options.title ?? (target.tag || target.name || target.kind);
   const examine = placeholder(0,'Examine','IR_EXAMINE','object.examine','object descriptions');
-  const spell = branch(1,'Cast spell','IR_CAST',() => cast(actor));
+  const spell = branch(1,'Cast spell','IR_CAST',() => cast(actor,options));
   if (target.kind === 'door') {
     const open = target.animationState === 1 || target.animationState === 2;
     const destroyed = target.animationState === 3;
@@ -83,27 +99,28 @@ export function buildRadialActions(target, actor) {
   if (target.kind === 'item') return menu(title,[examine,spell,
     placeholder(2,target.equipped ? 'Unequip' : 'Use / equip',target.equipped ? 'IR_UNEQUIP' : 'IR_USE','item.use','inventory and equipment'),
     placeholder(4,target.ownerId === actor.id ? 'Drop' : 'Pick up',target.ownerId === actor.id ? 'IR_DROP' : 'IR_PICKUP',target.ownerId === actor.id ? 'item.drop' : 'item.pickup','inventory'),
-    {...placeholder(6,'Split stack','IR_SPLIT','item.split','inventory'),disabled:!(target.stackSize > 1)}
+    {...placeholder(6,'Split stack','IR_SPLIT','item.split','inventory'),disabled:!(target.stackSize > 1)},
+    ...(options.itemUseEntries?.()??[])
   ]);
   const self = target.id === actor.id || target.kind === 'player';
   if (self) return menu(title,[
     placeholder(0,'Character sheet','IR_CHARSHEET','character.sheet','character UI'),spell,
     placeholder(2,'Attack','IR_ATTACK','combat.attack','combat'),branch(3,'Special attacks','IR_XATTACK',() => specialAttacks(actor)),
-    placeholder(4,'Cancel polymorph','IR_SKILLSELF','character.cancelPolymorph','polymorph rules',{disabled:actor.polymorphed === false}),
-    branch(5,'Issue command','IR_COMMAND',commands),branch(6,'Special abilities','IR_XABILITY',() => abilities(actor)),branch(7,'Emote','IR_EMOTES',emotes)
+    ...(actor.nativeField97c!==0&&Number.isInteger(actor.nativeField97c)&&actor.nativeField9f8===0?[entry(4,'Cancel polymorph','IR_SKILLSELF','character.cancelPolymorph')]:[]),
+    branch(5,'Issue command','IR_COMMAND',commands),branch(6,'Special abilities','IR_XABILITY',() => abilities(actor,options)),branch(7,'Emote','IR_EMOTES',emotes)
   ]);
-  if (target.ownerId === actor.id) return menu(title,[
-    placeholder(0,'Heal me','IR_HEALME','associate.heal','associate AI'),spell,
-    placeholder(2,'Attack nearest','IR_ATTACKNEAREST','associate.attack','associate AI'),
-    placeholder(3,'Follow','IR_FOLLOW','associate.follow','associate AI'),
-    placeholder(4,'Stand ground','IR_STANDGROUND','associate.stand','associate AI'),
-    placeholder(5,'Guard','IR_GUARD','associate.guard','associate AI'),branch(6,'Special abilities','IR_XABILITY',() => abilities(actor)),branch(7,'Associate actions','IR_ASSOC_ACTION',commands)
+  if (target.masterId === actor.id) return menu(title,[
+    associateCommand(0,'Heal me','IR_HEALME',-4),spell,
+    associateCommand(2,'Attack nearest','IR_ATTACKNEAREST',-3),
+    associateCommand(3,'Follow','IR_FOLLOW',-5),
+    associateCommand(4,'Stand ground','IR_STANDGROUND',-2),
+    associateCommand(5,'Guard','IR_GUARD',-7),branch(6,'Special abilities','IR_XABILITY',() => abilities(actor,options)),branch(7,'Associate actions','IR_ASSOC_ACTION',()=>buildOwnedAssociateActions(target.associateType&65535))
   ]);
   return menu(title,[examine,spell,placeholder(2,'Attack','IR_ATTACK','combat.attack','combat'),
     branch(3,'Special attacks','IR_XATTACK',() => specialAttacks(actor)),
     placeholder(4,'Animal empathy','isk_aniemp','skill.animalEmpathy','skill rules'),
     placeholder(5,'Pick pocket','isk_pocket','skill.pickPocket','skill rules'),
-    branch(6,'Special abilities','IR_XABILITY',() => abilities(actor)),placeholder(7,'Talk','IR_DIALOG','conversation.start','conversations')
+    branch(6,'Special abilities','IR_XABILITY',() => abilities(actor,options)),placeholder(7,'Talk','IR_DIALOG','conversation.start','conversations')
   ]);
 }
 

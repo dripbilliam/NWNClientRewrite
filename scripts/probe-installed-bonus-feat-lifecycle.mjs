@@ -1,0 +1,24 @@
+// Installed active feat/class data and canonical effects. No copied assets or
+// fake permanent feats; temporary grants use the real script command binding.
+import fs from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {openLocalModule} from './local-module.mjs';
+import {ModuleSession} from '../src/module_session.js';
+import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
+import {bonusFeats} from '../src/bonus_feat_effect.js';
+const [install,modulePath,output='backups/animations/installed-bonus-feat-lifecycle-v1.json']=process.argv.slice(2),messages=[];
+const s=await new ModuleSession(await openLocalModule(install,modulePath),{runStartupScripts:false,runNativeAI:false,serverPvpSetting:0,onCombatMessage:m=>messages.push(m)}).initialize([],{character:await fs.readFile(`${install}/data/lcv/wizard.bic`)}),actor=s.byTag('M0Q0_SUMMON_MAGE')[0];assert.ok(actor);await s.enterArea('m0q1d',actor.position);
+const loadDiagnostics=[...runtimeDiagnostics.records],start=runtimeDiagnostics.records.length,frame={self:s.player.id},identity=actor,permanent=structuredClone(actor.creatureData.FeatList),pool=bonusFeats(actor),report={rows:[]};s.scheduler.events=[];s.scheduler.beforePump=()=>s.worldTimer.snapshot();
+const snapshot=o=>({id:o.id,bonus:[...bonusFeats(o)],capacity:o.nativeBonusFeatCapacity2c,feats:[...o.stats.feats],baseSaves:structuredClone(o.stats.combat.baseSaves),maxHP:o.stats.maxHP,hp:o.stats.currentHP,effectIds:o.effects.map(e=>e.id)});
+for(const feat of [14,24,22,40]){
+ const before=snapshot(actor),owned=s.combat.hasFeat(actor,feat),a=s.commands.EffectBonusFeat([feat],frame),b=s.commands.EffectBonusFeat([feat],frame);assert.equal(a.type,83);assert.notEqual(a.id,b.id);
+ await s.commands.ApplyEffectToObject([2,a,actor.id],frame);await s.commands.ApplyEffectToObject([2,b,actor.id],frame);const applied=snapshot(actor);assert.equal(s.combat.hasFeat(actor,feat),1);assert.equal(pool.filter(v=>v===feat).length,1);
+ if(!owned){if(feat===40){assert.equal(applied.maxHP,before.maxHP+3);assert.equal(applied.hp,before.hp);}else{const key=({14:'fortitude',24:'reflex',22:'will'})[feat];assert.equal(applied.baseSaves[key],before.baseSaves[key]+2);}}
+ await s.commands.RemoveEffect([actor.id,a],frame);await s.scheduler.pump();assert.equal(s.combat.hasFeat(actor,feat),1);assert.equal(pool.filter(v=>v===feat).length,1);
+ await s.commands.RemoveEffect([actor.id,b],frame);await s.scheduler.pump();const removed=snapshot(actor);assert.equal(s.combat.hasFeat(actor,feat),owned);assert.deepEqual(removed.bonus,before.bonus);assert.deepEqual(removed.feats,before.feats);assert.deepEqual(removed.baseSaves,before.baseSaves);assert.equal(removed.maxHP,before.maxHP);assert.equal(pool,bonusFeats(actor));assert.equal(s.registry.get(actor.id),identity);report.rows.push({feat,before,applied,removed});
+}
+const pc=s.player,pcBefore=snapshot(pc),cancel=s.commands.EffectBonusFeat([289],frame);assert.equal(s.combat.hasFeat(pc,289),0);
+await s.commands.ApplyEffectToObject([1,cancel,pc.id,1],frame);await s.commands.ApplyEffectToObject([1,cancel,pc.id,1],frame);assert.equal(pc.effects.filter(e=>e.id===cancel.id).length,2);assert.equal(bonusFeats(pc).filter(v=>v===289).length,1);assert.equal(s.commands.GetHasFeat([289,pc.id,1]),1);assert.ok(pc.stats.feats.includes(289));assert.equal(s.commands.GetFeatRemainingUses([289,pc.id]),2147483647);report.cancelApplied=snapshot(pc);
+s.scheduler.advance(1000);await s.effects.updateObject(pc);assert.equal(s.combat.hasFeat(pc,289),1);s.scheduler.advance(1);await s.effects.updateObject(pc);assert.equal(s.combat.hasFeat(pc,289),0);assert.deepEqual(snapshot(pc).bonus,pcBefore.bonus);assert.deepEqual(pc.stats.feats,pcBefore.feats);report.cancelRemoved=snapshot(pc);
+assert.deepEqual(actor.creatureData.FeatList,permanent);assert.equal(actor.pendingFeats,pool);Object.assign(report,{objectId:actor.id,canonicalIdentityPreserved:true,permanentFeatListUnchanged:true,loadDiagnostics,messages,diagnostics:runtimeDiagnostics.records.slice(start),limits:'Installed active feat/class rules with actual EffectBonusFeat command, live handler/pool, queued group removal, duplicate IDs and strict expiry. Great Fortitude/Lightning Reflexes/Iron Will/Toughness project through existing independently checked formulas; no native full-stat recomputation instruction comparison here. Cancel-polymorph feat289 enters the PC owned query/list, but actual polymorph transform, cancel action and rendered/UI interaction remain unimplemented.'});
+await fs.writeFile(output,JSON.stringify(report,null,2));console.log(JSON.stringify({rows:report.rows.length,canonicalIdentityPreserved:true,permanentFeatListUnchanged:true,errors:report.diagnostics.filter(r=>r.severity==='error')}));assert.deepEqual(report.diagnostics.filter(r=>r.severity==='error'),[]);

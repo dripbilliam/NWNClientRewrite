@@ -38,7 +38,7 @@ export async function applyEnchantment(actor,effect,p,loading=0){
       if((effect.subtype&56)!==16||integer(effect.integers?.[1],'extraordinary exemption')!==1)return feedback(actor,source,132,p);
     }
   }
-  if(value!==5){const child=call(p,'copy',effect,0);child.type=23;child.integers[0]=-257;await call(p,'apply',actor,child,loading);}
+  if(value!==5){const child=call(p,'copyConstruct',effect,0);child.type=23;child.integers[0]=-257;await call(p,'apply',actor,child,loading);}
   if(value>(integer(actor.nativeField771,'state')&255)){
     actor.nativeField771=value&255;await clearControllers(actor,p);
     await controller(actor,value,effect.creatorId,effect.spellId,effect.showIcon,p,loading);
@@ -53,7 +53,7 @@ export async function removeEnchantment(actor,effect,p){
   if(highest!==0){actor.nativeField771=highest&255;actor.nativeFieldEc=0;await controller(actor,highest,creator,undefined,undefined,p,0,true);}
   return 1;
 }
-async function child(actor,parent,type,values,icons,p,loading){const e=call(p,'copy',parent,icons);e.type=type;for(const [i,v] of values)e.integers[i]=v|0;await call(p,'apply',actor,e,loading);}
+async function child(actor,parent,type,values,icons,p,loading){const e=call(p,'copyConstruct',parent,icons);e.type=type;for(const [i,v] of values)e.integers[i]=v|0;await call(p,'apply',actor,e,loading);}
 async function clearActions(actor,p,disable=true){actor.nativeFieldEc=1;await call(p,'clearActions',actor);if(disable)actor.nativeFieldEc=0;}
 // OnApplySetStateInternal140432500. Association/reputation changes stay
 // explicit lower owners, rather than treating Charm/Domination as inert icons.

@@ -21,7 +21,7 @@ test('NWScript talent reservation, copying and accessors retain engine structure
   assert.equal(s.commands.GetIsTalentValid([f.stack[0].value]),0);
   f.stack[0].value=s.commands.TalentSkill([-2147483648]);
   await vm.step(f,{op:3,type:1,offset:-4,size:4});f.stack[1].value.id=7;
-  assert.equal(s.commands.GetTalentId([f.stack[0].value]),-2147483648);assert.equal(s.commands.GetTalentType([f.stack[0].value]),2);
+  assert.equal(s.commands.GetIdFromTalent([f.stack[0].value]),-2147483648);assert.equal(s.commands.GetTypeFromTalent([f.stack[0].value]),2);
   for(const [name,type] of [['TalentSpell',0],['TalentFeat',1],['TalentSkill',2]]){
     const value=s.commands[name]([-1]);assert.equal(value.type,type);assert.equal(s.commands.GetIsTalentValid([value]),1);
   }

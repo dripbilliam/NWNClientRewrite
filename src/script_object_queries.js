@@ -3,6 +3,28 @@ import {normalizeOrientation} from './combat_lifecycle.js';
 import {scriptFloatToInt} from './script_scalar.js';
 import {nativeAtan2f,nativeCosf,nativeSinf} from './native_math.js';
 
+// Door GetOpenState1404207f0. The query refreshes the cached BYTE42c only
+// for four recognized animations; field498 zero returns3 without cache write.
+export function nativeDoorOpenState(door){
+  if(!Number.isInteger(door.nativeDoorField498))throw new Error('Native door field498 is unavailable');
+  if(door.nativeDoorField498===0)return 3;
+  if(!Number.isInteger(door.nativeAnimationD8))throw new Error('Native door animation is unavailable');
+  const state=new Map([[22,0],[50,1],[51,2],[72,3]]).get(door.nativeAnimationD8|0);
+  if(state!==undefined)door.animationState=state;
+  if(!Number.isInteger(door.animationState))throw new Error('Native door cached state42c is unavailable');
+  return door.animationState&255;
+}
+// GetIsOpen140527490: door cast twice before considering placeable; a
+// placeable is open exactly when its common animation DWORDd8 equals75.
+export async function scriptIsOpen(id,p){
+  if(!Number.isInteger(id))throw new Error('Native GetIsOpen object ID is unavailable');
+  const object=await p.object(id>>>0);if(!object)return 0;
+  if(p.asDoor(object)){const door=p.asDoor(object);if(!door)throw new Error('Native GetIsOpen dereferences null repeated door cast');const state=await p.openState(door);if(!Number.isInteger(state))throw new Error('Native door open-state return is unavailable');return Number((state&255)!==0);}
+  if(!p.asPlaceable(object))return 0;
+  const placeable=p.asPlaceable(object);if(!placeable)throw new Error('Native GetIsOpen dereferences null repeated placeable cast');
+  if(!Number.isInteger(placeable.nativeAnimationD8))throw new Error('Native GetIsOpen placeable animation is unavailable');return Number((placeable.nativeAnimationD8|0)===75);
+}
+
 // ExecuteCommandGetAssociateType14051f470 reads WORD908 only when the
 // actual master ID8fc is valid. A type alone does not make an associate.
 export function scriptAssociateType(actor){

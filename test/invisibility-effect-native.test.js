@@ -5,14 +5,14 @@ import {invisibilityEffect,applyInvisibility,removeInvisibility} from '../src/in
 import {ModuleSession} from '../src/module_session.js';
 import {concealmentEffect,applyConcealment} from '../src/concealment_effect.js';
 import {defensiveChances} from '../src/combat_defense.js';
-const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-invisibility-concealment-observations.json',import.meta.url)));
+const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-invisibility-concealment-observations-v2.json',import.meta.url)));
 const project=e=>({id:e.id,type:e.type,subtype:e.subtype,durationType:e.durationType,spellId:e.spellId,creatorId:e.creatorId,casterLevel:e.casterLevel,showIcon:e.showIcon,exposed:Number(e.exposed),integers:e.integers});
 test('invisibility constructors, list membership and source-sensitive removal match original instructions',async()=>{
   for(const row of oracle.rows){const c=row.case,calls=[],actor={id:99,objectType:c.objectType??5},effect={id:'000000000000004d',type:c.mode==='concealApply'?76:47,subtype:8,durationType:c.durationType??2,
     spellId:11,creatorId:98,casterLevel:7,showIcon:c.showIcon??1,exposed:true,integers:[c.mode==='concealApply'?c.amount:c.kind??1,28,...Array(6).fill(0)]},
     effects=(c.effects??[]).map((e,i)=>e.samePointer?effect:{type:e.type,id:BigInt(e.id??10+i).toString(16).padStart(16,'0')}),p={effects:()=>effects,dead:()=>c.dead??0,
     addInvisible:id=>calls.push(['addInvisible',id]),removeInvisible:id=>calls.push(['removeInvisible',id]),
-    copy:(e,icons)=>({...structuredClone(e),exposed:false,showIcon:icons?e.showIcon:0}),apply:(_o,e,loading)=>calls.push(['apply',project(e),loading])};
+    copyConstruct:(e,icons)=>({...structuredClone(e),integers:Array(e.integers.length).fill(0),exposed:false,showIcon:icons?e.showIcon:0}),apply:(_o,e,loading)=>calls.push(['apply',project(e),loading])};
     if(['constructor','concealConstructor'].includes(c.mode)){
       const invalid=()=>({id:'0000000000000064',type:0,subtype:0,durationType:0,spellId:-1,creatorId:0x7f000000,casterLevel:-1,showIcon:1,exposed:1,integers:Array(8).fill(0)});
       const provider={invalid,create:(type,creatorId,ints,subtype)=>({...invalid(),type,creatorId,integers:[...ints,...Array(8-ints.length).fill(0)],subtype})},

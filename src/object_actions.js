@@ -31,6 +31,11 @@ export function createObjectActionState() {
     startDay: 0, startTime: 0, lastRunDay: 0, lastRunTime: 0, running: false };
 }
 
+// SetGroupInterruptable14049aff0 changes every matching physical node.
+export function setGroupInterruptable(state,group,value){
+  for(const node of state.list)if(node.groupId===(group&65535))node.nativeField9c=value|0;
+}
+
 // Constructor 0x14048bcf0; AddAction/ToFront 0x14048cb80/14048d3f0.
 // The zeroed 12 type/data slots correspond to +4 and +38; this is a local
 // representation, not a serialized native pointer layout or network packet.
@@ -174,6 +179,13 @@ function disposalPreflight(node, deleteSituation) {
   if (typeof deleteSituation !== 'function' && node.parameterData.some((value, index) =>
     index < node.parameterCount && node.parameterTypes[index] === 5 && value))
     throw new Error('Native script situation disposal is unavailable');
+}
+// DeleteCurrentAIAction140491570. Calls ClearAction(head,1), and removes
+// only exact-one success; it has no commandability gate or path-reset tail.
+export async function deleteCurrentObjectAction(actor,{clearAction,deleteSituation}={}){
+ const list=actor.objectActionState?.list;if(!list||typeof clearAction!=='function')throw new Error('Native current-action deletion providers are unavailable');
+ const node=list.head?.action;if(!node)return;disposalPreflight(node,deleteSituation);
+ if(await clearAction(actor,node,1)===1){const removed=list.shift();if(removed)await disposeObjectAction(removed,deleteSituation);}
 }
 // RemoveGroup140498860. Visits every matching group, including separated
 // repeats, and recomputes head identity for each ClearAction call. It does

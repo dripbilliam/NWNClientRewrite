@@ -13,6 +13,19 @@ export function itemActiveUsesLeft(item,index){
   return 0;
 }
 
+// SetCharges14046c440..14046c516. Cache notification is a separate owner.
+// A nonzero update argument rewrites readiness only for charge-cost2..6
+// active cast properties, leaving stack/daily/unlimited uses untouched.
+export function setItemCharges(item,value,update){
+ value=integer(value,'charge value');update=integer(update,'charge readiness update');
+ item.charges=Math.max(0,Math.min(250,value));if(update===0)return;
+ for(const property of properties(item,true)){
+  if((integer(property.type,'property type')&65535)!==15)continue;
+  const cost=integer(property.costValue,'charge cost')&65535;
+  if(cost>=2&&cost<=6)property.remaining=Number(item.charges>=7-cost);
+ }
+}
+
 // UpdateUsedActiveProperties14046cf20 through cache writes14046d07f.
 // Sender routing uses this result; no full or delta packet is fabricated here.
 export function updateItemActiveUseCache(item,force){

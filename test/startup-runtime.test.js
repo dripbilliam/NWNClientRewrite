@@ -54,14 +54,16 @@ test('effect removal matches value IDs and is deferred; enumeration hides remove
   s.commands.RemoveEffect([OBJECT_INVALID, copy], self);
 });
 
-test('heal clamps to maximum HP, consumes even permanent effects, and does not resurrect dead creatures', () => {
+test('heal clamps to maximum HP, consumes even permanent effects, and does not resurrect dead creatures', async () => {
   const { s, pc, self, messages } = fixture();
+  // Isolate native encumbrance; this fixture has no active weight/rules data.
+  s.combat.encumbrance=async()=>{};
   const heal = s.commands.EffectHeal([500], self);
   assert.equal(heal.subtype, 8); assert.equal(s.commands.GetEffectType([heal]), 0); assert.equal(s.commands.GetEffectType([heal, 1]), 96);
-  s.commands.ApplyEffectToObject([2, heal, pc.id]);
+  await s.commands.ApplyEffectToObject([2, heal, pc.id]);
   assert.equal(pc.stats.currentHP, 10); assert.equal(messages.at(-1).amount, 5); assert.deepEqual(pc.effects, []);
-  pc.stats.currentHP = -10; s.commands.ApplyEffectToObject([0, heal, pc.id]); assert.equal(pc.stats.currentHP, -10);
-  pc.stats.currentHP = -3; s.commands.ApplyEffectToObject([0, heal, pc.id]); assert.equal(pc.stats.currentHP, 10);
+  pc.stats.currentHP = -10; await s.commands.ApplyEffectToObject([0, heal, pc.id]); assert.equal(pc.stats.currentHP, -10);
+  pc.stats.currentHP = -3; await s.commands.ApplyEffectToObject([0, heal, pc.id]); assert.equal(pc.stats.currentHP, 10);
   for (const n of [0, -10]) assert.equal(s.commands.EffectHeal([n], self).type, 0);
   assert.throws(() => s.effects.apply(0, { type: 99 }, pc.id), /not implemented/);
 });

@@ -21,6 +21,41 @@ export async function getActionMode(actor,requested,detect){
   return 0;
 }
 
+// Complete SetMode1403a3510. The requested state is a raw INT, not boolean:
+// values other than zero/one still compare against GetMode's boolean result.
+// ToggleMode owns validation, feats, activities and associate notification.
+export async function setActionMode(actor,requested,value,p){
+ requested=integer(requested,'requested action mode')&255;value=integer(value,'requested mode value');
+ if(await getActionMode(actor,requested,p.detect)!==value){
+  if(typeof p.toggle!=='function')throw new Error('Native action mode toggle owner is unavailable');
+  await p.toggle(actor,requested);
+ }
+}
+
+// ToggleMode1403a52b0. This is the input toggle owner, separate from the
+// SetActionMode script command and SetCombatMode's pending-round behavior.
+export async function toggleCreatureMode(actor,requested,p){
+  requested=integer(requested,'toggle mode')&255;
+  if(await p.dead(actor)!==0||await p.dying(actor)!==0)return 0;
+  if(requested===0)await p.activity(actor,2,Number((await p.detect(actor)&255)!==1));
+  else if(requested===1){
+    if(await p.stealthBusy(actor))await p.feedback(actor,60);
+    else if(await p.canUseSkill(actor,5)!==0||await p.canUseSkill(actor,8)!==0)
+      await p.activity(actor,1,Number((integer(actor.nativeField6ed,'stealth byte')&255)!==1));
+  }else if(requested>=2&&requested<=12){
+    const feats={3:[28],4:[19],6:[204,899,866],7:[30],8:[389],9:[390],11:[425],12:[947]}[requested];
+    if(feats){let allowed=false;for(const feat of feats)if(await p.hasFeat(actor,feat)!==0){allowed=true;break;}if(!allowed)return 0;}
+    const current=integer(actor.combatMode,'combat mode')&255,mode=requested-1;
+    await p.setMode(actor,current===mode?0:mode,Number(current===mode));
+  }
+  const ids=await p.associates(actor);if(!Array.isArray(ids))throw new Error('Native toggle-mode associate list is unavailable');
+  for(let index=0;index<ids.length;index++){
+    const associate=await p.creature(ids[index]);
+    if(associate)await p.event(actor,associate,requested+20000);
+  }
+  return 1;
+}
+
 // SetActivity 1403a275d..1403a2abe, combat-mask branch only. Enabling a
 // combat bit clears unlocked combat bits first, including the same bit.
 // Defensive stance effects are explicit callbacks; locked bits veto a change.

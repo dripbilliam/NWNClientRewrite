@@ -241,6 +241,24 @@ export function areaTileHeight(tile,point) {
   return f(tileSurfaceHeight(tile.mesh,local)+f(tile.heightOffset));
 }
 
+// GetSurfaceMaterial1402bedf0 scans ONLY the first containing walkable
+// triangle, in physical order. Input Z does not select another floor.
+export function tileSurfaceMaterial(mesh,point){
+  const [x,y]=point.map(f);if(![x,y].every(Number.isFinite))throw new Error('Native surface-material point is unavailable');
+  if(!mesh?.faces||!mesh.vertices||!mesh.materials)throw new Error('Native surface-material geometry is unavailable');
+  for(let i=0;i<mesh.faces.length;i++){
+    const [a,b,c]=mesh.faces[i].map(n=>mesh.vertices[n]),edge=(a,b)=>f(f(f(b[0]-a[0])*f(y-a[1]))+f(f(x-a[0])*f(a[1]-b[1])));
+    if(edge(a,b)>=0&&edge(b,c)>=0&&edge(c,a)>=0)return mesh.materials[i]|0;
+  }
+  return 0;
+}
+// Area subtracts tile origin; CNWSTile rotates to canonical then asks the
+// surface. Do not subtract tile height or use renderer picking.
+export function areaTileSurfaceMaterial(tile,point){
+  const real=[f(f(point[0])-f(f(tile.x)*10)),f(f(point[1])-f(f(tile.y)*10))],local=rotateTilePoint({...tile,x:0,y:0},real,true);
+  return tileSurfaceMaterial(tile.mesh,local);
+}
+
 // IntersectLineSegments 1402bf510..1402bf969. Collinear/parallel lines
 // fail; contacts at endpoints count. Height comes from the crossed edge,
 // choosing its larger horizontal component, not from the movement line.

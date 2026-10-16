@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {applySpellResistanceEffect,removeSpellResistanceEffect,applySpellProtectionEffect} from '../src/spell_defense_effect.js';
 import {applyEffectIcon,removeEffectIcon} from '../src/effect_icon.js';
 import {ModuleSession} from '../src/module_session.js';
-const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-defense-effect-observations.json',import.meta.url)));
+const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-defense-effect-observations-v2.json',import.meta.url)));
 const types=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-effect-script-type-observations-v2.json',import.meta.url)));
 const project=e=>({type:e.type,subtype:e.subtype??0,durationType:e.durationType,integers:e.integers,creatorId:e.creatorId});
 test('spell defense constructors, cache handlers and icon lifecycle compare with original instructions',async()=>{
@@ -16,7 +16,7 @@ test('spell defense constructors, cache handlers and icon lifecycle compare with
     const p={dead:()=>c.dead??0,plot:()=>c.plot??0,object:()=>c.sourceExists===false?null:{objectType:5},
       immunity:(_o,id)=>{calls.push(['immunity',id]);return c.immune??0;},resistance:()=>{calls.push(['resistance']);return c.totalResistance??0;},effects:o=>o.effects,
       setCache:(o,down,value)=>{calls.push(['cache',down,value]);o[down?'nativeSpellResistanceDecreaseD85':'nativeSpellResistanceIncreaseD84']=value;},
-      applyIcon:(_o,e,loading)=>calls.push(['icon',project(e),loading])};let result=0,output=null;
+      copyConstruct:e=>({...structuredClone(e),integers:Array(e.integers.length).fill(0),exposed:false}),applyIcon:(_o,e,loading)=>calls.push(['icon',project(e),loading])};let result=0,output=null;
     if(c.mode==='constructor'){
       const s=new ModuleSession(null),o=s.register('creature','caster',{});s.characterRules={spells:{orderedRows:Array(840)}};
       const name=({33:'EffectSpellResistanceIncrease',34:'EffectSpellResistanceDecrease',50:'EffectSpellImmunity',65:'EffectSpellLevelAbsorption'})[c.type];

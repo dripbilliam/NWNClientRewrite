@@ -1,5 +1,14 @@
 const f=Math.fround;
 const call=(p,n,...args)=>{if(typeof p?.[n]!=='function')throw new Error(`Native effect floating feedback provider ${n} is unavailable`);return p[n](...args);};
+// DisplayFloatyDataToSelf14038a810: direct client, then master's client. This
+// uses CC message11/ref93, separate from the nearby-object effect floaty packet.
+export async function displayFloatyToSelf(actor,strref,p){
+ let client=call(p,'client',actor.id);
+ if(!client){if(!Number.isInteger(actor.masterId))throw new Error('Native effect floating feedback master ID is unavailable');client=call(p,'client',actor.masterId>>>0);}
+ if(!client)return;
+ const integers=Array(10).fill(0);integers[0]=strref|0;integers[9]=93;
+ await call(p,'send',client,11,{objectIds:[actor.id>>>0],integers});
+}
 // BroadcastFloatyEffect140439ae0. Projectile range268 is the radius with
 // no+2/+45 expansion. Sorted upper-X exit and exact3D FLOAT squared distance.
 // The message1404d95a0 writes target object32 then STRREF32 (type5/subtype5).

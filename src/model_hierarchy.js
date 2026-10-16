@@ -21,7 +21,7 @@ export function createModelHierarchy(model) {
   for (const [index,node] of model.nodes.entries()) {
     const group = new THREE.Group();
     group.name = node.name;
-    group.userData = { mdlNode: node.name, mdlModel: model.modelName,mdlNodeIndex:index };
+    group.userData = { mdlNode: node.name, mdlModel: model.modelName,mdlNodeIndex:index,mdlNodeId34:node.nativeNode?.id34 };
     group.position.set(node.position[0], node.position[2], -node.position[1]);
     group.scale.setScalar(node.scale ?? 1);
     group.quaternion.copy(basis).multiply(new THREE.Quaternion(...decodeModelOrientation(node.orientation, node.orientationFormat))).multiply(inverseBasis);

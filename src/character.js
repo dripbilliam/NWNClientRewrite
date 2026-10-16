@@ -78,7 +78,7 @@ export async function loadCharacterRules(resolver) {
   catch(error){tables.xptable=null;runtimeDiagnostics.record('rules.optional-table-unavailable',`XPTable.2da: ${error.message}`,{resource:'xptable',outcome:'Native death experience lookup is unavailable',stack:error.stack});}
   try { tables.visualeffects=parse2da(decodeResourceText(await resolver.getResource('visualeffects',RESOURCE_TYPE.TWO_DA))); }
   catch(error){tables.visualeffects=null;runtimeDiagnostics.record('rules.optional-table-unavailable',`visualeffects.2da: ${error.message}`,{resource:'visualeffects',outcome:'Native death visual preservation lookup is unavailable',stack:error.stack});}
-  for(const name of ['encumbrance','iprp_weightinc','itemprops','itempropdef','iprp_meleecost','iprp_spells','spellschools','domains','usemagicdevice','fractionalcr','encdifficulty']){
+  for(const name of ['encumbrance','iprp_weightinc','itemprops','itempropdef','iprp_meleecost','iprp_spells','iprp_onhitspell','spellschools','domains','usemagicdevice','fractionalcr','encdifficulty','poison','disease','restduration']){
     try{tables[name]=parse2da(decodeResourceText(await resolver.getResource(name,RESOURCE_TYPE.TWO_DA)));}
     catch(error){tables[name]=null;runtimeDiagnostics.record('rules.optional-table-unavailable',`${name}.2da: ${error.message}`,{resource:name,outcome:'Native dependent rule table is unavailable',stack:error.stack});}
   }
@@ -103,7 +103,7 @@ export async function loadCharacterRules(resolver) {
   return tables;
 }
 
-export function characterStats(root, rules, { currentHP: liveHP, items = equipmentRecords(root), effects = [], areaFlags = 0, limits, acCache, possessedFamiliar = false, itemCombatEffects,abilityItem } = {}) {
+export function characterStats(root, rules, { currentHP: liveHP, items = equipmentRecords(root), abilityProjectionItems=items,effects = [], areaFlags = 0, limits, acCache, possessedFamiliar = false, itemCombatEffects,abilityItem,bonusFeats=[],actor } = {}) {
   const classes = root.ClassList.map(c => ({ id: c.Class, level: c.ClassLevel }));
   const level = classes.reduce((n, c) => n + c.level, 0);
   const race = rules.racialtypes.rows.get(root.Race);
@@ -122,21 +122,21 @@ export function characterStats(root, rules, { currentHP: liveHP, items = equipme
     return [field, root[field] + parts[field].race + parts[field].gain];
   }));
   const equippedBonuses = equipmentAbilityBonuses(items.map(item => item.data), rules);
-  const abilityEffects=[...equipmentAbilityEffects(items,rules),...effects.filter(e=>[36,37].includes(e.type))].sort((a,b)=>a.type-b.type),abilityBonuses={};
+  const abilityEffects=[...equipmentAbilityEffects(abilityProjectionItems,rules),...effects.filter(e=>[36,37].includes(e.type))].sort((a,b)=>a.type-b.type),abilityBonuses={};
   const equippedAbilities=Object.fromEntries(ABILITIES.map((field,index)=>{
     const bonus=abilityEffectBonus(abilityEffects,index,{item:abilityItem??(id=>items.find(i=>i.id===id)??null),bonusLimit:()=>limits?.abilityBonus??12,penaltyLimit:()=>limits?.abilityPenalty??30}).total;
     abilityBonuses[field]=bonus;const p=parts[field];return[field,nativeAbilityScore(p.base,p.race,p.gain,bonus)];
   }));
   const con = abilityModifier(equippedAbilities.Con, rules);
-  const feats = new Set((root.FeatList ?? []).map(f => f.Feat));
-  const maxHP = creatureMaxHitPoints(root, con, rules, { possessedFamiliar });
+  const feats = new Set([...(root.FeatList ?? []).map(f => f.Feat),...bonusFeats]);
+  const maxHP = creatureMaxHitPoints(root, con, rules, { possessedFamiliar,bonusFeats });
   // ReadStatsFromGff restores PC current HP by adding maxHP - saved base HP.
   const currentHP = liveHP === undefined ? restoredCreatureHitPoints(root, maxHP, con) : i16(liveHP);
   const nextXP = number(rules.exptable.rows.get(level)?.XP, null);
   const combat = rules.epicattacks || rules.epicsaves
-    ? baseCombatStats(root, rules, { charismaModifier: abilityModifier(equippedAbilities.Cha, rules) }) : null;
+    ? baseCombatStats(root, rules, { charismaModifier: abilityModifier(equippedAbilities.Cha, rules),pendingFeats:bonusFeats }) : null;
   if (combat && rules.armor && rules.parts_chest && rules.itemCosts) Object.assign(combat,
-    finalCombatStats(root, rules, equippedAbilities, combat, { items, effects, areaFlags, limits, acCache, itemCombatEffects }));
+    finalCombatStats(root, rules, equippedAbilities, combat, { items, effects, areaFlags, limits, acCache, itemCombatEffects,pendingFeats:bonusFeats,actor }));
   return { classes, level, baseAbilities, equippedBonuses,abilityBonuses, equippedAbilities, combat, maxHP, currentHP, xp: root.Experience >>> 0, gold: root.Gold ?? 0,
     race: root.Race, gender: root.Gender, subrace: root.Subrace ?? '', feats: [...feats], skills: (root.SkillList ?? []).map(s => s.Rank), skillPoints: root.SkillPoints ?? 0,
     nextXP, canLevelUp: level < 40 && nextXP !== null && root.Experience >= nextXP,
@@ -196,9 +196,9 @@ export function experienceAward(stats, amount, rules) {
   return Math.trunc(amount * (1 - penalties * 0.2)) >>> 0;
 }
 
-export function playerAppearance(root) {
+export function playerAppearance(root,{items}={}) {
   const result = { ...root, XPosition: 0, YPosition: 0, ZPosition: 0, XOrientation: 0, YOrientation: 1 };
-  const armor = (root.Equip_ItemList ?? []).find(i => getGffStructType(i) === 2);
+  const armor = items===undefined?(root.Equip_ItemList ?? []).find(i => getGffStructType(i) === 2):items.find(i=>i.slot===2)?.data;
   if (armor) {
     for (const [key, value] of Object.entries(armor)) if (key.startsWith('ArmorPart_')) result[key.replace('ArmorPart_', 'BodyPart_')] = value;
     for (const material of ['Metal1', 'Metal2', 'Cloth1', 'Cloth2', 'Leather1', 'Leather2']) result[`Color_${material}`] = armor[`${material}Color`] ?? 0;
@@ -208,6 +208,6 @@ export function playerAppearance(root) {
   return result;
 }
 
-export function resolvePlayerModels(root, rules) {
-  return resolveCreatureModels(playerAppearance(root), -1, { appearance: rules.appearance, racialTypes: rules.racialtypes, gender: rules.gender, phenotype: rules.phenotype });
+export function resolvePlayerModels(root, rules,options) {
+  return resolveCreatureModels(playerAppearance(root,options), -1, { appearance: rules.appearance, racialTypes: rules.racialtypes, gender: rules.gender, phenotype: rules.phenotype });
 }

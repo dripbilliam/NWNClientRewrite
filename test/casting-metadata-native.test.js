@@ -25,5 +25,8 @@ test('casting metadata follows active physical rows/columns/defaults and native 
   assert.equal(spellStringEntry(duplicate,0,'ConjAnim'),'head');assert.equal(spellStringEntry(duplicate,0,'Missing'),'hand');
   assert.equal(castingSpell({spells:duplicate},0).conjureAnimation,2);
   rules.spells=parse2da('2DA V2.0\n\nCastAnim\n0 point');assert.equal(castingSpell(rules,0).castAnimation,6);
+  rules.spells=parse2da('2DA V2.0\n\nCounter1 Counter2\n0 0xffffffff 0x7a\n1 **** ****');
+  assert.equal(castingSpell(rules,0).counter1,-1);assert.equal(castingSpell(rules,0).counter2,122);
+  assert.equal(castingSpell(rules,1).counter1,-1);assert.equal(castingSpell(rules,1).counter2,-1);
   assert.throws(()=>castingSpell({},0),/unavailable/);
 });

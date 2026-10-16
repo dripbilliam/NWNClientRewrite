@@ -39,6 +39,40 @@ export async function acquireCreatureItem(actor,ref,source,destination,x,y,allow
   return result;
 }
 
+// CNWSPlaceable::AcquireItem1404b11d0. Source must equal the incoming direct
+// possessor. Old-owner removal precedes the destination repository NULL check.
+// AddItem's result is ignored: a nonnull repository returns1 and sets possession
+// even on failed insertion. Keep that native asymmetry with creature acquisition.
+export async function acquirePlaceableItem(placeable,ref,source,x,y,feedback,p){
+ source=integer(source,'source ID')>>>0;x=integer(x,'x')&255;y=integer(y,'y')&255;feedback=integer(feedback,'feedback');
+ const repository=required(p,'repository')(placeable),item=ref.item;
+ if(!item)throw new Error('Native placeable acquisition dereferences a null item');
+ if((item.possessorId>>>0)!==source)return 0;
+ const previous=required(p,'objectById')(source);
+ if(previous){
+  if(previous.objectType===5)await required(p,'removeCreatureItem')(previous,ref.item,0,feedback,0,1);
+  else if(previous.objectType===9)await required(p,'removePlaceableItem')(previous,ref.item,1);
+  else if(previous.objectType===6){
+   const info=required(p,'baseInfo')(previous);if(!info)throw new Error('Native placeable acquisition dereferences unavailable container rules');
+   if(info.container===1)await required(p,'removeRepositoryItem')(p.repository(previous),ref.item);
+  }
+ }else await required(p,'removeFromArea')(ref.item);
+ if(!repository)return 0;
+ await required(p,'add')(repository,ref,x,y,0,1);
+ if(ref.item)await required(p,'setPossessor')(ref.item,placeable.id,1,1,0);
+ return 1;
+}
+
+// CNWSPlaceable::RemoveItem1404b69d0. Only exact membership result1 removes;
+// optional possession clearing treats any nonzero INT as true.
+export async function removePlaceableItem(placeable,item,clearPossessor,p){
+ clearPossessor=integer(clearPossessor,'clear possessor');const repository=required(p,'repository')(placeable);
+ if(await required(p,'contains')(repository,item,0)!==1)return 0;
+ await required(p,'removeRepositoryItem')(repository,item);
+ if(clearPossessor!==0)await required(p,'setPossessor')(item,OBJECT_INVALID,1,1,0);
+ return 1;
+}
+
 // ExecuteCommandCreateItemOnObject1405138a0. Acquisition's BOOL is ignored;
 // even failed acquisition can return a still-registered, unpossessed item ID.
 export async function scriptCreateItem(template,target,stack,newTag,p){

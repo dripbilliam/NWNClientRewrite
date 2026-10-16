@@ -9,7 +9,7 @@ export function invisibilityEffect(kind,creator,p){
 // by existing observer-specific visibility checks. There is no dead/plot gate.
 export async function applyInvisibility(actor,effect,p,loading=0){
   if(actor.objectType!==5||!effect)return 0;call(p,'addInvisible',actor.id);
-  const kind=integer(effect.integers?.[0],'kind');if(kind===1||kind===4){const icon=call(p,'copy',effect,1);icon.type=67;icon.integers[0]=kind===1?45:46;await call(p,'apply',actor,icon,loading);}return 0;
+  const kind=integer(effect.integers?.[0],'kind');if(kind===1||kind===4){const icon=call(p,'copyConstruct',effect,1);icon.type=67;icon.integers[0]=kind===1?45:46;await call(p,'apply',actor,icon,loading);}return 0;
 }
 // OnRemoveInvisibility4372d0 shares the module list with sanctuary63.
 // Any remaining source with a DIFFERENT uint64 ID keeps the creature listed.

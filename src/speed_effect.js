@@ -6,7 +6,7 @@ function factor(effect){const n=f(integer(effect.integers?.[0],'magnitude'));ret
 function remainingFactor(actor,p,initial,exclude){let value=initial;for(const e of call(p,'effects',actor)){
   const type=integer(e.type,'stored type')&65535;if(type>29)break;if((type===28||type===29)&&(!exclude||e.id!==exclude.id))value=f(value*factor(e));
 }return value;}
-async function icon(actor,effect,id,p,loading){const copy=call(p,'copy',effect,1);copy.type=67;copy.integers[0]=id;await call(p,'apply',actor,copy,loading);}
+async function icon(actor,effect,id,p,loading){const copy=call(p,'copyConstruct',effect,1);copy.type=67;copy.integers[0]=id;await call(p,'apply',actor,copy,loading);}
 // OnApplyMovementSpeedIncrease42f320/decrease42f110. Increase values<100
 // add100 in the SAME integer cell; decreases>=100 are rejected. Existing
 // sorted modifiers multiply in FLOAT order before the clamping setter.

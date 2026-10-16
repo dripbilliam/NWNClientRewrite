@@ -1,5 +1,6 @@
 import { OBJECT_INVALID } from './game_object_array.js';
 import { reactionFromReputation } from './perception.js';
+import {subtractWorldTimes as subtractNativeWorldTimes} from './world_timer.js';
 
 const integer = (value, name) => {
   if (!Number.isInteger(value)) throw new Error(`Native reputation ${name} is unavailable`);
@@ -64,13 +65,8 @@ export function effectivePVPSetting(areaSetting, serverSetting) {
 // CWorldTimer::SubtractWorldTimes 0x140597a20. Failure leaves the caller's
 // output untouched; JS exposes failure rather than inventing those bytes.
 export function subtractWorldTimes(now, then, dayLength) {
-  const day = id(now.day), time = id(now.time), previousDay = id(then.day), previousTime = id(then.time);
-  dayLength = id(dayLength);
-  if (time < dayLength && previousTime < dayLength && (day < previousDay || day === previousDay && time < previousTime))
-    return { status: -2 };
-  let days = (day - previousDay) >>> 0, milliseconds = (time - previousTime) >>> 0;
-  if (milliseconds >= dayLength) { days = (days - 1) >>> 0; milliseconds = (milliseconds + dayLength) >>> 0; }
-  return { status: 0, days, milliseconds };
+  const result=subtractNativeWorldTimes(now,then,dayLength);
+  return result.status===0?{status:0,days:result.day,milliseconds:result.time}:result;
 }
 
 // CalculatePersonalReputationAdjustment 0x1403d10b0. Decay uses a fixed

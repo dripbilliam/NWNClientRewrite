@@ -40,7 +40,9 @@ test('live created items use resource data, canonical IDs, deferred tag override
   const s=new ModuleSession({getResource:async(name,type)=>{queries.push([name,type]);return bytes;}});s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType BasePropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS EquipableSlots\n0 0 1 1 1 99 0 10 1'),appearance:parse2da('2DA V2.0\n\nSIZECATEGORY\n0 3')};
   s.module=s.register('module','module',{});const actor=s.register('creature','actor',{authored:{IsPC:0,FeatList:[],ClassList:[]},reputationPCFlag:0});await s.loadInventory(actor,{IsPC:0});
   const first=await s.commands.CreateItemOnObject(['VeryLongResourceName',actor.id,17,'new']);const object=s.registry.get(first);
-  assert.deepEqual(queries,[['verylongresource',2025]]);assert.equal(object.templateResRef,'VeryLongResource');assert.equal(object.possessorId,actor.id);assert.equal(object.stackSize,17);assert.equal(object.droppable,1);assert.equal(s.byTag('new')[0],object);assert.equal(s.byTag('old').length,0);
+  // The lower UTI data owner overwrites the requested resource with the
+  // serialized TemplateResRef (empty when absent), before the tag override.
+  assert.deepEqual(queries,[['verylongresource',2025]]);assert.equal(object.templateResRef,'');assert.equal(object.possessorId,actor.id);assert.equal(object.stackSize,17);assert.equal(object.droppable,1);assert.equal(s.byTag('new')[0],object);assert.equal(s.byTag('old').length,0);
   const before=s.registry.nextObjectId[0],second=await s.commands.CreateItemOnObject(['VeryLongResourceName',actor.id,3,'new']);
   assert.equal(second,first);assert.equal(object.stackSize,20);assert.equal(s.registry.get(before),undefined);assert.deepEqual([...actor.nativeRepository.ids()],[first]);
   s.commands.SetIdentified([first,2]);assert.equal(s.commands.GetIdentified([first]),2);

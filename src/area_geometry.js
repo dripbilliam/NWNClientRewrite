@@ -1,6 +1,6 @@
 import { parse2da, parseTileset } from './area.js';
 import { RESOURCE_TYPE, decodeResourceText } from './resource_archive.js';
-import { parseTileSurfaceMesh, clippedAreaTileLine, noDeniedAreaTilePolygons, areaTileHeight } from './tile_surface_mesh.js';
+import { parseTileSurfaceMesh, clippedAreaTileLine, noDeniedAreaTilePolygons, areaTileHeight,areaTileSurfaceMaterial } from './tile_surface_mesh.js';
 import { testLineWalkable, testDirectLine } from './tile_line.js';
 import { parseObjectSurfaceMesh } from './object_surface_mesh.js';
 import { intEntry } from './combat_stats.js';
@@ -9,6 +9,7 @@ import { tileLOSMaterials, clipAreaTileLOS, clearAreaTileLOS } from './tile_los.
 import { clearAreaLOS } from './area_los.js';
 import {tileNodeOrientation} from './tile_path_node.js';
 import {plotSoundPath} from './sound_path.js';
+import {runtimeDiagnostics} from './runtime_diagnostics.js';
 
 const f = Math.fround;
 // Shared resolver-scoped resource caches. Never key by a global model name:
@@ -45,7 +46,9 @@ export class NativeGeometryResources {
   objectMesh(resRef, kind) {
     const key = `${kind}:${resRef}`;
     if (!this.objectModels.has(key)) this.objectModels.set(key, this.resolver.getResource(resRef,
-      kind === 'door' ? RESOURCE_TYPE.DWK : RESOURCE_TYPE.PWK).then(bytes => parseObjectSurfaceMesh(bytes, kind, this.providers)));
+      kind === 'door' ? RESOURCE_TYPE.DWK : RESOURCE_TYPE.PWK).then(bytes => parseObjectSurfaceMesh(bytes, kind, {...this.providers,
+        warning:this.providers.warning??((message,detail)=>runtimeDiagnostics.record('geometry.native-mesh-warning',message,{module:this.resolver.moduleName,resRef,kind,...detail})),
+      })));
     return this.objectModels.get(key);
   }
   async placeableMesh(appearance) {
@@ -146,6 +149,12 @@ export class NativeAreaGeometry {
     const slot=value=>{for(let i=0;i<32;i++)if(f(f(i)*10)<=value&&value<f(f(i+1)*10))return i;return -1;};
     const tileX=slot(x),tileY=slot(y);
     return tileX<0||tileY<0?null:this.tile(tileX,tileY);
+  }
+  async surfaceMaterial(point){const tile=await this.tileAt(point);return tile?areaTileSurfaceMaterial(tile,point):0;}
+  async positionWalkable(point){
+    // PositionWalkable140364bc0 uses the active table's GetINTEntry fallback
+    // value regardless of its success return, then tests value !=0.
+    const material=await this.surfaceMaterial(point),table=await this.resources.surfaceTable();return Number(intEntry(table,material,'Walk').value!==0);
   }
   async directLine(from, to, radius, height, flag, noCreatures) {
     try {

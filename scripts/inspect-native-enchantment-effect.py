@@ -1,15 +1,18 @@
 """Original enchantment8 and internal state9 apply/removal handlers.
-Captured lower owners: allocation/base/copy constructors, object casts,
+The complete original clearing copy constructor executes.
+Captured lower owners: allocation/base constructors, object casts,
 immunity/feedback, action clearing, ambient recomputation, nested effects,
 association/reputation queries. Native branches, field writes, ordering and
 child payloads execute; this is not a full association or animation oracle.
 """
 import importlib.util,itertools,json,struct
 from pathlib import Path
+from native_effect_copy_fixture import NativeEffectCopyFixture
 spec=importlib.util.spec_from_file_location('coordinator',Path(__file__).with_name('inspect-native-intratile-coordinator.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 from unicorn import UC_HOOK_CODE
 from unicorn.x86_const import *
 u=m.u;u.hook_del(m.hook_handle);actor,source,effect,ints,pool,storage,vtable,app,stats,sourceStats=m.heap,m.heap+0x1000,m.heap+0x2000,m.heap+0x3000,m.heap+0x4000,m.heap+0x5000,m.heap+0x8000,m.heap+0x9000,m.heap+0xa000,m.heap+0xb000
+copy_fixture=NativeEffectCopyFixture(m)
 
 def snapshot(ptr):
     flags=int.from_bytes(u.mem_read(ptr+0xa,2),'little')
@@ -22,6 +25,7 @@ def erase(id):
 def hook(u,a,n,_):
     global allocation,ids
     if a==m.stop:u.emu_stop();return
+    if copy_fixture.handle(a):return
     x,y,z,w=[u.reg_read(reg) for reg in [UC_X86_REG_RCX,UC_X86_REG_RDX,UC_X86_REG_R8,UC_X86_REG_R9]]
     if a==m.stop+0x10:m.finish(actor if c.get('objectType',5)==5 else 0)
     elif a==0x1404953b0:m.finish(c.get('dead',0))
@@ -30,8 +34,6 @@ def hook(u,a,n,_):
     elif a==0x140c10324:allocation+=1;m.finish(m.heap+0x10000+allocation*0x1000)
     elif a==0x1404233d0:
         ids+=1;m.wq(x,100+ids);m.wq(x+0x48,x+0x200);m.wi(x+0x20,1);m.wi(x+0x24,1);m.wi(x+0x1c,-1);m.wi(x+0x28,-1);m.wi(x+0x18,0x7f000000);m.finish(x)
-    elif a==0x140423570:
-        u.mem_write(x,bytes(u.mem_read(y,0x110)));m.wq(x+0x48,x+0x200);u.mem_write(x+0x200,bytes(u.mem_read(m.q(y+0x48),32)));m.wi(x+0x20,0);m.wi(x+0x24,m.si(y+0x24) if z else 0);m.finish(x)
     elif a==0x140425110:m.wi(x+0x18,y);m.finish()
     elif a==0x14048e350:calls.append(['apply',snapshot(y),z&0xffffffff]);m.finish(1)
     elif a==0x140498280:calls.append(['remove',f'{y:016x}']);erase(y);m.finish()
@@ -59,7 +61,7 @@ def run(case):
     rsp=m.stack+0x1fe08;u.mem_write(rsp-0x300,bytes(0x400));m.wq(rsp,m.stop);u.reg_write(UC_X86_REG_RSP,rsp)
     entry={'apply':0x140431730,'remove':0x140438470,'controller':0x140432500,'controllerRemove':0x140438630}[c['mode']]
     for reg,value in zip([UC_X86_REG_RCX,UC_X86_REG_RDX,UC_X86_REG_R8,UC_X86_REG_R9],[app,actor,effect,c.get('loading',0)]):u.reg_write(reg,value)
-    u.emu_start(entry,m.stop,count=15000);assert u.reg_read(UC_X86_REG_RIP)==m.stop
+    copy_fixture.prepare(effect);u.emu_start(entry,m.stop,count=15000);assert u.reg_read(UC_X86_REG_RIP)==m.stop
     return dict(case=c,calls=calls,result=u.reg_read(UC_X86_REG_RAX)&0xffffffff,state=u.mem_read(actor+0x771,1)[0],commandable=m.si(actor+0xec),field54c=m.si(actor+0x54c),field550=m.si(actor+0x550))
 rows=[]
 for mode,kind in itertools.product(['apply','controller','controllerRemove'],range(0,23)):rows.append(run(dict(mode=mode,type=9 if mode!='apply' else 8,kind=kind)))
@@ -69,4 +71,4 @@ for kind,state,associate in itertools.product([1,5,7,9,20,21],[0,5,9,21],[0,1,5,
 for effects in [[],[dict(type=8,kind=9,id=77)],[dict(type=8,kind=9,samePointer=True)],[dict(type=8,kind=5),dict(type=8,kind=9),dict(type=9)],[dict(type=8,kind=-1),dict(type=9)]]:rows.append(run(dict(mode='remove',effects=effects)))
 for key,values in [('objectType',[4,6]),('plot',[1]),('immuneAll',[1]),('sourceExists',[False]),('subtype',[16]),('integer1',[1])]:
     for kind,value in itertools.product([1,5,7,9,20,21],values):rows.append(run(dict(mode='apply',kind=kind,**{key:value})))
-out=m.root/'backups/animations/native-enchantment-effect-observations.json';out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2)+'\n');print(json.dumps(dict(rows=len(rows),output=str(out))))
+out=m.root/'backups/animations/native-enchantment-effect-observations-v2.json';out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,copyConstructorExecutions=copy_fixture.executions,rows=rows),indent=2)+'\n');print(json.dumps(dict(rows=len(rows),copies=copy_fixture.executions,output=str(out))))

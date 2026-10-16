@@ -7,14 +7,18 @@ import {ModelAnimator} from '../src/model_animation.js';
 import {parse2da} from '../src/area.js';
 import {createAttackData} from '../src/combat_attack_data.js';
 import {OBJECT_INVALID} from '../src/game_object_array.js';
+import {parseGff} from '../src/gff.js';
+import {writeGff,gffRecord as R,gffField as F} from '../src/gff_writer.js';
+import {ModuleSession} from '../src/module_session.js';
 
-function fixture(){
+function fixture(session=null){
   let now=100;const errors=[],objects=new Map(),rules={baseitems:parse2da('2DA V2.0\n\nWeaponWield WeaponType WeaponSize %AnimSlashL %AnimSlashR PrefAttackDist\n0 2 3 3 50 50 1.5'),
     appearance:parse2da('2DA V2.0\n\nSIZECATEGORY HITDIST PREFATCKDIST weaponscale targetheight\n0 3 .5 1.5 1 H')};
   const create=(id,position)=>{
-    const actor={id,kind:id===1?'player':'creature',objectType:5,modelType:'P',tag:`actor${id}`,inventory:[],areaId:10,position,
+    let actor={id,kind:id===1?'player':'creature',objectType:5,modelType:'P',tag:`actor${id}`,inventory:[],areaId:10,position,
       orientation:[1,0,0],animationState:0,lockOrientationId:OBJECT_INVALID,authored:{Appearance_Type:0,ClassList:[{Class:4}]}};
-    objects.set(id,actor);const render=new THREE.Group(),bone=new THREE.Group();bone.userData={mdlNode:'hand',mdlModel:'rig'};render.add(bone);
+    if(session){const{id:_fixtureId,...data}=actor;actor=session.register('creature',`animation:${id}`,data);}
+    objects.set(actor.id,actor);const render=new THREE.Group(),bone=new THREE.Group();bone.userData={mdlNode:'hand',mdlModel:'rig'};render.add(bone);
     const model={modelName:'rig',nodes:[{name:'hand'}],animations:nativeAnimationNames.filter(Boolean).map(name=>({name,length:1,tracks:[
       {node:'hand',property:'position',interpolation:'linear',frames:[{time:0,value:[0,0,0]},{time:1,value:[1,2,3]}]}]}))};
     return {actor,render,bone,animator:new ModelAnimator(model,render)};
@@ -41,6 +45,30 @@ test('canonical attack drives sampled swing/reaction poses, then death holds wit
   assert.equal(data.reactionAnimation,14);assert.equal(a.actor.id,1);assert.equal(b.actor.id,2);
 });
 
+test('parsed16-byte animation replacement labels drive the actual model animator',()=>{
+ const {a,p,errors,advance}=fixture();
+ a.actor.authored=parseGff(writeGff('UTC ',R({Appearance_Type:F(2,0),ClassList:F(15,[R({Class:F(0,4)})]),
+  AnimationReplace:F(14,R({AnimationReplace:F(15,[
+   R({OldAnimation:F(11,'PAUSE1'),NewAnimation:F(11,'cpause1')}),
+   R({OldAnimation:F(11,'pause1'),NewAnimation:F(11,'walk')}),
+  ])})),
+ }))).root;
+ advance(100);assert.equal(a.animator.clip.name,'cpause1');
+ advance(600);assert.ok(a.bone.position.length()>0);assert.equal(a.animator.clip.name,'cpause1');
+ assert.equal(a.actor.id,1);assert.equal(p.object(a.actor.id),a.actor);assert.deepEqual(errors,[]);
+});
+
+test('canonical runtime replacement pools drive subsequent animation selection across retain and clear reloads',async()=>{
+ const s=new ModuleSession(null),{a,p,errors,advance}=fixture(s),id=a.actor.id,next=s.registry.nextObjectId[0],replacement=name=>parseGff(writeGff('UTC ',R({AnimationReplace:F(14,R({AnimationReplace:F(15,name?[R({OldAnimation:F(11,'pause1'),NewAnimation:F(11,name)})]:[])}))}))).root;
+ a.actor.authored.AnimationReplace={AnimationReplaceList:[{OldAnimation:'pause1',NewAnimation:'cpause1'}]};advance(100);assert.equal(a.animator.clip.name,'cpause1');
+ const binding=p.bindings.get(id),empty=parseGff(writeGff('UTC ',R({}))).root;
+ await s.objectVisuals.loadOwner(a.actor,empty,0x1404969c0);p.play(binding,0,200);assert.equal(a.animator.clip.name,'cpause1');
+ await s.objectVisuals.loadOwner(a.actor,replacement('walk'),0x1404969c0);p.play(binding,0,300);assert.equal(a.animator.clip.name,'walk');
+ await s.objectVisuals.loadOwner(a.actor,empty,0x1404969c0);p.play(binding,0,400);assert.equal(a.animator.clip.name,'walk');
+ await s.objectVisuals.loadOwner(a.actor,replacement(null),0x1404969c0);p.play(binding,0,500);assert.equal(a.animator.clip.name,'pause1');advance(1000);
+ assert.ok(a.bone.position.length()>0);assert.equal(s.registry.get(id),a.actor);assert.equal(s.registry.nextObjectId[0],next);assert.deepEqual(errors,[]);
+});
+
 test('live knockdown completes its fall and recovery before returning to ready',()=>{
   const {a,errors,advance}=fixture();advance(100);a.actor.animationState=5;advance(200);
   assert.equal(a.animator.clip.name,'kdfnt');advance(1200);assert.equal(a.animator.clip.name,'kdfntps');
@@ -61,4 +89,10 @@ test('presentation reports unavailable clips once and never fabricates a replace
   a.actor.animationState=8;advance(100);advance(200);assert.equal(errors.length,1);assert.match(errors[0].message,/unavailable clip deadbck/);
   assert.equal(a.actor.animationState,8);assert.equal(a.actor.id,1);assert.equal(a.animator.clip,null);
   p.clear();assert.equal(a.animator.presentationOwned,false);assert.equal(p.bindings.size,0);
+});
+
+test('unbinding a removed creature drops only its owned presentation and pending cues',()=>{
+ const {a,b,p}=fixture();p.pending.push({id:a.actor.id,animation:63},{id:b.actor.id,animation:1});
+ p.unbind(a.actor.id);assert.equal(a.animator.presentationOwned,false);assert.equal(p.bindings.has(a.actor.id),false);
+ assert.equal(p.bindings.get(b.actor.id).actor,b.actor);assert.deepEqual(p.pending,[{id:b.actor.id,animation:1}]);
 });

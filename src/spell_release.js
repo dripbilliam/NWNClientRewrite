@@ -18,6 +18,7 @@ export async function checkCastConcentration(actor,spell,index,domain,meta,defen
   const cancel=async(code)=>{
     await call(p,'setAnimation',actor,1);await call(p,'setLock',actor,OBJECT_INVALID);actor.nativeField81c=0;
     if(instant===0&&code!==233)await call(p,'feedback',actor,code);
+    if(p.counterFailure)await p.counterFailure(actor,147);
     return false;
   };
   if(defensive===1){
@@ -53,6 +54,7 @@ export async function checkSpellReleaseFailure(actor,spell,index,meta,automatic,
   const fail=async(code)=>{
     await call(p,'setAnimation',actor,1);await call(p,'setLock',actor,OBJECT_INVALID);actor.nativeField81c=0;
     if(instant===0)await call(p,'feedback',actor,code);
+    if(p.counterFailure)await p.counterFailure(actor,118);
     return false;
   };
   const components=String(spell.components).split('\0')[0];
@@ -66,4 +68,17 @@ export async function checkSpellReleaseFailure(actor,spell,index,meta,automatic,
   if(components.includes('v')&&meta!==16&&!automatic?.automaticSilent&&(integer(actor.nativeField8d4,'component state')&16)===0)chance=Math.max(chance,20);
   if(chance!==0&&((integer(await call(p,'roll',1,100),'spell roll')&65535)<=chance))return fail(236);
   return true;
+}
+// AIActionCastSpell1403af22d..1403af3f7, after the caster's area is found.
+// An unplaced item carried by the caster bypasses LOS. An unplaced item
+// belonging to someone else retains the zero destination initialized here.
+export function castReleaseLineOfSight(actor,target,point,p){
+ const from=p.position(actor).map(Math.fround);from[2]=Math.fround(from[2]+1);
+ let to=[0,0,0];
+ if(target&&p.asObject(target)){
+  if(p.asItem(target)&&!p.area(target)){
+   if((p.possessor(target)>>>0)===(actor.id>>>0))return 1;
+  }else{to=p.position(target).map(Math.fround);to[2]=Math.fround(to[2]+1);}
+ }else{to=point.map(Math.fround);to[2]=Math.fround(to[2]+1);}
+ return p.lineOfSight(from,to,actor.id,target?.id??0x7f000000,1);
 }

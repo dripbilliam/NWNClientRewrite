@@ -1,5 +1,5 @@
 const f = Math.fround;
-import { nativeDistanceSquared } from './nearest_objects.js';
+import {nearestPlaceableActionPoint} from './placeable_action_point.js';
 
 // CNWSCreature::UpdatePersonalSpace uses appearance.2da and a 0.6 default.
 export function creatureSpacing(object, appearances) {
@@ -23,9 +23,8 @@ export function horizontalInRange(a, b, range) {
 }
 
 export function placeableUsePoint(actor, target) {
-  const [first, second] = target.actionPoints ?? [];
-  if (!first) return target.position;
-  return second && nativeDistanceSquared(actor.position, second) <= nativeDistanceSquared(actor.position, first) ? second : first;
+  const native=v=>[f(v[0]),f(-v[2]),f(v[1])],point=nearestPlaceableActionPoint(target,native(actor.position),{position:o=>native(o.position)});
+  return[point[0],point[2],f(-point[1])];
 }
 
 export function placeableUseRange(actor, appearances) {

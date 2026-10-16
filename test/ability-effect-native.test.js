@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {abilityEffect,applyAbilityEffect,abilityEffectBonus,nativeAbilityScore,updateAbilityAttributes} from '../src/ability_effect.js';
 import {ModuleSession} from '../src/module_session.js';
-const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-ability-effect-observations-v2.json',import.meta.url)));
+const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-ability-effect-observations-v3.json',import.meta.url)));
 test('Ability constructors, admission, source stacking and six stat getter arithmetic match original instructions',async()=>{
-  for(const row of oracle.rows.filter(r=>r.case.mode!=='attribute')){const c=row.case,calls=[],actor={objectType:c.objectType??5},effect={type:c.type??36,creatorId:98,bypassImmunity:c.bypass??0,durationType:c.durationType??2,integers:[c.ability??0,c.amount??4,...Array(6).fill(0)]};let result=0,output=null;
+  for(const row of oracle.rows.filter(r=>r.case.mode!=='attribute')){const c=row.case,calls=[],actor={objectType:c.objectType??5},effect={type:c.type??36,subtype:8,creatorId:98,bypassImmunity:c.bypass??0,durationType:c.durationType??2,integers:[c.ability??0,c.amount??4,...Array(6).fill(0)]};let result=0,output=null;
     const p={create:(type,creatorId,ints,subtype)=>({type,creatorId,integers:[...ints,...Array(8-ints.length).fill(0)],subtype}),dead:()=>c.dead??0,dying:()=>c.dying??0,
       creature:()=>c.sourceExists===false?null:{id:98},immunity:(_o,id)=>{calls.push(['immunity',id]);return c.immune??0;},plot:()=>c.plot??0,
-      score:(_o,id)=>{calls.push(['score',id]);return c.score??10;},copy:e=>structuredClone(e),apply:(_o,e,loading)=>calls.push(['icon',e.integers[0],loading]),
+      score:(_o,id)=>{calls.push(['score',id]);return c.score??10;},copyConstruct:e=>({...structuredClone(e),integers:Array(e.integers.length).fill(0)}),apply:(_o,e,loading)=>calls.push(['icon',{type:e.type,subtype:e.subtype,creatorId:e.creatorId,integers:e.integers},loading]),
       item:id=>(c.items??[]).includes(id)?{id}:null,bonusLimit:()=>c.bonusLimit??12,penaltyLimit:()=>c.penaltyLimit??30};
     if(c.mode==='constructor')output=abilityEffect(c.type,c.ability,c.amount,99,p);
     else if(c.mode==='apply')result=await applyAbilityEffect(actor,effect,p,c.loading??0);

@@ -1,14 +1,14 @@
 import { rulesetInt } from './combat_stats.js';
 
 const i16 = n => (n << 16) >> 16;
-const featSet = root => new Set((root.FeatList ?? []).map(f => f.Feat));
+const featSet = (root,bonus) => new Set([...(root.FeatList ?? []).map(f => f.Feat),...bonus]);
 
 // CNWSCreature::GetMaxHitPoints 0x140391850. NPCs/possessed familiars
 // have an aggregate stored base; PCs have per-level hit dice. Neither uses
 // the serialized MaxHitPoints snapshot as the live maximum.
-export function creatureMaxHitPoints(root, constitutionModifier, rules, { possessedFamiliar = false, includeFeatBonuses = true } = {}) {
+export function creatureMaxHitPoints(root, constitutionModifier, rules, { possessedFamiliar = false, includeFeatBonuses = true,bonusFeats=[] } = {}) {
   const level = root.ClassList.reduce((n, c) => n + c.ClassLevel, 0) & 255;
-  const feats = featSet(root), has = id => feats.has(id);
+  const feats = featSet(root,bonusFeats), has = id => feats.has(id);
   const constant = (name, fallback) => rulesetInt(rules, name, fallback);
   const toughness = includeFeatBonuses && has(40) ? constant('FEAT_TOUGHNESS_HP_BONUS', 1) : 0;
   let epic = 0;

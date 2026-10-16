@@ -1,4 +1,5 @@
 import { OBJECT_INVALID } from './game_object_array.js';
+import {createInventoryGUI} from './inventory_gui.js';
 
 const f=Math.fround,invalid=OBJECT_INVALID;
 const required=(p,n)=>{if(typeof p[n]!=='function')throw new Error(`Native client-panel provider ${n} is unavailable`);return p[n];};
@@ -8,11 +9,14 @@ const squared=(a,b)=>{
   const x=f(f(a[0])-f(b[0])),y=f(f(-a[2])-f(-b[2])),z=f(f(a[1])-f(b[1]));return f(f(f(x*x)+f(y*y))+f(z*z));
 };
 
-// Selected local client GUI owners, not CNWSPlayer/network replication.
+// Selected local client GUI/area state, not full CNWSPlayer/network replication.
 // InventoryGUI1404b7bf0 and StoreGUI1404b7c80 constructors initialize their
 // open-container/store IDs to INVALID. Unmapped LUO inventory is separate.
 export function createLocalClientPanelState(object){
-  return {object,inventoryGUI:{field8:0,fieldC:0,ownerId:invalid,openInventory:{id:invalid,field4:0,field8:0}},
+  // CNWSPlayer ctor1404b79be/1404b7a39/1404b7b5c/1404b7b6d. No
+  // PLAYER_ID is invented here: the native sender requires an explicit one.
+  return {object,nativeAreaTransitionBmp20:-1,nativeUserTransitionBmp28:'',nativeLoadState50:0,nativeModuleInfoSucceededCC:0,nativeLastUpdateObjectA8:null,
+    inventoryGUI:createInventoryGUI(),alternateInventoryGUI:createInventoryGUI(),
     storeGUI:{id:invalid,field4:5,field5:0,position:[0,0,-0]}};
 }
 

@@ -1,19 +1,39 @@
 import {nativeAnimationNames,nativeAnimationRows,nativeAnimationContexts} from './native_animation_names.js';
 import {scriptStringCase} from './script_string.js';
+import {getGffFieldTypes} from './gff.js';
+import {readNativeGff,nativeGffLabel} from './native_gff_fields.js';
+import {objectTemplateResRef} from './create_object.js';
+import {decodeGffText} from './gff_text.js';
 
 const integer=(value,name)=>{if(!Number.isInteger(value))throw new Error(`Native client animation ${name} is unavailable`);return value|0;};
-const resref=value=>{
-  const text=String(value??'').split('\0')[0];
-  if([...text].some(c=>c.charCodeAt(0)>127))throw new Error('Native animation override byte encoding is unsupported');
-  return text.slice(0,16);
-};
+const resref=value=>objectTemplateResRef(String(value??''));
 
 // CNWSObject::LoadAnimationOverrides1404969c0,34-byte records. Keep physical
 // duplicate order and16-byte resrefs. The caller owns native object storage.
 export function importedAnimationOverrides(root){
-  const list=root?.AnimationReplace?.AnimationReplaceList??[];
+  if(getGffFieldTypes(root)){
+    const section=readNativeGff(root,'AnimationReplace',14,null);if(section.status===0)return[];
+    const result=readNativeGff(section.value,'AnimationReplaceList',15,null);if(result.status===0)return[];
+    if(!Array.isArray(result.value))throw new Error('Native animation override list is unavailable');
+    return result.value.map(row=>({old:resref(readNativeGff(row,'OldAnimation',11,'').value),replacement:resref(readNativeGff(row,'NewAnimation',11,'').value)}));
+  }
+  // Compatibility for semantic in-memory fixtures. Parsed resources always
+  // use typed admission and the original16-byte query-label behavior above.
+  const section=root?.AnimationReplace,list=section?.[nativeGffLabel('AnimationReplaceList')]??section?.AnimationReplaceList??[];
   if(!Array.isArray(list))throw new Error('Native animation override list is unavailable');
   return list.map(r=>({old:resref(r.OldAnimation),replacement:resref(r.NewAnimation)}));
+}
+
+// Once the actual data owner has accepted a replacement list, its retained
+// pool is authoritative across missing-root reloads and explicit empty clears.
+// Legacy imported actors keep the parsed-root bridge until that first load.
+export function objectAnimationOverrides(object){
+ if(object.nativeAnimationOverridesLoaded!==1)return importedAnimationOverrides(object.creatureData??object.authored);
+ const pool=object.nativeVisualPools?.[0x2d8];if(!Array.isArray(pool?.records))throw new Error('Native object animation replacement pool is unavailable');
+ return pool.records.map(bytes=>{
+  if(!(bytes instanceof Uint8Array)||bytes.byteLength!==34)throw new Error('Native object animation replacement record is unavailable');
+  return{old:decodeGffText(bytes.subarray(0,17)).split('\0')[0],replacement:decodeGffText(bytes.subarray(17,34)).split('\0')[0]};
+ });
 }
 
 // Animation-base virtual+58,140961540. Context byte names are retained until

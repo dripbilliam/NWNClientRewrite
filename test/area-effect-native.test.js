@@ -12,7 +12,7 @@ test('Persistent area-effect values, caster metadata, shape and AI timing match 
     o.nativeFrameElapsedD4=0;o.position=[0,0,0];o.nativeWidth31c=0;o.nativeLength320=0;
     if(c.mode==='constructor'){
       const e=constructAreaEffect([c.id,...c.strings],99,{create:(type,creatorId,ints,subtype)=>({type,creatorId,integers:[...ints,...Array(7).fill(0)],subtype,floats:Array(4).fill(0)})});
-      assert.deepEqual(e,row.output,JSON.stringify(c));continue;
+      assert.deepEqual({...e,strings:e.strings.slice(0,3)},row.output,JSON.stringify(c));assert.deepEqual(e.strings.slice(3),['','','']);continue;
     }
     if(c.mode==='creator')setAreaEffectCreator(o,99,c.level??8,c.spell??11,c.class??3,c.meta??2,c.dc??19,c.feat??123,c.spontaneous??1,{creature:()=>c.sourceExists===false?null:{nativeCasterOverride820:c.override??0,nativeEquipmentLock97c:c.equipment??0,nativeSpellOverride9e8:11,nativeSpellOverride9ec:13,nativeSpellOverride9f0:14}});
     if(c.mode==='shape')setAreaEffectShape(o,c.shape,c.width,c.length);

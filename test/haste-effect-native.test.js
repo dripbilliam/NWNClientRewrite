@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {applyHasteOrSlow,removeHasteOrSlow,applyHasteController,removeHasteController} from '../src/haste_effect.js';
 import {ModuleSession} from '../src/module_session.js';
 import {parse2da} from '../src/area.js';
-const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-haste-effect-observations.json',import.meta.url)));
+const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-haste-effect-observations-v2.json',import.meta.url)));
 const project=e=>({id:e.id,type:e.type,subtype:e.subtype,durationType:e.durationType,spellId:e.spellId,creatorId:e.creatorId,casterLevel:e.casterLevel,showIcon:e.showIcon,exposed:Number(e.exposed),integers:e.integers});
 test('Haste/Slow balance and hidden controller fields, ordering and active rule overrides match original instructions',async()=>{
   for(const row of oracle.rows){const c=row.case,calls=[],actor={id:99,objectType:c.objectType??5,nativeHaste760:c.hasted??0,nativeSlow764:c.slowed??0},
@@ -12,7 +12,7 @@ test('Haste/Slow balance and hidden controller fields, ordering and active rule 
     const p={effects:()=> (c.effects??[]).map((type,i)=>({type,id:BigInt(10+i).toString(16).padStart(16,'0')})),dead:()=>c.dead??0,creature:()=>c.sourceExists===false?null:{id:98},
       immunity:(_o,id)=>{calls.push(['immunity',id]);return c.immune??0;},feedback:(o,code,data)=>calls.push(['feedback',o.id,code,data]),remove:(_o,e)=>calls.push(['remove',e.id]),
       create:(type,creatorId,integers,subtype)=>({type,creatorId,integers:Array(8).fill(0),subtype,durationType:0,spellId:-1,casterLevel:-1,showIcon:1,exposed:true,id:BigInt(++ids).toString(16).padStart(16,'0')}),
-      copy:(e,icons)=>({...structuredClone(e),exposed:false,showIcon:icons?e.showIcon:0}),
+      copyConstruct:(e,icons)=>({...structuredClone(e),integers:Array(e.integers.length).fill(0),exposed:false,showIcon:icons?e.showIcon:0}),
       apply:(_o,e,loading)=>calls.push(['apply',project(e),loading,actor.nativeHaste760,actor.nativeSlow764])};
     const rules={ruleset:{orderedRows:Object.entries(c.rulesOverrides??{}).map(([Label,Value])=>({Label,Value:String(Value)}))}};
     let result;

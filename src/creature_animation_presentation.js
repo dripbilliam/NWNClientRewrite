@@ -1,4 +1,4 @@
-import {nativeAnimationName,importedAnimationOverrides} from './native_animation.js';
+import {nativeAnimationName,objectAnimationOverrides} from './native_animation.js';
 import {clientAttackAnimationRecord,selectClientMeleeAnimation,clientWeaponAnimationClass} from './client_combat_animation.js';
 import {NativeRandom} from './native_random.js';
 import {intEntry} from './combat_stats.js';
@@ -16,6 +16,7 @@ export class CreatureAnimationPresentation {
     Object.assign(this,{object,rules,now,report,project,random});this.bindings=new Map();this.pending=[];this.events=[];
   }
   clear(){for(const b of this.bindings.values())b.animator.presentationOwned=false;this.bindings.clear();this.pending=[];}
+  unbind(id){const binding=this.bindings.get(id);if(binding)binding.animator.presentationOwned=false;this.bindings.delete(id);this.pending=this.pending.filter(cue=>cue.id!==id);}
   bind(actor,animator,render){
     if(!animator)return;
     if(this.object(actor.id)!==actor||actor.objectType!==5)throw new Error('Creature animation binding requires a canonical creature');
@@ -82,7 +83,7 @@ export class CreatureAnimationPresentation {
   }
   failure(b,message){if(!b.failures.has(message)){b.failures.add(message);this.report(message,{objectId:b.id,model:b.animator.model.modelName});}}
   play(b,id,at,duration=null,loop=false){
-    const overrides=importedAnimationOverrides(creatureRoot(b.actor));
+    const overrides=objectAnimationOverrides(b.actor);
     const name=nativeAnimationName(id,b.context,overrides);if(!name){this.failure(b,`Native animation ${id} selects an empty clip name`);return;}
     const clip=b.animator.model.animations.find(a=>a.name===name);
     if(!clip){this.failure(b,`Native animation ${id} requires unavailable clip ${name}`);return;}
@@ -145,6 +146,6 @@ export class CreatureAnimationPresentation {
   }
   baseLoops(base){return ![5,6,7,8,9].includes(base)&&(clientAnimationCategory(5,base)===1||[2,3,4].includes(base));}
   snapshot(){return{pending:this.pending.length,events:this.events,actors:[...this.bindings.values()].map(b=>({id:b.id,tag:b.actor.tag,model:b.animator.model.modelName,
-    base:b.actor.animationState,hp:b.actor.stats?.currentHP,encounterId:b.actor.nativeField948,attackTargetId:b.actor.attackTargetId,position:b.actor.position.slice(),
+    base:b.actor.animationState,hp:b.actor.stats?.currentHP,masterId:b.actor.masterId,associateType:b.actor.associateType,lastAssociateCommand:b.actor.lastAssociateCommand,listenPatternNumber:b.actor.listenPatternNumber,encounterId:b.actor.nativeField948,attackTargetId:b.actor.attackTargetId,combatMode:b.actor.combatMode,counterSpellTargetId:b.actor.counterSpellTargetId,position:b.actor.position.slice(),
     clip:b.current?.name??'',animation:b.current?.id,time:b.animator.time,screen:this.project(b.render),failures:[...b.failures]}))};}
 }

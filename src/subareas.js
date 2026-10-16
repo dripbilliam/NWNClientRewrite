@@ -1,5 +1,6 @@
 import { NativeIdList } from './native_id_list.js';
 import { intersectAreaSegments } from './area_collision.js';
+import {OBJECT_INVALID} from './game_object_array.js';
 
 const required = (p, name) => {
   if (typeof p[name] !== 'function') throw new Error(`Native subarea provider ${name} is unavailable`);
@@ -108,5 +109,20 @@ export async function updateSubareasOnMove(actor, from, to, useProvided, provide
       actor.nativeSubareaMembership.copyFrom(next); return 1;
     }
   }
+  return 0;
+}
+
+// UpdateSubareasOnJumpPosition1403db4a0..1403db6fc. Unlike walking, only
+// endpoint membership is tested. Capture the old count before AoE callbacks;
+// following AoEs can mutate the actor's membership during their own jump.
+// Assembly returns1 after a membership copy, independently of allocator/free.
+export async function updateSubareasOnJump(actor,point,areaId,p){
+  const area=areaId===OBJECT_INVALID?null:await required(p,'areaById')(areaId),next=new NativeIdList(),
+    oldCount=list(actor.nativeSubareaMembership).count,found=area?await(p.inSubareas??inSubareas)(area,point,next,p):0;
+  for(let i=0;i<list(actor.nativeFollowingAOEs).count;i++){
+    const id=actor.nativeFollowingAOEs.ids[i],aoe=await required(p,'aoe')(id);
+    if(aoe){await required(p,'jumpAOE')(aoe,area,point);if(!includes(next,id))next.append(id);}
+  }
+  if((oldCount>0||found!==0)&&await(p.handleChanges??handleSubareaChanges)(actor,next,null,0,p)===1){actor.nativeSubareaMembership.copyFrom(next);return 1;}
   return 0;
 }

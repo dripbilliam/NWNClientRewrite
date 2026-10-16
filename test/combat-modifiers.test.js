@@ -5,7 +5,6 @@ import { armorClass, armorEffectCache, attackBonuses, attackEffectBonus, cappedD
 import { characterStats } from '../src/character.js';
 import { ModuleSession } from '../src/module_session.js';
 import { OBJECT_INVALID } from '../src/game_object_array.js';
-import { runtimeDiagnostics } from '../src/runtime_diagnostics.js';
 
 const table = (columns, lines, defaults = '') => parse2da(`2DA V2.0\n${defaults}\n\n${columns}\n${lines}`);
 function rules() {
@@ -68,6 +67,17 @@ test('monk, Shou, defender and class table natural AC respect native equipment g
   assert.equal(armorClass(c, r, mods, [light], []).monkAbilities, false);
   c.ClassList.push({ Class: 40, ClassLevel: 1 });
   assert.equal(armorClass(c, r, mods, [light], []).monkAbilities, true);
+});
+
+test('live natural-armor queries share transition/equipment flags and retain monk, feat and canonical base data',()=>{
+ const r=rules(),c=root([{Class:5,ClassLevel:10},{Class:39,ClassLevel:6},{Class:34,ClassLevel:2}],[260,490]);c.NaturalAC=5;
+ r.classes.orderedRows[34].StatGainTable='natural';r.classTables.set('natural',table('NaturalAC','0 2\n1 0'));
+ const actor={creatureData:c,nativeField9f4:0,nativeField97c:0,nativeNaturalACD51:9},before=armorClass(c,r,mods,[],[],{actor});
+ assert.equal(before.natural.authored,5);assert.equal(before.natural.classGains.reduce((n,v)=>n+v,0),2);
+ for(const gate of ['nativeField9f4','nativeField97c']){actor[gate]=1;const during=armorClass(c,r,mods,[],[],{actor});assert.equal(during.natural.authored,9);assert.deepEqual(during.natural.classGains,[]);
+  for(const key of ['monkWisdom','monkLevels','dwarvenDefender','armorSkin'])assert.equal(during.natural[key],before.natural[key]);assert.equal(during.components.natural-before.components.natural,2);assert.equal(c.NaturalAC,5);actor[gate]=0;
+ }
+ assert.deepEqual(armorClass(c,r,mods,[],[],{actor}),before);
 });
 
 test('script AC excludes size and opponent bonuses; conditional effects do not enter its cache', () => {
@@ -198,7 +208,7 @@ test('canonical script getters return the native invalid and noncreature values,
 test('temporary stat boosts preserve canonical identity, enumerate and remove with native deferred timing', async () => {
   const { s, pc } = sessionFixture(), shared = pc.stats, frame = { self: pc.id };
   const effect = s.commands.EffectSavingThrowIncrease([0, 3], frame);
-  s.commands.ApplyEffectToObject([1, effect, pc.id, 0.1]);
+  await s.commands.ApplyEffectToObject([1, effect, pc.id, 0.1]);
   assert.equal(s.commands.GetFortitudeSavingThrow([pc.id]), 3);
   assert.equal(s.commands.GetEffectType([effect]), 50);
   assert.equal(s.commands.GetFirstEffect([pc.id]).id, effect.id);
@@ -207,44 +217,45 @@ test('temporary stat boosts preserve canonical identity, enumerate and remove wi
   await s.scheduler.pump();
   assert.equal(s.commands.GetFortitudeSavingThrow([pc.id]), 0);
   const attackEffect = s.commands.EffectAttackIncrease([2], frame);
-  s.commands.ApplyEffectToObject([1, attackEffect, pc.id, 0.1]);
+  await s.commands.ApplyEffectToObject([1, attackEffect, pc.id, 0.1]);
+  assert.ok(pc.nativeEffectIcons778.records.some(e=>e.iconId===29));
   assert.equal(pc.stats.combat.attackBonuses.melee, 3);
-  s.scheduler.time = 100; s.effects.update(); assert.equal(pc.stats.combat.attackBonuses.melee, 3);
-  s.scheduler.time = 101; s.effects.update(); assert.equal(pc.stats.combat.attackBonuses.melee, 1);
+  s.scheduler.time = 100; await s.effects.update(); assert.equal(pc.stats.combat.attackBonuses.melee, 3);
+  s.scheduler.time = 101; await s.effects.update(); assert.equal(pc.stats.combat.attackBonuses.melee, 1);
   assert.equal(pc.stats, shared); assert.equal(s.registry.get(pc.id), pc);
-  assert.ok(runtimeDiagnostics.records.some(e => e.code === 'effects.presentation-unimplemented'));
+  assert.deepEqual(pc.nativeEffectIcons778.records,[]);
 });
 
-test('AC removal restores the next strongest bonus and subtracts stacking Dodge without losing equipment', () => {
+test('AC removal restores the next strongest bonus and subtracts stacking Dodge without losing equipment', async () => {
   const { s, pc } = sessionFixture(), frame = { self: pc.id };
   const low = s.commands.EffectACIncrease([2, 4], frame), high = s.commands.EffectACIncrease([5, 4], frame);
-  for (const effect of [low, high]) s.commands.ApplyEffectToObject([2, effect, pc.id]);
+  for (const effect of [low, high]) await s.commands.ApplyEffectToObject([2, effect, pc.id]);
   assert.equal(s.commands.GetAC([pc.id]), 19);
   s.effects.remove(pc.id, high.id); assert.equal(s.commands.GetAC([pc.id]), 16);
-  const dodge = s.commands.EffectACIncrease([4], frame); s.commands.ApplyEffectToObject([2, dodge, pc.id]);
+  const dodge = s.commands.EffectACIncrease([4], frame); await s.commands.ApplyEffectToObject([2, dodge, pc.id]);
   assert.equal(s.commands.GetAC([pc.id]), 20);
   s.effects.remove(pc.id, dodge.id); assert.equal(s.commands.GetAC([pc.id]), 16);
   s.effects.remove(pc.id, low.id); assert.equal(s.commands.GetAC([pc.id]), 14);
 });
 
-test('decrease effects respect immunity on application; gaining immunity preserves existing penalties', () => {
+test('decrease effects respect immunity on application; gaining immunity preserves existing penalties', async () => {
   const { s, pc } = sessionFixture(), frame = { self: pc.id };
-  s.commands.ApplyEffectToObject([2, s.commands.EffectACIncrease([0], frame), pc.id]);
+  await s.commands.ApplyEffectToObject([2, s.commands.EffectACIncrease([0], frame), pc.id]);
   assert.equal(pc.effects?.length ?? 0, 0);
   const penalty = s.commands.EffectACDecrease([2], frame);
-  s.effects.apply(2, penalty, pc.id);
+  await s.effects.apply(2, penalty, pc.id);
   assert.equal(s.commands.GetAC([pc.id]), 12);
-  s.effects.apply(2, s.commands.EffectImmunity([23], frame), pc.id);
-  s.effects.apply(2, s.commands.EffectACDecrease([3], frame), pc.id);
+  await s.effects.apply(2, s.commands.EffectImmunity([23], frame), pc.id);
+  await s.effects.apply(2, s.commands.EffectACDecrease([3], frame), pc.id);
   assert.equal(s.commands.GetAC([pc.id]), 12);
   s.effects.remove(pc.id, penalty.id);
   assert.equal(s.commands.GetAC([pc.id]), 14);
   const atk = s.commands.EffectAttackDecrease([2], frame), sav = s.commands.EffectSavingThrowDecrease([0, 3], frame);
-  s.effects.apply(2, atk, pc.id); s.effects.apply(2, sav, pc.id);
+  await s.effects.apply(2, atk, pc.id); await s.effects.apply(2, sav, pc.id);
   assert.equal(pc.stats.combat.attackBonuses.melee, -1);
   assert.equal(s.commands.GetFortitudeSavingThrow([pc.id]), -3);
   pc.plot = true;
-  s.effects.apply(2, s.commands.EffectAttackDecrease([4], frame), pc.id);
+  await s.effects.apply(2, s.commands.EffectAttackDecrease([4], frame), pc.id);
   assert.equal(pc.stats.combat.attackBonuses.melee, -1);
   const parsed = s.commands.EffectAttackIncrease([2, 8], frame);
   assert.equal(parsed.integers[1], 0, 'Native invalid attack modifier falls back to misc');

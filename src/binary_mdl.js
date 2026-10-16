@@ -1,4 +1,7 @@
 import { parseBinaryAnimations } from './mdl_animation.js';
+import { BINARY_LIGHT_CHANNELS, LIGHT_PROPERTIES } from './mdl_light.js';
+import { BINARY_EMITTER_CHANNELS, EMITTER_FLAGS } from './mdl_emitter.js';
+import {readModelControllerStorage} from './model_controller_remap.js';
 
 const SUPPORTED_NODE_FLAGS = 0x000003f7;
 const FLAG_HAS_LIGHT = 0x00000002;
@@ -55,12 +58,14 @@ export function parseBinaryMdl(buffer) {
     }
 
     const node = {
+      nativeNode:readModelControllerStorage(data,start,(at,size)=>{requireRange(data,at,size);if(at<modelDataOffset||at+size>modelDataOffset+modelDataSize)throw new Error('Binary MDL controller storage exceeds model data.');}),
       unsupportedFeatures: [
-        [FLAG_HAS_LIGHT, 'Binary light payload'], [FLAG_HAS_EMITTER, 'Binary emitter payload'],
+        [FLAG_HAS_EMITTER, 'Emitter runtime simulation'],
         [FLAG_HAS_REFERENCE, 'Referenced model attachment'], [FLAG_HAS_ANIM, 'Animated vertex/UV channels'],
         [FLAG_HAS_DANGLY, 'Dangly-mesh simulation']
       ].filter(([flag]) => flags & flag).map(([, feature]) => feature),
-      type: flags & FLAG_HAS_MESH ? 'trimesh' : 'dummy',
+      type: flags & FLAG_HAS_MESH ? 'trimesh' : flags & FLAG_HAS_LIGHT ? 'light' : flags & FLAG_HAS_EMITTER ? 'emitter' : 'dummy',
+      properties: Object.assign(Object.create(null), flags & FLAG_HAS_LIGHT ? { color: [0,0,0], radius: 0, shadowradius: 0, verticaldisplacement: 0, multiplier: 1 } : {}),
       name,
       parent: parentName,
       parentIndex,
@@ -85,8 +90,8 @@ export function parseBinaryMdl(buffer) {
     readStaticControllers(node, controllerKeys, controllerValues);
 
     let cursor = start + 112;
-    if (flags & FLAG_HAS_LIGHT) cursor += 0x5c;
-    if (flags & FLAG_HAS_EMITTER) cursor += 0xd8;
+    if (flags & FLAG_HAS_LIGHT) { readLight(node, cursor); cursor += 0x5c; }
+    if (flags & FLAG_HAS_EMITTER) { readEmitter(node,cursor); cursor += 0xd8; }
     if (flags & FLAG_HAS_REFERENCE) cursor += 0x44;
     if (flags & FLAG_HAS_MESH) cursor = readMesh(node, cursor);
     if (flags & FLAG_HAS_SKIN) {
@@ -103,8 +108,9 @@ export function parseBinaryMdl(buffer) {
     const childBytes = children.count * 4;
     requireRange(data, modelDataOffset + children.offset, childBytes);
     for (let index = 0; index < children.count; index += 1) {
-      readNode(readU32(data, modelDataOffset + children.offset + index * 4), name,nodeIndex);
+      const child=readNode(readU32(data, modelDataOffset + children.offset + index * 4), name,nodeIndex);node.nativeNode.children68.push(child.nativeNode);
     }
+    node.nativeNode.childCount70=children.count;return node;
   }
 
   function readStaticControllers(node, keys, values) {
@@ -130,7 +136,39 @@ export function parseBinaryMdl(buffer) {
       else if (type === 36 && columns === 1) node.scale = valuesAtTime[0];
       // Controller IDs overlap with emitter fields; 128 is opacity only on meshes.
       else if (type === 128 && columns === 1 && node.type === 'trimesh') node.alpha = valuesAtTime[0];
+      else if (node.type === 'light' && BINARY_LIGHT_CHANNELS[type]?.[1] === columns) {
+        node.properties[LIGHT_PROPERTIES[BINARY_LIGHT_CHANNELS[type][0]]] = columns === 1 ? valuesAtTime[0] : valuesAtTime;
+      }
+      else if (node.type === 'emitter' && BINARY_EMITTER_CHANNELS[type]?.[1] === columns) {
+        node.properties[BINARY_EMITTER_CHANNELS[type][0].slice(8)] = columns === 1 ? valuesAtTime[0] : valuesAtTime;
+      }
     }
+  }
+
+  function readLight(node, cursor) {
+    // Full serialized reader14007a790..14007abd4: flags at node+b0..c8.
+    // Runtime light texture handles are constructed, never serialized pointers.
+    requireRange(data, cursor, 0x5c);
+    node.properties.flareradius = readF32(data, cursor);
+    for (const [index, name] of ['lightpriority', 'ambientonly', 'isdynamic', 'affectdynamic', 'shadow', 'generateflare', 'fadinglight'].entries()) {
+      node.properties[name] = readU32(data, cursor + 64 + index * 4);
+    }
+    // Keep unresolved flare payloads visible to diagnostics. The renderer does
+    // not yet implement native lens flare texture/occlusion/fade passes.
+    if (node.properties.generateflare || [4,16,28,40,52].some(at => readU32(data, cursor + at + 4))) {
+      node.unsupportedFeatures.push('Light lens flare presentation');
+    }
+  }
+
+  function readEmitter(node,cursor) {
+    // Complete ReadBinaryNode14007abe0 emitter branch14007b13f..14007b28a.
+    // The ASCII parse-field owner independently names the runtime destinations.
+    requireRange(data,cursor,0xd8);const p=node.properties;
+    for(const [i,name]of ['deadspace','blastradius','blastlength'].entries())p[name]=readF32(data,cursor+i*4);
+    for(const [i,name]of ['xgrid','ygrid','spawntype'].entries())p[name]=readU32(data,cursor+12+i*4);
+    for(const [offset,size,name]of [[24,32,'update'],[56,32,'render'],[88,32,'blend'],[120,64,'texture'],[184,16,'chunkname']])p[name]=readString(data,cursor+offset,size);
+    p.twosidedtex=readU32(data,cursor+200);p.loop=readU32(data,cursor+204);p.renderorder=readU16(data,cursor+208);p.flags=readU32(data,cursor+212);
+    for(const [name,mask]of Object.entries(EMITTER_FLAGS))p[name]=Number((p.flags&mask)!==0);
   }
 
   function readMesh(node, cursor) {
@@ -290,7 +328,7 @@ export function parseBinaryMdl(buffer) {
     });
   }
 
-  readNode(rootOffset);
+  const nativeRoot=readNode(rootOffset).nativeNode;
   let animationMetadata;
   try { animationMetadata = parseBinaryAnimations(buffer); }
   catch (error) { animationMetadata = { animations: [], supermodel: readString(data, modelDataOffset + 168, 64), animationScale: 1, unsupportedAnimations: [error.message] }; }
@@ -299,9 +337,10 @@ export function parseBinaryMdl(buffer) {
     ...animationMetadata,
     format: 'Binary MDL',
     nodes,
+    nativeRoot,
     hasSkinnedMeshes: nodes.some((node) => node.skinned),
-    materialNames: [...new Set(nodes.filter((node) => node.type === 'trimesh')
-      .flatMap((node) => node.textureLayers.length ? node.textureLayers : [node.bitmap])
+    materialNames: [...new Set(nodes
+      .flatMap((node) => node.type === 'trimesh' ? node.textureLayers.length ? node.textureLayers : [node.bitmap] : node.type === 'emitter' ? [node.properties.texture] : [])
       .filter((name) => name && name.toLowerCase() !== 'null'))]
   };
 }

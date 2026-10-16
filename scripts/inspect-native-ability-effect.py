@@ -1,5 +1,6 @@
 """Original ability constructors, admission, six stat getters and ability
-branch of GetTotalEffectBonus. Captured lower owners: VM/alloc/copy, immunity,
+branch of GetTotalEffectBonus. The complete original clearing copy constructor
+executes. Captured lower owners: VM/alloc, immunity,
 score getters during admission, bonus/class-gain during individual stat tests,
 combat attack-info/item lookup and server caps. Native grouping/sums, INT/BYTE
 arithmetic, amount mutation, child icons and attribute/HP transition branches
@@ -8,16 +9,19 @@ item-property apply lifecycle remains a separate acceptance gate.
 """
 import importlib.util,itertools,json,struct,random
 from pathlib import Path
+from native_effect_copy_fixture import NativeEffectCopyFixture
 spec=importlib.util.spec_from_file_location('coordinator',Path(__file__).with_name('inspect-native-intratile-coordinator.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 from unicorn import UC_HOOK_CODE
 from unicorn.x86_const import *
 u=m.u;u.hook_del(m.hook_handle);app,actor,source,stats,effect,ints,pool,storage,vtable,rules,races,round,attack,items=[m.heap+n*0x2000 for n in range(1,15)]
+copy_fixture=NativeEffectCopyFixture(m)
 storage=m.heap+0x70000 # seventy effect records must not overlap fixture owners.
 getters=[0x140406930,0x1403fd3e0,0x1403fa0f0,0x140402d10,0x14040b5e0,0x1403fa050]
 def snapshot(ptr):return dict(type=int.from_bytes(u.mem_read(ptr+8,2),'little'),subtype=int.from_bytes(u.mem_read(ptr+0xa,2),'little')&~7,creatorId=m.si(ptr+0x18)&0xffffffff,integers=[m.si(m.q(ptr+0x48)+i*4) for i in range(8)])
 def hook(u,a,n,_):
     global allocation,output,maxReads
     if a==m.stop:u.emu_stop();return
+    if copy_fixture.handle(a):return
     x,y,z,w=[u.reg_read(reg) for reg in [UC_X86_REG_RCX,UC_X86_REG_RDX,UC_X86_REG_R8,UC_X86_REG_R9]]
     if a==m.stop+0x10:m.finish(actor if c.get('objectType',5)==5 else 0)
     elif a==m.stop+0x20:maxReads+=1;calls.append(['maximum',maxReads]);m.finish(c.get('oldMaximum',100) if maxReads==1 else c.get('newMaximum',120))
@@ -39,11 +43,10 @@ def hook(u,a,n,_):
     elif a==0x140286110:m.wi(y,args.pop(0));m.finish(1)
     elif a==0x140c10324:allocation+=1;m.finish(m.heap+0x30000+allocation*0x1000)
     elif a==0x1404233d0:m.wq(x+0x48,x+0x200);m.wi(x+0x18,0x7f000000);m.finish(x)
-    elif a==0x140423570:u.mem_write(x,bytes(u.mem_read(y,0x110)));m.wq(x+0x48,x+0x200);u.mem_write(x+0x200,bytes(u.mem_read(m.q(y+0x48),32)));m.finish(x)
     elif a==0x140425110:m.wi(x+0x18,y);m.finish()
     elif a==0x14048e350:
         if c['mode']=='attribute':calls.append(['apply',snapshot(y),z&0xffffffff])
-        else:calls.append(['icon',m.si(m.q(y+0x48)),z&0xffffffff])
+        else:calls.append(['icon',snapshot(y),z&0xffffffff])
         m.finish(1)
     elif a==0x1403f16c0:calls.append(['modifier',y&255]);m.finish(((y&255)-10)//2)
     elif a==0x1403db1e0:calls.append(['encumbrance',y]);m.finish()
@@ -75,7 +78,7 @@ def run(case):
     else:
         ability=c['ability'];entry=getters[ability];regs=[stats,0,0,0];u.mem_write(stats+0xd38+ability*2,bytes([c.get('base',10)&255]));u.mem_write(races+[0x18,0x19,0x1d,0x1a,0x1c,0x1b][ability],bytes([c.get('race',0)&255]));u.mem_write(actor+0x8d4,struct.pack('<H',c.get('state',65535)&65535));u.mem_write(actor+0x6ef,bytes([c.get('combatMode',0)&255]))
     for reg,value in zip([UC_X86_REG_RCX,UC_X86_REG_RDX,UC_X86_REG_R8,UC_X86_REG_R9],regs):u.reg_write(reg,value)
-    u.emu_start(entry,m.stop,count=100000);assert u.reg_read(UC_X86_REG_RIP)==m.stop
+    copy_fixture.prepare(effect);u.emu_start(entry,m.stop,count=100000);assert u.reg_read(UC_X86_REG_RIP)==m.stop
     result=u.reg_read(UC_X86_REG_RAX)&0xffffffff
     if c['mode']=='bonus' and result>=0x80000000:result-=0x100000000
     if c['mode']=='score':result&=255
@@ -92,5 +95,5 @@ for case in range(150):
     effects=[dict(type=rng.choice([36,37]),ability=rng.randrange(6),amount=rng.choice([-2,-1,0,1,4,20,2147483647]),creator=rng.choice([98,100,101]),spell=rng.choice([-1,0,3])) for _ in range(rng.randrange(70))];effects.sort(key=lambda e:e['type']);rows.append(run(dict(mode='bonus',effects=effects,items=[100,101],ability=rng.randrange(6),bonusLimit=rng.choice([0,12,300]),penaltyLimit=rng.choice([0,30,300]))))
 for ability,loading,hp,newMaximum in itertools.product(range(6),[0,1],[-11,-3,1,100],[80,100,120]):rows.append(run(dict(mode='attribute',ability=ability,loading=loading,hp=hp,oldMaximum=100,newMaximum=newMaximum,score=18)))
 for hp,body,pc in itertools.product([1,5,10,15],[0,3,4],[False,True]):rows.append(run(dict(mode='attribute',ability=2,hp=hp,body=body,pc=pc,oldMaximum=100,newMaximum=80)))
-out=m.root/'backups/animations/native-ability-effect-observations-v2.json'
-out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2)+'\n');print(json.dumps(dict(rows=len(rows),output=str(out))))
+out=m.root/'backups/animations/native-ability-effect-observations-v3.json'
+out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,copyConstructorExecutions=copy_fixture.executions,rows=rows),indent=2)+'\n');print(json.dumps(dict(rows=len(rows),copies=copy_fixture.executions,output=str(out))))

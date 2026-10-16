@@ -18,6 +18,7 @@ parser.add_argument('--strings', nargs='+', default=[], help='Hex addresses of n
 parser.add_argument('--find-text', nargs='+', default=[], help='Find exact ASCII text in the read-only image and print containing strings (256 bytes maximum)')
 parser.add_argument('--find-export', nargs='+', default=[], help='Find matching named exports in the verified read-only image (maximum 200 per query)')
 parser.add_argument('--leaf-cfg', nargs='+', default=[], help='Verified direct-call leaf starts: decode reachable direct branches to returns, bounded to 512 bytes; do not infer starts')
+parser.add_argument('--leaf-byte-limit', type=int, default=512, choices=[512,1024,2048,4096], help='Explicit bound for a verified larger leaf CFG (default512, max4096); never infer an entry from this range')
 parser.add_argument('--head-block', nargs='+', default=[], help='Verified call/branch targets only: inspect one basic block, bounded128 bytes; not a complete function boundary')
 parser.add_argument('--ascii-range', nargs='+', default=[], help='Hex address:decimal length of a bounded null-separated ASCII string pool (maximum4096 bytes)')
 parser.add_argument('--references', nargs='+', default=[], help='Hex addresses whose RIP-relative or pointer references should be located; candidate references require instruction verification')
@@ -114,7 +115,7 @@ for value in args.leaf_cfg:
     while pending:
         at=pending.pop()
         if at in visited:continue
-        if not start<=at<start+512:raise ValueError('Leaf CFG leaves its bounded region; inspect the tail owner separately')
+        if not start<=at<start+args.leaf_byte_limit:raise ValueError('Leaf CFG leaves its bounded region; inspect the tail owner separately')
         ins=next(decoder.disasm(image.get_data(at-base,15),at),None)
         if not ins:raise ValueError(f'Cannot decode verified CFG instruction {at:x}')
         visited[at]=ins

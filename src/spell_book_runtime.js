@@ -1,7 +1,8 @@
 import {intEntry,rulesetInt} from './combat_stats.js';
 import {creatureRoot} from './creature_rules.js';
 import {runtimeDiagnostics} from './runtime_diagnostics.js';
-import {createSpellClassState,importSpellBook,spellUsesLeft,metamagicLevelCost,spellLevelByClass,spellAbilityProviders,updateMemorizedSpellSlots,hasSpellTalent,scriptHasSpell,consumeSpellReady,adjustSpellUsesPerDay,spellLikeCasterLevel} from './spell_book.js';
+import {createSpellClassState,importSpellBook,spellUsesLeft,metamagicLevelCost,spellLevelByClass,spellAbilityProviders,updateMemorizedSpellSlots,hasSpellTalent,scriptHasSpell,consumeSpellReady,adjustSpellUsesPerDay,spellLikeCasterLevel,setMemorizedSpellSlot,clearMemorizedSpellSlot} from './spell_book.js';
+import {receiveSpellPreparationInput,nextPreparationSpell} from './spell_preparation.js';
 import {talentSpell,castingSpell,savingThrowSpell} from './spell_metadata.js';
 import {commandSpellLevel,commandSpellUses} from './spell_cast_request.js';
 import {casterLevel,nativeClassLevel,nativeClassIndex,nativeFeatSourceClass} from './spell_caster_level.js';
@@ -114,6 +115,28 @@ export class SpellBookRuntime {
     o.nativeTalentClasses.forEach((state,index)=>{state.perDay=perDay[index];});
   }
   uses(o,id,index,domainLevel=0,meta=0){return spellUsesLeft(o,id,index,domainLevel,meta,this.session.characterRules,this.providers(o));}
+  set(o,index,slot,id,domain,meta,check=1){return setMemorizedSpellSlot(o,index,slot,id,domain,meta,check,this.session.characterRules,this.providers(o));}
+  clear(o,index,level,slot){return clearMemorizedSpellSlot(o,index,level,slot,this.providers(o));}
+  inputPreparation(request){
+    const clear=request.clear===true,values=clear?[request.classIndex,request.level,request.slot]:[request.classIndex,request.spellId,request.slot,request.domainLevel,request.metamagic];let cursor=0;
+    return receiveSpellPreparationInput(null,clear,{clientObject:()=>this.session.player,asCreature:o=>o.objectType===5?o:null,
+      overflow:()=>0,underflow:()=>0,readByte:()=>values[cursor++],readDword:()=>values[cursor++],spell:id=>this.castingSpell(id),
+      set:(...args)=>this.set(...args),clear:(...args)=>this.clear(...args)});
+  }
+  preparationSpells(o,index,level,meta=0){
+    const rules=this.session.characterRules,record=creatureRoot(o).ClassList[index&255];if(!record)throw new Error('Native preparation class storage is unavailable');
+    const type=record.Class&255,state={cursor:0,domain:0},result=[];
+    const p={controlled:()=>o,restricted:type=>intEntry(rules.classes,type,'SpellbookRestricted').value,
+      knownCount:(actor,i,l)=>actor.nativeTalentClasses[i]?.known[l]?.length??0,known:(actor,i,l,n)=>actor.nativeTalentClasses[i]?.known[l]?.[n]??0xffffffff,
+      spell:id=>this.castingSpell(id),metamagic:spell=>{if(!spell)throw new Error('Native preparation list dereferences a missing spell');return spell.metamagic;},
+      classLevel:(actor,i)=>i<8?(creatureRoot(actor).ClassList[i]?.ClassLevel??0)&255:0,
+      minCastingLevel:type=>{const entry=intEntry(rules.classes,type,'MinCastingLevel');if(!entry.found)throw new Error('Native preparation minimum casting level is uninitialized');return entry.value;},
+      spellCount:()=>rules.spells.orderedRows.length,level:(spell,type)=>this.level(spell.id,type),pickDomains:type=>intEntry(rules.classes,type,'PickDomains').value,
+      domain:(actor,i,n)=>creatureRoot(actor).ClassList[i]?.[`Domain${n+1}`]??n,
+      domainSpell:(domain,l)=>{if(!physical(rules.domains,domain))throw new Error('Native preparation domain lookup leaves uninitialized spell storage');const entry=intEntry(rules.domains,domain,`Level_${l}`);return entry.found?entry.value:-1;}};
+    for(;;){const id=nextPreparationSpell(index,type,level,meta,state,p);if(id===-1)break;result.push({id,domain:state.domain,metamagic:meta});}
+    return result;
+  }
   consume(o,id,index,domainLevel,meta,casterLevel){return consumeSpellReady(o,id,index,domainLevel,meta,casterLevel,this.session.characterRules,this.providers(o));}
   adjustUses(o){adjustSpellUsesPerDay(o,this.session.characterRules,this.providers(o));}
   queryProviders(){return{spell:id=>talentSpell(this.session.characterRules,id|0),level:(id,cls)=>this.level(id|0,cls),

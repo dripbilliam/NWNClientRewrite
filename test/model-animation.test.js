@@ -93,6 +93,26 @@ test('one-shot clips complete once and pose switching resets omitted channels', 
   animator.pose('still'); assert.deepEqual(bone.position.toArray(), [5, 6, 7]);
 });
 
+test('native one-shot playback retains sentinel/event zero, terminal frame, and current time on reverse reuse',()=>{
+  const {animator,bone,model}=makeAnimator();let completed=0,events=[];
+  model.animations[0].events=[{time:0,name:'zero'},{time:.5,name:'middle'}];
+  animator.eventDispatcher.add('*',(_owner,name)=>events.push(name));
+  assert.equal(animator.playNative('turn',{speed:1}),true);assert.equal(animator.time,Math.fround(-.00001));
+  animator.update(.5);const held=animator.time;assert.ok(held<.5);assert.ok(events.includes('zero'));
+  animator.playNative('turn',{speed:-1,onComplete:()=>completed++});assert.equal(animator.time,held);
+  animator.update(1);assert.equal(animator.time,0);assert.equal(animator.playing,true);assert.deepEqual(bone.position.toArray(),[0,0,-0]);
+  animator.update(.1);assert.equal(animator.playing,false);assert.equal(completed,1);assert.ok(events.includes('doneturn'));
+  animator.update(1);assert.equal(completed,1);
+});
+
+test('native reverse new runs start after the clip end and incomplete blend/inheritance presentation fails explicitly',()=>{
+  const {animator,model}=makeAnimator();assert.equal(animator.playNative('turn',{speed:-.31}),true);
+  assert.equal(animator.time,Math.fround(1+Math.fround(.00001)));animator.update(.1);assert.ok(animator.time<1&&animator.time>.96);
+  assert.throws(()=>animator.playNative('turn',{flags:0}),/blended/);
+  model.animations[0].inheritedFrom='parent';assert.throws(()=>animator.playNative('turn'),/inherited/);
+  delete model.animations[0].inheritedFrom;animator.play('turn');animator.update(.5);assert.equal(animator.time,.5);
+});
+
 test('door transitions use shared clips and hold collision until the authored end pose', () => {
   const { animator, model } = makeAnimator();
   model.animations[0].name = 'opening1';

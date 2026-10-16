@@ -14,7 +14,7 @@ const ids=v=>{if(!(v instanceof NativeIdList))throw new Error('Native area-effec
 export function constructAreaEffect(args,creator,p){
   const [id,enter='',heartbeat='',exit='']=args;
   if(![enter,heartbeat,exit].every(v=>typeof v==='string'))throw new Error('Native area-effect script strings are unavailable');
-  const e=call(p,'create',31,creator,[integer(id,'ID')],8);e.floats[0]=e.floats[1]=e.floats[2]=0;e.strings=[enter,heartbeat,exit];return e;
+  const e=call(p,'create',31,creator,[integer(id,'ID')],8);e.floats[0]=e.floats[1]=e.floats[2]=0;e.strings??=Array(6).fill('');e.strings.splice(0,3,enter,heartbeat,exit);return e;
 }
 // Derived constructor4f59d0, after base object construction/registration.
 // Width/length are intentionally absent until the rectangle setter writes them.
@@ -182,6 +182,19 @@ export async function removeAreaEffectSubareas(o,synchronous,p){
 export async function removeAreaEffectFromArea(o,p){
   const area=call(p,'area',o);if(area){await removeAreaEffectSubareas(o,1,p);await call(p,'removeObject',area,o);ids(area.nativeSubareas).remove(o.id);}
   await call(p,'setArea',o,null);await call(p,'writePosition',o,[0,0,0]);await call(p,'setFieldD8',o,0);
+}
+
+// CNWSAreaOfEffectObject::JumpToPoint1404f7a70. The anchor is resolved
+// canonically and only the same-area path moves. Cross-area ownership is the
+// separate creature AddToArea/RemoveFromArea lifecycle.
+export async function jumpAreaEffect(o,area,point,p){
+  const actor=call(p,'creature',o.nativeAnchor334);if(!actor||call(p,'area',o)!==area)return;
+  const membership=ids(actor.nativeSubareaMembership);
+  if(membership.indexOf(o.id)<0)await call(p,'warning','InSubAreasArray does not contain specified area');
+  else membership.remove(o.id);
+  await call(p,'removeSubareas',o,0);await call(p,'setPosition',o,point,0);
+  if(membership.indexOf(o.id)<0)membership.append(o.id);
+  await call(p,'updateSubareas',o,null);
 }
 // GetFirst/NextInPersistentObject525fc0 AoE branch. Cursor308 is an AREA
 // spatial index stored as WORD on the effect, not a private filtered snapshot.

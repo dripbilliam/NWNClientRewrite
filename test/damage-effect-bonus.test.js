@@ -180,21 +180,21 @@ test('GetDamageRoll uses equipped damage effects by default and main-hand effect
 
 test('live damage bonuses preserve handles, record dirty state, reject immunity, and expire strictly after due time', async () => {
   const s = new ModuleSession(null), r = rules(); s.characterRules = r;
-  const a = s.register('creature', 'a', { ...actor(), stats: { currentHP: 10, temporaryHP: 0, maxHP: 10 } });
+  const a = s.register('creature', 'a', { ...actor(), stats: { feats:[],currentHP: 10, temporaryHP: 0, maxHP: 10 } });
   const b = s.register('door', 'b', { currentHP: 10 });
   const value = s.commands.EffectDamageIncrease([1, 1], { self: a.id });
   assert.equal(s.commands.GetEffectType([value]), 42);
-  s.commands.ApplyEffectToObject([1, value, a.id, 1]);
+  await s.commands.ApplyEffectToObject([1, value, a.id, 1]);
   assert.equal(a.effects[0].id, value.id); assert.equal(a.combatInformationDirty, 1);
   assert.equal(value.durationType, 0); a.combatInformationDirty = 0;
-  s.scheduler.advance(1000); await s.scheduler.pump(); assert.equal(a.effects.length, 1);
+  s.scheduler.advance(1000); await s.scheduler.pump(); assert.deepEqual(a.effects.map(e=>e.type),[13,67]);
   s.scheduler.advance(1); await s.scheduler.pump(); assert.equal(a.effects.length, 0); assert.equal(a.combatInformationDirty, 1);
   const penalty = s.commands.EffectDamageDecrease([0, 1], { self: a.id });
   assert.equal(s.commands.GetEffectType([penalty]), 43);
-  s.commands.ApplyEffectToObject([2, penalty, b.id]); assert.deepEqual(b.effects, []);
+  await s.commands.ApplyEffectToObject([2, penalty, b.id]); assert.deepEqual(b.effects, []);
   a.effects = [{ type: 22, integers: [21, 28, 0, 0] }];
-  s.commands.ApplyEffectToObject([2, penalty, a.id]); assert.equal(a.effects.length, 1);
-  s.commands.ApplyEffectToObject([2, { ...penalty, bypassImmunity: true }, a.id]);
+  await s.commands.ApplyEffectToObject([2, penalty, a.id]); assert.equal(a.effects.length, 1);
+  await s.commands.ApplyEffectToObject([2, { ...penalty, bypassImmunity: true }, a.id]);
   assert.equal(a.effects[0].id, penalty.id, 'Zero-cost penalty is retained; no positive-amount gate');
   assert.equal(s.commands.GetEffectCreator([a.effects[0]]), a.id);
   assert.equal(s.commands.GetMaster([OBJECT_INVALID]), OBJECT_INVALID);

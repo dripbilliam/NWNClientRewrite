@@ -90,6 +90,19 @@ export function repositoryFit(repo,item,x,y,p){
   return 1;
 }
 
+// MoveItem14046ac90: canonical array lookup per physical node, identity match,
+// then CheckFit. Repositioning does not remove/reinsert or change possession.
+export function repositoryMove(repo,item,x,y,p){
+  x=byte(x,'x');y=byte(y,'y');if(!repo)throw new Error('Native repository move storage is unavailable');
+  for(const id of repo.ids()){
+    const found=required(p,'lookup')(id);
+    if(found.status!==0||!found.object||found.object!==item)continue;
+    if(required(p,'fit')(repo,item,x,y)===0)return 0;
+    item.repositoryX=x;item.repositoryY=y;return 1;
+  }
+  return 0;
+}
+
 // Initial FindPosition14046826d..1404682c6 scan. Autoexpansion/drop and failure
 // feedback are separate required owners, not implied by a failed grid scan.
 export function repositoryScan(repo,item,p){

@@ -8,8 +8,10 @@ import {decodeResourceText,RESOURCE_TYPE} from '../src/resource_archive.js';
 import {castingSpell} from '../src/spell_metadata.js';
 import {ModuleSession} from '../src/module_session.js';
 import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
+import {bindItemPropertyFactory} from '../src/item_property_factory.js';
 const [install,modulePath]=process.argv.slice(2),resolver=await openLocalModule(install,modulePath),rules=await loadCharacterRules(resolver);
 const api=parseScriptApi(decodeResourceText(await resolver.getResource('nwscript',RESOURCE_TYPE.NSS))),session=new ModuleSession(resolver),scripts=new Map(),failures=[],calls=new Map();
+bindItemPropertyFactory(session,api);
 for(let id=0;id<rules.spells.orderedRows.length;id++){
   try{const spell=castingSpell(rules,id),name=spell.impactScript.split('\0')[0].toLowerCase();if(!name)continue;
     if(!scripts.has(name))scripts.set(name,{name,spellIds:[]});scripts.get(name).spellIds.push(id);

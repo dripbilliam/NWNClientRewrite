@@ -32,7 +32,8 @@ test('empty or rejected pools make the item identified and unsupported saved sta
   const {runtime,item}=fixture();await runtime.loadData(item,{BaseItem:0,PropertiesList:[{PropertyName:62}],ModelPart1:65537,ModelPart2:17,Leather1Color:20});
   assert.equal(item.identified,1);assert.equal(item.effects.length,0);assert.deepEqual(item.modelParts,[1,0,0]);assert.deepEqual(item.colors,[0,0,0,0,0,0]);
   const {runtime:r,item:i}=fixture();await assert.rejects(r.loadData(i,{BaseItem:999}),/invalid base item/);
-  await assert.rejects(r.loadData(i,{BaseItem:0,EffectList:[{}]}),/saved item effect import/);
+  // Saved-object state belongs to LoadFromGff, after the lower data owner.
+  await assert.rejects(r.loadFromGff(i,{BaseItem:0,EffectList:[{}]}),/saved item effect import/);
 });
 
 test('plot and cursed import keep separate native cells and canonical GFF fields',async()=>{

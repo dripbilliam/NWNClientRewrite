@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {applyEnchantment,removeEnchantment,applyEnchantmentController,removeEnchantmentController} from '../src/enchantment_effect.js';
 import {ModuleSession} from '../src/module_session.js';
-const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-enchantment-effect-observations.json',import.meta.url)));
+const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-enchantment-effect-observations-v2.json',import.meta.url)));
 const project=e=>({id:e.id,type:e.type,subtype:e.subtype,durationType:e.durationType,spellId:e.spellId,creatorId:e.creatorId,casterLevel:e.casterLevel,showIcon:e.showIcon,exposed:Number(e.exposed),integers:e.integers});
 const normalize=calls=>calls.map(a=>a[0].startsWith('owner')?a.slice(0,['owner1403d3680','owner1403d0c50'].includes(a[0])?a[0]==='owner1403d0c50'?4:3:2):a);
 
@@ -15,7 +15,7 @@ test('Enchantment priority, immunity, state controllers and removal match origin
     let effects=(c.effects??[]).map((e,i)=>e.samePointer?effect:{type:e.type,id:BigInt(e.id??10+i).toString(16).padStart(16,'0'),creatorId:98,integers:[e.kind??0]});
     const p={effects:()=>effects,plot:()=>c.plot??0,dead:()=>c.dead??0,creature:()=>c.sourceExists===false?null:source,statsPC:()=>c.sourcePC??0,
       immunity:(_o,id)=>{calls.push(['immunity',id]);return c.immunities?.[id]??0;},feedback:(o,id,data)=>calls.push(['feedback',o.id,id,data]),
-      copy:(e,icons)=>({...structuredClone(e),exposed:false,showIcon:icons?e.showIcon:0}),
+      copyConstruct:(e,icons)=>({...structuredClone(e),integers:Array(e.integers.length).fill(0),exposed:false,showIcon:icons?e.showIcon:0}),
       create:(type,creatorId,_ints,subtype)=>({id:BigInt(++ids).toString(16).padStart(16,'0'),type,creatorId,subtype,integers:Array(8).fill(0),durationType:0,spellId:-1,casterLevel:-1,showIcon:1,exposed:true}),
       apply:(_o,e,loading)=>calls.push(['apply',project(e),loading]),remove:(_o,e)=>{calls.push(['remove',e.id]);effects=effects.filter(x=>x.id!==e.id);},
       floaty:(_o,id)=>calls.push(['floaty',id,99]),clearActions:o=>calls.push(['clearActions',o.nativeFieldEc]),ambient:()=>calls.push(['ambient']),

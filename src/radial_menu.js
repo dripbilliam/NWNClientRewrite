@@ -75,6 +75,7 @@ export class RadialMenu {
     this.render(); this.onVisibility(true);
   }
   close() {
+    this.host.style.pointerEvents='';
     clearTimeout(this.hoverTimer); this.hoverTimer = null;
     if (!this.active) return;
     this.host.hidden = true; this.slots.replaceChildren(); this.stack = [];
@@ -129,15 +130,22 @@ export class RadialMenu {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'radial-entry';
       button.setAttribute('role','menuitem'); button.setAttribute('aria-label',entry.label);
       button.disabled = Boolean(entry.disabled); button.dataset.slot = String(entry.slot); button.dataset.action = entry.action ?? 'submenu';
+      if(Number.isInteger(entry.binding?.featId)){button.dataset.featId=String(entry.binding.featId);button.dataset.featAuxiliary=String(entry.binding.auxiliary??0);}
       if (entry.children) button.setAttribute('aria-haspopup','menu');
       const angle = entry.slot*Math.PI/4;
       button.style.left = `${Math.sin(angle)*100}px`; button.style.top = `${-Math.cos(angle)*100}px`;
       const glyph = document.createElement('span'); glyph.className = 'radial-glyph'; glyph.textContent = entry.children ? '↗' : entry.slot === 0 ? '◎' : entry.action === 'door.toggle' ? '✋' : '◆';
       const label = document.createElement('span'); label.className = 'radial-label'; label.textContent = entry.label;
       button.append(glyph,label); button.addEventListener('click',event => {event.stopPropagation();this.choose(entry.slot);});
+      if(entry.uses!==null&&entry.uses!==undefined){const count=document.createElement('span');count.className='radial-count';count.textContent=String(entry.uses);button.dataset.uses=String(entry.uses);button.append(count);}
+      if(entry.quickbarBinding){
+        button.draggable=true;button.dataset.quickbarBinding=JSON.stringify(entry.quickbarBinding);
+        button.addEventListener('dragstart',event=>{event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('application/x-nwn-quickbar',JSON.stringify({actorId:entry.binding.actorId,binding:entry.quickbarBinding}));this.host.style.pointerEvents='none';});
+        button.addEventListener('dragend',()=>{this.host.style.pointerEvents='';this.close();});
+      }
       this.slots.append(button);
       // Resource icons are optional; useful labels remain when game data lacks one.
-      this.loadIcon(entry.icon).then(url => {
+      (entry.icon?this.loadIcon(entry.icon):Promise.resolve(null)).then(url => {
         if (!url || !button.isConnected) return;
         const img = document.createElement('img'); img.src = url; img.alt = ''; img.draggable = false;
         glyph.replaceChildren(img);

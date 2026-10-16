@@ -1,5 +1,6 @@
 import { intEntry, rulesetInt } from './combat_stats.js';
 import { creatureRoot } from './creature_rules.js';
+import {bonusFeats} from './bonus_feat_effect.js';
 
 const integer = (value, name) => {
   if (!Number.isInteger(value)) throw new Error(`Native feat ${name} is unavailable`);
@@ -26,13 +27,13 @@ export function featInfo(rules, id) {
   return infos.get(table)[u16(id)] ?? null;
 }
 
-// HasFeat 14040b900. The second owned list is supplied separately from GFF.
+// HasFeat 14040b900. The bonus list is supplied separately from GFF.
 // Ranger grants are conditional on current chest armor, not permanent feats.
 export function hasNativeFeat(object, id, armorClass) {
   id = u16(id);
   const root = creatureRoot(object);
   if (!root) throw new Error('Native feat ownership is unavailable');
-  if ((root.FeatList ?? []).some(entry => u16(entry.Feat) === id) || (object.pendingFeats ?? []).some(feat => u16(feat) === id)) return 1;
+  if ((root.FeatList ?? []).some(entry => u16(entry.Feat) === id) || bonusFeats(object).some(feat => u16(feat) === id)) return 1;
   if (id !== 1 && id !== 41) return 0;
   if (!(root.ClassList ?? []).slice(0, (root.ClassList?.length ?? 0) & 255).some(entry => byte(entry.Class) === 7)) return 0;
   if (typeof armorClass !== 'function') throw new Error('Native Ranger feat armor provider is unavailable');
@@ -209,7 +210,7 @@ export function removeNativeFeat(object, id) {
   const list = creatureRoot(object)?.FeatList;
   if (!Array.isArray(list)) throw new Error('Native feat ownership is unavailable');
   const index = list.findIndex(entry => u16(entry.Feat) === id); if (index >= 0) list.splice(index, 1);
-  if (object.stats?.feats) { const index = object.stats.feats.indexOf(id); if (index >= 0) object.stats.feats.splice(index, 1); }
+  if (object.stats?.feats&&!bonusFeats(object).some(feat=>u16(feat)===id)) { const index = object.stats.feats.indexOf(id); if (index >= 0) object.stats.feats.splice(index, 1); }
   if (!(object.featUsePool instanceof FeatUsePool)) throw new Error('Native feat-use pool is unavailable');
   object.featUsePool.remove(id);
 }

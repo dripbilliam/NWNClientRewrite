@@ -20,6 +20,12 @@ export function restoreActiveProperty(property,onlyUnset){
   if(property.costValue>=8&&property.costValue<=12)property.usesPerDay=property.costValue-7;
   property.remaining=1;
 }
+// Bulk owner14046b4d0 traverses the physical active array and applies the
+// same TYPE15/cost/UsesPerDay policy; it does not replenish charges or stacks.
+export function restoreActiveProperties(item,onlyUnset){
+ onlyUnset=integer(onlyUnset,'bulk restore flag');if(!Array.isArray(item.activeProperties))throw new Error('Native active property storage is unavailable');
+ for(const property of item.activeProperties)restoreActiveProperty(property,onlyUnset);
+}
 
 // OnApplyItemProperty14042e5c0: acceptance/materialization phase through83e.
 // Full possession/equipment/cost propagation is supplied by the owner callback,
@@ -49,9 +55,10 @@ export async function applyItemProperty(item,effect,rules,p){
     param1:integers[4]&255,param1Value:integers[5]&255,usesPerDay:integers[6]&255,chance:integers[7]&255,
     remaining:integers[8]|0,durationType:(effect.durationType&7)===1?1:2,customTag:String(effect.customTag??''),propertyId};
   const active=activeItemProperty(integers[0]);
+  const appliedProperty={...property}; // Native callback receives the stack copy.
   required(p,'appendProperty')(item,property,active);
   if(active){restoreActiveProperty(property,1);await required(p,'activeChanged')(item,1);}
-  await required(p,'propertyChanged')(item,property,effect);
+  await required(p,'propertyChanged')(item,appliedProperty,effect);
   return 0;
 }
 

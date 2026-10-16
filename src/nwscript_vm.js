@@ -108,8 +108,12 @@ export class NwScriptVm {
         const handler = this.command(spec.name);
         if (!handler) throw new Error(`Engine call ${spec.name} is not implemented`);
         if (this.limitations[spec.name]) this.diagnostics.record('engine.partial', this.limitations[spec.name], { ...this.diagnosticContext(f.self), ...f.engineContext, script: f.program.name, pc: i.pc, objectId: f.self, engineCall: spec.name, engineId: i.command });
-        const args = spec.args.slice(0, i.argc).map(arg => pop(arg.type));
-        const result = await handler(args, f, spec);
+        // A mapped native owner can conditionally pop its arguments. For
+        // example ActionUseTalent leaves the target untouched on an invalid
+        // talent/absent self; eager generic popping would change script state.
+        const result = typeof handler.nativeStack === 'function'
+          ? await handler.nativeStack(this, f, spec, i.argc)
+          : await handler(spec.args.slice(0, i.argc).map(arg => pop(arg.type)), f, spec);
         if (spec.returns !== 'void') push(spec.returns, result);
         return;
       }

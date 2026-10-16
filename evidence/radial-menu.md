@@ -1,5 +1,10 @@
 # World radial menus
 
+Current spell continuation: [spell radial casting](spell-radial-casting.md)
+supersedes the older spell-placeholder status below. Live class/level/meta/
+domain/child choices cast through the shared queue; defensive casting is wired.
+Counterspell/epic casting and other documented owners remain open.
+
 Target: NWN:EE `89.8193.37-17`, executable SHA-256 `3B7CB1252E0EDB2CE22D7971F333AADE027039AE30A45B4BC64732C3E6BEC73A`. Sources: existing executable, read-only live Ghidra decompilation/disassembly, installed GUI models/icons and English `dialog.tlk`. No binary, assets or Ghidra database were changed. Transcripts and renderer captures are under ignored `backups/animations/`.
 
 ## Observed native entry and door behavior

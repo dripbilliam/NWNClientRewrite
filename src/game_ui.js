@@ -10,6 +10,20 @@ import {RESOURCE_TYPE,decodeResourceText} from './resource_archive.js';
 import {initializeQuickbar,getQuickbarButton,setQuickbarButton,quickbarRequest} from './quickbar.js';
 import {QuickbarLayouts} from './quickbar_storage.js';
 import {quickbarAssignmentMenu} from './quickbar_menu.js';
+import {buildSpellRadial} from './spell_radial.js';
+import {spellGainWithBonus} from './spell_book.js';
+import {spellLikeReady} from './spell_book.js';
+import {buildSpellLikeRadial} from './spell_like_radial.js';
+import {buildFeatAbilityRadial} from './feat_radial.js';
+import {featRadialProviders} from './feat_radial_rules.js';
+import {spellStringEntry} from './spell_metadata.js';
+import {talentSpell} from './spell_metadata.js';
+import {intEntry} from './combat_stats.js';
+import {itemActiveUsesLeft} from './item_presentation_state.js';
+import {itemUseEntries as nativeItemUseEntries,itemPropertyPage,itemVariantEntries} from './item_radial.js';
+import {configureItemQuickbar,updateItemQuickbarCount} from './item_quickbar.js';
+import {dropPreparation,preparationRequest} from './spell_preparation.js';
+import {ContainerUi,repositoryGrid} from './container_ui.js';
 
 const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
 const button = (text, action, className = '') => { const b = el('button', `game-button ${className}`, text); b.type = 'button'; b.addEventListener('click', action); return b; };
@@ -26,13 +40,14 @@ const nativeRoutes = {
 };
 
 export class GameUi {
-  constructor(viewport, { getSession, getWorld, getSelected, radialActive, hasPendingAction, onCancelAction, onInputCapture, onRequest, onOpenModule, onSettings, onQuickbarMenu } = {}) {
-    Object.assign(this, { viewport, getSession, getWorld, getSelected, radialActive, hasPendingAction, onCancelAction, onInputCapture, onRequest, onOpenModule, onSettings, onQuickbarMenu });
-    this.quickbarLayouts=new QuickbarLayouts();this.quickbarIcons=new Map();this.modifierPage=null;
+  constructor(viewport, { getSession, getWorld, getSelected, radialActive, hasPendingAction, onCancelAction, onInputCapture, onRequest, onOpenModule, onSettings, onQuickbarMenu,onItemTarget,onItemMenu } = {}) {
+    Object.assign(this, { viewport, getSession, getWorld, getSelected, radialActive, hasPendingAction, onCancelAction, onInputCapture, onRequest, onOpenModule, onSettings, onQuickbarMenu,onItemTarget,onItemMenu });
+    this.quickbarLayouts=new QuickbarLayouts();this.quickbarIcons=new Map();this.itemQuickbarPresentation=new Map();this.modifierPage=null;
     this.state = new GameUiState(); this.text = new GameText(); this.assets = null; this.session = null; this.messages = []; this.visible = true; this.renderVersion = 0; this.lastRefresh = 0;
     this.root = el('div', 'game-ui'); this.root.id = 'game-ui'; this.root.hidden = true; viewport.append(this.root);
     this.hud = el('div', 'game-hud'); this.root.append(this.hud);
     this.layer = el('div', 'game-window-layer'); this.root.append(this.layer);
+    this.containers=new ContainerUi(this.root,{getSession:()=>this.session,objectName:o=>this.objectName(o),onRequest:(...args)=>this.request(...args),onItemTarget:id=>this.onItemTarget?.(id),onExamine:id=>{this.examineId=id;this.open('examine');}});
     this.notice = el('div', 'game-notice'); this.notice.setAttribute('role', 'status'); this.root.append(this.notice);
     this.root.addEventListener('contextmenu', e => e.preventDefault());
     for (const event of ['pointerdown', 'pointerup', 'click', 'dblclick', 'wheel']) this.root.addEventListener(event, e => e.stopPropagation());
@@ -47,10 +62,14 @@ export class GameUi {
   get captured() { return Boolean(this.externalCapture || this.state.panel); }
   async attach(session, resolver) {
     if (this.session === session) return;
-    this.renderVersion++; this.layer.replaceChildren(); this.assets?.dispose(); this.session = session; this.state.reset(); this.messages = []; this.signature = '';
-    this.assets = new NativeUiAssets(resolver); this.root.hidden = false; this.portraitKey = null;this.quickbarIcons.clear();
+    this.renderVersion++; this.layer.replaceChildren(); this.assets?.dispose(); this.session = session; this.state.reset(); this.messages = []; this.signature = '';this.preparationEpoch=(this.preparationEpoch??0)+1;this.preparationClass=0;this.preparationMeta=0;this.preparationWidgets=new Map();
+    this.containers.reset();this.nativeInventoryOpen=undefined;this.assets = new NativeUiAssets(resolver); this.root.hidden = false; this.portraitKey = null;this.quickbarIcons.clear();
     if(!session.player.nativeQuickbar4e0)initializeQuickbar(session.player);
     if(session.quickbarProfileKey)try{const saved=await this.quickbarLayouts.get(session.quickbarProfileKey);if(saved){session.loadPlayerQuickbar(session.player,saved.QBList??saved);for(const [i,source]of (saved.itemSources??[]).entries()){const b=getQuickbarButton(session.player,i);if(b?.type===1&&source&&(session.registry.get(b.itemId)?.sourceKey!==source.primary||(source.secondary&&session.registry.get(b.secondaryItemId)?.sourceKey!==source.secondary))){setQuickbarButton(session.player,i,null);runtimeDiagnostics.record('quickbar.item-not-restored','Saved local shortcut item is absent from the imported character',{slot:i,source});}}}}catch(error){runtimeDiagnostics.error(error,'quickbar.layout-load-failed');}
+    this.itemQuickbarPresentation.clear();
+    // Native restored item wrapper14086b3d0 uses force1 and configures both
+    // IDs in order. Keep GUI presentation separate from canonical QB records.
+    for(let index=0;index<36;index++){const b=getQuickbarButton(session.player,index);if(b?.type!==1)continue;try{if(!this.configureItemShortcut(index,{...b},1))this.itemQuickbarPresentation.set(b,{unavailable:true});}catch(error){this.itemQuickbarPresentation.set(b,{unavailable:true});runtimeDiagnostics.error(error,'quickbar.item-restore-failed',{index,itemId:b.itemId});}}
     await this.assets.initializeFonts();
     this.catalog?.replaceChildren(new Option('Native UI resources', ''), ...this.assets.names().map(n => new Option(n, n)));
     this.panelCatalog?.replaceChildren(new Option('Game UI panels', ''), ...GAME_PANELS.map(([id, title]) => new Option(title, id)));
@@ -68,7 +87,7 @@ export class GameUi {
     if (this.panelCatalog) this.panelCatalog.disabled = true;
     this.mode(true); this.open('main');
   }
-  detach() { this.renderVersion++; this.assets?.dispose(); this.assets = null; this.session = null; this.root.hidden = true; this.closeAll(); }
+  detach() { this.renderVersion++; this.containers.reset();this.assets?.dispose(); this.assets = null; this.session = null; this.root.hidden = true; this.closeAll(); }
   async loadLanguage(files) {
     this.languageFiles = [...files];
     const base = [...files].find(f => f.name.toLowerCase() === 'dialog.tlk');
@@ -79,12 +98,15 @@ export class GameUi {
     this.text.language = this.text.base.language; this.signature = ''; this.refresh(true); if (this.state.panel) await this.renderPanel();
   }
   mode(enabled) { document.body.classList.toggle('game-mode', enabled); document.querySelector('#game-mode-button')?.setAttribute('aria-pressed', String(enabled)); }
-  open(panel) { if (!this.assets || this.session?.player.cutscene?.enabled && panel !== 'dialogue') return; this.visible = true; this.root.hidden = false; this.state.open(panel); this.onInputCapture?.(true); void this.renderPanel(); }
-  toggle(panel) { if (!this.assets || this.session?.player.cutscene?.enabled && panel !== 'dialogue') return; this.state.toggle(panel); this.onInputCapture?.(this.captured); void this.renderPanel(); }
+  open(panel) { if (!this.assets || this.session?.player.cutscene?.enabled && panel !== 'dialogue') return;
+    if(panel==='inventory'&&this.session&&!this.session.combat.broadcastProviders().client(this.session.player.id)?.inventoryGUI.field8)this.request('inventory.status',{value:1,ownerId:this.session.player.id});
+    this.visible = true; this.root.hidden = false; this.state.open(panel); this.onInputCapture?.(true); void this.renderPanel(); }
+  toggle(panel) { if (!this.assets || this.session?.player.cutscene?.enabled && panel !== 'dialogue') return;if(panel==='inventory'){if(this.state.panel===panel)this.close();else{this.state.stack=[];this.open(panel);}return;}this.state.toggle(panel); this.onInputCapture?.(this.captured); void this.renderPanel(); }
   close() {
     if (this.state.panel === 'dialogue' && this.session?.conversation.state) {
       this.request('conversation.close', { aborted: !this.session.conversation.state.complete, version: this.session.conversation.version }); return;
     }
+    if(this.state.panel==='inventory'&&this.session)this.request('inventory.status',{value:0,ownerId:this.session.player.id});
     this.state.close(); this.onInputCapture?.(this.captured); void this.renderPanel(); if (!this.session && !this.captured) { this.mode(false); this.root.hidden = true; }
   }
   conversationChanged() {
@@ -92,7 +114,12 @@ export class GameUi {
     if (this.session?.conversation.state) { this.mode(true); if (this.state.panel !== 'dialogue') this.open('dialogue'); else void this.renderPanel(); }
     else if (this.state.panel === 'dialogue') { this.state.close(); this.onInputCapture?.(this.captured); void this.renderPanel(); }
   }
-  closeAll() { this.renderVersion++; this.state.stack = []; this.layer.replaceChildren(); this.root.dataset.panel = ''; this.onInputCapture?.(false); if (!this.session) { this.mode(false); this.root.hidden = true; } }
+  closeAll() { if(this.session&&this.state.stack.includes('inventory'))this.request('inventory.status',{value:0,ownerId:this.session.player.id});this.renderVersion++; this.state.stack = []; this.layer.replaceChildren(); this.root.dataset.panel = ''; this.onInputCapture?.(false); if (!this.session) { this.mode(false); this.root.hidden = true; } }
+  receiveInventoryMessage(event){
+    if(!['inventory-status','inventory-gui','inventory-select-panel','inventory-repository-move','inventory-repository-move-cancel'].includes(event.type))return false;
+    if(event.type==='inventory-repository-move-cancel')this.notify('The item could not be moved');
+    queueMicrotask(()=>this.refresh(true));return true;
+  }
   notify(message) { this.notice.textContent = message; clearTimeout(this.noticeTimer); this.noticeTimer = setTimeout(() => { this.notice.textContent = ''; }, 6500); }
   message(message, type = 'system') {
     const text = typeof message === 'string' ? message : message.type === 'oneLiner' ? this.dialogueText(message.text, this.session?.registry.get(message.tokenTargetId) ?? null, message.gender) : message.text;
@@ -133,6 +160,7 @@ export class GameUi {
     const portrait = button('', () => this.toggle('character'), 'game-portrait'); portrait.title = 'Character Sheet (C)'; portrait.setAttribute('aria-label', portrait.title); party.append(portrait);
     const silhouette = el('span', 'game-portrait-silhouette', '♙'); portrait.append(silhouette);
     const health = el('div', 'game-health', '—'); health.title = 'Hit points unavailable until a character is loaded'; party.append(health);
+    const timing=el('div','game-rest-timing');timing.hidden=true;timing.append(el('span','','Resting'),el('progress'));timing.querySelector('progress').setAttribute('aria-label','Rest progress');this.hud.append(timing);
     const buttons = [['map', 'pb_but_map'], ['inventory', 'pb_but_inv'], ['journal', 'pb_but_jour'], ['character', 'pb_but_char'], ['rest', 'pb_but_rest'], ['spells', 'pb_but_spell'], ['options', 'pb_but_opts'], ['pvp', 'pb_but_pvp']];
     const actions = el('div', 'game-party-buttons'); party.append(actions);
     for (const [id, model] of buttons) {
@@ -153,7 +181,7 @@ export class GameUi {
       b.addEventListener('dragstart',e=>{const index=this.quickbarPage()*12+i,binding=getQuickbarButton(this.session.player,index);if(!binding?.type){e.preventDefault();return;}this.writeQuickbarDrag(e,binding,index);});
       b.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('application/x-nwn-quickbar')){e.preventDefault();e.dataTransfer.dropEffect='move';b.classList.add('drag-over');}});
       b.addEventListener('dragleave',()=>b.classList.remove('drag-over'));
-      b.addEventListener('drop',e=>{e.preventDefault();b.classList.remove('drag-over');try{const payload=JSON.parse(e.dataTransfer.getData('application/x-nwn-quickbar'));if(payload.actorId!==this.session.player.id)throw new Error('Quickbar drag belongs to another character');const index=this.quickbarPage()*12+i;this.assignQuickbar(index,payload.binding);if(Number.isInteger(payload.sourceIndex)&&payload.sourceIndex!==index)this.assignQuickbar(payload.sourceIndex,null);}catch(error){runtimeDiagnostics.error(error,'quickbar.drop-failed');this.notify(error.message);}});
+      b.addEventListener('drop',async e=>{e.preventDefault();b.classList.remove('drag-over');try{const payload=JSON.parse(e.dataTransfer.getData('application/x-nwn-quickbar'));if(payload.actorId!==this.session.player.id)throw new Error('Quickbar drag belongs to another character');const index=this.quickbarPage()*12+i,session=this.session,source=Number.isInteger(payload.sourceIndex)?JSON.stringify(getQuickbarButton(session.player,payload.sourceIndex)):null;if(await this.assignQuickbar(index,payload.binding)&&this.session===session&&Number.isInteger(payload.sourceIndex)&&payload.sourceIndex!==index&&JSON.stringify(getQuickbarButton(session.player,payload.sourceIndex))===source)await this.assignQuickbar(payload.sourceIndex,null);}catch(error){runtimeDiagnostics.error(error,'quickbar.drop-failed');this.notify(error.message);}});
       slots.append(b);
     }
     const log = el('section', 'game-log'); log.setAttribute('aria-label', 'Game messages');
@@ -171,10 +199,12 @@ export class GameUi {
     const page=this.quickbarPage();
     for (const b of this.hud.querySelectorAll('.game-quick-slot')) {
       const binding=getQuickbarButton(this.session.player,page*12+Number(b.dataset.slot)),description=this.quickbarDescription(binding);
-      const key=JSON.stringify(binding);b.dataset.page=String(page);b.dataset.quickbarIndex=String(page*12+Number(b.dataset.slot));b.dataset.quickbarType=String(binding?.type??0);
+      const key=JSON.stringify([binding,description]);b.dataset.page=String(page);b.dataset.quickbarIndex=String(page*12+Number(b.dataset.slot));b.dataset.quickbarType=String(binding?.type??0);
       b.dataset.targetId=binding?.type===1?String(binding.itemId):'';
       b.title=description?.label??`F${Number(b.dataset.slot)+1} · Drag here or right-click to assign`;
       if(b.dataset.binding!==key){b.dataset.binding=key;const icon=b.querySelector('.game-slot-icon');icon.replaceChildren();if(description){icon.textContent=description.label.slice(0,4);if(description.icon)void this.quickbarIcon(description.icon,icon,key,b);}}
+      b.dataset.uses=description?.uses??'';b.dataset.equipped=String(description?.animation==='qbEquip');b.setAttribute('aria-disabled',String(description?.enabled===false));
+      let badge=b.querySelector('.game-slot-uses');if(!badge){badge=el('span','game-slot-uses');b.append(badge);}badge.textContent=description?.uses??'';
     }
     [...this.hud.querySelectorAll('.game-quick-page')].forEach((b, i) => b.setAttribute('aria-pressed', String(i === page)));
     this.root.dataset.quickbar=JSON.stringify(this.session.player.nativeQuickbar4e0);
@@ -182,14 +212,37 @@ export class GameUi {
   quickbarPage(){return this.modifierPage??this.state.quickbarPage;}
   writeQuickbarDrag(event,binding,sourceIndex){event.dataTransfer.effectAllowed='copyMove';event.dataTransfer.setData('application/x-nwn-quickbar',JSON.stringify({actorId:this.session.player.id,binding,sourceIndex}));}
   makeQuickbarSource(node,binding){node.draggable=true;node.dataset.quickbarBinding=JSON.stringify(binding);node.addEventListener('dragstart',e=>this.writeQuickbarDrag(e,binding));return node;}
+  configureItemShortcut(index,binding,force=0,canUse){
+    const session=this.session,previous=getQuickbarButton(session.player,index);if(!previous)return false;
+    const presentation={...this.itemQuickbarPresentation.get(previous)},p=session.items.quickbarProviders(presentation,{canUse});
+    const draft=force?{type:0}:structuredClone(previous);
+    if(!configureItemQuickbar(draft,binding.itemId,binding.intParam??0xff00ff,force,p))return false;
+    if(binding.secondaryItemId!==undefined&&binding.secondaryItemId!==0x7f000000&&binding.secondaryItemId!==0){
+      configureItemQuickbar(draft,binding.secondaryItemId,binding.intParam??0xff00ff,force,p);
+    }
+    delete presentation.unavailable;setQuickbarButton(session.player,index,draft);this.itemQuickbarPresentation.set(previous,presentation);return true;
+  }
   assignQuickbar(index,binding){
-    if(!this.session||!setQuickbarButton(this.session.player,index,binding))return;
-    this.updateQuickbar();this.notify(binding?.type?`Assigned ${this.quickbarDescription(binding)?.label??'action'} to F${index%12+1}`:`Cleared F${index%12+1}`);
+    const session=this.session,actor=session?.player,areaId=actor?.areaId;
+    if(!session||!actor)return Promise.resolve(false);
+    const assign=async()=>{
+      if(this.session!==session||this.getSession()!==session||session.player!==actor||actor.areaId!==areaId)return false;
+      let canUse;
+      if(binding?.type===1){const item=session.registry.get(binding.itemId);if(item?.objectType===6&&item.identified!==0&&session.items.baseInfo(item))canUse=await session.items.castProviders().canUse(actor,item,1);
+        if(this.session!==session||this.getSession()!==session||session.player!==actor||actor.areaId!==areaId||session.registry.get(binding.itemId)!==item)return false;
+        if(!this.configureItemShortcut(index,binding,0,canUse))return false;
+      }else{if(!setQuickbarButton(actor,index,binding))return false;this.itemQuickbarPresentation.delete(getQuickbarButton(actor,index));}
+      this.updateQuickbar();this.notify(binding?.type?`Assigned ${this.quickbarDescription(getQuickbarButton(actor,index))?.label??'action'} to F${index%12+1}`:`Cleared F${index%12+1}`);
+      this.saveQuickbarLayout();return true;
+    };
+    this.quickbarAssignment=(this.quickbarAssignment??Promise.resolve()).then(assign).catch(error=>{runtimeDiagnostics.error(error,'quickbar.assignment-failed',{index,itemId:binding?.itemId});this.notify(error.message);return false;});return this.quickbarAssignment;
+  }
+  saveQuickbarLayout(){
     const session=this.session;if(session.quickbarProfileKey){const saved={QBList:session.savePlayerQuickbar(),itemSources:session.player.nativeQuickbar4e0.map(b=>b.type===1?{primary:session.registry.get(b.itemId)?.sourceKey,secondary:session.registry.get(b.secondaryItemId)?.sourceKey}:null)};this.quickbarSave=(this.quickbarSave??Promise.resolve()).catch(()=>{}).then(()=>this.quickbarLayouts.put(session.quickbarProfileKey,saved));void this.quickbarSave.catch(error=>runtimeDiagnostics.error(error,'quickbar.layout-save-failed'));}
   }
   quickbarDescription(b){
     if(!b?.type)return null;const rules=this.session.characterRules,row=(table,id)=>rules?.[table]?.orderedRows?.[id]??rules?.[table]?.rows?.get(id);
-    if(b.type===1){const item=this.session.registry.get(b.itemId);return {label:item?this.objectName(item):'Unavailable item',icon:row('baseitems',item?.baseItem)?.ItemIcon??null};}
+    if(b.type===1){const item=this.session.registry.get(b.itemId),presentation=this.itemQuickbarPresentation.get(b);if(presentation?.unavailable)return{label:'Unavailable item',icon:null,enabled:false};if(presentation&&item){try{updateItemQuickbarCount(b,this.session.items.quickbarProviders(presentation));}catch(error){runtimeDiagnostics.error(error,'quickbar.item-count-failed',{itemId:b.itemId});}}return {label:item?this.objectName(item):'Unavailable item',icon:presentation?.icon??null,...presentation};}
     if(b.type===2||b.type===44)return {label:this.ruleName('spells',b.intParam),icon:row('spells',b.intParam)?.IconResRef};
     if(b.type===4)return {label:this.ruleName('feat',b.intParam,'FEAT'),icon:row('feat',b.intParam)?.ICON};
     if(b.type===3)return {label:this.ruleName('skills',b.intParam),icon:row('skills',b.intParam)?.Icon};
@@ -206,11 +259,65 @@ export class GameUi {
     for(const [classIndex,c]of (p.creatureData??p.authored).ClassList?.entries()??[]){const state=p.nativeTalentClasses?.[classIndex];if(!state)continue;const seen=new Set();for(const level of [0,1,2,3,4,5,6,7,8,9])for(const spell of [...state.known[level].map(id=>({id,metamagic:0})),...state.memorized[level].filter(Boolean)]){const key=`${spell.id}:${spell.metamagic??0}`;if(seen.has(key))continue;seen.add(key);groups[1].entries.push({label:`${this.ruleName('spells',spell.id)} · ${this.ruleName('classes',c.Class)}`,binding:{type:2,intParam:spell.id,classIndex,metamagic:spell.metamagic??0,domainLevel:0}});}}
     for(const id of p.stats?.feats??[])groups[2].entries.push({label:this.ruleName('feat',id,'FEAT'),binding:{type:4,intParam:id}});
     for(const [id,rank]of (p.stats?.skills??[]).entries())if(rank>0)groups[3].entries.push({label:this.ruleName('skills',id),binding:{type:3,intParam:id}});
+    groups.push({slot:5,label:'Abilities',icon:'IR_XABILITY',entries:(p.nativeSpellLikeAbilities??[]).map(a=>({label:this.ruleName('spells',a.id),binding:{type:44,intParam:a.id,domainLevel:a.casterLevel}}))});
     return groups;
+  }
+  worldSpellMenu(target,options){
+    const s=this.getSession(),p=s.player;
+    return buildSpellRadial(p,target,s.characterRules,s.spellBook,{
+      name:(table,id)=>this.ruleName(table,id),hasFeat:(actor,id)=>s.combat.hasFeat(actor,id),
+      spellGain:(actor,index,level)=>spellGainWithBonus(actor,index,level,s.characterRules,s.spellBook.providers(actor)),
+      // Client GetSpellsOfLevelReady1407fabf0 tests full INT readiness,
+      // unlike the server's BYTE count helper used during cast admission.
+      readyForConversion:(actor,index,level)=>actor.nativeTalentClasses[index].memorized[level]
+        .slice(0,actor.nativeTalentClasses[index].memorized[level].length&255).some(row=>row&&row.ready!==0&&row.domain===0)
+    },options);
+  }
+  itemUseEntries(item){
+    const s=this.getSession(),actor=s.player,areaId=actor.areaId,id=item.id;
+    const alive=()=>this.getSession()===s&&s.player===actor&&actor.areaId===areaId&&s.registry.get(id)===item&&(item.nativeItemPending240??0)===0;
+    const p={baseInfo:i=>s.items.baseInfo(i),property:(i,index)=>i.activeProperties[index]??null,
+      propertyInt:(index,column)=>intEntry(s.characterRules.iprp_spells,index,column).value,
+      propertySpell:(i,index)=>s.items.castProviders().spellIndex(i.activeProperties[index].subtype),
+      spell:spellId=>{const spell=s.spellBook.castingSpell(spellId);return spell?{...spell,children:talentSpell(s.characterRules,spellId).children,nameRef:intEntry(s.characterRules.spells,spellId,'Name').value}:null;},
+      subRadialSpell:(spell,index)=>spell.children[index]??-1,icon:spell=>({resRef:spellStringEntry(s.characterRules.spells,spell.id,'IconResRef')}),
+      cachedUses:itemActiveUsesLeft,text:ref=>this.text.strRef(ref),warning:message=>runtimeDiagnostics.record('ui.native-item-menu-warning',message,{itemId:id,actorId:actor.id}),
+      hasLearningClass:()=>((actor.creatureData??actor.authored).ClassList??[]).some(c=>intEntry(s.characterRules.classes,c.Class&255,'LearnScroll').value!==0)};
+    const map=entries=>(entries??[]).map(entry=>{
+      const icon=typeof entry.icon==='object'?entry.icon.resRef:entry.icon,row={...entry,icon};
+      if(entry.kind==='more')row.children=()=>({title:this.objectName(item),entries:alive()?map(itemPropertyPage(item,entry.start,p)):[]});
+      else if(entry.kind==='variants')row.children=()=>({title:entry.label,entries:alive()?map(itemVariantEntries(item,entry.index,p)):[]});
+      else if(entry.kind==='learn')row.action='item.learn';
+      else{
+        const packed=(entry.index|(entry.variant<<16))|0;
+        row.action='item.use';row.binding={action:'item.use',actorId:actor.id,areaId,itemId:id,propertyIndex:entry.index,variant:entry.variant,packed};
+        row.quickbarBinding={type:1,itemId:id,intParam:packed};
+      }
+      return row;
+    });
+    return alive()?map(nativeItemUseEntries(item,p)):[];
+  }
+  worldAbilityMenu(target){
+    const s=this.getSession(),actor=s.player;
+    const p=featRadialProviders(actor,target,s.characterRules,{
+      remaining:id=>s.combat.remainingUses(actor,id),
+      familiar:actor.associateIds?.map(id=>s.registry.get(id)).find(o=>o?.objectType===5&&(o.associateType&65535)===3),
+      warning:message=>runtimeDiagnostics.record('ui.native-feat-menu-warning',message,{actorId:actor.id,targetId:target?.id})
+    },{alwaysSubradial:this.classAbilitiesAlwaysSubradial??false});
+    return buildFeatAbilityRadial(p,{
+      text:ref=>this.text.strRef(ref),featName:id=>this.ruleName('feat',id,'FEAT'),
+      className:index=>this.ruleName('classes',(actor.creatureData??actor.authored).ClassList[index].Class),
+      classIcon:index=>spellStringEntry(s.characterRules.classes,(actor.creatureData??actor.authored).ClassList[index].Class,'Icon'),
+      title:'Special abilities',craftLabel:this.text.strRef(84543)||'Craft',tauntLabel:this.text.strRef(342)||'Taunt',
+      searchLabel:this.text.strRef(actor.nativeField6ec!==0?4849:4848)||'Search',stealthLabel:this.text.strRef(actor.nativeField6ed!==0?4851:4850)||'Stealth',
+      classAbilitiesLabel:this.text.strRef(7471)||'Class abilities',moreLabel:this.text.strRef(427)||'More abilities',innateLabel:'Innate abilities',
+      innateMenu:actor.nativeSpellLikeAbilities?.length?()=>buildSpellLikeRadial(actor,target,s.characterRules,{name:(table,id)=>this.ruleName(table,id)}):null
+    });
   }
   useQuickbar(page, slot) {
     const session = this.getSession(); if (!session) return;
-    const action = quickbarRequest(session.player,getQuickbarButton(session.player,page*12+slot),session.registry,this.getSelected?.()?.id);
+    const binding=getQuickbarButton(session.player,page*12+slot);if(this.quickbarDescription(binding)?.enabled===false)return;
+    const action = quickbarRequest(session.player,binding,session.registry,this.getSelected?.()?.id);
     if (action) this.request(action.action,action);
     else this.notify('Quickbar slot is empty or its target is unavailable');
   }
@@ -221,6 +328,9 @@ export class GameUi {
     if (!this.session || !this.assets || !this.hud.querySelector('#game-player-name')) return;
     const now = performance.now(); if (!force && now - this.lastRefresh < 200) return; this.lastRefresh = now;
     const session = this.getSession(); if (session !== this.session) return;
+    const inventoryGUI=session.combat.broadcastProviders().client(session.player.id)?.inventoryGUI,inventoryOpen=Boolean(inventoryGUI?.field8);
+    if(this.nativeInventoryOpen!==inventoryOpen){this.nativeInventoryOpen=inventoryOpen;if(inventoryOpen&&!this.state.panel)this.open('inventory');else if(!inventoryOpen&&this.state.panel==='inventory'){this.state.close();this.onInputCapture?.(this.captured);void this.renderPanel();}}
+    try{this.containers.refresh(session,this.assets,this.text);}catch(error){runtimeDiagnostics.error(error,'ui.container-state-failed');}
     this.root.hidden = !this.visible; this.areaLabel.textContent = session.currentArea?.name || session.currentArea?.resRef || '';
     this.hud.querySelector('#game-player-name').textContent = session.player.name;
     const stats = session.player.stats, health = this.hud.querySelector('.game-health');
@@ -228,14 +338,21 @@ export class GameUi {
     health.title = stats ? `Hit points · ${stats.limitations.join(' ')}` : 'Hit points unavailable until a character is loaded';
     this.root.dataset.characterXP = stats?.xp ?? ''; this.root.dataset.characterLoaded = String(Boolean(session.player.characterLoaded));
     this.root.dataset.cutscene = String(Boolean(session.player.cutscene?.enabled));
+    const timing=session.nativeLocalClient?.guiTiming,restClock=session.worldTimer.time(),resting=Boolean(timing?.active===1&&timing.type===6),bar=this.hud.querySelector('.game-rest-timing');
+    if(bar){bar.hidden=!resting;if(resting){const elapsed=session.worldTimer.dayLength*(restClock.day-timing.started.day)+restClock.time-timing.started.time,progress=bar.querySelector('progress');progress.max=Math.max(1,timing.duration);progress.value=Math.max(0,Math.min(timing.duration,elapsed));}}
+    this.root.dataset.nativeRest=JSON.stringify({activity:Number((session.player.activities&16)!==0),excited:session.player.excitedDuration,timing,clock:restClock,hp:session.player.stats?.currentHP});
     this.updateActionQueue();
     this.updateQuickbar();
     if (this.dialogVersion !== session.conversation?.version) this.conversationChanged();
     if (session.player.characterLoaded && this.portraitKey !== session.player.authored.Portrait) {
       this.portraitKey = session.player.authored.Portrait; void this.loadPortrait(this.portraitKey);
     }
-    const sig = JSON.stringify([session.player.id, session.player.areaId, [...session.player.journal], session.player.inventory ?? [], stats,
-      this.state.panel==='spells'?session.player.nativeTalentClasses:null]);
+    const inventory=(session.player.inventory??[]).map(id=>session.registry.get(id)).filter(Boolean).map(i=>({id:i.id,baseItem:i.baseItem,stackSize:i.stackSize,charges:i.charges,pending:i.nativeItemPending240??0,properties:i.activeProperties.map((p,index)=>({index,type:p.type,subtype:p.subtype,costValue:p.costValue,remaining:p.remaining,usesPerDay:p.usesPerDay}))}));
+    this.root.dataset.nativeInventory=JSON.stringify(inventory);
+    this.root.dataset.nativeEffects=JSON.stringify({effects:session.player.effects.map(e=>({id:e.id,type:e.type,spellId:e.spellId,integers:e.integers})),icons:session.player.nativeEffectIcons778.records});
+    if(this.state.panel==='spells')this.root.dataset.nativeSpellBook=JSON.stringify(session.player.nativeTalentClasses);
+    const sig = JSON.stringify([session.player.id, session.player.areaId, [...session.player.journal], inventory, stats,inventoryGUI?.fieldC,[...(session.player.nativeRepository?.ids()??[])].map(id=>{const i=session.registry.get(id);return[id,i?.repositoryX,i?.repositoryY];}),
+      this.state.panel==='spells'?[session.player.nativeTalentClasses,session.player.nativeSpellLikeAbilities,session.player.featUsePool?.records.map(r=>[r.getUint16(0,true),r.getUint8(2)])]:null]);
     this.root.dataset.playerId = session.player.id; this.root.dataset.journalEntries = session.player.journal.size;
     if (sig !== this.signature) { this.signature = sig; if (['journal', 'inventory', 'character', 'party', 'spells'].includes(this.state.panel)) void this.renderPanel(); }
     if (this.state.panel === 'map') this.drawMap();
@@ -369,6 +486,19 @@ export class GameUi {
       entry.addEventListener('toggle', () => { if (entry.open) this.state.selectedQuest = row.tag; }); body.append(entry);
     }
   }
+  inventoryItemButton(item,className=''){
+    const node=button(item?this.objectName(item):'',()=>{
+      if(!item||this.onItemTarget?.(item.id))return;
+      if(this.session.items.baseInfo(item)?.container!==0){this.request('item.container.open',{itemId:item.id});return;}
+      this.examineId=item.id;this.open('examine');
+    },className);
+    node.dataset.objectId=item?.id??'';
+    if(item){
+      this.makeQuickbarSource(node,{type:1,itemId:item.id,intParam:0xff00ff});
+      node.addEventListener('pointerdown',event=>{if(event.button===2){event.preventDefault();this.onItemMenu?.(item.id,event);}});
+    }
+    return node;
+  }
   renderInventory(body, tabs) {
     tabs.append(button('Equipment', () => { this.inventoryTab = 'equipment'; void this.renderPanel(); }), button('Contents', () => { this.inventoryTab = 'contents'; void this.renderPanel(); }));
     const items = (this.session.player.inventory ?? []).map(id => this.session.registry.get(id)).filter(Boolean);
@@ -377,16 +507,17 @@ export class GameUi {
       const equipped = el('dl', 'game-equipment');
       for (const [index, name] of EQUIPMENT_SLOTS.entries()) {
         const item = items.find(i => i.equipmentSlot === 1 << index), value = el('dd');
-        if (item) { const b = button(this.objectName(item), () => { this.examineId = item.id; this.open('examine'); });this.makeQuickbarSource(b,{type:1,itemId:item.id,intParam:0xff00ff}); b.dataset.objectId = item.id; value.append(b); } else value.textContent = '—';
+        if (item) value.append(this.inventoryItemButton(item)); else value.textContent = '—';
         equipped.append(el('dt', '', name), value);
       }
       body.append(equipped);
     } else {
-    const grid = el('div', 'game-inventory-grid');
-    const carried = items.filter(i => i.equipmentSlot === null);
-    for (let i = 0; i < Math.max(60, carried.length); i++) { const item = carried[i], slot = button(item ? this.objectName(item) : '', () => { if (item) { this.examineId = item.id; this.open('examine'); } }, 'game-item-slot'); slot.dataset.objectId = item?.id ?? ''; if (item){this.makeQuickbarSource(slot,{type:1,itemId:item.id,intParam:0xff00ff});slot.title = `${this.objectName(item)} · Stack ${item.authored.StackSize ?? 1} · Position ${item.inventoryPosition?.join(', ') ?? 'unknown'}`;} grid.append(slot); } body.append(grid);
+    const client=this.session.combat.broadcastProviders().client(this.session.player.id),repo=this.session.player.nativeRepository,page=client.inventoryGUI.fieldC,pages=Math.trunc(repo.width*repo.height/repo.boundary)&255;
+    const pager=el('nav','game-repository-pages');pager.setAttribute('aria-label','Inventory pages');
+    for(let index=0;index<pages;index++){const choose=button(String(index+1),()=>this.request('inventory.page',{panel:index,primary:1}));choose.setAttribute('aria-current',String(index===page));pager.append(choose);}body.append(pager);
+    body.append(repositoryGrid({session:this.session,owner:this.session.player,page,itemButton:item=>this.inventoryItemButton(item,'game-item-slot'),onRequest:(...args)=>this.request(...args)}));
     }
-    body.append(el('p', 'game-muted', `Gold ${this.session.player.stats?.gold ?? '—'} · Equip/use and carry-weight rules pending`));
+    body.append(el('p', 'game-muted', `Gold ${this.session.player.stats?.gold ?? '—'} · Right-click an item for actions; drag an action to the quickbar.`));
   }
   renderCharacter(body, tabs) {
     for (const name of ['Character', 'Skills', 'Feats']) tabs.append(button(name, () => { this.characterTab = name; void this.renderPanel(); }));
@@ -414,12 +545,18 @@ export class GameUi {
     if (s) body.append(el('p', 'game-muted', s.limitations.join(' ')));
   }
   renderSpells(body, tabs) {
-    for (const name of ['Spellbook', 'Memorized', 'Feats']) tabs.append(button(name, () => { this.spellTab = name; void this.renderPanel(); }));
+    for (const name of ['Spellbook', 'Prepare', 'Memorized', 'Abilities', 'Feats']) tabs.append(button(name, () => { this.spellTab = name; void this.renderPanel(); }));
     const player = this.session.player;
     if (!player.stats) { body.append(el('p', '', 'No character spell or feat data loaded.')); return; }
+    if(this.spellTab==='Prepare'){this.renderPreparation(body);return;}
     let count = 0;
-    if (this.spellTab === 'Feats') {
-      for (const id of player.stats.feats) { body.append(this.makeQuickbarSource(button(this.ruleName('feat', id, 'FEAT'), () => this.request('feat.use', { featId: id })),{type:4,intParam:id})); count++; }
+    if(this.spellTab==='Abilities'){
+      for(const a of player.nativeSpellLikeAbilities??[]){
+        const ready=spellLikeReady(player,a.id)!==0,b=button(`${this.ruleName('spells',a.id)} · ${ready?'Ready':'Used'}`,()=>this.request('spellLike.use',{spellId:a.id,domainLevel:a.casterLevel}));
+        b.dataset.abilitySpellId=a.id;b.dataset.abilityReady=Number(ready);b.dataset.abilityRemaining=a.remaining;body.append(this.makeQuickbarSource(b,{type:44,intParam:a.id,domainLevel:a.casterLevel}));count++;
+      }
+    }else if (this.spellTab === 'Feats') {
+      for (const id of player.stats.feats) {const b=button(this.ruleName('feat', id, 'FEAT'), () => this.request('feat.use', { featId: id }));b.dataset.featId=id;b.dataset.featRemaining=this.session.combat.remainingUses(player,this.session.combat.highestFeat(player,id));body.append(this.makeQuickbarSource(b,{type:4,intParam:id}));count++;}
     } else for (const [index,c] of (player.creatureData ?? player.authored).ClassList.entries()) {
       const state=player.nativeTalentClasses?.[index];if(!state)throw new Error('Live spellbook class storage is unavailable');
       const section = el('section', 'game-spell-class'); section.append(el('h3', '', this.ruleName('classes', c.Class)));
@@ -437,7 +574,67 @@ export class GameUi {
       body.append(section);
     }
     if (!count) body.append(el('p', '', 'No entries in this list.'));
-    body.append(el('p', 'game-muted', 'Choose a spell, then its target. Memorization changes and feat actions are pending.'));
+    body.append(el('p', 'game-muted', 'Choose a spell, then its target. Use Prepare to change memorized spells.'));
+  }
+  renderPreparation(body){
+    const session=this.session,actor=session.player,areaId=actor.areaId,classes=(actor.creatureData??actor.authored).ClassList,rules=session.characterRules,
+      choices=classes.map((c,index)=>({c,index})).filter(({c})=>intEntry(rules.classes,c.Class&255,'MemorizesSpells').value!==0);
+    if(!choices.length){body.append(el('p','game-muted','This character has no classes that prepare spells.'));return;}
+    if(!choices.some(c=>c.index===this.preparationClass))this.preparationClass=choices[0].index;
+    const index=this.preparationClass,state=actor.nativeTalentClasses[index],controls=el('div','game-preparation-controls'),classSelect=el('select'),metaSelect=el('select');
+    classSelect.setAttribute('aria-label','Preparation class');for(const {c,index:i}of choices){const option=el('option','',this.ruleName('classes',c.Class));option.value=i;classSelect.append(option);}classSelect.value=index;
+    classSelect.addEventListener('change',()=>{this.preparationClass=Number(classSelect.value);void this.renderPanel();});
+    metaSelect.setAttribute('aria-label','Preparation metamagic');
+    for(const [mask,feat,label]of [[0,null,'Normal'],[1,11,'Empower'],[2,12,'Extend'],[4,25,'Maximize'],[8,29,'Quicken'],[16,33,'Silent'],[32,37,'Still']]){
+      if(feat!==null&&!session.combat.hasFeat(actor,feat))continue;const option=el('option','',label);option.value=mask;metaSelect.append(option);
+    }
+    if(![...metaSelect.options].some(o=>Number(o.value)===this.preparationMeta))this.preparationMeta=0;metaSelect.value=this.preparationMeta;
+    metaSelect.addEventListener('change',()=>{this.preparationMeta=Number(metaSelect.value);void this.renderPanel();});controls.append(classSelect,metaSelect);body.append(controls);
+    const grid=el('div','game-preparation-grid'),known=el('section','game-spell-class'),slots=el('section','game-spell-class');known.append(el('h3','','Available spells'));slots.append(el('h3','','Prepared slots'));grid.append(known,slots);body.append(grid);
+    this.preparationWidgets=new Map();const meta=this.preparationMeta,cost=session.spellBook.metamagicCost(meta);
+    const add=(parent,key,widget,label)=>{
+      const b=button(label,()=>{});b.dataset.preparationKey=key;b.dataset.spellId=widget.id;b.dataset.spellClassIndex=index;b.dataset.preparationLevel=widget.level;b.dataset.preparationKind=widget.kind;b.dataset.spellReady=widget.ready??0;
+      this.preparationWidgets.set(key,widget);b.draggable=widget.id>=0;
+      b.addEventListener('dragstart',e=>{e.dataTransfer.effectAllowed='copyMove';e.dataTransfer.setData('application/x-nwn-preparation',JSON.stringify({key,widget,actorId:actor.id,areaId:actor.areaId,epoch:this.preparationEpoch}));});
+      if(widget.kind===0){
+        b.dataset.preparationSlot=widget.slot;
+        b.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('application/x-nwn-preparation')){e.preventDefault();b.classList.add('drag-over');}});b.addEventListener('dragleave',()=>b.classList.remove('drag-over'));
+        b.addEventListener('drop',e=>{e.preventDefault();b.classList.remove('drag-over');void this.dropPreparedSpell(key,e.dataTransfer.getData('application/x-nwn-preparation'));});
+        b.addEventListener('dblclick',()=>{if(session!==this.session||actor!==session.player||actor.areaId!==areaId||!this.preparationWidgetCurrent(widget))return;this.request('spell.prepare',{actorId:actor.id,areaId,clear:true,classIndex:index,level:widget.level,slot:widget.slot});});
+      }
+      parent.append(b);return b;
+    };
+    for(let level=0;level<10;level++){
+      if(level+cost<10){const entries=session.spellBook.preparationSpells(actor,index,level,meta);
+        if(entries.length)known.append(el('h4','',`Spell level ${level+cost}`));
+        entries.forEach((s,n)=>add(known,`known:${index}:${level}:${meta}:${n}`,{...s,type:0x53704278,classIndex:index,kind:1,level:level+cost,slot:0,ready:0},`${this.ruleName('spells',s.id)}${s.domain?' · Domain':''}`));
+      }
+      const pool=state.memorized[level];if(pool.length)slots.append(el('h4','',`Spell level ${level}`));
+      pool.forEach((s,slot)=>add(slots,`slot:${index}:${level}:${slot}`,{type:0x53704278,classIndex:index,kind:0,level,slot,id:s?.id??-1,metamagic:s?.metamagic??0,domain:s?.domain??0,ready:s?.ready??0},s?`${this.ruleName('spells',s.id)}${s.domain?' · Domain':''}${s.metamagic?` · Metamagic ${s.metamagic}`:''} · ${s.ready?'Ready':'Rest required'}`:`Empty slot ${slot+1}`));
+    }
+    body.append(el('p','game-muted','Drag spells into matching-level slots. Drag between slots to exchange spells. Double-click a slot to clear it. Changes require resting before casting.'));
+  }
+  async dropPreparedSpell(key,encoded){
+    const session=this.session,actor=session?.player;
+    try{
+      const payload=JSON.parse(encoded),source=this.preparationWidgets.get(payload.key),destination=this.preparationWidgets.get(key);
+      if(!actor||payload.actorId!==actor.id||payload.areaId!==actor.areaId||payload.epoch!==this.preparationEpoch||!source||!destination||JSON.stringify(source)!==JSON.stringify(payload.widget))return;
+      if(source.classIndex!==destination.classIndex||actor.cutscene?.enabled)return;
+      if(!this.preparationWidgetCurrent(source)||!this.preparationWidgetCurrent(destination))return;
+      // The native GUI sends requests immediately and waits for server state
+      // separately. Collect both exchange requests before awaiting authority;
+      // never mutate canonical pools optimistically or ready the new spell.
+      const requests=[];await dropPreparation(destination,source,0,{set:(widget,id,_send,domain,metamagic,classIndex)=>{
+        const next={...widget,id,domain,metamagic,classIndex};requests.push(session.queuePlayerSpellPreparation(preparationRequest(next,{metamagicCost:mask=>session.spellBook.metamagicCost(mask)})));Object.assign(widget,next);
+      },tint:()=>{}});await Promise.all(requests);
+      if(session===this.session)void this.renderPanel();
+    }catch(error){runtimeDiagnostics.error(error,'spells.preparation-drop-failed');this.notify(error.message);}
+  }
+  preparationWidgetCurrent(widget){
+    const session=this.session,actor=session.player;
+    if(widget.kind===0){const pool=actor.nativeTalentClasses[widget.classIndex]?.memorized[widget.level];if(!pool||widget.slot>=pool.length)return false;
+      const spell=pool[widget.slot];return widget.id===(spell?.id??-1)&&widget.metamagic===(spell?.metamagic??0)&&widget.domain===(spell?.domain??0)&&widget.ready===(spell?.ready??0);}
+    return session.spellBook.preparationSpells(actor,widget.classIndex,widget.level-session.spellBook.metamagicCost(widget.metamagic),widget.metamagic).some(s=>s.id===widget.id&&s.domain===widget.domain);
   }
   renderExamine(body) {
     const object = this.session.registry.get(this.examineId ?? this.getSelected?.()?.id);

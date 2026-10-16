@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {applySilence,removeSilence} from '../src/silence_effect.js';
 import {ModuleSession} from '../src/module_session.js';
-const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-silence-effect-observations.json',import.meta.url)));
+const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-silence-effect-observations-v2.json',import.meta.url)));
 const project=e=>({id:e.id,type:e.type,subtype:e.subtype,durationType:e.durationType,spellId:e.spellId,creatorId:e.creatorId,casterLevel:e.casterLevel,showIcon:e.showIcon,exposed:Number(e.exposed),integers:e.integers});
 test('silence admission, immunity feedback, linked children and cache removal match original instructions',async()=>{
   for(const row of oracle.rows){const c=row.case,calls=[],actor={id:99,objectType:c.objectType??5,nativeSilence75c:c.silenced??0},effect={id:'000000000000004d',type:46,subtype:8,durationType:c.durationType??2,
     spellId:11,creatorId:98,casterLevel:7,showIcon:c.showIcon??1,exposed:true,integers:Array(8).fill(0),bypassImmunity:c.bypass??0},p={
     dead:()=>c.dead??0,creature:()=>c.sourceExists===false?null:{id:98},immunity:(_o,id)=>{calls.push(['immunity',id]);return c.immune??0;},plot:()=>c.plot??0,
-    feedback:(o,code,data)=>calls.push(['feedback',o.id,code,{objectIds:data.objects}]),copy:(e,icons)=>({...structuredClone(e),exposed:false,showIcon:icons?e.showIcon:0}),
+    feedback:(o,code,data)=>calls.push(['feedback',o.id,code,{objectIds:data.objects}]),copyConstruct:(e,icons)=>({...structuredClone(e),integers:Array(e.integers.length).fill(0),exposed:false,showIcon:icons?e.showIcon:0}),
     apply:(_o,e,loading)=>calls.push(['apply',project(e),loading])};
     const result=c.remove?removeSilence(actor):await applySilence(actor,effect,p,c.loading??0);
     assert.equal(result,row.result,JSON.stringify(c));assert.deepEqual(calls,row.calls,JSON.stringify(c));assert.equal(actor.nativeSilence75c,row.silenced,JSON.stringify(c));

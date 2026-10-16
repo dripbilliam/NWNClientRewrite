@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {applySpeedEffect,removeSpeedEffect,applyAttackCountEffect,removeAttackCountEffect} from '../src/speed_effect.js';
 import {setNativeMovementFactor} from '../src/movement_rate.js';
-const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-speed-effect-observations.json',import.meta.url)));
+const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-speed-effect-observations-v2.json',import.meta.url)));
 
 test('Speed modifiers, attack-count flag and factor setter match original instructions',async()=>{
   for(const row of oracle.rows){const c=row.case,calls=[],actor={id:99,objectType:c.objectType??5,nativeField76c:0,nativeMovementFactor8e8:0,
@@ -12,7 +12,7 @@ test('Speed modifiers, attack-count flag and factor setter match original instru
     effect.integers[0]=c.amount??50;
     const effects=(c.effects??[]).map((e,i)=>e.samePointer?effect:{type:e.type,id:BigInt(e.id??10+i).toString(16).padStart(16,'0'),integers:[e.amount??0]});
     const p={dead:()=>c.dead??0,creature:()=>c.sourceExists===false?null:{id:98},immunity:(_o,id)=>{calls.push(['immunity',id]);return c.immune??0;},
-      plot:()=>c.plot??0,effects:()=>effects,setFactor:(_o,value)=>calls.push(['factor',value]),copy:e=>structuredClone(e),apply:(_o,e,loading)=>calls.push(['icon',e.integers[0],loading])};
+      plot:()=>c.plot??0,effects:()=>effects,setFactor:(_o,value)=>calls.push(['factor',value]),copyConstruct:e=>({...structuredClone(e),integers:Array(e.integers.length).fill(0)}),apply:(_o,e,loading)=>calls.push(['icon',e.integers,loading])};
     let result;
     if(c.mode==='setter'){
       setNativeMovementFactor(actor,c.value,{ruleset:{orderedRows:Object.entries(c.rulesOverrides??{}).map(([Label,Value])=>({Label,Value:String(Value)}))}});result=null;

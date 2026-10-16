@@ -3,7 +3,7 @@ import { creatureSize } from './combat_context.js';
 import { rulesetInt } from './combat_stats.js';
 import { OBJECT_INVALID } from './game_object_array.js';
 import { createRoundAction, addRoundAction } from './combat_action.js';
-import { createAttackData, clearAllAttacks } from './combat_attack_data.js';
+import { createAttackData, clearAllAttacks,getAttackData } from './combat_attack_data.js';
 
 const f32 = Math.fround;
 const scaled = (time, length, decrease) => length <= 0 ? 0 : Math.trunc(f32(f32(time / length) * f32(length - decrease)));
@@ -35,6 +35,24 @@ export function insertSpecialAttack(round, type, index) {
     round.specialAttacks.push(type & 65535);
     round.specialAttackParameters.push(sequence);
   }
+}
+
+// AddSpecialAttack140374da0. Prefer an empty remaining physical attack when
+// a round is running and the special queue is empty. Otherwise append at most
+//50 queued records, preserving the shared WORD sequence rollover.
+export function addSpecialAttack(round,type,warning){
+  if(!Number.isInteger(type)||!Number.isInteger(round.specialAttackSequence)||!Array.isArray(round.specialAttacks)||!Array.isArray(round.specialAttackParameters))throw new Error('Native special attack append state is unavailable');
+  const next=()=>{let sequence=round.specialAttackSequence&65535;if(sequence===65534)sequence=0;round.specialAttackSequence=(sequence+1)&65535;return sequence;};
+  const count=()=>{const values=[round.onhandAttacks,round.offhandAttacks,round.additionalAttacks,round.bonusEffectAttacks];if(!values.every(Number.isInteger))throw new Error('Native special attack counts are unavailable');const total=values.reduce((n,v)=>(n+v)|0,0);return total>1?total&255:1;};
+  if(Number(round.started)===1&&round.specialAttacks.length===0){
+    for(let index=round.currentAttack&255;index<count();index++){
+      if(getAttackData(round,index,warning).attackType!==0)continue;
+      getAttackData(round,index,warning).attackType=type&65535;
+      getAttackData(round,index,warning).specialParameter=next();return;
+    }
+  }
+  if(round.specialAttacks.length>=50)return;
+  round.specialAttacks.push(type&65535);round.specialAttackParameters.push(next());
 }
 
 // AddAttackOfOpportunity 140374320..140374488. A running round gets a

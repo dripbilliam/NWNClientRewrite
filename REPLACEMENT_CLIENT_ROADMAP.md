@@ -1,5 +1,149 @@
 # NWN Replacement Client Roadmap
 
+Scripted creation continuation: CreateObject243 now supports all five native
+types through canonical loaders/placement/area owners. The real Gate cast and
+delayed authored creation/OnSpawn pass; rendered right-click Use creates a
+pickable placeable that survives area revisit. Placeable orientation preserves
+the original FLOAT collision guard (288 original comparisons). All1,748 tests
+and build pass. Map pins and ground-item drawing remain diagnosed gaps; see
+[creation evidence](evidence/create-object-runtime.md).
+
+Creature-template casting continuation: the complete wrapper now preserves
+native tag/load order, forces template NPC stats and readies imported spells.
+Great-ability feat bonuses and level-history reversal use the active rule.
+Fixed three ruleset labels whose native calls hash a suffix with a prehashed
+first letter; UMD restrictions now reach implemented pricing. All1,746 tests/
+build and rendered summoning/casting regressions pass. CreateObject243 was bound
+in the subsequent increment above; see [creature readiness evidence](evidence/creature-template-readiness.md).
+
+Store continuation: full UTM loader, stock acquisition and three item pricing
+owners now match1,846 original executions; GetGoldPieceValue adds32 wrapper
+comparisons and a live command binding. All42 installed store templates and
+4,597 direct stock items import/price/destroy with canonical IDs. All1,741
+tests/build and rendered casting/loot regressions pass. CreateObject243, GIT
+store import and trade GUI remain unfinished; see
+[store and pricing evidence](evidence/store-template-runtime.md).
+
+Full UTP runtime continuation: placeable templates now load through concrete
+typed field/script/table/inventory/visual/UUID/locals providers. Canonical saved
+IDs propagate into nested items; reload preserves repository ownership. Fixed
+regular versus trap faction storage. Item GFF wrapper and portrait setters match
+555 original executions; installed UTP area/geometry/destruction checks and
+rendered casting/loot regressions pass. All1,734 tests and build pass.
+CreateObject243, UTM and saved effects/actions remain unfinished. See
+[placeable runtime evidence](evidence/placeable-template-runtime.md).
+
+Timed visual-data continuation: curve loading/restart, scoped maps and assignment
+now match873 original executions. All five visual-data owners have a canonical
+runtime adapter; GIT placeables use it after inventory. Owned animation reloads
+reach the model animator, and equipped items copy transforms to their real
+owner's hand maps. Missing presentation is retained in diagnostics. All1,727
+tests/build, installed-resource checks and rendered casting/loot regressions
+pass. Full UTP/UTM adapters, CreateObject243 and scoped transform drawing remain
+unfinished; see [current visual runtime evidence](evidence/object-visual-transforms.md).
+
+Visual-data continuation: four complete material/replacement/misc loaders now
+match167 original executions. Fixed16-byte GFF query-label handling against144
+native cases, which also fixes parsed creature animation replacements reaching
+the actual model animator. All1,719 tests/build, installed-resource checks and
+rendered casting regression pass. Visual transforms and the concrete UTP/
+CreateObject243 hookup remain unfinished; see
+[visual-data evidence](evidence/object-visual-data-loading.md).
+
+Placeable loader continuation: complete data-loader coordinator now matches431
+original executions, and tag sanitation matches888 runs using the original CRT
+classifier. Corrected swapped current/max HP aliases in the shared body-bag
+field bridge. All1,715 tests/build and casting/body-bag regressions pass. UTP runtime
+adapter/CreateObject243 remain unfinished; its five visual-data dependencies
+are now identified for the next port. See
+[placeable loading evidence](evidence/placeable-template-loading.md).
+
+Waypoint template continuation: concrete active-resource loading, UUID/variable
+providers, canonical area insertion/movement/destruction and localized members
+now work with installed UTWs. Tag insertion/query and leading-NUL GFF string
+semantics are corrected against original owners. All1,712 tests/build plus
+installed checks and casting/body-bag UI regressions pass. CreateObject243,
+UTP/UTM adapters and map-pin transport remain unfinished; see
+[runtime evidence](evidence/world-template-runtime.md).
+
+Variable-loading continuation: fresh serialized objects now use native typed
+primitive/location imports, shared-name cells, loading flag1 and retained struct
+outputs. Empty local locations return owned native defaults, and nonzero vectors
+survive an invalid area ID. Unrebasable BIC locations are cleared and diagnosed.
+Native comparisons and installed NCS/active-blueprint checks pass. Solver/JSON
+lower loaders and CreateObject243 still need work; see
+[variable evidence](evidence/script-variable-loading.md).
+All1,710 tests/build and final casting UI regression pass; verified checkpoint
+target `backups/variable-load-1710-20261016-v1.zip`.
+
+Persistent UUID continuation: separate UUID storage, waypoint import, base-object
+cleanup and GetObjectByUUID898 now preserve canonical runtime IDs and original
+collision/old-alias behavior. Original-owner and bounded-stream comparisons,
+installed Prelude NCS/VM checks, all1,708 tests/build and casting UI regression
+pass. Random UUID/save, broader imports and CreateObject243 remain unfinished.
+See [UUID evidence](evidence/object-uuid-loading.md).
+
+World-template continuation: placeable/store/waypoint template wrappers and the
+full waypoint data-loader coordinator now match1,418 original-code cases.
+Native lower-call tracing distinguishes UUID loading from script variables;
+concrete loaders/adapters and CreateObject243 binding remain unfinished.
+See [template evidence](evidence/world-object-template-loading.md).
+
+Latest loot UI continuation: installed native container artwork now presents
+canonical repository grids/pages and queues normal drag/drop/close/bag actions.
+Actual browser mouse drags and page wrapping pass. Stock container callbacks
+also exposed GetIsOpen443, now mapped with its mutating door getter;970 added
+original-code observations and installed checks pass. All1,703 tests/build,
+body-bag/casting/scroll-learning/default-item UI regressions pass. Item icons,
+some presentation/client initialization and remaining gameplay owners stay open.
+See [container UI and query evidence](evidence/container-ui-and-open-query.md).
+
+Repository looting continuation: decoded inventory subtype9/action13 now transfers
+canonical items through original repository/ownership/rollback owners. Placeable
+OnInvDisturbed delivery and GFF import are connected. Six tests compare1,445
+original observations; installed chest acquisition/return, NCS disturbance queries,
+invalid-coordinate fallback and full-bag rollback pass. All1,700 tests/build and
+rendered bag/revisit regression pass. Visible container UI/drag-drop and ground
+pickup remain open. See [transfer evidence](evidence/repository-move-looting.md).
+
+Latest inventory continuation: decoded inventory status/page requests, character
+owner changes, item-container open/close, ignored item script events, movement/
+destruction cleanup and common item HP state now use original owners. Added
+2,267 original-code observations and installed request/bag lifecycle checks;
+all1,694 tests/build and rendered bag/revisit regression pass. Actual loot-window
+presentation/pickup and primary-owner login initialization remain open. See
+[item inventory/input evidence](evidence/item-inventory-input.md).
+
+Native Use Object continuation: real wheel/left-click and NWScript requests now
+reach action40, with approach, inventory ownership, callbacks,500ms wait and
+cancellation. Seven tests compare1,674 original-code observations; installed
+queue/GUI/VM and rendered wheel/script/bag/revisit checks pass. All1,687 tests
+and build pass. Loot window/pickup and remaining lock/trap/corpse/item-container
+owners stay open. See [Use Object evidence](evidence/use-object-action.md).
+
+Inventory continuation: native GUI/LUO ownership, placeable observer open/close,
+callback IDs and cleanup now have2,242 original-code comparisons and installed
+state/VM checks. All1680 tests/build plus rendered bag/revisit and summoning
+regressions pass. Native UseObject action and actual loot window/pickup remain
+unfinished; see [inventory GUI evidence](evidence/inventory-gui-ownership.md).
+
+Latest body-bag continuation: populated placeable destruction now transfers
+canonical items into a synthetic native bag, inserts it after1000ms, loads its
+dynamic model and preserves it across area revisits. Original-code comparisons,
+seven installed sources, and actual right-click Use/NCS/render/revisit checks
+pass; all1674 tests/build and polymorph/summoning UI regressions pass. Loot GUI/
+pickup and creature corpse copying/death scheduling remain outstanding. See
+[body-bag evidence](evidence/body-bag-lifecycle.md).
+
+Latest verified continuation (October16): placeable/store/waypoint constructor
+ownership and destructors, placeable inventory/acquisition, scheduled world
+destruction and direct inventory counting/closure coordinators. Six independent
+comparison tests cover1,695 original-code observations; installed Prelude
+creation/transfer/deletion preserves canonical IDs and cleans recursive ownership.
+All1,671 tests/build and rendered polymorph regression pass. Full body-bag/store
+GUI owners, CreateObject template/presentation adapters and continuous campaign
+acceptance remain unfinished. See [ownership evidence](evidence/world-object-ownership.md).
+
 This roadmap tracks a plausible replacement for the NWN: Enhanced Edition client. It does not assume that matching rendered screenshots is sufficient: the client must load modules, simulate the relevant world state, execute gameplay rules, present usable UI, and preserve progress.
 
 ## Target and completion tiers
@@ -22,6 +166,681 @@ high-level test character. Every selected unsupported owner or load failure
 remains recorded until implemented and validated.
 
 ## Current checkpoint
+
+World placement: canonical PWK points now drive placeable approach and native
+use-range checks. Shared creature displacement, door state and player-map refresh
+are connected with1,070 original-code cases. Installed door/PWK blockers safely
+move the same player record; rendered radial polymorph regression passes.
+All1,665 tests/build pass. See [evidence and limits](evidence/world-placement.md).
+Creation243, remaining spells/presentation, combat and campaign gates stay open.
+
+Scripted creation foundations: full CreateObject coordinator and noncreature
+area add/remove owners ported;853 original-code cases recorded. Explicit
+placeable collision updates preserve native slot storage. Engine243 binding,
+concrete loaders/cleanup/displacement and dynamic noncreature visuals remain
+open. Fixed a real shared-state bug that could run summoned creatures' OnSpawn
+twice; installed Summon Creature VII and six lifecycle cycles pass. See
+[creation evidence and boundaries](evidence/create-object-lifecycle.md).
+All1,659 tests and production build pass. The complete spells/combat/campaign
+goal remains ACTIVE.
+
+Effect-copy audit: child payloads now follow the original clearing constructor;
+beam transfers are explicit, and vision suppression/restoration use the correct
+fresh/preserved effect IDs.5,976 original-code cases compare, including1,783
+complete copy-constructor executions in the updated existing probes. Installed
+spell/lifecycle and rendered polymorph wheel/cast/restore checks pass. All1,652
+tests/build pass. See [evidence and limits](evidence/effect-copy-lifecycle.md).
+Spell APIs/presentation, combat and continuous campaign gates remain open.
+Full goal ACTIVE.
+
+Earlier checkpoints below are historical where superseded above.
+
+Damage-buff continuation: shared bonus/penalty, reduction/resistance, immunity
+and shield handlers now use original admission, icon/floaty and pre-erase cache
+semantics.8,188 original executions compare; installed Endure Elements,
+Stoneskin, Divine Favor and Elemental Shield and rendered rest/cast regression
+pass. All1,651 tests/build pass. Existing copy adapters in other effect families
+still need auditing; native HUD buff art remains open. See
+[evidence and limits](evidence/damage-buff-lifecycle.md). Full goal ACTIVE.
+
+Earlier checkpoints below are historical where superseded above.
+
+Conditional spell effects continuation: shared alignment/race wrappers and full
+attack/save/AC admission, icon, feedback and removal handlers replace simplified
+behavior.16,948 original executions compare; installed protection/aura impacts
+and rendered protection variants through the right-click wheel pass. All1,649
+tests/build pass.86 unbound impact API names/22 missing NCS remain. See
+[evidence and remaining limits](evidence/conditional-spell-effects.md). The whole
+spell/combat/campaign goal remains ACTIVE.
+
+The rest checkpoint below is historical where superseded above.
+
+Rest lifecycle continuation: normal rest now uses active duration/enemy rules,
+action42, progressive healing/spell recovery, cancellation and shared effect/
+feat/item/ability restoration. HUD rest/progress, NPC ScriptRested, module history
+and ActionRest/ForceRest/queries are wired.3759 original comparisons, installed
+learn→prepare→rest→authored cast, rendered learn/rest/cast/cancel and existing
+item-target casting regression pass. All1644 tests/build pass.88 unbound impact
+dependencies/22 missing NCS remain; no spells/combat/campaign completion claim.
+See [evidence and limits](evidence/rest-lifecycle.md). Goal ACTIVE.
+
+The preparation checkpoint below is historical where superseded above.
+
+Spell preparation continuation: the Prepare tab now copies known/class/domain
+spells into physical slots, exchanges prepared spells, clears slots and supports
+owned metamagic using active rules. Shared native input16/17, clear/drop/list
+owners match5573 original executions; newly edited spells remain unready.
+Installed learn/prepare and divine/domain probes plus rendered copy/exchange/
+clear/Empower pass; all1631 tests/build pass. Full rest and learn->prepare->rest
+->cast acceptance are next. Goal ACTIVE; spells/combat/campaign not complete.
+See [evidence and remaining gates](evidence/spell-preparation.md).
+
+The script/scroll checkpoint below is historical where superseded above.
+
+Scripted item use and scroll learning continuation: both typed item commands910/
+911 now share native property-ID selection and the existing casting executor.
+Learn Scroll connects inventory right-click, active class/spell/school admission,
+canonical known pools, consumption/destruction and acknowledgement.1608 new
+original executions, actual installed script/learning probes and rendered learning/
+duplicate/spellbook checks pass; all1625 tests/build pass. Preparation/memorization
+UI, artwork/feedback, further casting/effect gates and combat/campaign completion
+remain open. Goal ACTIVE. See [evidence and limits](evidence/script-item-use-and-scroll-learning.md).
+
+The hotbar checkpoint below is historical where superseded above.
+
+Whole-item hotbar continuation: shared native configuration/default selection,
+client wield/size, use-count/enabled state and equipment pairing pass3616 new
+original executions. Whole-item potion drag now selects its native default,
+casts through F2 and consumes the stack with drink animation; explicit wheel
+drag and shortcut move/reload regressions pass. All1617 tests/build pass.
+Non-property equipment/container activation, scroll learning, script ActionUseItem
+and broader spell acceptance remain open. Goal ACTIVE. See
+[shortcut evidence and limits](evidence/item-quickbar-configuration.md).
+
+The item wheel checkpoint below is historical where superseded above.
+
+Item wheel continuation: native use-entry slots, paging, child variants and
+item-specific targeting now connect inventory right-click and explicit
+property/variant quickbar bindings to input9/action46. 2,058 new original-code
+comparisons and all1,610 tests/build pass. Rendered test consumes an unchanged
+potion stack via wheel→DOM drag/drop→F2, plays the real drink clip three times,
+and clears its shortcut on destruction. Known missing PWK remains recorded.
+Default whole-item shortcuts, scroll learning, script ActionUseItem, further
+spell effects/presentation and full scroll/wand acceptance remain open. Goal
+ACTIVE. See [item wheel evidence](evidence/item-radial-casting.md).
+
+Item execution continuation: action46 now executes the original item-casting
+timing, variant selection, resource consumption and delayed destruction paths.
+11,514 original instruction comparisons cover execution/resources/cancellation/
+event11/decoded input9. Installed potion stack3→2→1→removed runs its authored
+script through typed talent and player item input, heals HP67→77, and preserves
+class/innate pools. Real Get/SetItemCharges607/608 bind shared owners. All1,603
+tests/build pass; auditv33:88 unbound names/22 missing NCS. Wheel/hotbar item-use
+selection, complete scroll/wand acceptance, release/projectile presentation and
+other spell effects remain open. Goal ACTIVE; combat and campaign gates remain
+unmet. See [item execution evidence](evidence/item-cast-execution.md).
+
+The request-only checkpoint below is historical; its missing action46 status
+has been superseded by the execution continuation above.
+
+Item request continuation: complete native UseItem and AddItemCastSpellActions
+owners now connect item-backed talents to canonical ownership/equipment,
+active metadata, range and typed queues.5236 original comparisons and1596
+tests/build pass. Actual installed potion queues native action46 and preserves
+resources until execution. The action46 executor remains explicitly diagnosed;
+item/scroll casting is not playable yet. Next: its native lifecycle, resource
+consumption, player input and item UI. Goal ACTIVE. See
+[item request evidence](evidence/item-cast-requests.md).
+
+Talent action continuation: full object/location talent wrappers and scripted
+309/310 dispatch now share casting/feat/skill owners, preserving conditional VM
+target pops and native item-routing boundaries. Corrected installed accessor
+names362/363.12444 original cases,1594 tests/build and existing innate UI pass.
+Five unchanged installed player/NPC profiles execute class, feat and innate
+talents through the typed VM with correct pool consumption and canonical IDs.
+Known absent PWK remains recorded separately. Audit90 unbound names/22 missing
+NCS. Item/scroll use and other effects remain open; goal ACTIVE. See
+[talent dispatch evidence](evidence/talent-action-dispatch.md).
+
+Scripted feat continuation: ActionUseFeat287 is connected to the shared feat
+runtime with native argument groups, auxiliary conversion, actor/target/area
+selection and null-point rules.738 original command comparisons pass. Actual
+typed-VM calls with unchanged druid/barbarian characters run their authored
+effects and consume feat uses without class slots or identity changes.1591
+tests/build pass; active audit94 unbound names/22 missing NCS. Remaining spell/
+effect owners, combat and continuous campaign acceptance stay open. Goal ACTIVE.
+See [script feat evidence](evidence/script-feat-activation.md).
+
+Class/feat radial continuation: replaced the local Class abilities placeholder
+with native adaptive class slots, domain/class pages, feat variants, counts and
+selection routing into shared input6/casting.3557 original decision executions
+pass; all39 installed presets traverse active metadata. Actual druid F2 plus
+wheel-selected Brown Bear casts/restores with uses5->4->3 and same player565.
+1588 tests/build and ordinary/innate UI regressions pass. Audit95 unbound names/
+22 missing NCS remains explicit. ActionUseFeat, remaining effect/event owners,
+combat and continuous campaign acceptance remain open. Goal ACTIVE. See
+[class radial evidence](evidence/feat-class-radial.md).
+
+Feat activation continuation: Feats-panel drag/type4/F2 now reaches native
+client targeting, input6, UseFeat, shared cast/impact and feat-use consumption.
+Unchanged installed Wild Shape/Rage characters execute authored scripts; actual
+F2 form change and radial restoration retain canonical IDs and class slots.
+Native owners compared:857 UseFeat,960 feat casting,1620 special attacks,
+387 input and517 targeting cases.1580 tests/build and feat/ordinary/innate UI
+regressions pass. Shared native item-level restriction default restored; enabled
+pricing remains open. Class/feat radial submenus, ActionUseFeat, remaining effects,
+combat and continuous campaign acceptance remain open. Goal ACTIVE. See
+[feat evidence](evidence/feat-casting-activation.md).
+
+Client innate casting continuation: quickbar44/Abilities drag and Special
+abilities ->Innate abilities now reach native input35, shared casting actions,
+authored scripts and separate ability-use consumption. Target setup preserves
+parent IDs while using first-child metadata.4,263 target,633 input/wrapper and
+358 innate radial original-instruction cases pass. Installed location/object
+casts and actual F2 parent polymorph pass.1,575 tests/build plus ability and
+existing casting UI regressions pass; known missing plc_w02.pwk remains recorded.
+Class/feat ability submenus, special feat casting and other owners remain open.
+Audit95 unbound names/22 missing NCS; goal ACTIVE. See
+[client input evidence](evidence/spell-like-client-input.md).
+
+Form equipment/defenses continuation: shared property handlers now traverse all
+102 installed forms with valid appearances; 6,238 original materializer cases,
+499 turning-resistance cases and128 HP-pipeline cases pass. Corrected ability
+cache ownership and kept native missing-CON HP behavior. All-form sweep records
+HP differences explicitly; it is not full HP parity acceptance. Two authored
+item templates remain unavailable. Existing visual attachments rebind across
+body replacement.1,572 tests, build and polymorph radial UI pass. Active spell
+audit95 unbound names/22 missing NCS. Next: original book/hotbar child selection.
+See [defense evidence](evidence/form-equipment-defenses.md). Goal remains ACTIVE.
+
+Polymorph continuation: full transform/restoration coordinators now connect
+type62 to active form data, canonical item IDs, shared stats/racial traits and
+same-area remove/re-add. Self radial cancellation uses Input30/deferred removal;
+feat289 is creature-weapon proficiency. Live appearance/equipment changes rebind
+models and animations inside the same wrapper. Native comparisons:1037 form,
+984 property,144 input cases. Installed forms3/0/1/2/4 pass full local reversal;
+1569 tests/build pass. Broader107-form probe stops at property71/TrueSeeing.
+Saved combat a48 is explicitly diagnosed as a projection; full native d70 is
+open. Full UI radial GiantSpider387 cast/model/restoration and existing spellbook/
+F2/counterspell regressions pass. Goal ACTIVE. See
+[evidence](evidence/polymorph-form-lifecycle.md).
+
+- **2026-10-15 polymorph construction and racial effects:** command463 and
+  active-data racial68/vision children are connected. Native upper polymorph
+  lifecycle is ported/tested with lower transform/restoration captured.3747
+  original cases,1566 tests, build and installed race/VM probes pass. Authored
+  polymorph now reaches the still-unimplemented type62 application; full form,
+  equipment/model restoration and radial cancellation remain open. Audit97
+  unbound names/22 missing NCS. See [effect evidence](evidence/polymorph-effect-owners.md).
+
+- **2026-10-15 polymorph stat dependencies:** six shared base-ability setters
+  and native natural-armor query now preserve byte widths, CON injury/cache
+  ordering and transition/polymorph armor sources.4452 original instruction
+  cases,1560 tests, build and installed stat/drain/recovery checks pass.
+  Full polymorph casting, equipment/model transformation/restoration and radial
+  cancellation remain open. See [stat owner evidence](evidence/polymorph-stat-owners.md).
+
+- **2026-10-15 shared removal and expiry:** callback retention, assignment/value
+  re-find, live cursors, creator-target cleanup and strict expiry/restart now
+  follow original owners.1260 original cases,1557 tests, production build and
+  installed affliction/recovery/drain/bonus-feat regressions pass. Fixed area/
+  summon constructors preserving six string slots. This supersedes the removal
+  prerequisite warning below; full polymorph transformation/restoration and
+  cancellation, other spell owners, combat and campaign acceptance remain open.
+  See [removal evidence](evidence/effect-removal-lifecycle.md).
+
+- **2026-10-15 polymorph bonus feats:** native bonus pool, grant/removal/query
+  and EffectBonusFeat command are connected, including temporary duplicates and
+  passive stat/HP projection.2894 original cases and installed lifecycle pass;
+  all1552 tests/build pass. Full polymorph remains open: transform/restoration,
+  equipment/appearance and cancel UI require further work. Native deferred
+  removal was identified as a prerequisite; current remover must preserve its
+  callback0 retention and half-second transition before type62 can be bound.
+
+- **2026-10-15 negative levels and script effect types:** shared class BYTE
+  counters, linked penalties, independent caster HP bonus and lethal event now
+  follow original handlers.3115 native cases plus installed Enervation and real
+  Restoration/Greater Restoration lifecycle pass. Complete native/public effect
+  type mapping fixes cure scripts for negative levels, poison and disease.
+  All1549 tests/build pass; audit98 unbound names/22 missing scripts. Ordinary
+  negative-level casting, remaining visual/feedback/engine owners and campaign
+  acceptance remain open; no synthetic readied slots used for validation.
+
+- **2026-10-15 equipped regeneration:** native item-property materializer51 now
+  feeds the shared regeneration/healing owner, preserving item creator and
+  property IDs.72 original cases plus installed property insertion, strict
+  ticks, unequip/re-equip and removal probes pass. All1546 tests/build/item
+  casting UI pass. Generic remaining materializers and spell effects still open.
+
+- **2026-10-15 regeneration, healing and resurrection:** shared constructors,
+  handlers and strict tick clock now match original code. Healing handles
+  native feedback, live group removal and dying recovery; resurrection restores
+  existing canonical state. Installed Regenerate/Monstrous Regeneration timed
+  lifecycle and Raise Dead/Resurrection impacts pass. Prepared Regenerate uses
+  a real slot. A GetLocation structure bug found by recovery scripts is fixed
+  against387 original cases. All1546 tests/build/full casting UI pass; audit99
+  unbound names/22 missing scripts. Native death GUI/feedback rendering, complete
+  outer effect-list/active-timer lifecycle, save import and campaign remain open.
+
+- **2026-10-15 poison and disease:** active-table constructors, initial saves,
+  ability damage, secondary poison and disease incubation/daily stages now use
+  shared native effect owners. Original handler/time/copy/equality/poll checks
+  and actual installed lifecycle probes pass. Prepared Quillfire also completes
+  the normal casting path and consumes a slot. All1541 tests/build pass. Audit
+  has101 unbound spell-used names/22 missing scripts; this remains incomplete
+  spell coverage. Missing plc_w02.pwk remains diagnosed during area loading.
+  Rendered affliction, save import/rest recovery and campaign acceptance remain
+  open. Canonical object IDs and independent ability-damage group IDs preserved.
+
+- **2026-10-15 shared spell queries and petrification:** connected live
+  appearance/size/tail/subrace reads, native script mode comparison, canonical
+  droppable flags and EffectPetrify through the existing shared state pipeline.
+  Original-code comparisons cover widths, defaults, mode narrowing and flags.
+  Installed enemy impact probes now verify Flesh to Stone application/removal
+  and Sunburst damage; Gust of Wind and Bigby impact probes pass. All1535 tests,
+  build and full casting/radial UI regression pass. Static spell dependency audit
+  drops110->103 unbound command names;22 script resources remain unavailable.
+  Impact fixtures do not prove complete casting/rendering or campaign acceptance.
+  Legacy localized subrace, detect/stealth activity lifecycle, further effects
+  and procedural presentation remain open.
+
+- **2026-10-15 helper emitter simulation:** untextured zero-lifetime emitters
+  now receive authored events and produce wind bursts while following the
+  original no-draw lifetime gate. Point wind math/append/lifetimes match375
+  original observations. All1527 tests pass; actual GMW UI casting generates
+  particle vertices and a timed wind burst without a spell particle failure.
+  Ambient wind/noise, scene manager registration and native outer scheduling
+  remain explicit gaps. Factories retain their original session/scene across
+  asynchronous resource loading. Full spell/combat/campaign acceptance is open.
+
+- **2026-10-15 one-shot visual delivery:** decoded original object receiver
+  matches 864 native cases and now reaches the client renderer. One-shot entries
+  retain local identity separately from canonical looping effects; asynchronous
+  loading respects actor identity and area ownership. Actual GMW UI casting
+  presents visual150/vim_magsuper with native pose, then naturally retires it.
+  Client-only dummy/point and area-message ownership remain diagnosed, as do
+  procedural/audio gaps. A NULL-textured helper emitter now exposed by this
+  live path still needs its original admission/render policy checked. Spell,
+  combat and continuous campaign completion remain open.
+
+- **2026-10-15 native geometry pose rendering:** binary own clips now use
+  retained controller/value pools, native Part IDs, checked sampling/blending
+  and hierarchy dispatch in the client. Geometry loop and transition flags0/1
+  are admitted; manual root placement suppresses its controller gate while
+  child animation continues. Native current/stop/restart keeps channel state.
+  All1510 tests/build pass. Real UI confirms equipped Light uses this backend;
+  real-resource CPU composition verifies canonical removal, cessation, authored
+  Detonate, particle vertices, reattachment and retirement. GPU cessation/NCS
+  delivery and continuous campaign acceptance remain open. Emitter bounds,
+  native scene services, other procedural modes and related gaps remain logged.
+
+- **2026-10-15 shared animation blend/hierarchy owners:** generic controller
+  application matches480 composed original cases; hierarchy dispatch matches
+  512 physical-tree cases, including duplicate IDs, callback mutation and depth
+  limits. All1503 tests/build pass. These owners still need the native parser
+  remapping and specialized scene bridge before geometry blending is enabled.
+
+- **2026-10-15 native animation sampler foundation:** scalar/vector/quaternion
+  controller sampling now matches2304 original profiles, including original
+  quaternion trigonometry/status helpers. Runtime WORD indexing, Bezier tail
+  behavior, position-only scale and shortest-path quaternion rules are retained.
+  All1501 tests/build pass. Renderer hookup still requires verified hierarchy,
+  runtime controller remapping and blending; geometry flags0/1 remain blocked.
+
+- **2026-10-15 position/orientation attachment:** renderer modes0/3 copy
+  anchor world position/orientation independently of parent scale. The complete
+  native no-orientation update matches72 original profiles and preserves the
+  current orientation each frame. Global root get/set now use checked owners.
+  Native attachment event/handle/lifetime machinery remains diagnosed.
+  All1498 tests/build pass; spell UI regression passes and now separately
+  verifies Light and an admitted dormant cessation-only item buff model.
+
+- **2026-10-15 shared visual phases in the client:** active visualeffects,
+  progfx and appearance tables now drive the checked loader and native
+  start/place/detach/update/stop/retirement owners. Model instances are created
+  at phase boundaries; Type4 cessation reuses the duration model/run as native.
+  Canonical removal retains cessation until native retirement, and the competing
+  detach helper matches326 original profiles. All1495 tests and build pass;
+  real spellbook/hotbar/item-wheel targeting and equipped Light smoke pass.
+  Geometry orientation/blending, other program types, sound/shake, renderer
+  contexts/light selection and outer scene scheduling remain diagnosed gaps.
+  Full spell ecosystem, combat and continuous campaign acceptance remain open.
+
+- **2026-10-15 live Type4 attachment and priority selection:** the renderer
+  now calls checked Type4 start/local attachment and native effect selection.
+  It preserves physical record order across async loads, selects the last equal
+  priority and reattaches survivors on removal. Native local head-node fields
+  and root alias replace accumulated bone placement. Light priority2/4 is now
+  stored separately from animated properties. 1,488 tests/build and real
+  prepared spellbook/F2/item-wheel casting checks pass, including the native
+  equipped-item Light gate. Program loading/clear/update731 cases and Type4
+  stop770 cases are also ported; outer impact/cessation/retirement, renderer
+  light selection, scene suppression and generic geometry/procedural factory
+  are still pending and diagnosed. [Evidence](evidence/visual-effect-phases.md).
+
+- **2026-10-15 native animation playback and visual ownership:** full model
+  run start/reuse ordering matches2,173 original executions; run-clock timing,
+  reverse playback and authored-event delivery match474 full Animate profiles
+  within recorded scene gates. Procedural one-shot models now use these native
+  paths. Actual prepared spellbook/item targeting, F2, item spell wheel, slot
+  consumption and cancellation pass in the rendered client. Visual loader767,
+  node-pose288, priority/retirement selection895, selection-time attachment1,169
+  and Type4 start388/local attachment134 cases also match. Async model loading
+  preserves a single native selection pass. 1,480 tests and
+  the build pass.
+  Reconciliation supports native-instance
+  cessation/retirement and invalidates stale area bindings. Shared geometry/
+  program phase integration, blended/inherited pose rendering and remaining
+  scene services are still open; spellcasting, combat and campaign completion
+  are not claimed. [Evidence](evidence/visual-effect-phases.md).
+
+- **2026-10-15 visual placement and scene detachment:** native anchor names,
+  orientation/parent flags, rotation reset and update sequencing match583
+  original runs; detachment and Type4 context refresh match75. 1,466 tests/
+  build pass. Loader policy, lower model/scene adapters and live gameplay
+  lifecycle integration remain open. [Evidence](evidence/visual-effect-phases.md).
+- **2026-10-15 visual phase lifecycle owners:** full start/restart, cessation
+  and update now match688 original executions, including model/program timers,
+  table-driven shake/audio and delayed retirement. 1,464 tests/build pass.
+  Native loader/attachment and gameplay reconciliation remain to be connected;
+  no rendered gameplay cessation acceptance yet.
+  [Evidence](evidence/visual-effect-phases.md).
+- **2026-10-15 authored particle detonate events:** shared event scheduling,
+  listener dispatch and Explosion detonate match304 coupled original runs.
+  Instance-scoped model events now trigger the authored Explosion; the rendered
+  clip shows both Fountains and its burst, then reloads cleanly. 1,462 tests/
+  build pass. Other handlers, upper animation modes and gameplay visual phase
+  delivery remain open. [Evidence](evidence/particle-emitter-runtime.md).
+- **2026-10-15 live model particle renderer:** instantiated emitters now use
+  the checked native CPU owners and generated vertices with active textures.
+  The installed authored cessation clip visibly renders its two Fountain
+  emitters with decorative previews disabled; reload cleans up runtime state.
+  A rendered check caught and fixed camera-basis conversion;1,460 tests/build
+  pass. Spellbook/F2/item-wheel regression passes with no engine failures.
+  Model events/detonation, several scene services, other movement classes,
+  material quality/fog and gameplay visual phases remain open and recorded.
+  See [particle-emitter-runtime.md](evidence/particle-emitter-runtime.md).
+- **2026-10-15 shared particle draw and update owners:** Explosion and Single
+  updates match647 original executions; outer frame logic matches800; all seven
+  draw modes match245 original generated vertex streams and atlas mutations.
+  GPU/material/scene integration, animation events and visual lifecycle remain
+  open. These CPU comparisons are not rendered spell or campaign acceptance.
+  See [particle-emitter-runtime.md](evidence/particle-emitter-runtime.md).
+- **2026-10-15 native particle physics:** full initialization and standard
+  movement now match876 and384 original executions, including inherited
+  transforms, random direction, gravity and collision response. Coupled Fountain
+  birth/movement/expiry/reuse matches27 original frames using the real helpers.
+  1,454 tests and build pass. Outer model timing, other update/movement modes
+  and GPU rendering remain open; these helpers are not yet gameplay particles.
+  See [particle-emitter-runtime.md](evidence/particle-emitter-runtime.md).
+- **2026-10-15 particle emitter decoding and frame owners:** serialized emitter
+  fields and39 parameter curves retained; native binary reader checks pass.
+  Full lifetime helper matches290 original executions; Fountain scheduling
+  matches165 with explicit lower constructor/movement providers. 1,451 tests
+  and build pass. Gameplay particle initialization/motion/rendering remain open;
+  preview output is not used as gameplay acceptance. The visual audit records
+  missing resources and410 emitter-bearing models needing this shared path.
+  See [particle-emitter-runtime.md](evidence/particle-emitter-runtime.md).
+- **2026-10-15 authored duration light presentation:** binary light fields and
+  color/radius/multiplier animation channels now render through the shared model
+  pipeline. Active visualeffects/progfx selects model/clip, with canonical loop
+  reconciliation and late-load/removal/area cleanup. Prepared inventory Light
+  renders its authored fade; native legacy attenuation fixes overexposure.
+  Twelve full original model-reader runs match; 1,446 tests/build pass. Rendered
+  self/counterspell/summon/area-transfer regressions pass; autosave remains logged.
+  Other visual program types and native lighting/shadow policies remain open.
+  See [procedural-light-presentation.md](evidence/procedural-light-presentation.md).
+- **2026-10-15 prepared inventory/equipment spell targeting:** spellbook and
+  hotbar selections can target carried/equipped items; item right-click menus
+  use the native item spell filter. Rendered prepared casts consume real slots
+  through all three paths. Runtime-log checking exposed and fixed Light's
+  property44/type54 controller and copied visual ownership;396 original runs
+  match. Light state/removal is verified, while its rendering remains explicitly
+  diagnosed. 1,438 tests/build and self/counterspell UI regression pass. Other
+  logged failures and broader spell/combat/campaign work remain open.
+  [Evidence and limits](evidence/inventory-spell-targeting.md).
+  Backup report:backups/animations/item-targeting-checkpoint.txt.
+
+- **2026-10-15 armor spell properties and carried-item casting:** property
+  types1..5 now use the native AC materializer. The release LOS check admits
+  carried items according to the original game. 151 full armor-handler and96
+  original release-block comparisons pass. Installed Magic Vestment adds an
+  equipped armor property and changes AC8→11; removal/expiry restores8, and
+  re-equipping preserves the buff. 1,436 tests/build pass. This is scripted-cast
+  fixture acceptance; normal item-target UI and remaining spell systems are open.
+  [Evidence and limits](evidence/equipped-item-spell-buffs.md).
+  Backup report:backups/animations/armor-item-buffs-checkpoint.txt.
+
+- **2026-10-15 equipped spell buffs and item on-hit casting:** nine native
+  enhancement/damage/ability materializers, equipment traversal and delayed
+  item-spell payloads are connected. 1,804 original executions match. Installed
+  Magic Weapon, Greater Magic Weapon, Flame Weapon and Darkfire scripts now
+  apply/remove weapon properties; on-hit scripts cause damage and restore
+  interrupted caster context. 1,434 tests/build and rendered radial summon/
+  area-transfer regression pass. Attached visuals, other materializers and full
+  spell/combat/campaign acceptance remain open.
+  [Evidence and limits](evidence/equipped-item-spell-buffs.md).
+  Backup report:backups/animations/equipped-item-buffs-checkpoint.txt.
+
+- **2026-10-15 item-property mutation and ownership:** Add/Remove bindings,
+  type91 retention/removal, queued exposure changes, property-ID effect
+  linkage and repository-item expiry are connected.1,534 original command/
+  state/block comparisons pass. Installed dagger API/expiry checks and guards
+  against unsupported buff leakage pass. Equipped materializers and permanent
+  restriction/pricing remain unfinished.1,430 tests/build and rendered radial
+  casting/companion transfers pass. [Evidence and limits](evidence/item-property-mutation.md).
+  Backup report:backups/animations/item-property-mutation-checkpoint.txt.
+
+- **2026-10-15 shared spell item-property constructors:** all79 installed
+  constructor bindings now use the decoded shared engine factory and active
+  2DA validation.1,262 original synthetic and237 installed-input executions
+  match. Static spell scan has48 fewer unbound constructor names;112 other
+  names and22 script load failures remain. Item mutation/equipment propagation
+  remains unfinished.1,425 tests/build and rendered radial casting/companion
+  transfer checks pass. [Evidence and limits](evidence/item-property-factory.md).
+  Backup report:backups/animations/item-property-factory-checkpoint-v2.txt.
+
+- **2026-10-15 complete ClientArea sender composition:** all10 installed
+  messages match combined original sender/packer/writers/envelope execution.
+  Client ID namespace and localized-string readers match312 original cases.
+  Actual unnamed client receiver and area loader located through verified
+  string references; receiving scene/ready flow remains unfinished.1,423 tests
+  and build pass. Autosave and campaign acceptance remain open.
+  [Evidence and limits](evidence/complete-client-area-client-identity.md).
+  Backup report:backups/animations/complete-client-area-checkpoint.txt.
+
+- **2026-10-15 GIT/object area-message bindings:** normal loading now supplies
+  ambient/grass, waypoint, sound and placeable message state.1,212 original
+  state/block executions pass; all10 installed Prelude area-pack bodies
+  match the full original packer in both tested modes, including204 objects
+  and144 tiles.1,421 tests/build and rendered radial summon/companion transfers
+  pass. Outer ClientArea/receiver/ready transport and autosave remain open.
+  [Evidence and limits](evidence/area-git-object-message-bindings.md).
+  Backup report:backups/animations/git-area-checkpoint.txt.
+
+- **2026-10-15 decoded full area packer:** the complete owner plus ambient/
+  sound serialization, tile flags, master map pins and live object passes
+  match439 original cases; another152 constructor/ARE/tile input cases pass.
+  Area/tile metadata and a diagnosed session binding are live. The installed
+  probe reaches the missing ambient/GIT property binding in all5 Prelude
+  areas and records every failure; no partial packet is transmitted.1,416
+  tests/build and rendered casting/companion-transfer checks pass. GIT/object
+  bindings, actual receiver/ready transport and autosave remain unfinished.
+  [Evidence and limits](evidence/area-message-pack.md).
+  Backup report:backups/animations/area-pack-checkpoint.txt.
+
+- **2026-10-15 native message text and area identity:** byte strings, ResRefs,
+  localized-language fallback and canonical-ID wire boundaries match1,802
+  original cases, including128 area-identity prefixes. Live area loading now
+  retains localized names; original readers decode replacement identity bytes
+  from all5 Prelude areas. Native GFF key normalization/duplicate replacement
+  is retained.1,412 tests/build and rendered radial/companion
+  transfer checks pass. Full pack/ready transport and autosave remain open.
+  [Evidence and limits](evidence/native-message-text-area-identity.md).
+  Backup report:backups/animations/message-text-checkpoint.txt.
+
+- **2026-10-15 native scalar message codec:** byte/residual-bit writing,
+  reading, type checks, growth, truncation diagnostics and outgoing envelope
+  match4,295 original executions. The original binary independently decodes10
+  replacement-produced ClientArea headers from all5 installed Prelude areas.
+  Shared codec providers now serve the installed transition probe.1,406
+  tests/build pass. Full area packing/receiver/transport and autosave remain open.
+  [Evidence and limits](evidence/native-message-scalar-codec.md).
+  Backup report:backups/animations/message-codec-checkpoint.txt.
+
+- **2026-10-15 area entry ownership and message state:** first/last-player
+  activation is shared by native area insertion/removal and the current PC
+  adapter; door heartbeat and placeable static conditions match the original.
+  SetAreaTransitionBMP now belongs to the caller's client. Decoded ClientArea
+  sender, native loading-screen selection/entry fields and last-sent-map cleanup
+  match1,531 original cases. Installed data and rendered spell/associate
+  transfers pass.1,398 tests/build pass; autosave still fails and is recorded.
+  Full area packing/client receiver/ACK integration remains unfinished.
+  [Evidence and limits](evidence/client-area-message-activation.md).
+  Backup report:backups/animations/client-area-checkpoint.txt.
+
+- **2026-10-15 character automaps:** canonical ordered area IDs and separate
+  exploration buffers now initialize, reconcile, clear and update through
+  native exploration rules at PC entry/heartbeat. Five script APIs are live.
+  5,465 original-code cases and installed Prelude out/back/reorder/API checks
+  pass; rendered spell/associate radial transfers pass with zero browser errors.
+  Autosave still fails and remains logged.1,392 tests/build pass. Native PC
+  load protocol, map fog/persistence and full campaign acceptance remain open.
+  [Evidence and limits](evidence/automap-state-exploration.md).
+  Backup report:backups/animations/automap-checkpoint.txt.
+
+- **2026-10-15 companion area restoration:** native recursive realization now
+  preserves associate IDs, inventory, placement/visibility and queue cleanup
+  across local player area changes. Native wait60 is live; decoded ack/player
+  placement coordinators are compared, pending protocol integration.5,688
+  original cases and installed/rendered summon transfer out/back plus radial
+  dismissal pass.1,387 tests/build pass. The rendered trip exposes the still
+  unimplemented autosave call; this is not campaign acceptance.
+  [Evidence and open dependencies](evidence/player-area-restoration.md).
+  Backup report:backups/animations/player-area-checkpoint.txt.
+
+- **2026-10-15 native door landing:** active DWK action-point parsing, native
+  state transforms/selection and active terrain-material Walk queries now drive
+  door jumps and GetUseRange.2,512 native point/selection cases,43 loader cases
+  and1,080 material/walk cases pass. Installed38 doors queried and three queued
+  jumps pass; known missing PWK remains logged. Rendered spell/associate radial
+  regression passes. Normal/paired door state events synchronize native D8.
+  1,386 tests/build pass. [Evidence and limits](evidence/door-action-point.md).
+  PC transfer/automap, limbo and script-adapter replacement remain unfinished.
+  Backup report:backups/animations/door-placement-checkpoint-v2.txt.
+
+- **2026-10-15 creature relocation:** native jump actions5/48 now execute in
+  the live queue and stalled-movement timeout recovery. Safe placement, facing,
+  trigger membership, attached AoE jumps and canonical NPC area transfer are
+  connected.1,980 original action cases,420 subarea/AoE cases,18 route-cut cases
+  and96 extra cancellation cases pass; installed queued/forced relocation also
+  passes with the known absent training-room PWK still logged.1,382 tests/build
+  pass. [Evidence and limits](evidence/jump-actions.md). Door action-point,
+  PC area handshake/automap, limbo and legacy script-wrapper replacement remain
+  unfinished. Backup report:backups/animations/jump-checkpoint.txt.
+
+- **2026-10-15 installed voice delivery:** PlayVoiceChat now uses native
+  quick-chat recipients/WORD payload and active SoundSet/SSF/TLK/WAV resources;
+  battle cries share actual client playback.572 native command/send comparisons,
+  72 SSF/wrapper observations, installed PC/NPC cues and real Chromium audio
+  decode/start/caption checks pass. Floating-text duplicate binding repaired.
+  1,379 tests/build pass. [Evidence and limits](evidence/voice-quick-chat.md).
+  Native mixer/overhead/profile presentation, forced-jump fallback, broader
+  spell forms/effects and campaign completion remain unfinished. Backup report:
+  backups/animations/voice-checkpoint.txt.
+
+- **2026-10-15 authored associate follow:** received commands now execute real
+  conversation scripts with native matched-string ownership/default-script
+  gates. Shared force-follow actions and cancellation move summons toward their
+  master; Follow/Stand/Guard/Attack Nearest/Heal Me route from owned radial.
+  Actual rendered Follow/Stand/Unsummon/model removal passes.1,258 added bounded
+  original comparisons;1,371 tests/build pass. Voice chat and stalled-movement
+  forced jump remain unfinished. [Evidence](evidence/associate-listen-follow.md).
+  Verified backup report:backups/animations/listen-follow-checkpoint.txt.
+
+- **2026-10-15 summon radial dismissal:** owned-creature menus now use canonical
+  master/type and preserve original associate submenu slots/commands. Unsummon
+  dispatches decoded input with ownership recheck, then the original shared
+  deferred destruction path; visible summon view removal passes real right-click
+  renderer input.607 original comparisons;1,366 tests/build pass. Generic
+  associate conversation-event7/AI and possession/domination remain unfinished.
+  [Evidence](evidence/associate-command.md). Verified backup report:
+  backups/animations/associate-command-checkpoint.txt.
+
+- **2026-10-15 live summon ownership:** installed Summon Creature VII now casts
+  through queue/scripts and ground right-click radial, spends a real slot and
+  creates a canonical inventory-owning associate. Replacement, expiry, delayed
+  spawn races, adoption/rejection and deferred alive-NPC destruction pass.
+  New shared area/associate/destructor/time owners add1,601 bounded original
+  comparisons.1,364 tests/build pass; rendered radial smoke reports0 errors.
+  [Evidence and remaining limits](evidence/summoning-lifecycle.md). PC/DM area
+  services, dead-bodybag/noncreature cleanup and other spell forms remain open.
+  Backup report:backups/animations/summon-runtime-checkpoint.txt.
+
+- **2026-10-15 shared appear effect:** EffectAppear/internal81 now queues native
+  uninterruptible52, selects normal/alternate appearance, runs fixed2000ms and
+  restores idle.142 native comparisons, installed-character live probe and
+  1,355 tests/build pass. Hidden effect queries match original enum visibility.
+  [Evidence](evidence/appear-effect.md). Full summoning still awaits area,
+  associate removal and destruction; the broader spell goal remains active.
+
+- **2026-10-15 summon ownership foundation:** shared summon constructor,
+  apply/remove, delayed event24, type4 associate and unsummon coordinators
+  compare3,040 original observations;1,352 tests/build pass. Live bindings remain
+  pending complete area entry/removal/destructor, associate removal and appear
+  action owners. [Evidence](evidence/summoning-lifecycle.md). No playable summon
+  or full spell completion claim; the formal goal remains active.
+
+- **2026-10-15 counterspell lifecycle:** decoded player/radial and script orders
+  now run canonical action50, native identification/selection, real resources,
+  animation/round timing, countered impact suppression and CC12 feedback.
+  Fake casts now omit actual impacts and counterspell reactions. Adds919
+  original instruction cases;1,347 tests/build pass. Installed positive,
+  unseen and fake-cast probes pass without fabricated spell slots; rendered
+  world NPC counterspell radial mode/target acceptance passes, errors0.
+  [Evidence and limitations](evidence/counterspell-lifecycle.md). Full spell
+  ecosystem, combat and continuous campaign acceptance remain open.
+
+- **2026-10-15 counterspell foundation:** shared native count/selection/slot
+  metadata and cleanup owners compare1,800 additional original cases; canonical
+  round cleanup is connected.1,345 tests/build pass. Counterspell queue,
+  consumption, interruption, animation and feedback remain required before
+  exposing playable counterspells. [Continuation](evidence/counterspell-lifecycle.md).
+
+- **2026-10-15 radial casting continuation:** world spell wheels now read live
+  class/level/metamagic/domain/child pools and native target masks, submitting
+  to the shared cast queue. Defensive casting uses decoded input10 and native
+  mode toggling, including deferred associate script notifications.4,180 native
+  comparisons,1,342 tests/build and isolated rendered self-radial casting pass.
+  See [evidence](evidence/spell-radial-casting.md). Counterspell/epic owners and
+  the broader spell completion gate remain open. The formal spells → combat →
+  continuous campaign play/fix goal is active.
+
+- **2026-10-15 shared spell continuation:** script/fake-cast adapters,
+  spontaneous conversion, touch attacks, beams, blindness/darkness/special
+  vision/deafness, dispelling, damage shields and damaged-caster concentration
+  are connected through shared owners and active tables. Installed-script
+  fixtures verify rays, conversion, hostile Blindness/Deafness, persistent
+  Darkness, four dispelling spells, three reflecting shields and interrupted
+  casting. Original-code comparisons cover7,432 new cases at stated lower
+  boundaries. **1,337 tests/build and isolated rendered casting acceptance pass.**
+  Spell completion is still open: counterspells, summons/polymorph/disease/
+  poison, item-property mutation, feat/item/placeable/talent casting, conversion/
+  memorization/rest UI and complete VFX remain. Audit-v12 records163 unbound
+  impact command names and22 missing scripts. See [shared spell evidence](evidence/spell-ecosystem-shared-owners.md).
+  This supersedes the spontaneous/script-cast pending statuses below.
+
+- **2026-10-15 live ordinary player casting:** spellbook clicks and spell
+  hotbar activation now enter the serialized canonical player-input queue,
+  native action15 phases, spell consumption and deferred caster event8.
+  Installed Light and Magic Missile execute their active ImpactScripts; the
+  damage fixture reduces a goblin from4HP to-11HP. Rendered spellbook/F2 casts
+  consume two prepared uses and play conjure2/castup, with round waiting.
+  Lowercase native component checks are corrected. Counterspells, spontaneous
+  conversion, special/feat/item casts, full spell release/projectile presentation
+  and original-client/network acceptance remain open. This is ordinary casting
+  integration, not completion of the spell ecosystem. See
+  [live casting evidence](evidence/live-player-casting.md).
 
 - **2026-10-15 missing script-load behavior:** installed Prelude ARE fields
   reference absent script1 heartbeat/script2 exit resources; neither NCS nor NSS
@@ -52,7 +871,8 @@ remains recorded until implemented and validated.
   modifier rows and per-character local layout restoration pass Electron checks.
   SetLocked now preserves raw integer state and deferred lock/unlock callbacks;
   the original Bim unlock script completes. 1298 tests/build pass. Hotbar use
-  emits typed requests; UI execution owners for items/spells/feats and native
+  emits typed requests; ordinary spell execution is connected in the later
+  live-casting checkpoint. UI execution owners for items/feats and native
   automatic default layout creation remain open and recorded. Radial category
   presentation is local, rather than a fully reconstructed native client menu.
   See [native evidence](evidence/quickbar-assignment-and-locking.md).

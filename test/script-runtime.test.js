@@ -94,7 +94,7 @@ test('vectors occupy three float cells and native/script coordinates are separat
   assert.deepEqual(result.stack, [10,14,18].map(value => ({type:4,value})));
   const session = new ModuleSession(null), actor = session.register('player','player',{position:[2,1,-3],bearing:0,areaId:7});
   assert.deepEqual(session.commands.GetPosition([actor.id]),[2,3,1]);
-  assert.deepEqual(session.commands.GetLocation([actor.id]),{areaId:7,position:[2,3,1],orientation:90});
+  assert.deepEqual(session.commands.GetLocation([actor.id]),{areaId:7,position:[2,3,1],nativeOrientation:[1,0,0],orientation:0});
 });
 
 test('native SAVEBP excludes its saved-BP cell and global copies do not address that cell', async () => {

@@ -20,22 +20,62 @@ export function parseObjectSurfaceMesh(input, kind, providers = {}) {
   const text = typeof input === 'string' ? input : new TextDecoder('ascii').decode(input);
   if (text.includes('\0')) throw new Error('Native binary object mesh sections are not implemented');
   const lines = text.replaceAll('\r', '').split('\n'), states = kind === 'door' ? [mesh(), mesh(), mesh()] : [mesh()];
-  let active = null, offset = [0, 0, 0], quaternion = [1, 0, 0, 0];
+  let active = null, activePoint = null, placeablePoint = null, offset = [0, 0, 0], quaternion = [1, 0, 0, 0];
+  // Surface ctor1402cecf0 calls zero-vector ctor140047300 six times.
+  const actionPoints=Array.from({length:3},()=>[[0,0,0],[0,0,0]]);
+  const placeablePoints=[[0,0,0],[0,0,0]]; // PWK ctor1402cddfc..1402cde13.
   const tags = states.map(() => new Set());
   for (let line = 0; line < lines.length; line++) {
     const trimmed = lines[line].trimStart(), tokens = trimmed.trimEnd().split(/\s+/), command = tokens[0];
     if (trimmed.length > 254) throw new Error('Native object mesh long-line parsing is not implemented');
     if (command === 'node') {
-      active = null;
-      if (kind === 'placeable' && tokens[1] === 'trimesh') active = 0;
-      else if (kind === 'door' && tokens[1] === 'trimesh') {
+      if(kind==='placeable'){
+        active=null;
+        if(trimmed.startsWith('node trimesh ')){active=0;placeablePoint=null;}
+        else if(trimmed.startsWith('node dummy ')){
+          // LoadWalkMesh1402ce384 skips exactly FOUR name bytes. The slot
+          // survives unrecognized dummy nodes and dummy endnode lines.
+          const name=trimmed.slice(15),stem=name.startsWith('pwk_use')?7:name.startsWith('pwk_dp_use_')?11:0;
+          if(stem){
+            const side=name.slice(stem,stem+2);
+            if(side==='01'||side==='02')placeablePoint=Number(side)-1;
+            else{
+              const message='Placeable Object (%s) has an invalid use node (%s)!';
+              if(typeof providers.warning!=='function')throw new Error(`Native PWK warning requires diagnostic delivery: ${name}`);
+              providers.warning(message,{node:name});
+            }
+          }
+        }
+        continue;
+      }
+      active = null;activePoint=null;
+      if (kind === 'door' && tokens[1] === 'trimesh') {
         // Native fixed byte offset skips exactly two model-name characters.
         const name = String(tokens[2] ?? '').slice(2), state = name.match(/^_DWK_wg_(closed|open1|open2)/);
         if (state) active = { closed: 0, open1: 1, open2: 2 }[state[1]];
       }
+      else if(kind==='door'&&trimmed.startsWith('node dummy ')){
+        const name=String(tokens[2]??'').slice(2),match=/^_DWK_dp_(closed|open1|open2)_(01|02)/.exec(name);
+        if(match)activePoint=[{closed:0,open1:1,open2:2}[match[1]],Number(match[2])-1];
+        else if(name.startsWith('_DWK_dp_'))throw new Error('Native malformed door action-point state/index is not implemented');
+      }
       continue;
     }
-    if (command === 'endnode') { active = null; continue; }
+    if (command === 'endnode') {
+      if(kind==='placeable'){if(active===0){active=null;placeablePoint=null;}}
+      else{active=null;activePoint=null;}
+      continue;
+    }
+    if(kind==='placeable'&&placeablePoint!==null){
+      if(command==='position')placeablePoints[placeablePoint]=values(tokens.slice(1),3,'placeable action point');
+      continue;
+    }
+    if(activePoint){
+      // LoadWalkMesh1402cfbdb stores dummy positions directly; dummy orientation
+      // does not transform points or replace the retained collision-node offset.
+      if(command==='position')actionPoints[activePoint[0]][activePoint[1]]=values(tokens.slice(1),3,'door action point');
+      continue;
+    }
     if (active === null) continue;
     if (command === 'position') offset = values(tokens.slice(1), 3, 'position');
     else if (command === 'orientation') quaternion = (providers.quaternionForOrientation ?? tileOrientationQuaternion)(values(tokens.slice(1), 4, 'orientation'));
@@ -60,7 +100,7 @@ export function parseObjectSurfaceMesh(input, kind, providers = {}) {
   // Empty loaded arrays differ from failed/missing resource resolution.
   for (const state of states) if (state.faces.some(face => face.some(index => index < 0 || index >= state.vertices.length)))
     throw new Error('Native object mesh negative or invalid indices are not implemented');
-  return kind === 'door' ? { states } : states[0];
+  return kind === 'door' ? { states,actionPoints } : {...states[0],actionPoints:placeablePoints};
 }
 
 // GetMeshBoundingBox1402cf0a0: all three state vertex arrays, first vertex

@@ -42,6 +42,9 @@ test('base-object open/close actions defer state and push same-group half-second
 test('door event mirrors state to linked door before running only source callback with original caller',async()=>{
   const s=new ModuleSession({}, {runStartupScripts:false,runNativeAI:false}),area=s.register('area','area',{resRef:'area'}),a=s.register('door','a',{areaId:area.id,position:[0,0,0],bearing:0,linkedTo:'B',linkedToFlags:1,scripts:{open:'open',closed:'closed'}}),b=s.register('door','b',{areaId:area.id,position:[2,0,0],tag:'B'}),caller=s.register('door','caller',{areaId:area.id,position:[0,0,-1]}),calls=[];
   s.program=async n=>n;s.vm={run:async(...args)=>calls.push({args,a:a.animationState,b:b.animationState})};
+  // This coordinator fixture isolates paired events; full native map/budge
+  // lower owners have their own original-code comparisons.
+  area.nativeGeometry={objects:{load:async()=>{}}};s.lifecycle.budgeCreatures=async()=>{};s.automap.updatePlayersInArea=async()=>{};
   a.orientation=[0,0,-1];
   await s.receiveDoorUseEvent(a,caller.id,true);assert.equal(a.animationState,1);assert.equal(a.nativeAnimationD8,50);assert.equal(a.eventObjects.opened,caller.id);assert.equal(b.animationState,1);assert.equal(b.eventObjects.opened,undefined);
   await s.receiveDoorUseEvent(a,OBJECT_INVALID,false);assert.equal(a.animationState,0);assert.equal(a.eventObjects.closed,OBJECT_INVALID);

@@ -7,6 +7,10 @@ import { deformSkinnedVertices } from './model_skinning.js';
 import { createModelHierarchy } from './model_hierarchy.js';
 import { inheritAnimations } from './mdl_animation.js';
 import { ModelAnimator } from './model_animation.js';
+import { createModelLight, setModelLightShadows, installModelLightShaders } from './model_light.js';
+import { LoopingVisualPresentation } from './looping_visual_presentation.js';
+import {createVisualSceneRuntime} from './visual_scene_runtime.js';
+import {ObjectVisualInbox} from './object_visual_inbox.js';
 import {CreatureAnimationPresentation} from './creature_animation_presentation.js';
 import {totalAttackDamage} from './combat_attack_data.js';
 import {attackResultDoesDamage} from './combat_strike.js';
@@ -16,6 +20,7 @@ import { groupFacesByMaterial } from './mdl_mesh.js';
 import { parseBioWareDds } from './bioware_dds.js';
 import { decodeBioWarePlt, PLT_PALETTE_NAMES } from './bioware_plt.js';
 import { sampleEmitterParticle } from './particle_preview.js';
+import {createModelEmitter,ModelParticlePresentation} from './model_particles.js';
 import { loadAreaWalkmesh, parseAreaModule } from './area.js';
 import { ResourceResolver, RESOURCE_TYPE } from './resource_archive.js';
 import { findWalkableHeight, moveOnWalkmesh } from './walkmesh.js';
@@ -24,17 +29,28 @@ import { animateDoorState } from './door_animation.js';
 import { createDoorUseHandler, doorUsePoints } from './door_use.js';
 import { WorldObjects } from './world_objects.js';
 import { ModuleSession } from './module_session.js';
-import { horizontalInRange, placeableUsePoint, placeableUseRange } from './interaction_range.js';
+import { horizontalInRange } from './interaction_range.js';
 import { resolveJumpSpawn } from './transition_spawn.js';
 import { ActionQueue } from './action_queue.js';
 import { WalkmeshNavigator } from './navigation.js';
 import { pickedWorldObject, pointerRay } from './world_picking.js';
 import { buildRadialActions, buildGroundRadialActions, radialActionRequest } from './radial_actions.js';
+import {visualMainModel} from './visual_scene_pose.js';
 import { RadialMenu } from './radial_menu.js';
+import {radialSpellCastRequest,radialSpellTargetAllowed} from './spell_radial.js';
+import {prepareSpellTarget,spellTargetDefinition} from './spell_targeting.js';
+import {talentSpell} from './spell_metadata.js';
+import {prepareFeatTarget,featTargetAllowed} from './feat_targeting.js';
+import {prepareItemTarget,itemCreatureTargetVeto,confirmItemTarget,sendItemUse} from './item_targeting.js';
+import {selectLearnScroll} from './scroll_learning.js';
+import {featActivationInfo,featActivationSpell} from './use_feat.js';
+import {selectRadialFeat} from './feat_radial.js';
+import {OBJECT_INVALID} from './game_object_array.js';
 import { GameUi } from './game_ui.js';
 import { CharacterFrontend } from './character_frontend.js';
 import { parseCharacter,resolvePlayerModels } from './character.js';
 import { GameAudio } from './game_audio.js';
+import {VoicePresentation} from './voice_presentation.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 import { installDiagnosticReporting } from './diagnostic_reporting.js';
 import './style.css';
@@ -86,8 +102,11 @@ const doorAction = document.querySelector('#door-action');
 const doorFeedback = document.querySelector('#door-feedback');
 let moduleSession = null;
 let gameAudio = null;
+let voicePresentation=null;
 let creatureAnimations=null;
 let dynamicCreatureSync=null;
+let loopingVisuals=null;
+let visualDelivery=null;
 const unlockAudio = () => { void gameAudio?.unlock(); };
 window.addEventListener('pointerdown', unlockAudio, { capture: true });
 window.addEventListener('keydown', unlockAudio, { capture: true });
@@ -101,7 +120,7 @@ document.querySelector('#release-test-cutscene').addEventListener('click', () =>
 });
 
 const scene = new THREE.Scene();
-const NWN_POINT_LIGHT_ATTENUATION = 9;
+installModelLightShaders();
 scene.background = new THREE.Color('#19211e');
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 1000);
 camera.position.set(3, 2.5, 3);
@@ -112,6 +131,7 @@ renderer.toneMapping = THREE.NoToneMapping;
 renderer.toneMappingExposure = 1;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const modelParticles=new ModelParticlePresentation({camera,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -185,11 +205,17 @@ renderer.setAnimationLoop(() => {
   }
   if (!document.hidden&&simulationReady){creatureAnimations?.update();if(creatureAnimations)canvas.dataset.creatureAnimations=JSON.stringify(creatureAnimations.snapshot());}
   if (!document.hidden) for (const animator of activeAnimations) if(!animator.presentationOwned||animator.presentationPreview)animator.update(Math.min(delta, 0.1));
+  if (!document.hidden && simulationReady) {
+    if(!moduleLoadBusy&&!moduleSession?.transitioning&&visualDelivery&&moduleSession&&worldObjects)visualDelivery.flush({session:moduleSession,objects:worldObjects,presentation:loopingVisuals});
+    loopingVisuals?.update(Math.min(delta, 0.1));
+    if (loopingVisuals) canvas.dataset.loopingVisuals = JSON.stringify(loopingVisuals.snapshot());
+  }
   updateAnimationPlaybackStatus();
   updateDoorTarget();
   updateGameplayDiagnostics();
   if (simulationReady) gameUi.refresh();
   if (loadedRoot && previewEffectsEnabled.checked) updateEmitterPreviews(loadedRoot, effectClock.elapsedTime);
+  if(!document.hidden&&simulationReady){modelParticles.update(loadedRoot,delta);canvas.dataset.modelParticles=JSON.stringify(modelParticles.snapshot());canvas.dataset.pointWinds=JSON.stringify(modelParticles.pointWinds);}
   renderer.render(scene, camera);
 });
 
@@ -215,17 +241,65 @@ const radialMenu = new RadialMenu(viewport,{
   onAction: (entry,context) => {
     if(entry.action==='quickbar.assign'){gameUi.assignQuickbar(context.quickbarIndex,entry.binding);return;}
     if (moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state) return;
-    const target = worldObjects?.get(context.targetId), actor = playerController?.actor;
-    if (!target || !actor || target.areaId !== actor.areaId) { doorFeedback.textContent = 'Radial target is no longer in this area'; return; }
+    const actor = playerController?.actor,target=context.inventory?moduleSession?.registry.get(context.targetId):worldObjects?.get(context.targetId);
+    if (!target || !actor || (context.inventory?!isPlayerInventoryItem(target):target.areaId !== actor.areaId)) { doorFeedback.textContent = 'Radial target is no longer available'; return; }
     const request = radialActionRequest(entry,target,actor,context.groundPoint);
     canvas.dataset.lastRadialAction = JSON.stringify(request);
+    if(entry.action==='item.use'&&entry.binding){beginItemUse(entry.binding);return;}
+    if(entry.action==='item.learn'){submitLearnScroll({...request,areaId:actor.areaId,itemId:target.id});return;}
+    if(entry.action==='feat.use'){
+      const session=moduleSession,selection=selectRadialFeat((entry.binding.featId&65535)|((entry.binding.auxiliary&65535)<<16),{
+        controlled:true,assignment:false,self:!context.ground&&target.id===actor.id,
+        feat:id=>featActivationInfo(session.characterRules,id),warning:message=>runtimeDiagnostics.record('ui.native-feat-selection-warning',message,request)
+      });
+      if(selection.mode==='mode'){
+        void session.queuePlayerMode(selection.modeId).catch(error=>session.report(error,{operation:'radial-feat-mode'}));return;
+      }
+      const binding={action:'feat.use',actorId:actor.id,areaId:actor.areaId,featId:selection.featId,auxiliary:selection.auxiliary};
+      if(selection.mode==='target'){beginFeatUse(binding);return;}
+      if(selection.mode==='use'){
+        const point=context.ground?context.groundPoint:target.id===actor.id?[0,0,0]:target.position;
+        if(!point){gameUi.notify('No ground position was selected');return;}
+        submitFeatUse(binding,context.ground?OBJECT_INVALID:target.id,[point[0],-point[2],point[1]]);
+      }
+      return;
+    }
+    if(entry.action==='character.cancelPolymorph'){
+      const session=moduleSession;void session.queuePlayerCancelPolymorph().catch(error=>session.report(error,{...session.diagnosticContext(actor.id),operation:'radial-cancel-polymorph'}));return;
+    }
+    if(entry.action==='associate.command'){
+      const session=moduleSession;
+      void session.queuePlayerAssociateCommand(target.id,entry.command).catch(error=>session.report(error,{...session.diagnosticContext(actor.id),targetId:target.id,operation:'radial-associate-command'}));return;
+    }
+    if(entry.action==='spell.counterspell'){
+      const session=moduleSession;
+      void session.queuePlayerMode(5,target.id).then(()=>{
+        if(moduleSession===session)gameUi.message(`Counterspell requested: ${target.name||target.tag||target.id}`,'system');
+      }).catch(error=>session.report(error,{...session.diagnosticContext(actor.id),targetId:target.id,operation:'radial-counterspell'}));return;
+    }
+    if(entry.action==='spell.defensiveCasting'){
+      const session=moduleSession;
+      void session.queuePlayerMode(10).then(()=>{
+        if(moduleSession===session)gameUi.message(session.player.pendingCombatMode===9?'Defensive casting pending':session.player.combatMode===9?'Defensive casting enabled':'Defensive casting disabled','system');
+      }).catch(error=>session.report(error,{...session.diagnosticContext(actor.id),operation:'radial-defensive-casting'}));return;
+    }
+    if(entry.action==='spell.cast'||entry.action==='spellLike.use'){
+      const castTarget=context.ground?null:target,session=moduleSession;
+      const spell=session.spellBook.castingSpell(entry.binding.spellId);
+      if(!radialSpellTargetAllowed(spell,actor,castTarget)){gameUi.notify('That is not a valid target for this spell');return;}
+      const point=context.ground?context.groundPoint:target.id===actor.id?[0,0,0]:target.position;
+      if(!point){gameUi.notify('No ground position was selected');return;}
+      const nativePoint=[point[0],-point[2],point[1]];
+      const cast={...radialSpellCastRequest(entry.binding,actor,castTarget,nativePoint),action:entry.action};
+      submitSpellCast(cast,cast.targetId,cast.position,cast.location);return;
+    }
     if (entry.action === 'door.toggle' && target.kind === 'door') {
       actionQueue?.request(target.id,target.animationState === 0 ? 'open' : 'close');
       return;
     }
     if (entry.action === 'object.examine') { gameUi.examineId = target.id; gameUi.open('examine'); return; }
     if (entry.action === 'conversation.start') { actionQueue?.request(target.id, 'talk'); return; }
-    if (entry.action === 'placeable.use') { actionQueue?.request(target.id, 'use'); return; }
+    if (entry.action === 'placeable.use') { submitWorldUse(target); return; }
     if (entry.action === 'combat.attack' && target.id !== actor.id) {
       actionQueue?.cancel(); movementKeys.clear();
       const session = moduleSession;
@@ -245,14 +319,48 @@ const gameUi = new GameUi(viewport, {
   getWorld: () => ({ triangles: playerController?.triangles ?? [], objects: worldObjects }),
   getSelected: () => selectedWorldObject,
   radialActive: () => radialMenu.active,
-  hasPendingAction: () => Boolean(actionQueue?.current||moduleSession?.player.objectActionState?.list.count),
-  onCancelAction: () => {actionQueue?.cancel();void moduleSession?.queuePlayerClearActions().catch(error=>moduleSession?.report(error));},
-  onInputCapture: captured => { if (captured) radialMenu.close(); controls.enabled = !captured && !radialMenu.active && !moduleSession?.player.cutscene?.enabled; movementKeys.clear(); pointerPress = null; },
+  hasPendingAction: () => Boolean(pendingSpellTarget||actionQueue?.current||moduleSession?.player.objectActionState?.list.count),
+  onCancelAction: () => {if(pendingSpellTarget){cancelSpellTarget(true);return;}actionQueue?.cancel();void moduleSession?.queuePlayerClearActions().catch(error=>moduleSession?.report(error));},
+  onInputCapture: captured => { if (captured){radialMenu.close();if(gameUi.state.panel!=='inventory')cancelSpellTarget();} controls.enabled = !captured && !radialMenu.active && !moduleSession?.player.cutscene?.enabled; movementKeys.clear(); pointerPress = null; },
   onOpenModule: () => areaInput.click(),
   onSettings: settings => { if (settings.wireframe !== wireframe) wireButton.click(); },
   onQuickbarMenu:(menu,index,event)=>radialMenu.open(menu,event.clientX,event.clientY,{targetId:moduleSession.player.id,quickbarIndex:index}),
+  onItemTarget:id=>{
+    if(!pendingSpellTarget)return false;
+    const pending=pendingSpellTarget,item=moduleSession?.registry.get(id);
+    if(pending.session!==moduleSession||pending.request.areaId!==moduleSession.player.areaId){cancelSpellTarget();return true;}
+    if(!isPlayerInventoryItem(item)||!pendingTargetAllowed(pending,item)){
+      gameUi.notify('That is not a valid target for this spell');return true;
+    }
+    submitPendingTarget(pending,item.id,[0,0,0],0);return true;
+  },
+  onItemMenu:(id,event)=>{
+    if(pendingSpellTarget){cancelSpellTarget(true);return;}
+    const item=moduleSession?.registry.get(id),actor=moduleSession?.player;
+    if(!isPlayerInventoryItem(item)||(item.nativeItemPending240??0)!==0||actor.cutscene?.enabled||moduleSession.conversation.state)return;
+    radialMenu.open(buildRadialActions(item,actor,{title:gameUi.objectName(item),castMenu:()=>gameUi.worldSpellMenu(item,{filter:8}),itemUseEntries:()=>gameUi.itemUseEntries(item)}),event.clientX,event.clientY,{targetId:item.id,inventory:true});
+  },
   onRequest: request => {
-    if(request.action==='spell.cast'){beginSpellCast(request);return;}
+    if(['inventory.status','inventory.page','container.close','container.page','inventory.move','item.container.open'].includes(request.action)){
+      const session=moduleSession;if(!session||request.actorId!==session.player.id)return;let input;
+      if(request.action==='inventory.status')input=session.queuePlayerInventoryStatus(request.value,request.ownerId);
+      else if(request.action==='inventory.page')input=session.queuePlayerInventoryPanel(request.panel,request.primary);
+      else if(request.action==='container.close')input=session.queuePlayerContainerInput(1);
+      else if(request.action==='container.page')input=session.queuePlayerContainerInput(request.subtype);
+      else if(request.action==='item.container.open')input=session.queuePlayerUseObject(request.itemId,{popup:1});
+      else input=session.queuePlayerRepositoryMove(request.itemId,request.destination,request.x,request.y);
+      void input.catch(error=>session.report(error,{...session.diagnosticContext(request.actorId),operation:`ui-${request.action}`}));return;
+    }
+    if(request.action==='item.use'){beginItemUse(request);return;}
+    if(request.action==='item.learn'){submitLearnScroll(request);return;}
+    if(request.action==='spell.prepare'){
+      const session=moduleSession;if(!session)return;void session.queuePlayerSpellPreparation(request).catch(error=>session.report(error,{...session.diagnosticContext(request.actorId),operation:'ui-spell-preparation'}));return;
+    }
+    if(request.action==='rest'){
+      const session=moduleSession;if(!session)return;cancelSpellTarget();void session.queuePlayerRest(request).catch(error=>session.report(error,{...session.diagnosticContext(request.actorId),operation:'ui-rest'}));return;
+    }
+    if(request.action==='spell.cast'||request.action==='spellLike.use'){beginSpellCast(request);return;}
+    if(request.action==='feat.use'){beginFeatUse(request);return;}
     if (request.action === 'character.load' || request.action === 'character.create') { void openCharacters(request.action === 'character.create'); return; }
     if(request.action==='action.queue.cancel'){
       const session=moduleSession;if(!session)return;
@@ -260,7 +368,7 @@ const gameUi = new GameUi(viewport, {
     }
     if (request.action === 'door.use') {
       if (worldObjects?.get(request.targetId)?.areaId !== moduleSession?.player.areaId) { gameUi.notify('That object is in another area'); return; }
-      actionQueue?.use(request.targetId); return;
+      const target=worldObjects.get(request.targetId);if(target.objectType===9)submitWorldUse(target);else actionQueue?.use(request.targetId);return;
     }
     if (request.action === 'conversation.start') { actionQueue?.request(request.targetId, 'talk'); return; }
     if (request.action === 'conversation.reply' || request.action === 'conversation.close') {
@@ -274,25 +382,118 @@ const gameUi = new GameUi(viewport, {
   }
 });
 
-function cancelSpellTarget(){pendingSpellTarget=null;delete canvas.dataset.spellTarget;canvas.style.cursor='';}
+function isPlayerInventoryItem(item){const actor=moduleSession?.player;return Boolean(actor&&item?.objectType===6&&item.possessorId===actor.id&&actor.inventory?.includes(item.id));}
+function cancelSpellTarget(notify=false){const active=Boolean(pendingSpellTarget);pendingSpellTarget=null;delete canvas.dataset.spellTarget;canvas.style.cursor='';if(active&&notify)gameUi.notify('Spell targeting canceled');}
 function submitSpellCast(request,targetId,position,location){
   const session=moduleSession;if(!session)return;
   cancelSpellTarget();movementKeys.clear();actionQueue?.cancel();
-  void session.queuePlayerCastSpell({...request,targetId,position,location}).then(accepted=>{
+  canvas.dataset.lastSpellRequest=JSON.stringify({...request,targetId,position,location});delete canvas.dataset.lastSpellAccepted;
+  const ability=request.action==='spellLike.use';
+  void (ability?session.queuePlayerSpellLike({...request,targetId,position,location}):session.queuePlayerCastSpell({...request,targetId,position,location})).then(accepted=>{
     if(moduleSession!==session)return;
-    gameUi.message(accepted?'Spell queued':'Spell request rejected','system');
+    canvas.dataset.lastSpellAccepted=String(accepted);
+    gameUi.message(ability?'Ability requested':accepted?'Spell queued':'Spell request rejected','system');
   }).catch(error=>session.report(error,{...session.diagnosticContext(request.actorId),spellId:request.spellId,operation:'ui-spell-cast'}));
 }
 function beginSpellCast(request){
   const session=moduleSession;if(!session)return;
-  const spell=session.spellBook.castingSpell(request.spellId);if(!spell){gameUi.notify('Spell unavailable');return;}
   if(request.actorId!==session.player.id||request.areaId!==session.player.areaId)return;
+  // Read panel state before closeAll. Native mask9 suppresses automatic self
+  // targeting while the inventory/container targeter is active.
+  const plan=prepareSpellTarget(session.player,request,spellTargetProviders(session),{inventoryMode:gameUi.state.panel==='inventory'?1:null});
+  if(plan.mode==='unavailable'){gameUi.notify('Spell unavailable');return;}
+  const spell=plan.definition;
   gameUi.closeAll();radialMenu.close();
-  const cast={...request,classIndex:request.classIndex,metamagic:request.metamagic??0,domainLevel:request.domainLevel??0};
-  if(spell.targetType===1){submitSpellCast(cast,session.player.id,[0,0,0],0);return;}
-  pendingSpellTarget={session,request:cast};canvas.dataset.spellTarget=String(spell.id);canvas.style.cursor='crosshair';
-  gameUi.notify('Choose a spell target · Escape or right-click to cancel');
+  const cast={...plan.request,classIndex:request.classIndex,metamagic:request.metamagic??0,domainLevel:request.domainLevel??0};
+  if(plan.mode==='self'){
+    const point=session.player.position,nativePoint=[point[0],-point[2],point[1]],selected=radialSpellCastRequest(cast,session.player,session.player,nativePoint);
+    submitSpellCast({...cast,...selected,action:cast.action},selected.targetId,selected.position,selected.location);return;
+  }
+  pendingSpellTarget={session,request:cast};canvas.dataset.spellTarget=String(cast.spellId);canvas.style.cursor='crosshair';
+  gameUi.notify(spell.targetType&8?'Choose a target in the world or inventory · Escape or right-click to cancel':'Choose a spell target · Escape or right-click to cancel');
 }
+function spellTargetProviders(session){return {spell:id=>{const spell=session.spellBook.castingSpell(id);return spell?{...spell,children:talentSpell(session.characterRules,id).children}:null;}};}
+function featTargetProviders(session){return {feat:id=>featActivationInfo(session.characterRules,id),spell:id=>featActivationSpell(session.characterRules,id)};}
+function itemTargetProviders(session){return{
+ item:id=>{const o=session.registry.get(id);return o?.objectType===6?o:null;},property:(o,index)=>o.activeProperties[index]??null,
+ propertySpell:(o,index)=>{const prop=o.activeProperties[index];return prop?session.items.castProviders().spellIndex(prop.subtype):-1;},
+ spell:id=>{const spell=session.spellBook.castingSpell(id);return spell?{...spell,children:talentSpell(session.characterRules,id).children}:null;},
+ subRadialSpell:(spell,index)=>{if(index<spell.children.length)return spell.children[index];runtimeDiagnostics.record('ui.native-item-variant-warning','Requested item spell variant is outside the valid range',{spellId:spell.id,index});return -1;},
+ baseInfo:o=>session.items.baseInfo(o),controlledId:()=>session.player.id,creature:id=>{const o=session.registry.get(id);return o?.objectType===5?o:null;},
+ preview:spell=>runtimeDiagnostics.record('ui.item-target-preview-unimplemented','Native item spell targeting preview presentation is unavailable',{spellId:spell.id}),
+ warning:message=>runtimeDiagnostics.record('ui.native-item-target-warning',message)
+};}
+function submitLearnScroll(request){
+ const session=moduleSession,actor=session?.player,item=session?.registry.get(request.itemId);
+ if(!session||!isPlayerInventoryItem(item)||actor.id!==request.actorId||actor.areaId!==request.areaId)return;
+ canvas.dataset.lastScrollLearnRequest=JSON.stringify(request);
+ void selectLearnScroll(item.id,{item:id=>{const o=session.registry.get(id);return o?.objectType===6?o:null;},transport:()=>session,
+  send:async(_transport,id)=>{const ack=await session.queuePlayerLearnScroll({...request,itemId:id});if(moduleSession!==session)return;canvas.dataset.lastScrollLearnResult=JSON.stringify({ack,...session.items.lastLearnScroll});gameUi.refresh(true);}})
+ .catch(error=>session.report(error,{...session.diagnosticContext(actor.id),itemId:item.id,operation:'ui-scroll-learning'}));
+}
+function submitWorldUse(target,{notify=0}={}){
+ const session=moduleSession;if(!session||session.registry.get(target.id)!==target||target.areaId!==session.player.areaId)return;
+ actionQueue?.cancel();movementKeys.clear();
+ void session.queuePlayerUseObject(target.id,{popup:1,notify}).then(accepted=>{
+  if(moduleSession===session)doorFeedback.textContent=accepted?`Use requested: ${target.name||target.tag||target.id}`:'Use input was rejected';
+ }).catch(error=>session.report(error,{...session.diagnosticContext(session.player.id),targetId:target.id,operation:'ui-use-object'}));
+}
+function beginItemUse(request){
+ const session=moduleSession;if(!session||request.actorId!==session.player.id||request.areaId!==session.player.areaId)return;
+ const item=session.registry.get(request.itemId);if(!isPlayerInventoryItem(item)){gameUi.notify('Item unavailable');return;}
+ if((request.propertyIndex&65535)===255){runtimeDiagnostics.record('ui.item-equipment-activation-unimplemented','Native non-property item shortcut activation owner is not connected',{itemId:item.id,secondaryItemId:request.secondaryItemId});gameUi.notify('This item shortcut requires its equipment or container action');return;}
+ const packed=request.packed??((request.propertyIndex&65535)|((request.variant??request.subPropertyIndex??255)<<16)),
+  plan=prepareItemTarget(item.id,packed,itemTargetProviders(session),{inventoryMode:gameUi.state.panel==='inventory'?1:0});
+ if(plan.mode==='unavailable'){gameUi.notify('Item action unavailable');return;}
+ const binding={...request,action:'item.use',packed};
+ gameUi.closeAll();radialMenu.close();
+ if(plan.mode==='self'){submitItemUse(binding,plan.targetId,plan.point);return;}
+ if(!plan.targetTypes.length){gameUi.notify('No targets are available for this item action');return;}
+ pendingSpellTarget={session,request:binding,itemPlan:plan};canvas.dataset.spellTarget=`item:${item.id}:${packed>>>0}`;canvas.style.cursor='crosshair';
+ gameUi.notify(plan.targetTypes.some(([type])=>type===6)?'Choose an item target in the world or inventory · Escape to cancel':'Choose an item action target · Escape to cancel');
+}
+function submitItemUse(request,targetId,point){
+ const session=moduleSession;if(!session||request.actorId!==session.player.id||request.areaId!==session.player.areaId)return;
+ cancelSpellTarget();movementKeys.clear();actionQueue?.cancel();
+ const state={itemId:request.itemId,packed:request.packed,targetId,point:[...point]};canvas.dataset.lastItemRequest=JSON.stringify(state);delete canvas.dataset.lastItemInputResult;
+ void confirmItemTarget(state,{...itemTargetProviders(session),player:()=>session.player,
+  position:o=>[o.position[0],-o.position[2],o.position[1]].map(Math.fround),
+  use:(_actor,id,packed,target,position)=>sendItemUse(id,packed,target,position,{transport:()=>session.player,
+   send:async(_transport,itemId,propertyIndex,variant,targetId,position)=>{
+    canvas.dataset.lastItemRequest=JSON.stringify({itemId,packed,targetId,point:position});
+    // Native writer7c0610 omits variant255, which input9 decodes as0;
+    // it transmits XYZ exactly when the FLOAT vector is nonzero (scale1).
+    const result=await session.queuePlayerUseItem({actorId:request.actorId,areaId:request.areaId,itemId,propertyIndex,variant:(variant&255)===255?0:variant&255,targetId,position,location:Number(position.some(v=>v!==0))});
+    if(moduleSession===session){canvas.dataset.lastItemInputResult=String(result);gameUi.message('Item use requested','system');}
+   }}),clearPreview:()=>{},clearRange:()=>{},dispose:()=>{}})
+  .catch(error=>session.report(error,{...session.diagnosticContext(request.actorId),itemId:request.itemId,operation:'ui-item-use'}));
+}
+function beginFeatUse(request){
+ const session=moduleSession;if(!session||request.actorId!==session.player.id||request.areaId!==session.player.areaId)return;
+ const plan=prepareFeatTarget(request,featTargetProviders(session));if(plan.mode==='unavailable'){gameUi.notify('Feat unavailable');return;}
+ gameUi.closeAll();radialMenu.close();
+ if(plan.mode==='mode'){
+  cancelSpellTarget();void session.queuePlayerMode(plan.modeId).catch(error=>session.report(error,{...session.diagnosticContext(session.player.id),operation:'ui-feat-mode'}));return;
+ }
+ if(plan.mode==='self'){submitFeatUse(plan.request,session.player.id,[0,0,0]);return;}
+ pendingSpellTarget={session,request:plan.request};canvas.dataset.spellTarget=`feat:${plan.request.featId}`;canvas.style.cursor='crosshair';
+ gameUi.notify('Choose an ability target · Escape or right-click to cancel');
+}
+function submitFeatUse(request,targetId,position){
+ const session=moduleSession;if(!session)return;
+ cancelSpellTarget();movementKeys.clear();actionQueue?.cancel();canvas.dataset.lastFeatRequest=JSON.stringify({...request,targetId,position});delete canvas.dataset.lastFeatAccepted;
+ void session.queuePlayerFeat({...request,targetId,position}).then(accepted=>{if(moduleSession!==session)return;canvas.dataset.lastFeatAccepted=String(accepted);gameUi.message(accepted?'Feat requested':'Feat request rejected','system');})
+  .catch(error=>session.report(error,{...session.diagnosticContext(session.player.id),featId:request.featId,operation:'ui-feat-use'}));
+}
+function pendingTargetAllowed(pending,target){
+ if(pending.request.action==='item.use'){
+  if(!pending.itemPlan.targetTypes.some(([type])=>type===(target?.objectType??2)))return false;
+  return !pending.itemPlan.creatureVeto||itemCreatureTargetVeto(pending.request.itemId,pending.request.packed,target?.id??OBJECT_INVALID,itemTargetProviders(pending.session))===0;
+ }
+ if(pending.request.action==='feat.use')return featTargetAllowed(prepareFeatTarget(pending.request,featTargetProviders(pending.session),{autoSelf:0}).definition,target);
+ return radialSpellTargetAllowed(spellTargetDefinition(pending.request.spellId,spellTargetProviders(pending.session)),pending.session.player,target);
+}
+function submitPendingTarget(pending,targetId,position,location){if(pending.request.action==='item.use')submitItemUse(pending.request,targetId,position);else if(pending.request.action==='feat.use')submitFeatUse(pending.request,targetId,position);else submitSpellCast(pending.request,targetId,position,location);}
 
 const characterFrontend = new CharacterFrontend(viewport, {
   text: () => gameUi.text,
@@ -334,7 +535,7 @@ document.querySelector('#language-data-folder').addEventListener('change', async
   catch (error) { showLoadError('Language data could not be loaded', error); }
 });
 window.addEventListener('keydown', (event) => {
-  if(event.key==='Escape'&&pendingSpellTarget){event.preventDefault();cancelSpellTarget();return;}
+  if(event.key==='Escape'&&pendingSpellTarget){event.preventDefault();cancelSpellTarget(true);return;}
   if (event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) return;
   const key = event.key.toLowerCase();
   if (gameUi.captured || moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state) return;
@@ -363,7 +564,7 @@ const openPlayerActions = (x,y) => {
   if (moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state || gameUi.captured) return;
   const actor = playerController?.actor;
   if (!actor) return;
-  radialMenu.open(buildRadialActions(actor,actor),x,y,{targetId:actor.id,groundPoint:null});
+  radialMenu.open(buildRadialActions(actor,actor,{castMenu:()=>gameUi.worldSpellMenu(actor),abilityMenu:()=>gameUi.worldAbilityMenu(actor)}),x,y,{targetId:actor.id,groundPoint:null});
 };
 playerActions.addEventListener('click',() => {
   const bounds = playerActions.getBoundingClientRect();
@@ -382,16 +583,17 @@ canvas.addEventListener('pointerdown', event => {
 });
 canvas.addEventListener('contextmenu',event => { if (worldObjects) event.preventDefault(); });
 canvas.addEventListener('pointerdown',event => {
-  if(event.button===2&&pendingSpellTarget){event.preventDefault();event.stopImmediatePropagation();cancelSpellTarget();return;}
+  if(event.button===2&&pendingSpellTarget){event.preventDefault();event.stopImmediatePropagation();cancelSpellTarget(true);return;}
   if (gameUi.captured || moduleSession?.conversation.state || moduleSession?.player.cutscene?.enabled) return;
   if (event.button !== 2 || !worldObjects || !playerController?.actor) return;
   event.preventDefault(); event.stopImmediatePropagation();
   const hit = pickedWorldObject(pointerRay(event.clientX,event.clientY,canvas.getBoundingClientRect(),camera),loadedRoot,worldObjects,{includePlayer:true});
   const target = hit?.object ?? playerController.actor;
   selectedWorldObject = hit?.object ?? null;
-  const menu = hit?.object ? buildRadialActions(target,playerController.actor) : buildGroundRadialActions(playerController.actor);
+  const options={castMenu:()=>gameUi.worldSpellMenu(hit?.object??null),abilityMenu:()=>gameUi.worldAbilityMenu(hit?.object??null)};
+  const menu = hit?.object ? buildRadialActions(target,playerController.actor,options) : buildGroundRadialActions(playerController.actor,options);
   radialMenu.open(menu,event.clientX,event.clientY,
-    { targetId:target.id,groundPoint:hit?.point.toArray() ?? null });
+    { targetId:target.id,groundPoint:hit?.point.toArray() ?? null,ground:!hit?.object });
 },true);
 canvas.addEventListener('pointermove', event => {
   if (!worldObjects || !playerController || radialMenu.active || gameUi.captured) return;
@@ -411,10 +613,9 @@ canvas.addEventListener('pointerup', event => {
     if(pending.session!==moduleSession||pending.request.areaId!==moduleSession.player.areaId){cancelSpellTarget();return;}
     const hit=pickedWorldObject(pointerRay(event.clientX,event.clientY,canvas.getBoundingClientRect(),camera),loadedRoot,worldObjects,{includePlayer:true});
     if(!hit)return;
-    const spell=moduleSession.spellBook.castingSpell(pending.request.spellId),target=hit.object;
-    const mask=target?.id===moduleSession.player.id?1:({5:2,6:8,10:16,9:32})[target?.objectType];
-    if(target&&mask&&(spell.targetType&mask)){submitSpellCast(pending.request,target.id,[0,0,0],0);return;}
-    if(!target&&(spell.targetType&4)){const point=hit.point.toArray();submitSpellCast(pending.request,0x7f000000,[point[0],-point[2],point[1]],1);return;}
+    const target=hit.object;
+    if(target&&pendingTargetAllowed(pending,target)){submitPendingTarget(pending,target.id,[0,0,0],0);return;}
+    if(!target&&pendingTargetAllowed(pending,null)){const point=hit.point.toArray();submitPendingTarget(pending,0x7f000000,[point[0],-point[2],point[1]],1);return;}
     gameUi.notify('That is not a valid target for this spell');return;
   }
   const hit = pickedWorldObject(pointerRay(event.clientX, event.clientY, canvas.getBoundingClientRect(), camera), loadedRoot, worldObjects);
@@ -422,7 +623,7 @@ canvas.addEventListener('pointerup', event => {
   selectedWorldObject = hit.object;
   movementKeys.clear();
   animationIsolate.checked = false; updateAnimationIsolation();
-  actionQueue?.use(hit.object.id);
+  if(hit.object.objectType===9)submitWorldUse(hit.object,{notify:1});else actionQueue?.use(hit.object.id);
 });
 
 openButton.addEventListener('click', () => fileInput.click());
@@ -435,7 +636,7 @@ fileInput.addEventListener('change', async (event) => {
   }
   gameUi.detach(); gameUi.mode(false); moduleSession?.cancelPendingPlayerInputs(); moduleSession = null;
   diagnosticContext = { modelFile: file.name };
-  gameAudio?.dispose(); gameAudio = null;
+  gameAudio?.dispose(); gameAudio = null;voicePresentation?.dispose();voicePresentation=null;
   try {
     setStatus('PARSING MODEL', false);
     const [parsed, textures] = await Promise.all([
@@ -538,15 +739,22 @@ areaInput.addEventListener('change', async (event) => {
     selectedCharacter = chosen;
     setStatus('LOADING MODULE', false);
     activeAreaResolver = resolver;
-    gameAudio?.dispose();
+    gameAudio?.dispose();voicePresentation?.dispose();
     gameAudio = new GameAudio(resolver, {
       getObject: id => moduleSession?.registry.get(id), getPlayer: () => moduleSession?.player,
       onState: state => { canvas.dataset.audio = JSON.stringify(state); },
       onDiagnostic: message => { console.warn('[Audio]', message); canvas.dataset.audioError = message; gameUi.message(message, 'system'); }
     });
+    const voiceAudio=gameAudio;voicePresentation=new VoicePresentation(resolver,{
+      getObject:id=>moduleSession?.registry.get(id),getPlayer:()=>moduleSession?.player,getText:()=>gameUi.text,
+      onCaption:event=>{const actor=moduleSession?.registry.get(event.actorId);gameUi.message(`[${actor?gameUi.objectName(actor):'Creature'}]: ${event.text}`,'message');
+        canvas.dataset.voiceCaption=JSON.stringify(event);},onSound:event=>voiceAudio.play(event)
+    });
     const previousSession = moduleSession;
     creatureAnimations?.clear();creatureAnimations=null;
-    moduleSession = await new ModuleSession(resolver, {
+    let nextSession;
+    const nextVisualDelivery=new ObjectVisualInbox({session:()=>nextSession,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+    nextSession = new ModuleSession(resolver, {
       runStartupScripts: document.querySelector('#run-module-startup').checked,
       // Skipping opening scripts must still leave perception and combat active.
       runNativeAI: true,
@@ -559,12 +767,25 @@ areaInput.addEventListener('change', async (event) => {
         if (mode !== 1) runtimeDiagnostics.record('camera.presentation-approximate', 'Chase-camera steering uses a local renderer adapter; native camera smoothing is not reconstructed', { actorId: actor.id, mode }, 'info');
       },
       onCombatMessage: event=>{
+        if(nextVisualDelivery.receive(event))return;
         if(moduleSession&&event.recipientId!==moduleSession.player?.id)return;
+        if(event.type==='quick-chat'||event.type==='voice-chat'){void voicePresentation?.receive(event);return;}
+        if(event.type==='polymorph')return; // Live appearance sync below owns model replacement after canonical mutation.
+        if(gameUi.receiveInventoryMessage(event))return;
         const handled=creatureAnimations?.receive(event);
         if([5,6].includes(event.type)&&event.attack){
           const [actorId,targetId]=event.data.objects,actor=moduleSession.registry.get(actorId),target=moduleSession.registry.get(targetId),attack=event.attack;
           gameUi.message(`${actor?.name||actor?.tag||'Creature'} attacks ${target?.name||target?.tag||'target'}: ${attack.roll} + ${attack.modifier} = ${attack.roll+attack.modifier}; ${attackResultDoesDamage(attack.result)?`hit (${totalAttackDamage(attack)} damage)`:'miss or defended'}`,'combat');
           if(!handled)runtimeDiagnostics.record('combat.animation-unavailable','Combat attack has no available creature animation binding',{actorId,targetId});
+        }else if(event.type===11&&[93,94].includes(event.data?.integers?.[9])){
+          const ref=event.data.integers[9]===93,text=ref?gameUi.text.strRef(event.data.integers[0]>>>0):event.data.strings?.[0];
+          if(text)gameUi.message(text,'message');
+          if(event.data.integers[ref?1:0]!==0)runtimeDiagnostics.record('combat.floating-text-sound-unimplemented','Native floating-text sound playback is unavailable',{
+            recipientId:event.recipientId,objectId:event.data.objectIds?.[0],feedbackCode:event.data.integers[9]});
+        }else if(event.type===12){
+          const [casterId,counterId]=event.data.objects,caster=moduleSession.registry.get(casterId),counter=moduleSession.registry.get(counterId);
+          const [incoming,selected,identified]=event.data.integers,spellName=ref=>gameUi.text.resolve({strRef:ref>>>0,entries:[]})||'spell';
+          gameUi.message(`${counter?.name||counter?.tag||'Creature'} counters ${caster?.name||caster?.tag||'creature'}'s ${identified?spellName(incoming):'spell'}${identified?` using ${spellName(selected)}`:''}`,'combat');
         }else runtimeDiagnostics.record('combat.presentation-unimplemented','Native combat message presentation is not implemented',{messageType:event.type,recipientId:event.recipientId});
       },
       onConversation: () => { movementKeys.clear(); radialMenu.close(); gameUi.conversationChanged(); },
@@ -600,7 +821,9 @@ areaInput.addEventListener('change', async (event) => {
           areaSelect.value = targetArea.resRef;
         } finally { areaSelect.disabled = false; }
       }
-    }).initialize(areaResRefs, { character: selectedCharacter?.bytes });
+    });
+    moduleSession=await nextSession.initialize(areaResRefs, { character: selectedCharacter?.bytes });
+    visualDelivery=nextVisualDelivery;
     previousSession?.cancelPendingPlayerInputs();
     if (selectedCharacter) moduleSession.player.characterFile = selectedCharacter.name;
     moduleSession.quickbarProfileKey=selectedCharacter?.id??null;
@@ -766,6 +989,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   const { triangles: walkableTriangles, missing: missingWalkmeshes } = await loadAreaWalkmesh(area, resolver);
   const collisions = await loadAreaCollisions(area, resolver);
   const sessionArea = moduleSession?.areas.get(area.resRef);
+  await sessionArea.nativeGeometry.objects.load(); // Canonical PWK interaction points precede input binding.
   for (let index = 0; index < collisions.doors.length; index++) {
     const parsedDoor = collisions.doors[index];
     const persistent = moduleSession?.source(parsedDoor.sourceKey);
@@ -912,15 +1136,13 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   }
   let renderedPlaceables = 0;
   for (const [index, placeable] of area.placeables.entries()) {
+    const sourceKey = `${area.resRef}:placeable:${index}`,record = moduleSession.source(sourceKey);
+    if(!record||record.areaId!==sessionArea.id)continue;
     const object = addInstance(placeable.model, [placeable.x, placeable.z, -placeable.y], placeable.bearing, `Placeable · ${placeable.tag || placeable.model}`);
     if (object) {
-      const sourceKey = `${area.resRef}:placeable:${index}`;
-      const record = moduleSession.source(sourceKey);
-      record.actionPoints = collisions.placeableActionPoints.get(sourceKey);
       areaObjects.add('placeable', sourceKey, record, object);
       renderedPlaceables += 1;
     } else {
-      const sourceKey = `${area.resRef}:placeable:${index}`;
       runtimeDiagnostics.record('scene.object-omitted', `Placeable model ${placeable.model} is unavailable`, { objectId: moduleSession.source(sourceKey)?.id, sourceKey, model: placeable.model, objectKind: 'placeable', tag: placeable.tag });
       skippedObjects.push(placeable.model);
     }
@@ -1004,9 +1226,49 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   setLoadedScene(root, textures);
   worldObjects = areaObjects;
   activeAnimations = areaAnimations;
-  const pendingCreatures=new Set(),failedCreatures=new Set(),presentation=creatureAnimations;
-  const addRuntimeCreature=async actor=>{
-    const appearance=resolvePlayerModels(actor.creatureData,moduleSession.characterRules);if(!appearance)throw new Error('Runtime creature appearance is unavailable');
+  const visualSession=moduleSession;
+  let visualTables;
+  const loadVisualTables=()=>visualTables??=Promise.all([visualSession.items.table('visualeffects'),visualSession.items.table('progfx'),visualSession.items.table('appearance')]).then(([visuals,programs,appearance])=>{
+    if(!visuals||!programs||!appearance)throw new Error('Looping visual rules are unavailable');return{visuals,programs,appearance};
+  });
+  loopingVisuals = new LoopingVisualPresentation({areaId:sessionArea.id,objects:()=>areaObjects.objects.values(),object:id=>areaObjects.registry.get(id),
+    render:id=>areaObjects.renderBindings.get(id),tables:loadVisualTables,
+    createNative:(actor,target,record,tables)=>createSceneVisual(actor,target,record,tables,{resolver,session:visualSession,bindings:areaObjects.renderBindings,sceneRoot:root}),selectedObjectId1406ac1c0:()=>visualSession.player.id,
+    report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+  const pendingCreatures=new Set(),failedCreatures=new Map(),appearanceKeys=new Map(),presentation=creatureAnimations;
+  const pendingPlaceables=new Set(),failedPlaceables=new Map(),reportedGroundItems=new Set();
+  const addRuntimePlaceable=async(object,appearance)=>{
+    const table=await visualSession.items.table('placeables'),column=table?.columns.find(name=>name.toLowerCase()==='modelname'),value=table?.orderedRows[appearance]?.[column];
+    if(!Number.isInteger(appearance)||!value||value==='****')throw new Error('Runtime placeable active ModelName is unavailable');
+    const name=value.toLowerCase().slice(0,16);
+    if(!parsedModels.has(name)){
+      const model=parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL));
+      await inheritAnimations(model,async ref=>{if(!animationSources.has(ref))animationSources.set(ref,parseModel(await resolver.getResource(ref,RESOURCE_TYPE.MDL)));return animationSources.get(ref);});
+      parsedModels.set(name,model);animationSources.set(name,model);
+    }
+    const files=[],model=parsedModels.get(name);
+    for(const bitmap of new Set((model.materialNames??[]).map(name=>name.toLowerCase()).filter(name=>name&&name!=='null'))){
+      if(textures.has(bitmap))continue;let found=false;
+      for(const [extension,type]of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
+        try{const bytes=await resolver.getResource(bitmap,type);files.push({name:`${bitmap}.${extension}`,arrayBuffer:async()=>bytes});found=true;break;}
+        catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
+      }
+      if(!found)runtimeDiagnostics.record('texture.runtime-placeable-unavailable',`Runtime placeable bitmap ${bitmap} is unavailable`,{objectId:object.id,resource:bitmap});
+    }
+    const extra=await loadTextures(files,resolver),current=()=>loadedRoot===root&&worldObjects===areaObjects&&visualSession.registry.get(object.id)===object&&object.areaId===sessionArea.id&&(object.nativeMessageFields?.[0x32c]??object.authored.Appearance)===appearance;
+    if(!current()){extra.forEach(texture=>texture.dispose());return;}
+    extra.forEach((texture,key)=>{textures.set(key,texture);loadedTextures.push(texture);});
+    if(!templates.has(name)){const template=buildObject(model,textures);templates.set(name,template);root.userData.assetTemplates.push(template);}
+    const rotation=object.bearing??-Math.atan2(object.orientation[0],-object.orientation[2]),wrapper=addInstance(name,object.position,rotation,`Placeable · ${object.tag||name}`);
+    if(!wrapper)throw new Error('Runtime placeable model instance is unavailable');
+    areaObjects.add('placeable',object.sourceKey,object,wrapper);object.model=name;loopingVisuals?.rebindModel(object);
+    runtimeDiagnostics.record('scene.runtime-placeable-added','Runtime placeable model and animations bound',{objectId:object.id,sourceKey:object.sourceKey,model:name,appearanceId:appearance},'info');configureAnimationPanel();
+  };
+  const liveAppearance=actor=>resolvePlayerModels(actor.creatureData??actor.authored,moduleSession.characterRules,{items:moduleSession.equippedItems(actor)});
+  const appearanceKey=actor=>JSON.stringify(liveAppearance(actor));
+  for(const actor of areaObjects.objects.values())if(actor.objectType===5)appearanceKeys.set(actor.id,appearanceKey(actor));
+  const addRuntimeCreature=async(actor,key)=>{
+    const appearance=liveAppearance(actor);if(!appearance)throw new Error('Runtime creature appearance is unavailable');
     const models=[appearance.model,appearance.fallbackModel,...appearance.parts.flatMap(p=>[p.model,p.fallbackModel])].filter(Boolean);
     for(const name of new Set(models))if(!parsedModels.has(name)){
       try{const model=parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL));parsedModels.set(name,model);animationSources.set(name,model);
@@ -1029,7 +1291,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     }
     if(loadedRoot!==root||worldObjects!==areaObjects)return;
     const extra=await loadTextures(files,resolver,paletteRows);
-    if(loadedRoot!==root||worldObjects!==areaObjects||moduleSession.registry.get(actor.id)!==actor||actor.areaId!==sessionArea.id){extra.forEach(texture=>texture.dispose());return;}
+    if(loadedRoot!==root||worldObjects!==areaObjects||moduleSession.registry.get(actor.id)!==actor||actor.areaId!==sessionArea.id||appearanceKey(actor)!==key){extra.forEach(texture=>texture.dispose());return;}
     extra.forEach((texture,key)=>{textures.set(key,texture);loadedTextures.push(texture);});
     for(const name of new Set(models))if(!templates.has(name)&&parsedModels.has(name)){const template=buildObject(parsedModels.get(name),textures);templates.set(name,template);root.userData.assetTemplates.push(template);}
     const modelName=parsedModels.has(appearance.model)?appearance.model:appearance.fallbackModel,template=templates.get(modelName);
@@ -1043,18 +1305,52 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     }
     // Model/texture reads can span several simulation frames. Bind only the
     // same live canonical record in this area after all asynchronous work.
-    if(moduleSession.registry.get(actor.id)!==actor||actor.areaId!==sessionArea.id)return;
-    const wrapper=new THREE.Group();wrapper.position.set(...actor.position);wrapper.rotation.y=-Math.atan2(actor.orientation[0],-actor.orientation[2]);wrapper.add(assembly);root.add(wrapper);
-    areaObjects.add('creature',actor.sourceKey,actor,wrapper);
+    if(moduleSession.registry.get(actor.id)!==actor||actor.areaId!==sessionArea.id||appearanceKey(actor)!==key)return;
+    let wrapper=areaObjects.renderBindings.get(actor.id);
+    if(wrapper){
+      const previous=visualMainModel(wrapper)?.root??null,owned=new Set();previous?.traverse(node=>owned.add(node));presentation.unbind(actor.id);
+      for(let i=areaAnimations.length-1;i>=0;i--)if(owned.has(areaAnimations[i].root))areaAnimations.splice(i,1);
+      previous?.traverse(node=>{if(node.userData.animationOwnedGeometry)node.geometry?.dispose();});
+      previous?.removeFromParent();
+    }else{
+      wrapper=new THREE.Group();wrapper.position.set(...actor.position);wrapper.rotation.y=-Math.atan2(actor.orientation[0],-actor.orientation[2]);root.add(wrapper);
+      areaObjects.add('creature',actor.sourceKey,actor,wrapper);
+    }
+    if(actor===moduleSession.player){assembly.rotation.y=Math.PI;wrapper.userData.characterModel=true;}
+    wrapper.add(assembly);appearanceKeys.set(actor.id,key);
+    loopingVisuals?.rebindModel(actor);
     const animator=createModelAnimator(parsedModels.get(modelName),assembly,`Creature · ${actor.tag||modelName}`,areaAnimations);presentation.bind(actor,animator,wrapper);
-    runtimeDiagnostics.record('scene.runtime-creature-added','Runtime creature model and animations bound',{objectId:actor.id,sourceKey:actor.sourceKey,model:modelName},'info');
+    runtimeDiagnostics.record('scene.runtime-creature-added','Runtime creature model and animations bound',{objectId:actor.id,sourceKey:actor.sourceKey,model:modelName,appearanceId:(actor.creatureData??actor.authored).Appearance_Type},'info');
     configureAnimationPanel();
   };
   dynamicCreatureSync=()=>{
     if(loadedRoot!==root||worldObjects!==areaObjects)return;
+    let removed=false;
+    for(const [id,actor]of areaObjects.objects){
+      if(![5,9].includes(actor.objectType)||actor===moduleSession.player||moduleSession.registry.get(id)===actor&&actor.areaId===sessionArea.id)continue;
+      const detached=areaObjects.remove(id),wrapper=detached?.render;if(actor.objectType===5)presentation.unbind(id);
+      if(wrapper){const owned=new Set();wrapper.traverse(node=>owned.add(node));
+        for(let i=areaAnimations.length-1;i>=0;i--)if(owned.has(areaAnimations[i].root))areaAnimations.splice(i,1);
+        wrapper.traverse(node=>{if(node.userData.animationOwnedGeometry)node.geometry?.dispose();});
+        wrapper.removeFromParent();}
+      if(hoveredObject?.id===id)hoveredObject=null;if(selectedWorldObject?.id===id)selectedWorldObject=null;
+      removed=true;
+    }
+    if(removed)configureAnimationPanel();
+    for(const id of sessionArea.objects){const object=visualSession.registry.get(id);
+      if(object?.objectType===6&&object.areaId===sessionArea.id&&object.possessorId===OBJECT_INVALID&&!areaObjects.get(id)&&!reportedGroundItems.has(id)){
+        reportedGroundItems.add(id);runtimeDiagnostics.record('scene.runtime-ground-item-unimplemented','Canonical ground item has no native ground-model presentation',{objectId:id,sourceKey:object.sourceKey,resource:object.templateResRef,baseItem:object.baseItem});
+      }
+    }
+    for(const id of sessionArea.objects){const object=visualSession.registry.get(id);
+      if(object?.objectType!==9||object.areaId!==sessionArea.id||areaObjects.get(id)||pendingPlaceables.has(id))continue;
+      const appearance=object.nativeMessageFields?.[0x32c]??object.authored.Appearance;if(failedPlaceables.get(id)===appearance)continue;
+      pendingPlaceables.add(id);void addRuntimePlaceable(object,appearance).catch(error=>{failedPlaceables.set(id,appearance);runtimeDiagnostics.error(error,'scene.runtime-placeable-failed',{objectId:id,sourceKey:object.sourceKey});}).finally(()=>pendingPlaceables.delete(id));
+    }
     for(const id of sessionArea.objects){const actor=moduleSession.registry.get(id);
-      if(actor?.objectType!==5||actor===moduleSession.player||actor.areaId!==sessionArea.id||areaObjects.get(id)||pendingCreatures.has(id)||failedCreatures.has(id))continue;
-      pendingCreatures.add(id);void addRuntimeCreature(actor).catch(error=>{failedCreatures.add(id);runtimeDiagnostics.error(error,'scene.runtime-creature-failed',{objectId:id,sourceKey:actor.sourceKey});}).finally(()=>pendingCreatures.delete(id));
+      if(actor?.objectType!==5||actor.areaId!==sessionArea.id||actor.nativeField9f4!==0||pendingCreatures.has(id))continue;
+      const key=appearanceKey(actor);if(areaObjects.get(id)&&appearanceKeys.get(id)===key||failedCreatures.get(id)===key)continue;
+      pendingCreatures.add(id);void addRuntimeCreature(actor,key).catch(error=>{failedCreatures.set(id,key);runtimeDiagnostics.error(error,'scene.runtime-creature-failed',{objectId:id,sourceKey:actor.sourceKey});}).finally(()=>pendingCreatures.delete(id));
     }
   };
   animationToolsEnabled.checked = false;
@@ -1075,6 +1371,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     if (arrival) actor.bearing = arrival.bearing;
     player.rotation.y = Math.PI + (actor.bearing ?? 0);
     areaObjects.add('player', 'player', actor, player);
+    appearanceKeys.set(actor.id,appearanceKey(actor));
     creatureAnimations.bind(actor,playerAnimator,player);
     playerController.actor = actor;
     const navigator = new WalkmeshNavigator(walkableTriangles);
@@ -1083,11 +1380,6 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
         actions: ['talk'], intent: () => 'talk',
         prepare: target => ({ ok: !moduleSession.isDead(target) && !moduleSession.isDying(target), message: 'That creature cannot converse', points: [target.position], range: moduleSession.talkRange(actor, target) }),
         execute: target => ({ ok: moduleSession.requestTalk(target.id), message: `Talking to ${target.name || target.tag}` }),
-        settled: () => true
-      }, placeable: {
-        actions: ['use'], intent: () => 'use',
-        prepare: target => ({ ok: Boolean(target.usable && target.scripts?.used), message: 'That object does not have an implemented use action', points: [placeableUsePoint(actor, target)], range: placeableUseRange(actor, moduleSession.appearances) }),
-        execute: target => { moduleSession.scheduler.enqueue(target.id, { type: 'use', playerId: actor.id }); return { ok: true, message: `Using ${target.name || target.tag}` }; },
         settled: () => true
       } },
       navigate: points => navigator.approach(actor.position, points, playerController.obstacles),
@@ -1149,6 +1441,8 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
 }
 
 function clearLoadedScene() {
+  modelParticles.dispose();delete canvas.dataset.modelParticles;delete canvas.dataset.pointWinds;
+  loopingVisuals?.dispose(); loopingVisuals=null; delete canvas.dataset.loopingVisuals;
   dynamicCreatureSync=null;
   radialMenu.close(); radialIconCache.clear();
   actionQueue?.cancel('Area changed');
@@ -1170,6 +1464,7 @@ function clearLoadedScene() {
     const roots = [loadedRoot, ...(loadedRoot.userData.assetTemplates ?? [])];
     for (const root of roots) {
       root.traverse((child) => {
+        if(child.isLight){child.shadow?.map?.dispose();child.shadow?.mapPass?.dispose();}
         if (child.geometry) geometries.add(child.geometry);
         if (Array.isArray(child.material)) child.material.forEach((material) => materials.add(material));
         else if (child.material) materials.add(child.material);
@@ -1328,7 +1623,7 @@ function updateAreaInspector(area, parsedModels, textures, report) {
     if (count) omissions.push(`${count} ${kind} not rendered`);
   }
   const effectSummary = previewEffectsEnabled.checked ? `${emitters} emitter previews on` : `${emitters} emitters available; previews off`;
-  const lightingSummary = `${report.lightingMode} area lighting · ${lights} lights · ${effectSummary}; PCF shadows approximate the game passes, particle physics are not simulated.`;
+  const lightingSummary = `${report.lightingMode} area lighting · ${lights} lights · ${effectSummary}; native particle CPU paths active, remaining scene/material features recorded; PCF shadows approximate the game passes.`;
   const paletteSummary = report.paletteParts ? ` · ${report.paletteParts} creature parts palette-colored` : '';
   const movementSummary = report.playerSpawned
     ? `walkable area · ${report.walkableTriangles} faces · player active · ${report.objectCollisionTriangles} object collision faces`
@@ -1342,6 +1637,7 @@ function updateAreaInspector(area, parsedModels, textures, report) {
 
 function buildObject(parsed, textures, textureOverride = null) {
   const { root, groups,nodeGroups } = createModelHierarchy(parsed);
+  root.userData.mdlRoot=parsed.modelName;
   for (const node of parsed.nodes) {
     if (node.type !== 'trimesh' || node.render === false || node.properties?.render === 0 || node.properties?.render === '0') continue;
     const transformedVertices = node.skinned
@@ -1353,28 +1649,48 @@ function buildObject(parsed, textures, textureOverride = null) {
   for (const node of parsed.nodes) {
     const group = nodeGroups.get(node);
     if (node.type === 'light') addModelLight(node, group);
-    else if (node.type === 'emitter') buildEmitterPreview(node, group, textures, parsed.modelName);
+    else if (node.type === 'emitter') {group.add(createModelEmitter(node,textures,parsed.modelName));buildEmitterPreview(node, group, textures, parsed.modelName);}
   }
   return root;
 }
 
 function addModelLight(node, parent) {
-  const properties = node.properties ?? {};
-  const colorValues = vectorProperty(properties.color, [1, 1, 1]);
-  const color = new THREE.Color().setRGB(...colorValues, THREE.SRGBColorSpace);
-  const intensity = Math.max(0, numericProperty(properties, 'multiplier', 1));
-  const radius = Math.max(0, numericProperty(properties, 'radius', 0));
-  const attenuation = radius > 0
-    ? NWN_POINT_LIGHT_ATTENUATION / (2 * radius * radius)
-    : 1;
-  const pointIntensity = intensity / attenuation;
-  const light = Number(properties.ambientonly) > 0
-    ? new THREE.AmbientLight(color, intensity)
-    : new THREE.PointLight(color, pointIntensity, radius, 0);
-  light.name = `${node.name} light`;
-  light.castShadow = !light.isAmbientLight && Number(properties.shadow) > 0;
-  if (light.castShadow) configureLightShadow(light);
-  parent.add(light);
+  parent.add(createModelLight(node, configureLightShadow));
+}
+
+async function createSceneVisual(actor, target, record, tables,{resolver,session,bindings,sceneRoot}) {
+  return createVisualSceneRuntime({actor,record,tables,objects:session.registry,renderFor:id=>bindings.get(id),player:()=>session.player,sceneRoot,
+    loadAsset:async name=>{
+      const files=[],textures=new Map();
+      try{
+        const model=parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL));
+        await inheritAnimations(model,async resRef=>parseModel(await resolver.getResource(resRef,RESOURCE_TYPE.MDL)));
+        recordModelLimitations(model);
+        for(const bitmap of model.materialNames){
+          let found=false;
+          for(const [ext,type] of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
+            try{const bytes=await resolver.getResource(bitmap,type);files.push({name:bitmap+'.'+ext,arrayBuffer:async()=>bytes});found=true;break;}
+            catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
+          }
+          if(!found)throw new Error('Visual bitmap '+bitmap+' is unavailable');
+        }
+        (await loadTextures(files,resolver)).forEach((texture,key)=>textures.set(key,texture));
+        return{model,textures};
+      }catch(error){textures.forEach(texture=>texture.dispose());throw error;}
+    },
+    createModel:(asset,resourceName)=>{
+      const root=buildObject(asset.model,asset.textures);
+      try{return{root,model:asset.model,resourceName,animator:createModelAnimator(asset.model,root,'Visual · '+record.visualId,[],{autoIdle:false})??new ModelAnimator(asset.model,root)};}
+      catch(error){disposeVisualRoot(root);throw error;}
+    },
+    destroyModel:model=>disposeVisualRoot(model.root),releaseAsset:asset=>{asset.textures.forEach(texture=>texture.dispose());asset.textures.clear();},
+    shadowing:(model,enabled)=>setModelLightShadows(model.root,enabled,configureLightShadow),
+    report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)
+  });
+}
+
+function disposeVisualRoot(root){
+  root.removeFromParent();root.traverse(o=>{o.geometry?.dispose();for(const material of Array.isArray(o.material)?o.material:o.material?[o.material]:[])material.dispose();if(o.isLight){o.shadow?.map?.dispose();o.shadow?.mapPass?.dispose();}});
 }
 
 function buildEmitterPreview(node, parent, textures, modelName) {
@@ -1592,7 +1908,7 @@ function frameObject(object) {
   axes.position.copy(bounds.min);
 }
 
-function createModelAnimator(parsed, instance, label, list) {
+function createModelAnimator(parsed, instance, label, list, {autoIdle=true}={}) {
   if (!parsed?.animations?.length) return null;
   const groups = new Map(),nodeGroups=new Map();
   instance.traverse(object => {
@@ -1603,6 +1919,7 @@ function createModelAnimator(parsed, instance, label, list) {
     const mesh = group?.children.find(child => child.isMesh && child.userData.sourceVertexIndices);
     if (!mesh) return [];
     mesh.geometry = mesh.geometry.clone();
+    mesh.userData.animationOwnedGeometry=true;
     return [{ node, group, mesh }];
   });
   const updateSkin = skins.length ? () => {
@@ -1620,7 +1937,7 @@ function createModelAnimator(parsed, instance, label, list) {
   list.push(animator);
   const idle = ['pause1', 'idle', 'pause', 'default'].find(name => parsed.animations.some(clip => clip.name === name))
     ?? parsed.animations.find(clip => clip.name.endsWith('pause1'))?.name;
-  if (idle) animator.play(idle);
+  if (autoIdle&&idle) animator.play(idle);
   return animator;
 }
 
@@ -1768,7 +2085,11 @@ function updateGameplayDiagnostics() {
   canvas.dataset.actorId = String(playerController?.actor.id ?? '');
   canvas.dataset.areaResRef = moduleSession?.currentArea?.resRef ?? '';
   canvas.dataset.registryObjects = String(moduleSession?.registry.objects.size ?? 0);
-  canvas.dataset.objectRecords = JSON.stringify([...worldObjects.objects.values()].map(o => ({ id: o.id, kind: o.kind, tag: o.tag, sourceKey: o.sourceKey })));
+  canvas.dataset.objectRecords = JSON.stringify([...worldObjects.objects.values()].map(o => {
+    const record={id:o.id,kind:o.kind,tag:o.tag,sourceKey:o.sourceKey};
+    if(o.objectType===9){const render=worldObjects.renderBindings.get(o.id);if(render){const center=new THREE.Box3().setFromObject(render).getCenter(new THREE.Vector3()).project(camera);record.screen={x:(center.x+1)*canvas.clientWidth/2,y:(1-center.y)*canvas.clientHeight/2,z:center.z};}record.position=o.position;}
+    return record;
+  }));
   canvas.dataset.scriptEvents = String(moduleSession?.scheduler.events.length ?? 0);
   canvas.dataset.scriptBusy = String(Boolean(moduleSession?.scheduler.pumping || moduleSession?.transitioning));
   canvas.dataset.scriptJumps = String(moduleSession?.scheduler.events.filter(e => e.event.type === 'jump').length ?? 0);
@@ -1781,6 +2102,7 @@ function updateGameplayDiagnostics() {
     memorized: Array.from({ length: 10 }, (_, l) => (c[`MemorizedList${l}`] ?? []).filter(Boolean).length).reduce((a, b) => a + b, 0)
   })));
   canvas.dataset.characterModel = String(Boolean(playerController?.object.userData.characterModel));
+  canvas.dataset.characterAppearance = JSON.stringify({id:characterData?.Appearance_Type,polymorphed:moduleSession?.player.nativeField97c,locked:moduleSession?.player.nativeField9f8,model:playerController?.object.children[0]?.name??null});
   canvas.dataset.doorStates = JSON.stringify(playerController?.collisions.doors.map(door => ({ id: door.id, state: door.animationState, moving: Boolean(door.animating) })) ?? []);
 }
 
@@ -1991,11 +2313,11 @@ function updateInspector(parsed, filename, textures) {
 }
 
 function recordModelLimitations(parsed) {
+  if(parsed.nodes.some(node=>node.type==='light'))runtimeDiagnostics.record('model.lighting-approximate','Model lights use the native legacy quadratic falloff; gamma-corrected settings, native per-object light selection, vertical/shadow offsets and shadow/flare passes are not yet reconstructed',{model:parsed.modelName});
   for (const message of parsed.unsupportedAnimations) runtimeDiagnostics.record('animation.unsupported', message, { model: parsed.modelName });
   if (parsed.hasSkinnedMeshes && !hasStaticSkinMapping(parsed)) runtimeDiagnostics.record('model.skin-mapping-unavailable', 'No skin bone slots map to model nodes; base vertices are displayed', { model: parsed.modelName });
   for (const node of parsed.nodes) {
-    for (const feature of node.unsupportedFeatures ?? []) runtimeDiagnostics.record('model.feature-unimplemented', `${feature} is not implemented`, { model: parsed.modelName, node: node.name, feature });
+    for (const feature of node.unsupportedFeatures ?? []) if(feature!=='Emitter runtime simulation')runtimeDiagnostics.record('model.feature-unimplemented', `${feature} is not implemented`, { model: parsed.modelName, node: node.name, feature });
     if (!['trimesh', 'dummy', 'light', 'emitter'].includes(node.type)) runtimeDiagnostics.record('model.node-unimplemented', `Node type ${node.type} is not rendered`, { model: parsed.modelName, node: node.name, nodeType: node.type });
-    if (node.type === 'emitter') runtimeDiagnostics.record('model.feature-unimplemented', 'Emitter runtime activation and particle physics are not implemented; optional preview is approximate', { model: parsed.modelName, node: node.name });
   }
 }
