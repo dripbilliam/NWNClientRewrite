@@ -16,5 +16,10 @@ __pycache__/
 captures/
 backups/
 runtime-logs/
+tooling/native/
 *.gar
 .env
+# Generated machine-local MCP registration; recreate with scripts/integrate-rea.mjs.
+.codex/config.toml
+.codex/config.toml.rea-*
+scripts/inspect-movement-video.cjs
