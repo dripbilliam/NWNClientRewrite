@@ -2,7 +2,7 @@
 import { openLocalModule } from './local-module.mjs';
 import { loadCreationRules,initialCreationDraft,recommendCreation,creationErrors,creationAlignmentAllowed,ALIGNMENTS,createCharacterBic,creationSpellSlots } from '../src/character_creation.js';
 import { parseCharacter,characterStats } from '../src/character.js';
-import { getGffStructType } from '../src/gff.js';
+import { getGffStructType,getGffFieldTypes } from '../src/gff.js';
 import { ModuleSession } from '../src/module_session.js';
 import assert from 'node:assert/strict';
 const install=process.argv[2]??'../FullDecomp/NwnRootInstall',module=process.argv[3]??`${install}/data/nwm/Prelude.nwm`;
@@ -16,6 +16,9 @@ for(const [raceId,race]of rules.racialtypes.orderedRows.entries()){
     await recommendCreation(d,rules);const errors=creationErrors(d,rules);assert.deepEqual(errors,[],`Race ${raceId} gender ${gender} class ${classId}`);
     const bytes=await createCharacterBic(d,rules),root=parseCharacter(bytes),stats=characterStats(root,rules);
     assert.equal(root.Experience,0);assert.equal(stats.level,1);assert.equal(root.HitPoints,Number(cls.HitDie));assert.equal(root.Equip_ItemList.length,1);assert.equal(getGffStructType(root.Equip_ItemList[0]),2);
+    assert.equal(getGffFieldTypes(root.ClassList[0]).Class,5);assert.equal(getGffFieldTypes(root.ClassList[0]).ClassLevel,3);
+    assert.ok(!('LvlStatAbility'in root.LvlStatList[0]));assert.ok(root.LvlStatList[0].FeatList.every(f=>getGffStructType(f)===0));assert.ok(root.FeatList.every(f=>getGffStructType(f)===1));
+    for(const [name,entries]of Object.entries(root.LvlStatList[0]))if(name.startsWith('KnownList'))assert.ok(entries.every(s=>getGffStructType(s)===0));
     assert.equal(root.ObjectId,undefined);for(const item of [...root.ItemList,...root.Equip_ItemList])assert.equal(item.ObjectId,undefined);
     assert.equal(root.LvlStatList[0].FeatList.length,root.FeatList.length);
     observations.push({raceId,gender,classId,hp:stats.maxHP,items:root.ItemList.length,known:Object.keys(d.known).map(l=>d.known[l].length),prepared:Object.values(d.memorized).flat().filter(n=>n!==null).length});

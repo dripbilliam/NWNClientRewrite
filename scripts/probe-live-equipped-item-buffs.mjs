@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {openLocalModule} from './local-module.mjs';
 import {ModuleSession} from '../src/module_session.js';
+import {advanceLocalClocks,advanceToEffectExpiry} from './advance-effect-clock.mjs';
 import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
 import {intEntry} from '../src/combat_stats.js';
 const root=process.argv[2]??'../FullDecomp/NwnRootInstall',s=await new ModuleSession(await openLocalModule(root,`${root}/data/nwm/Prelude.nwm`),{runStartupScripts:false,runNativeAI:false,serverPvpSetting:0}).initialize([],{character:await fs.readFile(`${root}/data/lcv/wizard.bic`)});
@@ -26,13 +27,13 @@ for(const [ability,name]of ['Str','Dex','Con','Int','Wis','Cha'].entries()){
  await remove(property);assert.deepEqual(actor.stats.equippedAbilities,baseline.abilities);assert.equal(actor.stats.currentHP,baseline.hp);assert.equal(actor.stats.maxHP,baseline.maxHP);assert.equal(linked().length,0);
 }
 const damage=await s.commands.ItemPropertyDamageBonus([8,3],frame);await s.commands.AddItemProperty([1,damage,id,.25],frame);const damageOwner=propertyEffect(damage),extra=linked().filter(e=>e.type===13);assert.equal(extra.length,1);assert.equal(extra[0].integers[0],3);assert.equal(extra[0].integers[1],1<<6);assert.equal(extra[0].propertyId,damageOwner.propertyId);assert.equal(actor.stats.combat.attackBonuses.melee,baseline.attack);
-s.scheduler.time=damageOwner.expires;await s.effects.updateObject(item);assert.ok(propertyEffect(damage));s.scheduler.time++;await s.effects.updateObject(item);assert.equal(propertyEffect(damage),undefined);assert.equal(linked().length,0);
+advanceToEffectExpiry(s,damageOwner);await s.effects.updateObject(item);assert.ok(propertyEffect(damage));advanceLocalClocks(s,1);await s.effects.updateObject(item);assert.equal(propertyEffect(damage),undefined);assert.equal(linked().length,0);
 reports.push({kind:'damage',cost:3,flags:1<<6,expiryRemovedLinkedEffects:true});
 const light=await s.commands.ItemPropertyLight([3,4],frame);await s.commands.AddItemProperty([1,light,id,.25],frame);
 const lightOwner=propertyEffect(light),lightEffects=linked().filter(e=>[30,54].includes(e.type));assert.ok(lightOwner);assert.deepEqual(lightEffects.map(e=>e.type),[30,54]);assert.ok(lightEffects.every(e=>e.propertyId===lightOwner.propertyId&&e.integers[0]===179));assert.equal(lightEffects[0].id,lightEffects[1].id);assert.equal(lightEffects[0].exposed,false);assert.equal(lightEffects[1].exposed,true);
 const loops=()=>actor.nativeLoopingVisuals160.records.filter(v=>v.visualId===179&&v.sourceId===id);assert.equal(loops().length,1);
 await gear(false);assert.equal(loops().length,0);await gear(true);assert.equal(loops().length,1);
-s.scheduler.time=lightOwner.expires;await s.effects.updateObject(item);assert.ok(propertyEffect(light));s.scheduler.time++;await s.effects.updateObject(item);assert.equal(propertyEffect(light),undefined);assert.equal(loops().length,0);assert.equal(linked().length,0);
+advanceToEffectExpiry(s,lightOwner);await s.effects.updateObject(item);assert.ok(propertyEffect(light));advanceLocalClocks(s,1);await s.effects.updateObject(item);assert.equal(propertyEffect(light),undefined);assert.equal(loops().length,0);assert.equal(linked().length,0);
 reports.push({kind:'light',visualId:179,linkedTypes:[30,54],unequipReequip:true,expiryRemovedLinkedEffectsAndLoop:true});
 if(process.argv.includes('--regeneration')){
  s.worldTimer.snapshot();const property=await s.commands.ItemPropertyRegeneration([3],frame);
@@ -53,4 +54,4 @@ const diagnostics=runtimeDiagnostics.records.slice(start),unexpected=diagnostics
 // Retain all diagnostics, including presentation/attached-visual omissions.
 const report={itemId:id,ownerId:actor.id,canonicalOwnerPreserved:item.possessorId===actor.id,reports,unequipReequipPreservedProperty:true,noDuplicateProjection:true,diagnostics,unexpected,limits:'Installed API/queued gear actions exercise a plain dagger on an authored NPC. Enhancement, all six ability bonuses, damage bonus, light controller/copied visual/loop, property-ID linkage, removal and expiry are checked. Captured native materializer/traversal comparisons validate upper engine owners; full generic ApplyEffect bookkeeping, nonzero fourth-flag loading, attached/light rendering, remaining materializers and actual authored spell impact/UI acceptance remain separate work.'};
 if(process.argv.includes('--regeneration'))report.limits+=' Optional regeneration also checks actual ItemPropertyRegeneration, AddItemProperty on equipped gear, strict timed healing, unequip/re-equip clock reset and explicit property removal; no rendered recovery/GUI acceptance.';
-await fs.writeFile(`backups/animations/${process.argv.includes('--regeneration')?'live-equipped-item-regeneration':'live-equipped-item-buffs'}.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));assert.deepEqual(unexpected,[]);
+await fs.writeFile(process.argv.find(a=>a.startsWith('--output='))?.slice(9)??`backups/animations/${process.argv.includes('--regeneration')?'live-equipped-item-regeneration':'live-equipped-item-buffs'}.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));assert.deepEqual(unexpected,[]);

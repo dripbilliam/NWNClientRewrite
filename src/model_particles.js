@@ -5,13 +5,17 @@ import {particleQuaternionBasis} from './particle_math.js';
 import {animateEmitterParticles} from './particle_frame.js';
 import {updateFountainEmitter} from './fountain_emitter.js';
 import {updateExplosionEmitter,updateSingleEmitter} from './burst_single_emitter.js';
+import {updateLightningEmitter} from './lightning_emitter.js';
+import {initializeLightningEmitter,setEmitterTarget} from './emitter_target.js';
+import {modelReferenceSceneForRoot} from './model_reference_scene.js';
+import {cameraSceneQuery} from './camera_scene_query.js';
 import {fountainParticleProviders} from './fountain_particle_providers.js';
 import {buildParticleVertices} from './particle_vertices.js';
 import {createPointWindList,addPointWind,advancePointWinds} from './point_wind.js';
 const f=Math.fround,BASIS=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2),INVERSE=BASIS.clone().invert();
 const renderModes={Normal:0,Billboard_to_Local_Z:1,Billboard_to_World_Z:2,Linked:3,Aligned_to_World_Z:4,Aligned_to_Particle_Dir:5,Motion_Blur:6};
-const updates={Fountain:updateFountainEmitter,Explosion:updateExplosionEmitter,Single:updateSingleEmitter};
-const fields={birthrate:'birthRate',lifeexp:'lifeExp',particlerot:'particleRot',blurlength:'blurLength',velocity:'velocity',randvel:'randomVelocity',framestart:'frameStart',frameend:'frameEnd',xsize:'xSize',ysize:'ySize',spread:'spread',mass:'mass',bounce_co:'bounceCoefficient',sizestart:'sizeStart',sizeend:'sizeEnd',sizestart_y:'sizeStartY',sizeend_y:'sizeEndY',alphastart:'alphaStart',alphaend:'alphaEnd',fps:'fps',deadspace:'deadspace',blastradius:'blastRadius',blastlength:'blastLength'};
+const updates={Fountain:updateFountainEmitter,Explosion:updateExplosionEmitter,Single:updateSingleEmitter,Lightning:updateLightningEmitter};
+const fields={birthrate:'birthRate',lifeexp:'lifeExp',particlerot:'particleRot',blurlength:'blurLength',velocity:'velocity',randvel:'randomVelocity',framestart:'frameStart',frameend:'frameEnd',xsize:'xSize',ysize:'ySize',spread:'spread',mass:'mass',bounce_co:'bounceCoefficient',sizestart:'sizeStart',sizeend:'sizeEnd',sizestart_y:'sizeStartY',sizeend_y:'sizeEndY',alphastart:'alphaStart',alphaend:'alphaEnd',fps:'fps',deadspace:'deadspace',blastradius:'blastRadius',blastlength:'blastLength',lightningdelay:'lightningDelay',lightningradius:'lightningRadius',lightningscale:'lightningScale'};
 const flag=value=>value===true||value==='true'||Number(value)!==0&&Number.isFinite(Number(value));
 function properties(e,p){
   for(const [name,key]of Object.entries(fields))e[key]=f(p[name]??(name==='blurlength'?1:0));
@@ -68,12 +72,28 @@ export class ModelParticlePresentation{
     if(!updates[p.update])throw new Error(`Emitter update ${p.update??''} is not implemented`);
     if(renderModes[p.render]===undefined)throw new Error(`Emitter render mode ${p.render??''} is unavailable`);
     let flags=p.flags|0;for(const [name,bit]of Object.entries(EMITTER_FLAGS))if(Object.hasOwn(p,name)){if(flag(p[name]))flags|=bit;else flags&=~bit;}
-    if(flags&1)throw new Error('Emitter point-to-point movement and target events are not implemented');
+    // Lightning never calls the base movement pointer; its own fixed chain
+    // owner uses the reference target regardless of the base P2P flag.
+    if(flags&1&&p.update!=='Lightning')throw new Error('Emitter point-to-point movement and target events are not implemented');
     if(p.chunkname)throw new Error('Chunk particle model ownership is not implemented');
     if(p.blend==='Punch-Through')throw new Error('Native particle punch-through alpha threshold is not implemented');
     const initial=pose(mesh.parent),e={...initial,position1e0:initial.position,quaternion1d0:initial.quaternion,previous19c:initial.position.slice(),previousQuaternion178:initial.quaternion.slice(),reference10c:[0,0,0],referenceQuaternion118:[1,0,0,0],basis140:particleQuaternionBasis(initial.quaternion),active188:{records:[],capacity:0},free130:{records:[],capacity:0},initialized208:0,source50:{...pose(root),adjustedScale:1,opacity108:1},instance100:null,flags,chunkName:p.chunkname??'',renderMode1a8:renderModes[p.render],blendMode68:p.blend==='Normal'?0:2,spawnType:Number(p.spawntype??0)|0,loop:Number(p.loop??0)|0,xGrid:Number(p.xgrid??0)|0,yGrid:Number(p.ygrid??0)|0,ageMode1cc:1,accumulator198:0,remaining164:[0,0,0],detonate108:0,blastLatch1c8:0,elevationThreshold:5,hit1f0:{normal:[0,0,0]},twoSided:flag(p.twosidedtex)};
     properties(e,p);
-    const services={random:()=>this.random.next(),cameraPosition:()=>pose(this.camera).position,globalTransform:()=>pose(mesh.parent),updateEmitter:(emitter,delta)=>updates[p.update](emitter,delta,providers),clearHit:()=>{},destroyParticle:()=>{}};
+    const services={random:()=>this.random.next(),cameraPosition:()=>pose(this.camera).position,globalTransform:()=>pose(mesh.parent),targetPosition:model=>pose(model.root).position,updateEmitter:(emitter,delta)=>updates[p.update](emitter,delta,providers),clearHit:()=>{},destroyParticle:()=>{}};
+    services.collide=(from,to,out,hit)=>{
+      if(!this.collisionQuery)throw new Error('Particle static-scene collision query is unavailable');
+      const result=this.collisionQuery.nearestHit(from,to);if(!result)return 0;
+      out.splice(0,3,...result.position);hit.normal=result.normal;return 1;
+    };
+    if(flags&16)this.once('particle.scene-collision-partial','Bouncing particles use native polygon crossing against static tile faces/walkmesh; native scene BSP scheduling, dynamic-object hits and CHitInfo ownership remain incomplete');
+    if(p.update==='Lightning'){
+      Object.assign(e,{target1c0:null,lightningElapsed:0,lightningPreviousDirection:[0,0,0],lightningPreviousPosition:[0,0,0],partScale:f(mesh.parent.scale.x)});
+      const referenceOwner=modelReferenceSceneForRoot(root),part=referenceOwner?.partForGroup(mesh.parent);
+      if(!part&&mesh.parent.children.some(o=>o.userData.nativeModelPart?.type==='reference'))throw new Error('Lightning physical reference owner is unavailable');
+      initializeLightningEmitter(e,{baseInitialize:()=>{},listen:()=>({active:true})});
+      setEmitterTarget(e,{children:()=>part?.children38??[],referenceView:part=>part.node.type==='reference'?part:null,globalPosition:()=>pose(mesh.parent).position,targetPosition:services.targetPosition,lightningView:()=>e,removeListener:(_source,listener)=>{listener.active=false;}});
+      this.once('particle.reference-target-scheduling-unverified','Native first-direct-reference endpoint binding is connected; full Gob construction, notification and cache scheduling remain unverified',{model:metadata.model,node:metadata.node});
+    }
     services.addPointSourceWind=(position,radius,duration,strength)=>{
       addPointWind(this.pointWinds,position,radius,duration,strength);
       this.once('particle.wind-scene-unimplemented','Point wind bursts retain native records and lifetimes; ambient/noise sampling, scene wind-manager registration and native frame scheduling remain unimplemented');
@@ -105,14 +125,15 @@ export class ModelParticlePresentation{
     mesh.geometry.setDrawRange(0,out.count);mesh.visible=true;entry.drawCount=out.count;
   }
   update(root,delta){
-    if(root!==this.sceneRoot){this.sceneRoot=root;this.pointWinds=createPointWindList();}
+    if(root!==this.sceneRoot){this.sceneRoot=root;this.pointWinds=createPointWindList();this.collisionQuery=root?cameraSceneQuery(root,root.userData.particleCollisionTriangles??[]):null;}
+    this.collisionQuery?.update();
     advancePointWinds(this.pointWinds,delta);
     const retained=new Set();
     root?.traverse(mesh=>{
       if(!mesh.userData.mdlEmitter)return;retained.add(mesh);
       let entry=this.entries.get(mesh);if(entry?.failed)return;
       try{
-        entry??=this.create(mesh);const {e,providers}=entry,p=mesh.parent.userData.mdlEmitterProperties??mesh.userData.mdlEmitter.properties;properties(e,p);
+        const created=!entry;entry??=this.create(mesh);const {e,providers}=entry,p=mesh.parent.userData.mdlEmitterProperties??mesh.userData.mdlEmitter.properties;properties(e,p);if(created&&mesh.userData.mdlEmitter.properties.update==='Lightning')e.lifeExp=1;e.partScale=f(mesh.parent.scale.x);
         Object.assign(e.source50,pose(entry.root));e.source50.adjustedScale=f(entry.root.getWorldScale(new THREE.Vector3()).x);
         // The BYTE command is consumed by Explosion; numeric/event detonate
         // channels are not treated as a permanently asserted birth property.

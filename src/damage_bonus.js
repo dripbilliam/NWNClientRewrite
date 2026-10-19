@@ -4,6 +4,7 @@ import { creatureSize } from './combat_context.js';
 import { creatureClassLevel, currentAttackWeapon, weaponRule } from './combat_weapon.js';
 import { enchantArrowBonus, favoredEnemyBonus } from './attack_modifier.js';
 import { nativeDistanceSquared } from './nearest_objects.js';
+import {mightyStrengthBonus,scaledStrengthBonus} from './nominal_damage_bonus.js';
 
 const has = (actor, feat) => actor.stats.feats.includes(feat);
 const f32 = Math.fround;
@@ -34,15 +35,15 @@ export function damageBonus(actor, target, rules, items, random, { attack, offha
   const str = abilityModifier(actor.stats.equippedAbilities.Str, rules);
   const ranged = attack.ranged !== 0;
   const parts = { strength: 0, pointBlank: 0, arrows: 0, favoredEnemy: 0, bane: 0, mode: 0, dirtyFighting: 0, specialization: 0, epicSpecialization: 0, special: 0 };
-  if (offhand) parts.strength = str > 0 ? Math.trunc(f32(f32(str) * rulesetFloat(rules, 'OFFHAND_WEAPON_STRENGTH_MODIFIER', 0.5))) | 0 : str;
+  if (offhand) parts.strength = str > 0 ? scaledStrengthBonus(str,rulesetFloat(rules, 'OFFHAND_WEAPON_STRENGTH_MODIFIER', 0.5)) : str;
   else if (right && !ranged && (weaponRule(right, rules, 'WeaponSize') & 255) - creatureSize(actor, rules) === 1 && weaponRule(right, rules, 'WeaponWield') !== 8) {
-    parts.strength = str > 0 ? Math.trunc(f32(f32(str) * rulesetFloat(rules, 'TWO_HANDED_WEAPON_STRENGTH_MODIFIER', 1.5))) | 0 : str;
+    parts.strength = str > 0 ? scaledStrengthBonus(str,rulesetFloat(rules, 'TWO_HANDED_WEAPON_STRENGTH_MODIFIER', 1.5)) : str;
   } else {
     if (!right || weaponRule(right, rules, 'WeaponWield') === 11 && right.data.BaseItem !== 59 || !ranged) parts.strength = str;
     else if (attack.ranged === 1) {
       if (![6, 7, 59].includes(right.data.BaseItem) && str < 0) parts.strength = str;
       const mighty = right.data.PropertiesList?.find(p => p.PropertyName === 45);
-      if (mighty) parts.strength = Math.min(str, mighty.Subtype & 65535);
+      if (mighty) parts.strength = mightyStrengthBonus(str,mighty.CostValue);
     }
   }
   if (ranged && has(actor, 27) && target) {

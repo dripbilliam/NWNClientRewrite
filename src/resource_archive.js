@@ -8,6 +8,7 @@ export const RESOURCE_TYPE = Object.freeze({
   TGA: 3,
   WAV: 4,
   SSF: 2060,
+  SHD: 2069,
   PLT: 6,
   SET: 2013,
   TWO_DA: 2017,
@@ -20,6 +21,7 @@ export const RESOURCE_TYPE = Object.freeze({
   UTP: 2044,
   UTI: 2025,
   UTD: 2042,
+  UTW: 2058,
   JRL: 2056,
   DLG: 2029,
   GUI: 2047,
@@ -152,6 +154,10 @@ export class ResourceResolver {
     this.missingHaks = missingHaks;
     this.bifCache = new Map();
   }
+
+  // Native Exists is a catalog query, not a BIF read/decode. Zero-length
+  // registered resources still exist, and missing probes are normal branches.
+  hasResource(resref,resourceType){const key=resourceKey(String(resref).toLowerCase(),resourceType);return this.module.entries.has(key)||this.haks.some(hak=>hak.entries.has(key))||this.key.resources.has(key);}
 
   async getResource(resref, resourceType) {
     const name = String(resref).toLowerCase();

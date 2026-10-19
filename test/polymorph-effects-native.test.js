@@ -62,7 +62,7 @@ test('actual polymorph callbacks share live icon/bonus-feat removal and defer re
  const p={asCreature:o=>o.objectType===5?o:null,dead:()=>0,dying:()=>0,possessed:()=>0,effects:o=>o.effects,remove:(o,id)=>s.effects.remove(o.id,id),copyConstruct:(...a)=>s.effects.copyConstruct(...a),
   apply:(o,e,loading)=>s.effects.applyNative(e,o.id,undefined,loading),transform:actor=>{assert.equal(actor,o);events.push('transform');},untransform:actor=>{assert.equal(actor,o);events.push('untransform');},client:()=>null,
   time:()=>s.worldTimer.time(),delta:n=>secondsToWorldDelta(n,s.worldTimer.secondsPerDay),addTime:(a,b)=>addWorldTimes(a,b,s.worldTimer.dayLength),
-  setExpiry:(e,expiry)=>{const delta=subtractWorldTimes(expiry,s.worldTimer.time(),s.worldTimer.dayLength);assert.equal(delta.status,0);e.expires=s.scheduler.time+delta.day*s.worldTimer.dayLength+delta.time;}};
+  setExpiry:(e,expiry)=>{const delta=subtractWorldTimes(expiry,s.worldTimer.time(),s.worldTimer.dayLength);assert.equal(delta.status,0);assert.equal(e.expiryDay,expiry.day);assert.equal(e.expiryTime,expiry.time);}};
  assert.equal(await applyPolymorph(o,effect,p),0);s.effects.retain(o,effect);assert.deepEqual(o.effects.map(e=>e.type),[62,67,83]);assert.equal(hasNativeFeat(o,289),1);assert.equal(o.nativeEffectIcons778.records.length,1);
  const original=s.effects.onRemove.bind(s.effects);s.effects.onRemove=(actor,e,context)=>e.type===62?removePolymorph(actor,e,p):original(actor,e,context);
  await s.effects.remove(o.id,effect.id);assert.deepEqual(o.effects,[effect]);assert.equal(hasNativeFeat(o,289),0);assert.equal(o.nativeEffectIcons778.records.length,0);assert.deepEqual(events,['transform']);assert.equal(effect.expiryDay,3);assert.equal(effect.expiryTime,300);

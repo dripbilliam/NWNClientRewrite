@@ -7,7 +7,7 @@ import {writeGff,record as r,field as f} from '../scripts/native-oracle-data.mjs
 import {setCreatureGold} from '../src/creature_gold.js';
 const item=(tag,slot=0)=>parseGff(writeGff('UTI ',r({BaseItem:f(5,0),Tag:f(10,tag)},slot)),'UTI ').root;
 function fixture(IsPC=0){
-  const s=new ModuleSession(null);s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType BasePropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS EquipableSlots\n0 0 1 1 1 99 0 10 1'),appearance:parse2da('2DA V2.0\n\nSIZECATEGORY\n0 3')};
+  const s=new ModuleSession(null);s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType PropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS EquipableSlots\n0 0 1 1 1 99 0 10 1'),appearance:parse2da('2DA V2.0\n\nSIZECATEGORY\n0 3')};
   s.module=s.register('module','module',{});const o=s.register('creature','actor',{authored:{IsPC,FeatList:[],ClassList:[]}});return{s,o};
 }
 

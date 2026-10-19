@@ -120,7 +120,8 @@ export class NativeAreaGeometry {
   }
   providers() {
     return { tile: (_area, x, y) => this.tile(x, y), clippedWalkable: (tile, from, to) => clippedAreaTileLine(tile, from, to,
-      message => this.resources.report(new Error(message), { area: this.area.resRef, model: tile.model, operation: 'native-tile-triangle-walk' })),
+      message => runtimeDiagnostics.record('geometry.tile-traversal-limit',message,{ area: this.area.resRef, model: tile.model,
+        tileX:tile.x,tileY:tile.y,orientation:tile.orientation,from:[...from],to:[...to],operation: 'native-tile-triangle-walk' })),
     noNonWalkTile: (tile, from, to, low, high, radius, flag) => {
       try { return noDeniedAreaTilePolygons(tile, from, to, low, high, radius, flag); }
       catch (error) {

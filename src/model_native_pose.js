@@ -3,6 +3,7 @@ import {applyModelControllers} from './model_controller_apply.js';
 import {animateModelHierarchy} from './model_animation_hierarchy.js';
 import {EMITTER_RUNTIME_FIELDS} from './mdl_emitter.js';
 import {updateModelLight} from './model_light.js';
+import {controlReferencePart} from './model_references.js';
 const f=Math.fround,BASIS=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2),INVERSE=BASIS.clone().invert();
 const common=new Map([[16,3],[28,4],[44,1]]),lightFields={104:['color',3],116:['radius',1],124:['shadowradius',1],128:['verticaldisplacement',1],168:['multiplier',1]};
 
@@ -47,7 +48,12 @@ export class ModelNativePose{
  write(part,offset,values){if(part.fields.get(offset)!==values.length)throw new Error(`Native ${part.source.type} controller field ${offset}/${values.length} is unavailable`);values.forEach((v,i)=>part.view.setFloat32(offset+i*4,v,true));}
  control(node,part,previous,time,weight){
   const flags=node.flags98;
-  if(flags&0x90)throw new Error('Native reference/animated-vertex node control is unavailable');
+  if(flags&0x80)throw new Error('Native animated-vertex node control is unavailable');
+  if((flags&0x11)===0x11)return controlReferencePart(node,part,previous,time,weight,{asReference:part=>part.source.type==='reference'?part:null,control:(...args)=>this.controlBase(...args)});
+  return this.controlBase(node,part,previous,time,weight);
+ }
+ controlBase(node,part,previous,time,weight){
+  const flags=node.flags98;
   const emitter=(flags&5)===5,light=(flags&3)===3,mesh=(flags&33)===33;
   if(emitter&&part.source.type!=='emitter'||!emitter&&light&&part.source.type!=='light'||!emitter&&!light&&mesh&&part.source.type!=='trimesh')throw new Error('Native model node control subtype does not match its physical Part');
   applyModelControllers(node,part,previous,time,weight,{read:(...args)=>this.read(...args),write:(...args)=>this.write(...args),positionScale:()=>this.scale,

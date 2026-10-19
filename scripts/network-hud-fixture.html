@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><title>Multiplayer HUD fixture</title>
+<link rel="stylesheet" href="../src/style.css">
+<style>body{margin:0;background:#13201b}#fixture{position:relative;width:1000px;height:700px;background:#15251e;color:#ded4b4}#fixture>p{padding:20px}#network-feedback{position:absolute;left:20px;bottom:100px}</style>
+<main id="fixture"><p>Multiplayer party controls · installed native button models</p><div id="network-feedback"></div></main>
+<script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script>
+<script type="module">import('./network-hud-fixture.mjs').catch(e=>window.hudFixtureFailure=e.stack);</script>

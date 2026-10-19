@@ -107,7 +107,7 @@ test('failed world subtraction and missing conditional providers are explicit, n
   const g=fixture();g.p.activePauseState=()=>1;await assert.rejects(updateModuleAI(g.module,g.p),/exclusionIds is unavailable/);
 });
 
-test('live session module adapter emits typed time/weather messages and persists unavailable pause transitions',async()=>{
+test('live session module adapter emits typed time/weather messages and clears an orphaned Time Stop pause',async()=>{
   const messages=[],session=new ModuleSession(null,{onCombatMessage:m=>messages.push(m)});
   session.worldTimer.loadModule({Mod_MinPerHour:5,Mod_StartYear:1372,Mod_StartHour:5,Mod_DawnHour:6});
   session.module=session.register('module','module',{scripts:{}});initializeModuleAI(session.module,{Mod_StartYear:1372,Mod_StartHour:5,Mod_DawnHour:6},session.worldTimer);
@@ -115,5 +115,6 @@ test('live session module adapter emits typed time/weather messages and persists
   session.player=session.register('player','pc',{stats:{},areaId:area.id});
   await session.updateModuleAI();await session.updateModuleAI();assert.equal(messages.at(-1).type,'areaWeather');assert.equal(messages.at(-1).recipientId,session.player.id);
   session.worldTimer.setTime(session.worldTimer.time().day,1800000);await session.updateModuleAI();assert.equal(messages.at(-1).type,'moduleTime');
-  session.nativeActivePauseFlags=1;await session.updateModuleAI();await assert.rejects(session.updateModuleAI(),/pause exclusion ownership/);
+  await session.setPauseState(1,1);assert.equal(session.nativeActivePauseFlags,1);await session.updateModuleAI();await session.updateModuleAI();
+  assert.equal(session.nativeActivePauseFlags,0);assert.equal(messages.at(-1).type,'module-pause-state');assert.deepEqual(messages.at(-1).data,{mask:1,value:0,exclusionIds:[]});
 });

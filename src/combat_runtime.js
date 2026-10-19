@@ -1,5 +1,7 @@
 import { endCombatRoundAsync, startCombatRoundAsync, initialAttackCombatStep, weaponAttackType, offhandAttack, addAttackOfOpportunity, addParryAttack, addParryIndex, addCircleKickAttack, addCleaveAttack } from './combat_round.js';
 import { resolveMeleeSpecialAttack } from './combat_special_melee.js';
+import {getCreatureImmortal} from './creature_immortality.js';
+import {pacifyCreature} from './combat_pacify.js';
 import { calculateDeathExperience,potentialLevel,effectiveCRForPotentialLevel,officialCampaign,applyDeathExperience,addNativeExperience,nativeCanLevelUp,setNativeExperience } from './combat_experience.js';
 import { actionPending, updateRoundTimer } from './combat_timing.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
@@ -7,8 +9,22 @@ import { desiredAttackRange, maximumAttackRange } from './combat_range.js';
 import { dispatchAttackRoundAction } from './combat_action.js';
 import { addAttackRequest } from './combat_request.js';
 import { receiveAttackInput,receiveModeInput,receiveAssociateInput } from './combat_input.js';
-import { clearAllSpecialAttacks,getAttackData } from './combat_attack_data.js';
-import {applyItemOnHitSpell} from './item_on_hit_spell.js';
+import {receiveWalkInput} from './player_movement_input.js';
+import {setRoundPaused,setPauseTimer} from './combat_timing.js';
+import { clearAllSpecialAttacks,getAttackData,totalAttackDamage } from './combat_attack_data.js';
+import {applyItemOnHitSpell,applyEngineOnHitSpell,engineOnHitSpellNames} from './item_on_hit_spell.js';
+import {doorOpenLockDC} from './door_lock_fields.js';
+import {getObjectLocked} from './lock_query.js';
+import {executeUnlockAction} from './unlock_actions.js';
+import {resolveOnHitProperty} from './on_hit_property.js';
+import {applyOnHitDuration,onHitDurationNames} from './on_hit_duration.js';
+import {applyOnHitInstant,onHitInstantNames,canSlayAlignment} from './on_hit_instant.js';
+import {scriptAbilityModifier} from './ability_modifier_cache.js';
+import {placeableField} from './placeable_fields.js';
+import {receiveCombatEffect} from './effect_application_flag.js';
+import {nominalMeleeDamageBonus,nominalRangedDamageBonus} from './nominal_damage_bonus.js';
+import {createCombatInformation,disposeCombatInformation,filteredCombatEffects,refreshDirtyCreatureStats} from './combat_information.js';
+import {unarmedDamageProfile} from './unarmed_damage.js';
 import { addObjectAction,addObjectActionAfterFront,setGroupInterruptable, computeAIState, runObjectActions, spellOrHealActionQueued, clearObjectActions, removeObjectActionGroup, manageObjectActions,disposeObjectAction } from './object_actions.js';
 import {addAppearActions,executeAppearAction} from './appear_effect.js';
 import {subtractWorldTimes,objectReputation} from './reputation.js';
@@ -62,7 +78,7 @@ import { resolveRangedAnimations } from './combat_ranged_animation.js';
 import { resolveRangedMiss } from './combat_ranged_miss.js';
 import { resolveRangedSpecialAttack } from './combat_special_ranged.js';
 import { attackResultDoesDamage } from './combat_strike.js';
-import { advanceExcitedDuration, advanceCombatStateTimers,selectActiveTimer,updateCreatureFrame } from './combat_frame.js';
+import { advanceExcitedDuration, advanceCombatStateTimers,updateCreatureFrame } from './combat_frame.js';
 import { weaponEffective } from './combat_weapon_effectiveness.js';
 import { addPersonalReputation,adjustFactionReputation,adjustCombatReputations,reputationAdjustments } from './combat_reputation.js';
 import { executeAttackAction } from './combat_attack_action.js';
@@ -72,8 +88,10 @@ import {detectMode} from './perception_detection.js';
 import { doCombatStep,prepareCombatStep,applyCombatStep } from './combat_step.js';
 import { noCreaturesOnLine } from './creature_line.js';
 import { nativeAsinf, nativeAtan2f, nativeCosf, nativeSinf } from './native_math.js';
+import {computeAwayVector,executeMoveAway} from './move_away.js';
+import {nativeStringEntry} from './spell_metadata.js';
 import { NativeIdList } from './native_id_list.js';
-import { queueAttackApproach, executeWait, checkMoveRadius,checkMovePointRadius, checkInterArea,addMoveToPointFront } from './movement_actions.js';
+import { queueAttackApproach, executeWait, checkMoveRadius,checkMovePointRadius, checkInterArea,addMoveToPointFront,addMoveToPointBack,addPathfindingWaitFront } from './movement_actions.js';
 import {executeScriptAnimation} from './script_animation.js';
 import { attackClearLine, nearestEnemy, newCombatTarget } from './combat_target.js';
 import { getUseRange, isInUseRange } from './use_range.js';
@@ -86,6 +104,7 @@ import { walkPath,walkDistance,testWalkDistance,cutWaypointPath } from './path_w
 import {executeJumpToPoint,executeJumpToObject} from './jump_actions.js';
 import {executeAreaWait} from './player_area.js';
 import { movementRate } from './movement_rate.js';
+import {computeModifiedMovement} from './modified_movement.js';
 import { intersectSubareas,intersectSubareaPolygon } from './subareas.js';
 import { testSafeLocationPoint,computeSafeLocation } from './safe_location.js';
 import { computeSafeLocationInDirection } from './safe_direction.js';
@@ -116,14 +135,21 @@ import {waitForCastRound,spellActionPending} from './spell_queue.js';
 import {receiveCreatureSpellImpact} from './spell_impact.js';
 import {calculateSpellProjectileTime} from './spell_projectile_time.js';
 import {repositoryContains} from './item_repository.js';
-import {receiveSpellCastAt} from './spell_notification.js';
+import {receiveSpellCastAt,receiveWorldSpellCastAt} from './spell_notification.js';
 import { spawnHeartbeatPerception,cleanPersonalReputations,cleanInvitationLists } from './creature_heartbeat.js';
 
 // Local authority adapters for mapped AI/perception/actions/strikes. Missing
 // surrounding owners remain explicit dependencies; this is not a network
 // client or a completed combat implementation.
 export class CombatRuntime {
-  constructor(session) { this.session = session; }
+  constructor(session) { this.session = session;this.queueClockRecoveries=new WeakMap(); }
+  reportUndefinedQueueClock(object,detail){
+    // This is a repeated frame poll of one unresolved GUI stamp, not a new
+    // script/engine call. Keep every occurrence in the diagnostic aggregate.
+    const key=`${detail.previous.day}:${detail.previous.time}:${detail.status}`;let group=this.queueClockRecoveries.get(object);
+    if(group?.key!==key){group={key,context:{...this.session.diagnosticContext(object.id),...structuredClone(detail),clockSample:'first occurrence for this unresolved queue stamp'}};this.queueClockRecoveries.set(object,group);}
+    runtimeDiagnostics.repeat('combat.queue-clock-undefined','Native queue elapsed output is unwritten after backwards time; retaining the previous queue display while gameplay frame work continues',group.context,'warning');
+  }
   equipmentActionProviders(){
     const s=this.session,b=this.broadcastProviders();
     const p={client:b.client,messageAvailable:()=>true,item:id=>{const o=s.registry.get(id);return o?.objectType===6?o:null;},
@@ -201,14 +227,17 @@ export class CombatRuntime {
     try{return await applyDeathExperience(actor,this.experienceProviders({object:id=>s.registry.get(id)??null,
       creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},asCreature:o=>o.objectType===5?o:null,
       asDeathOwner:o=>[7,9,10].includes(o.objectType)?o:null,
-      deathOwnerId:o=>{if(!Number.isInteger(o.nativeTrapCreatorId))throw new Error('Native trap creator ID is unavailable');return o.nativeTrapCreatorId;},
+      // ApplyDeathExperience reads the placeable's live +3ac cell. This
+      // includes ordinary script-caused deaths with no trap creator (INVALID).
+      deathOwnerId:o=>{if(o.objectType===9)return placeableField(o,0x3ac)>>>0;if(!Number.isInteger(o.nativeTrapCreatorId))throw new Error('Native trap creator ID is unavailable');return o.nativeTrapCreatorId;},
       faction:o=>o.factionId,factionMembers:o=>s.factionManager.members(o),dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),
       isPC:o=>o.reputationPCFlag,possessed:o=>Number((o.associateType&65535)===3&&Boolean(this.broadcastProviders().client(o.id))),
       potentialLevel:o=>this.potentialLevel(o),effectiveLevel:o=>this.effectiveLevel(o),addExperience:(o,n)=>this.addExperience(o,n),...providers}));}
     catch(error){this.session.report(error,{...this.session.diagnosticContext(actor.id),operation:'native-apply-death-experience'});throw error;}
   }
+  async runControlScript(actor,type){const s=this.session,table=await s.items.table('statescripts'),name=nativeStringEntry(table,type&255,'SCRIPTNAME').value;return s.runScript(name,actor.id);}
   async updateSpawnHeartbeat(actor,frame=1,providers={}){
-    const s=this.session,p={dayLength:s.worldTimer.dayLength,activeTime:()=>s.worldTimer.time(),worldTime:()=>s.worldTimer.time(),
+    const s=this.session,p={dayLength:s.worldTimer.dayLength,activeTime:o=>s.activeTimer(o.id).time(),worldTime:()=>s.worldTimer.time(),
       random:()=>s.random.next(),dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),pc:o=>Number(o.isPC),
       possessed:o=>Number(o.isPossessedFamiliar??false),rulesetInt:(name,value)=>rulesetInt(s.characterRules,name,value),
       creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},area:o=>s.registry.get(o.areaId)??null,
@@ -220,7 +249,7 @@ export class CombatRuntime {
       setAILevel:(o,level)=>s.aiMaster.setLevel(o,level),
       tile:(area,position)=>area.nativeGeometry.tileAt([position[0],Math.fround(-position[2])]),
       updateAutoMap:(o,id)=>s.automap.update(o,id),
-      controlScript:(o,type)=>this.unsupported(o,`Native control script ${type} lookup is not implemented`),
+      controlScript:(o,type)=>this.runControlScript(o,type),
       removeDomination:o=>this.unsupported(o,'Native associate RemoveDomination is not implemented'),
       setAssociateType:o=>this.unsupported(o,'Native SetAssociateType lifecycle is not implemented'),
       setMasterId:o=>this.unsupported(o,'Native SetMasterId lifecycle is not implemented'),...providers};
@@ -397,7 +426,7 @@ export class CombatRuntime {
   }
   receiveSpellNotification(actor,payload){
     const s=this.session,b=this.broadcastProviders();
-    return receiveSpellCastAt(actor,payload,{object:id=>s.registry.get(id),creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},
+    return(actor.objectType===5?receiveSpellCastAt:receiveWorldSpellCastAt)(actor,payload,{object:id=>s.registry.get(id),creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},
       areaEffectCreator:o=>o.nativeAreaEffectCreator330,dead:o=>Number(s.isDead(o)),pc:o=>Number(o.nativeField89c!==0||Boolean(b.client(o.id))),
       setLastHostile:(o,id,force)=>s.damage.setLastHostile(o,{id},force),scriptName:o=>o.scripts?.spellAt??'',
       runScript:async(o,index)=>{const name=o.scripts?.spellAt;if(name){try{await s.runScript(name,o.id,{scriptEventContext:(o.objectType&255)*1000+index});}catch(error){s.report(error,{...s.diagnosticContext(o.id),script:name});}}},
@@ -442,11 +471,10 @@ export class CombatRuntime {
     if(target.objectType===10&&(event.eventId===6||event.eventId===7))return this.session.receiveDoorUseEvent(target,event.callerId,event.eventId===7);
     if (event.eventId === 5) {
       if (target.objectType !== 5) this.unsupported(target, 'Native noncreature combat effect event handler is unavailable');
-      if (event.payload?.type === 40) this.unsupported(target, 'Native special effect event flag +180 is not implemented');
       if(event.payload){
         // EventHandler14038e54a applies the effect natively. It never calls
         // NWScript's duration-normalizing ApplyEffectToObject wrapper.
-        await this.session.effects.applyNative(event.payload,target.id);
+        await receiveCombatEffect(target,event.payload,(effect,loading,special)=>this.session.effects.applyNative(effect,target.id,undefined,loading,special));
       }
     } else if(event.eventId===10){
       if(target.objectType===6)return receiveItemInventoryEvent(event);
@@ -474,6 +502,12 @@ export class CombatRuntime {
       }
       if(target.objectType===3&&[19,20,39,40].includes(event.payload?.type&65535))return this.session.receiveItemModuleEvent(event.callerId,event.payload);
       if(target.objectType===3&&(event.payload?.type&65535)===35)return this.session.rest.receiveEvent(event.callerId,event.payload);
+      if([9,10].includes(target.objectType)&&(event.payload?.type&65535)===34){
+        // Door ScriptEvent34 stores raw4b4 and invokes OnFailToOpen14.
+        // Placeable's native switch has no case34 and only destroys payload.
+        if(target.objectType===10){target.nativeDoorField4b4=event.callerId>>>0;const name=target.scripts?.failToOpen;if(name)await this.session.runScript(name,target.id,{scriptEventContext:10014});}return;
+      }
+      if([9,10].includes(target.objectType)&&(event.payload?.type&65535)===2)return this.receiveSpellNotification(target,event.payload);
       if(target.objectType!==5)this.unsupported(target,'Native noncreature perception event handler is unavailable');
       if((event.payload?.type&65535)===2)await this.receiveSpellNotification(target,event.payload);
       else if((event.payload?.type&65535)===7){
@@ -537,7 +571,7 @@ export class CombatRuntime {
     const s=this.session;
     const client=id=>{
       if(!s.player||s.player.id!==id||!s.player.stats)return null;
-      if(s.nativeLocalClient?.object!==s.player)s.nativeLocalClient=createLocalClientPanelState(s.player);
+      if(s.nativeLocalClient?.object!==s.player)s.nativeLocalClient=createLocalClientPanelState(s.player,()=>s.characterRules.skills.orderedRows.length);
       return s.nativeLocalClient;
     };
     return{client,clients:()=>{const local=client(s.player?.id);return local?[local]:[];},
@@ -563,8 +597,10 @@ export class CombatRuntime {
       creature:o=>o.objectType===5?o:null,effects:o=>o.effects??[],index:o=>this.liveInvisibilityIndex(o),
       reaction:(o,id)=>s.aiReaction(o,id),visibility:(o,id)=>o.perception?.get(id)??null,
       savingThrow:(...args)=>this.savingThrow(...args),addVisibility:(o,...args)=>o.perception.add(...args),
-      pacify:o=>this.unsupported(o,'Native Sanctuary PacifyCreature lifecycle is not implemented'),...providers});
+      pacify:(o,id)=>this.pacify(o,id),...providers});
   }
+  pacify(actor,id){const s=this.session;return pacifyCreature(actor,id,{creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},
+    combatState:setCreatureCombatState,lastHostile:(o,id,force)=>s.damage.setLastHostile(o,{id},force),clearHostile:(o,t)=>this.clearHostileActions(o,t)});}
   visibility(actor,id){
     if(!actor.perception)throw new Error('Native visibility list is unavailable');
     const flags=actor.perception.get(id);
@@ -613,7 +649,7 @@ export class CombatRuntime {
   }
   async removeInvisibility(actor){
     return removeCombatInvisibility(actor,{effects:o=>o.effects??[],index:o=>this.liveInvisibilityIndex(o),
-      integer:(e,index)=>e.integers?.[index]??0,remove:o=>this.unsupported(o,'Native type47/63 removal side effects are not implemented')});
+      integer:(e,index)=>e.integers?.[index]??0,remove:(o,e)=>this.session.effects.remove(o.id,e.id)});
   }
   warning(actor, message) { runtimeDiagnostics.record('combat.action-warning', message, this.session.diagnosticContext(actor.id)); }
   strikeProviders(actor, providers) {
@@ -635,7 +671,7 @@ export class CombatRuntime {
       classLevel:creatureClassLevel,level:o=>o.stats.level & 255,
       position:o=>[o.position[0],-o.position[2],o.position[1]],
       abilityModifier:(o,ability)=>abilityModifier(o.stats.equippedAbilities[ability],session.characterRules),
-      immortal:o=>o.immortal??creatureRoot(o)?.IsImmortal??0,
+      immortal:o=>getCreatureImmortal(o),
       attackWeapon:(o,hand)=>currentAttackWeapon(session.equippedItems(o),session.characterRules,hand,
         ()=>weaponAttackType(o.combatRound,session.equippedItems(o),session.random)),
       rangedEquipped:o=>Number((weaponRule(session.equippedItems(o).find(i=>i.slot===16),session.characterRules,'RangedWeapon')&255)!==0),
@@ -643,7 +679,7 @@ export class CombatRuntime {
       savingThrow:(...args)=>this.savingThrow(...args),effectImmunity:(...args)=>this.immunity(...args),
       deathAttack:o=>this.unsupported(o,'Native ApplyOnHitDeathAttack is not implemented'),
       onHit:(o,t,offhand,critical)=>resolveOnHitProperties(o,t,session.equippedItems(o),session.characterRules,offhand,critical,{
-        applyProperty:(a,t,item,property)=>this.unsupported(a,`Native on-hit property ${property.PropertyName&65535} on item ${item.id} is not implemented`)}),
+        applyProperty:(a,t,item,property,offhand,critical)=>resolveOnHitProperty(a,t,item,property,offhand,critical,this.onHitPropertyProviders(item,property))}),
       itemCastSpell:(o,t)=>resolveItemOnHitSpells(o,t,session.equippedItems(o),t.objectType===5?session.equippedItems(t):[],session.characterRules,{
         castSpell:(a,t,item,property)=>this.itemOnHitSpell(a,t,property,item)}),
       onHitVisuals:o=>resolveOnHitVisuals(o,session.characterRules,{effect:(...args)=>session.effects.create(...args)}),
@@ -668,14 +704,47 @@ export class CombatRuntime {
     catch(error) { this.session.report(error,this.session.diagnosticContext(actor.id));throw error; }
   }
   itemOnHitSpell(actor,target,property,item){
+    return applyItemOnHitSpell(actor,target,property,item,this.onHitSpellProviders());
+  }
+  onHitSpellProviders(){
     const s=this.session;
-    return applyItemOnHitSpell(actor,target,property,item,{
+    return{
       spellIndex:row=>{const table=s.characterRules.iprp_onhitspell;if(!table)throw new Error('Native IPRP_ONHITSPELL table is unavailable');return intEntry(table,row,'SpellIndex').value;},
       spell:id=>s.spellBook.castingSpell(id),createPayload:()=>({}),copyScript:text=>String(text),
       position:o=>[o.position[0],-o.position[2],o.position[1]],
       areaId:o=>{const area=s.registry.get(o.areaId);if(area?.objectType!==4)throw new Error('Native item on-hit spell area is unavailable');return area.id;},
+      area:o=>{const area=s.registry.get(o.areaId);return area?.objectType===4?area:null;},
+      door:o=>o.objectType===10?o:null,placeable:o=>o.objectType===9?o:null,locked:getObjectLocked,
       attack:(o,index)=>getAttackData(o.combatRound,index,message=>this.warning(o,message)),
-      append:(data,list,payload)=>{data.lists[list].push(payload);}});
+      append:(data,list,payload)=>{data.lists[list].push(payload);}};
+  }
+  nominalDamageProviders(){
+    const s=this.session;
+    return{equipped:(o,slot)=>s.equipmentSlot(o,slot),hasFeat:(o,id)=>this.hasFeat(o,id),
+      base:item=>{const base=s.items.baseInfo(item);return base?{...base,specialization:this.baseItemFeat(item,'WeaponSpecializationFeat'),epicSpecialization:this.baseItemFeat(item,'EpicWeaponSpecializationFeat')}:null;},
+      property:(item,type,subtype)=>[...item.activeProperties,...item.passiveProperties].find(p=>(p.type&65535)===type&&(subtype===0||(p.subtype&65535)===subtype))??null};
+  }
+  nominalMeleeDamage(actor,offhand=0,natural=255){return nominalMeleeDamageBonus(actor,offhand,natural,this.session.characterRules,this.nominalDamageProviders());}
+  nominalRangedDamage(actor){return nominalRangedDamageBonus(actor,this.session.characterRules,this.nominalDamageProviders());}
+  baseItemFeat(item,column){
+    const table=this.session.characterRules.baseitems;
+    if(!table.columns.some(c=>c.toLowerCase()===column.toLowerCase()))throw new Error(`Native legacy base-item ${column} fallback mapping is unavailable`);
+    const entry=intEntry(table,item.baseItem,column);return entry.found?entry.value&65535:65535; // ctor29c750 seeds b0..bf toFFFF; failed cells preserve it.
+  }
+  informationProviders(){
+    const s=this.session,nominal=this.nominalDamageProviders(),base=item=>{const b=s.items.baseInfo(item);if(!b)return null;const t=s.characterRules.baseitems,id=item.baseItem;return{...b,monk:intEntry(t,id,'IsMonkWeapon').value,criticalMultiplier:intEntry(t,id,'CritHitMult').value&255,weaponOfChoice:this.baseItemFeat(item,'WeaponOfChoiceFeat')};};
+    return{create:createCombatInformation,dispose:disposeCombatInformation,
+      score:(o,i)=>{const flags=o.nativeField8d4&65535;return i===1&&(flags&6)!==6&&flags!==0&&(o.combatMode&255)!==11?3:o.stats.equippedAbilities[['Str','Dex','Con','Int','Wis','Cha'][i]];},modifier:score=>abilityModifier(score&255,s.characterRules),
+      filtered:(o,kind)=>{const effects=[...(o.itemCombatEffects?.effects??[]),...(o.effects??[])].sort((a,b)=>a.type-b.type);for(const e of effects)if(e.spellId===undefined)e.spellId=-1;const start=effects.findIndex(e=>e.type>=(kind===1?10:13));return filteredCombatEffects(effects,kind,start<0?effects.length:start,cost=>intEntry(s.characterRules.iprp_damagecost,cost,'Rank').value);},
+      damageIndex:flags=>flags<=1?0:31-Math.clz32(flags>>>0),monk:o=>Number(o.stats.combat.finalBreakdown.armor.monkAbilities),baseAttack:o=>o.stats.combat.baseAttackBonusWithoutEpic,
+      equipped:(o,slot)=>s.equipmentSlot(o,slot),base,baseById:id=>base({baseItem:id}),passive:item=>item.passiveProperties,rank:row=>intEntry(s.characterRules.iprp_damagecost,row,'Rank').value,
+      damageFlags:item=>s.items.materializerProviders().damageFlags(item),
+      meleeAttack:(o,hand)=>o.stats.combat.attackBonuses[hand?'offhand':'melee'],rangedAttack:o=>o.stats.combat.attackBonuses.ranged,meleeDamage:(...args)=>this.nominalMeleeDamage(...args),rangedDamage:o=>this.nominalRangedDamage(o),
+      spellResistance:o=>this.spellResistance(o),armorPenalties:o=>{if(!Array.isArray(o.skillArmorPenalties))throw new Error('Native combat-info armor penalty cache is unavailable');return o.skillArmorPenalties;},
+      unarmedDice:o=>unarmedDamageProfile(o,s.characterRules).dice,unarmedDie:o=>unarmedDamageProfile(o,s.characterRules).sides,
+      propertyExists:(item,type,subtype)=>Number(nominal.property(item,type,subtype)!==null),property:nominal.property,monsterCost:(row,column)=>intEntry(s.characterRules.iprp_monstcost,row,column).value,
+      hasStoredFeat:(o,id)=>Number((creatureRoot(o).FeatList??[]).some(e=>(e.Feat&65535)===id)||bonusFeats(o).some(f=>(f&65535)===id)),hasFeat:(o,id)=>this.hasFeat(o,id),
+      criticalRoll:(o,hand)=>criticalProfile(o,s.equippedItems(o),s.characterRules,hand!==0).threat,criticalMultiplier:(o,hand)=>criticalProfile(o,s.equippedItems(o),s.characterRules,hand!==0).multiplier};
   }
   async resolvePostDamage(actor,target,providers) {
     try { return await resolvePostStrikeDamage(actor,target,this.session.characterRules,this.damageStageProviders(actor,providers)); }
@@ -749,6 +818,28 @@ export class CombatRuntime {
       attack:o=>o.combatRound.attacks[Math.min(o.combatRound.currentAttack&255,49)],...b,
       indeterminateFeedback:(o,t)=>runtimeDiagnostics.record('spell.touch-feedback-indeterminate','Native nonrolling touch attack feedback reads partially uninitialized roll scratch',
         {...s.diagnosticContext(o.id),targetId:t.id,ordinal})});
+  }
+  onHitPropertyProviders(item,property){
+    const s=this.session;
+    return{creature:o=>o.objectType===5?o:null,door:o=>o.objectType===10?o:null,placeable:o=>o.objectType===9?o:null,
+      int:async(kind,row,column)=>{const table=typeof kind==='string'?await s.items.table(kind==='onhit'?'iprp_onhit':'iprp_onhitdur'):kind;if(!table)throw new Error('Native on-hit rules table is unavailable');return intEntry(table,row,column);},
+      costTable:id=>s.items.costTable(id),rulesDC:(name,value)=>rulesetInt(s.characterRules,name,value),
+      level:o=>{if(!Number.isInteger(o.stats?.level))throw new Error('Native on-hit attacker level is unavailable');return o.stats.level;},
+      constitution:o=>scriptAbilityModifier(o,2),race:o=>{if(!Number.isInteger(o.stats?.race))throw new Error('Native on-hit racial type is unavailable');return o.stats.race;},
+      alignment:(o,axis)=>creatureAlignment(creatureRoot(o))[axis],
+      canSlay:(a,t,prop)=>canSlayAlignment(a,t,prop,{creature:o=>o.objectType===5?o:null,alignment:(o,axis)=>creatureAlignment(creatureRoot(o))[axis]}),
+      placeableLevel:o=>placeableField(o,0x3a8),doorLevel:doorOpenLockDC,
+      random:()=>s.random.next(),save:(...args)=>this.savingThrow(...args),
+      apply:(name,a,t,value)=>{
+        if(engineOnHitSpellNames.includes(name)&&typeof value==='number')return applyEngineOnHitSpell(name,a,t,value,this.onHitSpellProviders());
+        if(onHitInstantNames.includes(name)&&typeof value==='object')return applyOnHitInstant(name,a,t,value,{
+          ...this.onHitPropertyProviders(item,property),create:()=>s.effects.create(0),setCreator:(e,id)=>s.effects.setCreator(e,id),
+          totalDamage:(o,index)=>totalAttackDamage(getAttackData(o.combatRound,index),0),
+          append:(o,e,index)=>getAttackData(o.combatRound,index).lists[0].push(e)});
+        if(!onHitDurationNames.includes(name))return this.unsupported(a,`Native ApplyOnHit${name} for property ${property.PropertyName&65535}/${property.Subtype&65535} on item ${item.id} is not implemented`);
+        return applyOnHitDuration(name,a,t,value,{create:()=>s.effects.create(0),copy:(e,icons)=>s.effects.copyConstruct(e,icons),
+          setCreator:(e,id)=>s.effects.setCreator(e,id),append:(o,e)=>getAttackData(o.combatRound,o.combatRound.currentAttack&255).lists[0].push(e),dispose:()=>{}});
+      }};
   }
   async savingThrow(actor,save,dc,category,versusId,feedback,feat,attackFeedback,providers) {
     const session=this.session;
@@ -865,7 +956,7 @@ export class CombatRuntime {
   }
   weightProviders(providers={}){
     const s=this.session;
-    return{unitWeight:item=>item.nativeUnitWeight45c??computeItemUnitWeight(item,s.characterRules),stack:item=>item.authored?.StackSize,
+    return{unitWeight:item=>item.nativeUnitWeight45c??computeItemUnitWeight(item,s.characterRules),stack:item=>item.nativeItemLoaded?item.stackSize:item.authored?.StackSize,
       repository:item=>item.nativeItemLoaded?item.nativeRepository:Array.isArray(item.inventory)?item:null,
       contents:repository=>this.contentsWeight(repository),...providers};
   }
@@ -899,9 +990,14 @@ export class CombatRuntime {
     return updateEncumbrance(actor,feedback,s.characterRules,{pc:o=>o.reputationPCFlag,client:id=>this.broadcastProviders().client(id),
       strength:o=>o.stats?.equippedAbilities?.Str,dm:o=>Number(o.isDM),
       totalWeight:async o=>(o.nativeEquippedWeight968+await this.contentsWeight(o))|0,
-      movementRate:o=>this.unsupported(o,'Native encumbrance ComputeMovementRate transition is not implemented'),
+      movementRate:o=>this.modifiedMovement(o),
       feedback:(o,code,data,client)=>sendCombatFeedback(o,code,data,{...this.broadcastProviders(),client:()=>client}),...providers});
   }
+  modifiedMovement(actor){const s=this.session;return computeModifiedMovement(actor,{
+    hasFeat:(...args)=>this.hasFeat(...args),rule:(name,fallback)=>rulesetInt(s.characterRules,name,fallback),effects:o=>o.effects,
+    start:(o,type)=>{const index=o.effects.findIndex(e=>e.type>=type);return index<0?o.effects.length:index;},remove:(o,id)=>s.effects.remove(o.id,id),
+    create:()=>s.effects.create(0),copy:(...args)=>s.effects.copyConstruct(...args),creator:(...args)=>s.effects.setCreator(...args),apply:(o,e,loading)=>s.effects.applyNative(e,o.id,undefined,loading),
+  });}
   async consumeAmmo(item,providers={}){
     const s=this.session;
     try{return await consumeAmmunition(item,{...this.ammunitionProviders(),
@@ -1064,7 +1160,7 @@ export class CombatRuntime {
     if(node.actionId===50)return this.session.spells.clearCounter(actor,node,head);
     if(node.actionId===8)return clearEquipAction(actor,node,head,{...this.equipmentActionProviders(),setLock:(...args)=>this.setLock(...args)});
     if(node.actionId===11)return clearUnequipAction(actor,node,head,{...this.unequipActionProviders(),setLock:(...args)=>this.setLock(...args)});
-    return [1,4,5,6,16,17,18,19,30,37,40,45,48,49,52,55,58,60].includes(node.actionId)?clearCreatureMovementAction(actor,node,head,{
+    return [1,3,4,5,6,16,17,18,19,30,37,40,44,45,48,49,52,55,58,60].includes(node.actionId)?clearCreatureMovementAction(actor,node,head,{
       messageAvailable:()=>true,setLock:(...args)=>this.setLock(...args)
     }):this.clearAttackAction(actor,node,head);
   }
@@ -1104,6 +1200,15 @@ export class CombatRuntime {
       this.session.report(error, this.session.diagnosticContext(object.id));
       throw error;
     }
+  }
+  async receiveWalkInput(request,providers={}){
+    const s=this.session,b=this.broadcastProviders(),client=b.client(s.player.id),ids=[request.areaId,request.targetId],bytes=[request.sequence,request.fractional],bools=[request.run,request.clientPath];let id=0,byte=0,bool=0,axis=0;
+    return receiveWalkInput(client,{clientObject:c=>c?.object??null,asCreature:o=>o?.objectType===5?o:null,asObject:o=>o?.objectType>4?o:null,
+      area:o=>s.registry.get(o.areaId),object:id=>s.registry.get(id),readObjectId:()=>ids[id++],readFloat:()=>request.position[axis++],readByte:()=>bytes[byte++],readBool:()=>bools[bool++],overflow:()=>0,underflow:()=>0,
+      pause:(o,...args)=>setRoundPaused(o.combatRound,...args),pauseTimer:(o,...args)=>setPauseTimer(o.combatRound,...args),combatStep:(...args)=>this.combatStep(...args),
+      computeAIState,stickyModes:()=>Number(s.stickyCombatModes),setMode:(...args)=>this.setCombatMode(...args),clearSpecial:r=>clearAllSpecialAttacks(r,message=>this.warning(s.player,message)),
+      actionManager:(o,n)=>manageObjectActions(o,n,{hasClient:o=>Boolean(b.client(o.id)),clearActions:o=>this.clearActions(o)}),
+      addMove:(...args)=>addMoveToPointBack(...args,this.movementProviders()),...providers});
   }
   async receiveAttackInput(targetId,providers={}){
     const client=this.broadcastProviders().client(this.session.player?.id);
@@ -1210,8 +1315,8 @@ export class CombatRuntime {
       microseconds,
       deleteSituation:s=>this.session.deleteSituation(s),
       preflight:async(o,node)=>{
-        if(![1,4,5,6,8,11,12,13,15,16,17,18,19,20,21,30,37,40,42,45,46,48,49,50,52,54,55,58,60].includes(node.actionId)||o.objectType!==5&&![20,21,30,37].includes(node.actionId))this.unsupported(o,`Native live action ${node.actionId} dispatch is not implemented`);
-        if(node.actionId===1){const area=this.session.registry.get(o.areaId);if(area)await this.combatStepProviders().preflightMovement(o,area);}
+        if(![1,3,4,5,6,8,11,12,13,15,16,17,18,19,20,21,30,33,37,38,40,42,44,45,46,48,49,50,52,54,55,58,60].includes(node.actionId)||o.objectType!==5&&![20,21,30,33,37,38].includes(node.actionId))this.unsupported(o,`Native live action ${node.actionId} dispatch is not implemented`);
+        if([1,3,44].includes(node.actionId)){const area=this.session.registry.get(o.areaId);if(area)await this.combatStepProviders().preflightMovement(o,area);}
       },
       dispatch:(o,node)=>{
         const p={...this.useRangeProviders(),dead:o=>Number(this.session.isDead(o)),dying:o=>Number(this.session.isDying(o)),
@@ -1221,6 +1326,12 @@ export class CombatRuntime {
           setLock:(...args)=>this.setLock(...args),client:id=>this.broadcastProviders().client(id)};
         return [20,21].includes(node.actionId)?executeObjectDoorAction(o,node,{...p,object:id=>this.session.registry.get(id),enqueue:(id,caller,target)=>this.enqueueEvent(id,caller,target,0,null),creatureAction:(a)=>this.unsupported(a,'Native creature door approach, lock evaluation and interaction-animation owner is not implemented')}):
           node.actionId===37?executeDoCommand(o,node,{...p,runSituation:(s,id)=>this.session.runSituation(s,id)}):
+          node.actionId===38?executeUnlockAction(o,node,{...p,item:id=>{const i=this.session.registry.get(id);return i?.objectType===6?i:null;},object:id=>this.session.registry.get(id),asWorld:a=>a.objectType>=5&&a.objectType<=14?a:null,
+            door:a=>a.objectType===10?a:null,placeable:a=>a.objectType===9?a:null,locked:getObjectLocked,
+            keyRequired:a=>a.objectType===10?a.nativeDoorKeyRequired450:placeableField(a,0x3a0),unlock:a=>{if(a.objectType===10)a.locked=0;else placeableField(a,0x378,0);},
+            event:(a,t,type)=>this.enqueueEvent(10,a.id,t.id,0,{type,integers:[],objectIds:[]}),
+            creatureAction:a=>this.unsupported(a,'Native creature unlock range, skill/tool and animation owners are not implemented')}):
+          node.actionId===33?this.session.speech.execute(o,node):
           node.actionId===40?this.executeUseObject(o,node):
           node.actionId===13?executeRepositoryMove(o,node,this.repositoryMoveProviders()):
           node.actionId===8?executeEquipAction(o,node,this.equipmentActionProviders()):
@@ -1230,6 +1341,7 @@ export class CombatRuntime {
           node.actionId===55?executeForceFollow(o,node,{...p,moveFront:(...args)=>addMoveToPointFront(...args,this.movementProviders())}):
           node.actionId===58?checkForceFollow(o,node):
           node.actionId===45?this.executeRandomWalk(o,node):
+          [3,44].includes(node.actionId)?executeMoveAway(o,node,this.moveAwayProviders()):
           [5,48].includes(node.actionId)?this.executeJump(o,node):
           node.actionId===60?executeAreaWait(o,node,{area:p.area,controlled:id=>Number(Boolean(p.client(id)))}):
           node.actionId===6?executeScriptAnimation(o,node,{...p,deleteSituation:s=>this.session.deleteSituation(s),setAnimation:(o,id)=>this.setAnimation(o,id)}):
@@ -1351,6 +1463,13 @@ export class CombatRuntime {
       normalize:v=>native(normalizeOrientation(render(v))),directLine:(a,from,to,...args)=>m.testDirectLine(a,render(from),render(to),...args),
       moveFront:(o,group,point,...args)=>addMoveToPointFront(o,group,render(point),...args,{setLock:(...a)=>this.setLock(...a)})});
   }
+  moveAwayProviders(){
+    const s=this.session,m=this.movementProviders(),native=v=>[v[0],-v[2],v[1]].map(Math.fround),render=v=>[v[0],v[2],Math.fround(-v[1])];
+    return{object:id=>s.registry.get(id)??null,position:o=>native(o.position),area:o=>{const a=s.registry.get(o.areaId);return a?.objectType===4?a:null;},areaById:id=>{const a=s.registry.get(id);return a?.objectType===4?a:null;},
+      dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),cancel:(...args)=>this.cancelQueuedAction(...args),
+      away:(area,from,to,distance,path)=>computeAwayVector(area,from,to,distance,path,{directLine:(a,from,to,...args)=>m.testDirectLine(a,render(from),render(to),...args)}),
+      moveFront:(o,group,point,...args)=>addMoveToPointFront(o,group,render(point),...args,m),moveBack:(o,group,point,...args)=>addMoveToPointBack(o,group,render(point),...args,m),waitFront:(o,group)=>addPathfindingWaitFront(o,group,m)};
+  }
   movementProviders(providers={}){
     const s=this.session,geometry=area=>{if(!area?.nativeGeometry)throw new Error('Native movement area geometry is unavailable');return area.nativeGeometry;};
     const native=point=>[Math.fround(point[0]),Math.fround(-point[2]),Math.fround(point[1])];
@@ -1359,7 +1478,7 @@ export class CombatRuntime {
       lineEncounter:(o,a,b)=>intersectSubareaPolygon(o,a,b,Boolean(s.registry.get(o.areaId)))};
     const base={...this.useRangeProviders(),...this.combatStepProviders(),
       forcedAction:(...args)=>queueForcedMove(...args,{delta:seconds=>secondsToWorldDelta(seconds,s.worldTimer.secondsPerDay),
-        event:(day,time,caller,target,eventId,payload)=>s.scheduler.enqueueMilliseconds(target,{type:'combatAI',eventId,callerId:caller,payload},day*s.worldTimer.dayLength+time)}),
+        event:(day,time,caller,target,eventId,payload)=>s.scheduler.enqueueDelta(target,{type:'combatAI',eventId,callerId:caller,payload},day,time)}),
       dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),hasModule:()=>Boolean(s.module),
       useRange:(...args)=>this.useRange(...args),inUseRange:(...args)=>this.inUseRange(...args),
       client:id=>this.broadcastProviders().client(id),setLock:(...args)=>this.setLock(...args),
@@ -1587,11 +1706,9 @@ export class CombatRuntime {
     const omission=(o,code,message)=>runtimeDiagnostics.repeat(code,message,s.diagnosticContext(o.id));
     await updateCreatureFrame(object,{
       microseconds:()=>BigInt(Math.trunc(performance.now()*1000)),beforeTimer:o=>this.updateBeforeTimer(o),dayLength:s.worldTimer.dayLength,
-      activeTimer:id=>selectActiveTimer(id,{worldTimer:()=>s.worldTimer,pauseFlags:()=>s.nativeActivePauseFlags??0,
-        excluded:()=>{throw new Error('Native active timer exclusion ownership is unavailable');},
-        timer1:()=>{throw new Error('Native active timer1 is unavailable');},timer2:()=>{throw new Error('Native active timer2 is unavailable');}}),
+      activeTimer:id=>s.activeTimer(id),
       roundTimer:(o,ms)=>this.updateTimer(o,ms),excited:(o,ms)=>this.updateExcited(o,ms),
-      effects:o=>s.effects.updateObject(o),actions:(o,now,start)=>this.runActions(o,now.day,now.time,start),
+      effects:(o,now)=>s.effects.updateObject(o,now),actions:(o,now,start)=>this.runActions(o,now.day,now.time,start),
       area:o=>s.registry.get(o.areaId)??null,
       height:async(o,area)=>{
         if(!area?.nativeGeometry)throw new Error('Native frame area height geometry is unavailable');
@@ -1602,16 +1719,18 @@ export class CombatRuntime {
         dead:o=>Number(s.isDead(o)),heartbeat:o=>s.damage.runEvent(o,o.scripts?.heartbeat),
         hasFeat:(o,id)=>this.hasFeat(o,id),opportunity:(...args)=>this.opportunityAttack(...args)}),
       possessed:o=>Number(Boolean(o.isPossessedFamiliar)),
-      // Normal unpaused local clock adapter. Server pause timer snapshots and
-      // the ten-entry native player queue presentation remain separate owners.
-      pauseTimer:()=>{if((s.nativeActivePauseFlags??0)!==0)throw new Error('Native server pause timer is unavailable');return s.worldTimer;},
+      pauseTimer:()=>s.nativeServerPause.timer2,
+      queueClockUndefined:(o,detail)=>this.reportUndefinedQueueClock(o,detail),
       actionQueue:o=>updateActionQueueDisplay(o,{
         item:id=>{const item=s.registry.get(id);return item?.objectType===6?item:null;},
         activeProperty:(item,index)=>item.activeProperties?.[index]??null,
         spellIndex:async subtype=>{const table=await s.items.table('iprp_spells'),entry=intEntry(table,subtype,'SpellIndex');
           if(!entry.found)throw new Error('Native action queue item SpellIndex output is unavailable');return entry.value;}}),
       skillCount:()=>{const table=s.characterRules?.skills;if(!table)throw new Error('Native skill timer rules are unavailable');return(table.orderedRows?.length??table.rows.size)&255;},
-      refreshStats:o=>omission(o,'combat.frame-stat-refresh-unimplemented','Native dirty spell/combat-information refresh owners and movement debug branch are not implemented'),
+      refreshStats:o=>{
+        if(s.nativeMovementDebugFlag===1)omission(o,'combat.movement-debug-unimplemented','Native optional movement-debug timer/message branch is not implemented');
+        refreshDirtyCreatureStats(o,{memorized:o=>{s.refreshCombat(o,{refreshAbilityCaches:false});s.spellBook.providers(o).updateMemorizedSlots(o);},spellUses:o=>s.spellBook.adjustUses(o),combat:o=>s.updateNativeCombatInformation(o)});
+      },
       setAILevel:(o,level)=>s.aiMaster.setLevel(o,level),...providers,
     });
   }

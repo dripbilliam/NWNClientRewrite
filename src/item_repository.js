@@ -1,7 +1,27 @@
+import {nativeObjectTag} from './object_tag.js';
+import {nativeItemTag} from './item_stack_compare.js';
 const integer=(v,name)=>{if(!Number.isInteger(v))throw new Error(`Native repository ${name} is unavailable`);return v|0;};
 const required=(p,name)=>{if(typeof p?.[name]!=='function')throw new Error(`Native repository provider ${name} is unavailable`);return p[name];};
 const byte=(v,name)=>integer(v,name)&255;
 const invalid=0x7f000000;
+
+// Complete FindItemWithTag1404680a0..1404681cd. Search each node before
+// recursively visiting its repository, preserving physical head-to-tail order.
+export function repositoryFindTag(repo,tag,p){
+ const query=nativeItemTag(nativeObjectTag(tag)),seen=new Set();
+ const visit=repository=>{
+  if(seen.has(repository))throw new Error('Native repository tag recursion contains a cycle');seen.add(repository);
+  for(const id of repository.ids()){
+   const lookup=p.lookup(id);if(lookup.status!==0||!lookup.object)continue;
+   const item=p.asItem(lookup.object);if(!item)throw new Error('Native repository tag search dereferences a non-item');
+   const current=p.tag(item);let match=current.length===query.length;
+   if(match&&current.present){for(let i=0;;i++){const a=current.bytes[i]??0,b=query.bytes[i]??0;if(a!==b){match=false;break;}if(b===0)break;}}
+   if(match){seen.delete(repository);return item.id>>>0;}
+   const child=p.repository(item);if(child){const result=visit(child);if(result!==invalid){seen.delete(repository);return result;}}
+  }
+  seen.delete(repository);return invalid;
+ };return visit(repo);
+}
 
 // CalculatePage1404656a0..1404656b6. BYTE coordinates/width, unsigned
 // boundary division; callers decide whether to truncate the quotient to BYTE.

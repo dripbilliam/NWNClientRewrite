@@ -18,7 +18,7 @@ export function creatureMaxHitPoints(root, constitutionModifier, rules, { posses
   const pale = root.ClassList.find(c => c.Class === 34)?.ClassLevel ?? 0;
   const vigor = constant('FEAT_DEATHLESS_VIGOR_HP_BONUS', 3);
   const epicVigor = constant('FEAT_EPIC_DEATHLESS_VIGOR_HP_BONUS', 5);
-  if (root.IsPC && !possessedFamiliar) {
+  if (Number(root.IsPC)===1 && !possessedFamiliar) {
     let hp = (root.LvlStatList ?? []).slice(0, level).reduce((n, l) => (n + Math.max(1, (l.LvlStatHitDie & 255) + constitutionModifier) + toughness) | 0, 0);
     if (has(891) && pale > 4 && includeFeatBonuses) hp = i16(hp + i16(vigor) * (Math.min(10, pale) - 4));
     if (has(891) && pale > 10) hp = i16(hp + i16(epicVigor) * Math.trunc((pale - 10) / 5));

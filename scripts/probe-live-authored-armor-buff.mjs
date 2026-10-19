@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {openLocalModule} from './local-module.mjs';
 import {ModuleSession} from '../src/module_session.js';
+import {advanceLocalClocks,advanceToEffectExpiry} from './advance-effect-clock.mjs';
 import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
 import {parseGff} from '../src/gff.js';
 import {RESOURCE_TYPE} from '../src/resource_archive.js';
@@ -36,11 +37,11 @@ for(let n=0;n<200;n++){
 }
 const properties=item.effects.filter(e=>e.type===91&&e.spellId===spell.id),linked=owner.effects.filter(e=>e.creatorId===itemId),after=s.commands.GetAC([owner.id]);
 const report={template,itemId,ownerId:owner.id,spell,baseline,after,impacts,animations:[...new Set(animations)],errors,engineCalls,properties:structuredClone(properties),linked:structuredClone(linked),limits:'Installed clothing and authored Magic Vestment NCS via scripted cheat=1 request, queued gear actions and real stat/expiry owners. Startup/AI isolated; not memorized UI or full campaign acceptance. All diagnostic warnings retained.'};
-const save=()=>fs.writeFile('backups/animations/live-authored-armor-buff.json',JSON.stringify({...report,diagnostics:runtimeDiagnostics.records.slice(start)},null,2));await save();console.log(JSON.stringify(report,null,2));
-assert.deepEqual(errors,[]);assert.equal(impacts.length,1);assert.equal(owner.objectActionState.list.count,0);assert.equal(properties.length,1);assert.equal(linked.length,1);assert.equal(linked[0].type,48);
+const save=()=>fs.writeFile(process.argv.find(a=>a.startsWith('--output='))?.slice(9)??'backups/animations/live-authored-armor-buff.json',JSON.stringify({...report,diagnostics:runtimeDiagnostics.records.slice(start)},null,2));await save();console.log(JSON.stringify(report,null,2));
+assert.deepEqual(errors,[]);assert.equal(impacts.length,1);assert.equal(owner.objectActionState.list.count,0);assert.equal(properties.length,1);assert.deepEqual(linked.map(e=>e.type),[48,67]);assert.equal(linked[1].integers[0],35);assert.equal(linked[0].id,linked[1].id);
 const property=properties[0],expected=intEntry(await s.items.costTable(2),property.integers[3]&65535,'Value').value;
 assert.equal(after,baseline+expected);assert.equal(linked[0].propertyId,property.propertyId);assert.equal(linked[0].integers[0],s.items.baseInfo(item).acEnchant);
 await gear(false);assert.equal(owner.effects.filter(e=>e.creatorId===itemId).length,0);await gear(true);assert.equal(s.commands.GetAC([owner.id]),baseline+expected);
-s.scheduler.time=property.expires;await s.effects.updateObject(item);assert.ok(item.effects.includes(property));s.scheduler.time++;await s.effects.updateObject(item);assert.ok(!item.effects.includes(property));assert.equal(s.commands.GetAC([owner.id]),baseline);assert.equal(owner.effects.filter(e=>e.creatorId===itemId).length,0);
+advanceToEffectExpiry(s,property);await s.effects.updateObject(item);assert.ok(item.effects.includes(property));advanceLocalClocks(s,1);await s.effects.updateObject(item);assert.ok(!item.effects.includes(property));assert.equal(s.commands.GetAC([owner.id]),baseline);assert.equal(owner.effects.filter(e=>e.creatorId===itemId).length,0);
 report.cleanup={unequipReequip:true,exactExpiryRetained:true,expired:true,restoredAC:s.commands.GetAC([owner.id])};await save();
 assert.deepEqual(runtimeDiagnostics.records.slice(start).filter(d=>d.severity==='error'),[]);

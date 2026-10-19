@@ -37,7 +37,7 @@ test('ranged damage carries thrown strength and Mighty can override a negative c
   assert.equal(bonus(actor(), [item(2)], { attack: ranged }).parts.strength, 3);
   const crossbow = item(6); // Missing base-rule row defaults; native base ID excludes negative strength.
   assert.equal(bonus(actor({ str: 8 }), [crossbow], { attack: ranged }).parts.strength, 0);
-  crossbow.data.PropertiesList.push({ PropertyName: 45, Subtype: 2 });
+  crossbow.data.PropertiesList.push({ PropertyName: 45, Subtype: 0, CostValue: 2 });
   assert.equal(bonus(actor({ str: 8 }), [crossbow], { attack: ranged }).parts.strength, -1);
 });
 

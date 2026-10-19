@@ -64,7 +64,7 @@ export function parseBinaryMdl(buffer) {
         [FLAG_HAS_REFERENCE, 'Referenced model attachment'], [FLAG_HAS_ANIM, 'Animated vertex/UV channels'],
         [FLAG_HAS_DANGLY, 'Dangly-mesh simulation']
       ].filter(([flag]) => flags & flag).map(([, feature]) => feature),
-      type: flags & FLAG_HAS_MESH ? 'trimesh' : flags & FLAG_HAS_LIGHT ? 'light' : flags & FLAG_HAS_EMITTER ? 'emitter' : 'dummy',
+      type: flags & FLAG_HAS_MESH ? 'trimesh' : flags & FLAG_HAS_LIGHT ? 'light' : flags & FLAG_HAS_EMITTER ? 'emitter' : flags & FLAG_HAS_REFERENCE ? 'reference' : 'dummy',
       properties: Object.assign(Object.create(null), flags & FLAG_HAS_LIGHT ? { color: [0,0,0], radius: 0, shadowradius: 0, verticaldisplacement: 0, multiplier: 1 } : {}),
       name,
       parent: parentName,
@@ -92,7 +92,7 @@ export function parseBinaryMdl(buffer) {
     let cursor = start + 112;
     if (flags & FLAG_HAS_LIGHT) { readLight(node, cursor); cursor += 0x5c; }
     if (flags & FLAG_HAS_EMITTER) { readEmitter(node,cursor); cursor += 0xd8; }
-    if (flags & FLAG_HAS_REFERENCE) cursor += 0x44;
+    if (flags & FLAG_HAS_REFERENCE) {readReference(node,cursor);cursor += 0x44;}
     if (flags & FLAG_HAS_MESH) cursor = readMesh(node, cursor);
     if (flags & FLAG_HAS_SKIN) {
       node.skinned = true;
@@ -145,6 +145,16 @@ export function parseBinaryMdl(buffer) {
     }
   }
 
+  function readReference(node,cursor){
+    // ReadBinaryNode07b3dc..07b416 copies disk70..af -> runtimea0..df,
+    // diskb0 DWORD -> runtimee0. A model name is64 bytes, not CResRef16.
+    requireRange(data,cursor,0x44);
+    const rawModel=Array.from(new Uint8Array(data.buffer,data.byteOffset+cursor,64));
+    node.reference={model:readString(data,cursor,64),rawModel,reattachable:readU32(data,cursor+64)|0};
+    node.properties.refmodel=node.reference.model;node.properties.reattachable=node.reference.reattachable;
+    node.nativeNode.referenceModelA0=rawModel;node.nativeNode.reattachableE0=node.reference.reattachable;
+  }
+
   function readLight(node, cursor) {
     // Full serialized reader14007a790..14007abd4: flags at node+b0..c8.
     // Runtime light texture handles are constructed, never serialized pointers.
@@ -173,6 +183,9 @@ export function parseBinaryMdl(buffer) {
 
   function readMesh(node, cursor) {
     const meshStart = cursor;
+    // Original header copier078ab0: disk268 -> runtime2bc (stored area).
+    // Relative to the mesh extension this is1f8, independent of skin payload.
+    requireRange(data,meshStart+0x1f8,4);node.nativeTriMeshArea=readF32(data,meshStart+0x1f8);
     cursor += 8;
     const faces = readArrayDefinition(cursor);
     cursor += 12;
@@ -249,6 +262,12 @@ export function parseBinaryMdl(buffer) {
         throw new Error(`Binary face index outside ${node.name} vertex array.`);
       }
       return [a, b, c, 0, a, b, c, 0];
+    });
+    // ReadBinaryMesh7be10 copies MaxFace records unchanged (32 bytes each).
+    // PartTriMesh::HitCheckGeom905b0 uses these, not the optimized draw list.
+    node.nativeCollisionFaces=node.faces.map((face,index)=>{
+      const at=modelDataOffset+faces.offset+index*32;
+      return{indices:face.slice(0,3),normal:[0,4,8].map(n=>readF32(data,at+n)),constant:readF32(data,at+12),surfaceType:readU32(data,at+16)};
     });
 
     // FUN_14007be10 loads draw counts at serialized node +0x204 and

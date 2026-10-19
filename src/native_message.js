@@ -118,6 +118,9 @@ export class NativeMessageWriter{
  }
  writeCResRef(bytes,count=16){this.writeType(13);this.rawBytes(bytes,count);}
  writeObjectIdServer(id){id>>>=0;this.raw(id===OBJECT_INVALID?id:(id|EXTERNAL_OBJECT)>>>0,4);}
+ // Client helper1409737f0 copies the client ID unchanged. The receiving
+ // ReadOBJECTIDServer clears bit31; it is not a locally allocated server ID.
+ writeObjectIdClient(id){this.raw(id>>>0,4);}
  getWriteMessage(){
   this.writing30=0;new DataView(this.byteStorage.bytes.buffer,this.byteStorage.bytes.byteOffset).setUint32(3,this.total28,true);this.byteStorage.defined.fill(255,3,7);
   const bitCount=this.bitLength24+Number(this.bitOffset2c>0),length=this.byteLength14+bitCount;
@@ -210,6 +213,10 @@ export class NativeMessageReader{
   return BigInt.asIntN(64,sign?(magnitude===0n?1n<<63n:-magnitude):magnitude);
  }
  readBool(){this.expectType(2);return Number(this.readUnsigned(1))&255;}
+ // ReadCHAR2d98d0/ReadSHORT2da110 use a distinct type tag and map signed
+ // negative-zero to the destination type's minimum value for reduced widths.
+ readChar(bits=8){width(bits,1);this.expectType(4);const n=bits===8?this.raw(1):this.readSigned(bits);return Number(BigInt.asIntN(8,n===-(1n<<63n)?-128n:n));}
+ readShort(bits=16){width(bits,1);this.expectType(6);const n=bits===16?this.raw(2):this.readSigned(bits);return Number(BigInt.asIntN(16,n===-(1n<<63n)?-32768n:n));}
  readByte(bits=8,tag=1){width(bits);if(tag!==0)this.expectType(3);return Number(BigInt.asUintN(8,bits>=8?this.raw(1):this.readUnsigned(bits)));}
  readWord(bits=16){width(bits);this.expectType(5);return Number(BigInt.asUintN(16,bits===16?this.raw(2):this.readUnsigned(bits)));}
  readDword(bits=32){width(bits);this.expectType(7);return Number(BigInt.asUintN(32,bits===32?this.raw(4):this.readUnsigned(bits)));}

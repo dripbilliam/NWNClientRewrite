@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {removeEffectsById,removeEffectTarget,updateEffectList} from '../src/effect_removal.js';
 import {NativeIdList} from '../src/native_id_list.js';
 import {ModuleSession} from '../src/module_session.js';
+import {addWorldTimes} from '../src/world_timer.js';
 const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-effect-removal-observations.json',import.meta.url)));
 const newEffect=()=>({id:'000000000000004d',type:62,subtype:8,durationType:2,duration:3.25,creatorId:98,spellId:11,casterLevel:7,showIcon:1,exposed:1,bypassImmunity:0,propertyId:'000000000000007b',customTag:'',integers:[1,0,0,0,0,0,0,0],strings:['fixture','','','','',''],floats:[0,0,0,0],objectIds:Array(4).fill(0x7f000000),vectors:[[0,0,0],[0,0,0]]});
 function replay(row,asyncCallbacks){
@@ -58,16 +59,16 @@ test('live runtime retains a deferred record, removes its siblings and completes
  s.effects.onRemove=(actor,e,context)=>{
   if(e!==parent)return original(actor,e,context);
   calls.push(s.scheduler.time);
-  if(!e.integers[1]){e.integers[1]=1;e.durationType=1;e.duration=0.5;e.expires=s.scheduler.time+500;return 0;}
+  if(!e.integers[1]){e.integers[1]=1;e.durationType=1;e.duration=0.5;const expiry=addWorldTimes(s.worldTimer.time(),{day:0,time:500},s.worldTimer.dayLength);e.expiryDay=expiry.day;e.expiryTime=expiry.time;return 0;}
   return 1;
  };
  assert.equal(s.effects.remove(o.id,parent.id),1);assert.deepEqual(o.effects,[parent]);assert.deepEqual(calls,[0]);assert.equal(source.nativeCreatedAreaEffects170.indexOf(o.id),0);
- s.scheduler.time=500;await s.effects.updateObject(o);assert.deepEqual(o.effects,[parent]);assert.deepEqual(calls,[0]);
- s.scheduler.time=501;await s.effects.updateObject(o);assert.deepEqual(o.effects,[]);assert.deepEqual(calls,[0,501]);assert.equal(source.nativeCreatedAreaEffects170.count,0);assert.equal(s.registry.get(o.id),o);
+ s.scheduler.time=500;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.deepEqual(o.effects,[parent]);assert.deepEqual(calls,[0]);
+ s.scheduler.time=501;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.deepEqual(o.effects,[]);assert.deepEqual(calls,[0,501]);assert.equal(source.nativeCreatedAreaEffects170.count,0);assert.equal(s.registry.get(o.id),o);
  // Expiring a linked group inside the updater must not visit its stale sibling
  // from a copied array and immediately run the parent's second callback.
- parent.integers[1]=0;parent.durationType=sibling.durationType=1;parent.expires=sibling.expires=0;o.effects=[parent,sibling];calls.length=0;source.nativeCreatedAreaEffects170.append(o.id);
- s.scheduler.time=1;await s.effects.updateObject(o);assert.deepEqual(o.effects,[parent]);assert.deepEqual(calls,[1]);
- s.scheduler.time=501;await s.effects.updateObject(o);assert.deepEqual(o.effects,[parent]);assert.deepEqual(calls,[1]);
- s.scheduler.time=502;await s.effects.updateObject(o);assert.deepEqual(o.effects,[]);assert.deepEqual(calls,[1,502]);assert.equal(source.nativeCreatedAreaEffects170.count,0);
+ parent.integers[1]=0;parent.durationType=sibling.durationType=1;parent.expiryDay=sibling.expiryDay=0;parent.expiryTime=sibling.expiryTime=0;o.effects=[parent,sibling];calls.length=0;source.nativeCreatedAreaEffects170.append(o.id);
+ s.scheduler.time=1;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.deepEqual(o.effects,[parent]);assert.deepEqual(calls,[1]);
+ s.scheduler.time=501;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.deepEqual(o.effects,[parent]);assert.deepEqual(calls,[1]);
+ s.scheduler.time=502;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.deepEqual(o.effects,[]);assert.deepEqual(calls,[1,502]);assert.equal(source.nativeCreatedAreaEffects170.count,0);
 });

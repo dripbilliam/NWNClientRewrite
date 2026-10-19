@@ -46,6 +46,7 @@ export function visualLocalPoseServices({sceneRoot}={}){
  return{
   modelHandle:render=>visualMainModel(render),
   nodePose:(model,name)=>{const position=[0,0,0],quaternion=[1,0,0,0],node=part(model,name);getVisualNodePose(model,name,position,quaternion,{findNode:()=>node,globalPose});return{position,quaternion};},
+  nodePoseInto:(model,name,position,quaternion)=>getVisualNodePose(model,name,position,quaternion,{findNode:()=>part(model,name),globalPose}),
   setNodePose:(model,name,position,quaternion)=>{
    const node=part(model,name);if(!node)return 0;const state=localState(node);
    const result=setVisualNodePose(model,name,position,quaternion,{findNode:()=>state,globalPose:()=>{writeLocal(model,node,state);return globalPose(node);}});

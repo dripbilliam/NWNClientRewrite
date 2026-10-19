@@ -91,6 +91,11 @@ export class WorldTimer{
   getHour(){return this.timeParts().hour;}
   getMinute(){return this.timeParts().minute;}
   getSecond(){return Math.floor(this.time().time/1000)%60;}
+  // GetWorldTimeDay140597360 / Month140597500 / Year140597720 each
+  // reads the live normalized calendar day, including native paused state1.
+  getDay(){return this.calendar().day;}
+  getMonth(){return this.calendar().month;}
+  getYear(){return this.calendar().year;}
   setCalendar(year,month,day,hour,minute,second,millisecond,snapshot=0){
     [year,month,day,hour,minute,second,millisecond]=[year,month,day,hour,minute,second,millisecond].map(v=>u32(v,'calendar argument'));
     let date=year<32001?Math.imul(year,336):0x6dec0;
@@ -110,5 +115,8 @@ export class WorldTimer{
       (ifo.Mod_StartMiliSec??0)&65535,1);
   }
   pause(){if(this.paused===0){const now=this.time();this.pausedDay=now.day;this.pausedTime=now.time;this.paused=1;}}
+  // ResetTimer1405977e0 copies all defined fields, including the source pause
+  // state and both counter snapshots. It retains this timer's host tick source.
+  reset(source){for(const key of ['mode','fixedRate','counter','previousCounter','paused','pausedDay','pausedTime','dayOffset','timeOffset','minutesPerHour','dayLength','secondsPerDay'])this[key]=source[key];}
   unpause(){if(this.paused===1){this.paused=0;this.setTime(this.pausedDay,this.pausedTime);}}
 }

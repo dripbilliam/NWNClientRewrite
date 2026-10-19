@@ -5,7 +5,7 @@ import {ModuleSession} from '../src/module_session.js';
 import {parse2da} from '../src/area.js';
 
 function fixture(){
-  const s=new ModuleSession(null);s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType BasePropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS\n0 0 1 1 1 99 0 10'),
+  const s=new ModuleSession(null);s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType PropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS\n0 0 1 1 1 99 0 10'),
     itemprops:parse2da(`2DA V2.0\n\nLabel Allowed\n${Array.from({length:90},(_,i)=>`${i} p${i} ${i===62?0:1}`).join('\n')}`)};
   const runtime=new NativeItemRuntime(s),item=s.register('item','item',{tag:'Potion',authored:{}});runtime.initialize(item);
   return{s,runtime,item};
@@ -33,7 +33,7 @@ test('empty or rejected pools make the item identified and unsupported saved sta
   assert.equal(item.identified,1);assert.equal(item.effects.length,0);assert.deepEqual(item.modelParts,[1,0,0]);assert.deepEqual(item.colors,[0,0,0,0,0,0]);
   const {runtime:r,item:i}=fixture();await assert.rejects(r.loadData(i,{BaseItem:999}),/invalid base item/);
   // Saved-object state belongs to LoadFromGff, after the lower data owner.
-  await assert.rejects(r.loadFromGff(i,{BaseItem:0,EffectList:[{}]}),/saved item effect import/);
+  await assert.rejects(r.loadFromGff(i,{BaseItem:0,ActionList:[{NumParams:1,Paramaters:[{Type:5,Value:{}}]}]}),/script-situation loading state/);
 });
 
 test('plot and cursed import keep separate native cells and canonical GFF fields',async()=>{

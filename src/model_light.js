@@ -44,6 +44,7 @@ export function createModelLight(node, configureShadow = null) {
   light.userData.mdlLight = { ...p, color: [...color] };
   light.userData.mdlLightEnabled = true;
   light.castShadow = !(Number(p.ambientonly) > 0) && Number(p.shadow) > 0;
+  light.userData.mdlLightShadowRequested=light.castShadow;
   if (light.castShadow) configureShadow?.(light);
   updateModelLight(light);
   return light;
@@ -63,6 +64,7 @@ export function setModelLightShadows(root, enabled, configureShadow = null) {
     const p = light.userData.mdlLight;
     if (p && (Number(p.affectdynamic) || Number(p.isdynamic))) {
       light.castShadow = !(Number(p.ambientonly) > 0) && Boolean(enabled);
+      light.userData.mdlLightShadowRequested=light.castShadow;
       if (light.castShadow) configureShadow?.(light);
     }
   });

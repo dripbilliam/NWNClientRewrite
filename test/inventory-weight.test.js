@@ -5,6 +5,10 @@ import {parse2da} from '../src/area.js';
 import {ModuleSession} from '../src/module_session.js';
 const baseitems=parse2da('2DA V2.0\n\nModelType TenthLBS\n0 0 3\n1 3 999\n');
 const encumbranceTable=parse2da('2DA V2.0\n\nNormal Heavy\n0 100 200\n');
+test('native copied equipment weight reads the live stack cell without a cloned authored record',async()=>{
+ const s=new ModuleSession(null),item={nativeItemLoaded:true,nativeUnitWeight45c:17,stackSize:2,nativeRepository:null,authored:{}};
+ assert.equal(await weight(item,s.combat.weightProviders()),34);item.authored.StackSize=99;assert.equal(await weight(item,s.combat.weightProviders()),34);item.stackSize=1;assert.equal(await weight(item,s.combat.weightProviders()),17);
+});
 test('unit mass uses tenth-pound data, summed passive extra weight and strongest reduction without stack scaling',()=>{
   const item={authored:{BaseItem:0,StackSize:20,PropertiesList:[{PropertyName:81,CostValue:257},{PropertyName:11,CostTable:7,CostValue:0},{PropertyName:11,CostTable:7,CostValue:1}]}};
   const rules={baseitems,iprp_weightinc:parse2da('2DA V2.0\n\nValue\n0 0\n1 7\n'),itemCosts:new Map([[7,parse2da('2DA V2.0\n\nValue\n0 .5\n1 .25\n')]])};
@@ -44,5 +48,8 @@ test('live item event16 initializes equipped mass before stack decrement and pre
 test('delayed effect event preserves native payload timing and equipped/innate duration metadata',async()=>{
   const s=new ModuleSession(null),actor=s.register('creature','target',{}),calls=[];
   s.effects.apply=()=>{throw new Error('Native effect event must not normalize through the script wrapper');};s.effects.applyNative=(...args)=>calls.push(args);
-  for(const durationType of [0,1,2,3,4]){const value={type:11,durationType,duration:24,expiryDay:3,expiryTime:123};await s.combat.dispatchEvent(actor,{eventId:5,callerId:9,payload:value});assert.deepEqual(calls.at(-1),[value,actor.id]);}
+  for(const durationType of [0,1,2,3,4]){const value={type:11,durationType,duration:24,expiryDay:3,expiryTime:123};await s.combat.dispatchEvent(actor,{eventId:5,callerId:9,payload:value});assert.deepEqual(calls.at(-1),[value,actor.id,undefined,0,0]);}
+  const linked={type:40,id:'0000000000000001'};let during;
+  s.effects.applyNative=(...args)=>{during=actor.nativeField180;calls.push(args);};
+  await s.combat.dispatchEvent(actor,{eventId:5,callerId:9,payload:linked});assert.equal(during,1);assert.equal(actor.nativeField180,0);assert.deepEqual(calls.at(-1),[linked,actor.id,undefined,0,1]);
 });

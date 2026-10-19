@@ -24,11 +24,15 @@ test('Subtype wrappers preserve packed flags and update linked metadata exactly 
 test('live linked resistance and looping visual share one ID and expire together',async()=>{
   const s=new ModuleSession(null),caster=s.register('creature','caster',{authored:{ClassList:[],FeatList:[]}}),target=s.register('creature','target',{authored:{ClassList:[],FeatList:[]}});
   s.characterRules={visualeffects:{orderedRows:[{Type_FD:'B'}],columns:['Type_FD']}};
+  // This fixture isolates linked IDs/visual expiry without a loaded stats or
+  // rules subsystem. Capture the now-connected synchronous cache dependency.
+  const updates=[];s.updateNativeCombatInformation=o=>updates.push(o.id);
   const frame={self:caster.id},resistance=s.commands.EffectSpellResistanceIncrease([20],frame),visual=s.commands.EffectVisualEffect([0],frame),linked=s.commands.EffectLinkEffects([resistance,visual],frame);
   assert.notEqual(resistance.id,linked.id);assert.notEqual(visual.id,linked.id);
   await s.effects.apply(1,linked,target.id,2);
   assert.deepEqual(target.effects.map(e=>e.type),[30,33,67]);assert.ok(target.effects.every(e=>e.id===linked.id));
   assert.equal(s.commands.GetSpellResistance([target.id]),20);assert.equal(target.nativeLoopingVisuals160.records.length,1);assert.equal(target.nativeEffectIcons778.records.length,1);
-  s.scheduler.time=2001;await s.effects.updateObject(target);
+  s.scheduler.time=2001;s.worldTimer.snapshot();await s.effects.updateObject(target);
   assert.equal(target.effects.length,0);assert.equal(target.nativeLoopingVisuals160.records.length,0);assert.equal(target.nativeEffectIcons778.records.length,0);assert.equal(s.commands.GetSpellResistance([target.id]),0);
+  assert.deepEqual(updates,[target.id,target.id]);
 });

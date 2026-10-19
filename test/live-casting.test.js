@@ -18,7 +18,7 @@ test('ordinary impact dispatch matches untouched original event ownership, delay
   await castSpellAndImpact(o,1,[1.25,-2,3],c.target??100,0,invalid,c.countered??0,0,0,c.instant??0,{spell:id=>c.missing?null:id===1?spell:{id:9},
    creature:id=>id===101&&!c.counterMissing?{id:101,nativeCounterSpell7fc:9}:null,spellName:id=>id===1?101:202,
    counterBroadcast:(_o,_spell,data)=>calls.push(['counterBroadcast',{objects:Object.fromEntries(data.objects.map((v,i)=>[String(i),v])),integers:Object.fromEntries(data.integers.map((v,i)=>[String(i),v]))}]),
-   broadcast:()=>calls.push(['broadcast']),enqueue:(id,caller,target,delay,data)=>{const {script,...payload}=data;assert.equal(script,'impact');calls.push(['event',id,delay,caller,target,payload]);}});
+   area:()=>({id:88}),broadcast:()=>calls.push(['broadcast']),enqueue:(id,caller,target,delay,data)=>{const {script,...payload}=data;assert.equal(script,'impact');calls.push(['event',id,delay,caller,target,payload]);}});
   assert.deepEqual(calls,row.calls,JSON.stringify(c));assert.equal(o.nativeSpellImpact224,row.impact);
  }
 });

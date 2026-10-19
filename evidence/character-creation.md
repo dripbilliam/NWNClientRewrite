@@ -1,5 +1,10 @@
 # Character selection and first-level creation
 
+2026-10-18 correction: fresh BIC ClassList now uses the original typed INT/SHORT
+fields and first-level history metadata. Earlier local parser checks did not
+detect the BYTE/WORD mismatch that vanilla character admission rejects. Corrected
+fresh wizard admission is verified. See [native type investigation](multiplayer-character-native-types.md).
+
 Checkpoint: 2026-10-14. Character selection now precedes module-session creation
 and startup scripts. Existing installed/local BICs and newly created characters
 share the canonical ModuleSession import path. Changing the selection does not

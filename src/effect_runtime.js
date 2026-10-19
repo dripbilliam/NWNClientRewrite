@@ -1,12 +1,17 @@
 import { OBJECT_INVALID } from './game_object_array.js';
+import {initializeEffectExpiry,setEffectExpiry,effectHasExpired} from './effect_clock.js';
+import {finishEffectApplicationFlag} from './effect_application_flag.js';
+import {applySanctuary,removeSanctuary} from './sanctuary_effect.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
-import { effectImmunity } from './effect_immunity.js';
+import {applySkillBuff} from './skill_buff_effect.js';
 import { creatureRoot } from './creature_rules.js';
 import { setDamageImmunity } from './damage_effect.js';
 import {applyAIStateEffect,removeAIStateEffect,applyKnockdown,removeKnockdown} from './knockdown_effect.js';
 import {abilityModifier} from './combat_stats.js';
 import {sendCombatFeedback} from './combat_broadcast.js';
 import {setEffectCreator} from './effect_creator.js';
+import {loadGameEffect,savedEffectStorage} from './game_effect_load.js';
+import {asNWSObject} from './native_object_cast.js';
 import {applyVisualEffect,addLoopingVisual,removeVisualEffect,applyBeamEffect,applyLightEffect} from './visual_effect.js';
 import {deathVisualType} from './death_effects.js';
 import {areaSpatialIds,firstAreaSpatialIndex} from './nearest_objects.js';
@@ -25,6 +30,7 @@ import {equalEffectValues} from './effect_identity.js';
 import {addWorldTimes,compareWorldTimes,subtractWorldTimes,secondsToWorldDelta} from './world_timer.js';
 import {applyRegeneration,updateRegeneration} from './regeneration_effect.js';
 import {applyHealing,applyResurrection} from './healing_effect.js';
+import {applyWounding,applyVampiricRegeneration,applyWoundingTick,updateWounding} from './wounding_effect.js';
 import {applyNegativeLevel,removeNegativeLevel,classNegativeLevels,setClassNegativeLevels,creatureLevel,penalizedClassLevel} from './negative_level_effect.js';
 import {updateMemorizedSpellSlots} from './spell_book.js';
 import {rulesetInt} from './combat_stats.js';
@@ -49,19 +55,25 @@ import {applyPolymorph,removePolymorph} from './polymorph_effect.js';
 import {applyTurnResistance} from './turn_resistance.js';
 import {applyStatEffect,removeStatEffect} from './stat_effect.js';
 import {applyDamageBuff,applyDamageImmunityBuff,removeDamageBuff} from './damage_buff_effect.js';
+import {applyCurse} from './curse_effect.js';
+import {applyModifyAttacks,removeModifyAttacks} from './modify_attacks_effect.js';
+import {applyEntangle,removeEntangle,applyCutsceneImmobile} from './entangle_effect.js';
+import {applyTimeStop,removeTimeStop,applyTimeStopImmunity,removeTimeStopImmunity} from './time_stop_effect.js';
+import {activePauseState,addPauseExclusion,removePauseExclusion} from './server_pause.js';
+import {applySpellFailure,removeSpellFailure} from './spell_failure_effect.js';
 
 // Mapped Heal, CutsceneGhost and positive attack/AC/save stat effects.
 // CGameEffect IDs are uint64, separate from canonical uint32 game-object IDs.
 // Store them as hex strings so VM value copies preserve identity without loss.
 export class EffectRuntime {
-  constructor(session) { this.session = session; this.nextId = 1n;this.racialFeatLists=new WeakMap(); }
+  constructor(session) { this.session = session; this.nextId = 1n;this.racialFeatLists=new WeakMap();this.expiryFinalized=new WeakSet(); }
   polymorphProviders(context){const s=this.session;return{asCreature:o=>o.objectType===5?o:null,dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),
     possessed:o=>Number((o.associateType&65535)===3&&Boolean(s.combat.broadcastProviders().client(o.id))),effects:o=>o.effects,
     create:(...args)=>this.create(...args),copyConstruct:(...args)=>this.copyConstruct(...args),apply:(o,e,loading)=>this.applyNative(e,o.id,context,loading),remove:(o,id)=>this.remove(o.id,id,context),
     transform:(o,form,e,loading)=>s.polymorph.transform(o,form,e,loading,context),untransform:(o,e)=>s.polymorph.restore(o,e,context),
     client:id=>s.combat.broadcastProviders().client(id),notify:(client,objectId,apply,locked)=>s.onCombatMessage({recipientId:client.object.id,type:'polymorph',messageType:12,subtype:1,objectId,apply,locked}),
     time:()=>s.worldTimer.time(),delta:seconds=>secondsToWorldDelta(seconds,s.worldTimer.secondsPerDay),addTime:(a,b)=>addWorldTimes(a,b,s.worldTimer.dayLength),
-    setExpiry:(e,expiry)=>{e.expires=s.scheduler.time+500;}};}
+    setExpiry:setEffectExpiry};}
   async raceFeats(id){
     const table=this.session.characterRules?.racialtypes;if(!table)throw new Error('Native racial effect rules are unavailable');
     const count=table.orderedRows?.length??table.rows.size;
@@ -89,15 +101,19 @@ export class EffectRuntime {
     // Owners such as damage/item properties can supply a larger integer list.
     const storage=Array(Math.max(8,integers.length)).fill(0);integers.forEach((v,i)=>{storage[i]=v|0;});
     const effect={ id, type, creatorId:OBJECT_INVALID, integers:storage,floats:Array(4).fill(0),vectors:[[0,0,0],[0,0,0]],objectIds:Array(4).fill(OBJECT_INVALID),
-      strings:Array(6).fill(''),subtype, durationType: 0, duration: 0, spellId: -1,casterLevel:-1, bypassImmunity: 0, exposed: true,showIcon:1,expiryDay:0,expiryTime:0,propertyId:'0000000000000000',customTag:'' };
+      strings:Array(6).fill(''),subtype, durationType: 0, duration: 0, spellId: -1,casterLevel:-1, bypassImmunity: 0, exposed: true,showIcon:1,skipOnLoad:0,expiryDay:0,expiryTime:0,propertyId:'0000000000000000',customTag:'' };
     this.setCreator(effect,creatorId);return effect;
   }
   setCreator(effect,id){
     const s=this.session;
-    setEffectCreator(effect,id,{object:id=>s.registry.get(id),asWorld:o=>o.objectType>=5&&o.objectType<=14?o:null,
+    setEffectCreator(effect,id,{object:id=>s.registry.get(id),asWorld:asNWSObject,
       asAreaEffect:o=>o.objectType===11?o:null,areaEffectCreator:o=>o.nativeAreaEffectCreator330,
       effectSpell:o=>o.objectType===5?o.nativeEffectSpellId774:o.objectType===9?o.nativeEffectSpellId590:o.objectType===11?o.nativeAreaEffectSpellId:-1,
       casterLevel:o=>s.spellBook.casterLevel(o)});return effect;
+  }
+  loadSaved(data){
+    try{return loadGameEffect(savedEffectStorage(),data,{setCreator:(effect,id)=>this.setCreator(effect,id)});}
+    catch(error){this.session.report(error,{operation:'native-game-effect-load'});throw error;}
   }
   visualProviders(){
     const s=this.session;
@@ -117,7 +133,7 @@ export class EffectRuntime {
   // CGameEffect copy constructor140423570 clears payload for both flags;
   // the flag controls only whether source icon visibility is inherited.
   copyConstruct(effect,icons=0){const value=structuredClone(effect);
-    value.type=0;value.exposed=false;value.showIcon=icons!==0?effect.showIcon:0;value.integers.fill(0);value.floats.fill(0);value.strings=Array(6).fill('');value.vectors=[[0,0,0],[0,0,0]];value.objectIds.fill(OBJECT_INVALID);value.customTag='';delete value.linkLeft;delete value.linkRight;return value;
+    value.type=0;value.exposed=false;value.showIcon=icons!==0?effect.showIcon:0;value.skipOnLoad=0;value.integers.fill(0);value.floats.fill(0);value.strings=Array(6).fill('');value.vectors=[[0,0,0],[0,0,0]];value.objectIds.fill(OBJECT_INVALID);value.customTag='';delete value.linkLeft;delete value.linkRight;return value;
   }
   visionProviders(){const s=this.session;return{...this.hasteProviders(),assignFresh:e=>this.assignFresh(e),assignPreservingId:e=>this.assignPreservingId(e),effects:o=>o.effects,plot:o=>Number(o.plot),dm:o=>Number(Boolean(o.isDM)),
     floaty:(o,id)=>broadcastEffectFloaty(o,id,{...this.visualProviders(),send:(client,data)=>s.onCombatMessage({recipientId:client.object.id,type:'effectFloaty',data})}),
@@ -129,8 +145,21 @@ export class EffectRuntime {
     remove:(o,e)=>this.remove(o.id,e.id),apply:(o,e,loading)=>this.applyNative(e,o.id,undefined,loading)};}
   speedProviders(){const s=this.session;return{...this.hasteProviders(),plot:o=>Number(o.plot),
     setFactor:(o,value)=>setNativeMovementFactor(o,value,s.characterRules??{})};}
+  curseProviders(context){const s=this.session;return{...this.hasteProviders(),asCreature:o=>o?.objectType===5?o:null,plot:o=>Number(o.plot),
+    apply:(o,e,loading)=>this.applyNative(e,o.id,context,loading),enqueue:(o,id,e)=>s.combat.enqueueEvent(id,e.creatorId,o.id,0,e)};}
+  spellFailureProviders(){const s=this.session;return{...this.hasteProviders(),asCreature:o=>o?.objectType===5?o:null,
+    updateCombat:o=>s.updateNativeCombatInformation(o)};}
+  entangleProviders(){return{...this.enchantmentProviders(),asCreature:o=>o?.objectType===5?o:null};}
+  timeStopProviders(){const s=this.session;return{
+    pauseState:()=>activePauseState(s.nativeServerPause),worldTimer:()=>s.worldTimer,activeTimer:id=>s.activeTimer(id),
+    addExclusion:(id,mask)=>addPauseExclusion(s.nativeServerPause,id,mask),removeExclusion:(id,mask)=>removePauseExclusion(s.nativeServerPause,id,mask),
+    togglePause:mask=>s.togglePauseState(mask),effects:o=>o.effects,asCreature:o=>o?.objectType===5?o:null,isDM:o=>Number(o.isDM)};}
   invisibilityProviders(){const s=this.session,list=()=>{const ids=s.module?.nativeInvisibleCreatureIds330;if(!Array.isArray(ids))throw new Error('Native module invisible-creature list is unavailable');return ids;};return{...this.hasteProviders(),
     addInvisible:id=>{const ids=list();if(!ids.includes(id))ids.push(id);},removeInvisible:id=>{const ids=list(),index=ids.indexOf(id);if(index>=0)ids.splice(index,1);}};}
+  sanctuaryProviders(){const s=this.session;return{...this.invisibilityProviders(),asCreature:o=>o?.objectType===5?o:null,
+    dead:o=>Number(s.isDead(o)),area:o=>{const a=s.registry.get(o.areaId);return a?.objectType===4?a:null;},areaIds:a=>areaSpatialIds(s,a),
+    creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},visibility:(o,id)=>o.perception.node(id),
+    save:(...args)=>s.combat.savingThrow(...args),pacify:(o,id)=>s.combat.pacify(o,id),index:o=>s.combat.liveInvisibilityIndex(o),removeVisibility:(o,id)=>o.perception.remove(id)};}
   enchantmentProviders(){const s=this.session,base=this.hasteProviders();return{...base,plot:o=>Number(o.plot),statsPC:o=>o.nativeStatsIsPCb0,
     clearActions:o=>s.combat.clearActions(o),ambient:o=>recomputeAmbientAnimation(o,{dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),setAnimation:(...args)=>s.combat.setAnimation(...args)}),
     floaty:(o,id)=>broadcastEffectFloaty(o,id,{...this.visualProviders(),send:(client,data)=>s.onCombatMessage({recipientId:client.object.id,type:'effectFloaty',data})}),
@@ -190,6 +219,12 @@ export class EffectRuntime {
     time:()=>s.worldTimer.time(),subtractTime:(a,b)=>subtractWorldTimes(a,b,s.worldTimer.dayLength),copyConstruct:(e,icons)=>this.copyConstruct(e,icons),
     currentHP:o=>o.objectType===5?o.stats.currentHP:s.hitPoints(o.id,false),maximumHP:o=>s.hitPoints(o.id,true),
     apply:(o,e,loading)=>this.applyNative(e,o.id,context,loading)};}
+  woundingProviders(context){const s=this.session,p={...this.regenerationProviders(context),
+    damageIndex:flags=>(flags>>>0)<=1?0:31-Math.clz32(flags>>>0),
+    blood:o=>nativeStringEntry(s.characterRules.appearance,creatureRoot(o).Appearance_Type&65535,'BLOODCOLR').value,
+    enqueue:(id,caller,target,effect)=>s.combat.enqueueEvent(id,caller,target,0,effect),
+    warning:message=>runtimeDiagnostics.record('effect.wounding-warning',message,{severity:'warning'})};
+    p.tick=(o,e)=>applyWoundingTick(o,e,p);return p;}
   healingProviders(context){const s=this.session;return{...this.regenerationProviders(context),asDoor:o=>o.objectType===10?o:null,asPlaceable:o=>o.objectType===9?o:null,
     feedback:async(o,code,data)=>{await sendCombatFeedback(o,code,data,s.combat.broadcastProviders());
       // Preserve the local HP log while native feedback151 presentation is
@@ -203,8 +238,7 @@ export class EffectRuntime {
     remove:(o,id)=>this.remove(o.id,id,context),encumbrance:(o,n)=>s.combat.encumbrance(o,n)};}
   defenseProviders(){const s=this.session;return{copyConstruct:(...a)=>this.copyConstruct(...a),dead:o=>Number(s.isDead(o)),plot:o=>Number(o.plot),object:id=>s.registry.get(id),
     immunity:(...args)=>s.combat.immunity(...args),resistance:o=>s.combat.spellResistance(o),effects:o=>o.effects,
-    setCache:(o,down,value)=>{o[down?'nativeSpellResistanceDecreaseD85':'nativeSpellResistanceIncreaseD84']=value;
-      runtimeDiagnostics.record('combat.frame-stat-refresh-unimplemented','Resistance cache setter written; synchronous RecomputeCombatInformation1404171e0 remains unavailable',s.diagnosticContext(o.id));},
+    setCache:(o,down,value)=>{o[down?'nativeSpellResistanceDecreaseD85':'nativeSpellResistanceIncreaseD84']=value;s.updateNativeCombatInformation(o);},
     applyIcon:(o,e,loading=0)=>this.applyNative(e,o.id,undefined,loading)};}
   valid(effect) { return Number(Boolean(effect?.type && effect.exposed && [1, 2].includes(effect.durationType))); }
   enumerate(objectId, first = false) {
@@ -230,34 +264,52 @@ export class EffectRuntime {
     if(effect.durationType===1){
       if(!Number.isFinite(seconds)||seconds<0)throw new Error('Negative/nonfinite temporary effect duration is not implemented');
       effect.duration=Math.fround(seconds);
-      effect.expires=this.session.scheduler.time+Math.trunc(Math.fround(effect.duration*1000));
     }
     return this.applyNative(effect,objectId,context);
   }
   // Internal OnApplyEffect children retain equipped/innate duration3/4. Only
   // the NWScript wrapper above normalizes its public duration argument.
-  applyNative(value,objectId,context,loading=0){
-    const object=this.session.registry.get(objectId),before=new Set(object?.effects??[]),finish=()=>{
-      for(const effect of object?.effects??[])if(effect.id===value?.id&&!before.has(effect))trackCasterEffect(object,effect,{object:id=>this.session.registry.get(id),asWorld:o=>o.objectType>=5&&o.objectType<=14?o:null});
+  applyNative(value,objectId,context,loading=0,special=0){
+    const object=this.session.registry.get(objectId),before=new Set(object?.effects??[]),capturedWorldTime=this.session.worldTimer.time(),finish=()=>{
+      const inserted=(object?.effects??[]).filter(effect=>effect.id===value?.id&&!before.has(effect));
+      if(object&&inserted.some(effect=>effect.type===value?.type))finishEffectApplicationFlag(object,value,0,special,{remove:(o,id)=>this.remove(o.id,id,context)});
+      for(const effect of inserted){
+        // Linked children have their own ApplyEffect calls. Their deadlines
+        // must not be recomputed by a consuming parent wrapper afterward.
+        if(!this.expiryFinalized.has(effect)){initializeEffectExpiry(effect,loading,capturedWorldTime,this.session.worldTimer);this.expiryFinalized.add(effect);}
+        trackCasterEffect(object,effect,{object:id=>this.session.registry.get(id),asWorld:asNWSObject});
+      }
+      if(object&&(value?.type&65535)===40)return finishEffectApplicationFlag(object,value,1,special,{remove:(o,id)=>this.remove(o.id,id,context)});
     };
-    const result=this.applyNativeBody(value,objectId,context,loading);if(result?.then)return result.then(value=>{finish();return value;});finish();return result;
+    const result=this.applyNativeBody(value,objectId,context,loading);if(result?.then)return result.then(async value=>{await finish();return value;});const finalized=finish();if(finalized?.then)return finalized.then(()=>result);return result;
   }
   applyNativeBody(value,objectId,context,loading=0){
     const object = this.session.registry.get(objectId);
     if (!object || !['player', 'creature', 'door', 'placeable', 'item', 'trigger', 'store', 'encounter', 'waypoint','areaOfEffect'].includes(object.kind)) return;
     if (!value?.type) return;
+    if([84,86].includes(value.type)){
+      const effect=structuredClone(value);return(value.type===84?applyWounding:applyVampiricRegeneration)(object,effect,this.woundingProviders(context),loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
+    }
+    if([64,98].includes(value.type)){
+      const effect=structuredClone(value),result=(effect.type===64?applyTimeStop:applyTimeStopImmunity)(object,effect,this.timeStopProviders(),loading);
+      const finish=consumed=>{if(consumed===0)this.retain(object,effect);};return result?.then?result.then(finish):finish(result);
+    }
     if(value.type===91){
       const effect=structuredClone(value);
       if((effect.durationType&7)===1){
         if(!Number.isFinite(effect.duration)||effect.duration<0)throw new Error('Native negative/nonfinite item-property lifetime is unavailable');
-        effect.expires=this.session.scheduler.time+Math.trunc(Math.fround(effect.duration*1000));
       }
       return this.session.items.applyProperty(object,effect).then(consumed=>{if(consumed===0)this.retain(object,effect);});
     }
-    if (![77,88,62,68,83,82,4,7,5,35,6,81,1,3,8,9,28,29,31,32,36,37,46,47,69,70,71,72,73,74,75,89,76,41,42,59,61,2, 12, 19,20,21, 23, 30,33,34,40,50,51,52,54,65,67, 38, 39, 93, 10, 11, 13, 14, 15, 16, 17, 22, 26, 27, 48, 49, 55, 56].includes(value.type)) throw new Error(`Effect type ${value.type} is not implemented`);
+    if (![94,18,25,92,44,45,77,88,62,63,68,83,82,4,7,5,35,6,81,1,3,8,9,28,29,31,32,36,37,46,47,69,70,71,72,73,74,75,89,76,41,42,59,61,2, 12, 19,20,21, 23, 30,33,34,40,50,51,52,54,65,67, 38, 39, 93, 10, 11, 13, 14, 15, 16, 17, 22, 26, 27, 48, 49, 55, 56].includes(value.type)) throw new Error(`Effect type ${value.type} is not implemented`);
     const effect = structuredClone(value);
-    if(effect.durationType===1&&effect.expires===undefined)effect.expires=this.session.scheduler.time+Math.trunc(Math.fround(effect.duration*1000));
+    if(effect.type===18)return applyEntangle(object,effect,this.entangleProviders(),loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
+    if(effect.type===94)return applyCutsceneImmobile(object,effect,this.entangleProviders(),loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
+    if([25,92].includes(effect.type))return applySpellFailure(object,effect,this.spellFailureProviders(),loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
+    if(effect.type===44){if(applyModifyAttacks(object,effect,{...this.hasteProviders(),asCreature:o=>o?.objectType===5?o:null},loading)===0)this.retain(object,effect);return;}
+    if(effect.type===45)return applyCurse(object,effect,this.curseProviders(context),loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
     if([77,88].includes(effect.type)){if(applyTurnResistance(object,effect,loading,{dead:o=>Number(this.session.isDead(o)),asCreature:o=>o.objectType===5?o:null,rule:(name,fallback)=>rulesetInt(this.session.characterRules,name,fallback)})===0)this.retain(object,effect);return;}
+    if(effect.type===63)return applySanctuary(object,effect,this.sanctuaryProviders(),loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
     if(effect.type===62)return applyPolymorph(object,effect,this.polymorphProviders(context),loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
     if(effect.type===68)return applyRacialType(object,effect,{asCreature:o=>o.objectType===5?o:null,raceFeats:id=>this.raceFeats(id),copyConstruct:(...args)=>this.copyConstruct(...args),setCreator:(...args)=>this.setCreator(...args),apply:(o,e,loading)=>this.applyNative(e,o.id,context,loading)},loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
     if(effect.type===35||effect.type===5)return(effect.type===35?applyPoison:applyDisease)(object,effect,this.afflictionProviders(context),loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
@@ -307,7 +359,7 @@ export class EffectRuntime {
       return result.then(consumed=>{if(consumed===0)this.retain(object,effect);});
     }
     if (effect.type === 38) return this.session.damage.apply(object, effect, context,loading);
-    if (effect.type === 19) return this.session.damage.death(object,effect,context);
+    if (effect.type === 19) return this.session.damage.death(object,effect,context,loading);
     if(effect.type===40)return applyLinkedEffect(object,effect,this.linkedProviders(),loading);
     if(effect.type===67){if(applyEffectIcon(object,effect)!==0)return;const active=object.effects??=[],index=active.findIndex(e=>e.type>67);if(index<0)active.push(effect);else active.splice(index,0,effect);return;}
     if([33,34,50,65].includes(effect.type))return([33,34].includes(effect.type)?applySpellResistanceEffect:applySpellProtectionEffect)(object,effect,this.defenseProviders(),loading).then(consumed=>{
@@ -319,7 +371,6 @@ export class EffectRuntime {
     });
     if(effect.type===20)return applyKnockdown(object,effect,this.knockdownProviders(),loading).then(consumed=>{
       if(consumed!==0)return;
-      if(effect.durationType===1)effect.expires=this.session.scheduler.time+Math.trunc(Math.fround(effect.duration*1000));
       const active=object.effects??=[],index=active.findIndex(e=>e.type>effect.type);
       if(index<0)active.push(effect);else active.splice(index,0,effect);
     });
@@ -329,22 +380,7 @@ export class EffectRuntime {
       if(index<0)active.push(effect);else active.splice(index,0,effect);
       return;
     }
-    if([55,56].includes(effect.type)) {
-      // OnApplySkillIncrease/Decrease 0x1404332d0/0x140433190. These
-      // handlers admit magnitude zero and retain only creature records.
-      if(object.objectType!==5||this.session.isDead(object)||(effect.integers[1]|0)<0)return;
-      if(effect.type===56){
-        const source=this.session.registry.get(effect.creatorId);
-        if(object.plot||!effect.bypassImmunity&&effectImmunity(creatureRoot(object),
-          [...(object.itemCombatEffects?.effects??[]),...(object.effects??[])],27,
-          source?.objectType===5?creatureRoot(source):null,{plot:Boolean(object.plot)}))return;
-      }
-      const active=object.effects??=[],index=active.findIndex(e=>e.type>effect.type);
-      if(index<0)active.push(effect);else active.splice(index,0,effect);
-      runtimeDiagnostics.record('effects.presentation-unimplemented','Skill modifier applied; native linked type-67 effect icons 43/44 are not implemented',
-        {...this.session.diagnosticContext(object.id),effectId:effect.id,effectType:effect.type,creatorId:effect.creatorId});
-      return;
-    }
+    if([55,56].includes(effect.type))return applySkillBuff(object,effect,{...this.statProviders(),asCreature:o=>o?.objectType===5?o:null},loading).then(consumed=>{if(consumed===0)this.retain(object,effect);});
     if (effect.type === 15) {
       if (object.objectType !== 5 || this.session.isDead(object)) return;
       const state = this.session.damage.health(object);
@@ -401,7 +437,7 @@ export class EffectRuntime {
   }
   removalProviders(context){
     const s=this.session;
-    const p={object:id=>s.registry.get(id),asWorld:o=>o.objectType>=5&&o.objectType<=14?o:null,
+    const p={object:id=>s.registry.get(id),asWorld:asNWSObject,
       onRemove:(o,e)=>this.onRemove(o,e,context),
       // Current native effect-index consumers derive their indices directly
       // from this same sorted live array. Attribute updates follow erasure.
@@ -415,6 +451,11 @@ export class EffectRuntime {
     return removeEffectRecord(object,object.effects[index],this.removalProviders(context));
   }
   onRemove(object,effect,context){
+    if(effect.type===64)return removeTimeStop(object,effect,this.timeStopProviders());
+    if(effect.type===98)return removeTimeStopImmunity(object,effect,this.timeStopProviders());
+    if(effect.type===18)return removeEntangle(object,effect,this.entangleProviders());
+    if([25,92].includes(effect.type))return removeSpellFailure(object,effect,this.spellFailureProviders());
+    if(effect.type===44)return removeModifyAttacks(object,effect,{asCreature:o=>o?.objectType===5?o:null,effects:o=>o.effects});
     if([13,14,16,17].includes(effect.type))return removeDamageBuff(object,effect,this.damageBuffProviders());
     if([10,11,26,27,48,49].includes(effect.type))return removeStatEffect(object,effect,this.statProviders());
     if(effect.type===62)return removePolymorph(object,effect,this.polymorphProviders(context));
@@ -429,6 +470,7 @@ export class EffectRuntime {
     if([70,71,72].includes(effect.type))return removeVisionSource(object,effect,this.visionProviders());
     if(effect.type===46)return removeSilence(object);
     if(effect.type===47)return removeInvisibility(object,effect,this.invisibilityProviders());
+    if(effect.type===63)return removeSanctuary(object,effect,this.sanctuaryProviders());
     if(effect.type===31)return this.session.areaEffects.removeAttached(object,effect).then(()=>1);
     if([8,9].includes(effect.type))return(effect.type===8?removeEnchantment:removeEnchantmentController)(object,effect,this.enchantmentProviders());
     if([1,3].includes(effect.type))return removeHasteOrSlow(object,effect,this.hasteProviders());
@@ -457,17 +499,24 @@ export class EffectRuntime {
   async update() {
     for (const object of this.session.registry.objects.values()) await this.updateObject(object);
   }
-  async updateObject(object) {
-    let worldNow;const regenerationScratch={day:0,time:0};
+  async updateObject(object,capturedNow) {
+    if(!(object.effects?.length))return;
+    const clock=this.session.activeTimer(object.id),now=capturedNow??clock.time(),regenerationScratch={day:0,time:0};
     return updateEffectList(object,{poll:(object,effect)=>{
       if(effect.type===7){
-        worldNow??=this.session.worldTimer.time();return updateRegeneration(object,effect,worldNow,regenerationScratch,this.regenerationProviders());
+        return updateRegeneration(object,effect,now,regenerationScratch,this.regenerationProviders());
       }
+      if(effect.type===84)return updateWounding(object,effect,now,regenerationScratch,this.woundingProviders());
       if([5,35].includes(effect.type)){
-        worldNow??=this.session.worldTimer.time();return updateAffliction(object,effect,worldNow,this.afflictionProviders());
+        return updateAffliction(object,effect,now,this.afflictionProviders());
       }
       // UpdateEffectList uses CompareWorldTimes == 1, strictly AFTER expiry.
       return false;
-    },expired:effect=>this.session.scheduler.time>effect.expires,remove:(object,id)=>this.remove(object.id,id)});
+    },expired:effect=>{
+      // GetExpiryTime writes the SAME pass-local pair used by regeneration
+      // subtraction. A later failed subtraction retains these output values.
+      regenerationScratch.day=effect.expiryDay;regenerationScratch.time=effect.expiryTime;
+      return effectHasExpired(effect,now,clock);
+    },remove:(object,id)=>this.remove(object.id,id)});
   }
 }

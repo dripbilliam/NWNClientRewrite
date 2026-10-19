@@ -1,5 +1,28 @@
 import {OBJECT_INVALID} from './game_object_array.js';
 
+async function finishAssociate(actor,id,target,type,p){
+  const rate=target.nativeMovementRate|0;
+  if(((rate-2)>>>0)<3||rate===7)await p.setMovementRate(target,0);
+  await p.listenPatterns(target);await p.setType(target,type);await p.setMaster(target,actor.id);
+  actor.associateIds??=[];if(!actor.associateIds.includes(id))actor.associateIds.push(id);
+  if(p.faction(actor.factionId))await p.addFactionMember(p.faction(actor.factionId),id,0);
+}
+
+// AddAssociate1403d0410, type1. Count physical entries before looking up the
+// new target, including duplicates; the cap is a signed module INT, not a
+// hardcoded party size. An already-listed target still goes through this gate.
+export async function addHenchmanAssociate(actor,id,p){
+  id>>>=0;if(id===actor.id)return;
+  const module=p.module();
+  if(module){
+    let count=0;
+    if(actor.associateIds)for(const previous of actor.associateIds){const o=p.creature(previous);if(o&&(o.associateType&65535)===1)count=(count+1)|0;}
+    if(!Number.isInteger(module.nativeMaxHenchmen3fc))throw new Error('Native module henchman cap is unavailable');
+    if((module.nativeMaxHenchmen3fc|0)<=count){await p.feedback(actor,49,{type:0,integers:[module.nativeMaxHenchmen3fc|0]});return;}
+  }
+  const target=p.creature(id);if(target)await finishAssociate(actor,id,target,1,p);
+}
+
 // AddAssociate1403d0410, native type4 path. Other associate categories have
 // separate henchman/charm/domination owners and must not use this path.
 export async function addSummonedAssociate(actor,id,p){
@@ -11,11 +34,7 @@ export async function addSummonedAssociate(actor,id,p){
   }
   const old=p.creature(previous);if(old)await p.unsummon(old);
   const target=p.creature(id);if(!target)return;
-  const rate=target.nativeMovementRate|0;
-  if(((rate-2)>>>0)<3||rate===7)await p.setMovementRate(target,0);
-  await p.listenPatterns(target);await p.setType(target,4);await p.setMaster(target,actor.id);
-  actor.associateIds??=[];if(!actor.associateIds.includes(id))actor.associateIds.push(id);
-  if(p.faction(actor.factionId))await p.addFactionMember(p.faction(actor.factionId),id,0);
+  await finishAssociate(actor,id,target,4,p);
 }
 
 // UnsummonMyself1403daee0. Actual destruction is deferred through event11;

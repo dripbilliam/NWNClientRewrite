@@ -9,7 +9,7 @@ import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
 const data=fields=>parseGff(writeGff('UTP ',R(fields))).root;
 function fixture(){
  const resources=new Map(),s=new ModuleSession({getResource:async(name,type)=>{const bytes=resources.get(`${name.toLowerCase()}:${type}`);if(!bytes)throw Object.assign(new Error(`Missing ${name}`),{code:'RESOURCE_NOT_FOUND'});return bytes;}});
- s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType BasePropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS\n0 0 1 1 1 1 0 10'),placeables:parse2da('2DA V2.0\n\nLightColor\n0 7'),traps:parse2da('2DA V2.0\n\nTrapScript\n0 active_trap'),portraits:parse2da('2DA V2.0\n\nBaseResRef\n0 human')};
+ s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType PropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS\n0 0 1 1 1 1 0 10'),placeables:parse2da('2DA V2.0\n\nLightColor\n0 7'),traps:parse2da('2DA V2.0\n\nTrapScript\n0 active_trap'),portraits:parse2da('2DA V2.0\n\nBaseResRef\n0 human')};
  for(const name of['placeables','traps','portraits'])s.items.tables.set(name,Promise.resolve(s.characterRules[name]));
  s.module=s.register('module','module',{});
  const construct=(key,requestedId=OBJECT_INVALID)=>s.register('placeable',key,{tag:'',authored:{},deferTagLookup:true},{requestedId});
@@ -47,7 +47,7 @@ test('explicit registration honors constructor override and rejects ID collision
  const external=construct('external',0x80000200);assert.equal(external.id,0x80000200);assert.equal(external.nativeStaticLoadOverride5a4,0);assert.equal(s.registry.nextObjectId[0],501);
 });
 test('saved container items forward the load flag to child IDs and preserve separate tag sanitation',async()=>{
- const {s,construct}=fixture();s.characterRules.baseitems=parse2da('2DA V2.0\n\nModelType BasePropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS\n0 0 1 1 1 1 0 10\n1 0 1 1 1 1 1 10');
+ const {s,construct}=fixture();s.characterRules.baseitems=parse2da('2DA V2.0\n\nModelType PropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS\n0 0 1 1 1 1 0 10\n1 0 1 1 1 1 1 10');
  const o=construct('nested'),child=R({ObjectId:F(4,800),BaseItem:F(5,0),Tag:F(10,'Child Tag!')}),container=R({ObjectId:F(4,700),BaseItem:F(5,1),Tag:F(10,'Bag Tag!'),ItemList:F(15,[child])});
  await s.worldTemplates.loadPlaceable(o,data({ItemList:F(15,[container])}),1);
  const bag=s.registry.get(700),item=s.registry.get(800);assert.ok(bag);assert.ok(item);assert.equal(bag.tag,'BagTag');assert.equal(item.tag,'ChildTag');assert.equal(item.possessorId,bag.id);assert.equal(bag.possessorId,o.id);assert.deepEqual([...bag.nativeRepository.ids()],[800]);assert.equal(s.registry.nextObjectId[0],801);

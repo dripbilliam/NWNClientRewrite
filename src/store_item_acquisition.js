@@ -1,3 +1,28 @@
+// Complete CNWSStore::AcquireItem1404f9ea0..1404fa049. The input pointer
+// is by value. Infinite-stock duplication destroys it without updating its
+// caller's pointer; script wrappers can consequently return the now-stale ID.
+export async function acquireStoreItem(store,item,_flag,_x,_y,p){
+ if(!item)return 0;
+ if(typeof item.plot!=='boolean'&&!Number.isInteger(item.plot))throw new Error('Native store item plot field is unavailable');
+ if(Number(item.plot)!==0)return 0;
+ await p.identified(item,1);const previous=p.object(item.possessorId>>>0);let creature=null;
+ if(previous){
+  if(p.asCreature(previous))creature=p.asCreature(previous);
+  else if(p.asItem(previous))creature=p.creature(p.asItem(previous).possessorId>>>0);
+ }
+ if(creature)await p.removeCreatureItem(creature,item,0,1,0,1);
+ const panel=await p.panel(store,item.baseItem>>>0);if(panel>4)return 0;
+ const existing=p.item(await p.findTag(p.repository(store,panel),item.tag));
+ if(existing&&existing.nativeInfinite444!==0&&await p.compare(existing,item)!==0){await p.destroy(item,1);return 1;}
+ await p.setPossessor(item,store.id,1,1,0);return p.add(store,{item},panel,255,255);
+}
+
+// Complete GetAppropriateListId1404fb590..1404fb5fd.
+export async function appropriateStorePanel(store,base,p){
+ const info=p.baseInfo({baseItem:base});if(!info)throw new Error('Native store panel dereferences unavailable base storage');
+ const panel=info.storePanel&255;if(panel<=4)return panel;await p.warning('Base item on unknown store panel');return 4;
+}
+
 // CNWSStore::AddItemToInventory1404fa1b0..1404fa53f. The incoming X/Y
 // arguments are ignored by the original: every repository addition uses255,
 //255,0,0. Existing records are scanned tail-to-head through GetPrev.

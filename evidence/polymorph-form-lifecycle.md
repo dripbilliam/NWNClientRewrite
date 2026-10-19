@@ -68,6 +68,11 @@ Polymorph smoke assigns parent130 toF2 but does not activate it: native parent/
 child selection from book/hotbar still needs checking. Startup/entry fixtures
 remain separate from continuous campaign acceptance.
 
+**2026-10-17 follow-up:** [Combat cache lifecycle](combat-cache-lifecycle.md)
+replaces the labelled snapshot with original-compared copy construction and
+old-owner destruction; the102-form sweep now checks these snapshots. The
+following open-item paragraph describes the earlier1569 checkpoint.
+
 Open: native full combat d70 cache is not represented. Saved a48 is explicitly
 labelled combat-projection and diagnosed, not claimed as native CCombatInformation
 copy; restoration never consumes it. Broad107-form probe stops after five at

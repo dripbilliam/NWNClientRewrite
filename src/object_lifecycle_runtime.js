@@ -4,13 +4,15 @@ import {removeAreaObject,addAreaObject,removeCreatureFromArea,addCreatureToArea,
 import {destroyCreature,destroyItem,destroyPlaceable,destroyWaypoint,destroyStore,destroyRepository,destroyEquipment,destroyBaseObject} from './object_destruction.js';
 import {removeGroundObjectFromArea,addGroundObjectToArea,addStoreToArea,removePlaceableFromArea,addPlaceableToArea} from './world_object_area.js';
 import {setCommonOrientation,setPlaceableOrientation} from './world_object_orientation.js';
-import {removeAssociate,addSummonedAssociate,unsummonCreature} from './summon_associate.js';
+import {removeAssociate,addSummonedAssociate,addHenchmanAssociate,unsummonCreature} from './summon_associate.js';
+import {scriptAssociateAccess} from './henchman.js';
+import {creatureAssociateId} from './associate_query.js';
 import {disposeObjectAction} from './object_actions.js';
 import {sendCombatFeedback} from './combat_broadcast.js';
 import {setMovementRate} from './movement_rate.js';
 import {removeAreaEffectFromArea,addAreaEffectToArea} from './area_effect.js';
 import {associateListenPatterns} from './associate_listen_patterns.js';
-import {receiveCorpseCleanup} from './corpse_lifecycle.js';
+import {receiveCorpseCleanup,scheduleCorpseCleanup} from './corpse_lifecycle.js';
 import {removeEncounterActiveCreature,calculateEncounterPoints} from './encounter_activation.js';
 import {secondsToWorldDelta} from './world_timer.js';
 import {computeSafeLocation} from './safe_location.js';
@@ -54,7 +56,7 @@ export class ObjectLifecycleRuntime{
     addAreaEffect:(o,a,x,y,z,flag)=>addAreaEffectToArea(o,a,[x,y,z],flag,s.areaEffects.providers()),
     setArea:(o,a)=>{o.areaId=a?.id??OBJECT_INVALID;},position:(o,point)=>{o.position=render(point);if(o.nativePosition)o.nativePosition=[...point];},orientation:o=>native(o.orientation),
     barter:o=>o.nativeBarter??null,cleanBarter:o=>this.unsupported(s.registry.get(o.ownerId)??{id:OBJECT_INVALID},'Native barter destruction cleanup is unavailable'),
-    enqueue:(day,time,caller,target,id,payload)=>s.scheduler.enqueueMilliseconds(target,{type:'combatAI',eventId:id,callerId:caller,payload},day*s.worldTimer.dayLength+time),
+    enqueue:(day,time,caller,target,id,payload)=>s.scheduler.enqueueDelta(target,{type:'combatAI',eventId:id,callerId:caller,payload},day,time),
     removeCreature:(o,flag)=>this.removeCreatureArea(o,flag),
     // AddToArea reads stats DM+ac here, not creature autoexplore+6e0.
     autoMapEnabled:o=>Number(o.isDM),reconcileMap:async(o,id)=>{await s.automap.reconcile(o);await s.automap.reveal(o,id,1);},
@@ -157,7 +159,7 @@ export class ObjectLifecycleRuntime{
     return acquireCorpseItems(bag,id,filter,{
       creature:id=>object(id,5),placeable:id=>object(id,9),hasEquipment:o=>Boolean(o.nativeEquipment),repository:o=>o.nativeRepository,
       equipment:(o,slot)=>o.nativeEquipment.get(slot,id=>object(id,6)),repositoryItem:(_r,node)=>object(node.id,6),baseInfo:i=>s.items.baseInfo(i),
-      copyItem:i=>this.unsupported(i,'Native corpse equipped-item CopyItem owner is unavailable'),
+      copyItem:(i,variables)=>s.items.copy(i,variables),
       acquire:(...args)=>acquirePlaceableItem(...args,ownership),
       constructItem:()=>s.register('item',`runtime:item:${s.registry.nextObjectId[0]}`,{authored:{},equipmentSlot:null,deferTagLookup:true}),
       loadTemplate:(item,name,flag)=>{if(flag!==0)throw new Error('Native corpse gold template flag is unavailable');return s.loadItemTemplate(item,name,'');},setGold:(o,n)=>setCreatureGold(o,n),
@@ -174,7 +176,7 @@ export class ObjectLifecycleRuntime{
       appearance:o=>corpseBagAppearance(o,{entry:async(name,row,col)=>{const table=await s.items.table(name);if(!table)throw new Error(`Native body-bag ${name}.2da is unavailable`);return intEntry(table,row,col);},appearance:o=>o.objectType===9?o.nativeMessageFields[0x32c]:(o.creatureData??o.authored).Appearance_Type}),
       load:(...args)=>this.loadBodyBag(...args),destroy:o=>this.destroy(o),transfer:(...args)=>this.transferCorpseItems(...args),payload:()=>({}),
       localized:(...args)=>this.bodyBagLocalized(...args),field:(...args)=>this.bodyBagField(...args),position:o=>native(o.position),
-      sourceName:o=>{if(o.objectType!==9)this.unsupported(o,'Native creature body-bag source localized name virtual120 is unavailable');return o.nativeBodyBagLocalized?.[0x308]??o.authored.LocalizedName??o.authored.LocName??{strRef:0xffffffff,entries:[]};},
+      sourceName:o=>o.objectType===5?structuredClone((o.creatureData??o.authored).FirstName??{strRef:0xffffffff,entries:[]}):o.nativeBodyBagLocalized?.[0x308]??o.authored.LocalizedName??o.authored.LocName??{strRef:0xffffffff,entries:[]},
       enqueue:(day,time,caller,target,id,payload)=>this.areaProviders().enqueue(day,time,caller,target,id,payload),
     });
   }
@@ -199,6 +201,18 @@ export class ObjectLifecycleRuntime{
     setInventoryOpen:(client,a,b)=>setInventoryGUIOpen(client.inventoryGUI,a,b,this.inventoryGUIProviders()),enqueue:(...args)=>this.areaProviders().enqueue(...args)
   };}
   addAssociate(o,id){return addSummonedAssociate(o,id,this.associateProviders());}
+  associateAccess(command,args){
+    const s=this.session,b=s.combat.broadcastProviders(),creature=id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;};
+    return scriptAssociateAccess(command,args,{creature,
+      possessed:o=>Number((o.associateType&65535)===3&&Boolean(b.client(o.id))),
+      // Native stats GetIsDM402f80 searches actual client objects only for
+      // associate type0. Local isDM is the current client-info projection;
+      // transport client-info import remains separate from canonical IDs.
+      dm:o=>(o.associateType&65535)!==0?0:Number(Boolean(b.clients().find(c=>c.object?.id===o.id)?.object.isDM)),
+      add:(o,id)=>addHenchmanAssociate(o,id,this.associateProviders()),
+      remove:(o,id)=>this.removeAssociate(o,id),activity:(o,bit,value)=>s.combat.clearAttackActivity(o,bit,value),
+      removeInvisibility:o=>s.combat.removeInvisibility(o),associate:(o,type,nth)=>creatureAssociateId(o,type,nth,creature)});
+  }
   removeAssociate(o,id){return removeAssociate(o,id,this.associateProviders());}
   unsummon(o){return unsummonCreature(o,this.associateProviders());}
   commandProviders(){return{
@@ -273,16 +287,20 @@ export class ObjectLifecycleRuntime{
       lastHolder:i=>i.nativeLastHolder464,conversation:o=>{if(s.conversation.state?.participants.has(o.id))throw new Error('Native item destruction retained dialog inventory is unavailable');return null;},
       removeDialogItem:()=>{throw new Error('Native item destruction dialog item removal is unavailable');},removeFromArea:i=>this.removeItemArea(i),destroy:i=>this.destroy(i)});
   }
-  receiveDestroy(o){const s=this.session,p=this.areaProviders();return receiveCorpseCleanup(o,{
+  corpseProviders(context){const s=this.session,p=this.areaProviders();return{
     possessed:a=>Number((a.associateType&65535)===3&&Boolean(s.combat.broadcastProviders().client(a.id))),dead:p.dead,
-    spawnBag:a=>this.unsupported(a,'Native destruction of a dead creature requires the body-bag spawn owner'),
+    spawnBag:a=>this.spawnBodyBag(a),
+    spectacularEffect:(o,id,loading)=>s.effects.applyNative(s.effects.create(30,OBJECT_INVALID,[id]),o.id,context,loading),
+    enqueue:(id,caller,target,time,payload)=>s.combat.enqueueEvent(id,caller,target,time,payload),playerDeath:o=>s.damage.playerEvent(10,o),
     removeFromArea:(...args)=>this.removeCreatureArea(...args),area:p.area,
     trapCount:a=>a.nativeTrapIds158.count,trapId:(a,n)=>a.nativeTrapIds158.ids[n],object:p.object,
-    removeTrapObserver:a=>this.unsupported(a,'Native retained-area trap observer removal is unavailable'),
+    removeTrapObserver:(a,id)=>{if(!a.nativeTrapKnownIds)throw new Error('Native retained-area known-trap list is unavailable');a.nativeTrapKnownIds.remove(id);},
     encounter:id=>{const a=s.registry.get(id);return a?.objectType===13?a:null;},
     removeActiveCount:(a,cr,flag)=>removeEncounterActiveCreature(a,cr,flag,{points:(o,cr)=>calculateEncounterPoints(o,cr,s.encounters.providers()),
       worldTime:()=>s.worldTimer.time(),exhaustedEvent:a=>s.scheduler.enqueue(a.id,{type:'nativeSubareaScript',eventId:10,callerId:a.id,payload:{scriptEvent:21,objectIds:[a.id]}})}),
-    destroy:a=>this.destroy(a)});}
+    destroy:a=>this.destroy(a)};}
+  scheduleCorpse(o,effect,flag,context,loading=0){return scheduleCorpseCleanup(o,effect,flag,loading,this.corpseProviders(context));}
+  receiveDestroy(o){return receiveCorpseCleanup(o,this.corpseProviders());}
   inventoryGUIProviders(){
     const s=this.session,b=s.combat.broadcastProviders(),p={
       primary:client=>{if(!client.inventoryGUI)throw new Error('Native primary inventory GUI is unavailable');return client.inventoryGUI;},

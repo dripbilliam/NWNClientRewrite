@@ -5,21 +5,21 @@ const INVALID=0x7f000000,f=Math.fround,validType=object=>object&&[5,9,10].includ
 // negotiated transform-map import and dummy allocation/registration remain
 // explicit lower owners. Normal effects discard source/part/duration fields;
 // exact Type_FD P/B (or native999) take the extended source/target path.
-export function deliverObjectVisual(message,p){
+function* routeObjectVisual(message,p){
  const visualId=message.visualId&65535,targetId=message.targetId>>>0;
  const kind=String(p.visualType(visualId).value).split('\0')[0],special=kind==='P'||kind==='B'||visualId===999;
  const point=message.position.map(f);let actor,sourceId=INVALID,sourcePart=0,targetPart=0,instant=1;
  if(!special){
-  actor=targetId===INVALID?p.createDummy('point',point,10000):p.object(targetId);
+  actor=targetId===INVALID?(yield p.createDummy('point',point,10000)):p.object(targetId);
   if(!actor)return 0;
  }else{
   sourceId=message.sourceId>>>0;sourcePart=message.flag&255;targetPart=message.missMode&255;
   const duration=targetId===INVALID?f(message.duration):0,lifetime=duration===0?6000:visualMilliseconds(duration);
   if(!validType(p.object(sourceId))){
    if(!Array.isArray(message.sourcePosition))throw new Error('Native extended visual source position is unavailable');
-   if(!p.createDummy('source',message.sourcePosition.map(f),lifetime))return 0;
+   if(!(yield p.createDummy('source',message.sourcePosition.map(f),lifetime)))return 0;
   }
-  const target=p.object(targetId);actor=validType(target)?p.renderObject(target):p.createDummy('target',point,lifetime);
+  const target=p.object(targetId);actor=validType(target)?p.renderObject(target):(yield p.createDummy('target',point,lifetime));
   if(!actor)return 0;
   instant=duration===0?1:0;
  }
@@ -28,6 +28,11 @@ export function deliverObjectVisual(message,p){
  // The receiver ignores AddVisual's return value after successful routing.
  return 1;
 }
+
+// One routing owner; browser model I/O may yield without changing native call
+// order. Existing synchronous singleplayer providers retain their contract.
+export function deliverObjectVisual(message,p){const route=routeObjectVisual(message,p);let step=route.next();while(!step.done){if(step.value?.then)throw new Error('Async visual dummy requires deliverObjectVisualAsync');step=route.next(step.value);}return step.value;}
+export async function deliverObjectVisualAsync(message,p){const route=routeObjectVisual(message,p);let step=route.next();while(!step.done)step=route.next(await step.value);return step.value;}
 
 // Local server-to-client semantic adapter. The real sender1404d9640 supplies
 // the live target position when present, and its source position for P/B/999.

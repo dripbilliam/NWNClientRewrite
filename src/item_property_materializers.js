@@ -1,4 +1,6 @@
 import {OBJECT_INVALID} from './game_object_array.js';
+import {applyBonusSpellOfLevel} from './bonus_spell_slots.js';
+export function materializeBonusSpellSlots(item,property,owner,slot,loading,p){return applyBonusSpellOfLevel(item,property,owner,slot,loading,p.bonusSlots(owner));}
 const hand=slot=>({16:1,32:2,16384:3,32768:4,65536:5,8:7})[slot>>>0];
 const equipped=(effect,type)=>{effect.type=type;effect.durationType=(effect.durationType&0xfff8)|3;};
 const condition=(effect,property,alignment,race,specific)=>{
@@ -221,7 +223,7 @@ export async function materializeTurnResistance(item,property,owner,_slot,loadin
 // Native item-property enum -> concrete shared handler. Authored 2DA/UTI
 // data chooses properties; this table does not encode spells or form IDs.
 export const itemPropertyMaterializers=new Map([
- [[0],materializeAbility],[[1,2,3,4,5],materializeArmor],[[6,7,8,9],materializeEnhancement],[[12],materializeBonusFeat],
+ [[0],materializeAbility],[[1,2,3,4,5],materializeArmor],[[6,7,8,9],materializeEnhancement],[[12],materializeBonusFeat],[[13],materializeBonusSpellSlots],
  [[16,17,18,19],materializeDamage],[[20,24],materializeDamagePercent],[[22,23],materializeMitigation],[[26,38,71],materializeVision],
  [[37],materializeImmunity],[[39],materializeSpellResistance],[[40],materializeSave],[[44],materializeLight],[[51],materializeRegeneration],[[52],materializeSkill],[[53,54,78],materializeSpellImmunity],[[56,57,58,59],materializeAttack],[[73],materializeTurnResistance],[[75],materializeFreeAction]
 ].flatMap(([ids,fn])=>ids.map(id=>[id,fn])));

@@ -11,6 +11,47 @@ const stringBytes=value=>{
  if(!(value instanceof Uint8Array))throw new Error('Native area message string bytes are unavailable');
  return value[0]===0?new Uint8Array():value;
 };
+const areaObject=async(array,id,p)=>{
+ const result=await p.lookup(array,id>>>0);if((result.status&255)!==0)return null;
+ if(!result.object)throw new Error('Native successful area object lookup has no object');return result.object;
+};
+
+// Contiguous waypoint/player-pin section of PackAreaIntoMessage. Keep the
+// repeated/live lookups and inclusive player-local index enumeration. The
+// returned sound IDs are the SAME classification pass used by the next section.
+export async function packAreaMapPins(message,array,area,client,p){
+ const waypoints=[],sounds=[],lookup=id=>areaObject(array,id,p);
+ for(let i=0;i<field(p,area,0x230);i++){
+  const id=p.objectId(area,i)>>>0,object=await lookup(id);if(!object)continue;
+  const waypoint=await p.asWaypoint(object);
+  if(waypoint){if(field(p,waypoint,0x308)!==0)waypoints.push(id);}
+  else if(await p.asSound(object))sounds.push(id);
+ }
+ message.writeInt(waypoints.length,32);
+ for(const id of waypoints){
+  const object=await lookup(id),waypoint=object&&await p.asWaypoint(object);if(!waypoint)continue;
+  message.writeObjectIdServer(waypoint.id);
+  const point=[0xa4,0xa8,0xac].map(o=>field(p,waypoint,o,'float'));for(const value of point)message.writeFloat(value,1,32);
+  message.writeBool(field(p,waypoint,0x30c));await writeLocalizedServer(message,p.localized(waypoint,0x310),0,p);
+ }
+ const controlled=await p.clientObject(client),creature=controlled&&await p.asCreature(controlled);let owner=creature;
+ if(owner&&field(p,owner,0x8fc,'dword')!==OBJECT_INVALID)owner=await p.creature(field(p,owner,0x8fc,'dword'));
+ const pins=[];
+ if(owner){
+  const total=(await p.localInt(owner,'NW_TOTAL_MAP_PINS'))>>>0;
+  if(total>1_000_000)throw new Error('Native area message map-pin enumeration is unsupported');
+  if(total!==0)for(let i=0;i<=total;i++){
+   const text=stringBytes(await p.localString(owner,`NW_MAP_PIN_NTRY_${i}`));
+   if(text.length!==0&&(await p.localObject(owner,`NW_MAP_PIN_AREA_${i}`))>>>0===(area.id>>>0))pins.push(i);
+  }
+ }
+ message.writeInt(pins.length,32);
+ for(const i of pins){
+  message.writeInt(i,32);message.writeStringBytes(stringBytes(await p.localString(owner,`NW_MAP_PIN_NTRY_${i}`)),32);
+  for(const axis of ['X','Y','Z'])message.writeFloat(await p.localFloat(owner,`NW_MAP_PIN_${axis}POS_${i}`),1,32);
+ }
+ return sounds;
+}
 
 // Verified identity prefix1403632ea..14036339b of PackAreaIntoMessage.
 // The remainder of the area serializer is deliberately a separate owner.
@@ -92,37 +133,7 @@ export async function packAreaIntoMessage(area,x,y,z,client,p){
   message.writeWord(mask,16);
   for(const [bit,value]of [[1,main[0]],[2,main[1]],[4,source[0]],[8,source[1]],[16,T(0x2c,'byte')],[32,anim[0]],[64,anim[1]],[128,anim[2]]])if(mask&bit)message.writeByte(value,8,1);
  }
- const lookup=async id=>{const result=await p.lookup(array,id>>>0);if((result.status&255)!==0)return null;if(!result.object)throw new Error('Native successful area object lookup has no object');return result.object;};
- const waypoints=[],sounds=[];
- for(let i=0;i<F(0x230);i++){
-  const id=p.objectId(area,i)>>>0,object=await lookup(id);if(!object)continue;
-  const waypoint=await p.asWaypoint(object);
-  if(waypoint){if(field(p,waypoint,0x308)!==0)waypoints.push(id);}
-  else if(await p.asSound(object))sounds.push(id);
- }
- message.writeInt(waypoints.length,32);
- for(const id of waypoints){
-  const object=await lookup(id),waypoint=object&&await p.asWaypoint(object);if(!waypoint)continue;
-  message.writeObjectIdServer(waypoint.id);
-  const point=[0xa4,0xa8,0xac].map(o=>field(p,waypoint,o,'float'));for(const value of point)message.writeFloat(value,1,32);
-  message.writeBool(field(p,waypoint,0x30c));await writeLocalizedServer(message,p.localized(waypoint,0x310),0,p);
- }
- const controlled=await p.clientObject(client),creature=controlled&&await p.asCreature(controlled);let owner=creature;
- if(owner&&field(p,owner,0x8fc,'dword')!==OBJECT_INVALID)owner=await p.creature(field(p,owner,0x8fc,'dword'));
- const pins=[];
- if(owner){
-  const total=(await p.localInt(owner,'NW_TOTAL_MAP_PINS'))>>>0;
-  if(total>1_000_000)throw new Error('Native area message map-pin enumeration is unsupported');
-  if(total!==0)for(let i=0;i<=total;i++){
-   const text=stringBytes(await p.localString(owner,`NW_MAP_PIN_NTRY_${i}`));
-   if(text.length!==0&&(await p.localObject(owner,`NW_MAP_PIN_AREA_${i}`))>>>0===(area.id>>>0))pins.push(i);
-  }
- }
- message.writeInt(pins.length,32);
- for(const i of pins){
-  message.writeInt(i,32);message.writeStringBytes(stringBytes(await p.localString(owner,`NW_MAP_PIN_NTRY_${i}`)),32);
-  for(const axis of ['X','Y','Z'])message.writeFloat(await p.localFloat(owner,`NW_MAP_PIN_${axis}POS_${i}`),1,32);
- }
+ const lookup=id=>areaObject(array,id,p),sounds=await packAreaMapPins(message,array,area,client,p);
  const count=sounds.length&65535;message.writeWord(count,16);
  for(let i=0;i<count;i++){const object=await lookup(sounds[i]),sound=object&&await p.asSound(object);if(sound)packSoundObject(message,sound,p);}
  let lights=0,statics=0;

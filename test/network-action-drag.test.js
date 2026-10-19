@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {NetworkQuickbarView} from '../src/network_quickbar_view.js';
+test('spell drag cannot cross an actor/session change during asynchronous choice lookup',async()=>{
+ const binding={type:2,intParam:37,classIndex:0,metamagic:0,domainLevel:0},world={localObjectId:0xffffffff},failures=[],assigned=[];let ready;const pending=new Promise(r=>ready=r),view={generation:1,token:'first',world:()=>world,choices:()=>pending,assign:(...args)=>assigned.push(args),failure:e=>failures.push(e.message)},event={dataTransfer:{types:['application/x-nwn-network-action'],getData:()=>JSON.stringify({token:'first',actorId:world.localObjectId,binding})}};
+ const drop=NetworkQuickbarView.prototype.drop.call(view,0,event);await Promise.resolve();view.generation++;view.token='second';ready([{entries:[{binding}]}]);await drop;assert.deepEqual(assigned,[]);assert.deepEqual(failures,['Action drag is stale']);
+});
+test('spell panel drag only assigns a current owned choice and preserves its class/domain/metamagic fields',async()=>{
+ const binding={type:2,intParam:37,classIndex:2,metamagic:4,domainLevel:3},world={localObjectId:0xffffffff},assigned=[],failures=[],view={generation:1,token:'session',world:()=>world,choices:async()=>[{entries:[{binding}]}],assign:async(...args)=>assigned.push(args),failure:e=>failures.push(e.message)},payload={token:'session',actorId:world.localObjectId,binding},event={dataTransfer:{types:['application/x-nwn-network-action'],getData:()=>JSON.stringify(payload)}};
+ await NetworkQuickbarView.prototype.drop.call(view,5,event);assert.deepEqual(assigned,[[5,binding,{configure:false}]]);payload.binding={...binding,intParam:38};await NetworkQuickbarView.prototype.drop.call(view,6,event);assert.equal(assigned.length,1);assert.deepEqual(failures,['Action is no longer available to this character']);
+});

@@ -1,4 +1,5 @@
 import {OBJECT_INVALID} from './game_object_array.js';
+import {asNWSObject} from './native_object_cast.js';
 import {nativeFloatEntry} from './movement_rate.js';
 import {spellStringEntry} from './spell_metadata.js';
 import {NativeIdList} from './native_id_list.js';
@@ -248,9 +249,9 @@ export async function createPersistentAreaEffect(target,effect,position,orientat
       dc=call(p,'saveDC',source,effect.spellId);feat=integer(source.nativeSpellFeat23c,'feat')&65535;spontaneous=integer(source.nativeSpellSpontaneous228,'spontaneous');
       if(attached)effect.integers.splice(1,6,1,cls,meta,dc,feat,spontaneous);
     }
-  }else if(source)creator=source.objectType>=5&&source.objectType<=14?raw:OBJECT_INVALID;
+  }else if(source)creator=asNWSObject(source)?raw:OBJECT_INVALID;
   await call(p,'setCreator',o,creator,effect.casterLevel,effect.spellId,cls,meta,dc,feat,spontaneous);
-  if(!attached&&(effect.subtype&0x38)===8&&raw!==OBJECT_INVALID&&source&&source.objectType>=5&&source.objectType<=14){
+  if(!attached&&(effect.subtype&0x38)===8&&raw!==OBJECT_INVALID&&asNWSObject(source)){
     const owned=ids(source.nativeCreatedAreaEffects170);if(owned.indexOf(o.id)<0)owned.append(o.id);
   }
   await call(p,'load',o,integer(effect.integers?.[0],'VFX persistent row'));

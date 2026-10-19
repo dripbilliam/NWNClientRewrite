@@ -94,14 +94,35 @@ export class NativeUiAssets {
     if (!this.skins.has(key)) this.skins.set(key, (async () => {
       const model = await this.model(name); if (this.disposed) return null;
       poseUiModel(model, state);
+      return this.raster(model,name);
+    })());
+    return this.skins.get(key);
+  }
+  // The native map replaces gui_replace01 on CTL_ICON_AREAMAP and rotates
+  // its icon node by Tile_Orientation*90 degrees. Each variant owns geometry
+  // and materials; cached GUI templates and shared textures remain unchanged.
+  mapTileSkin(image,orientation){
+    const name='CTL_ICON_AREAMAP',key=`map-tile:${image.toLowerCase()}:${orientation}`;
+    if(!this.skins.has(key))this.skins.set(key,(async()=>{
+      const template=await this.model(name),textures=new Map();
+      await Promise.all(template.model.materialNames.map(async n=>textures.set(n.toLowerCase(),await this.texture(n.toLowerCase()==='gui_replace01'?image:n))));
+      if(this.disposed)return null;
+      const model=buildUiModel(template.model,textures);
+      try{
+        poseUiModel(model);const icon=model.bindings.get('icon')?.group;if(!icon)throw new Error('Native map template icon node is unavailable');
+        icon.rotateZ(orientation*Math.PI/2);model.root.updateMatrixWorld(true);model.bounds=new THREE.Box3().setFromObject(model.root);
+        return this.raster(model,`${name}/${image}`);
+      }finally{this.releaseModel(model);}
+    })());
+    return this.skins.get(key);
+  }
+  raster(model,name){
       const b = model.bounds; if (b.isEmpty()) return { url: null, min: [0, 0], max: [0, 0], width: 0, height: 0, hooks: model.hooks };
       const width = Math.max(1, Math.ceil((b.max.x - b.min.x) * UI_PIXELS_PER_UNIT)), height = Math.max(1, Math.ceil((b.max.y - b.min.y) * UI_PIXELS_PER_UNIT));
       if (width > 4096 || height > 4096) throw new Error(`UI model ${name} exceeds raster limits`);
       const camera = new THREE.OrthographicCamera(b.min.x, b.max.x, b.max.y, b.min.y, 0.1, 200); camera.position.z = 100;
       const scene = new THREE.Scene(); scene.add(model.root); this.renderer.setSize(width, height, false); this.renderer.render(scene, camera); scene.remove(model.root);
       return { url: this.renderer.domElement.toDataURL(), min: [b.min.x, b.min.y], max: [b.max.x, b.max.y], width, height, hooks: model.hooks };
-    })());
-    return this.skins.get(key);
   }
   releaseModel(model) { model.root.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
   dispose() {

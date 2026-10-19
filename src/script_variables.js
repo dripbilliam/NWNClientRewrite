@@ -1,4 +1,5 @@
 import { OBJECT_INVALID } from './game_object_array.js';
+import {NativeVariableOrder} from './script_variable_order.js';
 
 const defaults = { int: 0, float: 0, string: '', object: OBJECT_INVALID, location: null, cswy:null, json:null };
 const emptyLocation=()=>({areaId:OBJECT_INVALID,position:[0,0,0],nativeOrientation:[0,0,0]});
@@ -8,11 +9,17 @@ export function emptyLocalLocation(value){
 // Native CNWSScriptVarTable has one case-sensitive name entry with independent
 // typed fields. Deleting one field leaves other types under that name intact.
 export class ScriptVariableTable {
-  constructor({ onSetInt = () => {} } = {}) { this.entries = new Map(); this.onSetInt = onSetInt; }
+  constructor({ onSetInt = () => {} } = {}) { this.entries = new Map(); this.nativeOrder=new NativeVariableOrder(); this.onSetInt = onSetInt; }
   matchIndex(name, create = false) {
-    let entry = this.entries.get(name);
-    if (!entry && create) { entry = { ...defaults }; this.entries.set(name, entry); }
+    const found=this.nativeOrder.find(name);let entry=found===undefined?undefined:this.entries.get(found);
+    if (!entry && create) { entry = { ...defaults };const key=this.nativeOrder.insert(name); this.entries.set(key, entry); }
     return entry;
+  }
+  *nativeRows(){for(const name of this.nativeOrder.names){const entry=this.entries.get(name);if(!entry)throw new Error('Native variable list/map ownership is inconsistent');yield[name,entry];}}
+  copyFrom(source){
+    if(source===this)return;if(!(source instanceof ScriptVariableTable))throw new Error('Native variable copy source is unavailable');
+    this.entries=structuredClone(source.entries);this.nativeOrder=new NativeVariableOrder();
+    this.nativeOrder.bucketCount=source.nativeOrder.bucketCount;this.nativeOrder.names=[...source.nativeOrder.names];this.nativeOrder.hashes=new Map(source.nativeOrder.hashes);
   }
   get(name, type) {
     if (!Object.hasOwn(defaults, type)) throw new Error(`Unsupported local variable type ${type}`);
@@ -29,9 +36,9 @@ export class ScriptVariableTable {
     if (type === 'int') this.onSetInt(name, value, loading);
   }
   deleteIndex(name, type) {
-    const entry = this.matchIndex(name); if (!entry) return;
+    const key=this.nativeOrder.find(name),entry=key===undefined?undefined:this.entries.get(key); if (!entry) return;
     entry[type] = defaults[type];
-    if (Object.keys(defaults).every(key => entry[key] === defaults[key])) this.entries.delete(name);
+    if (Object.keys(defaults).every(key => entry[key] === defaults[key])) {this.entries.delete(key);this.nativeOrder.remove(key);}
   }
   getInt(name) { return this.get(name, 'int'); }
   getFloat(name) { return this.get(name, 'float'); }

@@ -5,19 +5,19 @@ import {objectTemplateResRef} from './create_object.js';
 // Serialized records always use metadata. Old host-side semantic fixtures
 // already supply decoded values; they have no serialized field-width claim.
 export function readItemGffField(data,kind,name,fallback){
- const type={resref:11,byte:0,bool:0,dword:4,word:2,list:15,struct:14,string:10}[kind];
+ const type={resref:11,byte:0,bool:0,dword:4,word:2,int:5,float:8,list:15,struct:14,string:10}[kind];
  if(type===undefined)throw new Error(`Native item ${kind} field reader is unavailable`);
  let result;
  if(getGffFieldTypes(data))result=readNativeGff(data,name,type,fallback);
  else if(!Object.hasOwn(data,name))result={status:0,value:fallback};
  else{
-  const value=data[name],valid=kind==='list'?Array.isArray(value):kind==='struct'?value!==null&&typeof value==='object'&&!Array.isArray(value):kind==='resref'||kind==='string'?typeof value==='string':Number.isInteger(value);
+  const value=data[name],valid=kind==='list'?Array.isArray(value):kind==='struct'?value!==null&&typeof value==='object'&&!Array.isArray(value):kind==='resref'||kind==='string'?typeof value==='string':kind==='float'?typeof value==='number':Number.isInteger(value);
   if(!valid)throw new Error(`Native semantic item ${name} value is unavailable`);result={status:1,value};
  }
  if(kind==='resref')result.value=objectTemplateResRef(result.value);
  else if(kind==='string')result.value=nativeAssignedString(result.value);
  else if(kind==='bool')result.value=Number((result.value&255)!==0);
- else if(kind==='byte')result.value&=255;else if(kind==='word')result.value&=65535;else if(kind==='dword')result.value>>>=0;
+ else if(kind==='byte')result.value&=255;else if(kind==='word')result.value&=65535;else if(kind==='dword')result.value>>>=0;else if(kind==='int')result.value|=0;else if(kind==='float')result.value=Math.fround(result.value);
  return result;
 }
 

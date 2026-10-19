@@ -220,8 +220,8 @@ test('temporary stat boosts preserve canonical identity, enumerate and remove wi
   await s.commands.ApplyEffectToObject([1, attackEffect, pc.id, 0.1]);
   assert.ok(pc.nativeEffectIcons778.records.some(e=>e.iconId===29));
   assert.equal(pc.stats.combat.attackBonuses.melee, 3);
-  s.scheduler.time = 100; await s.effects.update(); assert.equal(pc.stats.combat.attackBonuses.melee, 3);
-  s.scheduler.time = 101; await s.effects.update(); assert.equal(pc.stats.combat.attackBonuses.melee, 1);
+  s.scheduler.time = 100; s.worldTimer.snapshot(); await s.effects.update(); assert.equal(pc.stats.combat.attackBonuses.melee, 3);
+  s.scheduler.time = 101; s.worldTimer.snapshot(); await s.effects.update(); assert.equal(pc.stats.combat.attackBonuses.melee, 1);
   assert.equal(pc.stats, shared); assert.equal(s.registry.get(pc.id), pc);
   assert.deepEqual(pc.nativeEffectIcons778.records,[]);
 });

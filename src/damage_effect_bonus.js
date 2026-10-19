@@ -47,7 +47,9 @@ function selectAmmunition(items, rules, attack, selection, energy) {
   if (attack.ranged !== 1) return;
   const weapon = items.find(item => item.slot === 16);
   if (!weapon) return;
-  const ammoBase = weaponRule(weapon, rules, 'AmmunitionType') & 255;
+  // GetTotalEffectBonus1403942f2 reads BYTE+18 (RangedWeapon).
+  // AmmunitionType is a separate field, not a base-item ID at this call site.
+  const ammoBase = weaponRule(weapon, rules, 'RangedWeapon') & 255;
   const slot = intEntry(rules.baseitems, ammoBase, 'EquipableSlots').value >>> 0;
   // GetArraySlotFromSlotFlag accepts exactly one of eighteen slot flags.
   if (!slot || slot > 0x20000 || (slot & (slot - 1))) {

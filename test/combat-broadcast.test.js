@@ -99,10 +99,10 @@ test('live event15 OnAttacked sees caller history/combat state before delayed da
   assert.equal(a.lastWeaponUsedId,invalid);assert.equal(t.stats.currentHP,20);
 });
 
-test('live event22 routes delayed feedback to local client and diagnoses unmapped invisibility removal',async()=>{
+test('live event22 routes delayed feedback to local client and rejects malformed invisibility identity',async()=>{
   const sent=[],s=new ModuleSession({}, {onCombatMessage:m=>sent.push(m)});s.characterRules={};
   const pc=s.register('player','pc',{...actor(1),isPC:true,stats:{currentHP:10}});s.player=pc;
   await s.combat.dispatchEvent(pc,{eventId:22,callerId:pc.id,payload:{type:4,integers:[234]}});
   assert.equal(sent.length,1);assert.equal(sent[0].recipientId,pc.id);assert.equal(sent[0].type,11);assert.equal(sent[0].data.integers[9],234);
-  pc.effects=[{id:'x',type:47,integers:[1]}];await assert.rejects(s.combat.removeInvisibility(pc),/removal side effects/);assert.equal(pc.effects.length,1);
+  pc.effects=[{id:'x',type:47,integers:[1]}];await assert.rejects(s.combat.removeInvisibility(pc),/effect ID is unavailable/);assert.equal(pc.effects.length,1);
 });

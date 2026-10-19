@@ -22,9 +22,9 @@ test('instant knockdown becomes3s, pauses the round, cancels actions and retains
   assert.equal(actor.combatRound.paused,1);assert.equal(actor.combatRound.infinitePause,1);assert.equal(actor.combatRound.pausedBy,OBJECT_INVALID);
   assert.equal(actor.nativeBodyState,5);assert.equal(actor.animationState,7);
   assert.equal(e.durationType,0);assert.equal(e.duration,0);
-  s.scheduler.time=3000;await s.effects.updateObject(actor);assert.equal(actor.effects.length,2);
+  s.scheduler.time=3000;s.worldTimer.snapshot();await s.effects.updateObject(actor);assert.equal(actor.effects.length,2);
   // Native expiry removes BY ID, so both linked records disappear at >3s.
-  s.scheduler.time=3001;await s.effects.updateObject(actor);assert.equal(actor.effects.length,0);
+  s.scheduler.time=3001;s.worldTimer.snapshot();await s.effects.updateObject(actor);assert.equal(actor.effects.length,0);
   assert.equal(actor.nativeField8d4,65535);assert.equal(actor.nativeFieldEc,1);
   assert.equal(actor.combatRound.paused,0);assert.equal(actor.combatRound.infinitePause,0);assert.equal(actor.animationState,0);
 });

@@ -1,4 +1,4 @@
-import {createParticle,initializeParticle,randomizeParticleFrame} from './particle_initialization.js';
+import {createParticle,initializeParticle,randomizeParticleFrame,randomParticlePosition} from './particle_initialization.js';
 import {moveStandardParticles} from './particle_movement.js';
 const required=(p,key,...args)=>{if(typeof p?.[key]!=='function')throw new Error(`Native Fountain particle provider ${key} is unavailable`);return p[key](...args);};
 
@@ -19,6 +19,7 @@ export function fountainParticleProviders(emitter,services){
   };
   p.initializeParticle=(particle,delta,factor)=>particle.nativeChunky?required(services,'initializeChunkParticle',particle,delta,factor,p):initializeParticle(particle,delta,factor,p);
   p.randomizeParticle=(e,particle)=>randomizeParticleFrame(e,particle,p);
+  p.randomPosition=(particle,x,y)=>randomParticlePosition(particle,x,y,p);
   p.moveParticles=(e,delta)=>moveStandardParticles(e,delta,p);
   return p;
 }

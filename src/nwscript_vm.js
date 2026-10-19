@@ -1,8 +1,10 @@
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
-import {scriptTalent} from './talent.js';
+import {createScriptEngineStructure,copyScriptEventValue} from './script_engine_structures.js';
+import {copyScriptStack} from './script_stack_copy.js';
+import {nativeAssignedString} from './native_gff_fields.js';
 export const OBJECT_INVALID = 0x7f000000;
 const TYPES = { int: 3, float: 4, string: 5, object: 6, effect: 0x10, event: 0x11, location: 0x12, talent: 0x13, itemproperty: 0x14, sqlquery: 0x15, cassowary: 0x16, json: 0x17 };
-const clone = cell => ({ type: cell.type, value: typeof cell.value === 'object' && cell.value !== null ? structuredClone(cell.value) : cell.value });
+const clone = cell => ({ type: cell.type, value: cell.type===17?copyScriptEventValue(cell.value):typeof cell.value === 'object' && cell.value !== null ? structuredClone(cell.value) : cell.value });
 const slots = bytes => { if (!Number.isInteger(bytes) || bytes % 4) throw new Error(`Unaligned stack offset ${bytes}`); return bytes / 4; };
 
 export class ScriptError extends Error {
@@ -20,7 +22,7 @@ export class NwScriptVm {
       error.diagnosticCode = 'script.failure'; error.diagnosticContext = { ...this.diagnosticContext(self), script: program.name, pc: 13, objectId: self };
       this.diagnostics.error(error); throw error;
     }
-    const frame = { program, self, pc: situation?.pc ?? 13, stack: situation?.stack.map(clone) ?? [], bp: situation?.bp ?? 0, returns: [], stored: null, budget, depth,scriptEventContext:scriptEventContext|0 };
+    const frame = { program, self, pc: situation?.nativeInstructionPtr===-1?null:situation?.pc ?? 13, stack: situation?.stack.map(clone) ?? [], bp: situation?.bp ?? 0, returns: [], stored: null, budget, depth,scriptEventContext:scriptEventContext|0,nativeScriptState:situation?.nativeScriptState??program.nativeScriptState };
     let executingPc = frame.pc;
     try {
       while (frame.pc !== null) {
@@ -49,7 +51,7 @@ export class NwScriptVm {
     if (type === 'vector') { for (const component of value) this.push(frame, 'float', component); return; }
     const code = typeof type === 'string' ? TYPES[type] : type;
     if (!code) throw new Error(`Unsupported value type ${type}`);
-    frame.stack.push({ type: code, value: code === 3 ? value | 0 : code === 4 ? Math.fround(value) : code === 6 ? value >>> 0 : value });
+    frame.stack.push({ type: code, value: code === 3 ? value | 0 : code === 4 ? Math.fround(value) : code === 6 ? value >>> 0 : code===17?copyScriptEventValue(value):value });
   }
   pop(frame, type) {
     if (type === 'vector') { const z = this.pop(frame, 'float'), y = this.pop(frame, 'float'), x = this.pop(frame, 'float'); return [x, y, z]; }
@@ -60,13 +62,16 @@ export class NwScriptVm {
   }
   capture(frame) {
     if (!frame.stored) throw new Error('Action argument has no STORE_STATE');
-    let base = slots(frame.stored.baseSize), top = slots(frame.stored.stackSize);
-    if (!base && !top) { base = frame.bp; top = frame.stack.length - base; }
-    base = Math.min(Math.max(base, 0), frame.bp, this.stackLimit); top = Math.min(Math.max(top, 0), this.stackLimit);
-    if (top > frame.stack.length) throw new Error('Captured stack exceeds active stack');
-    // Native copies the END of the base region and END of the active stack.
-    return { program: frame.program, pc: frame.stored.pc, bp: base,
-      stack: [...frame.stack.slice(frame.bp - base, frame.bp), ...frame.stack.slice(frame.stack.length - top)].map(clone) };
+    const copied=copyScriptStack({basePointer:frame.bp,stackPointer:frame.stack.length,cells:frame.stack},frame.stored.stackSize,frame.stored.baseSize,
+      {copyEngine:(kind,value)=>clone({type:kind+16,value}).value});
+    // StackPopCommand_Internal285e80 stores the ORIGINAL SP in script+8;
+    // CopyFromStack owns the separately sized stack/capacity. ReadScriptFile
+    // strips13 header bytes, so serialized native PCs are body-relative.
+    const ctx=frame.nativeScriptState??frame.program.nativeScriptState;
+    if(ctx?.jumps?.length)throw new Error('Native VM jump-map capture assignment owner is unavailable');
+    return { program: frame.program, pc: frame.stored.pc, bp: copied.basePointer,stack:copied.cells,
+      nativeStackSize:frame.stack.length,nativeStackCapacity:copied.totalSize,nativeInstructionPtr:(frame.stored.pc-13)|0,nativeSecondaryPtr:0,nativeScriptEventId:0,
+      nativeScriptState:ctx?{ndb:ctx.ndb,jumps:[],scriptChunk:nativeAssignedString(ctx.scriptChunk)}:undefined };
   }
   region(frame, index, count) {
     if (index < 0 || count < 0 || index + count > frame.stack.length) throw new Error('Stack access out of bounds');
@@ -86,10 +91,10 @@ export class NwScriptVm {
         if (![3, 4, 5, 6].includes(i.type) && (i.type < 0x10 || i.type > 0x19)) throw new Error('Invalid RSADD type');
         // CreateGameDefinedStructure14050d208..14050d222 allocates a
         // constructor-initialized talent for RSADD, never a null pointer.
-        push(i.type, i.type === 5 ? '' : i.type === 6 ? OBJECT_INVALID : i.type===0x13?scriptTalent():i.type >= 0x10 ? null : 0); return;
+        push(i.type, i.type === 5 ? '' : i.type === 6 ? OBJECT_INVALID : i.type >= 0x10 ? createScriptEngineStructure(i.type-16) : 0); return;
       case 4:
         if (i.type === 6) push(6, i.value === 0 ? f.self : OBJECT_INVALID);
-        else if (i.type === 0x12) { if (i.value !== 0) throw new Error('Invalid location constant'); push('location', null); }
+        else if (i.type === 0x12) { if (i.value !== 0) throw new Error('Invalid location constant'); push('location', createScriptEngineStructure(2)); }
         else if (i.type === 0x17) throw new Error('JSON constants are not implemented');
         else push(i.type, i.value); return;
       case 5: {

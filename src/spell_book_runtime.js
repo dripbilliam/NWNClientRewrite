@@ -9,6 +9,10 @@ import {casterLevel,nativeClassLevel,nativeClassIndex,nativeFeatSourceClass} fro
 import {checkSpellComponents,automaticQuicken} from './spell_components.js';
 import {computeSpellSaveDC} from './spell_save_dc.js';
 import {scriptAbilityModifier} from './ability_modifier_cache.js';
+import {scriptDecrementSpellUses} from './script_spell_uses.js';
+import {saveLiveCreatureClassInfo} from './creature_class_save_runtime.js';
+import {saveLiveCreatureStats} from './creature_stats_save_runtime.js';
+import {memorizedReadyCount,memorizedSlotId,memorizedSlotDetails,memorizedSlotCount,spellClassInfo,decrementSpellsPerDayLeft,unreadySpell,spellLikeReady,setSpellLikeReady} from './spell_book.js';
 
 const names=['Str','Dex','Con','Int','Wis','Cha'];
 const physical=(table,row)=>table?.orderedRows?table.orderedRows[row]:table?.rows?.get(row);
@@ -17,6 +21,28 @@ const field=(row,name)=>row?.[Object.keys(row??{}).find(k=>k.toLowerCase()===nam
 // owners are separate; none of these queries manufactures a spell effect.
 export class SpellBookRuntime {
   constructor(session){this.session=session;}
+  async saveClassInfo(o,root){
+    try{return await saveLiveCreatureClassInfo(this.session,o,root);}
+    catch(error){this.session.report(error,this.session.diagnosticContext(o?.id));throw error;}
+  }
+  async saveStats(o,root){
+    try{return await saveLiveCreatureStats(this.session,o,root);}
+    catch(error){this.session.report(error,this.session.diagnosticContext(o?.id));throw error;}
+  }
+  async decrementReader(read){
+    const s=this.session,rules=s.characterRules;let popError,subject;
+    const status=await scriptDecrementSpellUses({pop:type=>{try{return{ok:true,value:read(type)};}catch(error){popError=error;return{ok:false};}},spell:id=>this.castingSpell(id),
+      creature:id=>{const o=s.registry.get(id);return subject=o?.objectType===5?o:null;},stats:o=>o,classCount:o=>{const list=creatureRoot(o).ClassList;if(!Array.isArray(list))throw new Error('Native decrement class storage is unavailable');return list.length&255;},
+      classType:(o,index)=>(creatureRoot(o).ClassList[index&255]?.Class??255)&255,
+      classFlag:(type,name)=>{if(!physical(rules.classes,type))throw new Error('Native decrement class definition storage is unavailable');return Number(intEntry(rules.classes,type,name).value!==0);},
+      uses:(o,...args)=>this.uses(o,...args),level:(spell,type)=>this.level(spell.id,type),decrementDay:(o,index,level)=>decrementSpellsPerDayLeft(o,index,level,this.providers(o)),
+      ready:(o,index,id)=>memorizedReadyCount(o,index,id,255,rules,this.providers(o)),slotId:(o,...args)=>memorizedSlotId(o,...args,this.providers(o)),slotCount:memorizedSlotCount,classInfo:spellClassInfo,
+      details:(state,level,slot)=>memorizedSlotDetails(state,level,slot,{warning:message=>this.warning(subject,message)}),
+      unready:(o,...args)=>unreadySpell(o,...args,rules,this.providers(o)),abilityReady:spellLikeReady,abilityLevel:spellLikeCasterLevel,setAbilityReady:setSpellLikeReady});
+    if(status!==0)throw popError??new Error(`Native DecrementRemainingSpellUses failed (${status})`);
+  }
+  decrement(args){let cursor=0;return this.decrementReader(()=>{if(cursor>=args.length)throw new Error('Native DecrementRemainingSpellUses VM argument is unavailable');return args[cursor++];});}
+  decrementStack(vm,frame){return this.decrementReader(type=>vm.pop(frame,type));}
   warning(o,message){runtimeDiagnostics.record('spells.native-warning',message,this.session.diagnosticContext(o.id));}
   castingSpell(id){return castingSpell(this.session.characterRules,id);}
   components(o,spell,index,domain,meta){

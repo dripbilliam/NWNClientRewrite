@@ -4,6 +4,10 @@ import {parse2da} from '../src/area.js';
 import {NativeIdList} from '../src/native_id_list.js';
 import {ModuleSession} from '../src/module_session.js';
 import {nativeFloatEntryByIndex} from '../src/movement_rate.js';
+import {placeableField} from '../src/placeable_fields.js';
+import {importPlaceableInventoryState} from '../src/world_object_state.js';
+import {parseGff} from '../src/gff.js';
+import {gffField,gffRecord,writeGff} from '../src/gff_writer.js';
 import {officialCampaign,initializeModuleExperience,initializeCreatureExperience,calculateDeathExperience,potentialLevel,effectiveCRForPotentialLevel,applyDeathExperience,nativeExperienceAward,addNativeExperience,nativeCanLevelUp,setNativeExperience} from '../src/combat_experience.js';
 
 const table=()=>parse2da('2DA V2.0\nDEFAULT: 7.5\n\nLevel C0 C1 C2 C3\n999 1 20 50 96 144\n5 2 24 60 115 173');
@@ -48,6 +52,22 @@ test('trap death XP performs three owner casts and re-reads the creator after th
   const providers={...p,object:()=>trap,asDeathOwner:o=>{casts++;return o;},deathOwnerId:()=>++reads===1?3:4,
     creature:id=>{assert.equal(id,4);return killer;},faction:o=>o.factionId,factionMembers:()=>new NativeIdList()};
   await applyDeathExperience(actor,providers);assert.equal(casts,3);assert.equal(reads,2);
+});
+test('live placeable-caused death XP reads its native creator cell, including an absent or stale creator',async()=>{
+  const s=new ModuleSession(null);s.module=module();
+  const source=s.register('placeable','source',{}),victim=s.register('creature','victim',{factionId:1});victim.lastKillerId=source.id;
+  source.nativeTrapCreatorId=123; // Unrelated former adapter field must not win.
+  placeableField(source,0x3ac,0x7f000000);await s.combat.applyDeathExperience(victim);
+  placeableField(source,0x3ac,0x80000042);await s.combat.applyDeathExperience(victim);
+  const owner=s.register('creature','owner',{factionId:2});let selected;
+  placeableField(source,0x3ac,owner.id);await s.combat.applyDeathExperience(victim,{factionMembers:o=>{selected=o;return new NativeIdList();},maximumLevel:()=>40,xpTable:table,challengeRating:()=>1});
+  assert.equal(selected,owner);assert.equal(placeableField(source,0x3ac)>>>0,owner.id);
+});
+test('initial placeable import shares the typed DWORD TrapCreator cell with death XP',()=>{
+  for(const [type,value,expected]of[[4,0x80000042,0x80000042],[5,42,0x7f000000],[null,null,0x7f000000]]){
+    const data=parseGff(writeGff('UTP ',gffRecord(type===null?{}:{TrapCreator:gffField(type,value)}))).root;
+    const placeable={nativeTrapActive3d4:1};importPlaceableInventoryState(placeable,data);assert.equal(placeableField(placeable,0x3ac)>>>0,expected);
+  }
 });
 test('native level-up eligibility uses actual client40 cap and nonzero stats PC; ordinary NPC needs no XP',()=>{
   const actor={id:0,associateType:0,level:40,pc:0,xp:0},p={client:()=>null,level:o=>o.level,maximumLevel:()=>50,statsIsPC:o=>o.pc,experience:o=>o.xp,threshold:()=>1000};

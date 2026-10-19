@@ -8,7 +8,7 @@ import {OBJECT_INVALID} from '../src/game_object_array.js';
 import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
 function fixture(){
  const resources=new Map(),s=new ModuleSession({getResource:async(name,type)=>{const bytes=resources.get(`${name}:${type}`);if(!bytes)throw Object.assign(new Error(`Missing ${name}`),{code:'RESOURCE_NOT_FOUND'});return bytes;}});
- s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType BasePropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS Category BaseCost ItemMultiplier StorePanel StorePanelSort ILRStackSize\n0 0 1 1 1 1 0 10 0 10 1 0 1 1\n1 0 1 1 1 1 0 10 0 20 1 2 0 1\n2 0 1 1 1 1 0 10 0 5 1 0 1 1\n3 0 1 1 1 1 0 10 0 2 1 8 0 1')};
+ s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType PropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS Category BaseCost ItemMultiplier StorePanel StorePanelSort ILRStackSize\n0 0 1 1 1 1 0 10 0 10 1 0 1 1\n1 0 1 1 1 1 0 10 0 20 1 2 0 1\n2 0 1 1 1 1 0 10 0 5 1 0 1 1\n3 0 1 1 1 1 0 10 0 2 1 8 0 1')};
  s.module=s.register('module','module',{});const object=s.register('store','store',{tag:'',authored:{},deferTagLookup:true});return{s,object,resources};
 }
 test('full UTM runtime owns five repositories, typed fields, scripts, pricing, locals, UUID and recursive destruction',async()=>{

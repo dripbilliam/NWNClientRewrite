@@ -1,4 +1,5 @@
-// Instruction offsets include the 13-byte NCS header, as in the native VM.
+// Host instruction offsets include the13-byte NCS header. Native ReadScriptFile
+// 1402836a0 strips it before execution/storage; serialized PCs are body-relative.
 export const NCS_OP = Object.freeze(Object.fromEntries((
   'CPDOWNSP RSADD CPTOPSP CONST ACTION LOGAND LOGOR INCOR EXCOR BOOLAND EQUAL NEQUAL GEQ GT LT LEQ SHLEFT SHRIGHT USHRIGHT ADD SUB MUL DIV MOD NEG COMP MOVSP STOREIP JMP JSR JZ RETN DESTRUCT NOT DECSP INCSP JNZ CPDOWNBP CPTOPBP DECBP INCBP SAVEBP RESTOREBP STORESTATE NOP'
 ).split(' ').map((name, i) => [name, i + 1])));
@@ -41,7 +42,10 @@ export function parseNcs(input, name = '<script>') {
     ins.next = pc + size; instructions.set(pc, Object.freeze(ins)); pc += size;
   }
   for (const ins of instructions.values()) if (ins.target !== undefined && !instructions.has(ins.target)) throw new Error(`${name}: branch at ${ins.pc} targets a non-instruction (${ins.target})`);
-  return Object.freeze({ name, instructions });
+  // ReadScriptFile2836a0/InitializeScript2829b0 supply no NDB, clear jumps
+  // and clear the chunk for a file-backed NCS script. Loaded snapshots carry
+  // their restored context separately when resumed/captured again.
+  return Object.freeze({ name, instructions, nativeCode:bytes.slice(13),nativeScriptState:{ndb:null,jumps:[],scriptChunk:''} });
 }
 
 // The installed nwscript.nss declares the engine command table in ordinal order.

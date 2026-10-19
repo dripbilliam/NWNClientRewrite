@@ -1,6 +1,9 @@
 import {objectVisualDataGffProviders,loadObjectShaderParams,loadObjectReplacements,loadObjectMiscVisuals} from './object_visual_data.js';
 import {visualTransformClockProviders,loadVisualTransform,loadObjectVisualTransforms,assignVisualTransforms} from './object_visual_transform.js';
 import {runtimeDiagnostics} from './runtime_diagnostics.js';
+import {gffRecord} from './gff_writer.js';
+import {subtractWorldTimes} from './world_timer.js';
+import {saveObjectVisualTransforms,saveMaterialOverrides,saveVisualReplacements,saveMiscVisuals,saveObjectUUID} from './object_visual_save.js';
 const owners=[0x140497bb0,0x140496ea0,0x140497990,0x1404969c0,0x1404972b0];
 const clone=map=>new Map([...map].sort((a,b)=>a[0]-b[0]).map(([key,value])=>[key,value.slice()]));
 
@@ -9,6 +12,22 @@ const clone=map=>new Map([...map].sort((a,b)=>a[0]-b[0]).map(([key,value])=>[key
 // identify those remaining presentation owners when such data is encountered.
 export class ObjectVisualRuntime{
  constructor(session){this.session=session;}
+ async save(object,root=gffRecord({})){
+  for(const owner of ['visualTransform','materialOverrides','textureOverrides','animationOverrides','miscVisuals','uuid'])await this.saveOwner(object,root,owner);return root;
+ }
+ async saveOwner(object,root,owner){
+  const s=this.session;
+  try{
+   if(s.registry.get(object.id)!==object)throw new Error('Native visual save requires a canonical object');
+   const p={...this.providers(object),subtractWorld:(timer,a,b)=>subtractWorldTimes(a,b,timer.dayLength)};
+   if(owner==='visualTransform')await saveObjectVisualTransforms(object,root,p);
+   else if(owner==='materialOverrides')saveMaterialOverrides(object,root);
+   else if(owner==='textureOverrides')saveVisualReplacements(object,root,'texture');
+   else if(owner==='animationOverrides')saveVisualReplacements(object,root,'animation');
+   else if(owner==='miscVisuals')saveMiscVisuals(object,root);else if(owner==='uuid')saveObjectUUID(object,root);
+   else throw new Error('Native visual save owner is unavailable');return root;
+  }catch(error){s.report(error,{...s.diagnosticContext(object?.id),operation:'native-object-visual-data-save',owner});throw error;}
+ }
  providers(object){
   const s=this.session,scratch=new Uint8Array(64),p={...objectVisualDataGffProviders(),...visualTransformClockProviders(s.worldTimer,()=>s.worldTimer.microseconds()),
    constructMap:()=>new Map(),clearMap:map=>map.clear(),copyMap:(dst,src)=>{for(const[key,value]of clone(src))dst.set(key,value);},releaseMap:map=>map.clear(),

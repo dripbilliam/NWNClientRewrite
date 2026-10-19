@@ -1,6 +1,12 @@
 import {creatureRoot} from './creature_rules.js';
 const integer=(v,n)=>{if(!Number.isInteger(v))throw new Error(`Native appearance ${n} is unavailable`);return v|0;};
 
+// Stats ctor1403ee3d7 sets A4=0. ReadStatsFromGff14040fb64..40fb9b
+// reads BYTE Gender with the current cell as fallback, then clamps to4.
+export function importCreatureGender(root,current=0){
+ return Math.min(4,integer(Object.hasOwn(root,'Gender')?root.Gender:current,'stats genderA4')&255);
+}
+
 // Decoded ExecuteCommandGetAppearanceType14051ec20: the three owners have
 // different physical widths. Use the same live GFF-backed state consumed by
 // rendering/rules, never cache an authored creature appearance separately.

@@ -70,9 +70,11 @@ export async function updateCreatureFrame(actor,p){
   if(actor.isPC||integer(required(p,'possessed')(actor),'possessed result')!==0){
     const queueNow=required(p,'pauseTimer')().time(),queueElapsed=subtractWorldTimes(queueNow,
       {day:integer(actor.nativeQueueUpdateDay594,'queue update day')>>>0,time:integer(actor.nativeQueueUpdateTime598,'queue update time')>>>0},p.dayLength);
-    // This subtraction uses uninitialized output; backwards time is undefined.
-    if(queueElapsed.status!==0)throw new Error('Native action queue elapsed time is undefined after failed subtraction');
-    if(queueElapsed.milliseconds>=300){
+    // Native ignores failed subtraction and branches on unwritten caller
+    // scratch. Report that unavailable GUI decision without inventing elapsed
+    // time or changing its timestamp; the remaining gameplay frame still runs.
+    if(queueElapsed.status!==0)await required(p,'queueClockUndefined')(actor,{now:queueNow,previous:{day:actor.nativeQueueUpdateDay594,time:actor.nativeQueueUpdateTime598},status:queueElapsed.status});
+    else if(queueElapsed.milliseconds>=300){
       await required(p,'actionQueue')(actor);
       actor.nativeQueueUpdateDay594=queueNow.day;actor.nativeQueueUpdateTime598=queueNow.time;
     }

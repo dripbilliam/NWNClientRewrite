@@ -5,6 +5,7 @@ const path=require('node:path'),fs=require('node:fs');
 const {registerRuntimeLog,observeWindow,flushOnClose}=require('../electron/runtime_log.cjs');
 const workspace=path.resolve(__dirname,'..'),install=path.resolve(process.argv[2]??path.join(workspace,'../FullDecomp/NwnRootInstall'));
 const moduleFile=path.resolve(process.argv[3]??path.join(install,'data/nwm/Prelude.nwm'));
+const characterFile=process.argv[4]??null;
 const profile=path.join(workspace,'backups/character-play-profile');fs.mkdirSync(profile,{recursive:true});
 app.setPath('userData',profile);app.setPath('logs',profile);app.setPath('crashDumps',profile);
 app.whenReady().then(async()=>{
@@ -25,8 +26,13 @@ app.whenReady().then(async()=>{
     await files('#language-data-folder',[path.join(install,'lang/en/data')]);await wait(`document.querySelector('#status-text').textContent==='LANGUAGE DATA READY'`);
     await files('#area-file',[moduleFile]);await wait(`document.querySelector('#character-frontend').dataset.mode==='select'`);
     const count=await evaluate(`document.querySelectorAll('.character-card').length`);
+    if(characterFile){
+      await evaluate(`{const card=[...document.querySelectorAll('.character-card')].find(b=>b.textContent.includes(${JSON.stringify(characterFile)}));if(!card)throw new Error('Requested character is unavailable');card.click();document.querySelector('#run-module-startup').checked=true;const play=[...document.querySelectorAll('#character-frontend button')].find(b=>b.textContent==='Play');if(!play||play.disabled)throw new Error('Requested character cannot enter the module');play.click();}`);
+      await wait(`document.querySelector('#status-text').textContent.includes('AREA RENDERED')`);
+      console.log(`CAMPAIGN READY · ${characterFile} · ${path.basename(moduleFile)} · startup scripts enabled · ${await evaluate("document.querySelector('#status-text').textContent")}`);
+    }
     win.webContents.debugger.detach();win.show();win.focus();
-    console.log(`CHARACTER SELECTOR READY · ${count} characters · ${path.basename(moduleFile)}`);
+    if(!characterFile)console.log(`CHARACTER SELECTOR READY · ${count} characters · ${path.basename(moduleFile)}`);
   }catch(error){console.error(error.stack);if(win.webContents.debugger.isAttached())win.webContents.debugger.detach();win.show();win.focus();}
 });
 app.on('window-all-closed',()=>app.quit());

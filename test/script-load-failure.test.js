@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {ModuleSession} from '../src/module_session.js';
 import {NwScriptVm} from '../src/nwscript_vm.js';
 import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
+import {NativeAreaSpatialArray} from '../src/area_spatial.js';
 const ncs=rows=>{const body=Buffer.from(rows),b=Buffer.alloc(13+body.length);b.write('NCS V1.0',0);b[8]=0x42;b.writeUInt32BE(b.length,9);body.copy(b,13);return b;};
 const missing=(name,type=2010)=>Object.assign(new Error(`Missing ${name}`),{code:'RESOURCE_NOT_FOUND',resRef:name,resourceType:type});
 function fixture(load){
@@ -37,6 +38,7 @@ test('missing DLG condition rejects the branch; missing action continues and lea
 });
 test('missing area exit permits transfer; old/new membership and canonical ID remain intact',async()=>{
   const {s,owner,errors}=fixture(async name=>{throw missing(name);}),next=s.register('area','next',{resRef:'next',scripts:{},objects:[]}),player=s.register('player','pc',{areaId:owner.id,position:[0,0,0],stats:{},authored:{}});
+  next.nativeSpatial=new NativeAreaSpatialArray(s.registry);
   owner.scripts={exit:'missing_exit'};owner.objects=[player.id];s.player=player;s.currentArea=owner;s.started=true;s.areas.set('next',next);
   s.refreshCombat=()=>{};s.leaveTriggers=()=>{};s.updateTriggers=()=>{};
   await s.enterArea('next',[1,0,2]);assert.equal(s.player,player);assert.equal(s.currentArea,next);assert.equal(player.areaId,next.id);assert.ok(next.objects.includes(player.id));assert.ok(!owner.objects.includes(player.id));assert.deepEqual(errors,[]);

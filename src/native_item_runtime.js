@@ -1,4 +1,5 @@
 import {OBJECT_INVALID} from './game_object_array.js';
+import {asNWSObject} from './native_object_cast.js';
 import {intEntry,rulesetInt} from './combat_stats.js';
 import {nativeFloatEntry,nativeFloatEntryByIndex} from './movement_rate.js';
 import {itemPropertyPrice,recalculateItemPrice,getItemPrice} from './item_price.js';
@@ -15,7 +16,8 @@ import {objectTemplateResRef} from './create_object.js';
 import {loadItemFromGff,readItemGffField} from './item_gff_load.js';
 import {runtimeDiagnostics} from './runtime_diagnostics.js';
 import {spellStringEntry,nativeStringEntry,talentSpell,savingThrowSpell} from './spell_metadata.js';
-import {spellGainWithBonus,spellMinAbilityMet,spellLevelByClass,addKnownSpell} from './spell_book.js';
+import {spellGainWithBonus,spellMinAbilityMet,spellLevelByClass,addKnownSpell,resizeMemorizedSlots} from './spell_book.js';
+import {removeBonusSpellOfLevel} from './bonus_spell_slots.js';
 import {learnScroll,receiveLearnScrollInput,receiveLearnScrollReply} from './scroll_learning.js';
 import {sendCombatFeedback} from './combat_broadcast.js';
 import {scriptAppearanceType} from './creature_appearance_state.js';
@@ -36,6 +38,16 @@ import {addMoveToPointBack} from './movement_actions.js';
 import {receiveItemInput} from './item_input.js';
 import {manageObjectActions} from './object_actions.js';
 import {scriptUseItem} from './script_use_item.js';
+import {copyNativeItem} from './item_copy.js';
+import {scriptCopyItem,scriptCopyItemAndModify} from './script_item_copy.js';
+import {modifyCopiedItemAppearance} from './item_appearance_modify.js';
+import {baseItemReference} from './base_item_references.js';
+import {saveItemProperties,saveNativeItem} from './item_save.js';
+import {scriptItemACValue} from './script_checks.js';
+import {setItemPossessor} from './item_possession.js';
+import {acquireCreatureItem,acquirePlaceableItem,acquireContainerItem} from './item_acquisition.js';
+import {getItemPartColor,setItemPartColor} from './item_part_colors.js';
+import {addModuleTag} from './module_tag_lookup.js';
 
 export const nativeArmorPartFields=['ArmorPart_RFoot','ArmorPart_LFoot','ArmorPart_RShin','ArmorPart_LShin','ArmorPart_LThigh','ArmorPart_RThigh','ArmorPart_Pelvis','ArmorPart_Torso','ArmorPart_Belt','ArmorPart_Neck','ArmorPart_RFArm','ArmorPart_LFArm','ArmorPart_RBicep','ArmorPart_LBicep','ArmorPart_RShoul','ArmorPart_LShoul','ArmorPart_RHand','ArmorPart_LHand','ArmorPart_Robe'];
 export const nativePaletteFields=['Leather1Color','Leather2Color','Cloth1Color','Cloth2Color','Metal1Color','Metal2Color'];
@@ -43,14 +55,39 @@ const propertyData=p=>({PropertyName:p.type,Subtype:p.subtype,CostTable:p.costTa
   UsesPerDay:p.usesPerDay,ChanceAppear:p.chance,Useable:p.remaining,CustomTag:p.customTag});
 export function canonicalItemData(item){
   if(!item.nativeItemLoaded)return item.authored;
-  return {...item.authored,BaseItem:item.baseItem,StackSize:item.stackSize,Charges:item.charges,Identified:item.identified,Dropable:item.droppable,
-    Pickpocketable:item.pickpocketable,Plot:item.plot,Stolen:item.stolen,Cursed:item.cursed,PropertiesList:[...item.activeProperties,...item.passiveProperties].map(propertyData)};
+  const result={...item.authored,Tag:item.tag,TemplateResRef:item.templateResRef,BaseItem:item.baseItem,StackSize:item.stackSize,Charges:item.charges,Identified:item.identified,Dropable:item.droppable,
+    Pickpocketable:item.pickpocketable,Plot:item.plot,Stolen:item.stolen,Cursed:item.cursed,Hidden:item.nativeHidden468,Useable:item.nativeUseable264,Cost:item.nativeBasePrice38c,AddCost:item.nativeAddCost394,PropertiesList:[...item.activeProperties,...item.passiveProperties].map(propertyData)};
+  for(const[offset,name]of[[0x3e0,'DescIdentified'],[0x3f0,'Description'],[0x420,'LocalizedName']])result[name]=item.nativeItemLocalized[offset];
+  for(const[offset,name]of[[0x430,'DisplayName'],[0x400,'DescIdentifiedOverride'],[0x410,'DescriptionOverride']])result[name]=item.nativeItemStrings[offset];
+  item.modelParts.forEach((v,i)=>{result[`ModelPart${i+1}`]=v;});nativeArmorPartFields.forEach((name,i)=>{result[name]=item.armorParts[i];});nativePaletteFields.forEach((name,i)=>{result[name]=item.colors[i];});
+  item.partColors.forEach((values,ch)=>values?.forEach((v,p)=>{result[`APart_${p}_Col_${ch}`]=v;}));return result;
 }
 
 // Fresh CNWSItem/LoadDataFromGff state. Full Equip/Acquire and saved-effect
 // import remain separate owners; this class never manufactures possession.
 export class NativeItemRuntime {
   constructor(session){this.session=session;this.propertyIds=new ItemPropertyIds();this.tables=new Map();this.baseTables=new WeakMap();}
+  saveProperties(item,root){
+    try{
+      if(item?.objectType!==6||!item.nativeItemLoaded)throw new Error('Native property save requires a loaded item');
+      return saveItemProperties(item,{properties:(o,active)=>active?o.activeProperties:o.passiveProperties},root);
+    }catch(error){this.session.report(error,this.session.diagnosticContext(item?.id));throw error;}
+  }
+  async save(item,flag=0,root){
+    const s=this.session,fields={0x40:'baseItem',0x360:'identified',0x454:'stackSize',0x458:'stolen',0x468:'nativeHidden468',0x448:'droppable',0x44c:'pickpocketable',0x450:'cursed',0x388:'charges',0x144:'plot',0x398:'nativePriceDirty398',0x390:'nativeUnidentifiedPrice390',0x394:'nativeAddCost394',0x38c:'nativeBasePrice38c',0x2ac:'nativeUseable264',0x3d8:'repositoryX',0x3d9:'repositoryY'};
+    try{
+      if(item?.objectType!==6||!item.nativeItemLoaded)throw new Error('Native item save requires a loaded canonical item');
+      const p={scalar:(i,o)=>{const value=i[fields[o]];return typeof value==='boolean'?Number(value):value;},writeScalar:(i,o,v)=>{i[fields[o]]=v;},
+        string:(i,o)=>o===0x68?i.tag:o===0x78?i.templateResRef:i.nativeItemStrings[o],localized:(i,o)=>i.nativeItemLocalized[o],resref:objectTemplateResRef,
+        baseInfo:i=>this.baseInfo(i),appearance:(i,kind,n)=>i[kind][n],partColor:getItemPartColor,calculateBaseCosts:i=>this.priceProviders().recalculate(i),
+        repository:i=>i.nativeRepository,head:r=>r.head,next:(_r,n)=>n.next,value:(_r,n)=>n.id,item:id=>{const o=s.registry.get(id);return o?.objectType===6?o:null;},
+        properties:(i,active)=>active?i.activeProperties:i.passiveProperties,itemProperties:(i,r)=>this.saveProperties(i,r),objectState:(i,r)=>s.objectState.save(i,r),
+        float:(i,o)=>[i.position?.[0],i.position?.[2]===undefined?undefined:-i.position[2],i.position?.[1],i.orientation?.[0],i.orientation?.[2]===undefined?undefined:-i.orientation[2],i.orientation?.[1]][(o-0xec)/4],
+      };
+      for(const owner of ['visualTransform','materialOverrides','textureOverrides','animationOverrides','miscVisuals','uuid'])p[owner]=(i,r)=>s.objectVisuals.saveOwner(i,r,owner);
+      return await saveNativeItem(item,flag,p,root);
+    }catch(error){s.report(error,{...s.diagnosticContext(item?.id),operation:'native-item-save'});throw error;}
+  }
   quickbarProviders(presentation,{actor=this.session.player,canUse,notify=()=>{}}={}){
     const s=this.session;
     const p={controlled:()=>s.player===actor?actor:null,controlledId:()=>s.player.id,
@@ -170,18 +207,89 @@ export class NativeItemRuntime {
     item.activeUseMask??=0;item.activeUseBytes??=Array(8).fill(0);item.nativeVisual462??=0;
     item.nativeItemPending240??=0; // Local client item-menu pending projection.
     item.modelParts??=Array(3).fill(0);item.armorParts??=Array(19).fill(0);item.colors??=Array(6).fill(0);
+    item.partColors??=Array(6).fill(null); // CNWItem six optional channel arrays.
+    item.nativeHidden468??=0; // item ctor14046304f; typed Hidden load1404698ff..923.
+    item.nativeUseable264??=1; // CNWSObject ctor14048b760, generic264/item2ac.
+    item.nativeItemLocalized??=Object.fromEntries([0x3e0,0x3f0,0x420].map(o=>[o,{strRef:0xffffffff,entries:[]}]));
+    item.nativeItemStrings??={0x430:'',0x400:'',0x410:''};
   }
+  async copyInto(destination,source,copyVariables=0){
+    const s=this.session,scalars={0x3c8:'possessorId',0x394:'nativeAddCost394',0x388:'charges',0x35c:'nativeBaseArmor35c',0x444:'nativeInfinite444',0x454:'stackSize',0x45c:'nativeUnitWeight45c',0x360:'identified',0x144:'plot',0x458:'stolen',0x468:'nativeHidden468',0x40:'baseItem'};
+    const result=await copyNativeItem(destination,source,copyVariables,{
+      repository:i=>i.nativeRepository,repositoryCount:r=>r.length,
+      localized:(i,o,v)=>{if(v!==undefined)i.nativeItemLocalized[o]=structuredClone(v);return i.nativeItemLocalized[o];},
+      string:(i,o,v)=>{const key=o===0x68?'tag':o===0x78?'templateResRef':null;if(v!==undefined){if(key)i[key]=String(v);else i.nativeItemStrings[o]=String(v);}return key?i[key]??'':i.nativeItemStrings[o];},
+      scalar:(i,o,v)=>{const key=scalars[o];if(!key)throw new Error(`Native copied item field ${o.toString(16)} is unavailable`);if(v!==undefined)i[key]=key==='possessorId'?v>>>0:v|0;if(!Number.isInteger(i[key]))throw new Error(`Native copied item ${key} is unavailable`);return i[key]|0;},
+      byte:(i,o,v)=>{const index=o-0x351;if(o===0x350){if(v!==undefined)i.activeUseMask=v&255;return i.activeUseMask;}if(v!==undefined)i.activeUseBytes[index]=v&255;return i.activeUseBytes[index];},
+      appearance:(i,kind,index,v)=>{if(v!==undefined)i[kind][index]=v&(kind==='colors'?255:65535);return i[kind][index];},
+      removeTag:i=>s.lifecycle.removeTag(i),addTag:i=>addModuleTag(s.tags,i.tag,i.id),
+      constructRepository:(i,r)=>{i.nativeRepository=new ItemRepository(i.id,r.width,r.height,r.boundary,0,message=>s.combat.warning(i,message));},
+      copyVariables:(d,a)=>{if(d.locals===a.locals)return;for(const entry of a.locals.entries.values())if(entry.cswy!==null||entry.json!==null)s.combat.unsupported(a,'Native CopyScriptVars structured JSON/Cassowary value ownership is unavailable');d.locals.copyFrom(a.locals);},
+      properties:(i,active)=>i[active?'activeProperties':'passiveProperties'],assignProperties:(i,a,active)=>{i[active?'activeProperties':'passiveProperties']=structuredClone(a);},
+      effects:i=>i.effects,copyEffectFresh:e=>s.effects.assignFresh(e),hasPartColors:(i,ch)=>i.partColors[ch]!==null,getPartColor:getItemPartColor,setPartColor:setItemPartColor,
+      updateVisual:i=>this.visualChanged(i),
+    });
+    if(result!==0){destination.nativeItemLoaded=true;destination.name=source.name;}
+    return result;
+  }
+  async copy(source,copyVariables=0){
+    const s=this.session,item=s.register('item',`runtime:item:${s.registry.nextObjectId[0]}`,{authored:{},equipmentSlot:null,deferTagLookup:true});
+    if(await this.copyInto(item,source,copyVariables)===0){await s.lifecycle.destroy(item);return null;}return item;
+  }
+  copyCommandProviders(){
+    const s=this.session,acquisition=s.itemAcquisitionProviders();return{
+      item:id=>{const o=s.registry.get(id);return o?.objectType===6?o:null;},object:id=>s.registry.get(id)??null,
+      construct:()=>s.register('item',`runtime:item:${s.registry.nextObjectId[0]}`,{authored:{},equipmentSlot:null,deferTagLookup:true}),
+      copy:(...args)=>this.copyInto(...args),destroy:o=>s.lifecycle.destroy(o),setPossessor:(...args)=>setItemPossessor(...args,s.itemOwnershipProviders()),
+      asWorld:asNWSObject,asCreature:o=>o.objectType===5?o:null,asPlaceable:o=>o.objectType===9?o:null,asItem:o=>o.objectType===6?o:null,asStore:o=>o.objectType===14?o:null,
+      position:o=>[Math.fround(o.position[0]),Math.fround(-o.position[2]),Math.fround(o.position[1])],area:o=>{const a=s.registry.get(o.areaId);return a?.objectType===4?a:null;},addToArea:(...args)=>s.lifecycle.addItemArea(...args),
+      acquireCreature:(...args)=>acquireCreatureItem(...args,acquisition),acquirePlaceable:(...args)=>acquirePlaceableItem(...args,acquisition),acquireContainer:(...args)=>acquireContainerItem(...args,acquisition),acquireStore:(...args)=>s.worldTemplates.stores.acquire(...args),
+    };
+  }
+  modificationProviders(){
+    const s=this.session,partTables=['parts_foot','parts_foot','parts_shin','parts_shin','parts_legs','parts_legs','parts_pelvis','parts_chest','parts_belt','parts_neck','parts_forearm','parts_forearm','parts_bicep','parts_bicep','parts_shoulder','parts_shoulder','parts_hand','parts_hand','parts_robe'];
+    return{baseInfo:i=>this.baseInfo(i),warning:line=>runtimeDiagnostics.record('items.appearance-modification-warning','Native CopyItemAndModify validation warning',{sourceLine:line}),
+      modelReference:(...args)=>baseItemReference(args[0],false,...args.slice(1)),iconReference:(...args)=>baseItemReference(args[0],true,...args.slice(1)),exists:(name,type)=>s.resolver.hasResource(name,type),
+      partTable:index=>partTables[index]?this.table(partTables[index]):null,rowCount:table=>(table.orderedRows??[...table.rows.values()]).length,
+      armor:item=>itemArmorClass({data:canonicalItemData(item)},s.characterRules),weight:async item=>{item.nativeUnitWeight45c=await this.weight(item);},
+      partColor:(item,...args)=>{setItemPartColor(item,...args);if(item.partColors.some(channel=>channel?.some(value=>value!==255)))runtimeDiagnostics.record('items.part-colors-rendering-unimplemented','Native per-part item palette values are preserved; rendering those overrides is unavailable',s.diagnosticContext(item.id));},
+      cloakTable:()=>this.table('cloakmodel'),cloakIcon:(table,index)=>intEntry(table,index,'ICON').value,
+    };
+  }
+  async copyCommandReader(argc,read,modify=false){
+    let result=OBJECT_INVALID,popError;const p=this.copyCommandProviders(),appearance=this.modificationProviders();
+    const status=await (modify?scriptCopyItemAndModify:scriptCopyItem)(argc,{...p,
+      pop:type=>{try{return{ok:true,value:read(type)};}catch(error){popError=error;return{ok:false};}},push:id=>{result=id;return true;},warning:appearance.warning,modify:(...args)=>modifyCopiedItemAppearance(...args,appearance),
+    });
+    if(status===-639)throw popError??new Error('Native CopyItem argument decoding failed (-639)');
+    if(status!==0)throw new Error(`Native CopyItem result push failed (${status})`);return result;
+  }
+  copyCommand(args){let cursor=0;return this.copyCommandReader(args.length,()=>{if(cursor>=args.length)throw new Error('Native CopyItem VM argument is unavailable');return args[cursor++];});}
+  copyCommandStack(vm,frame,argc){return this.copyCommandReader(argc,type=>vm.pop(frame,type));}
+  modifyCommand(args){let cursor=0;return this.copyCommandReader(args.length,()=>{if(cursor>=args.length)throw new Error('Native CopyItemAndModify VM argument is unavailable');return args[cursor++];},true);}
+  modifyCommandStack(vm,frame,argc){return this.copyCommandReader(argc,type=>vm.pop(frame,type),true);}
+  async armorCommandReader(read){
+    let result=0,popError;const s=this.session,status=await scriptItemACValue({
+      pop:type=>{try{return{ok:true,value:read(type)};}catch(error){popError=error;return{ok:false};}},push:value=>{result=value;return true;},
+      item:id=>{const item=s.registry.get(id);return item?.objectType===6?item:null;},baseArmor:item=>item.nativeBaseArmor35c,passiveCount:item=>item.passiveProperties.length,passive:(item,index)=>item.passiveProperties[index]??null,
+    });
+    if(status===-639)throw popError??new Error('Native GetItemACValue argument decoding failed (-639)');if(status!==0)throw new Error(`Native GetItemACValue result push failed (${status})`);return result;
+  }
+  armorCommand(args){let cursor=0;return this.armorCommandReader(()=>{if(cursor>=args.length)throw new Error('Native GetItemACValue VM argument is unavailable');return args[cursor++];});}
+  armorCommandStack(vm,frame){return this.armorCommandReader(type=>vm.pop(frame,type));}
   baseInfo(item){
     const table=this.session.characterRules?.baseitems;if(!table)throw new Error('Native item baseitems ownership is unavailable');
     const base=item.baseItem|0,count=table.orderedRows?.length??table.rows.size;if(base<0||base>=count)return null;
     if(!this.baseTables.has(table))this.baseTables.set(table,new Map());const cache=this.baseTables.get(table);if(cache.has(base))return cache.get(base);
     const read=name=>intEntry(table,base,name).value;
     const acEnchant=intEntry(table,base,'AC_Enchant'); // loader14029fd38..14029fd5c defaults BYTE to255 on failure.
+    const ranged=intEntry(table,base,'RangedWeapon'); // loader14029ec9e..14029ecb6 writes0 on failed lookup.
     const requiredFeats=[];for(let index=0;index<5;index++){const feat=intEntry(table,base,`ReqFeat${index}`);if(feat.found)requiredFeats.push(feat.value&65535);}
-    const info={modelType:read('ModelType')&255,basePropColumn:read('BasePropColumn')&255,width:read('InvSlotWidth')&255,height:read('InvSlotHeight')&255,
+    const info={modelType:read('ModelType')&255,basePropColumn:read('PropColumn')&255,width:read('InvSlotWidth')&255,height:read('InvSlotHeight')&255,
       stacking:read('Stacking')&65535,container:read('Container'),weaponWield:read('WeaponWield')&255,weaponType:read('WeaponType')&255,weaponSize:read('WeaponSize')&255,
-      equipableSlots:read('EquipableSlots'),qbBehaviour:read('QBBehaviour')&255,ranged:read('RangedWeapon')&255,arcaneSpellFailure:read('ArcaneSpellFailure')&255,acEnchant:acEnchant.found?acEnchant.value&255:255,requiredFeats,
-      category:read('Category')&255,baseCost:nativeFloatEntry(table,base,'BaseCost').value,itemMultiplier:nativeFloatEntry(table,base,'ItemMultiplier').value,storePanel:read('StorePanel')&255,storePanelSort:read('StorePanelSort')&255,ilrStackSize:read('ILRStackSize')&255};
+      equipableSlots:read('EquipableSlots'),qbBehaviour:read('QBBehaviour')&255,ranged:ranged.found?ranged.value&255:0,arcaneSpellFailure:read('ArcaneSpellFailure')&255,acEnchant:acEnchant.found?acEnchant.value&255:255,requiredFeats,
+      category:read('Category')&255,baseCost:nativeFloatEntry(table,base,'BaseCost').value,itemMultiplier:nativeFloatEntry(table,base,'ItemMultiplier').value,storePanel:read('StorePanel')&255,storePanelSort:read('StorePanelSort')&255,ilrStackSize:read('ILRStackSize')&255,
+      itemClass:spellStringEntry(table,base,'ItemClass').split('\0')[0].slice(0,10),genderSpecific:read('GenderSpecific')&255,defaultIcon:objectTemplateResRef(spellStringEntry(table,base,'DefaultIcon')),defaultModel:objectTemplateResRef(spellStringEntry(table,base,'DefaultModel'))};
     cache.set(base,info);return info;
   }
   priceProviders(){
@@ -250,6 +358,7 @@ export class NativeItemRuntime {
       {...this.session.diagnosticContext(item.id),full:state.full,mask:state.mask,changedMask:state.changedMask,uses:state.uses});
   }
   async visualChanged(item){
+    if(item.partColors?.some(channel=>channel?.some(value=>value!==255)))runtimeDiagnostics.record('items.part-colors-rendering-unimplemented','Native per-part item palette values are preserved; rendering those overrides is unavailable',this.session.diagnosticContext(item.id));
     item.nativeVisual462=await selectItemVisual(item,this.session.characterRules,{baseInfo:i=>this.baseInfo(i),subtypeTable:name=>this.table(name)});
     if(item.nativeVisual462!==0)runtimeDiagnostics.record('items.visual-unimplemented','Native item visual selected; weapon-attached visual rendering is unavailable',
       {...this.session.diagnosticContext(item.id),visual:item.nativeVisual462});
@@ -259,7 +368,7 @@ export class NativeItemRuntime {
     return{weight:async item=>{item.nativeUnitWeight45c=await this.weight(item);},creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},
       equipped:(o,item)=>o.nativeEquipment.contains(item),slot:(o,item)=>o.nativeEquipment.slot(item),ai:()=>this,
       applyProperty:(_ai,...args)=>this.materialize(...args),removeProperty:(_ai,...args)=>this.dematerialize(...args),
-      combatInformation:o=>{this.refreshProjection(o);s.refreshCombat(o);},contentsWeight:repo=>s.combat.contentsWeight(repo),encumbrance:(...args)=>s.combat.encumbrance(...args),
+      combatInformation:o=>{this.refreshProjection(o);s.updateNativeCombatInformation(o);},contentsWeight:repo=>s.combat.contentsWeight(repo),encumbrance:(...args)=>s.combat.encumbrance(...args),
       visual:item=>this.visualChanged(item),activeChanged:(...args)=>this.activeChanged(...args),
       removeActive:(item,i)=>item.activeProperties.splice(i,1),removePassive:(item,i)=>item.passiveProperties.splice(i,1)};
   }
@@ -275,9 +384,15 @@ export class NativeItemRuntime {
     },activeChanged:(...args)=>this.activeChanged(...args),
     propertyChanged:(...args)=>this.propertyChanged(...args)});}
   removeProperty(item,effect){return removeItemProperty(item,effect,this.propertyMutationProviders());}
+  bonusSpellSlotProviders(owner){const s=this.session;return{
+    classes:o=>creatureRoot(o).ClassList,classType:(o,i)=>creatureRoot(o).ClassList[i].Class,
+    state:(o,i)=>o.nativeTalentClasses?.[i],memorizes:type=>intEntry(s.characterRules.classes,type,'MemorizesSpells').value,
+    gain:(o,i,level)=>spellGainWithBonus(o,i,level,s.characterRules,s.spellBook.providers(o)),
+    resize:(o,i,level,count,deleteSlots)=>{const state=o.nativeTalentClasses?.[i];if(!state)throw new Error('Native bonus spell slot pool is unavailable');return resizeMemorizedSlots(state,level,count,deleteSlots,s.spellBook.providers(o));},
+    warning:message=>s.spellBook.warning(owner,message)};}
   materializerProviders(){
     const s=this.session,required=table=>{if(!table)throw new Error('Native item-property materializer table is unavailable');return table;};
-    return{base:item=>this.baseInfo(item),create:(...args)=>s.effects.create(...args),creator:(e,id)=>s.effects.setCreator(e,id),
+    return{bonusSlots:o=>this.bonusSpellSlotProviders(o),base:item=>this.baseInfo(item),create:(...args)=>s.effects.create(...args),creator:(e,id)=>s.effects.setCreator(e,id),
       copy:(e,mode)=>mode==='constructor'?s.effects.copyConstruct(e):structuredClone(e),
       has:(item,type,subtype)=>Number([...item.activeProperties,...item.passiveProperties].some(p=>(p.type&65535)===(type&65535)&&(subtype===0||(p.subtype&65535)===(subtype&65535)))),
       melee:()=>required(s.characterRules.iprp_meleecost),
@@ -310,7 +425,7 @@ export class NativeItemRuntime {
     warning:kind=>runtimeDiagnostics.record('items.effect-materialization-warning',`Native item property effect ${kind} warning`,{...this.session.diagnosticContext(item.id),propertyId:property.propertyId})});
     if(property&&itemPropertyApplyHandlers.has(property.type&65535))(owner.materializedItemProperties??=new Set()).add(property.propertyId);
   }
-  propertyRemoveHandler(type){const address=itemPropertyRemoveHandlers.get(type);if(address)throw new Error(`Native item property ${type} removal handler ${address} is unavailable`);return null;}
+  propertyRemoveHandler(type){if(type===13)return(item,property,owner,slot)=>removeBonusSpellOfLevel(item,property,owner,slot,this.bonusSpellSlotProviders(owner));const address=itemPropertyRemoveHandlers.get(type);if(address)throw new Error(`Native item property ${type} removal handler ${address} is unavailable`);return null;}
   async dematerialize(item,property,owner,slot){await dematerializeItemProperty(item,property,owner,slot,{
     remove:(o,e)=>this.session.effects.removeOne(o.id,e.id,undefined,e),
     handler:type=>this.propertyRemoveHandler(type)});
@@ -343,18 +458,14 @@ export class NativeItemRuntime {
     });
     if(result!==0)item.nativeItemFromGffLoaded=true;return result;
   }
-  loadSavedState(item,data){
-    // Object Load4974b0: effects -> variables -> action list -> Transition.
-    // Fresh normal items have no saved effects/actions/transition. Preserve
-    // explicit unsupported records instead of silently discarding saved state.
-    for(const name of['EffectList']){const entry=readItemGffField(data,'list',name,[]);if(entry.status!==0&&entry.value.length)throw new Error('Native saved item effect import is unavailable');}
-    if(getGffFieldTypes(data))this.session.loadNativeVariables(item,data);else this.session.loadNativeVariableRows(item,data.VarTable??[]);
-    const actions=readItemGffField(data,'list','ActionList',[]);if(actions.status!==0&&actions.value.length)throw new Error('Native saved item action-list import is unavailable');
-    if(readItemGffField(data,'struct','Transition',null).status!==0)throw new Error('Native saved item transition import is unavailable');
-  }
+  loadSavedState(item,data){return this.session.objectState.load(item,data);}
   async loadData(item,data,{insideContainer=0,loading=0}={}){
     if(item.nativeItemLoaded)throw new Error('Native item reload/removal of existing property owners is unavailable');
+    item.nativeUseable264=readItemGffField(data,'bool','Useable',1).value; // LoadDataFromGff: failed/missing typed read leaves1.
     item.authored=cloneGff(data);const typed=Boolean(getGffFieldTypes(data));
+    for(const[offset,name]of[[0x3e0,'DescIdentified'],[0x3f0,'Description'],[0x420,'LocalizedName']])item.nativeItemLocalized[offset]=structuredClone(typed?readNativeGff(data,name,12,{strRef:0xffffffff,entries:[]}).value:data[name]??{strRef:0xffffffff,entries:[]});
+    for(const[offset,name]of[[0x430,'DisplayName'],[0x400,'DescIdentifiedOverride'],[0x410,'DescriptionOverride']])item.nativeItemStrings[offset]=readItemGffField(data,'string',name,'').value;
+    item.nativeHidden468=readItemGffField(data,'bool','Hidden',0).value;
     item.baseItem=typed?readNativeGff(data,'BaseItem',5,item.baseItem).value:(data.BaseItem??24)>>>0;
     const info=this.baseInfo(item);if(!info)throw new Error('Native item LoadDataFromGff: invalid base item type');
     if(insideContainer!==0&&info.container!==0)throw new Error('Native item LoadDataFromGff: a container cannot be placed inside another container');
@@ -369,6 +480,7 @@ export class NativeItemRuntime {
     if([0,1,2].includes(info.modelType))item.modelParts=Array.from({length:3},(_,i)=>i===0||info.modelType===2?(data[`ModelPart${i+1}`]??0)&65535:0);
     if(info.modelType===3)item.armorParts=nativeArmorPartFields.map(name=>(data[name]??0)&65535);
     if(info.modelType===1||info.modelType===3)item.colors=nativePaletteFields.map(name=>(data[name]??0)&255);
+    if(info.modelType===3)for(let part=0;part<19;part++)for(let channel=0;channel<6;channel++)setItemPartColor(item,channel,part,readItemGffField(data,'byte',`APart_${part}_Col_${channel}`,getItemPartColor(item,channel,part)).value);
     if(info.container!==0){item.nativeRepository=new ItemRepository(item.id,7,5,35,0);await this.session.loadInventory(item,data,{loading});}
     for(const entry of data.PropertiesList??[]){
       const effect=importedPropertyEffect(entry,(type,integers)=>this.session.effects.create(type,OBJECT_INVALID,integers));

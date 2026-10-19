@@ -10,7 +10,8 @@ export function parseTalkTable(input) {
   const encodings = { 0: 'windows-1252', 1: 'windows-1252', 2: 'windows-1252', 3: 'windows-1252', 4: 'windows-1252', 5: 'windows-1250', 128: 'euc-kr', 129: 'big5', 130: 'gbk', 131: 'shift-jis' };
   const decoder = new TextDecoder(encodings[language] ?? 'windows-1252');
   const cache = new Map();
-  return { language, count, get(index) {
+  const nativeFile={bytes:bytes.slice(),version14:0x302e3356,count1c:count,textOffset20:textOffset,language,cache:new Map(),position:0};
+  return { language, count, nativeFile, get(index) {
     if (!Number.isInteger(index) || index < 0 || index >= count) return undefined;
     if (cache.has(index)) return cache.get(index);
     const offset = 20 + index * 40;

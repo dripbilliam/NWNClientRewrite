@@ -30,11 +30,24 @@ test('instantiated model emitters own independent native CPU state and GPU buffe
  presentation.dispose();assert.equal(presentation.entries.size,0);assert.equal(templateMesh.material.uniforms.particleMap.value,texture);
 });
 test('selected missing model particle services are recorded once and unavailable emitters remain hidden',()=>{
- for(const overrides of [{p2p:1},{chunkname:'chunk'},{update:'Lightning'},{blend:'Punch-Through'},{affectedbywind:'true'},{tinted:1},{bounce:1},{detonate:1}]){
+ for(const overrides of [{p2p:1},{chunkname:'chunk'},{blend:'Punch-Through'},{affectedbywind:'true'},{tinted:1},{detonate:1}]){
   const {root,presentation,records}=fixture(overrides);presentation.update(root,.1);presentation.update(root,.1);presentation.update(root,.1);
   assert.equal(records.filter(r=>r[0]==='particle.runtime-unavailable').length,1,JSON.stringify(overrides));
   assert.ok([...presentation.entries.values()].every(e=>e.failed&&!e.mesh.visible));presentation.dispose();
  }
+});
+
+test('bounce emitters keep simulating with static-scene collision and retain the dynamic-scene limitation diagnostic',()=>{
+ const {root,presentation,records}=fixture({bounce:1,bounce_co:.5,lifeexp:2});
+ for(let i=0;i<5;i++)presentation.update(root,.05);
+ assert.ok([...presentation.entries.values()].every(e=>!e.failed&&e.frames===5&&e.drawCount>0));
+ assert.equal(records.filter(r=>r[0]==='particle.runtime-unavailable').length,0);
+ assert.equal(records.filter(r=>r[0]==='particle.scene-collision-partial').length,1);presentation.dispose();
+});
+test('Lightning without a direct reference has no endpoint, drains without decorative particles and keeps canonical state absent',()=>{
+ const {root,presentation,records}=fixture({update:'Lightning',render:'Linked',birthrate:3,lifeexp:0});presentation.update(root,.05);presentation.update(root,.05);
+ for(const entry of presentation.entries.values()){assert.equal(entry.failed,false);assert.equal(entry.e.target1c0,null);assert.equal(entry.e.targetListener128.active,false);assert.equal(entry.e.ageMode1cc,0);assert.equal(entry.e.active188.records.length,0);assert.equal(entry.drawCount,0);}
+ assert.equal(records.filter(r=>r[0]==='particle.runtime-unavailable').length,0);presentation.dispose();
 });
 test('camera-facing particle vertices face the actual Three camera across camera rotations',()=>{
  for(const rotation of [[0,0,0],[.3,.7,-.2],[-.7,-.2,.4]]){

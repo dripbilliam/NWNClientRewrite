@@ -14,8 +14,8 @@ test('beam children share ownership and expire together',async()=>{
  const {s,o}=fixture(),e=s.commands.EffectBeam([100,o.id,1,0],{self:o.id});
  await s.effects.apply(1,e,o.id,2);assert.deepEqual(o.effects.map(e=>e.type),[30,32]);
  assert.ok(o.effects.every(row=>row.id===e.id));assert.equal(o.nativeLoopingVisuals160.records.length,1);
- s.scheduler.time=2000;await s.effects.updateObject(o);assert.equal(o.effects.length,2,'native expiry is strictly after the timestamp');
- s.scheduler.time=2001;await s.effects.updateObject(o);assert.equal(o.effects.length,0);assert.equal(o.nativeLoopingVisuals160.records.length,0);
+ s.scheduler.time=2000;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.equal(o.effects.length,2,'native expiry is strictly after the timestamp');
+ s.scheduler.time=2001;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.equal(o.effects.length,0);assert.equal(o.nativeLoopingVisuals160.records.length,0);
  assert.equal(s.commands.EffectBeam([101,o.id,1,0],{self:o.id}).type,0);
 });
 test('overlapping blindness sources keep flags until their final linked removal',async()=>{
@@ -38,8 +38,8 @@ test('special vision suppresses darkness and restores it only inside a canonical
 test('overlapping see-invisible sources retain detection until the last expires',async()=>{
  const {s,o}=fixture(),a=s.commands.EffectSeeInvisible([],{self:o.id}),b=s.commands.EffectSeeInvisible([],{self:o.id});
  await s.effects.apply(1,a,o.id,1);await s.effects.apply(1,b,o.id,2);assert.equal(o.visionFlags,1);
- s.scheduler.time=1001;await s.effects.updateObject(o);assert.equal(o.visionFlags,1);
- s.scheduler.time=2001;await s.effects.updateObject(o);assert.equal(o.visionFlags,0);assert.equal(o.effects.length,0);
+ s.scheduler.time=1001;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.equal(o.visionFlags,1);
+ s.scheduler.time=2001;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.equal(o.visionFlags,0);assert.equal(o.effects.length,0);
 });
 test('dispelling defers linked removal and preserves other spells when only one ID is selected',async()=>{
  for(const best of [false,true]){

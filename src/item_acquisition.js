@@ -63,6 +63,29 @@ export async function acquirePlaceableItem(placeable,ref,source,x,y,feedback,p){
  return 1;
 }
 
+// Complete CNWSItem::AcquireItem140463e80..1404640d8. A repository on
+// the incoming item rejects it even when empty; containers cannot be nested.
+export async function acquireContainerItem(container,ref,source,x,y,feedback,p){
+ source=integer(source,'source ID')>>>0;x=integer(x,'x')&255;y=integer(y,'y')&255;feedback=integer(feedback,'feedback');
+ let item=ref.item,bag=null;if(!item)throw new Error('Native container acquisition dereferences a null item');
+ if(required(p,'repository')(item))return 0;
+ if((integer(item.possessorId,'possessor')>>>0)!==source){bag=required(p,'itemById')(item.possessorId);if(!bag||(integer(bag.possessorId,'bag possessor')>>>0)!==source)return 0;source=integer(ref.item.possessorId,'possessor')>>>0;item=ref.item;}
+ const repo=p.repository(container);if(!repo)return 0;
+ if(x===255&&y===255){const point=await required(p,'findPosition')(repo,item,0);if(!point)return 0;({x,y}=point);if(await required(p,'fit')(repo,ref.item,x,y)===0)return 0;}
+ const previous=required(p,'objectById')(source);
+ if(previous){
+  if(previous.objectType===5)await required(p,'removeCreatureItem')(previous,ref.item,0,feedback,0,1);
+  else if(previous.objectType===9)await required(p,'removePlaceableItem')(previous,ref.item,1);
+  else if(previous.objectType===6&&p.repository(previous))await required(p,'removeRepositoryItem')(p.repository(previous),ref.item);
+ }else if(bag){
+  const incoming=required(p,'baseInfo')(ref.item);if(!incoming)throw new Error('Native container acquisition base storage is unavailable');
+  if(incoming.container!==0){const info=p.baseInfo(bag);if(!info)throw new Error('Native container acquisition bag base storage is unavailable');if(info.container!==0)return 0;}
+ }
+ const result=await required(p,'add')(repo,ref,x,y,0,1);
+ if(result===1){if(!previous&&ref.item)await required(p,'removeFromArea')(ref.item);if(ref.item)await required(p,'setPossessor')(ref.item,container.id,1,feedback,0);}
+ return result;
+}
+
 // CNWSPlaceable::RemoveItem1404b69d0. Only exact membership result1 removes;
 // optional possession clearing treats any nonzero INT as true.
 export async function removePlaceableItem(placeable,item,clearPossessor,p){

@@ -8,9 +8,22 @@ import { createModelHierarchy } from './model_hierarchy.js';
 import { inheritAnimations } from './mdl_animation.js';
 import { ModelAnimator } from './model_animation.js';
 import { createModelLight, setModelLightShadows, installModelLightShaders } from './model_light.js';
+import {RendererShadowBudget} from './renderer_shadow_budget.js';
 import { LoopingVisualPresentation } from './looping_visual_presentation.js';
 import {createVisualSceneRuntime} from './visual_scene_runtime.js';
 import {ObjectVisualInbox} from './object_visual_inbox.js';
+import {ClientProjectileInbox,ClientProjectilePresentation} from './client_projectile_presentation.js';
+import {serverObjectIdForClient} from './client_projectile_message.js';
+import {ClientSpellPresentation} from './client_spell_presentation.js';
+import {ClientPausePresentation} from './client_pause_presentation.js';
+import {localClientCastFields} from './client_cast_fields.js';
+import {clientCastVoiceFields} from './client_cast_voice_fields.js';
+import {clientProjectileModelQuaternion} from './client_projectile_orientation.js';
+import {randomSceneModelPart} from './model_random_part.js';
+import {NativeRandom} from './native_random.js';
+import {visualLocalPoseServices} from './visual_scene_pose.js';
+import {ModelReferenceScene} from './model_reference_scene.js';
+import {loadModelReferenceAssets,releaseModelReferenceAssets} from './model_reference_assets.js';
 import {CreatureAnimationPresentation} from './creature_animation_presentation.js';
 import {totalAttackDamage} from './combat_attack_data.js';
 import {attackResultDoesDamage} from './combat_strike.js';
@@ -29,6 +42,14 @@ import { animateDoorState } from './door_animation.js';
 import { createDoorUseHandler, doorUsePoints } from './door_use.js';
 import { WorldObjects } from './world_objects.js';
 import { ModuleSession } from './module_session.js';
+import {NetworkScene} from './network_scene.js';
+import {NetworkPlayerCamera} from './network_camera.js';
+import {GameCamera} from './game_camera.js';
+import {cameraModelHitFaces} from './native_polygon_hit.js';
+import {cameraSceneQuery} from './camera_scene_query.js';
+import {GameCameraInput} from './game_camera_input.js';
+import {CameraKeyholePresentation} from './camera_keyhole_shader.js';
+import {NetworkFrontend} from './network_frontend.js';
 import { horizontalInRange } from './interaction_range.js';
 import { resolveJumpSpawn } from './transition_spawn.js';
 import { ActionQueue } from './action_queue.js';
@@ -51,6 +72,22 @@ import { CharacterFrontend } from './character_frontend.js';
 import { parseCharacter,resolvePlayerModels } from './character.js';
 import { GameAudio } from './game_audio.js';
 import {VoicePresentation} from './voice_presentation.js';
+import {networkRadialActions,networkDefaultInteraction} from './network_action_menu.js';
+import {NetworkDialogView} from './network_dialog_view.js';
+import {NetworkQuickbarView} from './network_quickbar_view.js';
+import {NetworkSpellTargeting} from './network_spell_targeting.js';
+import {prepareNetworkSpellMenus} from './network_spell_menu.js';
+import {prepareNetworkItemMenu} from './network_item_menu.js';
+import {configureNetworkItemShortcut} from './network_quickbar_items.js';
+import {emptyQuickbarButton} from './quickbar.js';
+import {networkFamiliar} from './network_associates.js';
+import {NetworkInventoryView} from './network_inventory_view.js';
+import {NetworkPartyView} from './network_party_view.js';
+import {NetworkPanels} from './network_panels.js';
+import {NetworkTimingView} from './network_timing_view.js';
+import {NetworkExamineView} from './network_examine_view.js';
+import {RendererLightSlots} from './renderer_light_slots.js';
+import {intEntry} from './combat_stats.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 import { installDiagnosticReporting } from './diagnostic_reporting.js';
 import './style.css';
@@ -101,12 +138,18 @@ const movementHud = document.querySelector('#movement-hud');
 const doorAction = document.querySelector('#door-action');
 const doorFeedback = document.querySelector('#door-feedback');
 let moduleSession = null;
+let networkPresentation=null,networkCombatSnapshotAt=0;
+const networkCamera=new NetworkPlayerCamera({report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+let networkFrontend=null;
 let gameAudio = null;
 let voicePresentation=null;
 let creatureAnimations=null;
+let clientPause=null;
 let dynamicCreatureSync=null;
 let loopingVisuals=null;
 let visualDelivery=null;
+let projectileDelivery=null,projectiles=null;
+const clientAnimationRandom=new NativeRandom(1);
 const unlockAudio = () => { void gameAudio?.unlock(); };
 window.addEventListener('pointerdown', unlockAudio, { capture: true });
 window.addEventListener('keydown', unlockAudio, { capture: true });
@@ -132,11 +175,19 @@ renderer.toneMappingExposure = 1;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const modelParticles=new ModelParticlePresentation({camera,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+const rendererShadowBudget=new RendererShadowBudget({renderer,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.target.set(0, 0.5, 0);
+const singlePlayerCamera=new GameCamera();
+let cameraKeyhole=null;
+let orbitConnected=true;
+const gameplayCameraActive=()=>Boolean(networkPresentation||playerController&&cameraFollowsPlayer);
+const gameplayCamera=()=>networkPresentation?networkCamera.controller:singlePlayerCamera;
+const gameplayCameraInput=new GameCameraInput(canvas,{active:gameplayCameraActive,enabled:()=>controls.enabled&&!radialMenu.active&&!networkDialog?.active&&!networkInventory?.active&&!moduleSession?.player.cutscene?.enabled,controller:gameplayCamera});
+for(const select of document.querySelectorAll('[data-camera-mode]'))select.addEventListener('change',()=>{const mode=Number(select.value);gameplayCamera().setMode(mode);for(const other of document.querySelectorAll('[data-camera-mode]'))other.value=String(mode);});
 
 const sceneLighting = new THREE.Group();
 scene.add(sceneLighting);
@@ -182,8 +233,17 @@ window.addEventListener('resize', resizeRenderer);
 resizeRenderer();
 
 const effectClock = new THREE.Clock();
+const rendererLightSlots=new RendererLightSlots(renderer,(...args)=>runtimeDiagnostics.record(...args));
+let frameTimingPublished=0;
+let rendererWarmupCount=0;
 renderer.setAnimationLoop(() => {
+  const frameStarted=performance.now();
   const delta = effectClock.getDelta();
+  // Native animation scheduling uses elapsed world time even on a slow frame.
+  // Clamping it made queued server rounds race through shortened catch-up clips.
+  networkPresentation?.update(delta);
+  const networkUpdated=performance.now();
+  if(networkPresentation&&performance.now()-networkCombatSnapshotAt>=200){networkCombatSnapshotAt=performance.now();canvas.dataset.networkCombat=JSON.stringify(networkPresentation.combat?.snapshot()??null);canvas.dataset.networkProjectiles=JSON.stringify(networkPresentation.projectiles?.snapshot()??null);canvas.dataset.networkScene=JSON.stringify(networkSceneSnapshot());}
   const simulationReady = !moduleSession?.scheduler.pumping;
   if (simulationReady) {
     dynamicCreatureSync?.();
@@ -194,8 +254,11 @@ renderer.setAnimationLoop(() => {
     if (cameraFollowsPlayer) { const deltaPosition = new THREE.Vector3(...shift); controls.target.add(deltaPosition); camera.position.add(deltaPosition); }
     }); } catch (error) { if (moduleSession) moduleSession.report(error, { operation: 'creature-render-position' }); else runtimeDiagnostics.error(error); }
   }
-  controls.update();
-  updateScriptCamera(delta);
+  const gameCameraActive=gameplayCameraActive();
+  if(gameCameraActive&&orbitConnected){controls.disconnect();orbitConnected=false;}
+  else if(!gameCameraActive&&!orbitConnected){controls.connect(canvas);orbitConnected=true;}
+  if(!gameCameraActive)controls.update();
+  if(playerController?.keyboardMoving&&movementKeys.size===0)stopKeyboardMovement();
   if (simulationReady && !moduleLoadBusy && !gameUi.externalCapture && !moduleSession?.transitioning && !moduleSession?.player.cutscene?.enabled && !moduleSession?.conversation.state) updatePlayerMovement(delta);
   if (simulationReady && !moduleLoadBusy && !gameUi.externalCapture && !document.hidden && !moduleSession?.transitioning && (!moduleSession?.player.cutscene?.enabled || moduleSession.player.cutscene.leftClicks) && !moduleSession?.conversation.state) actionQueue?.update(Math.min(delta, 0.05));
   if (!document.hidden && worldObjects && moduleSession && !moduleSession.transitioning && !gameUi.externalCapture && !moduleLoadBusy) {
@@ -203,11 +266,21 @@ renderer.setAnimationLoop(() => {
     gameAudio?.update();
     void moduleSession.scheduler.pump().catch(error => moduleSession.report(error));
   }
-  if (!document.hidden&&simulationReady){creatureAnimations?.update();if(creatureAnimations)canvas.dataset.creatureAnimations=JSON.stringify(creatureAnimations.snapshot());}
+  if (!document.hidden&&simulationReady){
+    try{clientPause?.flush();if(clientPause)canvas.dataset.clientPause=JSON.stringify(clientPause.snapshot());}catch(error){moduleSession?.report(error,{operation:'client-pause-presentation'});}
+    creatureAnimations?.update();if(creatureAnimations)canvas.dataset.creatureAnimations=JSON.stringify(creatureAnimations.snapshot());
+  }
   if (!document.hidden) for (const animator of activeAnimations) if(!animator.presentationOwned||animator.presentationPreview)animator.update(Math.min(delta, 0.1));
   if (!document.hidden && simulationReady) {
     if(!moduleLoadBusy&&!moduleSession?.transitioning&&visualDelivery&&moduleSession&&worldObjects)visualDelivery.flush({session:moduleSession,objects:worldObjects,presentation:loopingVisuals});
     loopingVisuals?.update(Math.min(delta, 0.1));
+    if(!moduleLoadBusy&&!moduleSession?.transitioning&&projectileDelivery&&moduleSession&&worldObjects)projectileDelivery.flush({session:moduleSession,objects:worldObjects,presentation:projectiles});
+    projectiles?.update(Math.min(delta,.1));
+    for(const runtime of modelReferenceRuntimes.values())if(!runtime.owner.referenceParent&&!runtime.failed){
+      try{runtime.update(Math.min(delta,.1));}catch(error){runtime.failed=true;runtimeDiagnostics.error(error,'model.reference-update-failed',{model:runtime.owner.resourceName});}
+    }
+    canvas.dataset.modelReferences=JSON.stringify([...modelReferenceRuntimes.values()].map(runtime=>({resource:runtime.owner.resourceName,failed:!!runtime.failed,children:runtime.models.map(model=>({resource:model.resourceName,position:model.root.position.toArray(),quaternion:model.root.quaternion.toArray()}))})));
+    if(projectiles)canvas.dataset.projectiles=JSON.stringify(projectiles.snapshot());
     if (loopingVisuals) canvas.dataset.loopingVisuals = JSON.stringify(loopingVisuals.snapshot());
   }
   updateAnimationPlaybackStatus();
@@ -215,18 +288,31 @@ renderer.setAnimationLoop(() => {
   updateGameplayDiagnostics();
   if (simulationReady) gameUi.refresh();
   if (loadedRoot && previewEffectsEnabled.checked) updateEmitterPreviews(loadedRoot, effectClock.elapsedTime);
+  const particlesStarted=performance.now();
   if(!document.hidden&&simulationReady){modelParticles.update(loadedRoot,delta);canvas.dataset.modelParticles=JSON.stringify(modelParticles.snapshot());canvas.dataset.pointWinds=JSON.stringify(modelParticles.pointWinds);}
-  renderer.render(scene, camera);
+  const particlesEnded=performance.now();
+  gameplayCameraInput.update();
+  if(networkPresentation){networkCamera.update(networkFrontend?.world,networkPresentation,camera,controls,delta,{keyholeActive:Boolean(cameraKeyhole?.shader&&networkPresentation.objects.has(networkFrontend.world.localObjectId))});canvas.dataset.networkCamera=JSON.stringify({...networkCamera.controller.snapshot(),controlledId:networkCamera.controlledId,targetId:networkCamera.targetId,attachmentId:networkCamera.attachmentId,waitingForTarget:networkCamera.waitingForTarget,anchor:networkCamera.anchor,position:camera.position.toArray(),target:controls.target.toArray()});}
+  else updateScriptCamera(delta);
+  if(cameraKeyhole&&loadedRoot){const player=networkPresentation?networkPresentation.objects.get(networkFrontend.world.localObjectId)?.wrapper:playerController?.object;cameraKeyhole.update(loadedRoot,player?.position,gameplayCamera(),gameplayCameraActive());canvas.dataset.cameraKeyhole=JSON.stringify(cameraKeyhole.snapshot());}
+  canvas.dataset.rendererLightSlots=JSON.stringify(rendererLightSlots.update(scene));
+  canvas.dataset.rendererShadowBudget=JSON.stringify(rendererShadowBudget.update(scene,camera));
+  const renderStarted=performance.now(),programsBefore=renderer.info.programs?.length??0;
+  if(!rendererWarmupCount)renderer.render(scene, camera);
+  const frameEnded=performance.now(),timing={intervalMs:delta*1000,totalMs:frameEnded-frameStarted,networkMs:networkUpdated-frameStarted,presentationMs:particlesStarted-networkUpdated,particlesMs:particlesEnded-particlesStarted,cameraAndShadowsMs:renderStarted-particlesEnded,renderMs:frameEnded-renderStarted,programsBefore,programsAfter:renderer.info.programs?.length??0};
+  if(!document.hidden&&(timing.totalMs>250||timing.intervalMs>750))runtimeDiagnostics.record('renderer.frame-stall','Slow frame observed; durations separate frame work from time waiting between callbacks',timing);
+  if(frameEnded-frameTimingPublished>=200){frameTimingPublished=frameEnded;canvas.dataset.frameTimings=JSON.stringify(timing);}
 });
 
 const movementKeys = new Set();
 let playerController = null;
 let cameraFollowsPlayer = false;
+const modelReferenceRuntimes=new Map();
 const radialIconCache = new Map();
 const radialMenu = new RadialMenu(viewport,{
   onVisibility: visible => { controls.enabled = !visible && !gameUi?.captured && !moduleSession?.player.cutscene?.enabled; movementKeys.clear(); pointerPress = null; },
   loadIcon: name => {
-    const resolver = activeAreaResolver ?? gameDataResolver;
+    const resolver = networkPresentation?.resolver ?? activeAreaResolver ?? gameDataResolver;
     if (!resolver) return Promise.resolve(null);
     if (!radialIconCache.has(name)) radialIconCache.set(name,(async () => {
       try {
@@ -239,6 +325,8 @@ const radialMenu = new RadialMenu(viewport,{
     return radialIconCache.get(name);
   },
   onAction: (entry,context) => {
+    if(context.networkQuickbar){if(context.sessionId===networkFrontend.id&&context.areaGeneration===networkFrontend.areaGeneration&&context.actorId===networkFrontend.world?.localObjectId&&entry.action==='quickbar.assign')void networkQuickbar.assign(context.quickbarIndex,entry.binding);return;}
+    if(context.network){void submitNetworkRadialAction(entry,context);return;}
     if(entry.action==='quickbar.assign'){gameUi.assignQuickbar(context.quickbarIndex,entry.binding);return;}
     if (moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state) return;
     const actor = playerController?.actor,target=context.inventory?moduleSession?.registry.get(context.targetId):worldObjects?.get(context.targetId);
@@ -341,6 +429,10 @@ const gameUi = new GameUi(viewport, {
     radialMenu.open(buildRadialActions(item,actor,{title:gameUi.objectName(item),castMenu:()=>gameUi.worldSpellMenu(item,{filter:8}),itemUseEntries:()=>gameUi.itemUseEntries(item)}),event.clientX,event.clientY,{targetId:item.id,inventory:true});
   },
   onRequest: request => {
+    if(request.action==='character.sheet'){
+      const session=moduleSession;if(!session||request.actorId!==session.player.id)return;
+      void session.queuePlayerCharacterSheet(request).catch(error=>session.report(error,{...session.diagnosticContext(request.actorId),operation:'ui-character-sheet'}));return;
+    }
     if(['inventory.status','inventory.page','container.close','container.page','inventory.move','item.container.open'].includes(request.action)){
       const session=moduleSession;if(!session||request.actorId!==session.player.id)return;let input;
       if(request.action==='inventory.status')input=session.queuePlayerInventoryStatus(request.value,request.ownerId);
@@ -539,6 +631,7 @@ window.addEventListener('keydown', (event) => {
   if (event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) return;
   const key = event.key.toLowerCase();
   if (gameUi.captured || moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state) return;
+  if(key==='f'&&networkFrontend?.id&&networkPresentation){const binding=networkPresentation.objects.get(networkFrontend.world.localObjectId);if(binding){event.preventDefault();focusPlayer(binding.wrapper);}return;}
   if (key === 'escape') { actionQueue?.cancel();void moduleSession?.queuePlayerClearActions().catch(error=>moduleSession?.report(error));return; }
   if (key === 'f' && playerController) { event.preventDefault(); focusPlayer(playerController.object); return; }
   if (key === 'e' && playerController) {
@@ -561,6 +654,7 @@ document.addEventListener('focusin', (event) => {
 doorAction.addEventListener('click', () => interactWithDoor());
 const playerActions = document.querySelector('#player-actions');
 const openPlayerActions = (x,y) => {
+  if(networkFrontend?.id&&networkPresentation){openNetworkRadial(null,x,y,true);return;}
   if (moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state || gameUi.captured) return;
   const actor = playerController?.actor;
   if (!actor) return;
@@ -619,9 +713,17 @@ canvas.addEventListener('pointerup', event => {
     gameUi.notify('That is not a valid target for this spell');return;
   }
   const hit = pickedWorldObject(pointerRay(event.clientX, event.clientY, canvas.getBoundingClientRect(), camera), loadedRoot, worldObjects);
-  if (!hit?.object) return;
+  if(!hit)return;
+  if(!hit.object){
+    const point=hit.point.toArray(),height=findWalkableHeight(playerController.triangles,point[0],point[2],point[1],.9);
+    if(height===null){gameUi.notify('That point is not on walkable ground');return;}
+    movementKeys.clear();playerController.keyboardMoving=false;selectedWorldObject=null;actionQueue?.cancel('Moving to ground destination');
+    animationIsolate.checked=false;updateAnimationIsolation();
+    submitPlayerMovement([point[0],height,point[2]],event.shiftKey?0:1,'ground');return;
+  }
   selectedWorldObject = hit.object;
   movementKeys.clear();
+  playerController.keyboardMoving=false;
   animationIsolate.checked = false; updateAnimationIsolation();
   if(hit.object.objectType===9)submitWorldUse(hit.object,{notify:1});else actionQueue?.use(hit.object.id);
 });
@@ -754,7 +856,11 @@ areaInput.addEventListener('change', async (event) => {
     creatureAnimations?.clear();creatureAnimations=null;
     let nextSession;
     const nextVisualDelivery=new ObjectVisualInbox({session:()=>nextSession,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+    const nextProjectileDelivery=new ClientProjectileInbox({session:()=>nextSession,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+    const nextSpellPresentation=new ClientSpellPresentation({session:()=>nextSession,text:()=>gameUi.text,display:text=>gameUi.message(text,'combat',{allowRepeat:true}),report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+    const nextClientPause=new ClientPausePresentation({session:()=>nextSession,scene:id=>creatureAnimations?.bindings.get(id)??null,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
     nextSession = new ModuleSession(resolver, {
+      talkFiles:gameUi.languageFiles??[],
       runStartupScripts: document.querySelector('#run-module-startup').checked,
       // Skipping opening scripts must still leave perception and combat active.
       runNativeAI: true,
@@ -762,14 +868,20 @@ areaInput.addEventListener('change', async (event) => {
       onSound: event => gameAudio.play(event),
       onCameraMode: (actor, mode) => {
         if (actor !== moduleSession?.player) return;
+        canvas.dataset.cameraScriptMode=String(mode);
         cameraFollowsPlayer = true;
         updateScriptCamera(0, true);
-        if (mode !== 1) runtimeDiagnostics.record('camera.presentation-approximate', 'Chase-camera steering uses a local renderer adapter; native camera smoothing is not reconstructed', { actorId: actor.id, mode }, 'info');
+        for(const select of document.querySelectorAll('[data-camera-mode]'))select.value=String(mode);
       },
       onCombatMessage: event=>{
+        if(nextClientPause.receive(event))return;
+        if(nextProjectileDelivery.receive(event))return;
         if(nextVisualDelivery.receive(event))return;
+        if(nextSpellPresentation.receive(event)){if(gameUi.session===nextSession){nextSpellPresentation.flush();canvas.dataset.spellMessages=JSON.stringify(nextSpellPresentation.snapshot());}return;}
         if(moduleSession&&event.recipientId!==moduleSession.player?.id)return;
         if(event.type==='quick-chat'||event.type==='voice-chat'){void voicePresentation?.receive(event);return;}
+        if(event.type==='chat-strref'){gameUi.message({...event,type:'speech-reference'},'talk');return;}
+        if(event.type==='debug-info-string'){gameUi.message(event.text,'system');return;}
         if(event.type==='polymorph')return; // Live appearance sync below owns model replacement after canonical mutation.
         if(gameUi.receiveInventoryMessage(event))return;
         const handled=creatureAnimations?.receive(event);
@@ -794,11 +906,12 @@ areaInput.addEventListener('change', async (event) => {
         if (actor !== moduleSession?.player) return;
         movementKeys.clear(); pointerPress = null; radialMenu.close();
         if (enabled) {
-          actor.savedCutsceneCamera = { position: camera.position.toArray(), target: controls.target.toArray(), follows: cameraFollowsPlayer };
+          actor.savedCutsceneCamera = { position: camera.position.toArray(), target: controls.target.toArray(), follows: cameraFollowsPlayer, native:structuredClone(singlePlayerCamera) };
           actionQueue?.cancel('Cutscene mode');
         } else if (actor.savedCutsceneCamera) {
           camera.position.fromArray(actor.savedCutsceneCamera.position); controls.target.fromArray(actor.savedCutsceneCamera.target);
           cameraFollowsPlayer = actor.savedCutsceneCamera.follows; controls.update();
+          if(actor.savedCutsceneCamera.native)Object.assign(singlePlayerCamera,actor.savedCutsceneCamera.native);
         }
         controls.enabled = !enabled && !gameUi.captured;
       },
@@ -823,11 +936,14 @@ areaInput.addEventListener('change', async (event) => {
       }
     });
     moduleSession=await nextSession.initialize(areaResRefs, { character: selectedCharacter?.bytes });
+    clientPause=nextClientPause;
     visualDelivery=nextVisualDelivery;
+    projectileDelivery=nextProjectileDelivery;
     previousSession?.cancelPendingPlayerInputs();
     if (selectedCharacter) moduleSession.player.characterFile = selectedCharacter.name;
     moduleSession.quickbarProfileKey=selectedCharacter?.id??null;
     await gameUi.attach(moduleSession, resolver);
+    nextSpellPresentation.flush();canvas.dataset.spellMessages=JSON.stringify(nextSpellPresentation.snapshot());
     gameUi.mode(true);
     areaResRefs = [...moduleSession.areas.keys()];
     delete canvas.dataset.scriptError;
@@ -977,7 +1093,11 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   runtimeDiagnostics.record('load.area-started', `Loading area ${areaResRef}`, {}, 'info');
   setStatus('READING AREA', false);
   const area = await parseAreaModule(areaResRef, resolver);
-  const sceneCreatures = [...area.creatures];
+  // Parsed placements describe the original module, while the registry owns
+  // current lifetime and area membership. Preserve placement keys before
+  // filtering so removal cannot renumber the surviving creature bindings.
+  const sceneCreatures = area.creatures.map((creature,index)=>({...creature,sourceKey:`${area.resRef}:creature:${creature.sourceIndex??index}`}))
+    .filter(creature=>{const actor=moduleSession.source(creature.sourceKey);return actor&&actor.areaId===moduleSession.areas.get(area.resRef)?.id;});
   const staticCreatureKeys=new Set(area.creatures.map((c,index)=>`${area.resRef}:creature:${c.sourceIndex??index}`));
   for(const id of moduleSession.areas.get(area.resRef)?.objects??[]){const actor=moduleSession.registry.get(id);
     if(actor?.objectType!==5||actor===moduleSession.player||staticCreatureKeys.has(actor.sourceKey))continue;
@@ -986,7 +1106,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     else runtimeDiagnostics.record('scene.creature-appearance-unavailable','Runtime creature appearance could not be resolved',{objectId:actor.id});
   }
   if (moduleSession.player.appearance) sceneCreatures.push({ ...moduleSession.player.appearance, player: true });
-  const { triangles: walkableTriangles, missing: missingWalkmeshes } = await loadAreaWalkmesh(area, resolver);
+  const { triangles: walkableTriangles, cameraTriangles:cameraWalkmeshTriangles, missing: missingWalkmeshes } = await loadAreaWalkmesh(area, resolver);
   const collisions = await loadAreaCollisions(area, resolver);
   const sessionArea = moduleSession?.areas.get(area.resRef);
   await sessionArea.nativeGeometry.objects.load(); // Canonical PWK interaction points precede input binding.
@@ -1102,6 +1222,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     wrapper.add(instance);
     root.add(wrapper);
     wrapper.animator = createModelAnimator(parsedModels.get(modelName.toLowerCase()), instance, label, areaAnimations);
+    wrapper.userData.nativeLoadedModelName=modelName;
     return wrapper;
   };
 
@@ -1110,7 +1231,9 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     const tile = area.tiles[index];
     const x = index % area.width;
     const y = Math.floor(index / area.width);
-    if (addInstance(tile.model, [x * 10 + 5, tile.height * area.tileHeight, -(y * 10 + 5)], tile.orientation * Math.PI / 2, `Tile ${index} · ${tile.model}`)) {
+    const tileObject=addInstance(tile.model, [x * 10 + 5, tile.height * area.tileHeight, -(y * 10 + 5)], tile.orientation * Math.PI / 2, `Tile ${index} · ${tile.model}`);
+    if (tileObject) {
+      tileObject.userData.nativeStaticTile=true;
       renderedTiles += 1;
     } else runtimeDiagnostics.record('scene.tile-omitted', `Tile model ${tile.model} is unavailable`, { tileIndex: index, model: tile.model });
   }
@@ -1153,7 +1276,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   const skippedCreatureParts = [];
   let playerAssembly = null;
   creatureAnimations?.clear();
-  creatureAnimations=new CreatureAnimationPresentation({object:id=>moduleSession.registry.get(id),rules:()=>moduleSession.characterRules,now:()=>moduleSession.scheduler.time,
+  creatureAnimations=new CreatureAnimationPresentation({random:clientAnimationRandom,object:id=>moduleSession.registry.get(id),rules:()=>moduleSession.characterRules,now:id=>clientPause.now(id),
     project:render=>{const p=render.getWorldPosition(new THREE.Vector3());p.y+=.5;p.project(camera);const r=canvas.getBoundingClientRect();return{x:r.left+(p.x+1)*r.width/2,y:r.top+(1-p.y)*r.height/2,z:p.z};},
     report:(message,context)=>runtimeDiagnostics.record('animation.native-presentation-unavailable',message,context)});
   let playerAnimator=null;
@@ -1224,9 +1347,30 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     }
   }
   setLoadedScene(root, textures);
+  await installCameraKeyhole(root,resolver);
   worldObjects = areaObjects;
   activeAnimations = areaAnimations;
   const visualSession=moduleSession;
+  const projectilePoses=visualLocalPoseServices({sceneRoot:root}),basis=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2),inverseBasis=basis.clone().invert();
+  projectiles=new ClientProjectilePresentation({objects:()=>areaObjects.objects.values(),renderFor:id=>areaObjects.renderBindings.get(id),rules:()=>visualSession.characterRules,
+    rangedRules:async()=>({...visualSession.characterRules,ammunitiontypes:await visualSession.items.table('ammunitiontypes')}),hitPartsEnabled:()=>1,randomImpactPart:model=>randomSceneModelPart(model,creatureAnimations.random),
+    playerId:()=>serverObjectIdForClient(visualSession.player.id),
+    voiceFields:clientCastVoiceFields,
+    castFields:actor=>localClientCastFields(actor,visualSession.characterRules,{spell:id=>visualSession.spellBook.castingSpell(id),classType:(o,index)=>(o.creatureData??o.authored).ClassList[index]?.Class??255,level:(spell,type)=>visualSession.spellBook.level(spell.id,type),hasFeat:(o,id)=>visualSession.combat.hasFeat(o,id)}),
+    now:()=>visualSession.worldTimer.time(),dayLength:()=>visualSession.worldTimer.dayLength,random:creatureAnimations.random,
+    loadModel:async name=>{const asset=await loadSceneVisualAsset(name,resolver);try{return{...createStandaloneSceneModel(asset,name,'Projectile · '+name,root),asset};}catch(error){releaseSceneVisualAsset(asset);throw error;}},
+    prepareAuxiliaryModel:async resource=>{
+      let asset;try{asset=await loadSceneVisualAsset(resource,resolver);}catch(error){runtimeDiagnostics.error(error,'visual.projectile-auxiliary-prefetch-failed',{resource,outcome:'Optional endpoint prefetch failed; a native NewCAurObject request will return null. The initializer may not request this asset.'});return null;}
+      const owned=new Set();let released=false;
+      const destroy=model=>{if(!owned.delete(model))return;disposeVisualRoot(model.root);};
+      return{create:alias=>{if(released)throw new Error('Projectile auxiliary assets were already released');const model=createStandaloneSceneModel(asset,resource,'Projectile endpoint · '+alias,root);model.alias=alias;owned.add(model);return model;},destroy,
+        release:()=>{if(released)return;released=true;for(const model of [...owned])destroy(model);releaseSceneVisualAsset(asset);}};
+    },
+    destroyModel:model=>{disposeVisualRoot(model.root);releaseSceneVisualAsset(model.asset);},modelFor:render=>projectilePoses.modelHandle(render),nodePose:(model,name,position,quaternion)=>projectilePoses.nodePoseInto(model,name,position,quaternion),
+    orient:(model,vector)=>{const q=clientProjectileModelQuaternion(vector);if(q)model.root.quaternion.copy(basis).multiply(new THREE.Quaternion(q[1],q[2],q[3],q[0])).multiply(inverseBasis);},
+    castAttachment:{attach:(...args)=>projectilePoses.setParent(...args),forget:model=>projectilePoses.forgetAttachment(model),updateAttachments:()=>projectilePoses.updateAttachments()},
+    impactAttachment:{attach:(...args)=>projectilePoses.setParent(...args),setNodePose:(...args)=>projectilePoses.setNodePose(...args),forget:model=>projectilePoses.forgetAttachment(model),updateAttachments:()=>projectilePoses.updateAttachments()},
+    scene:root,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data),oneShot:event=>void gameAudio?.play(event)});
   let visualTables;
   const loadVisualTables=()=>visualTables??=Promise.all([visualSession.items.table('visualeffects'),visualSession.items.table('progfx'),visualSession.items.table('appearance')]).then(([visuals,programs,appearance])=>{
     if(!visuals||!programs||!appearance)throw new Error('Looping visual rules are unavailable');return{visuals,programs,appearance};
@@ -1364,7 +1508,7 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     player.userData.worldPickingPlayer = true;
     player.position.set(...spawn);
     root.add(player);
-    playerController = { object: player, position: [...spawn], triangles: walkableTriangles, obstacles: objectWalkmeshes, collisions };
+    playerController = { object: player, position: [...spawn], triangles: walkableTriangles, cameraTriangles:cameraWalkmeshTriangles,sceneRoot:root,cameraQuery:null,obstacles: objectWalkmeshes, collisions };
     const actor = moduleSession.player;
     if (!moduleSession.started && moduleSession.ifo.Mod_Entry_Area === area.resRef) actor.bearing = -Math.atan2(moduleSession.ifo.Mod_Entry_Dir_X, moduleSession.ifo.Mod_Entry_Dir_Y);
     await moduleSession.enterArea(area.resRef, playerController.position);
@@ -1441,6 +1585,8 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
 }
 
 function clearLoadedScene() {
+  cameraKeyhole?.dispose();cameraKeyhole=null;delete canvas.dataset.cameraKeyhole;
+  projectiles?.dispose();projectiles=null;delete canvas.dataset.projectiles;
   modelParticles.dispose();delete canvas.dataset.modelParticles;delete canvas.dataset.pointWinds;
   loopingVisuals?.dispose(); loopingVisuals=null; delete canvas.dataset.loopingVisuals;
   dynamicCreatureSync=null;
@@ -1448,7 +1594,7 @@ function clearLoadedScene() {
   actionQueue?.cancel('Area changed');
   actionQueue = null; worldObjects = null; hoveredObject = null; selectedWorldObject = null; pointerPress = null;cancelSpellTarget();
   canvas.style.cursor = ''; canvas.title = '';
-  for (const key of ['worldObjects', 'actionPhase', 'selectedObject', 'hoveredObject', 'doorStates', 'actorPosition', 'lastRadialAction', 'cameraMode']) delete canvas.dataset[key];
+  for (const key of ['worldObjects', 'actionPhase', 'selectedObject', 'hoveredObject', 'doorStates', 'actorPosition', 'lastRadialAction', 'cameraMode','cameraScriptMode']) delete canvas.dataset[key];
   restoreAnimationVisibility();
   animationIsolate.checked = false;
   activeAnimations = [];
@@ -1483,6 +1629,12 @@ function setLoadedScene(root, textures) {
   loadedRoot = root;
   loadedTextures = [...textures.values()];
   scene.add(root);
+}
+
+async function installCameraKeyhole(root,resolver){
+  const presentation=new CameraKeyholePresentation({renderer,camera,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+  try{await presentation.load(resolver);if(loadedRoot!==root){presentation.dispose();return;}cameraKeyhole?.dispose();cameraKeyhole=presentation;}
+  catch(error){presentation.dispose();runtimeDiagnostics.error(error,'camera.keyhole-load-failed');}
 }
 
 function setAreaLighting(lighting, object) {
@@ -1660,12 +1812,28 @@ function addModelLight(node, parent) {
 
 async function createSceneVisual(actor, target, record, tables,{resolver,session,bindings,sceneRoot}) {
   return createVisualSceneRuntime({actor,record,tables,objects:session.registry,renderFor:id=>bindings.get(id),player:()=>session.player,sceneRoot,
-    loadAsset:async name=>{
+    loadAsset:name=>loadSceneVisualAsset(name,resolver),
+    createModel:(asset,resourceName)=>createStandaloneSceneModel(asset,resourceName,'Visual · '+record.visualId,sceneRoot),
+    destroyModel:model=>disposeVisualRoot(model.root),releaseAsset:releaseSceneVisualAsset,
+    shadowing:(model,enabled)=>setModelLightShadows(model.root,enabled,configureLightShadow),
+    report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)
+  });
+}
+
+async function loadSceneVisualAsset(name,resolver){
+  return loadModelReferenceAssets(name,{load:key=>loadSingleSceneVisualAsset(key,resolver),release:asset=>{asset.textures.forEach(texture=>texture.dispose());asset.textures.clear();}});
+}
+
+function releaseSceneVisualAsset(asset){
+  releaseModelReferenceAssets(asset,entry=>{entry.textures.forEach(texture=>texture.dispose());entry.textures.clear();});
+}
+
+async function loadSingleSceneVisualAsset(name,resolver){
       const files=[],textures=new Map();
       try{
         const model=parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL));
         await inheritAnimations(model,async resRef=>parseModel(await resolver.getResource(resRef,RESOURCE_TYPE.MDL)));
-        recordModelLimitations(model);
+        recordModelLimitations(model,{references:true});
         for(const bitmap of model.materialNames){
           let found=false;
           for(const [ext,type] of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
@@ -1677,19 +1845,24 @@ async function createSceneVisual(actor, target, record, tables,{resolver,session
         (await loadTextures(files,resolver)).forEach((texture,key)=>textures.set(key,texture));
         return{model,textures};
       }catch(error){textures.forEach(texture=>texture.dispose());throw error;}
-    },
-    createModel:(asset,resourceName)=>{
+}
+
+function createStandaloneSceneModel(asset,resourceName,label,sceneRoot){
       const root=buildObject(asset.model,asset.textures);
-      try{return{root,model:asset.model,resourceName,animator:createModelAnimator(asset.model,root,'Visual · '+record.visualId,[],{autoIdle:false})??new ModelAnimator(asset.model,root)};}
+      try{
+        const model={root,model:asset.model,resourceName,animator:createModelAnimator(asset.model,root,label,[],{autoIdle:false})??new ModelAnimator(asset.model,root)};
+        if(asset.model.nodes.some(node=>node.type==='reference')){
+          if(!sceneRoot)throw new Error('Reference model requires an owned scene root');
+          model.references=new ModelReferenceScene({owner:model,asset,sceneRoot,createModel:(child,name)=>createStandaloneSceneModel(child,name,label+' / '+name,sceneRoot),destroyModel:child=>disposeVisualRoot(child.root)});
+          modelReferenceRuntimes.set(root,model.references);
+        }
+        return model;
+      }
       catch(error){disposeVisualRoot(root);throw error;}
-    },
-    destroyModel:model=>disposeVisualRoot(model.root),releaseAsset:asset=>{asset.textures.forEach(texture=>texture.dispose());asset.textures.clear();},
-    shadowing:(model,enabled)=>setModelLightShadows(model.root,enabled,configureLightShadow),
-    report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)
-  });
 }
 
 function disposeVisualRoot(root){
+  const references=modelReferenceRuntimes.get(root);if(references){modelReferenceRuntimes.delete(root);references.dispose();}
   root.removeFromParent();root.traverse(o=>{o.geometry?.dispose();for(const material of Array.isArray(o.material)?o.material:o.material?[o.material]:[])material.dispose();if(o.isLight){o.shadow?.map?.dispose();o.shadow?.mapPass?.dispose();}});
 }
 
@@ -1858,7 +2031,6 @@ function buildMesh(node, textures, transformedVertices = null, textureOverride =
     const map = index === 0 && textureOverride ? textureOverride : textures.get(bitmapName.toLowerCase());
     const materialOptions = {
       color: new THREE.Color().setRGB(...diffuseColor, THREE.SRGBColorSpace),
-      side: THREE.DoubleSide,
       ...modelMaterialOptions(node)
     };
     if (map) {
@@ -1873,7 +2045,9 @@ function buildMesh(node, textures, transformedVertices = null, textureOverride =
     return material;
   });
   const mesh = new THREE.Mesh(geometry, materials.length === 1 ? materials[0] : materials);
+  geometry.userData.nativeCameraHitFaces=cameraModelHitFaces(node,transformedVertices);
   mesh.userData.sourceVertexIndices = sourceVertexIndices;
+  mesh.userData.nativeModelMesh = true;
   mesh.castShadow = Number(node.shadow ?? node.properties?.shadow ?? 1) !== 0;
   mesh.receiveShadow = true;
   return mesh;
@@ -2171,33 +2345,37 @@ function createPlayerPreview() {
 
 function focusPlayer(player) {
   cameraFollowsPlayer = true;
-  const target = player.position.clone().add(new THREE.Vector3(0, 0.8, 0));
-  controls.target.copy(target);
-  camera.position.copy(target).add(new THREE.Vector3(7, 5, 7));
-  camera.near = 0.05;
+  if(networkFrontend?.id){networkCamera.recenter(player.position.toArray());}
+  else{const actor=playerController?.actor,height=actor?.nativePathInfo?.fieldC??1;singlePlayerCamera.reset({mode:singlePlayerCamera.mode,position:[player.position.x,-player.position.z,player.position.y],height});}
+  camera.fov=45;
+  camera.near = 0.1;
   camera.far = 500;
   camera.updateProjectionMatrix();
-  controls.minDistance = 2;
-  controls.maxDistance = 80;
-  controls.update();
+  controls.minDistance = 1;
+  controls.maxDistance = 25;
+  gameplayCamera().update({position:[player.position.x,-player.position.z,player.position.y]},1,camera,controls);
 }
 
 function updateScriptCamera(delta, immediate = false) {
-  const actor = playerController?.actor, mode = actor?.scriptCameraMode;
-  if (mode === undefined) return;
-  canvas.dataset.cameraMode = String(mode);
-  if (mode === 1 || !cameraFollowsPlayer || actor.cutscene?.enabled) return;
-  const offset = camera.position.clone().sub(controls.target), radius = Math.hypot(offset.x, offset.z);
-  const desired = new THREE.Vector3(Math.sin(actor.bearing ?? 0) * radius, offset.y, Math.cos(actor.bearing ?? 0) * radius).add(controls.target);
-  camera.position.lerp(desired, immediate || mode === 2 ? 1 : 1 - Math.exp(-Math.max(0, delta) * 5));
-  controls.update();
+  const actor=playerController?.actor;if(!actor||!cameraFollowsPlayer||actor.cutscene?.enabled)return;
+  if(actor.scriptCameraMode!==undefined&&actor.scriptCameraMode!==singlePlayerCamera.lastScriptMode){singlePlayerCamera.setMode(actor.scriptCameraMode,actor.nativePathInfo?.fieldC??1);singlePlayerCamera.lastScriptMode=actor.scriptCameraMode;}
+  const p=playerController.object.position;
+  const position=[p.x,-p.z,p.y],keyholeActive=Boolean(cameraKeyhole?.shader),needsQuery=!keyholeActive||(singlePlayerCamera.flags&1),query=needsQuery&&!moduleLoadBusy&&!moduleSession?.transitioning?(playerController.cameraQuery??=cameraSceneQuery(playerController.sceneRoot,playerController.cameraTriangles)):null;query?.update();
+  const collision=query?{position,cameraPosition:[camera.position.x,-camera.position.z,camera.position.y],keyholeActive,query:query.nearest,eligible:Boolean(playerController.object.userData.characterModel)}:null;
+  singlePlayerCamera.update({position,facing:(actor.bearing??0)*180/Math.PI,animation:actor.animationState??0,collision},immediate?1:delta,camera,controls);
+  canvas.dataset.cameraMode=String(singlePlayerCamera.mode);canvas.dataset.gameCamera=JSON.stringify(singlePlayerCamera.snapshot());
 }
 
 function updatePlayerMovement(delta) {
   if (!playerController || movementKeys.size === 0 || document.hidden) return;
   const forward = camera.getWorldDirection(new THREE.Vector3());
   forward.y = 0;
-  if (forward.lengthSq() < 1e-8) return;
+  if(forward.lengthSq()<1e-8){
+    // An overhead orbit still has a horizontal heading in its right axis.
+    const cameraRight=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);cameraRight.y=0;
+    forward.crossVectors(new THREE.Vector3(0,1,0),cameraRight);
+  }
+  if (forward.lengthSq() < 1e-12) return;
   forward.normalize();
   const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
   const input = new THREE.Vector3();
@@ -2205,43 +2383,42 @@ function updatePlayerMovement(delta) {
   if (movementKeys.has('s') || movementKeys.has('arrowdown')) input.sub(forward);
   if (movementKeys.has('d') || movementKeys.has('arrowright')) input.add(right);
   if (movementKeys.has('a') || movementKeys.has('arrowleft')) input.sub(right);
-  if (input.lengthSq() < 1e-8) return;
-  input.normalize().multiplyScalar(Math.min(delta, 0.05) * 3.2);
-
-  const { object, position, triangles } = playerController;
-  let next = moveOnWalkmesh(triangles, position, input.x, input.z, 0.22, 0.9, playerController.obstacles);
-  if (!next) next = moveOnWalkmesh(triangles, position, input.x, 0, 0.22, 0.9, playerController.obstacles);
-  if (!next) next = moveOnWalkmesh(triangles, position, 0, input.z, 0.22, 0.9, playerController.obstacles);
-  if (!next) return;
-
-  applyPlayerPosition(next, input.x, input.z);
+  if (input.lengthSq() < 1e-8) {if(playerController.keyboardMoving)stopKeyboardMovement();return;}
+  input.normalize();
+  const controller=playerController,now=performance.now();
+  if(controller.keyboardMoving&&now-(controller.keyboardSubmittedAt??0)<120)return;
+  if(controller.movementPending)return;
+  const {position,triangles}=controller,x=position[0]+input.x,z=position[2]+input.z;
+  const height=findWalkableHeight(triangles,x,z,position[1],.9);
+  if(height===null)return;
+  controller.keyboardMoving=true;controller.keyboardSubmittedAt=now;
+  submitPlayerMovement([x,height,z],1,'keyboard');
 }
 
 function movePlayerTowards(point, delta) {
-  const { position, triangles, obstacles } = playerController;
+  const { position } = playerController;
   const dx = point[0] - position[0], dz = point[2] - position[2];
   const distance = Math.hypot(dx, dz);
-  if (distance < 0.025) return 'arrived';
-  const scale = Math.min(distance, delta * 3.2) / distance;
-  const next = moveOnWalkmesh(triangles, position, dx * scale, dz * scale, 0.22, 0.9, obstacles);
-  if (!next) return 'blocked';
-  applyPlayerPosition(next, dx, dz);
-  return scale >= 1 ? 'arrived' : 'moving';
+  if (distance < 0.1) return 'arrived';
+  const issued=playerController.movementIssued;
+  if(!issued||issued.owner!=='interaction'||issued.point.some((v,i)=>v!==point[i]))submitPlayerMovement(point,0,'interaction');
+  else if(!playerController.movementPending&&!playerController.actor.objectActionState.list.head)return 'blocked';
+  return 'moving';
 }
 
-function applyPlayerPosition(next, dx, dz) {
-  const { position, object } = playerController;
-  const shift = new THREE.Vector3(next[0] - position[0], next[1] - position[1], next[2] - position[2]);
-  position.splice(0, position.length, ...next);
-  moduleSession.updatePositionArray(playerController.actor);
-  object.position.set(...next);
-  object.rotation.y = Math.atan2(dx, dz);
-  playerController.actor.bearing = object.rotation.y - Math.PI;
-  moduleSession.updateTriggers(playerController.actor);
-  if (cameraFollowsPlayer) {
-    controls.target.add(shift);
-    camera.position.add(shift);
-  }
+function submitPlayerMovement(point,run,owner){
+  const session=moduleSession,controller=playerController;if(!session||!controller)return;
+  const sequence=controller.movementSequence=((controller.movementSequence??0)+1)&255;
+  controller.movementIssued={point:point.slice(),owner};controller.movementPending=true;
+  void session.queuePlayerMovement({actorId:controller.actor.id,areaId:controller.actor.areaId,position:[point[0],-point[2],point[1]],run,sequence})
+    .catch(error=>session.report(error,{operation:'player-movement-input',owner}))
+    .finally(()=>{if(controller.movementSequence===sequence)controller.movementPending=false;});
+}
+
+function stopKeyboardMovement(){
+  const controller=playerController,session=moduleSession;if(!controller||!session)return;
+  controller.keyboardMoving=false;
+  void session.queuePlayerMovementStop(controller.movementSequence).catch(error=>session.report(error,{operation:'keyboard-movement-stop'}));
 }
 
 function updatePreviewSun() {
@@ -2312,12 +2489,181 @@ function updateInspector(parsed, filename, textures) {
   document.querySelector('#view-caption').textContent = `${parsed.modelName.toUpperCase()} · ${parsed.format.toUpperCase()}`;
 }
 
-function recordModelLimitations(parsed) {
+function recordModelLimitations(parsed,{references=false}={}) {
   if(parsed.nodes.some(node=>node.type==='light'))runtimeDiagnostics.record('model.lighting-approximate','Model lights use the native legacy quadratic falloff; gamma-corrected settings, native per-object light selection, vertical/shadow offsets and shadow/flare passes are not yet reconstructed',{model:parsed.modelName});
   for (const message of parsed.unsupportedAnimations) runtimeDiagnostics.record('animation.unsupported', message, { model: parsed.modelName });
   if (parsed.hasSkinnedMeshes && !hasStaticSkinMapping(parsed)) runtimeDiagnostics.record('model.skin-mapping-unavailable', 'No skin bone slots map to model nodes; base vertices are displayed', { model: parsed.modelName });
   for (const node of parsed.nodes) {
-    for (const feature of node.unsupportedFeatures ?? []) if(feature!=='Emitter runtime simulation')runtimeDiagnostics.record('model.feature-unimplemented', `${feature} is not implemented`, { model: parsed.modelName, node: node.name, feature });
-    if (!['trimesh', 'dummy', 'light', 'emitter'].includes(node.type)) runtimeDiagnostics.record('model.node-unimplemented', `Node type ${node.type} is not rendered`, { model: parsed.modelName, node: node.name, nodeType: node.type });
+    for (const feature of node.unsupportedFeatures ?? []) if(feature!=='Emitter runtime simulation'&&!(references&&feature==='Referenced model attachment'))runtimeDiagnostics.record('model.feature-unimplemented', `${feature} is not implemented`, { model: parsed.modelName, node: node.name, feature });
+    if (!['trimesh', 'dummy', 'light', 'emitter',...(references?['reference']:[])].includes(node.type)) runtimeDiagnostics.record('model.node-unimplemented', `Node type ${node.type} is not rendered`, { model: parsed.modelName, node: node.name, nodeType: node.type });
   }
 }
+
+async function loadNetworkSceneAsset(name,resolver,palette,candidates){
+  const model=parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL));
+  await inheritAnimations(model,async ref=>parseModel(await resolver.getResource(ref,RESOURCE_TYPE.MDL)));
+  recordModelLimitations(model);
+  const files=[],rows=new Map();let override=null;
+  for(const candidate of candidates){try{const bytes=await resolver.getResource(candidate,RESOURCE_TYPE.PLT);override=candidate+'__network';files.push({name:override+'.plt',arrayBuffer:async()=>bytes});rows.set(override,palette);break;}catch{}}
+  if(!override)for(const bitmap of new Set(model.materialNames.map(n=>n.toLowerCase()).filter(n=>n&&n!=='null'))){
+    let found=false;
+    for(const [ext,type]of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
+      try{const bytes=await resolver.getResource(bitmap,type);files.push({name:bitmap+'.'+ext,arrayBuffer:async()=>bytes});if(palette)rows.set(bitmap,palette);found=true;break;}catch{}
+    }
+    if(!found)runtimeDiagnostics.record('network.scene-bitmap-unavailable','Network model bitmap is unavailable',{model:name,bitmap});
+  }
+  const textures=await loadTextures(files,resolver,rows);return{model,textures,override:override?textures.get(override):null};
+}
+
+function setNetworkControls(active){
+  for(const id of ['open-button','open-area-button','game-data-button','hak-data-button','character-data-button','game-mode-button','area-select','model-file','area-file','character-file'])document.getElementById(id).disabled=active;
+}
+function networkSceneSnapshot(){const snapshot=networkPresentation?.snapshot({camera,bounds:canvas.getBoundingClientRect()});return snapshot?{...snapshot,combat:networkPresentation.combat?.snapshot()??null,projectiles:networkPresentation.projectiles?.snapshot()??null,visuals:networkPresentation.visuals?.snapshot()??null,areaVisuals:networkPresentation.areaVisuals?.snapshot()??null}:null;}
+const networkDialog=new NetworkDialogView(viewport,{resolve:(value,context)=>networkFrontend.resolveText(value,context),reply:value=>networkFrontend.replyDialog(value),onVisibility:visible=>{if(visible)radialMenu.close();controls.enabled=!visible&&!networkInventory.active&&!networkPanels.active&&!radialMenu.active;}});
+const networkInventory=new NetworkInventoryView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,request:open=>networkFrontend.inventoryWindow(open),resolve:value=>networkFrontend.resolveText(value),action:value=>networkFrontend.itemAction(value),baseItems:()=>networkFrontend.inventoryBaseItems(),panel:page=>networkFrontend.inventoryPanel(page),itemMenu:openNetworkInventoryRadial,activate:activateNetworkItem,onVisibility:visible=>{if(visible){radialMenu.close();if(networkPanels.active)networkPanels.close();}controls.enabled=!visible&&!networkDialog.active&&!networkPanels.active&&!radialMenu.active;}});
+const networkQuickbar=new NetworkQuickbarView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,assign:(index,button)=>networkFrontend.assignQuickbar(index,button),resolve:value=>networkFrontend.resolveText(value),inventoryToken:()=>networkInventory.dragToken,canUse:()=>Boolean(networkFrontend?.id)&&!networkDialog.active&&!networkInventory.active&&!networkPanels.active&&!radialMenu.active,
+  menu:(menu,index,event)=>radialMenu.open(menu,event.clientX,event.clientY,{networkQuickbar:true,sessionId:networkFrontend.id,areaGeneration:networkFrontend.areaGeneration,actorId:networkFrontend.world.localObjectId,quickbarIndex:index}),
+  use:(button,index)=>{void ([2,4,44].includes(button.type)||button.type===1&&(button.intParam&65535)!==255?networkSpellTarget.begin(button):networkFrontend.activateQuickbar(index)).catch(e=>networkQuickbar.failure(e));}});
+const networkSpellTarget=new NetworkSpellTargeting({world:()=>networkFrontend?.id?networkFrontend.world:null,tables:()=>networkQuickbar.tables,context:()=>({sessionId:networkFrontend.id,areaGeneration:networkFrontend.areaGeneration}),inventoryOpen:()=>networkInventory.active,
+  report:(...args)=>runtimeDiagnostics.record(...args),
+  submit:async request=>{const result=await(request.kind==='item'?networkFrontend.useItem(request):request.kind==='feat'?networkFrontend.useFeat(request):request.kind==='mode'?networkFrontend.changeMode(request):request.kind==='innate'?networkFrontend.castSpellLike(request):networkFrontend.castSpell(request));document.querySelector('#network-feedback').textContent=request.kind==='item'?'Item use requested':request.kind==='mode'?'Mode requested':request.kind==='feat'?'Ability requested':'Spell cast requested';return result;},
+  onChange:state=>{canvas.dataset.networkSpellTarget=JSON.stringify(state);canvas.classList.toggle('network-spell-targeting',Boolean(state));if(state)document.querySelector('#network-feedback').textContent='Select a spell target · Esc to cancel';}});
+const networkTiming=new NetworkTimingView(viewport,value=>networkFrontend.resolveText(value));
+const networkExamine=new NetworkExamineView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,resolve:value=>networkFrontend.resolveText(value),getResource:(...args)=>window.nativeNetwork.getResource(networkFrontend.id,...args)});
+const networkPanels=new NetworkPanels(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,quickbar:networkQuickbar,resolve:value=>networkFrontend.resolveText(value),inventory:()=>networkInventory.toggle(),activate:binding=>networkSpellTarget.begin(binding),prepare:request=>networkFrontend.prepareSpell(request),rest:()=>networkFrontend.rest(),panelRequest:(panel,open,page)=>networkFrontend.hudPanel(panel,open,page),attitude:(playerId,likes)=>networkFrontend.playerAttitude(playerId,likes),settings:()=>({wireframe,cameraMode:networkCamera.controller.mode}),setSettings:settings=>{if(settings.wireframe!==undefined&&settings.wireframe!==wireframe)wireButton.click();if(settings.cameraMode!==undefined){const select=document.querySelector('#network-hud [data-camera-mode]');select.value=settings.cameraMode;select.dispatchEvent(new Event('change',{bubbles:true}));}},disconnect:()=>networkFrontend.disconnect(),onVisibility:visible=>{if(visible){radialMenu.close();networkSpellTarget.reset();if(networkInventory.active)void networkInventory.toggle(false);}controls.enabled=!visible&&!networkInventory.active&&!networkDialog.active&&!radialMenu.active;}});
+const networkParty=new NetworkPartyView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,assets:()=>networkQuickbar.assets,tables:()=>networkQuickbar.tables,resolve:(value,id)=>networkFrontend.resolveText(value,id),action:id=>{void networkPanels.open(id);},
+  menu:(id,event)=>{const target=networkFrontend.world.registry.get(id);if(target)void openNetworkRadial({object:target},event.clientX,event.clientY);},
+  select:id=>{const target=networkFrontend.world.registry.get(id);if(networkSpellTarget.active){void networkSpellTarget.select(target,target.replicated?.position??[0,0,0]).catch(e=>networkQuickbar.failure(e));return;}runtimeDiagnostics.record('network.party-click-unhandled','Native portrait chat/action composition is not connected',{objectId:id});}});
+networkFrontend=new NetworkFrontend({bridge:window.nativeNetwork,
+  canEnter:()=>{if(moduleLoadBusy||moduleSession?.scheduler.pumping||moduleSession?.transitioning)throw new Error('Wait for the current area or script to finish loading');},
+  onEnter:()=>{
+    networkCamera.reset();
+    networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();
+    networkSpellTarget.reset();
+    networkQuickbar.reset();
+    networkInventory.reset();networkDialog.close();radialMenu.close();radialIconCache.clear();
+    moduleSession=null;gameUi.mode(false);gameUi.detach();gameAudio?.dispose();gameAudio=null;voicePresentation?.dispose();voicePresentation=null;creatureAnimations?.clear();creatureAnimations=null;clientPause=null;
+    void networkPresentation?.dispose();networkPresentation=null;clearLoadedScene();setNetworkControls(true);emptyState.classList.add('hidden');movementHud.hidden=true;areaSelect.hidden=true;
+    diagnosticContext={mode:'multiplayer'};setStatus('CONNECTING TO SERVER',true);
+    document.querySelector('.source-tag').textContent='SERVER-OWNED WORLD · MULTIPLAYER';
+    document.querySelector('#network-hud').hidden=false;
+  },
+  onExit:async()=>{networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();networkQuickbar.reset();networkInventory.reset();networkDialog.close();radialMenu.close();await networkPresentation?.dispose();networkPresentation=null;clearLoadedScene();setNetworkControls(false);setStatus('MULTIPLAYER DISCONNECTED',false);emptyState.classList.remove('hidden');delete canvas.dataset.networkWorld;delete canvas.dataset.networkScene;delete canvas.dataset.networkCombat;delete canvas.dataset.networkProjectiles;document.querySelector('.source-tag').textContent='LOCAL FILE · NOT UPLOADED';document.querySelector('#network-hud').hidden=true;},
+  onArea:async(message,world,resolver,current)=>{
+    networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();
+    networkSpellTarget.reset();
+    networkQuickbar.reset();
+    networkInventory.reset();networkDialog.close();radialMenu.close();radialIconCache.clear();
+    await networkPresentation?.dispose();const presentation=new NetworkScene({world,resolver,loadAsset:loadNetworkSceneAsset,
+      instantiate:(asset,name)=>{const root=buildObject(asset.model,asset.textures,asset.override),animator=createModelAnimator(asset.model,root,'Network · '+name,[],{autoIdle:false});return{root,animator,dispose:()=>disposeVisualRoot(root)};},
+      configureShadow:configureLightShadow,
+      releaseAsset:asset=>asset.textures.forEach(t=>t.dispose()),report:(code,reason,data)=>runtimeDiagnostics.record(code,reason,data)});
+    networkPresentation=presentation;
+    try{await presentation.loadArea(message.area);if(!current()||networkPresentation!==presentation){await presentation.dispose();return;}
+      await networkQuickbar.attach(resolver);if(!current()||networkPresentation!==presentation){networkQuickbar.reset();await presentation.dispose();return;}await networkParty.sync();setLoadedScene(presentation.root,new Map());
+      await installCameraKeyhole(presentation.root,resolver);if(!current()||networkPresentation!==presentation)return;
+      setAreaLighting(presentation.lighting(),presentation.root);frameObject(presentation.root);
+      const [x,y,z]=message.position;networkCamera.enterArea([x,z,-y]);focusPlayer({position:new THREE.Vector3(x,z,-y)});grid.visible=false;axes.visible=false;
+      // Compile the area's stable light/material profile while entry is still
+      // loading. Keep DOM/input responsive rather than forcing shader link
+      // completion in the first gameplay render.
+      rendererWarmupCount++;
+      try{rendererLightSlots.update(scene);rendererShadowBudget.update(scene,camera);await renderer.compileAsync(scene,camera);}finally{rendererWarmupCount--;}
+      if(!current()||networkPresentation!==presentation)return;
+      document.querySelector('#model-title').textContent=message.area.name.text??message.area.resRef;document.querySelector('#view-caption').textContent=message.area.resRef.toUpperCase()+' · SERVER WORLD';
+      canvas.dataset.networkWorld=JSON.stringify(world.snapshot());canvas.dataset.networkScene=JSON.stringify(networkSceneSnapshot());
+      document.querySelector('#network-feedback').textContent='Connected';
+    }catch(error){await presentation.dispose();if(networkPresentation===presentation){networkPresentation=null;networkQuickbar.reset();}throw error;}
+  },
+  onDialog:message=>networkDialog.receive(message),
+  onInventoryResult:message=>networkInventory.receive(message),
+  onProjectile:header=>networkPresentation?.receiveProjectile(header),
+  onQuickbar:()=>networkQuickbar.sync(),
+  onParty:()=>networkParty.sync(),
+  onCamera:message=>{if(networkCamera.receive(message,networkFrontend.world,networkPresentation)){for(const select of document.querySelectorAll('[data-camera-mode]'))select.value=String(networkCamera.controller.mode);}else runtimeDiagnostics.record('network.camera-command-unhandled','Native camera command has no valid presentation handler',message);},
+  onUpdates:async(message,world)=>{networkPresentation?.receiveMovementChanges(world.presentationChanges);await networkPresentation?.sync();networkPresentation?.receiveAnimationChanges(world.presentationChanges);await networkPresentation?.receiveVisualChanges(world.presentationChanges);await networkInventory.sync();await networkQuickbar.sync();await networkParty.sync();await networkPanels.sync();canvas.dataset.networkWorld=JSON.stringify(world.snapshot());canvas.dataset.networkScene=JSON.stringify(networkSceneSnapshot());},
+  onHud:async message=>{if(message.kind==='examine'){radialMenu.close();await networkExamine.receive(message);}else if(message.kind==='gui-timing')await networkTiming.receive(message);else await networkPanels.sync();},
+  onObjectVisual:message=>networkPresentation?.receiveObjectVisual(message),
+  // Area resources load independently; their own area/closed guards prevent
+  // late attachment. A disk/model read must not hold up canonical updates.
+  onAreaVisual:message=>{void networkPresentation?.receiveAreaVisual(message);},
+  onState:state=>{if(state.closed)networkSpellTarget.reset();setStatus('MULTIPLAYER · '+state.phase.toUpperCase(),!state.closed);canvas.dataset.networkState=JSON.stringify(state);}
+});
+let networkPointerPress=null;
+window.addEventListener('keydown',event=>{if(networkFrontend.id&&networkSpellTarget.active&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();networkSpellTarget.reset();document.querySelector('#network-feedback').textContent='Spell targeting cancelled';}},true);
+canvas.addEventListener('pointerdown',event=>{if(networkFrontend.id&&event.button===0)networkPointerPress={id:event.pointerId,x:event.clientX,y:event.clientY};});
+canvas.addEventListener('pointercancel',()=>{networkPointerPress=null;});
+async function openNetworkRadial(hit,x,y,self=false){
+  if(networkDialog.active||networkInventory.active||networkPanels.active)return;
+  const world=networkFrontend.world,actor=world?.registry.get(world.localObjectId);if(!actor)return;
+  const target=self?actor:hit?.object,point=hit&&!hit.object?hit.point.toArray():null;
+  const id=networkFrontend.id,generation=networkFrontend.areaGeneration,text=networkFrontend.text;
+  try{const options=await prepareNetworkSpellMenus(actor,target,networkQuickbar.tables,{getResource:(...args)=>window.nativeNetwork.getResource(id,...args)},v=>text.resolve(v,actor.id),(code,message,data)=>runtimeDiagnostics.record(code,message,data),{familiar:networkFamiliar(networkFrontend.world,actor)});if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||actor.id!==networkFrontend.world?.localObjectId||networkDialog.active||networkInventory.active||networkPanels.active)return;
+    const nativePoint=target?[...(target.replicated?.position??target.staticState?.position??[0,0,0])]:point?[point[0],-point[2],point[1]]:[0,0,0];
+    radialMenu.open(networkRadialActions(target,actor,options),x,y,{network:true,sessionId:id,areaGeneration:generation,actorId:actor.id,targetId:target?.id??actor.id,spellTargetId:target?.id??OBJECT_INVALID,nativePoint,groundPoint:point});
+  }catch(error){if(id===networkFrontend.id&&generation===networkFrontend.areaGeneration){document.querySelector('#network-feedback').textContent=error.message;runtimeDiagnostics.error(error,'network.radial-menu-failed');}}
+}
+async function activateNetworkItem(itemId){
+  const world=networkFrontend.world,item=world?.registry.get(itemId),sessionId=networkFrontend.id,generation=networkFrontend.areaGeneration;if(!item)throw new Error('Native inventory item is unavailable');
+  if(networkSpellTarget.active)return networkSpellTarget.select(item,[0,0,0]);
+  const configured=configureNetworkItemShortcut(world,networkQuickbar.tables,emptyQuickbarButton(),{itemId,intParam:0xff00ff},{report:(...args)=>runtimeDiagnostics.record(...args)});if(!configured)throw new Error('That item cannot be activated');
+  if((configured.button.intParam&65535)!==255)return networkSpellTarget.begin(configured.button);
+  const table=await networkFrontend.inventoryBaseItems();if(world!==networkFrontend.world||sessionId!==networkFrontend.id||generation!==networkFrontend.areaGeneration)throw new Error('Item activation belongs to an old area');if(intEntry(table,item.item.baseItem,'EquipableSlots').value!==0)return networkInventory.submit(itemId,'toggle');
+  runtimeDiagnostics.record('network.item-default-action-unhandled','Native container or other non-property item activation is not connected',{itemId});throw new Error('This item action is not connected yet');
+}
+async function openNetworkInventoryRadial(itemId,name,event){
+  const world=networkFrontend.world,actor=world?.registry.get(world.localObjectId),item=world?.registry.get(itemId);if(!actor||!item||networkDialog.active)return;
+  if(networkSpellTarget.active){void networkSpellTarget.select(item,[0,0,0]).catch(error=>networkInventory.failure(error));return;}
+  const id=networkFrontend.id,generation=networkFrontend.areaGeneration,inventoryGeneration=networkInventory.generation,text=networkFrontend.text;
+  try{const options=await prepareNetworkSpellMenus(actor,item,networkQuickbar.tables,{getResource:(...args)=>window.nativeNetwork.getResource(id,...args)},v=>text.resolve(v,actor.id),(code,message,data)=>runtimeDiagnostics.record(code,message,data),{filter:8,familiar:networkFamiliar(networkFrontend.world,actor)});if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||actor.id!==networkFrontend.world?.localObjectId||inventoryGeneration!==networkInventory.generation||!networkInventory.active)return;
+    options.itemUseEntries=await prepareNetworkItemMenu(world,itemId,networkQuickbar.tables,v=>text.resolve(v,actor.id),(...args)=>runtimeDiagnostics.record(...args),{quickbarToken:networkQuickbar.token,alive:()=>networkFrontend.world===world&&id===networkFrontend.id&&generation===networkFrontend.areaGeneration&&actor.id===world.localObjectId&&inventoryGeneration===networkInventory.generation&&networkInventory.active});
+    if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||inventoryGeneration!==networkInventory.generation||!networkInventory.active)return;
+    const menu=networkRadialActions(item,actor,options);menu.title=name;radialMenu.open(menu,event.clientX,event.clientY,{network:true,inventory:true,sessionId:id,areaGeneration:generation,actorId:actor.id,targetId:item.id,spellTargetId:item.id,nativePoint:[0,0,0]});
+  }catch(error){if(id===networkFrontend.id&&generation===networkFrontend.areaGeneration)networkInventory.failure(error);}
+}
+async function submitNetworkRadialAction(entry,context){
+  const feedback=document.querySelector('#network-feedback');
+  try{
+    if(context.sessionId!==networkFrontend.id||context.areaGeneration!==networkFrontend.areaGeneration||context.actorId!==undefined&&context.actorId!==networkFrontend.world?.localObjectId)throw new Error('Radial target is no longer available');
+    if(entry.action==='object.examine'){await networkFrontend.examine(context.targetId);}
+    else if(entry.action==='item.use'&&entry.binding){await networkSpellTarget.beginItem(entry.binding.itemId,entry.binding.packed);}
+    else if(entry.action==='spell.cast'){const targetId=context.spellTargetId??context.targetId,target=targetId===OBJECT_INVALID?null:networkFrontend.world.registry.get(targetId);if(targetId!==OBJECT_INVALID&&!target)throw new Error('Spell target is no longer available');await networkSpellTarget.radial(entry.binding,target,context.nativePoint);}
+    else if(entry.action==='spellLike.use'){const targetId=context.spellTargetId??context.targetId,target=targetId===OBJECT_INVALID?null:networkFrontend.world.registry.get(targetId);if(targetId!==OBJECT_INVALID&&!target)throw new Error('Ability target is no longer available');await networkSpellTarget.radialInnate(entry.binding,target,context.nativePoint);}
+    else if(entry.action==='feat.use'){const targetId=context.spellTargetId??context.targetId,target=targetId===OBJECT_INVALID?null:networkFrontend.world.registry.get(targetId);if(targetId!==OBJECT_INVALID&&!target)throw new Error('Ability target is no longer available');await networkSpellTarget.radialFeat(entry.binding,target,context.nativePoint);}
+    else if(['associate.possessFamiliar','associate.possess'].includes(entry.action))await networkFrontend.possessFamiliar();
+    else if(entry.action==='associate.command')await networkFrontend.associateCommand(context.targetId,entry.command);
+    else if(entry.action==='associate.quickChat')await networkFrontend.quickChat(entry.quickChat);
+    else if(entry.action==='rest')await networkFrontend.rest();
+    else if(entry.action==='item.pickup')await networkFrontend.itemAction({itemId:context.targetId,operation:'pickup'});
+    else if(context.inventory&&['item.use','item.drop'].includes(entry.action)){
+      const item=networkFrontend.world.registry.get(context.targetId);if(!item)throw new Error('Native inventory item is unavailable');
+      if(entry.action==='item.drop')await networkInventory.submit(item.id,'drop');
+      else await activateNetworkItem(item.id);
+    }else if(entry.action==='movement.moveTo'&&context.groundPoint){const [x,y,z]=context.groundPoint;await networkFrontend.walkTo([x,-z,y],true);}
+    else{
+      const action=({'placeable.use':'object.use','combat.bash':'combat.attack'})[entry.action]??entry.action;
+      if(!['door.open','door.close','door.transition','conversation.start','object.use','combat.attack'].includes(action)){
+        runtimeDiagnostics.record('network.interaction-unimplemented','Native interaction handler is not connected',{action:entry.action,objectId:context.targetId});feedback.textContent=entry.label+' is not connected yet';return;
+      }
+      await networkFrontend.interact(context.targetId,action,context.run??true);
+    }
+    feedback.textContent=entry.label+' requested';
+  }catch(error){feedback.textContent=error.message;runtimeDiagnostics.error(error,'network.interaction-failed');}
+}
+canvas.addEventListener('contextmenu',event=>{if(networkFrontend.id)event.preventDefault();});
+canvas.addEventListener('pointerdown',event=>{
+  if(!networkFrontend.id||!networkPresentation||networkDialog.active||networkInventory.active||networkPanels.active||networkExamine.active||event.button!==2)return;
+  if(networkSpellTarget.active){event.preventDefault();networkSpellTarget.reset();document.querySelector('#network-feedback').textContent='Spell targeting cancelled';return;}
+  event.preventDefault();const hit=networkPresentation.pick(pointerRay(event.clientX,event.clientY,canvas.getBoundingClientRect(),camera),{includePlayer:true});
+  if(hit)openNetworkRadial(hit,event.clientX,event.clientY);
+});
+canvas.addEventListener('pointerup',event=>{
+  const press=networkPointerPress;networkPointerPress=null;
+  if(!networkFrontend.id||!networkPresentation||networkDialog.active||networkInventory.active||networkPanels.active||!press||event.button!==0||press.id!==event.pointerId||Math.hypot(event.clientX-press.x,event.clientY-press.y)>5)return;
+  const feedback=document.querySelector('#network-feedback'),hit=networkPresentation.pick(pointerRay(event.clientX,event.clientY,canvas.getBoundingClientRect(),camera),{includePlayer:networkSpellTarget.active});
+  if(!hit){feedback.textContent='Select walkable ground';return;}
+  if(networkSpellTarget.active){const point=hit.point.toArray();void networkSpellTarget.select(hit.object??null,[point[0],-point[2],point[1]]).catch(error=>{feedback.textContent=error.message;runtimeDiagnostics.error(error,'network.spell-target-failed');});return;}
+  if(hit.object){const action=networkDefaultInteraction(hit.object);if(action)void submitNetworkRadialAction({action,label:'Interaction'},{network:true,sessionId:networkFrontend.id,areaGeneration:networkFrontend.areaGeneration,targetId:hit.object.id,run:!event.shiftKey});else{runtimeDiagnostics.record('network.interaction-unimplemented','Native default interaction is not connected',{objectId:hit.object.id,objectType:hit.object.objectType});feedback.textContent='No interaction is available';}return;}
+  const point=hit.point.toArray(),native=[point[0],-point[2],point[1]];
+  void networkFrontend.walkTo(native,!event.shiftKey).then(({sequence})=>{feedback.textContent='Move requested';canvas.dataset.networkMove=JSON.stringify({sequence,position:native,run:!event.shiftKey});runtimeDiagnostics.record('network.walk-requested','Native waypoint request sent',{sequence,position:native,run:!event.shiftKey},'info');}).catch(error=>{feedback.textContent=error.message;runtimeDiagnostics.error(error,'network.walk-request-failed');});
+});

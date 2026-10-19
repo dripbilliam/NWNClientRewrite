@@ -37,7 +37,7 @@ test('SetIdentified matches24 native raw INT and sticky price-cache observations
 });
 test('live created items use resource data, canonical IDs, deferred tag override and physical stack merging',async()=>{
   const bytes=writeGff('UTI ',r({BaseItem:f(5,0),Tag:f(10,'old'),Identified:f(0,1),Dropable:f(0,0)})),queries=[];
-  const s=new ModuleSession({getResource:async(name,type)=>{queries.push([name,type]);return bytes;}});s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType BasePropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS EquipableSlots\n0 0 1 1 1 99 0 10 1'),appearance:parse2da('2DA V2.0\n\nSIZECATEGORY\n0 3')};
+  const s=new ModuleSession({getResource:async(name,type)=>{queries.push([name,type]);return bytes;}});s.characterRules={baseitems:parse2da('2DA V2.0\n\nModelType PropColumn InvSlotWidth InvSlotHeight Stacking Container TenthLBS EquipableSlots\n0 0 1 1 1 99 0 10 1'),appearance:parse2da('2DA V2.0\n\nSIZECATEGORY\n0 3')};
   s.module=s.register('module','module',{});const actor=s.register('creature','actor',{authored:{IsPC:0,FeatList:[],ClassList:[]},reputationPCFlag:0});await s.loadInventory(actor,{IsPC:0});
   const first=await s.commands.CreateItemOnObject(['VeryLongResourceName',actor.id,17,'new']);const object=s.registry.get(first);
   // The lower UTI data owner overwrites the requested resource with the

@@ -7,6 +7,7 @@ import { finalCombatStats, equipmentRecords } from './combat_modifiers.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 import { creatureMaxHitPoints, restoredCreatureHitPoints } from './creature_hit_points.js';
 import {abilityEffectBonus,nativeAbilityScore} from './ability_effect.js';
+import {importCreatureGender} from './creature_appearance_state.js';
 
 export const ABILITIES = ['Str', 'Dex', 'Con', 'Int', 'Wis', 'Cha'];
 export const EQUIPMENT_SLOTS = ['Head', 'Chest', 'Boots', 'Arms', 'Right hand', 'Left hand', 'Cloak', 'Left ring', 'Right ring', 'Neck', 'Belt', 'Arrows', 'Bullets', 'Bolts', 'Creature weapon 1', 'Creature weapon 2', 'Creature weapon 3', 'Creature armor'];
@@ -138,7 +139,7 @@ export function characterStats(root, rules, { currentHP: liveHP, items = equipme
   if (combat && rules.armor && rules.parts_chest && rules.itemCosts) Object.assign(combat,
     finalCombatStats(root, rules, equippedAbilities, combat, { items, effects, areaFlags, limits, acCache, itemCombatEffects,pendingFeats:bonusFeats,actor }));
   return { classes, level, baseAbilities, equippedBonuses,abilityBonuses, equippedAbilities, combat, maxHP, currentHP, xp: root.Experience >>> 0, gold: root.Gold ?? 0,
-    race: root.Race, gender: root.Gender, subrace: root.Subrace ?? '', feats: [...feats], skills: (root.SkillList ?? []).map(s => s.Rank), skillPoints: root.SkillPoints ?? 0,
+    race: root.Race, gender: importCreatureGender(root), subrace: root.Subrace ?? '', feats: [...feats], skills: (root.SkillList ?? []).map(s => s.Rank), skillPoints: root.SkillPoints ?? 0,
     nextXP, canLevelUp: level < 40 && nextXP !== null && root.Experience >= nextXP,
     // Saved combat snapshots are retained in authored data, not used as live rules.
     limitations: ['Ability effect aggregation is applied; broader item property execution remains pending.',

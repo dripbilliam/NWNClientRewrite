@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('addresses', nargs='*', help='Hex function addresses, or start:end ranges for verified leaf functions')
 parser.add_argument('--data', nargs='+', default=[], help='Hex addresses of native constants to inspect as bytes/u16/i32/f32')
 parser.add_argument('--u32-table', nargs='+', default=[], help='Hex address:decimal count of a bounded u32 table')
+parser.add_argument('--u64-table', nargs='+', default=[], help='Hex address:decimal count of a bounded u64 table (for verified pointer tables)')
 parser.add_argument('--u8-table', nargs='+', default=[], help='Hex address:decimal count of a bounded byte table')
 parser.add_argument('--field', nargs='+', default=[], help='Hex native field displacements to locate in bounded unwind functions')
 parser.add_argument('--strings', nargs='+', default=[], help='Hex addresses of null-terminated strings, bounded to 256 bytes')
@@ -97,6 +98,14 @@ if args.u32_table:
         assert 0 < count <= 256
         raw = image.get_data(address-base, count*4)
         print(f'U32 TABLE {address:x}: ' + ', '.join(f'{n:x}' for n in struct.unpack(f'<{count}I', raw)))
+if args.u64_table:
+    import struct
+    for value in args.u64_table:
+        address, count = value.split(':')
+        address, count = int(address, 16), int(count)
+        assert 0 < count <= 256
+        raw = image.get_data(address-base, count*8)
+        print(f'U64 TABLE {address:x}: ' + ', '.join(f'{n:x}' for n in struct.unpack(f'<{count}Q', raw)))
 if args.data:
     import struct
     for value in args.data:

@@ -31,6 +31,7 @@
               <button class="tool-button" id="game-mode-button" type="button" aria-pressed="false">Game UI</button>
               <button class="tool-button" id="language-data-button" type="button">Language Data</button>
               <button class="tool-button" id="character-data-button" type="button">Characters</button>
+              <button class="tool-button" id="multiplayer-button" type="button">Multiplayer</button>
               <button class="tool-button" id="game-data-button" type="button">Game Data</button>
               <button class="tool-button" id="hak-data-button" type="button">HAK Data</button>
               <button class="tool-button" id="open-area-button" type="button">Open Area</button>
@@ -46,11 +47,13 @@
           </div>
           <div class="viewport-frame" id="viewport-frame">
             <canvas id="model-canvas" aria-label="Rendered NWN model"></canvas>
+            <div class="movement-hud" id="network-hud" hidden><span>Left click · move · Shift-click · walk · Middle drag · camera · Wheel · zoom</span><button type="button" class="tool-button" id="network-inventory-button">Inventory · I</button><label>Camera <select data-camera-mode aria-label="Multiplayer camera mode"><option value="1">Top-down</option><option value="0">Chase</option><option value="2">Stiff chase</option></select></label><span id="network-feedback" role="status">Waiting for the server…</span></div>
             <div class="movement-hud" id="movement-hud" hidden>
-              <span>Left click · use · Right click · radial menu · WASD · move · Esc · cancel · F · player camera</span>
+              <span>Left click · move/use · Shift-click · walk · Right click · radial menu · WASD · move · Esc · cancel · F · player camera</span>
               <div class="toolbar-actions">
                 <button class="tool-button" id="door-action" type="button" disabled>Approach a door · E to interact</button>
                 <button class="tool-button" id="player-actions" type="button">Player actions</button>
+                <label>Camera <select data-camera-mode aria-label="Singleplayer camera mode"><option value="1">Top-down</option><option value="0">Chase</option><option value="2">Stiff chase</option></select></label>
               </div>
               <span id="door-feedback" role="status" aria-live="polite"></span>
             </div>
@@ -142,6 +145,24 @@
         </aside>
       </main>
     </div>
+    <dialog id="multiplayer-dialog" class="multiplayer-dialog">
+      <form>
+        <h2>Join multiplayer</h2>
+        <label>Server <input name="host" value="127.0.0.1" required maxlength="255" autocomplete="off" /></label>
+        <label>Port <input name="port" type="number" value="5121" min="1" max="65535" required /></label>
+        <label>Player name <input name="playerName" value="ReplacementTest" maxlength="64" required autocomplete="off" /></label>
+        <label>CD key <input name="cdkey" type="password" required autocomplete="off" spellcheck="false" /></label>
+        <label>Server password <input name="password" type="password" autocomplete="off" /></label>
+        <label>Character <input name="character" type="file" accept=".bic" required /></label>
+        <p id="multiplayer-status" role="status">Select a character to join.</p>
+        <div class="toolbar-actions">
+          <button class="tool-button" id="multiplayer-install" type="button">Game installation…</button>
+          <button class="tool-button" id="multiplayer-disconnect" type="button">Disconnect</button>
+          <button class="tool-button" id="multiplayer-cancel" type="button">Close</button>
+          <button class="tool-button primary" type="submit">Connect</button>
+        </div>
+      </form>
+    </dialog>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

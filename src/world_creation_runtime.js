@@ -22,11 +22,7 @@ export class WorldCreationRuntime{
    addToArea:(kind,o,area,...args)=>({creature:()=>s.lifecycle.addCreatureArea(o,area,...args),item:()=>s.lifecycle.addItemArea(o,area,...args),waypoint:()=>s.lifecycle.addWaypointArea(o,area,...args),placeable:()=>s.lifecycle.addPlaceableArea(o,area,...args),store:()=>s.lifecycle.addStoreArea(o,area,...args)})[kind](),
    appendTrap:(area,id)=>{if(!area?.nativeTrapIds158)throw new Error('Native created-placeable area trap list is unavailable');area.nativeTrapIds158.append(id);},nativePosition:o=>o.nativePosition??native(o.position),
    message:()=>b,clients:b.clients,clientObject:client=>client.object?s.registry.get(client.object.id)??null:null,
-   mapPin:(_message,client,id,point,_note,enabled)=>{
-    // The native command ignores this transport return value. Record the
-    // missing delivery instead of aborting successful world-object creation.
-    runtimeDiagnostics.record('world.map-pin-message-unimplemented','Created waypoint requires native map-pin delivery and map UI',{...s.diagnosticContext(id),recipientId:client.object?.id,position:[...point],enabled});return 0;
-   },
+   mapPin:(_message,client,id,point,note,enabled)=>s.mapPins.created(client,id,point,note,enabled),
   };
  }
  async create(args,self){

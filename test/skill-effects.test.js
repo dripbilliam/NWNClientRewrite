@@ -44,19 +44,20 @@ test('skill constructors validate active table count, preserve zero/negative mag
 test('live skill modifiers preserve canonical identity, stack zero records, and remain until deferred removal',async()=>{
   const{s,pc,frame}=fixture(),id=pc.id,stats=pc.stats;
   const zero=s.commands.EffectSkillIncrease([10,0],frame),buff=s.commands.EffectSkillIncrease([10,5],frame),penalty=s.commands.EffectSkillDecrease([10,2],frame);
-  for(const e of [zero,buff,penalty])s.commands.ApplyEffectToObject([2,e,id]);
-  assert.equal(pc.effects.length,3);assert.equal(skillEffectBonus(pc.effects,[],10).total,3);
+  for(const e of [zero,buff,penalty])await s.commands.ApplyEffectToObject([2,e,id]);
+  assert.equal(pc.effects.filter(e=>[55,56].includes(e.type)).length,3);assert.equal(skillEffectBonus(pc.effects,[],10).total,3);
+  assert.deepEqual(pc.nativeEffectIcons778.records.map(r=>r.iconId).sort((a,b)=>a-b),[43,44]);
   s.commands.RemoveEffect([id,buff],frame);assert.equal(skillEffectBonus(pc.effects,[],10).total,3);
   await s.scheduler.pump();assert.equal(skillEffectBonus(pc.effects,[],10).total,-2);assert.equal(s.registry.get(id),pc);assert.equal(pc.stats,stats);
-  pc.plot=true;s.commands.ApplyEffectToObject([2,s.commands.EffectSkillDecrease([10,8],frame),id]);assert.equal(pc.effects.length,2);
+  pc.plot=true;await s.commands.ApplyEffectToObject([2,s.commands.EffectSkillDecrease([10,8],frame),id]);assert.equal(pc.effects.filter(e=>[55,56].includes(e.type)).length,2);
 });
-test('skill decrease immunity prevents new effects while retaining existing penalties; negative magnitudes are rejected on apply',()=>{
-  const{s,pc,frame}=fixture();const old=s.commands.EffectSkillDecrease([10,2],frame);s.commands.ApplyEffectToObject([2,old,pc.id]);
-  pc.effects.push(s.effects.create(22,pc.id,[27,28,0,0]));
-  s.commands.ApplyEffectToObject([2,s.commands.EffectSkillDecrease([10,5],frame),pc.id]);
-  s.commands.ApplyEffectToObject([2,s.commands.EffectSkillIncrease([10,-2],frame),pc.id]);
-  assert.equal(pc.effects.length,2);assert.equal(skillEffectBonus(pc.effects,[],10).total,-2);
-  const bypass=s.commands.EffectSkillDecrease([10,5],frame);bypass.bypassImmunity=true;s.effects.apply(2,bypass,pc.id);assert.equal(pc.effects.length,3);
+test('skill decrease immunity prevents new effects while retaining existing penalties; negative magnitudes are rejected on apply',async()=>{
+  const{s,pc,frame}=fixture();const old=s.commands.EffectSkillDecrease([10,2],frame);await s.commands.ApplyEffectToObject([2,old,pc.id]);
+  s.effects.retain(pc,s.effects.create(22,pc.id,[27,28,0,0]));
+  await s.commands.ApplyEffectToObject([2,s.commands.EffectSkillDecrease([10,5],frame),pc.id]);
+  await s.commands.ApplyEffectToObject([2,s.commands.EffectSkillIncrease([10,-2],frame),pc.id]);
+  assert.equal(pc.effects.filter(e=>[55,56].includes(e.type)).length,1);assert.equal(skillEffectBonus(pc.effects,[],10).total,-2);
+  const bypass=s.commands.EffectSkillDecrease([10,5],frame);bypass.bypassImmunity=true;await s.effects.apply(2,bypass,pc.id);assert.equal(pc.effects.filter(e=>[55,56].includes(e.type)).length,2);assert.equal(pc.nativeEffectIcons778.records.filter(r=>r.iconId===44).length,1);
 });
 test('live skill source stacking resolves unequipped canonical items through the object registry',()=>{
   const{s,pc}=fixture(),item=s.register('item','item',{authored:{},equipmentSlot:0});

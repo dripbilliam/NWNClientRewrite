@@ -5,6 +5,7 @@ import { parseBinaryMdl } from '../src/binary_mdl.js';
 import { parseAsciiMdl } from '../src/model_parser.js';
 import { modelMaterialOptions } from '../src/model_material.js';
 import { ModelAnimator } from '../src/model_animation.js';
+import fs from 'node:fs';
 
 function binaryNode(flags,alpha) {
   const buffer = new ArrayBuffer(2048), view = new DataView(buffer), bytes = new Uint8Array(buffer);
@@ -32,6 +33,12 @@ test('ASCII base opacity hides zero-alpha helpers and preserves fractional and o
   assert.equal(modelMaterialOptions({}).opacity,1);
   assert.equal(modelMaterialOptions({alpha:0.25}).transparent,true);
   assert.equal(modelMaterialOptions({properties:{transparencyhint:1}}).depthWrite,false);
+});
+
+test('MDL front-face material default follows the complete original GL render-state reset',()=>{
+ const native=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-render-reset-observations.json',import.meta.url)));assert.equal(native.target,'3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a');
+ assert.ok(native.calls.some(c=>c.name==='glEnable'&&c.args[0]===0xb44));assert.ok(native.calls.some(c=>c.name==='glFrontFace'&&c.args[0]===0x901));assert.equal(modelMaterialOptions({}).side,THREE.FrontSide);
+ const a=new THREE.Vector3(1,0,0),b=new THREE.Vector3(0,0,-1),c=new THREE.Vector3(0,1,0);assert.equal(a.dot(b.clone().cross(c)),1);
 });
 
 test('a zero-alpha rest mesh can animate to opaque and restore when the next clip omits alpha', () => {

@@ -106,8 +106,8 @@ export function buildRadialActions(target, actor, options = {}) {
   if (self) return menu(title,[
     placeholder(0,'Character sheet','IR_CHARSHEET','character.sheet','character UI'),spell,
     placeholder(2,'Attack','IR_ATTACK','combat.attack','combat'),branch(3,'Special attacks','IR_XATTACK',() => specialAttacks(actor)),
-    ...(actor.nativeField97c!==0&&Number.isInteger(actor.nativeField97c)&&actor.nativeField9f8===0?[entry(4,'Cancel polymorph','IR_SKILLSELF','character.cancelPolymorph')]:[]),
-    branch(5,'Issue command','IR_COMMAND',commands),branch(6,'Special abilities','IR_XABILITY',() => abilities(actor,options)),branch(7,'Emote','IR_EMOTES',emotes)
+    ...(actor.nativeField97c!==0&&Number.isInteger(actor.nativeField97c)&&actor.nativeField9f8===0?[entry(4,'Cancel polymorph','IR_SKILLSELF','character.cancelPolymorph')]:options.unpossessFamiliar?[associateCommand(4,'Unpossess Familiar','IFE_UNPOSSESS',-13)]:[]),
+    branch(5,'Issue command','IR_COMMAND',options.commandMenu??commands),branch(6,'Special abilities','IR_XABILITY',() => abilities(actor,options)),branch(7,'Emote','IR_EMOTES',emotes)
   ]);
   if (target.masterId === actor.id) return menu(title,[
     associateCommand(0,'Heal me','IR_HEALME',-4),spell,

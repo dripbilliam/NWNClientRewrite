@@ -43,7 +43,7 @@ test('live Sleep supersedes paralysis and restores its remaining source before f
   const firstController=o.effects.find(e=>e.type===9);assert.notEqual(firstController.id,paralyze.id);assert.equal(firstController.durationType,4);
   await s.effects.apply(1,sleep,o.id,1);assert.equal(o.nativeField771,9);assert.equal(o.animationState,6);assert.equal(o.nativeFieldEc,0);
   assert.equal(o.effects.filter(e=>e.type===9).length,1);assert.equal(o.nativeEffectIcons778.records[0].iconId,19);
-  s.scheduler.time=1001;await s.effects.updateObject(o);
+  s.scheduler.time=1001;s.worldTimer.snapshot();await s.effects.updateObject(o);
   assert.equal(o.nativeField771,8);assert.equal(o.nativeFieldEc,0);assert.equal(o.nativeField8d4,65265);
   const restored=o.effects.find(e=>e.type===9);assert.equal(restored.durationType,2);assert.equal(restored.spellId,-1);assert.notEqual(restored.id,firstController.id);
   await s.effects.remove(o.id,paralyze.id);assert.equal(o.nativeField771,0);assert.equal(o.nativeFieldEc,1);assert.equal(o.nativeField8d4,65535);

@@ -10,6 +10,9 @@ import {OBJECT_INVALID} from '../src/game_object_array.js';
 import {parseGff} from '../src/gff.js';
 import {writeGff,gffRecord as R,gffField as F} from '../src/gff_writer.js';
 import {ModuleSession} from '../src/module_session.js';
+import {ClientPausePresentation} from '../src/client_pause_presentation.js';
+import {addPauseExclusion} from '../src/server_pause.js';
+import {advanceLocalClocks} from '../scripts/advance-effect-clock.mjs';
 
 function fixture(session=null){
   let now=100;const errors=[],objects=new Map(),rules={baseitems:parse2da('2DA V2.0\n\nWeaponWield WeaponType WeaponSize %AnimSlashL %AnimSlashR PrefAttackDist\n0 2 3 3 50 50 1.5'),
@@ -28,6 +31,24 @@ function fixture(session=null){
   p.bind(a.actor,a.animator,a.render);p.bind(b.actor,b.animator,b.render);
   return{a,b,p,errors,objects,advance:value=>{now=value;p.update();}};
 }
+
+test('copied equipped items use live base-item state for weapon clips and range without an authored UTI clone',()=>{
+ const f=fixture(),item={id:99,nativeItemLoaded:true,baseItem:0,authored:{},equipmentSlot:16};f.objects.set(item.id,item);f.a.actor.inventory.push(item.id);
+ const binding=f.p.bindings.get(f.a.actor.id);f.p.refreshWeapon(binding);assert.equal(f.p.baseInfo(item).weaponWield,2);assert.equal(f.p.providers(binding).baseItem(item),0);assert.equal(f.p.providers(binding).preferredDistance(f.a.actor,1),1.5);
+ item.authored.BaseItem=111;f.p.refreshWeapon(binding);assert.equal(f.p.baseInfo(item).weaponWield,2);assert.deepEqual(f.errors,[]);
+});
+
+test('actual model sampling freezes ordinary creature pose and advances excluded caster pose, then resumes both without a clock jump',async()=>{
+ let clock;const reports=[],s=new ModuleSession(null,{runStartupScripts:false,onCombatMessage:event=>clock?.receive(event)}),f=fixture(s);s.player=f.a.actor;s.player.stats={};s.worldTimer.setTime(7,0);s.nativeServerPause.timer1.reset(s.worldTimer);s.nativeServerPause.timer2.reset(s.worldTimer);clock=new ClientPausePresentation({session:()=>s,report:(...a)=>reports.push(a)});clock.flush();f.p.now=id=>clock.now(id);f.p.update();
+ advanceLocalClocks(s,250);clock.flush();f.p.update();assert.equal(f.a.animator.time,.25);assert.equal(f.b.animator.time,.25);const pose=f.b.bone.position.toArray();
+ addPauseExclusion(s.nativeServerPause,f.a.actor.id,1);await s.setPauseState(1,1);clock.flush();advanceLocalClocks(s,500);clock.flush();f.p.update();assert.equal(f.a.animator.time,.75);assert.equal(f.b.animator.time,.25);assert.deepEqual(f.b.bone.position.toArray(),pose);assert.notDeepEqual(f.a.bone.position.toArray(),pose);
+ await s.setPauseState(1,0);clock.flush();advanceLocalClocks(s,100);clock.flush();f.p.update();assert.equal(f.a.animator.time,.85);assert.equal(f.b.animator.time,.35);assert.notDeepEqual(f.b.bone.position.toArray(),pose);assert.deepEqual(f.errors,[]);assert.ok(!reports.some(r=>r[0]==='client.pause-clock-undefined'));
+});
+
+test('reaction for an unbound target does not request a nonexistent creature clock or reject the attacker animation',()=>{
+ const{a,p,errors,advance}=fixture();p.now=id=>{assert.equal(id,a.actor.id);return 100;};a.actor.animationState=9;const attack=createAttackData();Object.assign(attack,{animationDuration:2000,reactionDelay:1000,reactionAnimation:14,attackDuration:2000,result:1,weaponAttackType:1});p.unbind(2);
+ assert.equal(p.receive({type:5,data:{objects:[a.actor.id,2]},attack}),true);advance(100);assert.ok(a.animator.clip);assert.deepEqual(errors,[]);assert.equal(p.pending.length,0);
+});
 
 test('canonical attack drives sampled swing/reaction poses, then death holds without restarting an idle clip',()=>{
   const {a,b,p,errors,advance}=fixture();advance(100);

@@ -38,7 +38,8 @@ export async function applyItemProperty(item,effect,rules,p){
     const id=integer(required(p,'baseItem')(item),'base item');
     if(id===8||id===11)integers[1]=0;else if(id===6||id===7)integers[1]=1;else if(id===61)integers[1]=2;
   }
-  // The numeric column is BasePropColumn itself, without an offset. Physical
+  // The numeric column is the native basePropColumn field (loaded from the
+  // baseitems.2da PropColumn header), without an offset. Physical
   // column identity matters even when headers are duplicated.
   if(rules.itemprops===undefined)throw new Error('Native ITEMPROPS ownership is unavailable');
   if(rules.itemprops===null)return 1;

@@ -1,0 +1,31 @@
+import fs from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {openLocalModule} from './local-module.mjs';
+import {ModuleSession} from '../src/module_session.js';
+import {parseNcs} from '../src/ncs.js';
+import {actionParameter} from '../src/object_actions.js';
+import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
+import {gffRecord,writeGff} from '../src/gff_writer.js';
+import {parseGff} from '../src/gff.js';
+const install=process.argv[2]??'../FullDecomp/NwnRootInstall',output=process.argv[3]??'backups/animations/installed-vm-capture-v1.json',report={};
+try{
+ const s=await new ModuleSession(await openLocalModule(install,`${install}/data/nwm/Prelude.nwm`),{runStartupScripts:false,runNativeAI:false,serverPvpSetting:0}).initialize([],{character:await fs.readFile(`${install}/data/lcv/wizard.bic`)});
+ s.scheduler.events=[];s.scheduler.beforePump=()=>s.worldTimer.snapshot();assert.equal(s.player.objectActionState.list.count,0);
+ const ids=[...s.registry.objects.keys()],cursor=[...s.registry.nextObjectId],effects=s.effects.nextId,code=[],key='snapshot_marker';
+ const u16=v=>code.push(v>>>8&255,v&255),i32=v=>code.push(v>>>24&255,v>>>16&255,v>>>8&255,v&255),action=(name,argc)=>{const id=s.vm.api.findIndex(r=>r.name===name);assert.ok(id>=0);code.push(5,0);u16(id);code.push(argc);};
+ for(const value of [91,92,123]){code.push(4,3);i32(value);}const store=code.length;code.push(0x2c,0);i32(0);i32(4);action('ActionDoCommand',1);const jump=code.length;code.push(0x1d,0);i32(0);const body=code.length;
+ code.push(3,1);i32(-4);u16(4);code.push(4,5);u16(key.length);code.push(...Buffer.from(key,'ascii'));code.push(4,6);i32(0);action('SetLocalInt',3);code.push(0x1b,0);i32(-4);code.push(0x20,0);const exit=code.length;code.push(0x1b,0);i32(-12);code.push(0x20,0);
+ assert.ok(body-store<=255);code[store+1]=body-store;const bytes=Buffer.alloc(13+code.length);bytes.write('NCS V1.0');bytes[8]=0x42;bytes.writeUInt32BE(bytes.length,9);bytes.set(code,13);bytes.writeInt32BE(exit-jump,13+jump+2);
+ const program=parseNcs(bytes,'capture_parity_probe');await s.vm.run(program,s.player.id);assert.equal(s.player.locals.getInt(key),0);
+ const node=s.player.objectActionState.list.head.action;assert.equal(node.actionId,37);const situation=actionParameter(node,0);assert.equal(situation.stack[0].value,123);assert.equal(situation.nativeStackSize,3);assert.equal(situation.nativeStackCapacity,17);assert.equal(situation.nativeInstructionPtr,body);assert.equal(situation.pc,body+13);assert.deepEqual([...program.nativeCode],[...bytes.subarray(13)]);
+ report.capture={originalStackSize:situation.nativeStackSize,copiedCells:situation.stack.length,capacity:situation.nativeStackCapacity,nativePC:situation.nativeInstructionPtr,hostPC:situation.pc,headerExcluded:true};
+ const full=await s.objectState.save(s.player),data=parseGff(writeGff('UTC ',gffRecord({ActionList:full.fields.ActionList})),'UTC ').root;
+ const saved=data.ActionList[0].Paramaters[0].Value;assert.equal(saved.InstructionPtr,body);assert.equal(saved.StackSize,3);assert.equal(saved.Stack.TotalSize,17);assert.deepEqual([...saved.Code],[...program.nativeCode]);
+ await s.combat.clearActions(s.player);assert.equal(situation.disposed,true);assert.equal(s.player.objectActionState.list.count,0);assert.equal(s.player.locals.getInt(key),0);
+ await s.objectState.load(s.player,data);const restored=actionParameter(s.player.objectActionState.list.head.action,0);assert.notEqual(restored,situation);assert.equal(restored.nativeInstructionPtr,body);assert.equal(restored.stack[0].value,123);
+ const again=parseGff(writeGff('UTC ',gffRecord({ActionList:(await s.objectState.save(s.player)).fields.ActionList})),'UTC ').root;assert.deepEqual(again,data);
+ await s.combat.runActions(s.player,1,500,0n,{microseconds:()=>0n});assert.equal(s.player.locals.getInt(key),123);assert.equal(s.player.objectActionState.list.count,0);assert.equal(restored.disposed,true);
+ assert.deepEqual([...s.registry.objects.keys()],ids);assert.deepEqual(s.registry.nextObjectId,cursor);assert.equal(s.effects.nextId,effects);
+ report.execution={throughCanonicalActionQueue:true,localValue:123,disposed:true,identitiesUnchanged:true,savedThroughGenericObjectState:true,reloadedFreshSituation:true,resaveEqual:true};report.ok=true;
+}catch(error){report.ok=false;report.error=error.stack;process.exitCode=1;}
+report.diagnostics=[...runtimeDiagnostics.records];await fs.writeFile(output,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({ok:report.ok,capture:report.capture,execution:report.execution,error:report.error}));

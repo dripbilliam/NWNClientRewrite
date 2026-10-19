@@ -43,6 +43,33 @@ export function resizeMemorizedSlots(state,level,count,deleteSlots=1,p={}){
 const classes=o=>{const list=creatureRoot(o)?.ClassList;if(!Array.isArray(list))throw new Error('Native spellbook class storage is unavailable');return list.slice(0,list.length&255);};
 const stateAt=(o,index)=>{if(!Array.isArray(o.nativeTalentClasses))throw new Error('Native spellbook pools are unavailable');return o.nativeTalentClasses[index&255];};
 
+// Selected complete stats/class-info accessors1403fa4d0/140404aa0/
+// 140404be0/140405770. Class count and cursors have separate native widths.
+export function spellClassInfo(o,index){index=byte(index,'class info index');return index<classes(o).length?stateAt(o,index):null;}
+export function memorizedSlotDetails(state,level,slot,p={}){
+ level=byte(level,'details level');slot=byte(slot,'details slot');
+ if(level>=10){p.warning?.('nSpellLevel < CNWSPELL_NUM_LEVELS');return null;}
+ if(!state||!Array.isArray(state.memorized?.[level]))throw new Error('Native memorized slot-details storage is unavailable');
+ return state.memorized[level][slot]??null;
+}
+export function memorizedSlotId(o,index,level,slot,p={}){
+ index=byte(index,'slot class');level=byte(level,'slot level');slot=byte(slot,'slot cursor');
+ if(index>=classes(o).length)return 0xffffffff;
+ if(level>=10){p.warning?.('nSpellLevel < CNWSPELL_NUM_LEVELS');return 0xffffffff;}
+ const record=memorizedSlotDetails(spellClassInfo(o,index),level,slot,p);return record?integer(record.id,'slot spell')>>>0:0xffffffff;
+}
+export function memorizedSlotCount(o,index,level){
+ index=byte(index,'count class');level=byte(level,'count level');if(index>=classes(o).length||level>=10)return 0;
+ const pool=spellClassInfo(o,index)?.memorized?.[level];if(!Array.isArray(pool))throw new Error('Native memorized slot-count storage is unavailable');return pool.length&255;
+}
+// DecrementSpellsPerDayLeft1403f2790..3f2868 deliberately wraps zero to255;
+// class count is re-read after the invalid-class warning callback.
+export function decrementSpellsPerDayLeft(o,index,level,p={}){
+ index=byte(index,'decrement class');level=byte(level,'decrement level');
+ if(index>=classes(o).length)p.warning?.('nMultiClass < m_nNumMultiClasses');
+ if(index<classes(o).length){if(level<10){const state=spellClassInfo(o,index);state.perDay[level]=(integer(state.perDay[level],'spells per day')-1)&255;}else p.warning?.('nSpellLevel < CNWSPELL_NUM_LEVELS');}
+}
+
 // ConfirmDomainSpell1403f24d0/1403f2580: both domain BYTEs and physical
 // domain rows are used; a missing domain logs then tries the second.
 export function confirmDomainSpell(o,index,level,id,rules,p={}){
@@ -262,7 +289,7 @@ export function unreadySpell(o,id,index,domainLevel,meta,rules,p){
   else if(confirmDomainSpell(o,index,domainLevel,id,rules,p)===0)return 0;
   const level=(domainLevel+metamagicLevelCost(rules,meta))&255,state=stateAt(o,index);
   if(classField(rules,c.Class&255,'MemorizesSpells')===0){
-    if(level<10)state.perDay[level]=(state.perDay[level]-1)&255;else p.warning?.('nSpellLevel < CNWSPELL_NUM_LEVELS');return 1;
+    decrementSpellsPerDayLeft(o,index,level,p);return 1;
   }
   if(level>=10)return 0;const pool=state.memorized[level],count=pool.length&255;
   for(let slot=0;slot<count;slot++){const record=pool[slot];if(record&&record.id===id&&(record.metamagic&255)===meta&&(record.ready&255)!==0){record.ready=0;return 1;}}

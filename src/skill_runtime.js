@@ -8,9 +8,21 @@ import {sendCombatFeedback,broadcastSkillData} from './combat_broadcast.js';
 import {addMoveToPointFront} from './movement_actions.js';
 import {addCreatureGold,removeCreatureGold} from './creature_gold.js';
 import {acquireCreatureItem} from './item_acquisition.js';
+import {scriptSkillSuccessful,skillNameReference} from './script_checks.js';
 
 export class SkillRuntime{
   constructor(session){this.session=session;}
+  async checkReader(read){
+    const s=this.session;let result=0,popError;const status=await scriptSkillSuccessful({
+      pop:type=>{try{return{ok:true,value:read(type)};}catch(error){popError=error;return{ok:false};}},push:value=>{result=value;return true;},lookup:id=>s.registry.getGameObject(id),
+      asCreature:o=>{if(!o)throw new Error('Native skill-check successful lookup contains a null object');return o.objectType===5?o:null;},rank:(...args)=>s.combat.skill(...args),dice:(n,d)=>s.random.dice(n,d),
+      newData:()=>({type:0,objects:[],integers:[]}),skillName:index=>skillNameReference(s.characterRules?.skills,index),
+      setObject:(data,index,value)=>{data.objects[index]=value;},setInteger:(data,index,value)=>{data.integers[index]=value;},broadcast:(...args)=>broadcastSkillData(...args,s.combat.broadcastProviders()),
+    });
+    if(status===-639)throw popError??new Error('Native GetIsSkillSuccessful argument decoding failed (-639)');if(status!==0)throw new Error(`Native GetIsSkillSuccessful result push failed (${status})`);return result;
+  }
+  check(args){let cursor=0;return this.checkReader(()=>{if(cursor>=args.length)throw new Error('Native GetIsSkillSuccessful VM argument is unavailable');return args[cursor++];});}
+  checkStack(vm,frame){return this.checkReader(type=>vm.pop(frame,type));}
   async clearActivity(o,mask,value){
     const s=this.session,c=s.combat;
     if(mask!==0&&(mask&~0x1ffc00)===0)return setCombatActivity(o,mask,value,{defensiveCasting:(o,v)=>{o.nativeField6ee=Number(v);},

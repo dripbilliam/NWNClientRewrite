@@ -2,6 +2,19 @@ import {scriptCos,scriptSin} from './script_scalar.js';
 import {normalizeOrientation} from './combat_lifecycle.js';
 import {scriptObjectFacing} from './script_object_queries.js';
 import {OBJECT_INVALID} from './game_object_array.js';
+import {nativeAtan2f} from './native_math.js';
+import {normalizeNativeVector} from './native_vector.js';
+
+// LocationAccess140535600..140535711 after the engine-structure pop. These
+// read stored XYZ/area/orientation directly, without object/area lookups.
+export function scriptLocationAccess(command,location){
+ const vector=field=>{const value=location?.[field];if(!Array.isArray(value)||value.length!==3||!value.every(Number.isFinite))throw new Error(`Native script location ${field} is unavailable`);return value.map(Math.fround);};
+ if(command===223)return vector('position');
+ if(command===224){if(!Number.isInteger(location?.areaId))throw new Error('Native script location area ID is unavailable');return location.areaId>>>0;}
+ if(command!==225)throw new Error('Native script location-access command is unavailable');
+ const f=Math.fround,[x,y,z]=vector('nativeOrientation');let degrees=f(nativeAtan2f(y,x)*57.2957763671875);
+ const normalized=normalizeNativeVector([x,y,z]);if(normalized[1]<0)degrees=f(degrees+360);return degrees;
+}
 // GetLocation14052b130 / GetScriptLocation140495f30 copies raw vectors and
 // area ID; it does not normalize facing, resolve the area, or return null.
 export function scriptObjectLocation(actor){

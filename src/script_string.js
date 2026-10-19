@@ -1,3 +1,4 @@
+import {encodeGffText} from './gff_text.js';
 // CExoString::Right14016bfa0 slices stored bytes, with signed-negative counts
 // producing an empty string. NCS/GFF currently use Windows-1252; every decoded
 // character is one byte. Reject text outside that codec rather than counting
@@ -10,6 +11,17 @@ const extensions=new Set([...'€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•�
 export function scriptStringLeft(value,count){
   count|=0;if(count<0)return '';
   return [...scriptStringRight(value,0x7fffffff)].slice(0,count).join('');
+}
+// ExecuteCommandFindSubString1403136a0 ->CExoString::Find14016aea0.
+// Bounds use stored length; strstr starts at offset and stops at its next NUL.
+// The VM's ordinary empty string has a null CExoString buffer, hence -1.
+export function scriptStringBytes(value){return Uint8Array.from(scriptStringRight(value,0x7fffffff),c=>c.codePointAt(0)<=255?c.codePointAt(0):encodeGffText(c)[0]);}
+export function scriptFindSubString(value,part,start=0){
+ const text=scriptStringBytes(value),needle=scriptStringBytes(part);start|=0;
+ if(!text.length||!needle.length||start<0||start>text.length)return -1;
+ const end=text.indexOf(0,start),stop=end<0?text.length:end,needleEnd=needle.indexOf(0),size=needleEnd<0?needle.length:needleEnd;
+ for(let i=start;i+size<=stop;i++)if(needle.slice(0,size).every((b,j)=>text[i+j]===b))return i;
+ return -1;
 }
 // ExecuteCommandStringConversions140547900 case232 -> CRT atoi140c81d54.
 // The C-locale decimal parser saturates at signed32 limits; it does not

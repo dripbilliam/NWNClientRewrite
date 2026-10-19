@@ -18,7 +18,7 @@ test('live visual effect expiration removes one matching loop and retains other 
   const make=()=>s.commands.EffectVisualEffect([0],{self:caster.id});
   await s.effects.apply(2,make(),o.id);await s.effects.apply(1,make(),o.id,1);
   assert.equal(o.nativeLoopingVisuals160.records.length,2);assert.equal(o.effects.length,2);
-  s.scheduler.time=1000;await s.effects.updateObject(o);assert.equal(o.effects.length,2);
-  s.scheduler.time=1001;await s.effects.updateObject(o);assert.equal(o.effects.length,1);assert.equal(o.nativeLoopingVisuals160.records.length,1);
+  s.scheduler.time=1000;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.equal(o.effects.length,2);
+  s.scheduler.time=1001;s.worldTimer.snapshot();await s.effects.updateObject(o);assert.equal(o.effects.length,1);assert.equal(o.nativeLoopingVisuals160.records.length,1);
   await s.effects.remove(o.id,o.effects[0].id);assert.equal(o.nativeLoopingVisuals160.records.length,0);
 });

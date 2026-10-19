@@ -1,4 +1,1180 @@
+LATEST movement facing: evidence/multiplayer-movement-facing.md. User video
+movementexample.mp4 decoded/inspected. Native807690 timed turns now replace
+instant packet/waypoint-facing snaps; target2b4 and display44 are separate.
+1176 complete original facing cases match;60movement/scene/combat/camera tests
+and buildPASS. Preserved proven native same-endpoint suppression/scriptflag.
+v91 four server movement requests/paths completed, returned[6,3], zeroerrors.
+Same-wire60Hz replay:90deg packet jumps before ->0after, max6.039deg/frame.
+Turn-clip lifecycle/collision joining/remaining perceived translation stutter
+are NOT proven complete. v92 PID48540 left open without automated actions;
+fullreport only afterclose. Compact acceptance/readiness saved. Verified HUD
+backup multiplayer-hud-buttons-20261018-v2.zip scope48required/0forbidden/
+0credentials. This supersedes older live-client IDs below.
+
+LATEST HUD buttons: evidence/multiplayer-hud-buttons.md. Rest HUD/R/radial sends
+verified native empty6/13; server timing48/1 drives progress and animation.
+Live v89 prepared spell424 ready0 ->1 after17500ms rest, actor47/sitcrossps,
+count4 unchanged; actual Academy Training journal subscription28/10+11.
+Character pages0/1/2 and remembered reopen, map native server exploration/pins,
+player-list Friendly/Hostile41/3 and basic real camera/wireframe/disconnect
+options wired. Full original25writer cases,64focused tests,DOM UIv6/buildv5 PASS.
+v89 Skills/map failures fixed: v90 displays28skills and nine exploredtiles,
+all final PNGs inspected, runtime prefix86records0errors/no samplingfailure.
+Updated client v90 left open, no automated inputs after24s; do not claim its
+full report exists before normalclose. Frozen readiness/compactacceptance saved.
+Character/options/party UIs remain subsets; no new originalclient/concurrent
+remote PvP test. No broad multiplayer/combat completion. This entry supersedes
+older Rest-unwired status below. Existing goal tool still reports blocked;
+newly authorized useful work continued without goal completion.
+
+LATEST spellbook menus: evidence/multiplayer-spellbook-menus.md. Class/level
+switches, known selection/Examine, prepared-only arrow + separate physical
+slots, ready/used/empty, collapse, typed clear/copy/exchange, owned metamagic
+and domain hotbar drag implemented for MULTIPLAYER. Data-driven native iterator,
+server-only canonical state/ready/count. Arrow88e650 ->88ff10 verified first
+empty ID-1, ready0. Writers7c3870/7c3960 full original-code234cases match.
+46focused tests PASS; strict installed DOM UIv7 PASS incl classes/divine/
+spontaneous/domain/meta. UIv5 invalid domain fixture /v6 asyncwait failures
+corrected, retained. v3 prepared/spontaneous PNGs inspected. Live v87 normal
+closed: actual700611/700610, slot0 Daze37 ready1 ->null ->AcidSplash424 ready0,
+count4 unchanged; zeroerrors/samplingfailures, compact acceptance JSON+full
+report and two PNGs inspected. Source SP Prepare preserved. Rest HUD remains
+unwired; no local ready workaround. Broad multiplayer NOTcomplete. Stored goal
+currently reports blocked despite useful newly authorized work; tool cannot
+resume it. This section made progress and is not an objective completion.
 # NWN Replacement Client Roadmap
+
+**2026-10-18 summon effects / HUD:** Missing4/2 area visual delivery now uses its
+own native type11 owner/selection/AI, not an object dummy.928 original cases and
+39 focused tests pass; actual captured summon/unsummon models render1236/1266
+vertices and retire in isolated WebGL. Eight native HUD buttons restored with
+replicated spellbook drag/cast delegation; unfinished panels remain explicit.
+Static particle collision connected, dynamic collision/audio remain incomplete.
+Frame-stage telemetry added; reported live lag cause is unproven. Livev86 shows both effects and eight buttons. Shader slot capacity removes the
+reproduced7.4s summon freeze (zero logged long frames in that effect window);
+initial character/area shader warmup still stalls. Userv86 stays open. [Evidence](evidence/multiplayer-area-visuals-hud.md).
+
+**2026-10-18 Lightning chains:** Native fixed-chain update/fractal and physical
+reference-target callback now reach SP/MP particles.2697+97 original cases match;
+52 focused checks/build/SP visual regression pass. Installed cold-beam WebGL
+replay renders both chains (3/33 particles), follows moving endpoints and cleans
+up without canonical changes. User v84 remains open on the prior build. Native
+event/cache timing, audio and original-client comparisons remain open.
+[Evidence](evidence/lightning-particles.md).
+
+**2026-10-18 live effects correction and beam attachments:** Authorized live
+potion delivery exposed shadow sampler overflow and a blank world. The renderer
+now respects GPU sampler capacity while preserving authored light/shadow state;
+native light selection remains a diagnosed gap. Corrected v84 shows the world
+and a server-driven potion effect with zero runtime errors, and stays open for
+the user. Stale waiting HUD text is fixed.1418 original beam-owner cases and52
+focused checks/build pass; caster/target reference attachments work offline.
+Lightning particles and complete beams/audio remain open. The newer beam build
+is not loaded inv84. [Evidence](evidence/multiplayer-visual-effects.md).
+
+**2026-10-18 point spell effects:** Temporary visual objects now share the
+existing client projectile allocator and native world-time expiry.240 complete
+original receiver cases verify lifetime/admission, including its source-status
+quirk.59 focused checks/build/WebGL replay pass; a synthetic point packet renders
+the installed healing effect and expires without changing server objects.
+User v81 stays open; this build is not loaded. Beams/audio/remaining visual
+owners and live comparison remain open. [Evidence](evidence/multiplayer-visual-effects.md).
+
+**2026-10-18 multiplayer visuals:** Native5/3 instant visual messages and
+looping A/D changes now reach the shared native phase/model renderer. Separate
+client presentation lists preserve canonical IDs and first-eligible duplicate
+removal, verified by100 original cases/300 calls. Captured potion/light replay
+renders installed assets in WebGL (three instants,768 particle vertices), with
+retirement and unchanged gameplay state.61 focused checks/build/SP visual
+regression pass. Audio, dummies, non-default transforms and other renderer
+owners remain diagnosed; updated live acceptance is pending. Userv81 untouched.
+[Evidence](evidence/multiplayer-visual-effects.md).
+
+**2026-10-18 multiplayer item powers:** Native6/9 item-use requests now connect
+replicated item powers to original-compared targeting, inventory wheel/default
+activation, wheel-to-hotbar drag, clicks and F-keys.435 original request/decoder
+cases and40 native panel-reset cases pass. A live potion cycle exposed stale
+inventory rows; the original grid-clear ordering fixes that. Final vanilla run
+verifies three doses, drink animations, shortcut clear and correct reopen.
+76 focused checks/28 SP regressions/build pass. v81 is open for user testing.
+Other item forms/effects/audio and full concurrent gameplay remain open.
+[Evidence](evidence/multiplayer-item-casting.md).
+
+**2026-10-18 camera input flags and reconnect:** Shared manual/script/mode input
+now uses the original additive yaw/pitch/zoom setters and separate prediction
+storage, including native angular-impulse aliasing.403 original cases/455 calls,
+127 focused checks, build and rendered Electron fixture pass. User-authorized
+replacement v77 is connected with its camera attached; the server and original
+client were left running. Full visual parity and remaining flags are open.
+[Evidence](evidence/native-camera-rate-flags.md).
+
+**2026-10-18 continuous camera collision:** Native chase/top-down and stiff-chase
+collision/recovery algorithms now run through the shared camera controller,
+with keyholing bypass and received16/12 collision/zoom flags.891 original cases/
+1866 steps agree;124 focused checks/build/three-mode rendered fixture pass.
+Other flag bits are recorded as partial. Exact BSP/configuration/VM coverage
+and live original-client visual acceptance remain open. User session untouched;
+new build not loaded. [Evidence](evidence/native-camera-collision.md).
+
+**2026-10-18 camera geometry:** Camera polygon crossing now matches1876 original
+executions including hit-point float bits. Binary original hit faces/planes
+are retained separately from draw lists. Camera WOK data includes non-walkable
+faces while movement stays unchanged (Prelude:509 camera/177 movement faces).
+118 focused checks, build, rendered-wall camera routing and Prelude regression
+pass. Complete BSP/continuous collision/original visual comparison remain open;
+live user client/server untouched. [Evidence](evidence/native-camera-polygon.md).
+
+**2026-10-18 camera entry/clear-view:** Ordinary area initialization now waits
+for the PC render object, reattaches with native clear-view search, and retains
+camera module state. Search prediction/order agrees with256 original execution
+cases; a permanently pending search could suppress normal camera updates and
+now clears after one frame.84 focused checks/build/isolated rendered-wall and
+Prelude regressions pass. Static geometry is an explicit renderer adapter;
+exact BSP edges, continuous collision and full original visual parity remain
+open. The user's running client/server were left untouched; new build not loaded.
+[Evidence](evidence/native-camera-clear-view.md).
+
+**2026-10-18 camera attachment:** Received native16/10 follows known creature/
+placeable render objects without changing ownership/control, and returns to the
+PC on destruction/area transition.216 original state cases/10 native sender
+bodies agree;229 focused checks/build/isolated Electron routing pass. Apparent
+dummy object was a decompiler-omitted forwarded ID argument, now verified.
+Automatic clear-view search remains explicitly logged as unfinished, along with
+collision/flags and remaining SP adapters. User session remains untouched.
+[Evidence](evidence/native-camera-attachment.md).
+
+**2026-10-18 scripted camera location:** Received location packets now use the
+native rate-based yaw/pitch/logarithmic zoom path and Follow integration.
+104 original packet cases/378 original transition frames agree;223 focused
+checks pass. Stiff-chase, partial-packet clamping and strict overshoot behavior
+are preserved. Attachment/dummy lifecycle, collision, flags and remaining SP
+VM adapters remain open. Live user session is untouched.
+[Evidence](evidence/native-camera-location.md).
+
+**2026-10-18 camera script controls:** Native received height, axis locks,
+limits and one-use camera save/restore now reach the shared renderer controller.
+47 implemented original-receiver cases/107 steps agree;220 focused tests pass,
+isolated Electron routing passes with no canonical mutation. Recenter preserves
+server locks. Traced native keyholing collision bypass/default; full collision
+recovery, timed camera location/attachment/flags and remaining SP VM adapters
+stay open. Active user test client was left untouched.
+[Evidence](evidence/native-camera-commands.md).
+
+**2026-10-18 native camera keyholing:** Foreground tile walls now dissolve using
+the active installed shader and original ownership/height/bbox-plane gates.
+756 original-code cases,216 focused checks, build, full Prelude rendering and
+actual vanilla-server camera runv75 pass. All3 modes, orbit, server movement,
+0 runtime errors. Fixed SHD2069 resource bridge rejection found in v74.
+Camera collisions and full scripted-camera behavior remain open.
+[Evidence](evidence/native-camera-keyholing.md).
+
+**2026-10-18 native gameplay camera:** Replaced generic gameplay orbit/follow
+with the main binary's Follow math and top-down/chase/stiff-chase steering.
+432 original Follow frames,720 steering cases and100 mouse cases pass;208
+affected tests pass. Live vanilla-server run exercises all modes, movement,
+orbit and zoom without runtime errors. Shared SP/MP controller, appearance
+height, native framing/limits/spring/zoom, and16/2 mode routing. Camera collision,
+keyholing and complete scripted-camera control remain separate open work.
+[Evidence](evidence/native-gameplay-camera.md).
+
+**2026-10-18 path playback and camera:** Server waypoint/rate data now moves
+rendered creatures between packets instead of applying positions only on packet
+arrival.3933 original-code movement/correction cases and actual-wire installed
+model replay pass;353 affected checks pass. User confirms movement works.
+Camera follow tracks the controlled rendered character; final anchoring/frame/F
+recenter now share the singleplayer framing helper. Collision/path joining,
+vertical projection, facing easing and complete native camera remain open.
+[Evidence](evidence/multiplayer-movement-playback.md).
+
+**2026-10-18 original-client coexistence:** Actual Steam NWN:EE player and
+replacement run concurrently on the unchanged vanilla Prelude server. Native
+player arrival, seven distinct remote positions, walking/idle, replacement
+disconnect/reconnect and a hotbar-targeted Light cast on the original player
+are demonstrated. Server cast target agrees; prepared uses2->1. User confirms
+Light follows their character in the original client.10446 combined GPU frames,
+zero runtime errors;37 affected tests PASS. Shared combat/transitions, reverse
+casting and remaining presentation/packet gaps remain open; goal ACTIVE.
+[Evidence](evidence/multiplayer-original-client-coexist.md).
+
+**2026-10-18 party roster and portraits:** Native14/1/3/4 import preserves the
+original mark/refresh/append/sweep ordering and raw IDs without creating proxies
+or granting ownership.630 full original sender/receiver/list-owner cases agree.
+New passive party bar resolves installed numeric/custom portraits, names and
+server HP; portrait context actions and active spell targeting use native
+requests. Real18-input cycle casts on a familiar portrait, server Light2->1,
+possesses/returns/unsummons;4366 GPUframes/zero errors.346 focused tests/build/
+syntax PASS. Native conditional henchman branches belong to assignment/DM
+contexts, not the ordinary self wheel. Full party/chat/inventory/status layouts
+and original-client concurrent play remain open; goal ACTIVE.
+[Evidence](evidence/multiplayer-party-roster.md).
+
+**2026-10-18 global commands and associate shortcuts:** Native player-wheel
+commands use22/0; targeted commands retain6/27. Types38/39/42 assign/activate
+through original layouts, preserving separate command/type fields and current
+associate links.640 request/relay/activation,108 assignment and720 response
+native cases agree. Real20-input UI/F-key cycle demonstrates server Stand
+Ground/Follow AI, possession/return and unsummon;4261 GPUframes/zero errors.
+342 focused tests/build/syntax PASS. Conditional party UI, quickchat audio/text
+and original-client concurrent play remain open; goal ACTIVE.
+[Evidence](evidence/multiplayer-party-commands.md).
+
+**2026-10-18 multiplayer associate control:** Native6/27 targeted commands and
+self-menu Unpossess Familiar are connected.451 original sender/full server
+dispatcher cases agree. Real fifteen-step UI cycle summons, possesses, returns
+to the PC, sends Follow/Stand Ground and unsummons. Canonical IDs/proxies persist;
+server records restore the PC book/hotbar and remove the familiar.3346 GPU frames,
+zero error records, clean disconnect.335 focused tests/build/syntax PASS;
+credential audit11754 files/private hits0. Global commands/party UI/type38/39
+shortcuts and original-client concurrent play remain open; goal ACTIVE.
+[Evidence](evidence/multiplayer-associate-control.md).
+
+**2026-10-18 feat and server-issued innate input:** Native6/6 feat,6/10 mode and
+6/19 possession requests are connected to shared native wheel/targeter/hotbar
+paths.1710 original request cases agree. Real summon→possess transfers control
+to a canonical familiar and supplies its innate pool. Wheel + type44/F11 casts
+consume server24→23→22; both projectiles travel/impact/expire after a general
+static-model fix. Ordinary feat shortcut consumes1→0 and blocks spent input.
+317 focused tests/build PASS. Native racialtypes WORD now feeds spell/model/
+voice adapters. Full modes/associates, item powers/effects/audio and original-
+client concurrent play remain open; goal ACTIVE.
+[Evidence](evidence/multiplayer-feat-input.md).
+Credential audit3460 files including built client/private hits0; QA disconnected.
+Verified checkpoint multiplayer-feat-input-20261018-v1.zip:13090 files/
+255458871 bytes, all lengths/SHA256 verified;62 required present/forbidden0.
+Postseal note.
+
+**2026-10-18 generated-character native admission:** Fixed ClassList Class INT/
+ClassLevel SHORT and native first-level history metadata. The previous BYTE/
+WORD fields failed the original typed readers and generated characters failed
+vanilla ELC. Fresh corrected wizard now admitted; replay confirms class10/level1/
+race0 and server spellbook.690 native reader cases and154 local creation variants
+pass. Fresh-PC upload intentionally skips SpecAbilityList; live innate casting
+still needs a server-issued pool/control context. Goal ACTIVE.
+[Evidence](evidence/multiplayer-character-native-types.md).
+102 focused tests/build PASS; credential audit3419 files/private hits0.
+Verified checkpoint multiplayer-character-types-20261018-v1.zip:13026 files/
+246568840 bytes, all lengths/SHA256 verified;31 required present/forbidden0.
+Postseal note.
+
+**2026-10-18 multiplayer spell wheel:** Shared class/level/metamagic, known and
+prepared spell menus now drive real native input.1756 original client gain cases
+and160 innate sender/server-wrapper cases agree. Live unchanged wizard consumes
+prepared2→1→0 through the wheel; sorcerer per-day6→5. Both play native cast clips,
+zero runtime errors.84 focused tests/build pass. Innate6/35/type44 paths are wired,
+but a generated QA character failed native feat-budget admission before entering;
+live innate remains unverified. Full casting/combat/concurrency goal ACTIVE.
+[Evidence](evidence/multiplayer-spell-wheel.md).
+Verified checkpoint multiplayer-spell-wheel-20261018-v1.zip:12984 files/
+245092442 bytes, all lengths/SHA256 verified;41 required present/forbidden0.
+Credential audit3402 files/private hits0. Postseal note.
+
+**2026-10-18 multiplayer spell input:** Class-spell shortcuts now target, cancel,
+send native6/18 and read server-owned readiness.331 original sender/server-reader,
+581 client count and240 cast-action cases PASS. Real vanilla wizard test: two
+targeted casts consume2→1→0, Escape sends nothing, spent key sends no third cast;
+body/conjure clips play and both models clean up. Finalv50 has2277 GPU frames and
+zero runtime error records.95 focused tests/build PASS, credential audit2161
+files/private hits0. Wheel casting, innate/item/feat powers, preparation UI,
+complete effects/audio/picking and original-client concurrency remain open;
+goal ACTIVE. [Evidence](evidence/multiplayer-spell-input.md).
+Verified checkpoint multiplayer-spell-input-20261018-v1.zip:12928 files/
+240998164 bytes, all lengths/SHA256 verified;43 required present/forbidden0.
+Postseal note.
+
+**2026-10-18 multiplayer quickbar:** Native36-slot replication, embedded item
+identities, G/Q stack/property uses and30/2 assignment are connected.1728 original
+use-count,368 replication and216 assignment/server-reader cases agree. Three
+pages, F keys, assignment wheels, shortcut/inventory drags and paired equipment
+activation pass a real vanilla-server run:16 UI steps,10 requests,2471 GPU frames,
+zero runtime errors. Server Q acknowledges new slots10/12/1; equipment cycles
+through bow, sword+shield, unequipped, bow and dagger.51 focused tests/build PASS;
+credential audit2187 files/private hits0. Spell/feat/skill/item-power activation,
+containers, full icons/presentation and original-client concurrency remain open;
+goal ACTIVE. [Evidence](evidence/multiplayer-quickbar.md).
+Verified checkpoint multiplayer-quickbar-20261018-v1.zip:12864 files/234369451
+bytes, all lengths/SHA256 verified;41 required present/forbidden0. Postseal note.
+
+**2026-10-18 multiplayer ranged projectiles:** Native ranged/parry selection and
+separate34/1 projectile messages now drive firing, active-table model selection,
+paths, impact attachment and expiry.1164 selection,96 packet,132 receiver and84
+weighted-part native cases agree. Final unchanged-vanilla-server ranger run:
+7 attacks/7 arrows, all attached/expired,0 failures/active;229 focused tests and
+build PASS. Audio/blood/shield/ASCII-area parity, inventory Q, casting and original
+client concurrency remain open; goal ACTIVE.
+[Evidence](evidence/multiplayer-ranged-projectiles.md).
+Verified checkpoint multiplayer-ranged-projectiles-20261018-v1.zip:12760files/
+228950147bytes, all lengths/SHA256 verified;39required present/forbidden0.
+Focused credential audit2154files/privatehits0. Postseal note.
+
+**2026-10-18 multiplayer melee playback:** Server attack groups now drive
+weapon-selected clips, native model `hit` events/linked attacks, typed object
+reactions and readiness restoration.1310 original playback/hit cases,1281
+door/placeable name cases and64 signed-countdown cases PASS. Final vanilla-server
+run completes2 attacks/5 physical hit events with no pending countdown;174 focused
+tests/build PASS. Monotonic insertion and signed countdown fixes prevent stalled
+reactions. Ranged projectiles, effects/audio, casting and original-client
+concurrency remain open; full multiplayer goal ACTIVE.
+[Evidence](evidence/multiplayer-melee-playback.md).
+Verified checkpoint multiplayer-melee-playback-20261018-v1.zip:12645files/
+224551369bytes; all lengths/SHA256 verified,32required present/forbidden0.
+Audit2249files/0unexpected game keys/4synthetic. Postseal note.
+
+**2026-10-18 multiplayer attack animation foundation:**96 complete original
+server-writer/client-reader comparisons and60 native animation-queue sequences
+PASS. Repeated attack groups now emit distinct atomic presentation events;
+speed/IDs/reactions retain native values. Captured vanilla-server attack replay
+confirms916ms/24damage/killing blow.139 focused tests/build PASS. Queue-to-scene
+playback, linked attack lifecycle, ranged/casting presentation and original-client
+concurrency remain open; goal ACTIVE.
+[Evidence](evidence/multiplayer-attack-animation-investigation.md).
+Verified checkpoint multiplayer-attack-queue-20261018-v1.zip:12529files/
+218097353bytes, all lengths/SHA256 verified;24required present/forbidden0.
+Postseal note. Queue remains unbound to scene; goal ACTIVE.
+
+**2026-10-18 native held equipment:** Weapon/shield components now follow native
+hand/forearm P/Q anchors and active appearance weapon scale.220 original routing
+cases PASS. Real vanilla-server dagger/crossbow equip-off cycles, sword/shield
+unequip-reequip and left-hand bow movement PASS with unchanged IDs.193 focused
+rendering/network tests/build PASS. Torch/wield-mode transitions, worn models,
+effects and final presentation remain open. Next combat/casting coordination.
+Full multiplayer goal ACTIVE. [Evidence](evidence/multiplayer-held-equipment-investigation.md).
+Verified checkpoint multiplayer-held-equipment-20261018-v1.zip:12470files/
+215253771bytes; all lengths/SHA256 verified,29required present/forbidden0.
+Audit3256files/privatehits0/synthetic4. Postseal note.
+
+**2026-10-18 native multiplayer tile lighting:** Fixed missing active LightColor
+palette application to ml1/ml2 model nodes.40 original matching +320 original
+apply/scene cases PASS. Same vanilla server/live renderer now clearly lights the
+starting room;9tiles/18lights/14changes, native equal-color properties retained,
+57diagnostics/0errors.190 rendering/network tests and build PASS. Source flame
+attachments, light/shadow selection, day/night updates and held equipment remain
+open. Full multiplayer goal ACTIVE. [Evidence](evidence/multiplayer-lighting-investigation.md).
+Verified checkpoint multiplayer-tile-lighting-20261018-v1.zip:12403files/
+210281177bytes, all lengths/SHA256 verified;23required present/forbidden0.
+Audit3207files/privatehits0/synthetic4. Postseal note.
+
+**2026-10-18 native multiplayer ground items:** Original naming252 and complete
+CreateItem512 cases PASS; active 2DA ground model selection, component assembly,
+fallback/load distinction and normal canvas/radial pickup wired. Real vanilla
+server drop/canvas-click pickup retains the same ID, renders three weapon parts
+and restores inventory. Native23-call reset oracle establishes default CCW/front
+face rendering.186 rendering/network tests and build PASS. Room lighting is
+still too dim; held equipment, containers and full gameplay/concurrency remain
+open. Goal ACTIVE. [Evidence](evidence/multiplayer-ground-items.md).
+Verified checkpoint multiplayer-ground-items-20261018-v1.zip:12342files/
+207453666bytes; all lengths/SHA256 verified,26required present/forbidden0.
+Audit3157files/privatehits0/synthetic4. Postseal note.
+
+**2026-10-18 native multiplayer item actions:** Original request/server195,
+toggle258 and success/cancel writer/client240 cases PASS. Real renderer/vanilla
+server equip/unequip, slot/backpack dragging, radial use/drop and same-ID pickup
+cycles PASS; invalid-slot rejection preserved. Native page requests and active
+2DA item sizes feed the inventory grid. Ground/held-item models, containers,
+icons/activation and remaining multiplayer gameplay are open. Goal ACTIVE.
+[Evidence](evidence/multiplayer-item-actions.md).
+71 focused tests/build PASS; v27 actual page node visibility5->0->same5 PASS.
+Verified checkpoint `backups/multiplayer-item-actions-20261018-v1.zip`:12299files/
+205917308bytes; every length/SHA256 verified,41required entries present and
+forbidden assets/private configuration absent. Postseal note.
+
+**2026-10-18 native inventory window/replication:** Guarded window/panel requests,
+canonical G item/equipment/repository deltas and character-sheet fields added.
+35 original sender/server-handler and160 full original stats-reader cases PASS.
+Real Electron/native-server UI opens/closes/reopens with identical three equipped
+and five backpack items; installed names resolve, no packet/import/UI errors.
+57 focused tests/build PASS. Item mutations, containers and full inventory UI
+remain open; next is native equipment requests/results and drag/drop.
+Full multiplayer goal ACTIVE. [Evidence](evidence/multiplayer-inventory.md).
+Verified checkpoint `backups/multiplayer-inventory-window-20261018-v1.zip`:
+12227files/204983130bytes, every length/SHA256 verified;31required entries present,
+forbidden assets/private configuration absent. Postseal note.
+
+**2026-10-18 native door/area cycle:** Original door-click128/flag128 cases
+PASS. Real vanilla Prelude unlock/open, explicit close/reopen, hallway entry,
+run/walk and return PASS with unchanged player ID. Fixed controlled-character
+area reattachment from native P/4/1 semantics; later server updates omit A/area
+bits. Current flags update menu state; closed-DWK picking stays in render data.
+52 focused tests/build PASS. Full multiplayer/combat/casting/UI/concurrency
+acceptance remains open; goal ACTIVE. [Evidence](evidence/multiplayer-door-transitions.md).
+Verified checkpoint `backups/multiplayer-door-cycle-20261018-v1.zip`:12181files/
+202244629bytes, every length/SHA256 verified;29required entries present. Postseal.
+
+**2026-10-18 native interactions/dialog:** Owned typed requests and the shared
+radial now submit door/talk/use/single-actor attack actions. Original-code
+interaction80/reply110 cases PASS. Real Electron/vanilla Prelude dialog run
+advances8choices, resolves character/gender tokens and closes from server state;
+locked door stays closed.45focusedtests/build PASS. Successful door/transition
+play, complete text/UI/presentation, combat/casting and concurrent vanilla-client
+gameplay remain open. [Evidence](evidence/multiplayer-interactions-dialog.md).
+Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-interactions-dialog-20261018-v1.zip`:
+12134files/200008934bytes, all lengths/SHA256 verified;30required entries present.
+Postseal note.
+
+**2026-10-18 native multiplayer movement:** Typed, owned waypoint IPC now sends
+native p/6/1 requests without mutating canonical actors. 67 original-code
+sender/server-reader cases PASS; real Electron/native-server run confirms run,
+walk, changed server positions and return to idle with the same player ID.
+31 focused tests and app build PASS. Physical pointer verification interrupted;
+native smoothing/input details and interactions/full multiplayer remain open.
+See [evidence](evidence/multiplayer-movement.md). Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-movement-20261018-v1.zip`:12067files/
+198274386bytes, all lengths/SHA256 verified;21selected entries present. Postseal.
+
+**2026-10-18 actual multiplayer renderer:** Main-frame/session-owned Electron
+IPC and a connection/BIC dialog now drive a separate server-owned scene.
+Real app/native server run PASS:9tiles/33proxies/19renderbindings, caster/NPC
+assembled with20modelcomponents each; native weapon-selected caster nwreadyr.
+Static-record access, case-insensitive skeleton anchors and empty overlay fixed.
+36 focused tests/build PASS. Native movement/interaction requests, full multiplayer
+UI/presentation and original-client concurrency remain open; goal ACTIVE.
+See [evidence](evidence/multiplayer-renderer.md).
+Verified checkpoint `backups/multiplayer-renderer-20261018-v1.zip`:
+12015 files/195734582 bytes; every length/SHA256 verified. Post-seal note.
+
+**2026-10-18 application-session owner:** Resource/character/area admission now
+lives in a reusable session above the persistent peer. Explicit renderer area
+acknowledgements have generation checks; cancellation prevents late admission.
+Real original-server headless run PASS:33 proxies,43 known/34 prepared spells,
+clean logout. IPC/view/input and concurrent original-client gameplay remain
+open. See [evidence](evidence/multiplayer-game-session.md). Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-game-session-20261018-v1.zip`:
+11990 files/195693187 bytes, all lengths/SHA256 verified. Post-seal note.
+
+**2026-10-18 player-state / persistent peer:** I records now fully decode and
+apply server spellbooks, prepared slots, daily/feat uses, icons, stats, visibility
+and special abilities. Native serializer oracle covers198 cases. Reusable Node
+peer owns ongoing authentication/transport independently of resource/render work;
+two fresh native-server connect/area-entry/33-proxy/player-state/logout runs PASS.
+54 focused tests and client build PASS. Renderer IPC/UI/input, movement and
+original-client concurrency remain open. See [evidence](evidence/multiplayer-player-state.md).
+Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-player-state-20261018-v1.zip`:
+11979 files/195351280 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 dynamic replication / area readiness:** Native p/4/3 now completes
+area entry; real player creation/appearance publishes under object0xffffffff,
+mapped explicitly to PLAYER_ID0. Fresh original-server run:60frames/33proxies/
+clean logout. A/P/U/D/W schema import, equipment/visual transforms and rule-table
+wire shapes are wired into the probe/store.47 focused tests/build PASS; native
+oracles cover160 signed scalars and48 positional/orientation/animation deltas.
+I player-state/GUI records, renderer/movement and original-client concurrency
+remain open. See [evidence](evidence/multiplayer-object-replication.md). Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-object-replication-20261017-v1.zip`:
+11944 files/194123882 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 server-authoritative area import:** Real P/4/1 imports nine Prelude
+tiles and24 explicit-ID proxies (area/sounds/static placeables); clock updates
+apply without local simulation. Fresh native-server run51frames/clean logout.
+Five area tests cover ten installed native bodies,393 synthetic native branches,
+32 deliberately corrupt native records and malformed/truncated packets. Client
+build PASS. Dynamic P/5/1, local-player binding, renderer/movement and concurrent
+original-client gameplay remain open. See [evidence](evidence/multiplayer-area-import.md).
+Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-area-import-20261017-v1.zip`:
+11865 files/190586180 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 real character/area admission:** Original server resource reply
+decodes/resolves; unchanged installed wizard BIC is uploaded and natively
+confirmed. Persistent compressed Module_Info decodes with unsigned server area
+IDs; p/3/2 module-ready starts ClientArea/object updates (52-frame final run),
+then clean logout.37 focused tests and build PASS. Resource/native predicate and
+upload ABI oracles cover custom TLK/HAK/NWSync/build/language branches. World
+message import, renderer/UI, NWSync downloader and original-client concurrency
+remain open. See [evidence](evidence/multiplayer-character-admission.md). Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-character-admission-20261017-v1.zip`:
+11849 files/190231968 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 reliable transport progress:** Native M checksum/headers,16-slot
+receive/ACK/NAK behavior, packed/fragmented message assembly and server clock
+decoding now have original-code fixtures. Real server keepalive/data/ACK works;
+native BNDM clean logout and immediate back-to-back reconnects PASS.29 focused
+tests/helper probes/client build PASS. Generic outgoing fragmentation and a real
+status request/reply work. Adaptive scheduling, compression and resource-manifest
+import remain open before character admission/world replication.
+See [evidence and limits](evidence/multiplayer-reliable-frames.md). Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-reliable-frames-20261017-v1.zip`:
+11784 files/188246656 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 native authenticated multiplayer login:** Original server accepted
+two complete encrypted login attempts and independently logged key/community
+authentication plus Player1 joining. Native platform token, I+crypto-ID envelope,
+GetTickCount application ID and phase binding now work through a private probe.
+267 original encryption-policy cases,21 focused tests/helper/client builds PASS.
+Purchased key used only in memory/private pipe, absent from shared files/captures.
+This supersedes historical “key unused/login next” notes below. Reliable M-frame
+transport, character admission, UI connection and replicated gameplay remain open.
+See [evidence and limits](evidence/multiplayer-authenticated-login.md). Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-authenticated-login-20261017-v1.zip`:
+11713 files/183274289 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 multiplayer login codecs/credentials:** BNCS/BNVS encoding,
+BNCR/BNVR decoding and key/community/password challenge responses now have
+native evidence:32 original packet cases,21 original MD5 cases,6 public-key
+extractions and5 community coordinator cases.16 focused tests/build PASS;
+fresh original-server encrypted handshake PASS. Real key remains unused and
+out of captures. Platform identity and full login/session binding are next;
+player admission and shared gameplay remain unproven. See
+[evidence and limits](evidence/multiplayer-login-packets.md). Goal ACTIVE.
+Verified checkpoint `backups/multiplayer-login-codecs-20261017-v1.zip`:
+11669 files/182128831 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**NEW ACTIVE GOAL — 2026-10-17 multiplayer interoperability:** User saved/ended
+the old spell/combat/campaign goal and requested a new goal: play alongside
+original clients on an unmodified server. Registered through goal API.
+Encrypted BNK1/2/3/4 now completes against the installed original server with
+public identity verified.34 original-code cases,31 present-peer comparisons,
+8 final focused tests and helper/client builds PASS. No CD key persisted/used.
+Login, reliable transport, admission, replication and shared gameplay remain
+open. See [handshake evidence](evidence/multiplayer-key-exchange.md).
+This goal supersedes older active-goal labels in historical entries below;
+those entries retain prior work and do not claim old-goal completion.
+Verified checkpoint `backups/multiplayer-key-exchange-20261017-v3.zip`:
+11621 files/180350544 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 local multiplayer target:** At the user's request, launched the
+installed original dedicated server with an isolated profile, Prelude and
+UDP5121. Original BNER/BNXR replies now validate a reusable discovery/query
+codec;3 focused tests and build PASS. CD key remains out of files/captures.
+Native remote login starts with BNK1/libhydrogen; authentication, reliable
+transport, replication and UI connection remain open. See
+[server evidence and reproduction](evidence/local-multiplayer-server.md).
+The spell/combat/campaign goal remains ACTIVE and incomplete.
+Verified checkpoint `backups/local-multiplayer-query-20261017-v1.zip`:
+11585 files/178346199 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 engine values in saved scripts:** Effects/itemproperties, events,
+locations and talents now survive queued-script save/reload. Native constructor
+ID allocation/wrap, event append/copy capacities and canonical event types are
+preserved.58 original-code cases,66 focused tests, installed restored-script
+haste application/expiry and build PASS. Opaque SQL/solver/JSON and jump ownership
+remain open. See [evidence and limits](evidence/vm-engine-structures.md).
+Goal ACTIVE; no full suite run.
+Verified checkpoint `backups/vm-engine-structures-20261017-v1.zip`:
+11561 files/175328699 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 VM snapshot format and queued-script round trip:** Whole native
+snapshot save/load/stack format now binds primitive queued script restoration.
+76 save/83 load original-code cases,60 focused tests, installed generic-save →
+release → reload → equal re-save → actual DoCommand execution and build PASS.
+Original SP3 is retained separately from one copied cell/capacity17. Engine
+values and nonempty jump-map ownership remain explicitly unavailable. See
+[evidence and limits](evidence/vm-snapshot-serialization.md). Goal ACTIVE;
+no full suite run.
+Verified checkpoint `backups/vm-snapshot-format-20261017-v1.zip`:
+11534 files/175099563 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 native VM capture metadata:** Captured stacks now use original
+region/clamp/capacity rules and retain original SP separately. Raw native code
+is retained without the NCS header, with correct saved PC conversion.110 full
+copy/8 opcode original-code cases,45 focused tests, installed NCS fixture through
+the actual DoCommand queue and build PASS. Full saved VM/engine-structure
+serialization remains open. See [evidence](evidence/vm-situation-capture.md).
+Goal ACTIVE; no full suite run.
+Verified checkpoint `backups/vm-situation-capture-20261017-v1.zip`:
+11489 files/174378509 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 queued-action restoration:** Native LoadActionQueue now rebuilds
+live queues through AddAction, preserving existing nodes, group sentinels,
+parameter ownership/raw FLOATs and retained GFF handles.79 original-code cases,
+26 focused tests, installed queue append/re-save and item-effect restoration,
+and build PASS. VM situations remain explicit missing owners; no full suite run.
+See [evidence and limits](evidence/object-action-load.md). Goal ACTIVE.
+Verified checkpoint `backups/object-action-load-20261017-v1.zip`:
+11452 files/172047991 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 saved effects and temporary properties:** Whole LoadGameEffect and
+generic load coordination now restore live item effects with native typed
+defaults, uint64 IDs, creator attribution, skip filtering and loading flags.
+95 effect/7 coordinator original-code cases,26 focused tests, installed full
+item save/load/strict-expiry/permanent-property retention and build PASS.
+No new effect ID is consumed for a restored effect. Nonempty action import,
+VM/opaque state and whole creature lifecycle remain open. See
+[evidence and limits](evidence/game-effect-load.md). Goal ACTIVE; no full suite run.
+Verified checkpoint `backups/game-effect-load-20261017-v1.zip`:
+11426 files/171100209 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 generic object-state and live item saving:** Whole effect,
+variable/location, action and transition save owners now connect the full item
+export to canonical runtime state. Native variable hashing/list order replaces
+JS insertion order.57 object-state,14 transition-load and70 byte-hash cases,
+2354 hash operations,37 focused tests, installed item/container/copy checks and
+build PASS. Opaque VM/solver/JSON saves and effect/action import still diagnose
+missing owners. Full SaveCreature/CopyObject and campaign acceptance remain.
+See [evidence and limits](evidence/object-state-save.md). Goal ACTIVE.
+Verified checkpoint `backups/object-state-item-save-20261017-v1.zip`:
+11405 files/170558856 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 item/property and visual saving:** Whole native item/property save
+coordination and visual/UUID/animated-curve savers are ported.120 item and123
+visual original-code cases,29 focused tests, installed property mutation/visual
+load-save checks and build PASS. Live property/visual methods are connected;
+whole item export still requires generic object-state dependencies. CopyObject
+and full creature cloning remain unfinished. See
+[evidence and limits](evidence/item-save.md). Goal ACTIVE; no full suite run.
+Verified checkpoint `backups/item-visual-save-20261017-v1.zip`:
+11341 files/168735990 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 live creature-stat and combat-data saving:** Native SaveStats and
+CombatInformation::SaveData now preserve original-form polymorph stats, HP
+semantics, weapon-name/ammunition refresh, extended GFF fields and combat nodes.
+101 original-code save cases plus800 localized-name cases,26 focused tests,
+installed caster/resource/temp-HP/polymorph checks and build PASS. No full suite
+run. SaveCreature inventory/object state and matching loaders remain required
+before CopyObject can be bound. See
+[evidence and limits](evidence/creature-stats-save.md). Goal ACTIVE.
+Verified checkpoint `backups/creature-stats-save-20261017-v1.zip`:
+11295 files/167290889 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 live class/spell-resource serialization:** Native SaveClassInfo now
+writes current spellbooks, prepared slots, per-day/innate uses, permanent feats
+and uses, base skills and level history through the live runtime.97 original-code
+cases,48 focused tests, installed wizard/cleric/sorcerer consumption and temporary
+feat exclusion, and build PASS. No full suite run. CopyObject remains unbound
+until the rest of SaveStats/SaveCreature and matching load lifecycle are ready.
+See [evidence and limits](evidence/creature-class-save.md). Goal ACTIVE.
+Verified checkpoint `backups/creature-class-save-20261017-v1.zip`:
+11263 files/166262470 bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 script spell-use decrement:** DecrementRemainingSpellUses581 now
+follows native class order, parent remapping, prepared/domain/metamagic and
+substitution/innate selection, including ignored lower failures.827 native cases,
+43 focused tests,11 installed checks, build and casting UI PASS. Audit43unbound/
+22load failures. Whole clone/deck impacts still have dependencies; next is
+CopyObject's live serialization/load path. See
+[evidence and limits](evidence/script-decrement-spell-uses.md). Goal ACTIVE.
+Verified checkpoint `backups/script-spell-uses-20261017-v1.zip`:
+11222files/164291793bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 resource queries and sound ownership:** GetResRef582 and
+GetTilesetResRef814 now follow native casts/live string storage. Serialized
+template refs are imported; corrected sound CNWSObject construction, effect
+ownership/cleanup and copied-item fallback.682 original-code cases,51 focused
+tests, installed query/copy/sound checks and four actual prayer-script paths
+PASS. Final build/casting UI PASS. Audit44unbound/22load failures; full
+spell/combat/campaign acceptance remains open. See
+[evidence and limits](evidence/script-resource-references.md). Goal ACTIVE.
+Verified checkpoint `backups/script-resref-sound-20261017-v1.zip`:
+11180files/162703430bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 script logging and live calendar:** WriteTimestampedLogEntry560
+now follows the native timestamp/log/debug-gate/player iteration. Calendar
+queries13/14/15 read the existing live world timer.867 original-code cases,
+36 focused tests, installed parsed-NCS/authored error-branch checks, final build
+and casting UI PASS. Audit now45unbound/22load failures. Native debug-window/
+network transport and full spell/combat/campaign acceptance remain open. See
+[evidence and limits](evidence/script-log-calendar.md). Goal ACTIVE.
+Verified checkpoint `backups/script-log-calendar-20261017-v1.zip`:
+11118files/160167756bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 native appearance modification:** CopyItemAndModify731 now follows
+native model/part/palette/resource validation and placement. Fixed the exposed
+encumbrance movement-stage owner and copied-item weight adapter.1953 new native
+cases,16 installed modification checks,18 actual dye/re-equip paths,1997-test
+checkpoint, final focused17/build/casting UI PASS. Audit now49unbound/22load
+failures. Per-part rendering and full spells/combat/campaign acceptance remain
+open. See [evidence and limits](evidence/item-appearance-modification.md).
+Goal ACTIVE; single-player first.
+Verified checkpoint `backups/item-appearance-1997-20261017-v1.zip`:
+11075files/159465966bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 script skill checks and item AC:** complete native GetItemACValue
+and GetIsSkillSuccessful are connected, including native unused skill-name slots.
+575 original-code cases and35 focused tests PASS. Installed17 query checks and
+four untouched ruin-armor script outcomes PASS, plus15 copy regressions. Audit
+now50unbound commands/22load failures; skill-result GUI and remaining spell/
+combat/campaign acceptance stay open. See
+[evidence and limits](evidence/script-skill-item-checks.md). Goal ACTIVE;
+single-player first.
+Verified checkpoint `backups/script-checks-20261017-v1.zip`:
+10957files/158695243bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 public CopyItem and acquisition:** native VM CopyItem584 now uses
+selective item copying and original placement/failure behavior. Complete native
+container/store acquisition, recursive tag lookup and active panel selection
+are connected; CreateItemOnObject shares those adapters.1491 new original-code
+cases,15 installed scenarios, nearby ownership/corpse regressions,1990-test
+checkpoint and build PASS. Audit is now52unbound commands/22load failures;
+complete spells/combat/campaign acceptance stays open. See
+[evidence and limits](evidence/script-item-copy.md). Goal ACTIVE; single-player first.
+Verified checkpoint `backups/script-item-copy-1990-20261017-v1.zip`:
+10924files/157461735bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 creature corpses and equipped loot:** connected native selective
+item copying, lethal-damage death payloads, complete temporary-HP removal and
+existing corpse scheduling/destruction to live gameplay. Seven installed death
+paths and seven equipped-item copies pass; nine on-hit regressions pass.
+2601 new original-code comparisons pass. Full1983-test checkpoint passed;
+subsequent narrow XP-import fixes pass56 focused tests and build. Rendered testing
+also found/fixed placeable creator attribution and destroyed-creature revisit
+binding. Rendered death clip, corpse removal, bag radial and revisit now PASS;
+unrelated autosave/walkmesh diagnostics remain recorded. See
+[evidence and limits](evidence/creature-corpse-lifecycle.md). Goal ACTIVE;
+single-player first. Full spells/combat/campaign acceptance remains open.
+Verified checkpoint `backups/creature-corpses-20261017-v1.zip`:
+10887files/156691250bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 on-hit spell dispatch/unlocking:** all five remaining engine
+spell-request builders use active impact scripts and normal event19 delivery.
+Native door lock fields, world-object spell notifications and generic
+noncreature self-unlock actions are connected; installed dispels remove buffs
+and Knock respects plot/key protection.2239 original-code comparisons,
+1979 tests/build/casting UI and installed regressions pass. Audit still has
+53unbound commands/22load failures; creature unlock, corpse handling and full
+spells/combat/campaign acceptance remain open. See
+[evidence and limits](evidence/on-hit-engine-spells.md). Goal ACTIVE;
+single-player first.
+Verified checkpoint `backups/on-hit-engine-spells-1979-20261017-v1.zip`:
+10829files/150742752bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 permanent on-hit effects:** eleven additional native payload
+builders and the full alignment gate are connected, including real timed
+wounding and capped vampiric healing. Corrected the full ONHIT_EFFECT_DC rules
+key.871 new original-code comparisons,1975 tests, build and casting UI pass;
+installed9-check application/lifecycle and13-check duration regressions pass.
+Remaining item-spell on-hit overloads, death/corpse presentation and full
+spells/combat/campaign acceptance stay open. See
+[evidence and limits](evidence/on-hit-permanent-effects.md). Goal ACTIVE;
+single-player first.
+Verified checkpoint `backups/on-hit-permanent-1975-20261017-v1.zip`:
+10762files/149126665bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 common duration on-hit effects:** eleven native payload builders now
+share verified construction/delivery, including their distinct linked metadata
+and sleep protection behavior. Skill modifiers now create native icons and follow
+the original loading/death/immunity gates.1227 original-code cases,1972 tests,
+build and casting UI pass. Installed checks cover thirteen effect/skill paths,
+active StateScripts and natural expiry; broader Fear and Slow immunity checks pass.
+Remaining non-duration on-hit methods and death/corpse work are next. Full spell,
+combat and campaign acceptance remains open. See [evidence and limits](evidence/on-hit-duration-effects.md).
+Goal ACTIVE; single-player first.
+Verified checkpoint `backups/on-hit-duration-1972-20261017-v1.zip`:
+10702files/147958611bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 on-hit/status delivery:** the broader Fear casting/combat test now
+passes, including actual fleeing. Native on-hit selection, chance/save/table
+gates and Slow payload are integrated; linked-effect immunity cleanup and native
+damage charm/sleep cleanup replace blanket failures.3100 new original-code cases,
+1968 tests and build pass; installed Slow/expiry/immunity checks pass. The recorded
+tile-loop rejection matches the original and remains a detailed warning.
+Remaining on-hit handlers, death/corpse and other spell/campaign gaps stay open.
+See [evidence and limits](evidence/on-hit-status-delivery.md). Single-player first;
+goal ACTIVE.
+Verified checkpoint `backups/on-hit-status-1968-20261017-v1.zip`:
+10655files/146926706bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 single-player control movement:** reusable native move-away actions,
+data-selected StateScripts, Turned constructor and faction leader/CR queries are
+connected. Fixed shared heartbeat/effect timer storage. Native original-code
+oracles,1962 tests/build and casting UI checks pass; installed frightened/turned
+scripts produce actual fleeing and recover naturally. The broader Fear casting
+experiment exposed unresolved tile traversal and weapon on-hit property48 failures.
+These are next single-player priorities. See [evidence and limits](evidence/move-away-control-scripts.md).
+Spells/combat/campaign acceptance remains incomplete; goal ACTIVE. Multiplayer waits.
+Verified checkpoint `backups/move-away-controls-1962-20261017-v2.zip`:
+10581files/145268835bytes, every archived length/SHA256 verified. Post-seal note.
+
+**2026-10-17 client pause clocks:** decoded native pause messages now carry
+active exclusion IDs into independent client timers and mirrors. Creature poses
+freeze/resume using client clocks; repeated undefined queue polls retain counts
+without flooding the journal. 849original-code cases,1953tests/build, installed
+Time Stop/casting/client-clock checks and live NPC pose-freeze UI pass. Scene,
+GUI/audio and other visual-clock owners remain open, as do full spells/combat/
+campaign acceptance. See [evidence and limits](evidence/client-pause-clocks.md).
+Goal ACTIVE; single-player first.
+Verified checkpoint `backups/client-pause-clocks-1953-20261017-v1.zip`:
+10518files/142972273bytes, every archived length/SHA256 verified.
+Verification note added after sealing.
+
+**2026-10-17 Time Stop lifecycle:** original constructor and effect64/98
+apply/recast/removal/immunity owners are connected to real pause/exclusion clocks.
+2057 original-code cases,1945 tests/build, installed ordinary casting and casting
+Light during Time Stop, plus real spellbook/hotbar/right-click UI/natural expiry
+checks pass. Full client pause presentation and other periodic/engine owners
+remain open. Active audit:57unbound/22missing scripts; full spell/combat/campaign
+acceptance is incomplete. See [evidence and limits](evidence/time-stop-effects.md).
+Single-player remains first. Goal ACTIVE.
+Verified checkpoint `backups/time-stop-effects-1945-20261017-v1.zip`:
+10450files/140405765bytes, every archived length/SHA256 verified.
+Verification note added after sealing.
+
+**2026-10-17 native AI event clocks:** shared world-time event deadlines and
+original head/tail insertion rules now drive delayed scripts, combat and object
+lifecycle events. Ordinary/item casting reads the actor's active timer.
+786 original-code cases,1941 tests/build and installed Prelude NCS timing checks
+pass. Time Stop bindings, remaining periodic/notification work and complete
+spells/combat/campaign acceptance remain open. Single-player remains first.
+See [evidence and limits](evidence/ai-event-clock.md). Goal ACTIVE.
+Verified checkpoint `backups/native-ai-event-clocks-1941-20261017-v1.zip`:
+10418files/138622067bytes, every archived length/SHA256 verified.
+Verification note added after sealing.
+
+**2026-10-17 native effect clocks:** temporary effects now use native day/time
+deadlines, pre-handler world-time capture and active frame expiry/polling.
+1360 original effect-clock and144 queue-clock cases,1935 tests/build, installed
+NCS/item/summon checks and spellbook/radial/hotbar UI pass. Undefined queue timing
+is diagnosed and retains GUI state while gameplay continues; it is an explicit
+local recovery policy. Time Stop still needs event/remaining effect/notification
+integration. Full spells, combat and campaign remain open. See
+[evidence and limits](evidence/effect-deadline-clocks.md). Goal ACTIVE.
+Verified checkpoint `backups/native-effect-clocks-1935-20261017-v1.zip`:
+10391files/137731693bytes, every archived length/SHA256 verified.
+Verification note added after sealing.
+
+**2026-10-17 Time Stop prerequisites:** native pause/exclusion/reprocess owners
+and all three clocks are connected;1214 original-code comparisons,1929 tests,
+build, installed NPC/nested-clock checks and normal casting UI pass. A separate
+player check reproduces a queue-timestamp failure after clock rebasing. Time Stop
+remains unbound until that issue, effect/event clocks and notification/effect
+owners are finished. Remaining gaps are recorded, not treated as successful
+casting. See [evidence and reproduction](evidence/server-pause-timers.md).
+Goal ACTIVE; full spells/combat/campaign scope unchanged. Verified checkpoint
+`backups/server-pause-clocks-1929-20261017-v1.zip`:10338files/136548858bytes,
+every archived length/SHA256 verified. Verification note added after sealing.
+
+**2026-10-17 polymorph combat snapshot:** replaced the labelled stat projection
+with native combat-information copy ownership. Copy/assignment/destruction and
+distinct equality overloads pass845 original-code cases.1923 tests/build,
+five installed forms and F2/radial transformation/cancellation UI pass. All102
+form snapshot assertions complete, but the broad sweep retains two missing
+authored item resources and is not declared clean. Full stat writer, save/lifetime,
+remaining spell/combat owners and campaign completion remain open. See
+[evidence and limits](evidence/combat-cache-lifecycle.md). Goal ACTIVE;
+single-player first. Verified checkpoint
+`backups/combat-cache-lifecycle-1923-20261017-v1.zip`:10289files/135621966bytes,
+every archived length/SHA256 verified. Verification note added after sealing.
+
+**2026-10-17 character-sheet and HP refresh:** canonical queued sheet requests
+now drive native consumer counts and real dirty-frame stat refresh.1353 native
+sheet/lifecycle cases and1526 maximum-HP cases pass. All39 live preset maxima
+match original execution; saved Pale Master114/live102 remains a warning, with
+no character exception.1918 tests/build, installed NCS/frame/subscription and
+character-sheet UI checks pass. All39 load/cache checks pass while unsupported
+item/resource warnings remain recorded. Original client sender/full stats
+writer, snapshot ownership and campaign acceptance remain open. See
+[evidence and limits](evidence/character-sheet-hp-refresh.md). Goal ACTIVE;
+single-player takes priority. Verified checkpoint
+`backups/character-sheet-hp-1918-20261017-v1.zip`:10264files/134896185bytes,
+every archived length/SHA256 verified. Verification note added after sealing.
+
+**2026-10-17 combat-information rebuild:** native effect filtering/cache rebuild
+and dirty-frame rules are ported and connected to synchronous spell/equipment
+callers.1074 native cases,1910 tests/build, installed NCS/frame checks and
+polymorph hotbar/radial UI pass. All39 preset cache checks pass, while broader
+load failures remain explicit (PWK absence and saved Pale Master HP mismatch).
+Real character-sheet subscription, snapshot ownership and campaign acceptance
+remain open. See [evidence and limits](evidence/combat-information-refresh.md).
+Goal ACTIVE. Verified checkpoint `backups/combat-information-1910-20261017-v1.zip`:
+10229files/133804556bytes; every archived length/SHA256 verified.
+Verification note added after sealing.
+
+**2026-10-17 item eligibility and ranged damage:** corrected active PropColumn
+loading, Mighty CostValue and ammunition RangedWeapon lookup. Installed NCS
+property/equipment/damage test observes8->11->8 with cleanup and no new warnings.
+Native nominal melee/ranged dependencies now ported;1861 original-code cases,
+1906 tests/build and item spellbook/hotbar/radial UI pass. Full synchronous combat
+refresh and campaign completion remain open. See
+[evidence and limits](evidence/nominal-damage-item-columns.md). Goal ACTIVE.
+Verified checkpoint `backups/nominal-damage-items-1906-20261017-v1.zip`:
+10177files/132996959bytes; every archived length/SHA256 verified.
+This verification note was added after sealing.
+
+**2026-10-17 single-player priority / entangle and failure effects:** Entangle,
+school/arcane spell failure and miss-chance constructors/handlers now support
+installed scripts. Real on-hit testing exposed and fixed shared cutscene
+immobilization.2628 original-code cases,1902 tests/build, eight installed runtime
+checks and shared spellbook/hotbar/radial casting UI pass. Full combat-cache
+refresh, other effect/presentation gaps and campaign acceptance remain open.
+Audit:58 unbound commands/22 missing scripts. See
+[evidence and limits](evidence/entangle-spell-failure-effects.md). Goal active;
+single-player correctness comes first. Verified checkpoint
+`backups/entangle-failure-1902-20261017-v1.zip`:10128files/130989513bytes;
+every archived length/SHA256 verified. Verification note added after sealing.
+
+Native bonus-attack effects and equipped bonus-spell-slot mutation now run through
+the existing combat/spellbook owners. Untouched Divine Power/Tenser scripts pass
+installed probes, including round scheduling and deferred equipment restoration.
+3192 original-code cases,1900 tests/build and polymorph hotbar/radial regression
+pass. Known presentation/cache diagnostics remain; full spells/combat/campaign
+are unfinished. Audit:61 unbound commands/22 missing impact scripts. See
+[evidence and limits](evidence/modify-attacks-and-bonus-spell-slots.md). Goal active.
+Verified checkpoint `backups/bonus-attacks-slots-1900-20261017-v1.zip`:
+10060files/130205302bytes; every archived length/SHA256 verified.
+
+Curse and Ethereal native constructors/handlers are connected. Curse preserves
+deferred CON delivery and shared-ID cleanup; Ethereal uses native no-save
+Sanctuary behavior. Personal-reputation script commands now use the mapped
+clear/add owners, including the hostile spell callback exposed by testing.
+1242 original-code cases,1898 tests/build, installed spell/effect probes and
+shared Sanctuary radial/prepared-slot UI pass. Audit now62 unbound spell-script
+commands/22 missing scripts. Full spellcasting/combat/campaign remain unfinished.
+See [evidence and limits](evidence/curse-ethereal-effects.md). Goal stays active.
+Verified checkpoint `backups/curse-ethereal-1898-20261017-v1.zip`:10011files,
+129424168bytes; every archived length/SHA256 verified.
+
+Linked kind7/random-linked kind12 projectile initialization and model reattachment
+are connected, including native eligibility/order/quaternion math and auxiliary
+cleanup.884 original-code cases,1895 tests/build, installed model/projectile probes
+and casting UI regressions pass. Absent endpoint resources remain diagnosed and
+take the native null branch. Full scene/cache/network and spell ecosystem remain
+unfinished. See [evidence](evidence/linked-projectiles.md). Verified checkpoint:
+`backups/linked-projectile-1895-20261017-v1.zip`,9956 files/128169068 bytes;
+every archived length/SHA256 verified. Goal stays active.
+
+Goal resumed. Dynamic spell visuals now instantiate and own referenced child
+models, animate their reference anchors and clean up nested instances.94 original
+ownership/control cases,1887 tests/build,12 installed models/34 instances and
+actual reference-containing spell UI pass. Linked reattachment and static area
+reference expansion remain open. See [evidence](evidence/model-reference-ownership.md).
+Verified checkpoint: `backups/model-reference-owner-1887-20261017-v1.zip`,9906 files,
+127068390 bytes; every archived entry length/SHA256 verified.
+
+Campaign test fix: ground clicking and keyboard/interaction movement now use
+canonical waypoint actions, with native walk/run and idle animation selection.
+215 original-code cases,1882 tests/build and installed Prelude wizard UI pass.
+See [movement evidence and limits](evidence/player-movement-input.md).
+Verified checkpoint: `backups/player-movement-1882-20261017-v1.zip`,9849 files,
+125576344 bytes; every entry length/SHA256 verified.
+The larger goal stays paused at the user's request.
+
+Binary model reference nodes now preserve their name/raw64 bytes and signed
+reattachable value instead of skipping the payload.36 original-code cases,
+1879 tests, build and installed casting UI pass. Child-model instantiation and
+linked projectile rendering remain diagnosed. See [evidence](evidence/model-references.md).
+Verified checkpoint: `backups/binary-reference-1879-20261017-v1.zip`,9817 files,
+124194253 bytes; every archived entry length and SHA256 verified.
+User requested a pause at this completion; the full goal remains incomplete.
+
+Missing projectile targets now get native-shaped c_dummy client creatures with
+independent IDs, authored impact nodes, duration+500 expiry and cleanup. Inbox
+deletion now reaches this fallback while ID reuse remains rejected.9996 original
+cases,1877 tests/build, installed asset/pose lifecycle probe and normal casting
+UI pass. Moving loop audio and full scene/display/replication remain open. See
+[evidence](evidence/client-projectile-dummy.md). Verified checkpoint:
+`backups/client-dummy-1877-20261017-v1.zip`,9792 files/123799187 bytes.
+Full goal remains active.
+
+Projectile body impacts now parent to authored target parts, apply the native
+root pose and clean up their attachments.2472 original-code cases, moving-anchor/
+duration/missing-part renderer checks,1869 tests/build and actual installed UI
+body attachment pass. Shield selection is ported, but its live equipment/model
+bridge and full flag28 updates remain open. See [evidence](evidence/client-projectile-impact.md).
+Verified checkpoint: `backups/projectile-impact-1869-20261016-v1.zip`,9753 files,
+122516303 bytes; every entry length and SHA256 verified.
+Full spellcasting/combat/campaign goal remains active.
+
+Projectile target naming now matches native door/placeable model-prefix owners.
+768 original-code cases, actual trajectory integration, seven installed model
+part checks and1865 tests/build pass. Installed projectile UI passes. Full impact
+attachment and remaining projectile/effect systems are still open. See
+[evidence](evidence/client-projectile-target.md). Verified checkpoint:
+`backups/projectile-target-1865-20261016-v1.zip`,9732 files/122154044 bytes.
+
+Casting chants now use native race/Gender provenance and installed spell sound
+fields. Male/female/Silent live casts pass, with5126 original-code cases and1863
+tests/build passing. No spell-specific sound exception. Complete native update
+replication and remaining projectile/effect systems are still open. See
+[evidence](evidence/cast-voice.md). Current checkpoint target:
+`backups/cast-voice-1863-20261016-v2.zip` verified9696 files/120681019 bytes.
+Full spellcasting/combat/campaign goal remains active.
+
+Cast visuals now consume the native spell/item/sound-suppression fields through
+local scalar projection. Silent metamagic and Automatic Silent caps match the
+original calculation. A real Silent UI cast retains visuals/projectile but makes
+no conjure sound request; ordinary installed casting retains its authored sound.
+7299 native cases,1860 tests/build and UI regressions pass. Chant race/gender and
+full packet replication remain explicit gaps. See [evidence](evidence/client-cast-fields.md).
+Checkpoint target: `backups/client-cast-fields-1860-20261016-v1.zip`.
+Previous backup verified:9620 files /116554154 bytes. Full goal remains active.
+
+CC8 spell notifications now use native start/release/item/identified/alternate
+template selection, installed TLK and client reserved tokens. Item names are
+captured before consumption; repeated item uses retain separate log rows.
+1536 client and1280 server-writer native cases,1857 tests and build pass.
+Installed spell/projectile and three-use item UI tests pass; native widget color/
+layout and transport remain diagnosed. See [evidence](evidence/client-spell-message.md).
+Checkpoint target: `backups/client-spell-message-1857-20261016-v1.zip`.
+Previous backup verified:9579 files /114591328 bytes. Full goal remains active.
+
+Generic conjure/cast visuals now use the native controller and active spell data.
+Installed Daze renders its authored hand effect, fades, emits donefade and cleans
+up alongside its projectile.3644 native controller/driver cases and1852 tests
+pass; build and installed UI regressions pass. Native network field/voice and
+outer scene/audio adapters remain explicitly incomplete. See
+[evidence and limits](evidence/cast-visual-controller.md).
+Checkpoint target: `backups/cast-visual-controller-1852-20261016-v1.zip`.
+Previous backup verified:9542 files /113714686 bytes. Full goal remains active.
+
+Random projectile kinds4/9 and high-ballistic reset nodes now reach the live
+renderer through shared native owners. Kind12 math is checked; reference parenting
+is still missing.2601 initializer,6042 math and48 external-animation cases pass;
+1842 tests/build and installed projectile/existing casting UI regressions pass.
+Client random state now persists across area rebuilds. No spell-specific data
+exceptions. See [evidence and limits](evidence/client-projectile-random.md).
+Checkpoint target: `backups/client-projectile-random-1842-20261016-v1.zip`.
+Previous backup verified:9501 files /113300039 bytes. Full goal remains active.
+
+Live spell projectile delivery now loads active-data models into a separate client
+object array, follows native path/phase services and cleans up scene/models/IDs.
+Installed prepared Daze renders its authored vpr_los projectile through travel,
+impact and deletion; no invented clips for this clipless asset.1356 native AI and
+130 orientation cases,1834 tests/build, projectile UI and prior casting UI pass.
+Special paths, cast/dummy/impact/audio owners remain diagnosed. See
+[presentation evidence and limits](evidence/client-projectile-presentation.md).
+Checkpoint target: `backups/client-projectile-render-1834-20261016-v1.zip`.
+Previous backup verified:9460 files /112337621 bytes. Full goal remains active.
+
+Projectile path configuration, deterministic initialization, frame coordination,
+high-ballistic/spiral building, node advancement and animation stage selection now
+match original-code captures.17518 path cases include240 composed trajectories /
+7920 native frames;1104 animation cases also pass. These shared services await
+live model/client-object/scene integration; existing diagnostics remain. See
+[path lifecycle evidence and limits](evidence/client-projectile-path.md).
+Checkpoint target: `backups/client-projectile-path-1824-20261016-v1.zip`.
+Previous backup verified:9423 files /110550160 bytes. Full goal remains active.
+
+Native client projectile headers now decode on local delivery, retaining external
+client IDs separately from authoritative object IDs. Shared basic/spiral motion
+matches original binary32 steps.774 message cases and1318 motion cases/2026 steps,
+1815 tests/build, installed prepared casting and rendered UI regression pass.
+Live projectile model/path/scene integration is still explicitly diagnosed; the
+motion helpers await that integration. Full spells/combat/campaign remain open.
+See [evidence and next owners](evidence/client-projectile-message-motion.md).
+Checkpoint target: `backups/client-projectile-1815-20261016-v1.zip`.
+Previous release backup verified:9359 files /107442078 bytes. REA now admits23
+read-only tools, including complete retained analysis paging for large functions.
+
+Native spell release messages and projectile dispatch now share original
+ownership/visibility/item/inventory rules. Canonical creature construction now
+includes its native self-visibility node and empty identified-observer list.
+3922 original cases,1808 tests/build, installed prepared/item/feat casts and
+rendered casting regressions pass. Native client projectile rendering/message
+consumption remain explicitly diagnosed. Auditv47 stays65 unbound /22 missing.
+See [evidence](evidence/spell-release-presentation.md). Checkpoint target:
+`backups/spell-release-1808-20261016-v1.zip`.
+Previous Sanctuary backup verified:9317 files /106904888 bytes.
+
+Generic Sanctuary effect creation/application/removal and targeted pacification
+now follow native owners. Combat invisibility cleanup removes full linked IDs,
+including icons, and invisible henchman dismissal works. Installed cleric prepared
+casting and rendered right-click wheel pass; spell logic remains in installed NCS.
+1545 native cases/743 original copies,1805 tests/build and casting regression pass.
+Auditv46:65 unbound /22 missing resources. Release presentation/AI/visual warnings
+remain recorded. See [evidence](evidence/sanctuary-effects.md). Checkpoint target:
+`backups/sanctuary-1805-20261016-v1.zip`.
+Previous henchmen backup verified:9277 files /105771466 bytes.
+
+Henchman add/remove, summoned-associate removal and module caps now follow the
+shared native command owner. Canonical IDs, ownership guards, physical-list
+counting and faction restoration are preserved.3258 original-instruction cases,
+installed Prelude NCS probe,1799 tests/build and casting UI regression pass.
+Combat-invisibility removal and full henchman/client replication remain explicit
+limits. Auditv45:66 unbound commands /22 missing resources.
+See [evidence](evidence/henchmen.md). Checkpoint target:
+`backups/henchmen-1799-20261016-v1.zip`.
+Previous token-parser backup verified:9238 files /105048412 bytes.
+
+Custom tokens now reach dialogue lines, replies and one-liners through the native
+byte parser and active StringTokens definitions. Names, pronouns, rule text and
+calendar providers use shared state; native rich-widget/player/network contexts
+remain diagnosed. All1,794 tests/build pass; installed data and rendered dialogue
+replacement checks pass, alongside the built-client casting regression.
+Captured580 parser/261 hash/1,928 game callback/162 alignment cases have explicit
+limits. Auditv44 remains70 unbound commands /22 missing resources.
+See [parser evidence](evidence/talk-token-parser.md). Checkpoint target:
+`backups/talk-token-parser-1794-20261016-v1.zip`.
+Prior custom-token backup verified:9,163 files /103,819,808 bytes.
+
+SetCustomToken now preserves native sorted token records, reserved-ID guards and
+server/local-client message-body state. Dialogue ParseStr and full network
+synchronization remain diagnosed and unfinished. All1,785 tests/build and the
+installed NCS probe pass, with975 complete original table/command/packet cases.
+Auditv43:70 unbound commands /22 missing resources. See [evidence](evidence/custom-tokens.md).
+Checkpoint target: `backups/custom-token-1785-20261016-v1.zip`.
+Talk-table backupv1 verified:9,135 files /103,089,675 bytes.
+
+GetStringByStrRef now uses a shared native talk-table fetch/cache/gender owner,
+with language files available before startup. All1,780 tests/build, installed
+27-query NCS probe and rendered casting regression pass.604 original fetch/
+getter cases verify records, failures and persistent female fallback. Full TLK
+token/resource-loader/voice and localized-script presentation remain open and
+diagnosed. Auditv42:71 unbound commands /22 missing resources.
+See [evidence](evidence/native-talk-table.md). Checkpoint target:
+`backups/talk-table-1780-20261016-v1.zip`.
+Prior speech backupv2 verified:9,106 files /102,516,024 bytes.
+
+String-reference spell speech now follows native immediate/queued command,
+action33, talk/whisper radius, shout channel and message-body behavior. The local
+log resolves installed talk-table text; native overhead/TLK token/voice/lip and
+complete network broadcast routing remain diagnosed. All1,774 tests/build,
+installed NCS and rendered casting regressions pass, with5,084 native cases.
+Auditv41:72 unbound commands /22 missing resources. See [speech evidence](evidence/speech-strref.md).
+Verified first checkpoint: `backups/speech-strref-1774-20261016-v1.zip`
+(9,096 files /101,743,176 bytes). TLK ownership research is now recorded for
+the next dependency; see [investigation](evidence/talk-table-investigation.md).
+Final checkpoint target: `backups/speech-strref-1774-20261016-v2.zip`.
+Prior find/magnitude backup verified:9,065 files /100,878,370 bytes.
+
+Continued with shared FindSubString/VectorMagnitude spell helpers, preserving
+native byte/NUL bounds and FLOAT arithmetic. Full1,770 tests/build and installed
+NCS probes pass;1,477 original cases captured (four native allocated-empty string
+representation observations remain a documented VM limit). Auditv40 is now74
+unbound commands /22 missing resources. See [evidence](evidence/find-magnitude.md).
+Verified checkpoint: `backups/find-magnitude-1770-20261016-v1.zip`.
+Prior immortality backup verified:9,034 files /100,464,509 bytes.
+
+Live creature immortality now has one native INT owner across script setters/
+getters, damage and enchantment immunity. Typed BIC/UTC imports retain native
+Boolean conversion; script writes retain raw INTs. All1,768 tests/build pass,
+with368 original-code cases and installed NCS checks across62 creatures.
+Auditv39:76 unbound commands /22 missing resources. Spells/combat/campaign
+remain unfinished. See [native evidence](evidence/creature-immortality.md).
+Verified checkpoint: `backups/creature-immortality-1768-20261016-v1.zip`.
+
+Prior area/skill checkpoint verified:9,004 files /100,199,890 bytes.
+
+Continued spell dependency work: native area flags and skill eligibility queries
+are bound, with7,232 original wrapper comparisons and installed NCS checks.
+All1,765 tests/build pass; audit is now77 unbound commands /22 missing resources.
+The goal continues; see [query evidence](evidence/spell-area-skill-queries.md).
+Verified checkpoint: `backups/spell-area-skill-1765-20261016-v1.zip`.
+
+User resumed the goal. REA is integrated with a pinned project MCP registration
+and a working persistent native-research client. Location/vector/logging engine
+dependencies now preserve original FLOAT and string behavior; the active spell
+audit falls from83 to80 unbound commands, with22 missing resources still open.
+All1,763 tests/build and rendered casting regressions pass. Spells, combat and
+campaign work continue; see [native utilities](evidence/script-utilities.md) and
+[REA integration](evidence/rea-integration.md). Checkpoint target:
+`backups/rea-script-utilities-1763-20261016-v1.zip` (verify its checkpoint log).
+
+Map artwork/pin-widget increment finished; user requested a pause here. The map
+now renders active SET artwork and installed GUI pin/player models with local
+exploration visibility. Native comparisons cover660 complete pin presentations,
+32 image-selection branches and48 player projections. Real radial Use -> NCS
+exploration/waypoint creation, note clicking and area revisit pass. All1,760
+tests, build, rendered casting and creation regressions pass. Full native map
+window controls, user-note editing and network exploration remain open; spells,
+combat and campaign are not complete. See
+[map presentation evidence](evidence/map-artwork-pin-presentation.md).
+Verified-checkpoint target: `backups/map-artwork-1760-20261016-v1.zip`; check
+`backups/animations/map-artwork-checkpoint-v1.txt` for the final verified result.
+
+The following entries document earlier increments and their then-open gaps.
+
+Initial map-note continuation: area entry now reads both waypoint notes and
+player-local notes through shared native serialization and a verified client
+reader section. All five Prelude areas and inclusive user-note indexing pass;
+canonical IDs remain unchanged. All1,757 tests/build pass. The map's artwork,
+pin widgets and native controls remain open; see
+[initial map-note evidence](evidence/initial-area-map-pins.md).
+
+Map-note continuation: CreateObject now delivers native-serialized map notes
+into separate client pin state; SetMapPinEnabled is bound through NWScript.
+670 sender,148 receiver and216 command comparisons preserve wire references,
+localization, raw INT/BOOL behavior and recipient rules. All1,753 tests/build
+pass. Map-panel presentation and full transport remain open; see
+[map-pin evidence](evidence/map-pin-messages.md).
 
 Scripted creation continuation: CreateObject243 now supports all five native
 types through canonical loaders/placement/area owners. The real Gate cast and
@@ -1193,3 +2369,17 @@ Continue **core gameplay systems** through the shared rules work above and canon
 - Visual completeness is cheaper than behavioral completeness; prioritize progression blockers and representative workflows.
 - Use locally installed assets only. Do not copy game binaries/assets into this workspace or patch/inject/alter the running game.
 - Ghidra remains valuable for unresolved target-specific behavior. The current WOK/PWK/DWK slices were readable text resources, so they did not require binary modification or speculative Ghidra edits.
+
+Verified associate-control checkpoint multiplayer-associate-control-20261018-v1.zip:
+13122 files/257984812 bytes, every entry length/SHA256 verified;32 required
+present/forbidden0. Postseal note; broader multiplayer goal ACTIVE.
+
+Verified global-command checkpoint multiplayer-party-commands-20261018-v1.zip:
+13162 files/260994509 bytes, every entry length/SHA256 verified;43 required
+present/forbidden0. Credential audit11792files/privatehits0. Postseal note;
+full multiplayer goal ACTIVE, original-client concurrent play still required.
+
+Verified roster checkpoint multiplayer-party-roster-20261018-v1.zip:13216 files/
+265782929 bytes, every archived length/SHA256 verified;41 required present/
+forbidden0. Credential audit11840files/privatehits0. Postseal note. Goal ACTIVE;
+actual original-client concurrent testing remains a required priority.

@@ -4,6 +4,9 @@ import {spawnHeartbeatPerception,cleanPersonalReputations,cleanInvitationLists} 
 import {NativeAIMaster,scriptSetAILevel} from '../src/native_ai_master.js';
 import {ModuleSession} from '../src/module_session.js';
 import {receiveSummonEvent} from '../src/summon_effect.js';
+import {parse2da} from '../src/area.js';
+import {addPauseExclusion,resetCreatureUpdateTimes} from '../src/server_pause.js';
+import {advanceLocalClocks} from '../scripts/advance-effect-clock.mjs';
 const invalid=0x7f000000;
 function fixture(){
   const actor={id:0x80000001,areaId:9,position:[5,0,-5],nativeSpawnState548:1,nativeField948:invalid,
@@ -145,4 +148,17 @@ test('live runtime heartbeat invokes authored spawn before native RNG/perception
   assert.equal(session.commands.GetAILevel([actor.id]),3);assert.equal(actor.nativePerceptionTime57c,time.time);
   session.worldTimer.setTime(2,8000);await session.combat.updateSpawnHeartbeat(actor,1,{updateVisibility:()=>trace.push('visible'),random:()=>{trace.push('rand');return 55;}});
   assert.deepEqual(trace,['spawn','rand','rand','rand','visible']);
+});
+
+test('controller heartbeat fields alias canonical timer storage, including native pause reprocess resets',()=>{
+ const s=new ModuleSession(null),actor=s.register('creature','heartbeat-alias',{});actor.nativeHeartbeatDay54c=7;actor.nativeHeartbeatTime550=100;assert.equal(actor.nativeField54c,7);assert.equal(actor.nativeField550,100);
+ actor.nativeField54c=0;actor.nativeField550=1;assert.equal(actor.nativeHeartbeatDay54c,0);assert.equal(actor.nativeHeartbeatTime550,1);resetCreatureUpdateTimes(actor,8,900);assert.equal(actor.nativeField54c,8);assert.equal(actor.nativeField550,900);
+});
+
+test('actual heartbeat selects active StateScripts data and restores commandability on an advancing excluded clock while world time stays frozen',async()=>{
+ const s=new ModuleSession(null,{runStartupScripts:false}),area=s.register('area','control-area',{nativePlayerCount150:1}),actor=s.register('creature','controlled',{areaId:area.id,stats:{currentHP:10}}),calls=[];
+ s.worldTimer.setTime(7,100);s.nativeServerPause.timer1.reset(s.worldTimer);s.nativeServerPause.timer2.reset(s.worldTimer);actor.nativeSpawnState548=1;actor.nativeAILevel7c=1;actor.nativeHeartbeatDay54c=actor.nativePerceptionDay578=7;actor.nativeHeartbeatTime550=actor.nativePerceptionTime57c=100;actor.nativeHeartbeatInterval554=6000;actor.nativeField771=3;
+ const table=parse2da('2DA V2.0\n\nSCRIPTNAME\n0 ignored\n1 ignored\n2 ignored\n3 module_replacement_control');s.items.table=async name=>{assert.equal(name,'statescripts');return table;};s.runScript=async(name,id)=>{calls.push({name,id,commandable:actor.nativeFieldEc});actor.nativeFieldEc=1;};
+ addPauseExclusion(s.nativeServerPause,actor.id,1);await s.setPauseState(1,1);advanceLocalClocks(s,7000);await s.combat.updateSpawnHeartbeat(actor,1,{updateVisibility:()=>{},cleanInvitations:()=>{},random:()=>0,client:()=>null});
+ assert.deepEqual(calls,[{name:'module_replacement_control',id:actor.id,commandable:0}]);assert.equal(actor.nativeFieldEc,0);assert.deepEqual(s.worldTimer.time(),{day:7,time:100});assert.equal(actor.nativeHeartbeatDay54c,7);assert.equal(actor.nativeHeartbeatTime550,7100);assert.equal(actor.nativeField550,7100);
 });

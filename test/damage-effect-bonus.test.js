@@ -13,8 +13,8 @@ const table = (columns, rows) => parse2da(`2DA V2.0\n\n${columns}\n${rows}`);
 const rules = () => ({
   iprp_damagecost: table('Rank NumDice Die', '0 0 0 0\n1 10 0 2\n2 30 0 9\n3 20 1 6\n4 30 0 4\n5 40 2 4\n6 50 0 7\n7 60 0 8\n8 70 0 5\n9 80 0 6'),
   damagetypes: table('Label', Array.from({ length: 13 }, (_, i) => `${i} Type`).join('\n')),
-  baseitems: table('WeaponType WeaponWield CritHitMult NumDice DieToRoll AmmunitionType EquipableSlots',
-    '0 1 0 3 1 8 2 16\n1 3 8 2 1 4 **** 32\n2 0 0 1 0 0 **** 2048'),
+  baseitems: table('WeaponType WeaponWield CritHitMult NumDice DieToRoll RangedWeapon AmmunitionType EquipableSlots',
+    '0 1 0 3 1 8 2 66 16\n1 3 8 2 1 4 **** 66 32\n2 0 0 1 0 0 **** 66 2048'),
   itemCosts: new Map([[2, table('Value', '0 0\n1 1\n2 2\n3 3\n4 6')], [20, table('Value', '0 0\n1 -1\n2 -2')]])
 });
 const actor = () => ({ creatureData: { Race: 0, ClassList: [], FeatList: [], GoodEvil: 75, LawfulChaotic: 75 },
@@ -147,7 +147,7 @@ test('ammunition is selected by active base-item ammo slot and merged by Rank, p
 
 test('invalid combined ammunition slots discard bonuses and retain the native warning', () => {
   const r = rules();
-  r.baseitems = table('WeaponType AmmunitionType EquipableSlots', '0 1 1 16\n1 0 0 3072');
+  r.baseitems = table('WeaponType RangedWeapon AmmunitionType EquipableSlots', '0 1 1 66 16\n1 0 0 66 3072');
   const result = query([], { attack: { ...attack, ranged: 1 } }, r,
     [item(0, 16), item(1, 3072, [{ PropertyName: 16, Subtype: 1, CostValue: 2 }])]);
   assert.equal(result.total, 0); assert.equal(result.selection.warnings[0].slot, 3072);

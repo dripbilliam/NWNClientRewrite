@@ -1,4 +1,7 @@
 import { OBJECT_INVALID } from './game_object_array.js';
+import {removeCharmEffectsByFaction,removeSleepEffects} from './damage_status.js';
+import {addPersonalReputation} from './combat_reputation.js';
+import {getCreatureImmortal} from './creature_immortality.js';
 import { creatureLifeState, doCreatureDamageAsync } from './creature_damage.js';
 import { damageAfterImmunity, damageImmunityByFlags, highestDamageTypeFlag } from './damage_effect.js';
 import { damageResistance, damageReduction } from './damage_mitigation.js';
@@ -18,6 +21,8 @@ import { broadcastCombatState,sendCombatFeedback,broadcastSkillData } from './co
 import {checkDamagedCasting} from './damaged_casting.js';
 import {deleteCurrentObjectAction} from './object_actions.js';
 import { deathBlockedByImmunity,preserveDeathEffect,deathVisualType,deathAnimation } from './death_effects.js';
+import {deathCleanupFlag} from './corpse_lifecycle.js';
+import {applyLethalDamage,removeTemporaryHitpoints} from './lethal_damage.js';
 
 const i16 = n => (n << 16) >> 16;
 const i8 = n => (n << 24) >> 24;
@@ -118,7 +123,7 @@ export class DamageRuntime {
       removeEffectImmediate: id => this.session.effects.remove(object.id, id, context),
       getDifficulty: option => this.session.getDifficultyOption(option),
       getLifeFlags: () => ({ isPC: object.isPC, possessedFamiliar: object.isPossessedFamiliar,
-        immortal: object.immortal ?? creatureRoot(object)?.IsImmortal ?? 0 })
+        immortal: getCreatureImmortal(object) })
     });
     this.synchronize(object);
     return result;
@@ -194,15 +199,11 @@ export class DamageRuntime {
   }
   preflight(object, effect) {
     if (object.objectType !== 5) return;
-    // These branches change scripts, HP or RNG order. Do not silently emulate
-    // their absence when a live object actually needs them.
-    const unsupported = (object.effects ?? []).some(e => e.type===8);
-    if (unsupported) {
-      this.omission(object, 'Damage with enchantment/status effects requires unavailable lifecycle providers', effect);
-      throw new Error('Damage status lifecycle is not implemented');
-    }
     this.session.getDifficultyOption(5);
   }
+  statusProviders(){const s=this.session;return{arrayAvailable:()=>Boolean(s.registry),object:id=>s.registry.get(id),creature:o=>o.objectType===5?o:null,
+    faction:o=>{if(!Number.isInteger(o.factionId))throw new Error('Native charm source faction is unavailable');return o.factionId;},
+    reputation:(...args)=>addPersonalReputation(...args,s.combat.reputationMutationProviders()),remove:(o,id)=>s.effects.remove(o.id,id)};}
   shields(object,attacker){const s=this.session,rules=s.characterRules,entry=(table,row,column)=>{if(!table)throw new Error('Native damage-shield table is unavailable');const value=intEntry(table,row,column);if(!value.found)throw new Error(`Native damage-shield ${column} reads indeterminate table scratch`);return value.value;};
     return resolveDamageShields(object,attacker,{effects:o=>o.effects,dice:(row,column)=>entry(rules.iprp_damagecost,row,column),visual:row=>entry(rules.damagehitvisual,row,'VisualEffectID'),
       roll:(...a)=>s.random.dice(...a),create:(...a)=>s.effects.create(...a),apply:(o,e)=>s.effects.applyNative(e,o.id)});
@@ -246,7 +247,10 @@ export class DamageRuntime {
         this.initiative(object);
         await broadcastCombatState(attacker,this.session.combat.broadcastProviders());
         this.initiative(attacker);
+        if(!Number.isInteger(attacker.factionId))throw new Error('Native damage attacker faction is unavailable');
+        await removeCharmEffectsByFaction(object,attacker.factionId,-100,this.statusProviders());
       }
+      await removeSleepEffects(object,this.statusProviders());
       object.lastDamagerId = effect.creatorId;
       this.setLastHostile(object, creator);
       object.lastDamage = [...components];
@@ -256,7 +260,7 @@ export class DamageRuntime {
       this.session.onMessage({ type: 'damage', id: object.id, creatorId: effect.creatorId, amount,
         components: [...components], text: `Damage: ${amount}` });
       if (!wasDying && this.session.isDying(object)) this.dying(object, effect);
-      else if (this.session.isDead(object)) await this.death(object, effect, context);
+      else if (this.session.isDead(object)) await this.lethalDamage(object,effect.creatorId,amount,context,loading);
     } else {
       if (!object.plot) object.currentHP = (i16(this.session.hitPoints(object.id, false)) - amount) | 0;
       this.session.queueScript(object.scripts?.damaged, object.id, { damager: effect.creatorId, damageAmount: amount });
@@ -265,7 +269,7 @@ export class DamageRuntime {
         this.session.onMessage({ type: 'damage', id: object.id, creatorId: effect.creatorId, amount,
           components: [...components], text: `Damage: ${amount}` });
       }
-      if (this.session.isDead(object)) await this.death(object, effect, context);
+      if (this.session.isDead(object)) await this.lethalDamage(object,effect.creatorId,amount,context,loading);
     }
   }
   dying(object, effect) {
@@ -284,17 +288,16 @@ export class DamageRuntime {
       name: session.ifo?.[nativeEventId === 32 ? 'Mod_OnPlrDying' : 'Mod_OnPlrDeath'] ?? '',
       eventObjects: { [nativeEventId === 32 ? 'dying' : 'died']: object.id } });
   }
-  async removeTemporary(object, effect, context) {
-    const state = this.health(object), before = creatureLifeState(state, object.isPC, object.isPossessedFamiliar);
-    state.temporaryHP = Math.max(0, (i16(state.temporaryHP) - (effect.integers[0] | 0)) | 0);
-    const after = creatureLifeState(state, object.isPC, object.isPossessedFamiliar);
-    if (!before.dying && after.dying) this.dying(object, effect);
-    else if (!before.dead && after.dead) await this.death(object, { ...effect, creatorId: OBJECT_INVALID }, context);
-  }
-  async death(object, effect, context) {
+  removeTemporary(object,effect,context){const s=this.session;return removeTemporaryHitpoints(object,effect,{...s.effects.woundingProviders(context),
+    dying:o=>Number(s.isDying(o)),temporaryHP:o=>this.health(o).temporaryHP,setTemporaryHP:(o,n)=>{this.health(o).temporaryHP=n;},
+    ambient:o=>s.effects.healingProviders(context).ambient(o),module:()=>s.module,
+    closePanels:(o,n)=>s.combat.movementProviders().closePanels(o,n),
+    enqueue:(id,caller,target,payload)=>id===10&&payload.type===32?this.playerEvent(32,object):s.combat.enqueueEvent(id,caller,target,0,payload)});}
+  lethalDamage(object,creatorId,amount,context,loading=0){const s=this.session,p=s.effects.woundingProviders(context);return applyLethalDamage(object,creatorId,amount,{...p,maximumHP:o=>s.hitPoints(o.id,true),currentHP:o=>s.hitPoints(o.id,false)},loading);}
+  async death(object, effect, context,loading=0) {
     if (object.plot) return;
     if (object.objectType === 5) {
-      const immortal = object.immortal ?? creatureRoot(object)?.IsImmortal ?? 0;
+      const immortal = getCreatureImmortal(object);
       if (immortal) {
         if (this.session.hitPoints(object.id, false) <= 0) { object.stats.currentHP = 1; this.synchronize(object); }
         return;
@@ -313,6 +316,7 @@ export class DamageRuntime {
         this.session.combat.unsupported(object,'Native dominated/charmed death associate removal is not implemented');
       await this.session.combat.clearAttackActivity(object,1,0);
       await this.session.combat.removeInvisibility(object);
+      const cleanupFlag=deathCleanupFlag(object,effect.integers[0]);
       object.lastKillerId=killerId;
       await this.runEvent(object, object.scripts?.death, context);
       await this.session.combat.applyDeathExperience(object);
@@ -333,11 +337,7 @@ export class DamageRuntime {
         if (preserveDeathEffect(active,{visualType:id=>deathVisualType(this.session.characterRules?.visualeffects,id)})) index++;
         else { await this.session.effects.remove(object.id, active.id, context); index = 0; }
       }
-      if (object.isPC || object.isPossessedFamiliar) this.playerEvent(10, object);
-      else {
-        this.omission(object, 'Native corpse cleanup/body bag scheduling is not implemented', effect);
-        await this.session.encounters.creatureDied(object);
-      }
+      await this.session.lifecycle.scheduleCorpse(object,effect,cleanupFlag,context,loading);
     } else {
       this.session.onClearActions(object.id);
       if (object.kind === 'door') {

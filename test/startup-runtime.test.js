@@ -33,10 +33,10 @@ test('ghost duplicates are consumed; temporary effects expire strictly after the
   s.commands.ApplyEffectToObject([1, s.commands.EffectCutsceneGhost([], self), pc.id, 0.25]);
   s.commands.ApplyEffectToObject([2, s.commands.EffectCutsceneGhost([], self), pc.id]);
   assert.equal(pc.effects.length, 1); assert.equal(pc.cutsceneGhost, true);
-  s.scheduler.advance(250); s.effects.update(); assert.equal(pc.cutsceneGhost, true);
-  s.scheduler.advance(1); s.effects.update(); assert.equal(pc.cutsceneGhost, false); assert.equal(pc.effects.length, 0);
+  s.scheduler.advance(250); s.worldTimer.snapshot(); s.effects.update(); assert.equal(pc.cutsceneGhost, true);
+  s.scheduler.advance(1); s.worldTimer.snapshot(); s.effects.update(); assert.equal(pc.cutsceneGhost, false); assert.equal(pc.effects.length, 0);
   s.commands.ApplyEffectToObject([9, s.commands.EffectCutsceneGhost([], self), pc.id]);
-  s.scheduler.advance(100000); s.effects.update(); assert.equal(pc.cutsceneGhost, true);
+  s.scheduler.advance(100000); s.worldTimer.snapshot(); s.effects.update(); assert.equal(pc.cutsceneGhost, true);
   assert.equal(pc.effects[0].durationType, 2, 'Other duration values follow the native permanent branch');
   assert.throws(() => s.effects.apply(1, s.commands.EffectCutsceneGhost([], self), pc.id, -1), /duration/);
 });

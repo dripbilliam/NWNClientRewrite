@@ -3,7 +3,22 @@ const integer=(v,n)=>{if(!Number.isInteger(v))throw new Error(`Native spell noti
 const call=(p,n,...args)=>{if(typeof p?.[n]!=='function')throw new Error(`Native spell notification provider ${n} is unavailable`);return p[n](...args);};
 // EventSpellCastAt14051d3f0 produces ScriptEvent WORD2, two INTs and
 // caster object slot0. The optional harmful argument defaults to1.
-export function spellCastAtEvent(casterId,spellId,harmful=1){return{type:2,objectIds:[integer(casterId,'caster ID')>>>0],integers:[integer(spellId,'spell ID'),integer(harmful,'harmful flag')]};}
+export function spellCastAtEvent(casterId,spellId,harmful=1){return{type:2,objectIds:[integer(casterId,'caster ID')>>>0],integers:[integer(spellId,'spell ID'),integer(harmful,'harmful flag')],floats:[],strings:[],nativeCapacities:{integers:16,floats:0,strings:0,objectIds:16}};}
+
+// Door14041fbe6..14041fc73 and placeable1404b37dc..1404b3883.
+// These owners preserve the raw caster ID (including noncreatures/AoEs), use
+// every nonzero harmful flag, and always run script8/9 without a death gate.
+export async function receiveWorldSpellCastAt(actor,payload,p){
+ if((integer(payload?.type,'event type')&65535)!==2||![9,10].includes(actor.objectType))throw new Error('Native world spell notification is unavailable');
+ actor.nativeLastSpellCaster230=integer(payload.objectIds?.[0]??OBJECT_INVALID,'source ID')>>>0;
+ actor.nativeLastSpell234=integer(payload.integers?.[0]??0,'spell ID');actor.nativeLastSpellHarmful238=integer(payload.integers?.[1]??0,'harmful flag');
+ if(actor.nativeLastSpellHarmful238!==0){
+  await call(p,'setLastHostile',actor,actor.nativeLastSpellCaster230,0);
+  const caster=call(p,'creature',actor.nativeLastSpellCaster230);
+  if(caster){await call(p,'broadcastState',caster);await call(p,'excited',caster,2);await call(p,'removeInvisibility',caster);}
+ }
+ await call(p,'runScript',actor,actor.objectType===10?8:9);
+}
 
 // Creature ScriptEvent2,14038f8a7..14038faa2. Direct creatures and AoE
 // creators alone become last casters. Exact harmful==1 writes hostile

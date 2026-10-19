@@ -1,0 +1,1 @@
+const {contextBridge,ipcRenderer}=require('electron');contextBridge.exposeInMainWorld('visualFixture',{resource:(name,type)=>ipcRenderer.invoke('visual-fixture:resource',name,type),talkString:ref=>ipcRenderer.invoke('visual-fixture:talk-string',ref)});

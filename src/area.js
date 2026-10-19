@@ -2,12 +2,14 @@ import { parseGff } from './gff.js';
 import { decodeResourceText, RESOURCE_TYPE } from './resource_archive.js';
 import { parseTileSurfaceMesh, rotateTilePoint } from './tile_surface_mesh.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
+import {tileMapImageRef} from './tile_map_image.js';
 
 const MAX_AREA_TILES = 65_536;
 
 export async function loadAreaWalkmesh(area, resolver) {
   const table = parse2da(decodeResourceText(await resolver.getResource('surfacemat', RESOURCE_TYPE.TWO_DA)));
   const triangles = [];
+  const cameraTriangles = [];
   const missing = [];
   for (const [index, tile] of area.tiles.entries()) {
     const x = index % area.width, y = Math.floor(index / area.width);
@@ -17,18 +19,22 @@ export async function loadAreaWalkmesh(area, resolver) {
       // vertex snapping, physical surface rows and exact tile quarter turns.
       // Exporter residues otherwise leave invisible cracks between adjacent WOKs.
       const mesh = parseTileSurfaceMesh(bytes, table);
-      const vertices = mesh.vertices.map(([vx, vy, vz]) => {
+      const transformVertices = source => source.map(([vx, vy, vz]) => {
         const [worldX, worldY] = rotateTilePoint({ x, y, orientation: tile.orientation ?? 0 },
           [Math.fround(x * 10 + vx), Math.fround(y * 10 + vy)], false);
         return [worldX, Math.fround(vz + Math.fround(tile.height * area.tileHeight)), -worldY];
       });
+      const vertices=transformVertices(mesh.vertices);
       triangles.push(...mesh.faces.map((face, i) => ({ vertices: face.map(index => vertices[index]), surfaceType: mesh.materials[i] })));
+      cameraTriangles.push(...mesh.faces.map((face,i)=>({vertices:face.map(index=>vertices[index]),surfaceType:mesh.materials[i]})));
+      const denied=transformVertices(mesh.denied.vertices);
+      cameraTriangles.push(...mesh.denied.faces.map((face,i)=>({vertices:face.map(index=>denied[index]),surfaceType:mesh.denied.materials[i]})));
     } catch (error) {
       runtimeDiagnostics.error(error, 'scene.walkmesh-unavailable', { area: area.resRef, model: tile.model, tileIndex: index });
       missing.push({ model: tile.model, reason: error.message });
     }
   }
-  return { triangles, missing };
+  return { triangles, cameraTriangles, missing };
 }
 
 export async function parseAreaModule(moduleResRef, resolver) {
@@ -56,6 +62,7 @@ export async function parseAreaModule(moduleResRef, resolver) {
     return {
       tileId,
       model: tileDefinition.model,
+      mapImage:tileDefinition.mapImage,
       height: readCount(entry.Tile_Height ?? 0, `Tile ${index} height`),
       orientation
     };
@@ -281,6 +288,7 @@ export function parseTileset(text) {
   if (!Number.isFinite(transition) || transition < 0) throw new Error('Tileset has an invalid height transition.');
   const tiles = Array.from({ length: count }, (_, index) => ({
     model: sections[`TILE${index}`]?.Model?.toLowerCase() ?? '',
+    mapImage:tileMapImageRef(sections[`TILE${index}`]?.ImageMap2D),
     // Preserve native SET fields independently of the shared WOK resource.
     pathNodeFields: Object.fromEntries(['PathNode','Orientation','VisibilityNode','VisibilityOrientation','DoorVisibilityNode','DoorVisibilityOrientation','Doors']
       .map(key=>[key,sections[`TILE${index}`]?.[key]]))

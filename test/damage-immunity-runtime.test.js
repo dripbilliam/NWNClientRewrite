@@ -36,7 +36,7 @@ test('runtime recomputes immunity after capped stacking and deferred removal wit
   assert.equal(s.commands.GetEffectType([decrease]), 45);
   await s.commands.ApplyEffectToObject([1, decrease, id, 0.01]);
   assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 40);
-  s.scheduler.advance(11); await s.effects.update(); assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 70);
+  s.scheduler.advance(11); s.worldTimer.snapshot(); await s.effects.update(); assert.equal(damageImmunityByFlags(256, pc.damageImmunityCache), 70);
   assert.equal(s.registry.get(id), pc); assert.equal(pc.stats, shared);
   assert.ok(pc.nativeEffectIcons778.records.some(r=>r.iconId===116));
 });

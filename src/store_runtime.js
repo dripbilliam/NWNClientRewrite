@@ -2,13 +2,14 @@ import {cloneGff} from './gff.js';
 import {readNativeGff,nativeAssignedString} from './native_gff_fields.js';
 import {localizedMessageValue} from './native_message_text.js';
 import {loadStoreData} from './store_template.js';
-import {addStoreItem} from './store_item_acquisition.js';
+import {addStoreItem,acquireStoreItem,appropriateStorePanel} from './store_item_acquisition.js';
 import {nativeObjectTag} from './object_tag.js';
 import {objectTemplateResRef} from './create_object.js';
 import {OBJECT_INVALID} from './game_object_array.js';
 import {setItemIdentified} from './item_identification.js';
 import {setItemPossessor} from './item_possession.js';
-import {repositoryAdd} from './item_repository.js';
+import {repositoryAdd,repositoryFindTag} from './item_repository.js';
+import {nativeItemTag,compareStackItems} from './item_stack_compare.js';
 import {addModuleTag} from './module_tag_lookup.js';
 import {runtimeDiagnostics} from './runtime_diagnostics.js';
 const fields={0x378:'BlackMarket',0x37c:'BM_MarkDown',0x380:'MarkDown',0x384:'MarkUp',0x38c:'StoreGold',0x390:'IdentifyPrice',0x394:'MaxBuyPrice'};
@@ -35,6 +36,18 @@ export class StoreRuntime{
  async addItem(store,ref,panel,x,y){
   try{return await addStoreItem(store,ref,panel,x,y,this.acquisitionProviders(store));}
   finally{store.inventory=store.nativeStoreRepositories.flatMap(repo=>[...repo.ids()]);}
+ }
+ async acquire(store,item,flag,x,y){
+  const s=this.session,acquisition=s.itemAcquisitionProviders(),itemById=id=>{const o=s.registry.get(id);return o?.objectType===6?o:null;};
+  return acquireStoreItem(store,item,flag,x,y,{
+   identified:setItemIdentified,object:id=>s.registry.get(id)??null,asCreature:o=>o.objectType===5?o:null,asItem:o=>o.objectType===6?o:null,creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},
+   removeCreatureItem:(...args)=>acquisition.removeCreatureItem(...args),
+   panel:(...args)=>appropriateStorePanel(...args,{baseInfo:i=>s.items.baseInfo(i),warning:message=>runtimeDiagnostics.record('items.store-warning',message,s.diagnosticContext(store.id))}),
+   repository:(o,panel)=>{const r=o.nativeStoreRepositories?.[panel];if(!r)throw new Error('Native store panel repository is unavailable');return r;},
+   findTag:(repo,tag)=>repositoryFindTag(repo,tag,{lookup:id=>s.registry.getGameObject(id),asItem:o=>o.objectType===6?o:null,tag:i=>nativeItemTag(i.tag),repository:i=>i.nativeRepository}),item:itemById,
+   compare:(a,b)=>compareStackItems(a,b,{baseInfo:i=>s.items.baseInfo(i),tag:i=>nativeItemTag(i.tag)}),destroy:o=>s.lifecycle.destroy(o),
+   setPossessor:(...args)=>setItemPossessor(...args,s.itemOwnershipProviders()),add:(...args)=>this.addItem(...args),
+  });
  }
  async load(object,data,loading=0,newTag=''){
   const s=this.session;object.authored=cloneGff(data);object.nativeStoreInventoryImported=true;

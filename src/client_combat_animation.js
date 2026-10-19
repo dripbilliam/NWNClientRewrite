@@ -14,6 +14,36 @@ export function clientAttackAnimationRecord(data,targetId){
     attackType:integer(data.attackType,'attack type')&65535,ranged:integer(data.ranged,'ranged flag'),weaponAttackType:integer(data.weaponAttackType,'weapon type')&255};
 }
 
+// Client762900, native XYZ vectors. CVTTSS2SI returns INT64; only the
+// low WORD escapes into the ranged reaction delay in80f5e0.
+export function clientProjectileTravelTime(from,to,slow){
+ if(![from,to].every(v=>Array.isArray(v)&&v.length===3&&v.every(Number.isFinite)))throw new Error('Native projectile travel positions are unavailable');
+ const d=to.map((v,i)=>f(f(v)-f(from[i]))),squared=f(f(f(d[0]*d[0])+f(d[1]*d[1]))+f(d[2]*d[2]));
+ const magnitude=squared>0?f(Math.sqrt(squared)):0,ms=f(f(magnitude/(slow?40:55))*1000);
+ return Number.isFinite(ms)&&ms>=-9223372036854775808&&ms<9223372036854775808?BigInt(Math.trunc(ms)):-9223372036854775808n;
+}
+
+// Complete80f5e0 dispatcher. actor is presentation-owned, never a canonical
+// server object. Its position (and target position) uses renderer axes, like
+// the melee selectors below; convert back to native XYZ before travel math.
+export function selectClientAttackAnimation(actor,animation,record,p){
+ animation=integer(animation,'animation')&65535;
+ if(record.ranged!==0&&animation===9){
+  if((integer(actor.side,'attack side')&255)===2){actor.side=1;required(p,'context')(actor).fieldE0=1;required(p,'setBaseAnimation')(actor,1);}
+  animation=200;
+  if(record.reaction===12){
+   record.reaction=262;
+   const target=required(p,'target')(record.targetId);
+   if(target?.objectType===5){
+    const weapon=required(p,'attackWeapon')(actor,record.weaponAttackType);let travel=0n;
+    if(weapon){const base=integer(required(p,'baseItem')(weapon),'base item')>>>0,native=v=>[v[0],-v[2],v[1]];travel=clientProjectileTravelTime(native(actor.position),native(target.position),base<64&&Boolean(0x8800000080000000n>>BigInt(base)&1n));}
+    record.reactionDelay=Number((BigInt((record.duration&65535)>>>1)+travel)&65535n);
+   }
+  }
+ }else if(animation===9||animation===92)animation=(p.melee??selectClientMeleeAnimation)(actor,record,p);
+ actor.attackType=record.attackType&65535;return animation;
+}
+
 // Client range classifier140800780: native3D distance minus target hitdist,
 // then prefattackdist ±.25. The owners of actual weapon/rules are providers.
 export function clientAttackAnimationClass(actor,record,p){

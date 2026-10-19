@@ -6,6 +6,23 @@ const id=v=>{if(!Number.isInteger(v)||v<0||v>0xffffffff)throw new Error('Native 
 const required=(p,name)=>{if(typeof p[name]!=='function')throw new Error(`Native faction provider ${name} is unavailable`);return p[name];};
 const emptyFaction=()=>({members:new NativeIdList(),name:'',field18:0,global:1});
 
+// CNWSFaction::GetLeader1404ae310. Private factions return the first PC or
+// possessed familiar. NPC factions use strictly highest positive raw CR; ties
+// retain the first member. Re-read live member count after provider callbacks.
+export function factionLeader(faction,p){
+ if(!faction)throw new Error('Native faction leader owner is unavailable');
+ if(!required(p,'managerAvailable')())return OBJECT_INVALID;
+ const npc=required(p,'isNPC')(faction.id)!==0;let best=Math.fround(0),result=OBJECT_INVALID;
+ for(let i=0;i<faction.members.count;i++){
+  const id=faction.members.ids[i]>>>0,actor=required(p,'creature')(id);if(!actor)continue;
+  if(!npc){if(integer(actor.nativeField89c,'object PC')!==0||required(p,'possessed')(actor)!==0)return actor.id>>>0;}
+  else if(required(p,'hasStats')(actor)){const rating=Math.fround(required(p,'challengeRating')(actor));if(best<rating){result=faction.members.ids[i]>>>0;best=rating;}}
+ }
+ return result;
+}
+// ExecuteCommandGetFactionLeader524190 repeats GetFaction after its null check.
+export function scriptFactionLeader(id,p){const actor=required(p,'creature')(id>>>0);if(!actor||!required(p,'faction')(actor))return OBJECT_INVALID;return factionLeader(required(p,'faction')(actor),p);}
+
 // CFactionManager1403572c0, GetFaction140357900, DeleteFaction140357770.
 // Slots are references to faction owners, not game objects. Delete leaves a
 // null slot: neither IDs nor count compact, and the next append never reuses it.

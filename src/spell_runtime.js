@@ -6,6 +6,7 @@ import {addCastSpellActions,computeSpellRange,loadSpellRanges,spellActionPending
 import {executeOrdinaryCast} from './spell_cast_action.js';
 import {executeItemCast,clearItemCast} from './item_cast_action.js';
 import {castSpellAndImpact} from './spell_cast_impact.js';
+import {broadcastSpellRelease,releaseSpellProjectile} from './spell_release_presentation.js';
 import {startSpellRound,removeSpellActions} from './spell_round.js';
 import {decrementRoundLength} from './combat_round.js';
 import {setRoundPaused,setPauseTimer} from './combat_timing.js';
@@ -42,6 +43,16 @@ export class SpellRuntime{
   constructor(session){this.session=session;}
   feedback(o,code){return sendCombatFeedback(o,code,null,this.session.combat.broadcastProviders());}
   omission(o,code,message,detail={}){runtimeDiagnostics.record(code,message,{...this.session.diagnosticContext(o.id),...detail});}
+  releasePresentationProviders(){const s=this.session,c=s.combat,b=c.broadcastProviders();return{
+    object:id=>s.registry.get(id),asArea:o=>o?.objectType===4?o:null,asCreature:o=>o?.objectType===5?o:null,
+    creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},item:id=>{const o=s.registry.get(id);return o?.objectType===6?o:null;},
+    area:o=>{const a=s.registry.get(o.areaId);return a?.objectType===4?a:null;},ids:a=>{if(!a.nativeSpatial)throw new Error('Native release broadcast area list is unavailable');return a.nativeSpatial.view();},
+    dm:o=>(o.associateType&65535)!==0?0:Number(Boolean(b.clients().find(c=>c.object?.id===o.id)?.object.isDM)),
+    visibility:(o,id)=>o.perception?.get(id)??null,client:b.client,send:b.send,
+    identified:(o,id)=>{if(!Array.isArray(o.nativeSpellIdentified808))throw new Error('Native identified-spell observer list is unavailable');return Number(o.nativeSpellIdentified808.includes(id));},
+    position:o=>native(o.position),equipped:(o,item)=>{if(!o.nativeEquipment)throw new Error('Native projectile equipment storage is unavailable');return o.nativeEquipment.contains(item);},
+    repository:(o,item,n)=>s.itemAcquisitionProviders().contains(o.nativeRepository,item,n),
+    broadcastProjectile:(o,data)=>broadcastSafeProjectile(o,data,c.projectileProviders())};}
   ranges(o){return loadSpellRanges(this.session.characterRules,{warning:message=>this.omission(o,'rules.spell-range-unavailable',message)});}
   counterProviders(actor){
     const s=this.session,c=s.combat;
@@ -118,8 +129,7 @@ export class SpellRuntime{
   itemActionProviders(){
     const s=this.session,c=s.combat;
     return {...s.items.castProviders(),activityManager:(o,n)=>manageCreatureActivities(o,n,(...a)=>s.skills.clearActivity(...a)),
-      dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),worldTime:()=>{
-        if((s.nativeActivePauseFlags??0)!==0)throw new Error('Native item casting exclusion timer is unavailable');return s.worldTimer.time();},
+      dead:o=>Number(s.isDead(o)),dying:o=>Number(s.isDying(o)),worldTime:o=>s.activeTimer(o.id).time(),
       elapsed:(now,then)=>{const result=subtractWorldTimes(now,then,s.worldTimer.dayLength);if(result.status!==0)throw new Error('Native item casting elapsed time is unavailable');return result.milliseconds;},
       propertyInt:(id,column)=>{if(!s.characterRules.iprp_spells)throw new Error('Native item casting iprp_spells metadata is unavailable');return intEntry(s.characterRules.iprp_spells,id,column).value;},
       subRadialCount:spell=>talentSpell(s.characterRules,spell.id).children.length,
@@ -132,17 +142,16 @@ export class SpellRuntime{
       removeRoundSpell:o=>this.removeRoundSpell(o),pendingEquipment:o=>c.processPending(o),removeSpellActions:o=>removeSpellActions(o.combatRound),
       setAnimation:(...a)=>c.setAnimation(...a),setLock:(...a)=>c.setLock(...a),usesLeft:itemActiveUsesLeft,propertyCount:i=>i.activeProperties.length,
       setCharges:(...a)=>s.items.setCharges(...a),activeChanged:(...a)=>s.items.activeChanged(...a),projectileTime:(...a)=>c.spellProjectileTime(...a),enqueue:(...a)=>c.enqueueEvent(...a),
-      impact:(...a)=>castSpellAndImpact(...a,{spell:id=>s.spellBook.castingSpell(id),enqueue:(...a)=>c.enqueueEvent(...a),
+      impact:(...a)=>castSpellAndImpact(...a,{spell:id=>s.spellBook.castingSpell(id),enqueue:(...a)=>c.enqueueEvent(...a),area:o=>this.releasePresentationProviders().area(o),
         creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},spellName:id=>intEntry(s.characterRules.spells,id,'Name').value,
-        broadcast:(o,spell)=>this.omission(o,'spell.impact-broadcast-unimplemented','Native spell release presentation broadcast is not implemented',{spellId:spell.id}),
-        projectile:(o,spell)=>this.omission(o,'spell.projectile-presentation-unimplemented','Native spell projectile presentation is not implemented',{spellId:spell.id})})};
+        broadcast:(o,spell,itemId,targetId)=>broadcastSpellRelease(o,spell,itemId,targetId,this.releasePresentationProviders()),
+        projectile:(o,spell,targetId,path)=>releaseSpellProjectile(o,spell,targetId,path,this.releasePresentationProviders())})};
   }
   executeItem(o,node){return executeItemCast(o,node,this.session.characterRules,this.itemActionProviders());}
   clearItem(o,node,head){return clearItemCast(o,node,head,this.itemActionProviders());}
   elapsed(o){
     const s=this.session,state=o.objectActionState;
-    if((s.nativeActivePauseFlags??0)!==0)throw new Error('Native casting exclusion timer is not implemented');
-    const result=subtractWorldTimes(s.worldTimer.time(),{day:state.startDay,time:state.startTime},s.worldTimer.dayLength);
+    const result=subtractWorldTimes(s.activeTimer(o.id).time(),{day:state.startDay,time:state.startTime},s.worldTimer.dayLength);
     if(result.status!==0)throw new Error('Native casting elapsed time is unavailable');return result.milliseconds;
   }
   removeRoundSpell(o){return removeCounterspellRoundActions(o,{creature:id=>{const a=this.session.registry.get(id);return a?.objectType===5?a:null;},
@@ -207,12 +216,12 @@ export class SpellRuntime{
         return broadcastSafeProjectile(o,{sourceId:o.id,targetId,from:native(o.position),to:[...to],duration:o.nativeSpellProjectileTime220,
           appearance:path!==0?7:6,flags:id,result:0,deflection:path},c.projectileProviders());
       },
-      impact:(...a)=>castSpellAndImpact(...a,{spell:id=>s.spellBook.castingSpell(id),enqueue:(...a)=>c.enqueueEvent(...a),
+      impact:(...a)=>castSpellAndImpact(...a,{spell:id=>s.spellBook.castingSpell(id),enqueue:(...a)=>c.enqueueEvent(...a),area:o=>this.releasePresentationProviders().area(o),
         creature:id=>{const o=s.registry.get(id);return o?.objectType===5?o:null;},spellName:id=>intEntry(s.characterRules.spells,id,'Name').value,
         counterBroadcast:(o,spell,data)=>broadcastCounterspellData(o,spell,data,s.characterRules,{...this.counterProviders(o),
           skill:(...a)=>c.skill(...a),random:()=>s.random.next(),...c.broadcastProviders()}),
-        broadcast:(o,spell)=>this.omission(o,'spell.impact-broadcast-unimplemented','Native spell release presentation broadcast is not implemented',{spellId:spell.id}),
-        projectile:(o,spell)=>this.omission(o,'spell.projectile-presentation-unimplemented','Native spell projectile presentation is not implemented',{spellId:spell.id})}),
+        broadcast:(o,spell,itemId,targetId)=>broadcastSpellRelease(o,spell,itemId,targetId,this.releasePresentationProviders()),
+        projectile:(o,spell,targetId,path)=>releaseSpellProjectile(o,spell,targetId,path,this.releasePresentationProviders())}),
       setCombatState:(...a)=>c.setCombatState(...a)});
   }
 }

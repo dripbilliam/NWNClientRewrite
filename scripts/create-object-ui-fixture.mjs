@@ -6,14 +6,16 @@ import {parseErf,RESOURCE_TYPE,decodeResourceText} from '../src/resource_archive
 import {parseGff} from '../src/gff.js';
 import {typedGff,gffField as F,writeGff} from '../src/gff_writer.js';
 import {parseScriptApi} from '../src/ncs.js';
-export async function createObjectUIFixture(install){
+export async function createObjectUIFixture(install,{mapNotes=false}={}){
  const raw=await fs.readFile(path.join(install,'data/nwm/Prelude.nwm')),archive=parseErf(raw),resolver=await openLocalModule(install,path.join(install,'data/nwm/Prelude.nwm')),api=parseScriptApi(decodeResourceText(await resolver.getResource('nwscript',RESOURCE_TYPE.NSS)));
- const reference=[...resolver.key.resources.values()].find(row=>row.resourceType===RESOURCE_TYPE.UTP)?.resref;assert.ok(reference);
+ const reference=[...resolver.key.resources.values()].find(row=>row.resourceType===(mapNotes?RESOURCE_TYPE.UTW:RESOURCE_TYPE.UTP))?.resref;assert.ok(reference);
  const code=[],int=value=>{const bytes=Buffer.alloc(4);bytes.writeInt32BE(value);code.push(4,3,...bytes);},object=()=>code.push(4,6,0,0,0,0),float=value=>{const bytes=Buffer.alloc(4);bytes.writeFloatBE(value);code.push(4,4,...bytes);},string=value=>{const bytes=Buffer.from(value,'latin1');code.push(4,5,bytes.length>>>8,bytes.length&255,...bytes);},action=(name,argc)=>{const id=api.findIndex(row=>row.name===name);assert.ok(id>=0);code.push(5,0,id>>>8,id&255,argc);};
- string('CreatedByScript');int(0);object();action('GetLocation',1);string(reference);int(64);action('CreateObject',5);
+ if(mapNotes){int(1);action('GetFirstPC',0);object();action('GetArea',1);action('ExploreAreaForPlayer',3);}
+ string('CreatedByScript');int(0);object();action('GetLocation',1);string(reference);int(mapNotes?32:64);action('CreateObject',5);
  string('Created');object();action('SetLocalObject',3);float(0);object();action('DestroyObject',2);code.push(0x20,0);
  const ncs=Buffer.alloc(13+code.length);ncs.write('NCS V1.0');ncs[8]=0x42;ncs.writeUInt32BE(ncs.length,9);ncs.set(code,13);
  const key=(name,type)=>`${name}:${type}`,git=typedGff(parseGff(archive.entries.get(key('m0q1a',RESOURCE_TYPE.GIT))).root),source=git.fields['Placeable List'].value[0];assert.ok(source);
+ if(mapNotes){const waypoint=typedGff(parseGff(await resolver.getResource(reference,RESOURCE_TYPE.UTW)).root);Object.assign(waypoint.fields,{HasMapNote:F(0,1),MapNoteEnabled:F(0,1),MapNote:F(12,{strRef:0xffffffff,entries:[{languageId:0,text:'Scripted map note'}]})});archive.entries.set(key(reference,RESOURCE_TYPE.UTW),new Uint8Array(writeGff('UTW ',waypoint)));}
  Object.assign(source.fields,{Tag:F(10,'CreateSource'),X:F(8,25.5),Y:F(8,14),Z:F(8,0),Static:F(0,0),Useable:F(0,1),HasInventory:F(0,0),Plot:F(0,0),Locked:F(0,0),OnUsed:F(11,'mkobject'),ItemList:F(15,[])});
  const ifo=typedGff(parseGff(archive.entries.get(key('module',RESOURCE_TYPE.IFO))).root);Object.assign(ifo.fields,{Mod_Entry_Area:F(11,'m0q1a'),Mod_Entry_X:F(8,24),Mod_Entry_Y:F(8,14),Mod_Entry_Z:F(8,0)});
  archive.entries.set(key('m0q1a',RESOURCE_TYPE.GIT),new Uint8Array(writeGff('GIT ',git)));archive.entries.set(key('module',RESOURCE_TYPE.IFO),new Uint8Array(writeGff('IFO ',ifo)));archive.entries.set(key('mkobject',RESOURCE_TYPE.NCS),ncs);

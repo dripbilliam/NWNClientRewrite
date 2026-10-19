@@ -185,14 +185,14 @@ if (!installArgument || !moduleArgument) {
         if(!hit)throw new Error('Pavel dialogue speaker was not pickable: '+await evaluate(`JSON.stringify(JSON.parse(document.querySelector('canvas').dataset.creatureAnimations).actors.find(o=>o.id===${object.id}))`));
         for(const type of ['mousePressed','mouseReleased'])await window.webContents.debugger.sendCommand('Input.dispatchMouseEvent',{type,...hit,button:'left',clickCount:1});
         await waitFor(`document.querySelector('#game-ui').dataset.panel==='dialogue'&&Boolean(document.querySelector('.game-dialogue-reply:not(:disabled)'))`);
-        for(let n=0;n<10&&await evaluate(`document.querySelector('canvas').dataset.cameraMode!=='1'`);n++){
+        for(let n=0;n<10&&await evaluate(`document.querySelector('canvas').dataset.cameraScriptMode!=='1'`);n++){
           const version=await evaluate(`document.querySelector('#game-ui').dataset.conversationVersion`);
           await evaluate(`document.querySelector('.game-dialogue-reply[data-reply-ordinal="0"]').click()`);
-          await waitFor(`document.querySelector('#game-ui').dataset.conversationVersion!==${JSON.stringify(version)}&&(Boolean(document.querySelector('.game-dialogue-reply:not(:disabled)'))||document.querySelector('canvas').dataset.cameraMode==='1'||Boolean(document.querySelector('.game-dialogue-error')))`);
-          if(await evaluate(`Boolean(document.querySelector('.game-dialogue-error'))`))throw new Error(await evaluate(`document.querySelector('.game-dialogue-error').textContent`));
+          await waitFor(`document.querySelector('#game-ui').dataset.conversationVersion!==${JSON.stringify(version)}&&(Boolean(document.querySelector('.game-dialogue-reply:not(:disabled)'))||document.querySelector('canvas').dataset.cameraScriptMode==='1'||Boolean(document.querySelector('.game-dialogue-error')?.textContent.trim()))`);
+          const dialogueError=await evaluate(`document.querySelector('.game-dialogue-error')?.textContent.trim()??null`);if(dialogueError)throw new Error(dialogueError);
         }
-        if(await evaluate(`document.querySelector('canvas').dataset.cameraMode`)!=='1')throw new Error('Authored dialogue did not set camera mode');
-        report.feedbackEngine=await evaluate(`({mode:document.querySelector('canvas').dataset.cameraMode,entry:document.querySelector('#game-ui').dataset.conversationEntry,error:document.querySelector('.game-dialogue-error')?.textContent??null})`);
+        if(await evaluate(`document.querySelector('canvas').dataset.cameraScriptMode`)!=='1')throw new Error('Authored dialogue did not set camera mode');
+        report.feedbackEngine=await evaluate(`({mode:document.querySelector('canvas').dataset.cameraMode,scriptMode:document.querySelector('canvas').dataset.cameraScriptMode,camera:JSON.parse(document.querySelector('canvas').dataset.gameCamera||'null'),entry:document.querySelector('#game-ui').dataset.conversationEntry,error:document.querySelector('.game-dialogue-error')?.textContent??null})`);
       }
       if(checkAreaTransition){
         if(!checkFeedbackEngine)throw new Error('--check-area-transition requires --check-feedback-engine');
@@ -891,6 +891,7 @@ if (!installArgument || !moduleArgument) {
       }
       if (screenshot) {
         await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+        report.cameraKeyhole=await evaluate(`JSON.parse(document.querySelector('canvas').dataset.cameraKeyhole||'null')`);
         await fs.mkdir(path.dirname(path.resolve(screenshot)), { recursive: true });
         await fs.writeFile(path.resolve(screenshot), (await window.webContents.capturePage()).toPNG());
       }

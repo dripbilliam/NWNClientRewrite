@@ -2,7 +2,7 @@ import {OBJECT_INVALID} from './game_object_array.js';
 import {creatureRoot} from './creature_rules.js';
 import {intEntry} from './combat_stats.js';
 import {nativeStringEntry} from './spell_metadata.js';
-import {runtimeDiagnostics} from './runtime_diagnostics.js';
+import {copyCombatInformation,disposeCombatInformation} from './combat_information.js';
 import {updatePersonalSpace} from './personal_space.js';
 import {updateAppearanceInfo} from './appearance_info.js';
 import {polymorphCreature,unpolymorphCreature} from './polymorph_form.js';
@@ -19,11 +19,11 @@ export class PolymorphRuntime{
    portraitId:o=>root(o).PortraitId??65535,portrait:o=>root(o).Portrait??'',setPortraitId:(o,v)=>{root(o).PortraitId=v;},setPortrait:(o,v)=>{root(o).Portrait=v;},
    sound:o=>root(o).SoundSetFile??65535,setSound:(o,v)=>{root(o).SoundSetFile=v;},
    copyCombatInformation:o=>{
-    // No false native raw-cache claim: the current combat subsystem exposes
-    // projected stats. Keep a labelled snapshot until UpdateCombatInformation
-    // owns the native d70 layout; restoration itself never consumes a48.
-    runtimeDiagnostics.record('combat.polymorph-snapshot-approximate','Polymorph saved combat projection; full native CCombatInformation d70 cache is unavailable',s.diagnosticContext(o.id));
-    return{representation:'combat-projection',value:structuredClone(o.stats.combat)};
+    // Exact Polymorph14039a02b..14039a081 saved-cache replacement. The native
+    // copy constructor intentionally omits effect nodes and scalar16..18.
+    if(o.nativeCombatInformationA48)disposeCombatInformation(o.nativeCombatInformationA48);
+    if(!o.nativeCombatInformationD70)throw new Error('Native polymorph combat-information source is unavailable');
+    return copyCombatInformation(o.nativeCombatInformationD70);
    },
    armor:o=>{s.refreshCombat(o);return o.stats.combat.armorClass;},baseAttack:o=>o.stats.combat.baseAttackBonus,
    maximumHP:ability.maximumHP,fortitude:o=>o.stats.combat.saves.fortitude,reflex:o=>o.stats.combat.saves.reflex,will:o=>o.stats.combat.saves.will,

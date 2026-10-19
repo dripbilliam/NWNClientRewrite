@@ -78,11 +78,12 @@ test('signal missing message interpretation fails before events; AoO feat and op
   events.length = 0; record.attackType = 65002; providers.hasFeat = () => false;
   await signalMeleeDamage(a, { id: 1 }, 1, providers); assert.deepEqual(events.map(e => e[0]), [15]);
 });
-test('combat millisecond scheduling avoids float conversion, preserves equal-time order and waits for due time', async () => {
+test('combat millisecond scheduling avoids float conversion, preserves native positive-delay LIFO and waits for due time', async () => {
   const events = [], scheduler = new ScriptScheduler({ validTarget: () => true, dispatch: ({ event }) => events.push(event) });
+  scheduler.localTimer.setMinutesPerHour(255); // native BYTE rate; large delay fits this world's day.
   scheduler.enqueueMilliseconds(0, 'impact', 16777217); scheduler.enqueueMilliseconds(0, 'effect', 16777217);
   scheduler.advance(16777216); await scheduler.pump(); assert.deepEqual(events, []);
-  scheduler.advance(1); await scheduler.pump(); assert.deepEqual(events, ['impact', 'effect']);
+  scheduler.advance(1); await scheduler.pump(); assert.deepEqual(events, ['effect', 'impact']);
 });
 test('ranged signaling separates launch/ammunition/impact delays, retains all miss feedback, and sets native effect flags', async () => {
   const a = actor(), r = a.combatRound, trace = []; a.isPC = true; r.currentAttack = 2;

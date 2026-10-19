@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {openLocalModule} from './local-module.mjs';
 import {ModuleSession} from '../src/module_session.js';
+import {advanceToEffectExpiry} from './advance-effect-clock.mjs';
 import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
 const root=process.argv[2]??'../FullDecomp/NwnRootInstall',output=process.argv[3]??'backups/animations/live-summoning.json',messages=[],s=await new ModuleSession(await openLocalModule(root,`${root}/data/nwm/Prelude.nwm`),{
  runStartupScripts:false,runNativeAI:false,serverPvpSetting:0,onCombatMessage:m=>messages.push(m)}).initialize(['m0q1a'],{character:await fs.readFile(`${root}/data/lcv/wizard.bic`)});
@@ -30,7 +31,7 @@ const invalid=0x7f000000,area=s.currentArea,cycles=[];
 const absent=(id,items=[])=>{assert.equal(s.registry.get(id),undefined);for(const item of items)assert.equal(s.registry.get(item),undefined);assert.equal(area.nativeSpatial.indexOf(id),-1);assert.ok(!s.aiMaster.levels.some(list=>list.indexOf(id)>=0));assert.ok(!actor.associateIds.includes(id));};
 // Strict effect expiry and all owned item/associate cleanup from the real cast.
 const originalItems=[...summon.inventory],originalEffect=effects[0];
-s.scheduler.advance(originalEffect.expires-s.scheduler.time);s.worldTimer.snapshot();await s.effects.updateObject(actor);assert.ok(actor.effects.includes(originalEffect));
+advanceToEffectExpiry(s,originalEffect);await s.effects.updateObject(actor);assert.ok(actor.effects.includes(originalEffect));
 s.scheduler.advance(1);s.worldTimer.snapshot();await s.effects.updateObject(actor);await s.scheduler.pump();absent(summonId,originalItems);assert.ok(!actor.effects.includes(originalEffect));cycles.push({kind:'authored-spell-expiry',id:summonId,items:originalItems});
 const resRef=report.summon.template,active=e=>actor.effects.find(value=>value.id===e.id),nextId=()=>s.registry.nextObjectId[0];
 const effect=(delay=0,appear=0)=>s.commands.EffectSummonCreature([resRef,-1,delay,appear,99,invalid],{self:actor.id});

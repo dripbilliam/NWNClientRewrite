@@ -40,7 +40,7 @@ test('live Haste and Slow cancel controllers, restore remaining balance and expi
   assert.equal(actor.hasted,1);assert.equal(actor.slowed,0);assert.equal(actor.nativeMovementFactor8e8,1.5);assert.equal(actor.acCache.up[0],4);
   assert.equal(actor.effects.filter(e=>e.type===41).length,1);assert.ok(actor.effects.filter(e=>e.type===41||e.type===28).every(e=>e.durationType===4&&!e.exposed));
   await s.effects.apply(2,slow,actor.id);assert.equal(actor.hasted,1,'two Haste sources outweigh one Slow');
-  s.scheduler.time=1001;await s.effects.updateObject(actor);
+  s.scheduler.time=1001;s.worldTimer.snapshot();await s.effects.updateObject(actor);
   assert.equal(actor.hasted,0);assert.equal(actor.slowed,0);assert.equal(actor.nativeMovementFactor8e8,1);assert.equal(actor.acCache.up[0],0);
   await s.effects.remove(actor.id,second.id);
   assert.equal(actor.slowed,1);assert.equal(actor.nativeMovementFactor8e8,.5);assert.equal(actor.nativeField76c,1);assert.equal(actor.acCache.down[0],2);

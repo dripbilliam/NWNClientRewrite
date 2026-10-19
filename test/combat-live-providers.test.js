@@ -286,8 +286,8 @@ test('live item spell payloads schedule offensive and defensive event19 with the
   actor.combatRound.currentAttack=1;
   if(ranged)await s.combat.signalRanged(actor,target,1,{safeProjectile:()=>{},ammunition:()=>{}});else await s.combat.signalMelee(actor,target,1);
   const events=s.scheduler.events.filter(e=>e.event.eventId===19);
-  assert.deepEqual(events.map(e=>[e.targetId,e.event.callerId,e.due]),[[actor.id,actor.id,ranged?340:300],[target.id,target.id,ranged?340:300]]);
-  assert.equal(events[0].event.payload.targetId,target.id);assert.equal(events[1].event.payload.targetId,actor.id);
+  assert.deepEqual(events.map(e=>[e.targetId,e.event.callerId,e.due]),[[target.id,target.id,ranged?340:300],[actor.id,actor.id,ranged?340:300]]);
+  assert.equal(events[0].event.payload.targetId,actor.id);assert.equal(events[1].event.payload.targetId,target.id);
   assert.ok(events.every(e=>e.event.payload.casterLevel===10&&e.event.payload.areaId===actor.areaId));
  }
 });

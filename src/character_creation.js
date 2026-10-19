@@ -249,11 +249,13 @@ export async function createCharacterBic(d,rules){
   const errors=creationErrors(d,rules);if(errors.length)throw new Error(errors.join('\n'));
   const cls=at(rules.classes,d.classId),race=at(rules.racialtypes,d.raceId),pkg=at(rules.packages,d.packageId),hp=num(cls,'HitDie');
   const feats=[...creationGrantedFeats(d,rules),...d.feats.map(e=>e.id)],skillEntries=rows(rules.skills).map((_,id)=>({Rank:f(0,d.skills[id]??0)})),featEntries=feats.map(id=>({Feat:f(2,id)}));
-  const c={Class:f(0,d.classId),ClassLevel:f(2,1),School:f(0,d.school),Domain1:f(0,d.domains[0]??0),Domain2:f(0,d.domains[1]??0)};
-  const history={LvlStatHitDie:f(0,hp),LvlStatClass:f(0,d.classId),LvlStatAbility:f(0,255),EpicLevel:f(0,0),SkillPoints:f(2,creationSkillBalance(d,rules)),SkillList:list(skillEntries,0),FeatList:list(featEntries,1)};
+  // ReadStatsFromGff uses typed INT/SHORT readers. BYTE/WORD fields with the
+  // same numeric values are rejected and fall back to the native defaults.
+  const c={Class:f(5,d.classId),ClassLevel:f(3,1),School:f(0,d.school),Domain1:f(0,d.domains[0]??0),Domain2:f(0,d.domains[1]??0)};
+  const history={LvlStatHitDie:f(0,hp),LvlStatClass:f(0,d.classId),EpicLevel:f(0,0),SkillPoints:f(2,creationSkillBalance(d,rules)),SkillList:list(skillEntries,0),FeatList:list(featEntries,0)};
   for(let level=0;level<10;level++){
     const known=(d.known[level]??[]).map(id=>({Spell:f(2,id)}));
-    if(known.length){c[`KnownList${level}`]=list(known,3);history[`KnownList${level}`]=list(known,3);}
+    if(known.length){c[`KnownList${level}`]=list(known,3);history[`KnownList${level}`]=list(known,0);}
     const count=creationSpellSlots(d,rules,level);
     if(num(cls,'MemorizesSpells')&&count){
       c[`MemorizedList${level}`]=list(Array.from({length:count},(_,slot)=>{const id=d.memorized[level]?.[slot];return{Spell:f(2,id??65535),Ready:f(0,id===null||id===undefined?0:1),SpellMetaMagic:f(0,0),...(num(cls,'PickDomains')&&level>0&&slot===count-1?{DomainSpell:f(0,1)}:{})};}),3);

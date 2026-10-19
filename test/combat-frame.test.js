@@ -135,7 +135,9 @@ test('player/familiar display cadence uses a separate pause timer with inclusive
     queueTime={day:1,time:300};let previous;
     f.p.actionQueue=o=>{previous=o.nativeQueueUpdateTime598;queueTime={day:2,time:700};f.trace.push('queue');};
     await updateCreatureFrame(f.a,f.p);assert.equal(previous,0);assert.equal(f.a.nativeQueueUpdateDay594,1);assert.equal(f.a.nativeQueueUpdateTime598,300);
-    queueTime={day:1,time:299};await assert.rejects(updateCreatureFrame(f.a,f.p),/undefined after failed subtraction/);
+    queueTime={day:1,time:299};await assert.rejects(updateCreatureFrame(f.a,f.p),/queueClockUndefined is unavailable/);
+    const unavailable=[];f.p.queueClockUndefined=(o,detail)=>unavailable.push({id:o.id,...detail});f.trace.length=0;
+    await updateCreatureFrame(f.a,f.p);assert.equal(unavailable.length,1);assert.equal(unavailable[0].status,-2);assert.ok(f.trace.includes('stats'));assert.ok(!f.trace.includes('queue'));assert.equal(f.a.nativeQueueUpdateTime598,300);
   }
 });
 

@@ -140,7 +140,7 @@ export class RadialMenu {
       if(entry.uses!==null&&entry.uses!==undefined){const count=document.createElement('span');count.className='radial-count';count.textContent=String(entry.uses);button.dataset.uses=String(entry.uses);button.append(count);}
       if(entry.quickbarBinding){
         button.draggable=true;button.dataset.quickbarBinding=JSON.stringify(entry.quickbarBinding);
-        button.addEventListener('dragstart',event=>{event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData('application/x-nwn-quickbar',JSON.stringify({actorId:entry.binding.actorId,binding:entry.quickbarBinding}));this.host.style.pointerEvents='none';});
+        button.addEventListener('dragstart',event=>{event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData(entry.networkQuickbarToken?'application/x-nwn-network-action':'application/x-nwn-quickbar',JSON.stringify({actorId:entry.binding.actorId,binding:entry.quickbarBinding,...(entry.networkQuickbarToken?{token:entry.networkQuickbarToken}:{})}));this.host.style.pointerEvents='none';});
         button.addEventListener('dragend',()=>{this.host.style.pointerEvents='';this.close();});
       }
       this.slots.append(button);

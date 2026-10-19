@@ -15,6 +15,8 @@ function fixture(options = {}) {
   const messages = [], cleared = [], s = new ModuleSession(null, { ...options,
     onMessage: m => messages.push(m), onClearActions: id => cleared.push(id) });
   s.characterRules = {
+    appearance:parse2da('2DA V2.0\n\nBLOODCOLR\n0 ****'),
+    visualeffects:parse2da('2DA V2.0\n\nType_FD\n0 ****'),
     damagetypes: parse2da(`2DA V2.0\n\nLabel\n${Array.from({ length: 13 }, (_, i) => `${i} Type`).join('\n')}`),
     excitedduration:parse2da('2DA V2.0\n\nDURATION\n0 0\n1 8000'),
     diffsettings: parse2da('2DA V2.0\n\nName A B C D E\n0 Critical 1 1 1 **** ****\n1 Ranged 1 1 1 **** ****\n2 Potion 1 1 1 **** ****\n3 Min 100 50 **** **** ****\n4 Max 25 50 100 100 200\n5 HP 1 **** **** **** ****\n6 Massive 0 0 0 1 1')
@@ -66,10 +68,10 @@ test('live death magic immunity preserves killer/status/action state and emits c
   assert.equal(sent.length,1);assert.equal(sent[0].recipientId,pc.id);assert.equal(sent[0].data.integers[9],127);assert.deepEqual(sent[0].data.objects,[npc.id]);
   effect.bypassImmunity=1;await s.damage.death(npc,effect);assert.equal(npc.nativeDeathWord8d4,0);assert.equal(npc.lastKillerId,pc.id);assert.deepEqual(cleared,[npc.id]);
 });
-test('native IsImmortal serialized field protects NPC HP without requiring an invented runtime override', async () => {
-  const { npc, effect, apply } = fixture();
-  npc.creatureData.IsImmortal = 1; await apply(effect(50)); assert.equal(npc.stats.currentHP, 1);
-  npc.stats.currentHP = 30; npc.creatureData.IsImmortal = 0;
+test('live SetImmortal protects NPC HP while authored IsImmortal stays an import snapshot', async () => {
+  const { s, npc, effect, apply } = fixture();
+  npc.creatureData.IsImmortal = 0;s.commands.SetImmortal([npc.id,1]); await apply(effect(50)); assert.equal(npc.stats.currentHP, 1);
+  npc.stats.currentHP = 30; npc.creatureData.IsImmortal = 1;s.commands.SetImmortal([npc.id,0]);
   await apply(effect(20)); assert.equal(npc.stats.currentHP, 10);
 });
 
@@ -252,7 +254,7 @@ test('native death clears actions, adjusts witnesses before assigning killer, th
   s.combat.removeInvisibility=o=>trace.push(['invisibility',o.lastKillerId]);
   npc.scripts.death='death';s.program=async()=>({});s.vm={run:async()=>trace.push(['script',npc.lastKillerId,npc.nativeField8d4])};
   s.combat.applyDeathExperience=o=>trace.push(['xp',o.lastKillerId,o.nativeField8d4]);
-  await s.damage.death(npc,effect(1,4,npc.id));
+  await s.damage.death(npc,s.commands.EffectDeath([0,0],{self:npc.id}));
   assert.deepEqual(trace,[['actions',65535],['reputations',npc.id,pc.id,2,OBJECT_INVALID],['activity',1,0,OBJECT_INVALID],
     ['invisibility',OBJECT_INVALID],['script',pc.id,65535],['xp',pc.id,65535]]);
   assert.equal(npc.nativeMovementFlags8d4,0);assert.equal(npc.perceptionUpdateFlags,0);assert.equal(npc.nativeDeathWord8d4,0);
@@ -292,7 +294,7 @@ test('native dying/death getters retain separate module histories across callers
   assert.equal(s.commands.GetLastPlayerDied([], { self: npc.id }), OBJECT_INVALID);
 });
 
-test('temporary HP removal runs its hook while the live handle remains visible and can cause death', async () => {
+test('temporary HP removal defers death until after its live handle has been erased', async () => {
   const { s, pc, npc } = fixture(), self = { self: pc.id }, trace = [];
   npc.stats.currentHP = 0;
   // A loaded living creature can have zero base HP protected by temporary HP.
@@ -303,11 +305,11 @@ test('temporary HP removal runs its hook while the live handle remains visible a
   s.effects.requestRemoval(npc.id, temp, pc.id);
   assert.equal(s.hitPoints(npc.id, false), 4); assert.equal(s.isDead(npc), false);
   await s.scheduler.pump();
-  assert.deepEqual(trace, [[true, 0]]); assert.equal(npc.effects.length, 0); assert.equal(s.isDead(npc), true);
+  assert.deepEqual(trace, [[false, 0]]); assert.equal(npc.effects.length, 0); assert.equal(s.isDead(npc), true);
   assert.equal(npc.lastKillerId, OBJECT_INVALID, 'Native temp HP removal creates death with invalid creator');
 });
 
-test('expiry and asynchronous lifecycle scripts are serialized with scheduler dispatch', async () => {
+test('expiry queues death after existing events and asynchronous lifecycle scripts remain serialized', async () => {
   const { s, pc, npc } = fixture(), self = { self: pc.id }, trace = [];
   npc.stats.currentHP = 1;
   const temp = s.commands.EffectTemporaryHitpoints([4], self); s.commands.ApplyEffectToObject([1, temp, npc.id, 0.01]);
@@ -317,9 +319,9 @@ test('expiry and asynchronous lifecycle scripts are serialized with scheduler di
   s.program = async name => ({ name }); s.vm = { async run(p) { trace.push(p.name); if (p.name === 'death') { entered(); await waiting; } } };
   s.queueScript('after', pc.id); s.scheduler.advance(11);
   const pump = s.scheduler.pump(); await started;
-  await s.scheduler.pump(); assert.deepEqual(trace, ['death']);
+  await s.scheduler.pump(); assert.deepEqual(trace, ['after','death']);
   release(); await pump;
-  assert.deepEqual(trace, ['death', 'after']); assert.equal(npc.effects.length, 0);
+  assert.deepEqual(trace, ['after','death']); assert.equal(npc.effects.length, 0);
 });
 
 test('door/placeable OnDamaged is queued and uses hardness while history retains original components', async () => {
@@ -340,14 +342,10 @@ test('plot damage is zero but still invokes OnDamaged; difficulty and immortal c
   npc.plot = false; npc.immortal = 1; await apply(effect(40)); assert.equal(npc.stats.currentHP, 1);
 });
 
-test('unavailable enchantment/status work fails before HP or RNG changes and is retained in diagnostics', async () => {
+test('damage to a frightened target changes HP without removing an unrelated control effect', async () => {
   const { s, npc, effect, apply } = fixture();
-  for (const setup of [() => { npc.animationState = 1; npc.effects = [{ type: 8, integers: [] }]; }]) {
-    setup(); const draws = s.random.draws;
-    await assert.rejects(apply(effect(7)), /not implemented/);
-    assert.equal(npc.stats.currentHP, 30); assert.equal(s.random.draws, draws);
-  }
-  assert.ok(runtimeDiagnostics.records.some(r => r.code === 'combat.lifecycle-unimplemented' && r.context.objectId === npc.id && /status/.test(r.message)));
+  const fear=s.effects.create(8,OBJECT_INVALID,[3,0]);fear.durationType=1;npc.effects=[fear];
+  await apply(effect(7));assert.equal(npc.stats.currentHP,23);assert.ok(npc.effects.includes(fear));
 });
 test('two live shields reflect processed weapon damage once, including zero damage, and skip spell/reflected damage',async()=>{
  const {s,pc,npc,effect,apply}=fixture();

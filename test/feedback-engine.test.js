@@ -5,6 +5,8 @@ import {GameUi} from '../src/game_ui.js';
 import {GameText} from '../src/talk_table.js';
 import {OBJECT_INVALID} from '../src/game_object_array.js';
 import {requestCameraMode} from '../src/camera_modes.js';
+import {parse2da} from '../src/area.js';
+import {loadNamedTalkTokens} from '../src/game_talk_tokens.js';
 function fixture(){
   const messages=[],sounds=[],scripts=[],camera=[];
   const session=new ModuleSession({}, {onMessage:m=>messages.push(m),onSound:s=>sounds.push(s),onCameraMode:(actor,mode)=>camera.push({actor:actor.id,mode})});
@@ -42,7 +44,8 @@ test('one-liners do not alter an active conversation, PCs, actions or journal wh
 });
 test('one-liner text uses supplied target and gender without substituting the local PC for an absent target',()=>{
   const {session,player}=fixture(),ui={session,text:new GameText()},resolve=(value,target,gender)=>GameUi.prototype.dialogueText.call(ui,value,target,gender);
-  const text={strRef:0xffffffff,entries:[{languageId:0,text:'Mr <FULLNAME>'},{languageId:1,text:'Ms <FULLNAME>'}]};
+  session.talkTable.namedTokens=loadNamedTalkTokens(parse2da('2DA V2.0\n\nToken Action Default A B C D\n0 FullName 2 -1 -1 -1 -1 -1'));
+  const text={strRef:0xffffffff,entries:[{languageId:0,text:'Mr <FullName>'},{languageId:1,text:'Ms <FullName>'}]};
   assert.equal(resolve(text,player,1),'Ms Token Target');assert.equal(resolve(text,null,0),'Mr ');
 });
 test('camera mode requests route to controlling clients, narrow to a byte, and ignore unknown modes',()=>{

@@ -27,8 +27,9 @@ export class CreatureAnimationPresentation {
     const b={id:actor.id,actor,animator,render,context,side:0,lastBase:null,transitions:[],position:[...actor.position],orientation:[...actor.orientation],current:null,failures:new Set()};
     animator.presentationOwned=true;this.bindings.set(actor.id,b);this.refreshWeapon(b);
   }
+  baseItem(item){return item.nativeItemLoaded?item.baseItem:item.baseItem??item.authored?.BaseItem;}
   baseInfo(item){
-    if(!item)return null;const rules=this.rules(),base=item.authored?.BaseItem;
+    if(!item)return null;const rules=this.rules(),base=this.baseItem(item);
     if(!Number.isInteger(base)||!rules.baseitems)throw new Error('Client animation baseitems ownership is unavailable');
     const rows=rules.baseitems.orderedRows??[...rules.baseitems.rows.values()];if(base<0||base>=rows.length)return null;
     const entry=column=>intEntry(rules.baseitems,base,column).value;
@@ -41,7 +42,7 @@ export class CreatureAnimationPresentation {
   }
   refreshWeapon(b){
     clientWeaponAnimationClass(b.actor,{context:()=>b.context,equipped:(o,slot)=>this.equipped(o,slot),baseInfo:i=>this.baseInfo(i),
-      weaponSize:(o,i)=>i.authored.BaseItem===111?0:this.baseInfo(i).weaponSize-intEntry(this.rules().appearance,creatureRoot(o).Appearance_Type&65535,'SIZECATEGORY').value,
+      weaponSize:(o,i)=>this.baseItem(i)===111?0:this.baseInfo(i).weaponSize-intEntry(this.rules().appearance,creatureRoot(o).Appearance_Type&65535,'SIZECATEGORY').value,
       warning:message=>this.failure(b,message)});
   }
   attackWeapon(actor,type){return this.equipped(actor,({1:16,2:32,3:16384,4:32768,5:65536,6:16})[type]);}
@@ -54,13 +55,13 @@ export class CreatureAnimationPresentation {
         const key=Object.keys(row??{}).find(k=>k.toLowerCase()==='targetheight');return row?.[key]==='L'?'L':'';
       },
       hasMonkClass:()=>Number((creatureRoot(b.actor).ClassList??[]).some(c=>(c.Class&255)===5)),
-      equipped:(_o,slot)=>this.equipped(b.actor,slot),baseItem:i=>i.authored.BaseItem,
+      equipped:(_o,slot)=>this.equipped(b.actor,slot),baseItem:i=>this.baseItem(i),
       attackWeapon:(_o,type)=>this.attackWeapon(b.actor,type),baseInfo:i=>this.baseInfo(i),random:()=>this.random.next(),
       hitDistance:o=>appearance(o,'HITDIST').value,
       preferredDistance:(_o,type)=>{
         const weapon=this.attackWeapon(b.actor,type);
-        if(!weapon||((weapon.authored.BaseItem-69)>>>0)<4)return appearance(b.actor,'PREFATCKDIST').value;
-        let distance=nativeFloatEntry(this.rules().baseitems,weapon.authored.BaseItem,'PrefAttackDist').value;
+        if(!weapon||((this.baseItem(weapon)-69)>>>0)<4)return appearance(b.actor,'PREFATCKDIST').value;
+        let distance=nativeFloatEntry(this.rules().baseitems,this.baseItem(weapon),'PrefAttackDist').value;
         if(b.context.fieldDE===1){const scale=appearance(b.actor,'weaponscale');if(scale.found)distance=Math.fround(distance*scale.value);}
         return distance;
       }};
@@ -70,14 +71,14 @@ export class CreatureAnimationPresentation {
     const [actorId,targetId]=message.data.objects,b=this.bindings.get(actorId);
     if(!b)return false;
     try{
-      this.refreshWeapon(b);const record=clientAttackAnimationRecord(message.attack,targetId),at=this.now();
+      this.refreshWeapon(b);const record=clientAttackAnimationRecord(message.attack,targetId),at=this.now(actorId);
       const local={id:actorId,position:b.actor.position,side:b.side};
       let id;
       if(record.ranged!==0){id=200;if(b.side===2){b.side=1;b.context.fieldE0=1;}}
       else{id=selectClientMeleeAnimation(local,record,this.providers(b));b.side=local.side;}
       this.pending.push({id:actorId,animation:id,at,duration:record.duration});
       if(record.ranged!==0&&record.reaction===12)this.failure(b,'Native ranged parry travel animation262 is not connected');
-      else if(record.reaction>1)this.pending.push({id:targetId,animation:record.reaction,at:at+record.reactionDelay,duration:record.reactionDuration});
+      else if(record.reaction>1){const target=this.bindings.get(targetId);if(target&&this.object(targetId)===target.actor)this.pending.push({id:targetId,animation:record.reaction,at:this.now(targetId)+record.reactionDelay,duration:record.reactionDuration});}
       return true;
     }catch(error){this.failure(b,error.message);return false;}
   }
@@ -106,7 +107,7 @@ export class CreatureAnimationPresentation {
     const cue=b.transitions.shift();this.play(b,cue.animation,now,cue.duration,false);return true;
   }
   update(){
-    const now=this.now(),due=this.pending.filter(p=>p.at<=now);this.pending=this.pending.filter(p=>p.at>now);
+    const due=[],pending=[];for(const cue of this.pending){const b=this.bindings.get(cue.id);if(!b||this.object(cue.id)!==b.actor)continue;(cue.at<=this.now(cue.id)?due:pending).push(cue);}this.pending=pending;
     for(const cue of due){
       const b=this.bindings.get(cue.id);if(!b||this.object(cue.id)!==b.actor||[6,8].includes(b.actor.animationState))continue;
       try{this.play(b,cue.animation,cue.at,cue.duration,false);}catch(error){this.failure(b,error.message);}
@@ -115,7 +116,7 @@ export class CreatureAnimationPresentation {
       if(this.object(b.id)!==b.actor)continue;
       if(b.animator.presentationPreview&&b.actor.animationState<=1)continue;
       try{
-        const actor=b.actor,base=actor.animationState&65535,dead=[6,8].includes(base);
+        const now=this.now(b.id),actor=b.actor,base=actor.animationState&65535,dead=[6,8].includes(base);
         if(b.lastBase!==base){
           const previous=b.lastBase;b.lastBase=base;
           // An actor first loaded in a body pose starts in that pose. Live

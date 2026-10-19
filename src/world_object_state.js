@@ -1,4 +1,6 @@
 import {OBJECT_INVALID} from './game_object_array.js';
+import {readNativeGff} from './native_gff_fields.js';
+import {placeableField} from './placeable_fields.js';
 
 // Ownership/state cells of full constructors1404af9c0/1404f9a70/140508d60.
 // The base constructor has already allocated the canonical ID. Repository
@@ -39,4 +41,7 @@ export function importPlaceableInventoryState(object,data){
  const active=data.TrapActive??object.nativeTrapActive3d4;if(!Number.isInteger(active))throw new Error('Native placeable TrapActive BYTE is unavailable');
  object.nativeTrapActive3d4=Number((active&255)!==0);
  const faction=data.TrapFaction??0;if(!Number.isInteger(faction))throw new Error('Native placeable TrapFaction DWORD is unavailable');object.nativeTrapFaction3d8=faction>>>0;
+ // LoadPlaceable1404b4e9b..1404b4eba reads typed DWORD/default INVALID.
+ // The live cell is shared with runtime template loading and death XP.
+ placeableField(object,0x3ac,readNativeGff(data,'TrapCreator',4,OBJECT_INVALID).value);
 }

@@ -1,0 +1,20 @@
+import * as THREE from 'three';
+import {CameraKeyholePresentation} from '../src/camera_keyhole_shader.js';
+import {GameCamera} from '../src/game_camera.js';
+window.runKeyholeFixture=shader=>{
+ const renderer=new THREE.WebGLRenderer({preserveDrawingBuffer:true,antialias:false});renderer.setSize(256,256);document.body.append(renderer.domElement);
+ const errors=[];renderer.debug.onShaderError=(_gl,program,vs,fs)=>errors.push([_gl.getProgramInfoLog(program),_gl.getShaderInfoLog(vs),_gl.getShaderInfoLog(fs)]);
+ const camera=new THREE.PerspectiveCamera(45,1,.1,500),state=new GameCamera();state.reset({position:[0,0,0],height:1.75});state.update({position:[0,0,0]},1/60,camera,{target:new THREE.Vector3()});
+ const scene=new THREE.Scene();scene.background=new THREE.Color('blue');scene.add(new THREE.AmbientLight(0xffffff,3));const tile=new THREE.Group();tile.userData.nativeStaticTile=true;scene.add(tile);
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(20,12,.2),new THREE.MeshLambertMaterial({color:'red'}));wall.position.set(0,6,5);wall.userData.nativeModelMesh=true;tile.add(wall);
+ const player=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:'lime'}));player.position.set(0,1.25,0);scene.add(player);
+ const presentation=new CameraKeyholePresentation({camera,renderer});presentation.shader=shader;
+ const center=()=>{const pixel=new Uint8Array(4);renderer.getContext().readPixels(128,128,1,1,renderer.getContext().RGBA,renderer.getContext().UNSIGNED_BYTE,pixel);return [...pixel];};
+ const draw=enabled=>{presentation.update(scene,new THREE.Vector3(),state,enabled);renderer.render(scene,camera);return center();};
+ const disabled=draw(false),enabled=draw(true),snapshot=presentation.snapshot();
+ const ownedMaterial=player.material;const ownedPreserved=player.material===ownedMaterial&&!presentation.bindings.has(player);
+ presentation.dispose();const restored=wall.material.onBeforeCompile===THREE.Material.prototype.onBeforeCompile;
+ if(errors.length)throw new Error(JSON.stringify(errors));
+ if(!(disabled[0]>200&&disabled[1]<20&&enabled[1]>200&&enabled[0]<20))throw new Error('Keyhole did not reveal player: '+JSON.stringify({disabled,enabled,snapshot}));
+ return{disabled,enabled,snapshot,ownedPreserved,restored,programs:renderer.info.programs.length};
+};

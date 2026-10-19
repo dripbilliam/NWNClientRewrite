@@ -4,6 +4,7 @@ import {nativeStringEntry} from './spell_metadata.js';
 import {loadVisualEffectAsync} from './visual_loader.js';
 import {loadVisualProgram,clearVisualProgram,updateVisualProgram} from './visual_program.js';
 import {startType4Visual,attachType4Visual,stopType4Visual} from './visual_type4.js';
+import {attachBeamVisual,startBeamVisual,stopBeamVisual} from './visual_beam.js';
 import {VisualPhaseRuntime,createVisualPhaseState} from './visual_phase_runtime.js';
 import {visualLocalPoseServices} from './visual_scene_pose.js';
 import {setModelLightPriority} from './model_light.js';
@@ -16,7 +17,7 @@ function unparent(model){
 // Platform adapter around shared native owners. Asset reads are prefetched as
 // data only; each actual LoadProgram still creates/stores a fresh model at its
 // native phase boundary. Canonical records and game-object IDs are never edited.
-export async function createVisualSceneRuntime({actor,record,tables,objects,renderFor,player,loadAsset,createModel,destroyModel,releaseAsset,shadowing,report,sceneRoot,settings=()=>({quality64:1,violence40:2})}){
+export async function createVisualSceneRuntime({actor,record,tables,objects,renderFor,player,loadAsset,createModel,destroyModel,releaseAsset,shadowing,report,sceneRoot,updateReferences=()=>{},settings=()=>({quality64:1,violence40:2})}){
  const state=createVisualPhaseState(),owned=new Set(),assets=new Map(),pending=new Map(),reported=new Set(),contexts=new WeakMap();let runtime=null,closed=false,elapsedMs=0,previousMs=0;
  const data={objectId:actor.id,visualId:record.visualId},failure=(code,message,extra={})=>{const key=`${code}:${JSON.stringify(extra)}`;if(!reported.has(key)){reported.add(key);report(code,message,{...data,...extra});}};
  const transform=record.transform;
@@ -68,12 +69,14 @@ export async function createVisualSceneRuntime({actor,record,tables,objects,rend
    return model.animator.playNative(name,{speed,flags,time})?1:0;
   },animationInfo:(model,name)=>({length:model.model.animations.find(clip=>clip.name===name)?.length??0}),
   programAttach14096bbb0:e=>attachType4Visual(e,p),
+  programAttach14096ba80:e=>attachBeamVisual(e,p),
+  reattachReferences:(model,target,name)=>{if(model.references)model.references.reattach(target,name);else if(model.model.nodes.some(n=>n.type==='reference'))throw new Error('Native beam model reference owner is unavailable');},
   shadowing:(model,enabled)=>shadowing(model,enabled),
   controlledClient:()=>({videoF8:{gui248:{}}}),registerGuiD8:()=>failure('visual.gui-attachment-unimplemented','Native selected-view visual GUI attachment is not implemented'),
   refreshContext1407e9bc0:()=>failure('visual.context-renderer-unimplemented','Native dynamic-projection/shadow context refresh is not implemented'),
   clearProgram:e=>clearVisualProgram(e,p),loadProgram:(e,id)=>loadVisualProgram(e,id,p),
-  startProgram:(e,id)=>{if(!e.updateProgramD8)return;if(type(id)===4)startType4Visual(e,id,p);else if(type(id)>=1&&type(id)<=13)unsupported('start',id);},
-  stopProgram:(e,id)=>{if(!e.updateProgramD8)return;if(type(id)===4)stopType4Visual(e,id,p);else if(type(id)>=1&&type(id)<=13)unsupported('stop',id);},
+  startProgram:(e,id)=>{if(!e.updateProgramD8)return;if(type(id)===4)startType4Visual(e,id,p);else if(type(id)===7)startBeamVisual(e,id,p);else if(type(id)>=1&&type(id)<=13)unsupported('start',id);},
+  stopProgram:(e,id)=>{if(!e.updateProgramD8)return;if(type(id)===4)stopType4Visual(e,id,p);else if(type(id)===7)stopBeamVisual(e,p);else if(type(id)>=1&&type(id)<=13)unsupported('stop',id);},
   updateProgram:(e,id,delta)=>updateVisualProgram(e,id,delta,p),currentProgram:current,
   update140971e10:()=>failure('visual.program-update-unimplemented','Native Type5 visual update is not implemented'),update1409720e0:()=>failure('visual.program-update-unimplemented','Native Type6 visual update is not implemented'),
   detach:e=>runtime.detachModels(),
@@ -84,7 +87,7 @@ export async function createVisualSceneRuntime({actor,record,tables,objects,rend
   stopSound:sound=>{sound.playing=false;},destroySound:sound=>{sound.destroyed=true;},updateSound:(sound,position)=>{sound.position=position;},
   shakeOnce:(_client,delay)=>failure('visual.camera-shake-unimplemented','Native visual camera shake is not implemented',{delay}),shakeLoop:(_client,delay,duration)=>failure('visual.camera-shake-unimplemented','Native visual camera shake is not implemented',{delay,duration})
  };
- for(const address of['14096ba80','14096b630','140969ef0','14096aff0','1409689f0'])p[`programAttach${address}`]=()=>unsupported('attach',current(state));
+ for(const address of['14096b630','140969ef0','14096aff0','1409689f0'])p[`programAttach${address}`]=()=>unsupported('attach',current(state));
  p.renderSetting158=()=>unsupported('attach',current(state));
  const dispose=()=>{
   if(closed)return;closed=true;
@@ -109,7 +112,7 @@ export async function createVisualSceneRuntime({actor,record,tables,objects,rend
   return{nativeState:state,get program(){const id=current(state);return{id,type:type(id),model:state.proceduralB8?.resourceName,animation:state.proceduralB8?.animator.clip?.name};},
    attach:()=>{runtime.attach();failure('visual.owner-suppression-unimplemented','Native visual owner suppression is not connected; local unsuppressed profile is used');failure('visual.clock-scene-order-unverified','Native phase owners use renderer-derived milliseconds; outer client clock/frame ordering and scene gates remain unverified');},
    attachModels:()=>runtime.attachModels(),detachModels:()=>runtime.detachModels(),restart:()=>runtime.restart(),stopForSelection:value=>runtime.stopForSelection(value),stop:value=>runtime.stop(value),
-   update:delta=>{poses.updateAttachments();for(const model of owned)model.animator.update(delta);elapsedMs+=delta*1000;const now=Math.trunc(elapsedMs);runtime.updateMilliseconds((now-previousMs)>>>0);previousMs=now;},
+   update:delta=>{poses.updateAttachments();for(const model of owned){model.animator.update(delta);updateReferences(model,delta);}elapsedMs+=delta*1000;const now=Math.trunc(elapsedMs);runtime.updateMilliseconds((now-previousMs)>>>0);previousMs=now;},
    isRetired:()=>runtime.isRetired(),snapshot,dispose};
  }catch(error){dispose();throw error;}
 }

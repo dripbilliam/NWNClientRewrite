@@ -24,11 +24,13 @@ import {itemUseEntries as nativeItemUseEntries,itemPropertyPage,itemVariantEntri
 import {configureItemQuickbar,updateItemQuickbarCount} from './item_quickbar.js';
 import {dropPreparation,preparationRequest} from './spell_preparation.js';
 import {ContainerUi,repositoryGrid} from './container_ui.js';
+import {MapUi} from './map_ui.js';
+import {GAME_HUD_ACTIONS} from './game_hud_actions.js';
 
 const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
 const button = (text, action, className = '') => { const b = el('button', `game-button ${className}`, text); b.type = 'button'; b.addEventListener('click', action); return b; };
 const titles = Object.fromEntries(GAME_PANELS.map(([id, title]) => [id, title]));
-const panelModels = { journal: 'pnl_jnl_panel', inventory: 'pnl_inv', character: 'pnl_chrsht', map: 'pnl_map_area', spells: 'pnl_spellbook', dialogue: 'pnl_dialog', store: 'pnl_store', barter: 'pnl_barter', examine: 'pnl_exam_item' };
+const panelModels = { journal: 'pnl_jnl_panel', inventory: 'pnl_inv', character: 'pnl_chrsht', spells: 'pnl_spellbook', dialogue: 'pnl_dialog', store: 'pnl_store', barter: 'pnl_barter', examine: 'pnl_exam_item' };
 const nativeRoutes = {
   pre_main: { NewButton: 'pre_newgame', LoadButton: 'pre_loadgame', MultiButton: 'pre_multiplayer', MoviesButton: 'pre_movies', OptionsButton: 'options_pregame' },
   options_main: { GameButton: 'options_game', SoundOptionsButton: 'options_sound', ControlsButton: 'options_controls', VideoOptionsButton: 'options_video' },
@@ -62,8 +64,9 @@ export class GameUi {
   get captured() { return Boolean(this.externalCapture || this.state.panel); }
   async attach(session, resolver) {
     if (this.session === session) return;
+    this.mapUi?.destroy();this.mapUi=null;
     this.renderVersion++; this.layer.replaceChildren(); this.assets?.dispose(); this.session = session; this.state.reset(); this.messages = []; this.signature = '';this.preparationEpoch=(this.preparationEpoch??0)+1;this.preparationClass=0;this.preparationMeta=0;this.preparationWidgets=new Map();
-    this.containers.reset();this.nativeInventoryOpen=undefined;this.assets = new NativeUiAssets(resolver); this.root.hidden = false; this.portraitKey = null;this.quickbarIcons.clear();
+    this.containers.reset();this.nativeInventoryOpen=undefined;this.characterSheetRequested=false;this.assets = new NativeUiAssets(resolver); this.root.hidden = false; this.portraitKey = null;this.quickbarIcons.clear();
     if(!session.player.nativeQuickbar4e0)initializeQuickbar(session.player);
     if(session.quickbarProfileKey)try{const saved=await this.quickbarLayouts.get(session.quickbarProfileKey);if(saved){session.loadPlayerQuickbar(session.player,saved.QBList??saved);for(const [i,source]of (saved.itemSources??[]).entries()){const b=getQuickbarButton(session.player,i);if(b?.type===1&&source&&(session.registry.get(b.itemId)?.sourceKey!==source.primary||(source.secondary&&session.registry.get(b.secondaryItemId)?.sourceKey!==source.secondary))){setQuickbarButton(session.player,i,null);runtimeDiagnostics.record('quickbar.item-not-restored','Saved local shortcut item is absent from the imported character',{slot:i,source});}}}}catch(error){runtimeDiagnostics.error(error,'quickbar.layout-load-failed');}
     this.itemQuickbarPresentation.clear();
@@ -95,35 +98,49 @@ export class GameUi {
     const customName = String(this.session?.ifo.Mod_CustomTlk ?? '').replace(/\.tlk$/i, '').toLowerCase();
     const custom = [...files].find(f => f.name.toLowerCase() === `${customName}.tlk`);
     this.text = new GameText({ base: parseTalkTable(await base.arrayBuffer()), custom: custom ? parseTalkTable(await custom.arrayBuffer()) : null });
+    if(this.session?.talkTable)await this.session.talkTable.loadFiles(files,this.session.ifo?.Mod_CustomTlk??'');
     this.text.language = this.text.base.language; this.signature = ''; this.refresh(true); if (this.state.panel) await this.renderPanel();
+    if(this.session?.mapPins){this.session.mapPins.text=this.text;await this.session.mapPins.loadArea({force:true}).catch(()=>null);}
   }
   mode(enabled) { document.body.classList.toggle('game-mode', enabled); document.querySelector('#game-mode-button')?.setAttribute('aria-pressed', String(enabled)); }
   open(panel) { if (!this.assets || this.session?.player.cutscene?.enabled && panel !== 'dialogue') return;
     if(panel==='inventory'&&this.session&&!this.session.combat.broadcastProviders().client(this.session.player.id)?.inventoryGUI.field8)this.request('inventory.status',{value:1,ownerId:this.session.player.id});
-    this.visible = true; this.root.hidden = false; this.state.open(panel); this.onInputCapture?.(true); void this.renderPanel(); }
-  toggle(panel) { if (!this.assets || this.session?.player.cutscene?.enabled && panel !== 'dialogue') return;if(panel==='inventory'){if(this.state.panel===panel)this.close();else{this.state.stack=[];this.open(panel);}return;}this.state.toggle(panel); this.onInputCapture?.(this.captured); void this.renderPanel(); }
+    this.visible = true; this.root.hidden = false; this.state.open(panel); this.syncCharacterSheet();this.onInputCapture?.(true); void this.renderPanel(); }
+  toggle(panel) { if (!this.assets || this.session?.player.cutscene?.enabled && panel !== 'dialogue') return;if(panel==='inventory'){if(this.state.panel===panel)this.close();else{this.state.stack=[];this.open(panel);}return;}this.state.toggle(panel);this.syncCharacterSheet(); this.onInputCapture?.(this.captured); void this.renderPanel(); }
   close() {
     if (this.state.panel === 'dialogue' && this.session?.conversation.state) {
       this.request('conversation.close', { aborted: !this.session.conversation.state.complete, version: this.session.conversation.version }); return;
     }
     if(this.state.panel==='inventory'&&this.session)this.request('inventory.status',{value:0,ownerId:this.session.player.id});
-    this.state.close(); this.onInputCapture?.(this.captured); void this.renderPanel(); if (!this.session && !this.captured) { this.mode(false); this.root.hidden = true; }
+    this.state.close();this.syncCharacterSheet(); this.onInputCapture?.(this.captured); void this.renderPanel(); if (!this.session && !this.captured) { this.mode(false); this.root.hidden = true; }
   }
   conversationChanged() {
     this.dialogVersion = this.session?.conversation.version;
     if (this.session?.conversation.state) { this.mode(true); if (this.state.panel !== 'dialogue') this.open('dialogue'); else void this.renderPanel(); }
     else if (this.state.panel === 'dialogue') { this.state.close(); this.onInputCapture?.(this.captured); void this.renderPanel(); }
   }
-  closeAll() { if(this.session&&this.state.stack.includes('inventory'))this.request('inventory.status',{value:0,ownerId:this.session.player.id});this.renderVersion++; this.state.stack = []; this.layer.replaceChildren(); this.root.dataset.panel = ''; this.onInputCapture?.(false); if (!this.session) { this.mode(false); this.root.hidden = true; } }
+  closeAll() { if(this.session&&this.state.stack.includes('inventory'))this.request('inventory.status',{value:0,ownerId:this.session.player.id});this.renderVersion++; this.state.stack = [];this.syncCharacterSheet(); this.layer.replaceChildren(); this.root.dataset.panel = ''; this.onInputCapture?.(false); if (!this.session) { this.mode(false); this.root.hidden = true; } }
+  syncCharacterSheet(){
+    if(!this.session||this.session.player.cutscene?.enabled)return;
+    const open=this.state.panel==='character';if(open===this.characterSheetRequested)return;
+    // Local frontend decoded page mapping. Native server handling is verified;
+    // the original client's marshaling/initial request remains separate.
+    this.request('character.sheet',{page:open?0:255,targetId:this.session.player.id});this.characterSheetRequested=open;
+  }
   receiveInventoryMessage(event){
     if(!['inventory-status','inventory-gui','inventory-select-panel','inventory-repository-move','inventory-repository-move-cancel'].includes(event.type))return false;
     if(event.type==='inventory-repository-move-cancel')this.notify('The item could not be moved');
     queueMicrotask(()=>this.refresh(true));return true;
   }
   notify(message) { this.notice.textContent = message; clearTimeout(this.noticeTimer); this.noticeTimer = setTimeout(() => { this.notice.textContent = ''; }, 6500); }
-  message(message, type = 'system') {
+  message(message, type = 'system', { allowRepeat = false } = {}) {
+    if(message?.type==='speech-reference'){
+      const text=this.text.strRef(message.strRef>>>0);
+      if(text===undefined){runtimeDiagnostics.record('speech.reference-unavailable','Speech talk-table string is unavailable',{strRef:message.strRef,actorId:message.actorId,channel:message.channel});return;}
+      message={...message,text};
+    }
     const text = typeof message === 'string' ? message : message.type === 'oneLiner' ? this.dialogueText(message.text, this.session?.registry.get(message.tokenTargetId) ?? null, message.gender) : message.text;
-    if (!text || this.messages.at(-1)?.text === text && this.messages.at(-1)?.type === type) return;
+    if (!text || !allowRepeat && this.messages.at(-1)?.text === text && this.messages.at(-1)?.type === type) return;
     this.messages.push({ text, type }); if (this.messages.length > 100) this.messages.shift();
     this.updateLog(); this.notify(text);
   }
@@ -161,10 +178,9 @@ export class GameUi {
     const silhouette = el('span', 'game-portrait-silhouette', '♙'); portrait.append(silhouette);
     const health = el('div', 'game-health', '—'); health.title = 'Hit points unavailable until a character is loaded'; party.append(health);
     const timing=el('div','game-rest-timing');timing.hidden=true;timing.append(el('span','','Resting'),el('progress'));timing.querySelector('progress').setAttribute('aria-label','Rest progress');this.hud.append(timing);
-    const buttons = [['map', 'pb_but_map'], ['inventory', 'pb_but_inv'], ['journal', 'pb_but_jour'], ['character', 'pb_but_char'], ['rest', 'pb_but_rest'], ['spells', 'pb_but_spell'], ['options', 'pb_but_opts'], ['pvp', 'pb_but_pvp']];
+    const buttons = GAME_HUD_ACTIONS;
     const actions = el('div', 'game-party-buttons'); party.append(actions);
-    for (const [id, model] of buttons) {
-      const title = titles[id] ?? (id === 'rest' ? 'Rest' : 'Player versus Player');
+    for (const [id, title, model] of buttons) {
       const b = button('', () => titles[id] ? this.toggle(id) : this.request(id), 'game-hud-icon'); b.dataset.panel = id; b.title = title; b.setAttribute('aria-label', title); void this.art(b, model); actions.append(b);
     }
     const identity = el('div', 'game-identity'); identity.id = 'game-player-name'; party.append(identity);
@@ -328,6 +344,9 @@ export class GameUi {
     if (!this.session || !this.assets || !this.hud.querySelector('#game-player-name')) return;
     const now = performance.now(); if (!force && now - this.lastRefresh < 200) return; this.lastRefresh = now;
     const session = this.getSession(); if (session !== this.session) return;
+    this.syncCharacterSheet();
+    const sheet=session.combat.broadcastProviders().client(session.player.id)?.characterSheetGUI;
+    this.root.dataset.nativeCharacterSheet=JSON.stringify({targetId:sheet?.targetId,page:sheet?.page,consumers:session.player.nativeField540,dirty:session.player.combatInformationDirty,attackNodes:session.player.nativeCombatInformationD70?.attackNodes.map(n=>[...n])});
     const inventoryGUI=session.combat.broadcastProviders().client(session.player.id)?.inventoryGUI,inventoryOpen=Boolean(inventoryGUI?.field8);
     if(this.nativeInventoryOpen!==inventoryOpen){this.nativeInventoryOpen=inventoryOpen;if(inventoryOpen&&!this.state.panel)this.open('inventory');else if(!inventoryOpen&&this.state.panel==='inventory'){this.state.close();this.onInputCapture?.(this.captured);void this.renderPanel();}}
     try{this.containers.refresh(session,this.assets,this.text);}catch(error){runtimeDiagnostics.error(error,'ui.container-state-failed');}
@@ -420,6 +439,7 @@ export class GameUi {
     if (handled) { event.preventDefault(); event.stopImmediatePropagation(); }
   }
   async renderPanel() {
+    this.mapUi?.destroy();this.mapUi=null;
     const version = ++this.renderVersion, id = this.state.panel; this.layer.replaceChildren(); this.root.dataset.panel = id ?? '';
     if (!id || !this.assets) return;
     if (id.startsWith('native:')) { await this.renderNative(id.slice(7), version); return; }
@@ -435,7 +455,7 @@ export class GameUi {
       void this.positionedArt(panel, 'pnl_jnl_page1', 0, 58); this.renderJournal(body);
     } else if (id === 'inventory') this.renderInventory(body, tabs);
     else if (id === 'character') this.renderCharacter(body, tabs);
-    else if (id === 'map') { this.mapCanvas = el('canvas', 'game-map'); this.mapCanvas.width = this.mapCanvas.height = 320; body.append(this.mapCanvas, el('p', 'game-muted', 'Area overview · exploration and map pins pending')); this.drawMap(); }
+    else if (id === 'map') this.mapUi=new MapUi(body,this.session,this.assets);
     else if (id === 'options') this.renderOptions(body);
     else if (id === 'spells') this.renderSpells(body, tabs);
     else if (id === 'party') { body.append(button(this.session.player.name, () => this.open('character')), button('Invite player', () => this.request('party.invite'))); }
@@ -448,10 +468,8 @@ export class GameUi {
     panel.querySelector('button')?.focus({ preventScroll: true });
   }
   dialogueText(value, player = this.session.player, gender = null) {
-    const text = gender === null ? this.text : Object.assign(Object.create(this.text), { female: gender === 1 });
-    const tokens = { FIRSTNAME: player?.authored?.FirstName ? text.resolve(player.authored.FirstName) : player?.name, LASTNAME: text.resolve(player?.authored?.LastName), FULLNAME: player?.name, PLAYERNAME: player?.playerName };
-    return text.resolve(value).replace(/<(FIRSTNAME|LASTNAME|FULLNAME|PLAYERNAME)>/gi, (_, key) => tokens[key.toUpperCase()] ?? '')
-      .replace(/<\/?(?:StartAction|StartCheck|StartHighlight|Start|End)>/gi, '');
+    const selectedGender=gender??Number((player?.creatureData??player?.authored)?.Gender===1),text=Object.assign(Object.create(this.text),{female:selectedGender===1});
+    return this.session.talkTable.parseClient(text.resolve(value),{actor:player,gender:selectedGender,resolveName:value=>text.resolve(value)});
   }
   renderConversation(body) {
     const conversation = this.session.conversation, state = conversation.state;
@@ -651,14 +669,7 @@ export class GameUi {
     body.append(button('Save Game', () => this.open('native:pre_savegame')), button('Load Game', () => this.open('native:pre_loadgame')), button('Main Menu', () => this.open('main')), button('Return to Game', () => this.closeAll()));
   }
   drawMap() {
-    const world = this.getWorld?.(), c = this.mapCanvas; if (!c || !world?.triangles?.length || !c.isConnected) return;
-    const ctx = c.getContext('2d'); let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-    for (const t of world.triangles) for (const p of t.vertices) { minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minZ = Math.min(minZ, p[2]); maxZ = Math.max(maxZ, p[2]); }
-    const scale = 300 / Math.max(maxX - minX, maxZ - minZ, 1), x = p => 10 + (p[0] - minX) * scale, y = p => 10 + (p[2] - minZ) * scale;
-    ctx.fillStyle = '#06080b'; ctx.fillRect(0, 0, 320, 320); ctx.strokeStyle = '#45565f'; ctx.fillStyle = '#1b2931'; ctx.lineWidth = .5;
-    for (const t of world.triangles) { ctx.beginPath(); t.vertices.forEach((p, i) => i ? ctx.lineTo(x(p), y(p)) : ctx.moveTo(x(p), y(p))); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-    for (const o of world.objects?.objects?.values() ?? []) if (o.kind === 'door') { ctx.fillStyle = '#b9a066'; ctx.fillRect(x(o.position) - 2, y(o.position) - 2, 4, 4); }
-    const p = this.session.player.position; ctx.fillStyle = '#ffffa0'; ctx.beginPath(); ctx.arc(x(p), y(p), 4, 0, Math.PI * 2); ctx.fill();
+    void this.mapUi?.refresh();
   }
   async renderNative(name, version) {
     const assets = this.assets;

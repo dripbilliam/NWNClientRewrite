@@ -136,6 +136,12 @@ export function initializeCreaturePerception(actor,random){
   initializePerceptionRolls(actor,random);
   const perception=integer(random.next(),'perception counter random')%100,heartbeat=integer(random.next(),'heartbeat counter random')%100;
   actor.nativePerceptionCounter580??=perception;actor.nativeHeartbeatCounter584??=heartbeat;
+  // Effect controllers and heartbeat/reprocess owners address the SAME54c/550
+  // storage. Keep legacy nativeField names as aliases, never shadow copies.
+  for(const [alias,name]of[['nativeField54c','nativeHeartbeatDay54c'],['nativeField550','nativeHeartbeatTime550']]){
+    if(actor[alias]!==undefined&&actor[name]!==undefined&&(actor[alias]>>>0)!==(actor[name]>>>0))throw new Error(`Conflicting native heartbeat ${alias} values`);
+    actor[name]=(actor[name]??actor[alias]??0)>>>0;Object.defineProperty(actor,alias,{enumerable:true,configurable:true,get(){return this[name];},set(value){this[name]=value>>>0;}});
+  }
   for(const name of ['nativeHeartbeatDay54c','nativeHeartbeatTime550','nativePerceptionDay578','nativePerceptionTime57c','nativeSpawnState548'])actor[name]??=0;
 }
 // GetDetectMode140390490. Keen Senses240 forces mode1; otherwise idle

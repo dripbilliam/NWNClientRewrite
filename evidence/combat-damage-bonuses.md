@@ -1,5 +1,9 @@
 # Damage-effect and equipment checkpoint — 2026-10-12
 
+2026-10-17 correction: the ammunition lookup below reads RangedWeapon BYTE+18,
+not AmmunitionType. The previous name and implementation were wrong. See
+[native revalidation and installed regression](nominal-damage-item-columns.md).
+
 Physical and energy damage-effect queries now use the shared active rules,
 equipped item projections and live effect handles. Energy queries can update
 the caller-owned attack record and consume resistance budgets in native order.
@@ -32,7 +36,7 @@ changes. Truncated bridge pseudocode is supplementary.
 | Damage constructors `0x1405192a0`, `0x140518e80`; GetScriptEffectType `0x140423fe0` | Cost validation by physical table count, magical default flags, retained zero cost; native types 13/14 map to script types 42/43. |
 | Apply `0x14042a290`, `0x140429ce0`; remove `0x140436540`, `0x1404362e0` | Live handles, sorted insertion, creature combat-dirty flag, decrease immunity 21, deferred script removal and strict expiry. Linked icons remain diagnosed. |
 | ApplyDamageBonus `0x14046ece0`; enhancement `0x14046fee0`, `0x140470780`; damage penalty `0x14046f230` | Properties 6..10, 16..19 and 21 project damage effects with canonical item creators. Double weapons copy offhand before original, versus conditions are retained, bonuses above +5 search the active fixed-damage rows, and attack/damage penalty immunities remain independent. Ammo bonus properties are excluded from creature projection. |
-| Query ammunition; GetArraySlotFromSlotFlag `0x1404629b0` | Active weapon AmmunitionType selects ammo base-item EquipableSlots. Exact single-slot lookup, raw permanent/temporary properties, Rank selection for bonuses and raw CostValue comparison for penalties. Invalid slots and weapon-type warnings are retained. |
+| Query ammunition; GetArraySlotFromSlotFlag `0x1404629b0` | Active weapon RangedWeapon BYTE selects ammo base-item EquipableSlots. Exact single-slot lookup, raw permanent/temporary properties, Rank selection for bonuses and raw CostValue comparison for penalties. Invalid slots and weapon-type warnings are retained. |
 | GetDamageRoll `0x1403fee20` | Default physical effect provider replaces the missing callback requirement. The effect query uses native main-hand critical/fallback context even for an offhand base-damage query. |
 | GetDamageBonusLimit `0x14055b3f0`; server constructor default | Local query defaults to native cap 100; caller/session overrides remain explicit. No native configuration loader is claimed. |
 | AddDamage `0x140374810` | Highest flag component, empty/nonpositive floor zero, existing positive floor one, int32 arithmetic then signed-short storage in an explicit 32-component record. Complete bridge export supports this helper; fresh hash-checked assembly confirmation remains pending. |
