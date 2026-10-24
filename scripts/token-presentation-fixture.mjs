@@ -1,0 +1,34 @@
+import {NetworkText} from '../src/network_text.js';
+import {NetworkWorld} from '../src/network_world.js';
+import {NetworkExamineView} from '../src/network_examine_view.js';
+import {NetworkSpeechView} from '../src/network_speech_view.js';
+import {NetworkDialogView} from '../src/network_dialog_view.js';
+import {NativeUiAssets} from '../src/native_ui_assets.js';
+import {networkResourceResult} from '../src/network_resource_bridge.js';
+import {decodeGffText} from '../src/gff_text.js';
+import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
+
+const viewport=document.querySelector('#fixture'),world=new NetworkWorld(),diagnostics=[],checks=[];
+const resolver={getResource:async(name,type)=>networkResourceResult(await creationFixture.resource(name,type),name,type)},assets=new NativeUiAssets(resolver);await assets.initializeFonts();
+const player={id:7,objectType:5,replicated:{name:{firstName:{text:'Yrs'}}}},target={id:8,objectType:5,replicated:{name:{firstName:{text:'Dexina'},lastName:{text:'Cain'}}}};
+world.localObjectId=7;world.registry.addObjectAtPos(7,player);world.registry.addObjectAtPos(8,target);
+const text=new NetworkText({world,getResource:resolver.getResource,talkString:creationFixture.talkString,diagnose:(...args)=>diagnostics.push(args)}),resolve=(...args)=>text.resolve(...args),check=(value,label)=>{if(!value)throw Error(label);checks.push(label);},rgb=(...bytes)=>decodeGffText(Uint8Array.of(60,99,...bytes,62));
+const blue=rgb(135,206,235),green=rgb(1,255,1),yellow=rgb(255,255,1),description=blue+'Attuned to Fire.</c>\n\n'+green+'Racial Type: Human</c>\n\n'+blue+'Strength: '+yellow+'Average</c></c>\n'+blue+'Dexterity: '+green+'Very High</c></c>\n'+blue+'Constitution: '+green+'High</c></c>\n'+blue+'Charisma: '+green+'High</c></c>';
+const examine=new NetworkExamineView(viewport,{world:()=>world,resolve,getResource:resolver.getResource,assets:()=>assets}),speech=new NetworkSpeechView(viewport,{world:()=>world,resolve}),dialog=new NetworkDialogView(viewport,{resolve,reply:async()=>{},onVisibility:()=>{}}),message={kind:'examine',targetId:8,type:'creature',name:{text:'Dexina Cain'},hasDetails:1,portraitId:1,damageLevel:0,reaction:1,description:{text:description}};
+window.fixture={ready:false,examine,speech,dialog,world,diagnostics,checks,message};
+window.runTokenPresentationFixture=async()=>{
+ const before=JSON.stringify([...world.registry.objects]);await examine.receive(message);
+ const p=examine.host.querySelector('.network-examine-description');check(p.textContent===description.replace(/<c...>|<\/c>/g,''),'Examine contains the full description without marker placeholders');check(getComputedStyle(p).whiteSpace==='pre-wrap','Examine preserves description newlines');
+ check([...p.children].some(n=>n.textContent==='Strength: '&&n.style.color==='rgb(135, 206, 235)')&&[...p.children].some(n=>n.textContent==='Average'&&n.style.color==='rgb(255, 255, 1)'),'Server label/value RGB colors survive token resolution');
+ check(examine.host.querySelector('.network-examine-status').textContent==='UninjuredFriendly','Condition and reaction precede the description');check(!examine.host.textContent.includes('UNRECOGNIZED'),'No color control is treated as a missing token');
+ await speech.receive({channel:1,objectId:7,text:{text:'<c p >Rest</c>'}});const line=speech.list.lastElementChild;check(line.textContent==='Yrs: Rest'&&line.lastElementChild.style.color==='rgb(32, 112, 32)','Chat Rest is colored text without visible native controls');
+ speech.append({system:true,text:blue+'Safe <img src=x onerror=alert(1)></c> end'});check(!speech.systemList.querySelector('img')&&speech.systemList.textContent.includes('<img src=x'),'Server text cannot create HTML elements');
+ await dialog.receive({kind:'dialog-entry',ownerId:8,tokenObjectId:8,text:{text:blue+'Hello <FirstName>.</c>'}});await dialog.receive({kind:'dialog-replies',entryId:1,tokenObjectId:8,replies:[{id:2,text:{text:green+'Continue</c>'}}]});check(dialog.text.textContent==='Hello Dexina.'&&dialog.text.firstElementChild.style.color==='rgb(135, 206, 235)','Dialogue shares colored text and the correct token actor');check(dialog.replies.firstElementChild.textContent==='1. Continue'&&dialog.replies.firstElementChild.lastElementChild.style.color==='rgb(1, 255, 1)','Dialogue reply controls render without altering reply IDs');
+ await examine.receive({...message,description:{text:blue+'Hello <FirstName>.</c>'}});check(examine.host.querySelector('.network-examine-description').textContent==='Hello Dexina.','Examine tokens use the examined target rather than the player');
+ await examine.receive({...message,hasDetails:0,description:{text:'Hidden details'}});check(!examine.host.querySelector('.network-examine-portrait')&&!examine.host.querySelector('.network-examine-status'),'Hidden server details do not reveal a portrait or condition');
+ const original=examine.resolve;let finish;examine.resolve=()=>new Promise(r=>finish=r);const late=examine.receive({...message,name:{text:'Late'}});examine.close();finish('Late');examine.resolve=original;await late;check(!examine.active&&!examine.host.children.length,'Late text cannot reopen a closed examination');
+ await examine.receive(message);check(JSON.stringify([...world.registry.objects])===before,'Text presentation does not alter replicated actors');check(diagnostics.length===0,'Native color controls generate no missing-token diagnostics');
+ await new Promise(r=>setTimeout(r,150));check(runtimeDiagnostics.records.every(r=>r.severity!=='error'),'No presentation runtime errors');
+ return{success:true,checks,diagnostics,joins:0,uploads:0,scope:'Production text/examine/chat/dialogue views; screenshot-guided synthetic description, installed fonts/portrait/tables, offline only'};
+};
+fixture.ready=true;

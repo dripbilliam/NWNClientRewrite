@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
-import { creationAlignmentAllowed,abilityPointCost,creationSkillBudget,creationSkillRule,creationFeatListAllows,creationFeatRequirements,creationGrantedFeats,initializeCreationAbilities,creationAbilityCanDecrease } from '../src/character_creation.js';
+import { creationAlignmentAllowed,abilityPointCost,creationSkillBudget,creationSkillRule,creationFeatListAllows,creationFeatRequirements,creationGrantedFeats,initializeCreationAbilities,creationAbilityCanDecrease,creationHeadModels,creationPackageOptions,creationDefaultPackage,recommendCreation } from '../src/character_creation.js';
 import { gffField as f,gffRecord as record,writeGff,typedGff,encodeGffText } from '../src/gff_writer.js';
 import { parseGff,cloneGff,getGffStructType,getGffFieldTypes } from '../src/gff.js';
 import { ABILITIES } from '../src/character.js';
@@ -9,6 +9,25 @@ import { describeCharacter } from '../src/character_vault.js';
 const table=orderedRows=>({orderedRows,rows:new Map(orderedRows.map((r,i)=>[i,r]))});
 const ruleset=values=>table(Object.entries(values).map(([Label,Value])=>({Label,Value:String(Value)})));
 const oraclePath=new URL('../backups/animations/native-character-creation-observations.json',import.meta.url);
+
+test('package selection keeps eligible configured defaults and replaces hidden or other-class defaults using the offered list',()=>{
+ const packages=Array.from({length:263},()=>({}));packages[3]={ClassID:'3',PlayerClass:'0',SpellPref2DA:'missing_hidden_table'};packages[260]={ClassID:'3',PlayerClass:'1'};packages[261]={ClassID:'3',PlayerClass:'1'};packages[262]={ClassID:'4',PlayerClass:'1'};
+ const rules={classes:table([{Package:3},{Package:261},{Package:262}]),packages:table(packages)};
+ assert.deepEqual(creationPackageOptions(rules,3).map(p=>p.id),[260,261]);
+ // Use the requested class row, rather than any hardcoded class/package ID.
+ rules.classes.orderedRows[3]={Package:3};assert.equal(creationDefaultPackage(rules,3),260);
+ rules.classes.orderedRows[3].Package=261;assert.equal(creationDefaultPackage(rules,3),261);
+ rules.classes.orderedRows[3].Package=262;assert.equal(creationDefaultPackage(rules,3),260);
+ assert.equal(creationDefaultPackage(rules,17),-1);assert.deepEqual(creationPackageOptions(rules,17),[]);
+});
+
+test('recommendations with no eligible package stop before reading a hidden package or changing character choices',async()=>{
+ let reads=0;const rules={classes:table([{Package:0}]),packages:table([{ClassID:0,PlayerClass:0,SpellPref2DA:'missing_hidden_table'}]),loadCreationTable:async()=>{reads++;throw Error('Hidden preference must not be read');}},draft={classId:0,packageId:0,abilities:{Wis:18},skills:{2:4}};
+ await assert.rejects(recommendCreation(draft,rules),/No selectable starting package/);assert.equal(reads,0);assert.deepEqual(draft.abilities,{Wis:18});assert.deepEqual(draft.skills,{2:4});
+});
+test('network creation accepts the active server model inventory without local archive internals',()=>{
+ const rules={racialtypes:table([{Appearance:0}]),appearance:table([{RACE:'h'}]),gender:table([{GENDER:'m'}]),creationModels:['pmh0_head001','pmh0_head042','pfh0_head099','pmh0_head000','pmh0_head256','pmh0_head042'],creationResolver:{getResource(){}}};assert.deepEqual(creationHeadModels({raceId:0,gender:0,phenotype:0},rules),[1,42]);rules.creationModels=['pmh0_head007'];assert.deepEqual(creationHeadModels({raceId:0,gender:0,phenotype:0},rules),[7]);
+});
 
 test('creation alignment matches 2304 original CNWClass executions', {skip:!fs.existsSync(oraclePath)},()=>{
   const observed=JSON.parse(fs.readFileSync(oraclePath));assert.equal(observed.alignment.length,2304);

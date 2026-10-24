@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {commitLocalMatrix} from './managed_local_matrix.js';
 import {getVisualLocalNodePose,setVisualLocalNodePose,getVisualNodePose,setVisualNodePose} from './visual_node_pose.js';
 import {updateVisualNoOrientation} from './visual_orientation.js';
 const f=Math.fround,BASIS=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2),INVERSE=BASIS.clone().invert();
@@ -17,12 +18,14 @@ function localState(node){
  return{position10:[node.position.x,-node.position.z,node.position.y].map(f),quaternion1c:[q.w,q.x,q.y,q.z].map(f),dirty60:0};
 }
 export function visualMainModel(render){
- const root=render.userData.mdlRoot?render:render.children.find(node=>node.userData.mdlRoot);
+ let root=render.userData.mdlRoot?render:render.children.find(node=>node.userData.mdlRoot);
+ if(!root)render.traverse(node=>{if(!root&&node.userData.mdlRoot)root=node;});
  if(!root)return null;return{root,animator:null};
 }
 function writeLocal(model,node,state){
  node.position.set(state.position10[0],state.position10[2],-state.position10[1]);
  const [w,x,y,z]=state.quaternion1c;node.quaternion.copy(BASIS).multiply(new THREE.Quaternion(x,y,z,w)).multiply(INVERSE);
+ commitLocalMatrix(node);
  const binding=model.animator?.bindings.get(node.userData.mdlNode.toLowerCase());
  if(binding){binding.position.copy(node.position);binding.quaternion.copy(node.quaternion);}
  node.userData.mdlControlGate60=state.dirty60;
@@ -77,6 +80,9 @@ export function visualLocalPoseServices({sceneRoot}={}){
    anchor.add(model.root);model.root.position.set(0,0,0);model.root.quaternion.identity();model.root.updateWorldMatrix(true,true);return anchor;
   },
   forgetAttachment:model=>attachments.delete(model),
+  // Read-only ownership view for native presentation transfer. Return a new
+  // record so a consumer cannot change the attachment manager's flags/owner.
+  attachmentFor:model=>{const entry=attachments.get(model);return entry?{anchor:entry.anchor,flags:entry.flags}:null;},
   updateAttachments:()=>{if(!sceneRoot)return;assertScene();for(const [model,entry]of attachments){if(model.root.parent!==sceneRoot){attachments.delete(model);continue;}sync(entry);}}
  };
 }

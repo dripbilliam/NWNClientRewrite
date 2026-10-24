@@ -29,6 +29,10 @@ export function parseObjectSurfaceMesh(input, kind, providers = {}) {
     const trimmed = lines[line].trimStart(), tokens = trimmed.trimEnd().split(/\s+/), command = tokens[0];
     if (trimmed.length > 254) throw new Error('Native object mesh long-line parsing is not implemented');
     if (command === 'node') {
+      // Collision-only readers do not consume use/action-point dummy nodes.
+      // Custom resources may carry additional dummy indices beyond the six
+      // action slots; they must not prevent reading the independent polygons.
+      if(providers.actionPoints===false&&tokens[1]==='dummy'){active=null;activePoint=null;placeablePoint=null;continue;}
       if(kind==='placeable'){
         active=null;
         if(trimmed.startsWith('node trimesh ')){active=0;placeablePoint=null;}

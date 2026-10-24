@@ -1,0 +1,3399 @@
+{
+  "target": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original six-model weather placement1407e7f05..81f2, normalize/cross/Yaw/\nYawPitchRoll bodies. Camera/player/model virtual objects are synthetic; CRT\nsqrt/atan2/sin/cos use explicit correctly rounded Python-math float32 stubs.\nDoes not establish native CRT, camera getter semantics or precipitation pixels.\n",
+  "rows": [
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000000000000204100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "00000000000020c100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000020410000204100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000020410000000000002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "00002041000020c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000000000000204100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "00000000000020c100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000020410000204100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000020410000000000002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "00002041000020c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000000000000204100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "00000000000020c100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000020410000204100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000020410000000000002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "00002041000020c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000000000000204100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "00000000000020c100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000020410000204100002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "000020410000000000002041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "00002041000020c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.800000011920929,
+        0.10000000149011612,
+        0.30000001192092896,
+        0.4000000059604645
+      ],
+      "poses": [
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "f204b5bf55641e4100002041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "f204b53f55641ec100002041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "b7c30741f304354100002041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "55641e41f204b53f00002041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "f3043541b7c307c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.08682408928871155,
+        0.007596123497933149,
+        -0.08682408928871155,
+        -0.9924038648605347
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "ba911dc10945debf00002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "ba911d410945de3f00002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "5b5a39c119c9014100002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "0945debfba911d4100002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "19c901415b5a394100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.08312191069126129,
+        0.026208236813545227,
+        -0.2995615303516388,
+        -0.9500877857208252
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "ba911dc10945debf00002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "ba911d410945de3f00002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "5b5a39c119c9014100002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "0945debfba911d4100002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "19c901415b5a394100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.07547909021377563,
+        0.04357787221670151,
+        -0.49809736013412476,
+        -0.8627299070358276
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "ba911dc10945debf00002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "ba911d410945de3f00002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "5b5a39c119c9014100002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "0945debfba911d4100002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "19c901415b5a394100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.06162841618061066,
+        0.06162841618061066,
+        -0.704416036605835,
+        -0.704416036605835
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "ba911dc10945debf00002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "ba911d410945de3f00002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "5b5a39c119c9014100002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "0945debfba911d4100002041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "19c901415b5a394100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.9203639030456543,
+        0.08052140474319458,
+        -0.033353060483932495,
+        -0.38122719526290894
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2c03046e24000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "00000000304662c100002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2c03046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "304662c10000000000002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.8811195492744446,
+        0.27781593799591064,
+        -0.11507512629032135,
+        -0.36497166752815247
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2c03046e24000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "00000000304662c100002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2c03046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "304662c10000000000002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.8001031279563904,
+        0.4619397521018982,
+        -0.19134171307086945,
+        -0.3314135670661926
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2c03046e24000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "00000000304662c100002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3046e2c03046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "304662c10000000000002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.6532815098762512,
+        0.6532815098762512,
+        -0.27059805393218994,
+        -0.27059805393218994
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3146e2403146e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3146e2c03146e24000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "00000000314662c100002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "3146e2c03146e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "314662c10000000000002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.9961947202682495,
+        0.08715574443340302,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000020410000000000002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000020c10000000000002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "00002041000020c100002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "00000000000020c100002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000020c1000020c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.9537169337272644,
+        0.30070579051971436,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000020410000000000002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000020c10000000000002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "00002041000020c100002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "00000000000020c100002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000020c1000020c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.8660253882408142,
+        0.5,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "ffff1f410000000000002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "ffff1fc10000000000002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "ffff1f41ffff1fc100002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "00000000ffff1fc100002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "ffff1fc1ffff1fc100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.7071067690849304,
+        0.7071067690849304,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "ffff1f410000000000002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "ffff1fc10000000000002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "ffff1f41ffff1fc100002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "00000000ffff1fc100002041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "ffff1fc1ffff1fc100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.9203639030456543,
+        0.08052140474319458,
+        0.033353060483932495,
+        0.38122719526290894
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2403046e24000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2c03046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "304662410000000000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "00000000304662c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.8811195492744446,
+        0.27781593799591064,
+        0.11507512629032135,
+        0.36497166752815247
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2403046e24000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2c03046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "304662410000000000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "00000000304662c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.8001031279563904,
+        0.4619397521018982,
+        0.19134171307086945,
+        0.3314135670661926
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2403046e24000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2c03046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "304662410000000000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "00000000304662c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.6532815098762512,
+        0.6532815098762512,
+        0.27059805393218994,
+        0.27059805393218994
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3146e2403146e24000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3146e2c03146e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "314662410000000000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3146e2403146e2c000002041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "00000000314662c100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.38122719526290894,
+        0.033353060483932495,
+        0.08052140474319458,
+        0.9203639030456543
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2c03046e24000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "000000003046624100002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2403046e24000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "304662410000000000002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.36497166752815247,
+        0.11507512629032135,
+        0.27781593799591064,
+        0.8811195492744446
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2c03046e24000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "000000003046624100002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2403046e24000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "304662410000000000002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.3314135670661926,
+        0.19134171307086945,
+        0.4619397521018982,
+        0.8001031279563904
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2c03046e24000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2403046e2c000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "000000003046624100002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3046e2403046e24000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "304662410000000000002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        0.27059805393218994,
+        0.27059805393218994,
+        0.6532815098762512,
+        0.6532815098762512
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3146e2c03146e24000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3146e2403146e2c000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "000000003146624100002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3146e2403146e24000002041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "314662410000000000002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        6.099932915942466e-17,
+        5.336750109329808e-18,
+        0.08715574443340302,
+        0.9961947202682495
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "000020c17d7db02600002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "000020417d7db0a600002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "000020c10000204100002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "7d7db0260000204100002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "000020410000204100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        5.839832258897821e-17,
+        1.8412919667060963e-17,
+        0.30070579051971436,
+        0.9537169337272644
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "000020c17e7db02600002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "000020417e7db0a600002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "000020c10000204100002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "7e7db0260000204100002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "000020410000204100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        5.302876236065149e-17,
+        3.0616171314629196e-17,
+        0.5,
+        0.8660253882408142
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "ffff1fc17e7db02600002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "ffff1f417e7db0a600002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "ffff1fc1ffff1f4100002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "7e7db026ffff1f4100002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "ffff1f41ffff1f4100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "quaternion": [
+        4.329780301713277e-17,
+        4.329780301713277e-17,
+        0.7071067690849304,
+        0.7071067690849304
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "ffff1fc17d7db02600002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "000000000000000000007041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "ffff1f417d7db0a600002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "ffff1fc1ffff1f4100002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "7d7db026ffff1f4100002041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "ffff1f41ffff1f4100002041"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f851d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f851d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f851d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "1f8573411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "90c2c9411f851d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.800000011920929,
+        0.10000000149011612,
+        0.30000001192092896,
+        0.4000000059604645
+      ],
+      "poses": [
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "81e45c41341e6d42c3f52441"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "df1285410aec1d42c3f52441"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "6ba4bd415cc67242c3f52441"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "baf4c841472d4b42c3f52441"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "0a45d44132942342c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.08682408928871155,
+        0.007596123497933149,
+        -0.08682408928871155,
+        -0.9924038648605347
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "cae6ab40f7923e42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "6c8bc84148774c42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "10ab684066f76542c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "7ebc57418ee96c42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "1ba7ba41b6db7342c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.08312191069126129,
+        0.026208236813545227,
+        -0.2995615303516388,
+        -0.9500877857208252
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "cae6ab40f7923e42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "6c8bc84148774c42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "10ab684066f76542c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "7ebc57418ee96c42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "1ba7ba41b6db7342c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.07547909021377563,
+        0.04357787221670151,
+        -0.49809736013412476,
+        -0.8627299070358276
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "cae6ab40f7923e42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "6c8bc84148774c42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "10ab684066f76542c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "7ebc57418ee96c42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "1ba7ba41b6db7342c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.06162841618061066,
+        0.06162841618061066,
+        -0.704416036605835,
+        -0.704416036605835
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "cae6ab40f7923e42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "6c8bc84148774c42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "10ab684066f76542c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "7ebc57418ee96c42c3f52441"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "1ba7ba41b6db7342c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.9203639030456543,
+        0.08052140474319458,
+        -0.033353060483932495,
+        -0.38122719526290894
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "08620241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "2085734193f30c42c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "08620241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "80f7893f1f854542c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.8811195492744446,
+        0.27781593799591064,
+        -0.11507512629032135,
+        -0.36497166752815247
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "08620241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "2085734193f30c42c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "08620241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "80f7893f1f854542c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.8001031279563904,
+        0.4619397521018982,
+        -0.19134171307086945,
+        -0.3314135670661926
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "08620241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "2085734193f30c42c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "08620241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "80f7893f1f854542c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.6532815098762512,
+        0.6532815098762512,
+        -0.27059805393218994,
+        -0.27059805393218994
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "07620241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "2085734193f30c42c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "08620241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "74f7893f1f854542c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.9961947202682495,
+        0.08715574443340302,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "90c2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "400aa7401f854542c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "90c2c9411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "208573411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "400aa7401f851d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.9537169337272644,
+        0.30070579051971436,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "90c2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "400aa7401f854542c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "90c2c9411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "208573411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "400aa7401f851d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.8660253882408142,
+        0.5,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "8fc2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "400aa7401f854542c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "8fc2c9411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "1f8573411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "400aa7401f851d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.7071067690849304,
+        0.7071067690849304,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "8fc2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "400aa7401f854542c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "8fc2c9411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "1f8573411f851d42c3f52441"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "400aa7401f851d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.9203639030456543,
+        0.08052140474319458,
+        0.033353060483932495,
+        0.38122719526290894
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "1c54b241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "08620241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "a8e5ea411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "2085734193f30c42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.8811195492744446,
+        0.27781593799591064,
+        0.11507512629032135,
+        0.36497166752815247
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "1c54b241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "08620241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "a8e5ea411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "2085734193f30c42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.8001031279563904,
+        0.4619397521018982,
+        0.19134171307086945,
+        0.3314135670661926
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "1c54b241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "08620241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "a8e5ea411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "2085734193f30c42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.6532815098762512,
+        0.6532815098762512,
+        0.27059805393218994,
+        0.27059805393218994
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "1c54b241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "208573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "07620241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "a8e5ea411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "2085734193f30c42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.38122719526290894,
+        0.033353060483932495,
+        0.08052140474319458,
+        0.9203639030456543
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "07620241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1f857341ab167e42c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1c54b241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "a8e5ea411f854542c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.36497166752815247,
+        0.11507512629032135,
+        0.27781593799591064,
+        0.8811195492744446
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "07620241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1f857341ab167e42c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1c54b241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "a8e5ea411f854542c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.3314135670661926,
+        0.19134171307086945,
+        0.4619397521018982,
+        0.8001031279563904
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "07620241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1f857341ab167e42c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1c54b241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "a8e5ea411f854542c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        0.27059805393218994,
+        0.27059805393218994,
+        0.6532815098762512,
+        0.6532815098762512
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "06620241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1e8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1c54b241593c2942c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1e857341ab167e42c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "1b54b241e5cd6142c3f52441"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "a8e5ea411f854542c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        6.099932915942466e-17,
+        5.336750109329808e-18,
+        0.08715574443340302,
+        0.9961947202682495
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "3e0aa7401f854542c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "90c2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "3e0aa7401f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "1f8573411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "90c2c9411f856d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        5.839832258897821e-17,
+        1.8412919667060963e-17,
+        0.30070579051971436,
+        0.9537169337272644
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "3e0aa7401f854542c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "90c2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "3e0aa7401f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "1f8573411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "90c2c9411f856d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        5.302876236065149e-17,
+        3.0616171314629196e-17,
+        0.5,
+        0.8660253882408142
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "400aa7401f854542c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "8fc2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "400aa7401f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "1f8573411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "8fc2c9411f856d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        15.220000267028809,
+        49.380001068115234,
+        0.3100000023841858
+      ],
+      "quaternion": [
+        4.329780301713277e-17,
+        4.329780301713277e-17,
+        0.7071067690849304,
+        0.7071067690849304
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "400aa7401f854542c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "1f8573411f854542c3f57441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "8fc2c9411f854542c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "400aa7401f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "1f8573411f856d42c3f52441"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "8fc2c9411f856d42c3f52441"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c200000f4200009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c200007c4100009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c200000f4200009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c200007c4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c200000f4200009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c200007c4100009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c200000f4200009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c200007c4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c200000f4200009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c200007c4100009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c200000f4200009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c200007c4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "poses": [
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c200000f4200009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080c8c200007c4100009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c200000f4200009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "f304353f0000008000000080f30435bf",
+          "positionBits": "0080b4c200007c4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.800000011920929,
+        0.10000000149011612,
+        0.30000001192092896,
+        0.4000000059604645
+      ],
+      "poses": [
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "1454cbc215990e4200009041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "ecabc5c2aa9b7d4100009041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "8987b7c23d41144200009041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "75b3b4c24f50d94100009041"
+        },
+        {
+          "quaternionBits": "6e65413f00000080000000804dbb27bf",
+          "positionBits": "61dfb1c2241e8a4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.08682408928871155,
+        0.007596123497933149,
+        -0.08682408928871155,
+        -0.9924038648605347
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "3732dcc2af1bc04100009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "c8cdb4c250e4db4100009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "4babdfc24672074200009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "14f9cbc26e640e4200009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "dc46b8c29656154200009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.08312191069126129,
+        0.026208236813545227,
+        -0.2995615303516388,
+        -0.9500877857208252
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "3732dcc2af1bc04100009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "c8cdb4c250e4db4100009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "4babdfc24672074200009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "14f9cbc26e640e4200009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b57eb23d",
+          "positionBits": "dc46b8c29656154200009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.07547909021377563,
+        0.04357787221670151,
+        -0.49809736013412476,
+        -0.8627299070358276
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "3732dcc2af1bc04100009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "c8cdb4c250e4db4100009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "4babdfc24672074200009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "14f9cbc26e640e4200009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "dc46b8c29656154200009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.06162841618061066,
+        0.06162841618061066,
+        -0.704416036605835,
+        -0.704416036605835
+      ],
+      "poses": [
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "3732dcc2af1bc04100009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "c8cdb4c250e4db4100009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "4babdfc24672074200009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "14f9cbc26e640e4200009041"
+        },
+        {
+          "quaternionBits": "9e067f3f0000000000000000b47eb23d",
+          "positionBits": "dc46b8c29656154200009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.9203639030456543,
+        0.08052140474319458,
+        -0.033353060483932495,
+        -0.38122719526290894
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "63a4d6c2c648034200009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "0080c8c2d0b9394100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "63a4d6c2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "c6c8e4c20000ce4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.8811195492744446,
+        0.27781593799591064,
+        -0.11507512629032135,
+        -0.36497166752815247
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "63a4d6c2c648034200009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "0080c8c2d0b9394100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "63a4d6c2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "c6c8e4c20000ce4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.8001031279563904,
+        0.4619397521018982,
+        -0.19134171307086945,
+        -0.3314135670661926
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "63a4d6c2c648034200009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "0080c8c2d0b9394100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "63a4d6c2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "c6c8e4c20000ce4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.6532815098762512,
+        0.6532815098762512,
+        -0.27059805393218994,
+        -0.27059805393218994
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "63a4d6c2c648034200009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "0080c8c2d0b9394100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "63a4d6c2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000000000000005e836c3f",
+          "positionBits": "c6c8e4c20000ce4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.9961947202682495,
+        0.08715574443340302,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080dcc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080b4c200007c4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080c8c200007c4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080dcc200007c4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.9537169337272644,
+        0.30070579051971436,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080dcc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080b4c200007c4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080c8c200007c4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080dcc200007c4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.8660253882408142,
+        0.5,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080dcc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080b4c201007c4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080c8c201007c4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080dcc201007c4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.7071067690849304,
+        0.7071067690849304,
+        0.0,
+        0.0
+      ],
+      "poses": [
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080dcc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080b4c201007c4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080c8c201007c4100009041"
+        },
+        {
+          "quaternionBits": "2ebd3bb30000008000000080000080bf",
+          "positionBits": "0080dcc201007c4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.9203639030456543,
+        0.08052140474319458,
+        0.033353060483932495,
+        0.38122719526290894
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "9d5bbac2c648034200009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "63a4d6c2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3a37acc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "0080c8c2d0b9394100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.8811195492744446,
+        0.27781593799591064,
+        0.11507512629032135,
+        0.36497166752815247
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "9d5bbac2c648034200009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "63a4d6c2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3a37acc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "0080c8c2d0b9394100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.8001031279563904,
+        0.4619397521018982,
+        0.19134171307086945,
+        0.3314135670661926
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "9d5bbac2c648034200009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "63a4d6c2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3a37acc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "0080c8c2d0b9394100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.6532815098762512,
+        0.6532815098762512,
+        0.27059805393218994,
+        0.27059805393218994
+      ],
+      "poses": [
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "9d5bbac2c648034200009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "63a4d6c2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "3a37acc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "15efc33e00000080000000805e836cbf",
+          "positionBits": "0080c8c2d0b9394100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.38122719526290894,
+        0.033353060483932495,
+        0.08052140474319458,
+        0.9203639030456543
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "63a4d6c2c648034200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "0080c8c28c911f4200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "9d5bbac2c648034200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3a37acc20000ce4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.36497166752815247,
+        0.11507512629032135,
+        0.27781593799591064,
+        0.8811195492744446
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "63a4d6c2c648034200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "0080c8c28c911f4200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "9d5bbac2c648034200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3a37acc20000ce4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.3314135670661926,
+        0.19134171307086945,
+        0.4619397521018982,
+        0.8001031279563904
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "63a4d6c2c648034200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "0080c8c28c911f4200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "9d5bbac2c648034200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3a37acc20000ce4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        0.27059805393218994,
+        0.27059805393218994,
+        0.6532815098762512,
+        0.6532815098762512
+      ],
+      "poses": [
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "63a4d6c2c648034200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "9d5bbac2746e954100009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "0080c8c28c911f4200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "9d5bbac2c648034200009041"
+        },
+        {
+          "quaternionBits": "5e836c3f000000800000008016efc3be",
+          "positionBits": "3a37acc20000ce4100009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        6.099932915942466e-17,
+        5.336750109329808e-18,
+        0.08715574443340302,
+        0.9961947202682495
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "0080dcc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "0080dcc200000f4200009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "0080c8c200000f4200009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008030318da4",
+          "positionBits": "0080b4c200000f4200009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        5.839832258897821e-17,
+        1.8412919667060963e-17,
+        0.30070579051971436,
+        0.9537169337272644
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080dcc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080dcc200000f4200009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080c8c200000f4200009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080b4c200000f4200009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        5.302876236065149e-17,
+        3.0616171314629196e-17,
+        0.5,
+        0.8660253882408142
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "0080dcc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "0080dcc200000f4200009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "0080c8c200000f4200009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008032318da4",
+          "positionBits": "0080b4c200000f4200009041"
+        }
+      ]
+    },
+    {
+      "position": [
+        -100.25,
+        25.75,
+        8.0
+      ],
+      "quaternion": [
+        4.329780301713277e-17,
+        4.329780301713277e-17,
+        0.7071067690849304,
+        0.7071067690849304
+      ],
+      "poses": [
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080dcc20000ce4100009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080c8c20000ce410000b841"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080b4c20000ce4100009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080dcc200000f4200009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080c8c200000f4200009041"
+        },
+        {
+          "quaternionBits": "0000803f000000800000008031318da4",
+          "positionBits": "0080b4c200000f4200009041"
+        }
+      ]
+    }
+  ]
+}

@@ -20,6 +20,10 @@ export function crossParticleVector(l,r){
   return[f(f(f(l[1])*f(r[2]))-f(f(l[2])*f(r[1]))),f(f(f(l[2])*f(r[0]))-f(f(l[0])*f(r[2]))),f(f(f(l[0])*f(r[1]))-f(f(l[1])*f(r[0])))];
 }
 // The directions are the quaternion's rotated native Z/Y axes, respectively.
+export function particleQuaternionX(quaternion){
+  const w=f(quaternion[0]),x=f(quaternion[1]),y=f(quaternion[2]),z=f(quaternion[3]),twice=v=>f(v+v);
+  return[f(1-twice(f(f(z*z)+f(y*y)))),twice(f(f(x*y)+f(w*z))),twice(f(f(x*z)-f(w*y)))];
+}
 export function particleQuaternionZ(quaternion){
   const [w,x,y,z]=quaternion.map(f),a=f(f(w*y)+f(x*z)),b=f(f(y*z)-f(w*x)),c=f(f(y*y)+f(x*x));
   return[f(a+a),f(b+b),f(1-f(c+c))];

@@ -3,49 +3,15 @@ import {decodeGffText} from './gff_text.js';
 import {nativeGffLabel} from './native_gff_fields.js';
 import {objectTemplateResRef} from './create_object.js';
 import {canCarryUUID} from './object_uuid.js';
-import {restartVisualCurve,zeroVisualTransforms} from './object_visual_transform.js';
+import {zeroVisualTransforms} from './object_visual_transform.js';
+import {visualCurveProgress} from './visual_curve.js';
+export {visualCurveProgress} from './visual_curve.js';
 
 const integer=(v,n)=>{if(!Number.isInteger(v))throw new Error(`Native visual save ${n} is unavailable`);return v|0;};
 const view=(bytes,length)=>{if(!(bytes instanceof Uint8Array)||bytes.length!==length)throw new Error('Native visual save record storage is unavailable');return new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);};
 const fixed=(bytes,offset,length)=>{const chars=bytes.subarray(offset,offset+length),end=chars.indexOf(0);return decodeGffText(chars.subarray(0,end<0?chars.length:end));};
 const put=(root,name,type,value)=>{root.fields[nativeGffLabel(name)]=f(type,value);};
 const pool=(o,offset)=>{const values=o.nativeVisualPools?.[offset]?.records;if(!Array.isArray(values))throw new Error('Native visual save pool is unavailable');return values;};
-
-// CVTSI2SS rounds directly from signed64. Avoid a double-round through Number
-// for integer values just above a FLOAT halfway point.
-const signedFloat=value=>{
- value=BigInt.asIntN(64,value);const sign=value<0n?-1:1,n=value<0n?-value:value,bits=n.toString(2).length;
- if(bits<=24)return Math.fround(sign*Number(n));const shift=BigInt(bits-24),top=n>>shift,tail=n-(top<<shift),half=1n<<(shift-1n);
- return Math.fround(sign*Number(top+BigInt(tail>half||tail===half&&(top&1n)!==0n))*2**Number(shift));
-};
-const unsignedDifferenceFloat=value=>{value=BigInt.asUintN(64,value);const signed=BigInt.asIntN(64,value),converted=signedFloat(signed);return signed<0n?Math.fround(converted+2**64):converted;};
-
-// Complete LerpFloat::Progress1402e9cd0..2e9eee. Completion can decrement
-// repeats, swap endpoints and refresh clocks on the SAME owned curve.
-export async function visualCurveProgress(bytes,p){
- const v=view(bytes,64),f=Math.fround;if(v.getInt32(12,true)===0)return f(1);
- if(v.getFloat32(20,true)<1){
-  const timer=v.getInt32(0,true);let fraction;
-  if(timer===0){
-   const now=BigInt.asUintN(64,BigInt(await p.clock())),end=v.getBigUint64(48,true);
-   if(now<end){const total=unsignedDifferenceFloat(end-v.getBigUint64(32,true));if(total>0)fraction=f(unsignedDifferenceFloat(end-now)/total);}
-  }else if(timer===1){
-   const world=await p.worldTimer();if(world===null)return f(1);
-   const sampled=await p.worldTime(world),now={day:integer(sampled.day,'world day')>>>0,time:integer(sampled.time,'world time')>>>0},end={day:v.getUint32(56,true),time:v.getUint32(60,true)};
-   if(now.day<end.day||now.day===end.day&&now.time<end.time){
-    const remaining=await p.subtractWorld(world,end,now),total=await p.subtractWorld(world,end,{day:v.getUint32(40,true),time:v.getUint32(44,true)});
-    // Both native output pairs are zero-initialized; subtraction status is
-    // ignored. A failed lower call that writes nothing retains those zeroes.
-    const ticks=integer(total.time??((total.status|0)!==0?0:undefined),'world denominator')>>>0;
-    if(ticks!==0)fraction=f(f(integer(remaining.time??((remaining.status|0)!==0?0:undefined),'world numerator')>>>0)/f(ticks));
-   }
-  }
-  if(fraction!==undefined){const result=f(1-fraction);if(result!==1)return result;}
- }
- const repeats=v.getInt32(28,true);if(repeats!==-1){if(repeats<1)return f(1);v.setInt32(28,repeats-1,true);}
- if(v.getUint8(24)&1){const from=v.getUint32(8,true),to=v.getUint32(4,true);v.setUint32(8,to,true);v.setUint32(4,from,true);}
- await restartVisualCurve(bytes,p);return f(1);
-}
 
 // Complete LerpFloat::WriteGFF1402ea250..2ea35a. Endpoint fields are written
 // BEFORE Progress, but repeat counters/duration/flags are read AFTER it.

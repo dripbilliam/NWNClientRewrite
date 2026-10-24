@@ -13,6 +13,20 @@ export function walkToWaypointRequest({areaId,position,sequence,run,clientPath=f
  return Uint8Array.from(writer.getWriteMessage().data);
 }
 
+// Original keyboard drive7bf980 ->6/29 ->452ec0. Position is native XY,
+// heading is tenths of a degree (12 bits), flags are the native drive mask.
+export function driveControlRequest({areaId,position,heading,sequence,flags}){
+ if(!uint(areaId)||!Array.isArray(position)||position.length!==2||!position.every(v=>Number.isFinite(v)&&Number.isFinite(Math.fround(v)))||!Number.isInteger(heading)||heading<0||heading>3599||!Number.isInteger(sequence)||sequence<0||sequence>255||!Number.isInteger(flags)||flags<1||flags>63)throw new Error('Invalid native drive request');
+ const w=new NativeMessageWriter(1);w.create(11,0xffffffff,1);for(const v of position)w.writeFloat(v,1,32);w.writeObjectIdClient(areaId);w.writeWord(heading,12);w.writeByte(sequence);w.writeByte(flags);w.setPrefix(Uint8Array.of(112,6,29));return Uint8Array.from(w.getWriteMessage().data);
+}
+// Abort7bf040 has no body;452ba0 stops only the head drive action, not a
+// subsequently queued spell, attack or waypoint. Turn-only7c03b0 ->6/28.
+export const abortDriveRequest=()=>Uint8Array.of(112,6,33);
+export function driveOrientationRequest({orientation}){
+ if(!Array.isArray(orientation)||orientation.length!==2||!orientation.every(Number.isFinite)||Math.abs(Math.hypot(...orientation)-1)>.001)throw new Error('Invalid native drive orientation');
+ const w=new NativeMessageWriter(1);w.create(8,0xffffffff,1);for(const v of orientation)w.writeFloat(v,1,32);w.setPrefix(Uint8Array.of(112,6,28));return Uint8Array.from(w.getWriteMessage().data);
+}
+
 function targetRequest(targetId,minor,size,fields=()=>{}){
  if(!uint(targetId))throw new Error('Invalid native interaction target');
  const writer=new NativeMessageWriter(1);writer.create(size,0xffffffff,1);writer.writeObjectIdClient(targetId);fields(writer);writer.setPrefix(Uint8Array.of(112,6,minor));return Uint8Array.from(writer.getWriteMessage().data);
@@ -25,6 +39,12 @@ export function doorActionRequest({targetId,action}){
 }
 export const talkToRequest=({targetId})=>targetRequest(targetId,8,4);
 export const attackRequest=({targetId})=>targetRequest(targetId,2,4);
+// Click on a native CTL_ACTIONQUEUE widget:874a00 ->7bf390. The server
+// dispatcher4531b0 subtype20 calls CancelAction; it owns removal/results.
+export function cancelActionRequest({actionId,groupId}){
+ if(![actionId,groupId].every(v=>Number.isInteger(v)&&v>=0&&v<=65535))throw new Error('Invalid native action cancellation');
+ const w=new NativeMessageWriter(1);w.create(4,0xffffffff,1);w.writeWord(actionId);w.writeWord(groupId);w.setPrefix(Uint8Array.of(112,6,20));return Uint8Array.from(w.getWriteMessage().data);
+}
 // Client7bfa80 -> server4531b0 subtype5. Lore/identification and all
 // description/stat disclosure remain server-authoritative.
 export const examineRequest=({targetId})=>targetRequest(targetId,5,4);

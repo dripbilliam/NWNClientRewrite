@@ -22,3 +22,9 @@ test('slow voice decoding cannot resurrect an older cue or an already destroyed 
  await audio.play({...e,resRef:'fast'});slowResolve(new ArrayBuffer(1));await old;assert.equal(audio.state.played,1);assert.equal(audio.state.last.resRef,'fast');
  const pending=audio.play({...e,resRef:'dead'});objects.delete(99);deadResolve(new ArrayBuffer(1));await pending;assert.equal(audio.state.played,1);audio.update();assert.equal(audio.active.size,0);audio.dispose();
 });
+
+test('a GUI cue queued before character admission stays centered after the player ID changes',async()=>{
+ let player={id:0x7f000000};const ctx=context(),audio=new GameAudio({getResource:async()=>new ArrayBuffer(1)},{getObject:()=>null,getPlayer:()=>player,createContext:()=>ctx});
+ await audio.play({objectId:player.id,resRef:'gui_journaladd',channel:'gui'});assert.equal(audio.pending.length,1);player={id:0xfffffffd,position:[8,9,0]};
+ await audio.unlock();assert.equal(audio.state.played,1);assert.equal(audio.active.size,1);assert.equal([...audio.active][0].panner,undefined);assert.doesNotThrow(()=>audio.update());audio.dispose();
+});

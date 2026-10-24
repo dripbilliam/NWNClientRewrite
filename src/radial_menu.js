@@ -1,10 +1,16 @@
 import { radialHit } from './radial_actions.js';
+import {isTextEntry} from './game_input.js';
 
-// Shared modal presentation. Object/action policy lives in radial_actions.js.
+// Shared floating presentation. Object/action policy lives in radial_actions.js.
 export class RadialMenu {
   constructor(viewport,{ onAction,onVisibility = () => {},loadIcon = async () => null }) {
     Object.assign(this,{ viewport,onAction,onVisibility,loadIcon });
     this.host = document.createElement('div'); this.host.className = 'radial-overlay'; this.host.hidden = true;
+    // Native menus float above inventory, chat and every other game panel.
+    // A manual popover uses the browser top layer, independent of ancestors'
+    // stacking contexts; the z-index rule remains the fallback.
+    this.host.setAttribute('popover','manual');
+    if(!this.host.showPopover)this.host.removeAttribute('popover');
     this.host.innerHTML = '<div class="radial-menu" role="menu"><button class="radial-center" type="button"></button><div class="radial-title"></div><div class="radial-slots"></div><div class="radial-help"></div></div>';
     viewport.append(this.host);
     this.stage = this.host.querySelector('.radial-menu');
@@ -15,6 +21,8 @@ export class RadialMenu {
     this.host.addEventListener('contextmenu',event => event.preventDefault());
     this.centerButton.addEventListener('click',() => this.back());
     this.host.addEventListener('click',event => { if (event.target === this.host) this.close(); });
+    window.addEventListener('pointerdown',event=>{if(this.active&&event.button===0&&!this.stage.contains(event.target))this.close();},true);
+    for(const type of ['pointerdown','pointerup','click','dblclick','wheel'])this.stage.addEventListener(type,event=>event.stopPropagation());
     window.addEventListener('pointermove',event => {
       if (!this.active) return;
       this.pointer(event.clientX,event.clientY); event.stopPropagation();
@@ -37,7 +45,8 @@ export class RadialMenu {
     },true);
     window.addEventListener('keydown',event => {
       if (!this.active) return;
-      event.preventDefault(); event.stopPropagation();
+      if(isTextEntry(event.target)||event.key==='Shift'||/^Key[WASDQE]$/.test(event.code))return;
+      event.preventDefault(); event.stopImmediatePropagation();
       if (event.key === 'Escape') { this.close(); return; }
       if (event.key === 'Backspace' || event.key === '0') { this.back(); return; }
       const keys = {Numpad8:0,Numpad9:1,Numpad6:2,Numpad3:3,Numpad2:4,Numpad1:5,Numpad4:6,Numpad7:7};
@@ -72,12 +81,18 @@ export class RadialMenu {
     this.stage.style.left = `${left}px`; this.stage.style.top = `${top}px`;
     this.stage.style.setProperty('--radial-scale',this.scale);
     this.host.hidden = false; this.hit = {zone:'center',octant:0}; this.selected = null;
+    if(this.host.showPopover){
+      Object.assign(this.host.style,{left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`});
+      this.host.showPopover();
+    }
     this.render(); this.onVisibility(true);
   }
   close() {
     this.host.style.pointerEvents='';
+    this.host.classList.remove('radial-dragging');
     clearTimeout(this.hoverTimer); this.hoverTimer = null;
     if (!this.active) return;
+    this.host.hidePopover?.();
     this.host.hidden = true; this.slots.replaceChildren(); this.stack = [];
     this.onVisibility(false);
   }
@@ -140,7 +155,7 @@ export class RadialMenu {
       if(entry.uses!==null&&entry.uses!==undefined){const count=document.createElement('span');count.className='radial-count';count.textContent=String(entry.uses);button.dataset.uses=String(entry.uses);button.append(count);}
       if(entry.quickbarBinding){
         button.draggable=true;button.dataset.quickbarBinding=JSON.stringify(entry.quickbarBinding);
-        button.addEventListener('dragstart',event=>{event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData(entry.networkQuickbarToken?'application/x-nwn-network-action':'application/x-nwn-quickbar',JSON.stringify({actorId:entry.binding.actorId,binding:entry.quickbarBinding,...(entry.networkQuickbarToken?{token:entry.networkQuickbarToken}:{})}));this.host.style.pointerEvents='none';});
+        button.addEventListener('dragstart',event=>{event.dataTransfer.effectAllowed='copy';event.dataTransfer.setData(entry.networkQuickbarToken?'application/x-nwn-network-action':'application/x-nwn-quickbar',JSON.stringify({actorId:entry.binding.actorId,binding:entry.quickbarBinding,...(entry.networkQuickbarToken?{token:entry.networkQuickbarToken}:{})}));this.host.style.pointerEvents='none';this.host.classList.add('radial-dragging');});
         button.addEventListener('dragend',()=>{this.host.style.pointerEvents='';this.close();});
       }
       this.slots.append(button);

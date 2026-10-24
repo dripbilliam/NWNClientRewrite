@@ -47,16 +47,6 @@
           </div>
           <div class="viewport-frame" id="viewport-frame">
             <canvas id="model-canvas" aria-label="Rendered NWN model"></canvas>
-            <div class="movement-hud" id="network-hud" hidden><span>Left click · move · Shift-click · walk · Middle drag · camera · Wheel · zoom</span><button type="button" class="tool-button" id="network-inventory-button">Inventory · I</button><label>Camera <select data-camera-mode aria-label="Multiplayer camera mode"><option value="1">Top-down</option><option value="0">Chase</option><option value="2">Stiff chase</option></select></label><span id="network-feedback" role="status">Waiting for the server…</span></div>
-            <div class="movement-hud" id="movement-hud" hidden>
-              <span>Left click · move/use · Shift-click · walk · Right click · radial menu · WASD · move · Esc · cancel · F · player camera</span>
-              <div class="toolbar-actions">
-                <button class="tool-button" id="door-action" type="button" disabled>Approach a door · E to interact</button>
-                <button class="tool-button" id="player-actions" type="button">Player actions</button>
-                <label>Camera <select data-camera-mode aria-label="Singleplayer camera mode"><option value="1">Top-down</option><option value="0">Chase</option><option value="2">Stiff chase</option></select></label>
-              </div>
-              <span id="door-feedback" role="status" aria-live="polite"></span>
-            </div>
             <div class="empty-state" id="empty-state">
               <div class="empty-glyph">△</div>
               <strong>Open an NWN model or area</strong>
@@ -73,6 +63,20 @@
         </section>
 
         <aside class="inspector" aria-label="Model details">
+          <section id="performance-debug" class="performance-debug" aria-label="Rendering performance"></section>
+          <section class="game-debug-controls" aria-label="Gameplay debug controls">
+            <span class="eyebrow">GAMEPLAY DEBUG</span>
+            <div class="movement-hud" id="network-hud" hidden><span>Left click · move · Shift · walk · W/S · forward/back · A/D · turn · Q/E · strafe · Right click · radial menu · Middle drag · camera · Wheel · zoom</span><button type="button" class="tool-button" id="network-inventory-button">Inventory · I</button><label>Camera <select data-camera-mode aria-label="Multiplayer camera mode"><option value="1">Top-down</option><option value="0">Chase</option><option value="2">Stiff chase</option></select></label><span id="network-feedback" role="status">Waiting for the server…</span></div>
+            <div class="movement-hud" id="movement-hud" hidden>
+              <span>Left click · move/use · Shift-click · walk · Right click · radial menu · WASD · move · Esc · cancel · F · player camera</span>
+              <div class="toolbar-actions">
+                <button class="tool-button" id="door-action" type="button" disabled>Approach a door · E to interact</button>
+                <button class="tool-button" id="player-actions" type="button">Player actions</button>
+                <label>Camera <select data-camera-mode aria-label="Singleplayer camera mode"><option value="1">Top-down</option><option value="0">Chase</option><option value="2">Stiff chase</option></select></label>
+              </div>
+              <span id="door-feedback" role="status" aria-live="polite"></span>
+            </div>
+          </section>
           <details class="runtime-diagnostics">
             <summary>Runtime diagnostics</summary>
             <pre id="diagnostic-status" style="white-space:pre-wrap;overflow-wrap:anywhere">Starting log…</pre>
@@ -153,11 +157,15 @@
         <label>Player name <input name="playerName" value="ReplacementTest" maxlength="64" required autocomplete="off" /></label>
         <label>CD key <input name="cdkey" type="password" required autocomplete="off" spellcheck="false" /></label>
         <label>Server password <input name="password" type="password" autocomplete="off" /></label>
-        <label>Character <input name="character" type="file" accept=".bic" required /></label>
+        <label>Saved character <select name="savedCharacter"><option value="">Choose a character file below</option></select></label>
+        <label>Character file <input name="character" type="file" accept=".bic" /></label>
+        <p id="multiplayer-character-status" role="status"></p>
         <p id="multiplayer-status" role="status">Select a character to join.</p>
         <div class="toolbar-actions">
           <button class="tool-button" id="multiplayer-install" type="button">Game installation…</button>
           <button class="tool-button" id="multiplayer-disconnect" type="button">Disconnect</button>
+          <button class="tool-button" id="multiplayer-export" type="button" disabled>Export Character</button>
+          <button class="tool-button" id="multiplayer-disconnect-unsaved" type="button" hidden>Disconnect without saving</button>
           <button class="tool-button" id="multiplayer-cancel" type="button">Close</button>
           <button class="tool-button primary" type="submit">Connect</button>
         </div>

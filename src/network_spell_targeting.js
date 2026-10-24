@@ -6,18 +6,27 @@ import {selectRadialFeat} from './feat_radial.js';
 import {featActivationInfo,featActivationSpell} from './use_feat.js';
 import {networkItemQuickbarProviders} from './network_quickbar_items.js';
 import {prepareItemTarget,itemCreatureTargetVeto,confirmItemTarget} from './item_targeting.js';
+import {isSpellFamily} from './spell_family.js';
+import {scriptTargetAllowed,scriptTargetKinds} from './network_script_targeting.js';
+import {spellTargetPreview} from './target_preview.js';
 
 // Client-local target selection only. All availability, resource consumption,
 // actions, rolls, impacts and effects remain authoritative server operations.
 export class NetworkSpellTargeting{
- constructor({world,tables,context,submit,inventoryOpen=()=>false,onChange=()=>{},report=()=>{}}){Object.assign(this,{world,tables,context,submit,inventoryOpen,onChange,report});this.pending=null;}
+ constructor({world,tables,context,submit,chooseFamily=async()=>{throw new Error('Choose a spell variant before casting');},inventoryOpen=()=>false,onChange=()=>{},report=()=>{}}){Object.assign(this,{world,tables,context,submit,chooseFamily,inventoryOpen,onChange,report});this.pending=null;}
  reset(){this.pending=null;this.onChange(null);}
  definition(id){const rules=this.tables(),spell=castingSpell(rules,id);return spell?{...spell,children:talentSpell(rules,id).children}:null;}
  actor(){const w=this.world();return w?.registry.get(w.localObjectId);}
+ beginServer(){
+  this.reset();const world=this.world(),mode=world?.scriptTargeting,actor=this.actor();if(!mode||!actor)return;
+  this.pending={serverMode:{...mode},controlledId:actor.id,world,context:structuredClone(this.context())};
+  this.onChange({scriptTarget:true,cursor:mode.cursor,targetTypes:scriptTargetKinds(mode.objectMask).map(type=>[type,mode.cursor])});
+ }
  async begin(binding){
   if(binding.type===1)return this.beginItem(binding.itemId,binding.intParam);
   if(binding.type===4)return this.beginFeat(binding.intParam);
   this.reset();const actor=this.actor();if(!actor)throw new Error('Controlled caster is unavailable');
+  if(isSpellFamily(this.tables(),binding.intParam))return this.chooseFamily({...binding});
   const request=binding.type===44?{kind:'innate',spellId:binding.intParam,casterLevel:binding.domainLevel&15}:{spellId:binding.intParam,classIndex:binding.classIndex&7,domainLevel:binding.domainLevel&15,metamagic:binding.metamagic&63,spontaneous:0};
   const prepared=prepareSpellTarget(actor,request,{spell:id=>this.definition(id)},{inventoryMode:Number(this.inventoryOpen())});
   if(prepared.mode==='unavailable')throw new Error('Spell targeting metadata is unavailable');
@@ -26,9 +35,23 @@ export class NetworkSpellTargeting{
   this.onChange({spellId:prepared.request.spellId,targetTypes:prepared.targetTypes});return{targeting:true};
  }
  get active(){return Boolean(this.pending);}
+ presentation(target){
+  const p=this.pending;if(!p)return null;
+  if(p.world!==this.world()||p.controlledId!==this.world()?.localObjectId||JSON.stringify(p.context)!==JSON.stringify(this.context())){this.reset();return null;}
+  let valid,preview,cursor=29,badCursor=31;
+  if(p.serverMode){if(this.world().scriptTargeting?.version!==p.serverMode.version){this.reset();return null;}valid=scriptTargetAllowed(p.serverMode,target);preview=this.world().scriptTargetingData;cursor=p.serverMode.cursor;badCursor=p.serverMode.badCursor??31;}
+  else if(p.itemPlan){const plan=p.itemPlan;valid=plan.targetTypes.some(([kind])=>kind===(target?.objectType??2))&&(!plan.creatureVeto||!itemCreatureTargetVeto(plan.itemId,plan.packed,target?.id??0x7f000000,this.itemProviders()));cursor=plan.targetTypes.find(([kind])=>kind===(target?.objectType??2))?.[1]??(plan.flags-2);badCursor=plan.flags;preview=spellTargetPreview(plan.definition,this.tables().ranges,this.world().spellTargetingOverrides?.get(plan.definition?.id));}
+  else{valid=p.request.kind==='feat'?featTargetAllowed(p.definition,target):radialSpellTargetAllowed(p.definition,this.actor(),target);preview=spellTargetPreview(p.definition,this.tables().ranges,this.world().spellTargetingOverrides?.get(p.definition?.id));}
+  return{valid,cursor:valid?cursor:badCursor,preview};
+ }
  current(){const p=this.pending;if(!p||p.world!==this.world()||p.controlledId!==this.world()?.localObjectId||JSON.stringify(p.context)!==JSON.stringify(this.context())){this.reset();throw new Error('Action selection belongs to an old area or controlled creature');}return p;}
  async select(target,position){
   const p=this.current(),actor=this.actor();
+  if(p.serverMode){
+   if(this.world().scriptTargeting?.version!==p.serverMode.version){this.reset();throw Error('Server target selection was replaced');}
+   if(!scriptTargetAllowed(p.serverMode,target))throw Error('That target is not valid for this server action');
+   const request={kind:'script-target',version:p.serverMode.version,targetId:target?.id??0x7f000000,position:[...position]};this.reset();return this.submit(request);
+  }
   if(p.itemPlan){
    const providers=this.itemProviders(),type=target?.objectType??2,plan=p.itemPlan;
    if(!plan.targetTypes.some(([registered])=>registered===type)&&plan.mode!=='self'||plan.creatureVeto&&itemCreatureTargetVeto(plan.itemId,plan.packed,target?.id??0x7f000000,providers))throw new Error('That target is not valid for this item');
@@ -51,10 +74,12 @@ export class NetworkSpellTargeting{
   this.onChange({itemId,packed,targetTypes:plan.targetTypes});return{targeting:true};
  }
  async radial(binding,target,position){
+  if(isSpellFamily(this.tables(),binding.spellId))throw new Error('Choose a spell variant before casting');
   const actor=this.actor();if(!actor||!radialSpellTargetAllowed(this.definition(binding.spellId),actor,target))throw new Error('That target is not valid for this spell');
   this.reset();return this.submit(radialSpellCastRequest(binding,actor,target,position));
  }
  async radialInnate(binding,target,position){
+  if(isSpellFamily(this.tables(),binding.spellId))throw new Error('Choose a spell variant before casting');
   const actor=this.actor();if(!actor||!radialSpellTargetAllowed(this.definition(binding.spellId),actor,target))throw new Error('That target is not valid for this ability');this.reset();return this.submit({kind:'innate',spellId:binding.spellId&65535,casterLevel:binding.domainLevel&15,targetId:target?.id??0x7f000000,position:position?.map(Math.fround)??[0,0,0]});
  }
  featProviders(){const rules=this.tables();return{feat:id=>featActivationInfo(rules,id),spell:id=>featActivationSpell(rules,id)};}

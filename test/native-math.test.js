@@ -23,5 +23,5 @@ test('native CRT SSE/FMA disagreement is explicitly rejected until actual proces
     assert.throws(() => nativeCosf(float(input)), error => /CPU dispatch/.test(error.message) && raw(error.sse) !== raw(error.fused));
 });
 test('unmapped native trig input branches remain explicit failures', () => {
-  for (const input of [Infinity, NaN, 33, -33]) assert.throws(() => nativeSinf(input), /input branch/);
+  for (const input of [Infinity, NaN, 500000, -500000]) assert.throws(() => nativeSinf(input), /input branch/);
 });

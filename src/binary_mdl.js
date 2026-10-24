@@ -83,6 +83,9 @@ export function parseBinaryMdl(buffer) {
       skinned: false,
       skinData: null,
       verts: [],
+      // Keep the authored stream in native coordinates for GPU skin/material
+      // parity. The existing renderer still uses its current generated normals.
+      nativeVertexNormals: null,
       tverts: [],
       tvertsByLayer: [],
       faces: []
@@ -136,6 +139,8 @@ export function parseBinaryMdl(buffer) {
       else if (type === 36 && columns === 1) node.scale = valuesAtTime[0];
       // Controller IDs overlap with emitter fields; 128 is opacity only on meshes.
       else if (type === 128 && columns === 1 && node.type === 'trimesh') node.alpha = valuesAtTime[0];
+      // Disk100 -> runtime PartTriMesh80 by ReadBinaryNode07b870.
+      else if (type === 100 && columns === 3 && node.type === 'trimesh') node.selfillumcolor = valuesAtTime;
       else if (node.type === 'light' && BINARY_LIGHT_CHANNELS[type]?.[1] === columns) {
         node.properties[LIGHT_PROPERTIES[BINARY_LIGHT_CHANNELS[type][0]]] = columns === 1 ? valuesAtTime[0] : valuesAtTime;
       }
@@ -294,7 +299,15 @@ export function parseBinaryMdl(buffer) {
       node.faces = renderedFaces;
     }
 
-    if (normalOffset !== 0xffffffff) requireRange(data, rawDataOffset + normalOffset, vertexCount * 12);
+    if (normalOffset !== 0xffffffff) {
+      requireRange(data, rawDataOffset + normalOffset, vertexCount * 12);
+      // ReadBinaryMesh07be10 copies serialized normal offset244 (runtime298)
+      // into a vertexCount*12 pool. Do not normalize, rotate or flatten here.
+      node.nativeVertexNormals = new Float32Array(vertexCount * 3);
+      for (let index = 0; index < node.nativeVertexNormals.length; index++) {
+        node.nativeVertexNormals[index] = readF32(data, rawDataOffset + normalOffset + index * 4);
+      }
+    }
     if (colorOffset !== 0xffffffff) requireRange(data, rawDataOffset + colorOffset, vertexCount * 4);
     return cursor;
   }

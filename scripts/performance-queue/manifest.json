@@ -1,0 +1,1589 @@
+{
+  "status": "partly-executed-see-run-summaries",
+  "stages": [
+    "unit",
+    "gpu",
+    "installed",
+    "local",
+    "compare",
+    "boot"
+  ],
+  "tests": [
+    {
+      "id": "texture-consumption",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "19 new conservative texture selection scenarios; audit candidate only",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/texture-usage.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/texture-usage.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "hidden-preview-ownership",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "10 production-factory/particle-graph cases; hidden hierarchy, native particle/RNG parity, viewer toggle, circular references and cleanup",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/preview-overhead.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/preview-overhead.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "resource-audit-contract",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "6 new API audit scenarios; timing boundary, errors, generations, bounded metadata and payload exclusion",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/resource-audit.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/resource-audit.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "frame-measurement-contract",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "6 new weighted-FPS, p95, rare-freeze and incomplete-observation scenarios",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/frame-metrics.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/frame-metrics.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "resource-batch-order",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Ordered results, bounded concurrency, per-resource failure and cancellation",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/resource-preparation.test.js"
+      ],
+      "requires": [
+        "test/resource-preparation.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "resource-workers",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Worker scheduling, stale results, transfer ownership and termination",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/resource-worker-pool.test.js"
+      ],
+      "requires": [
+        "test/resource-worker-pool.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "resource-prefetch",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "In-flight deduplication, owner cancellation and bounded source prefetch",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/resource-prefetch.test.js"
+      ],
+      "requires": [
+        "test/resource-prefetch.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "disk-model-cache",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Schema/content identity, worker/disk round trips, corruption, limits and disposal",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/prepared-model-cache.test.js"
+      ],
+      "requires": [
+        "test/prepared-model-cache.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "resident-model-sources",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Mounted context reuse, revalidation, inheritance isolation, eviction and clear generations",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/persistent-model-sources.test.js"
+      ],
+      "requires": [
+        "test/persistent-model-sources.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "area-model-sources",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Per-area parsing, inherited animations, cycles, fallback and cancellation",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/model-source-cache.test.js"
+      ],
+      "requires": [
+        "test/model-source-cache.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "texture-upload-owner",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Texture preparation and upload lifetime including stale work",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-texture-preparation.test.js"
+      ],
+      "requires": [
+        "test/renderer-texture-preparation.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "frame-work-owner",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Frame budgets, priorities, starvation and cancellation",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/frame-work-budget.test.js"
+      ],
+      "requires": [
+        "test/frame-work-budget.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "model-preparation-owner",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Preparation concurrency, templates and area retirement",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-model-preparation.test.js",
+        "test/model-preparation-batch.test.js"
+      ],
+      "requires": [
+        "test/renderer-model-preparation.test.js",
+        "test/model-preparation-batch.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "renderer-retirement",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "GPU resource retirement and balanced program/material leases",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-resource-retirement.test.js",
+        "test/renderer-program-cache.test.js"
+      ],
+      "requires": [
+        "test/renderer-resource-retirement.test.js",
+        "test/renderer-program-cache.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "particle-simulation",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Native particle presentation, moving emitters, discovery and CPU lifetime",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/model-particles.test.js",
+        "test/particle-lifetime-native.test.js",
+        "test/particle-frame-native.test.js"
+      ],
+      "requires": [
+        "test/model-particles.test.js",
+        "test/particle-lifetime-native.test.js",
+        "test/particle-frame-native.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "particle-vertices",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Native vertex output, render modes and delayed asynchronous preparation",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/particle-vertices-native.test.js",
+        "test/particle-vertex-preparation.test.js"
+      ],
+      "requires": [
+        "test/particle-vertices-native.test.js",
+        "test/particle-vertex-preparation.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "particle-worker-owner",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Particle worker threshold, ordered transfer, invalidation and close",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/particle-vertex-workers.test.js"
+      ],
+      "requires": [
+        "test/particle-vertex-workers.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "hierarchy-traversal",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Hierarchy invalidation, local matrices and cached world roots",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-hierarchy.test.js",
+        "test/managed-local-matrix.test.js",
+        "test/cached-root-matrix.test.js"
+      ],
+      "requires": [
+        "test/renderer-hierarchy.test.js",
+        "test/managed-local-matrix.test.js",
+        "test/cached-root-matrix.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "shared-world-picking",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Frame-local raw-hit reuse with independent hover/click filters",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/world-pick-frame.test.js"
+      ],
+      "requires": [
+        "test/world-pick-frame.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "palette-arrays",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "PLT palette array identity, repeat sampling, compressed compatibility and limits",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-palette-arrays.test.js",
+        "test/compressed-texture-array.test.js"
+      ],
+      "requires": [
+        "test/renderer-palette-arrays.test.js",
+        "test/compressed-texture-array.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "material-isolation",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Per-frame material/light reuse, change invalidation and rollback",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-material-reuse.test.js",
+        "test/renderer-light-uniforms.test.js"
+      ],
+      "requires": [
+        "test/renderer-material-reuse.test.js",
+        "test/renderer-light-uniforms.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "native-shadow-budget",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Native setting bounds, stable shader slots and visible light selection",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-native-shadows.test.js",
+        "test/renderer-shadow-budget.test.js",
+        "test/renderer-light-selection.test.js",
+        "test/renderer-light-slots.test.js"
+      ],
+      "requires": [
+        "test/renderer-native-shadows.test.js",
+        "test/renderer-shadow-budget.test.js",
+        "test/renderer-light-selection.test.js",
+        "test/renderer-light-slots.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "shadow-invalidation",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Point shadow reuse, moving casters, light changes and traversal",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-point-shadow-cache.test.js",
+        "test/renderer-shadow-traversal.test.js"
+      ],
+      "requires": [
+        "test/renderer-point-shadow-cache.test.js",
+        "test/renderer-shadow-traversal.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "shadow-instance-owner",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Rigid shadow instance compatibility, alpha and lifetime",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-shadow-instances.test.js"
+      ],
+      "requires": [
+        "test/renderer-shadow-instances.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "main-batch-isolation",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Ordered rigid batches, bounds, activation and incompatible draw fallback",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-main-batches.test.js"
+      ],
+      "requires": [
+        "test/renderer-main-batches.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "skin-and-geometry",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Rigid pool lifetime, skin/deformed exclusion, bounds and live skin updates",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-model-geometry.test.js",
+        "test/model-skin-update.test.js",
+        "test/model-skin-bounds.test.js"
+      ],
+      "requires": [
+        "test/renderer-model-geometry.test.js",
+        "test/model-skin-update.test.js",
+        "test/model-skin-bounds.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "resource-precedence",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Authoritative override/HAK/workshop contexts and texture format choice",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/resource-precedence.test.js",
+        "test/texture-resource-native.test.js",
+        "test/portrait-resource-context.test.js"
+      ],
+      "requires": [
+        "test/resource-precedence.test.js",
+        "test/texture-resource-native.test.js",
+        "test/portrait-resource-context.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "network-resource-owner",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Bridge session guards and late resource result rejection",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/network-resource-bridge.test.js",
+        "test/resource-flow.test.js",
+        "test/network-ipc.test.js",
+        "test/debug-window.test.cjs"
+      ],
+      "requires": [
+        "test/network-resource-bridge.test.js",
+        "test/resource-flow.test.js",
+        "test/network-ipc.test.js",
+        "test/debug-window.test.cjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "preview-build-contract",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "5 QA call-site transform, baseline, shader-template and matched-neighbor sequence checks",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/preview-comparison-transform.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/preview-comparison-transform.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "preview-pair-statistics",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "6 paired statistics, scene controls, frame completeness and noise disclosure checks",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/preview-comparison-summary.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/preview-comparison-summary.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "live-diagnostic-contract",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "11-flag private diagnostic contract and frame summaries; no build or connection",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/live-performance.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/live-performance.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "stage-profiling-owner",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Inclusive stage timing, exception propagation and owned-hook restoration",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/stage-profiler.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/stage-profiler.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "isolated-launch-trust",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Exact-document IPC and isolated build selection; frame/navigation rejection",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/network-ipc.test.js",
+        "test/debug-window.test.cjs",
+        "test/application-build.test.cjs"
+      ],
+      "requires": [
+        "test/network-ipc.test.js",
+        "test/debug-window.test.cjs",
+        "test/application-build.test.cjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "scene-capture-replay-boundary",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Private decoded capture checksums, frozen supplemental assets/TLK, ownership, playback timing, missing-content rejection and recorded-camera interpolation",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/scene-capture.test.mjs",
+        "test/scene-replay.test.mjs"
+      ],
+      "requires": [
+        "test/scene-capture.test.mjs",
+        "test/scene-replay.test.mjs",
+        "electron/scene_capture.mjs",
+        "electron/scene_capture_worker.mjs",
+        "electron/scene_capture_archive.mjs",
+        "electron/scene_replay.mjs",
+        "electron/scene_replay_requests.mjs",
+        "electron/scene_capture_supplement.mjs",
+        "electron/scene_replay_talk.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "shadow-input-statistics",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Shadow comparison mode, settings, content, missing-effect rejection and drift guards",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/shadow-input-summary.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/shadow-input-summary.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "preview-gpu-parity",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "24 exact color + point-shadow frames, live particle buffers/RNG, negative scale, alpha and world picking",
+      "args": [
+        "scripts/performance-queue/probe-preview-gpu.cjs",
+        "--output={output}/preview-gpu.json"
+      ],
+      "requires": [
+        "scripts/performance-queue/preview-gpu.html"
+      ],
+      "reports": [
+        "{output}/preview-gpu.json"
+      ],
+      "deadlineMs": 180000,
+      "cleanupProfilePrefix": "nwn-queued-preview-gpu-"
+    },
+    {
+      "id": "geometry-gpu-parity",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "24 frames each ordinary/shared rigid geometry; deformation, skin exclusion, alpha, material groups, picking, cleanup",
+      "args": [
+        "scripts/probe-model-geometry.cjs",
+        "--version={run}-geometry"
+      ],
+      "requires": [
+        "scripts/model-geometry-fixture.html"
+      ],
+      "reports": [
+        "backups/animations/model-geometry-{run}-geometry.json"
+      ],
+      "deadlineMs": 180000
+    },
+    {
+      "id": "disk-geometry-gpu-parity",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "16 exact cold/disk-reloaded color and point-shadow frames with live transforms",
+      "args": [
+        "scripts/probe-prepared-model-geometry.cjs",
+        "--version={run}-prepared"
+      ],
+      "requires": [
+        "scripts/prepared-model-geometry-fixture.html"
+      ],
+      "reports": [
+        "backups/animations/prepared-model-geometry-gpu-{run}-prepared.json"
+      ],
+      "deadlineMs": 180000
+    },
+    {
+      "id": "shadow-input-gpu-parity",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "19 exact color/point-map cases per mode, including volatile changes and cache recovery",
+      "args": [
+        "scripts/performance-queue/probe-shadow-inputs.cjs",
+        "--output={output}/shadow-input-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-shadow-cache-fixture.html",
+        "scripts/renderer-shadow-cache-fixture.mjs"
+      ],
+      "reports": [
+        "{output}/shadow-input-gpu.json"
+      ],
+      "cleanupProfilePrefix": "nwn-shadow-inputs-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "installed-model-roundtrip",
+      "stage": "installed",
+      "engine": "node",
+      "coverage": "Read-only installed native MDL worker/disk/geometry audit; hashes only, derived cache in private OS temp",
+      "args": [
+        "scripts/check-prepared-native-models.mjs",
+        "--version={run}-native"
+      ],
+      "requires": [
+        "backups/animations/dense-local-prepared-model-baseline-c-v1.json",
+        "scripts/check-prepared-native-models.mjs"
+      ],
+      "reports": [
+        "backups/animations/prepared-native-model-roundtrip-{run}-native.json"
+      ],
+      "deadlineMs": 240000
+    },
+    {
+      "id": "local-resource-audit",
+      "stage": "local",
+      "engine": "electron",
+      "coverage": "3 native area visits; MDL/PLT/texture API requests, duplicates, bytes and post-disconnect consumer audit",
+      "args": [
+        "scripts/probe-local-performance-queue.cjs",
+        "--version={run}-local-resource-audit",
+        "--output={output}/local-resource-audit.json",
+        "--audit",
+        "--visits=3",
+        "--steady-ms=8000"
+      ],
+      "requires": [
+        "dist/index.html",
+        "backups/animations/dense-server-fixture-v1.json",
+        "runtime-logs/dense-performance-server/modules/DensePerf.mod"
+      ],
+      "reports": [
+        "{output}/local-resource-audit.json"
+      ],
+      "deadlineMs": 1800000
+    },
+    {
+      "id": "local-ultrawide-baseline",
+      "stage": "local",
+      "engine": "electron",
+      "coverage": "3 visits at 3440x1369, shadow setting 1, 30 seconds steady per area; camera motion and CPU profiles",
+      "args": [
+        "scripts/probe-local-performance-queue.cjs",
+        "--version={run}-local-ultrawide-baseline",
+        "--output={output}/local-ultrawide-baseline.json",
+        "--visits=3",
+        "--steady-ms=30000",
+        "--width=3440",
+        "--height=1369",
+        "--shadows=1"
+      ],
+      "requires": [
+        "dist/index.html",
+        "backups/animations/dense-server-fixture-v1.json",
+        "runtime-logs/dense-performance-server/modules/DensePerf.mod"
+      ],
+      "reports": [
+        "{output}/local-ultrawide-baseline.json"
+      ],
+      "deadlineMs": 1800000
+    },
+    {
+      "id": "local-resolution-control",
+      "stage": "local",
+      "engine": "electron",
+      "coverage": "3 visits at 1424x921, same shadow setting 1; separates resolution sensitivity",
+      "args": [
+        "scripts/probe-local-performance-queue.cjs",
+        "--version={run}-local-resolution-control",
+        "--output={output}/local-resolution-control.json",
+        "--visits=3",
+        "--steady-ms=8000",
+        "--width=1424",
+        "--height=921",
+        "--shadows=1"
+      ],
+      "requires": [
+        "dist/index.html",
+        "backups/animations/dense-server-fixture-v1.json",
+        "runtime-logs/dense-performance-server/modules/DensePerf.mod"
+      ],
+      "reports": [
+        "{output}/local-resolution-control.json"
+      ],
+      "deadlineMs": 1800000
+    },
+    {
+      "id": "local-shadow-control",
+      "stage": "local",
+      "engine": "electron",
+      "coverage": "3 visits at 3440x1369, shadow setting 3; actual scene budget asserted",
+      "args": [
+        "scripts/probe-local-performance-queue.cjs",
+        "--version={run}-local-shadow-control",
+        "--output={output}/local-shadow-control.json",
+        "--visits=3",
+        "--steady-ms=8000",
+        "--width=3440",
+        "--height=1369",
+        "--shadows=3"
+      ],
+      "requires": [
+        "dist/index.html",
+        "backups/animations/dense-server-fixture-v1.json",
+        "runtime-logs/dense-performance-server/modules/DensePerf.mod"
+      ],
+      "reports": [
+        "{output}/local-shadow-control.json"
+      ],
+      "deadlineMs": 1800000
+    },
+    {
+      "id": "local-transition-soak",
+      "stage": "local",
+      "engine": "electron",
+      "coverage": "12 alternating area visits, moving crowd and camera, full resource/worker/GPU retirement",
+      "args": [
+        "scripts/probe-local-performance-queue.cjs",
+        "--version={run}-local-transition-soak",
+        "--output={output}/local-transition-soak.json",
+        "--visits=12",
+        "--steady-ms=8000",
+        "--width=3440",
+        "--height=1369",
+        "--shadows=1"
+      ],
+      "requires": [
+        "dist/index.html",
+        "backups/animations/dense-server-fixture-v1.json",
+        "runtime-logs/dense-performance-server/modules/DensePerf.mod"
+      ],
+      "reports": [
+        "{output}/local-transition-soak.json"
+      ],
+      "deadlineMs": 1800000
+    },
+    {
+      "id": "build-preview-comparison",
+      "stage": "compare",
+      "engine": "node",
+      "coverage": "Isolated QA build; precisely two gameplay preview call sites, baseline default, normal source/dist hashes unchanged",
+      "args": [
+        "scripts/performance-queue/prepare-preview-build.mjs",
+        "--run",
+        "--out=backups/animations/performance-queue/{run}/preview-build",
+        "--report={output}/preview-build.json"
+      ],
+      "requires": [
+        "scripts/performance-queue/prepare-preview-build.mjs"
+      ],
+      "reports": [
+        "{output}/preview-build.json"
+      ],
+      "deadlineMs": 240000
+    },
+    {
+      "id": "local-preview-comparison",
+      "stage": "compare",
+      "engine": "electron",
+      "server": true,
+      "dependencies": [
+        "build-preview-comparison",
+        "preview-build-contract",
+        "preview-pair-statistics",
+        "hidden-preview-ownership",
+        "preview-gpu-parity"
+      ],
+      "coverage": "12 same-client area visits; four warmups and four preview-opt-out visits matched against same-area baseline neighbors, real emitter and ownership gates",
+      "args": [
+        "scripts/probe-local-performance-queue.cjs",
+        "--preview-comparison",
+        "--visits=12",
+        "--steady-ms=15000",
+        "--width=3440",
+        "--height=1369",
+        "--shadows=1",
+        "--version={run}-preview-comparison",
+        "--build=backups/animations/performance-queue/{run}/preview-build",
+        "--output={output}/preview-comparison.json"
+      ],
+      "requires": [
+        "scripts/probe-local-performance-queue.cjs",
+        "runtime-logs/dense-performance-server/modules/DensePerf.mod"
+      ],
+      "reports": [
+        "{output}/preview-comparison.json"
+      ],
+      "deadlineMs": 1800000
+    },
+    {
+      "id": "normal-production-boot",
+      "stage": "boot",
+      "engine": "electron",
+      "coverage": "Current dist boots offline, zero joins/fetches; experimental model/matrix/batch toggles and QA hooks remain off",
+      "args": [
+        "scripts/smoke-highlight-main.cjs",
+        "--report={run}-normal-boot",
+        "--expect-normal-performance",
+        "--expect-subtree-disabled",
+        "--expect-model-cache-disabled"
+      ],
+      "requires": [
+        "dist/index.html",
+        "scripts/smoke-highlight-main.cjs"
+      ],
+      "reports": [
+        "backups/animations/{run}-normal-boot.json"
+      ],
+      "deadlineMs": 120000
+    },
+    {
+      "id": "shadow-atlas-owner",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Different-geometry shadow atlas order, precision fallback, face membership, matrix/index ownership and cleanup",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-shadow-atlas.test.js"
+      ],
+      "requires": [
+        "test/renderer-shadow-atlas.test.js",
+        "src/renderer_shadow_atlas.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "compiled-main-projection",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Five passing CPU cases for flat projection ancestry, source identity, group order, visibility/layers, topology and callback/exception restoration; latest GPU rerun deferred",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-flat-scene.test.js"
+      ],
+      "requires": [
+        "test/renderer-flat-scene.test.js",
+        "src/renderer_flat_scene.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "zero-light-work-transform",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Seven passing CPU cases for conservative light guard, compiled-program cleanup, context restoration and hook ownership; GPU unverified",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-zero-light-work.test.js"
+      ],
+      "requires": [
+        "test/renderer-zero-light-work.test.js",
+        "src/renderer_zero_light_work.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "shadow-atlas-gpu-parity",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "40 authored exact color/shadow comparisons across multi-draw and portable shadow atlas paths",
+      "args": [
+        "scripts/performance-queue/probe-shadow-atlas.cjs",
+        "--output={output}/shadow-atlas-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-shadow-atlas-fixture.html",
+        "scripts/renderer-shadow-atlas-fixture.mjs"
+      ],
+      "reports": [
+        "{output}/shadow-atlas-gpu.json"
+      ],
+      "cleanupProfilePrefix": "nwn-shadow-atlas-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "compiled-main-projection-gpu",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "18 authored exact color/shadow comparisons for compiled main projection, including hierarchy and callback fallback",
+      "args": [
+        "scripts/performance-queue/probe-flat-scene.cjs",
+        "--output={output}/flat-scene-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-flat-scene-fixture.html",
+        "scripts/renderer-flat-scene-fixture.mjs"
+      ],
+      "reports": [
+        "{output}/flat-scene-gpu.json"
+      ],
+      "cleanupProfilePrefix": "nwn-flat-scene-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "zero-light-work-gpu-parity",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "Executed: 32 authored GPU cases; current candidate fails eight pixel hashes. Retained as a failing fidelity gate, no promotion.",
+      "args": [
+        "scripts/performance-queue/probe-zero-light-work.cjs",
+        "--run",
+        "--output={output}/zero-light-work-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-zero-light-work-fixture.html",
+        "scripts/renderer-zero-light-work-fixture.mjs",
+        "scripts/performance-queue/probe-zero-light-work.cjs",
+        "src/renderer_zero_light_work.js"
+      ],
+      "reports": [
+        "{output}/zero-light-work-gpu.json"
+      ],
+      "dependencies": [
+        "zero-light-work-transform"
+      ],
+      "cleanupProfilePrefix": "nwn-zero-light-gpu-",
+      "deadlineMs": 240000
+    },
+    {
+      "id": "replay-measurement-boundary",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Eighteen content, measurement and activation guards including compiled pass, ancestry and shadow storage",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/replay-measurement.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/replay-measurement.mjs",
+        "scripts/performance-queue/replay-measurement.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "particle-frame-storage",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "28 paired native simulation/RNG/vertex cases covering all seven render modes, transient storage, persistent derived poses, shared ancestry, edits and unknown-writer fallback; options default off",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/particle-frame-storage.test.js"
+      ],
+      "requires": [
+        "test/particle-frame-storage.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "replay-same-frame-parity",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Six same-task color/shadow comparator guards including all-mode CLI admission and independent-target restoration",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/replay-frame-parity.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-queue/replay-frame-parity.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "renderer-light-membership",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Two paired light-only membership checks and ten existing slot/admission regressions",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-light-membership.test.js",
+        "test/renderer-light-slots.test.js"
+      ],
+      "requires": [
+        "test/renderer-light-membership.test.js",
+        "test/renderer-light-slots.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "large-batch-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Eleven passing ordered batch/palette cases including 128-member/layer boundaries and bounded ownership",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-main-batches.test.js",
+        "test/renderer-palette-arrays.test.js"
+      ],
+      "requires": [
+        "test/renderer-main-batches.test.js",
+        "test/renderer-palette-arrays.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "large-batch-gpu",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "Nine exact color/shadow cases; current fixture has context-restoration warnings, now a failing lifecycle gate",
+      "args": [
+        "scripts/performance-queue/probe-large-batches.cjs",
+        "--run",
+        "--output={output}/large-batch-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-large-batches-fixture.html",
+        "scripts/renderer-large-batches-fixture.mjs",
+        "scripts/performance-queue/probe-large-batches.cjs"
+      ],
+      "reports": [
+        "{output}/large-batch-gpu.json"
+      ],
+      "dependencies": [
+        "large-batch-boundaries"
+      ],
+      "cleanupProfilePrefix": "nwn-large-batch-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "point-grid-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Thirteen conservative membership, native negative decay, shader activation, ownership and fallback checks; opt-in only",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/point-light-grid.test.js",
+        "test/renderer-point-grid.test.js"
+      ],
+      "requires": [
+        "src/point_light_grid.js",
+        "src/renderer_point_grid.js",
+        "test/point-light-grid.test.js",
+        "test/renderer-point-grid.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "point-grid-gpu",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "Twelve exact color/shadow cases with actual legacy shader adapter and activation markers; no full GPU context-restoration claim",
+      "args": [
+        "scripts/performance-queue/probe-point-grid.cjs",
+        "--run",
+        "--output={output}/point-grid-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-point-grid-fixture.html",
+        "scripts/renderer-point-grid-fixture.mjs",
+        "scripts/performance-queue/probe-point-grid.cjs"
+      ],
+      "reports": [
+        "{output}/point-grid-gpu.json"
+      ],
+      "dependencies": [
+        "point-grid-boundaries"
+      ],
+      "cleanupProfilePrefix": "nwn-point-grid-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "command-batch-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Ten ordered geometry/index/row and palette ownership, mutation and fallback cases for isolated command backends",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-command-batches.test.js"
+      ],
+      "requires": [
+        "src/renderer_command_batches.js",
+        "test/renderer-command-batches.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "command-batch-gpu",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "90 authored paired cases including compressed texture arrays and context recovery; separate room nine-channel rounding difference remains a failed exact-fidelity gate",
+      "args": [
+        "scripts/performance-queue/probe-command-batches.cjs",
+        "--run",
+        "--output={output}/command-batch-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-command-batches-fixture.html",
+        "scripts/renderer-command-batches-fixture.mjs",
+        "scripts/performance-queue/probe-command-batches.cjs"
+      ],
+      "reports": [
+        "{output}/command-batch-gpu.json"
+      ],
+      "dependencies": [
+        "command-batch-boundaries"
+      ],
+      "cleanupProfilePrefix": "nwn-command-batches-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "replay-draw-gpu-audit",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Three offline draw-timer ownership/error/disjoint cases; diagnostic windows exclude between-draw work and are not full GPU utilization",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/replay-draw-gpu-audit.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-candidates/replay-draw-gpu-audit.mjs",
+        "scripts/performance-queue/replay-draw-gpu-audit.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "shared-frame-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Four shared membership/order/slot/fallback cases and two replay snapshot/control codec regressions",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-shared-membership.test.js",
+        "scripts/performance-queue/replay-snapshot-codec.test.mjs"
+      ],
+      "requires": [
+        "test/renderer-shared-membership.test.js",
+        "scripts/performance-queue/replay-snapshot-codec.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "shared-frame-gpu",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "18 authored exact color/shadow cases; full-room corrected paired run also exact with small gain",
+      "args": [
+        "scripts/performance-queue/probe-shared-frame.cjs",
+        "--run",
+        "--output={output}/shared-frame-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-shared-frame-fixture.html",
+        "scripts/renderer-shared-frame-fixture.mjs",
+        "scripts/performance-queue/probe-shared-frame.cjs"
+      ],
+      "reports": [
+        "{output}/shared-frame-gpu.json"
+      ],
+      "dependencies": [
+        "shared-frame-boundaries"
+      ],
+      "cleanupProfilePrefix": "nwn-shared-frame-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "frozen-stream-codec",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Three in-memory command argument, hook and resource-lifetime rejection cases; never gameplay FPS acceptance",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/frozen-gl-stream.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-candidates/frozen-gl-stream.mjs",
+        "scripts/performance-candidates/replay-frozen-stream-audit.mjs",
+        "scripts/performance-queue/frozen-gl-stream.test.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "warm-projection-bridge",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Private bridge guards, complete transformed-entry compilation, structured-clone metadata and all-mode CPU/CLI parity validation",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/replay-three-bridge.test.mjs",
+        "scripts/performance-queue/replay-snapshot-codec.test.mjs",
+        "scripts/performance-queue/replay-frame-parity.test.mjs"
+      ],
+      "requires": [
+        "src/renderer_warm_draws.js",
+        "src/renderer_scene_plan.js",
+        "src/renderer_compiled_pass.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "shadow-prefix-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Five ordered stability, source-instance, bounded storage, FBO and exception-retirement checks",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-shadow-prefix.test.js"
+      ],
+      "requires": [
+        "src/renderer_shadow_prefix.js",
+        "test/renderer-shadow-prefix.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 240000
+    },
+    {
+      "id": "compiled-pass-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Six live uniform, sampler mapping, program/layout and GPU ownership cases",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-compiled-pass.test.js"
+      ],
+      "requires": [
+        "src/renderer_compiled_pass.js",
+        "test/renderer-compiled-pass.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "matrix-owner-cooperation",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Owned matrix commits, automatic roots, subtree invalidation, foreign callbacks and mode changes",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-matrix-subtree.test.js",
+        "test/cached-root-matrix.test.js",
+        "test/managed-local-matrix.test.js"
+      ],
+      "requires": [
+        "src/renderer_matrix_subtree.js",
+        "src/cached_root_matrix.js",
+        "src/managed_local_matrix.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "worker-stream-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Nine resource/transfer/bounds/fallback/context ownership and installed-GL coverage cases; protocol remains a duplicate-rendering diagnostic",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-worker-stream.test.js"
+      ],
+      "requires": [
+        "src/renderer_worker_stream.js",
+        "src/renderer_worker_client.js",
+        "test/renderer-worker-stream.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "worker-stream-gpu",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "Fourteen authored source-versus-OffscreenCanvas-worker exact color and shadow-map cases; no FPS claim",
+      "args": [
+        "scripts/performance-queue/probe-worker-stream.cjs",
+        "--run",
+        "--output={output}/worker-stream-gpu.json"
+      ],
+      "requires": [
+        "scripts/renderer-worker-stream-fixture.html",
+        "scripts/renderer-worker-stream-fixture.mjs",
+        "scripts/performance-candidates/renderer-stream-worker.mjs",
+        "scripts/performance-queue/probe-worker-stream.cjs",
+        "src/renderer_worker_stream.js"
+      ],
+      "reports": [
+        "{output}/worker-stream-gpu.json"
+      ],
+      "dependencies": [
+        "worker-stream-boundaries"
+      ],
+      "cleanupProfilePrefix": "nwn-worker-stream-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "particle-simulation-worker",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Fifteen complete cyclic/RNG/buffer cases including actual dedicated worker simulation and raw-buffer/alias oracle",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/particle-worker-scene.test.js"
+      ],
+      "requires": [
+        "test/particle-worker-scene.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "attribute-upload-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Eleven storage replacement, prefix safety, callback/version, context ownership and exact shadow-face matrix cases",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-attribute-uploads.test.js",
+        "test/renderer-shadow-instances.test.js"
+      ],
+      "requires": [
+        "test/renderer-attribute-uploads.test.js",
+        "test/renderer-shadow-instances.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "packet-executor-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Ten packet generation/live uniform/range/layout/ownership cases; backend remains disabled after measured regression",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "test/renderer-packet-executor.test.js",
+        "test/renderer-compiled-pass.test.js"
+      ],
+      "requires": [
+        "src/renderer_packet_executor.js",
+        "src/renderer_packet_pass.js",
+        "test/renderer-packet-executor.test.js"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "webgpu-bundle-architecture",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "Six exact authored WebGL/WebGPU pixel comparisons with mutable data; repeated 3000-draw encoding/bundle CPU submission probe, no game FPS claim",
+      "args": [
+        "scripts/performance-queue/probe-webgpu-bundles.cjs",
+        "--run",
+        "--output={output}/webgpu-bundles.json"
+      ],
+      "requires": [
+        "scripts/performance-queue/probe-webgpu-bundles.cjs",
+        "scripts/renderer-webgpu-bundles-fixture.mjs",
+        "scripts/renderer-webgpu-bundles-fixture.html"
+      ],
+      "reports": [
+        "{output}/webgpu-bundles.json"
+      ],
+      "cleanupProfilePrefix": "nwn-webgpu-bundles-gpu-",
+      "deadlineMs": 180000
+    },
+    {
+      "id": "babylon-adapter-boundaries",
+      "stage": "unit",
+      "engine": "node",
+      "coverage": "Eight CPU adapter/prepared-pass/pose-cache ownership cases; production remains unchanged",
+      "args": [
+        "--test-concurrency=1",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/performance-queue/babylon-room-adapter.test.mjs"
+      ],
+      "requires": [
+        "scripts/performance-candidates/babylon-room-adapter.mjs",
+        "scripts/performance-queue/babylon-room-adapter.test.mjs",
+        "node_modules/@babylonjs/core/package.json",
+        "scripts/performance-candidates/babylon-room-audit.mjs"
+      ],
+      "rejectSkipped": true,
+      "deadlineMs": 120000
+    },
+    {
+      "id": "babylon-adapter-gpu",
+      "stage": "gpu",
+      "engine": "electron",
+      "coverage": "15 exact authored Babylon WebGPU pixel checks, including mutable poses/ranges/lights, polygon offset, UV/flip and native particle blending; room parity remains unaccepted",
+      "args": [
+        "scripts/performance-queue/probe-babylon-room.cjs",
+        "--run",
+        "--output={output}/babylon-adapter.json"
+      ],
+      "requires": [
+        "scripts/performance-queue/probe-babylon-room.cjs",
+        "scripts/renderer-babylon-fixture.html",
+        "scripts/renderer-babylon-fixture.mjs",
+        "scripts/performance-candidates/babylon-room-adapter.mjs",
+        "node_modules/@babylonjs/core/package.json"
+      ],
+      "reports": [
+        "{output}/babylon-adapter.json"
+      ],
+      "cleanupProfilePrefix": "nwn-babylon-adapter-gpu-",
+      "deadlineMs": 180000
+    }
+  ],
+  "executionEvidence": "evidence/performance-live-candidates.md"
+}

@@ -1,5 +1,6 @@
 import {decodeGffText} from './gff_text.js';
 import {satisfiesNativeBuild} from './network_build.js';
+import {readNetworkSoundState} from './network_sound_objects.js';
 
 const string=r=>{const v=r.readCExoString();return v.bytes?decodeGffText(v.bytes):'';};
 const ref=r=>{const v=r.readCResRef(),end=v.indexOf(0);return decodeGffText(end<0?v:v.subarray(0,end));};
@@ -53,12 +54,7 @@ export function readAreaState(r,build){
  area.playerMapPins=[];n=count(r,r.readInt(),20,'player-map-pin');
  for(let i=0;i<n;i++)area.playerMapPins.push({index:r.readInt(),text:string(r),position:vector(r)});
  area.sounds=[];n=count(r,r.readWord(),53,'sound');
- for(let i=0;i<n;i++){
-  const sound={id:r.readObjectIdClient(),fields:{}},s=sound.fields;
-  fields(r,[0x308,0x30c,0x310],'readBool',s);fields(r,[0x314,0x318,0x31c],'readByte',s);fields(r,[0x320],'readFloat',s);fields(r,[0x324],'readDword',s);fields(r,[0x328],'readByte',s);
-  fields(r,[0x348,0x34c],'readDword',s);fields(r,[0x350,0x354],'readFloat',s);fields(r,[0x358,0x35c,0x32c],'readBool',s);fields(r,[0x330,0x334],'readFloat',s);
-  sound.position=vector(r);sound.refs=[];const refs=count(r,r.readWord(),16,'sound-reference');for(let j=0;j<refs;j++)sound.refs.push(ref(r));area.sounds.push(sound);
- }
+ for(let i=0;i<n;i++)area.sounds.push(readNetworkSoundState(r));
  area.placeableLights=[];n=count(r,r.readWord(),18,'placeable-light');
  for(let i=0;i<n;i++)area.placeableLights.push({id:r.readObjectIdClient(),appearance:r.readWord(),position:vector(r)});
  area.staticPlaceables=[];n=count(r,r.readWord(),30,'static-placeable');

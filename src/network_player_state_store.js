@@ -1,3 +1,4 @@
+import {mergeNetworkActionQueue} from './network_action_queue.js';
 // Apply transmitted player-state differences. This owner never calculates a
 // spell's slots, availability, uses, feats or stats from local gameplay rules.
 export function applyPlayerState(current,changes){
@@ -19,8 +20,8 @@ export function applyPlayerState(current,changes){
  if(c.effectIcons){result.effectIcons??={};for(const icon of c.effectIcons.removed)delete result.effectIcons[icon];for(const icon of c.effectIcons.added)result.effectIcons[icon.icon]=icon.state;}
  if(c.specialAbilityChanges){result.specialAbilities??=[];for(const change of c.specialAbilityChanges){if(change.action==='S'){result.specialAbilities.length=change.size;for(let i=0;i<change.size;i++)result.specialAbilities[i]??=null;}else {if(change.index>=result.specialAbilities.length)throw new Error('Special-ability index exceeds server size');result.specialAbilities[change.index]=change;}}}
  if(c.visibilityChanges){result.visibility??={};for(const id of c.visibilityChanges.removed)delete result.visibility[id];for(const change of c.visibilityChanges.updated)result.visibility[change.id]=change.flags;}
+ if(c.actionQueueChanges){const queue=mergeNetworkActionQueue(result.actionQueue,c.actionQueueChanges,result.actionQueueNextSerial);result.actionQueue=queue.entries;result.actionQueueNextSerial=queue.nextSerial;delete c.actionQueueChanges;}
  for(const key of ['memorizedSlotCounts','knownSpellChanges','memorizedSpellChanges','spontaneousUses','featChanges','featUses','effectIcons','specialAbilityChanges','visibilityChanges'])delete c[key];
- // Queue and automap changes retain their native update modes for the UI/map
- // owner. They are never sent to a local action runner or explored locally.
+ // Queue entries are replicated GUI metadata, never local action-runner input.
  return Object.assign(result,c);
 }

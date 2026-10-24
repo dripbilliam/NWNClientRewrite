@@ -51,6 +51,9 @@ function inventoryEntry(r,build,p){
  const action=String.fromCharCode(r.readChar()&255),id=r.readObjectIdClient(),slot=r.readDword(),entry={action,id,slot};
  if(action==='D')return entry;
  if(action==='A')return{...entry,item:activeItemProperties(r,build,itemAppearance(r,build,p))};
+ // Client appearance reader77fe10: U carries only the weapon effect BYTE
+ // and ObjectVisualTransformData, not a replacement item or active fields.
+ if(action==='U')return{...entry,item:{field462:r.readByte(),visualTransform:readObjectVisualTransform(r,build)}};
  throw new UnhandledRecord(`Inventory appearance action ${action} is unavailable`);
 }
 
@@ -61,10 +64,18 @@ function guiInventory(r,build,p){
  const channel=String.fromCharCode(r.readChar()&255);
  if(channel==='Q')return readQuickbarItemUses(r);
  if(channel==='S')return readInventoryStats(r,build,{...p,unsupported:reason=>{throw new UnhandledRecord(reason);}});
+ // Merchant reader1407b4b80: U is a coordinate update, not a stack update.
+ if(channel==='M'){
+  const operation=String.fromCharCode(r.readChar()&255),entry={action:'inventory',channel,operation};
+  if(operation==='P')return{...entry,pageCount:r.readByte(),panel:r.readByte()};
+  if(operation==='D')return{...entry,id:r.readObjectIdClient()};
+  if(operation==='A'||operation==='U'){entry.x=r.readByte();entry.y=r.readByte();entry.id=r.readObjectIdClient();if(operation==='A')entry.item=readNetworkItem(r,build,p);return entry;}
+  throw new UnhandledRecord(`Inventory M/${operation} is unavailable`);
+ }
  if(!['R','r','A','B','C','c','I','i'].includes(channel))throw new UnhandledRecord(`Inventory channel ${channel} is unavailable`);
  const operation=String.fromCharCode(r.readChar()&255),entry={action:'inventory',channel,operation};
  const equipped=channel==='I'||channel==='i',container=channel==='C'||channel==='c';
- if(operation==='P'&&container){entry.page=r.readByte();return entry;}
+ if(operation==='P'&&container){entry.pageCount=r.readByte();return entry;}
  if(operation==='U'&&equipped){entry.state={field28c:r.readInt(),field8c:r.readShort(),field70:r.readByte()};return entry;}
  if(operation==='A'){
   if(equipped)entry.slot=r.readDword();else{entry.x=r.readByte();entry.y=r.readByte();}
@@ -192,7 +203,7 @@ export function readObjectUpdates(r,{clientBuild,...providers}={}){
    if(r.messageReadOverflow())throw new Error('Invalid native object-update record fields');
    const last=records.at(-1);if(last.state)states.set(last.id,{...providers.objectState(last.id),...last.state});
   }catch(error){
-   if(!(error instanceof UnhandledRecord))throw error;
+   if(!(error instanceof UnhandledRecord)){error.objectUpdate={tag,cursor,fragmentCursor,bit};throw error;}
    return{records,complete:false,unhandled:{tag,reason:error.message,cursor,fragmentCursor,bit}};
   }
  }

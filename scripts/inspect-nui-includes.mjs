@@ -1,0 +1,10 @@
+// Read installed stock NUI script declarations; retain derived schema only.
+import fs from 'node:fs/promises';import path from 'node:path';import {createHash} from 'node:crypto';import {openServerResourceContext} from '../electron/server_resource_context.mjs';import {decodeResourceText} from '../src/resource_archive.js';
+const resolver=await openServerResourceContext({install:path.resolve('../FullDecomp/NwnRootInstall')}),bytes=await resolver.getResource('nw_inc_nui',2009),source=decodeResourceText(bytes),functions=[];
+const regex=/\b(json|void|int|float|string)\s+(Nui\w+)\s*\(([^;{}]*?)\)\s*\{/g;let match;
+while((match=regex.exec(source))){let depth=1,end=regex.lastIndex;const start=end;let quote=false,escape=false;for(;end<source.length&&depth;end++){const c=source[end];if(quote){if(escape)escape=false;else if(c==='\\')escape=true;else if(c==='"')quote=false;}else if(c==='"')quote=true;else if(c==='{')depth++;else if(c==='}')depth--;}
+ const body=source.slice(start,end-1);functions.push({name:match[2],returns:match[1],arguments:match[3].replace(/\/\/[^\n]*/g,'').replace(/\s+/g,' ').trim(),elementType:body.match(/NuiElement\("([^"]+)"/)?.[1]??null,properties:[...new Set([...body.matchAll(/JsonObject(?:Set|Get)\w*\s*\([^\n]*?"([^"]+)"/g)].map(m=>m[1]))]});if(process.argv.slice(2).includes(match[2]))console.log(match[2]+'('+match[3]+')\n'+body);
+ regex.lastIndex=end;
+}
+const constants=Object.fromEntries([...source.matchAll(/(?:const\s+)?(?:int|float|string)\s+(NUI_\w+)\s*=\s*([^;]+);/g)].map(m=>[m[1],m[2].trim()]));
+const report={scope:'Derived function signatures, enum values and JSON property names from installed nw_inc_nui.nss; no source/resource payload copied',resourceSha256:createHash('sha256').update(new Uint8Array(bytes)).digest('hex'),constants,functions};await fs.writeFile('backups/animations/native-nui-include-schema-v1.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({functions:functions.length,names:functions.map(f=>f.name),constants}));

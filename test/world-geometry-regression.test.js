@@ -51,7 +51,8 @@ endnode
 `;
   for(let orientation=0;orientation<4;orientation++){
     const area={resRef:'custom',width:2,tileHeight:5,tiles:Array.from({length:4},()=>({model:'custom',orientation,height:1}))};
-    const result=await loadAreaWalkmesh(area,{getResource:async name=>new TextEncoder().encode(name==='surfacemat'?table:text)});
+    const reads=[];const result=await loadAreaWalkmesh(area,{getResource:async name=>{reads.push(name);return new TextEncoder().encode(name==='surfacemat'?table:text);}});
+    assert.equal(reads.filter(name=>name==='custom').length,1);
     assert.equal(result.missing.length,0);assert.equal(result.triangles.length,8);
     assert.deepEqual(moveOnWalkmesh(result.triangles,[5,5,-9],0,-2,.22,.9),[5,5,-11]);
     assert.deepEqual(moveOnWalkmesh(result.triangles,[9,5,-5],2,0,.22,.9),[11,5,-5]);

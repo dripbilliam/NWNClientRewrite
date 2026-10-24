@@ -1,0 +1,19 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+import {transformSceneReplay} from './scene-replay-transform.mjs';
+test('replay runtime-option metadata crosses the Electron structured-clone boundary without callbacks',()=>{
+ const code=transformSceneReplay(fs.readFileSync('src/main.js','utf8')).code,expression=code.match(/runtimeOptions:(\{[^{}]+\})/)?.[1];assert.ok(expression);
+ const value=vm.runInNewContext('('+expression+')',{modelParticles:{reuseFrameState:true},qaReplayLightRecords:true,qaPointGrid:{enabled:false},qaReplaySharedMembership:false,qaReplayShareMembers(){}});
+ assert.deepEqual(structuredClone(value),{particleFrameStorage:true,lightOnlyMembership:true,pointGrid:false,sharedMembership:false});
+});
+test('shared frame mode retains baseline owners and constructs no handoff in the baseline control',()=>{
+ const code=transformSceneReplay(fs.readFileSync('src/main.js','utf8')).code,body=code.match(/function qaReplaySetExperiment\(mode\)\{([\s\S]*?)\n\}/)?.[1];assert.ok(body);
+ const state={qaReplayBatchDefaults:{limit:32,layers:32,hardwareLayers:256,maxVertices:16384,maxBytes:64*1024*1024},renderer:{capabilities:{maxVertexUniforms:4096}},qaPerformanceFlags:{staticBatches:true,lightUniforms:true,materialReuse:true},rendererMainBatches:{reset(){},palettes:{}},rendererLightUniforms:{},rendererMaterialReuse:{},modelParticles:{},rendererShadowTraversal:{cache:{}},qaReplayFlat:{reset(){}},qaPointGrid:{setEnabled(){}},qaCommandBatches:{reset(){},merged:false,sampleAll:false},qaReplayShareMembers(){},qaWarmDraws:{enabled:false},qaCompiledPass:{enabled:false},qaScenePlan:{enabled:false},qaShadowPrefix:{enabled:false},setMatrixOwnerCooperation(){}};
+ const set=vm.runInNewContext('(function(mode){'+body+'})',state);set('shared-frame');assert.equal(state.qaReplaySharedMembership,true);assert.equal(state.qaReplayFlatEnabled,true);assert.equal(state.rendererShadowTraversal.reuseMembership,true);assert.equal(state.rendererMainBatches.enabled,true);assert.equal(state.rendererLightUniforms.enabled,true);assert.equal(state.rendererMaterialReuse.enabled,true);assert.equal(state.modelParticles.reuseFrameState,false);assert.equal(state.qaReplayLightRecords,false);assert.equal(state.qaCommandBatches.enabled,false);
+ const expression=code.match(/onMembership:([^}]+)\}/)?.[1];assert.ok(expression);for(const enabled of [true,false]){state.qaReplaySharedMembership=enabled;assert.equal(vm.runInNewContext(expression,state),enabled?state.qaReplayShareMembers:null);}
+ set('baseline');assert.equal(state.qaReplaySharedMembership,false);assert.equal(state.qaReplayFlatEnabled,false);assert.equal(state.rendererShadowTraversal.reuseMembership,false);
+ set('warm-draws');assert.equal(state.qaWarmDraws.enabled,true);assert.equal(state.rendererMainBatches.enabled,false);assert.equal(state.rendererLightUniforms.enabled,false);assert.equal(state.rendererMaterialReuse.enabled,false);assert.equal(state.modelParticles.reuseFrameState,true);assert.equal(state.qaReplayLightRecords,true);assert.equal(state.qaReplaySharedMembership,false);
+ set('compiled-main');assert.equal(state.qaCompiledPass.enabled,true);assert.equal(state.qaWarmDraws.enabled,false);assert.equal(state.qaScenePlan.enabled,true);assert.equal(state.qaCommandBatches.enabled,false);
+ set('planned-draws');assert.equal(state.qaCompiledPass.enabled,false);assert.equal(state.qaScenePlan.enabled,true);assert.equal(state.qaWarmDraws.enabled,true);assert.equal(state.qaReplaySharedMembership,true);assert.equal(state.qaReplayFlatEnabled,false);
+});
+
+test('the entire transformed replay entry compiles without duplicate imports',async()=>{const {transformSync}=await import('esbuild');assert.doesNotThrow(()=>transformSync(transformSceneReplay(fs.readFileSync('src/main.js','utf8')).code,{loader:'js',target:'esnext'}));});

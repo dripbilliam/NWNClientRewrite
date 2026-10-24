@@ -1,0 +1,2 @@
+const {contextBridge,ipcRenderer}=require('electron');
+contextBridge.exposeInMainWorld('creationFixture',{texture:name=>ipcRenderer.invoke('creation-fixture:texture',name),resource:(name,type)=>ipcRenderer.invoke('creation-fixture:resource',name,type),models:()=>ipcRenderer.invoke('creation-fixture:models'),portraits:()=>ipcRenderer.invoke('creation-fixture:portraits'),portraitAvailability:refs=>ipcRenderer.invoke('creation-fixture:portrait-availability',refs),talk:()=>ipcRenderer.invoke('creation-fixture:talk')});

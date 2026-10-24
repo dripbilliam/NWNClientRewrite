@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+const root=new URL('../',import.meta.url),read=async p=>JSON.parse(await fs.readFile(new URL(p,root),'utf8'));
+const ui=await read('backups/animations/creation-experience-keyboard-radial-ui-v1.json');
+for(const field of ['passed','topLayer','hitPriority','coordinateAlignment','menuMovement','menuButtonMovement','checkboxMovement','sliderMovement','controlArrows','nuiTextCapture','keyRelease','shiftRelease','outsideClickMovement','menuClickIsolation','chatCapture','blurStop','canonicalUnchanged'])assert.equal(ui[field],true,field);
+const sourceHashes={};for(const file of ['src/game_input.js','src/game_ui.js','src/main.js','src/radial_menu.js','src/network_keyboard_input.js','src/network_dialog_view.js','src/network_nui_view.js','src/style.css','scripts/keyboard-radial-fixture.html','scripts/smoke-keyboard-radial.cjs'])sourceHashes[file]=createHash('sha256').update(await fs.readFile(new URL(file,root))).digest('hex');
+const launcher=await read('backups/animations/creation-experience-main-options-control-v9.json.state.json');
+const proof={scope:'User-requested nonmodal gameplay menus; production input/UI handlers in isolated Chromium with synthetic actor and captured requests',joins:0,uploads:0,checks:Object.fromEntries(Object.entries(ui).filter(([,v])=>v===true)),sourceHashes,launcher,limits:'UI routing/hit tests and keyboard request capture, not a new public-server movement test. Existing protocol/drive tests remain unchanged. Loading, unavailable world, character-selection lifecycle, text entry and scripted cutscene controls retain their locks; no server-owned state is mutated.'};
+await fs.writeFile(new URL('backups/animations/creation-experience-menu-movement-proof-v1.json',root),JSON.stringify(proof,null,2)+'\n');console.log(JSON.stringify({success:true,checks:Object.keys(proof.checks).length,sourceFiles:Object.keys(sourceHashes).length,launcher}));

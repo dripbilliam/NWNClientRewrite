@@ -1,0 +1,1 @@
+const {contextBridge,ipcRenderer}=require('electron');contextBridge.exposeInMainWorld('lifecycleFixture',{resource:(name,type)=>ipcRenderer.invoke('lifecycle:resource',name,type),models:()=>ipcRenderer.invoke('lifecycle:models'),portraitAvailability:refs=>ipcRenderer.invoke('lifecycle:portrait-availability',refs)});

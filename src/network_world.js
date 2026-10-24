@@ -10,14 +10,29 @@ import {networkCastReleaseBase,networkCastAnimationRecord} from './network_cast_
 import {mergeNetworkAbilityCache} from './network_spell_gain.js';
 import {applyNetworkAssociateState} from './network_associates.js';
 import {applyNetworkParty} from './network_party.js';
+import {setCustomToken} from './custom_tokens.js';
+import {scriptStringBytes} from './script_string.js';
 import {applyNetworkAutomap} from './network_automap.js';
+import {NuiState} from './nui_state.js';
+import {applyAreaWeather} from './network_area_weather.js';
 
 // A connection owns its client proxies. No ModuleSession, script VM, AI,
 // combat resolver or ID allocator runs when importing server state.
 export class NetworkWorld {
  constructor({onDiagnostic=d=>runtimeDiagnostics.record(d.code,d.reason,d)}={}){this.onDiagnostic=onDiagnostic;this.reset();}
- reset(){this.registry=new GameObjectArray({clientMode:true});this.module=null;this.areaId=OBJECT_INVALID;this.entry=null;this.time={};this.controls=new Map();this.players=new Map();this.party=[];this.inventories=new Map();this.quickbar=Array.from({length:36},emptyQuickbarButton);this.presentationChanges=[];this.localObjectId=OBJECT_INVALID;this.journal={entries:new Map(),worldEntries:new Map(),loaded:false};this.playerAttitudes=new Map();this.mapPins=new Map();this.timing=null;}
+ reset(){this.spellTargetingOverrides=new Map();this.scriptTargeting=null;this.scriptTargetingData=null;this.scriptTargetVersion=0;this.nui=new NuiState();this.store=null;this.registry=new GameObjectArray({clientMode:true});this.module=null;this.areaId=OBJECT_INVALID;this.entry=null;this.time={};this.controls=new Map();this.players=new Map();this.party=[];this.inventories=new Map();this.containers=new Map();this.quickbar=Array.from({length:36},emptyQuickbarButton);this.presentationChanges=[];this.localObjectId=OBJECT_INVALID;this.journal={entries:new Map(),worldEntries:new Map(),loaded:false};this.customTokens={records:[]};this.tlkOverrides=new Map();this.tlkOverrideVersion=0;this.playerAttitudes=new Map();this.mapPins=new Map();this.timing=null;}
  apply(message){
+  if(message.kind==='script-targeting'){this.scriptTargetVersion=(this.scriptTargetVersion??0)+1;this.scriptTargeting=message.objectMask?{...message,version:this.scriptTargetVersion,areaId:this.areaId,actorId:this.localObjectId}:null;return true;}
+  if(message.kind==='script-targeting-data'){this.scriptTargetingData={...message};return true;}
+  if(message.kind==='spell-targeting-data'){this.spellTargetingOverrides.set(message.spellId,{...message});return true;}
+  if(message.kind.startsWith('nui-')){this.nui??=new NuiState();return this.nui.apply(message);}
+  if(message.kind==='store-open'){if(!this.store?.open){this.store={...structuredClone(message),open:true,generation:(this.store?.generation??0)+1,page:0};this.inventories.set('M',{entries:[],panel:message.panel,pageCount:1});}return true;}
+  if(message.kind==='store-close'){if(this.store)this.store.open=false;this.inventories.delete('M');return true;}
+  if(message.kind==='store-transaction'){if(this.store){this.store.gold=message.gold;this.store.lastTransaction={itemId:message.itemId};}return true;}
+  if(message.kind==='sound-object')return this.applySoundObject(message);
+  if(message.kind==='custom-token'){setCustomToken(this.customTokens,message.id,scriptStringBytes(message.text));return true;}
+  if(message.kind==='tlk-overrides'){for(const {strRef,text}of message.entries){if(text.length)this.tlkOverrides.set(strRef,text);else this.tlkOverrides.delete(strRef);}if(message.entries.length)this.tlkOverrideVersion++;return true;}
+  if(message.kind==='container-status'){const channel=message.primary?'C':'c';this.containers.set(channel,message.targetId);this.inventories.set(channel,{entries:[],pageCount:1,ownerId:message.targetId});return true;}
   if(message.kind==='examine'){if(message.type==='item'&&!message.close){const item=this.registry.get(message.targetId)?.item;if(item){item.identified=message.identified;if(message.canUse!==undefined)item.canUse=message.canUse;}}return true;}
   if(message.kind==='gui-timing'){this.timing={...message,version:(this.timing?.version??0)+1};return true;}
   if(message.kind==='player-attitude'){if(message.clear)this.playerAttitudes.clear();else this.playerAttitudes.set(message.playerId,{...message});return true;}
@@ -38,6 +53,7 @@ export class NetworkWorld {
   if(message.kind==='quickbar')return this.applyQuickbar(message);
   if(message.kind==='module-info'){this.module=structuredClone(message.module);return true;}
   if(message.kind==='module-time'){Object.assign(this.time,message.changes);return true;}
+  if(message.kind==='area-weather')return applyAreaWeather(this,message);
   if(message.kind==='object-control'){this.controls.set(message.playerId,message.objectId);return true;}
   if(message.kind==='player-list-all'||message.kind==='player-list-add'){
    if(message.kind==='player-list-all'){this.players.clear();this.controls.clear();}
@@ -56,7 +72,7 @@ export class NetworkWorld {
    };
    stage(area.id,GAME_OBJECT_TYPE.area,{state:area});
    for(const pin of area.mapPins)stage(pin.id,GAME_OBJECT_TYPE.waypoint,{areaId:area.id,mapPin:pin});
-   for(const sound of area.sounds)stage(sound.id,GAME_OBJECT_TYPE.sound,{areaId:area.id,state:sound});
+   for(const sound of area.sounds)stage(sound.id,GAME_OBJECT_TYPE.sound,{areaId:area.id,state:sound,nativeSoundHeight:sound.position[2]});
    for(const light of area.placeableLights)stage(light.id,GAME_OBJECT_TYPE.placeable,{areaId:area.id,lightState:light});
    for(const placeable of area.staticPlaceables)stage(placeable.id,GAME_OBJECT_TYPE.placeable,{areaId:area.id,staticState:placeable});
    // HandleServerToPlayerArea76d910 explicitly reattaches the existing
@@ -68,17 +84,41 @@ export class NetworkWorld {
    // before committing; a rejected record must not leave half an area loaded.
    const staged=new GameObjectArray({clientMode:true});
    for(const record of records.values())if(staged.addObjectAtPos(record.id,{...record}).status!==0)throw new Error('Server area object ID cannot be registered');
+   // Native area teardown7e7770 stops/deletes its type16 objects before
+   // loading the new area. Preserve unrelated creature/item/party proxies.
+   const previousArea=this.registry.get(this.areaId)?.state;
+   for(const old of [...this.registry.objects.values()])if(old.objectType===GAME_OBJECT_TYPE.sound&&old.areaId===this.areaId)this.registry.delete(old.id);
+   if(previousArea?.sounds)previousArea.sounds=[];
    for(const record of records.values()){
     const old=this.registry.get(record.id);
     if(old)Object.assign(old,record);else this.registry.addObjectAtPos(record.id,record);
    }
-   this.mapPins=new Map(area.mapPins.map(pin=>[pin.id,{...pin}]));this.areaId=area.id;this.entry={loadingScreen:entry.loadingScreen,position:entry.position,facing:entry.facing,flag:entry.flag};this.time={...area.time};return true;
+   this.scriptTargeting=null;this.containers.clear();this.inventories.delete('C');this.inventories.delete('c');this.store=null;this.inventories.delete('M');this.mapPins=new Map(area.mapPins.map(pin=>[pin.id,{...pin}]));this.areaId=area.id;this.entry={loadingScreen:entry.loadingScreen,position:entry.position,facing:entry.facing,flag:entry.flag};this.time={...area.time};return true;
   }catch(error){this.onDiagnostic({code:'network.area-import-failed',reason:error.message});throw error;}
+ }
+ applySoundObject(message){
+  const {operation,objectId}=message,old=this.registry.get(objectId),isSound=old?.objectType===GAME_OBJECT_TYPE.sound;
+  if(operation===6){
+   if(old){this.onDiagnostic({code:'network.sound-create-duplicate',reason:'Native sound create references an existing object',objectId});return false;}
+   if(message.areaId!==this.areaId){this.onDiagnostic({code:'network.sound-create-wrong-area',reason:'Native sound create references another area',objectId,areaId:message.areaId});return false;}
+   const sound=message.sound;if(sound.id!==objectId||!Number.isInteger(sound.id)||sound.id<EXTERNAL_OBJECT||sound.id>0xffffffff){this.onDiagnostic({code:'network.sound-create-invalid-id',reason:'Native sound create has inconsistent canonical IDs',objectId,packedId:sound.id});return false;}
+   const record={id:sound.id,objectType:GAME_OBJECT_TYPE.sound,areaId:message.areaId,state:structuredClone(sound),nativeSoundHeight:sound.position[2]};
+   if(this.registry.addExternalObject(sound.id,record).status!==0)throw new Error('Native sound object ID cannot be registered');const area=this.registry.get(this.areaId)?.state;if(area?.sounds)area.sounds.push(record.state);return true;
+  }
+  if(!isSound){if(operation===7)this.onDiagnostic({code:'network.sound-destroy-missing',reason:'Native sound destroy has no matching sound object',objectId});return false;}
+  if(operation===2||operation===3)old.state.fields['308']=operation===2?1:0;
+  else if(operation===4)old.state.fields['314']=message.volume;
+  else if(operation===5){const position=message.position.map(Math.fround);position[2]=Math.fround(position[2]+Math.fround(old.nativeSoundHeight??old.state.position[2]));old.state.position=position;}
+  else if(operation===7){this.registry.delete(objectId);const area=this.registry.get(old.areaId)?.state;if(area?.sounds)area.sounds=area.sounds.filter(s=>s.id!==objectId);}
+  return true;
  }
  // Native inventory panel8562e0 clears its repository grid882700 before
  // requesting the new panel. This is GUI membership, not item destruction:
  // canonical objects and their last replicated metadata remain cached.
  clearRepositoryView(self=true){const view=this.inventories.get(self?'R':'r');if(view)view.entries=[];}
+ // Native855d00/855be0 clear GUI membership before sending a page command.
+ // Cached canonical items and their last metadata/locations survive this clear.
+ clearContainerView(primary=true){const view=this.inventories.get(primary?'C':'c');if(view)view.entries=[];}
  applyQuickbar(message){
   const buttons=structuredClone(this.quickbar),items=new Map();
   for(const entry of message.entries){
@@ -113,9 +153,9 @@ export class NetworkWorld {
      const {channel,operation}=record,existing=inventories.has(channel),view=inventories.get(channel)??{entries:[]};inventories.set(channel,view);
      // Uppercase R/I/C belong to the primary GUI; lowercase variants are
      // a separate associate GUI. Do not infer an associate owner from names.
-     const ownerId=['R','I','C'].includes(channel)?localObjectId:null;
-     if(!existing&&ownerId===null)events.push({action:'inventory-owner-unavailable',channel});
-     if(record.page!==undefined){view.page=record.page;continue;}
+     const ownerId=['C','c'].includes(channel)?this.containers.get(channel)??null:['R','I'].includes(channel)?localObjectId:null;
+     if(!existing&&ownerId===null&&channel!=='M')events.push({action:'inventory-owner-unavailable',channel});
+     if(record.pageCount!==undefined){view.pageCount=record.pageCount;if(record.panel!==undefined)view.panel=record.panel;continue;}
      if(record.state){view.stats={...view.stats,...structuredClone(record.state)};if(ownerId!==null)Object.assign(object(ownerId,GAME_OBJECT_TYPE.creature).inventoryStats??={},structuredClone(record.state));continue;}
      const key=channel.toUpperCase()==='I'?'slot':'id',index=view.entries.findIndex(e=>e[key]===record[key]);
      if(operation==='D'){
@@ -125,13 +165,13 @@ export class NetworkWorld {
       const item=object(record.id,GAME_OBJECT_TYPE.item);item.item=mergeNetworkItem(item.item,record.item);item.replicationRemoved=false;item.areaId=OBJECT_INVALID;item.equipmentOwnerId=channel==='I'?ownerId:null;
       const displaced=index>=0?view.entries[index]:null;
       if(displaced&&displaced.id!==record.id){const previous=object(displaced.id,GAME_OBJECT_TYPE.item);if(previous.inventoryLocation?.channel===channel)previous.inventoryLocation=null;}
-      const group=channel===channel.toUpperCase()?['R','I','C']:['r','i','c'];
+      const group=channel===channel.toUpperCase()?['R','I','C','M']:['r','i','c'];
       if(group.includes(channel))for(const c of group){const v=inventories.get(c);if(v)v.entries=v.entries.filter(e=>e.id!==record.id&&(c!==channel||e[key]!==record[key]));}
       else view.entries=view.entries.filter(e=>e.id!==record.id&&e[key]!==record[key]);
       item.inventoryLocation={channel,ownerId,...(record.slot!==undefined?{slot:record.slot}:{x:record.x,y:record.y})};view.entries.push({id:record.id,...(record.slot!==undefined?{slot:record.slot}:{x:record.x,y:record.y})});
      }else if(operation==='U'||operation==='M'){
       const item=object(record.id,GAME_OBJECT_TYPE.item);
-      if(record.stackSize!==undefined){item.item??={};item.item.stackSize=record.stackSize;item.item.field280=record.field280;}
+      if(record.stackSize!==undefined){item.item??={};item.item.stackSize=record.stackSize;item.item.field280=record.field280;item.item.cost=record.field280;}
       if(record.x!==undefined&&index>=0){Object.assign(view.entries[index],{x:record.x,y:record.y});item.inventoryLocation={channel,ownerId,x:record.x,y:record.y};}
      }else throw new Error('Unsupported replicated inventory operation');
      continue;
@@ -163,7 +203,22 @@ export class NetworkWorld {
      o.appearance??={};
      for(const e of state.equipment??[])if(e.action==='A')e.item=mergeNetworkItem((staged.get(e.id)??this.registry.get(e.id))?.item,e.item);
      if(state.bodyParts){const parts=new Map(o.appearance.bodyParts?.map(p=>[p.index,p.value]));for(const p of state.bodyParts)parts.set(p.index,p.value);state.bodyParts=[...parts].sort((a,b)=>a[0]-b[0]).map(([index,value])=>({index,value}));}
-     if(state.equipment){const equipment=new Map(o.appearance.equipment?.map(e=>[e.slot,e]));for(const e of state.equipment){if(e.action==='D'){const previous=equipment.get(e.slot);equipment.delete(e.slot);const id=e.id>=EXTERNAL_OBJECT?e.id:previous?.id;if(id!==undefined&&(staged.has(id)||this.registry.get(id))){const item=object(id,GAME_OBJECT_TYPE.item);if(item.equipmentOwnerId===o.id)item.equipmentOwnerId=null;}}else if(e.action==='A'){equipment.set(e.slot,e);const item=object(e.id,GAME_OBJECT_TYPE.item);item.item=e.item;item.areaId=OBJECT_INVALID;item.equipmentOwnerId=o.id;}else throw new Error('Unsupported replicated equipment change');}state.equipment=[...equipment.values()];}
+     if(state.equipment){
+      const equipment=new Map(o.appearance.equipment?.map(e=>[e.slot,e]));
+      for(const e of state.equipment){
+       if(e.action==='D'){const previous=equipment.get(e.slot);equipment.delete(e.slot);const id=e.id>=EXTERNAL_OBJECT?e.id:previous?.id;if(id!==undefined&&(staged.has(id)||this.registry.get(id))){const item=object(id,GAME_OBJECT_TYPE.item);if(item.equipmentOwnerId===o.id)item.equipmentOwnerId=null;}}
+       else if(e.action==='A'){equipment.set(e.slot,e);const item=object(e.id,GAME_OBJECT_TYPE.item);item.item=e.item;item.areaId=OBJECT_INVALID;item.equipmentOwnerId=o.id;}
+       else if(e.action==='U'){
+        // Native77fe10 looks up the existing item. It never creates an item,
+        // equips a different ID, or changes ownership for this visual delta.
+        const old=staged.get(e.id)??this.registry.get(e.id);
+        if(old?.objectType!==GAME_OBJECT_TYPE.item)continue;
+        const item=object(e.id,GAME_OBJECT_TYPE.item);item.item=mergeNetworkItem(item.item,e.item);
+        for(const [slot,entry]of equipment)if(entry.id===e.id)equipment.set(slot,{...entry,item:item.item});
+       }else throw new Error('Unsupported replicated equipment change');
+      }
+      state.equipment=[...equipment.values()];
+     }
      Object.assign(o.appearance,state);
     }else{
      // Looping effects are change records, not a replacement effect list.
@@ -184,7 +239,7 @@ export class NetworkWorld {
     }
    }
    const validation=new GameObjectArray({clientMode:true});for(const o of staged.values())if(validation.addObjectAtPos(o.id,{...o}).status!==0)throw new Error('Replicated object ID cannot be registered');
-   for(const o of staged.values()){const old=this.registry.get(o.id);if(old)Object.assign(old,o);else this.registry.addObjectAtPos(o.id,o);}this.inventories=inventories;this.presentationChanges=events;this.localObjectId=localObjectId;
+   for(const o of staged.values()){const old=this.registry.get(o.id);if(old)Object.assign(old,o);else this.registry.addObjectAtPos(o.id,o);}this.inventories=inventories;this.presentationChanges=events;if(this.localObjectId!==localObjectId)this.scriptTargeting=null;this.localObjectId=localObjectId;
    for(const event of events)if(event.action==='inventory-owner-unavailable')this.onDiagnostic({code:'network.inventory-owner-unavailable',reason:'Native inventory GUI owner binding is unavailable',channel:event.channel});return true;
   }catch(error){this.onDiagnostic({code:'network.object-import-failed',reason:error.message});throw error;}
  }

@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><title>Native network sound playback</title>
+<link rel="stylesheet" href="../src/style.css">
+<style>body{background:#142018;color:#eee;padding:20px}#fixture{position:relative;height:380px}pre{white-space:pre-wrap;font-size:14px}</style>
+<h1>Native server PlaySound</h1><button id="play">Play original-code packet</button><pre id="audio-status">Waiting for audio input</pre><div id="fixture"></div>
+<script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js"}}</script>
+<script type="module">import('./network-audio-fixture.mjs').catch(e=>window.fixtureFailure=e.stack);</script>

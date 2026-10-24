@@ -1,0 +1,7113 @@
+{
+  "target": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Execute original weather requests1407e69a0/69e0, frame block8f21..903a\nand visual setter1407e63c0. Synthetic C2DA/model objects; resource loading,\nanimation execution and sound/driver calls are explicit lower boundaries.\nOriginal transition arithmetic, clamping, six-instance lifecycle and animation\nrate requests execute unchanged. This does not establish precipitation pixels.\n",
+  "rows": [
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 1,
+      "remaining": 6000,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 1,
+      "remaining": 5999,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 17,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 1,
+      "remaining": 5982,
+      "intensityBits": "8888883c",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 1,
+      "remaining": 4982,
+      "intensityBits": "9a99993e",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2000,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 1,
+      "remaining": 2982,
+      "intensityBits": "bcbb8741",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2982,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 1,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 0,
+      "remaining": 5999,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 0,
+      "remaining": 4999,
+      "intensityBits": "78f7c742",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 5000,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 2,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 2,
+      "remaining": 5984,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {},
+      "current": 2,
+      "target": 2,
+      "remaining": 4984,
+      "intensityBits": "8888883e",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 1,
+      "remaining": 5984,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 1,
+      "remaining": 4984,
+      "intensityBits": "8888883e",
+      "instances": 6,
+      "created": 12,
+      "removed": 6,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 2,
+        "enabled": false
+      },
+      "delta": 6000,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 12,
+      "removed": 12,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 0,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6000,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 5999,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 1,
+      "remaining": 1,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 6000,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 0,
+      "fadeTimes": {},
+      "current": 1,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6001,
+      "fadeTimes": {},
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 6000,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 5999,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 17,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 5982,
+      "intensityBits": "8888883c",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e39",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 4982,
+      "intensityBits": "9a99993e",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "a69b443b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 2982,
+      "intensityBits": "bcbb8741",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "1abd2d3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2982,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 1,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 5999,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 4999,
+      "intensityBits": "78f7c742",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "14f57f3f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 5000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 2,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 2,
+      "remaining": 5984,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 2,
+      "target": 2,
+      "remaining": 4984,
+      "intensityBits": "8888883e",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 5984,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 4984,
+      "intensityBits": "8888883e",
+      "instances": 6,
+      "created": 12,
+      "removed": 6,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "3dc32e3b",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 2,
+        "enabled": false
+      },
+      "delta": 6000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 12,
+      "removed": 12,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 0,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 5999,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 1,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 6000,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6001,
+      "fadeTimes": {
+        "1": 6000,
+        "2": 6000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 5999,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 17,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 5982,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 4982,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 2982,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2982,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 1,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 5999,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 4999,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 5000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 2,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 2,
+      "target": 2,
+      "remaining": 5984,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 2,
+      "target": 2,
+      "remaining": 4984,
+      "intensityBits": "610b0642",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "af93ab3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "af93ab3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "af93ab3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "af93ab3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "af93ab3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "af93ab3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 5984,
+      "intensityBits": "56550542",
+      "instances": 6,
+      "created": 12,
+      "removed": 6,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "acaaaa3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "acaaaa3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "acaaaa3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "acaaaa3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "acaaaa3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "acaaaa3e",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 4984,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 12,
+      "removed": 6,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 2,
+        "enabled": false
+      },
+      "delta": 6000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 12,
+      "removed": 12,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 0,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 5999,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 1,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 6000,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6001,
+      "fadeTimes": {
+        "0": 3000,
+        "1": 3000,
+        "2": 9000
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 5999,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 17,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 5982,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 4982,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 2982,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2982,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 1,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 5999,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 4999,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 5000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 2,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 2,
+      "target": 2,
+      "remaining": 5984,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 2,
+      "target": 2,
+      "remaining": 4984,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 5984,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 12,
+      "removed": 6,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 4984,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 12,
+      "removed": 6,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 2,
+        "enabled": false
+      },
+      "delta": 6000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 12,
+      "removed": 12,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 0,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 5999,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 1,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 6000,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 1,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6001,
+      "fadeTimes": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 6000,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 5999,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 17,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 5982,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 4982,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 2982,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 2982,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 1,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 5999,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 4999,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 5000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 2,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 2,
+      "remaining": 5984,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 2,
+      "remaining": 4984,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 16,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 5984,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 4984,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 2,
+        "enabled": false
+      },
+      "delta": 6000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 0,
+        "enabled": true
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 5999,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 1,
+      "remaining": 1,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 0,
+      "removed": 0,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 1,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": true,
+      "request": {
+        "type": 1,
+        "enabled": true
+      },
+      "delta": 6000,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 1,
+      "target": 1,
+      "remaining": 0,
+      "intensityBits": "0000c842",
+      "instances": 6,
+      "created": 6,
+      "removed": 0,
+      "events": [
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 128
+        },
+        {
+          "kind": "play",
+          "rateBits": "0000803f",
+          "flags": 0
+        },
+        {
+          "kind": "play",
+          "rateBits": "00000000",
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "reset": false,
+      "request": {
+        "type": 1,
+        "enabled": false
+      },
+      "delta": 0,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 6000,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    },
+    {
+      "reset": false,
+      "request": null,
+      "delta": 6001,
+      "fadeTimes": {
+        "0": -1,
+        "1": -1,
+        "2": -1
+      },
+      "current": 0,
+      "target": 0,
+      "remaining": 0,
+      "intensityBits": "00000000",
+      "instances": 0,
+      "created": 6,
+      "removed": 6,
+      "events": []
+    }
+  ]
+}

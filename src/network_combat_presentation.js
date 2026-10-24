@@ -1,3 +1,4 @@
+import {networkBindingAnimator} from './network_creature_models.js';
 import {ClientAnimationQueue} from './client_animation_queue.js';
 import {playClientAttack,clientAttackHit,advanceClientAnimationCountdown} from './client_attack_playback.js';
 import {selectClientAttackAnimation} from './client_combat_animation.js';
@@ -11,20 +12,22 @@ import {OBJECT_INVALID} from './game_object_array.js';
 import {clientObjectAnimationName} from './client_object_animation.js';
 import {networkCastReleaseBase,clientCastAnimationCue} from './network_cast_animation.js';
 import {clientMovementCue} from './network_movement_cue.js';
+import {clientAttackSound} from './client_attack_sound.js';
+import {nativeStringEntry} from './spell_metadata.js';
 const f=Math.fround;
 
 // Rendering-only client owner. Canonical objects, HP, equipment, paths, attack
 // outcomes and action queues belong to the server. This RNG selects cosmetic
 // clip variants/barks; it never rolls damage, saves or other gameplay outcomes.
 export class NetworkCombatPresentation {
- constructor({world,bindings,tables,pose,context,report,random=new NativeRandom(1),microseconds=null}){
-  Object.assign(this,{world,bindings,tables,pose,context,report,random});this.seconds=0;this.lastTick=0;this.events=[];this.animators=new Map();
+ constructor({world,bindings,tables,pose,context,report,voice=null,oneShot=null,parryEffect=null,impactEffect=null,random=new NativeRandom(1),microseconds=null}){
+  Object.assign(this,{world,bindings,tables,pose,context,report,voice,oneShot,parryEffect,impactEffect,random});this.seconds=0;this.lastTick=0;this.events=[];this.animators=new Map();
   this.timer=new WorldTimer(microseconds??(()=>BigInt(Math.trunc(this.seconds*1e6))));this.timer.setTime(0,0);this.lastTick=Number(this.timer.counter/1000n);
  }
  binding(o){return this.bindings.get(o.id);}
  object(id){const o=this.world.registry.get(id);return o&&!o.replicationRemoved&&o.areaId===this.world.areaId?o:null;}
  bind(o,b){
-  const animator=b.models[0]?.animator;if(!animator)return null;
+  const animator=networkBindingAnimator(b);if(!animator)return null;
   const context=o.objectType===5?this.context(o,this.tables,b.bodyType):{fieldDE:0,fieldDD:0,fieldDF:0,fieldE0:0,fieldE8:0,fieldEC:0};
   const base=o.objectType===5?0:o.replicated?.animation??0;
   const state=b.combat={context,side:0,queue:new ClientAnimationQueue(this.timer.dayLength),base,visual:base,speed:1,current:null,action:{type:0,sourceId:OBJECT_INVALID,targetId:OBJECT_INVALID},pending:null,failures:new Set()};
@@ -36,7 +39,7 @@ export class NetworkCombatPresentation {
   });
   return state;
  }
- unbind(b){const animator=b.models[0]?.animator,state=b.combat;this.animators.delete(animator);if(state?.hitListener&&animator.eventDispatcher){const list=animator.eventDispatcher.listeners,index=list.indexOf(state.hitListener);if(index>=0)list.splice(index,1);}state?.queue.clear();}
+ unbind(b){const animator=networkBindingAnimator(b),state=b.combat;this.animators.delete(animator);if(state?.hitListener&&animator.eventDispatcher){const list=animator.eventDispatcher.listeners,index=list.indexOf(state.hitListener);if(index>=0)list.splice(index,1);}state?.queue.clear();}
  ensure(o){const b=this.binding(o);if(!b)return null;return b.combat??this.bind(o,b);}
  failure(o,message,code='network.scene-combat-unhandled'){
   const state=this.binding(o)?.combat,key=code+':'+message;if(state?.failures.has(key))return;state?.failures.add(key);this.report(code,message,{objectId:o.id});
@@ -64,26 +67,40 @@ export class NetworkCombatPresentation {
     let value=nativeFloatEntry(this.tables.baseitems,weapon.baseItem,'PrefAttackDist').value;if(state.context.fieldDE===1){const scale=appearance(o,'WEAPONSCALE');if(scale.found)value=f(value*scale.value);}return value;}
   });state.side=source.side;state.attackType=source.attackType;return animation;
  }
- clip(o,animation){const b=this.binding(o),state=this.ensure(o);if(!b||!state)throw new Error('Native combat model binding is unavailable');const name=o.objectType===5?nativeAnimationName(animation,state.context):clientObjectAnimationName(o.objectType,animation),animator=b.models[0].animator,clip=animator.model.animations.find(c=>c.name===name);if(!clip)throw new Error(`Native animation ${animation} requires unavailable clip ${name}`);return{animator,name,clip};}
+ clip(o,animation){const b=this.binding(o),state=this.ensure(o);if(!b||!state)throw new Error('Native combat model binding is unavailable');const name=o.objectType===5?nativeAnimationName(animation,state.context):clientObjectAnimationName(o.objectType,animation),animator=networkBindingAnimator(b),clip=animator.model.animations.find(c=>c.name===name);if(!clip)throw new Error(`Native animation ${animation} requires unavailable clip ${name}`);return{animator,name,clip};}
  insert(o,cue){const state=this.ensure(o);if(!state){this.failure(o,'Native reaction model is unavailable');return;}this.timer.snapshot();state.queue.insert(cue,this.timer.time());}
  movementCue(o,request){try{const {clip}=this.clip(o,request.animation);this.insert(o,clientMovementCue(request,clip.length,o.replicated.animationSpeed??1));}catch(error){this.failure(o,error.message,'network.scene-movement-cue-unavailable');}}
  end(o){const state=this.ensure(o);if(!state)return;state.current=null;state.visual=state.base;}
+ sound(o,record,phase){try{return clientAttackSound(o,record,phase,{
+  object:id=>this.object(id),currentAnimation:actor=>this.binding(actor)?.combat?.visual??actor.replicated?.animation??0,
+  animationCategory:(_actor,animation)=>Number([206,207,208,262].includes(animation&65535)),
+  appearance:actor=>{const id=actor.objectType===5?actor.appearance?.appearance:actor.replicated?.appearance??actor.staticState?.appearance??actor.lightState?.appearance;if(!Number.isInteger(id))throw new Error('Native sound appearance index is unavailable');return id;},
+  int:(name,id,column)=>{if(!this.tables[name])throw new Error(`Native combat sound table ${name} is unavailable`);return intEntry(this.tables[name],id,column);},
+  string:(name,id,column)=>{if(!this.tables[name])throw new Error(`Native combat sound table ${name} is unavailable`);return nativeStringEntry(this.tables[name],id,column);},
+  equipped:(actor,slot)=>slot===null?null:this.equipped(actor,slot),weaponMaterial:item=>intEntry(this.tables.baseitems,item.baseItem,'WeaponMatType').value&255,
+  armorIndex:item=>{if(!Number.isInteger(item.field35c))throw new Error('Native replicated chest armor sound index is unavailable');return item.field35c;},
+  // Native7fb140 initializes creature string460 empty. Its later effect
+  // overrides belong to the effect owner, not a guessed network field.
+  armorOverride:actor=>this.binding(actor)?.combat?.armorOverride??'',
+  doorTypes:actor=>{const state=actor.replicated??{},fixed=actor.staticState??actor.lightState;const doorType=state.doorType??fixed?.doorType,genericType=state.genericType??fixed?.genericType;if(!Number.isInteger(doorType)||doorType===0&&!Number.isInteger(genericType))throw new Error('Native door sound appearance is unavailable');return{doorType,genericType};},
+  random:()=>this.random.next(),play:(actor,resRef,delay)=>{this.event({kind:'sound',objectId:actor.id,resRef,delay,phase});if(!this.oneShot){this.failure(actor,'Native combat one-shot audio output is unavailable','network.scene-combat-audio-unhandled');return;}const position=this.binding(actor)?.wrapper?.position,pose=position?[position.x,-position.z,position.y]:this.pose(actor)?.position.map((v,i,a)=>i===1?-a[2]:i===2?a[1]:v);if(!pose)throw new Error('Native combat sound source pose is unavailable');this.oneShot({resRef,nativePosition:pose,height:1.5,priority:13,delay,objectId:actor.id,channel:'combat'});}
+ });}catch(error){this.failure(o,error.message,'network.scene-combat-audio-unhandled');return false;}}
  providers(){return{
   object:id=>this.object(id),currentAnimation:o=>this.ensure(o)?.visual??o.replicated?.animation??0,bodyType:o=>this.binding(o)?.bodyType??0,
   prepareWeapon:o=>this.failure(o,'Native attack wield/effect preparation is not connected','network.scene-weapon-effect-unhandled'),
   stopModelMotion:o=>this.failure(o,'Native moving-melee model-motion cancellation is not connected','network.scene-model-motion-unhandled'),
   pendingAttack:(o,record)=>{this.ensure(o).pending=record;},selectAttack:(o,r)=>this.select(o,r),
   animationLength:(o,id)=>f(this.clip(o,id).clip.length*1000),insert:(o,cue)=>this.insert(o,cue),random:()=>this.random.next(),
-  bark:o=>this.failure(o,'Native combat bark audio is not connected','network.scene-combat-audio-unhandled'),
-  sound:o=>this.failure(o,'Native attack sound scheduling is not connected','network.scene-combat-audio-unhandled'),
+  bark:(o,code)=>{if(this.voice)this.voice(o,code);else this.failure(o,'Native combat bark audio is not connected','network.scene-combat-audio-unhandled');},
+  sound:(o,record,phase)=>this.sound(o,record,phase),
   isDoorOrPlaceable:o=>[9,10].includes(o.objectType),hitPoints:o=>o.replicated?.hitPoints?.current,
   unhandled:(message,o)=>this.failure(o,message),playReaction:(o,id)=>{const length=f(this.clip(o,id).clip.length*1000),speed=o.objectType===9?1:o.replicated.animationSpeed??1;this.insert(o,{animation:id,duration:Math.trunc(speed===0?length:length/Math.abs(speed))>>>0,speed,record:null,delay:0});},
   abortOnParry:o=>intEntry(this.tables.appearance,o.appearance.appearance,'ABORTONPARRY').value,
   weaponEffect:o=>this.failure(o,'Native weapon impact/cessation effects are not connected','network.scene-weapon-effect-unhandled'),
-  hasModel:(_o,id)=>{throw new Error(`Native attached-model query ${id} for parry abort is not connected`);},
+  hasModel:(o,id)=>{if(id!==18)throw new Error(`Native attached-model query ${id} is not connected`);const b=this.binding(o);if(!b)throw new Error('Native parry-abort model binding is unavailable');if(b.model18Unavailable)throw new Error('Native robe model18 for parry abort is unavailable');return Boolean(b.model18);},
   endAnimation:o=>this.end(o),hasParryWeapon:o=>Boolean([16,16384,32768,65536].some(slot=>this.equipped(o,slot))),
-  parryEffect:o=>this.failure(o,'Native parry effect presentation is not connected','network.scene-combat-effect-unhandled'),
-  impactEffect:o=>this.failure(o,'Native damage impact effect presentation is not connected','network.scene-combat-effect-unhandled'),
+  parryEffect:o=>this.parryEffect?this.parryEffect(o):this.failure(o,'Native parry effect presentation is not connected','network.scene-combat-effect-unhandled'),
+  impactEffect:(o,source,record)=>this.impactEffect?this.impactEffect(o,source,record):this.failure(o,'Native damage impact effect presentation is not connected','network.scene-combat-effect-unhandled'),
   playAttack:(o,r)=>playClientAttack(o,r,this.providers())
  };}
  receive(events){

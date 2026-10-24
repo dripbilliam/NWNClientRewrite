@@ -1,0 +1,20 @@
+"""Independent length/hash, parent, audio source scope and credential audit."""
+import hashlib,json,re,sys,zipfile
+from pathlib import Path
+root=Path(__file__).resolve().parents[1];name=sys.argv[1];assert re.fullmatch('[a-z0-9-]+',name)
+required=["test/network-area-native.test.js","backups/animations/rea-placed-sound-area-stop.json","backups/animations/network-placed-sound-regression-v4.txt","backups/animations/network-placed-sound-build-v3.txt","src/network_sound_objects.js","src/native_placed_sound.js","src/buffer_audio_source.js","src/network_placed_sounds.js","src/native_wave_timing.js","src/network_area.js","src/network_game_messages.js","src/network_world.js","src/network_frontend.js","src/main.js","src/network_scene.js","src/game_audio.js","electron/installed_network_resources.mjs","electron/network_game_session.mjs","test/network-sound-objects-native.test.js","test/placed-sound-owner-native.test.js","test/placed-sound-presentation.test.js","test/network-ambient-presentation.test.js","scripts/inspect-native-network-sound-objects.py","scripts/inspect-native-placed-sound-owner.py","scripts/network-placed-sound-fixture.html","scripts/network-placed-sound-fixture.mjs","scripts/smoke-network-placed-sound.cjs","scripts/network-visual-fixture-preload.cjs","scripts/checkpoint-placed-sound.ps1","scripts/audit-placed-sound-checkpoint.py","scripts/verify-network-placed-sound.mjs","evidence/multiplayer-placed-sounds.md","REPLACEMENT_CLIENT_ROADMAP.md","CASTING_RESUME_NOTE.md","backups/animations/native-network-sound-objects-observations.json","backups/animations/native-network-sound-objects-oracle-v1.txt","backups/animations/native-placed-sound-owner-observations.json","backups/animations/native-placed-sound-owner-oracle-v6.txt","backups/animations/network-placed-sounds-area-v136.json","backups/animations/network-placed-sound-focused-v3.txt","backups/animations/network-placed-sound-regression-v2.txt","backups/animations/network-placed-sound-build-v2.txt","backups/animations/network-placed-sound-ui-v1.json","backups/animations/network-placed-sound-ui-v1.png","backups/animations/network-placed-sound-ui-v3.txt","backups/animations/placed-sound-owner-native-v2.txt"]
+patterns=[re.compile(rb'\b[A-Z0-9]{5}(?:-[A-Z0-9]{5}){6}\b'),re.compile(rb'(?<![A-Za-z0-9])[A-HJ-NP-Z2-9]{35}(?![A-Za-z0-9])')]
+with zipfile.ZipFile(root/'backups'/f'{name}.zip')as new:
+ names=new.namelist();fold={n.casefold()for n in names};manifest=json.loads(new.read('checkpoint-manifest.json'));chain=json.loads(new.read('checkpoint-chain.json'));parents=[];previous={}
+ for record in chain['parents']:
+  p=root/'backups'/record['archive'];assert p.parent==root/'backups';assert hashlib.sha256(p.read_bytes()).hexdigest()==record['sha256'].lower();z=zipfile.ZipFile(p);parents.append(z)
+  for r in json.loads(z.read('checkpoint-manifest.json')):previous[r['path'].casefold()]=(z,r['path'])
+ missing=[n for n in required if n.casefold()not in fold];forbidden=[];secrets=0
+ for r in manifest:
+  n=r['path'];data=new.read(n);assert len(data)==r['bytes']and hashlib.sha256(data).hexdigest()==r['sha256'].lower()
+  if Path(n).suffix.lower()in{'.exe','.dll','.bic','.bif','.key','.nwm','.hak','.mdl','.tga','.dds','.wav','.bmu'}or n.startswith('runtime-logs/')or re.search(r'(-live-v\d+\.json|interactive-v|network-renderer-control)',n):forbidden.append(n)
+  if Path(n).suffix in{'.js','.mjs','.cjs','.py','.ps1','.json','.md','.txt','.html','.css'}:
+   old=previous.get(n.casefold());before=old[0].read(old[1])if old else b'';secrets+=len({v for p in patterns for v in p.findall(data)}-{v for p in patterns for v in p.findall(before)})
+  if Path(n).name.startswith('local-network-'):assert json.loads(data)['states'][-1]['phase']=='closed'
+ for z in parents:z.close()
+ result=dict(entries=len(names),verifiedFiles=len(manifest),parentsVerified=len(chain['parents']),required=len(required),missing=missing,forbidden=len(forbidden),duplicates=len(names)-len(fold),newCredentialCandidates=secrets);print(json.dumps(result,indent=2));assert not missing and not forbidden and len(names)==len(fold)and secrets==0

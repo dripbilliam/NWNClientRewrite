@@ -1,5 +1,76 @@
 # Character selection and first-level creation
 
+## 2026-10-19: profile portraits, resource errors, feat groups and voice sampling
+
+Target remains NWN:EE89.8193.37-17 x64 nwmain.exe, SHA2563b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a. Native GetMasterFeatNameText0x1402a3e30 reads the indexed STRREF array; GUI available-feat info handler0x1409c7830 distinguishes the master-feat flag0x10000 and uses the master name/description/icon. Active feat.MASTERFEAT and masterfeats.2da drive replacement groups without name-prefix or server-ID rules.
+
+Native CharacterGen handler0x1408e7110 resets preview code0 when the soundset row changes, otherwise advances through0..48 and wraps. It calls807240 with positional0. Replacement double-click uses those codes, active SSF/WAV resources and the existing audio adapter. Silent SSF entries and the server EmptyVoice row remain silent. Physical sound-device equality is not claimed.
+
+User-authorized portrait copy:1,463 TGA files,143,943,134 bytes, source Documents/Neverwinter Nights.0/portraits to Documents/Neverwinter Nights/portraits; each SHA256 verified. No image bytes enter this workspace. Portrait folder mounts only TGA/DDS, cannot supply rules or HAKs. The selected server context stays isolated; user portraits are intentionally shared profile images. Local custom portraits are enumerated separately from server portraits. Missing catalog images retain explicit diagnostics and a labelled placeholder.
+
+The optional half-orc PLT error exposed dropped Error.code properties at two boundaries: main-process IPC and preload contextBridge. Expected misses now travel as structured envelopes and are rebuilt in the renderer, preserving fallback and type/ref metadata; untrusted error fields are excluded. The real isolated Electron fixture exercises the same renderer decoder and extracted production appearance-asset loader. Final appearance acceptance is pending.
+
+Native cache observations: HasAdvertisedData0x1401b1910 asks HasManifest; SQLiteStorageProvider::Has0x1401c3d60 queries FindShardIndexForReading. This supports catalog-based availability, not opening every cached blob on every join. The current client still scans headers individually; changing that and slow world presentation is the final phase of the user goal.
+
+51 focused regressions and the build pass at this stage. UI evidencev6 verifies portrait scroll550->550, skill scroll400->400, unavailable feats hidden,2 groups/28 submenu choices/243 disabled rows revealed by toggle, real vs_nbarbam1_attk audio start and disposal. Earlier failed UI runs are retained; v6 still fails appearance because the second Error boundary was not yet fixed. Do not treat its partial success field as final acceptance.
+
+## 2026-10-19: server prerequisite tables and extended package IDs
+
+The interactive Arelith wizard failed with `undefined.toLowerCase` because
+every player-selectable class had a PreReqTable. The previous blanket exclusion
+selected class ID-1; unconditional spell-option validation then tried to use its
+missing SpellTableColumn. This was reproduced offline from the authenticated
+manifest `1fb727f690a7e0c462f79ef9177f5977c73d756f`, without HTTP access.
+
+Read-only original owners:
+
+- `GetIsClassAvailable140402e10` checks flags, alignment, level limits and calls
+  `GetMeetsPrestigeClassRequirements140403810..1404041bb`; a nonempty table is
+  not itself a ban. Arelith's base class table contains CLASSNOT restrictions,
+  satisfied by a new character with no existing class levels.
+- The requirement dispatcher preserves exact case, AND requirements and the
+  independent RACE/FEATOR/CLASSOR groups. Supported native types are SKILL,
+  FEAT, RACE, FEATOR, BAB, SPELL, ARCSPELL, VAR, CLASSNOT, CLASSOR and SAVE.
+  Unknown strings are ignored as in the original dispatch. The first-level
+  adapter supplies pre-class state: racial feats, no acquired class/skill ranks,
+  zero class BAB/base saves and empty script locals. Alignment remains checked
+  in its later creation step. This is not a completed general level-up owner.
+- `CResGFF::ReadFieldDWORDorBYTE1401a1590`, called at `1405706d9` during
+  `ValidateCreateServerCharacter`, reads an x-prefixed DWORD before the legacy
+  BYTE. The existing native SaveStats writer similarly preserves large values.
+  Fresh BICs now write xStartingPackage and keep legacy StartingPackage0 for
+  values above255. No package or class IDs are special-cased in production.
+
+New `class_prerequisites.js` is compared against1,564 executions of the original
+requirement function. C2DA IO, scalar getters, allocations and local-variable
+lookups are explicit captured boundaries; full wizard/validator execution is
+not claimed. Oracle attempts v1/v2 exposed incomplete function-boundary and
+security-cookie ABI shims; v3 corrects them and preserves the return value.
+REA dossiers are `rea-creation-class-*`, `rea-creation-prereq-type-literals.json`
+and `rea-creation-package-reader.json`. The original binary/project was unchanged.
+
+The UI now checks actual prerequisites when enabling classes. Optional/missing
+column names and an unselected/non-casting class no longer crash spell-option
+lookup. `probe-server-creation.mjs` validates all47 player-class rows and19
+playable races without exceptions;19 classes qualify for the tested initial
+race/pre-class state. Ordinary validation errors on an unfinished draft remain
+expected. See `arelith-creation-before-v2.json` / `arelith-creation-after-v1.json`.
+
+`arelith-creation-ui-v4.json` verifies the actual CharacterFrontend across all15
+steps, including selecting a visible server package rather than its hidden
+configured default, recommendations, skills/feats/spells and appearance controls.
+It creates an8,615-byte level1 wizard BIC in memory with package270, legacy0,
+12 known cantrips,7 known level1 spells and no world object ID. The buffer is
+cleared; no character was uploaded, persisted or admitted to Arelith. Zero HTTP
+attempts/console errors. Earlier UI harness failures are retained. This does not
+prove every custom class combination or public-server character validation.
+
+Final focused checks:107 pass, including native field readers, shared SaveStats,
+creation, spellbook and session/IPC regressions (`creation-prerequisite-focused-v5.txt`).
+Production build passes (`creation-prerequisite-build-v2.txt`).
+
+---
+
 2026-10-18 correction: fresh BIC ClassList now uses the original typed INT/SHORT
 fields and first-level history metadata. Earlier local parser checks did not
 detect the BYTE/WORD mismatch that vanilla character admission rejects. Corrected
@@ -98,3 +169,8 @@ separate acceptance gates. Existing casting/combat limitations are unchanged.
 Source/evidence checkpoint: `backups/live-character-creation-1282-20261014.zip`
 (manifest records every file's length and SHA256; the checkpoint script verifies
 the archive after writing it).
+
+
+## 2026-10-20 completion of creator fixes and UI steering
+
+Offline experience fixturev14 passes all requested creator interactions, actual profile portrait decoding, voice decode/source start and17-model/16-part/26-texture human and half-orc asset paths with zero HTTP. See creation-experience-ui-v14.json. Cached admission and presentation IO improvements followed these creator fixes. The requested in-game character sheet is implemented and separately validated in singleplayer/vanilla multiplayer. The user now restricts live testing to the local server; do not reconnect to Arelith. A two-minute local academy check at3100x1121 stays66.6–96.2FPS, with100tiles/92objects prepared in5981ms after area-loading, no new shaders during sustained rotation and no renderer errors. This is not complete dense/modded-world acceptance. The held-key refresh correction and remaining contact gaps are documented in multiplayer-keyboard-repeat.md; the goal remains active. Character-sheet details are in multiplayer-character-record.md.

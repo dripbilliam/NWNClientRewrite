@@ -1,5 +1,10 @@
 # Native multiplayer inventory replication — 2026-10-18
 
+2026-10-20: [inventory presentation](multiplayer-inventory-presentation.md) adds
+the equipment diagram, native item-icon construction, Options-only creature
+slots (default off), and server gold/weight footer. Earlier list-view notes below
+are historical; protocol ownership and canonical item handling remain in use.
+
 Latest continuation: [native item actions](multiplayer-item-actions.md) adds
 equipment/move/toggle/drop/pickup requests/results and grid/radial UI. The
 window-only milestone below is retained as historical evidence.

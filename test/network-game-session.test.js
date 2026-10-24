@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {EventEmitter} from 'node:events';
 import {NetworkGameSession} from '../electron/network_game_session.mjs';
+import {cancelActionRequest} from '../src/network_player_requests.js';
 import {writeGff,gffRecord} from '../src/gff_writer.js';
 import {RESOURCE_TYPE} from '../src/resource_archive.js';
 import {spellCastRequest,spellLikeCastRequest,spellPreparationRequest,spellPreparationClearRequest} from '../src/network_spell_input.js';
@@ -10,16 +11,52 @@ import {featUseRequest,modeChangeRequest} from '../src/network_feat_input.js';
 import {associateCommandRequest,quickChatRequest} from '../src/network_associate_input.js';
 import {itemUseRequest} from '../src/network_item_input.js';
 import {restRequest,characterSheetRequest,journalWindowRequest,playerAttitudeRequest} from '../src/network_hud_input.js';
+import {chatRequest} from '../src/network_chat_input.js';
 
 const capture=JSON.parse(fs.readFileSync(new URL('../backups/animations/local-network-peer-v2.json',import.meta.url)));
 const wireMessage=kind=>structuredClone(capture.transport.messages.find(m=>m.kind===kind));
 const bic=()=>writeGff('BIC ',gffRecord({}));
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
+test('store requests reject stale sessions/stock and leave authoritative gold/items untouched',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);s.world.apply({kind:'store-open',panel:0,gold:100});
+ s.world.applyObjectUpdates([{action:'inventory',channel:'M',operation:'A',id:0x80000002,x:0,y:0,item:{cost:7}},{action:'inventory',channel:'R',operation:'A',id:0x80000003,x:0,y:0,item:{cost:8}}]);const base={actorId:actor.id,areaId:actor.areaId,areaGeneration:2,storeGeneration:s.world.store.generation},before=structuredClone([...s.world.registry.objects]);
+ await s.storeInput({...base,operation:'buy',itemId:0x80000002});await s.storeInput({...base,operation:'sell',itemId:0x80000003});await s.examine({...base,targetId:0x80000002});assert.equal(s.world.store.gold,100);assert.deepEqual([...s.world.registry.objects],before);assert.equal(h.sent.length,3);
+ for(const change of [{actorId:1},{areaGeneration:1},{storeGeneration:0},{itemId:0x80000003}])await assert.rejects(s.storeInput({...base,operation:'buy',itemId:0x80000002,...change}));await assert.rejects(s.storeInput({...base,operation:'sell',itemId:0x80000002}));await assert.rejects(s.storeInput({...base,operation:'panel',panel:5}));await assert.rejects(s.storeInput({...base,operation:'page',page:1}));assert.equal(h.sent.length,3);
+ await s.storeInput({...base,operation:'close'});assert.equal(s.world.store.open,false);await assert.rejects(s.storeInput({...base,operation:'buy',itemId:0x80000002}));await assert.rejects(s.examine({...base,targetId:0x80000002}));assert.equal(h.sent.length,4);
+});
+test('stream resource reads reject paths/types and never complete after their session closes',async()=>{
+ const h=harness(),s=h.session,pending=deferred(),calls=[];s.resolver={};s.resources.audioResource=async(resolver,ref,type)=>{calls.push({resolver,ref,type});return pending.promise;};
+ for(const [ref,type]of [['../track',8],['C:\\track',4],['track',2002],['x'.repeat(17),4]])await assert.rejects(s.getAudioResource(ref,type));
+ const read=s.getAudioResource('track',8);s.closed=true;pending.resolve({type:8,bytes:Uint8Array.of(8)});await assert.rejects(read,/stale/);assert.equal(calls.length,1);await assert.rejects(s.getAudioResource('track',8),/unavailable/);
+});
+
+test('queue cancellation sends native IDs only and waits for replicated removal',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffff,objectType:5,areaId:0x80000001,playerState:{actionQueue:[{type:4,group:321,widgetSerial:0}]}};s.phase='playing';s.areaReadySent=true;s.areaGeneration=3;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);
+ const request={areaId:actor.areaId,areaGeneration:3,actorId:actor.id,actionId:4,groupId:321},before=structuredClone([...s.world.registry.objects]);assert.deepEqual(await s.cancelAction(request),{sent:true});assert.deepEqual(h.sent[0],[...cancelActionRequest(request)]);assert.deepEqual([...s.world.registry.objects],before);
+ assert.deepEqual(await s.cancelAction({...request,groupId:322}),{sent:false,stale:true});for(const change of [{areaId:0},{areaGeneration:2},{actorId:0xfffffffe},{actionId:-1},{groupId:65536}])await assert.rejects(s.cancelAction({...request,...change}));assert.equal(h.sent.length,1);
+ actor.playerState.actionQueue=[];assert.deepEqual(await s.cancelAction(request),{sent:false,stale:true});assert.equal(h.sent.length,1);
+});
+
+test('chat sends native requests in current control scope without local echo or speaker objects',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffff,objectType:5,areaId:0x80000001};s.phase='playing';s.areaReadySent=true;s.areaGeneration=3;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);const scope={areaId:actor.areaId,areaGeneration:3,actorId:actor.id},before=structuredClone([...s.world.registry.objects]);
+ for(const request of [{channel:1,text:'Hello'},{channel:6,text:'Party'},{channel:4,text:'Tell by player ID',playerId:7},{channel:4,text:'Tell by first name',recipient:'Remote Hero'}]){await s.chat({...scope,...request});assert.deepEqual(h.sent.at(-1),[...chatRequest(request)]);}
+ for(const change of [{areaId:0},{areaGeneration:2},{actorId:0x80000013}])await assert.rejects(s.chat({...scope,...change,channel:1,text:'stale'}));s.phase='area-loading';await assert.rejects(s.chat({...scope,channel:1,text:'loading'}));assert.equal(h.sent.length,4);assert.deepEqual([...s.world.registry.objects],before);
+});
 
 test('HUD requests use controlled session and live player lookup, leaving all canonical resources untouched',async()=>{
  const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5,playerState:{spellbooks:{0:{memorized:{0:[{spell:1,ready:0}]}}}}};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);s.world.players.set(7,{playerId:7,objectId:0x80000002});const base={areaId:actor.areaId,areaGeneration:2,actorId:actor.id},before=structuredClone(actor);
  await s.rest(base);assert.deepEqual(h.sent.at(-1),[...restRequest()]);await s.hudPanel({...base,panel:'character',open:true,page:0});assert.deepEqual(h.sent.at(-1),[...characterSheetRequest({targetId:actor.id,page:0})]);await s.hudPanel({...base,panel:'character',open:false});assert.deepEqual(h.sent.at(-1),[...characterSheetRequest({targetId:actor.id,page:-1})]);await s.hudPanel({...base,panel:'journal',open:true});assert.deepEqual(h.sent.at(-1),[...journalWindowRequest(true)]);await s.playerAttitude({...base,playerId:7,likes:false});assert.deepEqual(h.sent.at(-1),[...playerAttitudeRequest({targetId:0x80000002,likes:false})]);assert.deepEqual(actor,before);
  for(const change of [{areaGeneration:1},{actorId:1},{areaId:0}])await assert.rejects(s.rest({...base,...change}));await assert.rejects(s.hudPanel({...base,panel:'map',open:true}));await assert.rejects(s.playerAttitude({...base,playerId:8,likes:false}));assert.equal(h.sent.length,5);
+});
+
+test('examination uses current canonical targets including owned inventory, rejecting stale scope and foreign items',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);const target={id:0x80000002,areaId:actor.areaId,objectType:10},item={id:0x80000003,objectType:6,inventoryLocation:{ownerId:actor.id},item:{identified:0}};s.world.registry.addObjectAtPos(target.id,target);s.world.registry.addObjectAtPos(item.id,item);const base={actorId:actor.id,areaId:actor.areaId,areaGeneration:2},before=structuredClone(item);await s.examine({...base,targetId:target.id});await s.examine({...base,targetId:item.id});assert.equal(h.sent.length,2);assert.deepEqual(item,before);for(const change of [{actorId:1},{areaId:0},{areaGeneration:1},{targetId:123}])await assert.rejects(s.examine({...base,targetId:target.id,...change}));item.inventoryLocation.ownerId=123;await assert.rejects(s.examine({...base,targetId:item.id}));item.equipmentOwnerId=actor.id;await s.examine({...base,targetId:item.id});assert.equal(h.sent.length,3);
+});
+test('container use, close/page and transfers preserve server ownership and reject stale scope',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5,replicated:{position:[1,2,0]}},bag={id:0x80000002,objectType:6,item:{baseItem:66},inventoryLocation:{ownerId:actor.id,channel:'R'}},item={id:0x80000003,objectType:6,item:{},inventoryLocation:{ownerId:actor.id,channel:'R'}};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;for(const o of [actor,bag,item])s.world.registry.addObjectAtPos(o.id,o);const base={areaId:actor.areaId,areaGeneration:2,actorId:actor.id},before=structuredClone(item);
+ await s.interact({...base,targetId:bag.id,action:'object.use'});assert.deepEqual(h.sent.at(-1).slice(0,3),[112,6,11]);assert.equal(s.world.containers.size,0);await assert.rejects(s.itemAction({...base,itemId:item.id,operation:'move',destinationId:bag.id}));
+ s.world.apply({kind:'container-status',targetId:bag.id,primary:1});await s.itemAction({...base,itemId:item.id,operation:'move',destinationId:bag.id});assert.deepEqual(h.sent.at(-1).slice(0,3),[112,12,9]);assert.deepEqual(item,before);item.inventoryLocation={ownerId:bag.id,channel:'C'};await s.examine({...base,targetId:item.id});await s.itemAction({...base,itemId:item.id,operation:'move',destinationId:actor.id});assert.equal(item.inventoryLocation.ownerId,bag.id);
+ await s.containerInput({...base,targetId:bag.id,operation:'next'});assert.deepEqual(h.sent.at(-1),[112,25,2]);await s.containerInput({...base,targetId:bag.id,operation:'close'});assert.equal(s.world.containers.get('C'),0x7f000000);assert.equal(item.inventoryLocation.ownerId,bag.id);for(const change of [{actorId:1},{areaGeneration:1},{targetId:123}])await assert.rejects(s.containerInput({...base,targetId:bag.id,operation:'next',...change}));s.world.apply({kind:'container-status',targetId:0x7f000000,primary:1});await assert.rejects(s.itemAction({...base,itemId:item.id,operation:'move'}));
 });
 
 test('preparation uses typed server requests and never grants, readies or clears canonical spells locally',async()=>{
@@ -96,7 +133,8 @@ test('quickbar assignment and paired activation use only the controlled session 
  assert.equal((await s.activateQuickbar({areaId,areaGeneration:2,index:4})).sent,true);assert.deepEqual(h.sent[1].slice(0,3),[112,12,11]);assert.equal(s.world.registry.get(id).objectActionState,undefined);
  await assert.rejects(s.assignQuickbar({...request,areaGeneration:1}),/not ready/);await assert.rejects(s.assignQuickbar({...request,button:{...request.button,itemId:0x80000009}}),/item is unavailable/);await assert.rejects(s.activateQuickbar({areaId,areaGeneration:2,index:36}),/index/);assert.equal(h.sent.length,2);
  await s.assignQuickbar({...request,index:5,button:{type:2,classIndex:0,intParam:1,metamagic:0,domainLevel:0}});await assert.rejects(s.activateQuickbar({areaId,areaGeneration:2,index:5}),/not connected/);assert.ok(h.diagnostics.some(d=>d.code==='network.quickbar-action-unhandled'));assert.equal(h.sent.length,3);
- for(const info of [{container:1,equipableSlots:16},{container:0,equipableSlots:0},null]){s.objectRules.quickbarItemInfo=()=>info;await assert.rejects(s.activateQuickbar({areaId,areaGeneration:2,index:4}),/not connected/);assert.equal(h.sent.length,3);}
+ s.objectRules.quickbarItemInfo=()=>({container:1,equipableSlots:16});await s.activateQuickbar({areaId,areaGeneration:2,index:4});assert.deepEqual(h.sent.at(-1).slice(0,3),[112,6,11]);
+ for(const info of [{container:0,equipableSlots:0},null]){s.objectRules.quickbarItemInfo=()=>info;await assert.rejects(s.activateQuickbar({areaId,areaGeneration:2,index:4}),/not connected/);assert.equal(h.sent.length,4);}
  h.peer.sendGameMessage=async()=>{s.areaGeneration++;};await assert.rejects(s.assignQuickbar({...request,index:7}),/not ready/);assert.equal(s.world.quickbar[7].type,0);
 });
 
@@ -113,13 +151,24 @@ test('admission waits for resources and unchanged character; area entry waits fo
  await h.session.disconnect();await h.session.disconnect();assert.deepEqual(h.disposals(),[1,1,1]);assert.equal(h.session.phase,'closed');
 });
 
-test('unavailable content cannot admit a character or report resource readiness',async()=>{
- for(const resources of [{findFile:async()=>null},{findFile:async()=>'/private/module.nwm'}]){
-  const h=harness({resources});await h.session.connect({});await h.session.selectCharacter(bic());
-  const message=wireMessage('server-resources');if(await resources.findFile())message.requirements.nwmResourceName='';
+test('unavailable content or invalid active rules cannot admit a character or report resource readiness',async()=>{
+ for(const overrides of [{resources:{findFile:async()=>null}},{loadRules:async()=>{throw new Error('Invalid server table');}}]){
+  const h=harness(overrides);await h.session.connect({});await h.session.selectCharacter(bic());
+  const message=wireMessage('server-resources');
   await h.deliver(message);assert.equal(h.sent.length,1);assert.equal(h.session.state().resourcesReady,false);assert.equal(h.session.phase,'resources-unavailable');assert.ok(h.diagnostics.length);
   await h.session.disconnect();
  }
+});
+
+test('a custom server without a campaign NWM opens the advertised context before decoding or uploading a character',async()=>{
+ const selected=[],resolver={getResource:async()=>new ArrayBuffer(0)},requirements={advertisement:null,haks:['server_rules'],customTlk:'custom',nwmResourceName:'',reserved:''};
+ const h=harness({resources:{findFile:async(kind,name)=>({kind,name})},openModule:async(module,resolved,wire)=>{assert.equal(module,null);assert.equal(wire,requirements);selected.push(resolved.map(r=>r.name));return resolver;},loadRules:async current=>{assert.equal(current,resolver);return{skillCount:32};}});
+ await h.session.selectCharacter(bic());await h.deliver({kind:'server-resources',requirements});assert.deepEqual(selected,[['server_rules','custom']]);assert.equal(h.session.state().resourcesReady,true);assert.equal(h.session.objectRules.skillCount,32);assert.equal(h.sent.length,1);assert.equal(h.session.phase,'character');await h.session.disconnect();
+});
+
+test('resource context initializes once per connection and pending archive reads cannot cross context replacement',async()=>{
+ const h=harness();await h.deliver(wireMessage('server-resources'));const resolver=h.session.resolver;await h.deliver(wireMessage('server-resources'));assert.equal(h.session.resolver,resolver);assert.ok(h.diagnostics.some(d=>d.code==='network.resource-repeat-ignored'));
+ const pending=deferred();h.session.resolver={getResource:()=>pending.promise};const read=h.session.getResource('spells',RESOURCE_TYPE.TWO_DA);h.session.resolver={getResource:async()=>Uint8Array.of(1).buffer};pending.resolve(Uint8Array.of(2).buffer);await assert.rejects(read,/stale/);await h.session.disconnect();
 });
 
 test('disconnect during resource lookup cancels pending admission and renderer publication',async()=>{
@@ -137,7 +186,8 @@ test('old renderer acknowledgement cannot change the phase of a newer area',asyn
 test('archive resource IPC permits resource keys and rejects paths, unknown types and closed sessions',async()=>{
  const h=harness();await h.deliver(wireMessage('server-resources'));assert.deepEqual(new Uint8Array(await h.session.getResource('a_model',RESOURCE_TYPE.MDL)),Uint8Array.of(7));
  assert.equal(RESOURCE_TYPE.SHD,2069);assert.deepEqual(new Uint8Array(await h.session.getResource('inc_keyhole',RESOURCE_TYPE.SHD)),Uint8Array.of(7));
- for(const name of ['../key','C:\\secret','a/b','','a'.repeat(33)])await assert.rejects(h.session.getResource(name,RESOURCE_TYPE.MDL),/Invalid/);
+ for(const name of ['padded_name ','archive-key'])assert.deepEqual(new Uint8Array(await h.session.getResource(name,RESOURCE_TYPE.MDL)),Uint8Array.of(7));
+ for(const name of ['../key','C:\\secret','a/b','','a'.repeat(33),'model\0','model\n'])await assert.rejects(h.session.getResource(name,RESOURCE_TYPE.MDL),/Invalid/);
  await assert.rejects(h.session.getResource('model',999999),/Invalid/);await h.session.disconnect();await assert.rejects(h.session.getResource('model',RESOURCE_TYPE.MDL),/unavailable/);
 });
 
@@ -156,6 +206,17 @@ test('original local-server session run admits the caster and preserves authorit
  assert.ok(report.packets.some(p=>p.direction==='out'&&p.tag==='BNDM'&&!p.encrypted));assert.ok(report.packets.some(p=>p.tag==='M'&&p.encrypted));
 });
 
+test('keyboard drive/turn/stop require the current area and actor and preserve canonical server state',async()=>{
+ const h=harness();for(const message of capture.transport.messages)await h.deliver(message);await h.session.areaReady(h.session.areaGeneration);
+ const s=h.session,actor=s.world.registry.get(s.world.localObjectId),r={areaId:s.world.areaId,areaGeneration:s.areaGeneration,actorId:actor.id,operation:'drive',position:[6,2],heading:900,flags:3},before=structuredClone(actor);
+ for(const change of [{areaId:r.areaId+1},{areaGeneration:0},{actorId:1},{flags:64},{operation:'unknown'},{transmit:'false'}])await assert.rejects(s.keyboardMove({...r,...change}));
+ const first=await s.keyboardMove(r);assert.deepEqual(h.sent.at(-1).slice(0,3),[112,6,29]);
+ const count=h.sent.length,reserved=await s.keyboardMove({...r,transmit:false});assert.equal(h.sent.length,count);assert.equal(reserved.sent,false);assert.equal(reserved.sequence,(first.sequence+1)&255);
+ const next=await s.keyboardMove(r);assert.equal(next.sequence,(reserved.sequence+1)&255);assert.equal(h.sent.length,count+1);
+ await s.keyboardMove({...r,operation:'turn',position:[0,1]});assert.deepEqual(h.sent.at(-1).slice(0,3),[112,6,28]);
+ await s.keyboardMove({...r,operation:'stop'});assert.deepEqual(h.sent.at(-1),[112,6,33]);assert.deepEqual(actor,before);
+ await s.disconnect();await assert.rejects(s.keyboardMove(r),/not ready/);
+});
 test('movement requires the current area and controlled creature; requests never mutate authoritative state',async()=>{
  const h=harness();for(const message of capture.transport.messages)await h.deliver(message);await h.session.areaReady(h.session.areaGeneration);
  const areaId=h.session.world.areaId,actor=h.session.world.registry.get(h.session.world.localObjectId),before=structuredClone(actor),areaGeneration=h.session.areaGeneration;

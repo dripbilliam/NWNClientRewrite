@@ -58,7 +58,7 @@ export function validateCharacter(root) {
 }
 
 export async function loadCharacterRules(resolver) {
-  const tables = Object.fromEntries(await Promise.all(['racialtypes', 'classes', 'skills', 'feat', 'spells', 'baseitems', 'exptable', 'appearance', 'gender', 'phenotype', 'iprp_costtable', 'epicattacks', 'epicsaves', 'ruleset', 'armor', 'parts_chest', 'iprp_saveelement', 'damagetypes', 'iprp_monstcost', 'iprp_damagecost', 'diffsettings', 'creaturespeed'].map(async name => [name, parse2da(decodeResourceText(await resolver.getResource(name, RESOURCE_TYPE.TWO_DA)))])));
+  const tables = Object.fromEntries(await Promise.all(['racialtypes', 'classes', 'skills', 'feat', 'spells', 'baseitems', 'exptable', 'appearance', 'gender', 'phenotype', 'iprp_costtable', 'epicattacks', 'epicsaves', 'ruleset', 'armor', 'parts_chest', 'iprp_saveelement', 'damagetypes', 'damagetypegroups', 'iprp_monstcost', 'iprp_damagecost', 'diffsettings', 'creaturespeed'].map(async name => [name, parse2da(decodeResourceText(await resolver.getResource(name, RESOURCE_TYPE.TWO_DA)))])));
   for (const label of rulesetDuplicates(tables)) runtimeDiagnostics.record('rules.duplicate-ruleset-entry', `Duplicate ruleset.2da entry: ${label}`, { resource: 'ruleset', label });
   // Load2DArrays 0x1402b59bb..1402b5ab8 frees a failed optional table;
   // SavingThrowRoll then uses the native legacy immunity switch.

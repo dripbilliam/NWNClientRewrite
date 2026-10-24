@@ -30,4 +30,9 @@ test('fresh wizard BIC fields pass original typed readers and preserve native hi
  assert.ok(!('LvlStatAbility'in character.LvlStatList[0]));assert.ok(character.LvlStatList[0].FeatList.every(f=>getGffStructType(f)===0));assert.ok(character.FeatList.every(f=>getGffStructType(f)===1));
  for(const [name,rows]of Object.entries(character.LvlStatList[0]))if(name.startsWith('KnownList'))assert.ok(rows.every(s=>getGffStructType(s)===0));
  assert.equal(character.Experience,0);assert.equal(cls.Class,10);assert.equal(cls.ClassLevel,1);assert.equal(character.ObjectId,undefined);
+ // ReadFieldDWORDorBYTE1a1590, used by ValidateCreateServerCharacter5706d9,
+ // reads the x-prefixed DWORD before the legacy BYTE. Custom selectable
+ // packages can exceed255 even when classes.Package names a hidden preset.
+ rules.packages.orderedRows[270]={...rules.packages.orderedRows[draft.packageId]};draft.packageId=270;
+ const extended=parseGff(await createCharacterBic(draft,rules)).root;assert.equal(extended.StartingPackage,0);assert.equal(extended.xStartingPackage,270);assert.equal(getGffFieldTypes(extended).StartingPackage,0);assert.equal(getGffFieldTypes(extended).xStartingPackage,4);
 });

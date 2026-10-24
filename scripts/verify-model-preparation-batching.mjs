@@ -1,0 +1,29 @@
+import fs from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import assert from 'node:assert/strict';
+const dir=new URL('../backups/animations/',import.meta.url),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+const read=async name=>{const bytes=await fs.readFile(new URL(name,dir));return{value:JSON.parse(bytes),sha256:hash(bytes)};};
+const baseline=await read('dense-local-v6.json'),gpu=await read('model-batch-gpu-v1.json'),runs=[];
+assert.equal(gpu.value.success,true);assert.deepEqual(gpu.value.errors,[]);assert.equal(gpu.value.failure,undefined);
+const [individual,batch]=gpu.value.result.rows;assert.equal(individual.mode,'individual');assert.equal(batch.mode,'batch');assert.deepEqual(individual.hashes,batch.hashes);assert.equal(batch.hashes.length,6);assert.equal(new Set(batch.hashes).size,6);assert.deepEqual(individual.draws,batch.draws);
+assert.equal(individual.stats.profileScans,38);assert.equal(batch.stats.profileScans,1);assert.equal(individual.stats.compileCalls,57);assert.equal(batch.stats.compileCalls,3);
+for(const row of [individual,batch]){assert.equal(row.stats.templates,19);assert.equal(row.stats.compilations,19);assert.equal(row.retired,19);assert.equal(row.stats.pending,0);assert.equal(row.stats.failed,0);assert.equal(row.shadowMaps.length,3);assert.ok(row.shadowMaps.every(([w,h])=>w>0&&h>0));}
+assert.equal(individual.programsBefore,batch.programsBefore);assert.equal(individual.programsAfterRender,batch.programsAfterRender);assert.equal(individual.programsAfter,batch.programsAfter);
+for(const version of ['v7','v8']){
+ const {value:r,sha256}=await read(`dense-local-${version}.json`);assert.equal(r.success,true);assert.equal(r.failure,undefined);assert.equal(r.endpoint,'127.0.0.1:5123');assert.equal(r.fixture.sha256,baseline.value.fixture.sha256);assert.deepEqual(r.rendererErrors,[]);assert.deepEqual(r.areas.map(a=>a.resRef),['dense_a','dense_b','dense_a']);assert.ok(r.rendererClosedAt<r.finishedAt);
+ for(const name of ['src/main.js','src/network_scene.js','src/renderer_model_preparation.js'])assert.equal(r.sourceHashes[name],hash(await fs.readFile(new URL('../'+name,import.meta.url))));
+ let previousScans=0,previousBatches=0;const areas=r.areas.map((a,i)=>{
+  assert.equal(a.movingActors,48);assert.ok(a.clips.includes('walk'));assert.ok(a.samples.length>=30);assert.ok(a.samples.at(-1).at-a.samples[0].at>=19000);assert.ok(a.loadMs<baseline.value.areas[i].loadMs*.8,'Observed local load reduction is below the recorded 20% gate');
+  for(const s of [...r.samples.filter(s=>s.pass===i),...a.samples]){if(s.scene)assert.deepEqual(s.scene.failed,[]);}
+  for(const s of a.samples){assert.equal(s.frame.viewport.bufferWidth,3440);assert.equal(s.frame.viewport.bufferHeight,1369);assert.equal(s.scene.controlled.rendered,true);assert.equal(s.workers.failed,0);assert.equal(s.particleWorkers.failedJobs,0);assert.equal(s.particleWorkers.failed,false);assert.equal(s.models.failed,0);}
+  const last=a.samples.at(-1),scans=last.models.profileScans-previousScans,batches=last.models.batches-previousBatches;assert.ok(scans>0&&scans<300);assert.ok(batches>=48);previousScans=last.models.profileScans;previousBatches=last.models.batches;assert.equal(last.workers.workers,4);assert.ok(last.workers.kinds.plt.completed>=700);assert.ok(last.particleWorkers.completedFrames>100);
+  const median=fn=>{const xs=a.samples.map(fn).sort((a,b)=>a-b);assert.ok(xs.every(Number.isFinite));return xs[Math.floor(xs.length/2)];};
+  return{area:a.resRef,baselineLoadMs:baseline.value.areas[i].loadMs,loadMs:a.loadMs,observedReduction:1-a.loadMs/baseline.value.areas[i].loadMs,medianFps:median(s=>s.performance.fps),medianReportedP95Ms:median(s=>s.performance.p95FrameMs),profileScans:scans,batches,sourceJobs:last.workers.completed,particleFrames:last.particleWorkers.completedFrames};
+ });
+ assert.equal(r.retiredWorkers.length,3);for(const owner of r.retiredWorkers){for(const pool of [owner,owner.vertexWorkers]){assert.equal(pool.closed,true);assert.equal(pool.workers,0);assert.equal(pool.pending,0);assert.equal(pool.queued,0);assert.equal(pool.failed,0);}assert.equal(owner.prefetch.closed,true);assert.equal(owner.prefetch.pending,0);assert.equal(owner.prefetch.queued,0);}
+ if(version==='v8'){assert.equal(r.postCloseModels.templates,r.postCloseModels.destroyed);assert.ok(r.postCloseModels.templates>2000);assert.equal(r.postCloseModels.pending,0);assert.equal(r.postCloseModels.activeTemplates,0);assert.equal(r.postCloseModels.activeAreas,0);assert.equal(r.postCloseModels.failed,0);}
+ runs.push({version,sha256,bundle:r.bundle,areas,postCloseModels:r.postCloseModels??null});
+}
+assert.equal(runs[0].bundle,runs[1].bundle);
+const proof={scope:'Multipart shader preparation: resource ownership and exact authored WebGL pixels, plus two actual production native-server dense runs with two transfers each',goalComplete:false,baseline:{version:'v6',sha256:baseline.sha256,bundle:baseline.value.bundle},gpu:{sha256:gpu.sha256,profileScans:[38,1],compileCalls:[57,3],hashes:batch.hashes,shadowMaps:batch.shadowMaps,programsBefore:batch.programsBefore,programsAfterRender:batch.programsAfterRender,retiredPerMode:19},runs,limits:['Sequential native wandering, camera visibility and driver caches are not controlled; observed local load reductions are not universal guarantees or matched native-client speedups','WebGL pixel equality uses authored material/mesh variants, not a deterministic pixel replay of the moving native-server crowd','All source parsing/worker jobs remain active; this change groups renderer preparation, not actual GPU draw calls','Steady dense p95 remains above16.7ms and the full performance goal is incomplete']};
+await fs.writeFile(new URL('model-preparation-batching-proof-v1.json',dir),JSON.stringify(proof,null,2)+'\n');console.log(JSON.stringify({ok:true,goalComplete:false,gpu:proof.gpu,runs:runs.map(({version,areas})=>({version,areas}))}));

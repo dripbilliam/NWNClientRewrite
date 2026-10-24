@@ -1,0 +1,30 @@
+# World hover and Tab highlighting
+
+Mouse-over highlights the visible picked creature, ground item, door or usable placeable. Holding Tab highlights current-area rendered candidates, including the controlled character; releasing it retains only mouse-over. Inventory items, removed/destroyed objects, other areas, static placeables and explicitly unusable placeables are excluded. Hover retains existing scenery/door-region occlusion. Tab reveals already replicated candidates, including behind scenery; it does not discover or request new server objects.
+
+The user's original-client screenshots guided cyan interactable glows, green friendly creatures, purple neutral creatures, red hostile creatures and a pale gold/white controlled character. Creature nameplates show a tiny portrait, relationship-colored name and injury status. Tab does not put generic labels on every prop. The currently hovered prop can show its name. Labels are pointer-transparent and below standard menus; menu hit areas, input fields, click movement and WASD retain ownership.
+
+`world_highlight_renderer.js` owns a single instanced batch of three quads per visible physical model part. It follows current world matrices, CPU-deformed bounds and attached equipment without modifying source materials, lights, animation or canonical objects. There is no second model pass or fullscreen postprocessing. No active highlights means no highlight draw. One active batch means one additional draw, regardless of highlighted object count. Mesh-list caching uses the existing renderer hierarchy revision; hover raycasts are throttled to at most20Hz while moving and10Hz while stationary, and the new `NetworkScene.pick({objectsOnly:true})` avoids ground-walkmesh work for hover. Nameplate text/visibility does not create idle mutation churn or reload assets every frame.
+
+Names, portraits and injury text use the active asset/text context. `damagelevels.2da` supplies `STRING_REF`; the server's `damageLevel` is preferred. When exact HP is available instead, the original categories at95%,75%,50%,25%,positive/zero are used. Tables are cached per asset owner, not globally across servers. Delayed work has context/object-signature guards. Focus loss, typing, document hiding, area/connection changes and removal clear presentation. Tab release passes through local menu key capture as movement release already does.
+
+## Native evidence
+
+Read-only target: `../FullDecomp/NwnRootInstall/bin/win32/nwmain.exe`, build89.8193.37-17, SHA256 `3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a`.
+
+- Observed `Scene::AddHighlightGob` at `0x1400c3350`: unique Gob membership and per-Gob RGB, updating existing entries. `rea-highlight-add.json`.
+- Observed `Scene::DoHighlightGob` at `0x1400c8260`: separate highlight pass, pulse/size/intensity, attached Gob traversal, depth-write suppression. Call to part geometry at the named `WritePartHighlightVertices` boundary; this pass was inspected in the complete function, not a runtime capture. `rea-highlight-gob.json`.
+- Observed `WritePartHighlightVertices` at `0x1400d4f30`: recursive part transforms and local bounds, three quads/18 vertices per ordinary mesh part, camera-facing weight. `rea-highlight-vertices.json`.
+- Observed `CNWSObject::GetDamageLevel` at `0x140495290`: ratio thresholds and six result categories. `rea-highlight-damage-level.json`. The installed stock damage table was read without modification: rows0..5 map to STRING_REF6409..6414.
+
+The implementation borrows the part-quad representation and category thresholds. Its procedural glow falloff, size/pulse constants, CSS nameplate layout and palette are visual approximations guided by the supplied screenshots. Original highlight texture, precise renderer blend semantics, configurable native colors/server color overrides, exact native nameplate spacing/culling and trigger-mesh highlighting are not claimed as parity. No binary/Ghidra changes, game-asset extraction or copies were made.
+
+## Validation
+
+-33 focused Node tests pass: highlight ownership/filtering, names/active-resource isolation, original injury thresholds, renderer/attachment/material ownership, existing picking, area, door, movement and radial behavior. The installed-resource door replay initially needed permission for its read-only installation scan; all6 door checks then passed.
+- Actual Chromium/GPU fixture with installed portraits and injury strings passes hover, held/released Tab, controlled-character inclusion, colors/portraits/injury updates, ground items, scenery occlusion, one additional draw, no shader growth when changing hover target, unchanged source materials, live removal/inventory/visibility, typing/focus/blur, menu coverage, outside clicks, server text changes, stable idle DOM/resource reads and area/disconnect cleanup. Final report `creation-experience-world-highlight-installed-v1.json`; run-v5 exits0. Installed screenshot `creation-experience-world-highlight-all-v1.png` inspected.
+- All17 existing actual keyboard/radial UI checks pass: `runtime-logs/world-highlight-input-regression-v1.txt`.
+- Built production renderer/preload initialized its highlight owner and frame loop with no errors or joins/fetches on `index-DI9U7hWk.js`. Its isolated offscreen Electron teardown hung, including an attempted blank-page unload; only those fixture processes44024/46104 were forcibly cleaned up. This is a boot assertion result, not a clean fixture exit. `creation-experience-world-highlight-main-v1.json`, main-run-v1/v2 logs.
+- Final build after the pointer-release hover follow-up passes: `index-CNegIuMI.js` / `index-D59cloq2.css`. Existing large-chunk warning remains. The final installed UI fixture passes against that source.
+
+All actors/scene geometry in these fixtures are synthetic. No server was joined, no chat/upload was sent, and no existing user client was interrupted. Live multiplayer visual acceptance remains pending. The broader goal remains paused; this is unsealed work after checkpointv49.

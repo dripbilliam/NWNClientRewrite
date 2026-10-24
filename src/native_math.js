@@ -11,8 +11,10 @@ const S = [-0.16666666666666666, 0.008333333333333333, -0.0001984126984126984, 0
 // Bounded, finite float32 branches of native CRT cosf140c7ac70 and
 // sinf140c7a2b0. Both SSE and FMA dispatch paths are evaluated: unknown
 // process CPU-dispatch state may not silently select a different float32.
-// Large-angle remainder helpers and floating exception/errno state remain
-// unmapped. Geometry angles outside this verified branch fail explicitly.
+// The common SSE/FMA inline reduction covers abs(input)<500000 (SSE
+// compare140c7acf5 against0x411e848000000000). This includes long elapsed
+// frames during area loading. Larger remainder helpers and exception/errno
+// state remain unmapped and fail explicitly.
 export function nativeCosf(value) { return nativeTrig(value, true); }
 export function nativeSinf(value) { return nativeTrig(value, false); }
 
@@ -106,7 +108,7 @@ export function nativeAtan2f(y, x) {
 }
 function nativeTrig(value, cosine) {
   value = f(value);
-  if (!Number.isFinite(value) || Math.abs(value) > 32) throw new Error('Native trigonometric input branch is not implemented');
+  if (!Number.isFinite(value) || Math.abs(value) >= 500000) throw new Error('Native trigonometric input branch is not implemented');
   const sse = trigBranch(value, cosine, false), fused = trigBranch(value, cosine, true);
   if (!Object.is(sse, fused)) throw Object.assign(new Error('Native trigonometric CPU dispatch produces different float32 results'), { sse, fused, input: value });
   return sse;

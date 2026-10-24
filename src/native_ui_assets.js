@@ -1,12 +1,16 @@
 import * as THREE from 'three';
 import { DiagnosticWarnings, runtimeDiagnostics } from './runtime_diagnostics.js';
-import { TGALoader } from 'three/addons/loaders/TGALoader.js';
+import {parseNativeTga} from './native_tga.js';
+import {loadRasterTexture} from './raster_texture.js';
+import {portraitImage} from './portrait_image.js';
 import { parseModel } from './model_parser.js';
 import { decodeModelOrientation } from './mdl_format.js';
 import { parseGff } from './gff.js';
 import { RESOURCE_TYPE } from './resource_archive.js';
 import { sampleTrack } from './model_animation.js';
 import {modelParentIndices} from './model_hierarchy.js';
+import {decodeBioWarePlt,PLT_PALETTE_NAMES} from './bioware_plt.js';
+import {selectItemIcon} from './item_icon.js';
 
 export const UI_PIXELS_PER_UNIT = 100;
 
@@ -55,7 +59,7 @@ export function poseUiModel(ui, state = 'up') {
 
 export class NativeUiAssets {
   constructor(resolver) {
-    this.resolver = resolver; this.models = new Map(); this.textures = new Map(); this.layouts = new Map(); this.skins = new Map(); this.warnings = new DiagnosticWarnings(() => ({ module: resolver.moduleName })); this.disposed = false;
+    this.resolver = resolver; this.models = new Map(); this.textures = new Map(); this.images = new Map(); this.layouts = new Map(); this.skins = new Map(); this.warnings = new DiagnosticWarnings(() => ({ module: resolver.moduleName })); this.disposed = false;
     this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.setClearColor(0, 0);
     this.fonts = [];
@@ -71,11 +75,14 @@ export class NativeUiAssets {
     if (!this.layouts.has(name)) this.layouts.set(name, this.resolver.getResource(name, RESOURCE_TYPE.GUI).then(b => parseGff(b, 'GUI ').root));
     return this.layouts.get(name);
   }
+  image(name) {
+    const key=name.toLowerCase();if(!this.images.has(key))this.images.set(key,portraitImage(this.resolver,key));return this.images.get(key);
+  }
   texture(name) {
     name = name.toLowerCase();
     if (!this.textures.has(name)) this.textures.set(name, (async () => {
-      const image = new TGALoader().parse(await this.resolver.getResource(name, RESOURCE_TYPE.TGA));
-      const t = new THREE.DataTexture(image.data, image.width, image.height, THREE.RGBAFormat); t.flipY = image.flipY; t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true;
+      const t=await loadRasterTexture(this.resolver,name);
+      t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true;
       if (this.disposed) t.dispose(); return t;
     })());
     return this.textures.get(name);
@@ -116,6 +123,32 @@ export class NativeUiAssets {
     })());
     return this.skins.get(key);
   }
+  itemIcon(plan){
+    const key='item-icon:'+JSON.stringify(plan);
+    if(!this.skins.has(key))this.skins.set(key,(async()=>{
+      this.itemIconSources??=new Map();
+      const bytes=async(name,type)=>{const key=name.toLowerCase()+':'+type;if(!this.itemIconSources.has(key))this.itemIconSources.set(key,this.resolver.getResource(name.toLowerCase(),type));return this.itemIconSources.get(key);};
+      const selected=await selectItemIcon(plan,async(name,type)=>{try{await bytes(name,type);return true;}catch(e){if(e.code&&e.code!=='RESOURCE_NOT_FOUND')throw e;return false;}}),template=await this.model(selected.model),textures=new Map();
+      try{
+        for(const [i,layer]of selected.layers.entries()){
+          let texture;
+          if(layer.type===6){
+            this.iconPaletteWork??=Promise.all([...new Set(PLT_PALETTE_NAMES)].map(async name=>[name,parseNativeTga(await this.resolver.getResource(name,RESOURCE_TYPE.TGA))])).then(entries=>new Map(entries));
+            const palettes=new Map(await this.iconPaletteWork);
+            // UpdateIcons tags both icon metal channels with palette type3.
+            palettes.set('pal_armor01',palettes.get('pal_armor02'));
+            const image=decodeBioWarePlt(await bytes(layer.name,6),palettes,layer.palette);
+            texture=new THREE.DataTexture(image.data,image.width,image.height,THREE.RGBAFormat);texture.flipY=image.flipY;texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;
+          }else texture=(await this.texture(layer.name)).clone();
+          texture.magFilter=texture.minFilter=THREE.LinearFilter;textures.set('gui_replace'+String(i+1).padStart(2,'0'),texture);
+        }
+        if(this.disposed)return null;
+        const model=buildUiModel(template.model,textures);
+        try{poseUiModel(model);return{...this.raster(model,selected.model),resources:selected.layers.map(l=>l.name),nativeModel:selected.model};}finally{this.releaseModel(model);}
+      }finally{for(const t of textures.values())t.dispose();}
+    })());
+    return this.skins.get(key);
+  }
   raster(model,name){
       const b = model.bounds; if (b.isEmpty()) return { url: null, min: [0, 0], max: [0, 0], width: 0, height: 0, hooks: model.hooks };
       const width = Math.max(1, Math.ceil((b.max.x - b.min.x) * UI_PIXELS_PER_UNIT)), height = Math.max(1, Math.ceil((b.max.y - b.min.y) * UI_PIXELS_PER_UNIT));
@@ -126,6 +159,7 @@ export class NativeUiAssets {
   }
   releaseModel(model) { model.root.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
   dispose() {
+    this.images.clear();
     this.disposed = true; for (const p of this.models.values()) p.then(m => this.releaseModel(m)).catch(() => {});
     for (const p of this.textures.values()) p.then(t => t.dispose()).catch(() => {}); this.renderer.dispose();
     for (const font of this.fonts) document.fonts.delete(font);

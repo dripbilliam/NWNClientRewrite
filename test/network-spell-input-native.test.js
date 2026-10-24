@@ -33,7 +33,7 @@ test('native target preparation selects self, retains a ground/object target and
  const before=structuredClone([...world.registry.objects]);await targeting.begin(binding(0));assert.equal(targeting.active,false);assert.equal(sent[0].targetId,id);assert.deepEqual(sent[0].position,[1,2,3]);
  await targeting.begin(binding(1));await assert.rejects(targeting.select(actor,[1,2,3]),/not valid/);assert.equal(targeting.active,true);await targeting.select(null,[4,5,6]);assert.equal(sent.at(-1).targetId,0x7f000000);assert.deepEqual(sent.at(-1).position,[4,5,6]);
  await targeting.begin(binding(2));await targeting.select({id:0x80000002,objectType:5},[7,8,9]);assert.equal(sent.at(-1).targetId,0x80000002);
- await targeting.begin(binding(4));assert.equal(targeting.pending.definition.targetType,16);assert.equal(targeting.pending.request.spellId,4);await targeting.select({id:0x80000003,objectType:10},[8,9,10]);assert.equal(sent.at(-1).spellId,4);
+ await assert.rejects(targeting.begin(binding(4)),/Choose a spell variant/);assert.equal(targeting.active,false);await targeting.begin(binding(5));assert.equal(targeting.pending.definition.targetType,16);assert.equal(targeting.pending.request.spellId,5);await targeting.select({id:0x80000003,objectType:10},[8,9,10]);assert.equal(sent.at(-1).spellId,5);
  await targeting.begin(binding(1));generation++;await assert.rejects(targeting.select(null,[0,0,0]),/old area/);assert.equal(targeting.active,false);assert.equal(states.at(-1),null);assert.equal(sent.length,4);assert.deepEqual([...world.registry.objects],before);
 });
 test('final vanilla caster consumes only server slots, cancels targeting, disables spent input and plays/cleans native cast visuals',()=>{

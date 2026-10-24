@@ -1,0 +1,34 @@
+import {Worker} from 'node:worker_threads';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as T from 'three';
+import {ModelParticlePresentation,createModelEmitter} from '../src/model_particles.js';
+import {ParticleSceneCapture,ParticleWorkerScene} from '../src/particle_worker_scene.js';
+import {compareParticleWorkerState} from '../src/particle_worker_compare.js';
+
+test('worker state oracle checks raw buffers, cycles, typed bytes and alias topology',()=>{const a={buffer:Uint8Array.of(1,2).buffer,typed:Float32Array.of(.3)},b=structuredClone(a);a.self=a;b.self=b;assert.equal(compareParticleWorkerState(a,b).exact,true);new Uint8Array(b.buffer)[1]=3;assert.equal(compareParticleWorkerState(a,b).exact,false);const shared={},reference={a:shared,b:shared},other={a:{},b:{}};assert.equal(compareParticleWorkerState(reference,other).exact,false);other.b=other.a;assert.equal(compareParticleWorkerState(reference,other).exact,true);});
+
+function fixture(render='Normal',update='Fountain',flags=0){
+ const root=new T.Group(),camera=new T.PerspectiveCamera(),texture=new T.Texture(),models=[];
+ for(let i=0;i<2;i++){const model=new T.Group(),node=new T.Group();model.userData.mdlRoot='worker-fixture';model.add(node);node.add(createModelEmitter({name:'source'+i,properties:{texture:'fixture',update,render,flags,blend:'Normal',birthrate:19+i,lifeexp:.8,sizestart:.3,sizeend:.8,colorstart:[.8,.3,.2],colorend:[.1,.2,.8],alphastart:.7,alphaend:.1,xgrid:2,ygrid:2,velocity:.8,randvel:.3,mass:.1,spread:.4,fps:4,framestart:0,frameend:3}},new Map([['fixture',texture]]),'worker-fixture'));root.add(model);models.push(model);}
+ root.userData.particleCollisionTriangles=[{surfaceType:1,vertices:[[-20,0,-20],[20,0,-20],[0,0,20]]}];
+ const presentation=new ModelParticlePresentation({camera,seed:123,reuseFrameState:true,report:()=>{}});presentation.update(root,.033);return{root,camera,models,presentation,texture};
+}
+const modes=['Normal','Billboard_to_Local_Z','Billboard_to_World_Z','Linked','Aligned_to_World_Z','Aligned_to_Particle_Dir','Motion_Blur'];
+for(const render of modes)test('particle worker scene retains complete simulation/RNG/vertex state: '+render,()=>{
+ const f=fixture(render),capture=new ParticleSceneCapture(f.presentation,f.root),worker=new ParticleWorkerScene(structuredClone(capture.initial()));
+ try{assert.deepEqual(worker.state(),capture.state());for(let frame=0;frame<60;frame++){
+  f.camera.rotation.set(frame*.01,frame*.03,-frame*.02);for(const [i,model]of f.models.entries()){model.position.set(i*3+frame*.02,Math.sin(frame*.1),-i);model.rotation.y=frame*.02;model.scale.setScalar(frame<30?1:1.3);const p=model.children[0].userData.mdlEmitterProperties??=structuredClone(model.children[0].children[0].userData.mdlEmitter.properties);p.birthrate=frame>45?0:17+i;p.colorstart[0]=frame*.001;p.lifeexp=frame<40?.7:1.1;}
+  const delta=[.01,.016,.033,.05][frame%4],input=structuredClone(capture.frame(delta));f.presentation.update(f.root,delta);worker.frame(input);assert.deepEqual(worker.state(),capture.state(),'frame '+frame);
+ }}finally{capture.dispose();worker.dispose();f.presentation.dispose();f.texture.dispose();}
+});
+for(const update of ['Explosion','Single','Lightning'])test('particle worker scene retains burst/detonation and empty-target state: '+update,()=>{
+ const f=fixture(update==='Lightning'?'Linked':'Normal',update),capture=new ParticleSceneCapture(f.presentation,f.root),worker=new ParticleWorkerScene(structuredClone(capture.initial()));
+ try{for(let frame=0;frame<25;frame++){if(frame%11===0)for(const model of f.models)model.children[0].children[0].userData.mdlPendingDetonate=true;const input=structuredClone(capture.frame(.033));f.presentation.update(f.root,.033);worker.frame(input);assert.deepEqual(worker.state(),capture.state(),'frame '+frame);}}
+ finally{capture.dispose();worker.dispose();f.presentation.dispose();f.texture.dispose();}
+});
+test('particle scene refuses topology/unknown pose writers and releases its observer on rejection',()=>{
+ const f=fixture(),before=f.root._listeners.childadded.length,original=f.root.updateWorldMatrix;f.root.updateWorldMatrix=function(...a){return original.apply(this,a);};assert.throws(()=>new ParticleSceneCapture(f.presentation,f.root),/Unknown particle/);assert.equal(f.root._listeners.childadded.length,before);f.root.updateWorldMatrix=original;const capture=new ParticleSceneCapture(f.presentation,f.root);capture.initial();f.root.add(new T.Group());assert.throws(()=>capture.frame(.016),/topology/);capture.dispose();f.presentation.dispose();f.texture.dispose();
+});
+
+for(const kind of ['Fountain','Lightning','collision'])test('dedicated particle worker preserves cyclic state, RNG and buffers: '+kind,async()=>{const f=fixture(kind==='Lightning'?'Linked':'Normal',kind==='Lightning'?'Lightning':'Fountain',kind==='collision'?16:0);if(kind==='Lightning')for(const entry of f.presentation.entries.values()){entry.e.target1c0={root:f.models[1]};entry.e.birthRate=9;}if(kind==='collision')for(const model of f.models){model.position.y=1;const p=model.children[0].userData.mdlEmitterProperties=structuredClone(model.children[0].children[0].userData.mdlEmitter.properties);p.lifeexp=3;p.mass=1;p.velocity=0;}const capture=new ParticleSceneCapture(f.presentation,f.root),url=new URL('../src/particle_worker_service.js',import.meta.url).href,worker=new Worker("const {parentPort}=require('node:worker_threads');import("+JSON.stringify(url)+").then(({createParticleWorkerService})=>{parentPort.on('message',createParticleWorkerService((value,transfers=[])=>parentPort.postMessage(value,transfers)));});",{eval:true});let nextId=0;const waiting=new Map(),request=message=>new Promise((resolve,reject)=>{const id=++nextId,timer=setTimeout(()=>{waiting.delete(id);reject(Error('Particle worker deadline'));},10000);waiting.set(id,{resolve,reject,timer});worker.postMessage({...message,id});});worker.on('message',reply=>{const entry=waiting.get(reply.id);if(!entry)return;waiting.delete(reply.id);clearTimeout(entry.timer);reply.error?entry.reject(Error(reply.error)):entry.resolve(reply);});worker.on('error',error=>{for(const entry of waiting.values()){clearTimeout(entry.timer);entry.reject(error);}waiting.clear();});try{const init=await request({type:'init',scene:capture.initial(),oracle:true});assert.deepEqual(init.state,capture.state());for(let frame=0;frame<35;frame++){f.camera.rotation.y=frame*.03;f.models[1].position.x=2+frame*.02;const input=capture.frame(.033);f.presentation.update(f.root,.033);const result=await request({type:'frame',frame:input,oracle:true});assert.deepEqual(result.state,capture.state(),'frame '+frame);}assert.equal((await request({type:'close'})).closed,true);}finally{for(const entry of waiting.values()){clearTimeout(entry.timer);entry.reject(Error('Closed'));}await worker.terminate();capture.dispose();f.presentation.dispose();f.texture.dispose();}});

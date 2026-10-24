@@ -1,0 +1,79 @@
+param([Parameter(Mandatory=$true)][ValidatePattern('^[a-z0-9-]+$')][string]$Name)
+$ErrorActionPreference='Stop'
+$workspace=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'));$destination=Join-Path $workspace ('backups/'+$Name+'.zip');if(Test-Path -LiteralPath $destination){throw 'Checkpoint already exists'}
+$paths=@(
+ 'src/main.js',
+ 'src/network_text.js',
+ 'src/network_store.js',
+ 'src/network_store_view.js',
+ 'src/network_inventory_view.js',
+ 'src/network_frontend.js',
+ 'src/network_game_messages.js',
+ 'src/network_object_updates.js',
+ 'src/network_world.js',
+ 'electron/network_game_session.mjs',
+ 'electron/network_ipc.cjs',
+ 'electron/preload.cjs',
+ 'test/network-text.test.js',
+ 'test/network-store-native.test.js',
+ 'test/network-game-session.test.js',
+ 'scripts/inspect-native-network-store.py',
+ 'scripts/probe-network-renderer.cjs',
+ 'scripts/network-store-fixture.html',
+ 'scripts/network-store-fixture.mjs',
+ 'scripts/smoke-network-store.cjs',
+ 'scripts/verify-network-store-replay.mjs',
+ 'scripts/checkpoint-network-store.ps1',
+ 'evidence/multiplayer-stores-and-rule-tokens.md',
+ 'CASTING_RESUME_NOTE.md',
+ 'REPLACEMENT_CLIENT_ROADMAP.md',
+ 'evidence/renderer-frame-scheduling.md',
+ 'backups/animations/native-network-store-observations.json',
+ 'backups/animations/network-store-focused-v2.txt',
+ 'backups/animations/network-store-boundaries-v1.txt',
+ 'backups/animations/network-store-build-v3.txt',
+ 'backups/animations/network-store-replay-v1.json',
+ 'backups/animations/network-store-live-proof-v166.json',
+ 'backups/animations/network-store-before-buy-v166.json',
+ 'backups/animations/network-store-after-buy-v166.json',
+ 'backups/animations/network-store-after-sell-v166.json',
+ 'backups/animations/network-store-category-v166.json',
+ 'backups/animations/network-store-examine-v166.json',
+ 'backups/animations/network-store-bag-v166.json',
+ 'backups/animations/network-store-open-v166.png',
+ 'backups/animations/network-store-category-live-v166.png',
+ 'backups/animations/network-store-before-buy-v167.json',
+ 'backups/animations/network-store-after-buy-v167.json',
+ 'backups/animations/network-store-after-sell-v167.json',
+ 'backups/animations/network-store-final-readiness-v167.json',
+ 'backups/animations/network-store-final-v167.png',
+ 'backups/animations/network-store-dom-v1.json',
+ 'backups/animations/network-store-dom-v1.png',
+ 'backups/animations/network-hierarchy-parallel-proof-v165.json',
+ 'backups/animations/rea-store-client-message-current.json',
+ 'backups/animations/rea-store-client-membership-current.json',
+ 'backups/animations/rea-store-server-handler-current.json',
+ 'backups/animations/rea-store-server-open-writer-current.json',
+ 'backups/animations/rea-store-server-transaction-writer-current.json',
+ 'backups/animations/rea-store-stock-writer-current.json',
+ 'backups/animations/rea-store-buy-request-current.json',
+ 'backups/animations/rea-store-sell-request-current.json',
+ 'backups/animations/rea-store-page-request-current.json',
+ 'backups/animations/rea-store-category-request-current.json',
+ 'backups/animations/rea-store-close-request-verified.json',
+ 'backups/animations/rea-store-identify-request-verified.json',
+ 'backups/animations/rea-store-item-menu-current.json',
+ 'backups/animations/rea-store-confirm-import-current.json',
+ 'backups/animations/rea-store-panel-selected-current.json'
+)
+$parents=@('multiplayer-attack-feedback-20261019-v1.zip','multiplayer-attack-feedback-live-20261019-v1.zip','multiplayer-procedural-projectile-live-20261019-v2.zip','multiplayer-light-capacity-live-20261019-v4.zip','multiplayer-model-preparation-live-20261019-v4.zip','multiplayer-character-export-20261019-v2.zip','multiplayer-audio-20261019-v2.zip','multiplayer-ambient-20261019-v2.zip','multiplayer-placed-sound-20261019-v3.zip','multiplayer-effect-sound-20261019-v2.zip','multiplayer-initiative-20261019-v2.zip','multiplayer-action-queue-20261019-v2.zip','multiplayer-projectile-audio-20261019-v2.zip','multiplayer-creature-voice-20261019-v2.zip','multiplayer-weapon-sound-20261019-v2.zip','multiplayer-parry-visual-20261019-v1.zip','multiplayer-blood-visual-20261019-v2.zip','multiplayer-fullscreen-renderer-20261019-v1.zip','multiplayer-fullscreen-renderer-20261019-v2.zip','multiplayer-performance-panel-20261019-v1.zip','multiplayer-performance-tuning-20261019-v1.zip','multiplayer-performance-recovery-20261019-v1.zip','multiplayer-frame-scheduling-20261019-v1.zip','multiplayer-stores-rule-tokens-20261019-v1.zip')
+$chain=@($parents|ForEach-Object {[ordered]@{archive=$_;sha256=(Get-FileHash -LiteralPath (Join-Path $workspace ('backups/'+$_)) -Algorithm SHA256).Hash}})
+Add-Type -AssemblyName System.IO.Compression
+$manifest=[Collections.Generic.List[object]]::new();$stream=[IO.File]::Open($destination,[IO.FileMode]::CreateNew);$zip=[IO.Compression.ZipArchive]::new($stream,[IO.Compression.ZipArchiveMode]::Create)
+try{
+ foreach($relative in $paths){$absolute=[IO.Path]::GetFullPath((Join-Path $workspace $relative));if(-not $absolute.StartsWith($workspace+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Checkpoint source escaped workspace'};$snapshot=[IO.File]::ReadAllBytes($absolute);$entry=$zip.CreateEntry($relative,[IO.Compression.CompressionLevel]::Optimal);$entryStream=$entry.Open();try{$entryStream.Write($snapshot,0,$snapshot.Length)}finally{$entryStream.Dispose()};$manifest.Add([ordered]@{path=$relative;bytes=$snapshot.Length;sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($snapshot))})}
+ foreach($metadata in @(@{name='checkpoint-manifest.json';value=@($manifest.ToArray())},@{name='checkpoint-chain.json';value=[ordered]@{kind='incremental';parents=$chain;restore='Extract parents in order, then overlay this checkpoint.'}})){$entry=$zip.CreateEntry($metadata.name);$writer=[IO.StreamWriter]::new($entry.Open());try{$writer.Write(($metadata.value|ConvertTo-Json -Depth 6))}finally{$writer.Dispose()}}
+}finally{$zip.Dispose();$stream.Dispose()}
+$verify=[IO.Compression.ZipFile]::OpenRead($destination)
+try{if($verify.Entries.Count -ne $paths.Count+2){throw 'Checkpoint count mismatch'};foreach($record in $manifest){$entry=$verify.GetEntry($record.path);if(-not $entry -or $entry.Length -ne $record.bytes){throw ('Length mismatch: '+$record.path)};$entryStream=$entry.Open();$sha=[Security.Cryptography.SHA256]::Create();try{$hash=[Convert]::ToHexString($sha.ComputeHash($entryStream))}finally{$entryStream.Dispose();$sha.Dispose()};if($hash -ne $record.sha256){throw ('Hash mismatch: '+$record.path)}}}finally{$verify.Dispose()}
+[ordered]@{path=$destination;files=$paths.Count;bytes=(Get-Item -LiteralPath $destination).Length}|ConvertTo-Json -Compress

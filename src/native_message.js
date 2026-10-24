@@ -117,6 +117,8 @@ export class NativeMessageWriter{
   this.writeCExoString({bytes,length:bytes.length},bits);
  }
  writeCResRef(bytes,count=16){this.writeType(13);this.rawBytes(bytes,count);}
+ // WriteVOIDPtr1402dbc20: one type15 marker, then uninterpreted byte storage.
+ writeOpaqueBytes(bytes){this.writeType(15);this.rawBytes(bytes);}
  writeObjectIdServer(id){id>>>=0;this.raw(id===OBJECT_INVALID?id:(id|EXTERNAL_OBJECT)>>>0,4);}
  // Client helper1409737f0 copies the client ID unchanged. The receiving
  // ReadOBJECTIDServer clears bit31; it is not a locally allocated server ID.
@@ -232,6 +234,12 @@ export class NativeMessageReader{
   width(bits);min=f(min);max=f(max);this.expectType(11);if(bits===32)return this.rawFloat();
   const value=Number(BigInt.asIntN(64,this.readUnsigned(bits))),denominator=((1<<(bits&31))-1)|0;
   return f(value*f(f(max-min)/f(denominator))+min);
+ }
+ readOpaqueBytes(count){
+  if(!Number.isInteger(count)||count<0||count>64*1024*1024)throw new Error('Native opaque byte count is unavailable');
+  this.expectType(15);const cursor=this.byteCursor44,end=(cursor+count)>>>0;this.byteCursor44=end;
+  if(end>this.byteSize40)return null;
+  const bytes=new Uint8Array(count);for(let i=0;i<count;i++)bytes[i]=this.physical(this.bytes38,cursor+i,'bytes');return bytes;
  }
  readCExoString(bits=32){
   width(bits,1);this.expectType(14);this.expectType(8);

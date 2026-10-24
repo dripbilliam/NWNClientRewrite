@@ -1,25 +1,44 @@
 import * as THREE from 'three';
+import {placeableUsable} from './placeable_hit_mesh.js';
 
-export function pickedWorldObject(raycaster, sceneRoot, registry, { includePlayer = false } = {}) {
-  sceneRoot.updateWorldMatrix(true, true);
+// Scoped to synchronous presentation consumers. A new scope owns fresh world
+// matrices and ray intersections; nothing survives movement, input, or frames.
+export class WorldPickFrame{
+ constructor(root){this.root=root;this.ready=false;this.rays=[];}
+ intersections(raycaster){
+  if(!this.ready){this.root.updateWorldMatrix(true,true);this.ready=true;}
+  const {origin,direction}=raycaster.ray,key=[origin.x,origin.y,origin.z,direction.x,direction.y,direction.z,raycaster.near,raycaster.far,raycaster.layers.mask];
+  let row=this.rays.find(r=>r.key.every((value,i)=>Object.is(value,key[i])));
+  if(!row){row={key,hits:raycaster.intersectObject(this.root,true)};this.rays.push(row);}return row.hits;
+ }
+}
+export function withWorldPickFrame(owner,callback){
+ if(!owner)return callback();
+ const previous=owner.pickFrame;owner.pickFrame=new WorldPickFrame(owner.root);
+ try{return callback();}finally{owner.pickFrame=previous;}
+}
+export function pickedWorldObject(raycaster, sceneRoot, registry, { includePlayer = false,frame=null } = {}) {
+  if(frame&&frame.root!==sceneRoot)throw Error('Picking frame belongs to another scene');
+  const hits=frame?frame.intersections(raycaster):(sceneRoot.updateWorldMatrix(true,true),raycaster.intersectObject(sceneRoot,true));
   const visible = object => {
     for (let ancestor = object; ancestor; ancestor = ancestor.parent) if (!ancestor.visible) return false;
     return true;
   };
   let nearest = null;
-  for (const hit of raycaster.intersectObject(sceneRoot, true)) {
+  for (const hit of hits) {
     if (!hit.object.isMesh || !visible(hit.object) || hit.object.userData.ignoreWorldPicking) continue;
     let playerHelper = false;
     for (let owner = hit.object; owner; owner = owner.parent) if (owner.userData.worldPickingPlayer) playerHelper = true;
     if (playerHelper && !includePlayer) continue;
     const materials = Array.isArray(hit.object.material) ? hit.object.material : [hit.object.material];
     const material = materials[hit.face?.materialIndex ?? 0];
-    if (material && (!material.visible || material.opacity <= 0.01)) continue;
+    if (!hit.object.userData.nativeObjectHitMesh&&material && (!material.visible || material.opacity <= 0.01)) continue;
     for (let owner = hit.object; owner; owner = owner.parent) {
       const id = owner.userData.worldObjectId;
-      if (id !== undefined) { nearest = { object: registry.get(id), point: hit.point, distance:hit.distance }; break; }
+      if (id !== undefined) {const object=registry.get(id);if(hit.object.userData.nativeObjectHitMesh&&(!placeableUsable(object)||object.replicationRemoved))break;nearest = { object, point: hit.point, distance:hit.distance }; break; }
     }
     if (nearest) break;
+    if(hit.object.userData.nativeObjectHitMesh)continue;
     // Scenery is an occluder: never select an object through the nearest wall.
     nearest = { object: null, point: hit.point, distance:hit.distance }; break;
   }

@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {nativeBmuWave} from '../src/native_bmu_wave.js';
+import {GameAudio} from '../src/game_audio.js';
+const rates=[44100,48000,32000,22050,24000,16000],bitrates=[[0,32000,40000,48000,56000,64000,80000,96000,112000,128000,160000,192000,224000,256000,320000],[0,8000,16000,24000,32000,40000,48000,56000,64000,80000,96000,112000,128000,144000,160000]];
+function image(c){const low=c.version===2,size=Math.trunc(bitrates[Number(low)][c.bitrate]*(low?72:144)/rates[Number(low)*3+c.frequency])+c.padding,header=(0xffe00000|c.version<<19|1<<17|Number(!c.crc)<<16|c.bitrate<<12|c.frequency<<10|c.padding<<9|c.mode<<6)>>>0,parts=[];for(let i=0;i<2;i++){let b=Buffer.alloc(size);b.writeUInt32BE(header);if(i===0&&c.info){const offset=Math.min(size,4+(c.crc?2:0)+(low?(c.mode===3?9:17):(c.mode===3?17:32)));if(offset+4>b.length)b=Buffer.concat([b,Buffer.alloc(offset+4-b.length)]);b.write('Info',offset);}parts.push(b);}const bytes=Buffer.concat([Buffer.from('ID3\0\0\0\0'),...parts]);return Buffer.concat([Buffer.from('BMU V1.0'),c.truncate?bytes.subarray(0,-c.truncate):bytes]);}
+test('BMU frame layout and sample counts match294 original iterator/decoder-owner cases',()=>{
+ const oracle=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-bmu-frame-observations.json',import.meta.url)));assert.equal(oracle.target,'3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a');assert.equal(oracle.cases.length,294);
+ for(const {case:c,frames}of oracle.cases){if(c.sideFailure||c.mainFailure){assert.ok(frames.every(f=>f.samples===0));continue;}if(!frames.length){assert.throws(()=>nativeBmuWave(image(c)),/no supported/);continue;}const result=nativeBmuWave(image(c));assert.deepEqual(result.frames,frames.map(f=>({...f,offset:f.offset+8})),JSON.stringify(c));assert.equal(result.timing.channels,c.mode===3?1:2);assert.equal(result.timing.sampleRate,rates[Number(c.version===2)*3+c.frequency]);assert.equal(result.timing.dataBytes,frames.reduce((n,f)=>n+f.samples*(f.mode===3?2:4),0));assert.equal(result.timing.duration,Math.trunc(frames.reduce((n,f)=>n+f.samples,0)/result.timing.sampleRate*1000));}
+ assert.equal(nativeBmuWave(Buffer.from('RIFF')),null);assert.throws(()=>nativeBmuWave(Buffer.from('BMU V1.0')),/no supported/);
+});
+test('shared audio decoder strips BMU header, caches decoding and retains original timing after resampling',async()=>{
+ const c={version:2,bitrate:9,frequency:0,mode:3,crc:false,info:true,padding:0},bytes=image(c),decoded={numberOfChannels:1,sampleRate:48000,duration:9},inputs=[],context={state:'running',addEventListener(){},decodeAudioData:async input=>{inputs.push(Buffer.from(input));return decoded;},close:async()=>{}},audio=new GameAudio({getResource:async()=>bytes},{getObject:()=>null,getPlayer:()=>null,createContext:()=>context});
+ const [a,b]=await Promise.all([audio.loadBuffer('voice'),audio.loadBuffer('VOICE')]);assert.equal(a,b);assert.deepEqual(inputs,[bytes.subarray(8)]);assert.deepEqual(audio.bufferTiming(a),nativeBmuWave(bytes).timing);assert.equal(audio.bufferTiming(a).sampleRate,22050);assert.notEqual(audio.bufferTiming(a).duration,decoded.duration*1000);audio.dispose();
+});

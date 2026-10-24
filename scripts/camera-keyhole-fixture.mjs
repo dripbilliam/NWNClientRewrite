@@ -13,8 +13,8 @@ window.runKeyholeFixture=shader=>{
  const draw=enabled=>{presentation.update(scene,new THREE.Vector3(),state,enabled);renderer.render(scene,camera);return center();};
  const disabled=draw(false),enabled=draw(true),snapshot=presentation.snapshot();
  const ownedMaterial=player.material;const ownedPreserved=player.material===ownedMaterial&&!presentation.bindings.has(player);
- presentation.dispose();const restored=wall.material.onBeforeCompile===THREE.Material.prototype.onBeforeCompile;
+ const canvasImage=renderer.domElement.toDataURL('image/png');presentation.dispose();const restored=wall.material.onBeforeCompile===THREE.Material.prototype.onBeforeCompile;
  if(errors.length)throw new Error(JSON.stringify(errors));
  if(!(disabled[0]>200&&disabled[1]<20&&enabled[1]>200&&enabled[0]<20))throw new Error('Keyhole did not reveal player: '+JSON.stringify({disabled,enabled,snapshot}));
- return{disabled,enabled,snapshot,ownedPreserved,restored,programs:renderer.info.programs.length};
+ return{disabled,enabled,snapshot,ownedPreserved,restored,programs:renderer.info.programs.length,canvasImage};
 };

@@ -5,6 +5,7 @@ import {animateModelEvents,ModelEventDispatcher} from './model_events.js';
 import {playModelAnimation} from './model_playback.js';
 import {advanceModelRuns} from './model_run_clock.js';
 import {ModelNativePose} from './model_native_pose.js';
+import {commitLocalMatrix} from './managed_local_matrix.js';
 
 const BASIS = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
 const INVERSE_BASIS = BASIS.clone().invert();
@@ -51,10 +52,12 @@ export class ModelAnimator {
       const name = object.userData.mdlNode?.toLowerCase();
       if (!name || object.userData.mdlModel?.toLowerCase() !== model.modelName.toLowerCase() || !names.has(name) || this.bindings.has(name)) return;
       const materials = object.children.filter(child => child.isMesh).flatMap(mesh => {
-        // Opacity tracks must not modify another instance's shared materials.
-        const hasAlpha = model.animations.some(animation => animation.tracks.some(track => track.node.toLowerCase() === name && track.property === 'alpha'));
-        if (hasAlpha) mesh.material = Array.isArray(mesh.material) ? mesh.material.map(material => material.clone()) : mesh.material.clone();
-        return (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map(material => ({ material, opacity: material.opacity, visible:material.visible, transparent: material.transparent, depthWrite: material.depthWrite }));
+        // Material controllers must not modify another instance's materials.
+        const materialTracks = model.animations.some(animation => animation.tracks.some(track => track.node.toLowerCase() === name && ['alpha','selfillumcolor'].includes(track.property)));
+        const source=model.nodes[object.userData.mdlNodeIndex];
+        const staticSelfillum=source?.nativeNode?.controllers78?.some(c=>c.displacement0===128&&(c.columnsA&15)===3);
+        if (materialTracks||staticSelfillum) mesh.material = Array.isArray(mesh.material) ? mesh.material.map(material => material.clone()) : mesh.material.clone();
+        return (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map(material => ({ material, emissive:material.emissive?.clone(), opacity: material.opacity, visible:material.visible, transparent: material.transparent, depthWrite: material.depthWrite }));
       });
       const lights = object.children.filter(child => child.isLight && child.userData.mdlLight).map(light => ({ light, properties: structuredClone(light.userData.mdlLight) }));
       const source=model.nodes[object.userData.mdlNodeIndex]??model.nodes.find(node=>node.name.toLowerCase()===name);
@@ -66,14 +69,16 @@ export class ModelAnimator {
     this.reportedMissing = new Set();
   }
 
-  reset() {
+  reset({deferMatrices=false}={}) {
     for (const binding of this.bindings.values()) {
       binding.object.position.copy(binding.position);
       binding.object.quaternion.copy(binding.quaternion);
       binding.object.scale.copy(binding.scale);
+      if(!deferMatrices)commitLocalMatrix(binding.object);
       if(binding.emitterDefaults)binding.object.userData.mdlEmitterProperties=structuredClone(binding.emitterDefaults);
       for (const saved of binding.lights) { saved.light.userData.mdlLight = structuredClone(saved.properties); updateModelLight(saved.light); }
       for (const saved of binding.materials) {
+        if(saved.emissive)saved.material.emissive.copy(saved.emissive);
         saved.material.opacity = saved.opacity;
         saved.material.visible = saved.visible;
         saved.material.transparent = saved.transparent;
@@ -83,7 +88,7 @@ export class ModelAnimator {
   }
 
   apply(clip, time) {
-    this.reset();
+    this.reset({deferMatrices:true});
     const missing = new Set();
     for (const track of clip?.tracks ?? []) {
       const binding = this.bindings.get(track.node.toLowerCase());
@@ -101,6 +106,7 @@ export class ModelAnimator {
         }
       }
       else if (track.property.startsWith('light')) for (const { light } of binding.lights) applyModelLightChannel(light, track.property, value);
+      else if(track.property==='selfillumcolor')for(const {material}of binding.materials)material.emissive?.setRGB(...value,THREE.SRGBColorSpace);
       else if (track.property === 'alpha') for (const { material, transparent, depthWrite } of binding.materials) {
         material.opacity = Math.max(0, Math.min(1, value[0]));
         if (material.userData.mdlOpacityDriven) material.visible = material.opacity > 0;
@@ -126,6 +132,7 @@ export class ModelAnimator {
         material.userData.animationTransparent = material.transparent;
       }
     }
+    for(const binding of this.bindings.values())commitLocalMatrix(binding.object);
     this.root.updateWorldMatrix(true, true);
     this.updateSkin?.();
     this.root.userData.animationClip = clip?.name ?? '';
@@ -167,7 +174,7 @@ export class ModelAnimator {
       return this.nativeClips.get(animation);
     };
     const gob=this.nativePlayback??={model68:this.model,model80:null,runsE0:[],root90:this.root,period188:0};
-    const p={findAnimation:(_model,value)=>descriptor(this.model.animations.find(animation=>animation.name===value.toLowerCase())),createRun:()=>({}),destroyRun:()=>{},animationScale:()=>1,playbackScale:()=>1,event:(event,data)=>this.eventDispatcher.dispatch(event,data)};
+    const p={findAnimation:(_model,value)=>descriptor(this.model.animations.find(animation=>animation.name===value.toLowerCase())),createRun:()=>({}),destroyRun:()=>{},animationScale:()=>1,playbackScale:()=>this.nativeVisualSpeedProvider?.()??1,event:(event,data)=>this.eventDispatcher.dispatch(event,data)};
     const result=playModelAnimation(gob,name,speed,flags,time,p);
     if(!result){runtimeDiagnostics.record('animation.clip-unavailable',`Animation ${name} is unavailable`,{model:this.model.modelName,instance:this.root.name,clip:name});return false;}
     const missingEvents=clip?.events?.filter(event=>!this.eventDispatcher.accepts(event.name))??[];
@@ -201,12 +208,13 @@ export class ModelAnimator {
       if(!this.playing){const callback=this.onComplete;this.onComplete=null;callback?.();}return;
     }
     const previous=this.time;
-    this.time += delta;
-    if (this.loop) this.time %= this.clip.length;
-    else this.time = Math.min(this.time, this.clip.length);
+    const speed=this.nativeVisualSpeed??1;
+    this.time += delta*speed;
+    if (this.loop) {this.time %= this.clip.length;if(this.time<0)this.time+=this.clip.length;}
+    else this.time = Math.max(0,Math.min(this.time, this.clip.length));
     this.apply(this.clip, this.time);
-    animateModelEvents(this.clip,previous,this.time,0,(name,data)=>this.eventDispatcher.dispatch(name,data));
-    if (!this.loop && this.time >= this.clip.length) {
+    animateModelEvents(this.clip,previous,this.time,Number(speed<0),(name,data)=>this.eventDispatcher.dispatch(name,data));
+    if (!this.loop && (speed<0?this.time<=0:this.time>=this.clip.length)) {
       this.playing = false;
       const callback = this.onComplete;
       this.onComplete = null;

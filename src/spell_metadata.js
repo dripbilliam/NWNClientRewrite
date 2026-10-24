@@ -1,4 +1,5 @@
 import { intEntry } from './combat_stats.js';
+import {nativeFloatEntry} from './movement_rate.js';
 
 // CNWSpellArray::GetSpell 1402af4a0 uses signed IDs and physical row count.
 // Load 1402af8d0 writes UserType to +184 and maps the first School byte via
@@ -63,6 +64,7 @@ export function castingSpell(rules,id){
   const string=key=>spellStringEntry(table,id,key),number=key=>intEntry(table,id,key).value;
   const master=intEntry(table,id,'Master'),innate=intEntry(table,id,'Innate'),counter1=intEntry(table,id,'Counter1'),counter2=intEntry(table,id,'Counter2');
   return{id,components:string('VS'),range:string('Range').slice(0,1),impactScript:string('ImpactScript'),
+    targetShape:({sphere:1,rectangle:2,cone:3,hsphere:4})[string('TargetShape').toLowerCase()]??0,targetSizeX:nativeFloatEntry(table,id,'TargetSizeX').value,targetSizeY:nativeFloatEntry(table,id,'TargetSizeY').value,targetFlags:number('TargetFlags'),
     master:master.found?master.value:id,innate:innate.found?innate.value&255:255,metamagic:number('MetaMagic')&255,
     counter1:counter1.found?counter1.value:-1,counter2:counter2.found?counter2.value:-1,
     targetType:number('TargetType')&65535,conjureTime:number('ConjTime')>>>0,conjureAnimation:conjureAnimationType(string('ConjAnim')),

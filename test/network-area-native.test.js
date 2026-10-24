@@ -55,13 +55,15 @@ test('original synthetic area bodies cover build gates, fog, grass, pins and cor
  assert.equal(accepted,393);assert.equal(rejected,32);
 });
 
-test('captured native ClientArea populates canonical external proxies and retains their identity',async()=>{
+test('captured native ClientArea retains canonical IDs and static proxies while recreating sound instances',async()=>{
  const world=new NetworkWorld(),messages=await capturedMessages();let entry;
  for(const bytes of messages){const d=decodeServerGameMessage(bytes,{clientBuild:build});if(d.kind!=='object-updates')world.apply(d);if(d.kind==='client-area')entry=d;}
  assert.ok(entry);const a=entry.area;assert.equal(a.resRef,'m0q1a');assert.equal(a.tileset,'tic01');assert.equal(a.tiles.length,9);assert.equal(a.sounds.length,10);assert.equal(a.staticPlaceables.length,13);
  assert.deepEqual(entry.position,[6,3,0]);assert.equal(world.registry.objects.size,24);assert.equal(world.areaId,0x80000001);
  const sound=world.registry.get(a.sounds[0].id),placeable=world.registry.get(a.staticPlaceables[0].id),area=world.registry.get(a.id);
- assert.equal(world.registry.get(a.id&0x7fffffff),undefined);world.apply(entry);assert.equal(world.registry.get(sound.id),sound);assert.equal(world.registry.get(placeable.id),placeable);assert.equal(world.registry.get(area.id),area);
+ // Native area teardown7e7770 deletes its sound instances. Their server IDs
+ // survive the reload, while the replacement's unrelated static caches stay.
+ assert.equal(world.registry.get(a.id&0x7fffffff),undefined);world.apply(entry);assert.notEqual(world.registry.get(sound.id),sound);assert.equal(world.registry.get(sound.id).id,sound.id);assert.equal(world.registry.get(placeable.id),placeable);assert.equal(world.registry.get(area.id),area);
  const before=world.snapshot(),bad=structuredClone(entry);bad.area.sounds[0].id=bad.area.id;
  assert.throws(()=>world.apply(bad),/Conflicting/);assert.deepEqual(world.snapshot(),before);assert.equal(area.state.sounds[0].id,sound.id);
  world.reset();assert.equal(world.registry.objects.size,0);assert.equal(world.registry.get(sound.id),undefined);

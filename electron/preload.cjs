@@ -1,17 +1,54 @@
 const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('debugTools',{
+ status:()=>ipcRenderer.invoke('client-debug:status'),
+ setOpen:open=>ipcRenderer.invoke('client-debug:open',open),
+ publish:snapshot=>ipcRenderer.send('client-debug:snapshot',snapshot),
+ subscribe:callback=>{const listener=(_event,value)=>callback(value);ipcRenderer.on('client-debug:event',listener);return()=>ipcRenderer.removeListener('client-debug:event',listener);}
+});
 contextBridge.exposeInMainWorld('runtimeLog', {
   location: () => ipcRenderer.invoke('runtime-log:location'),
   append: records => ipcRenderer.invoke('runtime-log:append', records)
 });
-const networkInvoke=async(channel,...args)=>{const result=await ipcRenderer.invoke(channel,...args);if(!result.ok)throw new Error(result.message);return result.value;};
+const networkInvoke=async(channel,...args)=>{const result=await ipcRenderer.invoke(channel,...args);if(!result.ok){const error=new Error(result.message);if(result.code==='RESOURCE_NOT_FOUND')error.code=result.code;throw error;}return result.value;};
 contextBridge.exposeInMainWorld('nativeNetwork',{
+ sceneCaptureStatus:()=>networkInvoke('network:scene-capture-status'),
+ finishSceneCapture:()=>networkInvoke('network:scene-capture-finish'),
+ captureSceneView:(id,value)=>networkInvoke('network:scene-capture-view',id,value),
  connect:request=>networkInvoke('network:connect',request),
- disconnect:()=>networkInvoke('network:disconnect'),
+ disconnect:options=>networkInvoke('network:disconnect',options),
+ savedCharacters:()=>networkInvoke('network:characters'),
+ exportCharacter:id=>networkInvoke('network:character-export',id),
  chooseInstall:()=>networkInvoke('network:install'),
+ clientSettings:()=>networkInvoke('network:settings'),
+ saveClientSettings:request=>networkInvoke('network:settings-save',request),
+ chooseModsFolder:()=>networkInvoke('network:mods-folder'),
+ modsList:directory=>networkInvoke('network:mods-list',directory),
  selectCharacter:(id,bytes)=>networkInvoke('network:character',id,bytes),
+ serverCharacters:id=>networkInvoke('network:server-characters',id),
+ lobbyPlayers:(id,open)=>networkInvoke('network:lobby-players',id,open),
+ previewSavedCharacter:(id,vaultId)=>networkInvoke('network:saved-character-preview',id,vaultId),
+ playSavedCharacter:(id,vaultId)=>networkInvoke('network:saved-character-play',id,vaultId),
+ previewServerCharacter:(id,request)=>networkInvoke('network:server-character-preview',id,request),
+ playServerCharacter:(id,request)=>networkInvoke('network:server-character-play',id,request),
+ createServerCharacter:(id,bytes)=>networkInvoke('network:server-character-create',id,bytes),
+ queryServer:endpoint=>networkInvoke('network:server-query',endpoint),
+ serverList:()=>networkInvoke('network:server-list'),
+ lobbyResource:(ref,type)=>networkInvoke('network:lobby-resource',ref,type),
+ lobbyResourceResult:(ref,type)=>ipcRenderer.invoke('network:lobby-resource',ref,type),
+ lobbyTextureResourceResult:ref=>ipcRenderer.invoke('network:lobby-texture',ref),
+ talkTable:(id,custom)=>networkInvoke('network:talk-table',id,custom),
+ creationModels:id=>networkInvoke('network:creation-models',id),
+ creationPortraits:id=>networkInvoke('network:creation-portraits',id),
+ creationPortraitAvailability:(id,refs)=>networkInvoke('network:creation-portrait-availability',id,refs),
+ previewLocalCharacter:(id,bytes)=>networkInvoke('network:local-character-preview',id,bytes),
+ exitApplication:()=>networkInvoke('network:lobby-exit'),
  areaReady:(id,generation)=>networkInvoke('network:area-ready',id,generation),
  walkTo:(id,request)=>networkInvoke('network:walk',id,request),
+ keyboardMove:(id,request)=>networkInvoke('network:keyboard',id,request),
  interact:(id,request)=>networkInvoke('network:interact',id,request),
+ chat:(id,request)=>networkInvoke('network:chat',id,request),
+ containerInput:(id,request)=>networkInvoke('network:container-input',id,request),
+ storeInput:(id,request)=>networkInvoke('network:store-input',id,request),
  examine:(id,request)=>networkInvoke('network:examine',id,request),
  replyDialog:(id,request)=>networkInvoke('network:dialog-reply',id,request),
  inventoryWindow:(id,request)=>networkInvoke('network:inventory-window',id,request),
@@ -22,6 +59,10 @@ contextBridge.exposeInMainWorld('nativeNetwork',{
  castSpell:(id,request)=>networkInvoke('network:spell-cast',id,request),
  prepareSpell:(id,request)=>networkInvoke('network:spell-prepare',id,request),
  rest:(id,request)=>networkInvoke('network:rest',id,request),
+ levelUp:(id,request)=>networkInvoke('network:level-up',id,request),
+ nuiInput:(id,request)=>networkInvoke('network:nui-input',id,request),
+ selectScriptTarget:(id,request)=>networkInvoke('network:script-target',id,request),
+ cancelAction:(id,request)=>networkInvoke('network:action-cancel',id,request),
  hudPanel:(id,request)=>networkInvoke('network:hud-panel',id,request),
  playerAttitude:(id,request)=>networkInvoke('network:player-attitude',id,request),
  useItem:(id,request)=>networkInvoke('network:item-use',id,request),
@@ -33,5 +74,9 @@ contextBridge.exposeInMainWorld('nativeNetwork',{
  quickChat:(id,request)=>networkInvoke('network:quick-chat',id,request),
  talkString:(id,ref,gender)=>networkInvoke('network:talk-string',id,ref,gender),
  getResource:(id,resref,type)=>networkInvoke('network:resource',id,resref,type),
+ getModelSource:(id,resref,knownKey)=>networkInvoke('network:model-source',id,resref,knownKey),
+ getResourceResult:(id,resref,type)=>ipcRenderer.invoke('network:resource',id,resref,type),
+ getTextureResourceResult:(id,resref)=>ipcRenderer.invoke('network:texture-resource',id,resref),
+ getAudioResource:(id,resref,type)=>networkInvoke('network:audio-resource',id,resref,type),
  subscribe:callback=>{const listener=(_event,value)=>callback(value);ipcRenderer.on('network:event',listener);return()=>ipcRenderer.removeListener('network:event',listener);}
 });

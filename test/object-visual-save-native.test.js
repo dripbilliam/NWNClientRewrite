@@ -5,6 +5,7 @@ import {saveObjectVisualTransforms,saveMaterialOverrides,saveVisualReplacements,
 import {gffRecord,writeGff} from '../src/gff_writer.js';
 import {parseGff,getGffStructType} from '../src/gff.js';
 import {encodeGffText} from '../src/gff_text.js';
+import {visualCurveProgressSync} from '../src/visual_curve.js';
 const observations=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-object-visual-save-observations.json',import.meta.url)));
 const bits=n=>{const v=new DataView(new ArrayBuffer(4));v.setFloat32(0,n,true);return v.getUint32(0,true);};
 function curve(v){
@@ -34,6 +35,7 @@ test('visual/UUID save and curve owners match original typed output, call order 
   const {p,calls,object,bytes}=fixture(c),root=gffRecord({});
   if(c.mode==='all')await all(object,root,p);else if(c.mode==='curve')await saveVisualCurve(bytes,root,'Curve',p);else assert.equal(bits(await visualCurveProgress(bytes,p)),progressBits,c.name);
   assert.deepEqual(root,output,c.name);assert.deepEqual(calls,expected,c.name);assert.deepEqual([...bytes],expectedCurve,c.name);
+  if(c.mode==='progress'){const sync=fixture(c);assert.equal(bits(visualCurveProgressSync(sync.bytes,sync.p)),progressBits,c.name+' synchronous');assert.deepEqual(sync.calls,expected,c.name+' synchronous call order');assert.deepEqual([...sync.bytes],expectedCurve,c.name+' synchronous mutation');}
   const actualCurves=[...(object.nativeVisualTransforms2b0??new Map())].sort((a,b)=>a[0]-b[0]).flatMap(([_scope,b])=>Array.from({length:10},(_,i)=>[...b.subarray(i*64,i*64+64)]));assert.deepEqual(actualCurves,transformCurves,c.name);
  }
 });

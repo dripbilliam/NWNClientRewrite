@@ -82,7 +82,7 @@ export class NativeGeometryResources {
 // module resolver and reports every unavailable/unsupported resource.
 export class NativeAreaGeometry {
   constructor(area, resources, registry = null) {
-    this.area = area; this.resources = resources; this.tiles = new Map();
+    this.area = area; this.resources = resources; this.tiles = new Map();this.readyTiles=new Map();
     this.objects = registry && new NativeAreaObjectGeometry(area, resources, registry);
   }
   async tile(x, y) {
@@ -109,7 +109,7 @@ export class NativeAreaGeometry {
         const pathNodes={path:fields.PathNode?.charCodeAt(0)&255,pathOrientation:tileNodeOrientation(atoi(fields.Orientation)),
           visibility:fields.VisibilityNode?.charCodeAt(0)&255,visibilityOrientation:tileNodeOrientation(atoi(fields.VisibilityOrientation)),
           doorVisibility:fields.DoorVisibilityNode?.charCodeAt(0)&255,doorVisibilityOrientation:tileNodeOrientation(atoi(fields.DoorVisibilityOrientation)),doors:atoi(fields.Doors)&255};
-        return { x, y, orientation, heightOffset: f(f(height | 0) * tileset.transition), mesh, model, tileId: id,pathNodes };
+        const result={ x, y, orientation, heightOffset: f(f(height | 0) * tileset.transition), mesh, model, tileId: id,pathNodes };this.readyTiles.set(index,result);return result;
       } catch (error) {
         this.resources.report(error, { area: area.resRef, areaId: area.id, tileIndex: index, tileset: area.tilesetResRef, model,
           operation: 'native-area-tile-geometry' });
@@ -118,8 +118,8 @@ export class NativeAreaGeometry {
     })());
     return this.tiles.get(index);
   }
-  providers() {
-    return { tile: (_area, x, y) => this.tile(x, y), clippedWalkable: (tile, from, to) => clippedAreaTileLine(tile, from, to,
+  providers({cached=false}={}) {
+    return { tile: (_area, x, y) => cached&&Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&y>=0&&x<this.area.width&&y<this.area.height&&this.readyTiles.has(y*this.area.width+x)?this.readyTiles.get(y*this.area.width+x):this.tile(x, y), clippedWalkable: (tile, from, to) => clippedAreaTileLine(tile, from, to,
       message => runtimeDiagnostics.record('geometry.tile-traversal-limit',message,{ area: this.area.resRef, model: tile.model,
         tileX:tile.x,tileY:tile.y,orientation:tile.orientation,from:[...from],to:[...to],operation: 'native-tile-triangle-walk' })),
     noNonWalkTile: (tile, from, to, low, high, radius, flag) => {

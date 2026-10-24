@@ -71,7 +71,7 @@ export function readPlayerState(r,build,p={}){
   state.actionQueueChanges=list(r,r.readByte(),5,'action-queue change',()=>{
    const action=char(r),entry={action,type:r.readWord(),group:r.readWord()};
    if(action==='D')return entry;
-   if(action==='S'){entry.target=r.readObjectIdClient();return entry;}
+   if(action==='S'||action==='U'){entry.target=r.readObjectIdClient();return entry;}
    if(action!=='A')throw new Error('Invalid native action-queue change');
    if(entry.type!==0&&entry.type!==2)entry.target=r.readObjectIdClient();
    if([0,2,4,12,19].includes(entry.type))entry.position=[r.readFloat(),r.readFloat(),r.readFloat()];

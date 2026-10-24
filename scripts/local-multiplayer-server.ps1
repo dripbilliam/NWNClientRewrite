@@ -1,7 +1,9 @@
 param(
     [ValidateSet('Start','Status','Stop')][string]$Action = 'Status',
     [ValidateRange(1024,65535)][int]$Port = 5121,
-    [ValidatePattern('^[A-Za-z0-9 _-]+$')][string]$Module = 'Prelude'
+    [ValidatePattern('^[A-Za-z0-9 _-]+$')][string]$Module = 'Prelude',
+    [string]$NWSyncUrl = '',
+    [ValidatePattern('^$|^[a-f0-9]{40}$')][string]$NWSyncHash = ''
 )
 $ErrorActionPreference = 'Stop'
 $serverWorkspace = Split-Path $PSScriptRoot -Parent
@@ -33,6 +35,11 @@ enabled = false
     $serverArguments = @('-userdirectory', ('"' + $serverHome + '"'), '-port', "$Port", '-publicserver', '0',
         '-servername', '"Replacement Client Compatibility"', '-maxclients', '2', '-servervault', '0',
         '-autosaveinterval', '0', '-module', ('"' + $Module + '"'))
+    if($NWSyncUrl -or $NWSyncHash){
+        $repository=[uri]$NWSyncUrl
+        if($repository.Scheme-ne'http' -or $repository.Host-ne'127.0.0.1' -or $repository.UserInfo -or $repository.Query -or $repository.Fragment -or -not $NWSyncHash){throw 'Owned NWSync fixture must use an explicit loopback HTTP repository and manifest hash'}
+        $serverArguments+=@('-nwsyncurl',$repository.AbsoluteUri,'-nwsynchash',$NWSyncHash,'-reloadwhenempty','0')
+    }
     $serverPreviousNat = [Environment]::GetEnvironmentVariable('NWN_DO_NOT_NAT_PUNCH', 'Process')
     try {
         [Environment]::SetEnvironmentVariable('NWN_DO_NOT_NAT_PUNCH', '1', 'Process')

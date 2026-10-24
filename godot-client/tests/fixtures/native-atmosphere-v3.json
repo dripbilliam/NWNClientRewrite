@@ -1,0 +1,9062 @@
+{
+  "target": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Execute original day/night setters and complete color-transition1407e90b0.\nSynthetic colors, empty tile/object lists, module/settings lookup, render/sky/\nshadow/weather setters and stack-cookie are explicit lower boundaries. Original\nvector math executes. No texture/sky/weather/GPU parity or live mutation claim.\n",
+  "colors": {
+    "moonAmbient": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "moonDiffuse": [
+      0.4,
+      0.5,
+      0.6
+    ],
+    "moonFog": [
+      0.7,
+      0.8,
+      0.9
+    ],
+    "sunAmbient": [
+      0.9,
+      0.8,
+      0.7
+    ],
+    "sunDiffuse": [
+      0.6,
+      0.5,
+      0.4
+    ],
+    "sunFog": [
+      0.3,
+      0.2,
+      0.1
+    ]
+  },
+  "amounts": {
+    "moon": 25,
+    "sun": 75
+  },
+  "rows": [
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": -0.25,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            1.100000023841858,
+            0.949999988079071,
+            0.800000011920929
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcc8c3f",
+            "3333733f",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6499999761581421,
+            0.5,
+            0.3499999940395355
+          ],
+          "argument": 1,
+          "bits": [
+            "6666263f",
+            "0000003f",
+            "3333b33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.32499998807907104,
+            0.25,
+            0.17499999701976776
+          ],
+          "bits": [
+            "6666a63e",
+            "0000803e",
+            "3333333e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.20000000298023224,
+            0.04999999701976776,
+            -0.09999999403953552
+          ],
+          "argument": 87,
+          "bits": [
+            "cdcc4c3e",
+            "cccc4c3d",
+            "ccccccbd"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": -0.25,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            1.100000023841858,
+            0.949999988079071,
+            0.800000011920929
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcc8c3f",
+            "3333733f",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6499999761581421,
+            0.5,
+            0.3499999940395355
+          ],
+          "argument": 1,
+          "bits": [
+            "6666263f",
+            "0000003f",
+            "3333b33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.32499998807907104,
+            0.25,
+            0.17499999701976776
+          ],
+          "bits": [
+            "6666a63e",
+            "0000803e",
+            "3333333e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.20000000298023224,
+            0.04999999701976776,
+            -0.09999999403953552
+          ],
+          "argument": 87,
+          "bits": [
+            "cdcc4c3e",
+            "cccc4c3d",
+            "ccccccbd"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": -0.25,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            1.100000023841858,
+            0.949999988079071,
+            0.800000011920929
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcc8c3f",
+            "3333733f",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6499999761581421,
+            0.5,
+            0.3499999940395355
+          ],
+          "argument": 1,
+          "bits": [
+            "6666263f",
+            "0000003f",
+            "3333b33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.32499998807907104,
+            0.25,
+            0.17499999701976776
+          ],
+          "bits": [
+            "6666a63e",
+            "0000803e",
+            "3333333e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.20000000298023224,
+            0.04999999701976776,
+            -0.09999999403953552
+          ],
+          "argument": 87,
+          "bits": [
+            "cdcc4c3e",
+            "cccc4c3d",
+            "ccccccbd"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": -0.25,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            1.100000023841858,
+            0.949999988079071,
+            0.800000011920929
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcc8c3f",
+            "3333733f",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6499999761581421,
+            0.5,
+            0.3499999940395355
+          ],
+          "argument": 1,
+          "bits": [
+            "6666263f",
+            "0000003f",
+            "3333b33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.32499998807907104,
+            0.25,
+            0.17499999701976776
+          ],
+          "bits": [
+            "6666a63e",
+            "0000803e",
+            "3333333e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.20000000298023224,
+            0.04999999701976776,
+            -0.09999999403953552
+          ],
+          "argument": 87,
+          "bits": [
+            "cdcc4c3e",
+            "cccc4c3d",
+            "ccccccbd"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": -0.25,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            1.100000023841858,
+            0.949999988079071,
+            0.800000011920929
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcc8c3f",
+            "3333733f",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6499999761581421,
+            0.5,
+            0.3499999940395355
+          ],
+          "argument": 1,
+          "bits": [
+            "6666263f",
+            "0000003f",
+            "3333b33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.32499998807907104,
+            0.25,
+            0.17499999701976776
+          ],
+          "bits": [
+            "6666a63e",
+            "0000803e",
+            "3333333e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.20000000298023224,
+            0.04999999701976776,
+            -0.09999999403953552
+          ],
+          "argument": 87,
+          "bits": [
+            "cdcc4c3e",
+            "cccc4c3d",
+            "ccccccbd"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": -0.25,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            1.100000023841858,
+            0.949999988079071,
+            0.800000011920929
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcc8c3f",
+            "3333733f",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6499999761581421,
+            0.5,
+            0.3499999940395355
+          ],
+          "argument": 1,
+          "bits": [
+            "6666263f",
+            "0000003f",
+            "3333b33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.32499998807907104,
+            0.25,
+            0.17499999701976776
+          ],
+          "bits": [
+            "6666a63e",
+            "0000803e",
+            "3333333e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.20000000298023224,
+            0.04999999701976776,
+            -0.09999999403953552
+          ],
+          "argument": 87,
+          "bits": [
+            "cdcc4c3e",
+            "cccc4c3d",
+            "ccccccbd"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.125,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8718749284744263,
+            0.7874999642372131,
+            0.7031250596046448
+          ],
+          "argument": 1,
+          "bits": [
+            "32335f3f",
+            "9999493f",
+            "0100343f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.43125003576278687,
+            0.375,
+            0.3187500238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "ceccdc3e",
+            "0000c03e",
+            "3433a33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.21562501788139343,
+            0.1875,
+            0.15937501192092896
+          ],
+          "bits": [
+            "cecc5c3e",
+            "0000403e",
+            "3433233e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3500000238418579,
+            0.2750000059604645,
+            0.19999998807907104
+          ],
+          "argument": 68,
+          "bits": [
+            "3433b33e",
+            "cdcc8c3e",
+            "cccc4c3e"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.125,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8718749284744263,
+            0.7874999642372131,
+            0.7031250596046448
+          ],
+          "argument": 1,
+          "bits": [
+            "32335f3f",
+            "9999493f",
+            "0100343f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.43125003576278687,
+            0.375,
+            0.3187500238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "ceccdc3e",
+            "0000c03e",
+            "3433a33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.21562501788139343,
+            0.1875,
+            0.15937501192092896
+          ],
+          "bits": [
+            "cecc5c3e",
+            "0000403e",
+            "3433233e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3500000238418579,
+            0.2750000059604645,
+            0.19999998807907104
+          ],
+          "argument": 68,
+          "bits": [
+            "3433b33e",
+            "cdcc8c3e",
+            "cccc4c3e"
+          ]
+        }
+      ],
+      "shadowBits": "0000c03e",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.125,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8718749284744263,
+            0.7874999642372131,
+            0.7031250596046448
+          ],
+          "argument": 1,
+          "bits": [
+            "32335f3f",
+            "9999493f",
+            "0100343f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.43125003576278687,
+            0.375,
+            0.3187500238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "ceccdc3e",
+            "0000c03e",
+            "3433a33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.21562501788139343,
+            0.1875,
+            0.15937501192092896
+          ],
+          "bits": [
+            "cecc5c3e",
+            "0000403e",
+            "3433233e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3500000238418579,
+            0.2750000059604645,
+            0.19999998807907104
+          ],
+          "argument": 68,
+          "bits": [
+            "3433b33e",
+            "cdcc8c3e",
+            "cccc4c3e"
+          ]
+        }
+      ],
+      "shadowBits": "0000403f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.125,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8718749284744263,
+            0.7874999642372131,
+            0.7031250596046448
+          ],
+          "argument": 1,
+          "bits": [
+            "32335f3f",
+            "9999493f",
+            "0100343f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.43125003576278687,
+            0.375,
+            0.3187500238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "ceccdc3e",
+            "0000c03e",
+            "3433a33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.21562501788139343,
+            0.1875,
+            0.15937501192092896
+          ],
+          "bits": [
+            "cecc5c3e",
+            "0000403e",
+            "3433233e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3500000238418579,
+            0.2750000059604645,
+            0.19999998807907104
+          ],
+          "argument": 68,
+          "bits": [
+            "3433b33e",
+            "cdcc8c3e",
+            "cccc4c3e"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.125,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8718749284744263,
+            0.7874999642372131,
+            0.7031250596046448
+          ],
+          "argument": 1,
+          "bits": [
+            "32335f3f",
+            "9999493f",
+            "0100343f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.43125003576278687,
+            0.375,
+            0.3187500238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "ceccdc3e",
+            "0000c03e",
+            "3433a33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.21562501788139343,
+            0.1875,
+            0.15937501192092896
+          ],
+          "bits": [
+            "cecc5c3e",
+            "0000403e",
+            "3433233e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3500000238418579,
+            0.2750000059604645,
+            0.19999998807907104
+          ],
+          "argument": 68,
+          "bits": [
+            "3433b33e",
+            "cdcc8c3e",
+            "cccc4c3e"
+          ]
+        }
+      ],
+      "shadowBits": "0000c03e",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.125,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.8718749284744263,
+            0.7874999642372131,
+            0.7031250596046448
+          ],
+          "argument": 1,
+          "bits": [
+            "32335f3f",
+            "9999493f",
+            "0100343f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.43125003576278687,
+            0.375,
+            0.3187500238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "ceccdc3e",
+            "0000c03e",
+            "3433a33e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.21562501788139343,
+            0.1875,
+            0.15937501192092896
+          ],
+          "bits": [
+            "cecc5c3e",
+            "0000403e",
+            "3433233e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3500000238418579,
+            0.2750000059604645,
+            0.19999998807907104
+          ],
+          "argument": 68,
+          "bits": [
+            "3433b33e",
+            "cdcc8c3e",
+            "cccc4c3e"
+          ]
+        }
+      ],
+      "shadowBits": "0000403f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.4,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.7880000472068787,
+            0.7599999904632568,
+            0.7320000529289246
+          ],
+          "argument": 1,
+          "bits": [
+            "5fba493f",
+            "5c8f423f",
+            "5b643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.10400000214576721,
+            0.09999999403953552,
+            0.09600000083446503
+          ],
+          "argument": 1,
+          "bits": [
+            "f4fdd43d",
+            "cccccc3d",
+            "a69bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.052000001072883606,
+            0.04999999701976776,
+            0.04800000041723251
+          ],
+          "bits": [
+            "f4fd543d",
+            "cccc4c3d",
+            "a69b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.46000000834465027,
+            0.4400000274181366,
+            0.41999998688697815
+          ],
+          "argument": 55,
+          "bits": [
+            "1f85eb3e",
+            "af47e13e",
+            "3d0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.4,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.7880000472068787,
+            0.7599999904632568,
+            0.7320000529289246
+          ],
+          "argument": 1,
+          "bits": [
+            "5fba493f",
+            "5c8f423f",
+            "5b643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.10400000214576721,
+            0.09999999403953552,
+            0.09600000083446503
+          ],
+          "argument": 1,
+          "bits": [
+            "f4fdd43d",
+            "cccccc3d",
+            "a69bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.052000001072883606,
+            0.04999999701976776,
+            0.04800000041723251
+          ],
+          "bits": [
+            "f4fd543d",
+            "cccc4c3d",
+            "a69b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.46000000834465027,
+            0.4400000274181366,
+            0.41999998688697815
+          ],
+          "argument": 55,
+          "bits": [
+            "1f85eb3e",
+            "af47e13e",
+            "3d0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "cccccc3d",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.4,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.7880000472068787,
+            0.7599999904632568,
+            0.7320000529289246
+          ],
+          "argument": 1,
+          "bits": [
+            "5fba493f",
+            "5c8f423f",
+            "5b643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.10400000214576721,
+            0.09999999403953552,
+            0.09600000083446503
+          ],
+          "argument": 1,
+          "bits": [
+            "f4fdd43d",
+            "cccccc3d",
+            "a69bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.052000001072883606,
+            0.04999999701976776,
+            0.04800000041723251
+          ],
+          "bits": [
+            "f4fd543d",
+            "cccc4c3d",
+            "a69b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.46000000834465027,
+            0.4400000274181366,
+            0.41999998688697815
+          ],
+          "argument": 55,
+          "bits": [
+            "1f85eb3e",
+            "af47e13e",
+            "3d0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "cccc4c3e",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.4,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.7880000472068787,
+            0.7599999904632568,
+            0.7320000529289246
+          ],
+          "argument": 1,
+          "bits": [
+            "5fba493f",
+            "5c8f423f",
+            "5b643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.10400000214576721,
+            0.09999999403953552,
+            0.09600000083446503
+          ],
+          "argument": 1,
+          "bits": [
+            "f4fdd43d",
+            "cccccc3d",
+            "a69bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.052000001072883606,
+            0.04999999701976776,
+            0.04800000041723251
+          ],
+          "bits": [
+            "f4fd543d",
+            "cccc4c3d",
+            "a69b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.46000000834465027,
+            0.4400000274181366,
+            0.41999998688697815
+          ],
+          "argument": 55,
+          "bits": [
+            "1f85eb3e",
+            "af47e13e",
+            "3d0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.4,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.7880000472068787,
+            0.7599999904632568,
+            0.7320000529289246
+          ],
+          "argument": 1,
+          "bits": [
+            "5fba493f",
+            "5c8f423f",
+            "5b643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.10400000214576721,
+            0.09999999403953552,
+            0.09600000083446503
+          ],
+          "argument": 1,
+          "bits": [
+            "f4fdd43d",
+            "cccccc3d",
+            "a69bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.052000001072883606,
+            0.04999999701976776,
+            0.04800000041723251
+          ],
+          "bits": [
+            "f4fd543d",
+            "cccc4c3d",
+            "a69b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.46000000834465027,
+            0.4400000274181366,
+            0.41999998688697815
+          ],
+          "argument": 55,
+          "bits": [
+            "1f85eb3e",
+            "af47e13e",
+            "3d0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "cccccc3d",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.4,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.7880000472068787,
+            0.7599999904632568,
+            0.7320000529289246
+          ],
+          "argument": 1,
+          "bits": [
+            "5fba493f",
+            "5c8f423f",
+            "5b643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.10400000214576721,
+            0.09999999403953552,
+            0.09600000083446503
+          ],
+          "argument": 1,
+          "bits": [
+            "f4fdd43d",
+            "cccccc3d",
+            "a69bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.052000001072883606,
+            0.04999999701976776,
+            0.04800000041723251
+          ],
+          "bits": [
+            "f4fd543d",
+            "cccc4c3d",
+            "a69b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.46000000834465027,
+            0.4400000274181366,
+            0.41999998688697815
+          ],
+          "argument": 55,
+          "bits": [
+            "1f85eb3e",
+            "af47e13e",
+            "3d0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "cccc4c3e",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.5,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.5,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.5,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.5,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.5,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.5,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.6,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.6399999856948853,
+            0.6679999828338623
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0ad7233f",
+            "0c022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600002318620682,
+            0.10000002384185791,
+            0.104000024497509
+          ],
+          "argument": 1,
+          "bits": [
+            "a99bc43d",
+            "d0cccc3d",
+            "f7fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800001159310341,
+            0.050000011920928955,
+            0.0520000122487545
+          ],
+          "bits": [
+            "a99b443d",
+            "d0cc4c3d",
+            "f7fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.6,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.6399999856948853,
+            0.6679999828338623
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0ad7233f",
+            "0c022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600002318620682,
+            0.10000002384185791,
+            0.104000024497509
+          ],
+          "argument": 1,
+          "bits": [
+            "a99bc43d",
+            "d0cccc3d",
+            "f7fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800001159310341,
+            0.050000011920928955,
+            0.0520000122487545
+          ],
+          "bits": [
+            "a99b443d",
+            "d0cc4c3d",
+            "f7fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "cfcccc3d",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.6,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.6399999856948853,
+            0.6679999828338623
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0ad7233f",
+            "0c022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600002318620682,
+            0.10000002384185791,
+            0.104000024497509
+          ],
+          "argument": 1,
+          "bits": [
+            "a99bc43d",
+            "d0cccc3d",
+            "f7fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800001159310341,
+            0.050000011920928955,
+            0.0520000122487545
+          ],
+          "bits": [
+            "a99b443d",
+            "d0cc4c3d",
+            "f7fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "cfcc4c3e",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.6,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.6399999856948853,
+            0.6679999828338623
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0ad7233f",
+            "0c022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600002318620682,
+            0.10000002384185791,
+            0.104000024497509
+          ],
+          "argument": 1,
+          "bits": [
+            "a99bc43d",
+            "d0cccc3d",
+            "f7fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800001159310341,
+            0.050000011920928955,
+            0.0520000122487545
+          ],
+          "bits": [
+            "a99b443d",
+            "d0cc4c3d",
+            "f7fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.6,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.6399999856948853,
+            0.6679999828338623
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0ad7233f",
+            "0c022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600002318620682,
+            0.10000002384185791,
+            0.104000024497509
+          ],
+          "argument": 1,
+          "bits": [
+            "a99bc43d",
+            "d0cccc3d",
+            "f7fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800001159310341,
+            0.050000011920928955,
+            0.0520000122487545
+          ],
+          "bits": [
+            "a99b443d",
+            "d0cc4c3d",
+            "f7fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "cfcccc3d",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.6,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.6399999856948853,
+            0.6679999828338623
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0ad7233f",
+            "0c022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600002318620682,
+            0.10000002384185791,
+            0.104000024497509
+          ],
+          "argument": 1,
+          "bits": [
+            "a99bc43d",
+            "d0cccc3d",
+            "f7fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800001159310341,
+            0.050000011920928955,
+            0.0520000122487545
+          ],
+          "bits": [
+            "a99b443d",
+            "d0cc4c3d",
+            "f7fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "cfcc4c3e",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.999,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.1012001782655716,
+            0.20109997689723969,
+            0.30099982023239136
+          ],
+          "argument": 1,
+          "bits": [
+            "0a42cf3d",
+            "27ed4d3e",
+            "a61c9a3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3993995785713196,
+            0.49900001287460327,
+            0.598600447177887
+          ],
+          "argument": 1,
+          "bits": [
+            "1a7ecc3e",
+            "ee7cff3e",
+            "e13d193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.1996997892856598,
+            0.24950000643730164,
+            0.2993002235889435
+          ],
+          "bits": [
+            "1a7e4c3e",
+            "ee7c7f3e",
+            "e13d993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6995999813079834,
+            0.7993999719619751,
+            0.8992000222206116
+          ],
+          "argument": 25,
+          "bits": [
+            "fc18333f",
+            "7aa54c3f",
+            "f931663f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.999,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.1012001782655716,
+            0.20109997689723969,
+            0.30099982023239136
+          ],
+          "argument": 1,
+          "bits": [
+            "0a42cf3d",
+            "27ed4d3e",
+            "a61c9a3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3993995785713196,
+            0.49900001287460327,
+            0.598600447177887
+          ],
+          "argument": 1,
+          "bits": [
+            "1a7ecc3e",
+            "ee7cff3e",
+            "e13d193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.1996997892856598,
+            0.24950000643730164,
+            0.2993002235889435
+          ],
+          "bits": [
+            "1a7e4c3e",
+            "ee7c7f3e",
+            "e13d993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6995999813079834,
+            0.7993999719619751,
+            0.8992000222206116
+          ],
+          "argument": 25,
+          "bits": [
+            "fc18333f",
+            "7aa54c3f",
+            "f931663f"
+          ]
+        }
+      ],
+      "shadowBits": "ee7cff3e",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.999,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.1012001782655716,
+            0.20109997689723969,
+            0.30099982023239136
+          ],
+          "argument": 1,
+          "bits": [
+            "0a42cf3d",
+            "27ed4d3e",
+            "a61c9a3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3993995785713196,
+            0.49900001287460327,
+            0.598600447177887
+          ],
+          "argument": 1,
+          "bits": [
+            "1a7ecc3e",
+            "ee7cff3e",
+            "e13d193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.1996997892856598,
+            0.24950000643730164,
+            0.2993002235889435
+          ],
+          "bits": [
+            "1a7e4c3e",
+            "ee7c7f3e",
+            "e13d993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6995999813079834,
+            0.7993999719619751,
+            0.8992000222206116
+          ],
+          "argument": 25,
+          "bits": [
+            "fc18333f",
+            "7aa54c3f",
+            "f931663f"
+          ]
+        }
+      ],
+      "shadowBits": "ee7c7f3f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.999,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10120026022195816,
+            0.20110006630420685,
+            0.30099985003471375
+          ],
+          "argument": 1,
+          "bits": [
+            "1542cf3d",
+            "2ded4d3e",
+            "a71c9a3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.39939960837364197,
+            0.4989999532699585,
+            0.5986003279685974
+          ],
+          "argument": 1,
+          "bits": [
+            "1b7ecc3e",
+            "ec7cff3e",
+            "df3d193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.19969980418682098,
+            0.24949997663497925,
+            0.2993001639842987
+          ],
+          "bits": [
+            "1b7e4c3e",
+            "ec7c7f3e",
+            "df3d993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6995999217033386,
+            0.7994000315666199,
+            0.8991999626159668
+          ],
+          "argument": 25,
+          "bits": [
+            "fb18333f",
+            "7ba54c3f",
+            "f831663f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.999,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10120026022195816,
+            0.20110006630420685,
+            0.30099985003471375
+          ],
+          "argument": 1,
+          "bits": [
+            "1542cf3d",
+            "2ded4d3e",
+            "a71c9a3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.39939960837364197,
+            0.4989999532699585,
+            0.5986003279685974
+          ],
+          "argument": 1,
+          "bits": [
+            "1b7ecc3e",
+            "ec7cff3e",
+            "df3d193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.19969980418682098,
+            0.24949997663497925,
+            0.2993001639842987
+          ],
+          "bits": [
+            "1b7e4c3e",
+            "ec7c7f3e",
+            "df3d993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6995999217033386,
+            0.7994000315666199,
+            0.8991999626159668
+          ],
+          "argument": 25,
+          "bits": [
+            "fb18333f",
+            "7ba54c3f",
+            "f831663f"
+          ]
+        }
+      ],
+      "shadowBits": "ec7cff3e",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 0.999,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10120026022195816,
+            0.20110006630420685,
+            0.30099985003471375
+          ],
+          "argument": 1,
+          "bits": [
+            "1542cf3d",
+            "2ded4d3e",
+            "a71c9a3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.39939960837364197,
+            0.4989999532699585,
+            0.5986003279685974
+          ],
+          "argument": 1,
+          "bits": [
+            "1b7ecc3e",
+            "ec7cff3e",
+            "df3d193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.19969980418682098,
+            0.24949997663497925,
+            0.2993001639842987
+          ],
+          "bits": [
+            "1b7e4c3e",
+            "ec7c7f3e",
+            "df3d993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6995999217033386,
+            0.7994000315666199,
+            0.8991999626159668
+          ],
+          "argument": 25,
+          "bits": [
+            "fb18333f",
+            "7ba54c3f",
+            "f831663f"
+          ]
+        }
+      ],
+      "shadowBits": "ec7c7f3f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 1,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1.5,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1.5,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1.5,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1.5,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1.5,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dusk",
+        "elapsed": 1.5,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": false
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": -0.25,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            -0.09999999403953552,
+            0.04999999701976776,
+            0.20000000298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "ccccccbd",
+            "cccc4c3d",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3499999940395355,
+            0.5,
+            0.6499999761581421
+          ],
+          "argument": 1,
+          "bits": [
+            "3333b33e",
+            "0000003f",
+            "6666263f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.17499999701976776,
+            0.25,
+            0.32499998807907104
+          ],
+          "bits": [
+            "3333333e",
+            "0000803e",
+            "6666a63e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.800000011920929,
+            0.949999988079071,
+            1.100000023841858
+          ],
+          "argument": 12,
+          "bits": [
+            "cdcc4c3f",
+            "3333733f",
+            "cdcc8c3f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": -0.25,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            -0.09999999403953552,
+            0.04999999701976776,
+            0.20000000298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "ccccccbd",
+            "cccc4c3d",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3499999940395355,
+            0.5,
+            0.6499999761581421
+          ],
+          "argument": 1,
+          "bits": [
+            "3333b33e",
+            "0000003f",
+            "6666263f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.17499999701976776,
+            0.25,
+            0.32499998807907104
+          ],
+          "bits": [
+            "3333333e",
+            "0000803e",
+            "6666a63e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.800000011920929,
+            0.949999988079071,
+            1.100000023841858
+          ],
+          "argument": 12,
+          "bits": [
+            "cdcc4c3f",
+            "3333733f",
+            "cdcc8c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": -0.25,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            -0.09999999403953552,
+            0.04999999701976776,
+            0.20000000298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "ccccccbd",
+            "cccc4c3d",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3499999940395355,
+            0.5,
+            0.6499999761581421
+          ],
+          "argument": 1,
+          "bits": [
+            "3333b33e",
+            "0000003f",
+            "6666263f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.17499999701976776,
+            0.25,
+            0.32499998807907104
+          ],
+          "bits": [
+            "3333333e",
+            "0000803e",
+            "6666a63e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.800000011920929,
+            0.949999988079071,
+            1.100000023841858
+          ],
+          "argument": 12,
+          "bits": [
+            "cdcc4c3f",
+            "3333733f",
+            "cdcc8c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": -0.25,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            -0.09999999403953552,
+            0.04999999701976776,
+            0.20000000298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "ccccccbd",
+            "cccc4c3d",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3499999940395355,
+            0.5,
+            0.6499999761581421
+          ],
+          "argument": 1,
+          "bits": [
+            "3333b33e",
+            "0000003f",
+            "6666263f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.17499999701976776,
+            0.25,
+            0.32499998807907104
+          ],
+          "bits": [
+            "3333333e",
+            "0000803e",
+            "6666a63e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.800000011920929,
+            0.949999988079071,
+            1.100000023841858
+          ],
+          "argument": 12,
+          "bits": [
+            "cdcc4c3f",
+            "3333733f",
+            "cdcc8c3f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": -0.25,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            -0.09999999403953552,
+            0.04999999701976776,
+            0.20000000298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "ccccccbd",
+            "cccc4c3d",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3499999940395355,
+            0.5,
+            0.6499999761581421
+          ],
+          "argument": 1,
+          "bits": [
+            "3333b33e",
+            "0000003f",
+            "6666263f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.17499999701976776,
+            0.25,
+            0.32499998807907104
+          ],
+          "bits": [
+            "3333333e",
+            "0000803e",
+            "6666a63e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.800000011920929,
+            0.949999988079071,
+            1.100000023841858
+          ],
+          "argument": 12,
+          "bits": [
+            "cdcc4c3f",
+            "3333733f",
+            "cdcc8c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": -0.25,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            -0.09999999403953552,
+            0.04999999701976776,
+            0.20000000298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "ccccccbd",
+            "cccc4c3d",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3499999940395355,
+            0.5,
+            0.6499999761581421
+          ],
+          "argument": 1,
+          "bits": [
+            "3333b33e",
+            "0000003f",
+            "6666263f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.17499999701976776,
+            0.25,
+            0.32499998807907104
+          ],
+          "bits": [
+            "3333333e",
+            "0000803e",
+            "6666a63e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.800000011920929,
+            0.949999988079071,
+            1.100000023841858
+          ],
+          "argument": 12,
+          "bits": [
+            "cdcc4c3f",
+            "3333733f",
+            "cdcc8c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.20000000298023224,
+            0.25,
+            0.30000001192092896
+          ],
+          "bits": [
+            "cdcc4c3e",
+            "0000803e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.125,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.25312498211860657,
+            0.3375000059604645,
+            0.4218750298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "9999813e",
+            "cdccac3e",
+            "0100d83e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3187500238418579,
+            0.375,
+            0.43125003576278687
+          ],
+          "argument": 1,
+          "bits": [
+            "3433a33e",
+            "0000c03e",
+            "ceccdc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.15937501192092896,
+            0.1875,
+            0.21562501788139343
+          ],
+          "bits": [
+            "3433233e",
+            "0000403e",
+            "cecc5c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6500000357627869,
+            0.7249999642372131,
+            0.7999999523162842
+          ],
+          "argument": 31,
+          "bits": [
+            "6766263f",
+            "9999393f",
+            "cccc4c3f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.125,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.25312498211860657,
+            0.3375000059604645,
+            0.4218750298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "9999813e",
+            "cdccac3e",
+            "0100d83e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3187500238418579,
+            0.375,
+            0.43125003576278687
+          ],
+          "argument": 1,
+          "bits": [
+            "3433a33e",
+            "0000c03e",
+            "ceccdc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.15937501192092896,
+            0.1875,
+            0.21562501788139343
+          ],
+          "bits": [
+            "3433233e",
+            "0000403e",
+            "cecc5c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6500000357627869,
+            0.7249999642372131,
+            0.7999999523162842
+          ],
+          "argument": 31,
+          "bits": [
+            "6766263f",
+            "9999393f",
+            "cccc4c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000c03e",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.125,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.25312498211860657,
+            0.3375000059604645,
+            0.4218750298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "9999813e",
+            "cdccac3e",
+            "0100d83e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3187500238418579,
+            0.375,
+            0.43125003576278687
+          ],
+          "argument": 1,
+          "bits": [
+            "3433a33e",
+            "0000c03e",
+            "ceccdc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.15937501192092896,
+            0.1875,
+            0.21562501788139343
+          ],
+          "bits": [
+            "3433233e",
+            "0000403e",
+            "cecc5c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6500000357627869,
+            0.7249999642372131,
+            0.7999999523162842
+          ],
+          "argument": 31,
+          "bits": [
+            "6766263f",
+            "9999393f",
+            "cccc4c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000403f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.125,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.25312498211860657,
+            0.3375000059604645,
+            0.4218750298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "9999813e",
+            "cdccac3e",
+            "0100d83e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3187500238418579,
+            0.375,
+            0.43125003576278687
+          ],
+          "argument": 1,
+          "bits": [
+            "3433a33e",
+            "0000c03e",
+            "ceccdc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.15937501192092896,
+            0.1875,
+            0.21562501788139343
+          ],
+          "bits": [
+            "3433233e",
+            "0000403e",
+            "cecc5c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6500000357627869,
+            0.7249999642372131,
+            0.7999999523162842
+          ],
+          "argument": 31,
+          "bits": [
+            "6766263f",
+            "9999393f",
+            "cccc4c3f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.125,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.25312498211860657,
+            0.3375000059604645,
+            0.4218750298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "9999813e",
+            "cdccac3e",
+            "0100d83e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3187500238418579,
+            0.375,
+            0.43125003576278687
+          ],
+          "argument": 1,
+          "bits": [
+            "3433a33e",
+            "0000c03e",
+            "ceccdc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.15937501192092896,
+            0.1875,
+            0.21562501788139343
+          ],
+          "bits": [
+            "3433233e",
+            "0000403e",
+            "cecc5c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6500000357627869,
+            0.7249999642372131,
+            0.7999999523162842
+          ],
+          "argument": 31,
+          "bits": [
+            "6766263f",
+            "9999393f",
+            "cccc4c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000c03e",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.125,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.25312498211860657,
+            0.3375000059604645,
+            0.4218750298023224
+          ],
+          "argument": 1,
+          "bits": [
+            "9999813e",
+            "cdccac3e",
+            "0100d83e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.3187500238418579,
+            0.375,
+            0.43125003576278687
+          ],
+          "argument": 1,
+          "bits": [
+            "3433a33e",
+            "0000c03e",
+            "ceccdc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.15937501192092896,
+            0.1875,
+            0.21562501788139343
+          ],
+          "bits": [
+            "3433233e",
+            "0000403e",
+            "cecc5c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.6500000357627869,
+            0.7249999642372131,
+            0.7999999523162842
+          ],
+          "argument": 31,
+          "bits": [
+            "6766263f",
+            "9999393f",
+            "cccc4c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000403f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.4,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.64000004529953,
+            0.6680000424385071
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0bd7233f",
+            "0d022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600000083446503,
+            0.09999999403953552,
+            0.10400000214576721
+          ],
+          "argument": 1,
+          "bits": [
+            "a69bc43d",
+            "cccccc3d",
+            "f4fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800000041723251,
+            0.04999999701976776,
+            0.052000001072883606
+          ],
+          "bits": [
+            "a69b443d",
+            "cccc4c3d",
+            "f4fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.4,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.64000004529953,
+            0.6680000424385071
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0bd7233f",
+            "0d022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600000083446503,
+            0.09999999403953552,
+            0.10400000214576721
+          ],
+          "argument": 1,
+          "bits": [
+            "a69bc43d",
+            "cccccc3d",
+            "f4fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800000041723251,
+            0.04999999701976776,
+            0.052000001072883606
+          ],
+          "bits": [
+            "a69b443d",
+            "cccc4c3d",
+            "f4fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "cccccc3d",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.4,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.64000004529953,
+            0.6680000424385071
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0bd7233f",
+            "0d022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600000083446503,
+            0.09999999403953552,
+            0.10400000214576721
+          ],
+          "argument": 1,
+          "bits": [
+            "a69bc43d",
+            "cccccc3d",
+            "f4fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800000041723251,
+            0.04999999701976776,
+            0.052000001072883606
+          ],
+          "bits": [
+            "a69b443d",
+            "cccc4c3d",
+            "f4fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "cccc4c3e",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.4,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.64000004529953,
+            0.6680000424385071
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0bd7233f",
+            "0d022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600000083446503,
+            0.09999999403953552,
+            0.10400000214576721
+          ],
+          "argument": 1,
+          "bits": [
+            "a69bc43d",
+            "cccccc3d",
+            "f4fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800000041723251,
+            0.04999999701976776,
+            0.052000001072883606
+          ],
+          "bits": [
+            "a69b443d",
+            "cccc4c3d",
+            "f4fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.4,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.64000004529953,
+            0.6680000424385071
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0bd7233f",
+            "0d022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600000083446503,
+            0.09999999403953552,
+            0.10400000214576721
+          ],
+          "argument": 1,
+          "bits": [
+            "a69bc43d",
+            "cccccc3d",
+            "f4fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800000041723251,
+            0.04999999701976776,
+            0.052000001072883606
+          ],
+          "bits": [
+            "a69b443d",
+            "cccc4c3d",
+            "f4fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "cccccc3d",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.4,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "ambient",
+          "value": [
+            0.6119999885559082,
+            0.64000004529953,
+            0.6680000424385071
+          ],
+          "argument": 1,
+          "bits": [
+            "08ac1c3f",
+            "0bd7233f",
+            "0d022b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.09600000083446503,
+            0.09999999403953552,
+            0.10400000214576721
+          ],
+          "argument": 1,
+          "bits": [
+            "a69bc43d",
+            "cccccc3d",
+            "f4fdd43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.04800000041723251,
+            0.04999999701976776,
+            0.052000001072883606
+          ],
+          "bits": [
+            "a69b443d",
+            "cccc4c3d",
+            "f4fd543d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5400000214576721,
+            0.5600000023841858,
+            0.5800000429153442
+          ],
+          "argument": 45,
+          "bits": [
+            "713d0a3f",
+            "295c0f3f",
+            "e27a143f"
+          ]
+        }
+      ],
+      "shadowBits": "cccc4c3e",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.5,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.5,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.5,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.5,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.5,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.5,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.75,
+            0.75,
+            0.75
+          ],
+          "argument": 1,
+          "bits": [
+            "0000403f",
+            "0000403f",
+            "0000403f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "argument": 1,
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bits": [
+            "00000000",
+            "00000000",
+            "00000000"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "argument": 50,
+          "bits": [
+            "0000003f",
+            "0000003f",
+            "0000003f"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.6,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.7879999876022339,
+            0.7599999904632568,
+            0.7319999933242798
+          ],
+          "argument": 1,
+          "bits": [
+            "5eba493f",
+            "5c8f423f",
+            "5a643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.104000024497509,
+            0.10000002384185791,
+            0.09600002318620682
+          ],
+          "argument": 1,
+          "bits": [
+            "f7fdd43d",
+            "d0cccc3d",
+            "a99bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0520000122487545,
+            0.050000011920928955,
+            0.04800001159310341
+          ],
+          "bits": [
+            "f7fd543d",
+            "d0cc4c3d",
+            "a99b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.4599999785423279,
+            0.4399999976158142,
+            0.41999995708465576
+          ],
+          "argument": 55,
+          "bits": [
+            "1e85eb3e",
+            "ae47e13e",
+            "3c0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.6,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.7879999876022339,
+            0.7599999904632568,
+            0.7319999933242798
+          ],
+          "argument": 1,
+          "bits": [
+            "5eba493f",
+            "5c8f423f",
+            "5a643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.104000024497509,
+            0.10000002384185791,
+            0.09600002318620682
+          ],
+          "argument": 1,
+          "bits": [
+            "f7fdd43d",
+            "d0cccc3d",
+            "a99bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0520000122487545,
+            0.050000011920928955,
+            0.04800001159310341
+          ],
+          "bits": [
+            "f7fd543d",
+            "d0cc4c3d",
+            "a99b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.4599999785423279,
+            0.4399999976158142,
+            0.41999995708465576
+          ],
+          "argument": 55,
+          "bits": [
+            "1e85eb3e",
+            "ae47e13e",
+            "3c0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "cfcccc3d",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.6,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.7879999876022339,
+            0.7599999904632568,
+            0.7319999933242798
+          ],
+          "argument": 1,
+          "bits": [
+            "5eba493f",
+            "5c8f423f",
+            "5a643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.104000024497509,
+            0.10000002384185791,
+            0.09600002318620682
+          ],
+          "argument": 1,
+          "bits": [
+            "f7fdd43d",
+            "d0cccc3d",
+            "a99bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0520000122487545,
+            0.050000011920928955,
+            0.04800001159310341
+          ],
+          "bits": [
+            "f7fd543d",
+            "d0cc4c3d",
+            "a99b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.4599999785423279,
+            0.4399999976158142,
+            0.41999995708465576
+          ],
+          "argument": 55,
+          "bits": [
+            "1e85eb3e",
+            "ae47e13e",
+            "3c0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "cfcc4c3e",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.6,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.7879999876022339,
+            0.7599999904632568,
+            0.7319999933242798
+          ],
+          "argument": 1,
+          "bits": [
+            "5eba493f",
+            "5c8f423f",
+            "5a643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.104000024497509,
+            0.10000002384185791,
+            0.09600002318620682
+          ],
+          "argument": 1,
+          "bits": [
+            "f7fdd43d",
+            "d0cccc3d",
+            "a99bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0520000122487545,
+            0.050000011920928955,
+            0.04800001159310341
+          ],
+          "bits": [
+            "f7fd543d",
+            "d0cc4c3d",
+            "a99b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.4599999785423279,
+            0.4399999976158142,
+            0.41999995708465576
+          ],
+          "argument": 55,
+          "bits": [
+            "1e85eb3e",
+            "ae47e13e",
+            "3c0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.6,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.7879999876022339,
+            0.7599999904632568,
+            0.7319999933242798
+          ],
+          "argument": 1,
+          "bits": [
+            "5eba493f",
+            "5c8f423f",
+            "5a643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.104000024497509,
+            0.10000002384185791,
+            0.09600002318620682
+          ],
+          "argument": 1,
+          "bits": [
+            "f7fdd43d",
+            "d0cccc3d",
+            "a99bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0520000122487545,
+            0.050000011920928955,
+            0.04800001159310341
+          ],
+          "bits": [
+            "f7fd543d",
+            "d0cc4c3d",
+            "a99b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.4599999785423279,
+            0.4399999976158142,
+            0.41999995708465576
+          ],
+          "argument": 55,
+          "bits": [
+            "1e85eb3e",
+            "ae47e13e",
+            "3c0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "cfcccc3d",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.6,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.7879999876022339,
+            0.7599999904632568,
+            0.7319999933242798
+          ],
+          "argument": 1,
+          "bits": [
+            "5eba493f",
+            "5c8f423f",
+            "5a643b3f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.104000024497509,
+            0.10000002384185791,
+            0.09600002318620682
+          ],
+          "argument": 1,
+          "bits": [
+            "f7fdd43d",
+            "d0cccc3d",
+            "a99bc43d"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.0520000122487545,
+            0.050000011920928955,
+            0.04800001159310341
+          ],
+          "bits": [
+            "f7fd543d",
+            "d0cc4c3d",
+            "a99b443d"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.4599999785423279,
+            0.4399999976158142,
+            0.41999995708465576
+          ],
+          "argument": 55,
+          "bits": [
+            "1e85eb3e",
+            "ae47e13e",
+            "3c0ad73e"
+          ]
+        }
+      ],
+      "shadowBits": "cfcc4c3e",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.999,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8997998237609863,
+            0.7998999357223511,
+            0.7000001668930054
+          ],
+          "argument": 1,
+          "bits": [
+            "4859663f",
+            "3ec64c3f",
+            "3633333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.598600447177887,
+            0.49900001287460327,
+            0.3993995785713196
+          ],
+          "argument": 1,
+          "bits": [
+            "e13d193f",
+            "ee7cff3e",
+            "1a7ecc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.2993002235889435,
+            0.24950000643730164,
+            0.1996997892856598
+          ],
+          "bits": [
+            "e13d993e",
+            "ee7c7f3e",
+            "1a7e4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3004000186920166,
+            0.20059998333454132,
+            0.10079998522996902
+          ],
+          "argument": 74,
+          "bits": [
+            "08ce993e",
+            "156a4d3e",
+            "3970ce3d"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.999,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8997998237609863,
+            0.7998999357223511,
+            0.7000001668930054
+          ],
+          "argument": 1,
+          "bits": [
+            "4859663f",
+            "3ec64c3f",
+            "3633333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.598600447177887,
+            0.49900001287460327,
+            0.3993995785713196
+          ],
+          "argument": 1,
+          "bits": [
+            "e13d193f",
+            "ee7cff3e",
+            "1a7ecc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.2993002235889435,
+            0.24950000643730164,
+            0.1996997892856598
+          ],
+          "bits": [
+            "e13d993e",
+            "ee7c7f3e",
+            "1a7e4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3004000186920166,
+            0.20059998333454132,
+            0.10079998522996902
+          ],
+          "argument": 74,
+          "bits": [
+            "08ce993e",
+            "156a4d3e",
+            "3970ce3d"
+          ]
+        }
+      ],
+      "shadowBits": "ee7cff3e",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.999,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8997998237609863,
+            0.7998999357223511,
+            0.7000001668930054
+          ],
+          "argument": 1,
+          "bits": [
+            "4859663f",
+            "3ec64c3f",
+            "3633333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.598600447177887,
+            0.49900001287460327,
+            0.3993995785713196
+          ],
+          "argument": 1,
+          "bits": [
+            "e13d193f",
+            "ee7cff3e",
+            "1a7ecc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.2993002235889435,
+            0.24950000643730164,
+            0.1996997892856598
+          ],
+          "bits": [
+            "e13d993e",
+            "ee7c7f3e",
+            "1a7e4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3004000186920166,
+            0.20059998333454132,
+            0.10079998522996902
+          ],
+          "argument": 74,
+          "bits": [
+            "08ce993e",
+            "156a4d3e",
+            "3970ce3d"
+          ]
+        }
+      ],
+      "shadowBits": "ee7c7f3f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.999,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8997997641563416,
+            0.7999000549316406,
+            0.7000001668930054
+          ],
+          "argument": 1,
+          "bits": [
+            "4759663f",
+            "40c64c3f",
+            "3633333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.5986003279685974,
+            0.4989999532699585,
+            0.39939960837364197
+          ],
+          "argument": 1,
+          "bits": [
+            "df3d193f",
+            "ec7cff3e",
+            "1b7ecc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.2993001639842987,
+            0.24949997663497925,
+            0.19969980418682098
+          ],
+          "bits": [
+            "df3d993e",
+            "ec7c7f3e",
+            "1b7e4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3004000186920166,
+            0.2006000429391861,
+            0.1008000448346138
+          ],
+          "argument": 74,
+          "bits": [
+            "08ce993e",
+            "196a4d3e",
+            "4170ce3d"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.999,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8997997641563416,
+            0.7999000549316406,
+            0.7000001668930054
+          ],
+          "argument": 1,
+          "bits": [
+            "4759663f",
+            "40c64c3f",
+            "3633333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.5986003279685974,
+            0.4989999532699585,
+            0.39939960837364197
+          ],
+          "argument": 1,
+          "bits": [
+            "df3d193f",
+            "ec7cff3e",
+            "1b7ecc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.2993001639842987,
+            0.24949997663497925,
+            0.19969980418682098
+          ],
+          "bits": [
+            "df3d993e",
+            "ec7c7f3e",
+            "1b7e4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3004000186920166,
+            0.2006000429391861,
+            0.1008000448346138
+          ],
+          "argument": 74,
+          "bits": [
+            "08ce993e",
+            "196a4d3e",
+            "4170ce3d"
+          ]
+        }
+      ],
+      "shadowBits": "ec7cff3e",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 0.999,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8997997641563416,
+            0.7999000549316406,
+            0.7000001668930054
+          ],
+          "argument": 1,
+          "bits": [
+            "4759663f",
+            "40c64c3f",
+            "3633333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.5986003279685974,
+            0.4989999532699585,
+            0.39939960837364197
+          ],
+          "argument": 1,
+          "bits": [
+            "df3d193f",
+            "ec7cff3e",
+            "1b7ecc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.2993001639842987,
+            0.24949997663497925,
+            0.19969980418682098
+          ],
+          "bits": [
+            "df3d993e",
+            "ec7c7f3e",
+            "1b7e4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.3004000186920166,
+            0.2006000429391861,
+            0.1008000448346138
+          ],
+          "argument": 74,
+          "bits": [
+            "08ce993e",
+            "196a4d3e",
+            "4170ce3d"
+          ]
+        }
+      ],
+      "shadowBits": "ec7c7f3f",
+      "flags": {
+        "dawn": 1,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1.5,
+        "duration": 1,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1.5,
+        "duration": 1,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1.5,
+        "duration": 1,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1.5,
+        "duration": 30,
+        "shadow": 0,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "00000000",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1.5,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "dawn",
+        "elapsed": 1.5,
+        "duration": 30,
+        "shadow": 100,
+        "cycle": 1,
+        "isNight": true
+      },
+      "calls": [
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "tile",
+          "value": [
+            0.30000001192092896,
+            0.25,
+            0.20000000298023224
+          ],
+          "bits": [
+            "9a99993e",
+            "0000803e",
+            "cdcc4c3e"
+          ]
+        },
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        }
+      ],
+      "shadowBits": "0000803f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "fixed",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 0,
+        "isNight": 0
+      },
+      "calls": [
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "fixed",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 0,
+        "isNight": 1
+      },
+      "calls": [
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    },
+    {
+      "case": {
+        "mode": "fixed",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": 0
+      },
+      "calls": [
+        {
+          "kind": "fog",
+          "value": [
+            0.30000001192092896,
+            0.20000000298023224,
+            0.10000000149011612
+          ],
+          "argument": 75,
+          "bits": [
+            "9a99993e",
+            "cdcc4c3e",
+            "cdcccc3d"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.8999999761581421,
+            0.800000011920929,
+            0.699999988079071
+          ],
+          "argument": 1,
+          "bits": [
+            "6666663f",
+            "cdcc4c3f",
+            "3333333f"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.6000000238418579,
+            0.5,
+            0.4000000059604645
+          ],
+          "argument": 1,
+          "bits": [
+            "9a99193f",
+            "0000003f",
+            "cdcccc3e"
+          ]
+        },
+        {
+          "kind": "direction",
+          "value": [
+            -0.30000001192092896,
+            0.4000000059604645,
+            0.800000011920929
+          ],
+          "argument": 0,
+          "bits": [
+            "9a9999be",
+            "cdcccc3e",
+            "cdcc4c3f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 0
+      }
+    },
+    {
+      "case": {
+        "mode": "fixed",
+        "elapsed": 0,
+        "duration": 30,
+        "shadow": 50,
+        "cycle": 1,
+        "isNight": 1
+      },
+      "calls": [
+        {
+          "kind": "fog",
+          "value": [
+            0.699999988079071,
+            0.800000011920929,
+            0.8999999761581421
+          ],
+          "argument": 25,
+          "bits": [
+            "3333333f",
+            "cdcc4c3f",
+            "6666663f"
+          ]
+        },
+        {
+          "kind": "ambient",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.30000001192092896
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "9a99993e"
+          ]
+        },
+        {
+          "kind": "diffuse",
+          "value": [
+            0.4000000059604645,
+            0.5,
+            0.6000000238418579
+          ],
+          "argument": 1,
+          "bits": [
+            "cdcccc3e",
+            "0000003f",
+            "9a99193f"
+          ]
+        },
+        {
+          "kind": "direction",
+          "value": [
+            0.10000000149011612,
+            0.20000000298023224,
+            0.8999999761581421
+          ],
+          "argument": 0,
+          "bits": [
+            "cdcccc3d",
+            "cdcc4c3e",
+            "6666663f"
+          ]
+        }
+      ],
+      "shadowBits": "0000003f",
+      "flags": {
+        "dawn": 0,
+        "dusk": 0,
+        "isNight": 1
+      }
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 import {ClientObjectArray} from './client_object_array.js';
 import {decodeLocalSafeProjectile} from './client_projectile_message.js';
-import {clientProjectileSpell,receiveClientSpellProjectile,updateClientProjectile} from './client_projectile_runtime.js';
+import {clientProjectileSpell,constructClientProjectile,receiveClientSpellProjectile,updateClientProjectile} from './client_projectile_runtime.js';
+import {startType10Visual} from './visual_type10.js';
+import {serverObjectIdForClient} from './client_projectile_message.js';
 import {buildClientProjectilePath,configureClientProjectilePath,initializeClientProjectileNode,nextClientProjectileNode,updateClientProjectilePath} from './client_projectile_path.js';
 import {stepClientProjectileMotion} from './client_projectile_motion.js';
 import {setClientProjectileStage} from './client_projectile_animation.js';
@@ -17,6 +19,7 @@ import {ClientProjectileDummyPresentation} from './client_projectile_dummy_prese
 import {clientRangedProjectileMetadata} from './client_ranged_projectile.js';
 import {nativeStringEntry} from './spell_metadata.js';
 import {nativeFloatEntry} from './movement_rate.js';
+import {effectSoundProviders} from './native_effect_sound.js';
 const f=Math.fround,render=v=>[v[0],v[2],-v[1]];
 
 // Local delivery is queued while an area is built. Snapshot canonical identity
@@ -41,13 +44,14 @@ export class ClientProjectileInbox{
 // Renderer adapter for the independently checked path/animation/AI owners.
 // Object arrays and animation RNG are client-side; server registry/RNG untouched.
 export class ClientProjectilePresentation{
- constructor({objects,renderFor,playerId,rules,rangedRules=rules,nativePose=null,hitPartsEnabled=null,randomImpactPart=null,now,dayLength,random,loadModel,destroyModel,prepareAuxiliaryModel,modelFor,nodePose,orient,scene,report,oneShot,castAttachment,impactAttachment,impactEquipment,castFields,voiceFields,castAnimation}){
+ constructor({objects,renderFor,playerId,rules,rangedRules=rules,nativePose=null,hitPartsEnabled=null,randomImpactPart=null,now,dayLength,random,loadModel,destroyModel,prepareAuxiliaryModel,prepareProjectileModel=prepareAuxiliaryModel,modelFor,nodePose,orient,scene,report,oneShot,nativeAudio=false,soundFactory=null,castAttachment,impactAttachment,impactEquipment,castFields,voiceFields,castAnimation}){
   const basis=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2),basisInverse=basis.clone().invert();
-  Object.assign(this,{rules,now,dayLength,random,loadModel,destroyModel,modelFor,nodePose,orient,scene,report,oneShot,impactAttachment});
+  Object.assign(this,{rules,now,dayLength,random,loadModel,destroyModel,prepareProjectileModel,modelFor,nodePose,orient,scene,report,oneShot,nativeAudio,impactAttachment});
   this.objects=new ClientObjectArray({objects,render:renderFor,nativePose});this.active=new Set();this.disposed=false;this.events=[];this.stats={received:0,spawned:0,loaded:0,impacts:0,destroyed:0,failed:0};
+  const sounds=effectSoundProviders(soundFactory?resRef=>soundFactory({resRef,objectId:OBJECT_INVALID,channel:'projectile-loop'}):null,resRef=>report('visual.projectile-loop-audio-unimplemented','Native moving projectile loop audio is not connected',{resRef}));
   this.dummies=new ClientProjectileDummyPresentation({objects:this.objects,playerId,now,difference:(a,b)=>subtractWorldTimes(a,b,dayLength()),loadModel,destroyModel,scene,report});
   this.casts=new ClientCastVisualPresentation({objects:this.objects,spell:id=>clientProjectileSpell(rules(),id),castFields,voiceFields,animation:castAnimation,now,difference:(a,b)=>subtractWorldTimes(a,b,dayLength()),loadModel,destroyModel,
-   sourceModel:source=>source.render?modelFor(source.render):null,nodePose,report,oneShot:(resRef,position,priority,gain)=>{oneShot({resRef,position:render(position),channel:'conjure'});report('visual.cast-audio-adapter-incomplete','Conjure audio uses browser output; native attenuation and priority remain incomplete',{resRef,priority,gain});},...castAttachment});
+   sourceModel:source=>source.render?modelFor(source.render):null,nodePose,report,oneShot:(resRef,position,priority,height)=>{oneShot({resRef,position:render(position),nativePosition:[...position],priority,height,channel:'conjure'});if(!this.nativeAudio)report('visual.cast-audio-adapter-incomplete','Conjure audio uses browser output; native attenuation and priority remain incomplete',{resRef,priority,height});},...castAttachment});
   const note=(code,message,data={})=>report(code,message,data),motion=(s,kind)=>{const result=stepClientProjectileMotion({...s,attachment:s.node.attachment},kind);s.velocity=result.velocity;if(result.orientation)p.setOrientation(s,result.orientation);p.setPosition(s,result.position);};
   const p=this.p={
    worldTime:()=>now(),difference:(a,b)=>subtractWorldTimes(a,b,dayLength()),object:id=>this.objects.get(id),getObject:id=>this.objects.getObject(id),clientObject:id=>this.objects.get(id),spell:id=>clientProjectileSpell(rules(),id),
@@ -107,11 +111,14 @@ export class ClientProjectilePresentation{
    },
    ready:s=>{s.ready=true;this.event({kind:'ready',id:s.id,position:[...s.position],endpoint:[...s.endpoint],path:s.path});},
    destroy:s=>{if(s.destroyed)return;s.destroyed=true;s.ready=false;this.active.delete(s);this.objects.remove(s);s.trackingTarget?.projectiles.delete(s.id);
+    // Scene teardown may precede native impact. Reclaim our output resource;
+    // the native AI's ordinary stop/destroy sequence remains unchanged.
+    if(s.sound){if(!s.sound.destroyed)p.destroySound(s.sound);s.sound=null;}
     // These endpoint models never acquire an AttachToObject parent; their
     // scene membership is separate. Native detach(NULL,NULL,0) is already
     // unbound here, followed by the actual scene removal and deletion.
     destroyClientProjectileAuxiliary(s,{attachAuxiliary:(_model,parent,part,flags)=>{if(parent!==null||part!==null||flags!==0)throw new Error('Projectile auxiliary parent attachment is unavailable');},setModelScene:p.setModelScene,destroyAuxiliary:model=>s.auxiliaryFactory.destroy(model)});
-    if(s.model){impactAttachment?.forget(s.model);destroyModel(s.model);s.model=null;}s.auxiliaryFactory?.release();s.auxiliaryFactory=null;
+    if(s.model){impactAttachment?.forget(s.model);if(s.preparedDestroy)s.preparedDestroy(s.model);else destroyModel(s.model);s.model=null;}s.auxiliaryFactory?.release();s.auxiliaryFactory=null;
     this.stats.destroyed++;this.event({kind:'destroy',id:s.id});},
    camera:()=>null,faceCamera:()=>{throw new Error('Native projectile camera-facing orientation is not connected');},
    modelHandle:target=>target.model??target.render,
@@ -123,10 +130,45 @@ export class ClientProjectilePresentation{
    setNodePose:(model,part,position,quaternion)=>{if(!impactAttachment)throw new Error('Native projectile impact pose adapter is unavailable');return impactAttachment.setNodePose(model,part,position,quaternion);},
    rangedImpact:(target,s)=>{note('visual.projectile-ranged-impact-effect-unimplemented','Native ranged impact blood/weapon effects are not connected',{targetId:target.id,effect:s.rangedEffect,critical:s.impactCritical,damage:s.impactDamage});s.rangedEffect=0;},
    attachImpact:s=>attachClientProjectileImpact(s,p),
-   createSound:resRef=>({resRef}),soundPriority:(sound,value)=>sound.priority=value,sound3d:(sound,value)=>sound.is3d=value,soundLooping:(sound,value)=>sound.looping=value,updateSound:(sound,position,range)=>{sound.position=position;sound.range=range;},
-   playSound:sound=>note('visual.projectile-loop-audio-unimplemented','Native moving projectile loop audio is not connected',{resRef:sound.resRef,priority:sound.priority,position:sound.position}),stopSound:sound=>sound.stopped=true,destroySound:sound=>sound.destroyed=true,
-   oneShot:(resRef,position,priority,gain)=>{oneShot({resRef,position:render(position),objectId:OBJECT_INVALID,channel:'projectile'});note('visual.projectile-audio-adapter-incomplete','Projectile one-shot uses browser audio; native attenuation/priority remain incomplete',{resRef,priority,gain});}
+   createSound:resRef=>{const sound=sounds.createSound(resRef);if(sound){this.stats.soundCreated=(this.stats.soundCreated??0)+1;this.event({kind:'loopSoundCreate',resRef});}return sound;},
+   soundPriority:(sound,value)=>sounds.soundSetting(sound,'setting1401da060',value),sound3d:(sound,value)=>sounds.soundSetting(sound,'setting1401d9e90',value),soundLooping:(sound,value)=>sounds.soundSetting(sound,'setting1401d9f90',value),updateSound:sounds.updateSound,
+   playSound:sound=>{this.stats.soundPlayRequests=(this.stats.soundPlayRequests??0)+1;sounds.playSound(sound);this.event({kind:'loopSoundPlay',resRef:sound.resRef});},
+   stopSound:sound=>{this.stats.soundStopped=(this.stats.soundStopped??0)+1;this.event({kind:'loopSoundStop',resRef:sound.resRef,sound:sound.snapshot?.()??null});sounds.stopSound(sound);},
+   destroySound:sound=>{if(sound.destroyed)return;this.stats.soundDestroyed=(this.stats.soundDestroyed??0)+1;this.event({kind:'loopSoundDestroy',resRef:sound.resRef,sound:sound.snapshot?.()??null});sounds.destroySound(sound);},
+   oneShot:(resRef,position,priority,height)=>{oneShot({resRef,position:render(position),nativePosition:[...position],priority,height,objectId:OBJECT_INVALID,channel:'projectile'});if(!this.nativeAudio)note('visual.projectile-audio-adapter-incomplete','Projectile one-shot uses browser audio; native attenuation/priority remain incomplete',{resRef,priority,height});}
   };
+ }
+ // Prefetch resources without constructing a projectile/model before native
+ // StartProgram. A lease lets the projectile outlive its originating visual.
+ async prepareProcedural(effect,resource,path){
+  if(!this.prepareProjectileModel)throw new Error('Native procedural projectile model preparation is unavailable');
+  this.objects.sync();const sourceId=serverObjectIdForClient(effect.source58),targetId=serverObjectIdForClient(effect.target54),source=this.objects.get(sourceId),target=this.objects.get(targetId);
+  let factory=null,auxiliary=null;
+  try{factory=await this.prepareProjectileModel(resource);if([7,10].includes(path))auxiliary=await this.prepareProjectileModel('ref');}
+  catch(error){this.report('visual.procedural-projectile-prefetch-failed',error.message,{resource,path});}
+  let leases=1,released=false;const release=()=>{if(--leases===0){factory?.release();auxiliary?.release();}},retain=()=>{leases++;let held=true;return()=>{if(held){held=false;release();}};};
+  if(this.disposed){release();return{start:()=>null,release:()=>{}};}
+  return{release:()=>{if(!released){released=true;release();}},start:(e,id,table)=>{
+   if(released||this.disposed)return null;this.objects.sync();
+   if(this.objects.get(sourceId)!==source||this.objects.get(targetId)!==target){this.report('visual.procedural-projectile-stale','Procedural projectile source/target changed during resource loading',{sourceId,targetId,resource});return null;}
+   let created=null;this.stats.proceduralReceived=(this.stats.proceduralReceived??0)+1;
+   const p={...table,clientObject:id=>this.objects.get(serverObjectIdForClient(id)),renderObject:o=>o.render?o:null,
+    constructProjectile:()=>created=constructClientProjectile(this.p),
+    configureSpell:(s,id)=>{const spell=clientProjectileSpell(this.rules(),id);if(spell){s.spellId=id;s.loopSound=s.impactSound=spell.projectileSound;s.faceCamera=0;s.facing=spell.facing&255;}},
+    loadProjectileModel:(s,name)=>{
+     let model,adopted=false;
+     try{model=factory?.create(name)??null;if(!model)return 0;const unlease=retain();s.preparedDestroy=m=>{try{factory.destroy(m);}finally{unlease();}};s.model=model;adopted=true;s.resourceName=name;
+      if([7,10].includes(path))s.auxiliaryFactory=auxiliary?{create:alias=>auxiliary.create(alias),destroy:m=>auxiliary.destroy(m),release:()=>{}}:null;
+      this.stats.loaded++;this.event({kind:'loaded',id:s.id,resource:name,clips:model.model?.animations?.map(a=>a.name)??[]});return 1;
+     }catch(error){this.stats.failed++;if(model&&!adopted)factory.destroy(model);this.report('visual.procedural-projectile-model-failed',error.message,{resource:name});return 0;}
+    },destroyProjectile:s=>this.p.destroy(s),sourceModel:o=>this.p.model(o),sourceNodePose:(...args)=>this.nodePose(...args),
+    projectilePosition:(...args)=>this.p.setPosition(...args),projectileOrientation:(...args)=>this.p.setOrientation(...args),controlledClient:()=>({videoF8:{gui248:this.scene}}),
+    projectileScene:(s,scene)=>{if(s.model)scene.add(s.model.root);},projectileStage:(...args)=>this.p.setStage(...args),projectileTarget:(...args)=>this.p.setTarget(...args),
+    projectileTime:(s,time)=>{s.remaining=s.totalTime=time>>>0;},projectilePath:(s,kind)=>{this.p.configurePath(s,kind);this.p.ready(s);}
+   };
+   try{const result=startType10Visual(e,id,p);if(result)this.event({kind:'procedural',id:result.id,programId:id,visualId:e.visualF8,sourceId,targetId});return result;}
+   catch(error){this.stats.failed++;if(created)this.p.destroy(created);this.report('visual.procedural-projectile-start-failed',error.message,{resource,programId:id,sourceId,targetId});return null;}
+  }};
  }
  event(event){this.events.push(event);if(this.events.length>64)this.events.shift();}
  async receive(entry){
@@ -153,7 +195,7 @@ export class ClientProjectilePresentation{
   const now=this.now();
   this.dummies.update();
   for(const s of [...this.active])if(s.ready&&!s.destroyed){
-   try{updateClientProjectile(s,now,this.p);if(!s.destroyed)s.model?.animator?.update(delta);}
+   try{updateClientProjectile(s,now,this.p);if(!s.destroyed){s.model?.animator?.update(delta);s.model?.references?.update?.(delta);}}
    catch(error){this.stats.failed++;this.report('visual.projectile-update-failed',error.message,{id:s.id,path:s.path,stack:error.stack});this.p.destroy(s);}
   }
   try{this.impactAttachment?.updateAttachments();}catch(error){this.report('visual.projectile-impact-scene-update-failed',error.message,{stack:error.stack});for(const s of [...this.active])this.p.destroy(s);}

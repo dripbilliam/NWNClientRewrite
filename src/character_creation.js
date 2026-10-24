@@ -5,9 +5,11 @@ import { abilityModifier, rulesetInt } from './combat_stats.js';
 import { parseGff } from './gff.js';
 import { gffField as f, gffRecord as record, typedGff, writeGff, encodeGffText } from './gff_writer.js';
 import { spellGainWithBonus } from './spell_book.js';
+import {meetsClassPrerequisites} from './class_prerequisites.js';
+import {availableCreationPortraits,customCreationPortraits} from './creation_portraits.js';
 
 export const rows = table => (table?.orderedRows ?? [...(table?.rows?.values() ?? [])]);
-export const cell = (row, key) => row?.[Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase())];
+export const cell = (row, key) => typeof key==='string'?row?.[Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase())]:undefined;
 export const num = (row, key, fallback = 0) => { const v = cell(row,key); return v === undefined || v === '****' || v === '' ? fallback : Number(v); };
 const present = value => value && value !== '****';
 const at = (table,id) => rows(table)[id];
@@ -22,11 +24,17 @@ export async function loadCreationRules(resolver) {
     if (!rules.creationTables.has(name)) rules.creationTables.set(name,parse2da(decodeResourceText(await resolver.getResource(name,RESOURCE_TYPE.TWO_DA))));
     return rules.creationTables.get(name);
   };
-  for (const name of ['packages','portraits','soundset','hen_familiar','hen_companion','chargenclothes']) rules[name] = await load(name);
+  for (const name of ['packages','portraits','soundset','hen_familiar','hen_companion','chargenclothes','masterfeats']) rules[name] = await load(name);
   for (const race of rows(rules.racialtypes)) if (present(race.FeatsTable)) await load(race.FeatsTable);
   // Preferences/equipment belong to the selected active package, including HAK overrides.
   rules.loadCreationTable = load;
   rules.creationResolver = resolver;
+  if(resolver.resourceNames)rules.creationModels=await resolver.resourceNames(RESOURCE_TYPE.MDL);
+  // Native9d04a0 enumerates medium images only; the add path can then resolve
+  // neighboring sizes. Tiny/large-only loose images are not new chooser rows.
+  rules.customPortraits=customCreationPortraits(await resolver.portraitNames?.()??[]);
+  const portraitRefs=[...new Set([...rows(rules.portraits).filter(r=>present(r.BaseResRef)).map(r=>`po_${r.BaseResRef}`.toLowerCase()),...rules.customPortraits])];
+  rules.creationAvailablePortraits=new Set(await (resolver.portraitAvailability?resolver.portraitAvailability(portraitRefs):availableCreationPortraits(resolver,portraitRefs)));
   rules.creationPaletteSizes={};
   for(const [key,name]of [['skin','pal_skin01'],['hair','pal_hair01'],['tattoo1','pal_tattoo01'],['tattoo2','pal_tattoo01']]){
     const bytes=await resolver.getResource(name,RESOURCE_TYPE.TGA);if(bytes.byteLength<18)throw new Error(`Creation palette ${name} is truncated`);rules.creationPaletteSizes[key]=new DataView(bytes).getUint16(14,true);
@@ -54,14 +62,32 @@ export function abilityPointCost(score,rules) {
 
 export function initialCreationDraft(rules) {
   const raceId=rows(rules.racialtypes).findIndex(r=>num(r,'PlayerRace')!==0);
-  const classId=rows(rules.classes).findIndex(c=>num(c,'PlayerClass')!==0&&!present(c.PreReqTable));
+  const classId=rows(rules.classes).findIndex((_,id)=>!creationClassRequirement({raceId},rules,id));
   const d={gender:0,raceId,classId,goodEvil:50,lawChaos:50,abilities:Object.fromEntries(ABILITIES.map(a=>[a,cfg(rules,'BASE_ABILITY_MIN',8)])),
-    skills:{},feats:[],known:{},memorized:{},domains:[],school:0,packageId:num(at(rules.classes,classId),'Package'),
+    skills:{},feats:[],known:{},memorized:{},domains:[],school:0,packageId:creationDefaultPackage(rules,classId),
     firstName:'',lastName:'',subrace:'',deity:'',biography:'',age:num(at(rules.racialtypes,raceId),'AGE',18),
     phenotype:0,head:1,clothes:0,skin:0,hair:0,tattoo1:0,tattoo2:0,portrait:'',soundset:0,familiar:0,familiarName:'',companion:0,companionName:''};
   const alignment=ALIGNMENTS.find(a=>creationAlignmentAllowed(at(rules.classes,classId),a.goodEvil,a.lawChaos));
   if(alignment)Object.assign(d,{goodEvil:alignment.goodEvil,lawChaos:alignment.lawChaos});
   return d;
+}
+
+// Active packages can retire a class's configured stock default. The selected
+// package must belong to the same list offered by the creator, including IDs
+// above 255. Never recommend from a hidden or different class's package.
+export function creationPackageOptions(rules,classId){return rows(rules.packages).flatMap((row,id)=>num(row,'ClassID',-1)===classId&&num(row,'PlayerClass')?[{id,row}]:[]);}
+export function creationDefaultPackage(rules,classId){const options=creationPackageOptions(rules,classId),configured=num(at(rules.classes,classId),'Package',-1);return options.find(p=>p.id===configured)?.id??options[0]?.id??-1;}
+
+// First-level selection has no acquired class levels, skill ranks, class BAB,
+// base saves or script locals. Racial feats precede candidate-class grants.
+// Alignment is chosen in the later wizard step and checked separately.
+export function creationClassRequirement(d,rules,id){
+ const cls=at(rules.classes,id);if(!cls||!num(cls,'PlayerClass'))return 'This class is not player-selectable';
+ if(num(cls,'EpicLevel',255)===0)return 'This class requires epic levels';
+ if(!present(cell(cls,'PreReqTable')))return null;
+ const table=classTable(rules,cls,'PreReqTable');if(!table)return 'Class prerequisite table is unavailable';
+ const race=at(rules.racialtypes,d.raceId),racialFeats=new Set(rows(rules.creationTables.get(String(cell(race,'FeatsTable')).toLowerCase())).map(r=>num(r,'FeatIndex',-1)));
+ return meetsClassPrerequisites(rows(table).map(row=>Object.fromEntries(['ReqType','ReqParam1','ReqParam2'].map(key=>[key,cell(row,key)]))),{race:d.raceId,hasFeat:id=>Number(racialFeats.has(id)),skillRank:()=>0,baseAttackBonus:0,baseSave:()=>0,classes:[],getInt:()=>0})?null:'First-level class prerequisites are not met';
 }
 
 export const ALIGNMENTS = ['Lawful Good','Neutral Good','Chaotic Good','Lawful Neutral','True Neutral','Chaotic Neutral','Lawful Evil','Neutral Evil','Chaotic Evil']
@@ -143,8 +169,9 @@ export function creationFeatRequirements(d,rules,id,owned=creationGrantedFeats(d
 }
 
 export function creationSpellOptions(d,rules,level){
-  const cls=at(rules.classes,d.classId),opposition=cell(at(rules.spellschools,d.school),'Opposition'),opposed=present(opposition)?cell(at(rules.spellschools,Number(opposition)),'Letter'):null;
-  return rows(rules.spells).flatMap((r,id)=>num(r,cell(cls,'SpellTableColumn'),255)===level&&present(r.Name)&&num(r,'UserType',1)===1&&(!present(r.Master)||num(r,'Master',-1)===id)&&(!num(cls,'PickSchool')||!opposed||r.School!==opposed)?[{id,row:r}]:[]);
+  const cls=at(rules.classes,d.classId),column=cell(cls,'SpellTableColumn');if(!num(cls,'SpellCaster')||!present(column))return[];
+  const opposition=cell(at(rules.spellschools,d.school),'Opposition'),opposed=present(opposition)?cell(at(rules.spellschools,Number(opposition)),'Letter'):null;
+  return rows(rules.spells).flatMap((r,id)=>num(r,column,255)===level&&present(r.Name)&&num(r,'UserType',1)===1&&(!present(r.Master)||num(r,'Master',-1)===id)&&(!num(cls,'PickSchool')||!opposed||r.School!==opposed)?[{id,row:r}]:[]);
 }
 export function creationSpellCount(d,rules,level){
   const cls=at(rules.classes,d.classId),gain=at(classTable(rules,cls,'SpellGainTable'),0),known=at(classTable(rules,cls,'SpellKnownTable'),0);
@@ -168,7 +195,14 @@ export function creationPreparedOptions(d,rules,level,domain=false){
   return num(cls,'SpellbookRestricted')?options.filter(id=>(d.known[level]??[]).includes(id)):options;
 }
 
-export function creationPortraits(d,rules){return rows(rules.portraits).flatMap((r,id)=>present(r.BaseResRef)&&num(r,'Plot')===0&&num(r,'Sex',4)===d.gender?[{id,row:r,resref:`po_${r.BaseResRef}`.toLowerCase()}]:[]);}
+export function creationPortraits(d,rules){
+ const all=rows(rules.portraits).flatMap((row,id)=>present(row.BaseResRef)?[{id,row,resref:`po_${row.BaseResRef}`.toLowerCase()}]:[]),existing=new Set(all.map(p=>p.resref)),seen=new Set();
+ const portraits=all.filter(p=>num(p.row,'Plot')===0&&num(p.row,'Sex',-1)===d.gender),ordered=[...portraits.filter(p=>num(p.row,'Race',-1)===d.raceId),...portraits.filter(p=>num(p.row,'Race',-1)!==d.raceId)];
+ if(cfg(rules,'ALLOW_CUSTOM_PORTRAITS',1))ordered.push(...(rules.customPortraits??[]).filter(ref=>!existing.has(ref)).map(resref=>({id:null,row:{BaseResRef:resref},resref,custom:true})));
+ // Native9d1c80 populates matching race before others;9d0cd0 suppresses both
+ // duplicates and rows whose sized image is absent from the active catalog.
+ return ordered.filter(p=>{if(seen.has(p.resref)||rules.creationAvailablePortraits&&!rules.creationAvailablePortraits.has(p.resref))return false;seen.add(p.resref);return true;});
+}
 export function creationVoices(d,rules){return rows(rules.soundset).flatMap((r,id)=>num(r,'TYPE',-1)===0&&num(r,'GENDER',-1)===d.gender?[{id,row:r}]:[]);}
 export function creationPhenotypes(rules){return rows(rules.phenotype).flatMap((row,id)=>cfg(rules,'ENABLED_PHENOTYPES',5)&(1<<id)?[{id,row}]:[]);}
 // InitializeClothesVariations1408e8410: exact optional class, race, gender
@@ -180,14 +214,15 @@ export function creationClothes(d,rules){
 
 export function creationHeadModels(d,rules){
   const race=at(rules.racialtypes,d.raceId),appearance=at(rules.appearance,num(race,'Appearance')),gender=at(rules.gender,d.gender),prefix=`p${gender?.GENDER}${appearance?.RACE}${d.phenotype}_head`.toLowerCase();
-  const resolver=rules.creationResolver,keys=[...resolver.key.resources.keys(),...resolver.module.entries.keys(),...resolver.haks.flatMap(h=>[...h.entries.keys()])];
+  const resolver=rules.creationResolver,keys=rules.creationModels?rules.creationModels.map(name=>name+':'+RESOURCE_TYPE.MDL):[...resolver.key.resources.keys(),...resolver.module.entries.keys(),...resolver.haks.flatMap(h=>[...h.entries.keys()])];
   return[...new Set(keys.filter(k=>k.startsWith(prefix)&&k.endsWith(`:${RESOURCE_TYPE.MDL}`)).map(k=>Number(k.slice(prefix.length,k.lastIndexOf(':')))).filter(n=>n>0&&n<=255))].sort((a,b)=>a-b);
 }
 
 export function creationErrors(d,rules){
   const errors=[],race=at(rules.racialtypes,d.raceId),cls=at(rules.classes,d.classId);
   if(!race||!num(race,'PlayerRace'))errors.push('Select a playable race');
-  if(!cls||!num(cls,'PlayerClass')||present(cls.PreReqTable))errors.push('Select an available first-level class');
+  const classRequirement=creationClassRequirement(d,rules,d.classId);if(classRequirement)errors.push(classRequirement);
+  if(num(cls,'SpellCaster')&&!present(cell(cls,'SpellTableColumn')))errors.push('Casting class has no spell table column');
   if(!ALIGNMENTS.some(a=>a.goodEvil===d.goodEvil&&a.lawChaos===d.lawChaos)||!creationAlignmentAllowed(cls,d.goodEvil,d.lawChaos))errors.push('Alignment is not allowed for this class');
   if(creationPointBalance(d,rules)!==0)errors.push('Spend all ability points');
   const primary=num(cls,'SpellCaster')?ABILITIES.find(a=>a.toUpperCase()===String(cls?.SpellcastingAbil).toUpperCase()):null;
@@ -224,6 +259,8 @@ export function recommendAbilities(d,rules){
   while(creationPointBalance(d,rules)>0){const a=ordered.find(a=>abilityPointCost(d.abilities[a]+1,rules)-abilityPointCost(d.abilities[a],rules)<=creationPointBalance(d,rules));if(!a)break;d.abilities[a]++;}
 }
 export async function recommendCreation(d,rules){
+  if(!creationPackageOptions(rules,d.classId).some(p=>p.id===d.packageId))d.packageId=creationDefaultPackage(rules,d.classId);
+  if(d.packageId<0)throw Error('No selectable starting package is available for this class.');
   const pkg=at(rules.packages,d.packageId),cls=at(rules.classes,d.classId);
   const preference=async(field,column)=>present(pkg?.[field])?rows(await rules.loadCreationTable(pkg[field])).map(r=>num(r,column,-1)).filter(n=>n>=0):[];
   recommendAbilities(d,rules);
@@ -263,7 +300,7 @@ export async function createCharacterBic(d,rules){
   }
   if(num(cls,'SpellCaster')&&!num(cls,'MemorizesSpells'))c.SpellsPerDayList=list(Array.from({length:10},(_,l)=>({NumSpellsLeft:f(0,creationSpellSlots(d,rules,l))})),0x4567);
   const fields={FirstName:f(12,d.firstName.trim()),LastName:f(12,d.lastName.trim()),Description:f(12,d.biography),IsPC:f(0,1),IsDM:f(0,0),
-    Gender:f(0,d.gender),Race:f(0,d.raceId),Age:f(5,d.age),Subrace:f(10,d.subrace),Deity:f(10,d.deity),StartingPackage:f(0,d.packageId),
+    Gender:f(0,d.gender),Race:f(0,d.raceId),Age:f(5,d.age),Subrace:f(10,d.subrace),Deity:f(10,d.deity),StartingPackage:f(0,d.packageId<256?d.packageId:0),xStartingPackage:f(4,d.packageId),
     Tag:f(10,''),Conversation:f(11,''),Interruptable:f(0,1),Disarmable:f(0,1),IsCommandable:f(0,1),IsDestroyable:f(0,1),IsRaiseable:f(0,1),
     Experience:f(4,0),Gold:f(4,num(pkg,'Gold')),HitPoints:f(3,hp),CurrentHitPoints:f(3,hp),MaxHitPoints:f(3,hp),NaturalAC:f(0,0),
     GoodEvil:f(0,d.goodEvil),LawfulChaotic:f(0,d.lawChaos),FactionID:f(2,0),Appearance_Type:f(2,num(race,'Appearance')),Appearance_Head:f(0,d.head),

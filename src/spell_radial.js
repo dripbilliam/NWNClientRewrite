@@ -3,6 +3,7 @@ import {creatureRoot} from './creature_rules.js';
 import {intEntry} from './combat_stats.js';
 import {castingSpell,talentSpell,spellStringEntry} from './spell_metadata.js';
 import {classAllowsConversion} from './spell_conversion.js';
+import {isSpellFamily,spellFamilyChildren} from './spell_family.js';
 
 const branch=(slot,label,icon,children)=>({slot,label,icon,children});
 const menu=(title,entries)=>({title,entries});
@@ -73,11 +74,8 @@ export function buildSpellRadial(actor,target,rules,book,p,{alwaysSubradial=fals
         const uses=book.uses(actor,row.id,index,row.domainLevel,row.metamagic)&255;
         const definition=talentSpell(rules,row.id);
         if(definition.children.length){
-          const childEntries=()=>definition.children.map((id,slot)=>{
-            if(!castingSpell(rules,id))return null;
-            const converted=uses===0&&classAllowsConversion(actor,index,rules)&&spell.spontaneouslyCast!==0;
-            return {...leaf(id,binding,uses,converted,level),slot};
-          }).filter(Boolean);
+          const converted=uses===0&&classAllowsConversion(actor,index,rules)&&spell.spontaneouslyCast!==0;
+          const childEntries=(parent=row.id,path=[])=>spellFamilyChildren(rules,parent,path).map((id,slot)=>isSpellFamily(rules,id)?{...describe(id),slot,children:()=>menu(name('spells',id),childEntries(id,[...path,parent])),disabled:uses===0||!eligible(id),uses}:{...leaf(id,binding,uses,converted,level),slot});
           // Native parent requires its own target mask; children each retain
           // their own masks and the parent's resource/domain/meta context.
           out.push({...describe(row.id),children:()=>menu(name('spells',row.id),childEntries()),disabled:!eligible(row.id)||uses===0,uses});

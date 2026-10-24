@@ -1,5 +1,6 @@
 import { parseGff } from './gff.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
+import {nativeCompressedTextureType} from './texture_resource.js';
 
 const MAX_RESOURCES = 1_000_000;
 const textDecoder = new TextDecoder('windows-1252');
@@ -7,11 +8,13 @@ const textDecoder = new TextDecoder('windows-1252');
 export const RESOURCE_TYPE = Object.freeze({
   TGA: 3,
   WAV: 4,
+  BMU: 8,
   SSF: 2060,
   SHD: 2069,
   PLT: 6,
   SET: 2013,
   TWO_DA: 2017,
+  TLK: 2018,
   MDL: 2002,
   NSS: 2009,
   NCS: 2010,
@@ -25,12 +28,31 @@ export const RESOURCE_TYPE = Object.freeze({
   JRL: 2056,
   DLG: 2029,
   GUI: 2047,
+  TML: 2076,
+  JUI: 2083,
   TTF: 2074,
+  TXI: 2022,
   DDS: 2033,
+  KTX: 2073,
   WOK: 2016,
   DWK: 2052,
   PWK: 2053
 });
+
+// SetupDefaultSearchPath1947b0 registers PORTRAITSINSTALL at90M. Its native
+// 1972f0 callback admits only TGA/DDS; a supplied folder never becomes rules.
+export const INSTALLED_PORTRAIT_TYPES=Object.freeze([RESOURCE_TYPE.TGA,RESOURCE_TYPE.DDS]);
+function installedPortraitFiles(files){
+  const entries=new Map();
+  for(const file of files){
+    const match=filePath(file).match(/(?:^|\/)(?:data\/prt|prt)\/([^/]+)\.(tga|dds)$/i);
+    if(match)entries.set(resourceKey(match[1],match[2].toLowerCase()==='tga'?RESOURCE_TYPE.TGA:RESOURCE_TYPE.DDS),file);
+  }
+  if(!entries.size)return null;
+  return{name:'PORTRAITSINSTALL:',nativePriority:90000000,resourceKeys:()=>entries.keys(),hasResource:(name,type)=>entries.has(resourceKey(name,type)),getResource:async(name,type)=>{
+    const file=entries.get(resourceKey(name,type));if(!file)throw Object.assign(Error('Installed portrait is unavailable'),{code:'RESOURCE_NOT_FOUND'});const bytes=await readFileBytes(file);return bytes.slice().buffer;
+  }};
+}
 
 export function parseErf(input) {
   const bytes = toBytes(input);
@@ -146,29 +168,67 @@ export class ResourceResolver {
     } catch (error) { runtimeDiagnostics.error(error, 'load.module-failed', { module: moduleFile.name }); throw error; }
   }
 
-  constructor(module, key, gameFiles, haks = [], missingHaks = []) {
+  constructor(module, key, gameFiles, haks = [], missingHaks = [], layers = []) {
     this.module = module;
     this.key = key;
     this.files = [...gameFiles];
     this.haks = haks;
     this.missingHaks = missingHaks;
+    this.layers = layers;
+    this.priorityLayers = [installedPortraitFiles(this.files)].filter(Boolean);
+    this.fallbackLayers = [];
     this.bifCache = new Map();
   }
 
   // Native Exists is a catalog query, not a BIF read/decode. Zero-length
   // registered resources still exist, and missing probes are normal branches.
-  hasResource(resref,resourceType){const key=resourceKey(String(resref).toLowerCase(),resourceType);return this.module.entries.has(key)||this.haks.some(hak=>hak.entries.has(key))||this.key.resources.has(key);}
+  portraitNames(){return[...new Set(this.priorityLayers.flatMap(layer=>[...(layer.resourceKeys?.()??[])].map(k=>k.slice(0,k.lastIndexOf(':')))))];}
+  hasResource(resref,resourceType){const name=String(resref).toLowerCase(),key=resourceKey(name,resourceType);return this.priorityLayers.some(layer=>layer.hasResource(name,resourceType))||this.layers.some(layer=>layer.hasResource(name,resourceType))||this.haks.some(hak=>hak.entries.has(key))||(this.localHaks??[]).some(hak=>hak.entries.has(key))||this.module.entries.has(key)||this.fallbackLayers.some(layer=>layer.hasResource(name,resourceType))||this.key.resources.has(key);}
+
+  resourceLocation(resref,type){
+    const name=String(resref).toLowerCase(),key=resourceKey(name,type);
+    if(this.priorityLayers.some(layer=>layer.hasResource(name,type)))return 2;
+    if(this.layers.some(layer=>layer.hasResource(name,type)))return 5;
+    if(this.haks.some(hak=>hak.entries.has(key))||(this.localHaks??[]).some(hak=>hak.entries.has(key))||this.module.entries.has(key))return 3;
+    if(this.fallbackLayers.some(layer=>layer.hasResource(name,type)))return 2;
+    return this.key.resources.has(key)?1:0;
+  }
+
+  async getTextureResource(resref){
+    const locations=Object.fromEntries([2073,2033,2059,3].map(type=>[type,this.resourceLocation(resref,type)]));
+    const compressed=nativeCompressedTextureType(locations);
+    let type=compressed;
+    if(type===null){
+      const ranks=[2,5,3,1],rasterRank=ranks.indexOf(locations[3]),sixteenRank=ranks.indexOf(locations[2059]);
+      if(sixteenRank>=0&&(rasterRank<0||sixteenRank<=rasterRank)){
+        const error=new Error(`Native16-bit texture2059 ${resref} requires an unsupported decoder`);
+        runtimeDiagnostics.record('texture.native-16bit-unhandled',error.message,{resRef:resref,resourceType:2059});throw error;
+      }
+      // Raster fallback is separate from compression admission. TGA is the
+      // existing raster path; PLT body-part overrides are requested explicitly.
+      type=locations[3]?3:this.hasResource(resref,6)?6:null;
+    }
+    if(type===null)throw Object.assign(new Error(`Texture ${resref} is unavailable`),{code:'RESOURCE_NOT_FOUND'});
+    return{type,extension:({2073:'ktx',2033:'dds',3:'tga',6:'plt'})[type],bytes:await this.getResource(resref,type)};
+  }
 
   async getResource(resref, resourceType) {
     const name = String(resref).toLowerCase();
     let source = 'lookup', bifName;
     try {
-    const moduleResource = this.module.entries.get(resourceKey(name, resourceType));
-    if (moduleResource) return moduleResource.slice().buffer;
+    // Registered layers are already ordered by native priority. A selected
+    // source's read failure must never silently substitute a different table.
+    for(const layer of this.priorityLayers)if(layer.hasResource(name,resourceType)){source='layer';return await layer.getResource(name,resourceType);}
+    for(const layer of this.layers)if(layer.hasResource(name,resourceType)){source='layer';return await layer.getResource(name,resourceType);}
     for (const hak of this.haks) {
       const resource = hak.entries.get(resourceKey(name, resourceType));
-      if (resource) return resource.slice().buffer;
+      if (resource){source='HAK archive';return hak.getResource?await hak.getResource(name,resourceType):resource.slice().buffer;}
     }
+    for(const hak of this.localHaks??[])if(hak.entries.has(resourceKey(name,resourceType))){source='Workshop HAK archive';return await hak.getResource(name,resourceType);}
+    // HAK30/31M precedes module22/23M in AddKeyTable18e330 / module478080.
+    const moduleResource = this.module.entries.get(resourceKey(name, resourceType));
+    if (moduleResource) return moduleResource.slice().buffer;
+    for(const layer of this.fallbackLayers)if(layer.hasResource(name,resourceType)){source='layer';return await layer.getResource(name,resourceType);}
     const entry = this.key.resources.get(resourceKey(name, resourceType));
     if (!entry) {
       const error = new Error(`Resource ${name} (type ${resourceType}) was not found in the module, loaded HAKs, or KEY.`);
@@ -204,19 +264,18 @@ export class ResourceResolver {
   }
 }
 
-// Native registration 0x140194a76/0x140194aec assigns retail priority
-// 2,000,000 and base 1,000,000. AddKeyTable 0x14018e330 orders descending;
+// Native registration 0x1401947b0 assigns localized3M, retail2M and base1M.
+// AddKeyTable 0x14018e330 orders descending;
 // GetKeyEntry 0x14018ffb0 takes the first match. Preserve each KEY's local BIF
-// and resource index when combining catalogs. This only covers installed base
-// and retail archives; localization/loose overrides need their own providers.
+// and resource index when combining catalogs. Loose files are separate layers.
 async function loadInstalledKeys(gameFiles) {
   const files = [...gameFiles], bifNames = [], resources = new Map(), sources = [];
-  for (const name of ['nwn_retail.key', 'nwn_base.key']) {
+  for (const name of ['nwn_base_loc.key', 'nwn_retail.key', 'nwn_base.key']) {
     const matches = files.filter(file => filePath(file) === name || filePath(file).endsWith(`/${name}`));
     if (matches.length > 1) throw new Error(`Could not uniquely locate ${name} in the selected game-data folder.`);
     if (!matches.length) {
       if (name === 'nwn_base.key') throw new Error('The selected game-data folder must contain data/nwn_base.key.');
-      runtimeDiagnostics.record('resource.key-missing', 'Installed retail resource KEY is unavailable; updated resources cannot be loaded', { resource: name });
+      if(name==='nwn_retail.key')runtimeDiagnostics.record('resource.key-missing', 'Installed retail resource KEY is unavailable; updated resources cannot be loaded', { resource: name });
       continue;
     }
     const key = parseKey(await readFileBytes(matches[0])), offset = bifNames.length;

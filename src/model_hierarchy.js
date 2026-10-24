@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { decodeModelOrientation } from './mdl_format.js';
+import {manageLocalMatrix} from './managed_local_matrix.js';
 
 // Binary children are offset references; duplicate names are legal. Retain
 // their physical parent identity rather than resolving that edge by label.
@@ -11,7 +12,7 @@ export function modelParentIndices(model){
 }
 
 // One hierarchy contract for rendering, playback, and resource smoke checks.
-export function createModelHierarchy(model) {
+export function createModelHierarchy(model,{managedMatrices=false}={}) {
   const root = new THREE.Group();
   root.name = model.modelName;
   const groups = new Map();
@@ -25,6 +26,7 @@ export function createModelHierarchy(model) {
     group.position.set(node.position[0], node.position[2], -node.position[1]);
     group.scale.setScalar(node.scale ?? 1);
     group.quaternion.copy(basis).multiply(new THREE.Quaternion(...decodeModelOrientation(node.orientation, node.orientationFormat))).multiply(inverseBasis);
+    if(managedMatrices)manageLocalMatrix(group);
     groups.set(node.name, group);
     nodeGroups.set(node,group);
   }

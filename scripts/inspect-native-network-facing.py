@@ -33,8 +33,10 @@ def run(case):
  w.call(0x140807690,[obj,target]);return dict(case=c,orientation=vec(obj+0x44),target=vec(target),requests=requests)
 base=dict(animation=4,dt=16,orientation=[1.,0.,0.],target=[0.,1.,0.],model=True,modelType=1,restored=0)
 cases=[base|dict(animation=a,dt=dt,target=v,modelType=body)for a,dt,v,body in itertools.product([0,1,2,3,4,53,54,78,80,81,82,83],[0,1,8,16,33,100,512],[[1.,0.,0.],[1.,.01,0.],[1.,.1,0.],[0.,1.,0.],[0.,-1.,0.],[-1.,0.,0.],[.1,-.9,5.]], [0,1])]
+stalls='--stalls' in sys.argv
+if stalls:cases=[base|dict(animation=a,dt=dt,target=v)for a,dt,v in itertools.product([0,1,4],[1000,5162,6000,16384,30000,60000,600000,80000000],[[0.,1.,0.],[0.,-1.,0.],[-1.,0.,0.],[.1,-.9,5.]])]
 rows=[]
 for c in cases:
  try:rows.append(run(c))
  except Exception:print(json.dumps(dict(case=c,ip=hex(u.reg_read(UC_X86_REG_RIP)))));raise
-out=m.root/'backups/animations/native-network-facing-observations.json';out.write_text(json.dumps(dict(target=m.digest,limits=__doc__,cases=rows),indent=2)+'\n');print(json.dumps(dict(cases=len(rows),output=str(out))))
+out=m.root/('backups/animations/native-network-facing-stalls-observations.json' if stalls else 'backups/animations/native-network-facing-observations.json');out.write_text(json.dumps(dict(target=m.digest,limits=__doc__,cases=rows),indent=2)+'\n');print(json.dumps(dict(cases=len(rows),output=str(out))))

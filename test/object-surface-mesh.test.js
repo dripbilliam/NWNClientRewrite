@@ -14,6 +14,11 @@ faces 2
 0 1 2 0 0 0 0 0
 3 1 2 0 0 0 0 7
 endnode`;
+test('collision-only door parsing accepts extra action nodes without changing polygon transforms',()=>{
+  const collision=section('D0_DWK_wg_closed','position 1 2 3'),source=`node dummy D0_DWK_dp_open1_03\nposition 50 60 70\nendnode\n${collision}`;
+  assert.throws(()=>parseObjectSurfaceMesh(source,'door'),/action-point/);
+  assert.deepEqual(parseObjectSurfaceMesh(source,'door',{actionPoints:false}).states,parseObjectSurfaceMesh(collision,'door').states);
+});
 test('placeable surface preserves local transforms, duplicates, indices and all materials', () => {
   const mesh = parseObjectSurfaceMesh(section('plc_pwk', 'position 1 2 3'), 'placeable');
   assert.deepEqual(mesh.vertices, [[1, 2, 3], [2, 2, 4], [1, 3, 5], [1, 2, 3]]);

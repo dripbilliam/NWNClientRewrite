@@ -1,37 +1,11 @@
 import {secondsToWorldDelta,addWorldTimes} from './world_timer.js';
-const f=Math.fround,half=2**63;
+const f=Math.fround;
 const view=(bytes,size)=>{
  if(!(bytes instanceof Uint8Array)||bytes.byteLength!==size)throw new Error(`Native visual ${size}-byte storage is unavailable`);
  return new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
 };
-const cvtt64=value=>Number.isFinite(value)&&value>=-half&&value<half?BigInt(Math.trunc(value)):-(1n<<63n);
-// Original unsigned FLOAT conversion, including the SSE out-of-range result.
-const durationTicks=duration=>{
- let value=f(f(duration*1000)*1000),bias=0n;
- if(value>=half){value=f(value-half);if(value<half)bias=1n<<63n;}
- return BigInt.asUintN(64,cvtt64(value)+bias);
-};
-
-// Restart1402ea120..1402ea248, also reached by tail thunk1402ea110.
-// The two timer domains occupy distinct slots. Equal endpoints/lerp0 and
-// unknown timer types preserve existing clock slots. Clock/world-timer methods
-// are explicit providers; the latter's independently ported owners are reused
-// by the runtime adapter, rather than inferred calendar arithmetic here.
-export async function restartVisualCurve(bytes,p){
- const v=view(bytes,64);
- if(v.getInt32(12,true)===0||v.getFloat32(8,true)===v.getFloat32(4,true))return;
- const timer=v.getInt32(0,true),duration=v.getFloat32(16,true);
- if(timer===0){
-  const now=BigInt.asUintN(64,BigInt(await p.clock()));v.setBigUint64(32,now,true);
-  v.setBigUint64(48,BigInt.asUintN(64,now+durationTicks(duration)),true);
- }else if(timer===1){
-  const world=await p.worldTimer();if(world===null)return;
-  const delta=(await p.worldSeconds(world,duration))>>>0,now=await p.worldTime(world);
-  v.setUint32(40,now.day,true);v.setUint32(44,now.time,true);
-  const end=await p.addWorld(world,now,{day:0,time:delta});
-  if((end.status|0)===0){v.setUint32(56,end.day,true);v.setUint32(60,end.time,true);}
- }
-}
+import {restartVisualCurve} from './visual_curve.js';
+export {restartVisualCurve} from './visual_curve.js';
 
 // Complete field loader1402e9ef0..1402ea10d. The output is caller-owned,
 // not a newly zeroed struct: inactive clock slots20/30 are left untouched.

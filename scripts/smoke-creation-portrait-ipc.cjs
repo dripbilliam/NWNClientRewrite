@@ -1,0 +1,27 @@
+// Built renderer/preload/trusted IPC with synthetic session catalogs. No socket,
+// credential, content fetch or game join is used by this fixture.
+const {app,BrowserWindow,ipcMain,session}=require('electron'),{EventEmitter}=require('node:events'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..'),version=process.argv[2]??'v1';if(!/^v\d+$/.test(version))throw Error('Invalid version');
+const profile=path.join(os.tmpdir(),'nwn-portrait-ipc-'+process.pid);require('node:fs').mkdirSync(profile,{recursive:true});for(const key of['userData','logs','crashDumps'])app.setPath(key,profile);
+app.whenReady().then(async()=>{let window,resolvePending,enteredPending;const report={scope:'Packaged production preload/trusted IPC and session method with synthetic A/B catalogs; no game connection',joins:0,fetches:0,fixtureSessions:0,errors:[],browserRequests:[],sourceHashes:{}};
+ try{
+  const {NetworkGameSession}=await import('../electron/network_game_session.mjs');
+  for(const name of['src/main.js','src/character_creation.js','src/creation_portraits.js','electron/network_game_session.mjs','electron/network_ipc.cjs','electron/preload.cjs'])report.sourceHashes[name]=crypto.createHash('sha256').update(await fs.readFile(path.join(root,name))).digest('hex');
+  report.bundle=(await fs.readFile(path.join(root,'dist/index.html'),'utf8')).match(/src="\.\/assets\/([^"\s]+\.js)"/)?.[1];assert.ok(report.bundle);
+  global.fetch=()=>{report.fetches++;throw Error('Offline IPC fixture may not fetch');};session.defaultSession.webRequest.onBeforeRequest((details,callback)=>{const cancel=/^https?:/.test(details.url);if(cancel)report.browserRequests.push(details.url);callback({cancel});});
+  let block=false;const pendingEntered=new Promise(resolve=>enteredPending=resolve),pending=new Promise(resolve=>resolvePending=resolve);
+  const controller=require('../electron/network_ipc.cjs').registerNetworkIpc(ipcMain,{defaultInstall:path.resolve(root,'../FullDecomp/NwnRootInstall'),userDirectory:null,chooseInstall:async()=>null,createSession:async()=>{
+   const number=++report.fixtureSessions,active=new EventEmitter();active.closed=false;active.resourceResult={ready:true};active.resolver={async hasResource(name,type){if(block){enteredPending();await pending;}return name===(number===1?'first_m':'second_h')&&type===(number===1?3:2033);}};
+   active.creationPortraitAvailability=refs=>NetworkGameSession.prototype.creationPortraitAvailability.call(active,refs);active.connect=async request=>{assert.equal(request.host,'127.0.0.1');assert.equal(request.port,5121);};active.state=()=>({phase:'lobby'});active.disconnect=async()=>{active.closed=true;active.emit('closed');};return{session:active};
+  }});require('../electron/runtime_log.cjs').registerRuntimeLog(ipcMain,path.join(root,'runtime-logs'));
+  window=new BrowserWindow({show:false,width:1240,height:860,webPreferences:{preload:path.join(root,'electron/preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,offscreen:true,backgroundThrottling:false}});controller.attach(window);window.webContents.on('console-message',(_e,level,message)=>{if(level>=3)report.errors.push(message);});await window.loadFile(path.join(root,'dist/index.html'));const js=code=>window.webContents.executeJavaScript(code);
+  const first=await js(`nativeNetwork.connect({host:'127.0.0.1',port:5121,name:'Offline catalog A'})`);
+  report.first=await js(`nativeNetwork.creationPortraitAvailability(${JSON.stringify(first.sessionId)},['first_','second_'])`);assert.deepEqual(report.first,['first_']);
+  report.invalid=await js(`(async()=>{const cases=[null,['C:'+String.fromCharCode(92)+'bad'],[['..','bad'].join('/')],['x'.repeat(33)]];const results=[];for(const value of cases){try{await nativeNetwork.creationPortraitAvailability(${JSON.stringify(first.sessionId)},value);results.push(false);}catch{results.push(true);}}return results;})()`);assert.ok(report.invalid.every(Boolean));
+  block=true;await js(`window.pendingCatalog=nativeNetwork.creationPortraitAvailability(${JSON.stringify(first.sessionId)},['first_']).then(()=>false,()=>true);true`);await pendingEntered;await js('nativeNetwork.disconnect({saveCharacter:false})');block=false;
+  const second=await js(`nativeNetwork.connect({host:'127.0.0.1',port:5121,name:'Offline catalog B'})`);assert.notEqual(first.sessionId,second.sessionId);resolvePending();report.cancelledOld=await js('pendingCatalog');assert.equal(report.cancelledOld,true);
+  report.second=await js(`nativeNetwork.creationPortraitAvailability(${JSON.stringify(second.sessionId)},['first_','second_'])`);assert.deepEqual(report.second,['second_']);
+  report.oldIdRejected=await js(`nativeNetwork.creationPortraitAvailability(${JSON.stringify(first.sessionId)},['first_']).then(()=>false,()=>true)`);assert.equal(report.oldIdRejected,true);await js('nativeNetwork.disconnect({saveCharacter:false})');
+  assert.equal(report.fixtureSessions,2);assert.equal(report.fetches,0);assert.ok(report.browserRequests.every(url=>url.startsWith('https://fonts.googleapis.com/')));assert.deepEqual(report.errors,[]);report.success=true;
+ }catch(error){report.success=false;report.failure=error.stack;}finally{resolvePending?.();await fs.writeFile(path.join(root,'backups/animations/creation-experience-portrait-ipc-'+version+'.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));window?.destroy();app.exit(report.success?0:1);}
+});

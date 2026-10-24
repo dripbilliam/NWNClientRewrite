@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../src/style.css"></head><body><script type="module">
+import {DebugShell,debugWindowOption} from '../src/debug_shell.js';
+import {RendererPerformanceView} from '../src/renderer_performance_view.js';
+const parsed=new DOMParser().parseFromString(await(await fetch('../index.html')).text(),'text/html');document.body.append(parsed.querySelector('.app-shell'));
+window.fixture={publications:0,cameraChanges:0,wireClicks:0};const bridge={...window.debugTools,publish(snapshot){fixture.publications++;window.debugTools.publish(snapshot);}};fixture.shell=new DebugShell({bridge});fixture.shell.gameOnly(true);
+document.querySelector('#network-hud').hidden=false;document.querySelector('#network-hud [data-camera-mode]').addEventListener('change',()=>fixture.cameraChanges++);
+document.querySelector('#wireframe-button').addEventListener('click',event=>{fixture.wireClicks++;event.target.setAttribute('aria-pressed',String(fixture.wireClicks%2===1));});
+document.querySelector('#inspector-note').textContent='Synthetic inspector model details';document.querySelector('#diagnostic-recent').textContent='Synthetic runtime message <'+'script>unsafe()<'+ '/script>';
+fixture.performance=new RendererPerformanceView(document.querySelector('#performance-debug'));const fps=document.querySelector('[data-performance=fps]');fps.textContent='60.0';fixture.performance.hitches=4;document.querySelector('.performance-reset').addEventListener('click',()=>fps.textContent='61.0');
+const options=document.createElement('section');options.id='fixture-options';options.style='position:absolute;top:20px;left:20px';options.append(debugWindowOption());document.querySelector('#viewport-frame').append(options);window.fixtureReady=true;
+</script></body></html>

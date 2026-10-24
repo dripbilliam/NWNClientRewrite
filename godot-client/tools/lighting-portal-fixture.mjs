@@ -1,0 +1,18 @@
+import * as T from 'three';import fs from 'node:fs/promises';
+import {exportGodotRoom} from './export-room.mjs';import {syncNetworkTriggerSurface} from '../../src/network_trigger_surface.js';
+import {writeExternalGodotBundle} from './external-bundle.cjs';
+globalThis.FileReader??=class{readAsArrayBuffer(blob){blob.arrayBuffer().then(value=>{this.result=value;this.onloadend?.();});}};
+const scene=new T.Scene(),camera=new T.PerspectiveCamera(45,1424/921,.1,100);
+scene.background=new T.Color().setRGB(.08,.12,.16);scene.add(new T.AmbientLight(new T.Color().setRGB(.18,.12,.06),1));
+camera.position.set(0,7,10);camera.lookAt(0,0,0);
+const floor=new T.Mesh(new T.PlaneGeometry(12,12),new T.MeshLambertMaterial({color:0x888888,side:T.DoubleSide}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const sun=new T.DirectionalLight(0xffffff,1);sun.position.set(3,8,4);sun.target.position.set(0,0,0);scene.add(sun,sun.target);
+sun.userData.nativeAreaLight=true;
+const object={id:7,areaId:1,objectType:7,replicated:{hasTransition:true,name:{text:'Authored portal'},vertices:[[-2,-2,0],[0,-2,0],[0,0,0],[-2,0,0]]}},world={areaId:1,localObjectId:999,registry:{objects:new Map([[7,object]])}};
+const p={objects:new Map(),root:scene,remove(){}};syncNetworkTriggerSurface(p,object);
+const prop={id:9,areaId:1,objectType:9,replicated:{field264:true,name:{text:'Authored hidden portal'}}};world.registry.objects.set(9,prop);
+const hitMesh=new T.Mesh(new T.BoxGeometry(1,2,1),new T.MeshBasicMaterial({visible:false,transparent:true,opacity:0,colorWrite:false,depthWrite:false}));hitMesh.position.set(2,1,0);hitMesh.userData.networkObjectId=9;hitMesh.userData.nativeObjectHitMesh=true;scene.add(hitMesh);
+const exported=await exportGodotRoom({scene,camera,world,resolve:async v=>v.text,inventory:[{id:7,resources:[]},{id:9,resources:[]}],buffer:[1424,921],focus:[0,0,0]});
+const bundle=await writeExternalGodotBundle(exported,{registerLatest:false});
+const out=process.argv.find(v=>v.startsWith('--output='))?.slice(9);if(!out)throw Error('Provide a new authored fixture reference --output');
+await fs.writeFile(out,JSON.stringify({...bundle,authored:true,portalId:7,portalPoint:[-1,.05,1],direction:[-3,-8,-4].map(v=>v/Math.sqrt(89)),ambient:[.18,.12,.06]})+'\n',{flag:'wx'});console.log(JSON.stringify({out,scene:bundle.scene,authored:true}));

@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {encodeGffText} from '../src/gff_text.js';
+import {encodeGffText,decodeGffText} from '../src/gff_text.js';
 
 // CDUtil::UnScrambleKey14010fab0. This extracts the public identifier; CRC/key
 // ownership validation remains separate and the real server authorizes login.
@@ -19,7 +19,8 @@ const encoded=value=>{if(typeof value!=='string')throw new Error('Native login t
 const digest=(...parts)=>{const hash=createHash('md5');for(const bytes of parts)hash.update(bytes);return hash.digest('hex');};
 
 // Secrets live in private main-process buffers, never renderer state, public
-// object fields, diagnostic context or JSON captures. No credential persistence.
+// object fields, diagnostic context or JSON captures. This identity never persists
+// credentials; optional OS-protected storage is owned by ClientSettings.
 export class NetworkLoginIdentity{
  #key;#password;#community;#public;#disposed=false;
  constructor({cdKey,password='',communityPassword=''}){
@@ -40,5 +41,9 @@ export class NetworkLoginIdentity{
   return{keyResponse,communityResponse,passwordResponse,connectionError:challenge.passwordRequired&&!this.#password.length?3:0};
  }
  toJSON(){return{kind:'nwn-login-identity',disposed:this.#disposed};}
+ forPortal(password){
+  if(this.#disposed)throw new Error('NWN login identity is disposed');
+  const next=new NetworkLoginIdentity({cdKey:decodeGffText(this.#key),password});next.#community.fill(0);next.#community=Buffer.from(this.#community);return next;
+ }
  dispose(){this.#key.fill(0);this.#password.fill(0);this.#community.fill(0);this.#public='';this.#disposed=true;}
 }

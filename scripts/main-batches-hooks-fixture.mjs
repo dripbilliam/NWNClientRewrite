@@ -1,0 +1,36 @@
+import * as T from 'three';
+import {RendererMainBatches} from '../src/renderer_main_batches.js';
+import {localRendererHook} from '../src/renderer_local_hooks.js';
+import {CameraKeyholePresentation} from '../src/camera_keyhole_shader.js';
+import {TargetPreviewShader} from '../src/target_preview_shader.js';
+const assert=(v,m)=>{if(!v)throw Error(m);},hash=async b=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',b))].map(n=>n.toString(16).padStart(2,'0')).join('');
+window.runMainBatchesHooksFixture=async({targetShader=null,keyholeShader=null}={})=>{
+ const results=[];let screenshot;
+ for(const enabled of [false,true]){
+  const renderer=new T.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(1024,768,false);renderer.setPixelRatio(1);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;
+  const owner=new RendererMainBatches(renderer),scene=new T.Scene(),camera=new T.PerspectiveCamera(45,1024/768,.1,120);camera.position.set(15,23,32);camera.lookAt(0,0,0);scene.add(new T.AmbientLight(0xffffff,.5));scene.fog=new T.Fog(0x445566,30,100);
+  const light=new T.PointLight(0xffddbb,200,60);light.position.set(8,12,5);light.castShadow=true;light.shadow.mapSize.set(256,256);scene.add(light);const floor=new T.Mesh(new T.PlaneGeometry(50,40),new T.MeshLambertMaterial({color:0x667766}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+  for(let i=1;i<64;i++){const l=new T.PointLight(0xaaaaee,i<15?2:0,40);l.position.set(i%5*5-10,10,Math.floor(i/5)*3-8);l.castShadow=i<15;if(l.castShadow)l.shadow.mapSize.set(32,32);scene.add(l);}
+  const textures=[],meshes=[];for(let i=0;i<96;i++){
+   const width=i%3===0?8:16,height=i%4===0?32:16,bytes=Uint8Array.from({length:width*height*4},(_,j)=>j%4===3?(j%16===3?0:255):(j*19+i*17)%256),map=new T.DataTexture(bytes,width,height);map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=renderer.capabilities.getMaxAnisotropy();map.colorSpace=T.SRGBColorSpace;map.generateMipmaps=true;map.minFilter=T.LinearMipmapLinearFilter;map.magFilter=T.LinearFilter;map.needsUpdate=true;textures.push(map);
+   const geometry=new T.BoxGeometry(1.1+i%4*.07,2.5,1).toNonIndexed(),material=new T.MeshLambertMaterial({map,alphaTest:.035,color:new T.Color().setRGB(.6+i%3*.1,.7,.9),emissive:new T.Color().setRGB(i%4*.03,.02,.01),emissiveIntensity:.6}),mesh=new T.Mesh(geometry,material);mesh.userData.nativeModelMesh=true;mesh.castShadow=true;mesh.receiveShadow=true;mesh.position.set(i%12*2-11,1.5,Math.floor(i/12)*2.5-8);mesh.scale.set(1,.75+i*.003,1.1);scene.add(mesh);meshes.push(mesh);
+  }
+  let hooks=0;meshes[35].onBeforeRender=localRendererHook(()=>hooks++);meshes[50].scale.x=-1;meshes[60].material.transparent=true;meshes[60].material.opacity=.5;meshes[70].userData.animationOwnedGeometry=true;meshes[80].material.depthWrite=false;
+  const preview=new TargetPreviewShader();if(targetShader){preview.shader=targetShader;}
+  const keyhole=new CameraKeyholePresentation({renderer,camera});keyhole.shader=keyholeShader;scene.userData.nativeStaticTile=true;keyhole.bind(scene);if(targetShader)preview.bind(scene);
+  const rows=[];try{for(let frame=0;frame<32;frame++){
+   await new Promise(resolve=>setTimeout(resolve,0));for(const[i,m]of meshes.entries()){m.rotation.y=frame*.1+i*.03;m.position.y=1.5+Math.sin(i+frame*.23)*.1;}camera.position.x=15+Math.sin(frame*.1)*2;camera.lookAt(0,0,0);
+   if(frame===5)meshes[5].visible=false;if(frame===6)scene.remove(meshes[6]);if(frame===7)scene.add(meshes[6]);if(frame===8)meshes[10].material.color.setRGB(.2,.8,.4);if(frame===9)textures[15].offset.x=.3;if(frame===10){textures[20].image.data[3]=255;textures[20].needsUpdate=true;}if(frame===12)meshes[25].material.alphaTest=.5;
+   if(frame===13){const geometry=meshes[18].geometry,p=geometry.attributes.position.clone(),uv=geometry.attributes.uv.clone();p.setY(0,p.getY(0)+.3);uv.setX(0,.3);geometry.setAttribute('position',p);geometry.setAttribute('uv',uv);geometry.computeBoundingSphere();}
+   if(frame===16){const extension=renderer.getContext().getExtension('WEBGL_lose_context');assert(Boolean(extension),'context loss unavailable');await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Context restore timed out')),5000);renderer.domElement.addEventListener('webglcontextrestored',()=>{clearTimeout(timer);resolve();},{once:true});renderer.domElement.addEventListener('webglcontextlost',()=>setTimeout(()=>extension.restoreContext(),50),{once:true});extension.loseContext();});}
+   if(frame===22)meshes[35].onBeforeRender=()=>{hooks++;meshes[92].material.color.setRGB(.3,.4,.9);};if(frame===23)meshes[35].onBeforeRender=localRendererHook(()=>hooks++);
+   if(frame===24)scene.overrideMaterial=new T.MeshBasicMaterial({color:0xaa7777});if(frame===25){scene.overrideMaterial.dispose();scene.overrideMaterial=null;}if(frame===26)renderer.clippingPlanes=[new T.Plane(new T.Vector3(1,0,0),0)];if(frame===27)renderer.clippingPlanes=[];
+   keyhole.update(scene,new T.Vector3(),{pitch:.7,distance:32},frame!==4);
+   if(targetShader){preview.bind(scene);preview.update({preview:frame<4?null:{shape:1+Math.floor((frame-4)/7)%4,sizeX:5,sizeY:8,range:30,flags:1,spellId:1},player:[0,0,0],point:[0,0,0],type:2,time:frame*1000});}
+   if(enabled)owner.render(scene,camera);else renderer.render(scene,camera);
+   const gl=renderer.getContext();gl.finish();const pixels=new Uint8Array(1024*768*4),shadow=new Uint8Array(light.shadow.map.width*light.shadow.map.height*4);gl.readPixels(0,0,1024,768,gl.RGBA,gl.UNSIGNED_BYTE,pixels);renderer.readRenderTargetPixels(light.shadow.map,0,0,light.shadow.map.width,light.shadow.map.height,shadow);assert(gl.getError()===0,`WebGL error frame${frame}`);rows.push({frame,pixels:await hash(pixels),shadow:await hash(shadow),draw:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},hooks,batches:owner.snapshot()});
+  }screenshot=renderer.domElement.toDataURL('image/png');const before=owner.snapshot(),buffers=owner.batches.flatMap(b=>b.buffers);owner.dispose();assert(buffers.every(b=>!renderer.getContext().isBuffer(b)),'batch VBO survived');assert(owner.root.parent===null,'private root survived');results.push({enabled,rows,before,after:owner.snapshot()});
+  }finally{owner.dispose();keyhole.dispose();preview.dispose();for(const m of meshes){m.geometry.dispose();for(const material of Array.isArray(m.material)?m.material:[m.material])material.dispose();}for(const t of textures)t.dispose();floor.geometry.dispose();floor.material.dispose();scene.traverse(o=>o.shadow?.dispose());renderer.dispose();renderer.forceContextLoss();}
+ }
+ const comparisons=results[0].rows.map((a,i)=>{const b=results[1].rows[i];return{frame:i,pixels:a.pixels===b.pixels,shadow:a.shadow===b.shadow,triangles:a.draw.triangles===b.draw.triangles,hooks:a.hooks===b.hooks,beforeCalls:a.draw.calls,afterCalls:b.draw.calls};});return{success:comparisons.every(r=>r.pixels&&r.shadow&&r.triangles&&r.hooks)&&results[1].rows.some(r=>r.batches.batches>0),results,comparisons,screenshot};
+};

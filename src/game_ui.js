@@ -7,6 +7,7 @@ import {actionQueueRecords} from './action_queue_display.js';
 import {describeActionQueue} from './action_queue_presentation.js';
 import {parse2da} from './area.js';
 import {RESOURCE_TYPE,decodeResourceText} from './resource_archive.js';
+import {debugWindowOption} from './debug_shell.js';
 import {initializeQuickbar,getQuickbarButton,setQuickbarButton,quickbarRequest} from './quickbar.js';
 import {QuickbarLayouts} from './quickbar_storage.js';
 import {quickbarAssignmentMenu} from './quickbar_menu.js';
@@ -26,6 +27,11 @@ import {dropPreparation,preparationRequest} from './spell_preparation.js';
 import {ContainerUi,repositoryGrid} from './container_ui.js';
 import {MapUi} from './map_ui.js';
 import {GAME_HUD_ACTIONS} from './game_hud_actions.js';
+import {CharacterRecordView,recordImage} from './character_record_view.js';
+import {localCharacterRecord} from './character_record_model.js';
+import {networkPortrait} from './network_portrait.js';
+import {isTextEntry,isWorldMoveKey,isControlArrow} from './game_input.js';
+import {isSpellFamily,spellFamilyChildren} from './spell_family.js';
 
 const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
 const button = (text, action, className = '') => { const b = el('button', `game-button ${className}`, text); b.type = 'button'; b.addEventListener('click', action); return b; };
@@ -47,6 +53,7 @@ export class GameUi {
     this.quickbarLayouts=new QuickbarLayouts();this.quickbarIcons=new Map();this.itemQuickbarPresentation=new Map();this.modifierPage=null;
     this.state = new GameUiState(); this.text = new GameText(); this.assets = null; this.session = null; this.messages = []; this.visible = true; this.renderVersion = 0; this.lastRefresh = 0;
     this.root = el('div', 'game-ui'); this.root.id = 'game-ui'; this.root.hidden = true; viewport.append(this.root);
+    this.record=new CharacterRecordView({assets:()=>this.assets,icon:name=>recordImage(this.assets,name),close:()=>this.close(),onTab:tab=>{this.characterTab=tab;this.syncCharacterSheet();void this.renderPanel();},source:(node,binding)=>this.makeQuickbarSource(node,binding)});
     this.hud = el('div', 'game-hud'); this.root.append(this.hud);
     this.layer = el('div', 'game-window-layer'); this.root.append(this.layer);
     this.containers=new ContainerUi(this.root,{getSession:()=>this.session,objectName:o=>this.objectName(o),onRequest:(...args)=>this.request(...args),onItemTarget:id=>this.onItemTarget?.(id),onExamine:id=>{this.examineId=id;this.open('examine');}});
@@ -54,7 +61,7 @@ export class GameUi {
     this.root.addEventListener('contextmenu', e => e.preventDefault());
     for (const event of ['pointerdown', 'pointerup', 'click', 'dblclick', 'wheel']) this.root.addEventListener(event, e => e.stopPropagation());
     window.addEventListener('keydown', event => this.key(event), true);
-    window.addEventListener('keyup', event => { if(['Shift','Control'].includes(event.key)){this.modifierPage=event.ctrlKey?2:event.shiftKey?1:null;this.updateQuickbar();} if (this.captured || this.root.contains(event.target)) event.stopImmediatePropagation(); }, true);
+    window.addEventListener('keyup', event => { if(['Shift','Control'].includes(event.key)){this.modifierPage=event.ctrlKey?2:event.shiftKey?1:null;this.updateQuickbar();} if (!isWorldMoveKey(event)&&event.key!=='Shift'&&event.key!=='Tab'&&(this.captured || this.root.contains(event.target))) event.stopImmediatePropagation(); }, true);
     window.addEventListener('blur',()=>{this.modifierPage=null;this.updateQuickbar();});
     this.catalog = document.querySelector('#ui-resource-select');
     this.catalog?.addEventListener('change', () => { if (this.catalog.value) this.open(`native:${this.catalog.value}`); });
@@ -62,11 +69,12 @@ export class GameUi {
     this.panelCatalog?.addEventListener('change', () => { if (this.panelCatalog.value) this.toggle(this.panelCatalog.value); });
   }
   get captured() { return Boolean(this.externalCapture || this.state.panel); }
+  get blocksWorldInput() { return Boolean(this.externalCapture || !this.session&&this.state.panel); }
   async attach(session, resolver) {
     if (this.session === session) return;
     this.mapUi?.destroy();this.mapUi=null;
     this.renderVersion++; this.layer.replaceChildren(); this.assets?.dispose(); this.session = session; this.state.reset(); this.messages = []; this.signature = '';this.preparationEpoch=(this.preparationEpoch??0)+1;this.preparationClass=0;this.preparationMeta=0;this.preparationWidgets=new Map();
-    this.containers.reset();this.nativeInventoryOpen=undefined;this.characterSheetRequested=false;this.assets = new NativeUiAssets(resolver); this.root.hidden = false; this.portraitKey = null;this.quickbarIcons.clear();
+    this.containers.reset();this.nativeInventoryOpen=undefined;this.characterSheetRequested=false;this.characterSheetPage=255;this.record.reset();this.assets = new NativeUiAssets(resolver); this.root.hidden = false; this.portraitKey = null;this.quickbarIcons.clear();
     if(!session.player.nativeQuickbar4e0)initializeQuickbar(session.player);
     if(session.quickbarProfileKey)try{const saved=await this.quickbarLayouts.get(session.quickbarProfileKey);if(saved){session.loadPlayerQuickbar(session.player,saved.QBList??saved);for(const [i,source]of (saved.itemSources??[]).entries()){const b=getQuickbarButton(session.player,i);if(b?.type===1&&source&&(session.registry.get(b.itemId)?.sourceKey!==source.primary||(source.secondary&&session.registry.get(b.secondaryItemId)?.sourceKey!==source.secondary))){setQuickbarButton(session.player,i,null);runtimeDiagnostics.record('quickbar.item-not-restored','Saved local shortcut item is absent from the imported character',{slot:i,source});}}}}catch(error){runtimeDiagnostics.error(error,'quickbar.layout-load-failed');}
     this.itemQuickbarPresentation.clear();
@@ -122,10 +130,10 @@ export class GameUi {
   closeAll() { if(this.session&&this.state.stack.includes('inventory'))this.request('inventory.status',{value:0,ownerId:this.session.player.id});this.renderVersion++; this.state.stack = [];this.syncCharacterSheet(); this.layer.replaceChildren(); this.root.dataset.panel = ''; this.onInputCapture?.(false); if (!this.session) { this.mode(false); this.root.hidden = true; } }
   syncCharacterSheet(){
     if(!this.session||this.session.player.cutscene?.enabled)return;
-    const open=this.state.panel==='character';if(open===this.characterSheetRequested)return;
+    const open=this.state.panel==='character',page=open?['Character','Skills','Feats'].indexOf(this.characterTab??'Character'):255;if(open===this.characterSheetRequested&&page===this.characterSheetPage)return;
     // Local frontend decoded page mapping. Native server handling is verified;
     // the original client's marshaling/initial request remains separate.
-    this.request('character.sheet',{page:open?0:255,targetId:this.session.player.id});this.characterSheetRequested=open;
+    this.request('character.sheet',{page,targetId:this.session.player.id});this.characterSheetRequested=open;this.characterSheetPage=page;
   }
   receiveInventoryMessage(event){
     if(!['inventory-status','inventory-gui','inventory-select-panel','inventory-repository-move','inventory-repository-move-cancel'].includes(event.type))return false;
@@ -266,7 +274,7 @@ export class GameUi {
   }
   async quickbarIcon(name,host,key,slot){
     if(!name||name==='****')return;
-    try{if(!this.quickbarIcons.has(name))this.quickbarIcons.set(name,(async()=>{const {image}=await this.assets.texture(name),canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(image.data),image.width,image.height),0,0);return canvas.toDataURL();})());const url=await this.quickbarIcons.get(name);if(slot.dataset.binding===key&&host.isConnected){const img=el('img');img.alt='';img.src=url;host.replaceChildren(img);}}
+    const assets=this.assets;try{if(!this.quickbarIcons.has(name))this.quickbarIcons.set(name,(async()=>{const image=await assets.image(name),canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(image.data),image.width,image.height),0,0);return canvas.toDataURL();})());const url=await this.quickbarIcons.get(name);if(assets===this.assets&&slot.dataset.binding===key&&host.isConnected){const img=el('img');img.alt='';img.src=url;host.replaceChildren(img);}}
     catch(error){runtimeDiagnostics.error(error,'quickbar.icon-unavailable',{resRef:name});}
   }
   quickbarChoices(){
@@ -388,9 +396,9 @@ export class GameUi {
       node.title=caption;node.setAttribute('aria-label',caption);node.dataset.action=String(row.code);node.dataset.groupId=String(row.group);node.dataset.targetId=String(row.targetId);
       const previous=node.querySelector('.game-queue-icon');previous?.remove();node.dataset.icon=row.icon??'';
       if(row.icon){const assets=this.assets,name=row.icon;
-        void assets.texture(name).then(texture=>{
+        void assets.image(name).then(image=>{
           if(assets!==this.assets||node.dataset.icon!==name||node.hidden)return;
-          const {width,height,data}=texture.image,icon=el('canvas','game-queue-icon');icon.width=width;icon.height=height;
+          const {width,height,data}=image,icon=el('canvas','game-queue-icon');icon.width=width;icon.height=height;
           icon.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data),width,height),0,0);node.querySelector('.game-queue-icon')?.remove();node.append(icon);
         }).catch(error=>{if(assets===this.assets)runtimeDiagnostics.error(error,'ui.action-queue-icon-unavailable',{resource:name});});
       }
@@ -400,9 +408,9 @@ export class GameUi {
     const assets = this.assets;
     if (!name) return;
     try {
-      const texture = await assets.texture(`${name}s`);
+      const image = await assets.image(`${name}s`);
       if (this.assets !== assets || this.portraitKey !== name) return;
-      const { width, height, data } = texture.image, c = document.createElement('canvas'); c.width = width; c.height = height;
+      const { width, height, data } = image, c = document.createElement('canvas'); c.width = width; c.height = height;
       c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data), width, height), 0, 0);
       const portrait = this.hud.querySelector('.game-portrait'); portrait.style.backgroundImage = `url("${c.toDataURL()}")`;
       portrait.querySelector('.game-portrait-silhouette').hidden = true;
@@ -414,11 +422,13 @@ export class GameUi {
   }
   objectName(object) { return this.text.resolve(object.authored?.LocalizedName) || object.name || object.tag || `${object.kind} ${object.id}`; }
   key(event) {
+    if(isControlArrow(event))return;
     if (this.externalCapture) return;
     if (!this.assets || event.defaultPrevented) return;
     if (this.radialActive?.()) return;
-    const editing = /INPUT|TEXTAREA|SELECT/.test(event.target.tagName);
+    const editing = isTextEntry(event.target);
     if (editing) { if (event.key === 'Escape') event.target.blur(); event.stopImmediatePropagation(); return; }
+    if (this.session&&(isWorldMoveKey(event)||event.key==='Tab')) return;
     const key = event.key.toLowerCase(); let handled = true;
     if(['Shift','Control'].includes(event.key)){this.modifierPage=event.key==='Control'||event.ctrlKey?2:1;this.updateQuickbar();return;}
     const conversation = this.session?.conversation;
@@ -440,21 +450,21 @@ export class GameUi {
   }
   async renderPanel() {
     this.mapUi?.destroy();this.mapUi=null;
-    const version = ++this.renderVersion, id = this.state.panel; this.layer.replaceChildren(); this.root.dataset.panel = id ?? '';
+    this.record.saveScroll();const version = ++this.renderVersion, id = this.state.panel; this.layer.replaceChildren(); this.root.dataset.panel = id ?? '';
     if (!id || !this.assets) return;
     if (id.startsWith('native:')) { await this.renderNative(id.slice(7), version); return; }
     if (id === 'main') { await this.renderNative('pre_main', version); return; }
     const panel = el('section', `game-panel game-panel-${id}`); panel.dataset.panel = id; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', titles[id] ?? id);
     const title = el('header', 'game-panel-title'); title.append(el('span', '', titles[id]), button('×', () => this.close(), 'game-close')); panel.append(title);
     const tabs = el('nav', 'game-panel-tabs'); const body = el('div', 'game-panel-body'); panel.append(tabs, body); this.layer.append(panel);
-    if (panelModels[id]) void this.positionedArt(panel, panelModels[id]);
+    if (panelModels[id]&&id!=='character') void this.positionedArt(panel, panelModels[id]);
     if (id === 'journal') {
       for (const [tab, label, model] of [['quests', 'Quests', 'ctl_jnl_btn_tab'], ['completed', 'Completed Quests', 'ctl_jnl_btn_tab2'], ['notes', 'Notes', 'ctl_jnl_btn_tab3']]) {
         const b = button(label, () => { this.state.journalTab = tab; void this.renderPanel(); }); b.dataset.tab = tab; b.setAttribute('aria-selected', String(tab === this.state.journalTab)); void this.art(b, model, tab === this.state.journalTab ? 'checkedup' : 'uncheckedup'); tabs.append(b);
       }
       void this.positionedArt(panel, 'pnl_jnl_page1', 0, 58); this.renderJournal(body);
     } else if (id === 'inventory') this.renderInventory(body, tabs);
-    else if (id === 'character') this.renderCharacter(body, tabs);
+    else if (id === 'character') await this.renderCharacter(body, tabs);
     else if (id === 'map') this.mapUi=new MapUi(body,this.session,this.assets);
     else if (id === 'options') this.renderOptions(body);
     else if (id === 'spells') this.renderSpells(body, tabs);
@@ -462,6 +472,7 @@ export class GameUi {
     else if (id === 'examine') this.renderExamine(body);
     else if (id === 'dialogue' && this.session.conversation.state) this.renderConversation(body);
     else { body.append(el('p', '', id === 'dialogue' ? 'No conversation is active.' : id === 'store' ? 'No merchant is active.' : 'No trade is active.')); body.append(button(id === 'dialogue' ? 'Talk to selected creature' : 'Use selected object', () => this.request(id === 'dialogue' ? 'conversation.start' : `${id}.open`, { targetId: this.getSelected?.()?.id }))); }
+    if(id==='character'){title.remove();tabs.remove();return;}
     const footer = el('footer', 'game-panel-footer'); footer.append(button('Close', () => this.close())); panel.append(footer);
     await this.art(title.querySelector('.game-close'), 'ctl_btn_x');
     if (version !== this.renderVersion) return;
@@ -537,30 +548,21 @@ export class GameUi {
     }
     body.append(el('p', 'game-muted', `Gold ${this.session.player.stats?.gold ?? '—'} · Right-click an item for actions; drag an action to the quickbar.`));
   }
-  renderCharacter(body, tabs) {
-    for (const name of ['Character', 'Skills', 'Feats']) tabs.append(button(name, () => { this.characterTab = name; void this.renderPanel(); }));
-    const p = this.session.player;
-    body.append(el('h3', '', p.name), el('p', 'game-muted', p.characterLoaded ? p.characterFile : 'A player character file has not been loaded.'));
-    if (this.characterTab === 'Skills' || this.characterTab === 'Feats') {
-      if (!p.stats) { body.append(el('p', '', `${this.characterTab} unavailable.`)); return; }
-      const list = el('dl', 'game-stats');
-      if (this.characterTab === 'Skills') for (const [id, rank] of p.stats.skills.entries()) { list.append(el('dt', '', this.ruleName('skills', id)), el('dd', '', `${rank} ranks`)); }
-      else for (const id of p.stats.feats) body.append(this.makeQuickbarSource(el('p', 'game-feat', this.ruleName('feat', id, 'FEAT')),{type:4,intParam:id}));
-      body.append(list); return;
-    }
-    const stats = el('dl', 'game-stats');
-    const s = p.stats;
-    const rows = [['Race', s ? this.ruleName('racialtypes', s.race) : '—'], ['Classes', s?.classes.map(c => `${this.ruleName('classes', c.id)} ${c.level}`).join(' / ') ?? '—'],
-      ...['Strength', 'Dexterity', 'Constitution', 'Intelligence', 'Wisdom', 'Charisma'].map((name, i) => [name, s ? `${s.equippedAbilities[ABILITIES[i]]}${s.equippedBonuses[ABILITIES[i]] ? ` (${s.baseAbilities[ABILITIES[i]]} base)` : ''}` : '—']),
-      ['Hit points', s ? `${this.session.hitPoints(p.id, false)}/${s.maxHP}` : '—'],
-      ...(s?.combat ? [['Base attack bonus', s.combat.baseAttackBonus], ['Base Fortitude', s.combat.baseSaves.fortitude], ['Base Reflex', s.combat.baseSaves.reflex], ['Base Will', s.combat.baseSaves.will]] : []),
-      ...(s?.combat?.saves ? [['Armor class', s.combat.armorClass], ['Melee attack bonus', s.combat.attackBonuses.melee],
-        ['Offhand attack bonus', s.combat.attackBonuses.offhand], ['Ranged attack bonus', s.combat.attackBonuses.ranged],
-        ['Fortitude', s.combat.saves.fortitude], ['Reflex', s.combat.saves.reflex], ['Will', s.combat.saves.will]] : []),
-      ['Experience', s?.xp ?? '—'], ['Next level', s?.canLevelUp ? 'Level up available' : s?.nextXP ?? '—'], ['Gold', s?.gold ?? '—']];
-    for (const [name, value] of rows) { const dd = el('dd', '', value); if (name === 'Experience') dd.dataset.stat = 'xp'; stats.append(el('dt', '', name), dd); }
-    body.append(stats, button('Create character', () => this.request('character.create')), button('Characters', () => this.request('character.load')));
-    if (s) body.append(el('p', 'game-muted', s.limitations.join(' ')));
+  async renderCharacter(body, tabs) {
+    const session=this.session,assets=this.assets,tab=this.characterTab??'Character',version=this.renderVersion;
+    try{
+      const model=await localCharacterRecord(session,{resolve:value=>this.text.resolve(value),tab,portrait:async()=>{
+        const root=session.player.creatureData??session.player.authored;
+        if(root.Portrait){for(const suffix of ['l','m','h','s','t',''])try{return await recordImage(assets,root.Portrait+suffix);}catch{/* Neighboring native portrait sizes are optional. */}}
+        this.recordPortraitTables??=new WeakMap();if(!this.recordPortraitTables.has(assets))this.recordPortraitTables.set(assets,assets.resolver.getResource('portraits',RESOURCE_TYPE.TWO_DA).then(b=>({portraits:parse2da(decodeResourceText(b))})));
+        return networkPortrait(assets,await this.recordPortraitTables.get(assets),{id:session.player.id,portrait:root.PortraitId,portraitRef:root.Portrait},4);
+      }});
+      if(this.session===session&&this.assets===assets&&version===this.renderVersion)body.append(this.record.render(model,tab));
+    }catch(error){if(version===this.renderVersion){runtimeDiagnostics.error(error,'ui.character-record-failed');body.append(el('p','',error.message));}}
+  }
+  spellBookChoice(parent,binding,label,path=[]){
+    const session=this.session,id=binding.intParam,family=isSpellFamily(session.characterRules,id),b=button(label+(family?' ▸':''),()=>{if(this.session!==session)return;if(family){children.hidden=!children.hidden;b.setAttribute('aria-expanded',String(!children.hidden));}else this.request(binding.type===44?'spellLike.use':'spell.cast',{spellId:id,classIndex:binding.classIndex,domainLevel:binding.domainLevel,metamagic:binding.metamagic});});parent.append(b);
+    let children;if(family){b.dataset.spellFamily='true';b.setAttribute('aria-expanded','false');children=el('div','game-spell-family-children');children.hidden=true;parent.append(children);for(const child of spellFamilyChildren(session.characterRules,id,path))this.spellBookChoice(children,{...binding,intParam:child},this.ruleName('spells',child),[...path,id]);}else this.makeQuickbarSource(b,binding);return b;
   }
   renderSpells(body, tabs) {
     for (const name of ['Spellbook', 'Prepare', 'Memorized', 'Abilities', 'Feats']) tabs.append(button(name, () => { this.spellTab = name; void this.renderPanel(); }));
@@ -570,8 +572,8 @@ export class GameUi {
     let count = 0;
     if(this.spellTab==='Abilities'){
       for(const a of player.nativeSpellLikeAbilities??[]){
-        const ready=spellLikeReady(player,a.id)!==0,b=button(`${this.ruleName('spells',a.id)} · ${ready?'Ready':'Used'}`,()=>this.request('spellLike.use',{spellId:a.id,domainLevel:a.casterLevel}));
-        b.dataset.abilitySpellId=a.id;b.dataset.abilityReady=Number(ready);b.dataset.abilityRemaining=a.remaining;body.append(this.makeQuickbarSource(b,{type:44,intParam:a.id,domainLevel:a.casterLevel}));count++;
+        const ready=spellLikeReady(player,a.id)!==0,b=this.spellBookChoice(body,{type:44,intParam:a.id,domainLevel:a.casterLevel},`${this.ruleName('spells',a.id)} · ${ready?'Ready':'Used'}`);
+        b.dataset.abilitySpellId=a.id;b.dataset.abilityReady=Number(ready);b.dataset.abilityRemaining=a.remaining;count++;
       }
     }else if (this.spellTab === 'Feats') {
       for (const id of player.stats.feats) {const b=button(this.ruleName('feat', id, 'FEAT'), () => this.request('feat.use', { featId: id }));b.dataset.featId=id;b.dataset.featRemaining=this.session.combat.remainingUses(player,this.session.combat.highestFeat(player,id));body.append(this.makeQuickbarSource(b,{type:4,intParam:id}));count++;}
@@ -584,9 +586,8 @@ export class GameUi {
         for (const [slot, spell] of list.entries()) {
           if (!spell) continue;
           const domainLevel=spell.domain?(level-this.session.spellBook.metamagicCost(spell.metamagic??0))&255:0;
-          const b = button(`${this.ruleName('spells', spell.id)}${this.spellTab === 'Memorized' ? spell.ready ? ' · Ready' : ' · Used' : ''}${spell.metamagic ? ` · Metamagic ${spell.metamagic}` : ''}`, () => this.request('spell.cast', { classIndex:index, spellId: spell.id, metamagic:spell.metamagic??0,domainLevel }));
-          b.dataset.spellId = spell.id;b.dataset.spellClassIndex=index;if(this.spellTab==='Memorized')b.dataset.spellReady=Number(spell.ready!==0);section.append(b); count++;
-          this.makeQuickbarSource(b,{type:2,classIndex:index,intParam:spell.id,metamagic:spell.metamagic??0,domainLevel});
+          const b = this.spellBookChoice(section,{type:2,classIndex:index,intParam:spell.id,metamagic:spell.metamagic??0,domainLevel},`${this.ruleName('spells', spell.id)}${this.spellTab === 'Memorized' ? spell.ready ? ' · Ready' : ' · Used' : ''}${spell.metamagic ? ` · Metamagic ${spell.metamagic}` : ''}`);
+          b.dataset.spellId = spell.id;b.dataset.spellClassIndex=index;if(this.spellTab==='Memorized')b.dataset.spellReady=Number(spell.ready!==0);count++;
         }
       }
       body.append(section);
@@ -664,6 +665,7 @@ export class GameUi {
     if (object.kind === 'item') body.append(el('p', 'game-muted', `Object ${object.id} · Owner ${object.ownerId} · Stack ${object.authored.StackSize ?? 1}`));
   }
   renderOptions(body) {
+    body.append(debugWindowOption());
     for (const [label, panel] of [['Game Options', 'options_game'], ['Video Options', 'options_video'], ['Sound Options', 'options_sound'], ['Controls', 'options_controls'], ['Feedback', 'options_feedback']]) body.append(button(label, () => this.open(`native:${panel}`)));
     const wire = el('label', 'game-setting'); const input = el('input'); input.type = 'checkbox'; input.checked = document.querySelector('#wireframe-button').getAttribute('aria-pressed') === 'true'; input.addEventListener('change', () => this.onSettings?.({ wireframe: input.checked })); wire.append(input, el('span', '', 'Wireframe')); body.append(wire);
     body.append(button('Save Game', () => this.open('native:pre_savegame')), button('Load Game', () => this.open('native:pre_loadgame')), button('Main Menu', () => this.open('main')), button('Return to Game', () => this.closeAll()));

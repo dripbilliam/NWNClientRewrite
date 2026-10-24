@@ -5,30 +5,44 @@ import {serverObjectIdForClient} from './client_projectile_message.js';
 // Scalar reads, spell/name/TLK lookup, token parsing and output are lower owners.
 // These bytes are the original widget's name/message color control strings.
 export const spellMessageColors={self:String.fromCharCode(60,99,153,255,255,62),other:String.fromCharCode(60,99,204,153,204,62),message:String.fromCharCode(60,99,204,119,255,62)};
-export function receiveSpellCombatMessage(p){
+export function readSpellCombatMessage(p){
  const sourceId=p.objectId()>>>0,spellId=p.dword(32)>>>0,identified=p.bool()|0,casting=p.bool()|0,hasItem=p.bool()|0;
  let itemName='',baseItem;
- if(p.overflow()!==0)return false;
+ if(p.overflow()!==0)return null;
  if(hasItem===1){if(identified===1)itemName=p.bool()!==0?p.localizedString(0,0):p.string(32);else baseItem=p.byte(8,1)&255;}
- if(p.overflow()!==0)return false;
- const spell=p.spell(spellId|0);let message='';
- const sourceName=()=>{
-  let name=p.sourceName(sourceId);
-  if(name!==null){const player=p.player();if(player){const same=(p.player().id>>>0)===sourceId;name=(same?spellMessageColors.self:spellMessageColors.other)+name+'</c>';}}
-  else name=p.tlk(0x209d);
-  p.token(0,name);
+ if(p.overflow()!==0)return null;
+ return{sourceId,spellId,identified,casting,hasItem,itemName,baseItem};
+}
+// One decision tree for synchronous local and asynchronous network text owners.
+// Yielding services preserves native call/token order across resource fetches.
+function* spellMessageSteps({sourceId,spellId,identified,casting,hasItem,itemName,baseItem}){
+ const spell=yield['spell',spellId|0];let message='';
+ function* sourceName(){
+  let name=yield['sourceName',sourceId];
+  if(name!==null){const player=yield['player'];if(player){const same=((yield['player']).id>>>0)===sourceId;name=(same?spellMessageColors.self:spellMessageColors.other)+name+'</c>';}}
+  else name=yield['tlk',0x209d];
+  yield['token',0,name];
  };
  if(spell){
-  if((spell.altMessage|0)!==0){sourceName();message=spellMessageColors.message+p.parse(spell.altMessage>>>0)+'</c>';}
+  if((spell.altMessage|0)!==0){yield*sourceName();message=spellMessageColors.message+(yield['parse',spell.altMessage>>>0])+'</c>';}
   else{
-   const verb=p.tlk(casting===1&&hasItem===0?0x1fbf:hasItem===0?0x5dd:0xf720);let name;
-   if(identified!==0)name=hasItem===0?p.tlk(spell.name>>>0):itemName;
-   else if(hasItem===0)name=p.tlk(0x5de);
-   else{p.token(0,p.baseItemName(baseItem));name=p.parse(0xf721);}
-   sourceName();p.token(1,verb);p.token(2,name);message=spellMessageColors.message+p.parse(0x28f2)+'</c>';
+   const verb=yield['tlk',casting===1&&hasItem===0?0x1fbf:hasItem===0?0x5dd:0xf720];let name;
+   if(identified!==0)name=hasItem===0?(yield['tlk',spell.name>>>0]):itemName;
+   else if(hasItem===0)name=yield['tlk',0x5de];
+   else{yield['token',0,yield['baseItemName',baseItem]];name=yield['parse',0xf721];}
+   yield*sourceName();yield['token',1,verb];yield['token',2,name];message=spellMessageColors.message+(yield['parse',0x28f2])+'</c>';
   }
  }
- p.display(message,128,0,0,'');return true;
+ yield['display',message,128,0,0,''];
+}
+export function receiveSpellCombatMessage(p){
+ const fields=readSpellCombatMessage(p);if(!fields)return false;
+ const steps=spellMessageSteps(fields);let step=steps.next();
+ while(!step.done){const [service,...args]=step.value;step=steps.next(p[service](...args));}return true;
+}
+export async function presentSpellCombatMessage(fields,p){
+ const steps=spellMessageSteps(fields);let step=steps.next();
+ while(!step.done){const [service,...args]=step.value;step=steps.next(await p[service](...args));}
 }
 
 // Local scalar projection of SendServerToPlayerCCMessage4cf090 case8. It has

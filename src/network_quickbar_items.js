@@ -1,6 +1,7 @@
 import {intEntry} from './combat_stats.js';
 import {configureItemQuickbar,clientItemWield,updateItemQuickbarCount} from './item_quickbar.js';
 import {castingSpell,talentSpell,spellStringEntry} from './spell_metadata.js';
+import {itemIconDescriptor} from './item_icon.js';
 
 // Native client-only item-widget adapter. CanUse/identified/property-use flags
 // come from replication; item use and equipment changes remain server actions.
@@ -14,7 +15,7 @@ export function networkItemQuickbarProviders(world,tables,presentation,{notify=(
   spell:id=>{const spell=castingSpell(tables,id);return spell?{...spell,children:talentSpell(tables,id).children}:null;},subRadialSpell:(s,n)=>s.children[n]??-1,
   sizeCategory:actor=>{const e=intEntry(tables.appearance,actor.appearance.appearance,'SIZECATEGORY');return{status:Number(e.found),value:e.value};},
   equippedOwner:i=>{const o=i.canonical,id=o.equipmentOwnerId??(o.inventoryLocation?.channel==='I'?o.inventoryLocation.ownerId:null);return world.registry.get(id)??null;},
-  itemIcon:i=>{report('network.quickbar-item-icon-unhandled','Native item icon construction is not connected',{itemId:i.id,baseItem:i.baseItem});return null;},
+  itemIcon:i=>itemIconDescriptor(i,world.registry.get(world.localObjectId)?.appearance?.gender??0),
   feedback,clear:()=>Object.assign(presentation,{icon:null,secondaryIcon:null,uses:'',enabled:true,animation:null}),destroyIcon:()=>Object.assign(presentation,{icon:null,secondaryIcon:null}),icons:(_b,icon,secondaryIcon)=>Object.assign(presentation,{icon,secondaryIcon}),
   createSpellIcon:s=>spellStringEntry(tables.spells,s.id,'IconResRef'),releaseSpellIcon:()=>{},text:(_b,uses)=>presentation.uses=uses,enable:(_b,v)=>presentation.enabled=v!==0,animation:(_b,v)=>presentation.animation=v,notify};
  p.wield=(...a)=>clientItemWield(...a,p);p.refreshCount=b=>updateItemQuickbarCount(b,p);return p;

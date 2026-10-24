@@ -8,6 +8,9 @@ import {attachBeamVisual,startBeamVisual,stopBeamVisual} from './visual_beam.js'
 import {VisualPhaseRuntime,createVisualPhaseState} from './visual_phase_runtime.js';
 import {visualLocalPoseServices} from './visual_scene_pose.js';
 import {setModelLightPriority} from './model_light.js';
+import {clientProjectileTargetPrefix} from './client_projectile_target.js';
+import {objectTemplateResRef} from './create_object.js';
+import {effectSoundProviders} from './native_effect_sound.js';
 
 function unparent(model){
  const root=model.root,position=root.getWorldPosition(root.position.clone()),quaternion=root.getWorldQuaternion(root.quaternion.clone()),scale=root.getWorldScale(root.scale.clone());
@@ -17,13 +20,13 @@ function unparent(model){
 // Platform adapter around shared native owners. Asset reads are prefetched as
 // data only; each actual LoadProgram still creates/stores a fresh model at its
 // native phase boundary. Canonical records and game-object IDs are never edited.
-export async function createVisualSceneRuntime({actor,record,tables,objects,renderFor,player,loadAsset,createModel,destroyModel,releaseAsset,shadowing,report,sceneRoot,updateReferences=()=>{},settings=()=>({quality64:1,violence40:2})}){
- const state=createVisualPhaseState(),owned=new Set(),assets=new Map(),pending=new Map(),reported=new Set(),contexts=new WeakMap();let runtime=null,closed=false,elapsedMs=0,previousMs=0;
+export async function createVisualSceneRuntime({actor,record,tables,objects,renderFor,player,loadAsset,createModel,destroyModel,releaseAsset,shadowing,report,sceneRoot,projectiles=null,oneShot=null,soundFactory=null,updateReferences=()=>{},settings=()=>({quality64:1,violence40:2})}){
+ const state=createVisualPhaseState(),owned=new Set(),assets=new Map(),pending=new Map(),reported=new Set(),contexts=new WeakMap(),preparedProjectiles=new Map();let runtime=null,closed=false,elapsedMs=0,previousMs=0;
  const data={objectId:actor.id,visualId:record.visualId},failure=(code,message,extra={})=>{const key=`${code}:${JSON.stringify(extra)}`;if(!reported.has(key)){reported.add(key);report(code,message,{...data,...extra});}};
  const transform=record.transform;
  if(!transform||transform.scale!==1||![...transform.translate,...transform.rotate].every(v=>v===0))throw new Error('Native visual transform-controller presentation is not implemented');
  if(record.bodyPart!==0)throw new Error('Native non-default looping visual body-part delivery is not implemented');
- if(actor.objectType!==5)throw new Error('Native non-creature visual model-prefix views are not connected');
+ if(![5,9,10].includes(actor.objectType))throw new Error('Native visual object type is unavailable');
  const getAsset=name=>{
   name=String(name).toLowerCase();
   if(!pending.has(name))pending.set(name,(async()=>{try{const asset=await loadAsset(name);assets.set(name,asset);return asset;}catch(error){failure('visual.model-load-failed',error.message,{model:name,stack:error.stack});return null;}})());
@@ -48,8 +51,8 @@ export async function createVisualSceneRuntime({actor,record,tables,objects,rend
  const p={...poses,
   clientObject:id=>objects.get(id),renderObject:view,modelHandle:(v,...args)=>poses.modelHandle(v.scene,...args),
   gameObjectRegistry:()=>objects,gameObject:(registry,id)=>({success:!!registry.get(id),value:registry.get(id)}),
-  prefixViewA0:v=>{if(v.actor.objectType===5)return null;throw new Error('Native visual placeable-prefix view is unavailable');},
-  prefixView28:v=>{if(v.actor.objectType===5)return null;throw new Error('Native visual door-prefix view is unavailable');},
+  prefixViewA0:v=>{if(v.actor.objectType!==9)return null;const name=v.scene.userData.nativeLoadedModelName;if(typeof name!=='string')throw new Error('Native visual placeable loaded-model name is unavailable');return{prefix1e0:clientProjectileTargetPrefix(9,name)};},
+  prefixView28:v=>{if(v.actor.objectType!==10)return null;const name=v.scene.userData.nativeLoadedModelName;if(typeof name!=='string')throw new Error('Native visual door loaded-model name is unavailable');return{prefix1c8:clientProjectileTargetPrefix(10,name)};},
   view58:v=>context(v.actor),view1406ac1a0:()=>context(player()),
   creatureView58:v=>v.actor.objectType===5?{appearanceCc:(v.actor.creatureData??v.actor.authored).Appearance_Type}:null,
   appearanceInt:(id,column)=>intEntry(tables.appearance,id,column),
@@ -75,23 +78,21 @@ export async function createVisualSceneRuntime({actor,record,tables,objects,rend
   controlledClient:()=>({videoF8:{gui248:{}}}),registerGuiD8:()=>failure('visual.gui-attachment-unimplemented','Native selected-view visual GUI attachment is not implemented'),
   refreshContext1407e9bc0:()=>failure('visual.context-renderer-unimplemented','Native dynamic-projection/shadow context refresh is not implemented'),
   clearProgram:e=>clearVisualProgram(e,p),loadProgram:(e,id)=>loadVisualProgram(e,id,p),
-  startProgram:(e,id)=>{if(!e.updateProgramD8)return;if(type(id)===4)startType4Visual(e,id,p);else if(type(id)===7)startBeamVisual(e,id,p);else if(type(id)>=1&&type(id)<=13)unsupported('start',id);},
-  stopProgram:(e,id)=>{if(!e.updateProgramD8)return;if(type(id)===4)stopType4Visual(e,id,p);else if(type(id)===7)stopBeamVisual(e,p);else if(type(id)>=1&&type(id)<=13)unsupported('stop',id);},
+  startProgram:(e,id)=>{if(!e.updateProgramD8)return;if(type(id)===4)startType4Visual(e,id,p);else if(type(id)===7)startBeamVisual(e,id,p);else if(type(id)===10){const prepared=preparedProjectiles.get(id&65535);if(!prepared)throw new Error('Native procedural projectile assets were not prepared');prepared.start(e,id,p);}else if(type(id)>=1&&type(id)<=13)unsupported('start',id);},
+  stopProgram:(e,id)=>{if(!e.updateProgramD8)return;if(type(id)===4)stopType4Visual(e,id,p);else if(type(id)===7)stopBeamVisual(e,p);else if(type(id)!==10&&type(id)>=1&&type(id)<=13)unsupported('stop',id);},
   updateProgram:(e,id,delta)=>updateVisualProgram(e,id,delta,p),currentProgram:current,
   update140971e10:()=>failure('visual.program-update-unimplemented','Native Type5 visual update is not implemented'),update1409720e0:()=>failure('visual.program-update-unimplemented','Native Type6 visual update is not implemented'),
   detach:e=>runtime.detachModels(),
   applyModelState:(_e,_render,model)=>{model.root.userData.visualControllers128=structuredClone(state.controllers128);failure('visual.material-state-unimplemented','Native resource/material visual metadata application is incomplete');},
-  positionalSound:(name,position,gain,kind)=>{if(name)failure('visual.positional-audio-unimplemented','Native visual positional sound output is not implemented',{sound:name,position,gain,kind});},
-  createSound:resRef=>({resRef,settings:{},playing:false,destroyed:false}),soundSetting:(sound,key,value)=>{sound.settings[key]=value;},
-  playSound:sound=>{sound.playing=true;if(sound.resRef)failure('visual.duration-audio-unimplemented','Native duration sound output is not implemented',{sound:sound.resRef});},
-  stopSound:sound=>{sound.playing=false;},destroySound:sound=>{sound.destroyed=true;},updateSound:(sound,position)=>{sound.position=position;},
+  positionalSound:(name,position,height,priority,delay,volume)=>{if(!name)return;if(oneShot)oneShot({resRef:name,nativePosition:position,height,priority,delay,volume,channel:'visual'});else failure('visual.positional-audio-unimplemented','Native visual positional sound output is not implemented',{sound:name,position,height,priority});},
+  ...effectSoundProviders(soundFactory,resRef=>failure('visual.duration-audio-unimplemented','Native duration sound output is not implemented',{sound:resRef})),
   shakeOnce:(_client,delay)=>failure('visual.camera-shake-unimplemented','Native visual camera shake is not implemented',{delay}),shakeLoop:(_client,delay,duration)=>failure('visual.camera-shake-unimplemented','Native visual camera shake is not implemented',{delay,duration})
  };
  for(const address of['14096b630','140969ef0','14096aff0','1409689f0'])p[`programAttach${address}`]=()=>unsupported('attach',current(state));
  p.renderSetting158=()=>unsupported('attach',current(state));
  const dispose=()=>{
   if(closed)return;closed=true;
-  try{runtime?.dispose();}finally{for(const model of [...owned])destroy(model);for(const asset of assets.values())releaseAsset(asset);assets.clear();}
+  try{runtime?.dispose();}finally{for(const prepared of preparedProjectiles.values())prepared.release();preparedProjectiles.clear();for(const model of [...owned])destroy(model);for(const asset of assets.values())releaseAsset(asset);assets.clear();}
  };
  try{
   const delivery=record.delivery??{instant:0,sourcePart:0,targetPart:0,point:[0,0,0]};
@@ -102,6 +103,7 @@ export async function createVisualSceneRuntime({actor,record,tables,objects,rend
   for(const id of new Set(state.programsD0)){
    const kind=type(id),column=kind===4?'param7':kind===7?'param1':kind===12?'param2':null;
    if(column)await getAsset(nativeStringEntry(tables.programs,id,column).value);
+   if(kind===10){if(!projectiles)throw new Error('Native procedural projectile presentation owner is unavailable');const resource=objectTemplateResRef(nativeStringEntry(tables.programs,id,'param1').value),path=intEntry(tables.programs,id,'param4');preparedProjectiles.set(id,await projectiles.prepareProcedural(state,resource,path.found?path.value:0));}
   }
   runtime=new VisualPhaseRuntime(state,p);
   const snapshot=()=>{

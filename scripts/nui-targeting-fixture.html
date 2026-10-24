@@ -1,0 +1,17 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../src/network_nui.css"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script><style>body{margin:0;background:#17251d}#viewport{position:relative;width:100vw;height:100vh}#model-canvas{position:absolute;inset:0;width:100%;height:100%}.network-spell-targeting{cursor:crosshair}</style></head><body><main id="viewport"><canvas id="model-canvas"></canvas><div id="network-feedback"></div></main><script type="module">
+import {NetworkNuiView} from '../src/network_nui_view.js';
+import {NetworkSpellTargeting} from '../src/network_spell_targeting.js';
+import {NetworkFrontend} from '../src/network_frontend.js';
+import {NetworkWorld} from '../src/network_world.js';
+const world=new NetworkWorld(),actor={id:0xffffffce,objectType:5,areaId:1,replicated:{position:[3,4,.3]}},target={id:0x80000002,objectType:5,areaId:1,replicated:{position:[5,6,.3]}};
+for(const o of [actor,target])world.registry.addObjectAtPos(o.id,o);world.areaId=1;world.localObjectId=actor.id;
+window.fixture={world,actor,target,walks:0,errors:[],targetObject:target,picks:0};
+window.canvas=document.querySelector('#model-canvas');window.rendererWarmupCount=0;window.characterFrontend={active:false};window.gameUi={blocksWorldInput:false};window.camera={};window.pointerRay=()=>null;window.runtimeDiagnostics={record(){},error:e=>fixture.errors.push(e.message)};
+window.networkPresentation={graphicsPending:false,pick:()=>{fixture.picks++;return{object:fixture.targetObject,point:{toArray:()=>[5,.3,-6]},distance:1};}};
+window.networkPointerPress=null;canvas.addEventListener('pointerdown',event=>{if(event.button===0)window.networkPointerPress={id:event.pointerId,x:event.clientX,y:event.clientY};});
+window.networkFrontend={id:'owned',world,phase:'playing',areaGeneration:1,queue:new Promise(()=>{}),bridge:{nuiInput:(_id,r)=>targetFixture.input(r),selectScriptTarget:(_id,r)=>targetFixture.select(r)},showError:e=>fixture.errors.push(e.message),onHud:message=>{if(message.kind==='script-targeting')networkSpellTarget.beginServer();else if(message.kind.startsWith('nui-'))fixture.ui.sync();},walkTo:async()=>{fixture.walks++;return{sequence:1};}};
+for(const method of ['nuiInput','selectScriptTarget'])networkFrontend[method]=NetworkFrontend.prototype[method];
+window.networkSpellTarget=new NetworkSpellTargeting({world:()=>world,tables:()=>({}),context:()=>({sessionId:'owned',areaGeneration:1}),submit:r=>networkFrontend.selectScriptTarget(r),onChange:s=>{canvas.dataset.networkSpellTarget=JSON.stringify(s);canvas.classList.toggle('network-spell-targeting',Boolean(s));}});
+fixture.ui=new NetworkNuiView(document.querySelector('#viewport'),{world:()=>world,input:r=>networkFrontend.nuiInput(r),image:async()=>{const c=document.createElement('canvas');c.width=c.height=32;c.getContext('2d').fillStyle='#bc7';c.getContext('2d').fillRect(0,0,32,32);return c.toDataURL();},report:(code,message)=>{if(code.endsWith('-failed'))fixture.errors.push(message);}});
+targetFixture.onMessage(message=>NetworkFrontend.prototype.receive.call(networkFrontend,{sessionId:'owned',kind:'message',areaGeneration:1,message}));fixture.ready=true;
+</script></body></html>

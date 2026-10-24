@@ -28,7 +28,7 @@ export class NetworkVisualPresentation{
   this.loops=new LoopingVisualPresentation({areaId:scene.area.id,objects:()=>this.views.values(),object:id=>this.view(id),render:id=>this.render(id),tables:async()=>({visuals:scene.tables.visualeffects,programs:scene.tables.progfx,appearance:scene.tables.appearance}),selectedObjectId1406ac1c0:()=>scene.world.localObjectId,report,
    createNative:(actor,_render,record,tables)=>{
     if(!networkVisualIdentity(record.networkTransform))throw new Error('Native network visual controller-map presentation is not connected');
-    return createVisualSceneRuntime({actor,record,tables,objects,renderFor:id=>this.render(id),player:()=>this.view(scene.world.localObjectId),sceneRoot:scene.root,report,
+    return createVisualSceneRuntime({actor,record,tables,objects,renderFor:id=>this.render(id),player:()=>this.view(scene.world.localObjectId),sceneRoot:scene.root,report,projectiles:scene.projectiles,oneShot:scene.oneShot,soundFactory:scene.soundFactory?resRef=>scene.soundFactory({resRef,objectId:actor.id,channel:'visual'}):null,
      loadAsset:name=>this.asset(name),releaseAsset:()=>{}, // Scene cache owns shared assets including referenced children.
      createModel:(asset,name)=>this.createModel(asset,name),destroyModel:model=>this.destroyModel(model),updateReferences:(model,delta)=>model.references?.update(delta),shadowing:(model,enabled)=>setModelLightShadows(model.root,enabled,scene.configureShadow)});
    }});

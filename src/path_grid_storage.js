@@ -16,8 +16,11 @@ export function gridStepSize(path){
   return f(.1)<=radius?radius:f(.1);
 }
 // fast_rsqrt14022fd20: Quake bit estimate and ONE SSE Newton step.
+// Synchronous scalar bit casts need no per-call allocation. Each JS worker
+// owns this module's scratch storage; no value survives across an await.
+const rsqrtBits=new DataView(new ArrayBuffer(4));
 export function nativeFastRsqrt(value){
-  value=f(value);const bits=new DataView(new ArrayBuffer(4));bits.setFloat32(0,value,true);
+  value=f(value);const bits=rsqrtBits;bits.setFloat32(0,value,true);
   bits.setInt32(0,(0x5f3759df-(bits.getInt32(0,true)>>1))|0,true);
   const estimate=bits.getFloat32(0,true);
   return f(f(f(1.5)-f(f(f(value*f(.5))*estimate)*estimate))*estimate);

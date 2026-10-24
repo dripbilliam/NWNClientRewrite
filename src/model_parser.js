@@ -43,7 +43,10 @@ export function parseAsciiMdl(text) {
     const nodeMatch = line.match(/^node\s+(\S+)\s+(.+)$/i);
     if (nodeMatch) {
       current = {
-        type: nodeMatch[1].toLowerCase(),
+        // Native dangling parts derive from triangle meshes. Keep their
+        // geometry/materials visible, just as the binary mesh flag path does.
+        type: nodeMatch[1].toLowerCase()==='danglymesh'?'trimesh':nodeMatch[1].toLowerCase(),
+        ...(nodeMatch[1].toLowerCase()==='danglymesh'?{meshSubtype:'danglymesh',unsupportedFeatures:['Dangly-mesh simulation']}:{}),
         name: nodeMatch[2].trim(),
         parent: 'NULL',
         position: [0, 0, 0],

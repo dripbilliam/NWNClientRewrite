@@ -14,6 +14,21 @@ export function serverDiscoveryRequest(port,section=0){
 // The native server accepts a six-byte BNXI header. Its handler only reads
 // the length; authenticated client identity belongs to the later login path.
 export const serverInfoRequest=port=>Uint8Array.of(...encoder.encode('BNXI'),...portBytes(port));
+// Public BNXR tail, distinct from the authenticated CNWMessage bitstream.
+// HandleBNXRMessage140244ad0: extension 2, presence, URL, primary hash,
+// then count * (flags, language, hash), all strings prefixed with a byte.
+// Remaining bytes belong to other server-info extensions.
+export function readServerInfoAdvertisement(bytes){
+ if(!(bytes instanceof Uint8Array))throw new Error('Server advertisement bytes are unavailable');
+ let at=0;const byte=()=>{if(at>=bytes.length)throw new Error('Truncated native server advertisement');return bytes[at++];};
+ if(!bytes.length||byte()!==2)return null;
+ if(!byte())return null;
+ const string=()=>{const size=byte();if(at+size>bytes.length)throw new Error('Truncated native server advertisement');const value=decodeGffText(bytes.subarray(at,at+size));at+=size;return value;};
+ const hash=()=>{const value=string().toLowerCase();if(!/^[0-9a-f]{40}$/.test(value))throw new Error('Invalid native server advertisement manifest hash');return value;};
+ const url=string(),primary=hash(),count=byte(),manifests=[];
+ for(let i=0;i<count;i++)manifests.push({flags:byte(),language:byte(),hash:hash()});
+ return{url,hash:primary,manifests};
+}
 export function readServerQueryResponse(bytes){
  if(!(bytes instanceof Uint8Array))throw new Error('Server-query bytes are unavailable');
  const requireBytes=(offset,size)=>{if(offset+size>bytes.length)throw new Error('Truncated native server-query response');};

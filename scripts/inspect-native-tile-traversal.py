@@ -25,7 +25,7 @@ def hook(u,a,n,_):
   if len(trace)<520:trace.append(u.reg_read(UC_X86_REG_R15D))
  elif a==0x1402bbdf4:limited=True
  elif not any(lo<=a<hi for lo,hi in ranges):raise AssertionError(f'Unexpected tile dependency {a:x}')
-u.hook_add(UC_HOOK_CODE,hook)
+hook_handle=u.hook_add(UC_HOOK_CODE,hook)
 def run(case,mesh,floatbits):
  global c,trace,limited
  c=case;trace=[];limited=False;u.mem_write(m.heap,bytes(0x100000));u.mem_write(m.stack,bytes(0x20000))
@@ -43,7 +43,8 @@ def run(case,mesh,floatbits):
  except Exception:print(json.dumps(dict(case=c,rip=hex(u.reg_read(UC_X86_REG_RIP)))));raise
  assert u.reg_read(UC_X86_REG_RIP)==m.stop
  return dict(case=c,result=u.reg_read(UC_X86_REG_EAX),output=[m.rf(out+i*4)for i in range(6)],bits=[m.si(out+i*4)&0xffffffff for i in range(6)],trace=trace,limited=limited)
-data=json.loads(subprocess.check_output(['node','scripts/tile-traversal-cases.mjs'],cwd=m.root))
-rows=[run(c,data['meshes'][c['mesh']],data['meshFloatBits'][c['mesh']])for c in data['cases']]
-outpath=m.root/'backups/animations/native-tile-traversal-observations.json';outpath.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2)+'\n')
-print(json.dumps(dict(rows=len(rows),nativeLimited=sum(r['limited']for r in rows),jsLimited=sum(r['case']['javascriptWarnings']for r in rows),statusMismatches=sum(r['result']!=r['case']['javascript']['status']for r in rows),bitMismatches=sum(any(j is not None and j!=b for j,b in zip(r['case']['javascriptBits'],r['bits']))for r in rows))))
+if __name__=='__main__':
+ data=json.loads(subprocess.check_output(['node','scripts/tile-traversal-cases.mjs'],cwd=m.root))
+ rows=[run(c,data['meshes'][c['mesh']],data['meshFloatBits'][c['mesh']])for c in data['cases']]
+ outpath=m.root/'backups/animations/native-tile-traversal-observations.json';outpath.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2)+'\n')
+ print(json.dumps(dict(rows=len(rows),nativeLimited=sum(r['limited']for r in rows),jsLimited=sum(r['case']['javascriptWarnings']for r in rows),statusMismatches=sum(r['result']!=r['case']['javascript']['status']for r in rows),bitMismatches=sum(any(j is not None and j!=b for j,b in zip(r['case']['javascriptBits'],r['bits']))for r in rows))))

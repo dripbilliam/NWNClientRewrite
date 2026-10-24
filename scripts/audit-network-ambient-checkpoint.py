@@ -1,0 +1,20 @@
+"""Independent length/hash, parent, audio source scope and credential audit."""
+import hashlib,json,re,sys,zipfile
+from pathlib import Path
+root=Path(__file__).resolve().parents[1];name=sys.argv[1];assert re.fullmatch('[a-z0-9-]+',name)
+required=["src/script_string.js","src/gff_text.js","scripts/verify-network-ambient.mjs","backups/animations/network-ambient-repeat-v136.json","backups/animations/network-ambient-regression-v3.txt","backups/animations/network-ambient-build-v3.txt","backups/animations/network-ambient-ui-v3.txt","src/network_ambient.js","src/native_ambient.js","src/network_ambient_presentation.js","src/streaming_audio.js","src/native_audio.js","src/game_audio.js","src/resource_archive.js","src/network_game_messages.js","src/network_frontend.js","src/main.js","src/network_scene.js","electron/installed_network_resources.mjs","electron/network_game_session.mjs","electron/network_ipc.cjs","electron/preload.cjs","test/network-ambient-native.test.js","test/network-ambient-presentation.test.js","test/network-ipc.test.js","test/network-game-session.test.js","scripts/locate-native-client-ambient.py","scripts/locate-native-ambient-state.py","scripts/inspect-native-network-ambient.py","scripts/network-ambient-fixture.html","scripts/network-ambient-fixture.mjs","scripts/network-ambient-fixture-preload.cjs","scripts/smoke-network-ambient.cjs","scripts/checkpoint-network-ambient.ps1","scripts/audit-network-ambient-checkpoint.py","evidence/multiplayer-ambient-audio.md","REPLACEMENT_CLIENT_ROADMAP.md","CASTING_RESUME_NOTE.md","backups/animations/native-network-ambient-observations.json","backups/animations/native-network-ambient-oracle-v2.txt","backups/animations/native-ambient-state-candidates.json","backups/animations/native-client-ambient-vtable-candidates.json","backups/animations/network-ambient-area-v134.json","backups/animations/network-ambient-native-v3.txt","backups/animations/network-ambient-focused-v4.txt","backups/animations/network-ambient-regression-v2.txt","backups/animations/network-ambient-build-v2.txt","backups/animations/network-ambient-ui-v1.json","backups/animations/network-ambient-ui-v1.png","backups/animations/network-ambient-ui-v2.txt"]
+patterns=[re.compile(rb'\b[A-Z0-9]{5}(?:-[A-Z0-9]{5}){6}\b'),re.compile(rb'(?<![A-Za-z0-9])[A-HJ-NP-Z2-9]{35}(?![A-Za-z0-9])')]
+with zipfile.ZipFile(root/'backups'/f'{name}.zip')as new:
+ names=new.namelist();fold={n.casefold()for n in names};manifest=json.loads(new.read('checkpoint-manifest.json'));chain=json.loads(new.read('checkpoint-chain.json'));parents=[];previous={}
+ for record in chain['parents']:
+  p=root/'backups'/record['archive'];assert p.parent==root/'backups';assert hashlib.sha256(p.read_bytes()).hexdigest()==record['sha256'].lower();z=zipfile.ZipFile(p);parents.append(z)
+  for r in json.loads(z.read('checkpoint-manifest.json')):previous[r['path'].casefold()]=(z,r['path'])
+ missing=[n for n in required if n.casefold()not in fold];forbidden=[];secrets=0
+ for r in manifest:
+  n=r['path'];data=new.read(n);assert len(data)==r['bytes']and hashlib.sha256(data).hexdigest()==r['sha256'].lower()
+  if Path(n).suffix.lower()in{'.exe','.dll','.bic','.bif','.key','.nwm','.hak','.mdl','.tga','.dds','.wav','.bmu'}or n.startswith('runtime-logs/')or re.search(r'(-live-v\d+\.json|interactive-v|network-renderer-control)',n):forbidden.append(n)
+  if Path(n).suffix in{'.js','.mjs','.cjs','.py','.ps1','.json','.md','.txt','.html','.css'}:
+   old=previous.get(n.casefold());before=old[0].read(old[1])if old else b'';secrets+=len({v for p in patterns for v in p.findall(data)}-{v for p in patterns for v in p.findall(before)})
+  if Path(n).name.startswith('local-network-'):assert json.loads(data)['states'][-1]['phase']=='closed'
+ for z in parents:z.close()
+ result=dict(entries=len(names),verifiedFiles=len(manifest),parentsVerified=len(chain['parents']),required=len(required),missing=missing,forbidden=len(forbidden),duplicates=len(names)-len(fold),newCredentialCandidates=secrets);print(json.dumps(result,indent=2));assert not missing and not forbidden and len(names)==len(fold)and secrets==0

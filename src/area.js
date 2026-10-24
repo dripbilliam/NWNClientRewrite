@@ -11,14 +11,21 @@ export async function loadAreaWalkmesh(area, resolver) {
   const triangles = [];
   const cameraTriangles = [];
   const missing = [];
+  // Source meshes are immutable within this area/resource owner. Repeated tile
+  // instances still receive their own transformed vertices and quarter turns.
+  const meshes = new Map();
+  const sourceMesh = name => {
+    const key=name.toLowerCase();
+    if(!meshes.has(key))meshes.set(key,Promise.resolve().then(()=>resolver.getResource(key,RESOURCE_TYPE.WOK)).then(bytes=>parseTileSurfaceMesh(bytes,table)));
+    return meshes.get(key);
+  };
   for (const [index, tile] of area.tiles.entries()) {
     const x = index % area.width, y = Math.floor(index / area.width);
     try {
-      const bytes = await resolver.getResource(tile.model, RESOURCE_TYPE.WOK);
       // Use the same native loader as simulation: f32 node transforms, integer
       // vertex snapping, physical surface rows and exact tile quarter turns.
       // Exporter residues otherwise leave invisible cracks between adjacent WOKs.
-      const mesh = parseTileSurfaceMesh(bytes, table);
+      const mesh = await sourceMesh(tile.model);
       const transformVertices = source => source.map(([vx, vy, vz]) => {
         const [worldX, worldY] = rotateTilePoint({ x, y, orientation: tile.orientation ?? 0 },
           [Math.fround(x * 10 + vx), Math.fround(y * 10 + vy)], false);

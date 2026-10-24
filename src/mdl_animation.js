@@ -3,7 +3,7 @@ import { BINARY_LIGHT_CHANNELS, LIGHT_PROPERTIES } from './mdl_light.js';
 import { BINARY_EMITTER_CHANNELS, EMITTER_ASCII_CHANNELS } from './mdl_emitter.js';
 import {readModelControllerStorage} from './model_controller_remap.js';
 
-const CHANNELS = { 8: ['position', 3], 20: ['orientation', 4], 36: ['scale', 1], 128: ['alpha', 1] };
+const CHANNELS = { 8: ['position', 3], 20: ['orientation', 4], 36: ['scale', 1], 100: ['selfillumcolor', 3], 128: ['alpha', 1] };
 const MAX_ANIMATION_NODES = 100_000;
 
 export function parseBinaryAnimations(buffer) {
@@ -63,7 +63,7 @@ export function parseBinaryAnimations(buffer) {
         const columns = data.getUint8(at + 10);
         if (!rows || rows === 0xffff) { if (rows === 0xffff) unsupported.add(`controller ${type}: sentinel rows`); continue; }
         // Controller IDs overlap across mesh, light and emitter payloads.
-        const channel = flags & 4 && BINARY_EMITTER_CHANNELS[type] ? BINARY_EMITTER_CHANNELS[type] : flags & 2 && BINARY_LIGHT_CHANNELS[type] ? BINARY_LIGHT_CHANNELS[type] : type === 128 && !(flags & 0x20) ? null : CHANNELS[type];
+        const channel = flags & 4 && BINARY_EMITTER_CHANNELS[type] ? BINARY_EMITTER_CHANNELS[type] : flags & 2 && BINARY_LIGHT_CHANNELS[type] ? BINARY_LIGHT_CHANNELS[type] : [100,128].includes(type) && !(flags & 0x20) ? null : CHANNELS[type];
         if (!channel || (columns & 0xf) !== channel[1] || (columns & 0xf0) > 0x10 || (type === 20 && columns !== 4)) {
           unsupported.add(`controller ${type} (${columns} columns)`); continue;
         }
@@ -123,10 +123,11 @@ export function parseAsciiAnimations(text) {
         const match = command.match(/^([a-z][a-z0-9_]*?)(bezierkey|key)?$/);
         if (!match) { if (command.endsWith('key')) unsupported.add(command); continue; }
         const emitterChannel=nodeType==='emitter'?EMITTER_ASCII_CHANNELS[match[1]]:null;
-        if(!emitterChannel&&!lightNames[match[1]]&&!['position','orientation','scale','alpha'].includes(match[1])){if(match[2])unsupported.add(command);continue;}
+        if(!emitterChannel&&!lightNames[match[1]]&&!['position','orientation','scale','alpha','selfillumcolor'].includes(match[1])){if(match[2])unsupported.add(command);continue;}
+        if(match[1]==='selfillumcolor'&&!['trimesh','skin','danglymesh','animmesh','aabb'].includes(nodeType)){unsupported.add(command);continue;}
         if (lightNames[match[1]] && nodeType !== 'light') { unsupported.add(command); continue; }
         const property = emitterChannel?.[0] ?? lightNames[match[1]] ?? match[1];
-        const components = emitterChannel?.[1] ?? (match[1] === 'color' ? 3 : lightNames[match[1]] ? 1 : { position: 3, orientation: 4, scale: 1, alpha: 1 }[property]);
+        const components = emitterChannel?.[1] ?? (match[1] === 'color' ? 3 : lightNames[match[1]] ? 1 : { position: 3, orientation: 4, scale: 1, alpha: 1, selfillumcolor: 3 }[property]);
         const bezier = match[2] === 'bezierkey';
         if (bezier && property === 'orientation') { unsupported.add(command); continue; }
         const uncounted = Boolean(match[2] && tokens.length === 1);
@@ -173,13 +174,16 @@ export async function inheritAnimations(model, loadModel, ancestors = []) {
   const parent = await loadModel(parentName);
   await inheritAnimations(parent, loadModel, [...ancestors, model.modelName.toLowerCase()]);
   const own = new Set(model.animations.map(animation => animation.name));
-  const ratio = parent.animationScale ? (model.animationScale ?? 1) / parent.animationScale : 1;
+  // FindAnimScale140050ed0 multiplies each child's animationScale until the
+  // model that owns the clip. The parent's inherited tracks already contain
+  // its factor; dividing by that factor cancels race scaling on attached robes.
+  const scale = model.animationScale ?? 1;
   model.animations.push(...parent.animations.filter(animation => !own.has(animation.name)).map(animation => ({
     ...animation, inheritedFrom: parentName,
     tracks: animation.tracks.map(track => ({ ...track,
       node: track.node.toLowerCase() === parent.modelName.toLowerCase() ? model.modelName : track.node,
       frames: track.frames.map(frame => track.property === 'position' ? { ...frame,
-        value: frame.value.map(v => v * ratio), in: frame.in?.map(v => v * ratio), out: frame.out?.map(v => v * ratio) } : frame)
+        value: frame.value.map(v => v * scale), in: frame.in?.map(v => v * scale), out: frame.out?.map(v => v * scale) } : frame)
     }))
   })));
   model.animationsInherited = true;

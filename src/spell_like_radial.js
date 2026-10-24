@@ -1,5 +1,6 @@
 import {castingSpell,spellStringEntry} from './spell_metadata.js';
 import {radialSpellTargetAllowed} from './spell_radial.js';
+import {isSpellFamily,spellFamilyChildren} from './spell_family.js';
 
 // CClientSpellMenu innate traversal1409a3e80 and client count1408017c0.
 // Seven physical slots [E,W,N,S,NE,SW,SE], continuationNW. Duplicate IDs
@@ -15,6 +16,8 @@ export function buildSpellLikeRadial(actor,target,rules,p,{start=0,filter=65535,
     const row=pool[at],id=row.id|0;if(seen.has(id)){at++;continue;}seen.add(id);
     const slot=slots[index++],spell=p.spell?p.spell(id):castingSpell(rules,id);if(!spell)continue;
     const level=row.casterLevel&255,uses=pool.reduce((n,a)=>a.id===row.id&&(a.casterLevel&255)===level&&a.remaining!==0?(n+1)&255:n,0);
+    const make=(child,path=[])=>isSpellFamily(rules,child)?{label:p.name('spells',child),icon:spellStringEntry(rules.spells,child,'IconResRef')||'IR_XABILITY',uses,disabled:!assignment&&uses<1,children:()=>({title:p.name('spells',child),entries:spellFamilyChildren(rules,child,path).map((id,slot)=>({...make(id,[...path,child]),slot}))})}:{label:p.name('spells',child),icon:spellStringEntry(rules.spells,child,'IconResRef')||'IR_XABILITY',uses,action:'spellLike.use',system:'spell-like casting',binding:{spellId:child,domainLevel:level},disabled:!assignment&&(!radialSpellTargetAllowed(p.spell?p.spell(child):castingSpell(rules,child),actor,target,filter)||uses<1)};
+    if(isSpellFamily(rules,id)){entries.push({...make(id),slot});continue;}
     entries.push({slot,label:p.name('spells',id),icon:spellStringEntry(rules.spells,id,'IconResRef')||'IR_XABILITY',uses,
       action:'spellLike.use',system:'spell-like casting',binding:{spellId:id,domainLevel:level},
       disabled:!assignment&&(!radialSpellTargetAllowed(spell,actor,target,filter)||uses<1)});

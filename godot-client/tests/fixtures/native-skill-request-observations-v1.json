@@ -1,0 +1,7125 @@
+{
+  "binarySha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Execute complete hash-pinned skill writer7c0860, object wrapper805480 and\nfull input dispatcher4531b0 subtype7 in isolated Unicorn memory. Native scalar\ncodecs execute. Transport, controlled actor/area lookup and final UseSkill are\ncaptured boundaries; skill success, action execution and network are not tested.\nNo original process or file is modified, and no original asset bytes are saved.\n",
+  "cases": [
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030003000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030003000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103000300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103000300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103000300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103000300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030403000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030403000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103040300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103040300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103040300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103040300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030903000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030903000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103090300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103090300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103090300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103090300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030a03000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030a03000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030a0300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030a0300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030a0300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030a0300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030d03000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030d03000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030d0300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030d0300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030d0300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030d0300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030e03000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030e03000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030e0300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030e0300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030e0300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030e0300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301031203000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301031203000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103120300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103120300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103120300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103120300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301031603000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301031603000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103160300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103160300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103160300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103160300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff03000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103ff03000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff0300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103ff0300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff0300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103ff0300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030203660000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030203660000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103020366020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103020366020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103020366ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103020366ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030903ff0000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030903ff0000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030903ff020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030903ff020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030903ffffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030903ffffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030003000000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607200000000301030003000000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103000300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103000300020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103000300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103000300ffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff03ff0000007f0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103ff03ff0000007f0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff03ff020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103ff03ff020000800b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff03ffffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060720000000030103ff03ffffffffff0b0000a03f0b000020c00b0000704065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000000000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000000000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000000000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000000020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000000ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000000ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000004000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000004000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000004000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000400020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000400ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000400ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000009000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000009000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000009000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000900020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000900ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000900ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000a000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000a000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000a000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000a00020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000a00ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000a00ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000d000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000d000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000d000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000d00020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000d00ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000d00ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000e000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000e000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000e000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000e00020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000e00ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000e00ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000012000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000012000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000012000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000001200020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000001200ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000001200ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000016000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000016000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000016000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000001600020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000001600ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000001600ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ff000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060719000000ff000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ff000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060719000000ff00020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ff00ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060719000000ff00ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000002660000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000002660000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000002660200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000266020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000266ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000266ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000009ff0000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000009ff0000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000009ff0200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000009ff020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000009ffffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000009ffffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000000000000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "7006071900000000000000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000000000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000000020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000000ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "700607190000000000ffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ffff0000007f00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2130706432,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 2130706432,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060719000000ffff0000007f0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2130706432,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ffff0200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 2147483650,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060719000000ffff020000800000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ffffffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 4294967295,
+        "point": [
+          1.25,
+          -2.5,
+          3.75
+        ]
+      },
+      "packet": "70060719000000ffffffffffff0000a03f000020c00000704065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            1.25,
+            -2.5,
+            3.75
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103000300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 0,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103000300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103040300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103040300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103090300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 9,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103090300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030a0300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 10,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030a0300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030d0300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 13,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030d0300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030e0300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 14,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030e0300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103120300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 18,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103120300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103160300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 22,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103160300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff0300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 255,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff0300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103020366020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 6684674,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103020366ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030903ff020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4294901769,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607200000000301030903ffffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103000300020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 2147483648,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103000300ffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff03ff020000800b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 0,
+        "packedSkill": 4294967295,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060720000000030103ff03ffffffffff0b000000000b000000000b0000000065",
+      "lastBitOffset": 3,
+      "byteLength": 32,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000000000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 0,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000000ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000004000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000400ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 4,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000009000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 9,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000900ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000a000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 10,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000a00ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 10,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000d000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 13,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000d00ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 13,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000e000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 14,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000e00ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 14,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000012000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 18,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000001200ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 18,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000016000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 22,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000001600ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 22,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ff000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 255,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ff00ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000002660200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000266ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 2,
+          "mode": 102,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000009ff0200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4294901769,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000009ffffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 9,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "7006071900000000000200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 2147483648,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "700607190000000000ffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 0,
+          "mode": 0,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 2130706432,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": null,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ffff0200008000000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4294967295,
+        "targetId": 4294967295,
+        "point": [
+          0,
+          0,
+          0
+        ]
+      },
+      "packet": "70060719000000ffffffffffff00000000000000000000000065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": [
+        {
+          "skillId": 255,
+          "mode": 255,
+          "targetId": 2147483647,
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "areaId": 7,
+          "itemId": 2130706432,
+          "force": 0
+        }
+      ]
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          1,
+          2,
+          3
+        ],
+        "noActor": true
+      },
+      "packet": "700607190000000266020000800000803f000000400000404065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          1,
+          2,
+          3
+        ],
+        "blocked": 1
+      },
+      "packet": "700607190000000266020000800000803f000000400000404065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "writer",
+        "format": 1,
+        "packedSkill": 6684674,
+        "targetId": 2147483650,
+        "point": [
+          1,
+          2,
+          3
+        ],
+        "noArea": true
+      },
+      "packet": "700607190000000266020000800000803f000000400000404065",
+      "lastBitOffset": 3,
+      "byteLength": 25,
+      "result": 0,
+      "calls": []
+    },
+    {
+      "case": {
+        "kind": "wrapper",
+        "format": 1,
+        "packedSkill": 4,
+        "targetId": 2147483650,
+        "point": [
+          0,
+          0,
+          0
+        ],
+        "noMessage": true
+      },
+      "packet": null,
+      "calls": []
+    }
+  ]
+}

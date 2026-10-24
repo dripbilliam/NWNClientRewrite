@@ -11,6 +11,28 @@ function fixture(overrides={}){
  const records=[],presentation=new ModelParticlePresentation({camera:new THREE.PerspectiveCamera(),report:(...args)=>records.push(args)});
  return{root,a,b,template,records,presentation,group:group,texture};
 }
+
+test('stable emitter discovery avoids repeated hierarchy walks and follows new, reordered and removed instances',()=>{
+ const {root,a,b,template,presentation}=fixture();presentation.update(root,.1);const traverse=root.traverse;let walks=0;
+ root.traverse=function(...args){walks++;return traverse.apply(this,args);};presentation.update(root,.1);assert.equal(walks,0);
+ const c=template.clone(true);root.add(c);presentation.update(root,.1);assert.equal(presentation.entries.size,3);assert.equal(walks,1);
+ root.remove(a);root.add(a);presentation.update(root,.1);const ordered=[];traverse.call(root,n=>{if(n.userData.mdlEmitter)ordered.push(n);});assert.deepEqual(presentation.emitters,ordered);
+ b.removeFromParent();presentation.update(root,.1);assert.equal(presentation.entries.size,2);assert.ok(presentation.emitters.every(mesh=>mesh.parent.parent!==b));
+ walks=0;c.visible=false;presentation.update(root,.1);assert.equal(walks,0);assert.ok([...presentation.entries.values()].every(e=>!e.failed));presentation.dispose();
+});
+
+test('collision matrices refresh only for collision consumers, once per particle frame',()=>{
+ for(const bounce of [0,1]){
+  const {root,presentation}=fixture({bounce,lifeexp:2});presentation.update(root,.1);
+  const original=presentation.collisionQuery.update;let refreshes=0;
+  presentation.collisionQuery.update=()=>{refreshes++;original();};
+  for(let frame=0;frame<3;frame++){
+   const before=refreshes;presentation.update(root,.1);
+   assert.equal(refreshes-before,bounce);
+  }
+  assert.ok([...presentation.entries.values()].every(e=>!e.failed));presentation.dispose();
+ }
+});
 test('instantiated model emitters own independent native CPU state and GPU buffers and clean up removed models',()=>{
  const {root,a,b,template,presentation,records,texture}=fixture();presentation.update(root,.1);
  const [first,second]=[...presentation.entries.values()],templateMesh=template.children[0].children[0];
@@ -28,6 +50,14 @@ test('instantiated model emitters own independent native CPU state and GPU buffe
  let geometryDisposed=0,materialDisposed=0;second.mesh.geometry.addEventListener('dispose',()=>geometryDisposed++);second.mesh.material.addEventListener('dispose',()=>materialDisposed++);
  b.removeFromParent();presentation.update(root,.1);assert.equal(presentation.entries.size,1);assert.equal(geometryDisposed,1);assert.equal(materialDisposed,1);
  presentation.dispose();assert.equal(presentation.entries.size,0);assert.equal(templateMesh.material.uniforms.particleMap.value,texture);
+});
+
+test('particle uploads retain packed native position/UV/color values and update only active vertices',()=>{
+ const {root,presentation}=fixture();presentation.update(root,.1);const entry=[...presentation.entries.values()][0],buffer=new ArrayBuffer(24*2),view=new DataView(buffer);
+ for(let i=0;i<2;i++){const off=i*24;view.setUint32(off,0x1234abcd+i,true);for(let c=0;c<5;c++)view.setFloat32(off+4+c*4,Math.fround((i+1)*.25+c),true);}
+ presentation.upload(entry,{count:2,buffer});const geometry=entry.mesh.geometry;
+ assert.deepEqual([...geometry.attributes.position.array.slice(0,6)],[.25,2.25,-1.25,.5,2.5,-1.5]);assert.deepEqual([...geometry.attributes.uv.array.slice(0,4)],[3.25,4.25,3.5,4.5]);assert.deepEqual([...geometry.attributes.particleColor.array.slice(0,8)],[205,171,52,18,206,171,52,18]);
+ for(const attribute of Object.values(geometry.attributes))assert.deepEqual(attribute.updateRanges,[{start:0,count:2*attribute.itemSize}]);assert.equal(geometry.drawRange.count,2);presentation.dispose();
 });
 test('selected missing model particle services are recorded once and unavailable emitters remain hidden',()=>{
  for(const overrides of [{p2p:1},{chunkname:'chunk'},{blend:'Punch-Through'},{affectedbywind:'true'},{tinted:1},{detonate:1}]){
@@ -55,6 +85,12 @@ test('camera-facing particle vertices face the actual Three camera across camera
   const entry=[...presentation.entries.values()][0],positions=entry.mesh.geometry.getAttribute('position'),vertices=[0,1,2].map(i=>new THREE.Vector3().fromBufferAttribute(positions,i)),normal=new THREE.Vector3().crossVectors(vertices[1].clone().sub(vertices[0]),vertices[2].clone().sub(vertices[0])).normalize(),towardCamera=presentation.camera.getWorldDirection(new THREE.Vector3()).negate();
   assert.ok(normal.dot(towardCamera)>.99999,JSON.stringify(rotation));assert.equal(entry.mesh.raycast(),undefined);presentation.dispose();
  }
+});
+
+test('particle world-pose caching is frame-local and preserves source scale and changing parent transforms',()=>{
+ const {root,a,presentation}=fixture();let calls=0;const before=a.updateWorldMatrix;a.updateWorldMatrix=function(...args){calls++;return before.apply(this,args);};
+ for(let frame=0;frame<4;frame++){a.position.set(frame,frame*.2,-frame);a.scale.set(frame%2?-2:1,1.5,.75);a.rotation.y=frame*.4;presentation.update(root,.05);const entry=[...presentation.entries.values()].find(e=>e.root===a),position=a.getWorldPosition(new THREE.Vector3()),scale=a.getWorldScale(new THREE.Vector3());assert.deepEqual(entry.e.source50.position,[position.x,-position.z,position.y].map(Math.fround));assert.equal(entry.e.source50.adjustedScale,Math.fround(scale.x));const count=calls;presentation.worldPose(a);presentation.worldPose(a);assert.equal(calls,count,'repeated pose reads did not update ancestors');}
+ presentation.dispose();
 });
 test('authored model Detonate events activate only their own Explosion instance and are consumed as a BYTE command',()=>{
  const {root,a,b,presentation}=fixture({update:'Explosion',birthrate:3});

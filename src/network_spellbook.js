@@ -17,6 +17,9 @@ export function networkPreparationEntries(actor,rules,index,level,meta=0){
 }
 // Client8017c0 counts nonzero entries, not the sum of their ready INTs.
 export function networkSpellLikeUses(actor,spellId,casterLevel){return(actor?.playerState?.specialAbilities??[]).reduce((n,a)=>a&&a.spell===spellId&&(a.level&255)===(casterLevel&255)&&a.state!==0?(n+1)&255:n,0);}
+export function networkSpellLikeShortcutUses(actor,rules,id,level){
+ const seen=new Set();while(!seen.has(id)){seen.add(id);if((actor?.playerState?.specialAbilities??[]).some(a=>a&&a.spell===id&&(a.level&255)===(level&255)))return networkSpellLikeUses(actor,id,level);const parent=talentSpell(rules,id)?.master;if(parent===undefined||parent===id)break;id=parent;}return 0;
+}
 
 // Client7f74d0. This counts already replicated ready records/per-day BYTEs;
 // it does not grant spells, spend uses or reproduce the server's cast rules.

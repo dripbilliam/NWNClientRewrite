@@ -1,0 +1,41 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {Scene,Mesh,BoxGeometry,MeshLambertMaterial,DataTexture,PerspectiveCamera,Matrix4} from 'three';
+import {RendererCommandBatches} from '../src/renderer_command_batches.js';
+function fixture(options={}){
+ const buffers=new Set(),bindings=new Map(),gl={COPY_WRITE_BUFFER:1,COPY_WRITE_BUFFER_BINDING:2,ELEMENT_ARRAY_BUFFER:3,ELEMENT_ARRAY_BUFFER_BINDING:4,UNSIGNED_INT:5125,DYNAMIC_DRAW:35048,createBuffer(){const b={};buffers.add(b);return b;},isBuffer:b=>buffers.has(b),deleteBuffer:b=>buffers.delete(b),getParameter:k=>bindings.get(k===2?1:3)??null,bindBuffer:(k,b)=>bindings.set(k,b),bufferData(){},bufferSubData(){}};
+ const renderer={getContext:()=>gl,capabilities:{maxTextureSize:16384,maxTextures:16},info:{render:{frame:0}},extensions:{has:()=>true}},owner=new RendererCommandBatches(renderer,{maxRows:16,maxVertices:1024,...options}),scene=new Scene(),camera=new PerspectiveCamera(),list={opaque:[],transparent:[],transmissive:[]};camera.position.set(2,3,5);camera.lookAt(0,0,0);camera.updateMatrixWorld();
+ const geometry=new BoxGeometry().toNonIndexed(),map=new DataTexture(new Uint8Array([255,255,255,255]),1,1);
+ const add=i=>{const material=new MeshLambertMaterial({map}),object=new Mesh(geometry,material);object.position.x=i;scene.add(object);object.updateMatrixWorld();const item={object,geometry,material,group:null};list.opaque.push(item);return item;};
+ const patch=()=>owner.patch(list,camera,scene,4);const ready=()=>{patch()();renderer.info.render.frame++;};return{renderer,owner,scene,camera,list,add,patch,ready,geometry,map,buffers,bindings};
+}
+test('cached command ranges preserve draw order, geometry bytes, float transform rows and restoration',()=>{
+ const f=fixture(),a=f.add(1),b=f.add(2),original=f.list.opaque;f.ready();const restore=f.patch();assert.equal(f.list.opaque.length,1);const batch=f.owner.batches[0];assert.deepEqual([...batch.proxy._multiDrawStarts.slice(0,2)],[0,0]);assert.deepEqual([...batch.proxy._multiDrawCounts.slice(0,2)],[36,36]);assert.deepEqual([...f.owner.geometry.attributes.position.array.slice(0,108)],[...f.geometry.attributes.position.array]);
+ const view=new Matrix4().multiplyMatrices(f.camera.matrixWorldInverse,a.object.matrixWorld);assert.deepEqual([...f.owner.data.slice(0,16)],[...new Float32Array(view.elements)]);restore();assert.equal(f.list.opaque,original);f.patch()();assert.equal(f.owner.stats.matrixUpdates,0);assert.equal(f.owner.stats.textureUploads,0);b.object.position.y=3;b.object.updateMatrixWorld();f.patch()();assert.equal(f.owner.stats.matrixUpdates,1);f.owner.dispose();assert.equal(f.owner.snapshot().bytes,0);assert.equal(f.owner.root,null);
+});
+test('live texture tables keep source samplers and observe tint, UV, state and order edits',()=>{
+ const f=fixture(),a=f.add(1),b=f.add(2);b.material.map=f.map.clone();f.ready();f.patch()();assert.equal(f.owner.batches[0].uniforms.nwnCmdMaps.value[0],f.map);assert.equal(f.owner.batches[0].uniforms.nwnCmdMaps.value[1],b.material.map);
+ b.material.color.r=.23;b.material.map.offset.x=.7;f.patch()();assert.equal(f.owner.data[64+44],Math.fround(.23));assert.equal(f.owner.data[64+60],Math.fround(.7));
+ b.material.depthWrite=false;let restore=f.patch();assert.equal(f.list.opaque.length,2);restore();b.material.depthWrite=true;f.list.opaque.reverse();f.patch()();assert.equal(f.owner.rows[0].object,b.object);f.owner.dispose();
+});
+test('unknown callbacks retain ordinary submission without allocating or swallowing behavior',()=>{
+ const f=fixture(),a=f.add(1),b=f.add(2),original=f.list.opaque;a.object.onBeforeRender=()=>b.material.color.setRGB(1,0,0);f.patch()();assert.equal(f.list.opaque,original);assert.equal(f.owner.stats.fallback,'render-callback');assert.equal(f.owner.geometry,null);f.owner.dispose();
+});
+test('row and vertex capacity overflow retains complete original draws',()=>{
+ const f=fixture({maxRows:2,maxVertices:40});for(let i=0;i<6;i++)f.add(i);f.list.opaque[5].geometry=f.geometry.clone();f.ready();const restore=f.patch();assert.equal(f.owner.stats.instances,0);assert.equal(f.list.opaque.length,6);restore();assert.equal(f.owner.vertices,36);f.owner.dispose();
+});
+test('changed immutable geometry is reuploaded and uses ordinary draw until ready',()=>{
+ const f=fixture();f.add(1);f.add(2);f.ready();f.patch()();f.geometry.attributes.normal.array[0]=.1;f.geometry.attributes.normal.needsUpdate=true;const restore=f.patch();assert.equal(f.owner.stats.instances,0);assert.equal(f.list.opaque.length,2);restore();f.renderer.info.render.frame++;f.patch()();assert.equal(f.owner.stats.instances,2);assert.equal(f.owner.vertices,72);f.owner.dispose();
+});
+test('invalid capacities and unsupported deforming or reflected objects fail closed',()=>{
+ const f=fixture();assert.throws(()=>new RendererCommandBatches(f.renderer,{maxMaps:9}),/capacity/);const a=f.add(1);a.object.scale.x=-1;a.object.updateMatrixWorld();assert.equal(f.owner.descriptor(a),null);a.object.scale.x=1;a.object.updateMatrixWorld();a.object.userData.animationOwnedGeometry=true;assert.equal(f.owner.descriptor(a),null);f.owner.dispose();
+});
+test('merged commands retain instance-specific vertex rows and ordered index spans across reordering',()=>{
+ const f=fixture({merged:true}),a=f.add(1),b=f.add(2);f.ready();let restore=f.patch();const batch=f.owner.batches[0];assert.equal(batch.proxy.isBatchedMesh,false);assert.deepEqual(f.list.opaque[0].group,{start:0,count:72});assert.deepEqual([...f.owner.indexData.slice(0,72)],Array.from({length:72},(_,i)=>i));assert.deepEqual([...f.owner.geometry.attributes.nwnCmdRowId.array.slice(0,72)],[...Array(36).fill(0),...Array(36).fill(1)]);restore();f.patch()();assert.equal(f.owner.stats.indexUploads,0);assert.equal(f.owner.stats.matrixUpdates,0);
+ f.list.opaque.reverse();restore=f.patch();assert.deepEqual([...f.owner.indexData.slice(0,36)],Array.from({length:36},(_,i)=>i+36));assert.equal(f.owner.stats.indexUploads,1);assert.equal(f.owner.rows[0].object,a.object);assert.equal(f.owner.rows[1].object,b.object);restore();f.owner.dispose();assert.equal(f.buffers.size,0);assert.equal(f.bindings.get(1),null);assert.equal(f.bindings.get(3),null);
+});
+test('merged capacity fallback preserves every original primitive and retires owned resources on loss',()=>{
+ const f=fixture({merged:true,maxVertices:80});for(let i=0;i<4;i++)f.add(i);f.ready();const restore=f.patch();assert.equal(f.owner.stats.instances,2);assert.equal(f.list.opaque.length,3);assert.equal(f.list.opaque[0].group.count,72);restore();const source=[...f.geometry.attributes.position.array];f.owner.lost();assert.equal(f.owner.root,null);assert.equal(f.buffers.size,0);assert.deepEqual([...f.geometry.attributes.position.array],source);f.ready();f.patch()();assert.equal(f.owner.stats.instances,2);f.owner.dispose();assert.equal(f.buffers.size,0);
+});
+
+test('array palettes batch many distinct maps without changing order or per-source UV transforms',()=>{const f=fixture({arrayPalette:true});for(let i=0;i<8;i++){const item=f.add(i),map=new DataTexture(new Uint8Array([i*24,100,200,255]),1,1);map.offset.x=i*.1;map.needsUpdate=true;item.material.map=map;}f.ready();let restore=f.patch();assert.equal(f.owner.stats.instances,8);assert.equal(f.list.opaque.length,1);assert.equal(f.owner.snapshot().palettes.layers,8);assert.equal(f.owner.batches[0].uniforms.nwnCmdMaps.value[0].isDataArrayTexture,true);for(let i=0;i<8;i++){assert.equal(f.owner.data[i*64+51],i*4);assert.equal(f.owner.data[i*64+60],Math.fround(i*.1));assert.equal(f.owner.data[i*64+59],1);assert.equal(f.owner.data[i*64+63],1);}restore();f.list.opaque[3].material.map.offset.x=.77;f.patch()();assert.equal(f.owner.snapshot().palettes.layers,8);assert.equal(f.owner.data[3*64+60],Math.fround(.77));f.owner.dispose();assert.equal(f.owner.snapshot().palettes.bytes,0);});
+test('array palettes retain ordinary draws for textures not uploaded or not immutable',()=>{const f=fixture({arrayPalette:true});f.add(0);f.add(1);f.ready();f.patch()();assert.equal(f.owner.stats.instances,0);f.map.needsUpdate=true;f.ready();f.patch()();assert.equal(f.owner.stats.instances,2);f.map.needsUpdate=true;const restore=f.patch();assert.equal(f.owner.stats.instances,0);assert.equal(f.list.opaque.length,2);restore();f.owner.dispose();});

@@ -1,14 +1,35 @@
+import {ModelSourceCache} from './model_source_cache.js';
+import {PersistentModelSources} from './persistent_model_sources.js';
+import {ResourceWorkerPool} from './resource_worker_pool.js';
+import {FrameWorkBudget} from './frame_work_budget.js';
+import {RendererTexturePreparation} from './renderer_texture_preparation.js';
+import {prepareResourceBatch} from './resource_preparation.js';
+import {s3tcTexture} from './s3tc_decode.js';
+import {portraitImage} from './portrait_image.js';
+import {rendererNetworkBridge} from './network_resource_bridge.js';
+import {loadCharacterCreationAssets} from './character_creation_assets.js';
 import * as THREE from 'three';
+import {updateNetworkFrame} from './network_frame.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DDSLoader } from 'three/addons/loaders/DDSLoader.js';
-import { TGALoader } from 'three/addons/loaders/TGALoader.js';
+import { KTXLoader } from 'three/addons/loaders/KTXLoader.js';
+import {resolveTextureResource,textureResourceFile} from './texture_resource.js';
+import {parseNativeTga} from './native_tga.js';
 import { parseModel } from './model_parser.js';
-import { deformSkinnedVertices } from './model_skinning.js';
+import { deformSkinnedVertices,updateSkinnedMesh } from './model_skinning.js';
 import { createModelHierarchy } from './model_hierarchy.js';
 import { inheritAnimations } from './mdl_animation.js';
 import { ModelAnimator } from './model_animation.js';
+import {setScalarPoseTransfer} from './model_native_pose.js';
 import { createModelLight, setModelLightShadows, installModelLightShaders } from './model_light.js';
 import {RendererShadowBudget} from './renderer_shadow_budget.js';
+import {RendererShadowTraversal} from './renderer_shadow_traversal.js';
+import {RendererPerformanceView} from './renderer_performance_view.js';
+import {RendererResourceRetirement} from './renderer_resource_retirement.js';
+import {RendererModelGeometry} from './renderer_model_geometry.js';
+import {manageLocalMatrix,setManagedMatrixReuse,managedMatrixReuseSnapshot} from './managed_local_matrix.js';
+import {setMatrixSubtreeReuse,matrixSubtreeSnapshot} from './renderer_matrix_subtree.js';
+import {RendererMainBatches} from './renderer_main_batches.js';
 import { LoopingVisualPresentation } from './looping_visual_presentation.js';
 import {createVisualSceneRuntime} from './visual_scene_runtime.js';
 import {ObjectVisualInbox} from './object_visual_inbox.js';
@@ -29,7 +50,7 @@ import {totalAttackDamage} from './combat_attack_data.js';
 import {attackResultDoesDamage} from './combat_strike.js';
 import { modelMaterialOptions } from './model_material.js';
 import { parseGff } from './gff.js';
-import { groupFacesByMaterial } from './mdl_mesh.js';
+import {buildModelGeometry} from './prepared_model_geometry.js';
 import { parseBioWareDds } from './bioware_dds.js';
 import { decodeBioWarePlt, PLT_PALETTE_NAMES } from './bioware_plt.js';
 import { sampleEmitterParticle } from './particle_preview.js';
@@ -43,23 +64,31 @@ import { createDoorUseHandler, doorUsePoints } from './door_use.js';
 import { WorldObjects } from './world_objects.js';
 import { ModuleSession } from './module_session.js';
 import {NetworkScene} from './network_scene.js';
+import {startNetworkAreaGraphics} from './network_area_graphics.js';
 import {NetworkPlayerCamera} from './network_camera.js';
 import {GameCamera} from './game_camera.js';
-import {cameraModelHitFaces} from './native_polygon_hit.js';
 import {cameraSceneQuery} from './camera_scene_query.js';
 import {GameCameraInput} from './game_camera_input.js';
+import {WorldPointerView} from './world_pointer_view.js';
+import {spellTargetPreview} from './target_preview.js';
 import {CameraKeyholePresentation} from './camera_keyhole_shader.js';
 import {NetworkFrontend} from './network_frontend.js';
 import { horizontalInRange } from './interaction_range.js';
 import { resolveJumpSpawn } from './transition_spawn.js';
 import { ActionQueue } from './action_queue.js';
 import { WalkmeshNavigator } from './navigation.js';
-import { pickedWorldObject, pointerRay } from './world_picking.js';
+import { pickedWorldObject, pointerRay,withWorldPickFrame } from './world_picking.js';
+import {WorldHighlightView} from './world_highlight_view.js';
+import {highlightCreatureDetails} from './world_highlight_assets.js';
 import { buildRadialActions, buildGroundRadialActions, radialActionRequest } from './radial_actions.js';
 import {visualMainModel} from './visual_scene_pose.js';
 import { RadialMenu } from './radial_menu.js';
+import {isTextEntry,isControlArrow} from './game_input.js';
+import {NetworkKeyboardInput,keyboardActorContext} from './network_keyboard_input.js';
 import {radialSpellCastRequest,radialSpellTargetAllowed} from './spell_radial.js';
 import {prepareSpellTarget,spellTargetDefinition} from './spell_targeting.js';
+import {isSpellFamily,spellFamilyContains,spellShortcutChoice} from './spell_family.js';
+import {quickbarChoiceMenu} from './quickbar_menu.js';
 import {talentSpell} from './spell_metadata.js';
 import {prepareFeatTarget,featTargetAllowed} from './feat_targeting.js';
 import {prepareItemTarget,itemCreatureTargetVeto,confirmItemTarget,sendItemUse} from './item_targeting.js';
@@ -71,10 +100,14 @@ import { GameUi } from './game_ui.js';
 import { CharacterFrontend } from './character_frontend.js';
 import { parseCharacter,resolvePlayerModels } from './character.js';
 import { GameAudio } from './game_audio.js';
+import {nativeAudioListener,NetworkAudioPresentation} from './native_audio.js';
+import {NetworkAmbientPresentation} from './network_ambient_presentation.js';
+import {NetworkPlacedSounds} from './network_placed_sounds.js';
 import {VoicePresentation} from './voice_presentation.js';
 import {networkRadialActions,networkDefaultInteraction} from './network_action_menu.js';
 import {NetworkDialogView} from './network_dialog_view.js';
 import {NetworkQuickbarView} from './network_quickbar_view.js';
+import {NetworkActionQueueView} from './network_action_queue_view.js';
 import {NetworkSpellTargeting} from './network_spell_targeting.js';
 import {prepareNetworkSpellMenus} from './network_spell_menu.js';
 import {prepareNetworkItemMenu} from './network_item_menu.js';
@@ -84,13 +117,32 @@ import {networkFamiliar} from './network_associates.js';
 import {NetworkInventoryView} from './network_inventory_view.js';
 import {NetworkPartyView} from './network_party_view.js';
 import {NetworkPanels} from './network_panels.js';
+import {NetworkNuiView} from './network_nui_view.js';
+import {nuiImage} from './nui_image.js';
+import {recordImage} from './character_record_view.js';
+import './network_nui.css';
 import {NetworkTimingView} from './network_timing_view.js';
+import {NetworkFeedbackView,nativeDamageFeedbackOptions} from './network_feedback_view.js';
+import {NetworkFloatingTextView} from './network_floating_text_view.js';
+import {NetworkSpeechView} from './network_speech_view.js';
 import {NetworkExamineView} from './network_examine_view.js';
-import {RendererLightSlots} from './renderer_light_slots.js';
+import {RendererLightSlots,prepareRendererLights,renderPreparedScene} from './renderer_light_slots.js';
+import {RendererLightUniforms} from './renderer_light_uniforms.js';
+import {RendererMaterialReuse} from './renderer_material_reuse.js';
+import {RendererLightSelection} from './renderer_light_selection.js';
+import {RendererModelPreparation} from './renderer_model_preparation.js';
 import {intEntry} from './combat_stats.js';
 import { runtimeDiagnostics } from './runtime_diagnostics.js';
 import { installDiagnosticReporting } from './diagnostic_reporting.js';
 import './style.css';
+import {DebugShell} from './debug_shell.js';
+import {MovableWindows} from './movable_windows.js';
+import {NetworkBuffBarView} from './network_buff_bar.js';
+const debugShell=new DebugShell();
+import './network_lobby.css';
+import {GameText,parseTalkTable} from './talk_table.js';
+
+const nativeNetwork=rendererNetworkBridge(window.nativeNetwork);
 
 let diagnosticContext = {};
 let moduleLoadBusy = false;
@@ -100,6 +152,7 @@ runtimeDiagnostics.record('session.started', 'Runtime diagnostic recording start
 
 const canvas = document.querySelector('#model-canvas');
 const viewport = document.querySelector('#viewport-frame');
+new MovableWindows(viewport);
 const fileInput = document.querySelector('#model-file');
 const openButton = document.querySelector('#open-button');
 const areaButton = document.querySelector('#open-area-button');
@@ -138,10 +191,22 @@ const movementHud = document.querySelector('#movement-hud');
 const doorAction = document.querySelector('#door-action');
 const doorFeedback = document.querySelector('#door-feedback');
 let moduleSession = null;
-let networkPresentation=null,networkCombatSnapshotAt=0;
+let networkPresentation=null,networkFloating=null,networkCombatSnapshotAt=0;
+const networkRendererRetirement=new RendererResourceRetirement({report:(code,message)=>runtimeDiagnostics.record(code,message)});
+const rendererModelGeometry=new RendererModelGeometry();
+const persistentModelSources=new PersistentModelSources();
+let usePersistentModelPreparation=import.meta.env.VITE_PERSISTENT_MODEL_PREP==='1';
+canvas.dataset.persistentModelPreparation=String(usePersistentModelPreparation);
+if(import.meta.env.VITE_MODEL_PREP_COMPARE==='1')window.setPersistentModelPrepForTest=value=>{usePersistentModelPreparation=Boolean(value);canvas.dataset.persistentModelPreparation=String(usePersistentModelPreparation);if(!value)persistentModelSources.clear();};
+let finishNetworkRendererTransition=null;
+function retireNetworkTransition(){finishNetworkRendererTransition?.();finishNetworkRendererTransition=null;}
 const networkCamera=new NetworkPlayerCamera({report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
 let networkFrontend=null;
 let gameAudio = null;
+let networkGuiAudio = null;
+let networkScriptAudio = null;
+let networkAmbientAudio = null;
+let networkPlacedSounds = null;
 let voicePresentation=null;
 let creatureAnimations=null;
 let clientPause=null;
@@ -150,7 +215,7 @@ let loopingVisuals=null;
 let visualDelivery=null;
 let projectileDelivery=null,projectiles=null;
 const clientAnimationRandom=new NativeRandom(1);
-const unlockAudio = () => { void gameAudio?.unlock(); };
+const unlockAudio = () => { void gameAudio?.unlock();void networkGuiAudio?.unlock(); };
 window.addEventListener('pointerdown', unlockAudio, { capture: true });
 window.addEventListener('keydown', unlockAudio, { capture: true });
 let selectedCharacter = null;
@@ -163,6 +228,16 @@ document.querySelector('#release-test-cutscene').addEventListener('click', () =>
 });
 
 const scene = new THREE.Scene();
+setManagedMatrixReuse(import.meta.env.VITE_MANAGED_MATRIX_REUSE==='1');
+setScalarPoseTransfer(import.meta.env.VITE_SCALAR_POSE_TRANSFER==='1');
+if(import.meta.env.VITE_POSE_TRANSFER_COMPARE==='1')window.setScalarPoseTransferForTest=setScalarPoseTransfer;
+let reuseWorldPicking=import.meta.env.VITE_REUSE_WORLD_PICKING!=='0';
+if(import.meta.env.VITE_PICKING_COMPARE==='1')window.setWorldPickingForTest=value=>{reuseWorldPicking=Boolean(value);};
+const prepareMatrixSubtrees=import.meta.env.VITE_MATRIX_SUBTREES==='1'||import.meta.env.VITE_MATRIX_SUBTREE_COMPARE==='1';
+setMatrixSubtreeReuse(import.meta.env.VITE_MATRIX_SUBTREES==='1');
+if(import.meta.env.VITE_MATRIX_SUBTREE_COMPARE==='1')window.setMatrixSubtreeReuseForTest=setMatrixSubtreeReuse;
+// The presentation scene itself has a fixed identity transform.
+manageLocalMatrix(scene);
 installModelLightShaders();
 scene.background = new THREE.Color('#19211e');
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 1000);
@@ -174,8 +249,19 @@ renderer.toneMapping = THREE.NoToneMapping;
 renderer.toneMappingExposure = 1;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-const modelParticles=new ModelParticlePresentation({camera,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
-const rendererShadowBudget=new RendererShadowBudget({renderer,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+const rendererShadowTraversal=new RendererShadowTraversal(renderer,{instances:renderer.capabilities.maxAttributes>=12});
+// The ordered palette-batch candidate is correct in GPU comparisons but still
+// slower in the dense local fixture. Keep ordinary submission until profitable.
+const wideStaticBatches=import.meta.env.VITE_WIDE_STATIC_BATCHES==='1'||import.meta.env.VITE_BATCH_POOL_COMPARE==='1';
+const rendererMainBatches=new RendererMainBatches(renderer,{enabled:import.meta.env.VITE_ORDERED_MAIN_BATCHES==='1'||import.meta.env.VITE_WIDE_STATIC_BATCHES==='1',...(wideStaticBatches?{staticOnly:true,minRepeatSize:1024,maxBytes:256*1024*1024,compressed:true}:{})});
+let batchPoolSamples=null;
+if(import.meta.env.VITE_BATCH_POOL_COMPARE==='1'){window.setBatchPoolForTest=value=>{rendererMainBatches.enabled=Boolean(value);batchPoolSamples=[];};window.setRenderScaleForTest=value=>{renderer.setPixelRatio(value ? .5 : 1);batchPoolSamples=[];};window.batchPoolFrameSamplesForTest=()=>batchPoolSamples;window.batchPoolAuditForTest=()=>rendererMainBatches.audit(renderer.renderLists.get(scene,0));}
+const rendererLightUniforms=new RendererLightUniforms(renderer,{enabled:false});
+const rendererMaterialReuse=new RendererMaterialReuse(renderer,{enabled:false});
+const modelParticles=new ModelParticlePresentation({camera,vertexPool:()=>networkPresentation?.vertexWorkers??null,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+let shadowCastingLights=3;
+try{const saved=localStorage.getItem('nwn.graphics.shadowCastingLights');if(saved!==null&&[1,2,3].includes(Number(saved)))shadowCastingLights=Number(saved);}catch{}
+const rendererShadowBudget=new RendererShadowBudget({renderer,nativeSelection:true,maximum:shadowCastingLights,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -183,10 +269,14 @@ controls.dampingFactor = 0.08;
 controls.target.set(0, 0.5, 0);
 const singlePlayerCamera=new GameCamera();
 let cameraKeyhole=null;
+let worldPointer=null;
 let orbitConnected=true;
 const gameplayCameraActive=()=>Boolean(networkPresentation||playerController&&cameraFollowsPlayer);
 const gameplayCamera=()=>networkPresentation?networkCamera.controller:singlePlayerCamera;
-const gameplayCameraInput=new GameCameraInput(canvas,{active:gameplayCameraActive,enabled:()=>controls.enabled&&!radialMenu.active&&!networkDialog?.active&&!networkInventory?.active&&!moduleSession?.player.cutscene?.enabled,controller:gameplayCamera});
+// Floating windows disable the viewer's orbit controls, not gameplay camera
+// input over the canvas. Keep creation/loading/cutscene capture independent.
+const gameplayCameraInputEnabled=()=>!characterFrontend.active&&!gameUi.blocksWorldInput&&!moduleSession?.player?.cutscene?.enabled&&!moduleSession?.transitioning&&!moduleLoadBusy&&!rendererWarmupCount&&(!networkPresentation||networkFrontend.phase==='playing'&&!networkPresentation.closed&&!networkPresentation.graphicsPending);
+const gameplayCameraInput=new GameCameraInput(canvas,{active:gameplayCameraActive,enabled:gameplayCameraInputEnabled,controller:gameplayCamera});
 for(const select of document.querySelectorAll('[data-camera-mode]'))select.addEventListener('change',()=>{const mode=Number(select.value);gameplayCamera().setMode(mode);for(const other of document.querySelectorAll('[data-camera-mode]'))other.value=String(mode);});
 
 const sceneLighting = new THREE.Group();
@@ -234,14 +324,28 @@ resizeRenderer();
 
 const effectClock = new THREE.Clock();
 const rendererLightSlots=new RendererLightSlots(renderer,(...args)=>runtimeDiagnostics.record(...args));
+const rendererLightSelection=new RendererLightSelection({report:(...args)=>runtimeDiagnostics.record(...args)});
+const rendererModelPreparation=new RendererModelPreparation({renderer,scene,camera,shadowInstances:Boolean(rendererShadowTraversal.instances),cachePrograms:true,
+ createRoot:asset=>buildObject(asset.model,asset.textures,asset.override,{previews:false,shareGeometry:true,managedMatrices:true}),destroyRoot:disposeVisualRoot,
+ profile:()=>{
+  const lighting=prepareRendererLights(scene,camera,{shadowBudget:rendererShadowBudget,lightSlots:rendererLightSlots,lightSelection:rendererLightSelection,focus:controls.target.toArray()}),shadows=[0,0,0];
+  scene.traverseVisible(o=>{if(o.castShadow&&o.layers.test(camera.layers)){if(o.isPointLight)shadows[0]++;else if(o.isSpotLight)shadows[1]++;else if(o.isDirectionalLight)shadows[2]++;}});
+  return JSON.stringify([Object.values(lighting.slots).map(s=>s.capacity),shadows,renderer.shadowMap.type,renderer.outputColorSpace,renderer.toneMapping,scene.fog?.type??null,scene.environment?.uuid??null,renderer.clippingPlanes.length]);
+ },report:(...args)=>runtimeDiagnostics.record(...args)});
 let frameTimingPublished=0;
+const performanceView=new RendererPerformanceView(document.querySelector('#performance-debug'));
+const rendererLightClock=()=>performance.now();
 let rendererWarmupCount=0;
 renderer.setAnimationLoop(() => {
   const frameStarted=performance.now();
   const delta = effectClock.getDelta();
   // Native animation scheduling uses elapsed world time even on a slow frame.
   // Clamping it made queued server rounds race through shortened catch-up clips.
-  networkPresentation?.update(delta);
+  updateNetworkFrame(networkKeyboard,networkPresentation,delta);
+  if(networkPresentation&&canvas.dataset.captureKeyboard==='true'){
+    const id=networkFrontend?.world?.localObjectId,m=networkPresentation.motion.objects.get(id);
+    if(m){const binding=networkPresentation.objects.get(id);canvas.dispatchEvent(new CustomEvent('nwn-keyboard-frame',{detail:{at:performance.now(),position:m.render.slice(),orientation:m.orientation.slice(),animation:m.animation,visualAnimation:binding?.combat?.visual??binding?.animation,clip:binding?.models[0].animator?.clip?.name,factor:m.factor,active:m.active,script:m.script,preview:m.previewBase,held:m.driveHeld,correction:m.correction}}));}
+  }
   const networkUpdated=performance.now();
   if(networkPresentation&&performance.now()-networkCombatSnapshotAt>=200){networkCombatSnapshotAt=performance.now();canvas.dataset.networkCombat=JSON.stringify(networkPresentation.combat?.snapshot()??null);canvas.dataset.networkProjectiles=JSON.stringify(networkPresentation.projectiles?.snapshot()??null);canvas.dataset.networkScene=JSON.stringify(networkSceneSnapshot());}
   const simulationReady = !moduleSession?.scheduler.pumping;
@@ -259,8 +363,8 @@ renderer.setAnimationLoop(() => {
   else if(!gameCameraActive&&!orbitConnected){controls.connect(canvas);orbitConnected=true;}
   if(!gameCameraActive)controls.update();
   if(playerController?.keyboardMoving&&movementKeys.size===0)stopKeyboardMovement();
-  if (simulationReady && !moduleLoadBusy && !gameUi.externalCapture && !moduleSession?.transitioning && !moduleSession?.player.cutscene?.enabled && !moduleSession?.conversation.state) updatePlayerMovement(delta);
-  if (simulationReady && !moduleLoadBusy && !gameUi.externalCapture && !document.hidden && !moduleSession?.transitioning && (!moduleSession?.player.cutscene?.enabled || moduleSession.player.cutscene.leftClicks) && !moduleSession?.conversation.state) actionQueue?.update(Math.min(delta, 0.05));
+  if (simulationReady && !moduleLoadBusy && !gameUi.externalCapture && !moduleSession?.transitioning && !moduleSession?.player.cutscene?.enabled) updatePlayerMovement(delta);
+  if (simulationReady && !moduleLoadBusy && !gameUi.externalCapture && !document.hidden && !moduleSession?.transitioning && (!moduleSession?.player.cutscene?.enabled || moduleSession.player.cutscene.leftClicks)) actionQueue?.update(Math.min(delta, 0.05));
   if (!document.hidden && worldObjects && moduleSession && !moduleSession.transitioning && !gameUi.externalCapture && !moduleLoadBusy) {
     if (simulationReady) moduleSession.scheduler.advance(Math.min(delta, 0.1) * 1000);
     gameAudio?.update();
@@ -292,16 +396,33 @@ renderer.setAnimationLoop(() => {
   if(!document.hidden&&simulationReady){modelParticles.update(loadedRoot,delta);canvas.dataset.modelParticles=JSON.stringify(modelParticles.snapshot());canvas.dataset.pointWinds=JSON.stringify(modelParticles.pointWinds);}
   const particlesEnded=performance.now();
   gameplayCameraInput.update();
-  if(networkPresentation){networkCamera.update(networkFrontend?.world,networkPresentation,camera,controls,delta,{keyholeActive:Boolean(cameraKeyhole?.shader&&networkPresentation.objects.has(networkFrontend.world.localObjectId))});canvas.dataset.networkCamera=JSON.stringify({...networkCamera.controller.snapshot(),controlledId:networkCamera.controlledId,targetId:networkCamera.targetId,attachmentId:networkCamera.attachmentId,waitingForTarget:networkCamera.waitingForTarget,anchor:networkCamera.anchor,position:camera.position.toArray(),target:controls.target.toArray()});}
+  if(networkPresentation){networkCamera.update(networkFrontend?.world,networkPresentation,camera,controls,delta,{keyholeActive:Boolean(cameraKeyhole?.shader&&networkPresentation.objects.has(networkFrontend.world.localObjectId))});canvas.dataset.networkCamera=JSON.stringify({...networkCamera.controller.snapshot(),controlledId:networkCamera.controlledId,targetId:networkCamera.targetId,attachmentId:networkCamera.attachmentId,waitingForTarget:networkCamera.waitingForTarget,anchor:networkCamera.anchor,position:camera.position.toArray(),target:controls.target.toArray()});networkGuiAudio?.update();networkAmbientAudio?.update(networkFrontend.world.time.timeOfDay);networkPlacedSounds?.update();canvas.dataset.networkAudio=JSON.stringify({listener:networkGuiAudio?.listenerState??null,...networkScriptAudio?.snapshot(),ambient:networkAmbientAudio?.snapshot(),placed:networkPlacedSounds?.snapshot()});}
   else updateScriptCamera(delta);
+  const cameraAndAudioUpdated=performance.now();
   if(cameraKeyhole&&loadedRoot){const player=networkPresentation?networkPresentation.objects.get(networkFrontend.world.localObjectId)?.wrapper:playerController?.object;cameraKeyhole.update(loadedRoot,player?.position,gameplayCamera(),gameplayCameraActive());canvas.dataset.cameraKeyhole=JSON.stringify(cameraKeyhole.snapshot());}
-  canvas.dataset.rendererLightSlots=JSON.stringify(rendererLightSlots.update(scene));
-  canvas.dataset.rendererShadowBudget=JSON.stringify(rendererShadowBudget.update(scene,camera));
+  const keyholeUpdated=performance.now();
+  networkFloating?.update(delta);
+  const updatePointers=()=>{worldHighlights.update();worldPointer?.update();};
+  if(reuseWorldPicking)withWorldPickFrame(networkPresentation,updatePointers);else updatePointers();
+  const overlayUpdated=performance.now();
+  const rendererLighting=prepareRendererLights(scene,camera,{shadowBudget:rendererShadowBudget,lightSlots:rendererLightSlots,lightSelection:rendererLightSelection,focus:controls.target.toArray(),delta:simulationReady?Math.min(delta,.1):0,clock:rendererLightClock});
+  const lightingPrepared=performance.now();
+  canvas.dataset.rendererLightSelection=JSON.stringify(rendererLighting.selection);
+  canvas.dataset.rendererShadowBudget=JSON.stringify(rendererLighting.shadows);
+  canvas.dataset.rendererLightSlots=JSON.stringify(rendererLighting.slots);
+  canvas.dataset.rendererModelPreparation=JSON.stringify(rendererModelPreparation.snapshot());
+  canvas.dataset.rendererModelGeometry=JSON.stringify(rendererModelGeometry.snapshot());
+  canvas.dataset.rendererMainBatches=JSON.stringify(rendererMainBatches.snapshot());
+  canvas.dataset.rendererLightUniforms=JSON.stringify(rendererLightUniforms.snapshot());
+  canvas.dataset.rendererMaterialReuse=JSON.stringify(rendererMaterialReuse.snapshot());
+  if(networkPresentation?.resourceWorkers)canvas.dataset.resourceWorkers=JSON.stringify(networkPresentation.resourceWorkers.snapshot());else delete canvas.dataset.resourceWorkers;
   const renderStarted=performance.now(),programsBefore=renderer.info.programs?.length??0;
-  if(!rendererWarmupCount)renderer.render(scene, camera);
-  const frameEnded=performance.now(),timing={intervalMs:delta*1000,totalMs:frameEnded-frameStarted,networkMs:networkUpdated-frameStarted,presentationMs:particlesStarted-networkUpdated,particlesMs:particlesEnded-particlesStarted,cameraAndShadowsMs:renderStarted-particlesEnded,renderMs:frameEnded-renderStarted,programsBefore,programsAfter:renderer.info.programs?.length??0};
+  if(!rendererWarmupCount)renderPreparedScene(renderer,scene,camera,rendererLighting,rendererMainBatches,rendererLightUniforms,rendererMaterialReuse);
+  const frameEnded=performance.now(),timing={intervalMs:delta*1000,totalMs:frameEnded-frameStarted,networkMs:networkUpdated-frameStarted,presentationMs:particlesStarted-networkUpdated,particlesMs:particlesEnded-particlesStarted,cameraAndShadowsMs:renderStarted-particlesEnded,renderMs:frameEnded-renderStarted,cameraStages:{cameraAndAudioMs:cameraAndAudioUpdated-particlesEnded,keyholeMs:keyholeUpdated-cameraAndAudioUpdated,overlayMs:overlayUpdated-keyholeUpdated,metadataMs:renderStarted-lightingPrepared,...rendererLighting.timings},programsBefore,programsAfter:renderer.info.programs?.length??0};
+  performanceView.record({at:frameEnded,timing,rendered:!rendererWarmupCount,visible:!document.hidden,details:()=>({draw:renderer.info.render,shadow:rendererShadowTraversal.snapshot()??{},viewport:{width:canvas.clientWidth,height:canvas.clientHeight,bufferWidth:canvas.width,bufferHeight:canvas.height,pixelRatio:renderer.getPixelRatio()},lighting:rendererLighting,models:rendererModelPreparation.stats,particleWorkers:modelParticles.vertexSnapshot(),pendingAssets:networkPresentation?.assetPending??0,memory:renderer.info.memory,heapBytes:performance.memory?.usedJSHeapSize})});
   if(!document.hidden&&(timing.totalMs>250||timing.intervalMs>750))runtimeDiagnostics.record('renderer.frame-stall','Slow frame observed; durations separate frame work from time waiting between callbacks',timing);
-  if(frameEnded-frameTimingPublished>=200){frameTimingPublished=frameEnded;canvas.dataset.frameTimings=JSON.stringify(timing);}
+  if(import.meta.env.VITE_BATCH_POOL_COMPARE==='1'&&batchPoolSamples&&batchPoolSamples.length<10000)batchPoolSamples.push({at:frameEnded,totalMs:timing.totalMs,renderMs:timing.renderMs,networkMs:timing.networkMs,particlesMs:timing.particlesMs,cameraMs:timing.cameraAndShadowsMs,draws:renderer.info.render.calls,batches:rendererMainBatches.enabled?(rendererMainBatches.stats.batches??0):0});
+  if(frameEnded-frameTimingPublished>=200){frameTimingPublished=frameEnded;canvas.dataset.matrixSubtrees=JSON.stringify(matrixSubtreeSnapshot());canvas.dataset.managedMatrixReuse=JSON.stringify(managedMatrixReuseSnapshot());canvas.dataset.particleVertexWorkers=JSON.stringify(modelParticles.vertexSnapshot());canvas.dataset.shadowInstances=JSON.stringify(rendererShadowTraversal.instances?.snapshot()??null);canvas.dataset.preparedModelSources=JSON.stringify(persistentModelSources.snapshot());canvas.dataset.resourcePrefetch=JSON.stringify(networkPresentation?.sourcePrefetch.snapshot()??null);canvas.dataset.frameTimings=JSON.stringify({...timing,viewport:{width:canvas.clientWidth,height:canvas.clientHeight,bufferWidth:canvas.width,bufferHeight:canvas.height,pixelRatio:renderer.getPixelRatio(),devicePixelRatio:window.devicePixelRatio},draw:{...renderer.info.render},shadowTraversal:rendererShadowTraversal.snapshot()});}
 });
 
 const movementKeys = new Set();
@@ -310,13 +431,13 @@ let cameraFollowsPlayer = false;
 const modelReferenceRuntimes=new Map();
 const radialIconCache = new Map();
 const radialMenu = new RadialMenu(viewport,{
-  onVisibility: visible => { controls.enabled = !visible && !gameUi?.captured && !moduleSession?.player.cutscene?.enabled; movementKeys.clear(); pointerPress = null; },
+  onVisibility: () => { controls.enabled = !gameUi?.blocksWorldInput && !moduleSession?.player.cutscene?.enabled; if(gameUi?.blocksWorldInput)movementKeys.clear(); pointerPress = null; },
   loadIcon: name => {
     const resolver = networkPresentation?.resolver ?? activeAreaResolver ?? gameDataResolver;
     if (!resolver) return Promise.resolve(null);
     if (!radialIconCache.has(name)) radialIconCache.set(name,(async () => {
       try {
-        const image = new TGALoader().parse(await resolver.getResource(name.toLowerCase(),RESOURCE_TYPE.TGA));
+        const image = await portraitImage(resolver,name.toLowerCase());
         const icon = document.createElement('canvas'); icon.width = image.width; icon.height = image.height;
         icon.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(image.data),image.width,image.height),0,0);
         return icon.toDataURL();
@@ -325,6 +446,7 @@ const radialMenu = new RadialMenu(viewport,{
     return radialIconCache.get(name);
   },
   onAction: (entry,context) => {
+    if(context.localSpellFamily){if(moduleSession===context.session&&moduleSession?.player.areaId===context.request.areaId&&entry.action==='spell.variant'&&spellFamilyContains(moduleSession.characterRules,context.request.spellId,entry.binding.intParam))beginSpellCast({...context.request,spellId:entry.binding.intParam});return;}
     if(context.networkQuickbar){if(context.sessionId===networkFrontend.id&&context.areaGeneration===networkFrontend.areaGeneration&&context.actorId===networkFrontend.world?.localObjectId&&entry.action==='quickbar.assign')void networkQuickbar.assign(context.quickbarIndex,entry.binding);return;}
     if(context.network){void submitNetworkRadialAction(entry,context);return;}
     if(entry.action==='quickbar.assign'){gameUi.assignQuickbar(context.quickbarIndex,entry.binding);return;}
@@ -409,7 +531,7 @@ const gameUi = new GameUi(viewport, {
   radialActive: () => radialMenu.active,
   hasPendingAction: () => Boolean(pendingSpellTarget||actionQueue?.current||moduleSession?.player.objectActionState?.list.count),
   onCancelAction: () => {if(pendingSpellTarget){cancelSpellTarget(true);return;}actionQueue?.cancel();void moduleSession?.queuePlayerClearActions().catch(error=>moduleSession?.report(error));},
-  onInputCapture: captured => { if (captured){radialMenu.close();if(gameUi.state.panel!=='inventory')cancelSpellTarget();} controls.enabled = !captured && !radialMenu.active && !moduleSession?.player.cutscene?.enabled; movementKeys.clear(); pointerPress = null; },
+  onInputCapture: captured => { if (captured){radialMenu.close();if(gameUi.state.panel!=='inventory')cancelSpellTarget();} controls.enabled = !gameUi.blocksWorldInput && !moduleSession?.player.cutscene?.enabled; if(gameUi.blocksWorldInput)movementKeys.clear(); pointerPress = null; },
   onOpenModule: () => areaInput.click(),
   onSettings: settings => { if (settings.wireframe !== wireframe) wireButton.click(); },
   onQuickbarMenu:(menu,index,event)=>radialMenu.open(menu,event.clientX,event.clientY,{targetId:moduleSession.player.id,quickbarIndex:index}),
@@ -490,6 +612,9 @@ function submitSpellCast(request,targetId,position,location){
 function beginSpellCast(request){
   const session=moduleSession;if(!session)return;
   if(request.actorId!==session.player.id||request.areaId!==session.player.areaId)return;
+  if(isSpellFamily(session.characterRules,request.spellId)){
+    cancelSpellTarget();void spellShortcutChoice(session.characterRules,{type:request.action==='spellLike.use'?44:2,intParam:request.spellId,classIndex:request.classIndex,domainLevel:request.domainLevel,metamagic:request.metamagic},async id=>({label:gameUi.ruleName('spells',id)})).then(choice=>{if(moduleSession!==session||session.player.areaId!==request.areaId)return;if(!choice?.children?.length){gameUi.notify('No valid variants are available for this spell');return;}const bounds=canvas.getBoundingClientRect();radialMenu.open(quickbarChoiceMenu(choice.label,choice.children,'spell.variant'),bounds.left+bounds.width/2,bounds.top+bounds.height/2,{localSpellFamily:true,session,request});radialMenu.clickMode=true;}).catch(error=>session.report(error));return;
+  }
   // Read panel state before closeAll. Native mask9 suppresses automatic self
   // targeting while the inventory/container targeter is active.
   const plan=prepareSpellTarget(session.player,request,spellTargetProviders(session),{inventoryMode:gameUi.state.panel==='inventory'?1:null});
@@ -501,7 +626,7 @@ function beginSpellCast(request){
     const point=session.player.position,nativePoint=[point[0],-point[2],point[1]],selected=radialSpellCastRequest(cast,session.player,session.player,nativePoint);
     submitSpellCast({...cast,...selected,action:cast.action},selected.targetId,selected.position,selected.location);return;
   }
-  pendingSpellTarget={session,request:cast};canvas.dataset.spellTarget=String(cast.spellId);canvas.style.cursor='crosshair';
+  pendingSpellTarget={session,request:cast,definition:spell};canvas.dataset.spellTarget=String(cast.spellId);canvas.style.cursor='crosshair';
   gameUi.notify(spell.targetType&8?'Choose a target in the world or inventory · Escape or right-click to cancel':'Choose a spell target · Escape or right-click to cancel');
 }
 function spellTargetProviders(session){return {spell:id=>{const spell=session.spellBook.castingSpell(id);return spell?{...spell,children:talentSpell(session.characterRules,id).children}:null;}};}
@@ -568,7 +693,7 @@ function beginFeatUse(request){
   cancelSpellTarget();void session.queuePlayerMode(plan.modeId).catch(error=>session.report(error,{...session.diagnosticContext(session.player.id),operation:'ui-feat-mode'}));return;
  }
  if(plan.mode==='self'){submitFeatUse(plan.request,session.player.id,[0,0,0]);return;}
- pendingSpellTarget={session,request:plan.request};canvas.dataset.spellTarget=`feat:${plan.request.featId}`;canvas.style.cursor='crosshair';
+ pendingSpellTarget={session,request:plan.request,definition:plan.definition};canvas.dataset.spellTarget=`feat:${plan.request.featId}`;canvas.style.cursor='crosshair';
  gameUi.notify('Choose an ability target · Escape or right-click to cancel');
 }
 function submitFeatUse(request,targetId,position){
@@ -628,9 +753,9 @@ document.querySelector('#language-data-folder').addEventListener('change', async
 });
 window.addEventListener('keydown', (event) => {
   if(event.key==='Escape'&&pendingSpellTarget){event.preventDefault();cancelSpellTarget(true);return;}
-  if (event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) return;
+  if (event.defaultPrevented||isTextEntry(event.target)||isControlArrow(event)) return;
   const key = event.key.toLowerCase();
-  if (gameUi.captured || moduleSession?.player.cutscene?.enabled || moduleSession?.conversation.state) return;
+  if (gameUi.blocksWorldInput || moduleSession?.player.cutscene?.enabled) return;
   if(key==='f'&&networkFrontend?.id&&networkPresentation){const binding=networkPresentation.objects.get(networkFrontend.world.localObjectId);if(binding){event.preventDefault();focusPlayer(binding.wrapper);}return;}
   if (key === 'escape') { actionQueue?.cancel();void moduleSession?.queuePlayerClearActions().catch(error=>moduleSession?.report(error));return; }
   if (key === 'f' && playerController) { event.preventDefault(); focusPlayer(playerController.object); return; }
@@ -649,7 +774,7 @@ window.addEventListener('keyup', (event) => movementKeys.delete(event.key.toLowe
 window.addEventListener('blur', () => movementKeys.clear());
 document.addEventListener('visibilitychange', () => movementKeys.clear());
 document.addEventListener('focusin', (event) => {
-  if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(event.target.tagName)) movementKeys.clear();
+  if (isTextEntry(event.target)) movementKeys.clear();
 });
 doorAction.addEventListener('click', () => interactWithDoor());
 const playerActions = document.querySelector('#player-actions');
@@ -671,14 +796,16 @@ playerActions.addEventListener('pointerdown',event => {
 });
 playerActions.addEventListener('contextmenu',event => event.preventDefault());
 let pointerPress = null;
+canvas.tabIndex=-1;
+canvas.addEventListener('pointerdown',()=>canvas.focus({preventScroll:true}));
 canvas.addEventListener('pointerdown', event => {
-  if (gameUi.captured) return;
+  if (gameUi.blocksWorldInput) return;
   if (event.button === 0 && playerController) pointerPress = { id: event.pointerId, x: event.clientX, y: event.clientY };
 });
 canvas.addEventListener('contextmenu',event => { if (worldObjects) event.preventDefault(); });
 canvas.addEventListener('pointerdown',event => {
   if(event.button===2&&pendingSpellTarget){event.preventDefault();event.stopImmediatePropagation();cancelSpellTarget(true);return;}
-  if (gameUi.captured || moduleSession?.conversation.state || moduleSession?.player.cutscene?.enabled) return;
+  if (gameUi.blocksWorldInput || moduleSession?.player.cutscene?.enabled) return;
   if (event.button !== 2 || !worldObjects || !playerController?.actor) return;
   event.preventDefault(); event.stopImmediatePropagation();
   const hit = pickedWorldObject(pointerRay(event.clientX,event.clientY,canvas.getBoundingClientRect(),camera),loadedRoot,worldObjects,{includePlayer:true});
@@ -689,17 +816,9 @@ canvas.addEventListener('pointerdown',event => {
   radialMenu.open(menu,event.clientX,event.clientY,
     { targetId:target.id,groundPoint:hit?.point.toArray() ?? null,ground:!hit?.object });
 },true);
-canvas.addEventListener('pointermove', event => {
-  if (!worldObjects || !playerController || radialMenu.active || gameUi.captured) return;
-  const hit = pickedWorldObject(pointerRay(event.clientX, event.clientY, canvas.getBoundingClientRect(), camera), loadedRoot, worldObjects);
-  hoveredObject = hit?.object ?? null;
-  canvas.style.cursor = pendingSpellTarget?'crosshair':hoveredObject?.kind === 'door' ? 'pointer' : 'grab';
-  canvas.title = hoveredObject ? `${hoveredObject.tag || hoveredObject.kind}${hoveredObject.kind === 'door' ? ' · click to use' : ''}` : '';
-});
-canvas.addEventListener('pointerleave', () => { hoveredObject = null; canvas.style.cursor = ''; });
 canvas.addEventListener('pointercancel', () => { pointerPress = null; });
 canvas.addEventListener('pointerup', event => {
-  if (gameUi.captured || moduleSession?.conversation.state || moduleSession?.player.cutscene?.enabled && !moduleSession.player.cutscene.leftClicks) { pointerPress = null; return; }
+  if (gameUi.blocksWorldInput || moduleSession?.player.cutscene?.enabled && !moduleSession.player.cutscene.leftClicks) { pointerPress = null; return; }
   const press = pointerPress; pointerPress = null;
   if (!press || event.button !== 0 || press.id !== event.pointerId || Math.hypot(event.clientX - press.x, event.clientY - press.y) > 5 || !worldObjects) return;
   if(pendingSpellTarget){
@@ -900,7 +1019,7 @@ areaInput.addEventListener('change', async (event) => {
           gameUi.message(`${counter?.name||counter?.tag||'Creature'} counters ${caster?.name||caster?.tag||'creature'}'s ${identified?spellName(incoming):'spell'}${identified?` using ${spellName(selected)}`:''}`,'combat');
         }else runtimeDiagnostics.record('combat.presentation-unimplemented','Native combat message presentation is not implemented',{messageType:event.type,recipientId:event.recipientId});
       },
-      onConversation: () => { movementKeys.clear(); radialMenu.close(); gameUi.conversationChanged(); },
+      onConversation: () => { radialMenu.close(); gameUi.conversationChanged(); },
       onClearActions: id => { if (id === moduleSession?.player.id) actionQueue?.cancel('Actions cleared'); },
       onCutscene: (actor, enabled) => {
         if (actor !== moduleSession?.player) return;
@@ -1004,45 +1123,52 @@ function findObjectByName(root, name) {
   return match;
 }
 
-async function loadTextures(files, resolver = null, pltColorRows = new Map()) {
-  const tgaLoader = new TGALoader();
+async function loadTextures(files, resolver = null, pltColorRows = new Map(), sources = null) {
+  const tgaLoader = {parse:parseNativeTga};
   const ddsLoader = new DDSLoader();
   const textures = new Map();
-  const paletteImages = new Map();
+  let paletteImages = new Map();
   const hasPltFiles = files.some((file) => file.name.toLowerCase().endsWith('.plt'));
   if (hasPltFiles && resolver) {
-    for (const paletteName of PLT_PALETTE_NAMES) {
-      if (paletteImages.has(paletteName)) continue;
+    const readPalettes=async()=>new Map((await Promise.all([...new Set(PLT_PALETTE_NAMES)].map(async paletteName=>{
       try {
-        const image = tgaLoader.parse(await resolver.getResource(paletteName, RESOURCE_TYPE.TGA));
-        paletteImages.set(paletteName, { width: image.width, height: image.height, data: image.data });
+        const bytes=await resolver.getResource(paletteName, RESOURCE_TYPE.TGA);
+        const image = sources?.workers?await sources.workers.decode('tga',bytes):tgaLoader.parse(bytes);
+        return [paletteName, { width: image.width, height: image.height, data: image.data }];
       } catch (error) {
         runtimeDiagnostics.error(error, 'texture.palette-unavailable', { resRef: paletteName });
       }
-    }
+    }))).filter(Boolean));
+    paletteImages=sources?await sources.paletteImages(readPalettes):await readPalettes();
   }
-  for (const file of files) {
+  const decodedFiles=await prepareResourceBatch(files,async file=>{
     try {
     const buffer = await file.arrayBuffer();
     let texture;
     const lowerName = file.name.toLowerCase();
     if (lowerName.endsWith('.plt')) {
-      const decoded = decodeBioWarePlt(buffer, paletteImages, pltColorRows.get(file.name.replace(/\.plt$/i, '').toLowerCase()));
+      const rows=pltColorRows.get(file.name.replace(/\.plt$/i, '').toLowerCase());
+      const decoded = sources?.workers?await (import.meta.env.VITE_RESIDENT_PLT_PALETTES!=='0'?sources.workers.decodePlt(buffer,paletteImages,rows):sources.workers.decode('plt',buffer,{palettes:paletteImages,rows})):decodeBioWarePlt(buffer,paletteImages,rows);
       texture = new THREE.DataTexture(decoded.data, decoded.width, decoded.height, THREE.RGBAFormat);
       texture.flipY = decoded.flipY;
       texture.generateMipmaps = true;
       texture.minFilter = THREE.LinearMipmapLinearFilter;
+    } else if (lowerName.endsWith('.ktx')) {
+      const image=new KTXLoader().parse(buffer,true);
+      if(image.isCubemap)throw new Error('Cubemap cannot be used as a model diffuse bitmap');
+      texture=s3tcTexture(image.mipmaps,image.width,image.height,image.format);
+      texture.minFilter=image.mipmapCount>1?THREE.LinearMipmapLinearFilter:THREE.LinearFilter;
     } else if (lowerName.endsWith('.dds')) {
       const magic = buffer.byteLength >= 4 ? new DataView(buffer).getUint32(0, false) : 0;
       if (magic === 0x44445320) {
         const image = ddsLoader.parse(buffer, true);
-        texture = new THREE.CompressedTexture(image.mipmaps, image.width, image.height, image.format);
+        texture = s3tcTexture(image.mipmaps, image.width, image.height, image.format);
         texture.minFilter = image.mipmapCount > 1 ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
       } else {
         texture = parseBioWareDds(buffer);
       }
     } else {
-      const image = tgaLoader.parse(buffer);
+      const image = sources?.workers?await sources.workers.decode('tga',buffer):tgaLoader.parse(buffer);
       texture = new THREE.DataTexture(image.data, image.width, image.height, THREE.RGBAFormat);
       texture.flipY = image.flipY;
       texture.generateMipmaps = image.generateMipmaps;
@@ -1055,27 +1181,19 @@ async function loadTextures(files, resolver = null, pltColorRows = new Map()) {
     texture.wrapT = THREE.RepeatWrapping;
     texture.updateMatrix();
     texture.needsUpdate = true;
-    textures.set(file.name.replace(/\.(tga|dds|plt)$/i, '').toLowerCase(), texture);
+    return [file.name.replace(/\.(tga|dds|plt|ktx)$/i, '').toLowerCase(), texture];
     } catch (error) { runtimeDiagnostics.error(error, 'texture.decode-failed', { resourceFile: file.name }); throw error; }
-  }
+  });
+  const failure=decodedFiles.find(result=>result.status==='rejected');
+  if(failure){for(const result of decodedFiles)if(result.status==='fulfilled')result.value[1].dispose();throw failure.reason;}
+  for(const result of decodedFiles){const [name,texture]=result.value;const previous=textures.get(name);if(previous&&previous!==texture)previous.dispose();textures.set(name,texture);}
   return textures;
 }
 
 // A separate scene uses the same model hierarchy, skinning, palette decoding
 // and body-part attachment as the world renderer. It allocates no game objects.
 async function renderCharacterCreationPreview(draft, rules) {
-  const data={Race:draft.raceId,Gender:draft.gender,Appearance_Type:Number(rules.racialtypes.orderedRows[draft.raceId].Appearance),Phenotype:draft.phenotype,Appearance_Head:draft.head,
-    Color_Skin:draft.skin,Color_Hair:draft.hair,Color_Tattoo1:draft.tattoo1,Color_Tattoo2:draft.tattoo2,ArmorPart_RFoot:1};
-  for(const part of ['Neck','Torso','Pelvis','LBicep','LFArm','LHand','LThigh','LShin','LFoot','RBicep','RFArm','RHand','RThigh','RShin'])data[`BodyPart_${part}`]=1;
-  const clothes=rules.chargenclothes.orderedRows[draft.clothes];
-  if(clothes){const armor=parseGff(await rules.creationResolver.getResource(clothes.ItemResRef,RESOURCE_TYPE.UTI),'UTI ').root;for(const[key,value]of Object.entries(armor))if(key.startsWith('ArmorPart_'))data[key.replace('ArmorPart_','BodyPart_')]=value;data.ArmorPart_RFoot=armor.ArmorPart_RFoot??1;for(const material of ['Metal1','Metal2','Cloth1','Cloth2','Leather1','Leather2'])data[`Color_${material}`]=armor[`${material}Color`]??0;}
-  const appearance=resolvePlayerModels(data,rules),resolver=rules.creationResolver,parsed=new Map(),files=[],paletteRows=new Map(),partKeys=new Map();
-  if(!appearance)throw new Error('Character appearance is unavailable');
-  const load=async(primary,fallback)=>{if(parsed.has(primary))return primary;try{parsed.set(primary,parseModel(await resolver.getResource(primary,RESOURCE_TYPE.MDL)));return primary;}catch(error){if(error.code!=='RESOURCE_NOT_FOUND'||!fallback||primary===fallback)throw error;parsed.set(fallback,parseModel(await resolver.getResource(fallback,RESOURCE_TYPE.MDL)));return fallback;}};
-  const bodyName=await load(appearance.model,appearance.fallbackModel);
-  const partNames=new Map();for(const part of appearance.parts){partNames.set(part,await load(part.model,part.fallbackModel));for(const candidate of part.pltCandidates??[]){try{const bytes=await resolver.getResource(candidate,RESOURCE_TYPE.PLT),key=`${candidate}__creation_${partNames.size}`;files.push({name:`${key}.plt`,arrayBuffer:async()=>bytes});paletteRows.set(key,appearance.paletteColors);partKeys.set(part,key);break;}catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}}}
-  const animationSources=new Map(parsed);for(const model of parsed.values())await inheritAnimations(model,async name=>{if(!animationSources.has(name))animationSources.set(name,parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL)));return animationSources.get(name);});
-  for(const name of new Set([...parsed.values()].flatMap(p=>p.materialNames))){if(!name||name.toLowerCase()==='null')continue;paletteRows.set(name,appearance.paletteColors);let found=false;for(const[ext,type]of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){try{const bytes=await resolver.getResource(name,type);files.push({name:`${name}.${ext}`,arrayBuffer:async()=>bytes});found=true;break;}catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}}if(!found)runtimeDiagnostics.record('character.preview-texture-unavailable',`Character preview texture ${name} is unavailable`,{resource:name});}
+  const {appearance,resolver,parsed,files,paletteRows,partKeys,bodyName,partNames}=await loadCharacterCreationAssets(draft,rules);
   const textures=await loadTextures(files,resolver,paletteRows),previewScene=new THREE.Scene(),previewRenderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}),model=buildObject(parsed.get(bodyName),textures);
   const previewAnimations=[],originalGeometries=new Set();
   try{
@@ -1189,21 +1307,8 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   }
   for (const name of bitmapNames) {
     try {
-      const buffer = await resolver.getResource(name, RESOURCE_TYPE.TGA);
-      textureFiles.push({ name: `${name}.tga`, arrayBuffer: async () => buffer });
-    } catch {
-      try {
-        const buffer = await resolver.getResource(name, RESOURCE_TYPE.DDS);
-        textureFiles.push({ name: `${name}.dds`, arrayBuffer: async () => buffer });
-      } catch {
-        try {
-          const buffer = await resolver.getResource(name, RESOURCE_TYPE.PLT);
-          textureFiles.push({ name: `${name}.plt`, arrayBuffer: async () => buffer });
-        } catch {
-          missingTextures.push(name);
-        }
-      }
-    }
+      textureFiles.push(textureResourceFile(name,await resolveTextureResource(resolver,name)));
+    } catch(error) {if(error.code!=='RESOURCE_NOT_FOUND')throw error;missingTextures.push(name);}
   }
   const textures = await loadTextures(textureFiles, resolver, pltColorRows);
   const templates = new Map([...parsedModels].map(([name, parsed]) => [name, buildObject(parsed, textures)]));
@@ -1375,9 +1480,10 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
   const loadVisualTables=()=>visualTables??=Promise.all([visualSession.items.table('visualeffects'),visualSession.items.table('progfx'),visualSession.items.table('appearance')]).then(([visuals,programs,appearance])=>{
     if(!visuals||!programs||!appearance)throw new Error('Looping visual rules are unavailable');return{visuals,programs,appearance};
   });
+  const areaProjectiles=projectiles;
   loopingVisuals = new LoopingVisualPresentation({areaId:sessionArea.id,objects:()=>areaObjects.objects.values(),object:id=>areaObjects.registry.get(id),
     render:id=>areaObjects.renderBindings.get(id),tables:loadVisualTables,
-    createNative:(actor,target,record,tables)=>createSceneVisual(actor,target,record,tables,{resolver,session:visualSession,bindings:areaObjects.renderBindings,sceneRoot:root}),selectedObjectId1406ac1c0:()=>visualSession.player.id,
+    createNative:(actor,target,record,tables)=>createSceneVisual(actor,target,record,tables,{resolver,session:visualSession,bindings:areaObjects.renderBindings,sceneRoot:root,projectileOwner:areaProjectiles}),selectedObjectId1406ac1c0:()=>visualSession.player.id,
     report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
   const pendingCreatures=new Set(),failedCreatures=new Map(),appearanceKeys=new Map(),presentation=creatureAnimations;
   const pendingPlaceables=new Set(),failedPlaceables=new Map(),reportedGroundItems=new Set();
@@ -1393,10 +1499,8 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     const files=[],model=parsedModels.get(name);
     for(const bitmap of new Set((model.materialNames??[]).map(name=>name.toLowerCase()).filter(name=>name&&name!=='null'))){
       if(textures.has(bitmap))continue;let found=false;
-      for(const [extension,type]of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
-        try{const bytes=await resolver.getResource(bitmap,type);files.push({name:`${bitmap}.${extension}`,arrayBuffer:async()=>bytes});found=true;break;}
-        catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
-      }
+      try{files.push(textureResourceFile(bitmap,await resolveTextureResource(resolver,bitmap)));found=true;}
+      catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
       if(!found)runtimeDiagnostics.record('texture.runtime-placeable-unavailable',`Runtime placeable bitmap ${bitmap} is unavailable`,{objectId:object.id,resource:bitmap});
     }
     const extra=await loadTextures(files,resolver),current=()=>loadedRoot===root&&worldObjects===areaObjects&&visualSession.registry.get(object.id)===object&&object.areaId===sessionArea.id&&(object.nativeMessageFields?.[0x32c]??object.authored.Appearance)===appearance;
@@ -1427,10 +1531,8 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
     }
     const bitmaps=new Set(models.flatMap(name=>parsedModels.get(name)?.materialNames??[]).map(name=>name.toLowerCase()).filter(name=>name&&name!=='null'));
     for(const name of bitmaps){paletteRows.set(name,appearance.paletteColors);if(textures.has(name))continue;let loaded=false;
-      for(const [extension,type] of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
-        try{const bytes=await resolver.getResource(name,type);files.push({name:`${name}.${extension}`,arrayBuffer:async()=>bytes});loaded=true;break;}
-        catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
-      }
+      try{files.push(textureResourceFile(name,await resolveTextureResource(resolver,name)));loaded=true;}
+      catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
       if(!loaded)runtimeDiagnostics.record('texture.runtime-creature-unavailable',`Runtime creature bitmap ${name} is unavailable`,{objectId:actor.id,resource:name});
     }
     if(loadedRoot!==root||worldObjects!==areaObjects)return;
@@ -1585,7 +1687,14 @@ async function loadAreaScene(areaResRef, resolver, jump = null) {
 }
 
 function clearLoadedScene() {
-  cameraKeyhole?.dispose();cameraKeyhole=null;delete canvas.dataset.cameraKeyhole;
+  rendererShadowBudget.reset();
+  rendererShadowTraversal.reset();
+  rendererMainBatches.reset();
+  rendererLightUniforms.reset();
+  rendererMaterialReuse.reset();
+  worldHighlights.reset();
+  worldPointer?.detach();
+  cameraKeyhole?.dispose({retire:dispose=>networkRendererRetirement.retire(dispose)});cameraKeyhole=null;delete canvas.dataset.cameraKeyhole;
   projectiles?.dispose();projectiles=null;delete canvas.dataset.projectiles;
   modelParticles.dispose();delete canvas.dataset.modelParticles;delete canvas.dataset.pointWinds;
   loopingVisuals?.dispose(); loopingVisuals=null; delete canvas.dataset.loopingVisuals;
@@ -1611,7 +1720,7 @@ function clearLoadedScene() {
     for (const root of roots) {
       root.traverse((child) => {
         if(child.isLight){child.shadow?.map?.dispose();child.shadow?.mapPass?.dispose();}
-        if (child.geometry) geometries.add(child.geometry);
+        if (child.geometry&&!rendererModelGeometry.release(child)) geometries.add(child.geometry);
         if (Array.isArray(child.material)) child.material.forEach((material) => materials.add(material));
         else if (child.material) materials.add(child.material);
       });
@@ -1633,8 +1742,9 @@ function setLoadedScene(root, textures) {
 
 async function installCameraKeyhole(root,resolver){
   const presentation=new CameraKeyholePresentation({renderer,camera,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
-  try{await presentation.load(resolver);if(loadedRoot!==root){presentation.dispose();return;}cameraKeyhole?.dispose();cameraKeyhole=presentation;}
+  try{await presentation.load(resolver);if(loadedRoot!==root){presentation.dispose();return;}presentation.bind(root);cameraKeyhole?.dispose();cameraKeyhole=presentation;}
   catch(error){presentation.dispose();runtimeDiagnostics.error(error,'camera.keyhole-load-failed');}
+  if(loadedRoot===root)await worldPointer?.attach(root,resolver);
 }
 
 function setAreaLighting(lighting, object) {
@@ -1787,31 +1897,31 @@ function updateAreaInspector(area, parsedModels, textures, report) {
   updateMaterialList([...materialNames], textures);
 }
 
-function buildObject(parsed, textures, textureOverride = null) {
-  const { root, groups,nodeGroups } = createModelHierarchy(parsed);
+function buildObject(parsed, textures, textureOverride = null,{previews=true,shareGeometry=false,managedMatrices=false}={}) {
+  const { root, groups,nodeGroups } = createModelHierarchy(parsed,{managedMatrices});
   root.userData.mdlRoot=parsed.modelName;
   for (const node of parsed.nodes) {
     if (node.type !== 'trimesh' || node.render === false || node.properties?.render === 0 || node.properties?.render === '0') continue;
     const transformedVertices = node.skinned
       ? deformSkinnedVertices(node, parsed.nodes, groups, nodeGroups.get(node),nodeGroups)
       : null;
-    const mesh = buildMesh(node, textures, transformedVertices, textureOverride);
-    if (mesh) nodeGroups.get(node).add(mesh);
+    const mesh = buildMesh(node, textures, transformedVertices, textureOverride,shareGeometry);
+    if (mesh){if(managedMatrices)manageLocalMatrix(mesh);nodeGroups.get(node).add(mesh);}
   }
   for (const node of parsed.nodes) {
     const group = nodeGroups.get(node);
-    if (node.type === 'light') addModelLight(node, group);
-    else if (node.type === 'emitter') {group.add(createModelEmitter(node,textures,parsed.modelName));buildEmitterPreview(node, group, textures, parsed.modelName);}
+    if (node.type === 'light') {const light=addModelLight(node, group);if(managedMatrices&&prepareMatrixSubtrees)manageLocalMatrix(light);}
+    else if (node.type === 'emitter') {const emitter=createModelEmitter(node,textures,parsed.modelName);if(managedMatrices&&prepareMatrixSubtrees)manageLocalMatrix(emitter);group.add(emitter);if(previews)buildEmitterPreview(node, group, textures, parsed.modelName);}
   }
   return root;
 }
 
 function addModelLight(node, parent) {
-  parent.add(createModelLight(node, configureLightShadow));
+  const light=createModelLight(node, configureLightShadow);parent.add(light);return light;
 }
 
-async function createSceneVisual(actor, target, record, tables,{resolver,session,bindings,sceneRoot}) {
-  return createVisualSceneRuntime({actor,record,tables,objects:session.registry,renderFor:id=>bindings.get(id),player:()=>session.player,sceneRoot,
+async function createSceneVisual(actor, target, record, tables,{resolver,session,bindings,sceneRoot,projectileOwner}) {
+  return createVisualSceneRuntime({actor,record,tables,objects:session.registry,renderFor:id=>bindings.get(id),player:()=>session.player,sceneRoot,projectiles:projectileOwner,
     loadAsset:name=>loadSceneVisualAsset(name,resolver),
     createModel:(asset,resourceName)=>createStandaloneSceneModel(asset,resourceName,'Visual · '+record.visualId,sceneRoot),
     destroyModel:model=>disposeVisualRoot(model.root),releaseAsset:releaseSceneVisualAsset,
@@ -1836,10 +1946,8 @@ async function loadSingleSceneVisualAsset(name,resolver){
         recordModelLimitations(model,{references:true});
         for(const bitmap of model.materialNames){
           let found=false;
-          for(const [ext,type] of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
-            try{const bytes=await resolver.getResource(bitmap,type);files.push({name:bitmap+'.'+ext,arrayBuffer:async()=>bytes});found=true;break;}
-            catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
-          }
+          try{files.push(textureResourceFile(bitmap,await resolveTextureResource(resolver,bitmap)));found=true;}
+          catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
           if(!found)throw new Error('Visual bitmap '+bitmap+' is unavailable');
         }
         (await loadTextures(files,resolver)).forEach((texture,key)=>textures.set(key,texture));
@@ -1863,7 +1971,7 @@ function createStandaloneSceneModel(asset,resourceName,label,sceneRoot){
 
 function disposeVisualRoot(root){
   const references=modelReferenceRuntimes.get(root);if(references){modelReferenceRuntimes.delete(root);references.dispose();}
-  root.removeFromParent();root.traverse(o=>{o.geometry?.dispose();for(const material of Array.isArray(o.material)?o.material:o.material?[o.material]:[])material.dispose();if(o.isLight){o.shadow?.map?.dispose();o.shadow?.mapPass?.dispose();}});
+  root.removeFromParent();root.traverse(o=>{if(o.geometry&&!rendererModelGeometry.release(o))o.geometry.dispose();for(const material of Array.isArray(o.material)?o.material:o.material?[o.material]:[])material.dispose();if(o.isLight){o.shadow?.map?.dispose();o.shadow?.mapPass?.dispose();}});
 }
 
 function buildEmitterPreview(node, parent, textures, modelName) {
@@ -1994,43 +2102,16 @@ function vectorProperty(value, fallback) {
     : fallback;
 }
 
-function buildMesh(node, textures, transformedVertices = null, textureOverride = null) {
-  if (node.verts.length === 0 || node.faces.length === 0) return null;
-  const positions = [];
-  const sourceVertexIndices = [];
-  const uvs = [];
-  const geometry = new THREE.BufferGeometry();
-  const bitmapNames = node.bitmaps?.length ? node.bitmaps : [node.bitmap || ''];
-  for (const faceGroup of groupFacesByMaterial(node.faces, bitmapNames.length)) {
-    const groupStart = positions.length / 3;
-    for (const face of faceGroup.faces) {
-      const vertexIndices = face.slice(0, 3);
-      const uvIndices = face.slice(4, 7);
-      for (let corner = 0; corner < 3; corner += 1) {
-        const vertex = node.verts[vertexIndices[corner]];
-        sourceVertexIndices.push(vertexIndices[corner]);
-        if (!vertex || vertex.length < 3) throw new Error(`Face index outside vertex array in ${node.name}.`);
-        const transformedVertex = transformedVertices?.[vertexIndices[corner]];
-        if (transformedVertex) positions.push(...transformedVertex);
-        else positions.push(vertex[0], vertex[2], -vertex[1]);
-        const uv = node.tverts[uvIndices[corner]];
-        uvs.push(uv?.[0] ?? 0, uv?.[1] ?? 0);
-      }
-    }
-    geometry.addGroup(groupStart, positions.length / 3 - groupStart, faceGroup.materialIndex);
-  }
-
-  if (positions.length === 0) return null;
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  geometry.computeVertexNormals();
-  geometry.computeBoundingSphere();
-
+function buildMesh(node, textures, transformedVertices = null, textureOverride = null,shareGeometry=false) {
+  if(node.verts.length===0||node.faces.length===0)return null;
+  const instantiate=geometry=>{
+  const bitmapNames=node.bitmaps?.length?node.bitmaps:[node.bitmap||''];
   const diffuseColor = vectorProperty(node.diffuse ?? node.properties?.diffuse, [1, 1, 1]);
   const materials = bitmapNames.map((bitmapName, index) => {
     const map = index === 0 && textureOverride ? textureOverride : textures.get(bitmapName.toLowerCase());
     const materialOptions = {
       color: new THREE.Color().setRGB(...diffuseColor, THREE.SRGBColorSpace),
+      emissive: new THREE.Color().setRGB(...vectorProperty(node.selfillumcolor ?? node.properties?.selfillumcolor, [0, 0, 0]), THREE.SRGBColorSpace),
       ...modelMaterialOptions(node)
     };
     if (map) {
@@ -2045,12 +2126,15 @@ function buildMesh(node, textures, transformedVertices = null, textureOverride =
     return material;
   });
   const mesh = new THREE.Mesh(geometry, materials.length === 1 ? materials[0] : materials);
-  geometry.userData.nativeCameraHitFaces=cameraModelHitFaces(node,transformedVertices);
-  mesh.userData.sourceVertexIndices = sourceVertexIndices;
+  mesh.userData.sourceVertexIndices = geometry.userData.sourceVertexIndices;
   mesh.userData.nativeModelMesh = true;
   mesh.castShadow = Number(node.shadow ?? node.properties?.shadow ?? 1) !== 0;
   mesh.receiveShadow = true;
   return mesh;
+  };
+  if(shareGeometry&&!node.skinned&&!transformedVertices)return rendererModelGeometry.create(node,()=>buildModelGeometry(node,transformedVertices),instantiate);
+  const geometry=buildModelGeometry(node,transformedVertices);if(!geometry)return null;
+  try{return instantiate(geometry);}catch(error){geometry.dispose();throw error;}
 }
 
 function colorForName(name) {
@@ -2099,11 +2183,7 @@ function createModelAnimator(parsed, instance, label, list, {autoIdle=true}={}) 
   const updateSkin = skins.length ? () => {
     for (const { node, group, mesh } of skins) {
       const vertices = deformSkinnedVertices(node, parsed.nodes, groups, group,nodeGroups);
-      const attribute = mesh.geometry.getAttribute('position');
-      mesh.userData.sourceVertexIndices.forEach((source, index) => attribute.setXYZ(index, ...vertices[source]));
-      attribute.needsUpdate = true;
-      mesh.geometry.computeVertexNormals();
-      mesh.geometry.computeBoundingSphere();
+      updateSkinnedMesh(mesh,vertices);
     }
   } : null;
   const animator = new ModelAnimator(parsed, instance, updateSkin);
@@ -2499,106 +2579,178 @@ function recordModelLimitations(parsed,{references=false}={}) {
   }
 }
 
-async function loadNetworkSceneAsset(name,resolver,palette,candidates){
-  const model=parseModel(await resolver.getResource(name,RESOURCE_TYPE.MDL));
-  await inheritAnimations(model,async ref=>parseModel(await resolver.getResource(ref,RESOURCE_TYPE.MDL)));
+async function loadNetworkSceneAsset(name,resolver,palette,candidates,sources){
+  const model=await sources.load(name);
   recordModelLimitations(model);
   const files=[],rows=new Map();let override=null;
   for(const candidate of candidates){try{const bytes=await resolver.getResource(candidate,RESOURCE_TYPE.PLT);override=candidate+'__network';files.push({name:override+'.plt',arrayBuffer:async()=>bytes});rows.set(override,palette);break;}catch{}}
-  if(!override)for(const bitmap of new Set(model.materialNames.map(n=>n.toLowerCase()).filter(n=>n&&n!=='null'))){
+  if(!override){const bitmaps=[...new Set(model.materialNames.map(n=>n.toLowerCase()).filter(n=>n&&n!=='null'))];const fetched=await prepareResourceBatch(bitmaps,async bitmap=>{
     let found=false;
-    for(const [ext,type]of [['tga',RESOURCE_TYPE.TGA],['dds',RESOURCE_TYPE.DDS],['plt',RESOURCE_TYPE.PLT]]){
-      try{const bytes=await resolver.getResource(bitmap,type);files.push({name:bitmap+'.'+ext,arrayBuffer:async()=>bytes});if(palette)rows.set(bitmap,palette);found=true;break;}catch{}
-    }
+    try{const file=textureResourceFile(bitmap,await resolveTextureResource(resolver,bitmap));if(palette)rows.set(bitmap,palette);found=true;return file;}
+    catch(error){if(error.code!=='RESOURCE_NOT_FOUND')throw error;}
     if(!found)runtimeDiagnostics.record('network.scene-bitmap-unavailable','Network model bitmap is unavailable',{model:name,bitmap});
-  }
-  const textures=await loadTextures(files,resolver,rows);return{model,textures,override:override?textures.get(override):null};
+  });for(const result of fetched){if(result.status==='rejected')throw result.reason;if(result.value)files.push(result.value);}}
+  const textures=await loadTextures(files,resolver,rows,sources);return{model,textures,override:override?textures.get(override):null};
 }
 
 function setNetworkControls(active){
   for(const id of ['open-button','open-area-button','game-data-button','hak-data-button','character-data-button','game-mode-button','area-select','model-file','area-file','character-file'])document.getElementById(id).disabled=active;
 }
-function networkSceneSnapshot(){const snapshot=networkPresentation?.snapshot({camera,bounds:canvas.getBoundingClientRect()});return snapshot?{...snapshot,combat:networkPresentation.combat?.snapshot()??null,projectiles:networkPresentation.projectiles?.snapshot()??null,visuals:networkPresentation.visuals?.snapshot()??null,areaVisuals:networkPresentation.areaVisuals?.snapshot()??null}:null;}
-const networkDialog=new NetworkDialogView(viewport,{resolve:(value,context)=>networkFrontend.resolveText(value,context),reply:value=>networkFrontend.replyDialog(value),onVisibility:visible=>{if(visible)radialMenu.close();controls.enabled=!visible&&!networkInventory.active&&!networkPanels.active&&!radialMenu.active;}});
-const networkInventory=new NetworkInventoryView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,request:open=>networkFrontend.inventoryWindow(open),resolve:value=>networkFrontend.resolveText(value),action:value=>networkFrontend.itemAction(value),baseItems:()=>networkFrontend.inventoryBaseItems(),panel:page=>networkFrontend.inventoryPanel(page),itemMenu:openNetworkInventoryRadial,activate:activateNetworkItem,onVisibility:visible=>{if(visible){radialMenu.close();if(networkPanels.active)networkPanels.close();}controls.enabled=!visible&&!networkDialog.active&&!networkPanels.active&&!radialMenu.active;}});
-const networkQuickbar=new NetworkQuickbarView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,assign:(index,button)=>networkFrontend.assignQuickbar(index,button),resolve:value=>networkFrontend.resolveText(value),inventoryToken:()=>networkInventory.dragToken,canUse:()=>Boolean(networkFrontend?.id)&&!networkDialog.active&&!networkInventory.active&&!networkPanels.active&&!radialMenu.active,
+let networkUiRefreshRequested=false,networkUiRefreshWork=null,networkUiRefreshGeneration=0;
+function requestNetworkUiRefresh(){networkUiRefreshRequested=true;if(networkUiRefreshWork)return;const generation=networkUiRefreshGeneration;networkUiRefreshWork=Promise.resolve().then(async()=>{while(networkUiRefreshRequested&&generation===networkUiRefreshGeneration){networkUiRefreshRequested=false;for(const view of [networkBuffBar,networkInventory,networkQuickbar,networkParty,networkPanels,networkActionQueue]){if(generation!==networkUiRefreshGeneration)return;await view.sync();}}}).catch(e=>runtimeDiagnostics.error(e,'network.ui-refresh-failed')).finally(()=>{networkUiRefreshWork=null;if(networkUiRefreshRequested)requestNetworkUiRefresh();});}
+function networkSceneSnapshot(){const snapshot=networkPresentation?.snapshot({camera,bounds:canvas.getBoundingClientRect()}),world=networkFrontend?.world,local=world?.registry.get(world.localObjectId);return snapshot?{...snapshot,controlled:{id:world.localObjectId,present:Boolean(local),areaId:local?.areaId,removed:Boolean(local?.replicationRemoved),position:local?.replicated?.position,appearance:local?.appearance?.appearance,head:local?.appearance?.head,bodyParts:local?.appearance?.bodyParts?.length,equipment:local?.appearance?.equipment?.length,rendered:networkPresentation.objects.has(world.localObjectId)},combat:networkPresentation.combat?.snapshot()??null,projectiles:networkPresentation.projectiles?.snapshot()??null,visuals:networkPresentation.visuals?.snapshot()??null,areaVisuals:networkPresentation.areaVisuals?.snapshot()??null}:null;}
+const networkKeyboard=new NetworkKeyboardInput({
+ context:()=>{const context=keyboardActorContext(networkFrontend);if(!context)return null;const pose=networkPresentation?.keyboardPose(context.actorId);return pose?{...context,...pose}:context;},
+ enabled:()=>networkFrontend.phase==='playing'&&Boolean(networkPresentation)&&!networkPresentation.closed&&!networkPresentation.graphicsPending&&!rendererWarmupCount&&!document.hidden&&!characterFrontend.active&&!gameUi.blocksWorldInput&&!isTextEntry(document.activeElement),
+ send:(context,request)=>nativeNetwork.keyboardMove(context.sessionId,{areaId:context.areaId,areaGeneration:context.areaGeneration,actorId:context.actorId,...request}),
+ preview:(context,flags)=>{const capture=canvas.dataset.captureKeyboard==='true';let trace;const publish=path=>{if(capture)canvas.dispatchEvent(new CustomEvent('nwn-keyboard-preview',{detail:{at:performance.now(),flags,path,trace}}));return path;},path=networkPresentation?.previewKeyboard(context.actorId,flags,capture?{capture:value=>trace=value}:undefined);return path&&typeof path.then==='function'?path.then(publish):publish(path);},
+ stopPreview:context=>networkPresentation?.endKeyboard(context.actorId,context.motionLifetime),
+ onDriveHeading:(context,heading)=>networkPresentation?.motion.applyDriveHeading(context.actorId,heading,context.motionLifetime),
+ onSent:(context,request,result)=>{if(request.operation==='drive')networkPresentation?.motion.driveSequence(context.actorId,result.sequence);},
+ report:error=>runtimeDiagnostics.error(error,'network.keyboard-input-failed'),
+});
+const networkDialog=new NetworkDialogView(viewport,{resolve:(value,context,options)=>networkFrontend.resolveText(value,context,options),reply:value=>networkFrontend.replyDialog(value),onVisibility:visible=>{if(visible)radialMenu.close();controls.enabled=!visible&&!networkInventory.active&&!networkPanels.active&&!radialMenu.active;}});
+const networkInventoryPreferences={showCreatureSlots:false};
+try{networkInventoryPreferences.showCreatureSlots=localStorage.getItem('nwn.inventory.showCreatureSlots')==='true';}catch{}
+const networkInventory=new NetworkInventoryView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,request:open=>networkFrontend.inventoryWindow(open),resolve:value=>networkFrontend.resolveText(value),action:value=>networkFrontend.itemAction(value),baseItems:()=>networkFrontend.inventoryBaseItems(),inventoryTables:()=>networkQuickbar.tables,itemIcon:item=>networkQuickbar.itemIcon(item),emptyIcon:name=>networkQuickbar.icon(name),skin:name=>networkQuickbar.assets.skin(name),settings:()=>networkInventoryPreferences,panel:page=>networkFrontend.inventoryPanel(page),containerInput:operation=>networkFrontend.containerInput(operation),storeInput:request=>networkFrontend.storeInput(request),examine:id=>networkFrontend.examine(id),itemMenu:openNetworkInventoryRadial,activate:activateNetworkItem,onVisibility:visible=>{if(visible)radialMenu.close();controls.enabled=!visible&&!networkDialog.active&&!networkPanels.active&&!radialMenu.active;}});
+const worldHighlights=new WorldHighlightView({viewport,canvas,camera,scene,
+ context:()=>{
+  if(networkFrontend?.id&&networkPresentation&&!networkPresentation.closed&&!networkPresentation.graphicsPending)return{identity:networkPresentation,root:networkPresentation.root,areaId:networkFrontend.world.areaId,playerId:networkFrontend.world.localObjectId,objects:networkFrontend.world.registry.objects,render:id=>networkPresentation.objects.get(id)?.wrapper,pick:ray=>networkPresentation.pick(ray,{includePlayer:true,objectsOnly:true}),textVersion:networkFrontend.world.tlkOverrideVersion,network:true};
+  if(!networkFrontend?.id&&worldObjects&&playerController&&loadedRoot)return{identity:worldObjects,root:loadedRoot,areaId:worldObjects.areaId,playerId:playerController.actor.id,objects:worldObjects.objects,render:id=>worldObjects.renderBindings.get(id),pick:ray=>pickedWorldObject(ray,loadedRoot,worldObjects,{includePlayer:true})};
+  return null;
+ },enabled:()=>!rendererWarmupCount&&!characterFrontend.active&&!gameUi.blocksWorldInput&&!radialMenu.active&&!moduleSession?.transitioning&&!moduleLoadBusy,
+ resolve:(value,context,object)=>context.network?networkFrontend.resolveText(value,object?.id):gameUi.text.resolve(value),
+ details:(object,context)=>{
+  if(context.network){const state=object.replicated??{},player=[...networkFrontend.world.players.values()].find(p=>p.objectId===object.id||p.character?.id===object.id);return highlightCreatureDetails(object,{assets:networkQuickbar.assets,tables:networkQuickbar.tables,resolve:value=>networkFrontend.resolveText(value,object.id),portraitRow:{portrait:state.portrait??player?.character?.portrait,portraitRef:state.portraitRef??player?.character?.portraitRef}});}
+  const data=object.creatureData??object.authored??{},maximum=moduleSession?.stats(object.id)?.maxHP,current=moduleSession?.hitPoints(object.id,false);return highlightCreatureDetails({...object,replicated:{hitPoints:{current,maximum}}},{assets:gameUi.assets,resolve:value=>gameUi.text.resolve(value),portraitRow:{portrait:object.nativePortraitId??data.PortraitId,portraitRef:object.nativePortraitResRef||data.Portrait}});
+ },
+ onHover:object=>{hoveredObject=object;canvas.style.cursor=pendingSpellTarget||networkSpellTarget?.active?'crosshair':object?'pointer':'';canvas.title='';},
+ report:error=>runtimeDiagnostics.error(error,'world.highlight-label-failed')});
+worldPointer=new WorldPointerView({viewport,canvas,camera,enabled:()=>!rendererWarmupCount&&!characterFrontend.active&&!gameUi.blocksWorldInput&&!radialMenu.active&&!moduleSession?.transitioning&&!moduleLoadBusy,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data),context:()=>{
+ if(networkFrontend?.id&&networkPresentation&&!networkPresentation.closed&&!networkPresentation.graphicsPending){const world=networkFrontend.world,actor=world.registry.get(world.localObjectId),position=networkPresentation.objects.get(actor?.id)?.wrapper.position;return{root:networkPresentation.root,playerId:world.localObjectId,player:position?[position.x,-position.z,position.y]:actor?.replicated?.position,assets:networkQuickbar.assets,targetingActive:networkSpellTarget.active,targeting:target=>networkSpellTarget.presentation(target),pick:ray=>networkPresentation.pick(ray,{includePlayer:networkSpellTarget.active})};}
+ if(!networkFrontend?.id&&worldObjects&&loadedRoot&&moduleSession){const actor=moduleSession.player,pending=pendingSpellTarget,position=playerController?.object.position;return{root:loadedRoot,playerId:actor.id,player:position?[position.x,-position.z,position.y]:null,assets:gameUi.assets,targetingActive:Boolean(pending),targeting:target=>{if(!pending||pending.session!==moduleSession)return null;const valid=pendingTargetAllowed(pending,target),definition=pending.itemPlan?.definition??pending.definition;return{valid,cursor:valid?pending.itemPlan?.targetTypes.find(([kind])=>kind===(target?.objectType??2))?.[1]??29:pending.itemPlan?.flags??31,preview:spellTargetPreview(definition,moduleSession.characterRules.ranges)};},pick:ray=>pickedWorldObject(ray,loadedRoot,worldObjects,{includePlayer:Boolean(pending)})};}return null;
+}});
+const networkQuickbar=new NetworkQuickbarView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,assign:(index,button)=>networkFrontend.assignQuickbar(index,button),resolve:value=>networkFrontend.resolveText(value),inventoryToken:()=>networkInventory.dragToken,canUse:()=>Boolean(networkFrontend?.id)&&!networkPresentation?.graphicsPending&&!rendererWarmupCount&&!networkDialog.active&&!networkInventory.active&&!networkPanels.active&&!radialMenu.active,
   menu:(menu,index,event)=>radialMenu.open(menu,event.clientX,event.clientY,{networkQuickbar:true,sessionId:networkFrontend.id,areaGeneration:networkFrontend.areaGeneration,actorId:networkFrontend.world.localObjectId,quickbarIndex:index}),
   use:(button,index)=>{void ([2,4,44].includes(button.type)||button.type===1&&(button.intParam&65535)!==255?networkSpellTarget.begin(button):networkFrontend.activateQuickbar(index)).catch(e=>networkQuickbar.failure(e));}});
 const networkSpellTarget=new NetworkSpellTargeting({world:()=>networkFrontend?.id?networkFrontend.world:null,tables:()=>networkQuickbar.tables,context:()=>({sessionId:networkFrontend.id,areaGeneration:networkFrontend.areaGeneration}),inventoryOpen:()=>networkInventory.active,
+  chooseFamily:async binding=>{const id=networkFrontend.id,generation=networkFrontend.areaGeneration,actorId=networkFrontend.world.localObjectId,token=networkQuickbar.token,choice=await networkQuickbar.spellChoice(binding);if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||actorId!==networkFrontend.world.localObjectId||token!==networkQuickbar.token)throw new Error('Spell family belongs to an old connection');if(!choice?.children?.length)throw new Error('No valid variants are available for this spell');const bounds=canvas.getBoundingClientRect();radialMenu.open(quickbarChoiceMenu(choice.label,choice.children,'spell.variant'),bounds.left+bounds.width/2,bounds.top+bounds.height/2,{network:true,sessionId:id,areaGeneration:generation,actorId,familyToken:token,familyParent:binding.intParam});radialMenu.clickMode=true;return{choosingVariant:true};},
   report:(...args)=>runtimeDiagnostics.record(...args),
-  submit:async request=>{const result=await(request.kind==='item'?networkFrontend.useItem(request):request.kind==='feat'?networkFrontend.useFeat(request):request.kind==='mode'?networkFrontend.changeMode(request):request.kind==='innate'?networkFrontend.castSpellLike(request):networkFrontend.castSpell(request));document.querySelector('#network-feedback').textContent=request.kind==='item'?'Item use requested':request.kind==='mode'?'Mode requested':request.kind==='feat'?'Ability requested':'Spell cast requested';return result;},
-  onChange:state=>{canvas.dataset.networkSpellTarget=JSON.stringify(state);canvas.classList.toggle('network-spell-targeting',Boolean(state));if(state)document.querySelector('#network-feedback').textContent='Select a spell target · Esc to cancel';}});
+  submit:async request=>{const result=await(request.kind==='script-target'?networkFrontend.selectScriptTarget(request):request.kind==='item'?networkFrontend.useItem(request):request.kind==='feat'?networkFrontend.useFeat(request):request.kind==='mode'?networkFrontend.changeMode(request):request.kind==='innate'?networkFrontend.castSpellLike(request):networkFrontend.castSpell(request));document.querySelector('#network-feedback').textContent=request.kind==='script-target'?'Target selected':request.kind==='item'?'Item use requested':request.kind==='mode'?'Mode requested':request.kind==='feat'?'Ability requested':'Spell cast requested';return result;},
+  onChange:state=>{canvas.dataset.networkSpellTarget=JSON.stringify(state);canvas.classList.toggle('network-spell-targeting',Boolean(state));if(state)document.querySelector('#network-feedback').textContent=state.scriptTarget?'Select a target · Esc to cancel':'Select a spell target · Esc to cancel';}});
 const networkTiming=new NetworkTimingView(viewport,value=>networkFrontend.resolveText(value));
-const networkExamine=new NetworkExamineView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,resolve:value=>networkFrontend.resolveText(value),getResource:(...args)=>window.nativeNetwork.getResource(networkFrontend.id,...args)});
-const networkPanels=new NetworkPanels(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,quickbar:networkQuickbar,resolve:value=>networkFrontend.resolveText(value),inventory:()=>networkInventory.toggle(),activate:binding=>networkSpellTarget.begin(binding),prepare:request=>networkFrontend.prepareSpell(request),rest:()=>networkFrontend.rest(),panelRequest:(panel,open,page)=>networkFrontend.hudPanel(panel,open,page),attitude:(playerId,likes)=>networkFrontend.playerAttitude(playerId,likes),settings:()=>({wireframe,cameraMode:networkCamera.controller.mode}),setSettings:settings=>{if(settings.wireframe!==undefined&&settings.wireframe!==wireframe)wireButton.click();if(settings.cameraMode!==undefined){const select=document.querySelector('#network-hud [data-camera-mode]');select.value=settings.cameraMode;select.dispatchEvent(new Event('change',{bubbles:true}));}},disconnect:()=>networkFrontend.disconnect(),onVisibility:visible=>{if(visible){radialMenu.close();networkSpellTarget.reset();if(networkInventory.active)void networkInventory.toggle(false);}controls.enabled=!visible&&!networkInventory.active&&!networkDialog.active&&!radialMenu.active;}});
+const networkActionQueue=new NetworkActionQueueView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,quickbar:networkQuickbar,resolve:value=>networkFrontend.resolveText(value),cancel:(actionId,groupId)=>networkFrontend.cancelAction(actionId,groupId),report:(...args)=>runtimeDiagnostics.record(...args)});
+const networkSpeech=new NetworkSpeechView(viewport,{assets:()=>networkQuickbar.assets,tables:()=>networkQuickbar.tables,world:()=>networkFrontend?.id?networkFrontend.world:null,resolve:(value,context,options)=>networkFrontend.resolveText(value,context,options),onNotice:message=>{if(message.category==='journal'){networkParty.encourage('journal');const world=networkFrontend.world;void networkGuiAudio?.play({resRef:message.sound,objectId:world.localObjectId,channel:'gui'});}},send:request=>networkFrontend.chat(request),canSend:()=>networkFrontend?.phase==='playing',canFocus:()=>networkFrontend?.phase==='playing'&&!networkDialog.active&&!networkInventory.active&&!networkPanels.active&&!radialMenu.active});
+const networkDamageOptions=nativeDamageFeedbackOptions();
+// Native game.gore registration6b9987 defaults to1.
+const networkCombatVisualOptions={gore:1};
+networkFloating=new NetworkFloatingTextView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,scene:()=>networkPresentation,camera:()=>camera,canvas:()=>canvas,getResource:(...args)=>nativeNetwork.getResource(networkFrontend.id,...args),report:(...args)=>runtimeDiagnostics.record(...args)});
+const networkFeedback=new NetworkFeedbackView({world:()=>networkFrontend?.id?networkFrontend.world:null,text:()=>networkFrontend?.text,tables:()=>networkQuickbar.tables,display:row=>networkSpeech.append(row),floating:event=>networkFloating.add(event),options:()=>networkDamageOptions,report:(code,message,data)=>runtimeDiagnostics.record(code,message,data)});
+const networkExamine=new NetworkExamineView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,resolve:(value,context,options)=>networkFrontend.resolveText(value,context,options),getResource:(...args)=>nativeNetwork.getResource(networkFrontend.id,...args),assets:()=>networkQuickbar.assets});
+const networkPanels=new NetworkPanels(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,quickbar:networkQuickbar,resolve:value=>networkFrontend.resolveText(value),inventory:()=>networkInventory.toggle(),activate:binding=>networkSpellTarget.begin(binding),prepare:request=>networkFrontend.prepareSpell(request),rest:()=>networkFrontend.rest(),panelRequest:(panel,open,page)=>networkFrontend.hudPanel(panel,open,page),levelUp:request=>networkFrontend.levelUp(request),levelUpResources:async()=>{const id=networkFrontend.id,[base,custom]=await Promise.all([nativeNetwork.talkTable(id,false),nativeNetwork.talkTable(id,true)]);if(networkFrontend.id!==id)throw Error('Level-up resources belong to an old connection');return{resolver:{getResource:(...args)=>nativeNetwork.getResource(id,...args)},text:new GameText({base:parseTalkTable(base),custom:custom?parseTalkTable(custom):null})};},attitude:(playerId,likes)=>networkFrontend.playerAttitude(playerId,likes),settings:()=>({...networkInventoryPreferences,wireframe,cameraMode:networkCamera.controller.mode,floatingFeedback:networkDamageOptions.enabled,damageTotalsOnly:networkDamageOptions.total,gore:networkCombatVisualOptions.gore,shadowCastingLights:rendererShadowBudget.maximum}),setSettings:settings=>{if([1,2,3].includes(settings.shadowCastingLights)){rendererShadowBudget.maximum=settings.shadowCastingLights;try{localStorage.setItem('nwn.graphics.shadowCastingLights',String(settings.shadowCastingLights));}catch{}}if(settings.showCreatureSlots!==undefined){networkInventoryPreferences.showCreatureSlots=Boolean(settings.showCreatureSlots);try{localStorage.setItem('nwn.inventory.showCreatureSlots',String(networkInventoryPreferences.showCreatureSlots));}catch{}}if([0,1,2].includes(settings.gore))networkCombatVisualOptions.gore=settings.gore;if(settings.floatingFeedback!==undefined)networkDamageOptions.enabled=settings.floatingFeedback;if(settings.damageTotalsOnly!==undefined)networkDamageOptions.total=settings.damageTotalsOnly;if(settings.wireframe!==undefined&&settings.wireframe!==wireframe)wireButton.click();if(settings.cameraMode!==undefined){const select=document.querySelector('#network-hud [data-camera-mode]');select.value=settings.cameraMode;select.dispatchEvent(new Event('change',{bubbles:true}));}},disconnect:()=>networkFrontend.disconnect(),onVisibility:(visible,panel)=>{if(panel){if(panel==='journal')networkParty.encourage('journal',false);radialMenu.close();networkSpellTarget.reset();}controls.enabled=!visible&&!networkInventory.active&&!networkDialog.active&&!radialMenu.active;}});
+const networkNui=new NetworkNuiView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,input:request=>networkFrontend.nuiInput(request),resolve:value=>networkFrontend.resolveText(value),image:(name,region)=>recordNuiImage(name,region),assets:()=>networkQuickbar.assets,report:(...args)=>runtimeDiagnostics.record(...args)});
+async function recordNuiImage(name,region){const assets=networkQuickbar.assets;return assets?nuiImage(assets,name,region):null;}
 const networkParty=new NetworkPartyView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,assets:()=>networkQuickbar.assets,tables:()=>networkQuickbar.tables,resolve:(value,id)=>networkFrontend.resolveText(value,id),action:id=>{void networkPanels.open(id);},
   menu:(id,event)=>{const target=networkFrontend.world.registry.get(id);if(target)void openNetworkRadial({object:target},event.clientX,event.clientY);},
   select:id=>{const target=networkFrontend.world.registry.get(id);if(networkSpellTarget.active){void networkSpellTarget.select(target,target.replicated?.position??[0,0,0]).catch(e=>networkQuickbar.failure(e));return;}runtimeDiagnostics.record('network.party-click-unhandled','Native portrait chat/action composition is not connected',{objectId:id});}});
-networkFrontend=new NetworkFrontend({bridge:window.nativeNetwork,
+const networkBuffBar=new NetworkBuffBarView(viewport,{world:()=>networkFrontend?.id?networkFrontend.world:null,assets:()=>networkQuickbar.assets,resolve:(value,id)=>networkFrontend.resolveText(value,id),icon:name=>networkQuickbar.icon(name)});
+networkFrontend=new NetworkFrontend({bridge:nativeNetwork,
+  onMovementSent:sequence=>networkPresentation?.motion.driveSequence(networkFrontend.world.localObjectId,sequence),
+  onCreateCharacter:async id=>{const resolver={getResource:(...args)=>nativeNetwork.getResource(id,...args),getTextureResource:ref=>nativeNetwork.getTextureResource(id,ref),resourceNames:()=>nativeNetwork.creationModels(id),portraitNames:()=>nativeNetwork.creationPortraits(id),portraitAvailability:refs=>nativeNetwork.creationPortraitAvailability(id,refs)},[base,custom]=await Promise.all([nativeNetwork.talkTable(id,false),nativeNetwork.talkTable(id,true)]);if(networkFrontend.id!==id)return null;const text=new GameText({base:parseTalkTable(base),custom:custom?parseTalkTable(custom):null});return characterFrontend.choose(resolver,{create:true,createOnly:true,text,moduleName:networkFrontend.lobby?.characterState?.serverInfo?.moduleName??'Server'});},
   canEnter:()=>{if(moduleLoadBusy||moduleSession?.scheduler.pumping||moduleSession?.transitioning)throw new Error('Wait for the current area or script to finish loading');},
   onEnter:()=>{
-    networkCamera.reset();
-    networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();
+    networkCamera.reset();networkSpeech.reset();networkFeedback.reset();networkFloating.reset();
+    networkActionQueue.reset();networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();networkBuffBar.reset();
     networkSpellTarget.reset();
     networkQuickbar.reset();
     networkInventory.reset();networkDialog.close();radialMenu.close();radialIconCache.clear();
     moduleSession=null;gameUi.mode(false);gameUi.detach();gameAudio?.dispose();gameAudio=null;voicePresentation?.dispose();voicePresentation=null;creatureAnimations?.clear();creatureAnimations=null;clientPause=null;
     void networkPresentation?.dispose();networkPresentation=null;clearLoadedScene();setNetworkControls(true);emptyState.classList.add('hidden');movementHud.hidden=true;areaSelect.hidden=true;
+    networkGuiAudio?.dispose();const audioSession=networkFrontend.id,audioWorld=networkFrontend.world;
+    networkScriptAudio?.dispose();networkAmbientAudio?.dispose();
+    networkGuiAudio=new GameAudio({getResource:(...args)=>nativeNetwork.getResource(audioSession,...args)}, {getObject:id=>audioWorld.registry.get(id),getPlayer:()=>({id:audioWorld.localObjectId}),getListener:()=>{
+      const binding=networkPresentation?.objects.get(audioWorld.localObjectId),point=binding?.wrapper.position,controller=networkCamera.controller;
+      return point?nativeAudioListener([point.x,-point.z,point.y],controller.position,controller.quaternion):null;
+    },onState:state=>{canvas.dataset.networkGuiAudio=JSON.stringify(state);}});
+    networkScriptAudio=new NetworkAudioPresentation({world:()=>audioWorld,output:networkGuiAudio,ready:()=>Boolean(networkPresentation?.root&&!networkPresentation.closed),report:(code,message,context)=>runtimeDiagnostics.record(code,message,context)});
+    networkAmbientAudio=new NetworkAmbientPresentation({output:networkGuiAudio,getResource:(...args)=>nativeNetwork.getAudioResource(audioSession,...args),report:(code,message,context)=>runtimeDiagnostics.record(code,message,context)});
+    networkPlacedSounds?.dispose();networkPlacedSounds=new NetworkPlacedSounds({world:()=>audioWorld,output:networkGuiAudio,report:(code,message,context)=>runtimeDiagnostics.record(code,message,context)});
     diagnosticContext={mode:'multiplayer'};setStatus('CONNECTING TO SERVER',true);
     document.querySelector('.source-tag').textContent='SERVER-OWNED WORLD · MULTIPLAYER';
     document.querySelector('#network-hud').hidden=false;
   },
-  onExit:async()=>{networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();networkQuickbar.reset();networkInventory.reset();networkDialog.close();radialMenu.close();await networkPresentation?.dispose();networkPresentation=null;clearLoadedScene();setNetworkControls(false);setStatus('MULTIPLAYER DISCONNECTED',false);emptyState.classList.remove('hidden');delete canvas.dataset.networkWorld;delete canvas.dataset.networkScene;delete canvas.dataset.networkCombat;delete canvas.dataset.networkProjectiles;document.querySelector('.source-tag').textContent='LOCAL FILE · NOT UPLOADED';document.querySelector('#network-hud').hidden=true;},
+  onExit:async()=>{persistentModelSources.clear();networkNui.reset();networkUiRefreshGeneration++;networkUiRefreshRequested=false;if(characterFrontend.active&&characterFrontend.createOnly)characterFrontend.finish(null);retireNetworkTransition();networkPlacedSounds?.dispose();networkPlacedSounds=null;networkAmbientAudio?.dispose();networkAmbientAudio=null;networkFloating.reset();networkFeedback.reset();networkScriptAudio?.dispose();networkScriptAudio=null;networkGuiAudio?.dispose();networkGuiAudio=null;delete canvas.dataset.networkGuiAudio;delete canvas.dataset.networkAudio;networkSpeech.reset();networkActionQueue.reset();networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();networkBuffBar.reset();networkQuickbar.reset();networkInventory.reset();networkDialog.close();radialMenu.close();await networkPresentation?.dispose();networkPresentation=null;clearLoadedScene();setNetworkControls(false);setStatus('MULTIPLAYER DISCONNECTED',false);emptyState.classList.remove('hidden');delete canvas.dataset.networkWorld;delete canvas.dataset.networkScene;delete canvas.dataset.networkDelivery;delete canvas.dataset.networkCombat;delete canvas.dataset.networkProjectiles;document.querySelector('.source-tag').textContent='LOCAL FILE · NOT UPLOADED';document.querySelector('#network-hud').hidden=true;},
   onArea:async(message,world,resolver,current)=>{
-    networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();
+    networkPlacedSounds?.detach();
+    networkGuiAudio?.clearResourceCache();
+    networkAmbientAudio?.detach();
+    networkScriptAudio?.areaChanged();
+    networkFloating.reset();
+    networkActionQueue.reset();networkExamine.reset();networkTiming.reset();networkPanels.reset();networkParty.reset();networkBuffBar.reset();
     networkSpellTarget.reset();
     networkQuickbar.reset();
     networkInventory.reset();networkDialog.close();radialMenu.close();radialIconCache.clear();
-    await networkPresentation?.dispose();const presentation=new NetworkScene({world,resolver,loadAsset:loadNetworkSceneAsset,
-      instantiate:(asset,name)=>{const root=buildObject(asset.model,asset.textures,asset.override),animator=createModelAnimator(asset.model,root,'Network · '+name,[],{autoIdle:false});return{root,animator,dispose:()=>disposeVisualRoot(root)};},
+    retireNetworkTransition();finishNetworkRendererTransition=networkRendererRetirement.begin();
+    try{await networkPresentation?.dispose();}catch(error){retireNetworkTransition();throw error;}rendererShadowBudget.reset();rendererLightSlots.reset();const workers=new ResourceWorkerPool(),vertexWorkers=new ResourceWorkerPool(),modelSources=new ModelSourceCache(resolver,{parse:bytes=>workers.decode('model',bytes),parseTable:bytes=>workers.decode('2da',bytes),persistent:usePersistentModelPreparation,preparedSources:persistentModelSources});modelSources.workers=workers;const frameWork=import.meta.env.VITE_FRAME_BUDGET_LOADING==='1'?new FrameWorkBudget({budgetMs:()=>rendererWarmupCount?8:2}):null;const presentation=new NetworkScene({world,resolver,frameWork,matrixSubtrees:prepareMatrixSubtrees,cachedRootMatrices:import.meta.env.VITE_CACHED_ROOT_MATRICES==='1',loadTable:name=>modelSources.table(name),loadAsset:(...args)=>loadNetworkSceneAsset(...args,modelSources),cancelResources:()=>{workers.dispose();vertexWorkers.dispose();modelSources.dispose();},releaseSources:()=>{runtimeDiagnostics.record('renderer.resource-workers-retired','Area resource workers retired',{...workers.snapshot(),prefetch:presentation.sourcePrefetch.snapshot(),modelSources:{...modelSources.stats},persistentSources:persistentModelSources.snapshot(),vertexWorkers:vertexWorkers.snapshot(),groundHeightIndex:presentation.retiredGroundHeightIndex,frameWork:presentation.retiredFrameWork,texturePreparation:presentation.texturePreparation?.snapshot()??null});networkRendererRetirement.retire(()=>rendererModelPreparation.releaseArea(presentation.root));},gore:()=>networkCombatVisualOptions.gore,
+      instantiate:(asset,name)=>{const root=buildObject(asset.model,asset.textures,asset.override,{shareGeometry:true,managedMatrices:true}),animator=createModelAnimator(asset.model,root,'Network · '+name,[],{autoIdle:false});return{root,animator,dispose:()=>networkRendererRetirement.retire(()=>disposeVisualRoot(root))};},
       configureShadow:configureLightShadow,
-      releaseAsset:asset=>asset.textures.forEach(t=>t.dispose()),report:(code,reason,data)=>runtimeDiagnostics.record(code,reason,data)});
-    networkPresentation=presentation;
+      oneShot:event=>{if(current()&&networkPresentation===presentation&&!presentation.closed)networkScriptAudio?.oneShot(event);},
+      soundFactory:options=>{if(!current()||networkPresentation!==presentation||presentation.closed)throw new Error('Native visual audio scene is closed');return networkGuiAudio.effectSound(options);},
+      voiceCaption:event=>{runtimeDiagnostics.record('network.quickchat-overhead-unhandled','Native quick-chat overhead and remote-player profile layout are not connected',{objectId:event.actorId});return networkSpeech.receive({channel:1,objectId:event.actorId,contextId:event.actorId,text:{strRef:event.strRef},current:event.current});},
+      prepareAsset:async(asset,name,context)=>{if(presentation.texturePreparation)await presentation.texturePreparation.prepare(asset.textures.values(),{...context,current:()=>!presentation.closed&&networkPresentation===presentation});return rendererModelPreparation.prepare(asset,name,{current:()=>!presentation.closed&&networkPresentation===presentation&&presentation.root.parent===scene&&Boolean(networkFrontend?.id)});},
+      prepareAssets:async(entries,context)=>{if(presentation.texturePreparation)await presentation.texturePreparation.prepare(entries.flatMap(({asset})=>[...asset.textures.values()]),{...context,current:()=>!presentation.closed&&networkPresentation===presentation});return rendererModelPreparation.prepareBatch(entries,{current:()=>!presentation.closed&&networkPresentation===presentation&&presentation.root.parent===scene&&Boolean(networkFrontend?.id)});},
+      releaseAsset:asset=>networkRendererRetirement.retire(()=>{rendererModelPreparation.release(asset);asset.textures.forEach(t=>t.dispose());}),report:(code,reason,data)=>runtimeDiagnostics.record(code,reason,data)});
+    presentation.texturePreparation=frameWork?new RendererTexturePreparation(renderer,frameWork):null;presentation.manageLocalMatrices();
+    presentation.resourceWorkers=workers;presentation.vertexWorkers=vertexWorkers;presentation.graphicsPending=true;networkPresentation=presentation;networkFloating.warm();
+    void Promise.all(Array.from({length:vertexWorkers.size},()=>vertexWorkers.run('particle-vertices',{buffer:new ArrayBuffer(0),frames:[]}))).catch(error=>{if(!vertexWorkers.closed)runtimeDiagnostics.error(error,'particle.vertex-worker-warmup-failed');});
+    rendererWarmupCount++;let graphicsStarted=false;
     try{await presentation.loadArea(message.area);if(!current()||networkPresentation!==presentation){await presentation.dispose();return;}
-      await networkQuickbar.attach(resolver);if(!current()||networkPresentation!==presentation){networkQuickbar.reset();await presentation.dispose();return;}await networkParty.sync();setLoadedScene(presentation.root,new Map());
+      await networkQuickbar.attach(resolver,{loadTable:name=>modelSources.table(name)});networkBuffBar.sync();networkNui.ensureSkin();if(!current()||networkPresentation!==presentation){networkQuickbar.reset();await presentation.dispose();return;}void networkActionQueue.sync().catch(e=>runtimeDiagnostics.error(e,'network.action-queue-sync-failed'));await networkParty.sync();setLoadedScene(presentation.root,new Map());
       await installCameraKeyhole(presentation.root,resolver);if(!current()||networkPresentation!==presentation)return;
       setAreaLighting(presentation.lighting(),presentation.root);frameObject(presentation.root);
       const [x,y,z]=message.position;networkCamera.enterArea([x,z,-y]);focusPlayer({position:new THREE.Vector3(x,z,-y)});grid.visible=false;axes.visible=false;
-      // Compile the area's stable light/material profile while entry is still
-      // loading. Keep DOM/input responsive rather than forcing shader link
-      // completion in the first gameplay render.
-      rendererWarmupCount++;
-      try{rendererLightSlots.update(scene);rendererShadowBudget.update(scene,camera);await renderer.compileAsync(scene,camera);}finally{rendererWarmupCount--;}
-      if(!current()||networkPresentation!==presentation)return;
-      document.querySelector('#model-title').textContent=message.area.name.text??message.area.resRef;document.querySelector('#view-caption').textContent=message.area.resRef.toUpperCase()+' · SERVER WORLD';
-      canvas.dataset.networkWorld=JSON.stringify(world.snapshot());canvas.dataset.networkScene=JSON.stringify(networkSceneSnapshot());
-      document.querySelector('#network-feedback').textContent='Connected';
-    }catch(error){await presentation.dispose();if(networkPresentation===presentation){networkPresentation=null;networkQuickbar.reset();}throw error;}
+      // Import queued state while color/fade/shadow programs prepare together.
+      // Native4/3 admission, drawing and input wait for the graphics barrier.
+      prepareRendererLights(scene,camera,{shadowBudget:rendererShadowBudget,lightSlots:rendererLightSlots,lightSelection:rendererLightSelection,focus:controls.target.toArray()});const shaderPrepareStarted=performance.now();
+      document.querySelector('#network-feedback').textContent='Preparing area graphics';
+      const graphics=startNetworkAreaGraphics(presentation,{retirement:networkRendererRetirement,current:()=>current()&&networkPresentation===presentation,
+        prepare:()=>rendererModelPreparation.prepareArea(presentation.root,{current:()=>current()&&networkPresentation===presentation&&!presentation.closed}),
+        complete:async()=>{
+          runtimeDiagnostics.record('renderer.area-shaders-prepared','Area shader preparation completed',{areaId:message.area.id,durationMs:performance.now()-shaderPrepareStarted,programs:renderer.info.programs?.length??0,keyholeMeshes:cameraKeyhole?.bindings.size??0,lightSlots:rendererLightSlots.state});
+          document.querySelector('#model-title').textContent=message.area.name.text??message.area.resRef;document.querySelector('#view-caption').textContent=message.area.resRef.toUpperCase()+' · SERVER WORLD';
+          canvas.dataset.networkWorld=JSON.stringify(world.snapshot());canvas.dataset.networkScene=JSON.stringify(networkSceneSnapshot());
+          void networkAmbientAudio?.attach(message.area,resolver);networkPlacedSounds?.attach(message.area);document.querySelector('#network-feedback').textContent='Connected';
+        },
+        failed:async error=>{runtimeDiagnostics.error(error,'network.area-graphics-failed');retireNetworkTransition();await presentation.dispose();if(networkPresentation===presentation){networkPresentation=null;networkQuickbar.reset();networkFrontend.showError(error);}},
+        ended:()=>{rendererWarmupCount--;},
+      });graphicsStarted=true;void graphics.catch(error=>runtimeDiagnostics.error(error,'network.area-graphics-cleanup-failed'));return{graphics};
+    }catch(error){retireNetworkTransition();await presentation.dispose();if(networkPresentation===presentation){networkPresentation=null;networkQuickbar.reset();}throw error;}finally{if(!graphicsStarted)rendererWarmupCount--;}
   },
   onDialog:message=>networkDialog.receive(message),
   onInventoryResult:message=>networkInventory.receive(message),
-  onProjectile:header=>networkPresentation?.receiveProjectile(header),
+  onProjectile:header=>{void networkPresentation?.delivery.projectile(header);},
+  onAudio:message=>{if(['voice-play','quick-chat'].includes(message.kind)){void networkPresentation?.voices?.receive(message);return;}return message.kind==='ambient-command'?networkAmbientAudio?.receive(message):message.kind==='sound-object'?networkPlacedSounds?.receive(message):networkScriptAudio?.receive(message);},
   onQuickbar:()=>networkQuickbar.sync(),
-  onParty:()=>networkParty.sync(),
+  onParty:()=>{networkBuffBar.sync();return networkParty.sync();},
   onCamera:message=>{if(networkCamera.receive(message,networkFrontend.world,networkPresentation)){for(const select of document.querySelectorAll('[data-camera-mode]'))select.value=String(networkCamera.controller.mode);}else runtimeDiagnostics.record('network.camera-command-unhandled','Native camera command has no valid presentation handler',message);},
-  onUpdates:async(message,world)=>{networkPresentation?.receiveMovementChanges(world.presentationChanges);await networkPresentation?.sync();networkPresentation?.receiveAnimationChanges(world.presentationChanges);await networkPresentation?.receiveVisualChanges(world.presentationChanges);await networkInventory.sync();await networkQuickbar.sync();await networkParty.sync();await networkPanels.sync();canvas.dataset.networkWorld=JSON.stringify(world.snapshot());canvas.dataset.networkScene=JSON.stringify(networkSceneSnapshot());},
-  onHud:async message=>{if(message.kind==='examine'){radialMenu.close();await networkExamine.receive(message);}else if(message.kind==='gui-timing')await networkTiming.receive(message);else await networkPanels.sync();},
-  onObjectVisual:message=>networkPresentation?.receiveObjectVisual(message),
+  onUpdates:(message,world)=>{canvas.dataset.networkDelivery=JSON.stringify({at:performance.now(),areaId:world.areaId,objectId:world.localObjectId,position:world.registry.get(world.localObjectId)?.replicated.position,pending:networkPresentation?.delivery.pending??0});const presentation=networkPresentation;if(presentation)void presentation.delivery.updates(world.presentationChanges).catch(e=>runtimeDiagnostics.error(e,'network.scene-sync-failed')).finally(()=>{if(networkPresentation===presentation)retireNetworkTransition();});requestNetworkUiRefresh();canvas.dataset.networkWorld=JSON.stringify(world.snapshot());},
+  onHud:async message=>{if(message.kind==='script-targeting'){networkSpellTarget.beginServer();return;}if(message.kind==='script-targeting-data'||message.kind==='spell-targeting-data')return;if(message.kind.startsWith('nui-')){networkNui.sync();return;}if(['combat-feedback','spell-feedback','damage-feedback','attack-feedback','initiative-feedback'].includes(message.kind)){await networkFeedback.receive(message);}else if(message.kind==='tlk-overrides'){networkBuffBar.sync();networkActionQueue.signature=null;void networkActionQueue.sync().catch(e=>runtimeDiagnostics.error(e,'network.action-queue-sync-failed'));await networkQuickbar.sync();await networkParty.sync();await networkPanels.sync();}else if(message.kind==='system-notice'){await networkSpeech.notice(message);}else if(message.kind==='server-speech'){await networkSpeech.receive(message);}else if(message.kind==='container-status'){radialMenu.close();await networkInventory.receiveContainer(message);}else if(message.kind.startsWith('store-')){radialMenu.close();await networkInventory.receiveStore(message);}else if(message.kind==='examine'){radialMenu.close();await networkExamine.receive(message);}else if(message.kind==='gui-timing')await networkTiming.receive(message);else await networkPanels.sync();},
+  onObjectVisual:message=>{void networkPresentation?.delivery.objectVisual(message);},
   // Area resources load independently; their own area/closed guards prevent
   // late attachment. A disk/model read must not hold up canonical updates.
-  onAreaVisual:message=>{void networkPresentation?.receiveAreaVisual(message);},
-  onState:state=>{if(state.closed)networkSpellTarget.reset();setStatus('MULTIPLAYER · '+state.phase.toUpperCase(),!state.closed);canvas.dataset.networkState=JSON.stringify(state);}
+  onAreaVisual:message=>{void networkPresentation?.delivery.areaVisual(message);},
+  onState:state=>{debugShell.gameOnly(!state.closed&&['area-loading','playing'].includes(state.phase));networkSpeech.sync();if(state.closed){networkSpellTarget.reset();rendererModelPreparation.resetPrograms();}setStatus('MULTIPLAYER · '+state.phase.toUpperCase(),!state.closed);canvas.dataset.networkState=JSON.stringify(state);}
 });
 let networkPointerPress=null;
-window.addEventListener('keydown',event=>{if(networkFrontend.id&&networkSpellTarget.active&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();networkSpellTarget.reset();document.querySelector('#network-feedback').textContent='Spell targeting cancelled';}},true);
+window.addEventListener('keydown',event=>{if(networkFrontend.id&&networkSpellTarget.active&&event.key==='Escape'&&!event.target?.closest?.('input,textarea,select,[contenteditable="true"]')){event.preventDefault();event.stopImmediatePropagation();networkSpellTarget.reset();document.querySelector('#network-feedback').textContent='Spell targeting cancelled';}},true);
 canvas.addEventListener('pointerdown',event=>{if(networkFrontend.id&&event.button===0)networkPointerPress={id:event.pointerId,x:event.clientX,y:event.clientY};});
 canvas.addEventListener('pointercancel',()=>{networkPointerPress=null;});
 async function openNetworkRadial(hit,x,y,self=false){
-  if(networkDialog.active||networkInventory.active||networkPanels.active)return;
+  if(characterFrontend.active||gameUi.blocksWorldInput)return;
   const world=networkFrontend.world,actor=world?.registry.get(world.localObjectId);if(!actor)return;
   const target=self?actor:hit?.object,point=hit&&!hit.object?hit.point.toArray():null;
   const id=networkFrontend.id,generation=networkFrontend.areaGeneration,text=networkFrontend.text;
-  try{const options=await prepareNetworkSpellMenus(actor,target,networkQuickbar.tables,{getResource:(...args)=>window.nativeNetwork.getResource(id,...args)},v=>text.resolve(v,actor.id),(code,message,data)=>runtimeDiagnostics.record(code,message,data),{familiar:networkFamiliar(networkFrontend.world,actor)});if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||actor.id!==networkFrontend.world?.localObjectId||networkDialog.active||networkInventory.active||networkPanels.active)return;
+  try{const options=await prepareNetworkSpellMenus(actor,target,networkQuickbar.tables,{getResource:(...args)=>nativeNetwork.getResource(id,...args)},v=>text.resolve(v,actor.id),(code,message,data)=>runtimeDiagnostics.record(code,message,data),{familiar:networkFamiliar(networkFrontend.world,actor)});if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||actor.id!==networkFrontend.world?.localObjectId||characterFrontend.active||gameUi.blocksWorldInput)return;
     const nativePoint=target?[...(target.replicated?.position??target.staticState?.position??[0,0,0])]:point?[point[0],-point[2],point[1]]:[0,0,0];
     radialMenu.open(networkRadialActions(target,actor,options),x,y,{network:true,sessionId:id,areaGeneration:generation,actorId:actor.id,targetId:target?.id??actor.id,spellTargetId:target?.id??OBJECT_INVALID,nativePoint,groundPoint:point});
   }catch(error){if(id===networkFrontend.id&&generation===networkFrontend.areaGeneration){document.querySelector('#network-feedback').textContent=error.message;runtimeDiagnostics.error(error,'network.radial-menu-failed');}}
@@ -2606,6 +2758,8 @@ async function openNetworkRadial(hit,x,y,self=false){
 async function activateNetworkItem(itemId){
   const world=networkFrontend.world,item=world?.registry.get(itemId),sessionId=networkFrontend.id,generation=networkFrontend.areaGeneration;if(!item)throw new Error('Native inventory item is unavailable');
   if(networkSpellTarget.active)return networkSpellTarget.select(item,[0,0,0]);
+  if(item.inventoryLocation?.channel==='C')return networkInventory.submit(itemId,'move',{destinationId:world.localObjectId});
+  const containerTable=await networkFrontend.inventoryBaseItems();if(world!==networkFrontend.world||sessionId!==networkFrontend.id||generation!==networkFrontend.areaGeneration)throw new Error('Item activation belongs to an old area');if(intEntry(containerTable,item.item.baseItem,'Container').value!==0)return networkFrontend.interact(itemId,'object.use');
   const configured=configureNetworkItemShortcut(world,networkQuickbar.tables,emptyQuickbarButton(),{itemId,intParam:0xff00ff},{report:(...args)=>runtimeDiagnostics.record(...args)});if(!configured)throw new Error('That item cannot be activated');
   if((configured.button.intParam&65535)!==255)return networkSpellTarget.begin(configured.button);
   const table=await networkFrontend.inventoryBaseItems();if(world!==networkFrontend.world||sessionId!==networkFrontend.id||generation!==networkFrontend.areaGeneration)throw new Error('Item activation belongs to an old area');if(intEntry(table,item.item.baseItem,'EquipableSlots').value!==0)return networkInventory.submit(itemId,'toggle');
@@ -2615,7 +2769,7 @@ async function openNetworkInventoryRadial(itemId,name,event){
   const world=networkFrontend.world,actor=world?.registry.get(world.localObjectId),item=world?.registry.get(itemId);if(!actor||!item||networkDialog.active)return;
   if(networkSpellTarget.active){void networkSpellTarget.select(item,[0,0,0]).catch(error=>networkInventory.failure(error));return;}
   const id=networkFrontend.id,generation=networkFrontend.areaGeneration,inventoryGeneration=networkInventory.generation,text=networkFrontend.text;
-  try{const options=await prepareNetworkSpellMenus(actor,item,networkQuickbar.tables,{getResource:(...args)=>window.nativeNetwork.getResource(id,...args)},v=>text.resolve(v,actor.id),(code,message,data)=>runtimeDiagnostics.record(code,message,data),{filter:8,familiar:networkFamiliar(networkFrontend.world,actor)});if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||actor.id!==networkFrontend.world?.localObjectId||inventoryGeneration!==networkInventory.generation||!networkInventory.active)return;
+  try{const options=await prepareNetworkSpellMenus(actor,item,networkQuickbar.tables,{getResource:(...args)=>nativeNetwork.getResource(id,...args)},v=>text.resolve(v,actor.id),(code,message,data)=>runtimeDiagnostics.record(code,message,data),{filter:8,familiar:networkFamiliar(networkFrontend.world,actor)});if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||actor.id!==networkFrontend.world?.localObjectId||inventoryGeneration!==networkInventory.generation||!networkInventory.active)return;
     options.itemUseEntries=await prepareNetworkItemMenu(world,itemId,networkQuickbar.tables,v=>text.resolve(v,actor.id),(...args)=>runtimeDiagnostics.record(...args),{quickbarToken:networkQuickbar.token,alive:()=>networkFrontend.world===world&&id===networkFrontend.id&&generation===networkFrontend.areaGeneration&&actor.id===world.localObjectId&&inventoryGeneration===networkInventory.generation&&networkInventory.active});
     if(id!==networkFrontend.id||generation!==networkFrontend.areaGeneration||inventoryGeneration!==networkInventory.generation||!networkInventory.active)return;
     const menu=networkRadialActions(item,actor,options);menu.title=name;radialMenu.open(menu,event.clientX,event.clientY,{network:true,inventory:true,sessionId:id,areaGeneration:generation,actorId:actor.id,targetId:item.id,spellTargetId:item.id,nativePoint:[0,0,0]});
@@ -2625,7 +2779,9 @@ async function submitNetworkRadialAction(entry,context){
   const feedback=document.querySelector('#network-feedback');
   try{
     if(context.sessionId!==networkFrontend.id||context.areaGeneration!==networkFrontend.areaGeneration||context.actorId!==undefined&&context.actorId!==networkFrontend.world?.localObjectId)throw new Error('Radial target is no longer available');
-    if(entry.action==='object.examine'){await networkFrontend.examine(context.targetId);}
+    if(entry.action==='character.sheet'){await networkPanels.open('character');}
+    else if(entry.action==='spell.variant'){if(context.familyToken!==networkQuickbar.token||!spellFamilyContains(networkQuickbar.tables,context.familyParent,entry.binding.intParam))throw new Error('Spell variant is no longer available');await networkSpellTarget.begin(entry.binding);}
+    else if(entry.action==='object.examine'){await networkFrontend.examine(context.targetId);}
     else if(entry.action==='item.use'&&entry.binding){await networkSpellTarget.beginItem(entry.binding.itemId,entry.binding.packed);}
     else if(entry.action==='spell.cast'){const targetId=context.spellTargetId??context.targetId,target=targetId===OBJECT_INVALID?null:networkFrontend.world.registry.get(targetId);if(targetId!==OBJECT_INVALID&&!target)throw new Error('Spell target is no longer available');await networkSpellTarget.radial(entry.binding,target,context.nativePoint);}
     else if(entry.action==='spellLike.use'){const targetId=context.spellTargetId??context.targetId,target=targetId===OBJECT_INVALID?null:networkFrontend.world.registry.get(targetId);if(targetId!==OBJECT_INVALID&&!target)throw new Error('Ability target is no longer available');await networkSpellTarget.radialInnate(entry.binding,target,context.nativePoint);}
@@ -2634,7 +2790,7 @@ async function submitNetworkRadialAction(entry,context){
     else if(entry.action==='associate.command')await networkFrontend.associateCommand(context.targetId,entry.command);
     else if(entry.action==='associate.quickChat')await networkFrontend.quickChat(entry.quickChat);
     else if(entry.action==='rest')await networkFrontend.rest();
-    else if(entry.action==='item.pickup')await networkFrontend.itemAction({itemId:context.targetId,operation:'pickup'});
+    else if(entry.action==='item.pickup'){const item=networkFrontend.world.registry.get(context.targetId);if(item?.inventoryLocation?.channel==='C')await networkInventory.submit(item.id,'move',{destinationId:networkFrontend.world.localObjectId});else await networkFrontend.itemAction({itemId:context.targetId,operation:'pickup'});}
     else if(context.inventory&&['item.use','item.drop'].includes(entry.action)){
       const item=networkFrontend.world.registry.get(context.targetId);if(!item)throw new Error('Native inventory item is unavailable');
       if(entry.action==='item.drop')await networkInventory.submit(item.id,'drop');
@@ -2642,7 +2798,7 @@ async function submitNetworkRadialAction(entry,context){
     }else if(entry.action==='movement.moveTo'&&context.groundPoint){const [x,y,z]=context.groundPoint;await networkFrontend.walkTo([x,-z,y],true);}
     else{
       const action=({'placeable.use':'object.use','combat.bash':'combat.attack'})[entry.action]??entry.action;
-      if(!['door.open','door.close','door.transition','conversation.start','object.use','combat.attack'].includes(action)){
+      if(!['door.open','door.close','door.transition','trigger.transition','conversation.start','object.use','combat.attack'].includes(action)){
         runtimeDiagnostics.record('network.interaction-unimplemented','Native interaction handler is not connected',{action:entry.action,objectId:context.targetId});feedback.textContent=entry.label+' is not connected yet';return;
       }
       await networkFrontend.interact(context.targetId,action,context.run??true);
@@ -2651,19 +2807,25 @@ async function submitNetworkRadialAction(entry,context){
   }catch(error){feedback.textContent=error.message;runtimeDiagnostics.error(error,'network.interaction-failed');}
 }
 canvas.addEventListener('contextmenu',event=>{if(networkFrontend.id)event.preventDefault();});
+canvas.addEventListener('pointerdown',event=>{if(networkFrontend.id&&event.button===0)networkKeyboard.clear();});
 canvas.addEventListener('pointerdown',event=>{
-  if(!networkFrontend.id||!networkPresentation||networkDialog.active||networkInventory.active||networkPanels.active||networkExamine.active||event.button!==2)return;
+  if(!networkFrontend.id||!networkPresentation||networkPresentation.graphicsPending||rendererWarmupCount||characterFrontend.active||gameUi.blocksWorldInput||event.button!==2)return;
   if(networkSpellTarget.active){event.preventDefault();networkSpellTarget.reset();document.querySelector('#network-feedback').textContent='Spell targeting cancelled';return;}
   event.preventDefault();const hit=networkPresentation.pick(pointerRay(event.clientX,event.clientY,canvas.getBoundingClientRect(),camera),{includePlayer:true});
   if(hit)openNetworkRadial(hit,event.clientX,event.clientY);
 });
 canvas.addEventListener('pointerup',event=>{
   const press=networkPointerPress;networkPointerPress=null;
-  if(!networkFrontend.id||!networkPresentation||networkDialog.active||networkInventory.active||networkPanels.active||!press||event.button!==0||press.id!==event.pointerId||Math.hypot(event.clientX-press.x,event.clientY-press.y)>5)return;
+  if(!networkFrontend.id||!networkPresentation)return;
+  const blocked=networkPresentation.graphicsPending||rendererWarmupCount?'graphics':characterFrontend.active||gameUi.blocksWorldInput?'frontend':!press?'no-press':event.button!==0?'button':press.id!==event.pointerId?'pointer':Math.hypot(event.clientX-press.x,event.clientY-press.y)>5?'drag':null;
+  if(blocked){canvas.dataset.networkPick=JSON.stringify({at:Date.now(),blocked,targeting:networkSpellTarget.active});return;}
   const feedback=document.querySelector('#network-feedback'),hit=networkPresentation.pick(pointerRay(event.clientX,event.clientY,canvas.getBoundingClientRect(),camera),{includePlayer:networkSpellTarget.active});
+  canvas.dataset.networkPick=JSON.stringify({at:Date.now(),blocked:null,targeting:networkSpellTarget.active,screen:[event.clientX,event.clientY],hit:hit?{objectId:hit.object?.id??null,objectType:hit.object?.objectType??null,point:hit.point.toArray(),distance:hit.distance}:null});
   if(!hit){feedback.textContent='Select walkable ground';return;}
   if(networkSpellTarget.active){const point=hit.point.toArray();void networkSpellTarget.select(hit.object??null,[point[0],-point[2],point[1]]).catch(error=>{feedback.textContent=error.message;runtimeDiagnostics.error(error,'network.spell-target-failed');});return;}
   if(hit.object){const action=networkDefaultInteraction(hit.object);if(action)void submitNetworkRadialAction({action,label:'Interaction'},{network:true,sessionId:networkFrontend.id,areaGeneration:networkFrontend.areaGeneration,targetId:hit.object.id,run:!event.shiftKey});else{runtimeDiagnostics.record('network.interaction-unimplemented','Native default interaction is not connected',{objectId:hit.object.id,objectType:hit.object.objectType});feedback.textContent='No interaction is available';}return;}
   const point=hit.point.toArray(),native=[point[0],-point[2],point[1]];
   void networkFrontend.walkTo(native,!event.shiftKey).then(({sequence})=>{feedback.textContent='Move requested';canvas.dataset.networkMove=JSON.stringify({sequence,position:native,run:!event.shiftKey});runtimeDiagnostics.record('network.walk-requested','Native waypoint request sent',{sequence,position:native,run:!event.shiftKey},'info');}).catch(error=>{feedback.textContent=error.message;runtimeDiagnostics.error(error,'network.walk-request-failed');});
 });
+
+

@@ -21,6 +21,10 @@ export function parseTalkTokens(input,state,p){
   if(input[at]!==60){at++;continue;}
   if(input[at+1]===60){if(state.suppression4c===0)append(input.subarray(segment,at+1));segment=at+2;at+=2;changed=true;continue;}
   if(state.suppression4c===0)append(input.subarray(segment,at));
+  // Rich presentation callers preserve fixed-width native color controls.
+  // Without this optional boundary the original ParseStr behavior is intact.
+  const control=p.controlLength?.(input,at)??0;
+  if(control>0&&at+control<=end){if(state.suppression4c===0)append(input.subarray(at,at+control));at+=control;segment=at;changed=true;continue;}
   let close=at+1;while(close<end&&input[close]!==62)close++;
   if(close===end)throw new Error('Native unterminated talk token can read beyond its string buffer');
   const name=input.subarray(at+1,close);let replacement=unknown;

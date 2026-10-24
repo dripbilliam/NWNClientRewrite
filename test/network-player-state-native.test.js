@@ -13,6 +13,15 @@ import {loadNetworkObjectRules} from '../src/network_object_rules.js';
 const fixture=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-network-player-state-observations.json',import.meta.url)));
 function decode(row){const {case:c}=row,bytes=Buffer.from(row.packet,'hex').subarray(3),errors=[],r=new NativeMessageReader(c.format,{diagnose:e=>errors.push(e)});assert.equal(r.setReadMessage(bytes,bytes.length,0xffffffff,1),1);const result=readObjectUpdates(r,{clientBuild:c.build,skillCount:c.skillCount});assert.equal(result.complete,true);assert.equal(r.messageReadOverflow(),0);assert.equal(r.messageReadUnderflow(),0);assert.deepEqual(errors,[]);assert.equal(result.records.length,1);return result.records[0];}
 
+test('incoming native layouts follow the authenticated server build even with a newer installed client',()=>{
+ const clientBuild={number:8193,revision:37,postfix:17};
+ for(const row of fixture.cases.filter(r=>r.case.format===1)){
+  const packet=Buffer.from(row.packet,'hex');packet.set([80,5,1]);
+  const actual=decodeServerGameMessage(packet,{clientBuild,serverBuild:row.case.build,objectRules:{skillCount:row.case.skillCount}});
+  assert.equal(actual.complete,true);assert.deepEqual(actual.records,[decode(row)]);
+ }
+});
+
 test('198 original PlayerUpdate executions cover masks, native difference loops and build-dependent layouts',()=>{
  assert.equal(fixture.target,'3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a');assert.equal(fixture.cases.length,198);
  for(const row of fixture.cases){const c=row.case,d=decode(row),s=d.state;assert.equal(d.action,'player-state');assert.equal(d.id,0xffffffff);assert.equal(d.mask,c.mask);

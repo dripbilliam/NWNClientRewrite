@@ -1,0 +1,110 @@
+extends "res://systems/draggable_panel.gd"
+
+signal request(message: Dictionary)
+const Text = preload("res://systems/server_text.gd")
+var body: RichTextLabel
+var replies: VBoxContainer
+var end_button: Button
+var entry_id := -1
+var pending := false
+var opened := false
+var reply_ids: Array[int] = []
+
+func setup(storage: String = "user://native-menu-layout.cfg") -> void:
+	close_hides = false
+	configure("Conversation", "local-dialog", Vector2(550, 200), storage)
+	body = Text.label({}, 540)
+	body.custom_minimum_size.y = 75
+	content.add_child(body)
+	var scroller := ScrollContainer.new()
+	scroller.custom_minimum_size = Vector2(560, 280)
+	content.add_child(scroller)
+	replies = VBoxContainer.new()
+	replies.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroller.add_child(replies)
+	end_button = Button.new()
+	end_button.text = "End conversation"
+	end_button.focus_mode = Control.FOCUS_NONE
+	end_button.pressed.connect(func(): choose(4294967295, true))
+	content.add_child(end_button)
+	close_requested.connect(func(): choose(4294967295, true))
+	reset()
+
+func clear_replies() -> void:
+	for child in replies.get_children():
+		replies.remove_child(child)
+		child.queue_free()
+	reply_ids.clear()
+
+func reset() -> void:
+	opened = false
+	entry_id = -1
+	pending = false
+	clear_replies()
+	body.clear()
+	hide()
+
+func present(message: Dictionary) -> void:
+	match message.kind:
+		"dialog-close": reset()
+		"dialog-entry":
+			opened = true
+			entry_id = -1
+			pending = false
+			end_button.disabled = true
+			clear_replies()
+			Text.set_text(body, message.get("rich", {"text": message.get("text", "")}))
+			show()
+			move_to_front()
+		"dialog-replies":
+			if not opened:
+				return
+			clear_replies()
+			entry_id = int(message.entryId)
+			pending = false
+			end_button.disabled = false
+			for row in message.replies:
+				var reply_id := int(row.id)
+				reply_ids.append(reply_id)
+				var button := Text.reply_button(row.get("rich", {"text": row.get("text", "")}), reply_ids.size())
+				button.pressed.connect(func(): choose(reply_id))
+				replies.add_child(button)
+		"dialog-error":
+			if int(message.get("entryId", -1)) != entry_id:
+				return
+			pending = false
+			for button in replies.get_children():
+				button.disabled = false
+			end_button.disabled = entry_id < 0
+		"dialog-selected":
+			# Server-selected transcript, kept as received; no local DLG execution.
+			if opened:
+				Text.append(body, {"text": "\n"})
+				Text.append(body, message.get("rich", {}))
+
+func choose(reply_id: int, abort: bool = false) -> void:
+	if not opened or entry_id < 0 or pending or not abort and reply_id not in reply_ids:
+		return
+	pending = true
+	for button in replies.get_children():
+		button.disabled = true
+	end_button.disabled = true
+	request.emit({"kind": "reply", "entryId": entry_id, "replyId": reply_id, "abort": abort})
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not visible or not event is InputEventKey or not event.pressed or event.echo:
+		return
+	var focus := get_viewport().gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit:
+		return
+	for sibling in get_parent().get_children():
+		if sibling is PanelContainer and sibling.visible and sibling.get_index() > get_index():
+			return
+	if event.keycode == KEY_ESCAPE:
+		choose(4294967295, true)
+		get_viewport().set_input_as_handled()
+	elif event.keycode >= KEY_1 and event.keycode <= KEY_9:
+		var index: int = int(event.keycode) - KEY_1
+		if index < reply_ids.size():
+			choose(reply_ids[index])
+			get_viewport().set_input_as_handled()

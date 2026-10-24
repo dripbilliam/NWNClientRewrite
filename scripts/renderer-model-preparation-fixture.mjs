@@ -1,0 +1,52 @@
+import * as THREE from 'three';
+import {RendererModelPreparation} from '../src/renderer_model_preparation.js';
+import {RendererLightSlots,prepareRendererLights} from '../src/renderer_light_slots.js';
+import {RendererShadowBudget} from '../src/renderer_shadow_budget.js';
+import {createModelEmitter} from '../src/model_particles.js';
+const check=(value,message)=>{if(!value)throw Error(message);};
+window.runAreaPollingFixture=async()=>{
+ const make=()=>{const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(640,480);renderer.shadowMap.enabled=true;document.body.append(renderer.domElement);const get=renderer.extensions.get.bind(renderer.extensions);renderer.extensions.get=name=>name==='KHR_parallel_shader_compile'?null:get(name);const scene=new THREE.Scene(),root=new THREE.Group(),camera=new THREE.PerspectiveCamera(45,4/3,.1,100),material=new THREE.MeshLambertMaterial({color:0xc58649}),mesh=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),material);mesh.castShadow=true;root.add(mesh);scene.add(root,new THREE.AmbientLight(0xffffff,2));camera.position.set(0,1,6);camera.lookAt(0,0,0);return{renderer,scene,root,camera,mesh,material};};
+ // Exercise Three's real delayed material poll. The extension lookup selects
+ // its documented timer path deterministically; compile/link/GPU are real.
+ const control=make();let oldError=null;const capture=event=>{oldError=event.error?.message??event.message;event.preventDefault();};window.addEventListener('error',capture);
+ try{void control.renderer.compileAsync(control.scene,control.camera);control.material.dispose();const until=performance.now()+3000;while(!oldError){if(performance.now()>until)throw Error('Old live-material race was not reproduced');await new Promise(r=>setTimeout(r,10));}check(/isReady/.test(oldError),'Unexpected control failure: '+oldError);}finally{window.removeEventListener('error',capture);control.renderer.dispose();control.mesh.geometry.dispose();control.renderer.domElement.remove();}
+ const current=make(),owner=new RendererModelPreparation({...current}),errors=[];let disposed=0;const captureNew=event=>{errors.push(event.message);event.preventDefault();};window.addEventListener('error',captureNew);let timer;
+ try{
+  const pending=owner.prepareArea(current.root);await Promise.resolve();const record=owner.areas.get(current.root),warm=record.colors.children[0].material;check(warm!==current.material,'Compiler retained a live material');warm.addEventListener('dispose',()=>disposed++);
+  current.mesh.material=current.material.clone();current.material.dispose();check(disposed===0,'Warm program retired during polling');const ready=await Promise.race([pending,new Promise((_,reject)=>timer=setTimeout(()=>reject(Error('Retained preparation did not finish')),5000))]);clearTimeout(timer);check(ready,'Area did not become ready');check(!errors.length,'Current poll raised an error');
+  current.renderer.render(current.scene,current.camera);const gl=current.renderer.getContext(),pixels=new Uint8Array(640*480*4);gl.readPixels(0,0,640,480,gl.RGBA,gl.UNSIGNED_BYTE,pixels);const colored=pixels.reduce((n,v,i)=>n+Number(i%4===0&&v>50),0);check(colored>1000,'Prepared area did not render');check(gl.getError()===gl.NO_ERROR,'WebGL error');owner.releaseArea(current.root);await Promise.resolve();await Promise.resolve();check(disposed===1,'Retained material was not released after completion');current.renderer.render(current.scene,current.camera);check(gl.getError()===gl.NO_ERROR,'Retirement damaged live rendering');
+  return{scope:'Actual Three/WebGL compiler, deterministic delayed polling, live-material disposal and retained area color/fade/shadow owners; synthetic geometry, no server join',oldLiveMaterialFailure:oldError,currentReady:ready,currentErrors:errors,clonedColorMaterial:true,retiredAfterPoll:true,coloredPixels:colored,screenshot:current.renderer.domElement.toDataURL('image/png')};
+ }finally{clearTimeout(timer);window.removeEventListener('error',captureNew);owner.dispose();current.mesh.material.dispose();current.mesh.geometry.dispose();current.renderer.dispose();}
+};
+window.runPreparationFixture=async()=>{
+ const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(640,480);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;document.body.append(renderer.domElement);
+ const errors=[],notes=[];renderer.debug.onShaderError=()=>errors.push('shader compile/link failure');
+ const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(45,640/480,.1,100);scene.background=new THREE.Color(0x16212a);camera.position.set(0,4,12);camera.lookAt(0,0,0);scene.add(new THREE.AmbientLight(0x333333));
+ const baseline=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),new THREE.MeshLambertMaterial({color:0x83978f}));baseline.position.x=-2;baseline.castShadow=baseline.receiveShadow=true;scene.add(baseline);
+ for(let i=0;i<34;i++){const light=new THREE.PointLight(0x445566,.08,40);light.position.set(i%5-2,5,Math.floor(i/5));light.castShadow=i<13;light.shadow.mapSize.set(32,32);scene.add(light);}
+ const slots=new RendererLightSlots(renderer,(...e)=>notes.push(e)),budget=new RendererShadowBudget({renderer,report:(...e)=>notes.push(e)});
+ const update=()=>prepareRendererLights(scene,camera,{lightSlots:slots,shadowBudget:budget});update();renderer.render(scene,camera);
+ const texture=new THREE.DataTexture(new Uint8Array([180,100,80,255]),1,1);texture.needsUpdate=true;const asset={texture};let liveRoot=null;
+ const createRoot=()=>{
+  const root=new THREE.Group(),mesh=new THREE.Mesh(new THREE.BoxGeometry(2,2,2),new THREE.MeshLambertMaterial({map:texture,alphaTest:.2,flatShading:true}));mesh.castShadow=mesh.receiveShadow=true;mesh.position.x=2;root.add(mesh,new THREE.PointLight(0x22aa88,.5,20));
+  const emitter=createModelEmitter({name:'synthetic_emitter',properties:{texture:'fixture',twosidedtex:1}},new Map([['fixture',texture]]),'synthetic');
+  emitter.geometry.setAttribute('position',new THREE.Float32BufferAttribute([-.5,0,1,.5,0,1,0,1,1],3));emitter.geometry.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,.5,1],2));emitter.geometry.setAttribute('particleColor',new THREE.Float32BufferAttribute([1,1,1,1,1,1,1,1,1,1,1,1],4));emitter.visible=true;root.add(emitter);return root;
+ };
+ const destroyRoot=root=>root.traverse(o=>{o.geometry?.dispose();for(const m of Array.isArray(o.material)?o.material:o.material?[o.material]:[])m.dispose();});
+ const owner=new RendererModelPreparation({renderer,scene,camera,createRoot,destroyRoot,profile:()=>JSON.stringify([update().slots.point.capacity,budget.state.admitted]),report:(...e)=>notes.push(e)});
+ const gl=renderer.getContext(),read=()=>{const data=new Uint8Array(640*480*4);gl.readPixels(0,0,640,480,gl.RGBA,gl.UNSIGNED_BYTE,data);return data;},before=read(),initialPrograms=renderer.info.programs.length,liveChildren=scene.children.length;
+ let heartbeats=0;const timer=setInterval(()=>heartbeats++,10),started=performance.now();
+ try{
+  await owner.prepare(asset,'synthetic-new-model');clearInterval(timer);const preparationMs=performance.now()-started,preparedPrograms=renderer.info.programs.length;
+  check(renderer.getRenderTarget()===null,'Preparation leaked its shadow render target');check(scene.children.length===liveChildren,'Preparation attached an object or light');renderer.render(scene,camera);const untouched=read();let unchangedPixels=true;for(let i=0;i<before.length;i++)if(before[i]!==untouched[i]){unchangedPixels=false;break;}check(unchangedPixels,'Preparation changed the live scene');
+  liveRoot=createRoot();liveRoot.traverse(o=>{if(o.userData.mdlEmitter)o.material.side=THREE.DoubleSide;});scene.add(liveRoot);update();const drawStarted=performance.now();renderer.render(scene,camera);const drawMs=performance.now()-drawStarted,drawPrograms=renderer.info.programs.length;
+  check(drawPrograms===preparedPrograms,'Real model draw compiled another program: '+JSON.stringify({preparedPrograms,drawPrograms}));
+  liveRoot.traverse(o=>{for(const material of Array.isArray(o.material)?o.material:o.material?[o.material]:[]){material.transparent=!material.transparent;material.opacity=.5;material.needsUpdate=true;}});renderer.render(scene,camera);check(renderer.info.programs.length===preparedPrograms,'A later model fade compiled another program');
+  const after=read();let changedBytes=0;for(let i=0;i<before.length;i++)changedBytes+=Number(before[i]!==after[i]);check(changedBytes>100,'New model did not affect rendered pixels');check(errors.length===0,'Shader errors');check(gl.getError()===gl.NO_ERROR,'WebGL error');
+  if(preparationMs>100)check(heartbeats>0,'Compilation blocked the event loop');
+  const areaBefore=read(),areaStarted=performance.now();await owner.prepareArea(scene);const areaPreparationMs=performance.now()-areaStarted,areaPrograms=renderer.info.programs.length;renderer.render(scene,camera);const areaAfter=read();check(areaBefore.every((v,i)=>v===areaAfter[i]),'Area preparation changed source pixels');
+  baseline.material.transparent=true;baseline.material.opacity=.5;baseline.material.needsUpdate=true;renderer.render(scene,camera);check(renderer.info.programs.length===areaPrograms,'A later static-area fade compiled another program');owner.releaseArea(scene);await Promise.resolve();await Promise.resolve();renderer.render(scene,camera);check(errors.length===0&&gl.getError()===gl.NO_ERROR,'Area retirement broke the live draw');
+  const screenshot=renderer.domElement.toDataURL('image/png');owner.release(asset);await Promise.resolve();await Promise.resolve();renderer.render(scene,camera);check(errors.length===0,'Actual model lost its program when cache owner retired');
+  return{preparationMs,drawMs,areaPreparationMs,areaPrograms,areaPixelsUnchanged:true,staticFadeNoNewPrograms:true,heartbeats,initialPrograms,preparedPrograms,drawPrograms,changedBytes,unchangedPixels,parallelCompile:renderer.extensions.has('KHR_parallel_shader_compile'),state:owner.snapshot(),errors,notes,screenshot,scope:'Actual WebGL new textured/alpha-tested model plus whole-area color/fade/shadow preparation, retained programs and static fade reuse; synthetic scene/resources, no native gameplay or live multiplayer acceptance.'};
+ }finally{clearInterval(timer);owner.dispose();if(liveRoot)destroyRoot(liveRoot);destroyRoot(baseline);texture.dispose();slots.dispose();renderer.dispose();}
+};

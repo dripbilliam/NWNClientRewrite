@@ -1,0 +1,17 @@
+// CPU samples only: inclusive times overlap and are not GPU timings.
+import fs from 'node:fs/promises';import {SourceMap} from 'node:module';import {createHash} from 'node:crypto';import assert from 'node:assert/strict';
+const dir=new URL('../backups/animations/',import.meta.url),hash=b=>createHash('sha256').update(b).digest('hex');
+const manifest=JSON.parse(await fs.readFile(new URL('creation-performance-entry-source-v1.json',dir))),mapBytes=await fs.readFile(new URL(manifest.map,dir)),bundleBytes=await fs.readFile(new URL('../dist/assets/'+manifest.bundle,import.meta.url));
+assert.equal(hash(mapBytes),manifest.mapSha256);assert.equal(hash(bundleBytes),manifest.sha256);const map=new SourceMap(JSON.parse(mapBytes));
+const reportName=process.argv[2]??'creation-performance-entry-window-v1.json',report=JSON.parse(await fs.readFile(new URL(reportName,dir)));assert.equal(report.bundle,manifest.bundle);
+const results=[];
+for(const item of report.profiles){
+ const bytes=await fs.readFile(new URL(item.file,dir));assert.equal(hash(bytes),item.sha256);const p=JSON.parse(bytes);assert.equal(p.samples.length,p.timeDeltas.length);
+ const nodes=new Map(p.nodes.map(n=>[n.id,n])),parents=new Map(),labels=new Map(),functions=new Map(),sources=new Map();for(const n of p.nodes)for(const id of n.children??[])parents.set(id,n.id);
+ for(const n of p.nodes){const f=n.callFrame;let source=f.url||'<native or VM>',line=f.lineNumber,name=f.functionName||'<anonymous>';if(f.url.endsWith('/'+manifest.bundle)){const e=map.findEntry(f.lineNumber,f.columnNumber);if(e.originalSource!==undefined){source=e.originalSource;line=e.originalLine;name=e.name??name;}}if(['(idle)','(garbage collector)','(program)','(root)'].includes(name))source=name;labels.set(n.id,{source,line:line+1,name});}
+ const add=(table,key,ms,label)=>{const row=table.get(key)??{...label,selfMs:0,inclusiveMs:0};table.set(key,row);return row;};let totalUs=0;
+ for(let i=0;i<p.samples.length;i++){const ms=p.timeDeltas[i]/1000;assert.ok(Number.isFinite(ms)&&ms>=0);totalUs+=p.timeDeltas[i];let id=p.samples[i],first=true;const seen=new Set(),seenFunctions=new Set(),seenNodes=new Set();while(id!==undefined){assert.ok(!seenNodes.has(id),'Stack cycle');seenNodes.add(id);const label=labels.get(id);assert.ok(label,'Unknown sample node');const key=JSON.stringify(label);if(!seenFunctions.has(key)){const row=add(functions,key,ms,label);row.inclusiveMs+=ms;if(first)row.selfMs+=ms;seenFunctions.add(key);}if(!seen.has(label.source)){const row=add(sources,label.source,ms,{source:label.source});row.inclusiveMs+=ms;if(first)row.selfMs+=ms;seen.add(label.source);}first=false;id=parents.get(id);}}
+ const sorted=t=>[...t.values()].sort((a,b)=>b.selfMs-a.selfMs).map(r=>({...r,selfMs:+r.selfMs.toFixed(3),inclusiveMs:+r.inclusiveMs.toFixed(3)}));
+ results.push({phase:item.name,file:item.file,samples:p.samples.length,durationMs:(p.endTime-p.startTime)/1000,sampledMs:totalUs/1000,topSelfSources:sorted(sources).slice(0,40),topSelfFunctions:sorted(functions).slice(0,60),topInclusiveSources:sorted(sources).sort((a,b)=>b.inclusiveMs-a.inclusiveMs).slice(0,30)});
+}
+const output={scope:'Renderer CPU stack samples; network/idle waits are included in elapsed time; no GPU timings or causal attribution from a single run',bundle:manifest.bundle,mapSha256:manifest.mapSha256,results};await fs.writeFile(new URL(reportName.replace('.json','-cpu-summary.json'),dir),JSON.stringify(output,null,2)+'\n');console.log(JSON.stringify(output));

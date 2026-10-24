@@ -145,7 +145,9 @@ test('native quaternion-vector identity branches and transform preserve componen
 });
 
 test('tile loader diagnoses unimplemented math branches/binary sections and malformed geometry instead of accepting viewer approximations', () => {
-  assert.throws(() => parseTileSurfaceMesh(tileText('0 0 1 100'), surfaces()), /trigonometric input/);
+  // The mapped CRT reduction now supports half-angles below500000. Keep
+  // testing the unsupported boundary rather than rejecting a supported angle.
+  assert.throws(() => parseTileSurfaceMesh(tileText('0 0 1 1000000'), surfaces()), /trigonometric input/);
   assert.throws(() => parseTileSurfaceMesh(tileText().replace('verts 5', 'verts 5 b'), surfaces()), /binary/);
   assert.throws(() => parseTileSurfaceMesh(tileText().replace('4 1 2', '5 1 2'), surfaces()), /outside/);
   assert.throws(() => parseTileSurfaceMesh(tileText(), null), /surfacemat/);

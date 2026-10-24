@@ -31,19 +31,22 @@ export function readServerResourceRequirements(reader){
 // silently turn a server's requirements into locally simulated content.
 export async function resolveServerResources(requirements,{language=null,findFile,findManifest,onDiagnostic=diagnostic}){
  const resolved=[],missing=[];
- const need=async(kind,name,lookup)=>{
-  let value=null;try{value=lookup?await lookup(name):null;}catch{onDiagnostic({code:'network.resource-resolution-failed',reason:'Required server resource lookup failed',kind,name});}
-  if(value)resolved.push({kind,name,resource:value});else{missing.push({kind,name});onDiagnostic({code:'network.resource-unavailable',reason:'Required server resource is unavailable',kind,name});}
+ const need=async(kind,name,lookup,required=true)=>{
+  let value=null;try{value=lookup?await lookup(name):null;}catch{onDiagnostic({code:'network.resource-resolution-failed',reason:'Server resource lookup failed',kind,name,required});}
+  if(value)resolved.push({kind,name,resource:value});else{if(required)missing.push({kind,name});onDiagnostic({code:'network.resource-unavailable',reason:required?'Required server resource is unavailable':'Optional server resource is unavailable',kind,name,required});}
  };
  const ad=requirements.advertisement;
  if(ad){
-  if(ad.hash)await need('nwsync',ad.hash,findManifest);else{missing.push({kind:'nwsync',name:null});onDiagnostic({code:'network.resource-invalid',reason:'Primary NWSync manifest hash is empty or invalid'});}
+  if(ad.hash)await need('nwsync',ad.hash,findManifest?hash=>findManifest(hash,{advertisement:ad}):null);else{missing.push({kind:'nwsync',name:null});onDiagnostic({code:'network.resource-invalid',reason:'Primary NWSync manifest hash is empty or invalid'});}
   for(const manifest of ad.manifests)if(shouldLoadManifest(manifest,language)){
-   if(manifest.hash)await need('nwsync',manifest.hash,findManifest);else{missing.push({kind:'nwsync',name:null});onDiagnostic({code:'network.resource-invalid',reason:'Required additional NWSync manifest hash is empty or invalid'});}
+   const required=Boolean(manifest.flags&1);
+   if(manifest.hash)await need('nwsync',manifest.hash,findManifest?hash=>findManifest(hash,{advertisement:ad,manifest}):null,required);else{if(required)missing.push({kind:'nwsync',name:null});onDiagnostic({code:'network.resource-invalid',reason:'Additional NWSync manifest hash is empty or invalid',required});}
   }
  }
- for(const [kind,name,extension]of [['tlk',requirements.customTlk,'tlk'],['nwm',requirements.nwmResourceName,'nwm'],...requirements.haks.map(name=>['hak',name,'hak'])]){
-  if(name)await need(kind,name,findFile?value=>findFile(kind,value,extension):null);
+ // Native LoadModuleResources7cdd20 mounts the archives before opening the
+ // alternate talk table, which can itself be a registered resource.
+ for(const [kind,name,extension]of [['nwm',requirements.nwmResourceName,'nwm'],...requirements.haks.map(name=>['hak',name,'hak']),['tlk',requirements.customTlk,'tlk']]){
+  if(name)await need(kind,name,findFile?value=>findFile(kind,value,extension,{resolved}):null);
   else if(kind==='hak'){missing.push({kind,name});onDiagnostic({code:'network.resource-invalid',reason:'Required HAK resource reference is empty'});}
  }
  return{ready:missing.length===0,resolved,missing};

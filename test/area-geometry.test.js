@@ -36,6 +36,7 @@ test('geometry resource caches stay within the active resolver and use new surfa
   assert.equal(await original.geometry.lineWalkable([5, 5], [6, 5]), 1);
   assert.equal(await override.geometry.lineWalkable([5, 5], [6, 5]), 0);
   assert.notEqual((await original.geometry.tile(0, 0)).mesh, (await override.geometry.tile(0, 0)).mesh);
+  const a=original.geometry.providers({cached:true}).tile(original.area,0,0),b=override.geometry.providers({cached:true}).tile(override.area,0,0);assert.notEqual(typeof a.then,'function');assert.notEqual(a,b);assert.notEqual(a.mesh,b.mesh);
 });
 
 test('unavailable tile resource failures are retained, reported with IDs and never replaced with free space', async () => {

@@ -67,7 +67,7 @@ def hook(u,a,n,data):
  if a in [0x14029dd90,0x14029dc80]:nameCalls.append(dict(kind='model'if a==0x14029dd90 else'icon',part=z&255,number=k&65535,variant=u.mem_read(sp+0x28,1)[0]))
  if any(lo<=a<hi for lo,hi in ranges):return
  t.hook(u,a,n,data)
-u.hook_add(UC_HOOK_CODE,hook)
+hook_handle=u.hook_add(UC_HOOK_CODE,hook)
 def setup(case):
  global c,stringCursor,probes,loads,plays,diagnostics,instance,nameCalls
  c=case;stringCursor=0xc0000;probes=[];loads=[];plays=[];diagnostics=[];instance=0;nameCalls=[];t.reset(dict(format=1));u.mem_write(base+0x16,bytes([c['modelType']]));u.mem_write(base+0x40,c['prefix'].encode()+b'\0');u.mem_write(base+0x58,b'iit_bag\0');u.mem_write(base+0x69,c['defaultModel'].encode()+b'\0');m.wi(base+0x84,c.get('variantFlag',0));m.wq(0x1412df8f8,rules);m.wq(rules+0x20,base);m.wq(rules+0x130,rules)

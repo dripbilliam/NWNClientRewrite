@@ -46,7 +46,8 @@ test('installed retail overrides base while both catalogs retain local BIF resou
   resolver.haks.push({ name: 'custom', entries: new Map([['shared:2017', encode('HAK shared')]]) });
   assert.equal(await text('shared'), 'HAK shared');
   resolver.module.entries.set('shared:2017', encode('module shared'));
-  assert.equal(await text('shared'), 'module shared');
+  assert.equal(await text('shared'), 'HAK shared', 'Native HAK30/31M takes priority over module22/23M');
+  resolver.haks=[];assert.equal(await text('shared'), 'module shared');
 });
 
 test('a corrupt selected retail resource fails without substituting lower-priority base data', async () => {
@@ -55,6 +56,11 @@ test('a corrupt selected retail resource fails without substituting lower-priori
   await assert.rejects(resolver.getResource('shared', 2017), /BIF header/);
   assert.equal(decodeResourceText(await resolver.getResource('baseonly', 2017)), 'base only');
   await assert.rejects(ResourceResolver.createGameData([...files(), file('duplicate/nwn_retail.key', key('data/retail.bif', ['shared']))]), /uniquely locate/);
+});
+
+test('installed localization has native3M priority and retains its own BIF index',async()=>{
+ const resolver=await ResourceResolver.createGameData([...files(),file('lang/en/data/nwn_base_loc.key',key('lang/en/data/localized.bif',['shared'])),file('lang/en/data/localized.bif',bif(['localized shared']))]);
+ assert.equal(decodeResourceText(await resolver.getResource('shared',2017)),'localized shared');assert.deepEqual(resolver.key.sources,['nwn_base_loc.key','nwn_retail.key','nwn_base.key']);assert.equal(decodeResourceText(await resolver.getResource('baseonly',2017)),'base only');
 });
 
 test('EffectDamage constructs a canonical uint64 effect from active damage type row count and exposes native script type', async () => {

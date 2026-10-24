@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {commitLocalMatrix} from './managed_local_matrix.js';
 import {applyModelControllers} from './model_controller_apply.js';
 import {animateModelHierarchy} from './model_animation_hierarchy.js';
 import {EMITTER_RUNTIME_FIELDS} from './mdl_emitter.js';
@@ -6,15 +7,18 @@ import {updateModelLight} from './model_light.js';
 import {controlReferencePart} from './model_references.js';
 const f=Math.fround,BASIS=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2),INVERSE=BASIS.clone().invert();
 const common=new Map([[16,3],[28,4],[44,1]]),lightFields={104:['color',3],116:['radius',1],124:['shadowradius',1],128:['verticaldisplacement',1],168:['multiplier',1]};
+let scalarPoseTransfer=false;
+export function setScalarPoseTransfer(enabled){scalarPoseTransfer=Boolean(enabled);}
 
 // Renderer field views around the checked controller/hierarchy owners. This
 // is not a native Part allocator, scene scheduler or culling implementation.
 // Buffers retain overlapping BYTE/float writes and per-frame channel state;
 // physical IDs and source node identity replace name-only binding.
 export class ModelNativePose{
- constructor(model,root,report=()=>{}){
+ constructor(model,root,report=()=>{},{scalarTransfer}={}){
   if(!model.nativeRoot)throw new Error('Native binary model node storage is unavailable');
   this.model=model;this.root=root;this.report=report;this.failures=new Set();this.scale=1;this.motionRun=null;
+  this.scalarTransfer=scalarTransfer;this.poseQuaternion=new THREE.Quaternion();
   const groups=new Map();root.traverse(object=>{
    if(object.userData.mdlModel!==model.modelName||!Number.isInteger(object.userData.mdlNodeIndex))return;
    const index=object.userData.mdlNodeIndex;if(groups.has(index))throw new Error('Native physical Part binding is ambiguous');groups.set(index,object);
@@ -28,7 +32,11 @@ export class ModelNativePose{
    if(source.type==='light'){
     for(const [offset,[,size]]of Object.entries(lightFields))part.fields.set(Number(offset),size);
     part.view.setFloat32(168,1,true);part.field8c=Number(source.properties.isdynamic)|0;
-   }else if(source.type==='trimesh'){part.fields.set(168,1);part.view.setFloat32(168,1,true);}
+   }else if(source.type==='trimesh'){
+    // PartTriMesh087fd0 initializes selfillumcolor80..88 to zero and alphaA8
+    // to one. Mesh ParseField0931a0 binds the vector controller to80.
+    part.fields.set(128,3);part.fields.set(168,1);part.view.setFloat32(168,1,true);
+   }
    else if(source.type==='emitter'){
     for(const [offset,name]of Object.entries(EMITTER_RUNTIME_FIELDS))part.fields.set(Number(offset),name.startsWith('color')?3:1);
     part.view.setFloat32(0xe8,1,true);for(const offset of [0x224,0x225,0x226])part.view.setUint8(offset,255);
@@ -71,9 +79,20 @@ export class ModelNativePose{
  }
  flush(){
   for(const part of this.parts){
-   const object=part.object,position=this.read(part,16,3),[w,x,y,z]=this.read(part,28,4),scale=this.read(part,44,1)[0];
+   const object=part.object;
+   if(this.scalarTransfer??scalarPoseTransfer){
+    // Same little-endian float fields and quaternion multiplication order as
+    // the ordinary adapter, without temporary arrays/quaternions per Part.
+    for(const [offset,count]of common)if(part.fields.get(offset)!==count)throw new Error(`Native ${part.source.type} controller field ${offset}/${count} is unavailable`);
+    const v=part.view,px=v.getFloat32(16,true),py=v.getFloat32(20,true),pz=v.getFloat32(24,true),w=v.getFloat32(28,true),x=v.getFloat32(32,true),y=v.getFloat32(36,true),z=v.getFloat32(40,true),scale=v.getFloat32(44,true);
+    if(!Number.isFinite(px)||!Number.isFinite(py)||!Number.isFinite(pz)||!Number.isFinite(w)||!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(z)||!Number.isFinite(scale))throw new Error('Native controller produced a non-finite scene pose');
+    object.position.set(px,pz,-py);object.quaternion.copy(BASIS).multiply(this.poseQuaternion.set(x,y,z,w)).multiply(INVERSE);object.scale.setScalar(scale);
+   }else{
+   const position=this.read(part,16,3),[w,x,y,z]=this.read(part,28,4),scale=this.read(part,44,1)[0];
    if(![...position,w,x,y,z,scale].every(Number.isFinite))throw new Error('Native controller produced a non-finite scene pose');
    object.position.set(position[0],position[2],-position[1]);object.quaternion.copy(BASIS).multiply(new THREE.Quaternion(x,y,z,w)).multiply(INVERSE);object.scale.setScalar(scale);
+   }
+   commitLocalMatrix(object);
    if(part.source.type==='emitter'){
     const properties=object.userData.mdlEmitterProperties??=structuredClone(part.source.properties??{});
     for(const [offset,name]of Object.entries(EMITTER_RUNTIME_FIELDS)){
@@ -83,7 +102,9 @@ export class ModelNativePose{
     for(const [offset,[name,count]]of Object.entries(lightFields)){const value=this.read(part,Number(offset),count);light.userData.mdlLight[name]=count===1?value[0]:value;}updateModelLight(light);
    }else if(part.source.type==='trimesh'){
     const opacity=Math.max(0,Math.min(1,this.read(part,168,1)[0]));
+    const selfillum=this.read(part,128,3);if(!selfillum.every(Number.isFinite))throw new Error('Native self-illumination controller produced a non-finite color');
     for(const mesh of object.children.filter(child=>child.isMesh))for(const material of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
+     material.emissive?.setRGB(...selfillum,THREE.SRGBColorSpace);
      material.opacity=opacity;if(material.userData.mdlOpacityDriven)material.visible=opacity>0;
      const authored=material.userData.mdlTransparencyHint??Boolean(part.source.transparencyHint);material.transparent=authored||opacity<1;material.depthWrite=!authored&&opacity>=1;
      if(material.userData.animationTransparent!==material.transparent){material.needsUpdate=true;material.userData.animationTransparent=material.transparent;}

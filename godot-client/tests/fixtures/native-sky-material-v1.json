@@ -1,0 +1,709 @@
+{
+  "target": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Execute original PartTriMesh::Mat1400a2f50 for sky/fade object flags.\nSynthetic mesh/material/scene pointers; texture/custom-shader/driver operations\nare explicit lower boundaries. Captures original color/alpha and blend-mode\nrequests, plus the actual GL blend table. No GPU or live process mutation.\n",
+  "fog": [
+    0.125,
+    0.375,
+    0.75
+  ],
+  "blendTable": [
+    770,
+    771,
+    1,
+    0,
+    774,
+    768,
+    773,
+    0
+  ],
+  "rows": [
+    {
+      "case": {
+        "sky": 0,
+        "fade": 0,
+        "alpha": 0.5,
+        "weight": 0
+      },
+      "calls": [
+        {
+          "kind": "material-blend"
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 0,
+        "alpha": 0.5,
+        "weight": 0.25
+      },
+      "calls": [
+        {
+          "kind": "material-blend"
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 0,
+        "alpha": 0.5,
+        "weight": 0.5
+      },
+      "calls": [
+        {
+          "kind": "material-blend"
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 0,
+        "alpha": 0.5,
+        "weight": 1
+      },
+      "calls": [
+        {
+          "kind": "material-blend"
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 0,
+        "alpha": 1,
+        "weight": 0
+      },
+      "calls": [
+        {
+          "kind": "material-blend"
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 0,
+        "alpha": 1,
+        "weight": 0.25
+      },
+      "calls": [
+        {
+          "kind": "material-blend"
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 0,
+        "alpha": 1,
+        "weight": 0.5
+      },
+      "calls": [
+        {
+          "kind": "material-blend"
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 0,
+        "alpha": 1,
+        "weight": 1
+      },
+      "calls": [
+        {
+          "kind": "material-blend"
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 1,
+        "alpha": 0.5,
+        "weight": 0
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 1,
+        "alpha": 0.5,
+        "weight": 0.25
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 1,
+        "alpha": 0.5,
+        "weight": 0.5
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 1,
+        "alpha": 0.5,
+        "weight": 1
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 1,
+        "alpha": 1,
+        "weight": 0
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 1,
+        "alpha": 1,
+        "weight": 0.25
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 1,
+        "alpha": 1,
+        "weight": 0.5
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 0,
+        "fade": 1,
+        "alpha": 1,
+        "weight": 1
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 0,
+        "alpha": 0.5,
+        "weight": 0
+      },
+      "calls": [
+        {
+          "kind": "blend",
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 0,
+        "alpha": 0.5,
+        "weight": 0.25
+      },
+      "calls": [
+        {
+          "kind": "blend",
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.125
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 0,
+        "alpha": 0.5,
+        "weight": 0.5
+      },
+      "calls": [
+        {
+          "kind": "blend",
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.25
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 0,
+        "alpha": 0.5,
+        "weight": 1
+      },
+      "calls": [
+        {
+          "kind": "blend",
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 0,
+        "alpha": 1,
+        "weight": 0
+      },
+      "calls": [
+        {
+          "kind": "blend",
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 0,
+        "alpha": 1,
+        "weight": 0.25
+      },
+      "calls": [
+        {
+          "kind": "blend",
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.25
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 0,
+        "alpha": 1,
+        "weight": 0.5
+      },
+      "calls": [
+        {
+          "kind": "blend",
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 0,
+        "alpha": 1,
+        "weight": 1
+      },
+      "calls": [
+        {
+          "kind": "blend",
+          "value": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "color",
+          "value": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 1,
+        "alpha": 0.5,
+        "weight": 0
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 1,
+        "alpha": 0.5,
+        "weight": 0.25
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 1,
+        "alpha": 0.5,
+        "weight": 0.5
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 1,
+        "alpha": 0.5,
+        "weight": 1
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 1,
+        "alpha": 1,
+        "weight": 0
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 1,
+        "alpha": 1,
+        "weight": 0.25
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 1,
+        "alpha": 1,
+        "weight": 0.5
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "case": {
+        "sky": 1,
+        "fade": 1,
+        "alpha": 1,
+        "weight": 1
+      },
+      "calls": [
+        {
+          "kind": "color",
+          "value": [
+            0.125,
+            0.375,
+            0.75,
+            1.0
+          ]
+        }
+      ]
+    }
+  ]
+}

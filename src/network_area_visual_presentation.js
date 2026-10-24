@@ -5,6 +5,7 @@ import {intEntry} from './combat_stats.js';
 import {subtractWorldTimes} from './world_timer.js';
 import {networkVisualIdentity} from './network_visual_presentation.js';
 import {setModelLightPriority} from './model_light.js';
+import {effectSoundProviders} from './native_effect_sound.js';
 const clips={1:'impact',2:'duration',3:'cessation'};
 
 // CNWCVisualEffect uses client type11/internal IDs. It is independent of the
@@ -12,7 +13,7 @@ const clips={1:'impact',2:'duration',3:'cessation'};
 export class NetworkAreaVisualPresentation{
  constructor(scene){this.scene=scene;this.active=new Set();this.closed=false;this.received=0;this.failed=0;}
  note(e,code,message,data={}){e.reported??=new Set();const key=code+JSON.stringify(data);if(!e.reported.has(key)){e.reported.add(key);this.scene.report(code,message,{visualId:e.visual180,...data});}}
- providers(){const s=this.scene,owner=this;return{
+ providers(){const s=this.scene,owner=this,sounds=effectSoundProviders(s.soundFactory?resRef=>s.soundFactory({resRef,channel:'area-visual'}):null,resRef=>s.report('network.area-visual-audio-unhandled','Native area visual duration sound output is not connected',{resource:resRef}));return{
   now:()=>s.combat.timer.time(),difference:(a,b)=>subtractWorldTimes(a,b,s.combat.timer.dayLength),
   quality:()=>1,int:(id,key)=>intEntry(s.tables.visualeffects,id,key),float:(id,key)=>nativeFloatEntry(s.tables.visualeffects,id,key),string:(id,key)=>nativeStringEntry(s.tables.visualeffects,id,key),
   loadModel:async(e,name)=>{const asset=await s.visuals.asset(name);if(owner.closed||s.closed||e.destroyed)return 0;e.model=s.visuals.createModel(asset,name);e.model.root.userData.areaVisualId=e.visual180;setModelLightPriority(e.model.root,11);return 1;},
@@ -22,9 +23,8 @@ export class NetworkAreaVisualPresentation{
   speed40:()=>{s.report('network.area-visual-speed-unverified','Native special visual speed configuration is unavailable');return 1;},
   animationLength:(e,phase)=>Math.fround((e.model.model.animations.find(a=>a.name===clips[phase])?.length??0)*1000),
   play:(e,phase,speed,flags,time)=>e.model.animator.playNative(clips[phase]??String(phase),{speed,flags,time}),
-  oneShot:(name,position,height,priority)=>{if(name)s.report('network.area-visual-audio-unhandled','Native area visual audio output is not connected',{resource:name,position,height,priority});},
-  createSound:resRef=>({resRef}),sound3d:(o,v)=>o.is3d=v,soundPriority:(o,v)=>o.priority=v,soundLooping:(o,v)=>o.looping=v,
-  playSound:o=>{if(o.resRef)s.report('network.area-visual-audio-unhandled','Native area visual duration sound output is not connected',{resource:o.resRef});},stopSound:()=>{},destroySound:()=>{},updateSound:()=>{},
+  oneShot:(name,position,height,priority,delay,volume)=>{if(!name)return;if(s.oneShot)s.oneShot({resRef:name,nativePosition:position,height,priority,delay,volume,channel:'area-visual'});else s.report('network.area-visual-audio-unhandled','Native area visual audio output is not connected',{resource:name,position,height,priority});},
+  ...sounds,sound3d:(o,v)=>sounds.soundSetting(o,'setting1401d9e90',v),soundPriority:(o,v)=>sounds.soundSetting(o,'setting1401da060',v),soundLooping:(o,v)=>sounds.soundSetting(o,'setting1401d9f90',v),
   setScene:(e,scene)=>{if(!scene)e.model?.root.removeFromParent();},destroy:e=>owner.destroy(e)
  };}
  async receive(message){
