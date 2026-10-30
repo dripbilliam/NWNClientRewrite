@@ -18,8 +18,8 @@ config/features=PackedStringArray("4.7", "Forward Plus")
 
 window/size/viewport_width=1424
 window/size/viewport_height=921
+window/size/no_focus=true
 window/vsync/vsync_mode=0
-window/subwindows/embed_subwindows=true
 
 [rendering]
 

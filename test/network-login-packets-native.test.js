@@ -44,3 +44,13 @@ test('missing identity inputs and unsafe length overflows fail explicitly',()=>{
  assert.throws(()=>connectRequest({...c,platformId:undefined}),/unavailable/);
  assert.throws(()=>validationResponse({keyResponse:'',communityResponse:'',passwordResponse:0}),/unavailable/);
 });
+
+test('BNDP preserves the native TLK reason and bounded optional text',async()=>{
+ const {readDisconnectResponse}=await import('../src/network_login_packets.js');
+ const tag=[66,78,68,80],packet=Uint8Array.of(...tag,0xd4,0x28,0,0,4,0,84,101,115,116);
+ assert.deepEqual(readDisconnectResponse(packet),{strRef:10452,text:'Test'});
+ assert.deepEqual(readDisconnectResponse(Uint8Array.from(tag)),{strRef:null,text:''});
+ for(let length=8;length<packet.length;length++)assert.deepEqual(readDisconnectResponse(packet.subarray(0,length)),{strRef:10452,text:''});
+ const oversized=Uint8Array.of(...tag,0,0,0,0,0,4,...new Uint8Array(1024));assert.equal(readDisconnectResponse(oversized).text,'');
+ assert.throws(()=>readDisconnectResponse(Uint8Array.of(66,78,68)),/Truncated/);
+});

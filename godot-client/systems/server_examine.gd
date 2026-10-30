@@ -5,12 +5,16 @@ var state: Dictionary = {}
 var body: VBoxContainer
 var portrait: TextureRect
 var title_text: RichTextLabel
+var native_skin
+var scroll: ScrollContainer
+var detail_width:=440.0
+var detail_font:=17
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Examine", "local-examine", Vector2(90, 90), storage)
 	title_text = Text.label({}, 500)
 	content.add_child(title_text)
-	var scroll := ScrollContainer.new()
+	scroll = ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(560, 400)
 	content.add_child(scroll)
 	var row := HBoxContainer.new()
@@ -46,22 +50,41 @@ func present(message: Dictionary) -> void:
 		return
 	state = message.duplicate(true)
 	Text.set_text(title_text, message.get("name", {"text": "Examine"}))
-	for key in ["condition", "reaction", "description"]:
-		if message.has(key):
-			body.add_child(Text.label(message[key], 440))
-	for row in message.get("facts", []):
-		body.add_child(Text.label({"text": str(row.name) + ":"}, 440))
-		body.add_child(Text.label(row.rich, 440))
-	for key in ["properties", "effects"]:
-		var values: Array = message.get(key, [])
-		if not values.is_empty():
-			body.add_child(Text.label({"text": "Item properties" if key == "properties" else "Effects"}, 440))
-			for value in values:
-				body.add_child(Text.label(value.rich if key == "properties" else value, 440))
-	for warning in message.get("warnings", []):
-		body.add_child(Text.label({"text": str(warning)}, 440))
+	show()
+	if native_skin!=null: native_skin.present(message)
+	render_details(message)
 	show()
 	move_to_front()
+
+func detail(rich: Dictionary) -> RichTextLabel:
+	var label:=Text.label({},detail_width); label.add_theme_font_size_override("normal_font_size",detail_font)
+	if native_skin!=null: native_skin.style_detail(label)
+	Text.set_text(label,rich); return label
+func render_details(message: Dictionary) -> void:
+	for child in body.get_children():
+		body.remove_child(child); child.queue_free()
+	var original_body: bool=native_skin!=null and message.has("nativeBody")
+	body.add_theme_constant_override("separation",0 if original_body else 4)
+	if original_body: body.add_child(detail(message.nativeBody))
+	else:
+		for key in ["condition", "reaction", "description"]:
+			if message.has(key): body.add_child(detail(message[key]))
+		for row in message.get("facts", []):
+			body.add_child(detail({"text": str(row.name) + ":"}))
+			body.add_child(detail(row.rich))
+	for key in ["properties", "effects"]:
+		var values: Array = message.get(key, [])
+		if not values.is_empty() or key=="properties" and int(message.get("propertyCount",0))>0:
+			body.add_child(detail(message.get("propertyHeading",{"text":"Item properties"}) if key=="properties" else {"text":"Effects"}))
+			for value in values:
+				body.add_child(detail(value.rich if key == "properties" else value))
+	for warning in message.get("warnings", []):
+		body.add_child(detail({"text": str(warning)}))
+	if native_skin!=null: native_skin.details_changed()
+func refresh_properties(properties: Array,warnings: Array,target_id: int,revision: int) -> bool:
+	if not visible or int(state.get("targetId",-1))!=target_id or int(state.get("revision",-1))!=revision: return false
+	state.properties=properties.duplicate(true); state.warnings=warnings.duplicate()
+	render_details(state); return true
 
 func set_portrait(message: Dictionary) -> bool:
 	if not visible or state.is_empty() or int(message.get("revision", -1)) != int(state.get("revision", -2)) or int(message.get("targetId", -1)) != int(state.get("targetId", -2)):
@@ -75,3 +98,7 @@ func set_portrait(message: Dictionary) -> bool:
 	portrait.texture = ImageTexture.create_from_image(image)
 	portrait.show()
 	return true
+
+func set_native_portrait(texture: Texture2D,target_id: int,revision: int) -> bool:
+	if texture==null or not visible or int(state.get("targetId",-1))!=target_id or int(state.get("revision",-1))!=revision: return false
+	portrait.texture=texture; portrait.show(); return true

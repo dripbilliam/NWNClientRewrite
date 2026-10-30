@@ -11,6 +11,7 @@ var skin: Dictionary = {}
 var fonts: Dictionary = {}
 var images: Dictionary = {}
 var boxes: Dictionary = {}
+var native_skin_ids: Array=[]
 var resources_dirty := false
 var retired_windows: Array = []
 var retired_resources: Array = []
@@ -23,12 +24,25 @@ func skin_ready() -> bool:
 	for row in fonts.values():
 		if not resources.get(int(row.get("resourceId", -1))) is FontFile: return false
 	return true
+func install_native_skin(source: Dictionary,native_fonts: Dictionary,native_images: Dictionary) -> void:
+	# Local native preparation bypasses the legacy encoded resource protocol.
+	for id in native_skin_ids: resources.erase(id)
+	native_skin_ids.clear(); skin=source.tables.duplicate(true); fonts.clear(); images.clear(); boxes.clear()
+	var serial:=0; var font_ids: Dictionary={}
+	for id in resources: serial=maxi(serial,int(id))
+	for spec in source.fonts:
+		var resref:=str(spec.get("resref",""))
+		if not native_fonts.has(resref): continue
+		if not font_ids.has(resref): serial+=1; font_ids[resref]=serial; resources[serial]=native_fonts[resref]; native_skin_ids.append(serial)
+		var row: Dictionary=spec.duplicate(true); row.resourceId=font_ids[resref]; fonts[str(row.name)]=row
+	for name in native_images: serial+=1; images[name]=serial; resources[serial]=native_images[name]; native_skin_ids.append(serial)
+	statistics.resources=resources.size(); resources_dirty=true
 func reset() -> void:
 	json_packets.reset()
 	if not windows.is_empty(): retired_windows = windows.values().map(func(value): return weakref(value))
 	if not resources.is_empty(): retired_resources = (resources.values() + theming.derived.values()).map(func(value): return weakref(value))
 	for window in windows.values(): window.retire()
-	windows.clear(); resources.clear(); transfers.clear(); skin.clear(); fonts.clear(); images.clear(); boxes.clear(); theming.invalidate(); resources_dirty = false
+	windows.clear(); resources.clear(); transfers.clear(); skin.clear(); fonts.clear(); images.clear(); boxes.clear(); native_skin_ids.clear(); theming.invalidate(); resources_dirty = false
 func retired_state() -> Dictionary:
 	return {"windows": retired_windows.filter(func(value): return value.get_ref() != null).size(), "resources": retired_resources.filter(func(value): return value.get_ref() != null).size()}
 func accepts(id: int) -> bool: return windows.has(id) and windows[id].accepts()

@@ -54,14 +54,20 @@ func submit(value: String) -> void:
 	if value.strip_edges().is_empty():
 		return
 	var message := {"kind": "chat", "channel": channel.get_selected_id(), "text": value}
+	var tell:=RegEx.new(); tell.compile('^/t\\s+(?:"([^"]+)"|(\\S+))\\s+(.*)$'); var match_tell:=tell.search(value)
+	if match_tell!=null:
+		message.channel=4; message.recipient=match_tell.get_string(1) if not match_tell.get_string(1).is_empty() else match_tell.get_string(2); message.text=match_tell.get_string(3)
+		if str(message.text).strip_edges().is_empty(): return
 	if message.channel == 4:
-		if recipient.text.strip_edges().is_empty():
+		if not message.has("recipient") and recipient.text.strip_edges().is_empty():
 			append_message({"system": true, "text": "Enter a Tell recipient first."})
 			return
-		message.recipient = recipient.text
+		if not message.has("recipient"): message.recipient = recipient.text
 	request.emit(message)
 	entry.clear()
 	entry.release_focus()
+func prime_tell(name: String) -> void:
+	channel.select(0); recipient.hide(); entry.text='/t "'+name+'" '; entry.grab_focus(); entry.caret_column=entry.text.length()
 
 func reset() -> void:
 	rows.clear()

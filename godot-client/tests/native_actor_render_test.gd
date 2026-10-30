@@ -11,6 +11,20 @@ const Cache=preload("res://systems/native_data/prepared_cache.gd")
 var checks:=0
 var failures: Array=[]
 var started:=0
+func compare_vertices(reference,candidate) -> Dictionary:
+	var maximum:=0.0; var vertices:=0
+	check(reference.meshes.size()==candidate.meshes.size(),"Skeletal candidate retains every original mesh")
+	for mesh_index in mini(reference.meshes.size(),candidate.meshes.size()):
+		var old: MeshInstance3D=reference.meshes[mesh_index]; var next: MeshInstance3D=candidate.meshes[mesh_index]
+		var old_mesh: Mesh=old.bake_mesh_from_current_skeleton_pose() if old.skin!=null else old.mesh
+		var next_mesh: Mesh=next.bake_mesh_from_current_skeleton_pose()
+		check(old_mesh.get_surface_count()==next_mesh.get_surface_count(),"Original surface count survives native skeletal assembly")
+		for surface in mini(old_mesh.get_surface_count(),next_mesh.get_surface_count()):
+			var a: PackedVector3Array=old_mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]; var b: PackedVector3Array=next_mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+			check(a.size()==b.size(),"Original vertex topology survives native skeletal assembly")
+			for index in mini(a.size(),b.size()): maximum=maxf(maximum,(old.global_transform*a[index]).distance_to(next.global_transform*b[index])); vertices+=1
+	check(maximum<0.00002,"Every original posed rigid/weighted world vertex agrees within 2e-5: "+str(maximum))
+	return {"maximum_world_vertex_error":maximum,"vertices":vertices,"meshes":candidate.meshes.size()}
 func _initialize() -> void: call_deferred("run")
 func check(value: bool,label: String) -> void:
 	checks+=1
@@ -64,7 +78,10 @@ func run() -> void:
 		if not completed.has(jobs[index]): continue
 		var bundle: Dictionary=completed[jobs[index]]; check(str(bundle.error).is_empty(),"Original actor piece prepares: "+str(descriptors[index].model)+" "+str(bundle.error))
 		var piece: Dictionary=descriptors[index].duplicate(); piece.bundle=bundle; pieces.append(piece)
-	var host:=Node3D.new(); root.add_child(host); var pool:=Pool.new(); pool.unshaded=true; var actor:=Actor.new(); host.add_child(actor)
+	var host:=Node3D.new(); root.add_child(host); var pool:=Pool.new(); pool.unshaded=true; var actor:=Actor.new(); actor.use_skeleton=args.get("compare-skeleton","")=="true"; host.add_child(actor)
+	var reference
+	if actor.use_skeleton:
+		reference=Actor.new(); host.add_child(reference); check(reference.install(pieces,pool,int(object.id),maps,0),"Reference node actor installs"); reference.visible=false; reference.rigs.set_process(false)
 	check(actor.install(pieces,pool,int(object.id),maps,0),"Native original body/parts/skin assemble: "+actor.failure)
 	stage(args,"actor-installed")
 	if not actor.failure.is_empty():
@@ -72,14 +89,23 @@ func run() -> void:
 	check(actor.model_names.size()==pieces.size() and not actor.meshes.is_empty(),"All original character part owners and meshes are retained")
 	check(actor.rigs.stats.skin_meshes>0 and actor.rigs.stats.skin_vertices>0,"Original robe reaches actual Godot GPU skinning")
 	check(actor.rigs.stats.failures.is_empty(),"Native rig owner accepts original binding/weights")
+	if is_instance_valid(reference): actor.rigs.set_process(false)
 	var camera:=Camera3D.new(); host.add_child(camera); camera.projection=Camera3D.PROJECTION_ORTHOGONAL; camera.size=2.8; camera.position=Vector3(0,1.4,-4); camera.look_at(Vector3(0,0.9,0)); camera.near=0.01; camera.far=30; camera.current=true; root.size=Vector2i(960,768)
-	for frame in 12: await process_frame
+	for frame in 12:
+		if is_instance_valid(reference): reference.rigs._update(1.0/60.0); actor.rigs._update(1.0/60.0)
+		await process_frame
 	await RenderingServer.frame_post_draw
 	var before: Dictionary=actor.rigs.diagnostic_sample([int(object.id)]); var idle_image:=root.get_texture().get_image(); idle_image.save_png(str(args.report).trim_suffix(".json")+"-idle.png")
+	var skeletal_comparisons: Array=[]
+	if is_instance_valid(reference): skeletal_comparisons.append(compare_vertices(reference,actor))
 	var walk_name: String=lookup.name_for(2,context); actor.set_animation(2,1.0,true)
-	for frame in 45: await process_frame
+	if is_instance_valid(reference): reference.set_animation(2,1.0,true)
+	for frame in 45:
+		if is_instance_valid(reference): reference.rigs._update(1.0/60.0); actor.rigs._update(1.0/60.0)
+		await process_frame
 	await RenderingServer.frame_post_draw
 	var after: Dictionary=actor.rigs.diagnostic_sample([int(object.id)]); var delta: Dictionary=actor.rigs.compare_samples(before,after)
+	if is_instance_valid(reference): skeletal_comparisons.append(compare_vertices(reference,actor))
 	check(delta.changed_local_parts>0,"Original clip playback changes actual physical bones")
 	check(delta.maximum_local_skin_vertex_delta>0.00001,"Actual native GPU skin vertices change with original animation")
 	var active: Array=delta.get("active_clips",[])
@@ -87,12 +113,14 @@ func run() -> void:
 	var walk_image:=root.get_texture().get_image(); walk_image.save_png(str(args.report).trim_suffix(".json")+"-walk.png")
 	check(Cache.digest(idle_image.get_data())!=Cache.digest(walk_image.get_data()),"Actual original character drawing changes between poses")
 	stage(args,"poses-drawn")
-	var summary: Dictionary=actor.snapshot(); var actor_ref: WeakRef=weakref(actor); actor.retire(); service.close(); service.queue_free(); pieces.clear(); completed.clear()
+	var summary: Dictionary=actor.snapshot(); var actor_ref: WeakRef=weakref(actor); actor.retire()
+	if is_instance_valid(reference): reference.retire()
+	service.close(); service.queue_free(); pieces.clear(); completed.clear()
 	stage(args,"workers-and-inputs-retired")
 	await process_frame; await process_frame; pool.clear(); stage(args,"pool-cleared"); host.free(); stage(args,"host-freed"); await process_frame; await process_frame; await RenderingServer.frame_post_draw
 	stage(args,"retirement-drawn")
 	check(actor_ref.get_ref()==null,"Native original actor/rig/skin owner retires")
-	finish(args,{"actor":summary,"pose_delta":delta,"context":context,"walk_clip":walk_name})
+	finish(args,{"actor":summary,"pose_delta":delta,"context":context,"walk_clip":walk_name,"skeletal_comparisons":skeletal_comparisons})
 func finish(args: Dictionary,details: Dictionary) -> void:
 	var report:={"passed":failures.is_empty(),"checks":checks,"failures":failures,"native_only":true,"performance_accepted":false,"scope":"Original native multipart body/robe animation and GPU skin drawing; held/worn equipment, full live campaign and full migration pending"}
 	report.merge(details)

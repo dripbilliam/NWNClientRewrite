@@ -9,7 +9,7 @@ export const networkSpeechIsSystem=channel=>channel===5||channel===15;
 // names for out-of-area sources.11/12 retain their separate one-liner layout.
 export function readNetworkSpeech(r,minor){
  if(!NETWORK_SPEECH_CHANNELS.includes(minor))throw new Error('Unsupported native speech channel');
- if(minor===7)return{kind:'script-sound',objectId:r.readObjectIdClient(),sound:text(r).text};
+ if(minor===7){const objectId=r.readObjectIdClient(),raw=r.readCExoString(),soundBytes=raw.bytes??new Uint8Array();return{kind:'script-sound',objectId,sound:decodeGffText(soundBytes),soundBytes};}
  const out={kind:'server-speech',channel:minor};if(minor===5){out.text=text(r);return out;}
  out.objectId=r.readObjectIdClient();
  if(minor===11||minor===12){

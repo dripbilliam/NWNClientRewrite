@@ -3,6 +3,7 @@ extends RefCounted
 signal presentation_event(value: Dictionary)
 const Queue = preload("res://systems/animation_queue.gd")
 const Selector = preload("res://systems/attack_animation.gd")
+const MovementCue=preload("res://systems/native_data/movement_cue.gd")
 const RELEASE = {17: 250, 18: 251, 19: 252, 20: 253, 61: 261}
 var rigs
 var pivots: Dictionary = {}
@@ -15,7 +16,7 @@ var pending: Array = []
 var events: Array = []
 var failures: Array = []
 var failed: Dictionary = {}
-var stats := {"casts": 0, "attacks": 0, "hits": 0, "plays": 0, "reactions": 0, "retired": 0}
+var stats := {"casts": 0, "attacks": 0, "hits": 0, "plays": 0, "reactions": 0, "retired": 0,"movement_cues":0}
 var clock_ms: Callable
 
 func now() -> int:
@@ -31,6 +32,11 @@ static func category(type: int, animation: int) -> int:
 	if type == 9:
 		return int(animation >= 72 and animation <= 76 or animation == 0)
 	return 0
+
+static func base_loop(type: int,animation: int) -> bool:
+	# Animation category is an action-queue classification, not a loop flag.
+	# A repeated locomotion observation must retain its initial looping gait.
+	return type==5 and (animation&65535) in [2,3,4,78,79,84,85,86,87] or category(type,animation)==1
 
 static func clock(ms: int) -> Dictionary:
 	# Leave a whole day before this engine's epoch for deferred loading cues.
@@ -129,7 +135,7 @@ func base_frame(id: int, animation: int, speed: float = 1.0) -> void:
 		actors[id].orientation = Vector3(-sin(rotation), 0, -cos(rotation))
 	if int(s.observed) == animation:
 		if s.current.is_empty() and s.queue.entries.is_empty() and animation != 9 and not RELEASE.has(animation):
-			play(id, animation, speed, bool(rigs.entities[id].loop_map.get(str(animation), category(int(actors[id].objectType), animation) == 1)), false)
+			play(id, animation, speed, bool(rigs.entities[id].loop_map.get(str(animation), base_loop(int(actors[id].objectType),animation))), false)
 		return
 	s.observed = animation
 	if RELEASE.has(animation):
@@ -150,7 +156,7 @@ func base_frame(id: int, animation: int, speed: float = 1.0) -> void:
 		attack(id, record)
 		return
 	if s.current.is_empty() and s.queue.entries.is_empty():
-		play(id, animation, speed, category(int(actors[id].objectType), animation) == 1, false)
+		play(id, animation, speed, base_loop(int(actors[id].objectType),animation), false)
 
 func play(id: int, animation: int, speed: float, loop: bool, restart: bool = true) -> bool:
 	var s := ensure(id)
@@ -168,6 +174,19 @@ func play(id: int, animation: int, speed: float, loop: bool, restart: bool = tru
 		event("play", id, {"animation": animation, "clip": rigs.clip_name(id, animation), "speed": speed, "loop": loop})
 	return true
 
+func movement_cue(id: int,request: Dictionary) -> bool:
+	var s:=ensure(id)
+	if s.is_empty() or not s.current.is_empty() or not s.queue.entries.is_empty() or int(s.visual) not in [0,1]: return false
+	var code:=int(request.get("animation",-1))
+	if code not in [24,25,26,27,80,81,82,83]: return false
+	var length: float=rigs.clip_length(id,code,int(s.context.get("fieldE0",0)))
+	if length<=0:
+		failure(id,"Original movement clip unavailable for animation %s"%code); return false
+	var cue:=MovementCue.build(request,length,float(actors[id].get("animationSpeed",1.0)))
+	if cue.has("error"): failure(id,str(cue.error)); return false
+	insert(id,cue); stats.movement_cues+=1
+	event("movement-cue",id,{"animation":code,"type":int(request.get("type",0)),"duration":cue.duration,"speed":cue.speed})
+	return true
 func insert(id: int, cue: Dictionary, age: int = 0) -> void:
 	var s := ensure(id)
 	if s.is_empty():
@@ -226,6 +245,11 @@ func reaction(id: int, animation: int) -> void:
 		stats.reactions += 1
 
 func model_event(id: int, name: String, _serial: int) -> void:
+	var original_event:=name.to_lower()
+	if original_event in ["blur_start","blur_end","doneattack01","doneattack02"]:
+		var state:=ensure(id)
+		if not state.is_empty(): event("weapon-start" if original_event=="blur_start" else "weapon-end",id,{"animation":state.visual,"attackType":int(state.get("attackType",0)),"modelEvent":original_event})
+		return
 	if name.to_lower() != "hit":
 		return
 	var s := ensure(id)
@@ -266,7 +290,7 @@ func model_event(id: int, name: String, _serial: int) -> void:
 			if int(actors[target].objectType) == 5 and int(record.weaponAttackType) != 7:
 				for slot in [16, 16384, 32768, 65536]:
 					if actors[target].get("equipment", {}).has(str(slot)):
-						event("parry", id)
+						event("parry", id, {"targetId":target,"record":record.duplicate(true)})
 						break
 		var signed_damage := int(record.damage) & 65535
 		if signed_damage & 32768:

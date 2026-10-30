@@ -1,5 +1,6 @@
 import {isNetworkBytes} from './network_bytes.js';
 import {NativeMessageReader} from './native_message.js';
+import {readNetworkBarter} from './network_barter.js';
 import {readScriptTargeting,readScriptTargetingData,readSpellTargetingData} from './network_script_targeting.js';
 import {readServerResourceRequirements} from './network_resources.js';
 import {decodeGffText} from './gff_text.js';
@@ -99,18 +100,22 @@ export function decodeServerGameMessage(bytes,{clientBuild=null,serverBuild=null
  const playerList=major===10&&[1,2,3].includes(minor);
  const objectUpdates=major===5&&minor===1;
  const dialog=major===20&&[1,2,4,5].includes(minor);
- const inventoryResult=major===12&&minor>=1&&minor<=10;
+ const inventoryResult=major===12&&(minor>=1&&minor<=10||minor===14);
  if(major===27&&minor>=2&&minor<=6){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw new Error('Invalid native examination streams');const value=readNetworkExamine(r,minor,incomingBuild);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw new Error('Invalid native examination fields');return{...value,major,minor};}
  const projectile=major===34&&minor===1;
  const quickbar=major===30&&[1,2].includes(minor);
  const quickChat=major===22&&minor===0;
  const voicePlay=major===26&&minor===1;
- const journal=major===28&&[1,2,3,4,5,6,7,8,9,12].includes(minor),timing=major===48&&minor===1,attitude=major===41&&minor===3,mapPin=major===32&&[1,6].includes(minor);
+ const journal=major===28&&[1,2,3,4,5,6,7,8,9,12].includes(minor),timing=major===48&&minor===1,attitude=major===41&&minor===3,mapPin=major===32&&[1,4,6].includes(minor);
  const speech=major===9&&NETWORK_SPEECH_CHANNELS.includes(minor);
  const containerStatus=major===25&&minor===1;
  const partyList=major===14&&[1,3,4].includes(minor);
+ // Original4dee90 popup type1 uses36/3 and only a CExoString. Its
+ // pending inviter is separately replicated in the controlled creature.
+ if(major===36&&minor===3){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native party invitation streams');const name=text(r);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native party invitation fields');return{kind:'party-invite-notice',major,minor,name};}
  const cameraCommand=major===16&&(minor>=1&&minor<=10||minor===12),objectVisual=major===5&&minor===3,areaVisual=major===4&&minor===2;
  if(dialog&&minor===5){if(body.length)throw new Error('Invalid native dialog-close message');return{kind:'dialog-close',major,minor};}
+ if(major===35&&[2,4,8,10,11].includes(minor)){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native barter streams');const value=readNetworkBarter(r,minor);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native barter fields');return{...value,major,minor};}
  if(objectUpdates&&body.length===0)throw new Error('Invalid empty native object-update message');
  if(!attackFeedback&&!damageFeedback&&!spellFeedback&&!feedback&&!customToken&&!runtime&&!speech&&!voicePlay&&!containerStatus&&!journal&&!timing&&!attitude&&!mapPin&&!areaVisual&&!objectVisual&&!cameraCommand&&!partyList&&!quickChat&&!quickbar&&!projectile&&!inventoryResult&&!dialog&&!objectUpdates&&!playerList&&!areaMessage&&!objectControl&&!resourceMessage&&!characterFailure&&!moduleMessage&&(major!==3||minor!==3))return{kind:'unsupported',major,minor,length:bytes.length};
  const errors=[],reader=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});

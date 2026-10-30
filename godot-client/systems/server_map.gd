@@ -6,6 +6,7 @@ var view_id := -1
 var board
 var scroll: ScrollContainer
 var note: RichTextLabel
+var native_skin
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Area Map", "area-map", Vector2(150, 100), storage)
@@ -21,6 +22,7 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	close_requested.connect(close_map); reset()
 
 func reset() -> void:
+	if is_instance_valid(native_skin): native_skin.reset_view()
 	wanted = false; view_id = -1; board.reset(); Text.set_text(note, {}); hide()
 
 func open() -> void:
@@ -30,8 +32,10 @@ func open() -> void:
 func close_map() -> void:
 	if wanted: request.emit({"kind": "map-close"})
 	wanted = false; hide()
+	if is_instance_valid(native_skin): native_skin.close_editor()
 
 func set_zoom(value: int) -> void:
+	if is_instance_valid(native_skin): native_skin.set_zoom(value); return
 	board.zoom = clampi(value, 8, 64); board.resize_map()
 
 func receive(message: Dictionary) -> void:
@@ -39,6 +43,7 @@ func receive(message: Dictionary) -> void:
 	if not wanted: return
 	if message.kind == "map-view":
 		view_id = int(message.viewId); board.configure(message); Text.set_text(note, {"text": "Only explored tiles are shown. Select a map pin to read its note."}); _clamp()
+		if is_instance_valid(native_skin): native_skin.map_changed()
 	elif int(message.get("viewId", -2)) == view_id:
 		if message.kind == "map-notice": Text.set_text(note, {"text": str(message.text)})
 		else: board.receive(message)

@@ -47,7 +47,7 @@ func run(owner, message: Dictionary) -> void:
 	check(await wait_until(func(): return not bar.rows.has(1) and bar.rows.has(2), 15), "Actual server expiry removes only the short status while the long one remains")
 	check(not bar.tip.visible and not bar.images.has(1), "Server icon removal retires its native texture and pinned tooltip")
 	await client.get_tree().process_frame; await RenderingServer.frame_post_draw
-	observations.survivor = {"button":str(bar.buttons[2].get_global_rect()),"menu_button":str(client.lobby.menu_button.get_global_rect()),"bar":str(bar.get_global_rect())}
+	observations.survivor = {"button":str(bar.buttons[2].get_global_rect()),"bar":str(bar.get_global_rect())}
 	await click(bar.buttons[2].get_global_rect().get_center())
 	check(bar.tip.visible and bar.pinned, "A surviving status tooltip can be pinned after another icon expires")
 	check(not client.lobby.panel.visible, "The connection menu does not cover or intercept status icons")

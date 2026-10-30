@@ -7,8 +7,8 @@ import {NetworkMessageInflater} from './network_message_inflater.mjs';
 import {NetworkLogin} from '../src/network_login.js';
 import {NetworkWindow} from '../src/network_window.js';
 import {NetworkMessageAssembler,packetizeUncompressedMessage} from '../src/network_messages.js';
-import {disconnectRequest} from '../src/network_login_packets.js';
-import {readReliableFrame} from '../src/network_frames.js';
+import {disconnectRequest,readDisconnectResponse} from '../src/network_login_packets.js';
+import {readReliableFrame,writeReliableFrame} from '../src/network_frames.js';
 import {isNetworkBytes} from '../src/network_bytes.js';
 import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
 
@@ -60,6 +60,13 @@ export class NetworkPeer extends EventEmitter {
  async receive(bytes){
   if(this.cipher&&bytes[0]!==73&&requiresSessionEncryption(bytes))throw new Error('Unencrypted native session packet');
   const plain=this.cipher&&bytes[0]===73?await this.cipher.decode(bytes):bytes;this.packet('in',plain,bytes);
+  // The owned server sends authenticated ACK-only frames while a fresh key is
+  // still being validated. Keep that transport alive without admitting the
+  // player or accepting any game data before the explicit BNVR acceptance.
+  if(this.cipher&&!this.window&&this.login?.phase==='validate'&&plain[0]===77){
+   const frame=readReliableFrame(plain);
+   if(frame.kind===1&&plain.length===12){await this.send(writeReliableFrame({kind:1,expected:0}));return;}
+  }
   if(this.window&&plain[0]===77){
    const result=this.window.receive(plain,performance.now());for(const response of result.send)await this.send(response);
    for(const frame of result.delivered){this.emit('frame',Uint8Array.from(frame.bytes));this.assembler.push(frame.bytes);}
@@ -71,7 +78,7 @@ export class NetworkPeer extends EventEmitter {
    return;
   }
   const tag=String.fromCharCode(...plain.subarray(0,4));
-  if(this.window&&tag==='BNDP'){this.diagnose({code:'network.server-disconnected',reason:'Native server closed the connection'});this.finish();return;}
+  if(this.window&&tag==='BNDP'){this.disconnectReason=readDisconnectResponse(plain);this.diagnose({code:'network.server-disconnected',reason:'Native server closed the connection',...this.disconnectReason});this.finish();return;}
   const next=await this.login.receive(plain);
   if(this.login.exchange.identity&&!this.cipher)this.cipher=new NetworkPacketCipher(this.crypto,this.login.exchange.identity);
   if(next.send)await this.send(next.send);
@@ -94,13 +101,14 @@ export class NetworkPeer extends EventEmitter {
  disconnect(){
   if(this.closed)return Promise.resolve();if(this.disconnectPromise)return this.disconnectPromise;
   this.disconnecting=true;clearInterval(this.pollTimer);
+  if(this.login?.phase!=='admitted'){this.finish();return Promise.resolve();}
   this.disconnectPromise=this.enqueue(async()=>{try{if(this.login?.phase==='admitted'){await this.send(disconnectRequest());await this.crypto.reset();}}finally{this.finish();}});return this.disconnectPromise;
  }
  finish(error=null){
   if(this.closed)return;this.closed=true;clearTimeout(this.connectTimer);clearInterval(this.pollTimer);this.inflater.close();this.crypto.close();
   if(this.bound){try{this.socket.close();}catch{}}
   if(this.rejectConnect)this.rejectConnect(error??new Error('Native network connection closed'));this.resolveConnect=this.rejectConnect=null;
-  if(error)this.diagnose({code:'network.peer-failed',reason:error.message});this.emit('closed',{failed:Boolean(error)});
+  if(error)this.diagnose({code:'network.peer-failed',reason:error.message});this.emit('closed',{failed:Boolean(error),...(this.disconnectReason?{reason:this.disconnectReason}:{})});
  }
  snapshot(){return{phase:this.closed?'closed':this.login?.phase??'new',loginPhase:this.login?.phase??'new',closed:this.closed,admitted:this.login?.phase==='admitted'&&!this.closed};}
 }

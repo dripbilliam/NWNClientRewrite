@@ -1,6 +1,7 @@
 extends PanelContainer
 
 signal request(message: Dictionary)
+signal rendered
 signal spellbook_requested
 signal inventory_requested
 signal character_requested
@@ -18,7 +19,7 @@ var selected_index := -1
 var rows: Array = []
 var buttons: Dictionary = {}
 var pages: Array[Button] = []
-var cells: HBoxContainer
+var cells: Control
 var caption: Label
 var clear: Button
 var textures: Dictionary = {}
@@ -27,6 +28,14 @@ var record_valid: Callable
 var inventory_valid: Callable
 var radial_valid: Callable
 var level_button: Button
+var native_skin
+var key_bindings
+func set_key_bindings(value) -> void:
+	if is_instance_valid(key_bindings) and key_bindings.changed.is_connected(binding_changed): key_bindings.changed.disconnect(binding_changed)
+	key_bindings=value
+	if is_instance_valid(key_bindings): key_bindings.changed.connect(binding_changed)
+func binding_changed() -> void:
+	if visible and is_instance_valid(cells): render(shown_page)
 
 func setup() -> void:
 	var outer := VBoxContainer.new()
@@ -82,6 +91,7 @@ func reset() -> void:
 	buttons.clear()
 	textures.clear()
 	secondary_textures.clear()
+	if is_instance_valid(native_skin): native_skin.keys.clear()
 	if is_instance_valid(level_button): level_button.hide()
 
 	if is_instance_valid(cells):
@@ -91,6 +101,8 @@ func reset() -> void:
 	hide()
 
 func place() -> void:
+	if is_instance_valid(native_skin) and native_skin.layout_ready:
+		native_skin.place(); return
 	position = Vector2(maxf(0, (get_viewport_rect().size.x - size.x) / 2), maxf(0, get_viewport_rect().size.y - size.y - 8))
 
 func receive(message: Dictionary) -> void:
@@ -139,7 +151,7 @@ func render(index: int) -> void:
 			clear.disabled = false)
 		button.context_requested.connect(func(point):
 			if quickbar_id == owner_view: assignment_requested.emit(slot,point))
-		button.accepts = func(data): return quickbar_id == owner_view and (data.get("kind") == "spell" and data.has("viewId") and data.has("entryId") or data.get("kind") == "record-entry" and record_valid.is_valid() and record_valid.call(data) or data.get("kind") == "native-inventory-item" and inventory_valid.is_valid() and inventory_valid.call(data) or data.get("kind") == "radial-entry" and radial_valid.is_valid() and radial_valid.call(data) or data.get("kind") == "shortcut" and int(data.get("quickbarId", -2)) == owner_view and data.has("sourceIndex"))
+		button.accepts = func(data): return quickbar_id == owner_view and (data.get("kind") == "spell" and data.has("viewId") and data.has("entryId") or data.get("kind") == "record-entry" and record_valid.is_valid() and record_valid.call(data) or data.get("kind") == "native-inventory-item" and inventory_valid.is_valid() and inventory_valid.call(data) or data.get("kind") in ["radial-entry","item-radial-entry"] and radial_valid.is_valid() and radial_valid.call(data) or data.get("kind") == "shortcut" and int(data.get("quickbarId", -2)) == owner_view and data.has("sourceIndex"))
 		button.dropped.connect(func(data):
 			if quickbar_id != owner_view:
 				return
@@ -149,8 +161,8 @@ func render(index: int) -> void:
 				request.emit({"kind": "sheet-assign", "viewId": data.viewId, "entryId": data.entryId, "index": slot})
 			elif data.kind == "native-inventory-item":
 				request.emit({"kind": "inventory-shortcut", "quickbarId": owner_view, "viewId": data.viewId, "entryId": data.entryId, "index": slot})
-			elif data.kind == "radial-entry":
-				request.emit({"kind":"radial-shortcut","quickbarId":owner_view,"requestId":data.requestId,"menuId":data.menuId,"slot":data.slot,"index":slot})
+			elif data.kind in ["radial-entry","item-radial-entry"]:
+				request.emit({"kind":"item-radial-shortcut" if data.kind=="item-radial-entry" else "radial-shortcut","quickbarId":owner_view,"requestId":data.requestId,"menuId":data.menuId,"slot":data.slot,"index":slot,"kindSource":data.kind})
 			else:
 				request.emit({"kind": "quickbar-move", "quickbarId": quickbar_id, "sourceIndex": data.sourceIndex, "index": slot}))
 		button.modulate = Color(1, 1, 1, 1.0 if row.enabled or row.empty else 0.5)
@@ -165,20 +177,27 @@ func render(index: int) -> void:
 	for i in 3:
 		pages[i].disabled = i == index
 	clear.disabled = selected_index < 0
+	rendered.emit()
 
 func activate(index: int) -> void:
-	if quickbar_id >= 0 and index < rows.size() and rows[index].enabled:
+	if quickbar_id >= 0 and index>=0 and index < rows.size() and rows[index].enabled:
 		request.emit({"kind": "quickbar-activate", "quickbarId": quickbar_id, "index": index})
 
 func _input(event: InputEvent) -> void:
 	if not visible or not event is InputEventKey:
 		return
+	if is_instance_valid(key_bindings) and key_bindings.blocked(): return
 	var focus := get_viewport().gui_get_focus_owner()
-	if focus is LineEdit or focus is TextEdit or event.ctrl_pressed and event.alt_pressed:
+	if focus is LineEdit or focus is TextEdit or not is_instance_valid(key_bindings) and event.ctrl_pressed and event.alt_pressed:
 		return
 	if event.keycode in [KEY_SHIFT, KEY_CTRL]:
 		render(2 if event.ctrl_pressed else (1 if event.shift_pressed else page))
 	if not event.pressed or event.echo:
+		return
+	if is_instance_valid(key_bindings):
+		var index: int=key_bindings.hotbar_index(event,page)
+		if index>=0: activate(index); get_viewport().set_input_as_handled(); return
+		if key_bindings.action_matches(67,event): spellbook_requested.emit(); get_viewport().set_input_as_handled()
 		return
 	if event.keycode == KEY_B:
 		spellbook_requested.emit()

@@ -1,5 +1,95 @@
 {
   "version": 1,
+  "nativeRuntimeCutover": {
+    "status": "direct native rendering is the normal multiplayer launcher; incomplete migration",
+    "evidence": "godot-client/NATIVE-SESSION-RENDER.md",
+    "entry": "godot-client/native_session_world.gd",
+    "protocolOnlyHost": "godot-client/tools/native-session-host.cjs",
+    "nativeNWSync": "godot-client/systems/native_data/nwsync_store.gd",
+    "nativeLocalContentEvidence": "godot-client/NATIVE-LOCAL-CONTENT-EMITTER-DATA.md",
+    "nativeWorkshopDiscovery": "godot-client/systems/native_data/workshop_index.gd",
+    "nativeEmitterData": "godot-client/systems/native_data/emitter_data.gd",
+    "nativeParticleRuntime": "godot-client/systems/native_render/particle_emitter.gd",
+    "nativeParticleCoreEvidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md",
+    "nativeParticleCoreStatus": "native standard simulation and seven quad modes checked; full world/effects/services/performance incomplete",
+    "nativeParticleSimulationAndDrawingAccepted": false,
+    "jsRenderPreparationRequired": false,
+    "jsProtocolRetained": true,
+    "nativeCreationEvidence": "godot-client/NATIVE-CREATION.md",
+    "nativeCreationStatus": "Godot owns active server 2DA/TLK rules, recommendations, validation, typed BICs, original preview/audio; eleven stock classes and authored overrides checked, fresh Fighter/Wizard/Druid admitted by original local Prelude; wider server-vault/content/fidelity acceptance open",
+    "jsCreationRulesRequired": false,
+    "advancedUiEffectsAndHandoffsComplete": false,
+    "publicWorldAccepted": false,
+    "performanceAccepted": false,
+    "fullMigrationAccepted": false,
+    "nativeReferenceEvidence": "godot-client/NATIVE-REFERENCE-LIGHTNING.md",
+    "nativeReferenceRuntime": "godot-client/systems/native_render/reference_assets.gd",
+    "nativeLightningRuntime": "godot-client/systems/native_render/particle_lightning.gd",
+    "nativeReferenceStatus": "native ownership and first-direct-target lightning checked in scoped original CPU/GPU fixtures; complete events, casting, world and performance incomplete",
+    "nativeCompiledParticleKernel": "godot-client/native/particle_kernel.cpp",
+    "nativeCompiledParticleEvidence": "godot-client/NATIVE-COMPILED-PARTICLES.md",
+    "nativeCompiledParticleStatus": "Windows default standard simulation and vertices checked against original corpora, authored moving frames, GPU and local entry; complete effects/performance not accepted",
+    "remainingLoadedJsModules": 129,
+    "remainingLoadedJsModuleScope": "latest tested protocol-only normal entry; not an audited count of remaining features",
+    "nativeCompiledParticleSimulation": "godot-client/native/particle_simulation.hpp",
+    "nativeCapturedSourceEvidence": "godot-client/NATIVE-CAPTURED-SOURCE.md",
+    "nativeLiveMissingMaterialStatus": "offline exact-model and local default-entry checks passed; full affected public area requires user retry",
+    "nativeStreamingPriorityEvidence": "godot-client/NATIVE-STREAMING-PRIORITY.md",
+    "nativeStreamingPriorityStatus": "terrain/player-first, bounded nearby background batches, scoped attachment readiness; actual warm local movement while streaming verified, cold/dense/frame pacing acceptance open",
+    "nativeAsciiParentRecoveryEvidence": "godot-client/NATIVE-ASCII-PARENT-RECOVERY.md",
+    "nativeWorldJoinMethodsEvidence": "godot-client/NATIVE-WORLD-JOIN-METHODS.md",
+    "nativeWorldJoinMethodsStatus": "research active; original missing-anchor admission and shared model/private tree methods ported in scoped native checks; complete join/resource scheduling still open",
+    "nativeWorldModelCacheEvidence": "godot-client/NATIVE-WORLD-MODEL-CACHE.md",
+    "nativeWorldFrameAdmissionEvidence": "godot-client/NATIVE-WORLD-FRAME-ADMISSION.md",
+    "nativeStaticPoseStatus": "noncreature transforms apply on snapshot/admission; authored and default local checks pass; full binary dirty/culling reconstruction and dense-world FPS acceptance remain open",
+    "nativeVisualAdmissionFailureEvidence": "godot-client/NATIVE-VISUAL-ADMISSION-FAILURES.md",
+    "nativeVisualAdmissionFailureStatus": "placeable/door visual failures isolated and diagnosed per appearance key; original null-result owners and native worker/local regressions checked; complete actor/replication/cancellation policy and dense-world acceptance open",
+    "nativeDeferredWorldRetirementEvidence": "godot-client/NATIVE-WORLD-DEFERRED-RETIREMENT.md",
+    "nativeDeferredWorldRetirementStatus": "retired world jobs retain owners until complete while next area can start; actual delayed-worker, overflow, default local and authoritative one-way Prelude transition checks pass; repeated real transitions/reconnects and full effects/performance remain open",
+    "nativeParticleChunkEvidence": "godot-client/NATIVE-PARTICLE-CHUNKS.md",
+    "nativeParticleChunkStatus": "bounded original owners plus automatic shared native asset binding/private model services and adoption lifetime correction verified; scene physics, full effects and performance remain incomplete",
+    "nativeChunkBindingEvidence": "godot-client/NATIVE-CHUNK-BINDING.md",
+    "nativePublicationLifetimeStatus": "live static/actor streams attach hidden instances directly to final world; actual reparent control and GPU/local checks verify effects survive admission; full live effects remain incomplete",
+    "nativeParticleSpawnWordEvidence": "godot-client/NATIVE-PARTICLE-SPAWN-WORD.md",
+    "nativeParticleSpawnWordStatus": "Original dword-zero branch preserved, 224 original cases and compiled/default-local regressions pass; six local range failures removed; complete scene services/effects/performance remain open",
+    "nativeRepeatedTransitionEvidence": "godot-client/NATIVE-WORLD-TRANSITION-CHECKS.md",
+    "nativeRepeatedTransitionStatus": "Three real owned-Prelude door traversals with complete object admission and final UI/input checks pass; no pending worker/owner at exit; actual blocked-worker, same-process reconnect, full effects and controlled performance acceptance remain separately scoped/open",
+    "nativeSessionRenderCacheEvidence": "godot-client/NATIVE-SESSION-RENDER-CACHE.md",
+    "nativeSessionRenderCacheStatus": "Bounded immutable native GPU/template retention across worlds, private effect state, picking identities and cleanup verified; actual Prelude return visits create no additional pooled resources; exact original eviction, reconnect, full effects and controlled performance remain open",
+    "nativeConnectionScopeEvidence": "godot-client/NATIVE-SESSION-CONNECTION-SCOPES.md",
+    "nativeConnectionScopeStatus": "Default native client connection fences, real unfinished-worker disconnect and three joins in one PID verified on owned Prelude; retired inputs/acks/UI/raw envelopes rejected; remote handoffs, early catalog cancellation, message18/20, full effects and controlled performance remain open",
+    "nativeScenePointWindEvidence": "godot-client/NATIVE-SCENE-POINT-WIND.md",
+    "nativeScenePointWindStatus": "Original point-list/vector port and per-world explosion provider verified; 17 local and 472 captured emitters now simulate; ambient/noise/collision/events incomplete; expanded effect simulation exposes substantial CPU overhead",
+    "nativeParticleDispatchEvidence": "godot-client/NATIVE-PARTICLE-DISPATCH.md",
+    "nativeParticleDispatchStatus": "Fused standard simulation and lazy single-linear-row channels verified; CPP per-field transfer is opt-in after no measured benefit; typed state, full effects/performance and JS migration remain open",
+    "nativeParticleAdmissionEvidence": "godot-client/NATIVE-PARTICLE-ADMISSION.md",
+    "nativeParticleAdmissionStatus": "Original animation gates, source classification, radius and BSP sphere admission mapped; 213 original cases plus native GPU re-entry, retained templates, compiled simulation and default local reconnects verified; conservative camera admission skips 99 offscreen emitters with a small uncontrolled room gain; full BSP/replay/effects, typed state, 60 FPS and migration remain open",
+    "nativeHotPathEvidence": "godot-client/NATIVE-HOTPATH-OWNERS.md",
+    "nativeParticleResidentOwner": "godot-client/native/particle_resident.hpp",
+    "nativeParticleRecordSchema": "godot-client/native/particle_records.hpp",
+    "nativeParticleDirectStreams": "godot-client/native/particle_streams.hpp",
+    "nativeWorldDeltas": "godot-client/tools/raw-world-deltas.cjs",
+    "nativeIncrementalDiagnostics": "godot-client/systems/native_render/particle_metrics.gd",
+    "nativeHotPathStatus": "Persistent C++ ordinary-sprite state/controllers, native pose/admission, direct GPU streams, incremental counters and acknowledged world deltas implemented; scoped original/reference/GPU checks pass. Offline room improves; 60 FPS, full effects, native networking and complete migration remain unaccepted.",
+    "nativeSelectionPolicy": "godot-client/systems/native_interaction_policy.gd",
+    "nativeSelectionRegistryEvidence": "godot-client/NATIVE-INTERACTION-REGISTRY.md",
+    "nativeSelectionRegistryStatus": "live selection excludes non-interactive scenery; metadata eligibility changes, lazy shared shapes, original hidden portal hits and independent WOK locally checked; complete triggers/visibility/performance parity open",
+    "nativeGraphicsSettings": "godot-client/systems/native_render_settings.gd",
+    "nativeGraphicsProfilingEvidence": "godot-client/NATIVE-GRAPHICS-PROFILING.md",
+    "nativeGraphicsProfilingStatus": "native particle pause/drawing toggle and saved preference, streamed inheritance, callback accounting/self-costs and protocol-host telemetry locally checked; full native effects/engine attribution and performance acceptance remain open",
+    "nativeGameplayDesktop": {
+      "status": "Native main in-game desktop connected; full binary UI parity incomplete",
+      "owner": "godot-client/systems/native_game_desktop.gd",
+      "rules": "godot-client/systems/native_data/game_ui_rules.gd",
+      "nativeLevelDraft": "godot-client/systems/native_level_up.gd",
+      "evidence": "godot-client/NATIVE-GAMEPLAY-DESKTOP.md",
+      "localEvidence": "godot-client/reports/native-desktop-prelude-v5.json",
+      "jsUiPreparationRequired": false,
+      "particlesDefault": false,
+      "fullUiParityAccepted": false,
+      "publicServerConnections": 0
+    }
+  },
   "scope": "Baseline source inventory for the Godot migration. Grouping is a review aid, not proof of coverage or feature completion.",
   "modules": [
     {
@@ -646,6 +736,111 @@
           "native crash diagnosis and complete playable-world acceptance",
           "further performance work after full rendering"
         ]
+      },
+      "nativeActorScene": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "priority": "Complete playable native rendering using original Prelude, then further performance experiments",
+        "nativeShutdownFaultResolved": false,
+        "noPublicTest": true,
+        "performanceAccepted": false,
+        "checks": {
+          "originalActorData": 266819,
+          "originalActorGpu": 51,
+          "authoredRigGpu": 65
+        },
+        "captured": {
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9
+        },
+        "livePrelude": {
+          "tiles": 9,
+          "entities": 20,
+          "authoritativeDistance": 1.5,
+          "nativeDistance": 1.5,
+          "accepted": false
+        },
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      },
+      "nativeLightMotion": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "performanceAccepted": false,
+        "nativeShutdownFaultResolved": false,
+        "publicConnections": 0,
+        "checks": {
+          "integration": 141,
+          "binaryMotion": 47421,
+          "binaryTileLights": 1322,
+          "originalSurfaces": 33081,
+          "nativeUiText": 1025,
+          "nativeUiSkin": 203
+        },
+        "nativeUiText": {
+          "tlkRecords": 192,
+          "contextCases": 180,
+          "rgbCases": 255,
+          "originalPortrait": true,
+          "gpuReadbackVerified": false,
+          "liveVerified": false,
+          "fullUiComplete": false
+        },
+        "nativeUiSkin": {
+          "fonts": 3,
+          "images": 27,
+          "skinScalars": 149,
+          "coldWarmCache": true,
+          "originalFontsBound": true,
+          "fullNuiLayoutInputNative": false
+        },
+        "captured": {
+          "report": "godot-client/reports/native-capture-world-v9.json",
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9,
+          "cleanBenchmark": false,
+          "complete": false
+        },
+        "nativeSurfaces": {
+          "models": 74,
+          "areas": 5,
+          "sampledHeights": 32634,
+          "walkmeshCollisionComplete": false
+        },
+        "lightingAndPicking": {
+          "historicalLiveReport": "godot-client/reports/native-prelude-world-v7.json",
+          "tiles": 9,
+          "entities": 20,
+          "changedTileLights": 14,
+          "gpuGeometryReadbacks": 0,
+          "liveRuntimeAfterMovementChangesVerified": false
+        },
+        "latestLocalAttempt": {
+          "report": "godot-client/reports/native-prelude-world-v21.json",
+          "worldVerified": true,
+          "loginRejected": false
+        },
+        "headlessReport": "godot-client/reports/native-light-motion-v4.json",
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
       }
     },
     {
@@ -822,9 +1017,9 @@
       "file": "src/burst_single_emitter.js",
       "sha256": "fa7aa136527a4cb20e80eb277a3fae60aaecb4db4e3a97f8adafe0f6edff8f7b",
       "group": "needs-classification",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
-      "evidence": "godot-client/NATIVE-PARTICLES.md"
+      "status": "compiled native original corpus and authored moving integration checked; complete scene services/events/performance not accepted",
+      "nativeCounterpart": "godot-client/native/particle_simulation.hpp",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/cached_root_matrix.js",
@@ -2433,8 +2628,8 @@
       "file": "src/emitter_target.js",
       "sha256": "c15cde09bef89202e6d635ee955a6a11255a47be7d5e686666a7779c7dd9e67d",
       "group": "gameplay-ui",
-      "status": "pending feature audit",
-      "nativeCounterpart": null,
+      "status": "partial native original CPU/GPU fixture verification; full events/gameplay/performance not accepted",
+      "nativeCounterpart": "godot-client/systems/native_render/particle_target.gd",
       "referenceEndpointMigration": {
         "status": "partial; physical endpoint/attachment/revision bridge verified, full referenced-model resources and notifications incomplete",
         "counterpart": "tools/export-particles.mjs; systems/particle_world.gd; tools/particle-simulation.mjs",
@@ -2599,9 +2794,9 @@
       "file": "src/fountain_emitter.js",
       "sha256": "2003351450f0238dfe648db0952779f7760e7149dd59ea0791d5c117eaee3c7a",
       "group": "needs-classification",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
-      "evidence": "godot-client/NATIVE-PARTICLES.md"
+      "status": "compiled native original corpus and authored moving integration checked; complete scene services/events/performance not accepted",
+      "nativeCounterpart": "godot-client/native/particle_simulation.hpp",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/fountain_particle_providers.js",
@@ -2869,7 +3064,19 @@
       "sha256": "adbca73618a06e2a63e42ca11233b7b47c931b51224052b611e4beca143a848a",
       "group": "needs-classification",
       "status": "pending feature audit",
-      "nativeCounterpart": null
+      "nativeCounterpart": null,
+      "nativeUiText": {
+        "tlkRecords": 192,
+        "contextCases": 180,
+        "rgbCases": 255,
+        "originalPortrait": true,
+        "gpuReadbackVerified": false,
+        "liveVerified": false,
+        "fullUiComplete": false,
+        "complete": false,
+        "scope": "Direct native test path only; transitional/default UI remains JS dependent",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
+      }
     },
     {
       "file": "src/game_ui.js",
@@ -3532,8 +3739,8 @@
       "file": "src/lightning_emitter.js",
       "sha256": "9dbc225f1b2bf88f5f49c84497cbda260b720d70ae92eb9d428be415277fcf47",
       "group": "content-and-rendering",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
+      "status": "partial native original CPU/GPU fixture verification; full events/gameplay/performance not accepted",
+      "nativeCounterpart": "godot-client/systems/native_render/particle_lightning.gd",
       "evidence": "godot-client/NATIVE-PARTICLES.md",
       "referenceEndpointMigration": {
         "status": "partial; physical endpoint/attachment/revision bridge verified, full referenced-model resources and notifications incomplete",
@@ -3878,7 +4085,112 @@
         "godot-client/reports/model-rigs-gpu-v4.json",
         "godot-client/reports/native-model-rigs-local-v3.json",
         "godot-client/reports/native-model-rigs-lifecycle-v2.json"
-      ]
+      ],
+      "nativeActorScene": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "priority": "Complete playable native rendering using original Prelude, then further performance experiments",
+        "nativeShutdownFaultResolved": false,
+        "noPublicTest": true,
+        "performanceAccepted": false,
+        "checks": {
+          "originalActorData": 266819,
+          "originalActorGpu": 51,
+          "authoredRigGpu": 65
+        },
+        "captured": {
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9
+        },
+        "livePrelude": {
+          "tiles": 9,
+          "entities": 20,
+          "authoritativeDistance": 1.5,
+          "nativeDistance": 1.5,
+          "accepted": false
+        },
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      },
+      "nativeLightMotion": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "performanceAccepted": false,
+        "nativeShutdownFaultResolved": false,
+        "publicConnections": 0,
+        "checks": {
+          "integration": 141,
+          "binaryMotion": 47421,
+          "binaryTileLights": 1322,
+          "originalSurfaces": 33081,
+          "nativeUiText": 1025,
+          "nativeUiSkin": 203
+        },
+        "nativeUiText": {
+          "tlkRecords": 192,
+          "contextCases": 180,
+          "rgbCases": 255,
+          "originalPortrait": true,
+          "gpuReadbackVerified": false,
+          "liveVerified": false,
+          "fullUiComplete": false
+        },
+        "nativeUiSkin": {
+          "fonts": 3,
+          "images": 27,
+          "skinScalars": 149,
+          "coldWarmCache": true,
+          "originalFontsBound": true,
+          "fullNuiLayoutInputNative": false
+        },
+        "captured": {
+          "report": "godot-client/reports/native-capture-world-v9.json",
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9,
+          "cleanBenchmark": false,
+          "complete": false
+        },
+        "nativeSurfaces": {
+          "models": 74,
+          "areas": 5,
+          "sampledHeights": 32634,
+          "walkmeshCollisionComplete": false
+        },
+        "lightingAndPicking": {
+          "historicalLiveReport": "godot-client/reports/native-prelude-world-v7.json",
+          "tiles": 9,
+          "entities": 20,
+          "changedTileLights": 14,
+          "gpuGeometryReadbacks": 0,
+          "liveRuntimeAfterMovementChangesVerified": false
+        },
+        "latestLocalAttempt": {
+          "report": "godot-client/reports/native-prelude-world-v21.json",
+          "worldVerified": true,
+          "loginRejected": false
+        },
+        "headlessReport": "godot-client/reports/native-light-motion-v4.json",
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      }
     },
     {
       "file": "src/mdl_emitter.js",
@@ -4354,15 +4666,120 @@
           "native crash diagnosis and complete playable-world acceptance",
           "further performance work after full rendering"
         ]
+      },
+      "nativeActorScene": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "priority": "Complete playable native rendering using original Prelude, then further performance experiments",
+        "nativeShutdownFaultResolved": false,
+        "noPublicTest": true,
+        "performanceAccepted": false,
+        "checks": {
+          "originalActorData": 266819,
+          "originalActorGpu": 51,
+          "authoredRigGpu": 65
+        },
+        "captured": {
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9
+        },
+        "livePrelude": {
+          "tiles": 9,
+          "entities": 20,
+          "authoritativeDistance": 1.5,
+          "nativeDistance": 1.5,
+          "accepted": false
+        },
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      },
+      "nativeLightMotion": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "performanceAccepted": false,
+        "nativeShutdownFaultResolved": false,
+        "publicConnections": 0,
+        "checks": {
+          "integration": 141,
+          "binaryMotion": 47421,
+          "binaryTileLights": 1322,
+          "originalSurfaces": 33081,
+          "nativeUiText": 1025,
+          "nativeUiSkin": 203
+        },
+        "nativeUiText": {
+          "tlkRecords": 192,
+          "contextCases": 180,
+          "rgbCases": 255,
+          "originalPortrait": true,
+          "gpuReadbackVerified": false,
+          "liveVerified": false,
+          "fullUiComplete": false
+        },
+        "nativeUiSkin": {
+          "fonts": 3,
+          "images": 27,
+          "skinScalars": 149,
+          "coldWarmCache": true,
+          "originalFontsBound": true,
+          "fullNuiLayoutInputNative": false
+        },
+        "captured": {
+          "report": "godot-client/reports/native-capture-world-v9.json",
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9,
+          "cleanBenchmark": false,
+          "complete": false
+        },
+        "nativeSurfaces": {
+          "models": 74,
+          "areas": 5,
+          "sampledHeights": 32634,
+          "walkmeshCollisionComplete": false
+        },
+        "lightingAndPicking": {
+          "historicalLiveReport": "godot-client/reports/native-prelude-world-v7.json",
+          "tiles": 9,
+          "entities": 20,
+          "changedTileLights": 14,
+          "gpuGeometryReadbacks": 0,
+          "liveRuntimeAfterMovementChangesVerified": false
+        },
+        "latestLocalAttempt": {
+          "report": "godot-client/reports/native-prelude-world-v21.json",
+          "worldVerified": true,
+          "loginRejected": false
+        },
+        "headlessReport": "godot-client/reports/native-light-motion-v4.json",
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
       }
     },
     {
       "file": "src/model_particles.js",
       "sha256": "b3c755596417184a33c68d52b2bfafa06a3ea198e0f1e78e046750b115f3c10c",
       "group": "content-and-rendering",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
-      "evidence": "godot-client/NATIVE-PARTICLES.md",
+      "status": "Native standard particle CPU/GPU counterpart checked; full world services, effects and performance incomplete",
+      "nativeCounterpart": "godot-client/systems/native_render/particle_emitter.gd",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md",
       "referenceEndpointMigration": {
         "status": "partial; physical endpoint/attachment/revision bridge verified, full referenced-model resources and notifications incomplete",
         "counterpart": "tools/export-particles.mjs; systems/particle_world.gd; tools/particle-simulation.mjs",
@@ -4482,15 +4899,15 @@
       "file": "src/model_reference_assets.js",
       "sha256": "e714f205b97453b5c81691bcabbe144a7a4f170cc9e0f7bdb5276f26804e0fcb",
       "group": "content-and-rendering",
-      "status": "pending feature audit",
-      "nativeCounterpart": null
+      "status": "partial native original CPU/GPU fixture verification; full events/gameplay/performance not accepted",
+      "nativeCounterpart": "godot-client/systems/native_render/reference_assets.gd"
     },
     {
       "file": "src/model_reference_scene.js",
       "sha256": "d306d774118e49010d468df017639a79272895565d09138bc1d777e37d162632",
       "group": "content-and-rendering",
-      "status": "pending feature audit",
-      "nativeCounterpart": null,
+      "status": "partial native original CPU/GPU fixture verification; full events/gameplay/performance not accepted",
+      "nativeCounterpart": "godot-client/systems/native_render/model_reference.gd",
       "referenceEndpointMigration": {
         "status": "partial; physical endpoint/attachment/revision bridge verified, full referenced-model resources and notifications incomplete",
         "counterpart": "tools/export-particles.mjs; systems/particle_world.gd; tools/particle-simulation.mjs",
@@ -4511,8 +4928,8 @@
       "file": "src/model_references.js",
       "sha256": "be4dac801706c130f00f9b875f78dde34ff80efffc43bd52c54fc73ba7dd8237",
       "group": "content-and-rendering",
-      "status": "pending feature audit",
-      "nativeCounterpart": null,
+      "status": "partial native original CPU/GPU fixture verification; full events/gameplay/performance not accepted",
+      "nativeCounterpart": "godot-client/systems/native_render/reference_graph.gd",
       "referenceEndpointMigration": {
         "status": "partial; physical endpoint/attachment/revision bridge verified, full referenced-model resources and notifications incomplete",
         "counterpart": "tools/export-particles.mjs; systems/particle_world.gd; tools/particle-simulation.mjs",
@@ -4587,6 +5004,111 @@
         "fullRenderingParity": false,
         "physicalDeviceAccepted": false,
         "localOnly": true
+      },
+      "nativeActorScene": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "priority": "Complete playable native rendering using original Prelude, then further performance experiments",
+        "nativeShutdownFaultResolved": false,
+        "noPublicTest": true,
+        "performanceAccepted": false,
+        "checks": {
+          "originalActorData": 266819,
+          "originalActorGpu": 51,
+          "authoredRigGpu": 65
+        },
+        "captured": {
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9
+        },
+        "livePrelude": {
+          "tiles": 9,
+          "entities": 20,
+          "authoritativeDistance": 1.5,
+          "nativeDistance": 1.5,
+          "accepted": false
+        },
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      },
+      "nativeLightMotion": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "performanceAccepted": false,
+        "nativeShutdownFaultResolved": false,
+        "publicConnections": 0,
+        "checks": {
+          "integration": 141,
+          "binaryMotion": 47421,
+          "binaryTileLights": 1322,
+          "originalSurfaces": 33081,
+          "nativeUiText": 1025,
+          "nativeUiSkin": 203
+        },
+        "nativeUiText": {
+          "tlkRecords": 192,
+          "contextCases": 180,
+          "rgbCases": 255,
+          "originalPortrait": true,
+          "gpuReadbackVerified": false,
+          "liveVerified": false,
+          "fullUiComplete": false
+        },
+        "nativeUiSkin": {
+          "fonts": 3,
+          "images": 27,
+          "skinScalars": 149,
+          "coldWarmCache": true,
+          "originalFontsBound": true,
+          "fullNuiLayoutInputNative": false
+        },
+        "captured": {
+          "report": "godot-client/reports/native-capture-world-v9.json",
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9,
+          "cleanBenchmark": false,
+          "complete": false
+        },
+        "nativeSurfaces": {
+          "models": 74,
+          "areas": 5,
+          "sampledHeights": 32634,
+          "walkmeshCollisionComplete": false
+        },
+        "lightingAndPicking": {
+          "historicalLiveReport": "godot-client/reports/native-prelude-world-v7.json",
+          "tiles": 9,
+          "entities": 20,
+          "changedTileLights": 14,
+          "gpuGeometryReadbacks": 0,
+          "liveRuntimeAfterMovementChangesVerified": false
+        },
+        "latestLocalAttempt": {
+          "report": "godot-client/reports/native-prelude-world-v21.json",
+          "worldVerified": true,
+          "loginRejected": false
+        },
+        "headlessReport": "godot-client/reports/native-light-motion-v4.json",
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
       }
     },
     {
@@ -4708,7 +5230,112 @@
       "sha256": "c294bda01b5e09a3633da9edd2ee4128ce2e74833bd42f95e8f46ba81deaa915",
       "group": "needs-classification",
       "status": "pending feature audit",
-      "nativeCounterpart": null
+      "nativeCounterpart": null,
+      "nativeActorScene": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "priority": "Complete playable native rendering using original Prelude, then further performance experiments",
+        "nativeShutdownFaultResolved": false,
+        "noPublicTest": true,
+        "performanceAccepted": false,
+        "checks": {
+          "originalActorData": 266819,
+          "originalActorGpu": 51,
+          "authoredRigGpu": 65
+        },
+        "captured": {
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9
+        },
+        "livePrelude": {
+          "tiles": 9,
+          "entities": 20,
+          "authoritativeDistance": 1.5,
+          "nativeDistance": 1.5,
+          "accepted": false
+        },
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      },
+      "nativeLightMotion": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "performanceAccepted": false,
+        "nativeShutdownFaultResolved": false,
+        "publicConnections": 0,
+        "checks": {
+          "integration": 141,
+          "binaryMotion": 47421,
+          "binaryTileLights": 1322,
+          "originalSurfaces": 33081,
+          "nativeUiText": 1025,
+          "nativeUiSkin": 203
+        },
+        "nativeUiText": {
+          "tlkRecords": 192,
+          "contextCases": 180,
+          "rgbCases": 255,
+          "originalPortrait": true,
+          "gpuReadbackVerified": false,
+          "liveVerified": false,
+          "fullUiComplete": false
+        },
+        "nativeUiSkin": {
+          "fonts": 3,
+          "images": 27,
+          "skinScalars": 149,
+          "coldWarmCache": true,
+          "originalFontsBound": true,
+          "fullNuiLayoutInputNative": false
+        },
+        "captured": {
+          "report": "godot-client/reports/native-capture-world-v9.json",
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9,
+          "cleanBenchmark": false,
+          "complete": false
+        },
+        "nativeSurfaces": {
+          "models": 74,
+          "areas": 5,
+          "sampledHeights": 32634,
+          "walkmeshCollisionComplete": false
+        },
+        "lightingAndPicking": {
+          "historicalLiveReport": "godot-client/reports/native-prelude-world-v7.json",
+          "tiles": 9,
+          "entities": 20,
+          "changedTileLights": 14,
+          "gpuGeometryReadbacks": 0,
+          "liveRuntimeAfterMovementChangesVerified": false
+        },
+        "latestLocalAttempt": {
+          "report": "godot-client/reports/native-prelude-world-v21.json",
+          "worldVerified": true,
+          "loginRejected": false
+        },
+        "headlessReport": "godot-client/reports/native-light-motion-v4.json",
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      }
     },
     {
       "file": "src/native_atan_table.js",
@@ -5056,8 +5683,9 @@
       "file": "src/native_random.js",
       "sha256": "c3fa225b33b57cb3f7808068d2b5c91610ee5d7c68eccb26dd35333cdc6ab418",
       "group": "needs-classification",
-      "status": "pending feature audit",
-      "nativeCounterpart": null
+      "status": "Native particle visual CRT recurrence verified; broader gameplay/runtime RNG migration not accepted",
+      "nativeCounterpart": "godot-client/systems/native_render/particle_random.gd",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/native_rich_text.js",
@@ -5073,7 +5701,19 @@
         "godot-client/NATIVE-GAMEPLAY-TEXT.md",
         "godot-client/reports/gameplay-text-native-v5.json",
         "godot-client/reports/native-gameplay-local-v3.json"
-      ]
+      ],
+      "nativeUiText": {
+        "tlkRecords": 192,
+        "contextCases": 180,
+        "rgbCases": 255,
+        "originalPortrait": true,
+        "gpuReadbackVerified": false,
+        "liveVerified": false,
+        "fullUiComplete": false,
+        "complete": false,
+        "scope": "Direct native test path only; transitional/default UI remains JS dependent",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
+      }
     },
     {
       "file": "src/native_talk_table.js",
@@ -5146,6 +5786,17 @@
         "physicalInputAccepted": false,
         "pendingTransitionReconnectAccepted": false,
         "performanceAccepted": false
+      },
+      "nativeUiSkin": {
+        "fonts": 3,
+        "images": 27,
+        "skinScalars": 149,
+        "coldWarmCache": true,
+        "originalFontsBound": true,
+        "fullNuiLayoutInputNative": false,
+        "complete": false,
+        "scope": "Original resource preparation and native bindings only; GUI MDL raster/layout migration and default launcher pending",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
       }
     },
     {
@@ -5992,7 +6643,19 @@
         "godot-client/NATIVE-GAMEPLAY-TEXT.md",
         "godot-client/reports/gameplay-text-native-v5.json",
         "godot-client/reports/native-gameplay-local-v3.json"
-      ]
+      ],
+      "nativeUiText": {
+        "tlkRecords": 192,
+        "contextCases": 180,
+        "rgbCases": 255,
+        "originalPortrait": true,
+        "gpuReadbackVerified": false,
+        "liveVerified": false,
+        "fullUiComplete": false,
+        "complete": false,
+        "scope": "Direct native test path only; transitional/default UI remains JS dependent",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
+      }
     },
     {
       "file": "src/network_dialog_view.js",
@@ -6076,7 +6739,19 @@
         "godot-client/NATIVE-GAMEPLAY-TEXT.md",
         "godot-client/reports/gameplay-text-native-v5.json",
         "godot-client/reports/native-gameplay-local-v3.json"
-      ]
+      ],
+      "nativeUiText": {
+        "tlkRecords": 192,
+        "contextCases": 180,
+        "rgbCases": 255,
+        "originalPortrait": true,
+        "gpuReadbackVerified": false,
+        "liveVerified": false,
+        "fullUiComplete": false,
+        "complete": false,
+        "scope": "Direct native test path only; transitional/default UI remains JS dependent",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
+      }
     },
     {
       "file": "src/network_examine_view.js",
@@ -8692,6 +9367,111 @@
           "native crash diagnosis and complete playable-world acceptance",
           "further performance work after full rendering"
         ]
+      },
+      "nativeActorScene": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "priority": "Complete playable native rendering using original Prelude, then further performance experiments",
+        "nativeShutdownFaultResolved": false,
+        "noPublicTest": true,
+        "performanceAccepted": false,
+        "checks": {
+          "originalActorData": 266819,
+          "originalActorGpu": 51,
+          "authoredRigGpu": 65
+        },
+        "captured": {
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9
+        },
+        "livePrelude": {
+          "tiles": 9,
+          "entities": 20,
+          "authoritativeDistance": 1.5,
+          "nativeDistance": 1.5,
+          "accepted": false
+        },
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      },
+      "nativeLightMotion": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "performanceAccepted": false,
+        "nativeShutdownFaultResolved": false,
+        "publicConnections": 0,
+        "checks": {
+          "integration": 141,
+          "binaryMotion": 47421,
+          "binaryTileLights": 1322,
+          "originalSurfaces": 33081,
+          "nativeUiText": 1025,
+          "nativeUiSkin": 203
+        },
+        "nativeUiText": {
+          "tlkRecords": 192,
+          "contextCases": 180,
+          "rgbCases": 255,
+          "originalPortrait": true,
+          "gpuReadbackVerified": false,
+          "liveVerified": false,
+          "fullUiComplete": false
+        },
+        "nativeUiSkin": {
+          "fonts": 3,
+          "images": 27,
+          "skinScalars": 149,
+          "coldWarmCache": true,
+          "originalFontsBound": true,
+          "fullNuiLayoutInputNative": false
+        },
+        "captured": {
+          "report": "godot-client/reports/native-capture-world-v9.json",
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9,
+          "cleanBenchmark": false,
+          "complete": false
+        },
+        "nativeSurfaces": {
+          "models": 74,
+          "areas": 5,
+          "sampledHeights": 32634,
+          "walkmeshCollisionComplete": false
+        },
+        "lightingAndPicking": {
+          "historicalLiveReport": "godot-client/reports/native-prelude-world-v7.json",
+          "tiles": 9,
+          "entities": 20,
+          "changedTileLights": 14,
+          "gpuGeometryReadbacks": 0,
+          "liveRuntimeAfterMovementChangesVerified": false
+        },
+        "latestLocalAttempt": {
+          "report": "godot-client/reports/native-prelude-world-v21.json",
+          "worldVerified": true,
+          "loginRejected": false
+        },
+        "headlessReport": "godot-client/reports/native-light-motion-v4.json",
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
       }
     },
     {
@@ -8736,7 +9516,19 @@
         "godot-client/NATIVE-GAMEPLAY-TEXT.md",
         "godot-client/reports/gameplay-text-native-v5.json",
         "godot-client/reports/native-gameplay-local-v3.json"
-      ]
+      ],
+      "nativeUiText": {
+        "tlkRecords": 192,
+        "contextCases": 180,
+        "rgbCases": 255,
+        "originalPortrait": true,
+        "gpuReadbackVerified": false,
+        "liveVerified": false,
+        "fullUiComplete": false,
+        "complete": false,
+        "scope": "Direct native test path only; transitional/default UI remains JS dependent",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
+      }
     },
     {
       "file": "src/network_speech_view.js",
@@ -8908,7 +9700,19 @@
         "godot-client/NATIVE-GAMEPLAY-TEXT.md",
         "godot-client/reports/gameplay-text-native-v5.json",
         "godot-client/reports/native-gameplay-local-v3.json"
-      ]
+      ],
+      "nativeUiText": {
+        "tlkRecords": 192,
+        "contextCases": 180,
+        "rgbCases": 255,
+        "originalPortrait": true,
+        "gpuReadbackVerified": false,
+        "liveVerified": false,
+        "fullUiComplete": false,
+        "complete": false,
+        "scope": "Direct native test path only; transitional/default UI remains JS dependent",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
+      }
     },
     {
       "file": "src/network_timing_view.js",
@@ -9596,6 +10400,17 @@
         "nwsyncHandoffAccepted": false,
         "fullMultiplayerParity": false,
         "performanceAccepted": false
+      },
+      "nativeUiSkin": {
+        "fonts": 3,
+        "images": 27,
+        "skinScalars": 149,
+        "coldWarmCache": true,
+        "originalFontsBound": true,
+        "fullNuiLayoutInputNative": false,
+        "complete": false,
+        "scope": "Original resource preparation and native bindings only; GUI MDL raster/layout migration and default launcher pending",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
       }
     },
     {
@@ -9927,40 +10742,41 @@
       "file": "src/particle_frame.js",
       "sha256": "5a11e0a786d2d0bad4bc087e9e8c424ecf5ea109875a51fef2b0b2cd280b46ec",
       "group": "content-and-rendering",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
-      "evidence": "godot-client/NATIVE-PARTICLES.md"
+      "status": "compiled native original corpus and authored moving integration checked; complete scene services/events/performance not accepted",
+      "nativeCounterpart": "godot-client/native/particle_simulation.hpp",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/particle_initialization.js",
       "sha256": "a452161a4d186cffbca6cf547e5232b30f96a60fd092966cf5b897ec5bb203cf",
       "group": "content-and-rendering",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
-      "evidence": "godot-client/NATIVE-PARTICLES.md"
+      "status": "compiled native original corpus and authored moving integration checked; complete scene services/events/performance not accepted",
+      "nativeCounterpart": "godot-client/native/particle_simulation.hpp",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/particle_lifetime.js",
       "sha256": "b71f0ed539a45a74a0971213fb5bd1fb0659e5ffb6ea35d8d8f59438e90bb2df",
       "group": "content-and-rendering",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
-      "evidence": "godot-client/NATIVE-PARTICLES.md"
+      "status": "compiled native original corpus and authored moving integration checked; complete scene services/events/performance not accepted",
+      "nativeCounterpart": "godot-client/native/particle_simulation.hpp",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/particle_math.js",
       "sha256": "ffd8eda05833346eb488799e9e99f62ca8da54483cd7744a39aa442329b35f24",
       "group": "content-and-rendering",
-      "status": "pending feature audit",
-      "nativeCounterpart": null
+      "status": "Native standard particle CPU/GPU counterpart checked; full world services, effects and performance incomplete",
+      "nativeCounterpart": "godot-client/systems/native_render/particle_math.gd",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/particle_movement.js",
       "sha256": "f9e04907dacf998be0559443747bee9d4bbf12b9673e39dbbcaa6b0559d32da2",
       "group": "content-and-rendering",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
-      "evidence": "godot-client/NATIVE-PARTICLES.md"
+      "status": "compiled native original corpus and authored moving integration checked; complete scene services/events/performance not accepted",
+      "nativeCounterpart": "godot-client/native/particle_simulation.hpp",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/particle_preview.js",
@@ -9973,8 +10789,9 @@
       "file": "src/particle_storage.js",
       "sha256": "cdc26842a78a98d64f05aad246822d5bf697d5d1d46128400d1ae49a5d7385b5",
       "group": "content-and-rendering",
-      "status": "pending feature audit",
-      "nativeCounterpart": null
+      "status": "Native standard particle CPU/GPU counterpart checked; full world services, effects and performance incomplete",
+      "nativeCounterpart": "godot-client/systems/native_render/particle_schedule.gd",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/particle_vertex_batch.js",
@@ -9994,9 +10811,9 @@
       "file": "src/particle_vertices.js",
       "sha256": "9de8c01915c83b7b0456aa2d2eb73f415ee3f6a2f0417f6730ce82d04ded15a6",
       "group": "content-and-rendering",
-      "status": "partial-reviewed; retained worker simulation and live native particle transport verified locally; full effects parity incomplete",
-      "nativeCounterpart": "tools/particle-simulation.mjs; tools/particle-workers.mjs; tools/particle-delivery.mjs; systems/particle_world.gd; systems/particle_surface.gd; original CPU owners reused, wind/tint/reference targets/static ancestor animation pending",
-      "evidence": "godot-client/NATIVE-PARTICLES.md"
+      "status": "native GD original words verified; compiled opt-in original words, GPU and local entry checked; full particles/performance not accepted",
+      "nativeCounterpart": "godot-client/systems/native_render/particle_vertices.gd; godot-client/native/particle_kernel.cpp",
+      "evidence": "godot-client/NATIVE-PARTICLE-RUNTIME.md"
     },
     {
       "file": "src/particle_worker_compare.js",
@@ -11677,7 +12494,19 @@
       "sha256": "42b50a04ded128bf1226aa1c304ca9dcbd015b02b305a52891c7ce998a07dd8f",
       "group": "needs-classification",
       "status": "pending feature audit",
-      "nativeCounterpart": null
+      "nativeCounterpart": null,
+      "nativeUiText": {
+        "tlkRecords": 192,
+        "contextCases": 180,
+        "rgbCases": 255,
+        "originalPortrait": true,
+        "gpuReadbackVerified": false,
+        "liveVerified": false,
+        "fullUiComplete": false,
+        "complete": false,
+        "scope": "Direct native test path only; transitional/default UI remains JS dependent",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
+      }
     },
     {
       "file": "src/talk_table_runtime.js",
@@ -11691,7 +12520,19 @@
       "sha256": "5d444853c42ed40a0bf14ee876f6ede398ae5bdda6d8eccc3e1e70da7a0fdf5f",
       "group": "needs-classification",
       "status": "pending feature audit",
-      "nativeCounterpart": null
+      "nativeCounterpart": null,
+      "nativeUiText": {
+        "tlkRecords": 192,
+        "contextCases": 180,
+        "rgbCases": 255,
+        "originalPortrait": true,
+        "gpuReadbackVerified": false,
+        "liveVerified": false,
+        "fullUiComplete": false,
+        "complete": false,
+        "scope": "Direct native test path only; transitional/default UI remains JS dependent",
+        "evidence": "godot-client/reports/native-light-motion-v4.json"
+      }
     },
     {
       "file": "src/target_preview.js",
@@ -12828,7 +13669,7 @@
     },
     {
       "file": "electron/network_game_session.mjs",
-      "sha256": "1e03eec8535d1d23a60224d4ff407bfa81fe1f4e6a9debffa958062b34d4539b",
+      "sha256": "c51f3a68f951f7e514d8c4ff31c4cb6d3aa3b68e86b4e50ceef20c2d92a2c519",
       "group": "multiplayer",
       "status": "partial native integration",
       "nativeCounterpart": [
@@ -13182,6 +14023,111 @@
         "publicServerAccepted": false,
         "performanceAccepted": false,
         "fullMigration": false
+      },
+      "nativeActorScene": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "priority": "Complete playable native rendering using original Prelude, then further performance experiments",
+        "nativeShutdownFaultResolved": false,
+        "noPublicTest": true,
+        "performanceAccepted": false,
+        "checks": {
+          "originalActorData": 266819,
+          "originalActorGpu": 51,
+          "authoredRigGpu": 65
+        },
+        "captured": {
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9
+        },
+        "livePrelude": {
+          "tiles": 9,
+          "entities": 20,
+          "authoritativeDistance": 1.5,
+          "nativeDistance": 1.5,
+          "accepted": false
+        },
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
+      },
+      "nativeLightMotion": {
+        "complete": false,
+        "fullyNativeRuntime": false,
+        "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+        "performanceAccepted": false,
+        "nativeShutdownFaultResolved": false,
+        "publicConnections": 0,
+        "checks": {
+          "integration": 141,
+          "binaryMotion": 47421,
+          "binaryTileLights": 1322,
+          "originalSurfaces": 33081,
+          "nativeUiText": 1025,
+          "nativeUiSkin": 203
+        },
+        "nativeUiText": {
+          "tlkRecords": 192,
+          "contextCases": 180,
+          "rgbCases": 255,
+          "originalPortrait": true,
+          "gpuReadbackVerified": false,
+          "liveVerified": false,
+          "fullUiComplete": false
+        },
+        "nativeUiSkin": {
+          "fonts": 3,
+          "images": 27,
+          "skinScalars": 149,
+          "coldWarmCache": true,
+          "originalFontsBound": true,
+          "fullNuiLayoutInputNative": false
+        },
+        "captured": {
+          "report": "godot-client/reports/native-capture-world-v9.json",
+          "tiles": 48,
+          "staticObjects": 889,
+          "creatures": 8,
+          "groundItems": 1,
+          "skins": 9,
+          "cleanBenchmark": false,
+          "complete": false
+        },
+        "nativeSurfaces": {
+          "models": 74,
+          "areas": 5,
+          "sampledHeights": 32634,
+          "walkmeshCollisionComplete": false
+        },
+        "lightingAndPicking": {
+          "historicalLiveReport": "godot-client/reports/native-prelude-world-v7.json",
+          "tiles": 9,
+          "entities": 20,
+          "changedTileLights": 14,
+          "gpuGeometryReadbacks": 0,
+          "liveRuntimeAfterMovementChangesVerified": false
+        },
+        "latestLocalAttempt": {
+          "report": "godot-client/reports/native-prelude-world-v21.json",
+          "worldVerified": true,
+          "loginRejected": false
+        },
+        "headlessReport": "godot-client/reports/native-light-motion-v4.json",
+        "remaining": [
+          "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+          "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+          "Complete native walkmesh collision and responsive reconciled prediction",
+          "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+          "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+        ]
       }
     },
     {
@@ -13518,7 +14464,7 @@
     },
     {
       "file": "electron/network_peer.mjs",
-      "sha256": "cbbf09018ea9f83034ca6f6d2e4146ec68f97ca8240cd032fe45fb039aefbc51",
+      "sha256": "33f2c9477e8a4a5ef543a065ee142fba9045e32b3097eb5604632101113247bb",
       "group": "multiplayer",
       "status": "reused-by-local-bridge; complete feature parity unverified",
       "nativeCounterpart": null
@@ -14897,5 +15843,45 @@
     "baselineModules": 866,
     "baselineTestFiles": 747
   },
-  "nativeOwnershipPriority": "Complete native game rendering first; local Prelude is the playability baseline; further performance experiments deferred"
+  "nativeOwnershipPriority": "Original-server playable native Prelude: essential gameplay first, NUI deferred, preserve native binary compatibility",
+  "nativeLocalPlayability": {
+    "complete": false,
+    "fullyNativeRuntime": false,
+    "performanceAccepted": false,
+    "nativeShutdownFaultResolved": false,
+    "status": "Native inventory/equipment/icons, movement with inventory open, NPC dialogue and server-owned Prelude transition pass; NUI deferred for playability",
+    "publicConnections": 0,
+    "liveReport": "godot-client/reports/native-prelude-world-v21.json",
+    "headlessReport": "godot-client/reports/native-light-motion-v6.json",
+    "headlessChecks": 83829,
+    "authoritativeClickMetres": 1.5000333328993944,
+    "authoritativeKeyboardMetres": 2.6545239566678767,
+    "areas": [
+      {
+        "tiles": 9,
+        "entities": 20
+      },
+      {
+        "tiles": 100,
+        "entities": 92
+      }
+    ],
+    "unhandledMessages": [
+      {
+        "major": 18,
+        "minor": 20
+      }
+    ],
+    "remaining": [
+      "Inventory item abilities/stores, spellbook/casting, combat/action UI and other essential native gameplay systems",
+      "Door/placeable controller animation, effects/weather and lighting/roof cutaway parity",
+      "Complete native walkmesh collision and responsive reconciled prediction",
+      "Profile/Workshop/NWSync native mounting and normal launcher replacement",
+      "Return transitions, reconnect/save persistence, sustained moving-scene performance and historical shutdown fault"
+    ],
+    "nuiDeferred": true,
+    "interactiveLauncher": "godot-client/play-native-local.ps1",
+    "interactiveLauncherAcceptance": "Same native entry; unlimited interactive lifetime/manual close mode added, no separate manual play acceptance",
+    "cleanupAcceptance": "Native close ran with no engine/lifetime error or trapped exception; not a new full survivor/worker audit"
+  }
 }

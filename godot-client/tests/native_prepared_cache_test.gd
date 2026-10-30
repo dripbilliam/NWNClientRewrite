@@ -30,6 +30,8 @@ func run() -> void:
 	var path := cache.filename(identity); var file := FileAccess.open(path,FileAccess.READ_WRITE); file.seek(49); file.store_8(file.get_8() ^ 255); file.close()
 	check(cache.load_data(identity,sha,"authored").is_empty() and not cache.failure.is_empty(),"Checksum verification rejects corrupted native payloads before Variant decoding")
 	check(cache.save_data(identity,sha,"authored",data) and not cache.load_data(identity,sha,"authored").is_empty(),"A corrupt cache is rebuilt from the original prepared data")
+	file=FileAccess.open(path,FileAccess.READ_WRITE); file.seek(49); file.store_8(file.get_8() ^ 255); file.close()
+	check(cache.save_data(identity,sha,"authored",data) and not cache.load_data(identity,sha,"authored").is_empty(),"Validated publication hints cannot hide same-length payload corruption, even without a preceding failed load")
 	file=FileAccess.open(path,FileAccess.WRITE); file.store_buffer("NWNC".to_ascii_buffer()); file.close()
 	check(cache.load_data(identity,sha,"authored").is_empty() and not cache.failure.is_empty(),"Truncated cache metadata is rejected")
 	var tasks: Array = []
@@ -46,5 +48,5 @@ func run() -> void:
 		check(filename==identity+".bin","Concurrent cache writers leave no temporary files")
 		if filename==identity+".bin": DirAccess.remove_absolute(directory.path_join(filename))
 	DirAccess.remove_absolute(directory)
-	var report := {"passed":failures.is_empty(),"checks":checks,"failures":failures,"scope":"Authored native persistent-cache integrity/concurrency; no proprietary data or renderer","sourceSha256":FileAccess.get_sha256("res://systems/native_data/prepared_cache.gd")}
+	var report := {"success":failures.is_empty(),"passed":failures.is_empty(),"checks":checks,"failures":failures,"scope":"Authored native persistent-cache integrity/concurrency; no proprietary data or renderer","sourceSha256":FileAccess.get_sha256("res://systems/native_data/prepared_cache.gd")}
 	file=FileAccess.open(output,FileAccess.WRITE); file.store_string(JSON.stringify(report,"\t")); file.close(); quit(0 if failures.is_empty() else 1)

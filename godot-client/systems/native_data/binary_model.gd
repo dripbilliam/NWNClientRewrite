@@ -3,6 +3,7 @@ extends RefCounted
 # Animation, skins, emitters, light behavior and references remain explicitly
 # pending consumers; their headers are retained, never silently accepted.
 const Binary = preload("res://systems/native_data/binary_data.gd")
+const Emitter=preload("res://systems/native_data/emitter_data.gd")
 var failure := ""
 var reader
 var model_size := 0
@@ -29,7 +30,9 @@ func parse(bytes: PackedByteArray) -> Dictionary:
 	read_node(reader.u32(84), -1, 0)
 	if not reader.failure.is_empty(): reject(reader.failure)
 	if not failure.is_empty(): return {}
-	return {"name": name, "nodes": nodes, "model_bytes": model_size, "raw_bytes": raw_size, "scope": "Original static binary MDL data; behavioral controllers/animation/skinning not yet admitted"}
+	# Original serialized model reader140079f90 copies model+72 to runtime+92.
+	if not model_range(0x72,1): return {}
+	return {"name": name, "nodes": nodes, "classification_flags":reader.u8(12+0x72), "model_bytes": model_size, "raw_bytes": raw_size, "scope": "Original static binary MDL data; behavioral controllers/animation/skinning not yet admitted"}
 func read_node(offset: int, parent: int, depth: int) -> void:
 	if not failure.is_empty(): return
 	if depth > 128 or nodes.size() >= declared_nodes or visited.has(offset): reject("MDL hierarchy depth/count/cycle invalid"); return
@@ -38,6 +41,7 @@ func read_node(offset: int, parent: int, depth: int) -> void:
 	var at := 12 + offset; var flags: int = reader.u32(at + 108)
 	if flags & ~0x3f7: reject("Unsupported binary MDL node flags"); return
 	var row := {"name": reader.text(at + 32, 32, true), "parent": parent, "flags": flags, "position": [0.0,0.0,0.0], "orientation": [0.0,0.0,0.0,1.0], "scale": 1.0, "alpha": 1.0, "selfillum": [0.0,0.0,0.0], "features": [], "mesh": {}, "light": {"color":[1.0,1.0,1.0],"radius":0.0,"multiplier":1.0} if flags & 2 else {}}
+	if flags&4: row.emitter={}
 	static_controllers(row, at)
 	var cursor := at + 112
 	for feature in [[2, 92, "light"], [4, 216, "emitter"], [16, 68, "reference"]]:
@@ -47,6 +51,12 @@ func read_node(offset: int, parent: int, depth: int) -> void:
 				row.light.flareradius=reader.f32(cursor)
 				var names: Array=["lightpriority","ambientonly","isdynamic","affectdynamic","shadow","generateflare","fadinglight"]
 				for index in names.size(): row.light[names[index]]=reader.u32(cursor+64+index*4)
+			elif int(feature[0])==4:
+				var emitter:=Emitter.new(); var properties:=emitter.binary_header(reader,cursor)
+				if not emitter.failure.is_empty(): reject(emitter.failure); return
+				row.emitter.merge(properties,true)
+			elif int(feature[0])==16:
+				row.reference={"model":reader.text(cursor,64,true),"rawModel":reader.bytes(cursor,64),"reattachable":reader.i32(cursor+64)}
 			row.features.append(feature[2]); cursor += int(feature[1])
 	if flags & 32: row.mesh = read_mesh(cursor)
 	for feature in [[64,"skin"],[128,"animated-mesh"],[256,"dangly"],[512,"aabb"]]:
@@ -81,6 +91,9 @@ func static_controllers(row: Dictionary, at: int) -> void:
 			elif columns==1:
 				var property: String={88:"radius",96:"shadowradius",100:"verticaldisplacement",140:"multiplier"}.get(type,"")
 				if not property.is_empty(): row.light[property]=data[0]
+		elif int(row.flags)&4:
+			var channel:=Emitter.channel(type)
+			if not channel.is_empty() and columns==int(channel.components): row.emitter[channel.property]=data if columns==3 else data[0]
 func read_mesh(at: int) -> Dictionary:
 	if not model_range(at - 12, 512): return {}
 	var face_offset: int = reader.u32(at + 8); var face_count: int = reader.u32(at + 12)
@@ -89,7 +102,14 @@ func read_mesh(at: int) -> Dictionary:
 	var mode: int = reader.u8(at + 436); var vertex_offset: int = reader.u32(at + 444); var vertex_count: int = reader.u16(at + 448); var texture_count: int = reader.u16(at + 450)
 	var normal_offset: int = reader.u32(at + 468)
 	var result := {"vertices": PackedFloat32Array(), "normals": PackedFloat32Array(), "uv": [], "indices": PackedInt32Array(), "collision_indices": PackedInt32Array(), "textures": [], "render": reader.u32(at + 108) == 1, "shadow": reader.u32(at + 100) == 1, "transparency_hint": reader.u32(at + 112) == 1, "diffuse": [reader.f32(at + 72),reader.f32(at + 76),reader.f32(at + 80)]}
-	if mode == 0 and face_count == 0 and vertex_count == 0 and texture_count == 0: return result
+	# Original header copier078ab0: mesh extension1f8 (disk268) -> runtime2bc.
+	# Skin/dangly mesh headers inherit this field; do not derive it from triangles.
+	result.native_area=reader.f32(at+0x1f8)
+	result.native_planes=PackedFloat32Array(); result.native_surface_types=PackedInt32Array()
+	# Empty serialized trimeshes contain no vertex/index/texture payload. Their
+	# unused primitive-mode byte may be unspecified (observed 208 and 98 in
+	# actual tile resources). Preserve the physical node without drawing it.
+	if face_count == 0 and vertex_count == 0 and texture_count == 0 and draw_count == 0: return result
 	if mode != 3 or vertex_count == 0 or face_count > 1000000 or (face_count == 0 and draw_count == 0): reject("Invalid MDL mesh mode/count"); return {}
 	if not raw_range(vertex_offset, vertex_count * 12) or not model_range(face_offset, face_count * 32): return {}
 	for index in vertex_count * 3: result.vertices.append(reader.f32(raw_start + vertex_offset + index * 4))
@@ -104,6 +124,9 @@ func read_mesh(at: int) -> Dictionary:
 			for index in vertex_count * 2: uv.append(reader.f32(raw_start + uv_offset + index * 4))
 		result.uv.append(uv)
 	for face in face_count:
+		var original_face:=12+face_offset+face*32
+		for field in 4: result.native_planes.append(reader.f32(original_face+field*4))
+		result.native_surface_types.append(reader.u32(original_face+16))
 		for corner in 3:
 			var index: int = reader.u16(12 + face_offset + face * 32 + 26 + corner * 2)
 			if index >= vertex_count: reject("MDL collision index exceeds vertices"); return {}

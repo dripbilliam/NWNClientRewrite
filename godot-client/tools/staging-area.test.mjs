@@ -26,3 +26,9 @@ test('preparation failure from a retired presenter is discarded; current failure
 test('frontend phase cannot admit an older area presenter',async()=>{
  const f=fixture();f.p.area.id=4;assert.equal(await f.run(),null);
 });
+
+test('source frames remain available while queued admission and model work drains',async()=>{
+ const f=fixture();let releaseQueue,releaseGraphics,releaseModels;const phases=[];
+ f.frontend.queue=new Promise(r=>releaseQueue=r);f.frontend.areaAdmissionWork=new Promise(r=>releaseGraphics=r);f.p.syncWork=new Promise(r=>releaseModels=r);f.context.progress=p=>phases.push(p);
+ const work=f.run();assert.equal(f.stopped(),false);releaseQueue();await new Promise(r=>setImmediate(r));assert.equal(f.stopped(),false);releaseGraphics();await new Promise(r=>setImmediate(r));assert.equal(f.stopped(),false);releaseModels();await new Promise(r=>setImmediate(r));assert.equal(f.stopped(),true);f.release();await work;assert.deepEqual(phases,['draining-messages','draining-graphics','draining-models','preparing-rigs','preparing-particles','exporting-world','ready']);
+});

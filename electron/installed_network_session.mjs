@@ -8,11 +8,13 @@ import {queryNetworkServer} from './server_browser.mjs';
 export async function createInstalledNetworkSession(request){
  let identity,build,peer,resources;
  try{
+  request.signal?.throwIfAborted();
   identity=request.loginIdentity??new NetworkLoginIdentity(request.credentials);delete request.loginIdentity;for(const key of ['cdKey','password','communityPassword'])if(request.credentials)request.credentials[key]='';delete request.credentials;
   resources=installedNetworkResources({install:request.install,modsDirectory:request.modsDirectory,disabledMods:request.disabledMods,userDirectory:request.userDirectory,cacheDirectory:request.cacheDirectory,reuseInstalledNWSync:request.reuseInstalledNWSync??true,onDiagnostic:request.onDiagnostic});
-  const language=await resources.languageId();build=await installedNetworkBuild(request.install);
+  const language=await resources.languageId();request.signal?.throwIfAborted();build=await installedNetworkBuild(request.install);request.signal?.throwIfAborted();
   peer=new NetworkPeer({onDiagnostic:request.onDiagnostic});
-  let serverInfo=null;if(request.host){try{serverInfo=await queryNetworkServer({host:request.host,port:request.port});}catch{request.onDiagnostic?.({code:'network.server-info-unavailable',reason:'Public server vault policy could not be queried'});}}
+  let serverInfo=null;if(request.host){try{serverInfo=await queryNetworkServer({host:request.host,port:request.port,signal:request.signal});}catch{request.signal?.throwIfAborted();request.onDiagnostic?.({code:'network.server-info-unavailable',reason:'Public server vault policy could not be queried'});}}
+  request.signal?.throwIfAborted();
   const localVaultAllowed=serverInfo?Boolean(serverInfo.allowLocalVaultCharacters):request.host?null:true;
   const session=new NetworkGameSession({peer,identity,build,resources,language,serverInfo,localVaultAllowed,onDiagnostic:request.onDiagnostic,persistCharacter:request.persistCharacter,loginWaypoint:request.loginWaypoint??'',
    preparePortal:portal=>createInstalledNetworkSession({...request,host:portal.host,port:portal.port,loginIdentity:identity.forPortal(portal.password),loginWaypoint:portal.waypoint||(portal.seamless?'*PAUL_WAS_HERE*':'')}),

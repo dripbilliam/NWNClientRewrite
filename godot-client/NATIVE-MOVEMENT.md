@@ -1,5 +1,11 @@
 # Native multiplayer movement
 
+Current direct-native entry: see
+[NATIVE-DRIVE-PREDICTION.md](NATIVE-DRIVE-PREDICTION.md). The sections below
+describe the earlier adapter-based migration and its historical receipts. The
+later request-only native driver lost local prediction; that regression is now
+repaired with native Godot planning/collision and scoped protocol replies.
+
 Status: **native motion, original drive protocol and reused exact collision
 planning are implemented and locally verified**. Full movement/gameplay and
 performance acceptance remain incomplete. No Arelith connection was used.

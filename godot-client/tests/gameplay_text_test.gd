@@ -165,7 +165,7 @@ func run() -> void:
 		node.queue_free()
 	await process_frame
 	var file := FileAccess.open(output, FileAccess.WRITE)
-	file.store_string(JSON.stringify({"scope": "Authored native rich-text/menu routing, disclosure, replies, stale completion and cleanup; not live-server, pixel/font or FPS acceptance", "checks": checks, "failures": failures}, "  "))
+	file.store_string(JSON.stringify({"success": failures.is_empty(), "scope": "Authored native rich-text/menu routing, disclosure, replies, stale completion and cleanup; not live-server, pixel/font or FPS acceptance", "checks": checks, "failures": failures}, "  "))
 	file.close()
 	print(JSON.stringify({"checks": checks, "failures": failures.size(), "report": output}))
 	quit(0 if failures.is_empty() else 1)

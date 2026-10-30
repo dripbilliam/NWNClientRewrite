@@ -83,6 +83,9 @@ func apply_geometry() -> void:
 		else: at[axis] = minf(at[axis], viewport[axis] - 20)
 	var edges: Dictionary = state.get("edgeConstraint", {})
 	if not edges.is_empty(): at = at.max(Vector2(float(edges.get("x", 0)), float(edges.get("y", 0)))).min(viewport - Vector2(float(edges.get("w", 20)) if float(edges.get("w", 0)) > 0 else 20.0, float(edges.get("h", 20)) if float(edges.get("h", 0)) > 0 else 20.0))
+	# Headerless toolbars have no draggable title strip. Keeping only twenty
+	# pixels visible cuts their icon boxes in half at smaller viewport sizes.
+	if not state.get("header",true): at=at.clamp(Vector2.ZERO,(viewport-extent).max(Vector2.ZERO))
 	position = at.max(Vector2.ZERO); size = Vector2(extent.x, maxf(28, header_height) if state.get("collapsed", false) else extent.y)
 func restyle() -> void:
 	manager.style(title, "window_title", str(state.get("font", "(default)")), null)

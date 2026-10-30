@@ -5,7 +5,7 @@ captured lower boundaries with explicit synthetic responses. This proves
 frame/birth/recycle/placement ordering, not actual particle initialization,
 movement, randomness, outer transform/time owner or GPU rendering.
 """
-import importlib,itertools,json,struct,math
+import importlib,itertools,json,struct,math,argparse
 m=importlib.import_module('inspect-native-intratile-coordinator');u=m.u
 from unicorn import UC_HOOK_CODE
 from unicorn.x86_const import *
@@ -72,7 +72,18 @@ def run(case):
  assert u.reg_read(UC_X86_REG_RIP)==m.stop
  activeids=ids(m.q(emitter+0x188),m.si(emitter+0x190));freeids=ids(m.q(emitter+0x130),m.si(emitter+0x138));pointers={id:p for p,id in names.items()if p< m.heap+0x60000}
  return dict(case=c,calls=calls,active=activeids,free=freeids,activeCapacity=m.si(emitter+0x194),freeCapacity=m.si(emitter+0x13c),enabled=u.mem_read(emitter+0x23c,1)[0],accumulator=m.rf(emitter+0x198),remaining=[m.rf(emitter+0x164+i*4)for i in range(3)],particles=[dict(id=id,age=m.rf(p+0x74),field48=m.si(p+0x48),rotation=m.rf(p+0x1c),position=[m.rf(p+0x10+i*4)for i in range(3)],trail=[m.rf(p+0x64+i*4)for i in range(3)])for id,p in sorted(pointers.items())])
-rows=[run(dict(rate=rate,delta=delta,spawnType=spawn,renderMode=mode,ages=ages,freeCount=free,chunk=chunk,source=1,factor=.75,position=[1.25,-.5,.75]))for rate,delta,spawn,mode,(ages,free,chunk)in itertools.product([0,.5,1,3.5,8],[0,.1,.5,1.25],[0,1],[0,6],[([],0,0),([.25,1.25],1,1)])]
-rows.extend([run(dict(rate=8,delta=.5,spawnType=spawn,renderMode=0,ages=[],freeCount=0,chunk=0,source=0,factor=1,position=pos))for spawn,pos in itertools.product([0,1],[[0,0,0],[.00001,-.00002,.00003]])])
-rows.append(run(dict(rate=8,delta=.5,spawnType=0,renderMode=0,ages=[],freeCount=0,chunk=0,source=0,factor=1,position=[0,0,0],mutateAccumulator=.1)))
-out=m.root/'backups/animations/native-fountain-update-observations.json';out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2));print(json.dumps(dict(output=str(out),rows=len(rows))))
+if __name__=='__main__':
+ parser=argparse.ArgumentParser();parser.add_argument('--spawn-word-corpus',action='store_true');args=parser.parse_args()
+ if args.spawn_word_corpus:
+  # Exercise the complete original owner, including both zero/nonzero branches.
+  # The memory writer stores exact dwords for signed and unsigned JSON spellings.
+  rows=[run(dict(rate=rate,delta=delta,spawnType=spawn,renderMode=mode,ages=ages,freeCount=free,chunk=chunk,source=1,factor=.75,position=pos))for rate,delta,spawn,mode,(ages,free,chunk),pos in itertools.product([0,8],[0,.5],[0,1,-1,-2147483648,2147483647,2147483648,4294967295],[0,6],[([],0,0),([.25,1.25],1,1)],[[0,0,0],[1.25,-.5,.75]])]
+  filename='native-fountain-spawn-words-v1.json'
+ else:
+  rows=[run(dict(rate=rate,delta=delta,spawnType=spawn,renderMode=mode,ages=ages,freeCount=free,chunk=chunk,source=1,factor=.75,position=[1.25,-.5,.75]))for rate,delta,spawn,mode,(ages,free,chunk)in itertools.product([0,.5,1,3.5,8],[0,.1,.5,1.25],[0,1],[0,6],[([],0,0),([.25,1.25],1,1)])]
+  rows.extend([run(dict(rate=8,delta=.5,spawnType=spawn,renderMode=0,ages=[],freeCount=0,chunk=0,source=0,factor=1,position=pos))for spawn,pos in itertools.product([0,1],[[0,0,0],[.00001,-.00002,.00003]])])
+  rows.append(run(dict(rate=8,delta=.5,spawnType=0,renderMode=0,ages=[],freeCount=0,chunk=0,source=0,factor=1,position=[0,0,0],mutateAccumulator=.1)))
+  filename='native-fountain-update-observations.json'
+ out=m.root/'backups/animations'/filename
+ if args.spawn_word_corpus and out.exists():raise FileExistsError(out)
+ out.write_text(json.dumps(dict(binarySha256=m.digest,limits=__doc__,rows=rows),indent=2));print(json.dumps(dict(output=str(out),rows=len(rows))))

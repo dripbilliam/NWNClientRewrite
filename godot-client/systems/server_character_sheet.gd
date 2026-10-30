@@ -2,6 +2,7 @@ extends "res://systems/draggable_panel.gd"
 
 signal request(message: Dictionary)
 signal level_requested
+signal rendered
 const Text = preload("res://systems/server_text.gd")
 const Images = preload("res://systems/runtime_image.gd")
 const Entry = preload("res://systems/record_entry.gd")
@@ -19,6 +20,7 @@ var active_scrolls: Dictionary = {}
 var description: RichTextLabel
 var notice: Label
 var level_button: Button
+var native_skin
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Character Record", "character-sheet", Vector2(110, 80), storage)
@@ -41,6 +43,7 @@ func reset() -> void:
 	state.clear(); selected.clear(); scrolls.clear(); clear_body(); hide()
 
 func clear_body() -> void:
+	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.clear_page()
 	for child in body.get_children(): body.remove_child(child); child.queue_free()
 	image_nodes.clear(); entry_nodes.clear(); active_scrolls.clear(); description = null
 
@@ -71,9 +74,7 @@ func receive(message: Dictionary) -> void:
 			if texture != null: image_nodes[str(message.key)].texture = texture
 
 func value(raw: Variant) -> String:
-	if raw == null: return "—"
-	if raw is float and is_equal_approx(raw, roundf(raw)): return str(int(raw))
-	return str(raw)
+	return preload("res://systems/native_data/game_numbers.gd").text(raw)
 
 func scroll_box(key: String, size_hint: Vector2) -> ScrollContainer:
 	var scroll := ScrollContainer.new(); scroll.custom_minimum_size = size_hint; scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -89,13 +90,17 @@ func picture(key: String, size_hint: Vector2) -> TextureRect:
 func render() -> void:
 	clear_body()
 	var model: Dictionary = state.model
-	set_caption("Character Record, " + str(model.get("name", "—")))
-	for index in tabs.size(): tabs[index].disabled = index == page
-	if page == 0: statistics(model)
-	else: entries()
+	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render()
+	else:
+		set_caption("Character Record, " + str(model.get("name", "—")))
+		for index in tabs.size(): tabs[index].disabled = index == page
+		if page == 0: statistics(model)
+		else: entries()
+		level_button.visible = page == 0 and wanted and bool(state.get("canLevelUp", false))
 	for key in active_scrolls: active_scrolls[key].set_deferred("scroll_vertical", int(scrolls.get(str(page) + ":" + key, 0)))
 	notice.text = "Select a skill or feat to read its description. Drag available entries to the quickbar." if page > 0 else ("Level-up available on the server." if state.get("canLevelUp", false) else "")
 	_clamp()
+	rendered.emit()
 
 func statistics(model: Dictionary) -> void:
 	var overview := HBoxContainer.new(); body.add_child(overview)
@@ -112,7 +117,7 @@ func statistics(model: Dictionary) -> void:
 			number.name = str(ability.key) + "_" + key
 			if key == "modifier" and ability.get(key) != null and int(ability[key]) > 0: number.text = "+" + number.text
 			var adjustment: int = int(ability.get("adjustment" if key == "score" else "modifierAdjustment", 0))
-			if adjustment != 0: number.add_theme_color_override("font_color", Color.LIME_GREEN if adjustment > 0 else Color.ORANGE_RED)
+			if adjustment != 0: number.add_theme_color_override("font_color", preload("res://systems/native_data/character_record_values.gd").tone(adjustment))
 			grid.add_child(number)
 	var vitals := HBoxContainer.new(); body.add_child(vitals)
 	vitals.add_child(Text.label({"text": "AC: %s    HP: %s / %s" % [value(model.get("armorClass")), value(model.get("currentHP")), value(model.get("maximumHP"))]}, 330))
@@ -142,7 +147,9 @@ func select_entry(id: int) -> void:
 		if int(row.entryId) == id:
 			selected[str(page)] = int(row.id)
 			Text.set_text(description, row.description)
-			for entry_id in entry_nodes: entry_nodes[entry_id].modulate = Color(1.0, 0.86, 0.5) if entry_id == id else Color.WHITE
+			if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.select_entry(id)
+			else:
+				for entry_id in entry_nodes: entry_nodes[entry_id].modulate = Color(1.0, 0.86, 0.5) if entry_id == id else Color.WHITE
 			if active_scrolls.has("description"): active_scrolls.description.scroll_vertical = 0
 			return
 

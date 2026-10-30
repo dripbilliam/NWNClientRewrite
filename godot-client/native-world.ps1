@@ -1,8 +1,11 @@
-param([ValidateRange(0,1000000)][int]$Frames=0,[string]$Report='',[int]$PreserveOriginalPid=0,[switch]$CaptureCrash,[switch]$NormalHeap)
+param([ValidateRange(0,1000000)][int]$Frames=0,[string]$Report='',[int]$PreserveOriginalPid=0,[switch]$CaptureCrash,[switch]$NormalHeap,[string]$InputDescriptor='reports/native-capture-input-cache-v1.json',[switch]$CompiledParticleKernel,[switch]$GdParticles,[switch]$ComposedParticles,[switch]$UncachedParticleChannels,[switch]$GdParticleParameters,[switch]$NativeParticleParameters,[switch]$UnculledParticles,[switch]$ReferenceParticleOwners,[switch]$LegacyParticleStreams,[switch]$DisableParticles,[switch]$EnableParticles)
 $ErrorActionPreference='Stop'
 $project=[IO.Path]::GetFullPath($PSScriptRoot)
+if($CompiledParticleKernel-and$GdParticles){throw 'Choose either compiled or GD particles'}
+$CompiledParticleKernel=-not$GdParticles
+if($CompiledParticleKernel){& (Join-Path $project 'tools/ensure-particle-kernel.ps1')}
 . (Join-Path $project 'tools/local-test-guard.ps1'); Assert-NativeLocalTestAvailable $project -PreserveOriginalPid $PreserveOriginalPid
-$fixture=Get-Content -LiteralPath (Join-Path $project 'reports/native-capture-input-v1.json') -Raw|ConvertFrom-Json
+$fixture=Get-Content -LiteralPath (Join-Path $project $InputDescriptor) -Raw|ConvertFrom-Json
 if((Get-FileHash -LiteralPath $fixture.input -Algorithm SHA256).Hash.ToLowerInvariant()-ne$fixture.sha256){throw 'Private decoded protocol fixture differs'}
 if($Report){$Report=[IO.Path]::GetFullPath($Report);if(Test-Path -LiteralPath $Report){throw 'Native world output already exists'}}
 if($CaptureCrash-and-not$Report){throw 'Crash capture requires an unused report path'}
@@ -10,10 +13,30 @@ if($NormalHeap-and-not$CaptureCrash){throw 'NormalHeap only applies to debugger-
 $nativeArgs=@('--path',$project,'--rendering-method','forward_plus','--rendering-driver','vulkan','--script','res://native_capture_world.gd')
 if($Report){$nativeArgs+=@('--verbose','--log-file',([IO.Path]::ChangeExtension($Report,'.engine.log')))}
 $nativeArgs+=@('--',('--input='+$fixture.input),('--input-sha256='+$fixture.sha256));if($Frames){$nativeArgs+=('--frames='+$Frames)};if($Report){$nativeArgs+=('--report='+$Report)}
+if($CompiledParticleKernel){$nativeArgs+='--particle-kernel=compiled'}else{$nativeArgs+='--particle-kernel=gd'}
+if($DisableParticles-and$EnableParticles){throw 'Choose either enabled or disabled particles'}
+if($EnableParticles){$nativeArgs+='--particles=on'}else{$nativeArgs+='--particles=off'}
+if($ComposedParticles){$nativeArgs+='--particle-dispatch=composed'}
+if($UnculledParticles){$nativeArgs+='--particle-culling=none'}
+if($ReferenceParticleOwners){$nativeArgs+='--particle-owner=reference'}
+if($LegacyParticleStreams){$nativeArgs+='--particle-streams=legacy'}
+if($UncachedParticleChannels){$nativeArgs+='--particle-channels=sampled'}
+if($NativeParticleParameters-and$GdParticleParameters){throw 'Choose one parameter transfer diagnostic'}
+if($GdParticleParameters){$nativeArgs+='--particle-parameters=gd'}
+if($NativeParticleParameters){$nativeArgs+='--particle-parameters=cpp'}
+$sourceSupplement=''
+if($fixture.sourceSupplement){
+ $sourceSupplement=[IO.Path]::GetFullPath((Join-Path $project $fixture.sourceSupplement))
+ if((Get-FileHash -LiteralPath $sourceSupplement -Algorithm SHA256).Hash.ToLowerInvariant()-ne$fixture.sourceSupplementSha256){throw 'Cached source supplement checksum differs'}
+ $nativeArgs+=@(('--source-supplement='+$sourceSupplement),('--source-supplement-sha256='+$fixture.sourceSupplementSha256))
+}
 $engine=Join-Path $project '.tools/Godot_v4.7.2-stable_win64.exe'
 $sources=@{}
 foreach($file in Get-ChildItem -LiteralPath (Join-Path $project 'systems') -Recurse -Filter '*.gd'){$sources[$file.FullName.Substring($project.Length+1).Replace('\','/')]=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
 foreach($name in @('native-world.ps1','native_capture_world.gd','project.godot')){$sources[$name]=(Get-FileHash -LiteralPath (Join-Path $project $name) -Algorithm SHA256).Hash.ToLowerInvariant()}
+if($CompiledParticleKernel){foreach($name in @('native/particle_kernel.cpp','native/particle_simulation.hpp','native/particle_kernel.gdextension','tools/build-particle-kernel.ps1','tools/ensure-particle-kernel.ps1','.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-kernel/build-manifest.json')){$sources[$name]=(Get-FileHash -LiteralPath (Join-Path $project $name) -Algorithm SHA256).Hash.ToLowerInvariant()}}
+if($CompiledParticleKernel){foreach($file in Get-ChildItem -LiteralPath (Join-Path $project 'native') -Filter '*.hpp'){$sources[$file.FullName.Substring($project.Length+1).Replace('\','/')]=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}}
+if($sourceSupplement){$sources[$fixture.sourceSupplement]=$fixture.sourceSupplementSha256}
 $start=[Diagnostics.ProcessStartInfo]::new();$start.WorkingDirectory=$project;$start.UseShellExecute=$false;$start.CreateNoWindow=$true
 if($CaptureCrash){
  $commands=[IO.Path]::ChangeExtension($Report,'.cdb.txt');$debugLog=[IO.Path]::ChangeExtension($Report,'.cdb.log')

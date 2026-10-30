@@ -12,8 +12,8 @@ export function characterSheetRequest({targetId,page}){
 }
 // Server456d30 subscription branches10/11 have no fields.
 export const journalWindowRequest=open=>{if(typeof open!=='boolean')throw new Error('Invalid native journal window request');return Uint8Array.of(112,28,open?10:11);};
-// Original7c31b0 resolves PLAYER_ID -> canonical controlled object before
-// writing OBJECT_ID and BOOL. That lookup belongs to the current session.
+// Original7c31b0 resolves PLAYER_ID -> player character (+34), distinct
+// from the controlled object (+38), before writing OBJECT_ID and BOOL.
 export function playerAttitudeRequest({targetId,likes}){
  if(!uint(targetId)||typeof likes!=='boolean')throw new Error('Invalid native player attitude request');
  const w=new NativeMessageWriter(1);w.create(8,0xffffffff,1);w.writeObjectIdClient(targetId);w.writeBool(Number(likes));w.setPrefix(Uint8Array.of(112,41,3));return Uint8Array.from(w.getWriteMessage().data);

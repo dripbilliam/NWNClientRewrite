@@ -49,7 +49,10 @@ func set_active(value: bool) -> void:
 func release_model() -> void:
 	if is_instance_valid(model):
 		old_models = old_models.filter(func(reference): return is_instance_valid(reference.get_ref()))
-		old_models.append(weakref(model)); model.retire(); retired += 1
+		old_models.append(weakref(model))
+		if model.has_method("retire"): model.retire()
+		else: model.close(); model.queue_free()
+		retired += 1
 	model = null
 
 func reset() -> void:

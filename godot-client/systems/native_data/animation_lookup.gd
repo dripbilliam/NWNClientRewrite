@@ -13,7 +13,8 @@ func equipped(object: Dictionary,slot: int) -> Dictionary:
 func context(object: Dictionary,tables: Dictionary) -> Dictionary:
 	var appearance_id:=int(object.get("appearance",{}).get("appearance",-1)); var rows: Array=tables.get("appearance",{}).get("orderedRows",[])
 	if appearance_id<0 or appearance_id>=rows.size(): failure="Original animation appearance is absent"; return {}
-	var body:=1 if str(rows[appearance_id].get("MODELTYPE","")) in ["P","F"] else 0
+	var model_type:=str(rows[appearance_id].get("MODELTYPE",""))
+	var body:=preload("res://systems/native_data/animation_body_type.gd").classify(model_type)
 	var right:=equipped(object,16); var left:=equipped(object,32); var style:=1; var weapon_type:=0
 	if right.is_empty():
 		if not left.is_empty() and field(tables,"baseitems",int(left.baseItem),"WeaponWield")==7: style=2
@@ -31,7 +32,7 @@ func context(object: Dictionary,tables: Dictionary) -> Dictionary:
 		else:
 			style=6 if difference==1 and wield!=8 and wield not in [4,5,6,10] else int({4:8,8:7,5:9,6:10,10:11}.get(wield,1))
 			weapon_type=field(tables,"baseitems",base,"WeaponType")
-	return {"fieldDE":body,"fieldDD":style,"fieldDF":weapon_type&255,"fieldE0":0,"fieldE8":0,"fieldEC":0}
+	return {"fieldDE":body,"fieldDD":style,"fieldDF":weapon_type&255,"fieldE0":0,"fieldE8":0,"fieldEC":0,"model_type":model_type}
 func relative_size(base: int,appearance: int,tables: Dictionary) -> int:
 	return 0 if base==111 else field(tables,"baseitems",base,"WeaponSize")-field(tables,"appearance",appearance,"SIZECATEGORY")
 func name_for(code: int,state: Dictionary,overrides: Array=[]) -> String:

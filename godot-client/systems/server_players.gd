@@ -4,6 +4,7 @@ var wanted := false
 var view_id := -1
 var rows: Array = []
 var list: VBoxContainer
+var native_skin
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Players · PvP Attitude", "players", Vector2(180, 120), storage)
@@ -13,6 +14,7 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	close_requested.connect(close_players); reset()
 
 func reset() -> void:
+	if is_instance_valid(native_skin): native_skin.reset_view()
 	wanted = false; view_id = -1; rows.clear(); clear_rows(); hide()
 func clear_rows() -> void:
 	for child in list.get_children(): list.remove_child(child); child.queue_free()
@@ -25,6 +27,7 @@ func receive(message: Dictionary) -> void:
 	if message.kind == "players-closed": reset(); return
 	if not wanted or message.kind != "players-view": return
 	view_id = int(message.viewId); rows = message.rows; clear_rows()
+	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render(); return
 	if rows.is_empty():
 		var empty := Label.new(); empty.text = "No players have been received."; list.add_child(empty)
 	for row in rows:

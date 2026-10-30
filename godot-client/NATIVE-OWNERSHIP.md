@@ -6,15 +6,15 @@ natively.** GDScript and native Godot extensions may own the implementation.
 JS remains useful for offline reference tests and the preserved comparison
 client; it is not a dependency of the intended game executable.
 
-The running game is still the transitional client. No default launcher has
-been switched to an incomplete native implementation. Its JS networking,
-resource/scene preparation and particle workers have **not** been removed.
-This milestone does not improve its current loading time yet.
-
-A separate [native model/raster entry](NATIVE-DIRECT-RENDER.md) now has persistent
-preparation caches, shared GPU resources and debugger-protected Vulkan evidence.
-Its reports supersede the foundation source pins below. Multiplayer still uses
-the old preparation path; full-area and moving-world migration remain open.
+The normal multiplayer launcher now uses the [direct-native entry](NATIVE-SESSION-RENDER.md).
+Godot owns resource catalogs, model/texture preparation, world rendering and the
+native gameplay UI. [Character creation](NATIVE-CREATION.md) also owns active
+server-table rules, recommendations, validation, BIC writing and previews in
+Godot. The temporary JS bridge retains authentication, protocol codecs, downloads
+and decoded state transport; it performs no render or creator preparation.
+Full networking/service migration, visual parity and performance acceptance
+remain incomplete. The foundation evidence below is historical and should not
+be read as the latest feature inventory.
 
 ## Native resource foundation implemented
 

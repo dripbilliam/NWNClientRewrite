@@ -11,7 +11,7 @@ async function fixture(){
 }
 test('old-server handoff remains cancellable and cannot admit an unrelated login while no destination is attached',async()=>{
  const f=await fixture();assert.equal(f.lobby.snapshot().canCancelJoin,true);const c=f.release();assert.equal(c,2);assert.equal(f.lobby.session,null);assert.equal(f.lobby.snapshot().canJoin,false);assert.equal(f.lobby.snapshot().canCancelJoin,true);
- await assert.rejects(f.lobby.join({connection:c}),/Disconnect/);await f.lobby.cancelJoin({connection:c});assert.deepEqual(f.disconnections,[{saveCharacter:false}]);assert.equal(f.lobby.snapshot().canJoin,true);assert.equal(f.lobby.snapshot().canCancelJoin,false);
+ await assert.rejects(f.lobby.join({connection:c}),/Disconnect/);await f.lobby.cancelJoin({connection:c});assert.deepEqual(f.disconnections,[{saveCharacter:false,targetSession:null}]);assert.equal(f.lobby.snapshot().canJoin,true);assert.equal(f.lobby.snapshot().canCancelJoin,false);
  assert.throws(()=>f.lobby.attach(new Session(),c),/Cancelled/);
 });
 test('destination setup releases busy and remains cancellable through connection and resources until playing',async()=>{

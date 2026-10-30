@@ -4,6 +4,11 @@ extends RefCounted
 const Binary=preload("res://systems/native_data/binary_data.gd")
 const BinaryModel=preload("res://systems/native_data/binary_model.gd")
 const AsciiModel=preload("res://systems/native_data/ascii_model.gd")
+const Emitter=preload("res://systems/native_data/emitter_data.gd")
+const PackedKeys=preload("res://systems/native_data/packed_animation_keys.gd")
+var packed_keys:=false
+static func configured_typed_ascii_keys() -> bool: return not OS.get_cmdline_user_args().has("--ascii-key-write=arrays")
+var typed_ascii_keys:=configured_typed_ascii_keys()
 var failure:=""
 var reader
 var model_end:=0
@@ -35,6 +40,9 @@ func parse(bytes: PackedByteArray) -> Dictionary:
 		if not parser.failure.is_empty(): reject(parser.failure); return {}
 		ascii_skins(text,model,parser.source_nodes)
 		model.animations=ascii_animations(text)
+		if parser.source_nodes.any(func(node):return node.kind=="animmesh"):
+			var decoder:=preload("res://systems/native_data/animated_mesh.gd").new(); decoder.ascii_tracks(text,model,parser.source_nodes)
+			if not decoder.failure.is_empty(): reject(decoder.failure); return {}
 	if not reader.failure.is_empty(): reject(reader.failure)
 	if not is_finite(float(model.get("animation_scale",1.0))) or float(model.get("animation_scale",1.0))<0: reject("Original actor animation scale is invalid")
 	if not failure.is_empty(): return {}
@@ -45,7 +53,8 @@ func ascii_skins(text: String,model: Dictionary,sources: Array) -> void:
 	while index<lines.size():
 		var line:=str(lines[index]).strip_edges(); index+=1
 		if line.is_empty() or line.begins_with("#"): continue
-		var tokens: PackedStringArray=regex.sub(line," ",true).split(" ",false); var command:=tokens[0].to_lower()
+		if not in_geometry and line.unicode_at(0) not in [66,98]: continue
+		var tokens: PackedStringArray=Binary.ascii_tokens(line,regex); var command:=tokens[0].to_lower()
 		if command=="beginmodelgeom": in_geometry=true; continue
 		if command=="endmodelgeom": in_geometry=false; continue
 		if not in_geometry: continue
@@ -57,7 +66,7 @@ func ascii_skins(text: String,model: Dictionary,sources: Array) -> void:
 		for vertex in int(tokens[1]):
 			while index<lines.size() and (str(lines[index]).strip_edges().is_empty() or str(lines[index]).strip_edges().begins_with("#")): index+=1
 			if index>=lines.size(): reject("Original ASCII skin weights are truncated"); return
-			var values: PackedStringArray=regex.sub(str(lines[index]).strip_edges()," ",true).split(" ",false); index+=1
+			var values: PackedStringArray=Binary.ascii_tokens(str(lines[index]).strip_edges(),regex); index+=1
 			if values.size()%2!=0 or values.size()>8: reject("Original ASCII skin influence shape is invalid"); return
 			var influences: Array=[]
 			for component in values.size()/2:
@@ -114,6 +123,9 @@ func binary_parts(offset: int,nodes: Array,depth: int) -> void:
 	row.controller_storage=storage(at)
 	var cursor:=at+112+(92 if flags&2 else 0)+(216 if flags&4 else 0)+(68 if flags&16 else 0)+(512 if flags&32 else 0)
 	if flags&64: row.skin=skin(cursor,int(row.mesh.get("vertices",PackedFloat32Array()).size()/3))
+	if flags&128:
+		var decoder:=preload("res://systems/native_data/animated_mesh.gd").new(); row.vertex_animation=decoder.binary(reader,model_end,at)
+		if not decoder.failure.is_empty(): reject(decoder.failure); return
 	var children: int=reader.u32(at+72); var count: int=reader.u32(at+76)
 	if not bounded(12+children,count*4): return
 	for child in count: binary_parts(reader.u32(12+children+child*4),nodes,depth+1)
@@ -134,7 +146,7 @@ func storage(at: int) -> Dictionary:
 	for index in count:
 		var key:=keys+index*12
 		controllers.append({"displacement0":remap_controller(reader.i32(key),flags),"rows4":reader.u16(key+4),"timeIndex6":reader.u16(key+6),"valueIndex8":reader.u16(key+8),"columnsA":reader.u8(key+10),"paddingB":reader.u8(key+11)})
-	for index in value_count: pool.append(reader.f32(values+index*4))
+	pool=reader.data.slice(values,values+value_count*4).to_float32_array()
 	return {"id34":reader.i32(at+28),"flags98":flags,"controllers78":controllers,"controllerCount80":count,"values88":pool,"valueCount90":value_count}
 func skin(at: int,count: int) -> Dictionary:
 	if not bounded(at,192): return {}
@@ -162,8 +174,12 @@ func binary_animations() -> Array:
 	for index in count:
 		var at: int=12+reader.u32(array+index*4)
 		if not bounded(at,196): return []
-		var clip:={"name":reader.text(at+8,64,true).to_lower(),"length":finite(at+112),"transition":finite(at+116),"root":reader.text(at+120,64,true),"tracks":[],"events":[],"unsupported":[],"controller_nodes":[]}
-		if float(clip.length)<0 or float(clip.transition)<0: reject("Original animation duration is invalid"); return []
+		var clip:={"name":reader.text(at+8,64,true).to_lower(),"length":finite(at+112),"transition":finite(at+116),"root":reader.text(at+120,64,true),"tracks":[],"emitter_tracks":[],"events":[],"unsupported":[],"controller_nodes":[]}
+		if float(clip.length)<0 or float(clip.transition)<0:
+			# Stock plc_s03a has a negative damage length. Retain that literal
+			# header as unavailable playback instead of rejecting valid geometry,
+			# other clips, skins and emitter data or inventing a positive duration.
+			clip.deferred_invalid_duration=true; clip.deferred_source={"offset":at-12,"root":reader.u32(at+72),"nodes":reader.u32(at+76)}; clips.append(clip); continue
 		var events: int=12+reader.u32(at+184); var event_count: int=reader.u32(at+188)
 		if event_count>100000 or not bounded(events,event_count*36): reject("Original animation events are invalid"); return []
 		for event in event_count: clip.events.append({"time":finite(events+event*36),"name":reader.text(events+event*36+4,32,true)})
@@ -172,6 +188,11 @@ func binary_animations() -> Array:
 			var offset:=int(pending.pop_back()); var node:=12+offset
 			if seen.has(offset) or seen.size()>=declared or seen.size()>=100000 or not bounded(node,112): reject("Original animation hierarchy is invalid"); return []
 			seen[offset]=true; var flags: int=reader.u32(node+108); var name: String=reader.text(node+32,32,true)
+			if flags&128:
+				var decoder:=preload("res://systems/native_data/animated_mesh.gd").new(); var data:=decoder.binary(reader,model_end,node)
+				if not decoder.failure.is_empty(): reject(decoder.failure); return []
+				if not clip.has("mesh_tracks"): clip.mesh_tracks=[]
+				clip.mesh_tracks.append({"node":name,"data":data})
 			var children: int=12+reader.u32(node+72); var child_count: int=reader.u32(node+76)
 			if not bounded(children,child_count*4): return []
 			var child_offsets: Array=[]
@@ -184,10 +205,19 @@ func binary_animations() -> Array:
 				var entry:=keys+key*12; var type: int=reader.u32(entry); var rows: int=reader.u16(entry+4); var times: int=reader.u16(entry+6); var first: int=reader.u16(entry+8); var columns: int=reader.u8(entry+10)
 				if rows in [0,65535]: continue
 				var components: int={8:3,20:4,36:1}.get(type,0); var property: String={8:"position",20:"orientation",36:"scale"}.get(type,"")
+				var emitter_channel:=Emitter.channel(type) if flags&4 else {}
+				if not emitter_channel.is_empty(): components=int(emitter_channel.components); property=str(emitter_channel.property)
 				if components==0: clip.unsupported.append({"node":name,"controller":type,"flags":flags}); continue
 				if (columns&15)!=components or (columns&240)>16 or (type==20 and columns!=4): reject("Original transform controller shape is invalid"); return []
 				var bezier: bool=(columns&240)==16; var stride:=components*(3 if bezier else 1)
 				if times+rows>value_count or first+rows*stride>value_count: reject("Original transform keys exceed value pool"); return []
+				if packed_keys:
+					var data:={"values":clip.controller_nodes.back().storage.values88,"times":times,"first":first,"rows":rows,"components":components,"bezier":bezier}
+					if not PackedKeys.valid(data): reject("Original animation keys are non-finite or times unordered/negative"); return []
+					var track:={"node":name,"property":property,"interpolation":"bezier" if bezier else ("slerp" if property=="orientation" else "linear"),"frames":[],"packed_frames":data}
+					if not emitter_channel.is_empty(): track.nativeControllerIndex=key; track.nativeNode=clip.controller_nodes.size()-1
+					var target: Array=clip.tracks if emitter_channel.is_empty() else clip.emitter_tracks
+					target.append(track); continue
 				var frames: Array=[]
 				for row in rows:
 					var frame:={"time":finite(values+(times+row)*4),"value":[]}
@@ -198,7 +228,10 @@ func binary_animations() -> Array:
 						for component in components: frame["in"].append(finite(values+(first+row*stride+components+component)*4)); frame["out"].append(finite(values+(first+row*stride+components*2+component)*4))
 					frames.append(frame)
 				if not ordered(frames): return []
-				clip.tracks.append({"node":name,"property":property,"interpolation":"bezier" if bezier else ("slerp" if property=="orientation" else "linear"),"frames":frames})
+				var target: Array=clip.tracks if emitter_channel.is_empty() else clip.emitter_tracks
+				var track:={"node":name,"property":property,"interpolation":"bezier" if bezier else ("slerp" if property=="orientation" else "linear"),"frames":frames}
+				if not emitter_channel.is_empty(): track.nativeControllerIndex=key; track.nativeNode=clip.controller_nodes.size()-1
+				target.append(track)
 		clips.append(clip)
 	return clips
 func ordered(frames: Array) -> bool:
@@ -216,14 +249,14 @@ func orientation(values: Array,axis_angle: bool) -> Array:
 	var length:=sqrt(float(values[0])*float(values[0])+float(values[1])*float(values[1])+float(values[2])*float(values[2])+float(values[3])*float(values[3]))
 	return values.map(func(value): return float(value)/length) if length>=1e-8 else [0.0,0.0,0.0,1.0]
 func ascii_animations(text: String) -> Array:
-	var clips: Array=[]; var clip: Dictionary={}; var node:=""; var lines:=text.replace("\r","").split("\n"); var regex:=RegEx.new(); regex.compile("\\s+"); var index:=0
+	var clips: Array=[]; var clip: Dictionary={}; var node:=""; var node_type:=""; var lines:=text.replace("\r","").split("\n"); var regex:=RegEx.new(); regex.compile("\\s+"); var index:=0
 	while index<lines.size():
 		var line:=str(lines[index]).strip_edges(); index+=1
 		if line.is_empty() or line.begins_with("#"): continue
-		var tokens: PackedStringArray=regex.sub(line," ",true).split(" ",false); var command:=tokens[0].to_lower()
+		var tokens: PackedStringArray=Binary.ascii_tokens(line,regex); var command:=tokens[0].to_lower()
 		if command=="newanim":
 			if not clip.is_empty() or tokens.size()<3: reject("Invalid ASCII animation declaration"); return []
-			clip={"name":tokens[1].to_lower(),"root":tokens[2],"length":0.0,"transition":0.0,"tracks":[],"events":[],"unsupported":[]}; clips.append(clip); continue
+			clip={"name":tokens[1].to_lower(),"root":tokens[2],"length":0.0,"transition":0.0,"tracks":[],"emitter_tracks":[],"events":[],"unsupported":[]}; clips.append(clip); continue
 		if command=="doneanim": clip={}; node=""; continue
 		if clip.is_empty(): continue
 		if command in ["length","transtime"]:
@@ -233,18 +266,25 @@ func ascii_animations(text: String) -> Array:
 		if command=="event" and tokens.size()>2:
 			if not tokens[1].is_valid_float() or not is_finite(float(tokens[1])) or float(tokens[1])<0: reject("Invalid ASCII animation event"); return []
 			clip.events.append({"time":float(tokens[1]),"name":" ".join(tokens.slice(2))}); continue
-		if command=="node" and tokens.size()>2: node=tokens[2]; continue
-		if command=="endnode": node=""; continue
+		if command=="node" and tokens.size()>2: node=tokens[2]; node_type=tokens[1].to_lower(); continue
+		if command=="endnode": node=""; node_type=""; continue
 		if node.is_empty(): continue
 		var bezier:=command.ends_with("bezierkey"); var keyed:=command.ends_with("key"); var property:=command.trim_suffix("bezierkey") if bezier else command.trim_suffix("key")
 		var components: int={"position":3,"orientation":4,"scale":1}.get(property,0)
+		var emitter_components:=Emitter.components(property) if node_type=="emitter" else 0
+		if emitter_components>0: components=emitter_components
 		if components==0:
 			if keyed: clip.unsupported.append({"node":node,"controller":command})
 			continue
 		if bezier and property=="orientation": reject("ASCII quaternion Bezier controller is unsupported"); return []
-		var uncounted:=keyed and tokens.size()==1; var count:=100000 if uncounted else (int(tokens[1]) if keyed and tokens.size()>1 and tokens[1].is_valid_int() else 1)
+		if keyed and tokens.size()>1 and (tokens.size()!=2 or not tokens[1].is_valid_int()): reject("ASCII animation key count is invalid"); return []
+		var uncounted:=keyed and tokens.size()==1; var count:=100000 if uncounted else (int(tokens[1]) if keyed else 1)
 		if count<0 or count>100000: reject("ASCII animation key count exceeds bound"); return []
 		var frames: Array=[]; var ended:=false
+		# ASCII keeps its existing double precision and axis-angle conversion.
+		# A pair of typed arrays avoids a Dictionary and several Arrays per key.
+		var packed_values:=PackedFloat64Array(); var packed_times:=PackedFloat64Array(); var previous_time:=-1.0
+		var packed_count:=0; var stride:=components*(3 if bezier else 1)
 		for row in count:
 			var values: PackedStringArray=tokens.slice(1)
 			if keyed:
@@ -252,20 +292,54 @@ func ascii_animations(text: String) -> Array:
 				if index>=lines.size(): reject("ASCII animation keys are truncated"); return []
 				var next:=str(lines[index]).strip_edges(); index+=1
 				if uncounted and next.to_lower()=="endlist": ended=true; break
-				values=regex.sub(next," ",true).split(" ",false)
+				values=Binary.ascii_tokens(next,regex)
 			else: values.insert(0,"0")
 			if values.size()!=1+components*(3 if bezier else 1): reject("ASCII transform key shape is invalid"); return []
+			if packed_keys and typed_ascii_keys:
+				# Preserve double parsing/validation, but write directly to the typed
+				# pools. A boxed Array plus sliced Array plus packed copy per key is
+				# unnecessary work and allocator contention on large ASCII clips.
+				if packed_count==packed_times.size():
+					# Counted streams allocate once. Uncounted streams grow by bounded
+					# geometric chunks, avoiding an engine method call for every value.
+					var capacity:=count if not uncounted else mini(count,maxi(64,packed_times.size()*2))
+					packed_times.resize(capacity); packed_values.resize(capacity*stride)
+				var time:=0.0; var first:=packed_count*stride
+				for component in values.size():
+					var value: String=values[component]
+					if not value.is_valid_float(): reject("Non-finite ASCII animation key"); return []
+					var number:=float(value)
+					if not is_finite(number): reject("Non-finite ASCII animation key"); return []
+					if component==0: time=number
+					else: packed_values[first+component-1]=number
+				# Validate the entire numeric row before time ordering, retaining
+				# the reference error precedence for a malformed later component.
+				if time<0 or time<previous_time: reject("Original animation times are unordered/negative"); return []
+				previous_time=time; packed_times[packed_count]=time; packed_count+=1
+				continue
 			var numbers: Array=[]
 			for value in values:
 				if not value.is_valid_float() or not is_finite(float(value)): reject("Non-finite ASCII animation key"); return []
 				numbers.append(float(value))
+			if packed_keys:
+				if float(numbers[0])<0 or float(numbers[0])<previous_time: reject("Original animation times are unordered/negative"); return []
+				previous_time=float(numbers[0]); packed_times.append(previous_time)
+				packed_values.append_array(PackedFloat64Array(numbers.slice(1)))
+				continue
 			var frame:={"time":numbers[0],"value":numbers.slice(1,components+1)}
 			if property=="orientation": frame.value=orientation(frame.value,true)
 			if bezier: frame["in"]=numbers.slice(components+1,components*2+1); frame["out"]=numbers.slice(components*2+1)
 			frames.append(frame)
 		if uncounted and not ended: reject("ASCII animation list has no endlist"); return []
 		if not ordered(frames): return []
-		if not frames.is_empty(): clip.tracks.append({"node":node,"property":property,"interpolation":"bezier" if bezier else ("slerp" if property=="orientation" else "linear"),"frames":frames})
+		if packed_keys and typed_ascii_keys and packed_count<packed_times.size():
+			packed_times.resize(packed_count); packed_values.resize(packed_count*stride)
+		if packed_keys and not packed_times.is_empty():
+			var target: Array=clip.tracks if emitter_components==0 else clip.emitter_tracks
+			target.append({"node":node,"property":property,"interpolation":"bezier" if bezier else ("slerp" if property=="orientation" else "linear"),"frames":[],"packed_frames":{"values":packed_values,"time_values":packed_times,"first":0,"rows":packed_times.size(),"components":components,"bezier":bezier,"ascii_axis_angle":property=="orientation"}})
+		elif not frames.is_empty():
+			var target: Array=clip.tracks if emitter_components==0 else clip.emitter_tracks
+			target.append({"node":node,"property":property,"interpolation":"bezier" if bezier else ("slerp" if property=="orientation" else "linear"),"frames":frames})
 	if not clip.is_empty(): reject("ASCII animation is missing doneanim"); return []
 	return clips
 func render_point(value: Array) -> Array: return [float(value[0]),float(value[2]),-float(value[1])]
@@ -274,16 +348,26 @@ func render_quaternion(value: Array) -> Array:
 	q=basis*(q.normalized() if q.length_squared()>1e-16 else Quaternion.IDENTITY)*basis.inverse()
 	return [q.x,q.y,q.z,q.w]
 func rig_asset(model: Dictionary) -> Dictionary:
-	var defaults: Array=[]; var names: Dictionary={}; var clips: Array=[]; var unsupported: Array=[]; var controlled: Dictionary={}
+	var defaults: Array=[]; var names: Dictionary={}; var clips: Array=[]; var unsupported: Array=[]; var controlled: Dictionary={}; var clip_indices: Dictionary={}
 	for index in model.nodes.size():
 		var row: Dictionary=model.nodes[index]; names[str(row.name).to_lower()]=index
 		defaults.append({"position":render_point(row.position),"quaternion":render_quaternion(row.orientation),"scale":[row.scale,row.scale,row.scale]})
 	for original in model.animations:
-		var clip:={"name":original.name,"length":original.length,"transition":original.transition,"events":original.events,"tracks":[]}
+		if original.get("deferred_invalid_duration",false):
+			unsupported.append("Original clip playback unavailable: "+str(original.name)+" has negative length/transition"); continue
+		var clip:={"name":original.name,"length":original.length,"transition":original.transition,"events":original.events,"tracks":[],"emitterTracks":[],"emitterStorage":[],"meshTracks":[]}
+		for track in original.get("mesh_tracks",[]):
+			if names.has(str(track.node).to_lower()): clip.meshTracks.append({"part":names[str(track.node).to_lower()],"data":track.data})
+		var emitter_storage: Dictionary={}
 		for track in original.tracks:
 			var name:=str(track.node).to_lower()
 			if not names.has(name): continue
 			var property: String="quaternion" if str(track.property)=="orientation" else str(track.property); var keys: Array=[]
+			if track.has("packed_frames"):
+				clip.tracks.append({"part":names[name],"property":property,"source_property":str(track.property),"native_keys":track.packed_frames,"position_scale":float(track.get("position_scale",1.0)),"sourceInterpolation":track.interpolation})
+				var channel_key:=str(names[name])+":"+property; var previous: Dictionary=controlled.get(channel_key,{})
+				controlled[channel_key]={"part":names[name],"property":property,"bezier":bool(previous.get("bezier",false)) or str(track.interpolation)=="bezier"}
+				continue
 			for frame in track.frames:
 				var values: Array=frame.value; var value: Array=render_point(values) if property=="position" else (render_quaternion(values) if property=="quaternion" else [values[0],values[0],values[0]])
 				var key:={"time":frame.time,"value":value}
@@ -293,8 +377,46 @@ func rig_asset(model: Dictionary) -> Dictionary:
 			clip.tracks.append({"part":names[name],"property":property,"keys":keys,"sourceInterpolation":track.interpolation})
 			var channel_key:=str(names[name])+":"+property; var previous: Dictionary=controlled.get(channel_key,{})
 			controlled[channel_key]={"part":names[name],"property":property,"bezier":bool(previous.get("bezier",false)) or str(track.interpolation)=="bezier"}
+		for track in original.get("emitter_tracks",[]):
+			var name:=str(track.node).to_lower()
+			if names.has(name):
+				var channel:={"part":names[name],"property":track.property,"frames":PackedKeys.frames(track),"sourceInterpolation":track.interpolation}
+				if track.has("nativeNode"):
+					var storage_index:=int(track.nativeNode); var storage: Dictionary=original.controller_nodes[storage_index].storage
+					if not emitter_storage.has(storage_index): emitter_storage[storage_index]=clip.emitterStorage.size(); clip.emitterStorage.append(storage)
+					channel.nativeController=storage.controllers78[int(track.nativeControllerIndex)]; channel.nativeStorageIndex=emitter_storage[storage_index]
+				clip.emitterTracks.append(channel)
+		clip_indices[str(clip.name)]=clips.size()
 		clips.append(clip)
 		for record in original.get("unsupported",[]):
 			var label:="deferred controller "+str(record.get("controller"))+" on "+str(record.get("node"))
 			if not unsupported.has(label): unsupported.append(label)
-	return {"name":model.name,"defaults":defaults,"clips":clips,"unsupported":unsupported,"controlled":controlled,"lazyClips":true}
+	var result:={"name":model.name,"defaults":defaults,"clips":clips,"unsupported":unsupported,"controlled":controlled,"lazyClips":true,"clipIndex":clip_indices}
+	var native:=native_animation(model)
+	if not native.is_empty(): result.nativeAnimation=native
+	return result
+func native_animation(model: Dictionary) -> Dictionary:
+	# Preserve original binary controller storage/IDs and physical child order.
+	# ASCII and inherited-clip native run reconstruction remain separate work.
+	var parts: Array=[]
+	for row in model.nodes:
+		if not row.has("controller_storage"): return {}
+		var type:="emitter" if row.has("emitter") else "light" if not row.get("light",{}).is_empty() else "trimesh" if not row.get("mesh",{}).is_empty() else "dummy"
+		parts.append({"type":type,"properties":row.get("emitter",row.get("light",{})),"transparencyHint":float(row.get("alpha",1.0))<1.0,"node":row.controller_storage,"children":[]})
+	var root:=-1
+	for index in model.nodes.size():
+		var parent:=int(model.nodes[index].parent)
+		if parent<0: root=index
+		else: parts[parent].children.append(index)
+	if root<0: return {}
+	var clips: Dictionary={}
+	for clip in model.animations:
+		if clip.has("inheritedFrom") or clip.get("controller_nodes",[]).is_empty():
+			clips[clip.name]={"unavailable":"Native inherited/ASCII animation controller reconstruction pending"}; continue
+		var nodes: Dictionary={}
+		for row in clip.controller_nodes:
+			var data: Dictionary=row.storage.duplicate(); data.children68=[]; data.childCount70=row.children.size(); nodes[int(row.offset)]=data
+		for row in clip.controller_nodes:
+			for child in row.children: nodes[int(row.offset)].children68.append(nodes[int(child)])
+		clips[clip.name]={"root":nodes[int(clip.controller_nodes[0].offset)]}
+	return {"version":1,"root":root,"parts":parts,"clips":clips,"emitterFields":Emitter.FIELDS}

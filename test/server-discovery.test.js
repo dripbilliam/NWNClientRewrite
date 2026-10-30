@@ -1,8 +1,21 @@
 import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {serverDiscoveryRequest,serverInfoRequest,readServerQueryResponse,readServerInfoAdvertisement} from '../src/server_discovery.js';
+import {serverDiscoveryRequest,serverInfoRequest,serverDetailsRequest,readServerQueryResponse,readServerInfoAdvertisement} from '../src/server_discovery.js';
 const capture=JSON.parse(fs.readFileSync(new URL('../backups/animations/local-server-query-v1.json',import.meta.url)));
+
+test('extended BNDS/BNDR uses original length-prefixed strings and signed game-type tail',()=>{
+ assert.equal(Buffer.from(serverDetailsRequest(5125)).toString('hex'),'424e44530514');
+ const field=bytes=>{const length=Buffer.alloc(4);length.writeUInt32LE(bytes.length);return Buffer.concat([length,bytes]);};
+ const bytes=Buffer.concat([Buffer.from('424e44520514','hex'),field(Buffer.from('game')),field(Buffer.from([0x80,0xfa,0x9a])),field(Buffer.from('8193.37')),Buffer.from([255,255])]);
+ assert.deepEqual(readServerQueryResponse(bytes),{type:'details',port:5125,gameDetails:'game',moduleDescription:'€úš',serverVersion:'8193.37',gameType:-1});
+ for(let length=0;length<bytes.length;length++)assert.throws(()=>readServerQueryResponse(bytes.subarray(0,length)),/Truncated/);
+ const huge=Buffer.from(bytes);huge.writeUInt32LE(0xffffffff,6);assert.throws(()=>readServerQueryResponse(huge),/Truncated/);
+ assert.deepEqual(readServerQueryResponse(Buffer.concat([bytes,Buffer.from([1,2,3])])),readServerQueryResponse(bytes));
+ const nul=Buffer.from(bytes);nul[10]=0;assert.equal(readServerQueryResponse(nul).gameDetails,'');
+ const empty=Buffer.concat([Buffer.from('424e44520514','hex'),Buffer.alloc(14)]);assert.deepEqual(readServerQueryResponse(empty),{type:'details',port:5125,gameDetails:'',moduleDescription:'',serverVersion:'',gameType:0});
+ assert.throws(()=>serverDetailsRequest(0),/port/);
+});
 
 test('native local server accepts discovery/info requests and supplies Prelude state',()=>{
  const sent=capture.requests.map(hex=>Buffer.from(hex,'hex')),port=sent[0].readUInt16LE(4);

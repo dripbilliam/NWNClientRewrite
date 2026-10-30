@@ -10,9 +10,12 @@ var previous: Button
 var next: Button
 var gold: Label
 var selection: VBoxContainer
-var prompt: Label
+var prompt: RichTextLabel
 var confirm: Button
 var identify: Button
+var examine: Button
+var cancel_button: Button
+var native_skin
 var selected_item := -1
 var selected_price := -1
 var selected_generation := -1
@@ -44,19 +47,21 @@ func setup(owner, storage: String) -> void:
 	repository.custom_minimum_size = Vector2(400, 400)
 	content.add_child(repository)
 	selection = VBoxContainer.new(); content.add_child(selection)
-	prompt = Label.new(); prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; selection.add_child(prompt)
+	prompt = preload("res://systems/server_text.gd").label({},400); prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; selection.add_child(prompt)
 	var actions := HBoxContainer.new(); selection.add_child(actions)
 	confirm = Button.new(); confirm.focus_mode = Control.FOCUS_NONE
 	confirm.pressed.connect(func(): transact()); actions.add_child(confirm)
 	identify = Button.new(); identify.focus_mode = Control.FOCUS_NONE
 	identify.pressed.connect(func(): transact("identify")); actions.add_child(identify)
-	var examine := Button.new(); examine.text = "Examine"; examine.focus_mode = Control.FOCUS_NONE
+	examine = Button.new(); examine.text = "Examine"; examine.focus_mode = Control.FOCUS_NONE
 	examine.pressed.connect(func():
+		if native_skin!=null and native_skin.built():
+			inventory.examine_mode=not inventory.examine_mode; examine.set_pressed_no_signal(inventory.examine_mode); return
 		var id := entry()
 		if id >= 0: inventory.operation(id, "examine"))
 	actions.add_child(examine)
-	var cancel := Button.new(); cancel.text = "Cancel"; cancel.focus_mode = Control.FOCUS_NONE
-	cancel.pressed.connect(clear_selection); actions.add_child(cancel)
+	cancel_button = Button.new(); cancel_button.text = "Cancel"; cancel_button.focus_mode = Control.FOCUS_NONE
+	cancel_button.pressed.connect(clear_selection); actions.add_child(cancel_button)
 	close_requested.connect(func(): command("close"))
 	reset()
 
@@ -91,14 +96,22 @@ func render(store: Dictionary) -> void:
 		if row.channel != "M": continue
 		var button := Slot.new()
 		button.setup(inventory, row)
-		button.position = Vector2(int(row.x) * 40, (int(row.y) % 10) * 40)
-		button.size = Vector2(maxi(1, int(row.width)) * 40 - 1, maxi(1, int(row.height)) * 40 - 1)
+		button.position = repository.item_position(row)
+		button.size = repository.item_size(row)
 		repository.add_child(button)
+		if native_skin!=null and native_skin.built():
+			native_skin.frame.decorate_item(button,repository,row)
+			var id:=int(row.entryId)
+			button.mouse_entered.connect(func():
+				if native_skin!=null: native_skin.hover_item(id))
+			button.mouse_exited.connect(func():
+				if native_skin!=null: native_skin.clear_hover(id))
 		inventory.register_button(row, button)
 	var id := entry()
 	if id < 0 or selected_generation != int(store.generation) or selected_price != int(inventory.items[id].get("price", -1)) or selected_channel != str(inventory.items[id].channel):
 		clear_selection()
 	elif id >= 0: select_item(id, false)
+	if native_skin!=null: native_skin.render(store)
 	_clamp()
 
 func select_item(id: int, raise_window: bool = true) -> void:
@@ -116,9 +129,11 @@ func select_item(id: int, raise_window: bool = true) -> void:
 	identify.text = "Identify (%s gold)" % int(store.identifyPrice); identify.disabled = row.pending
 	selection.show()
 	if raise_window: show(); move_to_front()
+	if native_skin!=null: native_skin.selection_changed(raise_window)
 
 func command(operation: String, fields: Dictionary = {}) -> void:
 	if not inventory.wanted or not inventory.state.get("store", {}).get("open", false): return
+	if operation=="panel" and int(fields.get("panel",-1))==int(inventory.state.store.get("panel",-2)): return
 	clear_selection()
 	var message := {"kind": "inventory-store", "viewId": inventory.view_id, "operation": operation}
 	message.merge(fields)
@@ -136,3 +151,10 @@ func transact(operation: String = "") -> void:
 	var store: Dictionary = inventory.state.get("store", {})
 	if row.pending or selected_generation != int(store.get("generation", -1)) or selected_price != int(row.get("price", -1)): return
 	command(operation if not operation.is_empty() else ("buy" if row.channel == "M" else "sell"), {"entryId": id})
+func blocks_pointer(point: Vector2) -> bool:
+	return visible and get_global_rect().has_point(point) or native_skin!=null and native_skin.selection_blocks(point)
+func _unhandled_key_input(event: InputEvent) -> void:
+	if selection.visible and event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_ESCAPE:
+		clear_selection(); get_viewport().set_input_as_handled()
+func _exit_tree() -> void:
+	if is_instance_valid(selection) and not is_ancestor_of(selection): selection.queue_free()

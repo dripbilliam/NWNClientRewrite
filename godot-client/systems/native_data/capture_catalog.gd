@@ -2,12 +2,21 @@ extends RefCounted
 # Read original raw resources directly from sealed private captures. The V8
 # event timeline is separate; this mounts no rendered/prepared JS scene data.
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
+const PreparationStore=preload("res://systems/native_data/preparation_store.gd")
+const Source=preload("res://systems/native_data/capture_source.gd")
 const MAX_MANIFEST_BYTES:=64*1024*1024
 const MAX_RESOURCE_BYTES:=256*1024*1024
 var failure:=""
 var layers: Array=[]
+var prepared_store:=PreparationStore.new()
+var decoder_store:=PreparationStore.new()
+func _init() -> void:
+	prepared_store.maximum_bytes=512*1024*1024; prepared_store.maximum_entries=2048
+	decoder_store.maximum_bytes=1024*1024*1024; decoder_store.maximum_entries=4096
 var stats: Dictionary={"reads":0,"payload_bytes":0}
 var events_sha256:=""
+var context_id:=""
+var source_cache
 func reject(reason: String) -> bool:
 	failure=reason; return false
 func digest_valid(value: Variant) -> bool:
@@ -19,7 +28,9 @@ func read_json(path: String) -> Dictionary:
 	if not value is Dictionary: failure="Capture manifest is not an object"; return {}
 	return value
 func mount(directory: String, context: String, supplements: Array=[]) -> bool:
-	failure=""; layers=[]; events_sha256=""
+	prepared_store.clear()
+	decoder_store.clear()
+	failure=""; layers=[]; events_sha256=""; context_id=""; source_cache=null
 	if not directory.is_absolute_path(): return reject("Capture needs an absolute private directory")
 	var root_path:=directory.simplify_path(); var manifest:=read_json(root_path.path_join("manifest.json"))
 	if manifest.is_empty(): return false
@@ -54,9 +65,17 @@ func mount(directory: String, context: String, supplements: Array=[]) -> bool:
 			var size: Variant=row.get("bytes")
 			if not digest_valid(row.get("sha256")) or not (size is int or size is float) or not is_finite(float(size)) or float(size)!=floor(float(size)) or size<0 or size>MAX_RESOURCE_BYTES: return reject("Invalid captured content identity/size")
 		mounted.append({"root":layer.root,"resources":data.resources,"textures":data.textures})
-	layers=mounted; return true
+	layers=mounted; context_id=context; return true
+func mount_cached_source(descriptor: Dictionary) -> bool:
+	var source:=Source.new()
+	if not source.configure(self,descriptor): failure=source.failure; return false
+	source_cache=source; prepared_store.clear(); decoder_store.clear(); failure=""; return true
+func close_sources() -> void:
+	if source_cache!=null: source_cache.close(); source_cache=null
 func fork() -> RefCounted:
-	var copy=get_script().new(); copy.layers=layers.duplicate(); copy.events_sha256=events_sha256; return copy
+	var copy=get_script().new(); copy.layers=layers.duplicate(); copy.events_sha256=events_sha256; copy.context_id=context_id; copy.source_cache=source_cache; copy.prepared_store=prepared_store; copy.decoder_store=decoder_store; return copy
+func preparation_cache(): return prepared_store
+func decoded_cache(): return decoder_store
 func location(name: String, type: int) -> Dictionary:
 	var key:=name.to_lower()+":"+str(type)
 	for layer in layers:
@@ -64,7 +83,8 @@ func location(name: String, type: int) -> Dictionary:
 	return {}
 func has_resource(name: String, type: int) -> bool:
 	var selected:=location(name,type)
-	return not selected.is_empty() and not selected.record.get("missing",false)
+	if not selected.is_empty(): return not selected.record.get("missing",false)
+	return not recorded_texture_miss(name) and source_cache!=null and not source_cache.location(name,type).is_empty()
 func resource_names(type: int) -> Array:
 	var output: Array=[]; var seen: Dictionary={}; var suffix:=":"+str(type)
 	for layer in layers:
@@ -72,6 +92,9 @@ func resource_names(type: int) -> Array:
 			if not str(key).ends_with(suffix) or seen.has(key): continue
 			seen[key]=true
 			if not layer.resources[key].get("missing",false): output.append(str(key).trim_suffix(suffix))
+	if source_cache!=null:
+		for key in source_cache.entries:
+			if str(key).ends_with(suffix) and not seen.has(key) and not recorded_texture_miss(str(key).trim_suffix(suffix)): output.append(str(key).trim_suffix(suffix))
 	return output
 func raster_location(name: String) -> Dictionary:
 	var key:=name.to_lower()
@@ -82,7 +105,7 @@ func raster_location(name: String) -> Dictionary:
 		var selected:=int(type)
 		if selected not in [2073,2033,2059,3,6]: return {}
 		return {"name":key,"type":selected}
-	return {}
+	return source_cache.raster_location(name) if source_cache!=null else {}
 func recorded_texture_miss(name: String) -> bool:
 	var key:=name.to_lower()
 	for layer in layers:
@@ -91,7 +114,12 @@ func recorded_texture_miss(name: String) -> bool:
 func get_resource(name: String, type: int) -> PackedByteArray:
 	failure=""
 	var selected:=location(name,type)
-	if selected.is_empty(): failure="Resource was not recorded: "+name+":"+str(type); return PackedByteArray()
+	if selected.is_empty():
+		if not recorded_texture_miss(name) and source_cache!=null and not source_cache.location(name,type).is_empty():
+			var source_result: Dictionary=source_cache.resource(name,type); failure=str(source_result.get("error",""))
+			var source_bytes: PackedByteArray=source_result.get("bytes",PackedByteArray())
+			stats.reads+=1; stats.payload_bytes+=source_bytes.size(); return source_bytes
+		failure="Resource was not recorded: "+name+":"+str(type); return PackedByteArray()
 	var record: Dictionary=selected.record
 	if record.get("missing",false): failure="Recorded resource lookup failed: "+name+":"+str(type); return PackedByteArray()
 	var path: String=selected.root.path_join("objects").path_join(record.sha256)

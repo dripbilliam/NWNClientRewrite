@@ -17,6 +17,18 @@ const capture=JSON.parse(fs.readFileSync(new URL('../backups/animations/local-ne
 const wireMessage=kind=>structuredClone(capture.transport.messages.find(m=>m.kind===kind));
 const bic=()=>writeGff('BIC ',gffRecord({}));
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
+test('direct native NUI defers JUI reads while retaining wire serials and arriving bindings',async()=>{
+ const h=harness(),s=h.session;let reads=0;s.resolver={getResource:async()=>{reads++;throw Error('JS must not prepare native JUI');}};s.deferNuiResources=true;
+ await s.receive({kind:'nui-create',token:73,id:'native-jui',format:0,resref:'authored_jui'});
+ assert.equal(reads,0);assert.deepEqual(s.world.nui.windows.get(73).layout,{});assert.equal(h.events.at(-1).message.resref,'authored_jui');
+ const serial=s.world.nui.windows.get(73).serial;await s.receive({kind:'nui-binds',updates:[{token:73,bind:'caption',value:'arrived while native worker loads'}]});
+ assert.equal(s.world.nui.windows.get(73).serial,serial);assert.equal(s.world.nui.windows.get(73).bindings.get('caption'),'arrived while native worker loads');
+ await s.receive({kind:'nui-destroy',token:73});assert.equal(s.world.nui.windows.has(73),false);
+});
+test('legacy JUI callers retain their existing resource read unless native loading is selected',async()=>{
+ const h=harness(),s=h.session;let reads=0;const layout={title:'authored',root:{type:'label',value:'legacy'}};s.resolver={getResource:async()=>{reads++;return new TextEncoder().encode(JSON.stringify(layout));}};
+ await s.receive({kind:'nui-create',token:74,id:'legacy-jui',format:0,resref:'authored_jui'});assert.equal(reads,1);assert.deepEqual(s.world.nui.windows.get(74).layout,layout);
+});
 test('store requests reject stale sessions/stock and leave authoritative gold/items untouched',async()=>{
  const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);s.world.apply({kind:'store-open',panel:0,gold:100});
  s.world.applyObjectUpdates([{action:'inventory',channel:'M',operation:'A',id:0x80000002,x:0,y:0,item:{cost:7}},{action:'inventory',channel:'R',operation:'A',id:0x80000003,x:0,y:0,item:{cost:8}}]);const base={actorId:actor.id,areaId:actor.areaId,areaGeneration:2,storeGeneration:s.world.store.generation},before=structuredClone([...s.world.registry.objects]);
@@ -44,7 +56,7 @@ test('chat sends native requests in current control scope without local echo or 
 });
 
 test('HUD requests use controlled session and live player lookup, leaving all canonical resources untouched',async()=>{
- const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5,playerState:{spellbooks:{0:{memorized:{0:[{spell:1,ready:0}]}}}}};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);s.world.players.set(7,{playerId:7,objectId:0x80000002});const base={areaId:actor.areaId,areaGeneration:2,actorId:actor.id},before=structuredClone(actor);
+ const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5,playerState:{spellbooks:{0:{memorized:{0:[{spell:1,ready:0}]}}}}};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);s.world.players.set(7,{playerId:7,objectId:0x80000002,character:{id:0x80000002}});const base={areaId:actor.areaId,areaGeneration:2,actorId:actor.id},before=structuredClone(actor);
  await s.rest(base);assert.deepEqual(h.sent.at(-1),[...restRequest()]);await s.hudPanel({...base,panel:'character',open:true,page:0});assert.deepEqual(h.sent.at(-1),[...characterSheetRequest({targetId:actor.id,page:0})]);await s.hudPanel({...base,panel:'character',open:false});assert.deepEqual(h.sent.at(-1),[...characterSheetRequest({targetId:actor.id,page:-1})]);await s.hudPanel({...base,panel:'journal',open:true});assert.deepEqual(h.sent.at(-1),[...journalWindowRequest(true)]);await s.playerAttitude({...base,playerId:7,likes:false});assert.deepEqual(h.sent.at(-1),[...playerAttitudeRequest({targetId:0x80000002,likes:false})]);assert.deepEqual(actor,before);
  for(const change of [{areaGeneration:1},{actorId:1},{areaId:0}])await assert.rejects(s.rest({...base,...change}));await assert.rejects(s.hudPanel({...base,panel:'map',open:true}));await assert.rejects(s.playerAttitude({...base,playerId:8,likes:false}));assert.equal(h.sent.length,5);
 });
@@ -278,4 +290,9 @@ test('item actions require canonical current PC items and send requests without 
  for(const change of [{areaGeneration:areaGeneration-1},{areaId:areaId+1},{itemId:0x800f0004},{itemId:world.localObjectId},{slot:3},{slot:0x40000},{operation:'fake'}])await assert.rejects(h.session.itemAction({...base,itemId:repository,operation:'equip',slot:16,...change}));
  await assert.rejects(h.session.itemAction({...base,itemId:ground,operation:'equip',slot:16}));await assert.rejects(h.session.itemAction({...base,itemId:repository,operation:'unequip'}));await assert.rejects(h.session.itemAction({...base,itemId:repository,operation:'pickup'}));
  await h.deliver({kind:'object-updates',complete:true,records:[{action:'delete',id:ground,objectType:6,remove:1}]});await assert.rejects(h.session.itemAction({...base,itemId:ground,operation:'pickup'}));await h.session.disconnect();await assert.rejects(h.session.itemAction({...base,itemId:repository,operation:'drop'}),/not ready/);
+});
+
+test('server disconnect reason survives session resource retirement',()=>{
+ const h=harness(),s=h.session;s.peer.emit('closed',{failed:false,reason:{strRef:10452,text:'Test rejection'}});
+ assert.equal(s.closed,true);assert.deepEqual(s.state().disconnectReason,{strRef:10452,text:'Test rejection'});
 });

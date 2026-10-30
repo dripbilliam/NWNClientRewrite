@@ -34,6 +34,14 @@ export function validationResponse({keyResponse,communityResponse,passwordRespon
 // SendBNDMMessage2505b0, invoked by DisconnectFromSession239f60. The lower
 // packet policy deliberately sends this four-byte disconnect request raw.
 export const disconnectRequest=()=>Uint8Array.from([66,78,68,77]);
+// HandleBNDPMessage 1402408b0: optional TLK strref, then bounded uint16 text.
+// Legacy short packets and invalid optional text are accepted by the native client.
+export function readDisconnectResponse(bytes){
+ const r=new Reader(bytes,'BNDP');let strRef=null,text='';
+ if(bytes.length>=8)strRef=r.int();
+ if(r.at+2<=bytes.length){const length=r.word();if(length<0x400&&r.at+length<=bytes.length)text=decodeGffText(bytes.subarray(r.at,r.at+length));}
+ return{strRef,text};
+}
 export function readConnectResponse(bytes){
  const r=new Reader(bytes,'BNCR');r.need(4);const port=r.word(),status=String.fromCharCode(r.byte());
  if(status==='R'){

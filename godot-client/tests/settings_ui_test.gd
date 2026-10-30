@@ -2,7 +2,6 @@ extends SceneTree
 const Options = preload("res://systems/native_options.gd")
 const MainMenu = preload("res://systems/native_main_menu.gd")
 const Debug = preload("res://systems/native_debug_window.gd")
-const Client = preload("res://systems/local_connection.gd")
 class FakeClient extends Node:
 	var owner_scene = null
 	var connection := 1
@@ -59,7 +58,7 @@ func run() -> void:
 	check(changed == [true] and not options.debug_toggle.button_pressed and not options.debug_enabled, "Closing the debug window synchronizes the persisted Options toggle")
 	var loaded := ConfigFile.new(); loaded.load(output + ".cfg"); check(not loaded.get_value("presentation", "debug_window", true), "Debug-window close persists without storing any key editor contents")
 	var menu := MainMenu.new(); root.add_child(menu); menu.open(false); await process_frame; await process_frame
-	check(menu.panel.visible and not menu.resume.visible and menu.blocks_pointer(menu.panel.get_global_rect().get_center()), "Main Menu opens independently of multiplayer and blocks only its actual panel")
+	check(menu.panel.visible and menu.fallback.get_children().filter(func(node):return node is Button and node.visible).is_empty() and menu.blocks_pointer(menu.panel.get_global_rect().get_center()), "Menu preparation has no prototype actions and blocks only its actual panel")
 	var opened := [false]; menu.options_requested.connect(func(): opened[0] = true); menu.choose("options"); check(opened[0] and not menu.panel.visible, "Main Menu Options routes to the existing native preferences")
 	var fake := FakeClient.new(); root.add_child(fake); var debug := Debug.new(); debug.visible = false; root.add_child(debug); debug.setup(fake, "")
 	debug.show(); await process_frame; check(debug.tabs.get_tab_count() == 5 and debug.visible and not debug.exclusive, "Debug diagnostics use a separate nonmodal Window with five tabs")
@@ -68,4 +67,4 @@ func run() -> void:
 	for index in 5: debug.tabs.current_tab = index; debug.refresh(); check(not debug.bodies[index].text.is_empty(), "Debug tab %s has native content" % index)
 	debug.hide(); var updates: int = debug.updates; await create_timer(0.6).timeout; check(debug.updates == updates, "Hidden debug window stops sampling and formatting diagnostics")
 	debug.free(); fake.free(); menu.free(); options.free(); layer.free(); await process_frame
-	var file := FileAccess.open(output, FileAccess.WRITE); file.store_string(JSON.stringify({"checks":checks,"passed":failures.is_empty(),"failures":failures,"trace":trace},"\t")); file.close(); quit(0 if failures.is_empty() else 1)
+	var file := FileAccess.open(output, FileAccess.WRITE); file.store_string(JSON.stringify({"checks":checks,"success":failures.is_empty(),"passed":failures.is_empty(),"failures":failures,"trace":trace,"publicConnections":0},"\t")); file.close(); quit(0 if failures.is_empty() else 1)

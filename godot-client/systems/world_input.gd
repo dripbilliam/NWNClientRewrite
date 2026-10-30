@@ -1,4 +1,5 @@
 extends Node
+const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 
 var registry
 var camera: Camera3D
@@ -18,6 +19,18 @@ var context_action: Callable
 var cursor_action: Callable
 var pending_point := Vector2.ZERO
 var last_hit: Dictionary = {}
+var key_bindings
+var highlight_key:=0
+func set_key_bindings(value) -> void:
+	if is_instance_valid(key_bindings):
+		if key_bindings.changed.is_connected(clear_binding_keys): key_bindings.changed.disconnect(clear_binding_keys)
+		if key_bindings.capture_changed.is_connected(binding_capture): key_bindings.capture_changed.disconnect(binding_capture)
+	key_bindings=value
+	if is_instance_valid(key_bindings): key_bindings.changed.connect(clear_binding_keys); key_bindings.capture_changed.connect(binding_capture)
+	clear_binding_keys()
+func clear_binding_keys() -> void: tab=false; highlight_key=0
+func binding_capture(active: bool) -> void:
+	if active: clear_binding_keys()
 
 func configure(value, view: Camera3D, interface) -> void:
 	registry = value
@@ -25,15 +38,23 @@ func configure(value, view: Camera3D, interface) -> void:
 	hud = interface
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.keycode == KEY_TAB and not event.echo:
-		tab = event.pressed
-		get_viewport().set_input_as_handled()
+	if event is InputEventKey:
+		if is_instance_valid(key_bindings):
+			if not event.pressed and key_bindings.physical(event)==highlight_key: clear_binding_keys(); get_viewport().set_input_as_handled()
+			elif not event.echo and event.pressed and key_bindings.action_matches(97,event): tab=true; highlight_key=key_bindings.physical(event); get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_TAB and not event.echo:
+			tab = event.pressed
+			get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 		pending_button = event.button_index
 		pending_point = event.position
 		since_pick = 1.0
 
 func _physics_process(delta: float) -> void:
+	var phase_began:=FrameProfile.begin()
+	_pointer_step(delta)
+	FrameProfile.finish("physics_pointer",phase_began)
+func _pointer_step(delta: float) -> void:
 	if registry == null:
 		return
 	if request_smoke and smoke_result.is_empty():
@@ -104,6 +125,6 @@ func _run_smoke() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
-		tab = false
+		clear_binding_keys()
 		hovered = -1
 		pending_button = 0

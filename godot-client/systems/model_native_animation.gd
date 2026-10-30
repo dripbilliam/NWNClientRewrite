@@ -1,4 +1,5 @@
 extends RefCounted
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 
 const Runs = preload("res://systems/model_runs.gd")
 const Pose = preload("res://systems/model_native_pose.gd")
@@ -75,7 +76,9 @@ func _apply(clip: Dictionary, previous: float, time: float, weight: float, scale
 func close() -> void:
 	if closed: return
 	closed = true
+	var began:=Timing.begin()
 	Runs.play(gob, null, 1, 0, 0, providers)
+	Timing.finish("rig_close_stop_ms",began); began=Timing.begin()
 	events.clear()
 	# Parts retain physical dictionaries with child arrays, never parent cycles.
 	pose.parts.clear()
@@ -86,3 +89,4 @@ func close() -> void:
 	model = {}
 	descriptors.clear()
 	providers.clear()
+	Timing.finish("rig_close_data_ms",began)

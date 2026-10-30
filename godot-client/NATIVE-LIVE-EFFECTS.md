@@ -1,5 +1,10 @@
 # Native live server effects: partial integration
 
+Current direct-native integration (2026-10-26):
+[NATIVE-DIRECT-EFFECTS.md](NATIVE-DIRECT-EFFECTS.md) replaces the staged model
+preparation below for ordinary targeted effects. The sections below retain
+historical isolated-launcher scope; broader effects/projectile parity remains open.
+
 The isolated v23 client delivers decoded server duration and instant visual
 events to a per-world Godot effect list. Native selection, phase timing,
 attachment, private geometry and worker particle lifetimes operate together.

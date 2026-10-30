@@ -1,9 +1,58 @@
 # Native creature appearance and palette assets
 
-Original creature appearance plans and PLT character textures now prepare in
-Godot without JS rendering, Three, GLB conversion or image transfer. This is
-the resource foundation for complete character assembly; it does not yet put
-animated actors into the direct native campaign renderer.
+Original creature appearance plans, PLT character textures, original clips and
+binary/ASCII skins now prepare in Godot without JS rendering, Three, GLB
+conversion or image transfer. Direct actor assembly includes body parts,
+robes, held/worn equipment and ground items. Broader controller, appearance,
+attachment and effect fidelity is still incomplete.
+
+## Current actor and live campaign follow-up
+
+`actor_model.gd` retains original binary controller storage, transform keys,
+events, skin arrays and physical node identity; ASCII named influences derive
+rigid inverse binds without inheriting scale. Native workers resolve the
+supermodel chain, preserve own-clip precedence and inherited animation scale,
+and cache converted native rig data by the actual dependency content hashes.
+Non-transform controller behavior is retained/deferred, not claimed complete.
+
+Native rig assets request lazy Animation resources. A focused original
+multipart-character check reduced main-thread installation from 854 ms to
+30 ms. Its total elapsed time increased from 6.384 to 8.297 seconds; this is
+not a loading-speed or FPS acceptance. See
+`reports/native-actor-publication-comparison-v1.json`. The mature authored
+animation/Bezier/sparse-skin regression passes 65 checks after the refactor.
+
+`native-actor-data-v5.json` passes 266,819 checks across thirteen original
+models, original binary skin arrays and 3,263 inherited clips. ASCII named
+weights and derived bind poses agree with an independent text/hierarchy
+reference. This does not establish every original ASCII compiler behavior.
+
+`native-capture-world-v7.json` renders all 48 tiles, 889 static objects, eight
+creatures and one ground item with nine skin meshes and no preparation errors.
+The earlier frozen supplement supplies the missing original item texture;
+no network fallback or invented texture is used. Initial frame samples and
+publication times are retained; effects and complete playability are pending.
+
+`native-prelude-world-v5.json` proves the first live original Prelude room:
+nine tiles, twenty entities, actual player replication and a 1.5-metre walk
+observed by both the server and native scene. The protocol process rejects
+Three, Electron and model/scene preparation imports. Godot discovers and reads
+the installed KEY/BIF/Prelude archive and prepares all displayed resources.
+Native scene owners discard stale appearance results and retain authoritative
+pose updates without rebuilding unchanged models. CDB exception capture,
+unchanged sources, engine/lifetime checks and clean retirement pass.
+
+The first screenshot was too dark. Follow-up v7 restores the original tile
+main lights and verifies native ground picking/click movement. Native path
+simulation was connected after v7 and is headless-tested; live validation and
+camera occlusion still need work. Gameplay UI, complete interaction, effects
+and transition/reconnect integration remain pending. See
+[current scoped evidence](NATIVE-LIVE-RENDER.md).
+No complete actor, campaign, stability or performance acceptance is claimed.
+The previous CDB default-debug-heap stall and historical native AV remain
+recorded; a clean normal-heap functional exit does not resolve the old fault.
+
+Earlier palette-only stage evidence below is historical and has narrower scope.
 
 `creature_appearance.gd` consumes raw replicated appearance/equipment fields and
 physical original 2DA rows. It selects body/head models, fallback and PLT
@@ -49,9 +98,9 @@ that queued options are isolated from caller mutation.
 
 ## Remaining integration
 
-Complete actor scene assembly, original skin/animation source decoding and
-supermodel inheritance, held/worn equipment, ground items, controller/effect
-behavior and live campaign integration remain work. The ordinary multiplayer
-launcher still uses transitional JS preparation. The goal remains incomplete;
-no full creature, campaign, stability or performance acceptance is claimed.
+Broader controller/effect/appearance behavior and full campaign integration
+remain work. The ordinary multiplayer launcher still uses transitional JS
+preparation; the new protocol-only local entry does not yet replace its UI and
+input. The goal remains incomplete; no full creature, campaign, stability or
+performance acceptance is claimed.
 The playability baseline is [the live local Prelude campaign](LOCAL-PLAYABILITY.md).

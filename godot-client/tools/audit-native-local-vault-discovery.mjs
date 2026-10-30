@@ -1,0 +1,41 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+const project=fileURLToPath(new URL('../',import.meta.url));
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const read=async file=>JSON.parse(await fs.readFile(path.join(project,file),'utf8'));
+async function pins(items){assert.ok(Object.keys(items).length);for(const [file,digest] of Object.entries(items))assert.equal(sha(await fs.readFile(path.join(project,file))),digest,file);}
+const graphical='native-vault-discovery-graphical-v1',live='native-vault-discovery-live-v2';
+const g=await read('reports/'+graphical+'.json'),gd=await read('reports/'+graphical+'.debugger.json');
+assert.equal(g.success,true);assert.equal(g.checks,63);assert.deepEqual(g.failures,[]);
+assert.equal(gd.success,true);assert.equal(gd.exception,false);assert.equal(gd.sourceUnchanged,true);await pins(gd.sourceSha256);
+const r=await read('reports/'+live+'.json'),n=await read('reports/'+live+'.native.json');
+for(const field of ['success','sourceUnchanged','debuggerArmed'])assert.equal(r[field],true);
+assert.equal(r.nativeException,false);assert.equal(r.nativeExit,0);assert.equal(r.publicConnections,0);assert.equal(r.endpoint,'127.0.0.1:5125');await pins(r.sourceSha256);
+assert.deepEqual(r.localDiscovery,{rows:40,roots:3,profile:1,workshop:0});
+assert.equal(r.nativeAdmission.success,true);assert.equal(Object.keys(r.nativeAdmission.checks).length,7);assert.ok(Object.values(r.nativeAdmission.checks).every(v=>v===true));
+for(const [field,count] of [['lobbyPages',18],['actions',170]]){assert.equal(r[field].success,true);assert.equal(r[field].checks.length,count);assert.ok(r[field].checks.every(row=>row.passed));}
+const p=r.characterPreviewProof;assert.equal(p.success,true);assert.equal(p.key,'local:nwn_local_ui.bic');assert.equal(p.record_input.checks.length,12);assert.ok(p.record_input.checks.every(row=>row.passed));
+const {previewProofMatches}=await import('./native-character-preview-proof.cjs');assert.equal(previewProofMatches(p,p,r.characterPreviewExpected),true);
+assert.equal(r.characterPreviewStorage.closed,true);assert.equal(r.characterPreviewStorage.files,0);assert.equal(r.characterPreviewStorage.written,1);assert.equal(r.characterPreviewStorage.removed,1);assert.equal(r.lobbyParticipant.closed,true);
+assert.equal(n.success,true);assert.equal(n.workers_remaining,0);assert.equal(n.protocol_finish_ack,true);
+for(const field of ['native_only','ready','closed'])assert.equal(n.local_character_catalog[field],true);
+assert.equal(n.local_character_catalog.worker_running,false);assert.equal(n.local_character_catalog.decoded,40);assert.equal(n.local_character_catalog.failed,0);assert.equal(n.lobby_preferences.show_pregenerated,false);assert.equal(n.lobby_preferences.writes,1);
+await assert.rejects(fs.stat(path.join(project,'../runtime-logs/native-playability-actions-server/client/localvault/nwn_local_ui.bic')),{code:'ENOENT'});
+const tests=await promisify(execFile)(process.execPath,['--test','tools/native-lobby.test.mjs','tools/native-local-character-files.test.mjs','tools/native-local-character-discovery.test.mjs','../test/workshop-content.test.js'],{cwd:project});
+for(const pattern of [/# tests 29\b/,/# pass 29\b/,/# fail 0\b/])assert.match(tests.stdout,pattern);
+const evidence=await read('../backups/animations/rea-native-local-vault-discovery-v1.json');assert.equal(evidence.binarySha256,'3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a');
+for(const row of Object.values(evidence.rows)){assert.equal(row.authority,'shipped-artifact');assert.equal(row.subject.digest.sha256,evidence.binarySha256);assert.ok(row.procedure.body.available);assert.ok(row.pseudocode);}
+assert.match(evidence.rows.serviceDirectory.pseudocode,/CExoFile::CExoFile/);assert.match(evidence.rows.fileInternalTyped.pseudocode,/ResolveFileName/);assert.match(evidence.rows['0x140167cf0'].pseudocode,/ResolveWorkshopFilename/);
+assert.equal((await read('reports/native-vault-discovery-live-v1.json')).success,false);
+assert.equal((await read('reports/native-lobby-record-feats-v2.debugger.json')).exception,true);
+const archive='backups/native-local-vault-discovery-v1.zip',checkpoint=await read(archive+'.verified.json');assert.equal(checkpoint.verified,true);assert.equal(sha(await fs.readFile(path.join(project,archive))),checkpoint.sha256);
+for(const row of checkpoint.manifest)assert.equal(sha(await fs.readFile(path.join(project,row.sourceScope==='workspace'?'../'+row.source:row.file))),row.sha256,row.file);
+const sources={};for(const file of ['../backups/animations/rea-native-local-vault-discovery-v1.json','tools/native-local-character-discovery.mjs','tools/native-local-character-discovery.test.mjs','tools/native-session-host.cjs','systems/native_local_character_catalog.gd','systems/character_lobby.gd','systems/native_data/workshop_index.gd','../electron/workshop_content.mjs','NATIVE-LOCAL-VAULT-DISCOVERY.md'])sources[file]=sha(await fs.readFile(path.join(project,file)));
+const result={success:true,checks:299,receipts:[{run:graphical,checks:63},{run:live,checks:207},{run:'Node raw discovery/lobby/Workshop/bytes',checks:29,stdoutSha256:sha(tests.stdout)}],sources,checkpoint:{file:archive,files:checkpoint.files,sha256:checkpoint.sha256},profileVaultAuthoritativeValidated:true,workshopDiscoveryValidated:true,workshopUploadValidated:false,publicConnections:0,localMutationImplemented:false,fullCharacterLobbyParity:false,fullUiParity:false,fullStabilityParity:false,startupExceptionResolved:false,goalComplete:false};
+await fs.writeFile(path.join(project,'reports/native-local-vault-discovery-acceptance-v1.json'),JSON.stringify(result,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({success:true,checks:result.checks,checkpoint:result.checkpoint,fullUiParity:false,goalComplete:false}));

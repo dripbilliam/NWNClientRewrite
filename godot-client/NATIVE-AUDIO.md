@@ -3,6 +3,10 @@
 Status: **creation voice core verified; full audio migration remains incomplete**.
 All live validation uses the owned local server. No Arelith connection was made.
 
+Current direct-native gameplay voice integration and headless BMU/SSF/lifetime
+evidence are in [NATIVE-CREATURE-VOICES.md](NATIVE-CREATURE-VOICES.md). Live testing
+is paused; this does not promote all world/audio systems to complete.
+
 The Voice page now has a fixed-footer **Play sample** button and persistent
 selected-voice/playback feedback outside the scrolling soundset list. Repeated
 clicks sample the next line. Selection and first-level BIC generation continue

@@ -284,7 +284,9 @@ func _beam_signature() -> Array:
 	if target == null or source == null:return []
 	var from := _anchor(source,str(state.sourceAnchor28));var to := _anchor(target,str(state.targetAnchor38))
 	if not is_instance_valid(from) or not is_instance_valid(to):return []
-	return [state.proceduralB8.get_instance_id(),from.get_instance_id(),to.get_instance_id()]
+	var signature: Array=[state.proceduralB8.get_instance_id(),from.get_instance_id(),to.get_instance_id()]
+	if state.proceduralB8.has_method("reference_binding_signature"): signature.append(state.proceduralB8.reference_binding_signature())
+	return signature
 
 func _attach_beam() -> void:
 	Beam.attach(state,_beam_providers());beam_signature = _beam_signature()

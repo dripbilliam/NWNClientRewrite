@@ -1,10 +1,13 @@
 extends RefCounted
+const Emitter=preload("res://systems/native_data/emitter_data.gd")
+const Text=preload("res://systems/native_data/binary_data.gd")
 # Direct original ASCII MDL static hierarchy and face-corner geometry. No JS,
 # Three or scene export. Behavioral headers stay explicit pending features.
 var failure:=""
 var source_nodes: Array=[]
 var output: Array=[]
 var by_name: Dictionary={}
+var by_folded_name: Dictionary={}
 var emitted: Dictionary={}
 var active: Dictionary={}
 func reject(reason: String) -> void:
@@ -18,19 +21,25 @@ func numbers(tokens: PackedStringArray) -> Array:
 		values.append(token.to_float())
 	return values
 func parse(text: String) -> Dictionary:
-	failure=""; source_nodes.clear(); output.clear(); by_name.clear(); emitted.clear(); active.clear()
+	failure=""; source_nodes.clear(); output.clear(); by_name.clear(); by_folded_name.clear(); emitted.clear(); active.clear()
 	var whitespace:=RegEx.new(); whitespace.compile("\\s+")
-	var model_name:=""; var in_geometry:=false; var current: Dictionary={}; var array_kind:=""; var remaining:=0; var supermodel:=""; var animation_scale:=1.0
+	var model_name:=""; var in_geometry:=false; var current: Dictionary={}; var array_kind:=""; var remaining:=0; var supermodel:=""; var animation_scale:=1.0; var classification_flags:=0
 	for raw in text.replace("\r","").split("\n"):
 		var line:=str(raw).strip_edges()
 		if line.is_empty() or line.begins_with("#"): continue
-		var tokens: PackedStringArray=whitespace.sub(line," ",true).split(" ",false)
+		# Numeric animation rows cannot be model-header commands. They are not
+		# geometry dependencies and need no token allocation on this pass.
+		if remaining==0 and not in_geometry and line.unicode_at(0) in [43,45,46,48,49,50,51,52,53,54,55,56,57]: continue
+		var tokens: PackedStringArray=Text.ascii_tokens(line,whitespace)
 		if remaining>0:
 			var values:=numbers(tokens)
 			if not failure.is_empty(): return {}
 			current[array_kind].append(values); remaining-=1; continue
 		var command:=tokens[0].to_lower()
 		if command=="newmodel" and tokens.size()>1: model_name=tokens[1]; continue
+		# classification1400a11b0: unknown names retain the previous byte.
+		if command=="classification" and tokens.size()>1:
+			classification_flags=int({"tile":2,"character":4,"effect":1,"effects":1,"door":8}.get(tokens[1].to_lower(),classification_flags)); continue
 		if command=="setsupermodel" and tokens.size()>2: supermodel=tokens[2].to_lower(); continue
 		if command=="setanimationscale" and tokens.size()>1:
 			var values:=numbers(tokens.slice(1)); if values.is_empty(): return {}
@@ -41,9 +50,14 @@ func parse(text: String) -> Dictionary:
 		if command=="node":
 			if tokens.size()<3 or not current.is_empty() or source_nodes.size()>=100000: reject("Invalid ASCII MDL node declaration"); return {}
 			var name: String=" ".join(tokens.slice(2))
-			if by_name.has(name): reject("Duplicate ASCII MDL physical node name"); return {}
+			# Installed pfh0 legitimately declares two physical Impact nodes.
+			# Keep both physical records; name lookup follows the existing JS
+			# parser's final declaration, rather than rejecting the whole actor.
 			current={"name":name,"kind":tokens[1].to_lower(),"parent_name":"NULL","position":[0.0,0.0,0.0],"orientation":[0.0,0.0,1.0,0.0],"scale":1.0,"alpha":1.0,"selfillum":[0.0,0.0,0.0],"diffuse":[1.0,1.0,1.0],"shadow":0 if tokens[1].to_lower()=="light" else 1,"render":1,"transparencyhint":0,"verts":[],"tverts":[],"faces":[],"textures":[],"properties":{}}
-			by_name[name]=source_nodes.size(); source_nodes.append(current); continue
+			by_name[name]=source_nodes.size()
+			var folded:=name.to_lower()
+			if not by_folded_name.has(folded): by_folded_name[folded]=[]
+			by_folded_name[folded].append(source_nodes.size()); source_nodes.append(current); continue
 		if command=="endnode": current={}; continue
 		if current.is_empty(): continue
 		if tokens.size()>1: current.properties[command]=" ".join(tokens.slice(1))
@@ -62,15 +76,23 @@ func parse(text: String) -> Dictionary:
 	if remaining>0 or model_name.is_empty() or source_nodes.is_empty(): reject("Truncated or missing ASCII MDL model/arrays"); return {}
 	for index in source_nodes.size(): emit_node(index,0)
 	if not failure.is_empty(): return {}
-	return {"name":model_name,"nodes":output,"source_node_count":source_nodes.size(),"supermodel":supermodel,"animation_scale":animation_scale,"format":"ASCII MDL","scope":"Original static ASCII MDL; animation, skin, reference, light/emitter behavior pending"}
+	return {"name":model_name,"nodes":output,"classification_flags":classification_flags,"source_node_count":source_nodes.size(),"supermodel":supermodel,"animation_scale":animation_scale,"format":"ASCII MDL","scope":"Original static ASCII MDL; animation, skin, reference, light/emitter behavior pending"}
 func emit_node(index: int, depth: int) -> int:
 	if emitted.has(index): return int(emitted[index])
 	if active.has(index) or depth>128: reject("ASCII MDL hierarchy cycle/depth"); return -1
 	active[index]=true
 	var source: Dictionary=source_nodes[index]; var parent:=-1
 	if str(source.parent_name).to_upper()!="NULL":
-		if not by_name.has(source.parent_name): reject("ASCII MDL parent missing"); return -1
-		parent=emit_node(int(by_name[source.parent_name]),depth+1)
+		var parent_index:=int(by_name.get(source.parent_name,-1))
+		if parent_index<0:
+			# Original distributed ASCII models can reference an existing parent
+			# with different capitalization (AShTo_041 / ashto_041). Preserve
+			# authored names/physical nodes and exact-name duplicate behavior;
+			# resolve only an unambiguous folded alias, never invent an orphan root.
+			var aliases: Array=by_folded_name.get(str(source.parent_name).to_lower(),[])
+			if aliases.size()!=1: reject("ASCII MDL parent missing" if aliases.is_empty() else "ASCII MDL parent case alias ambiguous"); return -1
+			parent_index=int(aliases[0])
+		parent=emit_node(parent_index,depth+1)
 		if not failure.is_empty(): return -1
 	var axis:=Vector3(source.orientation[0],source.orientation[1],source.orientation[2]); var q:=Quaternion.IDENTITY
 	if axis.length()>1e-8 and absf(float(source.orientation[3]))>1e-8: q=Quaternion(axis.normalized(),float(source.orientation[3]))
@@ -78,6 +100,14 @@ func emit_node(index: int, depth: int) -> int:
 	var feature: String={"light":"light","emitter":"emitter","reference":"reference","skin":"skin","animmesh":"animated-mesh","danglymesh":"dangly","aabb":"aabb"}.get(source.kind,"")
 	if not feature.is_empty(): features.append(feature)
 	var row: Dictionary={"name":source.name,"parent":parent,"source_index":index,"flags":0,"position":source.position,"orientation":[q.x,q.y,q.z,q.w],"scale":source.scale,"alpha":source.alpha,"selfillum":source.selfillum,"features":features,"mesh":{},"properties":source.properties,"light":{}}
+	if source.kind=="emitter":
+		var emitter:=Emitter.new(); row.emitter=emitter.ascii_properties(source.properties)
+		if not emitter.failure.is_empty(): reject(emitter.failure); return -1
+	if source.kind=="reference":
+		var reattachable:=str(source.properties.get("reattachable","0")); var reattach_values:=numbers(PackedStringArray([reattachable]))
+		if reattach_values.size()!=1 or float(reattach_values[0])!=floor(float(reattach_values[0])) or float(reattach_values[0])< -2147483648.0 or float(reattach_values[0])>4294967295.0: reject("Invalid original reference reattachable DWORD"); return -1
+		var bits:=int(reattach_values[0])&0xffffffff
+		row.flags=0x11; row.reference={"model":str(source.properties.get("refmodel","")),"reattachable":bits-4294967296 if bits>=2147483648 else bits}
 	if source.kind=="light":
 		row.light={"color":[1.0,1.0,1.0],"radius":0.0,"multiplier":1.0,"shadow":source.shadow,"ambientonly":0}
 		for property in ["color","radius","shadowradius","verticaldisplacement","multiplier","lightpriority","ambientonly","isdynamic","affectdynamic","generateflare","fadinglight"]:
@@ -101,6 +131,7 @@ func geometry(source: Dictionary) -> Array:
 		if material_indices.is_empty() or material_indices.back()!=material_index:
 			groups.append({"vertices":PackedFloat32Array(),"normals":PackedFloat32Array(),"uv":[PackedFloat32Array()],"indices":PackedInt32Array(),"collision_indices":PackedInt32Array(),"textures":[source.textures[material_index]] if not source.textures.is_empty() else [],"render":float(source.render)!=0 and source.kind!="aabb","shadow":float(source.shadow)!=0,"transparency_hint":float(source.transparencyhint)!=0,"diffuse":source.diffuse}); material_indices.append(material_index)
 		var group: Dictionary=groups.back(); var vertices: Array=[]
+		if source.kind=="animmesh" and not group.has("animation_vertices"): group.animation_vertices=[]; group.animation_uv=[]
 		for corner in 3:
 			var vertex_index:=int(face[corner])
 			if float(face[corner])!=vertex_index or vertex_index<0 or vertex_index>=source.verts.size() or source.verts[vertex_index].size()<3: reject("ASCII MDL vertex index invalid"); return []
@@ -110,5 +141,6 @@ func geometry(source: Dictionary) -> Array:
 			var vertex: Vector3=vertices[corner]; var uv_index:=int(face[4+corner]); var uv:=Vector2.ZERO
 			if float(face[4+corner])!=uv_index: reject("ASCII MDL UV index invalid"); return []
 			if uv_index>=0 and uv_index<source.tverts.size() and source.tverts[uv_index].size()>=2: uv=Vector2(source.tverts[uv_index][0],source.tverts[uv_index][1])
+			if source.kind=="animmesh": group.animation_vertices.append(int(face[corner])); group.animation_uv.append(uv_index)
 			group.vertices.append_array(PackedFloat32Array([vertex.x,vertex.y,vertex.z])); group.normals.append_array(PackedFloat32Array([normal.x,normal.y,normal.z])); group.uv[0].append_array(PackedFloat32Array([uv.x,uv.y])); group.indices.append(group.indices.size()); group.collision_indices.append(group.collision_indices.size())
 	return groups

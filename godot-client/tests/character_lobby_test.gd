@@ -4,7 +4,6 @@ const Lobby = preload("res://systems/character_lobby.gd")
 var checks := 0
 var failures: Array[String] = []
 var messages: Array = []
-var menu_requests := 0
 var creation_requests := 0
 
 func expect(value: bool, name: String) -> void:
@@ -19,7 +18,6 @@ func run() -> void:
 	var ui := Lobby.new()
 	root.add_child(ui)
 	ui.request.connect(func(message): messages.append(message))
-	ui.main_menu_requested.connect(func(): menu_requests += 1)
 	ui.creation_requested.connect(func(): creation_requests += 1)
 	expect(ui.join_button.disabled, "No login before authenticated backend readiness")
 	ui.apply_state({"connection": 0, "state": {"phase": "menu", "canJoin": true}})
@@ -39,11 +37,10 @@ func run() -> void:
 	expect(messages.back() == {"kind": "lobby-play", "connection": 1, "key": "vault:one"}, "Play uses the authoritative selected key")
 	expect(ui.save_on_disconnect.button_pressed, "Save on explicit disconnect defaults on")
 	ui.disconnect_button.pressed.emit()
-	expect(messages.back().saveCharacter and messages.back().kind == "lobby-disconnect", "Disconnect sends the visible save policy")
+	expect(not messages.back().saveCharacter and messages.back().kind == "lobby-disconnect", "Disconnect before entering the world does not export an unavailable character")
 	ui.apply_state({"connection": 1, "state": {"phase": "playing", "connected": true, "selected": "vault:one"}})
 	expect(not ui.panel.visible and not ui.export_button.disabled, "Playing closes the chooser and enables character export")
-	ui.menu_button.pressed.emit()
-	expect(menu_requests == 1, "Bottom game button requests Main Menu through the native owner")
+	expect(not ui.blocks_pointer(root.get_visible_rect().size-Vector2(48,32)), "The removed bottom-right shortcut leaves no invisible input blocker")
 	ui.panel.show() # Explicit Multiplayer selection in Main Menu reopens the chooser.
 	ui.apply_state({"connection": 1, "state": {"phase": "playing", "connected": true, "selected": "vault:one"}})
 	expect(ui.panel.visible, "Repeated playing states preserve an intentionally open multiplayer menu")
@@ -64,7 +61,7 @@ func run() -> void:
 	ui.apply_state({"connection":5,"state":{"phase":"menu","canJoin":true}})
 	expect(not ui.cancel_button.visible and not ui.join_button.disabled, "Retired login removes Cancel and permits a fresh connection")
 	ui.free()
-	var result := {"passed": failures.is_empty(), "checks": checks, "failures": failures, "scope": "Native Godot character-lobby UI and scoped requests; no live server or performance claim"}
+	var result := {"success":failures.is_empty(),"passed": failures.is_empty(), "checks": checks, "failures": failures, "scope": "Native Godot character-lobby UI and scoped requests; no live server or performance claim"}
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--report="):
 			var file := FileAccess.open(arg.substr(9), FileAccess.WRITE)

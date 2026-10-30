@@ -1,11 +1,19 @@
 # Native Main Menu, settings and separate debug window
 
+Current presentation follow-up: [Main-menu consistency](NATIVE-MENU-CONSISTENCY.md)
+removes the prototype menu flash and gives replacement-only Client Options the
+same original artwork/font family as Main/Options/Multiplayer/in-game menus.
+Older core/settings receipts below retain their historical route/scope; they do
+not by themselves prove complete current ConfigWindow or full UI parity.
+
 Status: **native Main Menu/settings/debug core implemented and locally verified;
 full UI migration remains incomplete**. UI, then rendering, then combat remains
 the user-directed work order. No Arelith connection was used.
 
-The bottom-right Main Menu opens native Multiplayer, Options, Return to game and
-Exit controls. Options is also reachable from the party HUD. Its Game tab retains
+The bottom-right Main Menu opens native Multiplayer, Options, Return to game,
+Disconnect and Exit controls. Connection cancellation and remote-disconnect cleanup
+are documented in [NATIVE-DISCONNECT.md](NATIVE-DISCONNECT.md).
+Options is also reachable from the party HUD. Its Game tab retains
 the options-only creature equipment preference, adds a compact FPS counter
 preference, and opens a separate native OS debug window. The admitted world no
 longer displays the outer prototype status/debug overlay. Startup uses a dark

@@ -1,20 +1,225 @@
 # Native NWN client prototype
 
+The normal multiplayer launchers now use the **direct native Godot renderer**.
+Normal startup opens **Main Menu**. Choose **Multiplayer** there to open the
+server-selection flow; launching the program does not start a server connection.
+The [original character picker](NATIVE-CHARACTER-FRONTEND.md) prepares alongside
+Main Menu. Server data updates that stable pregame screen; it does not rebuild
+the frame from gameplay resources after the roster arrives.
+
+**Main Menu → Options → Prework** provides explicit **Prepare assets**,
+**Cancel preparation**, and **Clear saved prework** actions. Saved model bundles
+and artwork from opened UI panels can be reused across sessions. Choose installed
+or downloaded server content directly from the menu, without joining first.
+Current-session appearances and all-model preparation are separate scopes.
+Preparation supports Automatic or 1/2/4/8 workers, live progress/rate updates,
+and **View saved files** to open the generated cache directory.
+Its background process keeps preparation failures from closing the game client.
+See [persistent asset prework](NATIVE-ASSET-PREWORK.md) for scope and
+invalidation details.
+
+The active priority is [complete native UI parity](NATIVE-UI-PARITY-GOAL.md):
+original-game screens must match their appearance and actions; unique screens
+must follow the base game's style. General porting resumes only after the full
+UI audit passes. [Earlier UI/combat work](NATIVE-UI-COMBAT-MIGRATION-GOAL.md)
+remains unfinished backlog and scoped evidence.
+[Animated GUI mesh sampling](NATIVE-GUI-ACTOR-SAMPLER.md) now applies original
+texture clamp/filter metadata to animated controls as well as static panels,
+removing repeated character-chooser tab borders. Full UI parity remains open.
+[Native local character metadata](NATIVE-LOCAL-CHARACTER-CATALOG.md) now supplies
+BIC names, classes and portraits and uses the active Pregen table for filtering.
+The installed corpus and owned-local actions pass scoped checks.
+[Profile and enabled Workshop vault discovery](NATIVE-LOCAL-VAULT-DISCOVERY.md)
+now follows original alias precedence. Delete/Customize and full catalog parity
+remain open.
+[Pregenerated-character preferences](NATIVE-CHARACTER-PREGENERATED.md) now
+persist natively across chooser instances, with original lifecycle/input and
+owned-local checks. Complete local metadata, filtering availability and local
+Delete/Customize parity remain unfinished.
+[Focused chooser edit keys](NATIVE-CHARACTER-CHOOSER-EDIT.md) now stay owned
+like the original hidden control, preserving cursor selection without inventing
+Enter/Escape/Tab actions. Graphical input and owned-local server checks pass.
+[Automatic chooser selection](NATIVE-CHARACTER-AUTO-SELECTION.md) now follows
+the original first-row rebuild policy, with exact BIC ownership in diagnostics.
+Graphical input and fresh owned-local actions pass; full UI parity stays open.
+[Chooser cursor keys and titles](NATIVE-CHARACTER-CHOOSER-KEYS.md) now follow
+original row navigation/scroll rules and localized record captions. Their
+graphical/local follow-up is included in automatic chooser selection above.
+[Pregame Character statistics](NATIVE-PREGAME-CHARACTER-NUMBERS.md) now follow
+original numeric display rules and typed BIC fields. Headless checks pass;
+the [detail-list follow-up](NATIVE-PREGAME-CHARACTER-DETAILS.md) also connects
+original generated rows and scroll ownership. Fresh visual/local validation and
+the complete Character/UI audit remain open.
+[Native player window and invitation](NATIVE-PLAYERS-FRAME.md) now use original
+resources and working selection/Tell/attitude/party controls, with real two-peer
+local-server checks. Administrator and full original-client/state/role parity
+remain open.
+[Native conversations](NATIVE-CONVERSATION-FRAME.md) now use original panel
+geometry, speaker portraits, fonts, content sizing and separate scrollbars,
+with original-binary policy comparisons and real local-server reply/end/abort
+checks. Full conversation variants and the complete UI audit remain open.
+[Native journal](NATIVE-JOURNAL-FRAME.md) now uses original pages, expandable
+quest rows, sorting, timestamps, scrollbars and saved editable personal notes.
+Actual local-server quest lifecycle and simultaneous-window composition pass
+scoped checks. Full role/world-journal and original-client comparison remain open.
+[Native area map](NATIVE-AREA-MAP-FRAME.md) now uses generated original frames,
+source zoom/pan controls and the original pin editor. Native input and actual
+local-server pin events and stored note lifecycle pass scoped checks; complete
+original-client visual/role/gesture comparison remains open.
+[Radial artwork and actions](NATIVE-RADIAL-UI.md), [target facing](NATIVE-TARGET-FACING.md)
+and [movement-cue playback](NATIVE-MOVEMENT-CUE-PLAYBACK.md) document current
+scoped fixes, original-binary evidence, local acceptance and remaining gaps.
+[Feat families and Special Attacks](NATIVE-FEAT-RADIAL.md) covers native variant
+shortcut packing, mode/availability rules and an authoritative local shape test.
+[Private hit-effect defaults](NATIVE-BLOOD-VISUALS.md#private-constructor-hp-follow-up)
+cover undisclosed NPC HP without changing authoritative health data.
+[Original inventory equipment](NATIVE-INVENTORY-EQUIPMENT.md) now uses native
+GUI positions, box meshes, empty-slot icons and item attachment points.
+[Original bitmap fonts](NATIVE-BITMAP-FONTS.md) bind caption metrics and atlas
+resources to the framed menus; full font and UI parity remain open.
+[Original item Examine content](NATIVE-EXAMINE-CONTENT.md) restores source stat
+blocks, localized inline fields and server-owned armor-category presentation.
+[Original scroll input](NATIVE-SCROLL-INPUT.md) adds held arrows/rail paging,
+font-relative wheel steps and focus-loss drag cancellation to shared frames.
+[Content-sized scrollbar thumbs](NATIVE-SCROLL-THUMB.md) use original range
+arithmetic/animated geometry; row lists scroll by their native linked height.
+[Original UI resource inventory](NATIVE-UI-RESOURCE-INVENTORY.md) enumerates
+shipped GUI controls and tracks programmatic surfaces separately.
+[Original character-sheet frame](NATIVE-CHARACTER-FRAME.md) adds native page/tab
+artwork, source-sized rows/fonts and the received-state Level Up control;
+full record content, resizing and state parity remain open.
+[Character-sheet resizing](NATIVE-CHARACTER-RESIZE.md) now uses its original
+footer with retained size and coalesced original scrollbar geometry; exact
+original limits/states and the full UI audit remain open.
+[Original quickbar framing](NATIVE-QUICKBAR-FRAME.md) replaces stretched generic
+slots with native model hooks/poses, original font/count placement and bottom
+anchoring while preserving typed actions; full HUD/state parity remains open.
+[Original party HUD framing](NATIVE-PARTY-FRAME.md) restores native portrait,
+action, vertical-health/member and level-overlay geometry, with fixed self HUD
+and separate roster scrolling; remaining indicators/roles/states stay open.
+[Original health variants](NATIVE-PARTY-HEALTH.md) now follow received poison/
+disease flags and original clip/timing rules; full HUD acceptance remains open.
+[Spellbook layout research](NATIVE-SPELLBOOK-RESEARCH.md) recovers both original
+windows and nine-column memorization rows. The [native spellbook frame](NATIVE-SPELLBOOK-FRAME.md)
+now connects them, independently expandable groups and original help artwork to
+typed actions; exact gestures/states and full original-client comparison remain open.
+[Prepared-slot transfers](NATIVE-SPELL-PREPARATION.md) now preserve original
+move/exchange ordering and wait for received server updates, with stale/pending
+ownership and used icon alpha checked. Full spellbook/UI parity stays open.
+[Inventory and container frames](NATIVE-INVENTORY-FRAME.md) add original panel
+artwork,33px repositories, pages and per-pose button proportions without stretching.
+[Native gold controls](NATIVE-INVENTORY-GOLD.md) add the original amount dialog,
+gold dragging, server-owned ground/container transfers and native barter refusals.
+[Native player barter](NATIVE-BARTER.md) adds original trade artwork and controls,
+with owned-server item/gold exchange and cancellation refunds in both roles.
+Mixed-client and wider trade edge cases remain open.
+[Native merchant framing](NATIVE-STORE-FRAME.md) adds original linked category
+tabs, the 33-pixel stock grid and localized buy/sell confirmation artwork, with
+real owned-server transactions. [Examine and Identify](NATIVE-EXAMINE.md) now use
+original frames with authoritative paid/free identification; body formatting,
+scrollbars, fonts and full visual/context parity remain partial.
+[Original scrollbar artwork](NATIVE-SCROLLBAR.md) now drives Examine and the
+merchant confirmation, including their animated vertex/UV centers; full widget
+repeat/step/font parity remains open.
+
+Launches prefer a secondary monitor and do not activate the game window or its
+console. Click the game window when ready to activate it. Automated checks retain
+the non-activating window flag throughout. A single-monitor setup uses its
+available screen.
+
+Area changes use a [native loading screen](NATIVE-LOADING-SCREEN.md) until the
+base tiles, complete player model and follow camera are ready. Press
+**Ctrl+Shift+L** to reveal the unfinished world early for the current transition;
+unrelated scenery continues streaming after normal reveal.
+
+[Native keyboard prediction](NATIVE-DRIVE-PREDICTION.md) keeps W/S movement and
+Q/E strafing continuous using server speeds and original collision resources;
+A/D turn and Shift walks. Prediction and rendering run in Godot.
+Run `./godot-client/join-arelith.ps1` to choose a server and character, or
+`./godot-client/join-local.ps1` for the owned local server. JavaScript remains
+in protocol/download services, while Godot reads and prepares render assets.
+The former scene-staging route is an explicit fallback. See
+[current native entry, evidence and remaining gaps](NATIVE-SESSION-RENDER.md).
+The [native gameplay desktop](NATIVE-GAMEPLAY-DESKTOP.md) now connects the main
+in-game menus, party HUD, quickbar and radial actions using original assets/fonts.
+The [native action and NUI milestone](NATIVE-PLAYABILITY-ACTIONS.md) verifies real
+localhost equipment, casting, purchases, advancement, combat cancellation and
+scripted menus. [Direct-native character creation](NATIVE-CREATION.md) now includes
+active server tables, original appearance/voice and original Prelude admission.
+Full UI parity, broader creator/content coverage, advanced effects and
+public-server transfers remain incomplete.
+Native Workshop/override/portrait discovery and emitter resource decoding now
+have [local evidence](NATIVE-LOCAL-CONTENT-EMITTER-DATA.md). Native particle
+simulation, standard quad drawing and actor-channel playback now have
+[scoped original-data and GPU checks](NATIVE-PARTICLE-RUNTIME.md); full effects
+and moving-world performance remain incomplete.
+
+The latest [native hot-path work](NATIVE-HOTPATH-OWNERS.md) adds persistent C++
+particle/controller state, direct GPU streams, native pose/frustum checks,
+incremental diagnostics and changed-object bridge updates. Offline room frame
+times improve, but 60 FPS and full native networking remain incomplete.
+
+[Impact and Heal particle collision work](NATIVE-PARTICLE-IMPACT-PERFORMANCE.md)
+adds conservative tile lookup, native original-face/model-Part queries and
+persistent bouncing-particle state. Local Heal animation frame-time p95 falls
+from roughly15ms to8ms with the original particle assets/counts retained;
+broader-room performance and full particle parity remain incomplete.
+
+The [native interaction registry](NATIVE-INTERACTION-REGISTRY.md) now excludes
+non-interactive scenery from picking/highlight bookkeeping while retaining its
+rendering, effects and authoritative world state. Eligibility changes update
+without a model reload; original hidden portal hit triangles remain pickable.
+
+[Graphics settings and fuller profiling](NATIVE-GRAPHICS-PROFILING.md) are available
+under **Main Menu → Options** in the native client. Particle simulation/drawing
+defaults off, can be toggled immediately, and the preference is saved. The Performance tab
+controls detailed timings, including unattributed frame time and profiling costs.
+
 The playability baseline is now the **original Prelude campaign** on the owned
 local server at `127.0.0.1:5121`. See [local campaign acceptance](LOCAL-PLAYABILITY.md).
 Scripted fixture modules and offline captures support focused checks; campaign
 playability requires the actual live campaign, including animated characters,
 movement, interactions and area transitions.
 
-[Native creature appearance and PLT textures](NATIVE-CREATURE-ASSETS.md) now
-prepare from original resources, with original body-part geometry drawing and
-independent character colors verified. Complete actor animation/assembly and
-direct native campaign integration remain next.
+The latest **direct native local gameplay** check passes movement, camera
+follow, NPC examine/chat/dialogue replies and a real server-owned door transfer
+from the Prelude bedroom to the 100-tile training area. NUI is deferred while
+essential gameplay is completed. `./godot-client/play-native-local.ps1` opens
+an experimental interactive version of that path with the installed wizard
+test character. Native inventory/equipment and original item icons now pass a
+server-owned unequip/re-equip and area-reopen check. Item abilities/stores,
+spells/combat and other systems are still incomplete.
+See [the current local milestone and limits](LOCAL-PLAYABILITY.md#native-local-gameplay-milestone).
+The earlier milestone descriptions below remain historical; no full native
+binary parity or performance acceptance is claimed.
+
+[Native creature assembly](NATIVE-CREATURE-ASSETS.md) now includes original
+binary/ASCII skins, inherited animation, equipment and ground items. The
+captured room renders 48 tiles, 889 static objects, eight creatures and one
+ground item directly. Effects and broader visual behavior remain incomplete.
+
+The first **live direct-native Prelude** check also passes: nine tiles, twenty
+entities and a 1.5-metre authoritative player walk, using original assets read
+by Godot. Its protocol-only Node process rejects Three/Electron/render-staging
+imports. `tools/test-native-local-world.ps1` is a bounded local functional test,
+not the normal game launcher. Original tile lighting and native picking are
+now restored in the local test. Native movement simulation is connected and
+headless-tested, including original WOK height/cache loading across all five
+Prelude areas; its live check, gameplay UI/effects, visibility, transitions
+and full campaign playability remain pending. See [current evidence](NATIVE-LIVE-RENDER.md) and
+[the acceptance route](LOCAL-PLAYABILITY.md). No FPS acceptance is claimed.
+
+The direct entry also has a native raw-protocol chat/conversation/creature
+examine path, including original TLK text, rule tables, color tokens and
+portrait textures. Original fonts and NUI skin/image resources also load and
+bind natively, with cold/warm reuse verified. Full item/token providers,
+NUI layout/input, original GUI model skins, other menus and live validation
+remain incomplete.
 
 The [direct native captured world](NATIVE-WORLD-STATIC.md) now assembles all 48
 terrain tiles and 889 static object entries with area/model lighting. Run
-`./godot-client/native-world.ps1` for its offline inspection view. Creatures,
-effects and gameplay integration remain incomplete; this is not the server client.
+`./godot-client/native-world.ps1` for its offline inspection view. Effects and
+gameplay integration remain incomplete; this is not the server client.
 
 Current priority is [complete native world rendering](NATIVE-CAPTURED-ASSETS.md).
 Original captured assets and ASCII/binary models now render directly through
@@ -155,6 +360,16 @@ Ctrl+Alt+F1/F2/F3, leaving function keys for the quickbar.
 
 Native combat queues, timed cast/attack clips and original hit-event playback
 now pass actual local tests with moving body/robe clocks and GPU skin changes.
+Equipped-weapon blur and scoped attack colours now have native integration and
+headless original-data/model lifecycle checks. Live visual acceptance is queued:
+[NATIVE-EQUIPPED-ATTACK-VISUALS.md](NATIVE-EQUIPPED-ATTACK-VISUALS.md).
+Native special initialization and level20 eye effects now have original-code and
+headless model/lifetime checks. Actual server/pixel acceptance remains queued:
+[NATIVE-SPECIAL-INITIALIZATION.md](NATIVE-SPECIAL-INITIALIZATION.md).
+Native combat barks/server26/1 voices now use native SSF/BMU decoding and actor
+source ownership. Headless original-voice/retirement checks pass; actual server
+and device acceptance is queued: [NATIVE-CREATURE-VOICES.md](NATIVE-CREATURE-VOICES.md).
+
 See [NATIVE-COMBAT.md](NATIVE-COMBAT.md). Projectiles, particles/impact effects,
 audio and full combat/performance acceptance remain incomplete.
 
@@ -242,3 +457,11 @@ resource ownership. Stereo and WASAPI mixer tests pass40 checks each; actual
 playback references now participate in quit retirement. A repeated local run
 still exposed a native shutdown AV, so broader audio and stable shutdown
 acceptance remain open and the migration goal stays active.
+
+Current cold-loading work is indexed in
+[Native loading optimization](NATIVE-LOADING-OPTIMIZATION-GOAL.md), with the six
+original-binary comparisons, verified source checkpoints, complete offline-area
+timings, current native/local regression receipts and explicit failed tests.
+[Loading recordings](NATIVE-LOADING-RECORDINGS.md) describes private capture
+integrity, missing dependencies and offline-only replay. These newer scoped
+receipts do not imply that every earlier migration/parity limitation is resolved.

@@ -29,7 +29,12 @@ var item_controls: Dictionary = {}
 var blocked_container_serial := -1
 var blocked_store_generation := -1
 var store_panel
+var native_store
 var layout_storage := ""
+var native_equipment
+var native_frame
+var gold_owner
+var barter_owner
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	layout_storage = storage
@@ -90,6 +95,8 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 		button.text = entry[0]
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(func():
+			if entry[1]=="examine" and native_frame!=null and native_frame.layout_ready:
+				examine_mode=not examine_mode; button.set_pressed_no_signal(examine_mode); return
 			if selected >= 0: operation(selected, entry[1]))
 		actions.add_child(button)
 		item_controls[entry[1]] = button
@@ -103,6 +110,7 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 
 func reset() -> void:
 	view_id = -1; selected = -1; wanted = false
+	examine_mode=false
 	blocked_container_serial = -1
 	blocked_store_generation = -1
 	if is_instance_valid(store_panel): store_panel.reset()
@@ -116,7 +124,7 @@ func reset() -> void:
 
 func wipe(node: Node) -> void:
 	for child in node.get_children():
-		if child == ac: continue
+		if child == ac or child.has_meta("native_inventory_art"): continue
 		node.remove_child(child)
 		child.queue_free()
 
@@ -127,6 +135,7 @@ func open() -> void:
 	request.emit({"kind": "inventory-open"})
 
 func close_inventory() -> void:
+	examine_mode=false
 	blocked_container_serial = int(state.get("container", {}).get("serial", -1))
 	blocked_store_generation = int(state.get("store", {}).get("generation", -1))
 	if is_instance_valid(store_panel): store_panel.hide()
@@ -167,14 +176,16 @@ func receive(message: Dictionary) -> void:
 			if texture == null: return
 			textures[int(message.entryId)] = texture
 			if buttons.has(int(message.entryId)):
-				buttons[int(message.entryId)].image.texture = texture
-				buttons[int(message.entryId)].caption.hide()
+				buttons[int(message.entryId)].set_icon(texture)
 
 func render() -> void:
 	if state.is_empty(): return
 	wipe(equipment); wipe(repository); wipe(container_repository); buttons.clear()
 	set_caption("Inventory" + (": " + str(state.title) if not str(state.title).is_empty() else ""))
 	equipment.custom_minimum_size.y = 320 if creature_slots else 240
+	if native_equipment!=null and native_equipment.layout_ready:
+		equipment.custom_minimum_size.y=native_equipment.definition.bounds.size.y+(80 if creature_slots else 0)
+		native_equipment.apply_label()
 	var container: Dictionary = state.get("container", {})
 	var opened := int(container.get("ownerId", 2130706432)) != 2130706432
 	container_box.visible = opened
@@ -184,7 +195,7 @@ func render() -> void:
 	container_title.text = str(container.get("title", "Container"))
 	container_page.text = "%s / %s" % [int(container.get("page", 0)) + 1, int(container.get("pageCount", 1))]
 	for key in ["previous", "next"]: container_controls[key].disabled = int(container.get("pageCount", 1)) <= 1
-	for layout in state.layout:
+	for layout in native_equipment.rows(creature_slots) if native_equipment!=null and native_equipment.layout_ready else state.layout:
 		if int(layout.slot) >= 16384 and not creature_slots: continue
 		var item := {}
 		for value in items.values():
@@ -195,6 +206,7 @@ func render() -> void:
 		button.size = Vector2(layout.w, layout.h)
 		if item.is_empty(): button.tooltip_text = layout.label
 		equipment.add_child(button)
+		if native_equipment!=null: native_equipment.bind_slot(button,layout)
 		if item.has("entryId"): register_button(item, button)
 	if ac.get_parent() == null: equipment.add_child(ac)
 	ac.move_to_front()
@@ -207,27 +219,38 @@ func render() -> void:
 		if item.channel == "C" and not opened: continue
 		var button := Slot.new()
 		button.setup(self, item)
-		button.position = Vector2(int(item.x) * 40, (int(item.y) % page_rows) * 40)
-		button.size = Vector2(maxi(1, int(item.width)) * 40 - 1, maxi(1, int(item.height)) * 40 - 1)
+		button.position=target.item_position(item)
+		button.size=target.item_size(item)
 		target.add_child(button)
+		if native_frame!=null: native_frame.decorate_item(button,target,item)
 		register_button(item, button)
 	for index in pages.size(): pages[index].disabled = index == int(state.page)
 	if store.get("open", false) and not is_instance_valid(store_panel):
 		store_panel = preload("res://systems/server_store.gd").new()
 		store_panel.setup(self, layout_storage)
 		get_parent().add_child(store_panel)
+		if native_store!=null: native_store.attach(store_panel)
 	if is_instance_valid(store_panel): store_panel.render(store)
 	var summary: Dictionary = state.summary
 	footer.text = "%s / %s lbs.                  GP: %s" % [str(int(summary.weight)) if summary.weight != null else "—", str(int(summary.capacity)) if summary.capacity != null else "—", str(int(summary.gold)) if summary.gold != null else "—"]
 	notice.text = "Click or drag an item to select Buy / Sell." if store.get("open", false) else "Double-click: use / equip · Drag: move / equip · Right-click: actions"
+	if native_frame!=null: native_frame.refresh()
 	_clamp()
 
 func register_button(item: Dictionary, button) -> void:
 	var id := int(item.entryId)
 	buttons[id] = button
-	if textures.has(id): button.image.texture = textures[id]; button.caption.hide()
+	if textures.has(id): button.set_icon(textures[id])
+
+func install_native_icon(view: int,entry: int,texture: Texture2D) -> bool:
+	if view!=view_id or texture==null or not items.has(entry): return false
+	textures[entry]=texture
+	if buttons.has(entry): buttons[entry].set_icon(texture)
+	return true
 
 func select_item(id: int) -> void:
+	if examine_mode and items.has(id):
+		examine_mode=false; item_controls.examine.set_pressed_no_signal(false); operation(id,"examine"); return
 	selected = id
 	if items.has(id): notice.text = str(items[id].name)
 	if is_instance_valid(store_panel) and state.get("store", {}).get("open", false): store_panel.select_item(id)
@@ -241,7 +264,6 @@ func operation(id: int, action: String, fields: Dictionary = {}) -> void:
 
 func item_menu(id: int, point: Vector2) -> void:
 	select_item(id)
-	if state.get("store", {}).get("open", false): return
 	menu_requested.emit(id, point)
 
 func can_drop(data: Variant, slot: int) -> bool:
@@ -262,4 +284,4 @@ func _exit_tree() -> void:
 	if is_instance_valid(store_panel): store_panel.queue_free()
 
 func blocks_pointer(point: Vector2) -> bool:
-	return (visible and get_global_rect().has_point(point)) or (is_instance_valid(store_panel) and store_panel.visible and store_panel.get_global_rect().has_point(point))
+	return (visible and get_global_rect().has_point(point)) or (is_instance_valid(store_panel) and store_panel.blocks_pointer(point))

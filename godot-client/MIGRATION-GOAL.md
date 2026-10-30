@@ -1,5 +1,75 @@
 # Full Godot migration — multiplayer first
 
+Latest player-playability goal (2026-10-26): complete base gameplay, menus,
+interactions and travel, including interactable portals and trigger/zone-edge
+transitions. **Parity with the base binary and play alongside original-client
+users on unchanged servers is the top acceptance requirement.** The active work order and acceptance ledger are in
+[BASE-GAMEPLAY-GOAL.md](BASE-GAMEPLAY-GOAL.md). Combat/casting presentation and
+complete travel are immediate priorities. Earlier milestones below remain
+historical evidence; they do not establish current-entry completion. Broader
+full-native migration, performance and reference-wiki requirements remain open.
+
+Latest parry follow-up: original mode0 placement, native independent spark
+models and real original-server parry outcomes have scoped pixels/lifetime and
+current-source gameplay/casting/bow/Prelude regression evidence. See
+[NATIVE-PARRY-VISUALS.md](NATIVE-PARRY-VISUALS.md). Full shield/weapon effects,
+upper native combat/clock/shape, reaction/death/audio and paired-client gameplay
+remain required; the migration and base-playability goals stay active.
+
+This parity requirement applies throughout the migration and gates completion:
+the intended result must support mixed sessions with unmodified native clients,
+not just successful connections or replacement-client-only tests.
+Per the user's 2026-10-26 clarification, treat base-binary parity as a top
+requirement in every implementation decision and milestone; final acceptance
+requires paired-client validation on an unchanged original server.
+
+Latest special-projectile follow-up: native sling hit/miss bounces and genuine
+server Deflect Arrows have scoped local evidence. Original collision planes,
+polygon crossing and conservative static model/WOK indexing drive the ground
+tails; the original server still owns combat outcomes and ammunition. See
+[NATIVE-SPECIAL-PROJECTILES.md](NATIVE-SPECIAL-PROJECTILES.md). Full static BSP,
+shield/impact effects, remaining combat/travel and mixed-client acceptance stay
+open; the overall migration remains incomplete.
+
+Latest blood follow-up: original mode1 selector, retained three-model hit slots,
+native physical attachment/impact clips and static scene collision are connected
+to actual melee/bow outcomes. Current localhost gameplay/casting and repeated
+Prelude regressions pass; see [NATIVE-BLOOD-VISUALS.md](NATIVE-BLOOD-VISUALS.md).
+This does not establish full combat, original BSP/clock/shape, paired-client or
+performance parity. Particles still default off per user preference.
+
+Subsequent [native casting visuals](NATIVE-CAST-VISUALS.md) connect original
+conjure/release models, chants, silent fields, fade callbacks and cleanup.
+Immediate raw cast fields avoid using an older spell snapshot; original
+Detonate model events trigger the appropriate Explosion parts. Local Fireball
+and Magic Missile have scoped actual-server/render evidence. This does not
+complete casting, combat, full rendering or mixed original-client acceptance.
+
+Earlier ranged follow-up: ordinary native ballistic arrows now pass actual
+original-server bow animation, flight, ammunition consumption, body attachment,
+cancellation and expiry checks. Stored binary cases cover receiver/weighted Part
+selection/impact/finite orientation; active material binding and retirement are
+also corrected. See [NATIVE-RANGED-PROJECTILES.md](NATIVE-RANGED-PROJECTILES.md).
+Special ammunition/deflection, real shield blocks, remaining combat/travel and
+paired original-client acceptance remain open. Full migration is incomplete.
+
+Earlier direct-native combat follow-up: point/area/beam routing and homing spell
+projectile presentation now have scoped owned-server/resource evidence. The
+native projectile path/AI/motion owner also replays stored original binary
+observations. Full ranged/specialized release paths, remaining combat/travel,
+mixed-client validation and the overall migration remain incomplete. See
+[point/area/beam](NATIVE-POINT-AREA-BEAM.md) and [projectiles](NATIVE-PROJECTILES.md).
+
+Latest direct-native creation milestone: Godot now owns all fifteen pages,
+active server 2DA/TLK rules, recommendations, BIC generation, original model/
+palette preview and SSF voice sampling. Eleven original classes and authored
+server overrides pass native checks. Fresh Fighter, Wizard and Druid characters
+were admitted/rendered/moved/exported by the original localhost Prelude server;
+the Wizard's learned spells survive export. Cancelled workers cannot submit into
+reopened drafts. See [current native creation evidence](NATIVE-CREATION.md).
+No public connection was made. Broader creation/content acceptance, combat
+presentation, full migration and performance acceptance remain incomplete.
+
 Status: **active; incomplete**. The user explicitly requested this goal after
 the owned-local-server connection milestone. All existing replacement-client
 features are in scope. The latest user instruction is **fully native Godot
@@ -8,6 +78,13 @@ The JS backend is transitional reference code, not the final runtime. See
 [NATIVE-OWNERSHIP.md](NATIVE-OWNERSHIP.md) for the implementation and remaining
 order. Original models, textures, UVs and gameplay behavior
 remain requirements; engine lighting differences are allowed.
+
+Latest ordered goal (2026-10-25): research and implement the original binary's
+world-join/streaming methodologies first, then finish migrating all JS features
+to native Godot, then create an easy-reference wiki for the project's .md files.
+See [BINARY-WORLD-STREAMING-GOAL.md](BINARY-WORLD-STREAMING-GOAL.md) for scope,
+acceptance and the newest attachment-related shutdown evidence. Earlier native
+rendering and performance requirements remain in force.
 
 Weather follow-up: original byte/BOOL packet handling, physical WeatherTypes
 metadata, float32 fade state and six-model lifetime plan are locally verified.
@@ -21,6 +98,13 @@ runs and an explicitly self-tested exception-capture harness add stability
 evidence; the earlier heap fault remains unexplained. See
 [NATIVE-PARTICLE-MATERIALS.md](NATIVE-PARTICLE-MATERIALS.md). This does not
 replace remaining UI/rendering/combat or full multiplayer migration work.
+
+Native gameplay desktop follow-up (2026-10-25): particles default off; native
+party/HUD, main in-game windows, map/journal, spell/item/skill targeting and radial
+commands have scoped original-art and owned-Prelude evidence. See
+[NATIVE-GAMEPLAY-DESKTOP.md](NATIVE-GAMEPLAY-DESKTOP.md). JS UI is reference-only;
+raw protocol remains transitional. Full menu/visual/combat migration and the
+overall goal remain incomplete.
 
 ## Priority and acceptance checklist
 
@@ -465,3 +549,13 @@ retirement gap is addressed; the previous shutdown AV remains unexplained.
 See [NATIVE-WORLD-AUDIO.md](NATIVE-WORLD-AUDIO.md). Music/ambient/placed/voice/
 animation audio, mixer settings/priority limits, full multiplayer/performance
 and public acceptance remain incomplete. The full goal remains active.
+
+Direct native world admission now prioritizes terrain/walkmesh and the complete
+controlled actor, with player-scoped reference readiness and bounded nearby
+background batches. The final warm Prelude test enables control at 1.438 seconds
+with 18 entities pending, records both native and server movement during continued
+streaming, then finishes all 20 entities/nine tiles and retires every worker.
+46 planner/readiness checks and 147 reference GPU checks pass under normal-heap
+CDB. See [NATIVE-STREAMING-PRIORITY.md](NATIVE-STREAMING-PRIORITY.md). This is scoped
+warm local evidence; cold/dense/repeated-transition/performance and complete
+migration acceptance remain open. No public connection occurred.

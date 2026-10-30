@@ -1,5 +1,12 @@
 # Native character record: controlled-player core
 
+Historical bridge-phase evidence below. The current native desktop refresh path
+is `systems/native_game_desktop.gd` with `native_data/game_ui_rules.gd`; the
+character record projection no longer depends on the old service described here.
+Its original in-game frame/pages are now implemented in a scoped milestone;
+full record appearance/content/actions are not accepted. See
+[native character frame](NATIVE-CHARACTER-FRAME.md) for current evidence and gaps.
+
 Status: **partial; owned-local display/subscription/assignment core verified**.
 The C key and native Character button open a separate movable Character Record.
 Character, Skills and Feats tabs use the existing multiplayer record model and

@@ -27,11 +27,17 @@ function validateCommand(message,current){
  }
  if(message.kind==='browser-input'){
   const serial=v=>Number.isSafeInteger(v)&&v>=0,op=message.operation;
-  if(!current||message.connection!==current.connection||!['open','close','tab','filter','page','select','favorite','refresh','inspect','join'].includes(op))throw Error('Invalid native server browser operation');
+  if(!current||message.connection!==current.connection||!['open','close','return-menu','advanced-filter','sort-column','cancel-inspect','details-step','selection-step','tab','filter','page','select','favorite','refresh','inspect','join','profile'].includes(op))throw Error('Invalid native server browser operation');
   if(!['open','close'].includes(op)&&!serial(message.viewId))throw Error('Invalid native browser view');
+  if(message.leaveMultiplayer!==undefined&&(op!=='close'||typeof message.leaveMultiplayer!=='boolean'))throw Error('Invalid native multiplayer dismissal');
+  if(message.listTab!==undefined&&(op!=='open'||!['Internet','History','Favorites'].includes(message.listTab)))throw Error('Invalid native browser return page');
+  if(message.on!==undefined&&(op!=='favorite'||typeof message.on!=='boolean')||message.sourcePage!==undefined&&(op!=='tab'||typeof message.sourcePage!=='boolean')||op==='sort-column'&&(!Number.isInteger(message.column)||message.column<0||message.column>5))throw Error('Invalid native original browser action');
   if(op==='tab'&&!['Direct','Internet','History','Favorites'].includes(message.tab)||op==='page'&&!serial(message.page))throw Error('Invalid native server browser page');
   if(op==='filter'&&(typeof message.filter!=='string'||message.filter.length>128||!['Name','Module','Players','Latency'].includes(message.sort)||!message.filters||['local','server','password'].some(k=>typeof message.filters[k]!=='boolean')))throw Error('Invalid native server browser filters');
   if((op==='select'||op==='favorite'&&!message.direct)&&!serial(message.entryId))throw Error('Invalid native server choice');
+  if(['details-step','selection-step'].includes(op)&&![-1,1].includes(message.direction))throw Error('Invalid native server selection direction');
+  if(op==='advanced-filter'){const v=message.values;if(!v||Array.isArray(v)||typeof v!=='object'||Object.keys(v).length!==3||Object.keys(v).some(k=>!['hideEmpty','hideFull','module'].includes(k))||typeof v.hideEmpty!=='boolean'||typeof v.hideFull!=='boolean'||typeof v.module!=='string'||v.module.length>1024||/[\x00-\x1f]/.test(v.module))throw Error('Invalid native advanced server filters');}
+  if(op==='profile'){const v=message.values;if(!v||Array.isArray(v)||typeof v!=='object'||Object.keys(v).some(k=>!['name','saveDefault'].includes(k))||typeof v.name!=='string'||!v.name||v.name.length>32||/[\x00-\x1f]/.test(v.name)||typeof v.saveDefault!=='boolean')throw Error('Invalid native player profile');}
   if(['join','inspect'].includes(op)||op==='favorite'&&message.direct){
    if(typeof message.direct!=='boolean'||!message.direct&&!serial(message.entryId))throw Error('Invalid native server selection');
    const v=message.values;if((message.direct||op==='join')&&(!v||Array.isArray(v)||typeof v!=='object'))throw Error('Invalid native connection fields');
@@ -47,6 +53,13 @@ function validateCommand(message,current){
   if(message.operation==='page'&&(!Number.isInteger(message.step)||message.step<0||message.step>14)||['control','voice'].includes(message.operation)&&!serial(message.controlId))throw Error('Invalid native creation control');
   if(message.texts!==undefined&&(!Array.isArray(message.texts)||message.texts.length>10||message.texts.some(v=>!v||!serial(v.controlId)||typeof v.value!=='string'||v.value.length>32768)))throw Error('Invalid native creation text fields');
   return;
+ }
+ if(message.kind==='login-profile-input'){
+  const serial=v=>Number.isSafeInteger(v)&&v>=0,id=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v),name=v=>typeof v==='string'&&v.trim().length>0&&v.length<=32&&!/[\x00-\x1f\x7f]/.test(v);
+  if(!current||message.connection!==current.connection||!serial(message.requestId)||!['open','close','save','select','delete'].includes(message.operation))throw Error('Invalid native login-profile operation');
+  if(!['open','close'].includes(message.operation)&&!serial(message.viewId))throw Error('Invalid native login-profile view');
+  if(message.operation==='save'){const v=message.values;if(!v||Array.isArray(v)||typeof v!=='object'||Object.keys(v).some(k=>!['id','label','playerName','cdKey'].includes(k))||v.id!==undefined&&!id(v.id)||!name(v.label)||!name(v.playerName)||v.cdKey!==undefined&&(typeof v.cdKey!=='string'||v.cdKey.length>41))throw Error('Invalid native login-profile values');}
+  if(message.operation==='select'&&message.profileId!==null&&!id(message.profileId)||message.operation==='delete'&&!id(message.profileId))throw Error('Invalid native login-profile selection');return;
  }
  if(message.kind==='client-settings'||message.kind==='client-debug-request'){
   const serial=v=>Number.isSafeInteger(v)&&v>=0;

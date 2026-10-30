@@ -32,7 +32,6 @@ func page(step: int) -> bool:
 func run(owner, message: Dictionary) -> void:
 	client = owner; var ui = client.creation; last_name = str(message.lastName); first_name = str(message.firstName)
 	check(client.generation < 0 and client.main_menu.panel.visible, "Character creation starts at the native Main Menu without an uploaded preset")
-	client.get_window().grab_focus()
 	client.main_menu.choose("multiplayer"); await client.get_tree().process_frame
 	if not await wait_until(func(): return client.server_browser.view_id >= 0): finish(); return
 	var browser = client.server_browser

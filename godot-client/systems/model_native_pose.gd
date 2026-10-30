@@ -1,6 +1,8 @@
 extends RefCounted
 
 const Controls = preload("res://systems/model_controllers.gd")
+const ColourScopes=preload("res://systems/native_data/model_colour_scopes.gd")
+var colour_scopes:=ColourScopes.create()
 var parts: Array = []
 var root_part: Dictionary
 var metadata: Dictionary
@@ -36,6 +38,14 @@ func configure(data: Dictionary, source: Dictionary, rig_nodes: Array, manual: D
 		if original.type == "trimesh":
 			for child in object.get_children():
 				if child is MeshInstance3D:
+					# A geometry-wide override wins over surface overrides. Animate
+					# a private copy of the binding that is actually drawn; leaving
+					# the shared pool override in place hides all controller changes.
+					if child.material_override is StandardMaterial3D:
+						var unique: StandardMaterial3D=child.material_override.duplicate()
+						child.material_override=unique
+						materials.append({"material":unique,"color":unique.albedo_color,"hint":original.transparencyHint or unique.transparency!=BaseMaterial3D.TRANSPARENCY_DISABLED})
+						continue
 					for surface in child.mesh.get_surface_count():
 						var material: Material = child.get_active_material(surface)
 						if material is StandardMaterial3D:
@@ -94,6 +104,7 @@ static func srgb(value: float) -> float:
 	return value * 0.0773993808 if value < 0.04045 else pow(value * 0.9478672986 + 0.0521327014, 2.4)
 
 func flush(manual: Dictionary = {}) -> void:
+	var scoped: Variant=ColourScopes.selected(colour_scopes)
 	for index in parts.size():
 		var part: Dictionary = parts[index]
 		if manual.has(int(binding.parts[index])): continue
@@ -107,14 +118,19 @@ func flush(manual: Dictionary = {}) -> void:
 		if part.source.type == "trimesh":
 			var alpha := clampf(read(part, 168, 1)[0], 0.0, 1.0)
 			var color := read(part, 128, 3)
+			if scoped!=null: color=scoped
 			for row in part.materials:
 				var material: StandardMaterial3D = row.material
-				material.albedo_color = Color(row.color.r, row.color.g, row.color.b, alpha)
+				material.albedo_color = Color(scoped[0],scoped[1],scoped[2],alpha) if scoped!=null else Color(row.color.r, row.color.g, row.color.b, alpha)
 				material.emission_enabled = color.any(func(value): return value != 0)
 				material.emission = Color(srgb(color[0]), srgb(color[1]), srgb(color[2]))
 				material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if row.hint or alpha < 1 else BaseMaterial3D.TRANSPARENCY_DISABLED
 		elif part.source.type == "light":
 			diagnose("native animated-light renderer binding unavailable")
+
+func set_colour_scope(scope: int,rgb: Variant,manual: Dictionary={}) -> bool:
+	if not ColourScopes.set_colour(colour_scopes,scope,rgb): return false
+	flush(manual); return true
 
 func emitter_properties(rig_node: int) -> Dictionary:
 	var part_index := part_for(rig_node)

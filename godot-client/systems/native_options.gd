@@ -34,31 +34,19 @@ func setup(storage: String = "user://native-menu-layout.cfg", preferences: Strin
 	damage_totals_only = totals_value if totals_value is bool else false
 	var camera_value: Variant = config.get_value("camera","mode",1)
 	camera_mode = int(camera_value) if camera_value is int and camera_value in [0,1,2] else 1
-	tabs = TabContainer.new(); tabs.custom_minimum_size = Vector2(510, 500); content.add_child(tabs)
-	var game := VBoxContainer.new(); game.name = "Game"; tabs.add_child(game)
-	creature = CheckBox.new()
-	creature.text = "Show creature equipment slots"
-	creature.focus_mode = Control.FOCUS_NONE
-	creature.button_pressed = show_creature_slots
-	creature.toggled.connect(func(value):
-		show_creature_slots = value
-		persist("inventory", "show_creature_slots", value)
-		inventory_preference.emit(value))
-	game.add_child(creature)
-	fps_toggle = CheckBox.new(); fps_toggle.text = "Show FPS counter"; fps_toggle.focus_mode = Control.FOCUS_NONE; fps_toggle.button_pressed = show_fps; game.add_child(fps_toggle)
-	fps_toggle.toggled.connect(func(value): show_fps = value; persist("presentation", "show_fps", value); fps_preference.emit(value))
-	debug_toggle = CheckBox.new(); debug_toggle.text = "Show debug window"; debug_toggle.focus_mode = Control.FOCUS_NONE; debug_toggle.button_pressed = debug_enabled; game.add_child(debug_toggle)
-	debug_toggle.toggled.connect(func(value): debug_enabled = value; persist("presentation", "debug_window", value); debug_preference.emit(value))
-	floating_toggle = CheckBox.new(); floating_toggle.text = "Floating combat feedback"; floating_toggle.focus_mode = Control.FOCUS_NONE; floating_toggle.button_pressed = floating_feedback; game.add_child(floating_toggle)
-	floating_toggle.toggled.connect(func(value): floating_feedback = value; persist("feedback", "floating", value); feedback_preference.emit(feedback_values()))
-	totals_toggle = CheckBox.new(); totals_toggle.text = "Show total damage only"; totals_toggle.focus_mode = Control.FOCUS_NONE; totals_toggle.button_pressed = damage_totals_only; game.add_child(totals_toggle)
-	totals_toggle.toggled.connect(func(value): damage_totals_only = value; persist("feedback", "total_damage", value); feedback_preference.emit(feedback_values()))
-	var camera_row := HBoxContainer.new(); game.add_child(camera_row)
-	var camera_label := Label.new(); camera_label.text = "Camera"; camera_row.add_child(camera_label)
-	camera_choice = OptionButton.new(); camera_choice.focus_mode = Control.FOCUS_NONE; camera_row.add_child(camera_choice)
-	for value in [[1,"Top-down"],[0,"Chase"],[2,"Stiff chase"]]: camera_choice.add_item(value[1],value[0])
+	var built:=MenuBuilder.build(content,preload("res://systems/native_data/game_options_layout.gd").definition())
+	assert(str(built.error).is_empty(),str(built.error))
+	tabs=built.nodes.tabs; creature=built.nodes.creature; fps_toggle=built.nodes.fps_toggle; debug_toggle=built.nodes.debug_toggle
+	floating_toggle=built.nodes.floating_toggle; totals_toggle=built.nodes.totals_toggle; camera_choice=built.nodes.camera_choice
+	creature.set_pressed_no_signal(show_creature_slots); fps_toggle.set_pressed_no_signal(show_fps); debug_toggle.set_pressed_no_signal(debug_enabled)
+	floating_toggle.set_pressed_no_signal(floating_feedback); totals_toggle.set_pressed_no_signal(damage_totals_only)
+	creature.toggled.connect(func(value):show_creature_slots=value; persist("inventory","show_creature_slots",value); inventory_preference.emit(value))
+	fps_toggle.toggled.connect(func(value):show_fps=value; persist("presentation","show_fps",value); fps_preference.emit(value))
+	debug_toggle.toggled.connect(func(value):debug_enabled=value; persist("presentation","debug_window",value); debug_preference.emit(value))
+	floating_toggle.toggled.connect(func(value):floating_feedback=value; persist("feedback","floating",value); feedback_preference.emit(feedback_values()))
+	totals_toggle.toggled.connect(func(value):damage_totals_only=value; persist("feedback","total_damage",value); feedback_preference.emit(feedback_values()))
 	show_camera_mode(camera_mode)
-	camera_choice.item_selected.connect(func(index): camera_mode = camera_choice.get_item_id(index); persist("camera","mode",camera_mode); camera_preference.emit(camera_mode))
+	camera_choice.item_selected.connect(func(index):camera_mode=camera_choice.get_item_id(index); persist("camera","mode",camera_mode); camera_preference.emit(camera_mode))
 	installation = preload("res://systems/client_setup.gd").new(); installation.name = "Mods and CD key"; tabs.add_child(installation); installation.setup(); installation.request.connect(func(value): request.emit(value))
 	visibility_changed.connect(func():
 		if visible: installation.open()

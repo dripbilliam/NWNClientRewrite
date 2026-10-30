@@ -22,6 +22,7 @@ The executable and Ghidra project are shared research inputs in the original `Fu
 
 ## Current entry points
 
+- [Static research wiki: build, preview and GitHub Pages publishing](wiki/README.md)
 - [Initial Windows executable inventory](evidence/binary-inventory.md)
 - [First object-render milestone](evidence/first-object-render.md)
 - [Research tracker](RESEARCH_TRACKER.md)

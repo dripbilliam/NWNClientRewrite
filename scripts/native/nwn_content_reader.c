@@ -27,6 +27,20 @@ static sqlite3 *open_database(const char *name){
  if(rc!=SQLITE_OK){sqlite3_close(db);return NULL;}sqlite3_busy_timeout(db,1000);sqlite3_limit(db,SQLITE_LIMIT_LENGTH,LIMIT);return db;
 }
 static int ensure_meta(void){if(!meta)meta=open_database("nwsyncmeta.sqlite3");return meta!=NULL;}
+static int manifest_inventory(void){
+ if(!ensure_meta())return response(1,NULL,0);
+ sqlite3_stmt *q=NULL;int rc=sqlite3_prepare_v2(meta,"select m.sha1,substr(coalesce(nullif(d.module_name,''),nullif(d.description,''),m.origin_url,''),1,120) from manifests m left join manifest_metadata d on d.manifest_sha1=m.sha1 order by coalesce(m.last_used_at,0) desc,m.sha1",-1,&q,NULL);
+ if(rc!=SQLITE_OK){sqlite3_finalize(q);q=NULL;rc=sqlite3_prepare_v2(meta,"select sha1,'' from manifests order by sha1",-1,&q,NULL);}
+ if(rc!=SQLITE_OK)return response(2,NULL,0);
+ unsigned capacity=16,count=0;unsigned char *out=malloc(4+(size_t)capacity*552);if(!out){sqlite3_finalize(q);return response(2,NULL,0);}
+ while((rc=sqlite3_step(q))==SQLITE_ROW){
+  const unsigned char *hash=sqlite3_column_text(q,0),*label=sqlite3_column_text(q,1);int len=sqlite3_column_bytes(q,1);
+  if(count>=1024||!hash_ok(hash,(unsigned)sqlite3_column_bytes(q,0))||len<0||len>512){rc=SQLITE_ERROR;break;}
+  if(count==capacity){capacity*=2;unsigned char *next=realloc(out,4+(size_t)capacity*552);if(!next){rc=SQLITE_NOMEM;break;}out=next;}
+  unsigned char *row=out+4+(size_t)count*552;memset(row,0,552);memcpy(row,hash,40);if(len)memcpy(row+40,label,(size_t)len);count++;
+ }
+ sqlite3_finalize(q);putword(out,count);int ok=response(rc==SQLITE_DONE?0:2,out,rc==SQLITE_DONE?4+count*552:0);free(out);return ok;
+}
 static int manifest(const unsigned char *hash,unsigned n){
  if(!hash_ok(hash,n))return response(2,NULL,0);if(!ensure_meta())return response(1,NULL,0);
  sqlite3_stmt *q=NULL;int rc=sqlite3_prepare_v2(meta,"select count(sha1) from manifests where sha1 = ?",-1,&q,NULL);
@@ -37,7 +51,7 @@ static int manifest(const unsigned char *hash,unsigned n){
  unsigned count=0,capacity=1024;unsigned char *out=malloc(4+(size_t)capacity*58);if(!out){sqlite3_finalize(q);return response(2,NULL,0);}
  while((rc=sqlite3_step(q))==SQLITE_ROW){
   const unsigned char *name=sqlite3_column_text(q,0),*sha=sqlite3_column_text(q,2);int length=sqlite3_column_bytes(q,0),type=sqlite3_column_int(q,1);
-  if(count>=ROW_LIMIT||length<1||length>16||type<1||type>65535||!hash_ok(sha,(unsigned)sqlite3_column_bytes(q,2))){rc=SQLITE_ERROR;break;}
+  if(count>=ROW_LIMIT||length<1||length>16||type<0||type>65535||!hash_ok(sha,(unsigned)sqlite3_column_bytes(q,2))){rc=SQLITE_ERROR;break;}
   if(count==capacity){capacity*=2;unsigned char *next=realloc(out,4+(size_t)capacity*58);if(!next){rc=SQLITE_NOMEM;break;}out=next;}
   unsigned char *row=out+4+(size_t)count*58;memset(row,0,58);memcpy(row,name,(size_t)length);row[16]=(unsigned char)type;row[17]=(unsigned char)(type>>8);memcpy(row+18,sha,40);count++;
  }
@@ -84,7 +98,7 @@ int wmain(int argc,wchar_t **argv){
  if(argc!=2)return 1;int size=WideCharToMultiByte(CP_UTF8,0,argv[1],-1,NULL,0,NULL,NULL);root=malloc((size_t)size);if(!root)return 1;WideCharToMultiByte(CP_UTF8,0,argv[1],-1,root,size,NULL,NULL);
  _setmode(_fileno(stdin),_O_BINARY);_setmode(_fileno(stdout),_O_BINARY);
  unsigned char header[4];while(fread(header,1,4,stdin)==4){unsigned n=word(header);if(!n||n>LIMIT)break;unsigned char *p=malloc(n);if(!p)break;if(fread(p,1,n,stdin)!=n){free(p);break;}
-  int ok=p[0]==1?manifest(p+1,n-1):p[0]==2?blob(p+1,n-1):p[0]==3?decompress(p+1,n-1):p[0]==4&&n==1?inventory():response(2,NULL,0);free(p);if(!ok)break;
+  int ok=p[0]==1?manifest(p+1,n-1):p[0]==2?blob(p+1,n-1):p[0]==3?decompress(p+1,n-1):p[0]==4&&n==1?inventory():p[0]==5&&n==1?manifest_inventory():response(2,NULL,0);free(p);if(!ok)break;
  }
  for(unsigned i=0;i<shard_count;i++)sqlite3_close(shards[i].db);sqlite3_close(meta);free(root);return 0;
 }

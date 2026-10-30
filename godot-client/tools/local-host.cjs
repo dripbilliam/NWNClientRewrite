@@ -145,7 +145,7 @@ async function contentSmokeTick(){
  }
  if(Date.now()>contentDeadline)await stop(1,'Native content lifecycle deadline at '+contentStage);
 }
-const diagnose=d=>{if(report.diagnostics.length<200)report.diagnostics.push({code:d.code,reason:d.reason});liveDiagnostics.record(d);};
+const diagnose=d=>{if(report.diagnostics.length<200)report.diagnostics.push({code:d.code,reason:d.reason,...(d.code==='network.server-disconnected'?{strRef:d.strRef,text:d.text}:{})});liveDiagnostics.record(d);};
 function send(value){if(auth)wire?.send({connection:lobby?.connection??0,...value});}
 function current(){return network?{connection:lobby.connection,areaId:network.world.areaId,generation:network.areaGeneration}:null;}
 let nativePose;
@@ -590,8 +590,11 @@ async function tick(){
    if(!worldTransfer.bundle){
    const snapshot=await win.webContents.executeJavaScript('window.godotLocalStaging.snapshot()');
    if(!scoped())return;
-   if(snapshot.areaId===scope.areaId&&snapshot.generation===scope.generation&&snapshot.controlled&&snapshot.models>0&&!snapshot.pending&&!snapshot.graphicsPending&&snapshot.phase==='playing'){
-    if(snapshot.failures.length)throw Error('Local source models failed to prepare');
+   const readiness=(await import('./staging-readiness.mjs')).stagingReadiness(snapshot,scope);
+   const preparation={connection,...snapshot,ready:readiness.ready};
+   if(JSON.stringify(preparation)!==JSON.stringify(report.sourcePreparation?.at(-1))){report.sourcePreparation??=[];if(report.sourcePreparation.length<256)report.sourcePreparation.push(preparation);if(!readiness.ready)send({kind:'status',text:readiness.reason});}
+   if(readiness.ready){
+    if(readiness.failedEntities.length)diagnose({code:'godot.optional-entity-preparation-failed',reason:`${readiness.failedEntities.length} entities could not be prepared; retaining the rest of the world`,entities:readiness.failedEntities});
     const generation=network.areaGeneration,areaId=network.world.areaId;
     send({kind:'status',text:'Preparing native Godot area…'});
     const exported=await win.webContents.executeJavaScript(`window.godotLocalStaging.export(${JSON.stringify({areaId:scope.areaId,generation:scope.generation})})`);
@@ -599,7 +602,7 @@ async function tick(){
     // Assets are written outside the workspace and never embedded in reports.
     exported.manifest.live.connection=connection;exported.manifest.live.transferId=scope.serial;
     if(exported.manifest.particles)exported.manifest.particles.epoch=++particleEpoch;
-    const {writeExternalGodotBundle}=require('./external-bundle.cjs');const bundle=await writeExternalGodotBundle(exported,{registerLatest:false});
+    const {writeExternalGodotBundle}=require('./external-bundle.cjs');const bundle=await writeExternalGodotBundle(exported,{registerLatest:false,onProgress:progress=>{report.sourceBundleProgress??=[];report.sourceBundleProgress.push(progress);send({kind:'status',text:progress.stage==='writing-metadata'?'Writing area animation data…':progress.stage==='bundle-ready'?'Loading prepared area into Godot…':'Writing area geometry…'});}});
     if(!scoped())return;
     if(visualModelSmoke&&!report.visualResource){
      const visual=await win.webContents.executeJavaScript("window.godotLocalStaging.visualModel('c_golstone')");
@@ -658,7 +661,7 @@ async function tick(){
    }
    if(contentSmoke)await contentSmokeTick();
   }
- }catch(error){if(active()&&(!workScope||worldTransfer.matches(workScope,current())))await stop(1,error.message);else diagnose({code:'godot.retired-area-job',reason:'Retired area preparation ended after the world changed'});}finally{busy=false;}
+ }catch(error){if(active()&&(!workScope||worldTransfer.matches(workScope,current()))){report.areaFailureStack=error.stack;await stop(1,error.message);}else diagnose({code:'godot.retired-area-job',reason:'Retired area preparation ended after the world changed'});}finally{busy=false;}
 }
 app.whenReady().then(async()=>{
  try{
@@ -668,6 +671,8 @@ app.whenReady().then(async()=>{
   if(!/^v[1-9][0-9]*$/.test(relative))throw Error('Unexpected staging build');
   browserSession.defaultSession.webRequest.onBeforeRequest((d,cb)=>cb({cancel:/^(https?|wss?):/.test(d.url)}));
   const {ClientSettings,defaultModsDirectory}=await import('../../electron/client_settings.mjs');const settings=new ClientSettings({directory:app.getPath('userData'),encryption:safeStorage,modsDirectory:await defaultModsDirectory(path.resolve(root,'../FullDecomp/NwnRootInstall'))});
+  const loginPipe=process.argv.find(v=>v.startsWith('--private-login-pipe='))?.slice(21);
+  const suppliedKeyMatches=loginPipe?await require('./private-login.cjs').savePrivateLogin(require('./private-login.cjs').connectPrivatePipe(loginPipe),settings):null;
   endpointOptions=(await import('./session-endpoint.mjs')).sessionEndpointOptions(process.argv);const endpointPolicy=endpointOptions.policy;startupServer=endpointOptions.startup;
   if(portalVaultName){if(endpointOptions.publicServers||startupServer||portalRecoveryMode)throw Error('Owned vault fixtures cannot be combined with public/recovery modes');const {validateVaultHandoffFixture}=await import('./vault-handoff-fixture.mjs');portalVaultFixture=await validateVaultHandoffFixture(JSON.parse(await fs.readFile(path.join(project,'reports',portalVaultName),'utf8')));}
   if(portalSyncFile){if(endpointOptions.publicServers||startupServer||portalRecoveryMode||!path.isAbsolute(portalSyncFile))throw Error('Invalid owned sync handoff mode');const {syncHandoffFixture}=await import('./sync-handoff-fixture.mjs');portalSyncFixture=syncHandoffFixture(JSON.parse(await fs.readFile(portalSyncFile,'utf8')));report.syncHandoffFixture={reuseInstalledNWSync:false,resources:15,manifests:portalSyncFixture.servers.map(v=>v.hash),pixels:portalSyncFixture.servers.map(v=>v.pixel)};}
@@ -737,6 +742,7 @@ app.whenReady().then(async()=>{
   const {preparationDiagnosticScope}=await import('./preparation-diagnostic-scope.mjs');
   const prepareNativeSession=async(args,connection,owned=()=>connection===lobby.connection)=>{
    endpointPolicy.require(args);
+   report.loginAccounts??=[];report.loginAccounts.push({connection,playerName:args.name,suppliedKeyMatches:suppliedKeyMatches?suppliedKeyMatches(args.credentials?.cdKey):null});
    const diagnosticScope=preparationDiagnosticScope({preparing:owned,connection,current:(session,c)=>network===session&&lobby.connection===c});let result;
    try{
    result=await createInstalledNetworkSession({...args,onDiagnostic:d=>{if(!diagnosticScope.allows())return;args.onDiagnostic?.(d);if(d.code?.startsWith('network.nwsync-'))diagnose(d);},...(nuiSmoke||portalNuiSmoke?{userDirectory:path.join(root,'runtime-logs/local-multiplayer-server')}:{}),...(syncFixture||portalSyncFixture?{cacheDirectory:(syncFixture??portalSyncFixture).cacheDirectory,reuseInstalledNWSync:false}:{}),persistCharacter:async message=>{
@@ -826,6 +832,7 @@ app.whenReady().then(async()=>{
    network.on('diagnostic',d=>{if(active())diagnose(d);});network.peer.on('diagnostic',d=>{if(active())diagnose(d);});
    network.on('message',({message,areaGeneration})=>{
     if(!active())return;
+    if(message.kind==='server-character-list'){report.characterLists??=[];report.characterLists.push({connection,generation:message.generation,received:message.characters.length,uniqueReferences:new Set(message.characters.map(row=>`${row.source}:${row.resref}`)).size,accountCharacters:message.characters.filter(row=>row.source===17).length});}
     environment.receive(message);
     if(weatherSmoke&&message.kind==='area-weather'){report.weatherWire??=[];report.weatherWire.push({connection,...message});}
     if(nwsyncSmoke&&message.kind==='server-resources')report.nwsyncAdvertisement=message.requirements.advertisement;
@@ -907,10 +914,10 @@ app.whenReady().then(async()=>{
   win=new BrowserWindow({show:false,width:1440,height:960,webPreferences:{preload:path.join(root,'electron/preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false,offscreen:true}});controller.attach(win);win.webContents.setFrameRate(30);
   if(settingsSmoke){const {settingsFixture}=await import('./settings-fixture.mjs');setupFixture=await settingsFixture({directory:await fs.mkdtemp(path.join(os.tmpdir(),'nwn-godot-settings-')),encryption:safeStorage,profileFile:path.join(app.getPath('userData'),'client-settings.json')});}
   const {SettingsService}=await import('./settings-service.mjs');setupService=new SettingsService({store:setupFixture?.store??settings,connection:()=>lobby.connection,locked:()=>Boolean(lobby.busy||network&&!network.closed),send,invalidateResources:()=>controller.invalidateLobbyResources(win.webContents),onSave:async row=>{report.settingsMutations??=[];report.settingsMutations.push(row);await setupFixture?.saved(row);}});
-  win.webContents.on('console-message',(_e,level,message)=>{if(level>=3&&report.rendererErrors.length<20)report.rendererErrors.push(message);});
+  win.webContents.on('console-message',(_e,level,message)=>{if(/^GODOT_SOURCE_EXPORT [a-z-]+$/.test(message))report.sourceExportStage=message.slice(20);if(level>=3&&report.rendererErrors.length<20)report.rendererErrors.push(message);});
   await win.loadFile(path.join(build,'index.html'));
   const {ServerBrowserStore}=await import('./server-browser-store.mjs'),{ServerBrowserService}=await import('./server-browser-service.mjs'),{queryNetworkServer,fetchNetworkServerList}=await import('../../electron/server_browser.mjs');
-  serverBrowser=new ServerBrowserService({lobby,policy:endpointPolicy,store:new ServerBrowserStore((smoke||creationSmoke)?path.join(await fs.mkdtemp(path.join(os.tmpdir(),'nwn-godot-browser-')),'browser.json'):path.join(app.getPath('userData'),'native-server-browser.json'),{importLegacy:()=>smoke||creationSmoke?Promise.resolve({}):win.webContents.executeJavaScript(`(() => { const read = name => { try { const rows = JSON.parse(localStorage.getItem('nwn.multiplayer.'+name)??'[]'); return Array.isArray(rows)?rows.slice(0,100):[]; } catch { return []; } }; return {history:read('history'),favorites:read('favorites')}; })()`)}),query:queryNetworkServer,discover:fetchNetworkServerList,settings:()=>settings.status(),send,onEvent:row=>{report.browserEvents??=[];report.browserEvents.push(row);}});
+  serverBrowser=new ServerBrowserService({lobby,policy:endpointPolicy,playerName:process.argv.some(v=>v.startsWith('--player-name='))?endpointOptions.name:null,store:new ServerBrowserStore((smoke||creationSmoke)?path.join(await fs.mkdtemp(path.join(os.tmpdir(),'nwn-godot-browser-')),'browser.json'):path.join(app.getPath('userData'),'native-server-browser.json'),{importLegacy:()=>smoke||creationSmoke?Promise.resolve({}):win.webContents.executeJavaScript(`(() => { const read = name => { try { const rows = JSON.parse(localStorage.getItem('nwn.multiplayer.'+name)??'[]'); return Array.isArray(rows)?rows.slice(0,100):[]; } catch { return []; } }; return {history:read('history'),favorites:read('favorites')}; })()`)}),query:queryNetworkServer,discover:fetchNetworkServerList,settings:()=>settings.status(),send,onEvent:row=>{report.browserEvents??=[];report.browserEvents.push(row);}});
   report.nativeSelectionOwner=await win.webContents.executeJavaScript('window.godotLocalStaging.nativeSelectionOwner()');if(report.nativeSelectionOwner!==true)throw Error('The hidden resource frontend still owns character selection');
   temp=await fs.mkdtemp(path.join(os.tmpdir(),'nwn-godot-local-'));token=crypto.randomBytes(32).toString('hex');
   server=net.createServer(socket=>{
@@ -940,7 +947,7 @@ app.whenReady().then(async()=>{
   nativeClosed=new Promise(resolve=>native.once('close',resolve));
   let nativeErrors='';native.stdout.on('data',data=>{const value=data.toString();if(verbose)report.nativeVerboseLog=((report.nativeVerboseLog??'')+value).slice(-18000);if(/LOCAL_NATIVE_LOADED/.test(value))console.log(value.trim());});native.stderr.on('data',data=>{nativeErrors=(nativeErrors+data.toString()).slice(-12000);report.nativeErrors=nativeErrors;if(/SCRIPT ERROR|Parse Error|Message queue out of memory/.test(nativeErrors)&&!stopping){void stop(1,'Native engine script or GUI queue failed');}});
   native.on('error',()=>void stop(1,'Native engine could not start'));native.on('exit',code=>{report.nativeExit=code;if(nativeErrors)report.nativeErrors=nativeErrors;if(!stopping){report.success=code===0&&(weatherSmoke?weatherRenderIntegrationComplete(report):nwsyncSmoke?nwsyncIntegrationComplete(report):cameraCommandSmoke?cameraCommandIntegrationComplete(report):cameraSmoke?cameraIntegrationComplete(report):feedbackSmoke?feedbackIntegrationComplete(report):shortcutReconnectSmoke?shortcutReconnectComplete(report):partySmoke?partyIntegrationComplete(report):integrationComplete(testMode,report));void stop(report.success?0:1,report.success?null:'Native engine exited before integration evidence completed');}});
-  timer=setInterval(()=>{void tick();if((startupServer||endpointOptions.publicServers||portalRegionSmoke||portalHandoffSmoke)&&Date.now()-liveStatusAt>2000){liveStatusAt=Date.now();const state=lobby.snapshot();void fs.writeFile(output.replace(/\.json$/,'.status.json'),JSON.stringify({endpoint:report.endpoint,phase:state.phase,busy:state.busy,error:state.error,choices:state.choices.length,canSelect:state.canSelect,localAllowed:state.localAllowed,resourceProgress:state.resourceProgress,states:report.states,nativeLoaded:report.nativeLoaded,diagnostics:report.diagnostics.slice(-15),browserStatus:serverBrowser.status,...(portalRegionSmoke?{portalRegionPhases:report.portalRegionPhases,commands:report.commands.slice(-8),actor:network?nativePose(network.world.registry.get(network.world.localObjectId)??{}):null}:{})})).catch(()=>{});}},50);console.log(endpointOptions.publicServers?'NATIVE PUBLIC SERVER BROWSER · choose any server':startupServer?'NATIVE AUTHORIZED SERVER STARTUP · manual character selection':autoPlay?'NATIVE LOCAL PREVIEW · automatic installed wizard admission to owned local server':'NATIVE LOCAL LOBBY READY · no automatic character upload');
+  timer=setInterval(()=>{void tick();if((startupServer||endpointOptions.publicServers||portalRegionSmoke||portalHandoffSmoke)&&Date.now()-liveStatusAt>2000){liveStatusAt=Date.now();const state=lobby.snapshot();void fs.writeFile(output.replace(/\.json$/,'.status.json'),JSON.stringify({endpoint:report.endpoint,phase:state.phase,busy:state.busy,error:state.error,choices:state.choices.length,serverCharacterCount:network?.serverCharacters?.length??0,loginAccount:report.loginAccounts?.at(-1)??null,characterList:report.characterLists?.at(-1)??null,canSelect:state.canSelect,localAllowed:state.localAllowed,resourceProgress:state.resourceProgress,states:report.states,nativeLoaded:report.nativeLoaded,diagnostics:report.diagnostics.slice(-15),browserStatus:serverBrowser.status,sourcePreparation:report.sourcePreparation?.at(-1)??null,sourceExportStage:report.sourceExportStage??null,...(portalRegionSmoke?{portalRegionPhases:report.portalRegionPhases,commands:report.commands.slice(-8),actor:network?nativePose(network.world.registry.get(network.world.localObjectId)??{}):null}:{})})).catch(()=>{});}},50);console.log(endpointOptions.publicServers?'NATIVE PUBLIC SERVER BROWSER · choose any server':startupServer?'NATIVE AUTHORIZED SERVER STARTUP · manual character selection':autoPlay?'NATIVE LOCAL PREVIEW · automatic installed wizard admission to owned local server':'NATIVE LOCAL LOBBY READY · no automatic character upload');
   if(smoke||settingsSmoke||menuExitSmoke||creationSmoke)setTimeout(()=>{if(!stopping)void stop(1,'Local join or native settings deadline exceeded');},portalRegionSmoke?60000:shortcutReconnectSmoke?300000:180000);
  }catch(error){await stop(1,error.message);}
 });

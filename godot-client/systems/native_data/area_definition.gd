@@ -46,7 +46,7 @@ func compose(area: Dictionary, tileset: Dictionary, signed_heights: bool=false) 
 		if model.is_empty() or model=="****": return reject("SET tile has no model")
 		var orientation := int(source.get("Tile_Orientation",0)); var elevation := int(source.get("Tile_Height",0))
 		# Same source tile center and quarter-turn basis as the original-data path.
-		var tile := {"index":index,"tile_id":int(source.Tile_ID),"model":model,"orientation":orientation,"height":elevation,"position":Vector3((index%width)*10+5,elevation*float(tileset.transition),-(floori(float(index)/width)*10+5)),"rotation_y":orientation*PI/2,"fields":source.duplicate(true)}
+		var tile := {"index":index,"tile_id":int(source.Tile_ID),"model":model,"orientation":orientation,"height":elevation,"position":Vector3((index%width)*10+5,elevation*float(tileset.transition),-(floori(float(index)/width)*10+5)),"rotation_y":orientation*PI/2,"main_lights":[int(source.get("Tile_MainLight1",0))&255,int(source.get("Tile_MainLight2",0))&255],"fields":source.duplicate(true)}
 		tiles.append(tile)
 		if not models.has(model): models[model] = []
 		models[model].append(index)
@@ -74,7 +74,7 @@ func load_network(catalog, state: Dictionary) -> Dictionary:
 	var root_data: Dictionary={"Width":state.get("width"),"Height":state.get("height"),"Tile_List":[]}
 	for tile in state.tiles:
 		if not tile is Dictionary or not tile.get("fields") is Dictionary: return reject("Invalid raw tile packet")
-		root_data.Tile_List.append({"Tile_ID":tile.fields.get("14"),"Tile_Height":tile.fields.get("18"),"Tile_Orientation":tile.fields.get("24"),"wire_fields":tile.fields.duplicate(true)})
+		root_data.Tile_List.append({"Tile_ID":tile.fields.get("14"),"Tile_Height":tile.fields.get("18"),"Tile_Orientation":tile.fields.get("24"),"Tile_MainLight1":tile.fields.get("28",0),"Tile_MainLight2":tile.fields.get("29",0),"wire_fields":tile.fields.duplicate(true)})
 	var raw: PackedByteArray=catalog.get_resource(set_name,2013)
 	if not catalog.failure.is_empty(): return reject(catalog.failure)
 	var tileset:=parse_set(Binary.new(raw).text(0,raw.size()))

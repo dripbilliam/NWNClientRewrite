@@ -8,6 +8,13 @@ var bound_view := -1
 var image: TextureRect
 var count: Label
 var caption: Label
+var native_icon_center: Variant=null
+func set_icon(texture: Texture2D) -> void:
+	image.texture=texture; caption.hide(); refresh_icon()
+func refresh_icon() -> void:
+	if native_icon_center==null or image.texture==null: return
+	image.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	image.size=image.texture.get_size(); image.position=native_icon_center-image.size*0.5
 
 func setup(owner, value: Dictionary, target_slot: int = 0) -> void:
 	inventory = owner
@@ -64,6 +71,7 @@ func _gui_input(event: InputEvent) -> void:
 	if not current() or not row.has("entryId"): return
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.double_click:
+			if inventory.examine_mode: return
 			inventory.operation(int(row.entryId), "activate")
 			accept_event()
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
@@ -71,7 +79,7 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 func _get_drag_data(_position: Vector2) -> Variant:
-	if not current() or not row.has("entryId") or disabled: return null
+	if not current() or not row.has("entryId") or disabled or inventory.examine_mode: return null
 	var preview := TextureRect.new()
 	preview.texture = image.texture
 	preview.custom_minimum_size = Vector2(50, 50)
@@ -81,11 +89,19 @@ func _get_drag_data(_position: Vector2) -> Variant:
 	return {"kind": "native-inventory-item", "viewId": inventory.view_id, "entryId": int(row.entryId)}
 
 func _can_drop_data(_position: Vector2, data: Variant) -> bool:
+	if current() and slot==0 and channel=="R" and data is Dictionary and data.get("kind","")=="native-barter-item": return is_instance_valid(inventory.barter_owner) and inventory.barter_owner.can_remove(data)
+	if current() and row.has("itemId") and data is Dictionary and data.get("kind","")=="native-inventory-gold": return is_instance_valid(inventory.gold_owner) and inventory.gold_owner.can_target(data,int(row.itemId))
 	return current() and inventory.can_drop(data, slot)
 
 func _drop_data(_position: Vector2, data: Variant) -> void:
+	if current() and data is Dictionary and data.get("kind","")=="native-barter-item":
+		if _can_drop_data(_position,data): inventory.repository.drop_global(data,get_global_transform()*_position)
+		return
+	if current() and data is Dictionary and data.get("kind","")=="native-inventory-gold":
+		if _can_drop_data(_position,data): inventory.gold_owner.drop_target(data,int(row.itemId))
+		return
 	if not current() or not inventory.can_drop(data, slot): return
 	if slot > 0: inventory.drop_slot(data, slot)
 	else:
 		var repository = inventory.store_panel.repository if channel == "M" and is_instance_valid(inventory.store_panel) else (inventory.container_repository if channel == "C" else inventory.repository)
-		repository.drop_global(data, get_global_mouse_position())
+		repository.drop_global(data,get_global_transform()*_position)

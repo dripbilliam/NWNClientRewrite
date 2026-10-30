@@ -1,5 +1,15 @@
 # Native world audio — partial migration, shutdown acceptance open
 
+Current direct-native follow-up (2026-10-27): combat barks and server26/1 voices
+now have native SSF/BMU, source/profile/position and retirement integration with
+headless evidence. See [NATIVE-CREATURE-VOICES.md](NATIVE-CREATURE-VOICES.md).
+Actual server/device acceptance is queued while the user's live-test pause is
+active. [Direct native script sounds](NATIVE-SCRIPT-SOUNDS.md) now have native
+source/profile/byte-string routing and disconnect cleanup with93 headless checks
+and15 protocol/audio checks. Its real-server/device acceptance remains open.
+The staged script-sound evidence below remains historical; quick-chat and weapon
+audio are still open.
+
 Godot now owns effect impact/duration/cessation sources and decoded server
 script-sound output. The isolated JS staging build cannot create browser audio
 players or duplicate that playback. The production JS client is unchanged.

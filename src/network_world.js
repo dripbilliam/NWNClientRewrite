@@ -15,13 +15,16 @@ import {scriptStringBytes} from './script_string.js';
 import {applyNetworkAutomap} from './network_automap.js';
 import {NuiState} from './nui_state.js';
 import {applyAreaWeather} from './network_area_weather.js';
+import {applyNetworkBarter,retireNetworkBarter} from './network_barter.js';
 
 // A connection owns its client proxies. No ModuleSession, script VM, AI,
 // combat resolver or ID allocator runs when importing server state.
 export class NetworkWorld {
  constructor({onDiagnostic=d=>runtimeDiagnostics.record(d.code,d.reason,d)}={}){this.onDiagnostic=onDiagnostic;this.reset();}
- reset(){this.spellTargetingOverrides=new Map();this.scriptTargeting=null;this.scriptTargetingData=null;this.scriptTargetVersion=0;this.nui=new NuiState();this.store=null;this.registry=new GameObjectArray({clientMode:true});this.module=null;this.areaId=OBJECT_INVALID;this.entry=null;this.time={};this.controls=new Map();this.players=new Map();this.party=[];this.inventories=new Map();this.containers=new Map();this.quickbar=Array.from({length:36},emptyQuickbarButton);this.presentationChanges=[];this.localObjectId=OBJECT_INVALID;this.journal={entries:new Map(),worldEntries:new Map(),loaded:false};this.customTokens={records:[]};this.tlkOverrides=new Map();this.tlkOverrideVersion=0;this.playerAttitudes=new Map();this.mapPins=new Map();this.timing=null;}
+ reset(){this.partyListRevision=0;this.partyInviteNotice=null;this.spellTargetingOverrides=new Map();this.scriptTargeting=null;this.scriptTargetingData=null;this.scriptTargetVersion=0;this.nui=new NuiState();this.store=null;this.registry=new GameObjectArray({clientMode:true});this.module=null;this.areaId=OBJECT_INVALID;this.entry=null;this.time={};this.controls=new Map();this.players=new Map();this.party=[];this.inventories=new Map();this.containers=new Map();this.quickbar=Array.from({length:36},emptyQuickbarButton);this.presentationChanges=[];this.localObjectId=OBJECT_INVALID;this.journal={entries:new Map(),worldEntries:new Map(),loaded:false};this.customTokens={records:[]};this.tlkOverrides=new Map();this.tlkOverrideVersion=0;this.playerAttitudes=new Map();this.mapPins=new Map();this.timing=null;this.barter={open:false,serial:0};}
  apply(message){
+  if(message.kind==='party-invite-notice'){this.partyInviteNotice={name:message.name,serial:(this.partyInviteNotice?.serial??0)+1};return true;}
+  if(message.kind.startsWith('barter-')&&message.kind!=='barter-reject')return applyNetworkBarter(this,message);
   if(message.kind==='script-targeting'){this.scriptTargetVersion=(this.scriptTargetVersion??0)+1;this.scriptTargeting=message.objectMask?{...message,version:this.scriptTargetVersion,areaId:this.areaId,actorId:this.localObjectId}:null;return true;}
   if(message.kind==='script-targeting-data'){this.scriptTargetingData={...message};return true;}
   if(message.kind==='spell-targeting-data'){this.spellTargetingOverrides.set(message.spellId,{...message});return true;}
@@ -35,9 +38,13 @@ export class NetworkWorld {
   if(message.kind==='container-status'){const channel=message.primary?'C':'c';this.containers.set(channel,message.targetId);this.inventories.set(channel,{entries:[],pageCount:1,ownerId:message.targetId});return true;}
   if(message.kind==='examine'){if(message.type==='item'&&!message.close){const item=this.registry.get(message.targetId)?.item;if(item){item.identified=message.identified;if(message.canUse!==undefined)item.canUse=message.canUse;}}return true;}
   if(message.kind==='gui-timing'){this.timing={...message,version:(this.timing?.version??0)+1};return true;}
-  if(message.kind==='player-attitude'){if(message.clear)this.playerAttitudes.clear();else this.playerAttitudes.set(message.playerId,{...message});return true;}
+  if(message.kind==='player-attitude'){const old=this.playerAttitudes.get(message.playerId)??{ownLikes:1,incomingLikes:1};this.playerAttitudes.set(message.playerId,{...old,...message,[(message.own??message.clear)?'ownLikes':'incomingLikes']:message.likes});return true;}
   if(message.kind==='map-pin-created'){this.mapPins.set(message.id,{...message});return true;}
   if(message.kind==='map-pin-enabled'){const pin=this.mapPins.get(message.id);if(pin)pin.enabled=message.enabled;return true;}
+  if(message.kind==='map-pin-added'){
+   const area=this.registry.get(this.areaId)?.state;if(!area)return false;
+   area.playerMapPins=[...(area.playerMapPins??[]).filter(pin=>(pin.index>>>0)!==message.index),{index:message.index,text:message.text,position:[...message.position]}];return true;
+  }
   if(message.kind==='journal'){
    const j=this.journal,m=message;if(m.operation===6)j.entries.set(m.entry.tag,{...m.entry});
    else if(m.operation===7)j.entries.delete(m.tag);
@@ -49,17 +56,24 @@ export class NetworkWorld {
    else if(m.operation===4)for(const [id,e]of j.worldEntries)if(e.strRef===m.worldStrRef)j.worldEntries.delete(id);
    else if(m.operation===5)j.worldEntries.clear();return true;
   }
-  if(message.kind==='party-list'){this.party=applyNetworkParty(this.party,message);return true;}
+  if(message.kind==='party-list'){this.party=applyNetworkParty(this.party,message);this.partyListRevision++;return true;}
   if(message.kind==='quickbar')return this.applyQuickbar(message);
   if(message.kind==='module-info'){this.module=structuredClone(message.module);return true;}
   if(message.kind==='module-time'){Object.assign(this.time,message.changes);return true;}
   if(message.kind==='area-weather')return applyAreaWeather(this,message);
-  if(message.kind==='object-control'){this.controls.set(message.playerId,message.objectId);return true;}
+  if(message.kind==='object-control'){
+   this.controls.set(message.playerId,message.objectId);
+   // Original GameObjectUpdate/2 ->781380 sets the controlled ID through
+   // 6acc50 before looking up the creature. Party/14 only updates a roster
+   // entry: it must never steal local control or fabricate a creature proxy.
+   if(message.major===5&&message.minor===2){if(this.localObjectId!==message.objectId)this.scriptTargeting=null;this.localObjectId=message.objectId;}
+   return true;
+  }
   if(message.kind==='player-list-all'||message.kind==='player-list-add'){
    if(message.kind==='player-list-all'){this.players.clear();this.controls.clear();}
    for(const p of message.players){this.players.set(p.playerId,structuredClone(p));this.controls.set(p.playerId,p.objectId);}return true;
   }
-  if(message.kind==='player-list-delete'){this.players.delete(message.playerId);this.controls.delete(message.playerId);return true;}
+   if(message.kind==='player-list-delete'){this.players.delete(message.playerId);this.controls.delete(message.playerId);this.playerAttitudes.delete(message.playerId);return true;}
   if(message.kind==='object-updates')return this.applyObjectUpdates(message.records);
   if(message.kind!=='client-area')return false;
   try{
@@ -93,7 +107,7 @@ export class NetworkWorld {
     const old=this.registry.get(record.id);
     if(old)Object.assign(old,record);else this.registry.addObjectAtPos(record.id,record);
    }
-   this.scriptTargeting=null;this.containers.clear();this.inventories.delete('C');this.inventories.delete('c');this.store=null;this.inventories.delete('M');this.mapPins=new Map(area.mapPins.map(pin=>[pin.id,{...pin}]));this.areaId=area.id;this.entry={loadingScreen:entry.loadingScreen,position:entry.position,facing:entry.facing,flag:entry.flag};this.time={...area.time};return true;
+   retireNetworkBarter(this);this.scriptTargeting=null;this.containers.clear();this.inventories.delete('C');this.inventories.delete('c');this.store=null;this.inventories.delete('M');this.mapPins=new Map(area.mapPins.map(pin=>[pin.id,{...pin}]));this.areaId=area.id;this.entry={loadingScreen:entry.loadingScreen,position:entry.position,facing:entry.facing,flag:entry.flag};this.time={...area.time};return true;
   }catch(error){this.onDiagnostic({code:'network.area-import-failed',reason:error.message});throw error;}
  }
  applySoundObject(message){
@@ -153,7 +167,7 @@ export class NetworkWorld {
      const {channel,operation}=record,existing=inventories.has(channel),view=inventories.get(channel)??{entries:[]};inventories.set(channel,view);
      // Uppercase R/I/C belong to the primary GUI; lowercase variants are
      // a separate associate GUI. Do not infer an associate owner from names.
-     const ownerId=['C','c'].includes(channel)?this.containers.get(channel)??null:['R','I'].includes(channel)?localObjectId:null;
+     const ownerId=['C','c'].includes(channel)?this.containers.get(channel)??null:['R','I'].includes(channel)?localObjectId:this.barter?.open&&channel==='B'?localObjectId:this.barter?.open&&channel==='A'?this.barter.partnerId:null;
      if(!existing&&ownerId===null&&channel!=='M')events.push({action:'inventory-owner-unavailable',channel});
      if(record.pageCount!==undefined){view.pageCount=record.pageCount;if(record.panel!==undefined)view.panel=record.panel;continue;}
      if(record.state){view.stats={...view.stats,...structuredClone(record.state)};if(ownerId!==null)Object.assign(object(ownerId,GAME_OBJECT_TYPE.creature).inventoryStats??={},structuredClone(record.state));continue;}
@@ -165,7 +179,7 @@ export class NetworkWorld {
       const item=object(record.id,GAME_OBJECT_TYPE.item);item.item=mergeNetworkItem(item.item,record.item);item.replicationRemoved=false;item.areaId=OBJECT_INVALID;item.equipmentOwnerId=channel==='I'?ownerId:null;
       const displaced=index>=0?view.entries[index]:null;
       if(displaced&&displaced.id!==record.id){const previous=object(displaced.id,GAME_OBJECT_TYPE.item);if(previous.inventoryLocation?.channel===channel)previous.inventoryLocation=null;}
-      const group=channel===channel.toUpperCase()?['R','I','C','M']:['r','i','c'];
+      const group=channel===channel.toUpperCase()?['R','I','C','M','A','B']:['r','i','c'];
       if(group.includes(channel))for(const c of group){const v=inventories.get(c);if(v)v.entries=v.entries.filter(e=>e.id!==record.id&&(c!==channel||e[key]!==record[key]));}
       else view.entries=view.entries.filter(e=>e.id!==record.id&&e[key]!==record[key]);
       item.inventoryLocation={channel,ownerId,...(record.slot!==undefined?{slot:record.slot}:{x:record.x,y:record.y})};view.entries.push({id:record.id,...(record.slot!==undefined?{slot:record.slot}:{x:record.x,y:record.y})});
@@ -239,7 +253,7 @@ export class NetworkWorld {
     }
    }
    const validation=new GameObjectArray({clientMode:true});for(const o of staged.values())if(validation.addObjectAtPos(o.id,{...o}).status!==0)throw new Error('Replicated object ID cannot be registered');
-   for(const o of staged.values()){const old=this.registry.get(o.id);if(old)Object.assign(old,o);else this.registry.addObjectAtPos(o.id,o);}this.inventories=inventories;this.presentationChanges=events;if(this.localObjectId!==localObjectId)this.scriptTargeting=null;this.localObjectId=localObjectId;
+   for(const o of staged.values()){const old=this.registry.get(o.id);if(old)Object.assign(old,o);else this.registry.addObjectAtPos(o.id,o);}this.inventories=inventories;this.presentationChanges=events;if(this.localObjectId!==localObjectId){this.scriptTargeting=null;retireNetworkBarter(this);}this.localObjectId=localObjectId;
    for(const event of events)if(event.action==='inventory-owner-unavailable')this.onDiagnostic({code:'network.inventory-owner-unavailable',reason:'Native inventory GUI owner binding is unavailable',channel:event.channel});return true;
   }catch(error){this.onDiagnostic({code:'network.object-import-failed',reason:error.message});throw error;}
  }

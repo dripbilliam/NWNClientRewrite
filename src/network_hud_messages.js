@@ -25,7 +25,12 @@ export function readNetworkJournal(r,minor){
 // gameplay resources; stop/ready events still come from the server.
 export function readNetworkTiming(r){const active=r.readBool();return{kind:'gui-timing',active,...(active?{duration:r.readDword(),type:r.readByte()}: {})};}
 // Client7a7250 consumes sender and target PLAYER_ID DWORDs, then two BOOLs.
-export function readNetworkAttitude(r){return{kind:'player-attitude',sourcePlayerId:r.readDword(),playerId:r.readDword(),likes:r.readBool(),clear:r.readBool()};}
+// Receiver7a7250 chooses the local (+4) or incoming (+8) attitude slot.
+// The final BOOL does not clear the list.
+export function readNetworkAttitude(r){return{kind:'player-attitude',sourcePlayerId:r.readDword(),playerId:r.readDword(),likes:r.readBool(),own:r.readBool()};}
 // Native map pin creation4dc2d0 and enable4dc3f0; these are client map notes,
 // not new canonical object allocation by this renderer.
-export function readNetworkMapPin(r,minor){const id=r.readObjectIdClient();return minor===1?{kind:'map-pin-enabled',id,enabled:r.readBool()}:{kind:'map-pin-created',id,position:[r.readFloat(),r.readFloat(),r.readFloat()],name:localized(r),enabled:r.readBool()};}
+export function readNetworkMapPin(r,minor){
+ if(minor===4)return{kind:'map-pin-added',position:[r.readFloat(),r.readFloat(),r.readFloat()],text:text(r),index:r.readDword()};
+ const id=r.readObjectIdClient();return minor===1?{kind:'map-pin-enabled',id,enabled:r.readBool()}:{kind:'map-pin-created',id,position:[r.readFloat(),r.readFloat(),r.readFloat()],name:localized(r),enabled:r.readBool()};
+}

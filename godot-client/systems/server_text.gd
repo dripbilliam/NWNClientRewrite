@@ -13,6 +13,7 @@ static func style(label: RichTextLabel) -> void:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 static func append(label: RichTextLabel, rich: Dictionary, fallback: Color = Color(0.9, 0.88, 0.78)) -> void:
+	if label.has_meta("native_text_color"): fallback=label.get_meta("native_text_color")
 	var spans: Array = rich.get("spans", [{"text": rich.get("text", "")}])
 	for part in spans:
 		if not part is Dictionary:

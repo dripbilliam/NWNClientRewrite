@@ -104,7 +104,7 @@ func actual_player_checks() -> void:
 	library.add_animation("one", clip)
 	player.add_animation_library("", library)
 	var model := {"player": player, "names": {"one": "one"}, "clip": "", "loop": false, "speed": 1.0, "event_source": true, "play_serial": 0, "events": {"one": [{"time": 0.1, "name": "hit"}]}, "transitions": {}}
-	rigs.entities[1] = {"models": [model], "nodes": [], "parents": [], "skins": [], "attachments": []}
+	rigs.entities[1] = {"models": [model], "nodes": [], "parents": [], "skins": [], "attachments": [], "manual_poses": {}}
 	var hit_events: Array = []
 	rigs.animation_event.connect(func(_id, name, _serial): hit_events.append(name))
 	for frame in 3:
@@ -167,7 +167,7 @@ func run() -> void:
 	scheduler_checks()
 	actual_player_checks()
 	var file := FileAccess.open(output, FileAccess.WRITE)
-	file.store_string(JSON.stringify({"scope": oracle.scope, "checks": checks, "failures": failures}, "  "))
+	file.store_string(JSON.stringify({"scope": oracle.scope, "success": failures.is_empty(), "checks": checks, "failures": failures}, "  "))
 	file.close()
 	print(JSON.stringify({"checks": checks, "failures": failures}))
 	quit(0 if failures.is_empty() else 1)

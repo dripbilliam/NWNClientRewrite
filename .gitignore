@@ -23,3 +23,7 @@ tooling/native/
 .codex/config.toml
 .codex/config.toml.rea-*
 scripts/inspect-movement-video.cjs
+
+# Generated static research wiki and its local npm cache.
+wiki/_site/
+wiki/.npm-cache/

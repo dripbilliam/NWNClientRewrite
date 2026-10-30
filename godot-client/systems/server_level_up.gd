@@ -24,7 +24,7 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	close_hides = false
 	var navigation := HBoxContainer.new(); content.add_child(navigation)
 	for index in 7:
-		var button := Button.new(); button.text = ["Class", "Abilities", "Skills", "Feats", "Spells", "Companions", "Review"][index]; button.focus_mode = Control.FOCUS_NONE
+		var button := Button.new(); button.text = ["Class", "Abilities", "Skills", "Feats", "Spells", "Choices", "Review"][index]; button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(func(): navigate(index)); navigation.add_child(button); tabs.append(button)
 	status = Label.new(); status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; status.custom_minimum_size.x = 780; content.add_child(status)
 	scroll = ScrollContainer.new(); scroll.custom_minimum_size = Vector2(780, 440); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; content.add_child(scroll)

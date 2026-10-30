@@ -6,6 +6,7 @@ var objects: Dictionary = {}
 var next_lifetime := 1
 var remainder_ms := 0.0
 var height_query: Callable
+var facing_target_query: Callable
 
 static func f(value: float) -> float:
 	return Vector3(value, 0, 0).x
@@ -41,6 +42,7 @@ func ensure(id: int, state: Dictionary) -> Dictionary:
 	var direction := facing(state.get("orientation", [1, 0, 0]))
 	var animation := int(state.get("animation", 0))
 	var entry := {"lifetime": next_lifetime, "position": vector(state.position), "render": vector(state.position), "orientation": direction, "targetOrientation": direction, "animation": animation, "restingBase": 1 if animation == 1 else 0, "walkRate": state.get("walkRate", 0), "runRate": state.get("runRate", 0), "path": [], "cursor": 0, "acceleration": 0.0, "correction": 0, "script": 0, "factor": 1.0, "newPath": 1, "active": false, "modelType": state.get("modelType", 1), "walkDistance": state.get("walkDistance", 0), "runDistance": state.get("runDistance", 0)}
+	entry.facingTarget=int(state.get("facingTarget",0x7f000000))
 	next_lifetime += 1
 	objects[id] = entry
 	return entry
@@ -74,6 +76,7 @@ func observe(id: int, changes: Dictionary, created: bool = false, initial: Dicti
 	var state := ensure(id, initial if not initial.is_empty() else changes)
 	if state.is_empty():
 		return
+	if changes.has("facingTarget"): state.facingTarget=int(changes.facingTarget)
 	var stale: bool = state.script != 0 and state.has("driveSequence") and int(changes.get("actionFlag", 0)) != 0 and int(changes.actionFlag) != int(state.driveSequence)
 	if stale:
 		for key in ["walkRate", "runRate"]:
@@ -255,6 +258,23 @@ static func facing_step(old: Vector3, target: Vector3, animation: int, dt: int, 
 		next = Vector3(f(f(old.x * cosine) - f(old.y * sine)), f(f(old.x * sine) + f(old.y * cosine)), 0)
 	return {"orientation": normalized32(next), "target": desired, "requests": requests}
 
+func update_facing_target(id: int,state: Dictionary) -> void:
+	# Original model update 0x1407fcdd6..0x1407fcedd resolves owner+0x3a8
+	# and writes the horizontal target direction before 0x140807690 turns.
+	# The ordinary path direction still wins while a movement path is active.
+	var target:=int(state.get("facingTarget",0x7f000000))
+	if target==0x7f000000 or target==id or not facing_target_query.is_valid(): return
+	var point: Variant=facing_target_query.call(target)
+	if not point is Vector3 or not point.is_finite():
+		# Native failed lookup restores current facing through the orientation
+		# setter. Do not keep turning toward a removed/replaced area's position.
+		state.targetOrientation=state.orientation
+		return
+	var delta: Vector3=point-state.position
+	if length32(delta)<=f(0.0001): return
+	delta.z=0
+	# A vertically coincident target supplies no usable planar bearing.
+	if length32(delta)>0: state.targetOrientation=normalized32(delta)
 func update(seconds: float) -> void:
 	if not is_finite(seconds) or seconds < 0:
 		return
@@ -278,6 +298,7 @@ func update(seconds: float) -> void:
 				state.finished = true
 		elif int(state.correction) != 0:
 			state.render = correct(state, state.position, dt)
+		update_facing_target(int(id),state)
 		var target: Vector3 = state.targetOrientation
 		if state.active and path_animation(int(state.animation)):
 			target = state.get("previewFacing", state.orientation) if state.script != 0 and state.get("previewBase", false) else state.get("movementDirection", state.targetOrientation)

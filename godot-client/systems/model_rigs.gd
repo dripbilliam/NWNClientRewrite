@@ -1,13 +1,17 @@
 extends Node
 
 const NativeAnimation = preload("res://systems/model_native_animation.gd")
+const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
+const SkinPreparation=preload("res://systems/native_data/skin_preparation.gd")
 
 signal animation_event(id: int, name: String, serial: int)
 signal model_event(id: int, model_index: int, name: String, serial: int)
 
 var entities: Dictionary = {}
 var registry
-var stats := {"entities": 0, "nodes": 0, "players": 0, "clips": 0, "skin_meshes": 0, "rigid_meshes": 0, "skin_vertices": 0, "unsupported_channels": [], "pose_frames": 0, "missing_requested_clips": [], "failures": []}
+static func configured_prepared_clips() -> bool: return not OS.get_cmdline_user_args().has("--clip-preparation=main")
+var use_prepared_clips:=configured_prepared_clips()
+var stats := {"entities": 0, "nodes": 0, "players": 0, "clips": 0, "indexed_clip_models":0,"indexed_clip_metadata":0,"skin_meshes": 0, "skin_prepared_meshes":0,"skin_main_meshes":0,"rigid_meshes": 0, "skin_vertices": 0, "unsupported_channels": [], "pose_frames": 0, "missing_requested_clips": [], "failures": []}
 
 func configure(value, pivots: Dictionary, metadata: Dictionary) -> void:
 	registry = value
@@ -37,7 +41,7 @@ func configure(value, pivots: Dictionary, metadata: Dictionary) -> void:
 			node.scale = _vec(row.scale)
 			node.visible = row.get("visible", true)
 			nodes.append(node)
-		var entry := {"root": rig, "nodes": nodes, "parents": source.nodes.map(func(row): return int(row.parent)), "models": [], "skins": [], "attachments": source.get("attachments", []), "clip_map": source.get("clipMap", {}), "side_maps": source.get("sideMaps", {}), "context": source.get("context", {}).duplicate(true), "body_type": int(source.get("bodyType", 0)), "side": 0, "loop_map": source.get("loopMap", {}), "animation": -1}
+		var entry := {"root": rig, "nodes": nodes, "parents": source.nodes.map(func(row): return int(row.parent)), "models": [], "animated_models":[], "skins": [], "attachments": source.get("attachments", []), "clip_map": source.get("clipMap", {}), "side_maps": source.get("sideMaps", {}), "context": source.get("context", {}).duplicate(true), "body_type": int(source.get("bodyType", 0)), "side": 0, "loop_map": source.get("loopMap", {}), "animation": -1}
 		entities[id] = entry
 		entry["authored_names"] = source.nodes.map(func(row): return str(row.name))
 		entry["model_parts"] = source.models.map(func(model): return model.parts.duplicate())
@@ -46,10 +50,13 @@ func configure(value, pivots: Dictionary, metadata: Dictionary) -> void:
 		entry["model18_unavailable"] = bool(source.get("model18Unavailable", false))
 		for model in source.models:
 			var asset: Dictionary = data.assets[int(model.asset)]
+			var model_began:=FrameProfile.begin()
 			var prepared: Dictionary = _model(rig, nodes, model, asset)
+			FrameProfile.finish("actor_install_animation_ms",model_began)
 			prepared["asset_source"] = asset
 			prepared["part_source"] = model
 			prepared["event_source"] = entry.models.size() == int(source.get("animationSource", 0))
+			if prepared.player!=null: entry.animated_models.append(entry.models.size())
 			entry.models.append(prepared)
 		for row in metadata.get("meshes", []):
 			if int(row.get("objectId", -1) if row.get("objectId") != null else -1) != id or not row.has("rigNode") or row.get("particle", false):
@@ -66,7 +73,9 @@ func configure(value, pivots: Dictionary, metadata: Dictionary) -> void:
 			if row.has("skin"):
 				var skin: Dictionary = row.skin
 				var model: Dictionary = source.models[int(skin.model)]
+				var skin_began:=FrameProfile.begin()
 				var runtime := _skin(mesh, skin, model.parts)
+				FrameProfile.finish("actor_install_skin_runtime_ms",skin_began)
 				if not runtime.is_empty():
 					entry.skins.append(runtime)
 			else:
@@ -77,7 +86,7 @@ func configure(value, pivots: Dictionary, metadata: Dictionary) -> void:
 		stats.entities += 1
 		stats.nodes += nodes.size()
 		entry["counts"] = {}
-		for key in ["entities", "nodes", "players", "clips", "skin_meshes", "rigid_meshes", "skin_vertices"]:
+		for key in ["entities", "nodes", "players", "clips", "indexed_clip_models", "indexed_clip_metadata", "skin_meshes", "skin_prepared_meshes", "skin_main_meshes", "rigid_meshes", "skin_vertices"]:
 			entry.counts[key] = stats[key] - before[key]
 		for model in entry.models: model["entity_counts"] = entry.counts
 	_update(0.0)
@@ -117,6 +126,13 @@ func node_for(id: int, model_index: int, part_name: String = "root") -> Node3D:
 		if matches and (chosen < 0 or index < chosen):
 			chosen = index
 	return entry.nodes[chosen] if chosen >= 0 else null
+func node_at(id: int,index: int) -> Node3D:
+	return entities[id].nodes[index] if entities.has(id) and index>=0 and index<entities[id].nodes.size() else null
+
+func playback_state(id: int,model_index: int) -> Dictionary:
+	if not entities.has(id) or model_index<0 or model_index>=entities[id].models.size(): return {}
+	var model: Dictionary=entities[id].models[model_index]
+	return {"clip":str(model.get("clip","")),"time":float(model.get("last_time",0.0)),"serial":int(model.get("play_serial",0))}
 
 func set_manual_pose(id: int, node: Node3D, position: Vector3, quaternion: Quaternion) -> bool:
 	if not entities.has(id) or not is_instance_valid(node):
@@ -141,6 +157,7 @@ func play_native(id: int, model_index: int, clip: Variant, speed: float, flags: 
 		var native_owner := NativeAnimation.new()
 		native_owner.configure(model.asset_source, model.part_source, entry)
 		model["native_owner"] = native_owner
+		if entry.has("animated_models") and not entry.animated_models.has(model_index): entry.animated_models.append(model_index)
 		if model.player != null: model.player.stop()
 	var result: bool = model.native_owner.play(clip, speed, flags, time)
 	if result:
@@ -148,6 +165,26 @@ func play_native(id: int, model_index: int, clip: Variant, speed: float, flags: 
 		_native_clock(model)
 		_emit_native_events(id, model_index, model)
 	return result
+
+func set_model_colour_scope(id: int,model_index: int,scope: int,rgb: Variant) -> bool:
+	if not entities.has(id) or model_index<0 or model_index>=entities[id].models.size(): return false
+	var entry: Dictionary=entities[id]; var model: Dictionary=entry.models[model_index]
+	if not model.asset_source.get("nativeAnimation") is Dictionary: return false
+	if not model.has("native_owner"):
+		if rgb==null: return true
+		# Preserve the held model's current clock when admitting its native Part
+		# owner; this is a colour change, not another attack/animation event.
+		var playing: bool=model.player!=null and model.player.is_playing() and not model.player.current_animation.is_empty()
+		var at: float=model.player.current_animation_position if playing else float(model.get("last_time",0.0))
+		var owner:=NativeAnimation.new(); owner.configure(model.asset_source,model.part_source,entry)
+		if playing:
+			if not owner.play(model.clip,float(model.speed),0 if model.loop else 1,at): owner.close(); return false
+			owner.events.clear()
+		model.native_owner=owner
+		if model.player!=null: model.player.stop()
+		if not entry.animated_models.has(model_index): entry.animated_models.append(model_index)
+		_native_clock(model)
+	return model.native_owner.pose.set_colour_scope(scope,rgb,entry.manual_poses)
 
 func _emit_native_events(id: int, model_index: int, model: Dictionary) -> void:
 	var pending: Array = model.native_owner.events.duplicate()
@@ -186,13 +223,16 @@ func _model(root: Node3D, nodes: Array[Node3D], source: Dictionary, asset: Dicti
 	var names: Dictionary = {}
 	var deferred: Dictionary = {}
 	var defaults: Array = source.get("defaults", asset.defaults)
-	var controlled: Dictionary = asset.get("controlled", {}).duplicate(true)
+	var indexed_lazy: bool=use_prepared_clips and bool(asset.get("lazyClips",false)) and asset.get("clipIndex") is Dictionary
+	# _clip_resource only reads this immutable source map; the bound tracks,
+	# AnimationLibrary, event copies and playback clocks remain private.
+	var controlled: Dictionary = asset.controlled if indexed_lazy and asset.has("controlled") else asset.get("controlled", {}).duplicate(true)
 	for clip in ([] if asset.has("controlled") else asset.clips):
 		for channel in clip.tracks:
 			var key := str(int(channel.part)) + ":" + str(channel.property)
 			var previous: Dictionary = controlled.get(key, {})
 			controlled[key] = {"part": int(channel.part), "property": str(channel.property), "bezier": previous.get("bezier", false) or channel.get("sourceInterpolation") == "bezier"}
-	for clip in asset.clips:
+	for clip in ([] if indexed_lazy else asset.clips):
 		if asset.get("lazyClips", false): deferred[str(clip.name)] = clip; continue
 		var name := "clip_%s" % names.size()
 		library.add_animation(name, _clip_resource(root, nodes, source, defaults, controlled, clip))
@@ -205,11 +245,14 @@ func _model(root: Node3D, nodes: Array[Node3D], source: Dictionary, asset: Dicti
 			stats.unsupported_channels.append(unsupported)
 	var event_map := {}
 	var transitions := {}
-	for clip in asset.clips:
+	for clip in ([] if indexed_lazy else asset.clips):
 		event_map[str(clip.name)] = clip.get("events", []).duplicate(true)
 		transitions[str(clip.name)] = float(clip.get("transition", 0.0))
 	var model := {"player": player, "names": names, "clip": "", "loop": false, "follow": source.get("follow", true), "speed": float(source.get("speed", 1.0)), "events": event_map, "transitions": transitions, "play_serial": 0, "last_time": float(source.get("time", 0.0))}
-	if not deferred.is_empty(): model["deferred"] = deferred; model["clip_builder"] = {"root": root, "nodes": nodes, "source": source, "defaults": defaults, "controlled": controlled, "library": library}
+	if indexed_lazy: model["indexed_asset"]=asset; stats.indexed_clip_models+=1
+	if indexed_lazy or not deferred.is_empty():
+		if not indexed_lazy: model["deferred"] = deferred
+		model["clip_builder"] = {"root": root, "nodes": nodes, "source": source, "defaults": defaults, "controlled": controlled, "library": library}
 	_play(model, str(source.get("clip", "")), bool(source.get("loop", true)), model.speed, float(source.get("time", 0.0)))
 	return model
 
@@ -221,13 +264,21 @@ func _clip_resource(root: Node3D, nodes: Array[Node3D], source: Dictionary, defa
 	for channel_key in controlled:
 		var part := int(controlled[channel_key].part)
 		var property: String = controlled[channel_key].property
-		var node: Node3D = nodes[int(source.parts[part])]
+		var target_path: String
+		var property_path: String
+		if source.has("skeleton_target"):
+			var skeleton_path:=str(root.get_path_to(source.skeleton_target))
+			target_path=skeleton_path+":part_"+str(source.parts[part])
+			property_path=skeleton_path+":bones/"+str(source.parts[part])+"/"+property
+		else:
+			var node: Node3D = nodes[int(source.parts[part])]
+			target_path=str(root.get_path_to(node)); property_path=target_path+":"+property
 		var channel: Dictionary = channels.get(channel_key, {"keys": [{"time": 0.0, "value": defaults[part][property]}], "sourceInterpolation": "linear"})
-		var keys: Array = channel.keys
+		var keys: Array = preload("res://systems/native_data/packed_animation_keys.gd").keys(channel)
 		if controlled[channel_key].bezier and property != "quaternion":
 			for axis in 3:
 				var track := animation.add_track(Animation.TYPE_BEZIER)
-				animation.track_set_path(track, NodePath(str(root.get_path_to(node)) + ":" + property + ":" + ["x", "y", "z"][axis]))
+				animation.track_set_path(track, NodePath(property_path + ":" + ["x", "y", "z"][axis]))
 				for index in keys.size():
 					var key: Dictionary = keys[index]
 					var time := float(key.time)
@@ -244,16 +295,28 @@ func _clip_resource(root: Node3D, nodes: Array[Node3D], source: Dictionary, defa
 			continue
 		var type := Animation.TYPE_POSITION_3D if property == "position" else (Animation.TYPE_ROTATION_3D if property == "quaternion" else Animation.TYPE_SCALE_3D)
 		var track := animation.add_track(type)
-		animation.track_set_path(track, root.get_path_to(node))
+		animation.track_set_path(track, NodePath(target_path))
 		for key in keys: animation.track_insert_key(track, float(key.time), _quat(key.value) if property == "quaternion" else _vec(key.value))
 	return animation
 
+func _deferred_clip(model: Dictionary,name: String) -> Dictionary:
+	if model.has("indexed_asset"):
+		var asset: Dictionary=model.indexed_asset
+		return asset.clips[int(asset.clipIndex[name])] if asset.clipIndex.has(name) else {}
+	return model.get("deferred",{}).get(name,{})
+
 func _play(model: Dictionary, name: String, loop: bool, speed: float, time: float = 0.0, restart: bool = false) -> void:
-	if not model.names.has(name) and model.get("deferred", {}).has(name):
+	var deferred_clip: Dictionary=_deferred_clip(model,name) if not model.names.has(name) else {}
+	if not model.names.has(name) and not deferred_clip.is_empty():
 		var builder: Dictionary = model.clip_builder
 		var prepared_key := "clip_%s" % model.names.size()
-		builder.library.add_animation(prepared_key, _clip_resource(builder.root, builder.nodes, builder.source, builder.defaults, builder.controlled, model.deferred[name]))
+		builder.library.add_animation(prepared_key, _clip_resource(builder.root, builder.nodes, builder.source, builder.defaults, builder.controlled, deferred_clip))
 		model.names[name] = prepared_key
+		if model.has("indexed_asset"):
+			model.events[name]=deferred_clip.get("events",[]).duplicate(true)
+			model.transitions[name]=float(deferred_clip.get("transition",0.0))
+			stats.indexed_clip_metadata+=1
+			if model.has("entity_counts"): model.entity_counts.indexed_clip_metadata+=1
 		stats.clips += 1
 		if model.has("entity_counts"): model.entity_counts.clips += 1
 	if not model.names.has(name):
@@ -292,10 +355,11 @@ func set_playback(id: int, animation: int, speed: float = 1.0, loop_override: Va
 	if name.is_empty():
 		return
 	var loop: bool = entry.loop_map.get(str(animation), animation not in [5, 6, 7, 8, 9]) if loop_override == null else bool(loop_override)
-	for model in entry.models:
+	for model_index in entry.animated_models if entry.has("animated_models") else range(entry.models.size()):
+		var model: Dictionary=entry.models[int(model_index)]
 		if not model.get("follow", false):
 			continue
-		if not model.names.has(name) and not model.get("deferred", {}).has(name) and not model.names.is_empty():
+		if not model.names.has(name) and _deferred_clip(model,name).is_empty() and not model.names.is_empty():
 			var missing := "%s/%s/%s" % [id, animation, name]
 			if not stats.missing_requested_clips.has(missing):
 				stats.missing_requested_clips.append(missing)
@@ -308,7 +372,8 @@ func clip_length(id: int, animation: int, side: int = -1) -> float:
 	var entry: Dictionary = entities[id]
 	var name := clip_name(id, animation, side)
 	for model in entry.models:
-		if model.get("follow", false) and model.get("deferred", {}).has(name): return maxf(0.001, float(model.deferred[name].length))
+		var deferred_clip: Dictionary=_deferred_clip(model,name) if model.get("follow",false) else {}
+		if not deferred_clip.is_empty(): return maxf(0.001, float(deferred_clip.length))
 		if model.get("follow", false) and model.names.has(name):
 			return model.player.get_animation(model.names[name]).length
 	return 0.0
@@ -350,6 +415,16 @@ func _skin(mesh: MeshInstance3D, source: Dictionary, parts: Array) -> Dictionary
 	var rebuilt := ArrayMesh.new()
 	var groups: Array = source.groups if not source.groups.is_empty() else [{"start": 0, "count": source.position.size() / 3, "materialIndex": 0}]
 	var vertex_count := int(source.position.size() / 3)
+	var prepared: Dictionary=source.get("native_upload",{})
+	var use_prepared: bool=source.groups.is_empty() and str(prepared.get("revision",""))==SkinPreparation.REVISION
+	if use_prepared:
+		var invalid: bool=prepared.invalid_weights
+		for slot in prepared.used_slots:
+			if int(slot)<0 or int(slot)>=bones.size() or bones[int(slot)]<0: invalid=true
+		if invalid:
+			_fail("A native skin weight/slot needs an explicit nonstandard-weight adapter"); return {}
+		stats.skin_prepared_meshes+=1
+	else: stats.skin_main_meshes+=1
 	for surface in groups.size():
 		var group: Dictionary = groups[surface]
 		var arrays: Array = []
@@ -359,7 +434,9 @@ func _skin(mesh: MeshInstance3D, source: Dictionary, parts: Array) -> Dictionary
 		var uv := PackedVector2Array()
 		var indices := PackedInt32Array()
 		var weights := PackedFloat32Array()
-		for vertex in range(int(group.start), int(group.start + group.count)):
+		if use_prepared:
+			positions=prepared.positions; normals=prepared.normals; uv=prepared.uv; indices=prepared.bones; weights=prepared.weights
+		for vertex in ([] if use_prepared else range(int(group.start), int(group.start + group.count))):
 			positions.append(Vector3(float(source.position[vertex * 3]), float(source.position[vertex * 3 + 1]), float(source.position[vertex * 3 + 2])))
 			normals.append(Vector3(float(source.normal[vertex * 3]), float(source.normal[vertex * 3 + 1]), float(source.normal[vertex * 3 + 2])))
 			uv.append(Vector2(float(source.uv[vertex * 2]), float(source.uv[vertex * 2 + 1])))
@@ -390,12 +467,18 @@ func _skin(mesh: MeshInstance3D, source: Dictionary, parts: Array) -> Dictionary
 	return {"mesh": mesh, "skeleton": skeleton, "bones": bones, "inverse": inverses, "part": int(parts[int(source.part)]), "source": source}
 
 func _process(delta: float) -> void:
+	var began:=FrameProfile.begin()
+	_profile_process(delta)
+	FrameProfile.finish("callback_rigs",began)
+func _profile_process(delta: float) -> void:
 	_update(delta)
 
 func _exit_tree() -> void:
+	var began:=FrameProfile.begin()
 	for entry in entities.values():
 		for model in entry.models:
 			if model.has("native_owner"): model.native_owner.close()
+	FrameProfile.finish("rig_exit_close_ms",began)
 
 static func model_events(events: Array, from: float, to: float, flags: int = 0) -> Array:
 	from = PackedFloat32Array([from])[0]
@@ -426,8 +509,9 @@ static func model_events(events: Array, from: float, to: float, flags: int = 0) 
 func _update(delta: float) -> void:
 	for id in entities.keys():
 		var entry: Dictionary = entities[id]
+		var phase_began:=FrameProfile.begin()
 		var emitted: Array = []
-		for model_index in entry.models.size():
+		for model_index in entry.animated_models if entry.has("animated_models") else range(entry.models.size()):
 			var model: Dictionary = entry.models[model_index]
 			if model.has("native_owner"):
 				model.native_owner.advance(delta)
@@ -461,9 +545,13 @@ func _update(delta: float) -> void:
 				model_event.emit(int(id), int(event.index), str(event.name), int(event.serial))
 				if event.model.get("event_source", false):
 					animation_event.emit(int(id), str(event.name), int(event.serial))
+		FrameProfile.finish("actor_animation",phase_began)
+		phase_began=FrameProfile.begin()
 		sync_attachments(int(id))
+		FrameProfile.finish("actor_attachments",phase_began)
 		if entry.skins.is_empty():
 			continue
+		phase_began=FrameProfile.begin()
 		var rigid: Array[Transform3D] = []
 		for index in entry.nodes.size():
 			var node: Node3D = entry.nodes[index]
@@ -480,12 +568,13 @@ func _update(delta: float) -> void:
 				skeleton.set_bone_pose_rotation(slot, transform.basis.get_rotation_quaternion())
 				skeleton.set_bone_pose_scale(slot, Vector3.ONE)
 			skeleton.force_update_all_bone_transforms()
+		FrameProfile.finish("actor_skin",phase_began)
 	stats.pose_frames += 1
 
 func _vec(value: Array) -> Vector3:
 	return Vector3(float(value[0]), float(value[1]), float(value[2]))
 
-func diagnostic_sample(ids: Array = []) -> Dictionary:
+func diagnostic_sample(ids: Array = [],include_skins: bool=true) -> Dictionary:
 	# Explicit regression probe only. Production animation never reads GPU
 	# geometry back; these arrays stay in memory and only deltas enter reports.
 	var sample := {"nodes": {}, "skins": {}, "clocks": {}}
@@ -499,6 +588,7 @@ func diagnostic_sample(ids: Array = []) -> Dictionary:
 			var player: AnimationPlayer = entry.models[index].player
 			if player != null and player.is_playing():
 				sample.clocks[str(id) + ":" + str(index)] = {"clip": entry.models[index].clip, "time": player.current_animation_position}
+		if not include_skins: continue
 		for index in entry.skins.size():
 			var mesh: MeshInstance3D = entry.skins[index].mesh
 			var baked := mesh.bake_mesh_from_current_skeleton_pose()

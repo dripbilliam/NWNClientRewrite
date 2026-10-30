@@ -15,9 +15,13 @@ var fields_at := 0
 var fields_size := 0
 var lists_at := 0
 var lists_size := 0
+var duplicate_labels_allowed:=false
 func reject(message: String) -> void:
 	if failure.is_empty(): failure = message
-func parse(bytes: PackedByteArray, expected_type: String = "") -> Dictionary:
+func parse(bytes: PackedByteArray, expected_type: String = "", preserve_duplicate_labels: bool=false) -> Dictionary:
+	# Byte-preserving root patches keep the physical tables rather than writing
+	# this dictionary back. Presentation callers retain strict unique labels.
+	duplicate_labels_allowed=preserve_duplicate_labels
 	failure = ""; structs.clear(); fields.clear(); labels.clear(); records.clear(); field_types.clear(); active_structs.clear()
 	reader = Binary.new(bytes)
 	if not reader.contains(0, 56, "GFF header"): failure = reader.failure; return {}
@@ -134,7 +138,7 @@ func read_struct(index: int, depth: int) -> Dictionary:
 		var field: Dictionary = fields[int(id)]
 		if int(field.label) >= labels.size(): reject("GFF label index exceeds table"); return {}
 		var name: String = labels[int(field.label)]
-		if result.has(name): reject("Duplicate GFF field label"); return {}
+		if result.has(name) and not duplicate_labels_allowed: reject("Duplicate GFF field label"); return {}
 		result[name] = field_value(field, depth); types[name] = field.type
 		if not failure.is_empty(): return {}
 	active_structs.erase(index)

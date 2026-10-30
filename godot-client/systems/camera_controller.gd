@@ -1,4 +1,5 @@
 extends Node
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 
 var camera: Camera3D
 var target := Vector3.ZERO
@@ -14,6 +15,18 @@ var follow_state
 var camera_keys: Dictionary = {}
 var view_updates := 0
 var follow_height := NAN
+var key_bindings
+var physical_camera_keys: Dictionary={}
+func set_key_bindings(value) -> void:
+	if is_instance_valid(key_bindings):
+		if key_bindings.changed.is_connected(clear_binding_keys): key_bindings.changed.disconnect(clear_binding_keys)
+		if key_bindings.capture_changed.is_connected(binding_capture): key_bindings.capture_changed.disconnect(binding_capture)
+	key_bindings=value
+	if is_instance_valid(key_bindings): key_bindings.changed.connect(clear_binding_keys); key_bindings.capture_changed.connect(binding_capture)
+	clear_binding_keys()
+func clear_binding_keys() -> void: camera_keys.clear(); physical_camera_keys.clear()
+func binding_capture(active: bool) -> void:
+	if active: clear_binding_keys()
 
 func enable_follow(mode: int, position: Vector3, height: float = 1.0, remembered: Dictionary = {}, persistent: Variant = null) -> void:
 	if persistent != null:
@@ -45,7 +58,7 @@ func follow_frame(position: Vector3, facing: float, animation: int, delta: float
 	if follow_state == null: return
 	if follow_height != height: follow_state.set_height(height,true); follow_height = height
 	var focus := get_viewport().gui_get_focus_owner()
-	if focus is LineEdit or focus is TextEdit: camera_keys.clear()
+	if focus is LineEdit or focus is TextEdit: clear_binding_keys()
 	var turn := (float(camera_keys.has(KEY_HOME))-float(camera_keys.has(KEY_END)))*75
 	var tilt := (float(camera_keys.has(KEY_INSERT))-float(camera_keys.has(KEY_DELETE)))*75
 	var wheel := (float(camera_keys.has(KEY_PAGEUP))-float(camera_keys.has(KEY_PAGEDOWN)))*7.5
@@ -81,6 +94,19 @@ func _read_pose() -> void:
 func _input(event: InputEvent) -> void:
 	if camera == null:
 		return
+	if follow_state!=null and event is InputEventKey and is_instance_valid(key_bindings):
+		var code: int=key_bindings.physical(event)
+		if not event.pressed and physical_camera_keys.has(code):
+			physical_camera_keys.erase(code); camera_keys.clear()
+			for canonical in physical_camera_keys.values(): camera_keys[int(canonical)]=true
+			return
+		if key_bindings.blocked(): return
+		var focus:=get_viewport().gui_get_focus_owner()
+		if not event.pressed or event.echo or focus is LineEdit or focus is TextEdit: return
+		var action: int=key_bindings.action(event,[37,38,39,40,41,42])
+		var canonical: int={37:KEY_HOME,38:KEY_END,39:KEY_PAGEUP,40:KEY_PAGEDOWN,41:KEY_INSERT,42:KEY_DELETE}.get(action,0)
+		if canonical!=0: physical_camera_keys[code]=canonical; camera_keys[canonical]=true; get_viewport().set_input_as_handled()
+		return
 	if follow_state != null and event is InputEventKey and event.keycode in [KEY_HOME,KEY_END,KEY_INSERT,KEY_DELETE,KEY_PAGEUP,KEY_PAGEDOWN]:
 		if not event.pressed: camera_keys.erase(event.keycode)
 		else:
@@ -97,7 +123,11 @@ func _input(event: InputEvent) -> void:
 		else:
 			Input.mouse_mode = old_mouse_mode
 	elif event is InputEventMouseMotion and dragging:
-		orbit(event.relative)
+		# Canvas UI scale must not change physical camera sensitivity. Native
+		# OS motion retains screen_relative; authored/local events can omit it.
+		var delta: Vector2=event.screen_relative
+		if delta==Vector2.ZERO: delta=get_viewport().get_stretch_transform().basis_xform(event.relative)
+		orbit(delta)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if camera == null:
@@ -111,6 +141,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		reset()
 
 func _process(delta: float) -> void:
+	var began:=Timing.begin()
+	_profile_process(delta)
+	Timing.finish("callback_camera",began)
+func _profile_process(delta: float) -> void:
 	if camera == null or not keyboard_pan or not get_window().has_focus():
 		return
 	var focus := get_viewport().gui_get_focus_owner()
@@ -131,7 +165,8 @@ func pan(axis: Vector2, delta: float, fast: bool = false) -> void:
 
 func orbit(relative: Vector2) -> void:
 	if follow_state != null:
-		follow_state.input(follow_state.pointer(relative.x,relative.y,maxf(1,get_viewport().get_visible_rect().size.x)))
+		var physical_width:=get_viewport().get_stretch_transform().basis_xform(Vector2(get_viewport().get_visible_rect().size.x,0)).length()
+		follow_state.input(follow_state.pointer(relative.x,relative.y,maxf(1,physical_width)))
 		# Public input diagnostics expose the queued yaw; the quaternion changes
 		# only when the original Follow step consumes that impulse next frame.
 		yaw = deg_to_rad(float(follow_state.state.yaw)+float(follow_state.state.turnDelta))
@@ -158,7 +193,7 @@ func reset() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
-		camera_keys.clear()
+		clear_binding_keys()
 		if dragging:
 			dragging = false
 			Input.mouse_mode = old_mouse_mode

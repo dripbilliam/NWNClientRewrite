@@ -114,9 +114,6 @@ func configure(scene, ticket_path: String) -> void:
 	lobby.creation_requested.connect(creation.open)
 	creation.closed.connect(func(): if lobby.state.get("phase", "") in ["character-selection", "character-rejected"]: lobby.panel.show())
 	main_menu = preload("res://systems/native_main_menu.gd").new(); add_child(main_menu)
-	lobby.main_menu_requested.connect(func():
-		if server_browser.wanted: server_browser.close()
-		main_menu.open(generation >= 0); lobby.panel.hide())
 	main_menu.multiplayer_requested.connect(func():
 		if lobby.state.get("connected", false) or lobby.state.get("busy", false): lobby.panel.show()
 		else: lobby.panel.hide(); server_browser.open())

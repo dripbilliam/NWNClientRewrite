@@ -2,6 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {NetworkPeer} from '../electron/network_peer.mjs';
 import fs from 'node:fs';
+import {writeReliableFrame,readReliableFrame} from '../src/network_frames.js';
+
+test('authenticated validation keepalives cannot admit a player or deliver game data',async()=>{
+ const diagnostics=[],sent=[],peer=new NetworkPeer({crypto:{close(){}},onDiagnostic:d=>diagnostics.push(d)});
+ peer.cipher={decode:async bytes=>bytes.subarray(1)};
+ peer.login={phase:'validate',exchange:{},receive:async()=>({accepted:false})};
+ peer.send=async bytes=>sent.push(bytes);
+ let messages=0;peer.on('message',()=>messages++);
+ await peer.receive(Uint8Array.of(73,...writeReliableFrame({kind:1})));
+ assert.equal(sent.length,1);assert.equal(readReliableFrame(sent[0]).kind,1);
+ assert.equal(peer.window,undefined);assert.equal(peer.login.phase,'validate');assert.equal(messages,0);
+ assert.deepEqual(diagnostics,[]);
+ const data=new Uint8Array(13);data[12]=112;
+ await peer.receive(Uint8Array.of(73,...writeReliableFrame({kind:0,frame:data})));
+ assert.equal(sent.length,1);assert.equal(messages,0);
+ const corrupt=writeReliableFrame({kind:1});corrupt[2]^=1;
+ await assert.rejects(peer.receive(Uint8Array.of(73,...corrupt)),/checksum/);
+ await peer.disconnect();
+});
 
 test('cancelling during asynchronous endpoint resolution releases the peer exactly once',async()=>{
  let closed=0;const diagnostics=[],peer=new NetworkPeer({crypto:{close:()=>closed++},onDiagnostic:d=>diagnostics.push(d)}),events=[];peer.on('closed',e=>events.push(e));
@@ -25,4 +44,10 @@ test('real native-server captures verify persistent peer admission, player state
   assert.equal(report.diagnostics.some(d=>/invalid|failed|object-record-unhandled/.test(d.code)),false);
   assert.ok(report.packets.some(p=>p.direction==='out'&&p.tag==='BNDM'&&!p.encrypted));assert.ok(report.packets.some(p=>p.tag==='M'&&p.encrypted));
  }
+});
+
+test('admitted peer retains the server disconnect reason through cleanup',async()=>{
+ const diagnostics=[],events=[],peer=new NetworkPeer({crypto:{close(){}},onDiagnostic:d=>diagnostics.push(d)});peer.window={};peer.on('closed',e=>events.push(e));
+ await peer.receive(Uint8Array.of(66,78,68,80,0xd4,0x28,0,0,4,0,84,101,115,116));
+ assert.deepEqual(events,[{failed:false,reason:{strRef:10452,text:'Test'}}]);assert.equal(diagnostics[0].text,'Test');assert.equal(peer.closed,true);
 });

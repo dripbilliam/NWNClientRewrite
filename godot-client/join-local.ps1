@@ -3,8 +3,6 @@ $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'tools/local-test-guard.ps1')
 Assert-NativeLocalTestAvailable $PSScriptRoot -PreserveOriginalPid $PreserveOriginalPid
-$build=Join-Path $PSScriptRoot '.cache/local-bridge/latest.json'
-if(-not (Test-Path -LiteralPath $build)){throw 'Build the bridge first: node godot-client/tools/build-local-bridge.mjs --version=v1'}
 $ownedHome=[IO.Path]::GetFullPath((Join-Path $root 'runtime-logs/local-multiplayer-server'))
 $installedServer=[IO.Path]::GetFullPath((Join-Path $root '../FullDecomp/NwnRootInstall/bin/win32/nwserver.exe'))
 $owned=@(Get-CimInstance Win32_Process -Filter "Name = 'nwserver.exe'" | Where-Object {$_.ExecutablePath-eq $installedServer -and $_.CommandLine -and $_.CommandLine.Contains('"'+$ownedHome+'"')})
@@ -18,6 +16,13 @@ do{
 if(-not $endpoint){throw 'Owned local server did not open UDP 5121'}
 $owned=@(Get-CimInstance Win32_Process -Filter "Name = 'nwserver.exe'" | Where-Object {$_.ExecutablePath-eq $installedServer -and $_.CommandLine -and $_.CommandLine.Contains('"'+$ownedHome+'"')})
 if(-not @($owned | Where-Object {$_.ProcessId-in $endpoint.OwningProcess}).Count){throw 'UDP 5121 belongs to another process; it was preserved'}
+$diagnosticArguments=@($PSBoundParameters.Keys | Where-Object {$_ -notin @('Headless','NativeVerbose','PreserveOriginalPid')})
+if(-not $diagnosticArguments.Count){
+ & (Join-Path $PSScriptRoot 'join-native.ps1') -LocalOnly -Server '127.0.0.1:5121' -Headless:$Headless
+ exit $LASTEXITCODE
+}
+$build=Join-Path $PSScriptRoot '.cache/local-bridge/latest.json'
+if(-not (Test-Path -LiteralPath $build)){throw 'Build the compatibility bridge before running staged diagnostic fixtures.'}
 $electron=Join-Path $root 'node_modules/electron/dist/electron.exe'
 $arguments=@((Join-Path $PSScriptRoot 'tools/local-host.cjs'))
 if($WeatherSmoke){$arguments+='--weather-smoke'}

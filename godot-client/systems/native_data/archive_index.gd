@@ -1,10 +1,18 @@
 extends RefCounted
 const Binary = preload("res://systems/native_data/binary_data.gd")
+const Residency=preload("res://systems/native_data/resource_residency.gd")
 const MAX_ENTRIES := 1000000
 const MAX_RESOURCE_BYTES := 256 * 1024 * 1024
 var failure := ""
 var index_bytes := 0
 var opened_size := 0
+var index_cache_hit:=false
+var index_cache_wait_us:=0
+var index_identity:=""
+func resident_index(kind: String,path: String,parts: Array,decode: Callable) -> Dictionary:
+	var result:=Residency.index(kind,[path.simplify_path(),opened_size,FileAccess.get_modified_time(path)],parts,decode)
+	index_cache_hit=bool(result.cache_hit); index_cache_wait_us=int(result.wait_us); index_identity=str(result.identity); failure=str(result.error)
+	return result.value
 func reject(message: String) -> Dictionary:
 	if failure.is_empty(): failure = message
 	return {}
@@ -34,6 +42,10 @@ func erf(path: String) -> Dictionary:
 	var name_size := 32 if stride == 40 else 16
 	var names := Binary.new(read_range(file, keys, count * stride)); var locations := Binary.new(read_range(file, resources, count * 8))
 	if not failure.is_empty(): return {}
+	return resident_index("erf",path,[h.data,names.data,locations.data],func():
+		var value:=erf_entries(path,version,count,stride,name_size,names,locations)
+		return {"value":value,"error":failure})
+func erf_entries(path: String,version: String,count: int,stride: int,name_size: int,names,locations) -> Dictionary:
 	var entries := {}
 	for index in count:
 		var name: String = names.text(index * stride, name_size, true).to_lower()
@@ -63,6 +75,10 @@ func key(path: String) -> Dictionary:
 		if not failure.is_empty(): return {}
 		if name.is_empty() or name.is_absolute_path() or ":" in name or ".." in name.split("/"): return reject("Unsafe KEY archive path")
 		filenames.append(name)
+	return resident_index("key",path,[h.data,bifs.data,resources.data,var_to_bytes(filenames)],func():
+		var value:=key_entries(version,count,stride,filenames,resources)
+		return {"value":value,"error":failure})
+func key_entries(version: String,count: int,stride: int,filenames: Array,resources) -> Dictionary:
 	var entries := {}
 	for index in count:
 		var at := index * stride; var name: String = resources.text(at, 16, true).to_lower()
@@ -83,6 +99,10 @@ func bif(path: String) -> Dictionary:
 	var stride := 20 if version == "V1.1" else 16
 	var table := Binary.new(read_range(file, h.u32(16), count * stride))
 	if not failure.is_empty(): return {}
+	return resident_index("bif",path,[h.data,table.data],func():
+		var value:=bif_entries(path,version,count,stride,table)
+		return {"value":value,"error":failure})
+func bif_entries(path: String,version: String,count: int,stride: int,table) -> Dictionary:
 	var entries: Array = []
 	for index in count:
 		var cursor := index * stride + (8 if version == "V1.1" else 4)

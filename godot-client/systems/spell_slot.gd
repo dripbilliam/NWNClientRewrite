@@ -1,4 +1,5 @@
 extends Button
+const Numbers=preload("res://systems/native_data/game_numbers.gd")
 
 signal selected
 signal activated
@@ -6,6 +7,7 @@ signal context_requested(point: Vector2)
 signal dropped(data: Dictionary)
 var payload: Dictionary = {}
 var accepts: Callable
+var right_click_activates:=true
 var image: TextureRect
 var secondary_image: TextureRect
 var caption: Label
@@ -41,7 +43,7 @@ func setup(label: String, uses: Variant = null, compact: bool = false) -> void:
 	add_child(caption)
 	counter = Label.new()
 	counter.position = Vector2(3, 1)
-	counter.text = str(int(uses)) if uses is float and is_equal_approx(uses, roundf(uses)) else (str(uses) if uses != null else "")
+	counter.text = Numbers.text(uses, "")
 	counter.add_theme_font_size_override("font_size", 12)
 	counter.add_theme_color_override("font_color", Color.YELLOW)
 	counter.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -52,7 +54,7 @@ func setup(label: String, uses: Variant = null, compact: bool = false) -> void:
 	gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed:
 			if event.button_index == MOUSE_BUTTON_RIGHT or event.button_index == MOUSE_BUTTON_LEFT and event.double_click:
-				activated.emit()
+				if event.button_index!=MOUSE_BUTTON_RIGHT or right_click_activates: activated.emit()
 				if event.button_index == MOUSE_BUTTON_RIGHT: context_requested.emit(get_global_transform_with_canvas() * event.position)
 				accept_event())
 

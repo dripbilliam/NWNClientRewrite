@@ -52,7 +52,7 @@ export function readAreaState(r,build){
  area.mapPins=[];let n=count(r,r.readInt(),20,'map-pin');
  for(let i=0;i<n;i++)area.mapPins.push({id:r.readObjectIdClient(),position:vector(r),enabled:r.readBool(),name:localized(r)});
  area.playerMapPins=[];n=count(r,r.readInt(),20,'player-map-pin');
- for(let i=0;i<n;i++)area.playerMapPins.push({index:r.readInt(),text:string(r),position:vector(r)});
+ for(let i=0;i<n;i++)area.playerMapPins.push({index:r.readInt()>>>0,text:string(r),position:vector(r)});
  area.sounds=[];n=count(r,r.readWord(),53,'sound');
  for(let i=0;i<n;i++)area.sounds.push(readNetworkSoundState(r));
  area.placeableLights=[];n=count(r,r.readWord(),18,'placeable-light');

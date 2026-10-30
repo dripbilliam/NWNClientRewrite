@@ -1,5 +1,79 @@
 # Native multiplayer character creation
 
+## Current direct-native entry
+
+The normal `join-native.ps1` entry now owns all fifteen creation pages, rules,
+recommendations, validation, typed BIC writing, portraits, appearance preview and
+voice samples in Godot. `src/character_creation.js` and the old JS creation
+services are reference only; the protocol host rejects their imports. It receives
+only a finished BIC for the existing original upload protocol. Authentication,
+downloads and packet encoding/decoding remain in the existing protocol bridge.
+
+From Multiplayer, connect to a server, choose **Create character**, make or
+recommend choices, then **Review → Play**. The original server decides admission.
+Local-vault and create-on-server upload selection uses the admitted server policy.
+The current direct-native live checks cover the local-vault Prelude campaign;
+server-vault-only creation still needs a fresh check on this route.
+
+### Owners and server data
+
+- `systems/native_creation.gd`: connection-owned draft, private view/control
+  handles, resource queue and submit/cancel lifecycle.
+- `systems/native_data/creation_rules.gd`: active physical 2DA rows, prerequisites,
+  point allocation, class/racial feats, skills, spell choices and package preferences.
+- `systems/native_data/creation_bic.gd`, `gff_writer.gd`: native first-level BIC,
+  original field widths/struct types, starting items from active UTIs and CP1252.
+- `systems/native_creation_preview.gd`: the same native creature/model/palette/
+  texture/animation pipeline as the world, in a Godot SubViewport. No GLB staging.
+- `systems/native_creation_voice.gd`: active soundset/SSF selection and original
+  resource bytes decoded and played by Godot. Repeated samples cycle codes 0–48.
+
+Classes, races, spells, feats, class spell-table columns, prerequisite tables,
+starting packages/items and recommendation resources use the connection's resolved
+catalog, including module/HAK, NWSync, Workshop and override precedence. The creator
+has no embedded stock spell or feat lists. Custom TLKs, including female variants,
+are resolved natively. Replacing the catalog retires previous tables and TLKs;
+native preparation caches use content identities. Missing selectable packages
+remain explicit rather than being replaced with a guessed stock package.
+
+Native workers prepare resources and BICs. A draft scope prevents a cancelled
+worker from submitting into a reopened creator. Submitted characters wait for
+the server; rejection restores Review. Disconnect drains owned work. This does
+not make the client authoritative over character legality.
+
+### Current evidence
+
+- `reports/native-creation-ui-final-v1.json`: 103 checks, all eleven original base
+  classes, native BIC generation, all pages, original animated/paletted appearance,
+  actual original SSF audio, stale/out-of-range controls and cancel/reopen.
+- `reports/native-creation-overrides-final-v1.json`: 15 checks with authored
+  replacements over installed resources: custom class/spell column/family/feats,
+  prerequisite cells, package preferences, custom TLK and a new catalog afterward.
+- `reports/native-creation-prelude-v2.json`,
+  `native-creation-prelude-wizard-v1.json`, `native-creation-prelude-druid-v1.json`:
+  newly created Fighter/Wizard/Druid admitted by the original localhost Prelude
+  server, rendered, moved under authority and exported. Wizard learned spells and
+  caster feat selections survive server export. `native-creation-prelude-final-v1`
+  checks the final worker-scope build separately.
+- `reports/native-creation-text-regression-v1.json`: 1,025 original TLK/token/UI
+  checks. `native-creation-preview-compile-v1`: 25 typed writer checks. Sixteen
+  existing Node lobby regressions also pass.
+
+Tests use normal-heap CDB and preserve failed evidence. No public connections,
+native exceptions, source mutations during checks or engine/lifetime errors are
+accepted. These are functionality checks, not FPS acceptance. Reproduce with:
+
+```powershell
+./godot-client/join-native.ps1 -CreationCheck -CreationClass wizard -Debugger -Run unique-creation-run
+```
+
+Use the owned original Prelude server on 127.0.0.1:5121. Creation checks do not
+connect publicly or save test exports into the normal replacement character vault.
+Broader server-vault/mod/content coverage, prerequisite edge cases, descriptions,
+feat grouping, original window fidelity and full combat/effects remain open.
+
+## Historical staged-client evidence (superseded by the direct-native entry)
+
 Status: **creator core implemented; full frontend parity remains incomplete**.
 Godot owns the fifteen-page creation window and its input. The existing
 `src/character_creation.js` remains the rules, recommendations, validation and

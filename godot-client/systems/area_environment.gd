@@ -1,4 +1,5 @@
 extends WorldEnvironment
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 
 const Core = preload("res://systems/area_environment_state.gd")
 var camera: Camera3D
@@ -111,6 +112,10 @@ func receive(message: Dictionary) -> bool:
 	return true
 
 func _process(delta: float) -> void:
+	var began:=Timing.begin()
+	_profile_process(delta)
+	Timing.finish("callback_environment",began)
+func _profile_process(delta: float) -> void:
 	advance(delta)
 	advance_weather(delta)
 

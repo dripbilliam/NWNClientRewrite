@@ -39,6 +39,16 @@ export function doorActionRequest({targetId,action}){
 }
 export const talkToRequest=({targetId})=>targetRequest(targetId,8,4);
 export const attackRequest=({targetId})=>targetRequest(targetId,2,4);
+// Original7c0050: split a stack via6/23, client object ID + native WORD.
+export function splitItemRequest({itemId,amount}){
+ if(!Number.isInteger(amount)||amount<1||amount>65535)throw Error('Invalid native item split amount');
+ return targetRequest(itemId,23,6,w=>w.writeWord(amount));
+}
+// Original7c0ee0: inventory12/13. Reply14 acknowledges processing, including
+// refused learning; only server feedback/known-spell updates establish success.
+export function learnScrollRequest({itemId}){
+ const packet=targetRequest(itemId,13,4);packet[1]=12;return packet;
+}
 // Click on a native CTL_ACTIONQUEUE widget:874a00 ->7bf390. The server
 // dispatcher4531b0 subtype20 calls CancelAction; it owns removal/results.
 export function cancelActionRequest({actionId,groupId}){
@@ -68,6 +78,16 @@ export function inventoryWindowRequest({ownerId,open}){
 export function inventoryPanelRequest({panel,self=true}){
  if(!Number.isInteger(panel)||panel<0||panel>255||![true,false,0,1].includes(self))throw new Error('Invalid native inventory panel request');
  const w=new NativeMessageWriter(1);w.create(5,0xffffffff,1);w.writeByte(panel);w.writeBool(Number(self));w.setPrefix(Uint8Array.of(112,13,2));return Uint8Array.from(w.getWriteMessage().data);
+}
+
+// Original gold drag sender1407bdc70. The server owns the balance and transfer.
+export function goldTransferRequest({targetId=OBJECT_INVALID,amount,position,placement=false,x=0,y=0}){
+ if(!uint(targetId)||!Number.isInteger(amount)||amount< -2147483648||amount>2147483647||![true,false,0,1].includes(placement)||![x,y].every(v=>Number.isInteger(v)&&v>=0&&v<=255))throw Error('Invalid native gold request');
+ if(targetId===OBJECT_INVALID&&(!Array.isArray(position)||position.length!==3||!position.every(v=>Number.isFinite(v)&&Number.isFinite(Math.fround(v)))))throw Error('Invalid native gold drop position');
+ const w=new NativeMessageWriter(1);w.create((targetId===OBJECT_INVALID?22:10)+(placement?2:0),0xffffffff,1);w.writeObjectIdClient(targetId);w.writeInt(amount);w.writeBool(Number(placement));
+ if(targetId===OBJECT_INVALID)for(const v of position)w.writeFloat(v,1,32);
+ if(placement){w.writeByte(x);w.writeByte(y);}
+ w.setPrefix(Uint8Array.of(112,8,1));return Uint8Array.from(w.getWriteMessage().data);
 }
 
 function itemActionRequest(itemId,minor,size,fields){

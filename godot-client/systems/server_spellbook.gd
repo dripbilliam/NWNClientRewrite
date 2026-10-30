@@ -1,6 +1,7 @@
 extends "res://systems/draggable_panel.gd"
 
 signal request(message: Dictionary)
+signal rendered
 const Slot = preload("res://systems/spell_slot.gd")
 const Images = preload("res://systems/runtime_image.gd")
 const Text = preload("res://systems/server_text.gd")
@@ -23,6 +24,7 @@ var changing := false
 var wanted := false
 var scrolls: Dictionary = {}
 var scroll_positions: Dictionary = {}
+var native_skin
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Spellbook", "spellbook", Vector2(70, 170), storage)
@@ -68,6 +70,7 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	reset()
 
 func _fit_above_quickbar() -> void:
+	if is_instance_valid(native_skin) and native_skin.layout_ready: return
 	# Growing a family panel should leave the docked drag destination visible.
 	# This changes position only, never minimum size during a layout callback.
 	position.y = minf(position.y, maxf(0, get_viewport_rect().size.y - 110 - size.y))
@@ -128,6 +131,7 @@ func receive(message: Dictionary) -> void:
 
 func present(message: Dictionary) -> void:
 	var old_key := str(rows.get(selected_id, {}).get("key", ""))
+	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.begin_render()
 	for key in scrolls:
 		scroll_positions[key] = scrolls[key].scroll_vertical
 	scrolls.clear()
@@ -170,6 +174,8 @@ func present(message: Dictionary) -> void:
 	if not kept:
 		details.clear()
 	show()
+	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render()
+	rendered.emit()
 
 func make_list(parent: Node, caption: String, entries: Array, height: float = 220) -> void:
 	var column := VBoxContainer.new()
@@ -193,22 +199,23 @@ func make_list(parent: Node, caption: String, entries: Array, height: float = 22
 		var owner_view := view_id
 		rows[id] = row
 		var button := Slot.new()
+		if is_instance_valid(native_skin) and native_skin.layout_ready: button.right_click_activates=false
 		var ready_text := (" · Ready" if row.ready else " · Used / rest required") if entries == state.get("memory", []) and int(row.spellId) >= 0 else ""
 		button.setup(str(row.label) + (" ›" if row.family else "") + ready_text + (" · waiting" if row.pending else ""), row.uses if int(row.spellId) >= 0 else null)
-		if row.canDrag:
+		if row.canDrag and not row.pending:
 			button.payload = {"kind": "spell", "viewId": view_id, "entryId": id}
 		button.selected.connect(func():
-			if view_id == owner_view:
+			if wanted and view_id == owner_view and widgets.get(id)==button:
 				select_entry(id))
 		button.activated.connect(func():
-			if view_id != owner_view:
+			if not wanted or view_id != owner_view or widgets.get(id)!=button:
 				return
 			select_entry(id)
 			if not row.family:
 				operation("book-activate"))
-		button.accepts = func(data): return view_id == owner_view and data.get("kind") == "spell" and int(data.get("viewId", -2)) == owner_view and rows.has(int(data.get("entryId", -1))) and row.get("slot", -1) >= 0 and entries == state.get("memory", [])
+		button.accepts = func(data): return wanted and view_id == owner_view and widgets.get(id)==button and data.get("kind") == "spell" and int(data.get("viewId", -2)) == owner_view and rows.has(int(data.get("entryId", -1))) and not row.pending and not rows[int(data.entryId)].pending and int(rows[int(data.entryId)].classIndex)==int(row.classIndex) and int(rows[int(data.entryId)].level)==int(row.level) and row.get("slot", -1) >= 0 and entries == state.get("memory", [])
 		button.dropped.connect(func(data):
-			if view_id == owner_view:
+			if wanted and view_id == owner_view and widgets.get(id)==button:
 				request.emit({"kind": "book-prepare", "viewId": owner_view, "entryId": data.entryId, "destinationId": id}))
 		list.add_child(button)
 		widgets[id] = button
@@ -225,10 +232,11 @@ func select_entry(id: int, restoring: bool = false) -> void:
 	selected_id = id
 	var row: Dictionary = rows[id]
 	cast.disabled = not row.canCast or row.family or row.pending
-	memorize.disabled = not state.prepared or int(row.spellId) < 0 or row.pending
+	memorize.disabled = not state.prepared or int(row.spellId) < 0 or int(row.get("slot",-1))>=0 or row.pending
 	clear.disabled = int(row.spellId) < 0 or not state.memory.any(func(w): return int(w.entryId) == id) or row.pending
 	if not row.family or not restoring:
 		request.emit({"kind": "book-family" if row.family else "book-inspect", "viewId": view_id, "entryId": id})
+	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.select_entry()
 
 func operation(kind: String) -> void:
 	if view_id >= 0 and selected_id >= 0:

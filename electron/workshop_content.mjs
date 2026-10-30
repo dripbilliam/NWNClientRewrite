@@ -2,8 +2,8 @@ import fs from 'node:fs/promises';import path from 'node:path';
 // Snapshot one explicitly selected content root and its enabled local mods.
 // The resource context mounts their HAKs globally below selected server content.
 export function workshopContent(directory,{disabledMods=[]}={}){
- let items;const aliases=new Set(['portraits','hak','tlk','modules','override','ambient','music']);
- async function roots(){if(!items)items=(async()=>{if(!directory)return[];let entries;try{entries=await fs.readdir(directory,{withFileTypes:true});}catch(error){if(error.code==='ENOENT')return[];throw error;}const names=entries.filter(e=>e.isDirectory()).map(e=>e.name),installed=names.filter(n=>/^\d+$/.test(n));let order=installed;
+ let items;const aliases=new Set(['portraits','hak','tlk','modules','override','ambient','music','localvault','dmvault']);
+ async function roots(){if(!items)items=(async()=>{if(!directory)return[];let entries;try{entries=await fs.readdir(directory,{withFileTypes:true});}catch(error){if(error.code==='ENOENT')return[];throw error;}const names=entries.filter(e=>e.isDirectory()).map(e=>e.name).sort(),installed=names.filter(n=>/^\d+$/.test(n));let order=installed;
   // Steam's installed-item section supplies stable local membership/order;
   // pending downloads/details do not admit another item's loose directories.
   try{const text=await fs.readFile(path.join(directory,'../../appworkshop_704450.acf'),'utf8'),start=text.indexOf('"WorkshopItemsInstalled"');if(start>=0){const open=text.indexOf('{',start);let depth=0,end=open;for(;end<text.length;end++){if(text[end]==='{')depth++;if(text[end]==='}'&&--depth===0)break;}const section=text.slice(open+1,end);order=[...section.matchAll(/^\s*"(\d+)"\s*\r?\n\s*\{/gm)].map(m=>m[1]).filter(id=>installed.includes(id));}}catch(error){if(error.code!=='ENOENT')throw error;}

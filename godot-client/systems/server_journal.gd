@@ -9,6 +9,7 @@ var scroll: ScrollContainer
 var body: VBoxContainer
 var state: Dictionary = {}
 var positions: Dictionary = {}
+var native_skin
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Journal", "journal", Vector2(250, 100), storage)
@@ -23,24 +24,27 @@ func clear_body() -> void:
 	for child in body.get_children(): body.remove_child(child); child.queue_free()
 
 func reset() -> void:
+	if is_instance_valid(native_skin): native_skin.reset_view()
 	wanted = false; view_id = -1; page = 0; state.clear(); positions.clear(); clear_body(); hide()
 
 func open() -> void:
 	if wanted: show(); move_to_front(); return
-	wanted = true; show(); move_to_front(); clear_body(); body.add_child(Text.label({"text": "Waiting for the server journal…"}, 550)); request.emit({"kind": "journal-open"})
+	wanted = true; show(); move_to_front(); clear_body(); body.add_child(Text.label({"text": "Waiting for the server journal…"}, 550)); request.emit({"kind": "journal-open", "page":page})
 
 func close_journal() -> void:
 	if wanted: request.emit({"kind": "journal-close"})
 	wanted = false; hide()
 
 func choose(index: int) -> void:
-	if wanted and view_id >= 0 and index != page:
+	if wanted and view_id >= 0 and index>=0 and index<4 and index != page:
 		request.emit({"kind": "journal-page", "viewId": view_id, "page": index})
 
 func receive(message: Dictionary) -> void:
 	if message.kind == "journal-closed": reset(); return
 	if not wanted or message.kind != "journal-view": return
-	positions[page] = scroll.scroll_vertical; page = int(message.page); view_id = int(message.viewId); state = message.duplicate(true); clear_body()
+	positions[page] = native_skin.quest_scroll.scroll_vertical if is_instance_valid(native_skin) and native_skin.layout_ready and page!=2 else scroll.scroll_vertical
+	page = int(message.page); view_id = int(message.viewId); state = message.duplicate(true); clear_body()
+	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render(); return
 	for index in tabs.size(): tabs[index].disabled = index == page
 	for entry in state.entries:
 		body.add_child(Text.label(entry.title, 550)); body.add_child(Text.label(entry.description, 550)); body.add_child(HSeparator.new())

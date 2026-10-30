@@ -14,6 +14,8 @@ export function serverDiscoveryRequest(port,section=0){
 // The native server accepts a six-byte BNXI header. Its handler only reads
 // the length; authenticated client identity belongs to the later login path.
 export const serverInfoRequest=port=>Uint8Array.of(...encoder.encode('BNXI'),...portBytes(port));
+// Original SendBNDSMessage250760: extended description/build/game-type query.
+export const serverDetailsRequest=port=>Uint8Array.of(...encoder.encode('BNDS'),...portBytes(port));
 // Public BNXR tail, distinct from the authenticated CNWMessage bitstream.
 // HandleBNXRMessage140244ad0: extension 2, presence, URL, primary hash,
 // then count * (flags, language, hash), all strings prefixed with a byte.
@@ -33,6 +35,12 @@ export function readServerQueryResponse(bytes){
  if(!(bytes instanceof Uint8Array))throw new Error('Server-query bytes are unavailable');
  const requireBytes=(offset,size)=>{if(offset+size>bytes.length)throw new Error('Truncated native server-query response');};
  requireBytes(0,4);const tag=String.fromCharCode(...bytes.subarray(0,4)),string=(offset,length)=>{requireBytes(offset,length);return bytes[offset]===0?'':decodeGffText(bytes.subarray(offset,offset+length));};
+ if(tag==='BNDR'){
+  requireBytes(0,20);let at=6;
+  const field=()=>{requireBytes(at,4);const size=new DataView(bytes.buffer,bytes.byteOffset+at,4).getUint32(0,true);at+=4;const value=string(at,size);at+=size;return value;};
+  const gameDetails=field(),moduleDescription=field(),serverVersion=field();requireBytes(at,2);
+  return{type:'details',port:bytes[4]|bytes[5]<<8,gameDetails,moduleDescription,serverVersion,gameType:new DataView(bytes.buffer,bytes.byteOffset+at,2).getInt16(0,true)};
+ }
  if(tag==='BNER'){
   requireBytes(0,9);if(bytes[7]>5)throw new Error('Invalid native discovery response section');
   return{type:'discovery',protocolMarker:bytes[4],port:bytes[5]|bytes[6]<<8,section:bytes[7],serverName:string(9,bytes[8])};

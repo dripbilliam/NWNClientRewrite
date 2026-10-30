@@ -1,0 +1,7 @@
+[configuration]
+entry_symbol = "nwn_particle_kernel_init"
+compatibility_minimum = "4.7"
+reloadable = false
+
+[libraries]
+windows.x86_64 = "res://.cache/native-kernel/nwn-particle-kernel.dll"

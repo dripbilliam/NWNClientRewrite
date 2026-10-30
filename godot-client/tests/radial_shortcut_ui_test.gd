@@ -31,12 +31,13 @@ func run() -> void:
 	bar.request.connect(func(value): sent.append(value)); radial.request.connect(func(value): actions.append(value))
 	var rows: Array = []
 	for index in 36: rows.append({"index":index,"label":"Empty shortcut","empty":true,"enabled":false,"uses":null})
-	bar.receive({"kind":"quickbar-view","quickbarId":7,"rows":rows}); bar.render(2)
+	bar.receive({"kind":"quickbar-view","quickbarId":7,"rows":rows}); bar.pages[2].pressed.emit()
 	radial.open_at(Vector2(500,350),null,Vector3.ZERO,false)
 	var request_id: int = radial.request_id
-	var entries := [{"slot":0,"label":"Family parent","submenu":true,"canDrag":true},{"slot":1,"label":"Protection from Evil","canDrag":true,"uses":3},{"slot":2,"label":"No charges","canDrag":true,"disabled":true},{"slot":7,"label":"More powers","submenu":true}]
+	var entries: Array = JSON.parse_string(JSON.stringify([{"slot":0,"label":"Family parent","submenu":true,"canDrag":true},{"slot":1,"label":"Protection from Evil","canDrag":true,"uses":3},{"slot":2,"label":"No charges","canDrag":true,"disabled":true},{"slot":7,"label":"More powers","submenu":true}]))
 	radial.receive({"kind":"action-menu","requestId":request_id,"menuId":5,"depth":2,"title":"Item powers","entries":entries})
 	await process_frame; await process_frame
+	check(radial.counts[1].text=="3" and radial.buttons[1].tooltip_text.contains("uses: 3 ·") and not radial.buttons[1].tooltip_text.contains("3.0"), "Wheel use count and tooltip format JSON numbers as integers")
 	check(radial.hint.text.contains("Drag a power"), "Item power menus explain the native shortcut drag gesture")
 	check(radial.buttons[0]._get_drag_data(Vector2.ZERO) == null and radial.buttons[7]._get_drag_data(Vector2.ZERO) == null, "Family parents and More pages navigate instead of creating invalid bindings")
 	check(radial.buttons[2]._get_drag_data(Vector2.ZERO) == null, "A disabled power cannot start a drag")
@@ -50,7 +51,7 @@ func run() -> void:
 	await motion(destination,destination-origin-Vector2(20,0),true)
 	check(root.gui_is_dragging(), "Synthetic native pointer motion starts the wheel power drag")
 	await mouse(destination,false)
-	check(sent.size() == 1 and sent[0] == {"kind":"radial-shortcut","quickbarId":7,"requestId":request_id,"menuId":5,"slot":1,"index":35}, "Actual Godot GUI drop sends the private assignment without casting or forged property data")
+	check(sent.size() == 1 and sent[0] == {"kind":"radial-shortcut","quickbarId":7,"requestId":request_id,"menuId":5,"slot":1,"index":35,"kindSource":"radial-entry"}, "Actual Godot GUI drop sends the private assignment and existing route marker without casting or forged property data")
 	check(actions.is_empty() and not root.gui_is_dragging(), "Power dragging does not dispatch its click action or cancel the menu prematurely")
 	radial.pending = true
 	check(not bar.buttons[35]._can_drop_data(Vector2.ZERO,payload), "A menu awaiting an action cannot authorize a second assignment")
@@ -71,5 +72,5 @@ func run() -> void:
 	check(not bar.buttons[35]._can_drop_data(Vector2.ZERO,current), "Closing the wheel retires all outstanding action drags")
 	bar.reset(); bar.free(); radial.free(); await process_frame; await process_frame
 	var file := FileAccess.open(output,FileAccess.WRITE)
-	file.store_string(JSON.stringify({"passed":failures.is_empty(),"checks":checks,"failures":failures,"scope":"Authored native power drag/drop and icon ownership with synthetic viewport input; not physical-device or actual server activation acceptance"},"\t")); file.close()
+	file.store_string(JSON.stringify({"success":failures.is_empty(),"passed":failures.is_empty(),"checks":checks,"failures":failures,"assignments":sent,"scope":"Authored native power drag/drop and icon ownership with synthetic viewport input; not physical-device or actual server activation acceptance"},"\t")); file.close()
 	quit(0 if failures.is_empty() else 1)

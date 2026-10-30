@@ -1,4 +1,5 @@
 extends CanvasLayer
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 
 signal examine_requested(id: int)
 
@@ -17,6 +18,7 @@ var nameplate_root: Control
 var storage := "user://native-menu-layout.cfg"
 var live_mode := false
 var instructions: Label
+var refresh_queued:=false
 
 func enable_live_mode() -> void:
 	live_mode = true
@@ -91,6 +93,13 @@ func refresh_entities() -> void:
 	if current_id >= 0 and not registry.entities.has(current_id):
 		current_id = -1
 		panels.details.hide()
+func queue_refresh_entities() -> void:
+	if refresh_queued: return
+	refresh_queued=true; _flush_entities.call_deferred()
+func _flush_entities() -> void:
+	var began:=Timing.begin(); refresh_queued=false
+	if is_inside_tree(): refresh_entities()
+	Timing.finish("hud_deferred_refresh_ms",began)
 
 func inspect_entity(id: int) -> void:
 	if not registry.entities.has(id):

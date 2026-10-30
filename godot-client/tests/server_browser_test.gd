@@ -1,6 +1,5 @@
 extends SceneTree
 const Browser = preload("res://systems/server_browser.gd")
-const Client = preload("res://systems/local_connection.gd")
 var checks := 0
 var failures: Array[String] = []
 var messages: Array = []
@@ -54,4 +53,4 @@ func run() -> void:
 	check(messages.back().operation == "tab" and messages.back().tab == "Direct", "Authored pointer dispatch reaches the native Direct tab")
 	check(ui.tab_buttons.History.disabled, "Pointer submission immediately locks controls before the backend reply")
 	ui.free(); await process_frame
-	var file := FileAccess.open(output, FileAccess.WRITE); file.store_string(JSON.stringify({"checks":checks,"passed":failures.is_empty(),"failures":failures},"\t")); file.close(); quit(0 if failures.is_empty() else 1)
+	var file := FileAccess.open(output, FileAccess.WRITE); file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"passed":failures.is_empty(),"failures":failures},"\t")); file.close(); quit(0 if failures.is_empty() else 1)

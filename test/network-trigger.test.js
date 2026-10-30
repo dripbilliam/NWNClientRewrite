@@ -46,3 +46,15 @@ test('Enter retains native selected-trigger ID through owning frontend and movem
  await frontend.interact(o.id,networkDefaultInteraction(o),false);assert.deepEqual(sent,[walkToWaypointRequest({areaId:o.areaId,position:networkTriggerSurface(o).destination,targetId:o.id,sequence:1,run:false,clientPath:false,fractional:0})]);assert.deepEqual(actor,before);
  await assert.rejects(session.interact({areaId:o.areaId,areaGeneration:1,targetId:o.id,action:'trigger.transition'}));o.replicated.hasTransition=0;await assert.rejects(frontend.interact(o.id,'trigger.transition'));assert.equal(sent.length,1);await session.disconnect();
 });
+test('Godot-selected trigger approach retains its ID without importing legacy geometry',async()=>{
+ const {registerHooks}=await import('node:module');
+ const hook=registerHooks({resolve(specifier,context,next){if(specifier.endsWith('/network_trigger.js')||specifier==='three')throw Error('Legacy geometry forbidden');return next(specifier,context);}});
+ const world=new NetworkWorld(),o=region(),actor={id:0xffffffff,areaId:o.areaId,objectType:5,replicated:{position:[5,5,0]}};world.areaId=o.areaId;world.localObjectId=actor.id;world.registry.addObjectAtPos(o.id,o);world.registry.addObjectAtPos(actor.id,actor);
+ const peer=new EventEmitter(),sent=[];peer.sendGameMessage=async packet=>sent.push(packet);peer.disconnect=async()=>{};
+ const session=new NetworkGameSession({peer,identity:{dispose(){}},build:{build:{},dispose(){}},resources:{},openModule:async()=>null});session.world=world;session.phase='playing';session.areaReadySent=true;session.areaGeneration=2;
+ try{
+  const position=[2,3,0];await session.interact({areaId:o.areaId,areaGeneration:2,targetId:o.id,action:'trigger.transition',position,run:true});
+  assert.deepEqual(sent,[walkToWaypointRequest({areaId:o.areaId,position,targetId:o.id,sequence:1,run:true,clientPath:false,fractional:0})]);
+  o.replicated.isTrap=true;await assert.rejects(session.interact({areaId:o.areaId,areaGeneration:2,targetId:o.id,action:'trigger.transition',position}));assert.equal(sent.length,1);
+ }finally{hook.deregister();await session.disconnect();}
+});

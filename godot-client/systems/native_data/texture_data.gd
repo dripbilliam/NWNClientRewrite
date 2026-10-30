@@ -1,9 +1,12 @@
 extends RefCounted
 # CPU data only: preserve compressed blocks/mips for native GPU publication.
 const Binary = preload("res://systems/native_data/binary_data.gd")
+const Conversion=preload("res://systems/native_data/raster_conversion.gd")
 const MAX_PIXELS := 16777216
 var failure := ""
 var reader
+var use_native:=Conversion.configured_enabled()
+var stats:={"native_pixels":0,"gd_pixels":0}
 func reject(message: String) -> Dictionary:
 	if failure.is_empty(): failure = message
 	return {}
@@ -13,6 +16,7 @@ func block_bytes(format: String, width: int, height: int) -> int:
 	return ((width + 3) / 4) * ((height + 3) / 4) * (8 if format in ["dxt1_rgb", "dxt1_rgba", "etc1"] else 16)
 func parse(bytes: PackedByteArray, type: int) -> Dictionary:
 	failure = ""; reader = Binary.new(bytes)
+	stats={"native_pixels":0,"gd_pixels":0}
 	var result := {}
 	match type:
 		3: result = tga()
@@ -63,9 +67,12 @@ func dds() -> Dictionary:
 	for level in count:
 		var stride := bits / 8; var size := w * h * stride
 		if not reader.contains(at, size): return reject("Truncated DDS raster")
-		var pixels := PackedByteArray(); pixels.resize(w * h * 4)
-		for index in w * h:
-			pixels[index*4] = reader.u8(at+index*stride+2); pixels[index*4+1] = reader.u8(at+index*stride+1); pixels[index*4+2] = reader.u8(at+index*stride); pixels[index*4+3] = reader.u8(at+index*stride+3) if bits == 32 else 255
+		var pixels:=Conversion.bgra(reader.data,at,w*h,stride) if use_native and Conversion.available else PackedByteArray()
+		if pixels.size()==w*h*4: stats.native_pixels+=w*h
+		else:
+			pixels.resize(w*h*4); stats.gd_pixels+=w*h
+			for index in w * h:
+				pixels[index*4] = reader.u8(at+index*stride+2); pixels[index*4+1] = reader.u8(at+index*stride+1); pixels[index*4+2] = reader.u8(at+index*stride); pixels[index*4+3] = reader.u8(at+index*stride+3) if bits == 32 else 255
 		mips.append({"width":w,"height":h,"data":pixels}); at += size
 		w = maxi(1,w >> 1); h = maxi(1,h >> 1)
 	return {"width":width,"height":height,"format":"rgba8","mips":mips,"generate_mips":false}
@@ -90,6 +97,12 @@ func ktx() -> Dictionary:
 		w = maxi(1,w >> 1); h = maxi(1,h >> 1)
 	return {"width":width,"height":height,"format":format,"mips":mips,"generate_mips":false}
 func tga() -> Dictionary:
+	if use_native and Conversion.available:
+		var converted:=Conversion.tga(reader.data)
+		if not converted.is_empty():
+			var w: int=reader.u16(12); var h: int=reader.u16(14); stats.native_pixels+=w*h
+			return {"width":w,"height":h,"format":"rgba8","mips":[{"width":w,"height":h,"data":converted}],"generate_mips":true}
+	# Exact GD validation/error fallback remains authoritative on native rejection.
 	if not reader.contains(0,18): return reject("Truncated TGA header")
 	var kind: int = reader.u8(2); var width: int = reader.u16(12); var height: int = reader.u16(14); var bits: int = reader.u8(16)
 	var paletted := kind in [1,9]; var grey := kind in [3,11]; var rle := kind in [9,10,11]
@@ -101,6 +114,7 @@ func tga() -> Dictionary:
 	if paletted:
 		palette = reader.bytes(cursor,reader.u16(5)*3); cursor += palette.size()
 	var count := width * height; var pixels := PackedByteArray(); pixels.resize(count*4); var done := 0
+	stats.gd_pixels+=count
 	while done < count:
 		var run := 1; var repeat := false
 		if rle:

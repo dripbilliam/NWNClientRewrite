@@ -1,4 +1,5 @@
 extends Node3D
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 const Transfer = preload("res://systems/audio_stream_transfer.gd")
 const State = preload("res://systems/world_sound_state.gd")
 var client
@@ -190,6 +191,8 @@ func _observe(row: Dictionary,stage: String) -> void:
 	if not closed:client.command(event)
 
 func _process(_delta: float) -> void:
+	var began:=Timing.begin(); advance(); Timing.finish("callback_audio",began)
+func advance() -> void:
 	if closed:return
 	_listener()
 	for row in voices.values().duplicate():

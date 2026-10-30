@@ -1,9 +1,28 @@
 extends Node3D
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 # Native original-table/model selection for static replicated objects. Actor,
 # equipment, animated door state and visual-transform consumers follow separately.
 signal finished(state: Dictionary)
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Template=preload("res://systems/native_render/model_template.gd")
+const Priority=preload("res://systems/native_render/stream_priority.gd")
+var priority_origin:=Vector3.ZERO
+var has_priority_origin:=false
+var priority_dirty:=false
+func set_priority_origin(value: Vector3) -> void:
+	if not value.is_finite() or has_priority_origin and priority_origin.distance_squared_to(value)<4.0: return
+	priority_origin=value; has_priority_origin=true; priority_dirty=true
+func refresh_priority() -> void:
+	if not priority_dirty or not has_priority_origin: return
+	priority_dirty=false
+	var names: Array=Priority.model_order(groups.keys(),groups,priority_origin)
+	var ranks: Dictionary={}
+	for index in names.size(): ranks[names[index]]=index
+	waiting.sort_custom(func(a,b):return int(ranks[a])<int(ranks[b]))
+	assets.prioritize(Priority.request_order(model_requests,names))
+	queue.sort_custom(func(a,b):
+		var da: float=priority_origin.distance_squared_to(a.placement.position); var db: float=priority_origin.distance_squared_to(b.placement.position)
+		return da<db or (da==db and int(a.placement.id)<int(b.placement.id)))
 var assets
 var pool
 var tables: Dictionary={}
@@ -14,16 +33,24 @@ var waiting: Array=[]
 var queue: Array=[]
 var templates: Dictionary={}
 var instances: Dictionary={}
+var invisible_ids: Array=[]
 var snapshot_objects: Array=[]
 var area_id: int=-1
+var admission_parent: Node3D
 var done:=false
 var closed:=false
-var stats: Dictionary={"planned":0,"rendered":0,"invisible":0,"deferred_actors":0,"deferred_items":0,"errors":[],"warnings":[],"limitations":[],"model_jobs":0}
+var stats: Dictionary={"planned":0,"rendered":0,"invisible":0,"deferred_actors":0,"deferred_items":0,"errors":[],"scope_errors":[],"object_failures":{},"warnings":[],"limitations":[],"model_jobs":0}
+func object_failed(id: int,reason: String,model: String="") -> void:
+	var diagnostic:={"id":id,"reason":reason}
+	if not model.is_empty(): diagnostic.model=model
+	stats.errors.append(diagnostic); stats.object_failures[id]=diagnostic
+func model_failed(name: String,reason: String) -> void:
+	for placement in groups.get(name,[]): object_failed(int(placement.id),reason,name)
 func configure(catalog, shared_pool, objects: Array, target_area: int, cache_path: String) -> void:
 	pool=shared_pool; snapshot_objects=objects; area_id=target_area
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	for table_name in ["placeables","genericdoors","doortypes"]: table_requests[assets.request(table_name,2017,"2da")]=table_name
-func pose(object: Dictionary) -> Dictionary:
+static func pose(object: Dictionary) -> Dictionary:
 	var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{}))
 	var position: Variant=state.get("position",fixed.get("position"))
 	if not position is Array or position.size()<3: return {}
@@ -47,49 +74,87 @@ func plan_objects() -> void:
 		if kind==9: row=table_row("placeables",int(state.get("appearance",fixed.get("appearance",-1))))
 		else:
 			var appearance:=int(state.get("doorType",0)); row=table_row("genericdoors" if appearance==0 else "doortypes",int(state.get("genericType",0)) if appearance==0 else appearance)
-			if str(row.get("VisibleModel","1"))=="0": stats.invisible+=1; continue
+			if str(row.get("VisibleModel","1"))=="0": stats.invisible+=1; invisible_ids.append(int(object.id)); continue
 		var name:=str(row.get("ModelName",row.get("Model",""))).to_lower()
-		if name.is_empty() or name=="****": stats.errors.append({"id":object.id,"reason":"Original appearance table has no model"}); continue
+		if name.is_empty() or name=="****": object_failed(int(object.id),"Original appearance table has no model"); continue
 		placement.merge({"id":int(object.id),"object":object,"model":name}); stats.planned+=1
 		if not groups.has(name): groups[name]=[]
 		groups[name].append(placement)
 	waiting=groups.keys()
+	priority_dirty=true
 func prepared(id: int, result: Dictionary) -> void:
 	if closed: return
 	if table_requests.has(id):
 		var table_name: String=table_requests[id]; table_requests.erase(id)
-		if not str(result.error).is_empty(): stats.errors.append({"table":table_name,"reason":result.error})
+		if not str(result.error).is_empty():
+			var diagnostic:={"table":table_name,"reason":result.error}; stats.errors.append(diagnostic); stats.scope_errors.append(diagnostic)
 		else: tables[table_name]=result.value
 		if table_requests.is_empty(): plan_objects()
 		return
 	if not model_requests.has(id): return
 	var name: String=model_requests[id]; model_requests.erase(id)
-	if not str(result.error).is_empty(): stats.errors.append({"model":name,"reason":result.error,"objects":groups[name].size()}); return
+	if not str(result.error).is_empty(): model_failed(name,str(result.error)); return
 	for texture_name in result.get("missing_textures",[]): stats.warnings.append({"model":name,"texture":texture_name,"reason":"Original texture lookup was recorded as missing; material retained without a bitmap"})
-	queue.append({"model":name,"bundle":result,"index":0})
+	for dependency in result.get("dependencies",[]):
+		if dependency.get("role")=="emitter" and dependency.get("missing",false): stats.warnings.append({"model":name,"texture":dependency.name,"reason":"Original emitter bitmap is unavailable; geometry retained, no replacement bitmap supplied"})
+	# Model de-duplication must not turn into model-group publication order.
+	for placement in groups[name]: queue.append({"model":name,"bundle":result,"placement":placement})
+	priority_dirty=true
 func _process(_delta: float) -> void:
+	var began:=Timing.begin()
+	_profile_process(_delta)
+	Timing.finish("callback_objects",began)
+func _profile_process(_delta: float) -> void:
 	if closed or done or not is_instance_valid(assets) or not table_requests.is_empty(): return
-	while not waiting.is_empty() and assets.pending.size()+assets.running.size()<assets.maximum_pending:
-		var name:=str(waiting.pop_front()); var id: int=assets.request(name,2002,"static-model")
-		if id<0: stats.errors.append({"model":name,"reason":assets.failure})
+	var phase_began:=Timing.begin()
+	refresh_priority()
+	Timing.finish("object_stream_priority_ms",phase_began); phase_began=Timing.begin()
+	while not waiting.is_empty() and assets.pending.size()+assets.running.size()<mini(assets.maximum_pending,assets.maximum_workers*2):
+		var name:=str(waiting.pop_front()); var door: bool=groups[name].any(func(row):return int(row.object.objectType)==10)
+		var id: int=assets.request(name,2002,"actor-model" if door else "static-model",{"relevant_tracks":true} if door else {})
+		if id<0: model_failed(name,str(assets.failure))
 		else: model_requests[id]=name; stats.model_jobs+=1
+	Timing.finish("object_stream_requests_ms",phase_began)
 	var began:=Time.get_ticks_usec(); var published:=0
 	while not queue.is_empty() and published<4:
 		if published>0 and Time.get_ticks_usec()-began>=3000: break
-		var entry: Dictionary=queue[0]; var name: String=entry.model
-		if not templates.has(name):
-			var template:=Template.new()
-			if not template.build(entry.bundle,pool): stats.errors.append({"model":name,"reason":template.failure}); queue.pop_front(); continue
+		if pool.has_method("can_publish") and not pool.can_publish(): break
+		var unit_began:=Time.get_ticks_usec()
+		var entry: Dictionary=queue.pop_front(); var name: String=entry.model
+		var placement: Dictionary=entry.placement; var door: bool=int(placement.object.objectType)==10
+		if not door and not templates.has(name):
+			phase_began=Timing.begin()
+			var template=pool.model_template(entry.bundle)
+			Timing.finish("object_stream_template_ms",phase_began)
+			if template==null: model_failed(name,str(pool.failure)); queue=queue.filter(func(row):return row.model!=name); continue
 			templates[name]=template
 			for feature in template.limitations:
 				if not stats.limitations.has(feature): stats.limitations.append(feature)
-		var placement: Dictionary=groups[name][int(entry.index)]; var instance=templates[name].create()
-		if instance==null: stats.errors.append({"id":placement.id,"reason":"Native model instance failed"})
+		var instance
+		phase_began=Timing.begin()
+		if door:
+			instance=preload("res://systems/native_render/door_instance.gd").new()
+			if not instance.install_door(entry.bundle,pool,int(placement.id),placement.object.get("replicated",{})):
+				object_failed(int(placement.id),instance.failure,name); instance.retire(); instance=null
+		else: instance=templates[name].create()
+		Timing.finish("object_stream_door_ms" if door else "object_stream_clone_ms",phase_began)
+		if instance==null: object_failed(int(placement.id),"Native model instance failed",name)
 		else:
-			add_child(instance); instance.position=placement.position; instance.rotation.y=float(placement.rotation); instance.set_meta("world_object_id",placement.id); instances[placement.id]=instance; stats.rendered+=1
-		entry.index+=1; published+=1
-		if int(entry.index)>=groups[name].size(): queue.pop_front()
+			instance.position=placement.position; instance.rotation.y=float(placement.rotation); instance.set_meta("world_object_id",placement.id)
+			phase_began=Timing.begin()
+			if is_instance_valid(admission_parent): instance.hide(); admission_parent.add_child(instance)
+			else: add_child(instance)
+			Timing.finish("object_stream_attach_ms",phase_began)
+			instances[placement.id]=instance; stats.rendered+=1
+		published+=1
+		phase_began=Timing.begin()
+		if pool.has_method("publication_finished"): pool.publication_finished(unit_began)
+		Timing.finish("object_stream_bookkeeping_ms",phase_began)
 	if waiting.is_empty() and model_requests.is_empty() and queue.is_empty(): done=true; finished.emit(stats.duplicate(true))
+func detach_prepared_data() -> Dictionary:
+	var payload:={"queue":queue,"groups":groups,"objects":snapshot_objects,"tables":tables}
+	queue=[]; groups={}; snapshot_objects=[]; tables={}
+	return payload
 func close() -> void:
 	if closed: return
 	closed=true

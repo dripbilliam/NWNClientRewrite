@@ -1,6 +1,5 @@
 import {EventEmitter} from 'node:events';
 import {NetworkPortalTransfer} from './network_portal_transfer.mjs';
-import {networkTriggerSurface} from '../src/network_trigger.js';
 import {decodeServerGameMessage,serverStatusRequest,moduleReadyRequest,clientAreaReadyRequest} from '../src/network_game_messages.js';
 import {resolveServerResources} from '../src/network_resources.js';
 import {characterBlobRequest,characterExportRequest} from '../src/network_character.js';
@@ -8,6 +7,7 @@ import {serverCharacterListRequest,serverCharacterPreviewRequest,serverCharacter
 import {serverCharacterPreviewSummary} from '../src/network_character_preview.js';
 import {loadNetworkObjectRules} from '../src/network_object_rules.js';
 import {NetworkWorld} from '../src/network_world.js';
+import {barterRequest} from '../src/network_barter.js';
 import {parseGff} from '../src/gff.js';
 import {isNetworkBytes} from '../src/network_bytes.js';
 import {RESOURCE_TYPE} from '../src/resource_archive.js';
@@ -28,11 +28,13 @@ import {featUseRequest,modeChangeRequest,possessFamiliarRequest} from '../src/ne
 import {associateCommandRequest,quickChatRequest,networkAssociateShortcut} from '../src/network_associate_input.js';
 import {levelUpBeginRequest,levelUpRequest,networkLevelUpSnapshot} from '../src/network_level_up.js';
 import {nuiInputRequest} from '../src/network_nui.js';
+import {mapPinClickRequest,mapNoteRequest} from '../src/network_map_input.js';
+import {partyRequest,playerListGuiRequest} from '../src/network_party_input.js';
 import {scriptTargetSelectionRequest,scriptTargetAllowed} from '../src/network_script_targeting.js';
 import {satisfiesNativeBuild} from '../src/network_build.js';
 import {driveControlRequest,abortDriveRequest,driveOrientationRequest} from '../src/network_player_requests.js';
 import {examineRequest,cancelActionRequest} from '../src/network_player_requests.js';
-import {walkToWaypointRequest,doorActionRequest,talkToRequest,useObjectRequest,attackRequest,dialogReplyRequest,inventoryWindowRequest,inventoryPanelRequest,equipItemRequest,unequipItemRequest,pickupItemRequest,dropItemRequest,moveItemRequest,toggleItemEquipmentRequest} from '../src/network_player_requests.js';
+import {walkToWaypointRequest,doorActionRequest,talkToRequest,useObjectRequest,attackRequest,dialogReplyRequest,inventoryWindowRequest,inventoryPanelRequest,goldTransferRequest,equipItemRequest,unequipItemRequest,pickupItemRequest,dropItemRequest,moveItemRequest,toggleItemEquipmentRequest,splitItemRequest,learnScrollRequest} from '../src/network_player_requests.js';
 
 // Application admission/presentation owner, distinct from the reliable peer.
 // Area-ready is acknowledged by the renderer after loading, never by a timer.
@@ -49,10 +51,10 @@ export class NetworkGameSession extends EventEmitter {
     if(!this.closed){this.diagnose({code:'network.game-session-failed',reason:'Native game-message delivery failed'});void this.disconnect();}
    });
   });
-  peer.on('closed',event=>{if(event?.failed&&this.portalTransfer.pending){this.portalTransfer.fail('The old connection failed during its portal handoff');return;}if(!this.portalTransfer.peerClosed())this.finish();});
+  peer.on('closed',event=>{if(event?.reason)this.disconnectReason={...event.reason};if(event?.failed&&this.portalTransfer.pending){this.portalTransfer.fail('The old connection failed during its portal handoff');return;}if(!this.portalTransfer.peerClosed())this.finish();});
  }
  diagnose(d){this.onDiagnostic(d);this.emit('diagnostic',d);}
- state(){return{phase:this.phase,closed:this.closed,resourceProgress:this.resourceProgress??null,resourcesReady:Boolean(this.resourceResult?.ready&&this.resolver),characterUploaded:Boolean(this.characterUploaded),characterSubmitted:Boolean(this.characterSubmitted||this.characterUploaded),characterConfirmed:Boolean(this.characterConfirmed),localVaultAllowed:this.localVaultAllowed,serverInfo:this.serverInfo,areaGeneration:this.areaGeneration,areaReady:Boolean(this.areaReadySent),deviceEchoReplies:this.deviceEchoReplies,loginWaypointRequests:this.loginWaypointRequests,tlkOverrideMessages:this.tlkOverrideMessages,world:this.world.snapshot()};}
+ state(){return{phase:this.phase,closed:this.closed,...(this.disconnectReason?{disconnectReason:{...this.disconnectReason}}:{}),resourceProgress:this.resourceProgress??null,resourcesReady:Boolean(this.resourceResult?.ready&&this.resolver),characterUploaded:Boolean(this.characterUploaded),characterSubmitted:Boolean(this.characterSubmitted||this.characterUploaded),characterConfirmed:Boolean(this.characterConfirmed),localVaultAllowed:this.localVaultAllowed,serverInfo:this.serverInfo,areaGeneration:this.areaGeneration,areaReady:Boolean(this.areaReadySent),deviceEchoReplies:this.deviceEchoReplies,loginWaypointRequests:this.loginWaypointRequests,tlkOverrideMessages:this.tlkOverrideMessages,world:this.world.snapshot()};}
  publish(){if(!this.closed)this.emit('state',this.state());}
  async connect(options){
   if(this.phase!=='new'||this.closed)throw new Error('Native game session has already started');
@@ -85,10 +87,15 @@ export class NetworkGameSession extends EventEmitter {
   this.emit('message',{message:{kind:'server-character-loading'},areaGeneration:this.areaGeneration});await this.peer.sendGameMessage(serverCharacterListRequest());return{requested:true};
  }
  async lobbyPlayers(open){
-  if(this.closed||!this.resolver||typeof open!=='boolean'||this.characterSubmitted)throw new Error('Character lobby is unavailable');if(Boolean(this.lobbyPlayersOpen)===open)return;this.lobbyPlayersOpen=open;await this.peer.sendGameMessage(lobbyPlayerListRequest(open));return{requested:open};
+  if(this.closed||!this.resolver||typeof open!=='boolean'||this.characterSubmitted)throw new Error('Character lobby is unavailable');if(Boolean(this.lobbyPlayersOpen)===open)return;
+  const previous=Boolean(this.lobbyPlayersOpen),serial=(this.lobbyPlayersSerial??0)+1;this.lobbyPlayersSerial=serial;this.lobbyPlayersOpen=open;
+  try{await this.peer.sendGameMessage(lobbyPlayerListRequest(open));return{requested:open};}
+  catch(error){if(this.lobbyPlayersSerial===serial)this.lobbyPlayersOpen=previous;throw error;}
  }
  async previewLocalCharacter(bytes){
-  if(this.localVaultAllowed!==true||this.closed||!this.resolver||this.characterSubmitted)throw new Error('Local character selection is unavailable');if(!isNetworkBytes(bytes)||!bytes.length||bytes.length>948*65535-16)throw new Error('Invalid native character preview');const resolver=this.resolver;this.previewRules??=import('../src/character.js').then(m=>m.loadCharacterRules(resolver));const rules=await this.previewRules;if(this.closed||this.resolver!==resolver)throw new Error('Local character preview is stale');return serverCharacterPreviewSummary(bytes,rules);
+  if(this.localVaultAllowed!==true||this.closed||!this.resolver||this.characterSubmitted)throw new Error('Local character selection is unavailable');if(!isNetworkBytes(bytes)||!bytes.length||bytes.length>948*65535-16)throw new Error('Invalid native character preview');const resolver=this.resolver;
+  if(this.characterPreviewEncoder){const value=await this.characterPreviewEncoder(bytes);if(this.closed||this.resolver!==resolver)throw new Error('Local character preview is stale');return value;}
+  this.previewRules??=import('../src/character.js').then(m=>m.loadCharacterRules(resolver));const rules=await this.previewRules;if(this.closed||this.resolver!==resolver)throw new Error('Local character preview is stale');return serverCharacterPreviewSummary(bytes,rules);
  }
  serverCharacter(request){
   if(this.closed||!['character-selection','character-rejected'].includes(this.phase)||this.serverCharacterListPending||this.characterSubmitted||this.characterUploaded||request.generation!==this.characterListGeneration)throw new Error('Server character selection is stale');
@@ -106,7 +113,9 @@ export class NetworkGameSession extends EventEmitter {
   try{message=this.decodeMessage(bytes,{clientBuild:this.build.build,serverBuild:this.serverBuild,objectRules:{...this.objectRules,objectState:id=>this.world.registry.get(id)?.replicated}});}
   catch(error){this.diagnose({code:'network.game-message-invalid',reason:error.message,length:bytes.length,major:bytes[1],minor:bytes[2],...(error.objectUpdate?{objectUpdate:error.objectUpdate}:{})});return;}
   if(await this.portalTransfer.receive(message))return;
-  if(message.kind==='nui-create'&&message.format===0){const resolver=this.resolver;if(!resolver)return;try{const data=await resolver.getResource(message.resref,2083);if(this.closed||this.resolver!==resolver)return;message={...message,layout:JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(data))};}catch(error){this.diagnose({code:'network.nui-resource-unavailable',reason:error.message,resref:message.resref});return;}}
+  // Direct native clients load JUI resources on their native asset workers.
+  if(message.kind==='nui-create'&&message.format===0&&this.deferNuiResources)message={...message,layout:{}};
+  if(message.kind==='nui-create'&&message.format===0&&!this.deferNuiResources){const resolver=this.resolver;if(!resolver)return;try{const data=await resolver.getResource(message.resref,2083);if(this.closed||this.resolver!==resolver)return;message={...message,layout:JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(data))};}catch(error){this.diagnose({code:'network.nui-resource-unavailable',reason:error.message,resref:message.resref});return;}}
   if(message.kind==='level-up-classes'||message.kind==='level-up-result'){
    const pending=this.pendingLevelUp;
    this.levelUpUncertain=false;
@@ -124,6 +133,7 @@ export class NetworkGameSession extends EventEmitter {
   }
   if(message.kind==='server-character-preview'){
    try{const selected=this.selectedServerCharacter,type=selected?.source===17?5:selected?.source===14?4:1;if(!selected||this.closed||this.characterSubmitted||message.resref!==selected.resref||message.previewType!==type)return;
+    if(this.characterPreviewEncoder){const preview=message.data.length?await this.characterPreviewEncoder(message.data):null;if(this.closed||this.characterSubmitted||this.selectedServerCharacter!==selected)return;this.emit('message',{message:{kind:'server-character-preview',resref:message.resref,source:selected.source,generation:this.characterListGeneration,preview},areaGeneration:this.areaGeneration});return;}
     let rules=null;if(message.data.length&&typeof this.resolver?.getResource==='function'){try{this.previewRules??=import('../src/character.js').then(({loadCharacterRules})=>loadCharacterRules(this.resolver));rules=await this.previewRules;}catch{if(!this.closed)this.diagnose({code:'network.character-preview-rules-unavailable',reason:'Derived character-record rules could not be loaded'});}}
     if(this.closed||this.characterSubmitted||this.selectedServerCharacter!==selected)return;const preview=message.data.length?serverCharacterPreviewSummary(message.data,rules):null;this.emit('message',{message:{kind:'server-character-preview',resref:message.resref,source:selected.source,generation:this.characterListGeneration,preview},areaGeneration:this.areaGeneration});
    }catch{this.diagnose({code:'network.character-preview-invalid',reason:'The server character preview could not be read'});}finally{message.data.fill(0);}return;
@@ -309,8 +319,26 @@ export class NetworkGameSession extends EventEmitter {
   return new Promise((resolve,reject)=>{const pending={operation,actorId,areaId,areaGeneration,resolve,reject};this.pendingLevelUp=pending;pending.timer=setTimeout(()=>{if(this.pendingLevelUp!==pending)return;this.levelUpUncertain=true;reject(Error('The server has not confirmed level-up; waiting for its reply'));},15000);Promise.resolve().then(async()=>{if(operation==='begin')await this.peer.sendGameMessage(characterSheetRequest({targetId:actor.id,page:0}));await this.peer.sendGameMessage(packet);}).catch(error=>{if(this.pendingLevelUp!==pending)return;clearTimeout(pending.timer);this.pendingLevelUp=null;reject(error);});});
  }
  async examine({areaId,areaGeneration,actorId,targetId}){
-  const actor=this.controlledActor(areaId,areaGeneration),target=this.world.registry.get(targetId);if(actor.id!==actorId||!target||target.replicationRemoved||![5,6,7,9,10].includes(target.objectType)||!(target.areaId===areaId||target.objectType===6&&(target.inventoryLocation?.ownerId===actor.id||target.equipmentOwnerId===actor.id||target.inventoryLocation?.channel==='C'&&target.inventoryLocation.ownerId===this.world.containers.get('C')||target.inventoryLocation?.channel==='M'&&this.world.store?.open&&this.world.inventories.get('M')?.entries.some(v=>v.id===targetId))))throw new Error('Native examination target is stale or unavailable');
+  const actor=this.controlledActor(areaId,areaGeneration),target=this.world.registry.get(targetId);if(actor.id!==actorId||!target||target.replicationRemoved||![5,6,7,9,10].includes(target.objectType)||!(target.areaId===areaId||target.objectType===6&&(target.inventoryLocation?.ownerId===actor.id||target.equipmentOwnerId===actor.id||target.inventoryLocation?.channel==='C'&&target.inventoryLocation.ownerId===this.world.containers.get('C')||target.inventoryLocation?.channel==='M'&&this.world.store?.open&&this.world.inventories.get('M')?.entries.some(v=>v.id===targetId)||this.world.barter?.open&&['A','B'].includes(target.inventoryLocation?.channel)&&this.world.inventories.get(target.inventoryLocation.channel)?.entries.some(v=>v.id===targetId))))throw new Error('Native examination target is stale or unavailable');
   await this.peer.sendGameMessage(examineRequest({targetId}));return{sent:true};
+ }
+ async mapInput({areaId,areaGeneration,actorId,operation,reference,position,text}){
+  const actor=this.controlledActor(areaId,areaGeneration),area=this.world.registry.get(areaId)?.state;
+  if(actor.id!==actorId||!area)throw Error('Native map owner is stale');
+  const states=actor.playerState?.mapExploration?.[areaId]??[],visible=point=>{
+   if(!Array.isArray(point)||point.length!==3||!point.every(Number.isFinite))return false;
+   const x=Math.floor(point[0]/10),y=Math.floor(point[1]/10);return x>=0&&x<area.width&&y>=0&&y<area.height&&states[y*area.width+x]===1;
+  };
+  let packet;
+  if(operation==='click'){
+   const pin=this.world.mapPins.get(reference);if(!pin||!pin.enabled||!visible(pin.position))throw Error('Native server map pin is unavailable');
+   packet=mapPinClickRequest({reference,includePosition:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0})});
+  }else{
+   if(operation==='add'){if(!visible(position))throw Error('Map notes require an explored map position');}
+   else {const pin=area.playerMapPins?.find(pin=>(pin.index>>>0)===reference);if(!pin||!visible(pin.position))throw Error('Native personal map note is stale');if(operation==='change'&&(!Array.isArray(position)||position.some((n,i)=>Math.fround(n)!==Math.fround(pin.position[i]))))throw Error('Native map-note editor cannot move this note');}
+   packet=mapNoteRequest({operation,reference,position,text});
+  }
+  await this.peer.sendGameMessage(packet);return{sent:true,serverAcknowledged:false};
  }
  async hudPanel({areaId,areaGeneration,actorId,panel,open,page=0}){
   const actor=this.controlledActor(areaId,areaGeneration);if(actorId!==actor.id||typeof open!=='boolean')throw new Error('Native panel request is stale');
@@ -318,8 +346,34 @@ export class NetworkGameSession extends EventEmitter {
   await this.peer.sendGameMessage(packet);return{sent:true};
  }
  async playerAttitude({areaId,areaGeneration,actorId,playerId,likes}){
-  const actor=this.controlledActor(areaId,areaGeneration),player=this.world.players.get(playerId);if(actorId!==actor.id||!player||player.objectId===actor.id)throw new Error('Native player attitude target is stale');
-  await this.peer.sendGameMessage(playerAttitudeRequest({targetId:player.objectId,likes}));return{sent:true};
+  const actor=this.controlledActor(areaId,areaGeneration),player=this.world.players.get(playerId);if(actorId!==actor.id||!player||player.isDM||player.objectId===actor.id||player.character?.id===actor.id)throw new Error('Native player attitude target is stale');
+  const targetId=player.character?.id;if(!Number.isInteger(targetId)||targetId===OBJECT_INVALID)throw Error('That player character is not yet available');
+  await this.peer.sendGameMessage(playerAttitudeRequest({targetId,likes}));return{sent:true,serverAcknowledged:false};
+ }
+ async playerListInput({areaId,areaGeneration,actorId,operation,playerId,targetId}){
+  const actor=this.controlledActor(areaId,areaGeneration),player=this.world.players.get(playerId);
+  if(actorId!==actor.id||!player||player.isDM||player.objectId===actor.id||player.character?.id===actor.id||!['select','tell'].includes(operation))throw Error('Native player-list selection is stale');
+  const expected=operation==='tell'?player.character?.id:player.objectId;
+  if(!Number.isInteger(expected)||expected===OBJECT_INVALID||targetId!==expected)throw Error('Native player-list target changed');
+  const includePosition=satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0});
+  await this.peer.sendGameMessage(playerListGuiRequest({operation,targetId,includePosition}));return{sent:true,serverAcknowledged:false};
+ }
+ async partyInput({areaId,areaGeneration,actorId,operation,playerId,targetId}){
+  const actor=this.controlledActor(areaId,areaGeneration);if(actorId!==actor.id)throw Error('Native party owner is stale');
+  const flags=actor.replicated?.party??{};let target;
+  if(operation==='list'){if(playerId!==undefined||targetId!==undefined)throw Error('Party-list refresh has no target');}
+  else if(['accept','reject','ignore'].includes(operation)){
+   target=flags.field7D8;if(![true,1].includes(flags.field7DC)||!Number.isInteger(target)||target===OBJECT_INVALID||targetId!==target)throw Error('That party invitation is no longer current');
+  }else if(operation==='leave'){
+   if(![false,0].includes(flags.singleton))throw Error('You are not currently in a group');target=actor.id;
+  }else if(['invite','kick','transfer'].includes(operation)){
+   const player=this.world.players.get(playerId);target=player?.objectId;
+   if(!player||player.isDM||target===actor.id||targetId!==target||!Number.isInteger(target)||target===OBJECT_INVALID)throw Error('Native party target is stale');
+   const member=this.world.party.some(row=>row.id===target);
+   if(operation==='invite'&&member)throw Error('That player is already in your group');
+   if(operation!=='invite'&&(!member||![true,1].includes(flags.leader)))throw Error('Only the current group leader can perform that action');
+  }else throw Error('Unsupported native party operation');
+  await this.peer.sendGameMessage(partyRequest({operation,...(target!==undefined?{targetId:target}:{})}));return{sent:true,serverAcknowledged:false};
  }
  async castSpell({areaId,areaGeneration,spellId,classIndex=0,domainLevel=0,metamagic=0,spontaneous=false,targetId=OBJECT_INVALID,position=[0,0,0]}){
   const actor=this.controlledActor(areaId,areaGeneration),spell=this.objectRules.spellInputInfo?.(spellId);if(!spell)throw new Error('Native spell input metadata is unavailable');
@@ -376,6 +430,9 @@ export class NetworkGameSession extends EventEmitter {
   else if(operation==='page'){const count=this.world.inventories.get('M')?.pageCount??1;if(!Number.isInteger(page)||page<0||page>=count)throw new Error('Invalid native store page');}
   else if(operation!=='close')throw new Error('Invalid native store operation');
   await this.peer.sendGameMessage(storeRequest({operation,itemId,panel,page,x,y}));
+  // Original Identify callback140898d30 sends7/7 followed by a fresh6/5
+  // examination. No local identification/property/gold prediction is made.
+  if(operation==='identify')await this.examine({areaId,areaGeneration,actorId,targetId:itemId});
   // Only GUI navigation is local. Gold, items and transaction outcomes remain
   // server-owned. No store OBJECT_ID is fabricated from the speaking NPC.
   if(operation==='close')this.world.apply({kind:'store-close'});
@@ -386,16 +443,47 @@ export class NetworkGameSession extends EventEmitter {
   const actor=this.controlledActor(areaId,areaGeneration);if(actor.id!==actorId||!Number.isInteger(targetId)||targetId!==this.world.containers.get('C')||targetId===OBJECT_INVALID)throw new Error('Native container request is stale');
   const packet=containerRequest({operation});if(operation!=='close')this.world.clearContainerView();await this.peer.sendGameMessage(packet);if(operation==='close'&&this.world.containers.get('C')===targetId)this.world.apply({kind:'container-status',targetId:OBJECT_INVALID,primary:1});return{sent:true};
  }
- async itemAction({areaId,areaGeneration,itemId,operation,slot,x=255,y=255,position,destinationId}){
+ async barterInput({areaId,areaGeneration,actorId,serial,operation,targetId=OBJECT_INVALID,itemId=OBJECT_INVALID,value=false,x=255,y=255}){
+  const actor=this.controlledActor(areaId,areaGeneration),state=this.world.barter;
+  if(actor.id!==actorId)throw Error('Native barter belongs to an old controlled creature');
+  if(operation==='start'){
+   const target=this.world.registry.get(targetId),item=this.world.registry.get(itemId);
+   if(target?.objectType!==5||target.areaId!==areaId||target.replicationRemoved)throw Error('Native barter target is unavailable');
+   if(itemId!==OBJECT_INVALID&&(item?.inventoryLocation?.ownerId!==actor.id||item.inventoryLocation.channel!=='R'||item.replicationRemoved))throw Error('Native barter item is unavailable');
+  }else{
+   if(!state||state.serial!==serial||state.actorId!==actorId||state.areaId!==areaId||!state.open&&!(operation==='window'&&!value)||targetId!==OBJECT_INVALID&&targetId!==state.partnerId)throw Error('Native barter view is stale');
+   if(['add','remove','move'].includes(operation)){
+    const item=this.world.registry.get(itemId),channel=operation==='add'?'R':'B';
+    if(state.ownLocked||item?.inventoryLocation?.ownerId!==actor.id||item.inventoryLocation.channel!==channel||item.replicationRemoved||!this.world.inventories.get(channel)?.entries.some(e=>e.id===itemId))throw Error('Native barter item selection is stale or locked');
+   }else if(operation==='accept'&&(!state.ownLocked||!state.otherLocked))throw Error('Both native barter offers must be locked');
+  }
+  await this.peer.sendGameMessage(barterRequest({operation,targetId,itemId,value,x,y}));return{sent:true};
+ }
+ async transferGold({areaId,areaGeneration,actorId,targetId=OBJECT_INVALID,amount,position,placement=false,x=0,y=0,barterSerial}){
+  const actor=this.controlledActor(areaId,areaGeneration),balance=actor.playerState?.combat?.field898;
+  if(actorId!==actor.id||!Number.isInteger(balance)||!Number.isInteger(amount)||amount<=0||amount>balance)throw Error('Native gold selection is stale');
+  if(targetId!==OBJECT_INVALID){
+   const target=this.world.registry.get(targetId),container=this.world.containers.get('C'),location=target?.inventoryLocation,ownedContainer=target?.objectType===6&&(container!==undefined&&container!==OBJECT_INVALID&&targetId===container||location?.ownerId===actor.id&&['R','I'].includes(location.channel)||container!==undefined&&container!==OBJECT_INVALID&&location?.channel==='C'&&location.ownerId===container);
+   if(!target||target.replicationRemoved||!ownedContainer&&target.areaId!==areaId||![5,6,9].includes(target.objectType)||target.objectType===6&&!this.objectRules.quickbarItemInfo?.(target.item?.baseItem)?.container)throw Error('Native gold destination is unavailable');
+   if(placement&&(!this.world.barter?.open||this.world.barter.serial!==barterSerial||this.world.barter.partnerId!==targetId||this.world.barter.ownLocked))throw Error('Native gold barter placement is stale or locked');
+  }else if(placement)throw Error('Native gold ground placement is unavailable');
+  await this.peer.sendGameMessage(goldTransferRequest({targetId,amount,position,placement,x,y}));return{sent:true};
+ }
+ async itemAction({areaId,areaGeneration,itemId,operation,slot,x=255,y=255,position,destinationId,amount}){
   const actor=this.controlledActor(areaId,areaGeneration),item=this.world.registry.get(itemId),location=item?.inventoryLocation;
   if(item?.objectType!==6||item.replicationRemoved)throw new Error('Native item is unavailable');
   const owned=location?.ownerId===actor.id&&['R','I'].includes(location.channel),container=this.world.containers.get('C'),fromContainer=container!==undefined&&container!==OBJECT_INVALID&&location?.channel==='C'&&location.ownerId===container;destinationId??=actor.id;if(destinationId!==actor.id&&(destinationId!==container||container===OBJECT_INVALID||container===undefined))throw new Error('Native destination container is not open');let packet;
   if(operation==='pickup'){
-   if(owned||item.equipmentOwnerId!=null||item.areaId!==areaId)throw new Error('Native pickup item is unavailable');
+   if(owned||item.equipmentOwnerId!=null||!fromContainer&&item.areaId!==areaId)throw new Error('Native pickup item is unavailable');
    packet=pickupItemRequest({itemId,destinationId:actor.id,x,y});
   }else{
-   if(!owned&&!(fromContainer&&operation==='move'))throw new Error('Native inventory item is unavailable');
-   if(operation==='toggle')packet=toggleItemEquipmentRequest({itemId});
+   const ownedContainer=fromContainer&&this.world.registry.get(container)?.inventoryLocation?.ownerId===actor.id;
+   if(!owned&&!(fromContainer&&operation==='move')&&!(ownedContainer&&operation==='split'))throw new Error('Native inventory item is unavailable');
+   if(operation==='learn')packet=learnScrollRequest({itemId});
+   else if(operation==='split'){
+    if(!Number.isInteger(amount)||amount<1||amount>Math.min(65535,item.item.stackSize??item.item.field454??0))throw Error('Native item split amount is unavailable');
+    packet=splitItemRequest({itemId,amount});
+   }else if(operation==='toggle')packet=toggleItemEquipmentRequest({itemId});
    else if(operation==='equip'){
     if(!Number.isInteger(slot)||slot<=0||slot>0x20000||(slot&(slot-1))!==0)throw new Error('Native equipment slot is unavailable');
     packet=equipItemRequest({itemId,slot,destinationId:actor.id});
@@ -412,20 +500,26 @@ export class NetworkGameSession extends EventEmitter {
   // slot fit, ownership transfer, stack split, equip or drop is performed.
   await this.peer.sendGameMessage(packet);return{sent:true};
  }
- async interact({areaId,areaGeneration,targetId,action,run=true}){
+ async interact({areaId,areaGeneration,targetId,action,run=true,position=null}){
   const actor=this.controlledActor(areaId,areaGeneration);
   const target=this.world.registry.get(targetId),ownedItem=action==='object.use'&&target?.objectType===6&&target.inventoryLocation?.ownerId===actor.id;
   if(!target||!ownedItem&&target.areaId!==areaId||target.replicationRemoved)throw new Error('Native interaction target is unavailable');
   let packet;
   if(action==='trigger.transition'){
-   const surface=networkTriggerSurface(target);if(!surface)throw Error('Native transition trigger is unavailable');
+   // Legacy frontend approach geometry is optional, not a protocol startup
+   // dependency. Native frontends will supply their native-selected approach
+   // through the separate input adapter; this fallback preserves old behavior.
+   if(target.objectType!==7||!target.replicated?.hasTransition||target.replicated?.isTrap)throw Error('Native transition trigger is unavailable');
+   let destination=position;
+   if(destination===null){const {networkTriggerSurface}=await import('../src/network_trigger.js');destination=networkTriggerSurface(target)?.destination;}
+   if(!Array.isArray(destination)||destination.length!==3||!destination.every(Number.isFinite))throw Error('Native transition trigger approach is unavailable');
    // Client click1406f02c0 copies the non-trap trigger ID at1406f0660,
    // passes it at1406f0cf3 to ground input1406f3650, and its waypoint sender
    //1407c0970 retains that target. Walking into the polygon without this ID
    // does not request the server's transition action.
    const sequence=((this.movementSequences.get(actor.id)??0)+1)&255;
    this.movementSequences.set(actor.id,sequence);
-   packet=walkToWaypointRequest({areaId,position:surface.destination,targetId:target.id,sequence,run,clientPath:false,fractional:0});
+   packet=walkToWaypointRequest({areaId,position:destination,targetId:target.id,sequence,run,clientPath:false,fractional:0});
   }else if(action==='door.open'||action==='door.close'){
    if(target.objectType!==10)throw new Error('Native door target is unavailable');
    packet=doorActionRequest({targetId,action:action==='door.open'?21:22});

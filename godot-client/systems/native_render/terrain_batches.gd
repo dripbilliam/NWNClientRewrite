@@ -16,7 +16,8 @@ func prepare(bundle: Dictionary, pool, tiles: Array) -> Dictionary:
 			if feature in ["skin","animated-mesh","dangly","reference","emitter"]: failure="Terrain behavior requires native dynamic owner: "+str(feature); return {}
 		var prototype=template.create(); add_child(prototype)
 		for light in prototype.find_children("*","OmniLight3D",true,false):
-			if light.visible:
+			var part_name:=str(light.get_parent().get_meta("native_part_name","")).to_lower()
+			if light.visible or part_name in [str(bundle.value.name).to_lower()+"ml1",str(bundle.value.name).to_lower()+"ml2"]:
 				prototype.retire(); failure="Experimental mesh-only batching cannot replace active model lights; use the normal terrain owner"; return {}
 		var surfaces: Array=[]
 		for geometry in prototype.meshes:

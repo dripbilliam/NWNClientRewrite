@@ -63,7 +63,7 @@ func run() -> void:
 		compare(mover.gait_speed(1, float(c.clipMs) / 1000.0), float(row.draws[0].speed), 1e-5, "gait/%s" % index)
 		index += 1
 	var file := FileAccess.open(output, FileAccess.WRITE)
-	file.store_string(JSON.stringify({"scope": "Native Godot movement/facing/gait against retained original-binary observations; no live server or FPS acceptance", "target": movement.target, "checks": checks, "failures": failed, "maximum_error": maximum_error, "motion_cases": movement.cases.size(), "facing_cases": 1272, "gait_cases": 2916}, "  "))
+	file.store_string(JSON.stringify({"success":failed.is_empty(),"scope": "Native Godot movement/facing/gait against retained original-binary observations; no live server or FPS acceptance", "target": movement.target, "checks": checks, "failures": failed, "maximum_error": maximum_error, "motion_cases": movement.cases.size(), "facing_cases": 1272, "gait_cases": 2916}, "  "))
 	file.close()
 	print(JSON.stringify({"checks": checks, "failures": failed.size(), "maximum_error": maximum_error, "report": output}))
 	quit(0 if failed.is_empty() else 1)

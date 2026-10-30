@@ -18,6 +18,11 @@ func i32(at: int) -> int: return data.decode_s32(at) if contains(at, 4) else 0
 func i64(at: int) -> int: return data.decode_s64(at) if contains(at, 8) else 0
 func f32(at: int) -> float: return data.decode_float(at) if contains(at, 4) else 0.0
 func f64(at: int) -> float: return data.decode_double(at) if contains(at, 8) else 0.0
+static func ascii_tokens(line: String,fallback: RegEx) -> PackedStringArray:
+	# Source byte strings are CP1252. Preserve the existing scanner for its
+	# non-ASCII whitespace cases; normal numeric/model lines split in engine code.
+	if "\u0085" in line or "\u00a0" in line: return fallback.sub(line," ",true).split(" ",false)
+	return line.replace("\t"," ").replace("\r"," ").replace("\n"," ").replace("\u000b"," ").replace("\u000c"," ").split(" ",false)
 func bytes(at: int, length: int) -> PackedByteArray:
 	return data.slice(at, at + length) if contains(at, length) else PackedByteArray()
 func text(at: int, length: int, terminated: bool = false) -> String:

@@ -8,7 +8,7 @@ trusted by IPC. The exact-document trust configuration is corrected and
 tested; the native paired comparison still needs a rerun. The final normal
 boot stage did not run after that failure.
 
-See [execution and live findings](../../../evidence/performance-live-candidates.md)
+See [execution and live findings](../../evidence/performance-live-candidates.md)
 for exact reports, timing caveats and subsequent focused checks. The local
 queue never connects to Arelith. The user subsequently requested a separate
 experimental build and manually joined Arelith; read-only live evidence is

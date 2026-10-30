@@ -36,10 +36,10 @@ func run() -> void:
 		if maximum_button > 1000:
 			break
 	var queue_peak := Performance.get_monitor(Performance.MEMORY_MESSAGE_BUFFER_MAX)
-	var passed := maximum_button == 72 and queue_peak < 1048576
+	var passed := maximum_button == 56 and queue_peak < 1048576
 	for slot in 8:
-		passed = passed and radial.icons[slot].texture != null and radial.counts[slot].text == "123" and radial.buttons[slot].size == Vector2(88, 72)
-	var report := {"scope": "Authored native radial delayed-icon and long-caption layout stability over actual GUI frames; separate visible use counters", "passed": passed, "frames": frames, "queue_peak_bytes": queue_peak, "maximum_button_height": maximum_button, "stage_size": [radial.stage.size.x, radial.stage.size.y]}
+		passed = passed and radial.icons[slot].texture != null and radial.counts[slot].text == "123" and radial.buttons[slot].size == Vector2(56,56)
+	var report := {"scope": "Authored native radial delayed-icon and long-caption layout stability over actual GUI frames; original56px circular footprint and separate visible use counters", "success":passed,"passed": passed, "frames": frames, "queue_peak_bytes": queue_peak, "maximum_button_height": maximum_button, "stage_size": [radial.stage.size.x, radial.stage.size.y]}
 	var file := FileAccess.open(output, FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "  "))
 	file.close()

@@ -1,4 +1,5 @@
 extends Node
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 # Keep the capture's point-shadow budget; retain every original light/color.
 var camera: Camera3D
 var maximum:=0
@@ -6,6 +7,11 @@ var elapsed:=1.0
 var active:=0
 var lights:=0
 func _process(delta: float) -> void:
+	var began:=Timing.begin()
+	_profile_process(delta)
+	Timing.finish("callback_lights",began)
+func _profile_process(delta: float) -> void:
+	Timing.count("count_model_lights",lights); Timing.count("count_point_shadows",active)
 	elapsed+=delta
 	if elapsed<0.2 or not is_instance_valid(camera): return
 	elapsed=0

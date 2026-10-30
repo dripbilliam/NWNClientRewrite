@@ -8,7 +8,7 @@ function Add-ProjectSource([string]$directory){
  foreach($entry in Get-ChildItem -LiteralPath $directory){
   if($entry.Attributes-band [IO.FileAttributes]::ReparsePoint){throw 'Linked source is unsupported'}
   if($entry.PSIsContainer){if($entry.Name-notin $ignored){Add-ProjectSource $entry.FullName}}
-  elseif($entry.Extension-in @('.gd','.tscn','.godot','.json','.mjs','.cjs','.ps1','.py','.md') -or $entry.Name-eq '.gitignore'){$files.Add($entry.FullName)}
+  elseif($entry.Extension-in @('.gd','.tscn','.godot','.gdextension','.cpp','.hpp','.c','.h','.json','.mjs','.cjs','.ps1','.py','.md') -or $entry.Name-eq '.gitignore'){$files.Add($entry.FullName)}
  }
 }
 Add-ProjectSource $project
@@ -17,7 +17,7 @@ $related=[Collections.Generic.List[object]]::new()
 foreach($source in $RelatedSource){
  $absolute=[IO.Path]::GetFullPath((Join-Path $workspace $source))
  $allowed=@('src','electron','test','scripts') | Where-Object {$absolute.StartsWith((Join-Path $workspace $_)+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)}
- if(-not $allowed -or [IO.Path]::GetExtension($absolute)-notin @('.js','.mjs','.cjs','.ts','.gd','.md','.json','.ps1','.py')){throw 'Related checkpoint input must be authored src/electron/test/scripts source inside the workspace'}
+ if(-not $allowed -or [IO.Path]::GetExtension($absolute)-notin @('.js','.mjs','.cjs','.ts','.gd','.md','.json','.ps1','.py','.c','.h')){throw 'Related checkpoint input must be authored src/electron/test/scripts source inside the workspace'}
  $entry=Get-Item -LiteralPath $absolute
  if($entry.PSIsContainer){throw 'Related source must be a file'}
  for($ancestor=$entry;$ancestor-and$ancestor.FullName-ne$workspace;$ancestor=$ancestor.Parent??$ancestor.Directory){if($ancestor.Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'Linked related source is unsupported'}}

@@ -1,5 +1,12 @@
 # Native engine migration and acceptance
 
+Latest scoped combat work: original-server shield blocks now draw ammunition on
+actual small/large/tower shield Parts with correct active WeaponWield selection.
+See [NATIVE-SHIELD-IMPACTS.md](NATIVE-SHIELD-IMPACTS.md) for binary provenance,
+visible server outcomes, current regressions and the unresolved intermittent
+shutdown failure. This does not complete combat, the native migration or
+mixed-client playability acceptance.
+
 Latest architecture instruction: Godot is to own all runtime systems natively.
 The JS scene/export/network bridge described below is transitional, not the
 final architecture. See [NATIVE-OWNERSHIP.md](NATIVE-OWNERSHIP.md) for native

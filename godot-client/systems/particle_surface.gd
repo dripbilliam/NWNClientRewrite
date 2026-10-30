@@ -1,7 +1,7 @@
 extends MeshInstance3D
 
-# World-space quads produced by the original-derived worker. This owner uploads
-# whole packed streams; there is no GDScript physics or per-vertex frame loop.
+# World-space packed quads from either the direct native simulator or the legacy
+# staged worker adapter. This GPU upload owner has no JS/worker dependency.
 const MAX_VERTICES := 196608
 var capacity := 0
 var vertex_count := 0

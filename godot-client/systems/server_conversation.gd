@@ -1,6 +1,7 @@
 extends "res://systems/draggable_panel.gd"
 
 signal request(message: Dictionary)
+signal rendered(kind: String)
 const Text = preload("res://systems/server_text.gd")
 var body: RichTextLabel
 var replies: VBoxContainer
@@ -9,6 +10,13 @@ var entry_id := -1
 var pending := false
 var opened := false
 var reply_ids: Array[int] = []
+var reply_available: Array[bool] = []
+var rows: Array=[]
+var serial:=0
+var local_end:=false
+var speaker_id:=-1
+var native_skin
+var entry_rich: Dictionary={}
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	close_hides = false
@@ -35,60 +43,86 @@ func clear_replies() -> void:
 		replies.remove_child(child)
 		child.queue_free()
 	reply_ids.clear()
+	reply_available.clear(); rows.clear()
 
 func reset() -> void:
+	serial+=1; local_end=false; speaker_id=-1
 	opened = false
 	entry_id = -1
 	pending = false
 	clear_replies()
 	body.clear()
+	entry_rich.clear()
 	hide()
 
 func present(message: Dictionary) -> void:
 	match message.kind:
 		"dialog-close": reset()
 		"dialog-entry":
+			serial+=1; speaker_id=int(message.get("speakerId",-1)); local_end=false
 			opened = true
 			entry_id = -1
 			pending = false
 			end_button.disabled = true
 			clear_replies()
-			Text.set_text(body, message.get("rich", {"text": message.get("text", "")}))
+			entry_rich=message.get("rich", {"text": message.get("text", "")}).duplicate(true)
+			Text.set_text(body, entry_rich)
 			show()
 			move_to_front()
+			rendered.emit(str(message.kind))
 		"dialog-replies":
 			if not opened:
 				return
 			clear_replies()
+			serial+=1; local_end=bool(message.get("localEnd",false))
 			entry_id = int(message.entryId)
 			pending = false
 			end_button.disabled = false
 			for row in message.replies:
 				var reply_id := int(row.id)
+				var available:=bool(row.get("available",true)); var bound:=serial; var index:=reply_ids.size()
 				reply_ids.append(reply_id)
+				reply_available.append(available); rows.append(row.duplicate(true))
 				var button := Text.reply_button(row.get("rich", {"text": row.get("text", "")}), reply_ids.size())
-				button.pressed.connect(func(): choose(reply_id))
+				button.disabled=not available
+				var handle: WeakRef=weakref(button)
+				button.pressed.connect(func():
+					if bound==serial and index<reply_ids.size() and reply_available[index] and replies.get_child(index)==handle.get_ref(): choose(reply_id))
 				replies.add_child(button)
+			rendered.emit(str(message.kind))
 		"dialog-error":
 			if int(message.get("entryId", -1)) != entry_id:
 				return
 			pending = false
-			for button in replies.get_children():
-				button.disabled = false
+			for index in replies.get_child_count(): replies.get_child(index).disabled=not reply_available[index]
 			end_button.disabled = entry_id < 0
+			rendered.emit(str(message.kind))
 		"dialog-selected":
-			# Server-selected transcript, kept as received; no local DLG execution.
-			if opened:
-				Text.append(body, {"text": "\n"})
-				Text.append(body, message.get("rich", {}))
+			# Original6fbbc0 updates the matching reply, not the speaker's entry.
+			if opened and int(message.get("field1",-1))==entry_id:
+				var found:=-1
+				for index in reply_ids.size():
+					if reply_ids[index]==int(message.field0): found=index; break
+				if found>=0:
+					rows[found].rich=message.get("rich",{}); rows[found].selected=true
+				else:
+					reply_ids.append(int(message.field0)); reply_available.append(false); rows.append({"id":int(message.field0),"rich":message.get("rich",{}),"available":false,"selected":true})
+					var button:=Text.reply_button(message.get("rich",{}),reply_ids.size()); button.disabled=true; replies.add_child(button)
+				rendered.emit(str(message.kind))
 
+func available(reply_id: int) -> bool:
+	for index in reply_ids.size():
+		if reply_ids[index]==reply_id and reply_available[index]: return true
+	return false
 func choose(reply_id: int, abort: bool = false) -> void:
-	if not opened or entry_id < 0 or pending or not abort and reply_id not in reply_ids:
+	if not opened or entry_id < 0 or pending or not abort and not available(reply_id):
 		return
+	if local_end: reset(); return
 	pending = true
 	for button in replies.get_children():
 		button.disabled = true
 	end_button.disabled = true
+	rendered.emit("dialog-pending")
 	request.emit({"kind": "reply", "entryId": entry_id, "replyId": reply_id, "abort": abort})
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -105,6 +139,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.keycode >= KEY_1 and event.keycode <= KEY_9:
 		var index: int = int(event.keycode) - KEY_1
-		if index < reply_ids.size():
+		if index < reply_ids.size() and reply_available[index]:
 			choose(reply_ids[index])
 			get_viewport().set_input_as_handled()

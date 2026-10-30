@@ -1,0 +1,15 @@
+{
+  "name": "entiredecomp-wiki",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "serve": "node serve.mjs"
+  },
+  "dependencies": {
+    "github-slugger": "2.0.0",
+    "markdown-it": "15.0.3"
+  }
+}

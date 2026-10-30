@@ -1,4 +1,7 @@
 extends Node3D
+const NativeSurface=preload("res://systems/native_data/tile_surface.gd")
+const WALK_LAYER:=1
+const TARGET_LAYER:=2
 
 var entities: Dictionary = {}
 var parts: Dictionary = {}
@@ -9,7 +12,10 @@ var marked: Dictionary = {}
 var overlays: Dictionary = {}
 var original_overlays: Dictionary = {}
 var cpu_faces: Dictionary = {}
-var stats := {"entities": 0, "bound_meshes": 0, "particle_materials": 0, "colliders": 0, "missing_bindings": 0, "particle_errors": 0, "importer_geometries": 0, "runtime_geometry_reads": 0, "preparation_ms": 0.0}
+var native_owners: Dictionary = {}
+var native_bounds: Dictionary = {}
+var native_bodies: Dictionary={}
+var stats := {"entities": 0, "bound_meshes": 0, "particle_materials": 0, "colliders": 0, "target_colliders":0,"walkmesh_colliders":0,"native_shape_builds":0,"native_shape_hits":0,"missing_bindings": 0, "particle_errors": 0, "importer_geometries": 0, "runtime_geometry_reads": 0, "preparation_ms": 0.0}
 
 func configure(room: Node, metadata: Dictionary, state: GLTFState = null) -> void:
 	var began := Time.get_ticks_usec()
@@ -49,14 +55,27 @@ func configure(room: Node, metadata: Dictionary, state: GLTFState = null) -> voi
 	stats.preparation_ms = (Time.get_ticks_usec() - began) / 1000.0
 	cpu_faces.clear()
 
-func forget_entity(id: int) -> void:
+func forget_entity(id: int) -> bool:
+	if not entities.has(id): return false
+	var was_native:=native_owners.has(id)
+	if was_native:
+		stats.bound_meshes-=parts.get(id,[]).size()
+		stats.colliders-=native_bodies.get(id,[]).size()
+		stats.target_colliders-=native_bodies.get(id,[]).size()
+		for body in native_bodies.get(id,[]):
+			if is_instance_valid(body): body.collision_layer=0; body.collision_mask=0; body.queue_free()
 	for mesh in entity_nodes.get(id, []):
 		if mesh is MeshInstance3D:
-			meshes_by_name.erase(str(mesh.name))
+			if original_overlays.has(mesh): mesh.material_overlay=original_overlays[mesh]
+			if was_native: mesh.remove_meta("collision_body")
+			meshes_by_name.erase(str(mesh.get_meta("native_registry_key",mesh.name)))
 			original_overlays.erase(mesh)
 	for collection in [entities, parts, entity_nodes, bounds, marked, overlays]:
 		collection.erase(id)
-	_refresh_active_counts()
+	native_owners.erase(id); native_bounds.erase(id); native_bodies.erase(id)
+	if was_native: stats.entities=entities.size()
+	else: _refresh_active_counts()
+	return true
 
 func adopt_entities(source, ids: Array) -> void:
 	for id in ids:
@@ -133,7 +152,15 @@ func _fix_particle(mesh: MeshInstance3D, row: Dictionary) -> void:
 		mesh.set_surface_override_material(surface, copy)
 		stats.particle_materials += 1
 
-func _collision(mesh: MeshInstance3D, id: int) -> void:
+func _collision(mesh: MeshInstance3D, id: int,layer: int=WALK_LAYER) -> void:
+	if mesh.has_meta("native_pick_shape"):
+		# Native source arrays already produced this shared shape before GPU
+		# upload. A local body follows its physical part without mesh readback.
+		var shape: Shape3D=mesh.get_meta("native_pick_shape")
+		var body:=StaticBody3D.new(); body.collision_layer=layer; body.collision_mask=0; body.set_meta("entity_id",id)
+		var collider:=CollisionShape3D.new(); collider.shape=shape; body.add_child(collider)
+		var anchor: Node3D=mesh.get_meta("native_pick_anchor",mesh); anchor.add_child(body); mesh.set_meta("collision_body",body); stats.colliders+=1
+		return
 	# Bake the imported world pose once. This preserves mirrored/nonuniform
 	# source geometry without physics-node scale approximations. No mesh edits.
 	var faces: PackedVector3Array
@@ -150,7 +177,7 @@ func _collision(mesh: MeshInstance3D, id: int) -> void:
 	shape.set_faces(faces)
 	shape.backface_collision = true
 	var body := StaticBody3D.new()
-	body.collision_layer = 1
+	body.collision_layer = layer
 	body.collision_mask = 0
 	body.set_meta("entity_id", id)
 	var collider := CollisionShape3D.new()
@@ -164,8 +191,67 @@ func eligible_ids() -> Array:
 	return entities.keys().filter(func(id): return entities[id].get("eligible", false) and bounds.has(id))
 
 func label_position(id: int) -> Vector3:
+	if native_owners.has(id) and is_instance_valid(native_owners[id]): bounds[id]=native_owners[id].global_transform*native_bounds[id]
 	var box: AABB = bounds.get(id, AABB())
 	return Vector3(box.get_center().x, box.end.y + 0.25, box.get_center().z)
+
+func register_native(id: int,row: Dictionary,instance) -> bool:
+	# Master replication/render state stays in live_world. This native registry
+	# owns only current selection targets; scenery gets no per-mesh bodies/maps.
+	if id<0 or not row.get("eligible",false): return forget_entity(id) if id>=0 else false
+	if native_owners.get(id)==instance:
+		var changed: bool=entities[id]!=row; entities[id]=row; return changed
+	forget_entity(id); entities[id]=row; parts[id]=[]; entity_nodes[id]=[]; native_owners[id]=instance; native_bodies[id]=[]
+	var local_box:=AABB(); var has_box:=false
+	var surfaces: Array=instance.meshes.duplicate(); var hidden: Variant=instance.get("pick_surfaces")
+	if hidden is Array: surfaces.append_array(hidden)
+	for surface in surfaces:
+		var mesh:=surface as MeshInstance3D
+		if mesh!=null and not mesh.visible: continue
+		var geometry: Resource=surface.get_meta("native_pick_geometry") if surface.has_meta("native_pick_geometry") else null
+		var shape: Shape3D=surface.get_meta("native_pick_shape") if surface.has_meta("native_pick_shape") else null
+		var local_bounds:=AABB()
+		if geometry!=null:
+			var before: int=geometry.builds
+			shape=geometry.get_shape(); local_bounds=geometry.bounds
+			if shape!=null:
+				if int(geometry.builds)>before: stats.native_shape_builds+=1
+				else: stats.native_shape_hits+=1
+			else: stats.missing_bindings+=1; push_warning(geometry.failure)
+		elif mesh!=null: local_bounds=mesh.get_aabb()
+		if shape==null: continue
+		var anchor: Node3D=surface.get_meta("native_pick_anchor",surface)
+		var body:=StaticBody3D.new(); body.collision_layer=TARGET_LAYER; body.collision_mask=0; body.set_meta("entity_id",id)
+		var collider:=CollisionShape3D.new(); collider.shape=shape; body.add_child(collider); anchor.add_child(body); native_bodies[id].append(body); stats.colliders+=1; stats.target_colliders+=1
+		if mesh!=null:
+			mesh.set_meta("entity_id",id); mesh.set_meta("collision_body",body)
+			var key:="native_"+str(id)+"_"+str(mesh.get_instance_id()); mesh.set_meta("native_registry_key",key)
+			parts[id].append(mesh); entity_nodes[id].append(mesh); meshes_by_name[key]=mesh; stats.bound_meshes+=1
+		var box: AABB=instance.global_transform.affine_inverse()*anchor.global_transform*surface.get_meta("native_pick_bounds",local_bounds)
+		local_box=local_box.merge(box) if has_box else box; has_box=true
+	if id>=0 and has_box: native_bounds[id]=local_box; bounds[id]=instance.global_transform*local_box
+	stats.entities=entities.size()
+	return true
+
+func register_walkmesh(surface) -> void:
+	# Floor selection uses original walkable WOK faces, never roof/wall render
+	# triangles. Shared CPU source shapes require no GPU geometry readback.
+	var shapes: Dictionary={}
+	for tile in surface.definition.tiles:
+		var model:=str(tile.model)
+		if not shapes.has(model):
+			var mesh: Dictionary=surface.meshes[model]; var faces:=PackedVector3Array()
+			for index in mesh.faces.size():
+				if not NativeSurface.walkable(surface.table,int(mesh.materials[index])): continue
+				for vertex in mesh.faces[index]:
+					var point: Array=mesh.vertices[vertex]; faces.append(Vector3(point[0]-5,point[2],5-point[1]))
+			if faces.is_empty(): shapes[model]=null
+			else:
+				var shape:=ConcavePolygonShape3D.new(); shape.set_faces(faces); shape.backface_collision=true; shapes[model]=shape
+		if shapes[model]==null: continue
+		var body:=StaticBody3D.new(); body.collision_layer=WALK_LAYER; body.collision_mask=0; body.set_meta("entity_id",-1)
+		var collider:=CollisionShape3D.new(); collider.shape=shapes[model]; body.add_child(collider); add_child(body)
+		body.position=tile.position; body.rotation.y=float(tile.get("rotation_y",int(tile.orientation)*PI/2)); stats.colliders+=1; stats.walkmesh_colliders+=1
 
 func mark(ids: Array) -> void:
 	var desired: Dictionary = {}
@@ -195,9 +281,11 @@ func mark(ids: Array) -> void:
 
 func pick(camera: Camera3D, screen: Vector2) -> Dictionary:
 	var origin := camera.project_ray_origin(screen)
-	var query := PhysicsRayQueryParameters3D.create(origin, origin + camera.project_ray_normal(screen) * camera.far, 1)
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + camera.project_ray_normal(screen) * camera.far, TARGET_LAYER)
 	query.hit_back_faces = true
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		query.collision_mask=WALK_LAYER; hit=get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
 		return {}
 	var id := int(hit.collider.get_meta("entity_id", -1))
