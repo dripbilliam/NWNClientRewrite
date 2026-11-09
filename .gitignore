@@ -19,6 +19,7 @@ runtime-logs/
 tooling/native/
 *.gar
 .env
+.cache/
 # Generated machine-local MCP registration; recreate with scripts/integrate-rea.mjs.
 .codex/config.toml
 .codex/config.toml.rea-*
