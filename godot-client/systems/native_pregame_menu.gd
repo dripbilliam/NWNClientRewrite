@@ -84,8 +84,8 @@ func refresh() -> void:
 	if not button_audio_failure.is_empty():status.text="Menu sound unavailable: "+button_audio_failure
 	elif not failure.is_empty(): status.text="Menu resources unavailable: "+failure
 	elif not button_audio_ready:status.text="Preparing menu sound…"
-	elif page=="main":
-		var active=main
+	elif page in ["main","options"]:
+		var active=main if page=="main" else options
 		if is_instance_valid(active):
 			var cohort: Dictionary=active.cohort_snapshot()
 			if not cohort.failures.is_empty(): status.text="Menu resources unavailable ("+str(cohort.scope)+"): "+str(cohort.failures[0])
