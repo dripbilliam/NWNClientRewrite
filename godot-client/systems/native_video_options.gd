@@ -1,5 +1,6 @@
 extends Control
 signal prepared
+signal artwork_ready
 signal finished
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/video_options_layout.gd")
@@ -19,6 +20,7 @@ var scope: Array=[]
 var held: Dictionary={}
 var revision:=0
 var layout_ready:=false
+var artwork_announced:=false
 var closed:=false
 var failure:=""
 var pending_scale:=1.0
@@ -157,7 +159,7 @@ func _input(event: InputEvent) -> void:
 	if dragging and event is InputEventMouseMotion: position=(event.position-drag_offset).clamp(Vector2.ZERO,(get_viewport_rect().size-size).max(Vector2.ZERO))
 	if dragging and event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed: dragging=false; save_position()
 func show_page(value: Array) -> void:
-	if closed or not layout_ready: return
+	if closed or not art_ready(): return
 	revision+=1; scope=value.duplicate(); held.clear(); stop_arrow(); pending_scale=settings.applied_scale; applied=false; refresh(); show(); place()
 	modal_lease.activate(scope)
 func capture(tag: String) -> void:
@@ -171,6 +173,9 @@ func step_scale() -> void:
 	if closed or not is_visible_in_tree() or arrow==0 or not modal_lease.admits(): return
 	var current: Dictionary=settings.current(); pending_scale=Plan.scale_step(pending_scale,arrow>0,float(current.minimum),float(current.maximum)); refresh()
 func _process(delta: float) -> void:
+	if not closed and not artwork_announced:
+		var cohort: Dictionary=cohort_snapshot()
+		if cohort.ready or not cohort.failures.is_empty(): artwork_announced=true; artwork_ready.emit()
 	if not closed and is_visible_in_tree() and arrow!=0 and repeat_clock.tick(int(round(delta*1000000)),buttons.intupbutton.is_hovered() if arrow>0 else buttons.intdownbutton.is_hovered()): step_scale()
 func invoke(tag: String) -> void:
 	if closed or not is_visible_in_tree() or not modal_lease.admits() or int(held.get(tag,-1))!=revision: return
@@ -191,6 +196,7 @@ func retire_scope() -> void:
 	revision+=1; held.clear(); stop_arrow()
 func settings_changed() -> void:
 	if closed or not layout_ready: return
+	artwork_announced=false # A new mode list can request a different thumb.
 	if visible: pending_scale=minf(pending_scale,settings.maximum_scale)
 	refresh()
 func refresh() -> void:
@@ -209,8 +215,49 @@ func refresh() -> void:
 		var label:=Label.new(); mode_list.add_child(label); frame.font_style(label,definition.entries.videomodelist.caption); label.text=str(row.label); label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if rows.is_empty():
 		var label:=Label.new(); mode_list.add_child(label); frame.font_style(label,definition.entries.videomodelist.caption); label.text=settings.error if not settings.error.is_empty() else "Reading display modes…"; label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+func cohort_snapshot() -> Dictionary:
+	var result:={"scope":"video_options","ready":false,"models_expected":requested.size(),"models_ready":models.size(),"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0,"pending":[],"failures":[]}
+	if closed: result.failures.append("Video page owner is closed")
+	if not failure.is_empty(): result.failures.append(failure)
+	if not layout_ready:
+		if result.failures.is_empty(): result.pending.append("GFF/model layout")
+		return result
+	if not is_instance_valid(frame) or not is_instance_valid(frame.art) or not is_instance_valid(frame.fonts):
+		result.failures.append("Video page artwork/font owners are unavailable"); return result
+	if models.size()!=requested.size(): result.failures.append("Resolved video model cohort is incomplete")
+	for node in find_children("*","TextureRect",true,false):
+		var key:=str(node.get_meta("native_gui_art_key",""))
+		# ScrollContainer also creates Godot-owned TextureRects for its bars.
+		if key.is_empty():
+			if node.get_meta("native_gui_static_image",false): result.failures.append("Unregistered video image: "+str(node.name))
+			continue
+		result.images_expected+=1
+		if node.texture!=null: result.images_ready+=1
+		elif frame.art.failed.has(key): result.failures.append("Video image "+key+": original artwork failed")
+		else: result.pending.append("image:"+key)
+	for node in find_children("*","Label",true,false):
+		var name:=str(node.get_meta("native_font_resource",""))
+		if name.is_empty(): continue # Source captions without a font use the existing default.
+		result.fonts_expected+=1
+		if str(node.get_meta("native_font_applied",""))==name: result.fonts_ready+=1
+		elif frame.fonts.failed.has(name): result.failures.append("Video font "+name+": "+str(frame.fonts.failed[name]))
+		else: result.pending.append("font:"+name)
+	for button in buttons.values():
+		var data: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		if data.is_empty(): result.failures.append("Unregistered video button: "+str(button.name)); continue
+		for pair in data.styles.values():
+			result.images_expected+=1
+			var key: String=frame.art.models.model_key(str(data.resource),str(pair[1]),data.overrides)
+			if pair[0].texture!=null: result.images_ready+=1
+			elif frame.art.failed.has(key): result.failures.append("Video button image "+key+": original artwork failed")
+			else: result.pending.append("image:"+key)
+	if not is_instance_valid(scrollbar): result.failures.append("Video scrollbar is unavailable")
+	elif not scrollbar.failure.is_empty(): result.failures.append(scrollbar.failure)
+	elif not scrollbar.art_ready or scrollbar.thumb_image_key!=scrollbar.thumb_key: result.pending.append("video scrollbar")
+	result.ready=result.failures.is_empty() and result.pending.is_empty() and result.models_ready==result.models_expected
+	return result
 func art_ready() -> bool:
-	return not closed and layout_ready and failure.is_empty() and frame.art.waiting.is_empty() and frame.art.models.pending.is_empty() and not frame.art.models.active and frame.fonts.pending.is_empty() and scrollbar.art_ready
+	return bool(cohort_snapshot().ready)
 func snapshot() -> Dictionary:
 	return {"ready":layout_ready,"failure":failure,"visible":visible,"pending_scale":pending_scale,"applied":applied,"mode_rows":mode_list.get_child_count() if mode_list!=null else 0,"mode_selection_enabled":false,"scope":scope.duplicate(),"jobs":jobs.size(),"native_only":true,"full_video_parity":false}
 func _notification(what: int) -> void:

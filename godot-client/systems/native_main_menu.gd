@@ -162,7 +162,7 @@ func configure_native(shared_frame,text,catalog,cache_path: String,value: Array)
 	if is_instance_valid(window_settings):
 		video_owner=preload("res://systems/native_video_options.gd").new(); get_child(0).add_child(video_owner); video_owner.configure(shared_frame,text,catalog,cache_path,window_settings,layout_path)
 		video_owner.set_modal_order(modal_order,modal_surfaces,self)
-		video_owner.prepared.connect(update_native); video_owner.finished.connect(child_closed)
+		video_owner.prepared.connect(update_native); video_owner.artwork_ready.connect(update_native); video_owner.finished.connect(child_closed)
 	if is_instance_valid(key_bindings):
 		observed_bindings=key_bindings
 		if not observed_bindings.changed.is_connected(update_native): observed_bindings.changed.connect(update_native)
@@ -259,7 +259,7 @@ func native_configuration_step(state: Dictionary) -> Dictionary:
 				if not video_result.get("accepted",false):cancel_native_configuration(state);return {"done":true,"accepted":false}
 				video_owner.set_modal_order(modal_order,modal_surfaces,self)
 				if not native_configuration_current(state):return {"done":true,"accepted":false}
-				video_owner.prepared.connect(update_native);video_owner.finished.connect(child_closed)
+				video_owner.prepared.connect(update_native);video_owner.artwork_ready.connect(update_native);video_owner.finished.connect(child_closed)
 				video_owner.finish_entry_configuration()
 		14:
 			if is_instance_valid(key_bindings):
@@ -314,11 +314,12 @@ func update_native() -> void:
 	# Only implemented capabilities are exposed. Original host Save/Load,
 	# Full ConfigWindow still requires its owner. The video
 	# owner currently implements windowed scale, not display-mode switching.
-	native_frame.set_context(native_scope,{"resumegamebutton":true,"xbutton":true,"gamebutton":true,"controlsbutton":is_instance_valid(key_owner) and key_owner.layout_ready and key_owner.failure.is_empty() and key_bindings.bindings_ready,"videooptionsbutton":is_instance_valid(video_owner) and video_owner.layout_ready and video_owner.failure.is_empty(),"exitbutton":connected and not busy,"savecharbutton":connected and not busy and str(lobby_state.get("phase","")) in ["playing","area-loading"]})
+	native_frame.set_context(native_scope,{"resumegamebutton":true,"xbutton":true,"gamebutton":true,"controlsbutton":is_instance_valid(key_owner) and key_owner.layout_ready and key_owner.failure.is_empty() and key_bindings.bindings_ready,"videooptionsbutton":is_instance_valid(video_owner) and video_owner.art_ready(),"exitbutton":connected and not busy,"savecharbutton":connected and not busy and str(lobby_state.get("phase","")) in ["playing","area-loading"]})
 	if native_playing and native_frame.art_ready():
 		fallback.hide(); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.custom_minimum_size=native_frame.definition.size; panel.size=native_frame.definition.size; native_frame.show()
 		modal_lease.bind_input(native_frame.stage)
 func native_action(tag: String) -> void:
+	if tag=="videooptionsbutton" and (not is_instance_valid(video_owner) or not video_owner.art_ready()): return
 	if tag in ["resumegamebutton","xbutton","gamebutton","videooptionsbutton","controlsbutton","savecharbutton","exitbutton","exit-confirmed"]:play_menu_click()
 	match tag:
 		"resumegamebutton","xbutton": dismiss()
