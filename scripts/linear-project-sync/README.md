@@ -149,6 +149,7 @@ Advanced environment options are in `.env.example`: page size (default 50, max 1
 - **Missing Linear scope:** use UUIDs and grant the key access to every relevant team. A project-only scope discovers all accessible project teams.
 - **Unknown status:** correct the mapping/field/options. The default does not guess a column.
 - **Rate limits/network failures:** queries retry with backoff and Retry-After/reset headers. A wait over 60 seconds or exhausted retries fails the run for later reconciliation.
+- **Initial-import write volume:** mutative requests are spaced by at least one second, following [GitHub's rate-limit guidance](https://docs.github.com/en/graphql/overview/rate-limits-and-query-limits-for-the-graphql-api#staying-under-the-rate-limit). A large first import takes a few minutes; unchanged runs perform no writes.
 - **Partial/invalid pagination or GraphQL errors:** abort before writes. Partial HTTP-200 GraphQL data is not accepted.
 - **Ambiguous draft creation:** creates are never blindly retried. Re-enumerate by marker after a lost response; if still unconfirmed, stop. The next run reconciles existing cards. GitHub's clientMutationId is not treated as an idempotency key.
 - **Interrupted run:** rerun. A created card with a missing status is completed rather than duplicated. All writes stop after a failure; cleanup is suppressed.

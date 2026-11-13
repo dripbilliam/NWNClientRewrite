@@ -34,12 +34,19 @@ export function createGraphqlClient({service, token, config, readOnly = false,
   if (!token || /[\r\n]/.test(token)) throw Error('A valid ' + service + ' API credential is required.');
   const linear = service === 'Linear';
   const url = linear ? 'https://api.linear.app/graphql' : 'https://api.github.com/graphql';
+  let lastMutationFinishedAt = null;
   return {
     async request(query, variables = {}, {mutation = false} = {}) {
       if (readOnly && (mutation || /^\s*mutation\b/.test(query))) throw Error('Read-only API client rejects mutations.');
       const isMutation = mutation || /^\s*mutation\b/.test(query);
       for (let attempt = 0; ; attempt++) {
         let response, payload;
+        if (isMutation && lastMutationFinishedAt !== null) {
+          // GitHub recommends at least one second between mutative requests.
+          // This also keeps an initial backlog import below content burst limits.
+          const wait = Math.max(0, 1000 - (now() - lastMutationFinishedAt));
+          if (wait) await sleep(wait);
+        }
         try {
           response = await fetchImpl(url, {
             method: 'POST', redirect: 'error', signal: AbortSignal.timeout(config.timeoutMs),
@@ -57,6 +64,8 @@ export function createGraphqlClient({service, token, config, readOnly = false,
           logger.warn(service + ' query transport failure; retrying (' + (attempt + 1) + ').');
           await sleep(Math.min(30000, 1000 * 2 ** attempt));
           continue;
+        } finally {
+          if (isMutation) lastMutationFinishedAt = now();
         }
         const errors = Array.isArray(payload?.errors) ? payload.errors : [];
         const codes = errors.map(error => error.extensions?.code || error.type || '').filter(Boolean);

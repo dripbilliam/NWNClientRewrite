@@ -303,3 +303,20 @@ test('draft creation and unarchival use the verified project-specific mutations'
   await adapter.unarchive({id: 'PROJECT'}, item);
   assert.deepEqual(calls[1].variables.input, {projectId: 'PROJECT', itemId: 'ITEM'});
 });
+
+test('initial-import writes are paced without delaying read-only queries', async () => {
+  let clock = 0;
+  const waits = [], writes = [];
+  const client = createGraphqlClient({service: 'GitHub', token: 'test-key', config: config(), logger,
+    now: () => clock, sleep: async ms => { waits.push(ms); clock += ms; },
+    fetchImpl: async (_url, options) => {
+      if (JSON.parse(options.body).query.startsWith('mutation')) writes.push(clock);
+      return response({data: {ok: true}});
+    }});
+  await client.request('mutation One { ignored }');
+  await client.request('query Inspect { ignored }');
+  await client.request('mutation Two { ignored }');
+  await client.request('mutation Three { ignored }');
+  assert.deepEqual(writes, [0, 1000, 2000]);
+  assert.deepEqual(waits, [1000, 1000]);
+});
