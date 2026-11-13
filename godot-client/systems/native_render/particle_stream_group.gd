@@ -176,8 +176,9 @@ func step(delta: float) -> void:
 		for reference: WeakRef in registering.values():
 			var emitter: Object=reference.get_ref()
 			if is_instance_valid(emitter): register(emitter)
-	for command in pending_controls.values(): native.call("dispatch",4,command)
-	pending_controls.clear()
+	if not pending_controls.is_empty():
+		for command in pending_controls.values(): native.call("dispatch",4,command)
+		pending_controls.clear()
 	Profile.finish("particle_frame_queues_ms",phase)
 	phase=Profile.begin()
 	var current:=get_viewport().get_camera_3d()
