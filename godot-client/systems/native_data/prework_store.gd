@@ -62,12 +62,17 @@ static func remember_request(catalog,name: String,type: int,decoder: String,opti
 	if decoder not in ["actor-model","static-model","gui-icon-v1"] or not catalog.has_method("preparation_cache"): return
 	var owner=catalog.preparation_cache()
 	if owner==null: return
-	var scope:=int(owner.get_instance_id()); var settings:=options.duplicate(true); settings.erase("icon_descriptor")
+	var scope:=int(owner.get_instance_id())
 	if not observed.has(scope):
 		if observed.size()>=8: observed.erase(observed.keys()[0])
 		observed[scope]={}
+	if observed[scope].size()>=8192: return
+	# The descriptor is deliberately absent from the request identity and saved
+	# options. Strip it before duplicating nested values for the retained row.
+	var settings:=options.duplicate();settings.erase("icon_descriptor")
+	if not settings.is_empty():settings=settings.duplicate(true)
 	var identity:=Cache.digest(var_to_bytes([name,type,decoder,settings]))
-	if observed[scope].size()<8192: observed[scope][identity]={"name":name,"type":type,"decoder":decoder,"options":settings}
+	observed[scope][identity]={"name":name,"type":type,"decoder":decoder,"options":settings}
 static func known_requests(catalog) -> Array:
 	var owner=catalog.preparation_cache() if catalog.has_method("preparation_cache") else null
 	return observed.get(int(owner.get_instance_id()),{}).values().duplicate(true) if owner!=null else []
