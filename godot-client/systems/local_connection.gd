@@ -359,7 +359,10 @@ func receive(message: Dictionary) -> void:
 		if phase in ["connecting","resources","resources-unavailable"] and lobby.state.get("canCancelJoin",false):
 			server_browser.begin_join_handoff(); lobby.show_sync_wait()
 		elif message.get("kind")=="browser-view" and not server_browser.join_handoff_pending: lobby.panel.hide()
-		if server_browser.panel.visible: main_menu.panel.hide(); lobby.panel.hide()
+		if server_browser.wanted:
+			# The original browser has its own surface; its prototype panel stays hidden.
+			main_menu.dismiss()
+			if server_browser.panel.visible: lobby.panel.hide()
 		return
 	if message.get("kind") == "creator-live-test":
 		creation_probe = preload("res://systems/creation_probe.gd").new(); creation_probe.run(self, message); return
