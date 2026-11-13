@@ -1,0 +1,95 @@
+name: Mirror public Linear roadmap
+
+on:
+  schedule:
+    # Every five minutes, offset from the top of the hour.
+    - cron: '2-59/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Preview only; leave enabled for the first run
+        type: boolean
+        default: true
+        required: true
+  push:
+    paths: ['scripts/linear-project-sync/**', '.github/workflows/linear-project-sync.yml']
+  pull_request:
+    paths: ['scripts/linear-project-sync/**', '.github/workflows/linear-project-sync.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linear-project-sync
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.event_name != 'schedule' || vars.LINEAR_SYNC_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Test sync without credentials
+        run: node --test scripts/linear-project-sync/sync.test.mjs scripts/linear-project-sync/api.test.mjs
+
+  sync:
+    needs: test
+    # Adding this workflow does not authorize publication. Scheduled/live runs
+    # remain off until the owner explicitly sets LINEAR_SYNC_ENABLED=true.
+    # Pull requests and pushes only test; they never receive sync credentials.
+    if: >-
+      github.repository == 'dripbilliam/NWNClientRewrite' &&
+      ((github.event_name == 'schedule' && vars.LINEAR_SYNC_ENABLED == 'true') ||
+       (github.event_name == 'workflow_dispatch' &&
+        (inputs.dry_run || vars.LINEAR_SYNC_ENABLED == 'true')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_PROJECT_OWNER: ${{ vars.GH_PROJECT_OWNER || 'dripbilliam' }}
+      GH_PROJECT_OWNER_TYPE: ${{ vars.GH_PROJECT_OWNER_TYPE || 'user' }}
+      GH_PROJECT_NUMBER: ${{ vars.GH_PROJECT_NUMBER || '3' }}
+      LINEAR_TEAM_ID: ${{ vars.LINEAR_TEAM_ID }}
+      LINEAR_PROJECT_ID: ${{ vars.LINEAR_PROJECT_ID }}
+      SYNC_NAMESPACE: ${{ vars.SYNC_NAMESPACE || 'nwnanalog-public-roadmap' }}
+      LINEAR_PUBLIC_LABEL: ${{ vars.LINEAR_PUBLIC_LABEL || 'public' }}
+      PUBLICATION_MODE: ${{ vars.PUBLICATION_MODE || 'label' }}
+      DESCRIPTION_MODE: ${{ vars.DESCRIPTION_MODE || 'title-only' }}
+      STATUS_MAPPING_JSON: ${{ vars.STATUS_MAPPING_JSON }}
+      UNKNOWN_STATUS_POLICY: ${{ vars.UNKNOWN_STATUS_POLICY || 'skip' }}
+      STATUS_FALLBACK: ${{ vars.STATUS_FALLBACK || 'Backlog' }}
+      GH_STATUS_FIELD: ${{ vars.GH_STATUS_FIELD || 'Status' }}
+      REMOVAL_POLICY: ${{ vars.REMOVAL_POLICY || 'leave' }}
+      ARCHIVE_STATUS: ${{ vars.ARCHIVE_STATUS || 'Cancelled' }}
+      MAX_REMOVALS: ${{ vars.MAX_REMOVALS || '10' }}
+      ALLOW_EMPTY_SOURCE_REMOVALS: ${{ vars.ALLOW_EMPTY_SOURCE_REMOVALS || 'false' }}
+      PUBLISH_ARCHIVED_ISSUES: ${{ vars.PUBLISH_ARCHIVED_ISSUES || 'false' }}
+      REQUIRE_PUBLIC_PROJECT: ${{ vars.REQUIRE_PUBLIC_PROJECT || 'true' }}
+      SYNC_PAGE_SIZE: ${{ vars.SYNC_PAGE_SIZE || '50' }}
+      SYNC_MAX_PAGES: ${{ vars.SYNC_MAX_PAGES || '1000' }}
+      SYNC_MAX_RETRIES: ${{ vars.SYNC_MAX_RETRIES || '4' }}
+      SYNC_REQUEST_TIMEOUT_MS: ${{ vars.SYNC_REQUEST_TIMEOUT_MS || '30000' }}
+      SYNC_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Synchronize project draft cards
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN || secrets.GM_PROJECT_TOKEN }}
+        shell: bash
+        run: |
+          if [[ "$SYNC_DRY_RUN" == "true" ]]; then
+            node scripts/linear-project-sync/cli.mjs --dry-run --verbose
+          else
+            node scripts/linear-project-sync/cli.mjs --apply
+          fi
