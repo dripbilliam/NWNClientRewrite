@@ -12,7 +12,7 @@ class ReadyFonts extends Node:
 	func request(name: String) -> void:
 		fonts[name]=ThemeDB.fallback_font;metrics[name]={"height":14.0}
 	func bind(control: Control,name: String) -> void:
-		request(name);bindings[control.get_instance_id()]=name;control.set_meta("native_font_applied",name)
+		request(name);bindings[control.get_instance_id()]=name;control.set_meta("native_font_resource",name);control.set_meta("native_font_applied",name)
 		if control is RichTextLabel:control.add_theme_font_override("normal_font",ThemeDB.fallback_font)
 		else:control.add_theme_font_override("font",ThemeDB.fallback_font)
 	func unbind(control: Control) -> void:bindings.erase(control.get_instance_id())

@@ -82,14 +82,14 @@ func run() -> void:
 		if not check(render_menu.pregame.main.visible and not server_browser.wanted and not character_lobby.panel.visible,"Main is the sole original entry surface before a user action"):await finish_case();return
 		await click(render_menu.pregame.main.buttons.multibutton);receive(list_view(1,1,"Direct"));await ui_frames()
 		if not check(server_browser.entry_menu.visible and not render_menu.pregame.wanted and not server_browser.panel.visible,"Physical Main Multiplayer opens the original native entry owner"):await finish_case();return
-		await click(server_browser.entry_menu.buttons.intjoinbutton);receive(list_view(1,2,"Internet"));await ui_frames()
+		await click(server_browser.entry_menu.buttons.intjoinbutton);receive(list_view(1,2,"Internet"));await await_flow(func():return is_instance_valid(server_browser.native_browser) and server_browser.native_browser.visible)
 		if not check(server_browser.native_browser.visible and not server_browser.entry_menu.visible and not character_lobby.panel.visible,"Physical Internet action reaches native list using an authored received view"):await finish_case();return
 		await click(server_browser.native_browser.pages.Internet.buttons.cancelbutton);receive(list_view(1,3,"Direct"));await ui_frames()
 		if not check(server_browser.entry_menu.visible and server_browser.entry_stage=="entry" and last_browser_intent().get("operation")=="return-menu","Physical server-list Back returns to original Multiplayer"):await finish_case();return
 		await click(server_browser.entry_menu.buttons.cancelbutton);await ui_frames()
 		if not check(not server_browser.wanted and render_menu.pregame.main.visible and not character_lobby.panel.visible,"Physical Multiplayer Cancel returns to actual PRE_MAIN"):await finish_case();return
 		await click(render_menu.pregame.main.buttons.multibutton);receive(list_view(1,4,"Direct"));await ui_frames()
-		await click(server_browser.entry_menu.buttons.dirconnectbutton);await ui_frames()
+		await click(server_browser.entry_menu.buttons.dirconnectbutton);await await_flow(func():return is_instance_valid(server_browser.direct_dialog) and server_browser.direct_dialog.visible)
 		var direct_ready:=check(server_browser.direct_dialog.visible,"Physical Direct Connect opens the actual native dialog")
 		if not direct_ready:await finish_case();return
 		if direct_ready:

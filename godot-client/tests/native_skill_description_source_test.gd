@@ -34,6 +34,7 @@ class ControlledArt extends Node:
 		var image:=Image.create(8,8,false,Image.FORMAT_RGBA8); image.fill(Color(0.4,0.3,0.6,1)); raster=ImageTexture.create_from_image(image)
 	func bind(target: Object,resource: String,property: String="texture",_model: bool=false,_clip: String="up",_portrait: bool=false,_overrides: Dictionary={},_region: Rect2=Rect2()) -> void:
 		calls+=1; bindings[str(target.get_instance_id())+":"+property]=resource; target.set(property,raster)
+		textures[models.model_key(resource,_clip,_overrides,0,"",[],_region) if _model else resource.to_lower()]=raster
 	func unbind(target: Object,property: String="texture") -> void: bindings.erase(str(target.get_instance_id())+":"+property)
 	func request_model(name: String,clip: String="up",overrides: Dictionary={},turn: int=0,layer: String="",poses: Array=[],region: Rect2=Rect2()) -> String:
 		var key: String=models.model_key(name,clip,overrides,turn,layer,poses,region); textures[key]=raster; return key

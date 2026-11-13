@@ -1,0 +1,7 @@
+# NWN-84 pregame flow fixture fidelity
+
+`tests/native_pregame_flow_test.gd` exercises installed pregame/menu source models, native controls, pointer input, browser/session handoff and character creation with controlled 8 px art and fallback fonts. The new static cohort admission correctly requires font resource metadata and texture keys. The fixture doubles lacked those identities, so its PRE_MAIN and Multiplayer art could never become ready; after the font metadata fix, the test advanced but its immediate two-frame browser assertion preceded the browser cohort's admission.
+
+`ReadyFonts.bind` now records `native_font_resource` as the real bitmap-font owner does. `ControlledArt.bind` retains its prepared texture under the same model/raster key as `native_ui_art.gd`. The flow waits for exact native browser and Direct dialog visibility before their physical clicks. This changes fixture fidelity and timing only; production UI policy is untouched.
+
+Official Godot 4.7.2 OpenGL graphical run: `.cache/nwn84-pregame-flow-fixture-root-c.json`, 24/24 checks, exit 0, no failures, no public or game-server connection. It covers original menu entry, browser list/back, Direct join intent, character chooser, creator child, cancellation, stale result rejection and return. Shared-double regression runs: `native_modal_owner_input_test.gd` 22/22 headless and `native_skill_description_source_test.gd` 25/25 headless, both exit 0. These controlled-art checks do not establish original pixel, audible or live-server parity.
