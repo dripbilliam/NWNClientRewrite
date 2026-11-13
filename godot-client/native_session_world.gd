@@ -963,6 +963,7 @@ func reset_session() -> void:
 	if is_instance_valid(keyboard): keyboard.stop(false)
 	if is_instance_valid(world_input): world_input.process_mode=Node.PROCESS_MODE_DISABLED
 	if is_instance_valid(gameplay_ui): gameplay_ui.close()
+	if catalog!=null and catalog.has_method("release_ui_assets"): catalog.release_ui_assets()
 	if is_instance_valid(world): world_retirement.retire(world)
 	for owner in [environment,keyboard,world_input,hud,registry,gameplay_ui]:
 		if is_instance_valid(owner): owner.queue_free()
@@ -1002,6 +1003,9 @@ func shutdown() -> void:
 	if is_instance_valid(ui_preload): ui_preload.close(); report.ui_preload=ui_preload.state.duplicate(true)
 	if is_instance_valid(asset_prework): asset_prework.close(); report.asset_prework=asset_prework.state.duplicate(true)
 	super.shutdown()
+	# The base shutdown closes gameplay UI before its first await. Release only
+	# this server catalog; the independent pregame catalog closed above.
+	if catalog!=null and catalog.has_method("release_ui_assets"): catalog.release_ui_assets()
 func native_pointer_blocked(point: Vector2) -> bool:
 	if closing or snapshot_transition_waiting() or not is_instance_valid(world): return true
 	return (is_instance_valid(login_profiles) and login_profiles.visible and login_profiles.get_global_rect().has_point(point)) or (is_instance_valid(server_browser) and server_browser.blocks_pointer(point)) or (is_instance_valid(character_lobby) and character_lobby.blocks_pointer(point)) or (is_instance_valid(gameplay_ui) and gameplay_ui.blocks_pointer(point)) or (is_instance_valid(render_menu) and render_menu.blocks_pointer(point)) or (is_instance_valid(render_settings) and render_settings.visible and render_settings.get_global_rect().has_point(point)) or (is_instance_valid(entity_inspector) and entity_inspector.blocks_pointer(point))

@@ -6,6 +6,7 @@ const PreparationStore=preload("res://systems/native_data/preparation_store.gd")
 const NWSync=preload("res://systems/native_data/nwsync_store.gd")
 const Loose=preload("res://systems/native_data/loose_index.gd")
 const Residency=preload("res://systems/native_data/resource_residency.gd")
+const SessionUiAssets=preload("res://systems/native_data/session_ui_asset_owner.gd")
 class BifStore:
 	extends RefCounted
 	var entries: Dictionary = {}
@@ -16,6 +17,8 @@ var layers: Array = []
 var recording
 var resolved: Dictionary={}
 var resolved_ready:=false
+var _ui_asset_owner
+var _ui_asset_scope_permitted:=true
 var prepared_store:=PreparationStore.new()
 var source_store:=PreparationStore.new()
 var decoder_store=Residency.decoded
@@ -30,7 +33,21 @@ func count_source_cache(timing: Dictionary) -> void:
 func residency_stats() -> Dictionary: return Residency.snapshot()
 func invalidate() -> void:
 	# Detach bindings instead of mutating an index retained by existing forks.
+	_ui_asset_owner=null
 	resolved={}; resolved_ready=false; source_store=PreparationStore.new(); prepared_store.clear()
+func ui_asset_owner():
+	# Generic forks are payload readers, often retired on worker threads. They
+	# must never hold or create the main-thread GPU texture owner.
+	if not _ui_asset_scope_permitted: return null
+	if _ui_asset_owner==null: _ui_asset_owner=SessionUiAssets.new()
+	if _ui_asset_owner.closed: return null
+	if _ui_asset_owner.binding_identities.is_empty():
+		var identities: Array=[]
+		for layer in layers: identities.append(str(layer.get("binding_identity","")))
+		_ui_asset_owner.configure(identities)
+	return _ui_asset_owner
+func release_ui_assets() -> void:
+	if _ui_asset_owner!=null: _ui_asset_owner.close()
 func build_resource_index() -> Dictionary:
 	var began:=Time.get_ticks_usec(); var identities: Array=[]
 	for layer in layers:
@@ -49,6 +66,7 @@ func compile_bindings() -> Dictionary:
 			if not entries.has(key): entries[key]=index
 	return entries
 func reset() -> void:
+	_ui_asset_owner=null
 	prepared_store=PreparationStore.new(); source_store=PreparationStore.new()
 	decoder_store=Residency.decoded; _init()
 	layers=[]; resolved={}; resolved_ready=false; bif_store = BifStore.new(); bifs = bif_store.entries; failure = ""
@@ -73,6 +91,7 @@ func fork() -> RefCounted:
 	copy.source_store=source_store
 	copy.decoder_store=decoder_store
 	copy.recording=recording
+	copy._ui_asset_scope_permitted=false
 	copy.bif_store = bif_store; copy.bifs = bif_store.entries
 	return copy
 func preparation_cache(): return prepared_store

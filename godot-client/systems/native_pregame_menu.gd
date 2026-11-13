@@ -134,5 +134,6 @@ func close() -> void:
 	dismiss(); closed=true
 	for owner in [main,options,keys,video,bindings,assets,painter,loader]:
 		if is_instance_valid(owner): owner.close()
+	if catalog!=null and catalog.has_method("release_ui_assets"): catalog.release_ui_assets()
 	text.close(); catalog=null
 func _exit_tree() -> void: close()

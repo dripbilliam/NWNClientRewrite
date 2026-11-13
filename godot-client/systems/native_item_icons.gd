@@ -15,6 +15,7 @@ const GuiTextureInfo=preload("res://systems/native_data/gui_texture_info.gd")
 const GuiSampler=preload("res://systems/native_render/gui_sampler.gd")
 var assets
 var catalog
+var ui_assets
 var pool:=Pool.new()
 var requests: Dictionary={}
 var pending: Dictionary={}
@@ -45,7 +46,8 @@ static func raster_extent(units: float,pixels_per_unit: float) -> int:
 	return maxi(1,ceili(pixels))
 func configure(source,cache_path: String) -> void:
 	cache_directory=cache_path; add_to_group("native_prework_icons")
-	catalog=source; pool.unshaded=true; pool.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	catalog=source; ui_assets=source.ui_asset_owner() if source!=null and source.has_method("ui_asset_owner") else null
+	pool.unshaded=true; pool.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR
 	assets=Assets.new(); add_child(assets); assets.maximum_workers=2; assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	viewport=SubViewport.new(); viewport.own_world_3d=true; viewport.transparent_bg=true; viewport.render_target_update_mode=SubViewport.UPDATE_DISABLED; viewport.msaa_3d=Viewport.MSAA_4X; add_child(viewport)
 	stage=Node3D.new(); viewport.add_child(stage); camera=Camera3D.new(); camera.projection=Camera3D.PROJECTION_ORTHOGONAL; camera.keep_aspect=Camera3D.KEEP_HEIGHT; camera.near=0.1; camera.far=200; stage.add_child(camera); camera.current=true
@@ -57,11 +59,18 @@ func configure(source,cache_path: String) -> void:
 		render_fence_compositor.compositor_effects = [render_fence]
 		camera.compositor = render_fence_compositor
 	var world_environment:=WorldEnvironment.new(); var settings:=Environment.new(); settings.background_mode=Environment.BG_COLOR; settings.background_color=Color(0,0,0,0); settings.tonemap_mode=Environment.TONE_MAPPER_LINEAR; world_environment.environment=settings; stage.add_child(world_environment)
+func session_ui_owner():
+	# The explicit disk-prework renderer erases each completed live image. It must
+	# not turn a 3,819-image bake into an unbounded session GPU residency job.
+	return ui_assets if ui_assets!=null and is_instance_valid(assets) and not assets.prework_write else null
 func request(item: Dictionary,tables: Dictionary,gender: int=0) -> String:
 	var decoder:=Plan.new(); var plan:=decoder.plan(item,tables,gender)
 	if plan.is_empty(): stats.errors.append(decoder.failure); return ""
 	var key:=Cache.digest(var_to_bytes(plan))
 	if textures.has(key): stats.reused+=1; return key
+	var owner=session_ui_owner()
+	var shared: Dictionary=owner.lookup("item",key) if owner!=null else {}
+	if not shared.is_empty(): textures[key]=shared.texture; image_bounds[key]=shared.bounds; stats.reused+=1; stats.shared_reused=int(stats.get("shared_reused",0))+1; return key
 	if pending.has(key): return key
 	var selected:=decoder.select(plan,catalog)
 	if selected.is_empty(): stats.errors.append(decoder.failure); return ""
@@ -75,6 +84,9 @@ func request_model(name: String,clip: String="up",overrides: Dictionary={},turn:
 	if not Region.valid(render_region): stats.errors.append("Original GUI render region is invalid"); return ""
 	var key:=model_key(name,clip,overrides,turn,texture_layer,poses,render_region)
 	if textures.has(key) or pending.has(key): return key
+	var owner=session_ui_owner()
+	var shared: Dictionary=owner.lookup("model",key) if owner!=null else {}
+	if not shared.is_empty(): textures[key]=shared.texture; image_bounds[key]=shared.bounds; stats.shared_reused=int(stats.get("shared_reused",0))+1; return key
 	if not catalog.has_resource(name,2002): return ""
 	if deferred_models.size()>=maximum_deferred_models: stats.errors.append("Original GUI model backlog is full"); return ""
 	# A whole original icon-tab tree can exceed the worker queue in one frame.
@@ -109,6 +121,8 @@ func restore_prework(key: String,data: Dictionary) -> bool:
 	if width<=0 or height<=0 or width>4096 or height>4096 or not pixels is PackedByteArray or pixels.size()!=width*height*4 or not data.get("bounds") is Dictionary: return false
 	var image:=Image.create_from_data(width,height,false,Image.FORMAT_RGBA8,pixels)
 	textures[key]=ImageTexture.create_from_image(image); image_bounds[key]=data.bounds
+	var owner=session_ui_owner()
+	if owner!=null: owner.retain("model" if key.begins_with("gui:") else "item",key,textures[key],image_bounds[key])
 	pending.erase(key); stats.prework_hits=int(stats.get("prework_hits",0))+1
 	completed.emit(key,textures[key],""); return true
 func prework_packet(key: String) -> Dictionary:
@@ -263,8 +277,14 @@ func finish(key: String,model,texture: Texture2D,error: String) -> void:
 			stats.slow_cleanup.append({"key":key,"ms":cleanup_ms})
 			if stats.slow_cleanup.size()>16: stats.slow_cleanup.pop_front()
 	pending.erase(key); active=false
-	if texture!=null: textures[key]=texture; stats.rendered+=1
-	else: stats.errors.append(error)
+	if texture!=null:
+		textures[key]=texture; stats.rendered+=1
+		var owner=session_ui_owner()
+		if owner!=null: owner.retain("model" if key.begins_with("gui:") else "item",key,texture,image_bounds.get(key,{}))
+	else:
+		stats.errors.append(error)
+		var owner=session_ui_owner()
+		if owner!=null: owner.note_failure("model" if key.begins_with("gui:") else "item",key,error)
 	var notify_began:=Timing.begin()
 	completed.emit(key,texture,error)
 	Timing.finish("icon_notify_ms",notify_began)
@@ -287,5 +307,5 @@ func close() -> void:
 	if not pending_draw.is_empty() and is_instance_valid(pending_draw.model): pending_draw.model.free()
 	pending_draw.clear(); active=false
 	if is_instance_valid(assets): assets.close()
-	queue.clear(); deferred_models.clear(); requests.clear(); pending.clear(); textures.clear(); prework_records.clear(); pool.clear(); catalog=null
+	queue.clear(); deferred_models.clear(); requests.clear(); pending.clear(); textures.clear(); prework_records.clear(); pool.clear(); catalog=null; ui_assets=null
 func _exit_tree() -> void: close()

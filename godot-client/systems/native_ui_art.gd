@@ -8,6 +8,7 @@ var assets
 var models
 var pool:=Pool.new()
 var catalog
+var ui_assets
 var jobs: Dictionary={}
 var bitmap_jobs: Dictionary={}
 var waiting: Dictionary={}
@@ -25,7 +26,8 @@ var stale_bindings:=0
 var closed:=false
 func configure(source,cache_path: String) -> void:
 	closed=false
-	catalog=source; assets=Assets.new(); add_child(assets); assets.configure(source); assets.maximum_workers=2; assets.cache_directory=cache_path; assets.completed.connect(prepared)
+	catalog=source; ui_assets=source.ui_asset_owner() if source!=null and source.has_method("ui_asset_owner") else null
+	assets=Assets.new(); add_child(assets); assets.configure(source); assets.maximum_workers=2; assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	models=Icons.new(); add_child(models); models.configure(source,cache_path); models.completed.connect(model_ready)
 func unbind(target: Object,property: String="texture") -> void:
 	if is_instance_valid(target): retire_binding(str(target.get_instance_id())+":"+property)
@@ -47,6 +49,8 @@ func bind(target: Object,resource: String,property: String="texture",model: bool
 	bindings[binding_key]=binding_serial
 	if resource.is_empty() or resource=="****": bindings.erase(binding_key); return
 	var key:=Icons.model_key(resource,clip,overrides,0,"",[],render_region) if model else resource.to_lower()
+	var shared: Dictionary=ui_assets.lookup("model" if model else "raster",key) if ui_assets!=null else {}
+	if not shared.is_empty(): textures[key]=shared.texture; bounds[key]=shared.bounds
 	if textures.has(key): apply_image(target,property,textures[key],not model,portrait); bindings.erase(binding_key); return
 	if failed.has(key): bindings.erase(binding_key); return
 	binding_resources[binding_key]=key
@@ -59,7 +63,7 @@ func bind(target: Object,resource: String,property: String="texture",model: bool
 		elif models.textures.has(requested): deliver(key,models.textures[requested])
 	else:
 		var location: Dictionary=catalog.raster_location(resource)
-		if location.is_empty(): fail_image(key); return
+		if location.is_empty(): fail_image(key,"Original UI raster is missing"); return
 		submit_bitmap(key,{"resource":resource,"type":int(location.type)})
 func submit_bitmap(key: String,descriptor: Dictionary) -> bool:
 	# A queued/running read survives listener retirement; a rapid revisit joins
@@ -104,20 +108,25 @@ func prepared(id: int,result: Dictionary) -> void:
 	if not jobs.has(id): return
 	var key:=str(jobs[id]); jobs.erase(id)
 	if bitmap_jobs.get(key,-1)==id: bitmap_jobs.erase(key)
-	if not str(result.error).is_empty(): fail_image(key); drain_deferred(); return
+	if not str(result.error).is_empty(): fail_image(key,str(result.error)); drain_deferred(); return
 	var texture=pool.texture(result)
 	if texture==null: fail_image(key); drain_deferred(); return
 	deliver(key,texture); drain_deferred()
 func request_model(name: String,clip: String="up",overrides: Dictionary={},turn: int=0,texture_layer: String="",poses: Array=[],render_region: Rect2=Rect2()) -> String:
+	var expected: String=Icons.model_key(name,clip,overrides,turn,texture_layer,poses,render_region)
+	var shared: Dictionary=ui_assets.lookup("model",expected) if ui_assets!=null else {}
+	if not shared.is_empty(): textures[expected]=shared.texture; bounds[expected]=shared.bounds; return expected
 	var key: String=models.request_model(name,clip,overrides,turn,texture_layer,poses,render_region)
 	if models.textures.has(key): textures[key]=models.textures[key]; bounds[key]=models.image_bounds.get(key,{})
 	return key
 func model_ready(key: String,texture: Texture2D,error: String) -> void:
-	if not error.is_empty() or texture==null: fail_image(key); return
+	if not error.is_empty() or texture==null: fail_image(key,error); return
 	bounds[key]=models.image_bounds.get(key,{})
 	deliver(key,texture)
 func deliver(key: String,texture: Texture2D) -> void:
-	textures[key]=texture; loaded.emit(key,texture,bounds.get(key,{}))
+	textures[key]=texture
+	if ui_assets!=null: ui_assets.retain("model" if key.begins_with("gui:") else "raster",key,texture,bounds.get(key,{}))
+	loaded.emit(key,texture,bounds.get(key,{}))
 	for listener in waiting.get(key,[]):
 		var target: Object=listener.target.get_ref()
 		if is_instance_valid(target) and bindings.get(listener.binding_key,-1)==listener.serial:
@@ -126,8 +135,9 @@ func deliver(key: String,texture: Texture2D) -> void:
 			stale_bindings+=1
 			if bindings.get(listener.binding_key,-1)==listener.serial: bindings.erase(listener.binding_key); binding_resources.erase(listener.binding_key)
 	waiting.erase(key); deferred.erase(key)
-func fail_image(key: String) -> void:
+func fail_image(key: String,reason: String="Original UI image could not be prepared") -> void:
 	failed[key]=true
+	if ui_assets!=null: ui_assets.note_failure("model" if key.begins_with("gui:") else "raster",key,reason)
 	for listener in waiting.get(key,[]):
 		if bindings.get(listener.binding_key,-1)==listener.serial: bindings.erase(listener.binding_key); binding_resources.erase(listener.binding_key)
 	waiting.erase(key); deferred.erase(key)
@@ -135,5 +145,5 @@ func close() -> void:
 	closed=true
 	if is_instance_valid(assets): assets.close()
 	if is_instance_valid(models): models.close()
-	jobs.clear(); bitmap_jobs.clear(); waiting.clear(); textures.clear(); bindings.clear(); binding_resources.clear(); deferred.clear(); pool.clear(); catalog=null
+	jobs.clear(); bitmap_jobs.clear(); waiting.clear(); textures.clear(); bindings.clear(); binding_resources.clear(); deferred.clear(); pool.clear(); catalog=null; ui_assets=null
 func _exit_tree() -> void: close()
