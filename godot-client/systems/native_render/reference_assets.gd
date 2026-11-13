@@ -44,8 +44,13 @@ var maximum_names:=4096
 var maximum_cached:=64
 var maximum_publications:=2
 var stats:={"requested":0,"jobs":0,"cache_hits":0,"published":0,"bundles_published":0,"chunk_models":0,"stale":0,"failed":0,"missing_root_requests":0,"errors":[],"worker_ms":0.0,"max_publication_ms":0.0}
+func _init() -> void: set_process(false)
+func _ready() -> void: _refresh_processing()
+func _refresh_processing() -> void:
+	set_process(not closed and is_instance_valid(assets) and (not waiting.is_empty() or not jobs.is_empty() or not publication.is_empty()))
 func configure(catalog,shared_pool,cache_path: String="") -> void:
 	pool=shared_pool; assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(completed)
+	_refresh_processing()
 func request_reference(reference: Node3D,resource: String) -> void:
 	request_model(reference,resource,"reference")
 func request_bundle(owner: Node3D,resource: String) -> void:
@@ -57,7 +62,7 @@ func request_model(reference: Node3D,resource: String,kind: String) -> void:
 	priority_dirty=true
 	var request:={"node":weakref(reference),"generation":generation,"resource":resource,"kind":kind}
 	if prepared.has(resource):
-		stats.cache_hits+=1; publication.append({"request":request,"bundle":prepared[resource]}); return
+		stats.cache_hits+=1; publication.append({"request":request,"bundle":prepared[resource]}); _refresh_processing(); return
 	# Catalog lookup uses the current ordered bindings, including absent names.
 	# A missing root cannot be prepared: avoid a worker, fork and later delivery
 	# for every new physical owner of the same absent chunk/reference. Do not
@@ -71,6 +76,7 @@ func request_model(reference: Node3D,resource: String,kind: String) -> void:
 		reference.reject("Original referenced model unavailable: "+resource+": "+reason); return
 	if not requests.has(resource): requests[resource]=[]; waiting[resource]=true
 	requests[resource].append(request)
+	_refresh_processing()
 func current(request: Dictionary):
 	var node=request.node.get_ref()
 	if closed or request.generation!=generation or not is_instance_valid(node) or not node.is_inside_tree() or node.retired or node.generation!=generation: return null
@@ -87,6 +93,7 @@ func cancel_reference(reference: Node3D) -> void:
 			# A later owner may join the same live job without duplicate work.
 			if not jobs.values().has(resource): requests.erase(resource)
 	publication=publication.filter(func(entry):return entry.request.node.get_ref()!=reference)
+	_refresh_processing()
 func completed(id: int,bundle: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var resource:=str(jobs[id]); jobs.erase(id); stats.worker_ms+=float(bundle.get("worker_ms",0))
@@ -96,11 +103,13 @@ func completed(id: int,bundle: Dictionary) -> void:
 		for request in listeners:
 			var node=current(request)
 			if node!=null: node.reject("Original referenced model unavailable: "+resource+": "+str(bundle.error))
+		_refresh_processing()
 		return
 	prepared[resource]=bundle; cache_order.erase(resource); cache_order.append(resource)
 	while cache_order.size()>maximum_cached: prepared.erase(cache_order.pop_front())
 	for request in listeners: publication.append({"request":request,"bundle":bundle})
 	priority_dirty=true
+	_refresh_processing()
 func _process(_delta: float) -> void:
 	var began:=Profile.begin()
 	_profile_process(_delta)
@@ -139,6 +148,7 @@ func _profile_process(_delta: float) -> void:
 		if pool.has_method("publication_finished"): pool.publication_finished(unit_began)
 		Profile.finish("native_reference_publication",phase)
 	stats.max_publication_ms=maxf(stats.max_publication_ms,(Time.get_ticks_usec()-began)/1000.0)
+	_refresh_processing()
 func create_chunk_model(owner: Node3D,bundle: Dictionary):
 	if closed or pool==null or not is_instance_valid(owner) or owner.retired or owner.generation!=generation: return null
 	var model:=Actor.new(); model.hide(); model.process_mode=Node.PROCESS_MODE_DISABLED; model.top_level=true; owner.add_child(model)
@@ -177,4 +187,5 @@ func close() -> void:
 	closed=true; generation+=1; waiting.clear(); requests.clear(); publication.clear(); jobs.clear(); prepared.clear(); cache_order.clear()
 	if is_instance_valid(assets): assets.close()
 	pool=null
+	_refresh_processing()
 func _exit_tree() -> void: close()
