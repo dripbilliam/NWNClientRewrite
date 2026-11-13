@@ -1,0 +1,27 @@
+'use strict';
+// Private installed-original draw-mode extension; no accepted source or DLL edit.
+const fs=require('node:fs');
+const path=require('node:path');
+const crypto=require('node:crypto');
+const assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..');
+const base=path.join(root,'.cache/nwn64/geometry-worker-installed-e');
+const out=path.join(root,'.cache/nwn64/mode-local-z-a');
+const relative='tests/geometry_worker_installed_models_test.gd';
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+assert(!fs.existsSync(out),'Preserve prior stage');
+const discovery=JSON.parse(fs.readFileSync(path.join(root,'.cache/nwn64/mode-find-original-a.json')));
+assert.equal(discovery.found.Billboard_to_Local_Z.model,'c_dracolich');
+assert.equal(discovery.found.Billboard_to_Local_Z.sha256,'3135b9a6cf3e932b84cc2c0cd0ceef4c282a9a3bb884fba9e183341585bae60b');
+fs.cpSync(base,out,{recursive:true});
+const source=path.join(out,relative);let body=fs.readFileSync(source,'utf8');
+const before=sha(source);
+const from='"it_torch_000","plc_cndl01","plc_x0_drt","c_goldem","plc_v02","plc_i10","tnp_gmist","plc_u09"';
+assert.equal(body.split(from).length,2);
+body=body.replace(from,from+',"c_dracolich"');
+assert.equal(body.split('over eight installed original MDLs').length,2);
+body=body.replace('over eight installed original MDLs','over nine installed original MDLs, including c_dracolich Billboard_to_Local_Z');
+fs.writeFileSync(source,body);
+const receipt={privateProject:out,source:relative,beforeSha256:before,afterSha256:sha(source),binarySha256:sha(path.join(out,'.cache/native-kernel/nwn-particle-kernel.dll')),originalModel:discovery.found.Billboard_to_Local_Z,scope:'Existing serial/worker installed-MDL differential plus one original Billboard_to_Local_Z Single emitter; old private worker binary, not accepted DLL.'};
+fs.writeFileSync(path.join(out,'mode-receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(receipt));

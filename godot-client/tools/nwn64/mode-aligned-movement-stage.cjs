@@ -1,0 +1,21 @@
+'use strict';
+// Private controlled source-motion witness for the original distance-spawn emitter.
+const fs=require('node:fs');
+const path=require('node:path');
+const crypto=require('node:crypto');
+const assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..');
+const from=path.join(root,'.cache/nwn64/mode-aligned-active-b');
+const to=path.join(root,'.cache/nwn64/mode-aligned-movement-d');
+const relative='tests/geometry_worker_installed_models_test.gd';
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+assert(!fs.existsSync(to));fs.cpSync(from,to,{recursive:true});
+fs.rmSync(path.join(to,'mode-aligned-active-report.json'),{force:true});
+const file=path.join(to,relative);let body=fs.readFileSync(file,'utf8');
+const marker='row.events.clear();row.wind.tick(1.0/60.0)';
+assert.equal(body.split(marker).length,2);
+body=body.replace(marker,marker+'\n\t\t\tfor aligned_index in row.origins.size():\n\t\t\t\tif row.origins[aligned_index]=="c_jelly": row.nodes[aligned_index].get_parent().position.x+=0.4');
+fs.writeFileSync(file,body);
+const receipt={from,to,sourceSha256:sha(file),dllSha256:sha(path.join(to,'.cache/native-kernel/nwn-particle-kernel.dll')),change:'Keep original c_jelly spawnType=1 and authored fields; move its source 0.4 per frame in both paired owners and disable only fixture culling to exercise its distance-spawn draw mode.'};
+fs.writeFileSync(path.join(to,'movement-receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(receipt));

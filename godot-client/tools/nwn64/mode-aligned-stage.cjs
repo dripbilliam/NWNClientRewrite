@@ -1,0 +1,27 @@
+'use strict';
+// Add one installed original aligned-particle emitter to the private worker differential.
+const fs=require('node:fs');
+const path=require('node:path');
+const crypto=require('node:crypto');
+const assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..');
+const base=path.join(root,'.cache/nwn64/geometry-worker-installed-e');
+const out=path.join(root,'.cache/nwn64/mode-aligned-a');
+const relative='tests/geometry_worker_installed_models_test.gd';
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+assert(!fs.existsSync(out),'Preserve prior stage');
+const discovery=JSON.parse(fs.readFileSync(path.join(root,'.cache/nwn64/mode-aligned-find-a.json')));
+assert.deepEqual(discovery.found.map(row=>row.model),['c_jelly']);
+assert.equal(discovery.found[0].sha256,'d8e9eed28696ce50fa9b9cff3c47a4f878bed6a8f39daf15b39896da5e600de4');
+fs.cpSync(base,out,{recursive:true});
+const source=path.join(out,relative);let body=fs.readFileSync(source,'utf8');
+const before=sha(source);
+const from='"it_torch_000","plc_cndl01","plc_x0_drt","c_goldem","plc_v02","plc_i10","tnp_gmist","plc_u09"';
+assert.equal(body.split(from).length,2);
+body=body.replace(from,from+',"c_jelly"');
+assert.equal(body.split('over eight installed original MDLs').length,2);
+body=body.replace('over eight installed original MDLs','over nine installed original MDLs, including c_jelly Aligned_to_Particle_Dir');
+fs.writeFileSync(source,body);
+const receipt={privateProject:out,source:relative,beforeSha256:before,afterSha256:sha(source),binarySha256:sha(path.join(out,'.cache/native-kernel/nwn-particle-kernel.dll')),originalEmitter:discovery.found[0],scope:'Existing serial/worker installed-MDL differential plus original c_jelly Aligned_to_Particle_Dir Fountain emitter; private candidate DLL only.'};
+fs.writeFileSync(path.join(out,'mode-aligned-receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(receipt));
