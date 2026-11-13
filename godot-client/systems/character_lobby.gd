@@ -20,6 +20,7 @@ var disconnect_button: Button
 var export_button: Button
 var save_on_disconnect: CheckBox
 var keys: Array[String] = []
+var displayed_choice_rows: Array=[]
 var last_auto_join := -1
 var last_auto_choose := -1
 var last_auto_play := -1
@@ -172,13 +173,23 @@ func apply_state(value: Dictionary) -> void:
 		download_bar.max_value = maxi(1,total); download_bar.value = completed
 		download_label.text = "Reading server content manifest…" if progress.get("phase") == "server-manifest" else "%s · %s / %s resources · %.1f MiB received" % ["Downloading server content" if bytes > 0 else "Checking cached server content",completed,total,bytes/1048576.0]
 		resource_progress.emit({"connection":connection,"phase":progress.get("phase"),"completed":completed,"total":total,"downloadedBytes":bytes,"canCancel":state.get("canCancelJoin",false),"canPlay":state.get("canSelect",false)})
-	choices.clear()
-	keys.clear()
+	var visible_rows: Array=[]
+	var next_keys: Array[String]=[]
+	var selected_index: int=-1
+	var selected_key: Variant=state.get("selected")
 	for row in state.get("choices", []):
-		keys.append(str(row.key))
-		choices.add_item(str(row.label))
-		if row.key == state.get("selected"):
-			choices.select(keys.size() - 1)
+		next_keys.append(str(row.key))
+		visible_rows.append([next_keys[-1],str(row.label)])
+		if row.key==selected_key: selected_index=next_keys.size()-1
+	if visible_rows!=displayed_choice_rows:
+		displayed_choice_rows=visible_rows
+		keys=next_keys
+		choices.clear()
+		for row in visible_rows: choices.add_item(row[1])
+	var selected_items:=choices.get_selected_items()
+	if selected_index>=0:
+		if selected_items.size()!=1 or selected_items[0]!=selected_index: choices.select(selected_index)
+	elif not selected_items.is_empty(): choices.deselect_all()
 	choices.mouse_filter = Control.MOUSE_FILTER_STOP
 	cancel_button.visible = state.get("canCancelJoin", false)
 	cancel_button.disabled = not state.get("canCancelJoin", false)
