@@ -3,12 +3,57 @@ extends Node
 const NativeAnimation = preload("res://systems/model_native_animation.gd")
 const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 const SkinPreparation=preload("res://systems/native_data/skin_preparation.gd")
+static var scalar_values:=preload("res://systems/native_data/scalar_representation.gd").configured()
 
 signal animation_event(id: int, name: String, serial: int)
 signal model_event(id: int, model_index: int, name: String, serial: int)
 
 var entities: Dictionary = {}
 var registry
+# This table is separate from entities: a publisher retains its input entry,
+# and putting the publisher inside that entry would create a reference cycle.
+static func configured_native_skin_publisher() -> bool:
+	return ClassDB.class_exists("NwnRigSkinPublisher") and OS.get_cmdline_user_args().has("--rig-skin-publisher=native")
+var use_native_skin_publisher: bool=configured_native_skin_publisher()
+var native_skin_publishers: Dictionary={}
+var native_skin_reentrant_fallbacks: int=0
+
+func _publish_skin_native(id: int,entry: Dictionary) -> Variant:
+	if not use_native_skin_publisher:return 1
+	var binding: Array=native_skin_publishers.get(id,[])
+	if binding.is_empty() or not is_same(binding[0],entry):
+		var publisher: RefCounted=ClassDB.instantiate("NwnRigSkinPublisher")
+		if not bool(publisher.call("configure",entry)):return 1
+		binding=[entry,publisher];native_skin_publishers[id]=binding
+	var status: int=int(binding[1].call("publish"))
+	# Existing ModelRigs allows a force-update listener to recurse into _update.
+	# The engine rejects before touching its outer scratch, so this nested call
+	# must use the original script branch and its own local rigid array.
+	if status==3:
+		native_skin_reentrant_fallbacks+=1
+		return 1
+	if status==2:
+		var continuation: Dictionary=binding[1].call("take_continuation")
+		if not continuation.is_empty():return continuation
+	if status>1:
+		var message: String="Native skin publication interrupted at a callback boundary: "+str(status)
+		if not stats.failures.has(message):stats.failures.append(message)
+		push_error(message)
+	return status
+
+func native_skin_snapshot(id: int) -> Dictionary:
+	var binding: Array=native_skin_publishers.get(id,[])
+	return binding[1].call("inspect") if not binding.is_empty() else {}
+
+func native_skin_publication_snapshot() -> Dictionary:
+	var out: Dictionary={"enabled":use_native_skin_publisher,"publishers":native_skin_publishers.size(),"reentrant_fallbacks":native_skin_reentrant_fallbacks,"totals":{},"entries":[]}
+	for id: int in native_skin_publishers:
+		var row: Dictionary=native_skin_snapshot(id)
+		for key: String in ["calls","completed","fallbacks","partial_failures","continuations","node_reads","bone_writes","force_calls"]:out.totals[key]=int(out.totals.get(key,0))+int(row.get(key,0))
+		row.id=id;out.entries.append(row)
+	return out
+
+
 static func configured_prepared_clips() -> bool: return not OS.get_cmdline_user_args().has("--clip-preparation=main")
 var use_prepared_clips:=configured_prepared_clips()
 var stats := {"entities": 0, "nodes": 0, "players": 0, "clips": 0, "indexed_clip_models":0,"indexed_clip_metadata":0,"skin_meshes": 0, "skin_prepared_meshes":0,"skin_main_meshes":0,"rigid_meshes": 0, "skin_vertices": 0, "unsupported_channels": [], "pose_frames": 0, "missing_requested_clips": [], "failures": []}
@@ -42,6 +87,7 @@ func configure(value, pivots: Dictionary, metadata: Dictionary) -> void:
 			node.visible = row.get("visible", true)
 			nodes.append(node)
 		var entry := {"root": rig, "nodes": nodes, "parents": source.nodes.map(func(row): return int(row.parent)), "models": [], "animated_models":[], "skins": [], "attachments": source.get("attachments", []), "clip_map": source.get("clipMap", {}), "side_maps": source.get("sideMaps", {}), "context": source.get("context", {}).duplicate(true), "body_type": int(source.get("bodyType", 0)), "side": 0, "loop_map": source.get("loopMap", {}), "animation": -1}
+		native_skin_publishers.erase(id)
 		entities[id] = entry
 		entry["authored_names"] = source.nodes.map(func(row): return str(row.name))
 		entry["model_parts"] = source.models.map(func(model): return model.parts.duplicate())
@@ -94,6 +140,7 @@ func configure(value, pivots: Dictionary, metadata: Dictionary) -> void:
 func forget_entity(id: int) -> void:
 	if not entities.has(id):
 		return
+	native_skin_publishers.erase(id)
 	for model in entities[id].models:
 		if model.has("native_owner"): model.native_owner.close()
 	for key in entities[id].get("counts", {}):
@@ -205,6 +252,7 @@ func adopt_entities(source, ids: Array) -> void:
 	for id in ids:
 		if not source.entities.has(id):
 			continue
+		native_skin_publishers.erase(id)
 		entities[id] = source.entities[id]
 		for key in entities[id].counts:
 			stats[key] += entities[id].counts[key]
@@ -474,6 +522,7 @@ func _profile_process(delta: float) -> void:
 	_update(delta)
 
 func _exit_tree() -> void:
+	native_skin_publishers.clear()
 	var began:=FrameProfile.begin()
 	for entry in entities.values():
 		for model in entry.models:
@@ -481,8 +530,8 @@ func _exit_tree() -> void:
 	FrameProfile.finish("rig_exit_close_ms",began)
 
 static func model_events(events: Array, from: float, to: float, flags: int = 0) -> Array:
-	from = PackedFloat32Array([from])[0]
-	to = PackedFloat32Array([to])[0]
+	from = Color(from,0,0,0).r if scalar_values else PackedFloat32Array([from])[0]
+	to = Color(to,0,0,0).r if scalar_values else PackedFloat32Array([to])[0]
 	var result: Array = []
 	if flags & 2:
 		from = -1e9
@@ -493,7 +542,7 @@ static func model_events(events: Array, from: float, to: float, flags: int = 0) 
 			result.append_array(model_events(events, from, -1e9, flags))
 			from = 1e9
 		for i in range(events.size() - 1, -1, -1):
-			var time: float = PackedFloat32Array([float(events[i].time)])[0]
+			var time: float = Color(float(events[i].time),0,0,0).r if scalar_values else PackedFloat32Array([float(events[i].time)])[0]
 			if time >= to and from > time:
 				result.append(str(events[i].name))
 	else:
@@ -501,7 +550,7 @@ static func model_events(events: Array, from: float, to: float, flags: int = 0) 
 			result.append_array(model_events(events, from, 1e9, flags))
 			from = -1e9
 		for event in events:
-			var time: float = PackedFloat32Array([float(event.time)])[0]
+			var time: float = Color(float(event.time),0,0,0).r if scalar_values else PackedFloat32Array([float(event.time)])[0]
 			if to >= time and time > from:
 				result.append(str(event.name))
 	return result
@@ -552,13 +601,27 @@ func _update(delta: float) -> void:
 		if entry.skins.is_empty():
 			continue
 		phase_began=FrameProfile.begin()
+		var native_skin_result: Variant=_publish_skin_native(int(id),entry)
+		if native_skin_result is int and int(native_skin_result)!=1:
+			FrameProfile.finish("actor_skin",phase_began)
+			if int(native_skin_result)>1:return
+			continue
 		var rigid: Array[Transform3D] = []
-		for index in entry.nodes.size():
-			var node: Node3D = entry.nodes[index]
-			var local := Transform3D(Basis(node.quaternion), node.position)
-			var parent := int(entry.parents[index])
-			rigid.append(local if parent == -1 else rigid[parent] * local)
-		for skin in entry.skins:
+		var skin_rows: Array=entry.skins
+		var skin_start: int=0
+		if native_skin_result is Dictionary:
+			rigid.assign(native_skin_result.rigid);skin_rows=native_skin_result.skins;skin_start=int(native_skin_result.start)
+		else:
+			for index in entry.nodes.size():
+				var node: Node3D = entry.nodes[index]
+				var local := Transform3D(Basis(node.quaternion), node.position)
+				var parent := int(entry.parents[index])
+				rigid.append(local if parent == -1 else rigid[parent] * local)
+		var skin_cursor: int=0
+		for skin in skin_rows:
+			if skin_cursor<skin_start:
+				skin_cursor+=1;continue
+			skin_cursor+=1
 			var inverse: Transform3D = rigid[skin.part].affine_inverse()
 			var skeleton: Skeleton3D = skin.skeleton
 			for slot in skin.bones.size():

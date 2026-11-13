@@ -1,0 +1,28 @@
+Popup preferences/control contract
+
+The existing ChatPreferences owner persists the canonical keys in its existing
+chat-hud ConfigFile section:
+  ui.text-bubble-mode: actual INT 0/1/2; registered default 2.
+  ui.large-font: actual BOOL; registered default true.
+Invalid typed values use those defaults. Integral FLOATs, strings, BOOL aliases,
+fractions and nonfinite values cannot become the persisted INT mode. These keys
+do not alter the old font_size preference, chat layout/masks/filters or history.
+Existing ConfigFile load/save retains unknown keys and other sections. There is
+no original profile read, speculative alias or second preferences service.
+
+Existing NativeChatOptions exposes the canonical field IDs via one OptionButton
+(Off=0, Text only=1, Full background=2) and a Large dialog font CheckBox. Changes
+use the existing cleaned, detached settings_changed dictionary. Refresh/reflect
+silently select the actual controls; the original-style preset uses the updated
+registered defaults. Gameplay binding, actual-change dispatch, existing-popup
+font/mode refits and timer semantics are owned by the separate root integration.
+These two producer files neither reset speech timers nor restyle other UI.
+
+Focused fixture/runner (authored, execution requires coordinated CPU lane):
+  tests/native_popup_preferences_test.gd
+  tools/test-native-popup-preferences.mjs UNIQUE-LABEL
+The fixture covers typed validation/defaults, old files, preservation, actual
+embedded pointer/keyboard/dropdown/checkbox controls, existing signal detachment,
+silent refresh/reflect and one-owner reload. It uses only a private test ConfigFile
+and the copied owners. No Gameplay/Overhead, original profile, server/key/GPU,
+native build or OS focus/pointer operation is involved. No pixel claim.

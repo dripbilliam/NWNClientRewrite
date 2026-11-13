@@ -1,0 +1,15 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {stage,hash,particleChanges} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),parentFile=path.join(project,'.cache/native-140fps/root/common-v1/manifest.json'),parent=JSON.parse(fs.readFileSync(parentFile));
+function loading(label){const file=path.join(project,'.cache/native-140fps/loading-agent',label,'manifest.json'),r=JSON.parse(fs.readFileSync(file));return stage(project,parentFile,'loading-'+label,r.changed.map(p=>({...p,from:path.join(r.candidate,p.relative)})),[file]);}
+const poseFile=path.join(project,'.cache/native-140fps/render-agent/pose-publication-v2/manifest.json'),pose=JSON.parse(fs.readFileSync(poseFile));if(pose.builds!==1)throw Error('Unfinalized pose candidate');
+const poseChanges=['native/model_pose_storage.hpp','.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-kernel/build-manifest.json'].map(relative=>{const from=path.join(pose.project,relative),after=pose.pins.find(p=>p.relative===relative)?.sha256;if(!after||hash(fs.readFileSync(from))!==after)throw Error('Pose source differs');return{relative,from,after,before:parent.pins.find(p=>p.relative===relative)?.sha256??null};});
+const posed=stage(project,parentFile,'render-pose-publication-v2',poseChanges,[poseFile,pose.build.proofFile]);
+const material=loading('material-pose-v1'),digest=loading('job-digest-v2');
+const coldFile=path.join(project,'.cache/native-140fps/particles-agent/cold-particle-census-v2/candidate-built-sources.json'),coldChanges=particleChanges(coldFile);
+const relative='native_live_world.gd';let live=fs.readFileSync(path.join(parent.project,relative),'utf8');const boundary='\tif is_instance_valid(world): report.world=world.snapshot()';if(live.split(boundary).length!==2)throw Error('Cold shutdown boundary differs');
+live=live.replace(boundary,boundary+'\n\tif is_instance_valid(world): report.perf140_cold_particles=preload("res://systems/native_render/perf140_cold_particle_dump.gd").capture(world)');
+const drafts=path.join(project,'.cache/native-140fps/root/cold-draft-v1');if(fs.existsSync(drafts))throw Error('Prior cold draft preserved');fs.mkdirSync(drafts);const from=path.join(drafts,relative);fs.writeFileSync(from,live);
+coldChanges.push({relative,before:parent.pins.find(p=>p.relative===relative).sha256,after:hash(Buffer.from(live)),from});
+const helperFrom=path.join(project,'tools/perf140/driver/cold_particle_dump.gd');coldChanges.push({relative:'systems/native_render/perf140_cold_particle_dump.gd',before:null,after:hash(fs.readFileSync(helperFrom)),from:helperFrom});
+const cold=stage(project,parentFile,'particles-cold-v2',coldChanges,[coldFile]);
+const output=path.join(project,'reports/native-perf140-runtime-candidates-v1.json');fs.writeFileSync(output,JSON.stringify({posed,material,digest,cold},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({output,posed,material,digest,cold}));

@@ -56,17 +56,19 @@ func run() -> void:
 		for uv in [false,true]:
 			for rigid in [false,true]: samples.append(compare(authored(normals,uv),"Authored normals/UV/rigid "+str([normals,uv,rigid]),rigid))
 	var filtered:=authored(); filtered.native_planes=PackedFloat32Array([0,0,1,0]); filtered.native_surface_types=PackedInt32Array([30]); compare(filtered,"Serialized collision planes and ignored material")
+	var colored:=authored(); colored.vertex_colors=PackedByteArray([17,34,51,68,85,102,119,136,153,170,187,204,221,238,255,0]); compare(colored,"Original normalized RGBA vertex colors")
 	var random:=RandomNumberGenerator.new(); random.seed=0x14007b0e7
 	for trial in 16:
 		var raw:=authored(trial%2==0,trial%3==0)
 		for index in raw.vertices.size(): raw.vertices[index]=random.randf_range(-128,128)
 		compare(raw,"Seeded general geometry "+str(trial))
-	for mode in ["vertices","normals","uv","negative","range"]:
+	for mode in ["vertices","normals","uv","colors","negative","range"]:
 		var raw:=authored()
 		match mode:
 			"vertices": raw.vertices=PackedFloat32Array([0,0])
 			"normals": raw.normals=PackedFloat32Array([0])
 			"uv": raw.uv=[PackedFloat32Array([0])]
+			"colors": raw.vertex_colors=PackedByteArray([1,2,3])
 			"negative": raw.indices[0]=-1
 			"range": raw.indices[0]=999
 		var pool:=Pool.new(); pool.use_prepared_geometry=false; var mesh=pool.geometry(Cache.digest(mode.to_utf8_buffer()),0,raw)

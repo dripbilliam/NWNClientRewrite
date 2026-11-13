@@ -4,7 +4,7 @@ import {Worker} from 'node:worker_threads';
 
 // Decoded rendering inputs only. This boundary never receives login requests,
 // identity objects, raw peer packets or outgoing chat/actions.
-const kinds=new Set(['module-info','module-time','client-area','object-updates','object-control','party-list','player-list-all','player-list-add','player-list-delete','safe-projectile','object-visual','area-visual','gui-timing','tlk-overrides','custom-token','quickbar','sound-object','ambient-command','script-sound','voice-play','spell-targeting-data','script-targeting','script-targeting-data']);
+const kinds=new Set(['module-info','module-time','module-pause-state','client-area','object-updates','object-control','party-list','player-list-all','player-list-add','player-list-delete','safe-projectile','object-visual','area-visual','gui-timing','tlk-overrides','custom-token','quickbar','sound-object','ambient-command','script-sound','voice-play','spell-targeting-data','script-targeting','script-targeting-data']);
 const sensitive=/^(?:password|cdkey|communitypassword|credentials|loginidentity|privatekey|secretkey|sessionkey|authentication)$/i;
 function clean(value){
  if(value===null||typeof value!=='object')return value;

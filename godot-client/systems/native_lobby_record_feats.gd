@@ -23,9 +23,17 @@ var closed:=false
 var list_rect:=Rect2()
 var page_kind:=2
 var row_resource:="ctl_chr_btn_feat"
+var data_art
+var scope_provider:=Callable()
+var input_provider:=Callable()
 func configure(owner_ui,painter,source: Dictionary,extent: Vector2,kind: int=2) -> void:
+	chooser=owner_ui
+	configure_view(painter,source,chooser.models,extent,kind,chooser.data_art,
+		func():return [chooser.owner_ui.connection,chooser.owner_ui.state.get("selected"),chooser.interaction_epoch],
+		func():return chooser.owner_ui.state.get("canSelect",false) and chooser.owner_ui.native_selection.is_empty())
+func configure_view(painter,source: Dictionary,raw_models: Dictionary,extent: Vector2,kind: int,art,identity: Callable,available: Callable) -> void:
 	page_kind=kind; row_resource="ctl_chr_btn_skil" if kind==1 else "ctl_chr_btn_feat"
-	chooser=owner_ui; frame=painter; models=source; size=extent; mouse_filter=Control.MOUSE_FILTER_IGNORE; clip_contents=true; hide()
+	frame=painter; models=source; data_art=art; scope_provider=identity; input_provider=available; set_meta("raw_models",raw_models); size=extent; mouse_filter=Control.MOUSE_FILTER_IGNORE; clip_contents=true; hide()
 	for pair in [["pnl_chrsht_skil2",["description","list"]],["ctl_chrsht_desc",["text0","text1","scrollmin","scrollmax"]],["ctl_chr_btnlstbx",["top","bottom","listitem","scrollmin","scrollmax"]],[row_resource,["icon","text","next"]+(["value"] if kind==1 else [])]]:
 		for hook in pair[1]:
 			if not models[pair[0]].hooks.has(hook): failure="Original pregame Feats hook missing: "+pair[0]+"/"+hook; return
@@ -45,37 +53,43 @@ func configure(owner_ui,painter,source: Dictionary,extent: Vector2,kind: int=2) 
 func scroll(rect: Rect2) -> ScrollContainer:
 	var target:=ScrollContainer.new(); add_child(target); target.position=rect.position; target.size=rect.size; target.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED; target.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_ALWAYS; return target
 func add_bar(target: ScrollContainer,offset: Vector2,model: Dictionary,step: float,font: String) -> void:
-	var bar:=Bar.new(); add_child(bar); bar.configure(frame,chooser.models,{"offset":offset,"model":model,"caption":{"AurString_Font":font}},target,step); bars.append(bar)
+	var bar:=Bar.new(); add_child(bar); bar.configure(frame,get_meta("raw_models"),{"offset":offset,"model":model,"caption":{"AurString_Font":font}},target,step); bars.append(bar)
 	if not bar.failure.is_empty(): failure=bar.failure
 func scope() -> Array:
-	return [chooser.owner_ui.connection,chooser.owner_ui.state.get("selected"),chooser.interaction_epoch,revision]
+	var identity: Array=scope_provider.call() if scope_provider.is_valid() else []
+	return identity+[revision]
 func present(value: Variant) -> void:
 	if closed or not failure.is_empty(): return
-	var next:=JSON.stringify([scope().slice(0,3),chooser.spell_projection if page_kind==3 else chooser.skill_projection if page_kind==1 else value.get("feats",[]) if value is Dictionary else [],value.get("bonusFeats",[]) if value is Dictionary else [],chooser.text_owner.revision])
-	if next==signature: return
-	signature=next; revision+=1; held.clear(); selected=-1; entries=[]; Text.set_text(description,{}); description_scroll.scroll_vertical=0; list.scroll_vertical=0
-	for row in rows: row.free()
-	rows.clear()
+	var projected: Array=[]
 	if page_kind==3 and chooser.spell_projection.get("ready",false):
-		entries=chooser.spell_projection.entries.duplicate(true)
-		for entry in entries:
+		projected=chooser.spell_projection.entries.duplicate(true)
+		for entry in projected:
 			if entry.summary: entry.name=chooser.text_owner.raw({"strRef":int(entry.nameRef)}); entry.description={}
 			else:
 				var data: Dictionary=chooser.rules.row("spells",int(entry.id)); entry.name=chooser.text_owner.raw({"strRef":chooser.rules.number(chooser.rules.cell(data,"Name"),4294967295)}); entry.icon=chooser.rules.icon("spells",int(entry.id)); entry.description=chooser.rules.description("spells",int(entry.id))
-		entries=preload("res://systems/native_data/character_record_entries.gd").ordered(entries)
+		projected=preload("res://systems/native_data/character_record_entries.gd").ordered(projected)
 	elif page_kind==1 and chooser.skill_projection.get("ready",false):
-		entries=chooser.skill_projection.entries.duplicate(true)
-		for entry in entries:
+		projected=chooser.skill_projection.entries.duplicate(true)
+		for entry in projected:
 			entry.name=chooser.rules.title("skills",int(entry.id)); entry.icon=chooser.rules.icon("skills",int(entry.id)); entry.description=chooser.rules.description("skills",int(entry.id))
-		entries=preload("res://systems/native_data/character_record_entries.gd").ordered(entries)
+		projected=preload("res://systems/native_data/character_record_entries.gd").ordered(projected)
 	elif value is Dictionary and page_kind==2:
-		entries=chooser.rules.record_entries({"inventoryStats":{"fields118":value.get("feats",[]),"fields128":value.get("bonusFeats",[])}},2)
+		projected=chooser.rules.record_feat_entries(value.get("feats",[]),value.get("bonusFeats",[]))
+	present_entries(projected,chooser.text_owner.revision)
+func present_entries(projected: Array,text_revision: int=0) -> void:
+	if closed or not failure.is_empty(): return
+	var identity: Array=scope_provider.call() if scope_provider.is_valid() else []
+	var next:=JSON.stringify([identity,projected,text_revision])
+	if next==signature: return
+	signature=next; revision+=1; held.clear(); selected=-1; entries=projected.duplicate(true); Text.set_text(description,{}); description_scroll.scroll_vertical=0; list.scroll_vertical=0
+	for row in rows: row.free()
+	rows.clear()
 	var model: Dictionary=models[row_resource]; var list_model: Dictionary=models.ctl_chr_btnlstbx; var offset: Vector2=list_model.hooks.listitem
 	var group:=ButtonGroup.new()
 	for index in entries.size():
-		var entry: Dictionary=entries[index]; var button:=Button.new(); body.add_child(button); button.toggle_mode=true; button.button_group=group; frame.button(button,Layout.entry(models,row_resource,offset),body,chooser.models,false,true)
+		var entry: Dictionary=entries[index]; var button:=Button.new(); body.add_child(button); button.toggle_mode=true; button.button_group=group; frame.button(button,Layout.entry(models,row_resource,offset),body,get_meta("raw_models"),false,true)
 		button.button_down.connect(func():held[index]=scope()); button.pressed.connect(select.bind(index)); rows.append(button)
-		var local: Vector2=-model.bounds.position; var icon:=TextureRect.new(); button.add_child(icon); icon.position=local+model.hooks.icon-Vector2(16,16); icon.size=Vector2(32,32); icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; icon.mouse_filter=Control.MOUSE_FILTER_IGNORE; chooser.data_art.bind(icon,str(entry.icon))
+		var local: Vector2=-model.bounds.position; var icon:=TextureRect.new(); button.add_child(icon); icon.position=local+model.hooks.icon-Vector2(16,16); icon.size=Vector2(32,32); icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; icon.mouse_filter=Control.MOUSE_FILTER_IGNORE; data_art.bind(icon,str(entry.icon))
 		var name: Label=frame.create_label({"rect":Rect2(local+model.hooks.text-Vector2(0,17),Vector2(250 if page_kind==1 else 280,34)),"caption":{"AurString_Font":"fnt_galahad14","AurString_AlignH":0.0,"AurString_AlignV":0.5}},button); name.text=str(entry.name)
 		if page_kind==1:
 			var value_label: Label=frame.create_label({"rect":Rect2(local+model.hooks.value-Vector2(16,17),Vector2(33,34)),"caption":Layout.CAPTION},button); value_label.text=str(int(entry.value))
@@ -85,7 +99,7 @@ func present(value: Variant) -> void:
 func select(index: int) -> void:
 	if closed or not is_visible_in_tree() or index<0 or index>=entries.size(): return
 	var captured: Array=held.get(index,[]); held.erase(index)
-	if captured!=scope() or not chooser.owner_ui.state.get("canSelect",false) or not chooser.owner_ui.native_selection.is_empty():
+	if captured!=scope() or not input_provider.is_valid() or not bool(input_provider.call()):
 		for at in rows.size(): rows[at].set_pressed_no_signal(at==selected)
 		return
 	selected=index
@@ -97,5 +111,5 @@ func close() -> void:
 	if closed: return
 	closed=true; held.clear()
 	for bar in bars: if is_instance_valid(bar): bar.close()
-	bars.clear(); rows.clear(); entries.clear(); chooser=null; frame=null
+	bars.clear(); rows.clear(); entries.clear(); chooser=null; frame=null; data_art=null; scope_provider=Callable(); input_provider=Callable(); remove_meta("raw_models")
 func _exit_tree() -> void: close()

@@ -16,6 +16,8 @@ var identify: Button
 var examine: Button
 var cancel_button: Button
 var native_skin
+var stock_buttons: Dictionary={}
+var structural_key: Variant=null
 var selected_item := -1
 var selected_price := -1
 var selected_generation := -1
@@ -67,8 +69,18 @@ func setup(owner, storage: String) -> void:
 
 func reset() -> void:
 	clear_selection()
-	if repository != null: inventory.wipe(repository)
+	for id in stock_buttons.keys(): retire_stock(int(id))
+	stock_buttons.clear(); structural_key=null
 	hide()
+
+func retire_stock(id: int) -> void:
+	var button=stock_buttons.get(id)
+	if inventory.buttons.get(id)==button: inventory.buttons.erase(id)
+	stock_buttons.erase(id)
+	if not is_instance_valid(button): return
+	if native_skin!=null: native_skin.clear_hover(id)
+	if button.get_parent()!=null: button.get_parent().remove_child(button)
+	button.queue_free()
 
 func clear_selection() -> void:
 	selected_item = -1; selected_price = -1; selected_generation = -1; selected_channel = ""
@@ -84,7 +96,13 @@ func render(store: Dictionary) -> void:
 	var first := not visible
 	show()
 	if first: move_to_front()
-	inventory.wipe(repository)
+	var next_key:=hash([store.generation,store.panel,store.page,native_skin.built() if native_skin!=null else false])
+	var rebuild: bool=structural_key!=next_key; structural_key=next_key
+	for id in stock_buttons.keys():
+		var row: Dictionary=inventory.items.get(id,{})
+		if rebuild or row.get("channel","")!="M": retire_stock(int(id)); continue
+		var button: Control=stock_buttons[id]
+		if not button.position.is_equal_approx(repository.item_position(row)) or not button.size.is_equal_approx(repository.item_size(row)): retire_stock(int(id))
 	for index in tabs.size():
 		tabs[index].text = str(store.labels[index]) if index < store.get("labels", []).size() else str(index + 1)
 		tabs[index].disabled = int(store.panel) == index or store.get("navigationPending", false)
@@ -94,8 +112,11 @@ func render(store: Dictionary) -> void:
 	if store.get("navigationPending", false): gold.text += " · Loading…"
 	for row in inventory.items.values():
 		if row.channel != "M": continue
-		var button := Slot.new()
-		button.setup(inventory, row)
+		var button
+		if stock_buttons.has(int(row.entryId)):
+			button=stock_buttons[int(row.entryId)]; button.refresh_row(row,inventory.view_id)
+			inventory.register_button(row,button); continue
+		button=Slot.new(); button.setup(inventory,row); stock_buttons[int(row.entryId)]=button
 		button.position = repository.item_position(row)
 		button.size = repository.item_size(row)
 		repository.add_child(button)

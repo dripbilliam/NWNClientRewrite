@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "methods": [
+    "receive",
+    "receive_delta",
+    "retire_replaced_lifetime"
+  ],
+  "plannerProgressExact": true,
+  "objectPoseExact": true,
+  "configureExact": true,
+  "snapshotPrefixAndCompletenessExact": true,
+  "helperExact": true,
+  "v2FreezeUnchanged": "915f16a6c04df83d3c1ea8aa8bb88692fe17efd72347faf0c7e27a15715ee358",
+  "sharedEdits": 0,
+  "scope": "Body extraction equality only; fixture stubs and full-client limitations remain explicit in REVIEW.md."
+}

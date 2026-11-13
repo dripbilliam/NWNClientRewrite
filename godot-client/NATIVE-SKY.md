@@ -1,5 +1,11 @@
 # Original-model sky — partial rendering milestone
 
+The current all-native live-world follow-up is documented in
+[NATIVE-LIGHTING-CORRECTION.md](NATIVE-LIGHTING-CORRECTION.md). It reads original
+sky table/model/bitmap resources through native workers and preserves their
+original RGBA vertex bytes. The GLB/reference-delivery work below is historical;
+it is not the native live renderer's sky loading path.
+
 Ordinary native sessions now resolve the received area's SkyBox byte through
 the active session's `skyboxes.2da`, export its original dawn/day/dusk/night
 models and install them in a camera-centered Godot sky owner. Model geometry,

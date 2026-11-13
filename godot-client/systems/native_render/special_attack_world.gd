@@ -21,7 +21,7 @@ func observe(object: Dictionary) -> void:
 	var id:=int(object.get("id",-1)); var host=manager.host(id)
 	if records.has(id) and not valid(records[id]): forget(id); stats.stale+=1
 	if is_instance_valid(host) and not host.retired and manager.world.desired.has(id) and str(manager.world.installed.get(id,""))==str(manager.world.desired[id].key):
-		var feats:=Rules.new().feats(object); var classes: Array=object.get("replicated",{}).get("stats",{}).get("classes",[])
+		var feats:=Rules.collect_feats(object); var classes: Array=object.get("replicated",{}).get("stats",{}).get("classes",[])
 		if records.has(id) or State.gate(classes,[feats],0)==1 or State.gate(classes,[feats],1)==1:
 			if not records.has(id): records[id]=new_record(object,host)
 			var r: Dictionary=records[id]; r.source=object
@@ -29,7 +29,7 @@ func observe(object: Dictionary) -> void:
 			var signature: Array=[classes,feats,object.get("appearance",{}).get("appearance",-1),object.get("appearance",{}).get("gender",0),object.get("appearance",{}).get("phenotype",0),object.get("replicated",{}).get("stats",{}).get("fieldDE4"),context.get("fieldDD",0),manager.tables.has("appearance")]
 			if r.initial_signature!=signature and initialize_record(r): r.initial_signature=signature.duplicate(true); r.initialize_elapsed=0.0
 	if id!=int(manager.world.controlled_id): return
-	var feats:=Rules.new().feats(object); var signature: Array=[int(object.id),int(object.get("nativeLifetime",0)),feats.has(213),feats.has(39),feats.has(296)]
+	var feats:=Rules.collect_feats(object); var signature: Array=[int(object.id),int(object.get("nativeLifetime",0)),feats.has(213),feats.has(39),feats.has(296)]
 	if signature==warm_signature: return
 	warm_signature=signature
 	# Warm immutable resources for disclosed owned abilities, without creating
@@ -77,7 +77,7 @@ func combat_event(value: Dictionary) -> void:
 	State.unarmed(r.state,1 if value.kind=="weapon-start" else 0,providers(r))
 func providers(r: Dictionary) -> Dictionary:
 	return {"animation":func():return int(r.animation),"modelPart":func(slot):return int(manager.host(int(r.id)).body_model_scopes.has(int(slot))),"sourceModel":func(_slot,_flags):return manager.host(int(r.id)),
-		"gate":func(mode):return State.gate(r.source.get("replicated",{}).get("stats",{}).get("classes",[]),[Rules.new().feats(r.source)],int(mode)),
+		"gate":func(mode):return State.gate(r.source.get("replicated",{}).get("stats",{}).get("classes",[]),[Rules.collect_feats(r.source)],int(mode)),
 		"present":func():return is_instance_valid(manager.host(int(r.id))),"style":func():return int(manager.host(int(r.id)).rigs.entities.get(int(r.id),{}).get("context",{}).get("fieldDD",0)),"eyes":func():eye(r),
 		"create":func(resource,name):return create_handle(r,resource,name),
 		"attach":func(handle,_source,part,flags):command(handle,{"kind":"attach","part":part,"flags":flags}),

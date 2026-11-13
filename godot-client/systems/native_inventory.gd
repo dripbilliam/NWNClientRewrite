@@ -8,6 +8,7 @@ const Inventory=preload("res://systems/server_inventory.gd")
 const Icons=preload("res://systems/native_item_icons.gd")
 const IconPlan=preload("res://systems/native_data/item_icon.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
+const Tooltip=preload("res://systems/native_data/item_tooltip.gd")
 const INVALID:=2130706432
 const EQUIPMENT=[
 	[16,0,0,80,240,"Right hand"],[2,80,0,100,160,"Chest"],[32,180,0,80,160,"Left hand"],[1,260,0,80,80,"Head"],[512,260,80,80,80,"Neck"],[64,340,0,80,160,"Cloak"],
@@ -22,6 +23,7 @@ var examine_owner
 var gold
 var stack_dialog
 var item_context
+var item_tooltips
 var text_owner
 var objects: Dictionary={}
 var inventories: Dictionary={}
@@ -30,6 +32,10 @@ var store: Dictionary={}
 var generation:=-1
 var area_id:=-1
 var controlled_id:=-1
+var display_owner_id:=-1
+var window_role:="primary"
+var window_serial:=0
+var window_receipt:=0
 var page:=0
 var container_page:=0
 var container_serial:=0
@@ -41,17 +47,31 @@ var signature:=""
 var icon_bindings: Dictionary={}
 var closed:=false
 var notice_text:=""
+var detailed_timings:=false
+var timing_rows: Array=[]
+var data_received_us:=0
+var data_received_wall_ms:=0.0
 var stats:={"views":0,"commands":0,"icons_bound":0,"rejected_results":0,"stale_input":0,"errors":[],"native_only":true}
-func configure(parent: Control,catalog,cache_path: String,text,layout_storage: String="user://native-menu-layout.cfg") -> void:
-	text_owner=text; ui=Inventory.new(); parent.add_child(ui); ui.setup(layout_storage); ui.request.connect(input_request)
+func configure(parent: Control,catalog,cache_path: String,text,layout_storage: String="user://native-menu-layout.cfg",role: String="primary") -> void:
+	window_role=role; text_owner=text; ui=Inventory.new(); parent.add_child(ui); ui.item_commands_enabled=role=="primary";ui.setup(layout_storage,"inventory" if role=="primary" else "associate-inventory"); ui.request.connect(input_request)
 	equipment_skin=preload("res://systems/native_inventory_equipment.gd").new(); add_child(equipment_skin); ui.native_equipment=equipment_skin; equipment_skin.configure(ui,catalog,cache_path)
 	frame_skin=preload("res://systems/native_inventory_frame.gd").new(); add_child(frame_skin); ui.native_frame=frame_skin; frame_skin.configure(ui,catalog,cache_path,text,equipment_skin)
+	item_tooltips=frame_skin.tooltips; item_tooltips.prepare(); ui.item_tooltips=item_tooltips
 	store_skin=preload("res://systems/native_store_frame.gd").new(); add_child(store_skin); store_skin.configure(self,catalog,cache_path)
 	gold=preload("res://systems/native_gold_transfer.gd").new(); gold.configure(self,parent,catalog,cache_path); ui.gold_owner=gold
+	if role=="alternate":ui.gold_owner=null
 	stack_dialog=preload("res://systems/native_item_stack.gd").new(); stack_dialog.configure(self,parent,catalog,cache_path)
 	item_context=preload("res://systems/native_item_context.gd").new(); add_child(item_context); item_context.configure(self)
 	ui.menu_requested.connect(func(id,point): item_menu(id,point))
 	icons=Icons.new(); add_child(icons); icons.configure(catalog,cache_path); icons.completed.connect(icon_ready)
+func displayed_owner() -> int:return controlled_id if display_owner_id<0 else display_owner_id
+func set_displayed_owner(id: int,serial: int,receipt: int) -> void:
+	window_serial=serial;window_receipt=receipt
+	if display_owner_id==id:return
+	var was_wanted: bool=ui.wanted
+	display_owner_id=id;signature="";views.clear();pending.clear();icon_bindings.clear();page=0;container_page=0
+	item_context.cancel();stack_dialog.cancel();gold.cancel();ui.reset()
+	if was_wanted:ui.present_received(true)
 func set_world(epoch: int,area: int,controlled: int,source: Array,raw: Dictionary) -> void:
 	if generation!=epoch or controlled_id!=controlled:
 		gold.cancel()
@@ -68,13 +88,19 @@ func update_world(epoch: int,area: int,controlled: int,source: Array,removed: Ar
 	for object in source: objects[int(object.id)]=object
 	update_inventory(raw)
 func update_inventory(raw: Dictionary) -> void:
+	if detailed_timings:data_received_us=Time.get_ticks_usec();data_received_wall_ms=Time.get_unix_time_from_system()*1000.0
 	var old_container:=int(containers.get("C",INVALID)); inventories={}; containers={}; store=raw.get("store",{}) if raw.get("store") is Dictionary else {}
-	for row in raw.get("inventories",[]): inventories[str(row[0])]=row[1]
-	for row in raw.get("containers",[]): containers[str(row[0])]=int(row[1])
+	for row in raw.get("inventories",[]):
+		var channel:=str(row[0])
+		if window_role=="primary" and channel in ["I","R","C","M"]:inventories[channel]=row[1]
+		elif window_role=="alternate" and channel in ["i","r","c"]:inventories[channel.to_upper()]=row[1]
+	for row in raw.get("containers",[]):
+		if str(row[0])==("C" if window_role=="primary" else "c"):containers["C"]=int(row[1])
+	if window_role=="alternate":store={}
 	if store.get("open",false) and int(store.get("generation",-1))>ui.blocked_store_generation and not ui.wanted: ui.open()
 	if int(containers.get("C",INVALID))!=old_container:
 		container_serial+=1; container_page=0
-		if int(containers.get("C",INVALID))!=INVALID and not ui.wanted: ui.open()
+		if window_role=="primary" and int(containers.get("C",INVALID))!=INVALID and not ui.wanted: ui.open()
 func rules_ready() -> bool:
 	return text_owner!=null and text_owner.tables.has("baseitems") and text_owner.tables.has("encumbrance")
 func store_price(item: Dictionary,buy: bool) -> int:
@@ -129,8 +155,9 @@ func _profile_process(_delta: float) -> void:
 		if Time.get_ticks_msec()-int(pending[id].at)>6000: pending.erase(id); signature=""; notice_text="The server has not confirmed that item action."
 	refresh()
 func refresh() -> void:
-	if closed or not ui.wanted or not rules_ready() or not objects.has(controlled_id): return
-	var actor: Dictionary=objects[controlled_id]; var rows: Array=[]; var sources: Array=[]
+	if closed or not ui.wanted or not rules_ready() or not objects.has(displayed_owner()): return
+	var refresh_started:=Time.get_ticks_usec() if detailed_timings else 0
+	var actor: Dictionary=objects[displayed_owner()]; var rows: Array=[]; var sources: Array=[]
 	for channel in ["I","R","C","M"]:
 		for location in inventories.get(channel,{}).get("entries",[]):
 			var id:=int(location.id); var object: Dictionary=objects.get(id,{})
@@ -138,13 +165,16 @@ func refresh() -> void:
 			var item: Dictionary=object.item; var base:=IconPlan.row(text_owner.tables,"baseitems",int(item.get("baseItem",-1)))
 			if base.is_empty(): continue
 			sources.append([channel,location,item,object.get("inventoryLocation")])
-			rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
-	var next:=Cache.digest(var_to_bytes([generation,controlled_id,page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store]))
+			rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"tooltip":Tooltip.project(item,text_owner,controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
+	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store]))
 	if next==signature: return
 	signature=next; view_serial+=1; views.clear()
 	for row in rows: views[int(row.entryId)]={"object":objects[int(row.itemId)].duplicate(true),"row":row.duplicate(true)}
 	var container_id:=int(containers.get("C",INVALID)); var container: Dictionary=objects.get(container_id,{})
-	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(actor.get("replicated",{}).get("name",actor.get("appearance",{}).get("name")),controlled_id),"page":page,"items":rows,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass"),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container.get("item",{}).get("name",container.get("replicated",{}).get("name",{})),controlled_id),"page":container_page,"pageCount":inventories.get("C",{}).get("pageCount",1)}})
+	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(actor.get("replicated",{}).get("name",actor.get("appearance",{}).get("name")),displayed_owner()),"page":page,"items":rows,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container.get("item",{}).get("name",container.get("replicated",{}).get("name",{})),controlled_id),"page":container_page,"pageCount":inventories.get("C",{}).get("pageCount",1)}})
+	if detailed_timings and timing_rows.size()<128:
+		var committed:=Time.get_ticks_usec()
+		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"role":window_role,"owner":displayed_owner(),"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
 	stats.views+=1; icon_bindings.clear()
 	if not notice_text.is_empty(): ui.notice.text=notice_text
 	for row in rows:
@@ -160,6 +190,9 @@ func icon_ready(key: String,texture: Texture2D,error: String) -> void:
 	for row in icon_bindings.get(key,[]):
 		if ui.install_native_icon(int(row.view),int(row.entry),texture): stats.icons_bound+=1
 func send_command(value: Dictionary) -> void:
+	if window_role=="alternate":
+		if value.get("kind","") not in ["inventory-open","inventory-close","inventory-page"]:stats["unported_alternate_commands"]=int(stats.get("unported_alternate_commands",0))+1;return
+		value.merge({"inventoryRole":"alternate","ownerId":displayed_owner(),"windowSerial":window_serial,"inventoryReceipt":window_receipt},true)
 	request_serial+=1; value.requestId=request_serial; stats.commands+=1; request.emit(value)
 func valid_item(message: Dictionary) -> Dictionary:
 	var id:=int(message.get("entryId",-1))
@@ -169,6 +202,8 @@ func valid_item(message: Dictionary) -> Dictionary:
 	return views[id].row
 func input_request(message: Dictionary) -> void:
 	if closed or controlled_id<0: return
+	if window_role=="alternate" and str(message.kind) not in ["inventory-open","inventory-close","inventory-page"]:
+		stats["unported_alternate_commands"]=int(stats.get("unported_alternate_commands",0))+1;return
 	match str(message.kind):
 		"inventory-open": signature=""; send_command({"kind":"inventory-open","page":page})
 		"inventory-close":
@@ -248,8 +283,9 @@ func receive(message: Dictionary) -> void:
 		pending.clear(); signature=""; notice_text=str(message.get("reason","Inventory request was rejected.")); ui.notice.text=notice_text; stats.rejected_results+=1
 func snapshot() -> Dictionary:
 	stats.item_context=item_context.snapshot(); stats.stack_dialog=stack_dialog.snapshot()
+	if detailed_timings:stats.timings=timing_rows.duplicate(true)
 	var state:=stats.duplicate(true); state.merge({"wanted":ui.wanted,"view":view_serial,"items":views.size(),"pending":pending.size(),"icons":icons.snapshot(),"equipment_skin":equipment_skin.snapshot(),"frame_skin":frame_skin.snapshot(),"store_skin":store_skin.snapshot(),"gold":gold.snapshot(),"scope":"Native inventory/equipment/container presentation and server-owned item requests. Store presentation and item powers route through the native gameplay desktop; full UI migration remains incomplete."}); return state
 func close() -> void:
 	if closed: return
-	closed=true; item_context.close(); stack_dialog.close(); store_skin.close(); gold.close(); icons.close(); frame_skin.close(); equipment_skin.close(); ui.reset(); objects.clear(); inventories.clear(); containers.clear(); views.clear(); pending.clear(); icon_bindings.clear()
+	closed=true; item_tooltips.close(); item_context.close(); stack_dialog.close(); store_skin.close(); gold.close(); icons.close(); frame_skin.close(); equipment_skin.close(); ui.reset(); objects.clear(); inventories.clear(); containers.clear(); views.clear(); pending.clear(); icon_bindings.clear()
 func _exit_tree() -> void: close()

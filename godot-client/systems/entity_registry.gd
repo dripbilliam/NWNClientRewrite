@@ -1,5 +1,6 @@
 extends Node3D
 const NativeSurface=preload("res://systems/native_data/tile_surface.gd")
+const NameplateAnchor=preload("res://systems/native_data/nameplate_anchor.gd")
 const WALK_LAYER:=1
 const TARGET_LAYER:=2
 
@@ -9,6 +10,24 @@ var entity_nodes: Dictionary = {}
 var bounds: Dictionary = {}
 var meshes_by_name: Dictionary = {}
 var marked: Dictionary = {}
+var legacy_marked: Dictionary={}
+var whole_character_highlight_enabled:=OS.get_cmdline_user_args().has("--highlight=whole-character")
+var native_highlight_enabled:=whole_character_highlight_enabled or OS.get_cmdline_user_args().has("--highlight=native-bounds")
+var native_highlight
+var highlight_camera: Camera3D
+func configure_highlights(view: Camera3D) -> void:
+	highlight_camera=view
+	if native_highlight_enabled:_ensure_native_highlight()
+func configure_highlight_assets(assets: Node,catalog,pool: RefCounted) -> void:
+	if not native_highlight_enabled:return
+	_ensure_native_highlight();native_highlight.configure_assets(assets,catalog,pool)
+func _ensure_native_highlight() -> void:
+	if native_highlight!=null:return
+	native_highlight=(preload("res://tools/native_parity/highlighting/whole_character_selection.gd").new() if whole_character_highlight_enabled else preload("res://systems/native_render/selection_highlight.gd").new());add_child(native_highlight)
+	if is_instance_valid(highlight_camera):native_highlight.configure(highlight_camera)
+func _register_highlight(id: int,row: Dictionary,instance) -> void:
+	if not native_highlight_enabled:return
+	_ensure_native_highlight();native_highlight.register_entity(id,row,instance)
 var overlays: Dictionary = {}
 var original_overlays: Dictionary = {}
 var cpu_faces: Dictionary = {}
@@ -56,6 +75,7 @@ func configure(room: Node, metadata: Dictionary, state: GLTFState = null) -> voi
 	cpu_faces.clear()
 
 func forget_entity(id: int) -> bool:
+	if native_highlight!=null:native_highlight.forget(id)
 	if not entities.has(id): return false
 	var was_native:=native_owners.has(id)
 	if was_native:
@@ -70,7 +90,7 @@ func forget_entity(id: int) -> bool:
 			if was_native: mesh.remove_meta("collision_body")
 			meshes_by_name.erase(str(mesh.get_meta("native_registry_key",mesh.name)))
 			original_overlays.erase(mesh)
-	for collection in [entities, parts, entity_nodes, bounds, marked, overlays]:
+	for collection in [entities, parts, entity_nodes, bounds, marked, legacy_marked, overlays]:
 		collection.erase(id)
 	native_owners.erase(id); native_bounds.erase(id); native_bodies.erase(id)
 	if was_native: stats.entities=entities.size()
@@ -195,12 +215,20 @@ func label_position(id: int) -> Vector3:
 	var box: AABB = bounds.get(id, AABB())
 	return Vector3(box.get_center().x, box.end.y + 0.25, box.get_center().z)
 
+func nameplate_position(id: int,camera_position: Vector3) -> Vector3:
+	var owner: Node3D=native_owners.get(id)
+	if int(entities.get(id,{}).get("type",-1))==5 and is_instance_valid(owner) and owner.has_meta("native_nameplate_height"):
+		return NameplateAnchor.lift(owner.to_global(Vector3(0,float(owner.get_meta("native_nameplate_height")),0)),camera_position)
+	return label_position(id)
+
 func register_native(id: int,row: Dictionary,instance) -> bool:
 	# Master replication/render state stays in live_world. This native registry
 	# owns only current selection targets; scenery gets no per-mesh bodies/maps.
 	if id<0 or not row.get("eligible",false): return forget_entity(id) if id>=0 else false
 	if native_owners.get(id)==instance:
-		var changed: bool=entities[id]!=row; entities[id]=row; return changed
+		var changed: bool=entities[id]!=row; entities[id]=row
+		if changed:_register_highlight(id,row,instance)
+		return changed
 	forget_entity(id); entities[id]=row; parts[id]=[]; entity_nodes[id]=[]; native_owners[id]=instance; native_bodies[id]=[]
 	var local_box:=AABB(); var has_box:=false
 	var surfaces: Array=instance.meshes.duplicate(); var hidden: Variant=instance.get("pick_surfaces")
@@ -231,6 +259,7 @@ func register_native(id: int,row: Dictionary,instance) -> bool:
 		local_box=local_box.merge(box) if has_box else box; has_box=true
 	if id>=0 and has_box: native_bounds[id]=local_box; bounds[id]=instance.global_transform*local_box
 	stats.entities=entities.size()
+	_register_highlight(id,row,instance)
 	return true
 
 func register_walkmesh(surface) -> void:
@@ -253,17 +282,30 @@ func register_walkmesh(surface) -> void:
 		var collider:=CollisionShape3D.new(); collider.shape=shapes[model]; body.add_child(collider); add_child(body)
 		body.position=tile.position; body.rotation.y=float(tile.get("rotation_y",int(tile.orientation)*PI/2)); stats.colliders+=1; stats.walkmesh_colliders+=1
 
-func mark(ids: Array) -> void:
+func mark(ids: Array,hovered: int=-1,tab_active: bool=true) -> void:
+	if not native_highlight_enabled:
+		_mark_mesh_overlays(ids);marked=legacy_marked;return
+	_ensure_native_highlight()
+	native_highlight.mark(ids,hovered,tab_active)
+	# Model-less trigger surfaces retain their separate region-presentation
+	# path. Native actor/door failures never fall back to coincident mesh replay.
+	var legacy: Array=[];var desired: Dictionary={}
+	for id in ids:
+		if not entities.has(id) or not entities[id].get("eligible",false):continue
+		desired[id]=true
+		if not native_owners.has(id) or int(entities[id].get("type",-1))==7:legacy.append(id)
+	_mark_mesh_overlays(legacy);marked=desired
+func _mark_mesh_overlays(ids: Array) -> void:
 	var desired: Dictionary = {}
 	for id in ids:
 		if entities.has(id) and entities[id].get("eligible", false):
 			desired[id] = true
-	for id in marked:
+	for id in legacy_marked:
 		if not desired.has(id):
 			for mesh in parts.get(id, []):
 				mesh.material_overlay = original_overlays.get(mesh)
 	for id in desired:
-		if marked.has(id):
+		if legacy_marked.has(id):
 			continue
 		if not overlays.has(id):
 			var material := StandardMaterial3D.new()
@@ -277,7 +319,9 @@ func mark(ids: Array) -> void:
 			if not original_overlays.has(mesh):
 				original_overlays[mesh] = mesh.material_overlay
 			mesh.material_overlay = overlays[id]
-	marked = desired
+	legacy_marked = desired
+func highlight_snapshot() -> Dictionary:
+	return native_highlight.snapshot() if native_highlight!=null else {"enabled":false,"legacy":true}
 
 func pick(camera: Camera3D, screen: Vector2) -> Dictionary:
 	var origin := camera.project_ray_origin(screen)

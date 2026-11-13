@@ -20,6 +20,12 @@ suppresses shortcuts. Capturing an assignment suppresses movement, camera,
 highlight, quickbar and radial keyboard paths, and clears previously held keys.
 Browsing the editor still permits movement and outside-menu mouse input.
 
+The [highlight-key follow-up](NATIVE-HIGHLIGHT-TOOLTIPS.md) uses the same active
+action97 for world labels and instant native GUI hints, including rebinding.
+The original double-tap latch defaults to200ms; Client Options → Interface can
+change its threshold or use0 to disable it. Focus/capture/retirement clear its
+held state so periodic refresh cannot leave highlighting stuck.
+
 The [original research](NATIVE-KEY-SETTINGS-RESEARCH.md) remains the source for
 the four-page native behavior. Editable hotbars and cross-action conflict
 handling are the user's requested extension. The original table/oracle is not

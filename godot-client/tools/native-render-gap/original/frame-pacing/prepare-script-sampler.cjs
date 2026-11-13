@@ -1,0 +1,33 @@
+'use strict';
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const project=path.resolve(__dirname,'../../../..'),base=path.join(project,'.cache/native-render-gap/original/frame-pacing/rip-sampler-c');
+const receipt=JSON.parse(fs.readFileSync(path.join(base,'build.json'))),sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const bytes=fs.readFileSync(receipt.source);if(sha(bytes)!==receipt.sourceSha256)throw Error('Frozen C sampler changed');
+let code=bytes.toString();
+function once(a,b){if(code.split(a).length!==2)throw Error('Exact sampler seam '+a.slice(0,70));code=code.replace(a,()=>b);}
+once('RESUME_FAILED=5','RESUME_FAILED=5,SCRIPT_READ_FAILED=6');
+once('previous_suspend=0,resume_previous=0;','previous_suspend=0,resume_previous=0,script_id=0,script_error=0;');
+once('uint64_t hz,bool inject=false){','uint64_t hz,bool inject=false,HANDLE process=nullptr,uint64_t script_address=0){');
+once('else out.rip=context.Rip;',`else {out.rip=context.Rip;if(script_address){SIZE_T read=0;const BOOL ok=ReadProcessMemory(process,reinterpret_cast<LPCVOID>(uintptr_t(script_address)),&out.script_id,sizeof(out.script_id),&read);if(!ok||read!=sizeof(out.script_id)){out.script_error=ok?ERROR_PARTIAL_COPY:GetLastError();out.status=SCRIPT_READ_FAILED;out.error=out.script_error;}}}`);
+once('creation=0,thread_creation=0;','creation=0,thread_creation=0,script_rva=0;');
+once('uint64_t hz=0,wall_us=0,thread_creation=0,','uint64_t script_address=0,hz=0,wall_us=0,thread_creation=0,');
+once('if(!engine_found||!kernel_found)throw std::runtime_error("Pinned module is not loaded");',`if(!engine_found||!kernel_found)throw std::runtime_error("Pinned module is not loaded");
+ if(c.script_rva){const auto main=std::find_if(result.loaded.begin(),result.loaded.end(),[&](const Module&m){return m.sha==c.engine_sha;});if(main==result.loaded.end()||c.script_rva%alignof(uint32_t)||main->size<sizeof(uint32_t)||c.script_rva>main->size-sizeof(uint32_t))throw std::runtime_error("Script ID RVA outside exact engine image");result.script_address=main->base+c.script_rva;MEMORY_BASIC_INFORMATION page{};if(!VirtualQueryEx(process.h,reinterpret_cast<LPCVOID>(uintptr_t(result.script_address)),&page,sizeof(page))||page.State!=MEM_COMMIT||uint64_t(reinterpret_cast<uintptr_t>(page.AllocationBase))!=main->base||(page.Protect&(PAGE_GUARD|PAGE_NOACCESS))||!(page.Protect&(PAGE_READONLY|PAGE_READWRITE|PAGE_WRITECOPY|PAGE_EXECUTE_READ|PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY)))throw std::runtime_error("Script ID memory does not belong to exact readable engine image");uint32_t value=0;SIZE_T read=0;if(!ReadProcessMemory(process.h,reinterpret_cast<LPCVOID>(uintptr_t(result.script_address)),&value,sizeof(value),&read)||read!=sizeof(value))fail("Script ID preflight read");}
+`);
+once('capture_one(thread.h,start,hz);','capture_one(thread.h,start,hz,false,process.h,result.script_address);');
+once('sample.status==ALREADY_SUSPENDED)break;','sample.status==ALREADY_SUSPENDED||sample.status==SCRIPT_READ_FAILED)break;');
+once('o<<"{\\"version\\":1,', 'o<<"{\\"version\\":2,');
+once('RIP-only statistical owned-thread suspend diagnostic','RIP and optional exact-image numeric script-ID owned-thread suspend diagnostic');
+once('<<",\\"qpc_frequency\\":"<<r.hz','<<",\\"script_id_rva\\":"<<r.config.script_rva<<",\\"script_id_address\\":"<<r.script_address<<",\\"qpc_frequency\\":"<<r.hz');
+once('\\"resume_previous_count\\"],','\\"resume_previous_count\\",\\"script_id\\",\\"script_read_error\\"],');
+once("<<s.resume_previous<<']';","<<s.resume_previous<<','<<s.script_id<<','<<s.script_error<<']';");
+once('volatile uint64_t mock_sink=17;','volatile uint64_t mock_sink=17;\nvolatile uint32_t mock_script_id=0;');
+once('int mock_child(const std::wstring&ready_name){Handle ready(', 'int mock_child(const std::wstring&ready_name){mock_script_id=0x13572468;Handle ready(');
+once('const auto injected=capture_one(thread.h,ticks(),hz,true);','const auto read_fault=capture_one(thread.h,ticks(),hz,false,process.h,1);if(read_fault.status!=SCRIPT_READ_FAILED||read_fault.previous_suspend!=0||read_fault.resume_previous!=1||!read_fault.script_error)throw std::runtime_error("Read failure did not preserve resume cleanup");const auto injected=capture_one(thread.h,ticks(),hz,true);');
+once('if(WaitForSingleObject(process.h,7000)!=WAIT_OBJECT_0)',`c.script_rva=uint64_t(reinterpret_cast<uintptr_t>(&mock_script_id))-uint64_t(reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)));c.out=file+L".script.json";c.duration_ms=1000;const auto script_result=collect(c);write_result(script_result,true);if(!script_result.success||script_result.samples.size()<100||std::any_of(script_result.samples.begin(),script_result.samples.end(),[](const Sample&s){return s.script_id!=0x13572468||s.script_error||s.previous_suspend!=0||s.resume_previous!=1;}))throw std::runtime_error("Exact-image script ID sample fixture failed");bool rejected=false;try{Config bad=c;bad.script_rva=UINT64_MAX;collect(bad);}catch(const std::exception&){rejected=true;}if(!rejected)throw std::runtime_error("Out-of-image script RVA accepted");
+  if(WaitForSingleObject(process.h,7000)!=WAIT_OBJECT_0)`);
+once('else if(key==L"--out")','else if(key==L"--script-id-rva")c.script_rva=std::stoull(v,nullptr,0);else if(key==L"--out")');
+const source=path.join(__dirname,'sample-script-rip.cpp');fs.writeFileSync(source,code,{flag:'wx'});
+let build=fs.readFileSync(path.join(__dirname,'build-rip.ps1'),'utf8');if(build.split("[string]$Label='a'").length!==2||build.split("Join-Path $PSScriptRoot 'sample-rip.cpp'").length!==2)throw Error('Build source seams');
+build=build.replace("[string]$Label='a'",()=>"[string]$Label='script-d'").replace("Join-Path $PSScriptRoot 'sample-rip.cpp'",()=>"Join-Path $PSScriptRoot 'sample-script-rip.cpp'");
+const buildFile=path.join(__dirname,'build-script-rip.ps1');fs.writeFileSync(buildFile,build,{flag:'wx'});console.log(JSON.stringify({source,sha256:sha(Buffer.from(code)),build:buildFile,buildSha256:sha(Buffer.from(build)),base:{file:receipt.source,sha256:receipt.sourceSha256}}));

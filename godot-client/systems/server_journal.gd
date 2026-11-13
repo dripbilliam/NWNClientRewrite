@@ -2,6 +2,7 @@ extends "res://systems/draggable_panel.gd"
 signal request(message: Dictionary)
 const Text = preload("res://systems/server_text.gd")
 var wanted := false
+var journal_lifetime := 0
 var view_id := -1
 var page := 0
 var tabs: Array = []
@@ -25,15 +26,18 @@ func clear_body() -> void:
 
 func reset() -> void:
 	if is_instance_valid(native_skin): native_skin.reset_view()
+	journal_lifetime += 1
 	wanted = false; view_id = -1; page = 0; state.clear(); positions.clear(); clear_body(); hide()
 
 func open() -> void:
 	if wanted: show(); move_to_front(); return
-	wanted = true; show(); move_to_front(); clear_body(); body.add_child(Text.label({"text": "Waiting for the server journal…"}, 550)); request.emit({"kind": "journal-open", "page":page})
+	journal_lifetime += 1
+	wanted = true; show(); move_to_front(); clear_body(); body.add_child(Text.label({"text": "Waiting for the server journal…"}, 550)); request.emit({"kind": "journal-open", "page":page, "journalLifetime":journal_lifetime})
 
 func close_journal() -> void:
-	if wanted: request.emit({"kind": "journal-close"})
+	var was_wanted := wanted
 	wanted = false; hide()
+	if was_wanted: request.emit({"kind": "journal-close", "journalLifetime":journal_lifetime})
 
 func choose(index: int) -> void:
 	if wanted and view_id >= 0 and index>=0 and index<4 and index != page:

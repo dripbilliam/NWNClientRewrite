@@ -31,6 +31,11 @@ Party lists, leader flags, pending invitations and server feedback arrive
 through the ordinary receive path. Request correlation retains actor/scope
 ownership through the native bridge; it is not a server acknowledgment.
 
+The later [Leave correction](NATIVE-PLAYERS-LEAVE.md) removes an extra singleton
+gate absent from original888c30. Selected Leave retains the original+38 identity;
+it no longer rejects a current member row while separate creature flags lag.
+Current actor/scope/selection checks remain, and outcomes are never predicted.
+
 The original party Invite sender14/5 is a stub in this binary. Actual invitation
 text uses the general popup writer1404dee90: popup type1 sends36/3 with just a
 CExoString. We now decode that message as `party-invite-notice`. Its name and a

@@ -70,7 +70,14 @@ func _process(delta: float) -> void:
 				if file!=null: file.store_buffer(var_to_bytes(packet)); file.close(); request.icons.append(path)
 			return
 		if not write_json(job_directory.path_join("request.json"),request): finish_remote(true,false); return
-		var args:=PackedStringArray(["--headless","--path",ProjectSettings.globalize_path("res://"),"--log-file",job_directory.path_join("engine.log"),"--script","res://tools/native_prework_worker.gd","--","--job="+job_directory])
+		var args:=PackedStringArray(["--headless","--log-file",job_directory.path_join("engine.log")])
+		if OS.has_feature("editor"):
+			args.append_array(["--path",ProjectSettings.globalize_path("res://"),"--script","res://tools/native_prework_worker.gd"])
+		args.append("--")
+		# Export templates use their adjacent verified PCK. They do not accept
+		# the editor's loose-project/script overrides; retain the same worker.
+		if not OS.has_feature("editor"): args.append("--release-entry=res://tools/native_prework_worker.gd")
+		args.append("--job="+job_directory)
 		child_pid=OS.create_process(OS.get_executable_path(),args,false)
 		if child_pid<0: finish_remote(true,false); return
 		request.clear(); send_control(); state.worker_pid=child_pid; publish(true); return

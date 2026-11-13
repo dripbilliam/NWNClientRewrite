@@ -37,6 +37,15 @@ var storage:=""
 var retained_position:=Vector2.INF
 var dragging:=false
 var drag_offset:=Vector2.ZERO
+var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
+func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
+	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
+	if not modal_lease.admission_changed.is_connected(modal_admission_changed):modal_lease.admission_changed.connect(modal_admission_changed)
+	if visible and not scope.is_empty() and modal_lease.ticket.is_empty():modal_lease.activate(scope)
+func modal_admission_changed(admitted: bool) -> void:
+	if not admitted:
+		dragging=false;held.clear()
+		if is_instance_valid(bindings):bindings.stop_capture();refresh_bindings()
 func configure(painter,text,catalog,cache_path: String,service,placement: String) -> void:
 	frame=painter; text_owner=text; bindings=service; storage=placement; mouse_filter=Control.MOUSE_FILTER_STOP; hide()
 	var saved:=ConfigFile.new()
@@ -73,7 +82,7 @@ func build() -> void:
 		var tab: bool=str(tag).begins_with("tab")
 		var button: Button=frame.create_button(entry,self,models,tab); buttons[tag]=button
 		frame.button_caption(button,text_owner.raw({"strRef":int(entry.get("caption",{}).get("Obj_StrRef",-1))}))
-		button.button_down.connect(func():held[tag]=revision)
+		button.button_down.connect(capture.bind(tag))
 		button.pressed.connect(invoke.bind(tag))
 	buttons.tab1.tooltip_text="Game actions and editable hotbar keys"
 	heading=frame.create_label(definition.entries.tguilabel,self,text_owner.raw({"strRef":10413})); heading.clip_text=false; heading.size=heading.get_combined_minimum_size(); heading.mouse_filter=Control.MOUSE_FILTER_STOP; heading.gui_input.connect(title_input)
@@ -90,6 +99,9 @@ func place() -> void:
 func show_page(value: Array) -> void:
 	if closed or not layout_ready or bindings.blocked(): return
 	revision+=1; scope=value.duplicate(); ticket=bindings.begin(); selected.clear(); held.clear(); page=0; render_rows(); show(); place(); move_to_front()
+	modal_lease.activate(scope)
+func capture(tag: String) -> void:
+	if modal_lease.admits():held[tag]=revision
 func key_id(kind: String,index: int) -> String: return kind+":"+str(index)
 func render_rows() -> void:
 	if not bindings.valid_transaction(ticket): return
@@ -112,7 +124,7 @@ func render_rows() -> void:
 		frame.button(button,{"resource":definition.row.resource,"rect":rect,"offset":origin,"caption":{"AurString_Font":"fnt_galahad14"}},body,models,false,true); button.toggle_mode=true
 		button.disabled=source.kind=="normal" and int(source.index) not in SUPPORTED
 		button.tooltip_text="This action is not available in the native client yet." if button.disabled else "Click to bind. Right-click to clear." if source.kind=="hotbar" else "Click to bind."
-		button.button_down.connect(func():held[id]=revision)
+		button.button_down.connect(capture.bind(id))
 		button.pressed.connect(select_row.bind(source.kind,int(source.index),id))
 		if source.kind=="hotbar": button.gui_input.connect(clear_row.bind(int(source.index)))
 		var captions: Dictionary={}
@@ -143,13 +155,13 @@ func refresh_bindings() -> void:
 		button.set_pressed_no_signal(str(selected.get(page,""))==id); align_row(id)
 	if is_instance_valid(notice): notice.text=bindings.failure
 func select_row(kind: String,index: int,id: String) -> void:
-	if closed or not visible or int(held.get(id,-1))!=revision or not bindings.valid_transaction(ticket): return
+	if closed or not visible or not modal_lease.admits() or int(held.get(id,-1))!=revision or not bindings.valid_transaction(ticket): return
 	selected[page]=id; bindings.start_capture(kind,index,ticket); refresh_bindings()
 func clear_row(event: InputEvent,index: int) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT and visible:
+	if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT and visible and modal_lease.admits():
 		bindings.unbind("hotbar",index,ticket); row_buttons[key_id("hotbar",index)].accept_event()
 func invoke(tag: String) -> void:
-	if closed or not visible or int(held.get(tag,-1))!=revision: return
+	if closed or not visible or not modal_lease.admits() or int(held.get(tag,-1))!=revision: return
 	held.erase(tag)
 	if tag.begins_with("tab"):
 		bindings.stop_capture(); page=int(tag.substr(3)); render_rows()
@@ -162,12 +174,14 @@ func finish_page(commit: bool=false) -> void:
 	if commit and is_instance_valid(bindings) and not bindings.commit(ticket): refresh_bindings(); return
 	if not commit and is_instance_valid(bindings): bindings.retire()
 	if dragging: dragging=false; save_position()
-	revision+=1; held.clear(); hide(); finished.emit()
+	revision+=1; held.clear();modal_lease.retire(); hide(); finished.emit()
 func retire_scope() -> void:
 	if visible: finish_page(false)
 	elif is_instance_valid(bindings): bindings.retire()
+	modal_lease.retire()
 	revision+=1; held.clear()
 func title_input(event: InputEvent) -> void:
+	if not modal_lease.admits():return
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		dragging=event.pressed
 		if dragging: drag_offset=event.global_position-global_position; move_to_front()
@@ -176,7 +190,7 @@ func save_position() -> void:
 	if storage.is_empty(): return
 	var saved:=ConfigFile.new(); saved.load(storage); saved.set_value("positions","key-settings",position); saved.save(storage)
 func _input(event: InputEvent) -> void:
-	if closed or not visible: return
+	if closed or not visible or not modal_lease.admits(): return
 	if dragging and event is InputEventMouseMotion: position=(event.position-drag_offset).clamp(Vector2.ZERO,(get_viewport_rect().size-size).max(Vector2.ZERO))
 	if dragging and event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed: dragging=false; save_position()
 func art_ready() -> bool:
@@ -190,6 +204,7 @@ func _notification(what: int) -> void:
 func close() -> void:
 	if closed: return
 	retire_scope(); closed=true
+	modal_lease.close()
 	if is_instance_valid(bindings):
 		if bindings.edited.is_connected(refresh_bindings): bindings.edited.disconnect(refresh_bindings)
 		if bindings.cancel_requested.is_connected(discard): bindings.cancel_requested.disconnect(discard)

@@ -36,6 +36,16 @@ var held: Dictionary={}
 var revision:=0
 var build_text:="NWN · Native Godot"
 var art_announced:=false
+var confirmation_lease=preload("res://systems/native_data/modal_lease.gd").new()
+var modal_order
+var modal_surfaces
+var modal_canvas: CanvasLayer
+var menu_admission: Callable
+func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null,admission: Callable=Callable()) -> void:
+	modal_order=order;modal_surfaces=surfaces;modal_canvas=canvas;menu_admission=admission
+	if is_instance_valid(confirmation):
+		confirmation_lease.configure(confirmation,order,surfaces,canvas);confirmation_lease.bind_input(confirmation)
+func menu_admitted() -> bool:return not menu_admission.is_valid() or menu_admission.call()
 func configure(shared_frame,text,catalog,cache_path: String,menu_kind: String="options_main") -> void:
 	frame=shared_frame; text_owner=text; kind=menu_kind; mouse_filter=Control.MOUSE_FILTER_IGNORE
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(received)
@@ -93,6 +103,7 @@ func build() -> void:
 		button.button_down.connect(func():held["@"+confirm_tag]={"scope":scope.duplicate(),"revision":revision})
 		button.pressed.connect(confirm_result.bind(confirm_tag=="okbutton"))
 	confirmation.hide()
+	set_modal_order(modal_order,modal_surfaces,modal_canvas,menu_admission)
 	layout_ready=true; refresh(); prepared.emit()
 func caption_text(entry: Dictionary) -> String:
 	if entry.has("runtime_text"): return str(entry.runtime_text)
@@ -108,7 +119,7 @@ func refresh() -> void:
 		var button: Button=buttons[tag]; button.disabled=not bool(enabled.get(tag,false))
 		captions[tag].add_theme_color_override("font_color",colors.get(tag,Color(0.5,0.5,0.5,1) if button.disabled else Color.WHITE))
 func invoke(tag: String) -> void:
-	if closed or not layout_ready or not is_visible_in_tree() or not buttons.has(tag) or buttons[tag].disabled: return
+	if closed or not layout_ready or not is_visible_in_tree() or not menu_admitted() or not buttons.has(tag) or buttons[tag].disabled: return
 	var capture: Dictionary=held.get(tag,{"scope":scope,"revision":revision}); held.erase(tag)
 	if int(capture.revision)!=revision or capture.scope!=scope: return
 	action_requested.emit(tag)
@@ -124,17 +135,19 @@ func dismiss() -> void:
 func release_button(button: Button) -> void:
 	var unavailable:=button.disabled; button.disabled=true; button.disabled=unavailable
 func ask_exit() -> void:
-	if not layout_ready or not bool(enabled.get("exitbutton",false)): return
+	if not layout_ready or not menu_admitted() or not bool(enabled.get("exitbutton",false)): return
 	revision+=1; confirm_capture={"scope":scope.duplicate(),"revision":revision}; stage.hide(); confirmation.show()
+	confirmation_lease.activate(scope)
 func cancel_confirmation() -> bool:
 	var was_open:=is_instance_valid(confirmation) and confirmation.visible
 	if was_open: revision+=1
+	confirmation_lease.retire()
 	confirm_capture.clear()
 	if is_instance_valid(confirmation): confirmation.hide()
 	if is_instance_valid(stage): stage.show()
 	return was_open
 func confirm_result(accepted: bool) -> void:
-	if closed or not is_instance_valid(confirmation) or not confirmation.is_visible_in_tree(): return
+	if closed or not is_instance_valid(confirmation) or not confirmation.is_visible_in_tree() or not confirmation_lease.admits(): return
 	var tag: String="@okbutton" if accepted else "@cancelbutton"
 	var press: Dictionary=held.get(tag,confirm_capture); held.erase(tag)
 	var valid: bool=confirm_capture.get("scope",[])==scope and int(confirm_capture.get("revision",-1))==revision and press.get("scope",[])==scope and int(press.get("revision",-1))==revision and bool(enabled.get("exitbutton",false))
@@ -162,6 +175,7 @@ func snapshot() -> Dictionary:
 func close() -> void:
 	if closed: return
 	closed=true; dismiss()
+	confirmation_lease.close()
 	if is_instance_valid(frame):
 		for button in buttons.values(): frame.button_geometry.erase(button.get_instance_id())
 		for button in confirm_buttons.values(): frame.button_geometry.erase(button.get_instance_id())

@@ -5,7 +5,7 @@ import {encodeGffText} from './gff_text.js';
 export function chatRequest({channel,text,playerId,recipient}){
  if(![1,2,3,4,6,14].includes(channel)||typeof text!=='string')throw new Error('Invalid native chat request');
  let bytes,name;
- try{bytes=encodeGffText(text);if(channel===4&&recipient!==undefined){if(typeof recipient!=='string'||!recipient.length)throw new Error();name=encodeGffText(recipient);}}
+ try{bytes=encodeGffText(text);if(channel===4&&recipient!==undefined){if(typeof recipient!=='string')throw new Error();name=encodeGffText(recipient);}}
  catch{throw new Error('Chat text cannot be encoded with the active native text codec');}
  // Bounded IPC allocation, not a claimed native edit-box limit. CExoString
  // carries a32-bit byte length; no trimming, command parsing or local echo.

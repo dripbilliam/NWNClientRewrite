@@ -5,8 +5,12 @@ signal loaded(name: String)
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Metrics=preload("res://systems/native_data/bitmap_font.gd")
 const Binary=preload("res://systems/native_data/binary_data.gd")
+const TtfHeight=preload("res://systems/native_data/ttf_pixel_height.gd")
 var assets
 var catalog
+var ttf_pixel_height_enabled:=false # Read once by configure; ordinary owners keep the existing method.
+var _ttf_pixel_height_active:=false
+var _ttf_pixel_height_diagnostics:={"attempted":0,"published":0,"fallbacks":0,"last_fallback":{}}
 var fonts: Dictionary={}
 var metrics: Dictionary={}
 var pending: Dictionary={}
@@ -17,6 +21,7 @@ var serial:=0
 var closed:=false
 var stats:={"published":0,"stale":0,"native_only":true,"full_font_parity":false}
 func configure(source,cache_path: String) -> void:
+	_ttf_pixel_height_active=ttf_pixel_height_enabled
 	catalog=source; assets=Assets.new(); add_child(assets); assets.configure(source); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 func request(name: String) -> void:
 	if closed or name.is_empty() or fonts.has(name) or pending.has(name) or failed.has(name): return
@@ -33,6 +38,8 @@ func job(name: String,resource: String,type: int,decoder: String,kind: String) -
 	var id: int=assets.request(resource,type,decoder)
 	if id<0: fail(name,str(assets.failure)); return
 	jobs[id]={"name":name,"kind":kind}
+func unbind(control: Control) -> void:
+	if is_instance_valid(control): bindings.erase(control.get_instance_id())
 func bind(control: Control,name: String) -> void:
 	if closed or name.is_empty(): return
 	serial+=1; var id:=control.get_instance_id(); bindings[id]={"target":weakref(control),"name":name,"serial":serial}
@@ -53,7 +60,18 @@ func prepared(id: int,result: Dictionary) -> void:
 	if failed.has(name): return
 	if not str(result.get("error","")).is_empty(): fail(name,str(result.error)); return
 	if job.kind=="ttf":
-		var font:=FontFile.new(); font.data=result.value.data; font.allow_system_fallback=false; font.generate_mipmaps=false; font.multichannel_signed_distance_field=false
+		var font: FontFile
+		if _ttf_pixel_height_active:
+			_ttf_pixel_height_diagnostics.attempted+=1
+			var candidate:=TtfHeight.make(result.value.data,int(pending[name].height))
+			if candidate.success:
+				font=candidate.font; _ttf_pixel_height_diagnostics.published+=1
+			else:
+				var source_hash:=HashingContext.new(); source_hash.start(HashingContext.HASH_SHA256); source_hash.update(result.value.data)
+				_ttf_pixel_height_diagnostics.fallbacks+=1
+				_ttf_pixel_height_diagnostics.last_fallback={"resource":name.substr(0,256),"height":int(pending[name].height),"source_sha256":source_hash.finish().hex_encode(),"reason":str(candidate.get("error","Unsupported font adaptation")).substr(0,256)}
+		if font==null:
+			font=FontFile.new(); font.data=result.value.data; font.allow_system_fallback=false; font.generate_mipmaps=false; font.multichannel_signed_distance_field=false
 		fonts[name]=font; metrics[name]={"height":pending[name].height,"mode":"ttf"}; publish(name); return
 	pending[name][str(job.kind)]=result.value
 	if pending[name].has("metrics") and pending[name].has("atlas"):
@@ -107,7 +125,7 @@ func fail(name: String,reason: String) -> void:
 	for id in bindings.keys():
 		if bindings[id].name==name: bindings.erase(id)
 func snapshot() -> Dictionary:
-	var out:=stats.duplicate(); out.merge({"fonts":fonts.keys(),"pending":pending.size(),"bindings":bindings.size(),"failed":failed.duplicate()}); return out
+	var out:=stats.duplicate(); out.merge({"fonts":fonts.keys(),"pending":pending.size(),"bindings":bindings.size(),"failed":failed.duplicate(),"ttf_pixel_height":_ttf_pixel_height_diagnostics.duplicate(true)}); out.ttf_pixel_height.enabled=_ttf_pixel_height_active; return out
 func close() -> void:
 	if closed: return
 	closed=true

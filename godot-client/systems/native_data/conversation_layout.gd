@@ -25,6 +25,30 @@ static func parse(source: Dictionary) -> Dictionary:
 		for hook in pair[1]:
 			if not models[pair[0]].hooks.has(hook): return {"error":"Original conversation attachment missing: "+pair[0]+"/"+hook}
 	return {"error":"","models":models}
+static func portrait_bounds(value: Dictionary,fallback: Rect2) -> Rect2:
+	# The original portrait is64x100, but installed/profile/server GUI models
+	# may author another same-aspect rectangle. Preserve its actual transformed
+	# Part geometry instead of enlarging only the frame's placeholder artwork.
+	var selected:=value.duplicate();var nodes: Array=[]
+	for original in value.get("nodes",[]):
+		var node: Dictionary=original.duplicate()
+		if node.get("mesh") is Dictionary:
+			node.mesh=node.mesh.duplicate();node.mesh.render=bool(node.mesh.get("render",false)) and str(node.get("name","")).to_lower()=="portrait"
+		nodes.append(node)
+	selected.nodes=nodes
+	var geometry:=Model.model(selected)
+	if str(geometry.error).is_empty() and geometry.drawn and geometry.bounds.size.x>0 and geometry.bounds.size.y>0:
+		var bounds: Rect2=geometry.bounds
+		# The retail f32 mesh ends at99.999992px. Keep its established exact
+		#64x100 control dimensions; materially different authored sizes survive.
+		if bounds.size.is_equal_approx(fallback.size):bounds.size=fallback.size
+		return bounds
+	return fallback
+static func panel_size(minimum: Vector2,rectangles: Array) -> Vector2:
+	var size:=minimum
+	for rect: Rect2 in rectangles:
+		size=size.max(rect.end)
+	return size
 static func layout(source: Dictionary,definition: Dictionary,reflow: Dictionary) -> Dictionary:
 	if not str(reflow.get("error","")).is_empty(): return reflow
 	var original: Dictionary=source.pnl_dialog; var changed:=original.duplicate(); changed.nodes=original.nodes.duplicate()
@@ -43,4 +67,9 @@ static func layout(source: Dictionary,definition: Dictionary,reflow: Dictionary)
 	var entry_height:=minf(entry.hooks.text1.y-entry.hooks.text0.y,maxf(1,reflow.reply_top-main.hooks.entrytext.y-5))
 	var reply_height:=maxf(1,main.hooks.indextextbottom.y-main.hooks.repliestext.y)
 	reply.hooks.text1.y=reply_height; reply.hooks.indextext1.y=reply_height; reply.hooks.scrollmax.y=maxf(reply.hooks.scrollmin.y+4,reply_height-9)
-	return {"error":"","size":Vector2(360,reflow.logical_height),"background":main.bounds,"name":Rect2(main.hooks.name0,main.hooks.name1-main.hooks.name0),"portrait":Rect2(main.hooks.portrait-Vector2(32,50),Vector2(64,100)),"entry":Rect2(main.hooks.entrytext+entry.hooks.text0,Vector2(entry.hooks.text1.x-entry.hooks.text0.x,entry_height)),"replies":Rect2(main.hooks.repliestext+reply.hooks.indextext0,Vector2(reply.hooks.text1.x-reply.hooks.indextext0.x,reply_height)),"entry_bar":{"model":entry,"offset":main.hooks.entrytext,"caption":{"AurString_Font":FONT}},"reply_bar":{"model":reply,"offset":main.hooks.repliestext,"caption":{"AurString_Font":FONT}},"flow":reflow}
+	var result:={"error":"","size":Vector2(360,reflow.logical_height),"background":main.bounds,"name":Rect2(main.hooks.name0,main.hooks.name1-main.hooks.name0),"portrait":portrait_bounds(nodes.model,Rect2(main.hooks.portrait-Vector2(32,50),Vector2(64,100))),"entry":Rect2(main.hooks.entrytext+entry.hooks.text0,Vector2(entry.hooks.text1.x-entry.hooks.text0.x,entry_height)),"replies":Rect2(main.hooks.repliestext+reply.hooks.indextext0,Vector2(reply.hooks.text1.x-reply.hooks.indextext0.x,reply_height)),"entry_bar":{"model":entry,"offset":main.hooks.entrytext,"caption":{"AurString_Font":FONT}},"reply_bar":{"model":reply,"offset":main.hooks.repliestext,"caption":{"AurString_Font":FONT}},"flow":reflow}
+	# These are active resource hooks, not assumed retail coordinates. A wide
+	# override can have a476px entry while the retail control is261px. Keeping
+	# the stage at360 would silently discard the right side of each drawn line.
+	result.size=panel_size(result.size,[result.background,result.name,result.portrait,result.entry,result.replies])
+	return result

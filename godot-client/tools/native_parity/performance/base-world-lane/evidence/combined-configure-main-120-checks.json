@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "success": true,
+  "exit": 0,
+  "error": null,
+  "elapsedMs": 400,
+  "diagnostics": [],
+  "result": {
+    "checks": 120,
+    "failures": [],
+    "gpuTests": 0,
+    "nativeBuilds": 0,
+    "scope": "Small actual-extracted receive/delta/pose/planner/classifier/configure/snapshot-prefix checks. No world/asset/GPU/native/server/performance acceptance; collision, terrain contention, complete dependency typing and actual loading remain pending.",
+    "serverConnections": 0,
+    "success": true
+  },
+  "sourceChanged": [],
+  "fixtureChanged": [],
+  "stagedChanged": [],
+  "engine": {
+    "path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\build-1793998835313\\binaries\\godot.windows.template_release.x86_64.exe",
+    "sha256": "62f54a7f7ff4638987730a246833cea4054779e7cb2a333bb5921fd5b0aea6dc"
+  },
+  "args": [
+    "--headless",
+    "--render-thread",
+    "safe",
+    "--path",
+    "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\base-world-admission-agent\\durable-configure-v2\\native-run\\project",
+    "--script",
+    "res://check.gd",
+    "--log-file",
+    "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\base-world-admission-agent\\durable-configure-v2\\native-run\\engine.log",
+    "--",
+    "--report=C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\base-world-admission-agent\\durable-configure-v2\\native-run\\result.json"
+  ],
+  "stageSha256": "318c89c68d4eb880b146c6d4972f38bdf040c4af5e071189382376214a7e0cb2",
+  "engineStarts": 1,
+  "nativeBuilds": 0,
+  "ensureCalls": 0,
+  "assets": 0,
+  "worlds": 0,
+  "gpuTests": 0,
+  "benchmarks": 0,
+  "sharedSourceEdits": 0,
+  "liveSessionTouched": false,
+  "scope": "Focused actual-source extraction only; prefix/owner stubs and signature/ready inputs. No full World import, native extension, original assets, GPU, network, FPS or load-time acceptance."
+}

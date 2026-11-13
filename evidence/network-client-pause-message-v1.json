@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "success": true,
+  "scope": "Protocol-only module3/minor9 pause reader. Authored bytes from actual NativeMessageWriter/Reader plus retained original scalar-hook receiver oracle; no live packet/server/clock/GUI/render acceptance.",
+  "files": {
+    "helper": {
+      "path": "src/network_client_pause.js",
+      "sha256": "891d3622faa5b33e2b26c19a8c9f306f72be546ecd545f4cd5a0c896365963f6"
+    },
+    "tests": {
+      "path": "test/native-client-pause-message.test.js",
+      "sha256": "2f51862e311a2262eb3028d8643ed433ed08db99ebd14d5de364e3cc58f7de12"
+    },
+    "result": {
+      "path": ".cache/native-client-pause-message-v1.tap",
+      "sha256": "61ef6325429b66342040bf9dd89dfa713a28d8e2d2977e9675dc011244b8819b"
+    }
+  },
+  "command": "node --test --test-timeout=5000 test/native-client-pause-message.test.js",
+  "result": {
+    "exitCode": 0,
+    "tests": 8,
+    "pass": 8,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "durationMs": 145.3573
+  },
+  "contract": {
+    "export": "readNetworkClientPause(reader)",
+    "input": "Fresh NativeMessageReader for decoded major3/minor9 payload; Root owns actual dispatch.",
+    "output": {
+      "kind": "module-pause-state",
+      "mask": "uint2",
+      "value": "one-bit numeric0/1",
+      "exclusionIds": "Owned ordered Array<uint32>, retaining duplicates and raw client namespace"
+    },
+    "reads": [
+      "readByte(2,1)",
+      "readBool()",
+      "readWord(16)",
+      "count * readObjectIdClient()"
+    ],
+    "apply": "None: no state/callback/clock/world mutation. Return DTO only after complete field validation.",
+    "count": "WORD count bounded against remaining four-byte OBJECTID storage before list allocation/loop.",
+    "ids": "ReadOBJECTIDClient preserves raw DWORD; no server/local conversion, deduplication or invalid-sentinel removal.",
+    "bool": "Native WriteBOOL sign-extends sender INT and writes one unsigned bit; lowbit narrowing, not Boolean(integer).",
+    "stricterAdmission": "Original7a5680 checks overflow only; helper additionally rejects underflow/extra undeclared data. This is deliberate remote admission, not native trailing-byte parity."
+  },
+  "coverage": [
+    "All four masks xboth wire values through native scalar/server-ID writers.",
+    "Masks narrowed from noncanonical BYTE values; sender BOOL integers -2147483648..2147483647 samples preserve lowbit behavior.",
+    "Duplicate/order/sentinel/low/high namespace IDs and separately owned returned arrays.",
+    "Every physical truncation of24 valid representative packets rejects without a returned DTO.",
+    "Declared counts exceeding payload reject; extra IDs/bytes/residual bits reject under strict underflow.",
+    "Maximum65535-ID WORD list accepts; complete65536-entry sender count-wrap packet rejects undeclared tail.",
+    "Envelope/boundary mutations reject; an authored single-commit consumer retains its previous state on invalid input.",
+    "384 retained receiver read-order traces;192 native overflow branches show no apply;96 successful canonical-wire DTO comparisons."
+  ],
+  "nativeEvidence": {
+    "binarySha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+    "sender": {
+      "address": "1404dd0c0",
+      "evidence": "ev_0e11c8adb841a00966d40c9a544756f9ef328ca41a63602e43b4d94a081f926e",
+      "source": "WriteBYTE(mask,2,1),WriteBOOL(value),WriteWORD(listcount,16),allWriteOBJECTIDServer; sendmajor3/minor9 toload-state2 players."
+    },
+    "receiver": {
+      "address": "1407a5680",
+      "retainedEvidence": "ev_6375b97c6a365b17ab4d2987e7254bc6df14491f17b530cbf1d26f101e982628",
+      "freshView": "ev_80173962be2863fa3ad00bc3615bd3e274c27e31c2cadcc12ed6477db1890710",
+      "source": "Own incoming list, exact scalar/ID order, overflow check beforeapply6acc40, thenoptionalGUIrefresh."
+    },
+    "boolWriter": {
+      "address": "1402da920",
+      "evidence": "ev_56bd413a935ef7e3cc0cc2f0dbb680ab0d886e685233ba40cadad6dd5ae30245",
+      "source": "WriteType2;MOVSXD senderINT;tailWriteUnsigned(value,1)."
+    },
+    "oracle": {
+      "path": "backups/animations/native-client-pause-observations.json",
+      "sha256": "5f1827c3f528b9f40a698fbd7a3287f15969cf2fd74f87f58b124fca6593b8b1",
+      "totalRows": 759,
+      "receiverRows": 384,
+      "canonicalDtoComparisons": 96,
+      "overflowBranches": 192,
+      "nonWireScalarCaveat": "Original execution deliberately hooks ReadBOOL to -1/2 as well. Those are excluded from wire DTO equality; real one-bit reader cannot produce them."
+    }
+  },
+  "inspectedSharedSources": [
+    {
+      "path": "src/native_message.js",
+      "sha256": "ad00af94054ea3bd8511a289718e2404e5f9a8d0b39dda6fe1644b141266c547"
+    },
+    {
+      "path": "src/network_game_messages.js",
+      "sha256": "8382ef0c13cdd58a6f876502dc72ba00fbf0f8b4b9b716b04f0f1cdf4a5bcf4e"
+    }
+  ],
+  "proposedRootHook": {
+    "import": "import {readNetworkClientPause} from './network_client_pause.js';",
+    "branch": "For major===3 && minor===9, create NativeMessageReader(1) with diagnostics, setReadMessage, call helper, retain existing overflow/underflow/errors rejection, return {...value,major,minor}.",
+    "stateOwners": "Root separately owns World/Host receipt ordering; no local authoritative simulation, renderer data or timer integration in this helper."
+  },
+  "limits": [
+    "No retained original raw3/9 packet bytes found; packet codec tests are authored through actual source writer/reader.",
+    "No new native oracle execution; retained original receiver observations are rechecked.",
+    "Native underflow-only/trailing extra data acceptance is not claimed.",
+    "No changes to existing source, World/Host/dispatch, profiles, keys, native outputs or user processes; no engines/network/builds."
+  ]
+}

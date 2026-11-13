@@ -11,6 +11,26 @@ var draft: Dictionary={}
 var model_names: Array=[]
 var palette_sizes: Dictionary={}
 var portrait_cache: Dictionary={}
+var skill_summary_mask:=0
+const SkillRules=preload("res://systems/native_data/creation_skill_rules.gd")
+const FeatSlots=preload("res://systems/native_data/creation_feat_slots.gd")
+var creation_skill_points: Variant=null
+var skill_points_snapshot: Dictionary={}
+const Vitals=preload("res://systems/native_data/creation_vitals.gd")
+var creation_base_hp: Variant=null
+var creation_spell_slots: Dictionary={}
+var creation_spell_selection: Dictionary={}
+var creation_spell_text
+var creation_point_budget: Variant=null
+var creation_class_points: Variant=null
+var ability_points_snapshot: Dictionary={}
+const AbilityRules=preload("res://systems/native_data/creation_ability_rules.gd")
+const ClassRules=preload("res://systems/native_data/creation_class_rules.gd")
+const SkillSummary=preload("res://systems/native_data/creation_skill_summary.gd")
+func commit_skill_summary() -> bool:
+	var values:=SkillSummary.calculate(SkillSummary.source(self),tables)
+	if not values.ready: return false
+	skill_summary_mask=int(values.mask); return true
 func rows(name: String) -> Array: return tables.get(name.to_lower(),{}).get("orderedRows",[])
 func row(name: String,id: int) -> Dictionary:
 	var list:=rows(name); return list[id] if id>=0 and id<list.size() else {}
@@ -23,62 +43,107 @@ func class_rows(field: String) -> Array: return rows(str(cell(cls(),field,"")))
 func first(field: String) -> Dictionary:
 	var list:=class_rows(field); return list[0] if not list.is_empty() else {}
 func cfg(key: String,default: int) -> int:
-	var result:=default
-	for data in rows("ruleset"):
-		if str(cell(data,"Label","")).to_upper()=="CHARGEN_"+key: result=num(data,"Value",default)
-	return result
+	return preload("res://systems/native_data/character_record_values.gd").cfg(tables,"CHARGEN_"+key,default)
 func alignment(index: int) -> Dictionary: return {"goodEvil":[85,50,15][index/3],"lawChaos":[85,50,15][index%3]}
 func alignment_allowed(data: Dictionary,ge: int,lc: int) -> bool:
-	var axes:=num(data,"AlignRstrctType"); var mask:=num(data,"AlignRestrict")
-	var matches:=((axes&2)!=0 and (mask&(16 if ge<31 else 8 if ge>69 else 1))!=0) or ((axes&1)!=0 and (mask&(2 if lc>69 else 4 if lc<31 else 1))!=0)
-	return matches if num(data,"InvertRestrict")!=0 else not matches
-func class_requirement(id: int) -> String:
-	var data:=row("classes",id)
-	if data.is_empty() or num(data,"PlayerClass")==0: return "Not a player class."
-	if num(data,"EpicLevel",255)==0: return "Requires epic levels."
-	var name: String=str(cell(data,"PreReqTable",""))
-	if not present(name): return ""
-	if not tables.has(name.to_lower()): return "Class prerequisites have not loaded."
-	var racial: Array=[]
-	for feat in rows(str(cell(race(),"FeatsTable",""))): racial.append(num(feat,"FeatIndex",-1))
-	var groups: Dictionary={}
-	for requirement in rows(name):
-		var kind:=str(cell(requirement,"ReqType","")); var a:=num(requirement,"ReqParam1"); var b:=num(requirement,"ReqParam2"); var valid:=true
-		match kind:
-			"RACE": groups.race=bool(groups.get("race",false)) or int(draft.raceId)==a
-			"FEATOR": groups.feat=bool(groups.get("feat",false)) or racial.has(a&65535)
-			"CLASSOR": groups.classes=false
-			"FEAT": valid=racial.has(a&65535)
-			"BAB": valid=a<=0
-			"SKILL","SAVE": valid=b<=0
-			"SPELL","ARCSPELL": valid=false
-			"VAR": valid=present(cell(requirement,"ReqParam1")) and b==0
-		if not valid: return "First-level class prerequisites are not met."
-	for valid in groups.values():
-		if not valid: return "First-level class prerequisites are not met."
-	return ""
+	return preload("res://systems/native_data/alignment_rules.gd").allowed_scores(data,ge,lc)
+func class_requirement(id: int) -> String:return ClassRules.requirement(self,id)
 func packages() -> Array:
 	var result: Array=[]
 	for id in rows("packages").size():
 		var data:=row("packages",id)
-		if num(data,"ClassID",-1)==int(draft.classId) and num(data,"PlayerClass")!=0: result.append(id)
+		if id!=255 and num(data,"ClassID",-1)==int(draft.classId) and num(data,"PlayerClass")!=0: result.append(id)
 	return result
 func default_package() -> int:
 	var options:=packages(); var configured:=num(cls(),"Package",-1); return configured if options.has(configured) else int(options[0]) if not options.is_empty() else -1
 func initialize() -> void:
-	draft={"gender":0,"raceId":-1,"classId":-1,"goodEvil":50,"lawChaos":50,"abilities":{},"skills":{},"feats":[],"known":{},"memorized":{},"domains":[],"school":0,"packageId":-1,"firstName":"","lastName":"","subrace":"","deity":"","biography":"","age":18,"phenotype":0,"head":1,"clothes":0,"skin":0,"hair":0,"tattoo1":0,"tattoo2":0,"portrait":"","soundset":0,"familiar":0,"familiarName":"Familiar","companion":0,"companionName":"Companion"}
+	creation_skill_points=null;skill_points_snapshot={}
+	creation_base_hp=null
+	creation_spell_slots={}
+	creation_spell_selection={};creation_spell_text=null
+	creation_point_budget=null
+	creation_class_points=null
+	ability_points_snapshot={}
+	draft={"gender":0,"raceId":-1,"classId":-1,"goodEvil":50,"lawChaos":50,"abilities":{},"skills":{},"feats":[],"known":{},"memorized":{},"domains":[],"school":0,"packageId":-1,"firstName":"","lastName":"","subrace":"","deity":"","biography":"","age":18,"phenotype":0,"head":1,"clothes":0,"skin":0,"hair":0,"tattoo1":0,"tattoo2":0,"portrait":"","soundset":0,"familiar":-1,"familiarName":"","companion":-1,"companionName":""}
 	for id in rows("racialtypes").size():
 		if num(row("racialtypes",id),"PlayerRace")!=0: draft.raceId=id; break
 	for id in rows("classes").size():
 		if class_requirement(id).is_empty(): draft.classId=id; break
 	select_class(int(draft.classId)); draft.age=num(race(),"AGE",18)
-func reset_choices() -> void: draft.skills={}; draft.feats=[]; draft.known={}; draft.memorized={}
+func reset_choices() -> void:
+	# CG_MAIN 1407edcc0 clears selected skills/feats/spells and both domains.
+	# Granted racial/class feats and budgets are derived from the active rules.
+	# School, appearance, names and associate choices are not part of this reset.
+	draft.skills={}; draft.feats=[]; draft.known={}; draft.memorized={}; draft.domains=[]
+	draft.erase("sourceFeatChoices")
+	draft.erase("sourceAutomaticFeats")
+	draft.erase("sourceAutomaticSpells")
+	draft.erase("sourceSpellSlots");creation_spell_slots={}
+	draft.erase("sourceSpellChoices");creation_spell_selection={};creation_spell_text=null
+	if draft.has("packageEquipment"):draft.packageEquipment=[]
+	skill_summary_mask=0
+	creation_skill_points=null;skill_points_snapshot={}
+func source_skill_budget(dexterity_adjustment: int=0) -> Variant:
+	var values:=Vitals.effective({"classId":int(draft.classId),"race":int(draft.raceId),"abilities":draft.abilities},tables)
+	return SkillRules.budget(tables,int(draft.classId),int(draft.raceId),values.scores,dexterity_adjustment) if values.ready else null
+func record_skill_points(points: int) -> void:creation_skill_points=SkillRules.word(points);skill_points_snapshot=draft.skills.duplicate()
+func reset_source_choices() -> bool:
+	reset_choices();var points: Variant=source_skill_budget()
+	if points==null:return false
+	record_skill_points(int(points));return true
+func change_skill(id: int,direction: int,baseline: int=0) -> bool:
+	var result:=SkillRules.move(tables,int(draft.classId),id,int(draft.skills.get(id,0)),skill_balance(),baseline,direction)
+	if result.changed:
+		draft.skills[id]=int(result.rank);record_skill_points(int(result.points))
+	return result.changed
+func select_race(id: int,text_owner,subrace_value: Variant=null) -> bool:
+	# Original Race OK8e53e0 resets these fields even for the same race.
+	if id<0 or id>=(rows("racialtypes").size()&255) or num(row("racialtypes",id),"PlayerRace")==0:return false
+	if subrace_value is String:draft.subrace=subrace_value
+	elif int(draft.raceId)!=id:draft.subrace=""
+	draft.raceId=id;draft.age=num(race(),"Age");draft.appearanceType=num(race(),"Appearance")&65535
+	draft.biography=text_owner.raw({"strRef":num(race(),"Biography",4294967295)})
+	creation_point_budget=num(race(),"AbilitiesPointBuyNumber",30)&255
+	draft.abilities={}
+	for key in ABILITIES:draft.abilities[key]=cfg("BASE_ABILITY_MIN",8)&255
+	record_ability_points(int(creation_point_budget))
+	return true
 func select_class(id: int) -> void:
+	var previous:=int(draft.classId); var owned:=granted_feats()
+	for choice in draft.feats: owned.append(int(choice.id))
+	if previous!=id or creation_base_hp==null or int(creation_base_hp)==0: creation_base_hp=Vitals.starting_hitdie(id,owned,tables)
 	draft.classId=id; draft.packageId=default_package(); reset_choices(); initialize_abilities()
 	for index in 9:
 		var a:=alignment(index)
 		if alignment_allowed(cls(),a.goodEvil,a.lawChaos): draft.goodEvil=a.goodEvil; draft.lawChaos=a.lawChaos; break
+func commit_class(id: int) -> bool:
+	# Original Class OK creation branch. Package/reset gates belong to CG_MAIN,
+	# not this modal. Same-class OK still resets allocation and default alignment.
+	if not ClassRules.requirement(self,id).is_empty():return false
+	var initial:=Vitals.initial_abilities(id,int(draft.raceId),tables)
+	if not initial.ready:return false
+	var owned:=granted_feats()
+	for choice in draft.feats:owned.append(int(choice.id))
+	if int(draft.classId)!=id or creation_base_hp==null or int(creation_base_hp)==0:creation_base_hp=Vitals.starting_hitdie(id,owned,tables)
+	if creation_base_hp==null:return false
+	draft.classId=id;draft.abilities=initial.abilities;creation_point_budget=num(race(),"AbilitiesPointBuyNumber",30)&255;creation_class_points=creation_point_budget
+	var key:=primary()
+	if num(cls(),"SpellCaster")!=0 and not key.is_empty():
+		var values:=Vitals.effective({"classId":id,"race":int(draft.raceId),"abilities":draft.abilities},tables)
+		var adjustment:=preload("res://systems/native_data/character_record_values.gd").signed8(num(race(),key+"Adjust"))+int(values.gains[ABILITIES.find(key)])
+		creation_class_points=(int(creation_point_budget)+cfg("BASE_ABILITY_MIN",8)-cfg("BASE_ABILITY_MIN_PRIMARY",11)+adjustment)&255
+	# These are the original switch defaults, not permitted-alignment rules.
+	# The following source Alignment child reads active class restriction columns.
+	var defaults:={0:[50,15],1:[85,15],2:[50,85],3:[50,50],4:[85,15],5:[50,85],6:[85,85],7:[85,15],8:[50,50],9:[50,15],10:[50,85]}
+	if defaults.has(id):draft.goodEvil=defaults[id][0];draft.lawChaos=defaults[id][1]
+	record_ability_points(int(creation_class_points))
+	return true
 func abilities() -> Dictionary:
+	var values:=Vitals.effective({"classId":int(draft.classId),"race":int(draft.raceId),"abilities":draft.abilities},tables)
+	if values.ready:
+		var scores: Dictionary={}
+		for at in 6: scores[ABILITIES[at]]=int(values.scores[at])
+		return scores
 	var result: Dictionary={}
 	for key in ABILITIES: result[key]=int(draft.abilities.get(key,cfg("BASE_ABILITY_MIN",8)))+num(race(),key+"Adjust")+num(first("StatGainTable"),key)
 	return result
@@ -87,6 +152,14 @@ func primary() -> String:
 		if str(cell(cls(),"SpellcastingAbil","")).to_upper()==key.to_upper(): return key
 	return ""
 func initialize_abilities() -> void:
+	var initial:=Vitals.initial_abilities(int(draft.classId),int(draft.raceId),tables)
+	if initial.ready:
+		draft.abilities=initial.abilities
+		var points:=num(race(),"AbilitiesPointBuyNumber",30)&255;var key:=primary()
+		if num(cls(),"SpellCaster")!=0 and not key.is_empty():
+			var values:=Vitals.effective({"classId":int(draft.classId),"race":int(draft.raceId),"abilities":draft.abilities},tables)
+			points=(points+cfg("BASE_ABILITY_MIN",8)-cfg("BASE_ABILITY_MIN_PRIMARY",11)+preload("res://systems/native_data/character_record_values.gd").signed8(num(race(),key+"Adjust"))+int(values.gains[ABILITIES.find(key)]))&255
+		record_ability_points(points);return
 	for key in ABILITIES: draft.abilities[key]=cfg("BASE_ABILITY_MIN",8)
 	var key:=primary()
 	if num(cls(),"SpellCaster")!=0 and not key.is_empty(): draft.abilities[key]+=maxi(0,cfg("BASE_ABILITY_MIN_PRIMARY",11)-int(abilities()[key]))
@@ -96,9 +169,22 @@ func point_cost(score: int) -> int:
 	for value in range(cfg("BASE_ABILITY_MIN",8)+1,score+1): cost+=4 if value>cfg("ABILITY_COST_INCREMENT4",255) else 3 if value>cfg("ABILITY_COST_INCREMENT3",16) else 2 if value>cfg("ABILITY_COST_INCREMENT2",14) else 1
 	return cost
 func point_balance() -> int:
-	var result:=num(race(),"AbilitiesPointBuyNumber",30)
+	# Original source actions own +10c. The provisional sidebar's older direct
+	# allocation edits still use the computed path until that view is retired.
+	if creation_class_points!=null and ability_points_snapshot==draft.abilities:return int(creation_class_points)
+	var result:=int(creation_point_budget) if creation_point_budget!=null else num(race(),"AbilitiesPointBuyNumber",30)
 	for key in ABILITIES: result-=point_cost(int(draft.abilities[key]))
 	return result
+func record_ability_points(points: int) -> void:creation_class_points=points&255;ability_points_snapshot=draft.abilities.duplicate()
+func change_ability(index: int,direction: int) -> bool:
+	if index<0 or index>=6 or direction not in [-1,1]:return false
+	var values:=Vitals.effective({"classId":int(draft.classId),"race":int(draft.raceId),"abilities":draft.abilities},tables)
+	var points:=point_balance()
+	if not values.ready or points<0 or points>255:return false
+	var key: String=ABILITIES[index];var result:=AbilityRules.move(tables,cls(),index,int(draft.abilities[key]),int(values.scores[index]),points,direction)
+	if result.changed:draft.abilities[key]=result.value;record_ability_points(int(result.points))
+	return result.changed
+func recommend_abilities() -> void:draft.abilities=AbilityRules.recommended(tables,cls());record_ability_points(0)
 func can_decrease(key: String) -> bool: return int(draft.abilities[key])>cfg("BASE_ABILITY_MIN",8) and (num(cls(),"SpellCaster")==0 or primary()!=key or int(abilities()[key])>cfg("BASE_ABILITY_MIN_PRIMARY",11))
 func modifier(score: int) -> int: return floori((score-10)/2.0)
 func skill_budget() -> int:
@@ -114,6 +200,7 @@ func skill_rule(id: int) -> Dictionary:
 	var class_skill:=num(entry,"ClassSkill")!=0
 	return {"allowed":not row("skills",id).is_empty() and (num(row("skills",id),"AllClassesCanUse")!=0 or not entry.is_empty()),"classSkill":class_skill,"cost":1 if class_skill else 2,"max":floori((1+cfg("SKILL_MAX_LEVEL_1_BONUS",3))/(1.0 if class_skill else 2.0))}
 func skill_balance() -> int:
+	if creation_skill_points!=null and skill_points_snapshot==draft.skills:return int(creation_skill_points)
 	var result:=skill_budget()
 	for id in draft.skills: result-=int(draft.skills[id])*int(skill_rule(int(id)).cost)
 	return result
@@ -127,7 +214,7 @@ func granted_feats() -> Array:
 	for id in candidates:
 		if id>=0 and present(cell(row("feat",id),"FEAT")) and not result.has(id): result.append(id)
 	return result
-func feat_slots() -> Dictionary: return {"normal":num(race(),"NumberNormalFeatsEveryNthLevel",1)+num(race(),"ExtraFeatsAtFirstLevel"),"bonus":num(first("BonusFeatsTable"),"Bonus")}
+func feat_slots() -> Dictionary:return FeatSlots.calculate(tables,int(draft.raceId),int(draft.classId),1,1)
 func feat_allowed(id: int,kind: String) -> bool:
 	var feat:=row("feat",id); var list:=-1
 	if not present(cell(feat,"FEAT")): return false
@@ -171,6 +258,7 @@ func spell_count(level: int) -> int:
 	if num(cls(),"LearnScroll")!=0: return spell_options(0).size() if level==0 else 3+maxi(0,modifier(int(abilities().Int))) if level==1 else 0
 	return num(first("SpellKnownTable"),"SpellLevel"+str(level))
 func spell_slots(level: int) -> int:
+	if draft.get("sourceSpellSlots",false):return int(creation_spell_slots.get(level,0))
 	var key:=primary()
 	if num(cls(),"SpellCaster")==0 or key.is_empty() or int(abilities()[key])<level-1+cfg("BASE_ABILITY_MIN_PRIMARY",11): return 0
 	var gain:=first("SpellGainTable"); var count:=num(gain,"SpellLevel"+str(level),255) if level<num(gain,"NumSpellLevels") else 255
@@ -192,25 +280,12 @@ func prepared_options(level: int,domain: bool=false) -> Array:
 func portraits() -> Array:
 	var key:=str(draft.gender)+":"+str(draft.raceId)
 	if portrait_cache.has(key): return portrait_cache[key]
-	var matching: Array=[]; var others: Array=[]; var seen: Dictionary={}
-	for data in rows("portraits"):
-		var base:="po_"+str(cell(data,"BaseResRef","")).to_lower()
-		seen[base]=true
-		if not present(cell(data,"BaseResRef")) or num(data,"Plot")!=0 or num(data,"Sex",-1)!=int(draft.gender) or not portrait_available(base): continue
-		if num(data,"Race",-1)==int(draft.raceId): matching.append(base)
-		else: others.append(base)
-	if cfg("ALLOW_CUSTOM_PORTRAITS",1)!=0 and catalog!=null:
-		for type in [3,2033]:
-			for name in catalog.resource_names(type):
-				if not str(name).ends_with("m"): continue
-				var base:=str(name).left(-1)
-				if not seen.has(base) and portrait_available(base): others.append(base); seen[base]=true
-	matching.append_array(others); portrait_cache[key]=matching; return matching
+	var custom: Array=catalog.portrait_files() if catalog!=null and catalog.has_method("portrait_files") else []
+	var result: Array=preload("res://systems/native_data/portrait_choices.gd").ordered(rows("portraits"),int(draft.gender),int(draft.raceId),portrait_resource_exists,custom,cfg("ALLOW_CUSTOM_PORTRAITS",1)!=0)
+	portrait_cache[key]=result; return result
+func portrait_resource_exists(name: String,type: int) -> bool: return catalog==null or catalog.has_resource(name,type)
 func portrait_available(base: String) -> bool:
-	if catalog==null: return true
-	for suffix in ["m","s","l","t","h",""]:
-		if catalog.has_resource(base+suffix,3) or catalog.has_resource(base+suffix,2033): return true
-	return false
+	return preload("res://systems/native_data/portrait_resources.gd").available(base,portrait_resource_exists)
 func voices() -> Array:
 	var result: Array=[]
 	for id in rows("soundset").size():
@@ -242,6 +317,8 @@ func preference(field: String,column: String) -> Array:
 		if id>=0 and not result.has(id): result.append(id)
 	return result
 func recommend() -> String:
+	creation_skill_points=null;skill_points_snapshot={}
+	draft.packageSource=false
 	if not packages().has(int(draft.packageId)): draft.packageId=default_package()
 	if int(draft.packageId)<0: return "No selectable starting package is available for this class."
 	var package:=row("packages",int(draft.packageId)); var ordered: Array=ABILITIES.duplicate()
@@ -296,6 +373,7 @@ func recommend() -> String:
 	var head_list:=heads(); draft.head=int(head_list[0]) if not head_list.is_empty() else 1
 	var clothing:=clothes(); draft.clothes=int(clothing[0]) if not clothing.is_empty() else 0
 	draft.familiar=num(package,"Associate"); draft.companion=num(package,"Associate")
+	commit_skill_summary()
 	return ""
 func errors() -> Array:
 	var result: Array=[]; var class_error:=class_requirement(int(draft.classId)); var scores:=abilities()
@@ -309,23 +387,42 @@ func errors() -> Array:
 		var rule:=skill_rule(int(id)); var rank:=int(draft.skills[id])
 		if rank<0 or rank>int(rule.max) or rank>0 and not rule.allowed: result.append("Invalid skill ranks.")
 	var counts:={"bonus":0,"normal":0}; var owned:=granted_feats()
-	for choice in draft.feats:
-		if not counts.has(choice.kind) or not feat_allowed(int(choice.id),str(choice.kind)): result.append("Invalid feat selection."); continue
-		counts[choice.kind]+=1; var reason:=feat_requirement(int(choice.id),owned)
-		if not reason.is_empty(): result.append(reason)
-		owned.append(int(choice.id))
-	if counts!=feat_slots(): result.append("Select every available feat.")
+	if draft.get("sourceFeatChoices",false) and draft.has("sourceAutomaticFeats"):result.append("Conflicting native feat selection receipts.")
+	if draft.get("sourceFeatChoices",false):
+		var selected: Array=draft.feats.map(func(choice):return int(choice.id))
+		var validity: Dictionary=preload("res://systems/native_data/creation_feat_snapshot.gd").validate_choices(self,selected)
+		if not validity.get("ready",false) or not validity.get("valid",false):result.append(str(validity.get("reason","Active feat choices are unavailable.")))
+		owned.append_array(selected)
+	elif draft.has("sourceAutomaticFeats"):
+		var validity:=preload("res://systems/native_data/creation_feat_automatic.gd").verify(self,draft.sourceAutomaticFeats)
+		if not validity.get("ready",false) or not validity.get("valid",false):result.append(str(validity.get("reason","The accepted automatic feat choices are unavailable.")))
+		if validity.get("ready",false) and validity.get("valid",false):owned.append_array(validity.selected)
+	else:
+		for choice in draft.feats:
+			if not counts.has(choice.kind) or not feat_allowed(int(choice.id),str(choice.kind)): result.append("Invalid feat selection."); continue
+			counts[choice.kind]+=1; var reason:=feat_requirement(int(choice.id),owned)
+			if not reason.is_empty(): result.append(reason)
+			owned.append(int(choice.id))
+		if counts!=feat_slots(): result.append("Select every available feat.")
 	if num(cls(),"PickDomains")!=0 and (draft.domains.size()!=2 or draft.domains[0]==draft.domains[1]): result.append("Choose two different domains.")
-	for level in 10:
-		var selected: Array=draft.known.get(level,[]); var allowed:=spell_options(level); var seen: Dictionary={}
-		if selected.size()!=spell_count(level): result.append("Choose level "+str(level)+" spells.")
-		for id in selected:
-			if not allowed.has(id) or seen.has(id): result.append("Invalid learned spell.")
-			seen[id]=true
-		var prepared: Array=draft.memorized.get(level,[]); var slots:=spell_slots(level)
-		if prepared.size()>slots: result.append("Invalid preparation slots.")
-		for index in prepared.size():
-			if prepared[index]!=null and not prepared_options(level,num(cls(),"PickDomains")!=0 and level>0 and index==slots-1).has(prepared[index]): result.append("Invalid prepared spell.")
+	if draft.get("sourceSpellChoices",false) and draft.has("sourceAutomaticSpells"):result.append("Conflicting native spell selection receipts.")
+	if draft.get("sourceSpellChoices",false):
+		var validity:=preload("res://systems/native_data/creation_spells_validation.gd").verify(self,creation_spell_text,creation_spell_selection)
+		if not validity.get("ready",false) or not validity.get("valid",false):result.append(str(validity.get("reason","Active native spell choices are unavailable.")))
+	elif draft.has("sourceAutomaticSpells"):
+		var validity:=preload("res://systems/native_data/creation_spell_automatic.gd").verify(self,draft.sourceAutomaticSpells)
+		if not validity.get("ready",false) or not validity.get("valid",false):result.append(str(validity.get("reason","The accepted automatic spell choices are unavailable.")))
+	else:
+		for level in 10:
+			var selected: Array=draft.known.get(level,[]); var allowed:=spell_options(level); var seen: Dictionary={}
+			if selected.size()!=spell_count(level): result.append("Choose level "+str(level)+" spells.")
+			for id in selected:
+				if not allowed.has(id) or seen.has(id): result.append("Invalid learned spell.")
+				seen[id]=true
+			var prepared: Array=draft.memorized.get(level,[]); var slots:=spell_slots(level)
+			if prepared.size()>slots: result.append("Invalid preparation slots.")
+			for index in prepared.size():
+				if prepared[index]!=null and not prepared_options(level,num(cls(),"PickDomains")!=0 and level>0 and index==slots-1).has(prepared[index]): result.append("Invalid prepared spell.")
 	if str(draft.firstName).strip_edges().is_empty(): result.append("Enter a first name.")
 	var writer:=Writer.new()
 	for key in ["firstName","lastName","subrace","deity","biography","familiarName","companionName"]:
@@ -339,6 +436,10 @@ func errors() -> Array:
 	if not packages().has(draft.packageId): result.append("Choose an available class package.")
 	for key in ["skin","hair","tattoo1","tattoo2"]:
 		if int(draft[key])<0 or int(draft[key])>=mini(256,int(palette_sizes.get(key,176))): result.append("Invalid "+key+" colour.")
-	for spec in [[303,"hen_familiar","familiar"],[199,"hen_companion","companion"]]:
-		if owned.has(spec[0]) and (row(spec[1],int(draft[spec[2]])).is_empty() or str(draft[spec[2]+"Name"]).strip_edges().is_empty()): result.append("Choose and name your "+str(spec[2])+".")
+	if draft.get("packageSource",false):
+		var associate:=preload("res://systems/native_data/creation_associate_validation.gd").verify(self)
+		if not associate.ready:result.append(associate.reason)
+	else:
+		for spec in [[303,"hen_familiar","familiar"],[199,"hen_companion","companion"]]:
+			if owned.has(spec[0]) and (row(spec[1],int(draft[spec[2]])).is_empty() or str(draft[spec[2]+"Name"]).strip_edges().is_empty()): result.append("Choose and name your "+str(spec[2])+".")
 	return result

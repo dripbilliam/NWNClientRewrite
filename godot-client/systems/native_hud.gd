@@ -1,5 +1,12 @@
 extends CanvasLayer
 const Timing=preload("res://systems/native_render/frame_profile.gd")
+const Plate=preload("res://systems/native_nameplate.gd")
+const PlateState=preload("res://systems/native_data/nameplate_state.gd")
+const UiRules=preload("res://systems/native_data/game_ui_rules.gd")
+const Rich=preload("res://systems/native_data/rich_text.gd")
+const NameplateAnchor=preload("res://systems/native_data/nameplate_anchor.gd")
+const SpeechAnchor=preload("res://systems/native_data/overhead_speech_anchor.gd")
+const SpeechScope=preload("res://systems/native_data/overhead_speech_scope.gd")
 
 signal examine_requested(id: int)
 
@@ -9,6 +16,13 @@ var camera: Camera3D
 var root: Control
 var panels: Dictionary = {}
 var nameplates: Dictionary = {}
+var nameplate_signatures: Dictionary={}
+var nameplate_values: Dictionary={}
+var nameplate_shown: Dictionary={}
+var nameplate_ui: WeakRef
+var nameplate_source
+var nameplate_source_owned:=false
+var nameplate_rules:=UiRules.new()
 var details: Label
 var object_list: ItemList
 var object_ids: Array = []
@@ -86,10 +100,7 @@ func refresh_entities() -> void:
 		object_list.add_item(_name(id))
 	for id in nameplates.keys():
 		if not registry.entities.has(id):
-			nameplates[id].queue_free()
-			nameplates.erase(id)
-		else:
-			nameplates[id].text = _name(id)
+			drop_nameplate(id)
 	if current_id >= 0 and not registry.entities.has(current_id):
 		current_id = -1
 		panels.details.hide()
@@ -147,28 +158,107 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_X:
 			if live_mode: inspect_entity(current_id)
 
-func labels(ids: Array) -> void:
+func bind_gameplay(ui) -> void:
+	clear_nameplates(); release_nameplate_source(); nameplate_ui=weakref(ui)
+	if is_instance_valid(ui.get("overhead_popup_source")):
+		nameplate_source=ui.overhead_popup_source;nameplate_source_owned=false;return
+	if ui.get("catalog")!=null:
+		nameplate_source=preload("res://systems/native_nameplate_resources.gd").new(); add_child(nameplate_source)
+		nameplate_source_owned=true
+		var assets=ui.get("assets"); var cache_path: String=str(assets.cache_directory) if is_instance_valid(assets) else ""
+		nameplate_source.configure(ui.catalog,cache_path)
+func release_nameplate_source() -> void:
+	if nameplate_source_owned and is_instance_valid(nameplate_source): nameplate_source.close(); nameplate_source.queue_free()
+	nameplate_source=null;nameplate_source_owned=false
+func drop_nameplate(id: int) -> void:
+	if nameplates.has(id):
+		nameplates[id].close(); nameplates[id].queue_free(); nameplates.erase(id)
+	nameplate_signatures.erase(id);nameplate_values.erase(id);nameplate_shown.erase(id)
+func clear_nameplates() -> void:
+	for id in nameplates.keys(): drop_nameplate(int(id))
+func labels(ids: Array,hovered: int=-1) -> void:
+	var prior_shown: Dictionary=nameplate_shown.duplicate();nameplate_shown.clear()
 	for id in nameplates:
 		nameplates[id].hide()
-	for id in ids:
-		if not registry.entities.has(id):
-			continue
-		var point: Vector3 = registry.label_position(id)
-		if camera.is_position_behind(point):
-			continue
+	var ui=nameplate_ui.get_ref() if nameplate_ui!=null else null
+	if nameplate_ui!=null and (not is_instance_valid(ui) or ui.closed): clear_nameplates(); release_nameplate_source(); return
+	if is_instance_valid(ui) and not ui.presentation_enabled: return
+	var viewport:=get_viewport().get_visible_rect()
+	var context: Dictionary=ui.overhead_context() if is_instance_valid(ui) else {}
+	# Only explicit absence of an admitted connection permits the inspection
+	# AABB path. Pending native scope/model data cannot borrow that fallback.
+	var native_projection: bool=is_instance_valid(ui) and context.get("connection")!=null
+	var current:=SpeechScope.context(context.get("connection"),context.get("generation"),context.get("areaId")) if native_projection else {}
+	for id in PlateState.visible_ids(ids,registry.entities,hovered):
+		var raw: Dictionary=ui.text.objects.get(id,{}) if is_instance_valid(ui) else {}
+		if is_instance_valid(ui) and (raw.is_empty() or int(raw.get("areaId",-1))!=ui.area_id):continue
+		var screen: Vector2
+		if native_projection:
+			if not SpeechScope.current_context(current) or not ui.overhead_anchor_query.is_valid():continue
+			var anchor: Dictionary=ui.overhead_anchor(id,SpeechAnchor.witness(raw),[current.connection,current.generation,current.areaId])
+			if not anchor.get("ready",false) or not anchor.get("screen") is Vector2 or not anchor.screen.is_finite():continue
+			screen=anchor.screen # Raw native head projection; Plate owns one truncation.
+		else:
+			# Explicit offline/debug inspection retains its older AABB, culling
+			# and footprint policy. This branch is not native popup acceptance.
+			var point: Vector3=registry.nameplate_position(id,camera.global_position)
+			if camera.is_position_behind(point):continue
+			screen=camera.unproject_position(point)
+			if not screen.is_finite() or not viewport.has_point(screen):continue
+			screen=NameplateAnchor.screen(screen)
+		var source: Dictionary={}; var signature: int
+		if is_instance_valid(ui):
+			var state: Dictionary=raw.get("replicated",{})
+			source=raw if state.has("name") and (int(raw.get("objectType",0))!=5 or state.has("portrait") or state.has("portraitRef")) else nameplate_rules.presentation_object(ui.text.objects,id,ui.desktop.state.get("players",[]))
+			signature=PlateState.signature(source,ui.controlled_id,ui.text.revision)
+		else:
+			signature=hash([_name(id),registry.entities[id].get("type"),registry.entities[id].get("color")])
 		if not nameplates.has(id):
-			var text := Label.new()
-			text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			text.add_theme_color_override("font_shadow_color", Color.BLACK)
-			text.add_theme_constant_override("shadow_outline_size", 4)
-			text.add_theme_color_override("font_outline_color", Color.BLACK)
-			text.add_theme_constant_override("outline_size", 4)
-			text.text = _name(id)
-			nameplate_root.add_child(text)
-			nameplates[id] = text
-		var text: Label = nameplates[id]
-		text.position = camera.unproject_position(point) - Vector2(text.size.x * 0.5, text.size.y)
-		text.visible = get_viewport().get_visible_rect().has_point(text.position)
+			var plate:=Plate.new(); nameplate_root.add_child(plate)
+			var constructed_popup: Dictionary=ui.overhead_popup_registry.caption_record(id,ui.text.objects.get(id,{})) if is_instance_valid(ui) and is_instance_valid(ui.get("overhead_popup_registry")) and ui.overhead_popup_registry.has_method("caption_record") else {}
+			var fonts=ui.popup_fonts if is_instance_valid(ui) and is_instance_valid(ui.get("popup_fonts")) else ui.inventory.frame_skin.fonts if is_instance_valid(ui) else null
+			plate.configure(ui.desktop.art if is_instance_valid(ui) else null,fonts,nameplate_source,str(constructed_popup.get("font",Plate.FONT)))
+			if not constructed_popup.is_empty():plate.set_popup_preferences(int(constructed_popup.mode),str(constructed_popup.font));ui.overhead_popup_registry.bind_view(id,ui.text.objects[id],"hover",plate)
+			nameplates[id]=plate
+			if is_instance_valid(ui) and is_instance_valid(ui.get("overhead_popup_registry")):ui.overhead_popup_registry.register(id,ui.text.objects.get(id,{}))
+		if nameplate_signatures.get(id)!=signature:
+			nameplate_signatures[id]=signature
+			var value:=PlateState.project(source,ui.controlled_id,ui.text) if is_instance_valid(ui) else {"available":true,"creature":int(registry.entities[id].get("type",0))==5,"name":Rich.parse(_name(id)),"condition":Rich.parse(""),"portrait":"","color":Color(str(registry.entities[id].get("color","#cfffff"))),"condition_color":Color("#80ff80")}
+			nameplate_values[id]=value
+		# Original object+b8 owns both speech and its cached hover caption. Keep
+		# the current exact-lifetime caption, but never draw two simultaneous
+		# popups for that visual. Expiry simply releases the speech priority.
+		if prior_shown.has(id):nameplate_shown[id]=true
+		var current_value: Dictionary=nameplate_values.get(id,{})
+		if is_instance_valid(ui) and ui.has_method("overhead_claims_nameplate") and ui.overhead_claims_nameplate(id,ui.text.objects.get(id,{}),current_value):continue
+		var popup_record: Dictionary=ui.overhead_popup_registry.caption_record(id,ui.text.objects[id]) if is_instance_valid(ui) and is_instance_valid(ui.get("overhead_popup_registry")) and ui.overhead_popup_registry.has_method("caption_record") else {}
+		if not popup_record.is_empty():
+			var previous_identity: Array=nameplates[id].get_meta("native_popup_witness",[])
+			var current_identity: Array=ui.overhead_popup_registry.slots[id].witness
+			if previous_identity!=current_identity:prior_shown.erase(id);nameplate_shown.erase(id)
+			ui.overhead_popup_registry.bind_view(id,ui.text.objects[id],"hover",nameplates[id]);nameplates[id].set_popup_preferences(int(popup_record.mode),str(popup_record.font))
+		# Speech expiry retires its timed popup even if Tab/mouse hover never
+		# left this actor. A current known hover caption is a separate writer
+		# from cached restoration (which may lack relation text). Re-admit that
+		# current caption once; writer=hover prevents per-frame timer resets.
+		var hover_caption: Dictionary=current_value.get("caption",current_value.get("name",{}))
+		var fresh_hover_known: bool=current_value.get("available",false) and hover_caption.get("nativeRawBytes") is PackedByteArray
+		var expired_caption: bool=not popup_record.is_empty() and popup_record.get("writer")=="cached-name" and fresh_hover_known and int(popup_record.get("timedFlag",0))==0 and not popup_record.get("guiRegistered",false)
+		if not prior_shown.has(id) or nameplates[id].get_meta("hover_signature",-1)!=signature or expired_caption:
+			nameplates[id].set_content(current_value);nameplates[id].set_meta("hover_signature",signature)
+			if not popup_record.is_empty():ui.overhead_popup_registry.write_hover(id,ui.text.objects[id],current_value)
+		nameplate_shown[id]=true
+		if not popup_record.is_empty():
+			ui.overhead_popup_registry.project_speech(id,ui.text.objects[id],true)
+			nameplates[id].presentation_active=popup_record.sceneActive and not popup_record.hidden
+		nameplates[id].place(screen,viewport,native_projection)
+		if is_instance_valid(ui) and is_instance_valid(ui.get("overhead_popup_registry")):ui.overhead_popup_registry.offer(id,ui.text.objects.get(id,{}),nameplates[id])
+
+	if is_instance_valid(ui) and is_instance_valid(ui.get("overhead_popup_registry")) and ui.overhead_popup_registry.has_method("leave_hover"):
+		for id in prior_shown:
+			if not nameplate_shown.has(id):ui.overhead_popup_registry.leave_hover(int(id))
+
+func _exit_tree() -> void: clear_nameplates(); release_nameplate_source()
 
 func update_metrics() -> void:
 	if live_mode:

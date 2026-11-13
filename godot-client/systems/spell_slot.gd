@@ -12,6 +12,12 @@ var image: TextureRect
 var secondary_image: TextureRect
 var caption: Label
 var counter: Label
+func _get_tooltip(_point: Vector2) -> String:
+	return "" if get_meta("native_tooltip_managed",false) else tooltip_text
+func native_tooltip_content() -> Dictionary:
+	if tooltip_text.is_empty(): return {}
+	var rich:=preload("res://systems/native_data/rich_text.gd").parse(tooltip_text)
+	return {"rich":rich,"owner":get_instance_id(),"identity":[get_instance_id(),hash(rich)],"below":false}
 
 func setup(label: String, uses: Variant = null, compact: bool = false) -> void:
 	focus_mode = Control.FOCUS_NONE

@@ -1,0 +1,17 @@
+The owned original-server ScriptFloating test passed in native-script-floating-received-v3.
+
+Four actual original nwserver game-message byte streams (93,93,94,94) crossed the real decoder and Host source bridge. Their showChat flags were 0,1,0,1. Ten provenance checks, thirteen native queue/layout/echo checks and nine native lifecycle checks passed. Four independent 1.5-second widgets reached layout readiness; exactly two messages echoed with flags/mask128, and no additional legacy duplicate was observed.
+
+This is headless packet, layout and lifecycle acceptance. The live probe did not capture view.has_frame, visibility or a successful world camera-anchor paint. Native pixels, generic movement/picking and special native timer selectors are not accepted here. Native gameplay_success is false and controlled distance is zero. The separate component proofs cover the anchor and shared ingress behavior.
+
+The original server ran only at 127.0.0.1:5129 with ScriptFloat1, legal characters, local vault, max1, public0 and NAT disabled. The protected ALT key used its exclusive lease and private pipe. The owned server closed; all protected processes, encrypted profiles, source hashes and six native outputs remained unchanged. No native build or GPU test ran.
+
+V1 is retained as a pre-session harness-policy rejection. V2 is retained as an unrelated inherited ground-pointer fixture rejection before script stimulus. Neither is retroactively accepted; v3 used the separately reviewed strict ready-world path and made no movement claim.
+
+Acceptance report: reports/native-script-floating-received-acceptance-v1.json
+Actual packets: reports/native-script-floating-original-server-packets-v1.json
+Accepted exact inputs: .cache/script-floating-authority/accepted-v3/manifest.json
+Original accepted report: reports/native-script-floating-received-v3.json
+Preserved rejections: reports/native-script-floating-received-v1.json and native-script-floating-received-v2.json
+
+The accepted input seal has 1690 mapped entries and 1689 verified content-addressed blobs. No protected keys, profile credentials, server secret identity files or vault contents were copied.

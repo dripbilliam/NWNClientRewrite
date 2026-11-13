@@ -40,12 +40,13 @@ static func above_plane(point: Array,radius: float,plane: Array) -> float:
 	distance=M.f(distance+M.f(M.f(point[1])*M.f(plane[1])))
 	distance=M.f(distance+M.f(M.f(point[2])*M.f(plane[2])))
 	return M.f(distance-M.f(radius))
-func radius_for(parameters: Dictionary,source_flags: int) -> float:
+func radius_for(parameters: Dictionary,source_flags: int,wind: Array=[0.0,0.0,0.0]) -> float:
 	if source_flags&1: return 1000.0
 	var next: Array=[source_flags]
 	for name in FIELDS: next.append(parameters.get(name,0.0))
+	next.append_array(wind)
 	if next!=signature:
-		signature=next; cached_radius=float(calculate(parameters,source_flags).radius)
+		signature=next; cached_radius=float(calculate(parameters,source_flags,wind).radius)
 	return cached_radius
 static func planes_for(camera: Camera3D) -> Array[Plane]:
 	var frame:=Engine.get_process_frames(); var id:=camera.get_instance_id()

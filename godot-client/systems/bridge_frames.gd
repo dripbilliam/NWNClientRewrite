@@ -4,30 +4,38 @@ const MAX_JSON := 1048576
 const MAX_BINARY := 8388608
 var pending := PackedByteArray()
 var failure := ""
+# Private accounting beside feed's unchanged message API; never trust a size
+# supplied inside a decoded message when retaining an ordered admission backlog.
+var last_frame_sizes:=PackedInt32Array()
 
 func reject(reason: String) -> Array:
 	failure = reason
 	pending.clear()
+	last_frame_sizes.clear()
 	return []
 
 func feed(bytes: PackedByteArray) -> Array:
+	last_frame_sizes.clear()
 	if not failure.is_empty():
 		return []
 	pending.append_array(bytes)
 	var frames: Array = []
-	while not pending.is_empty():
-		if pending[0] == 0x89:
-			if pending.size() < 8:
+	# Consume a batch by offset. Repeatedly slicing the unread suffix copied it
+	# once per message during raw-world bursts, although parsing never mutates it.
+	var cursor:=0
+	while cursor<pending.size():
+		if pending[cursor] == 0x89:
+			if pending.size()-cursor < 8:
 				break
-			if pending[1] != 0x50 or pending[2] != 0x41 or pending[3] != 0x52:
+			if pending[cursor+1] != 0x50 or pending[cursor+2] != 0x41 or pending[cursor+3] != 0x52:
 				return reject("Invalid binary bridge magic")
-			var length := int(pending.decode_u32(4))
+			var length := int(pending.decode_u32(cursor+4))
 			if length < 4 or length > MAX_BINARY:
 				return reject("Oversized binary bridge frame")
-			if pending.size() < 8 + length:
+			if pending.size()-cursor < 8 + length:
 				break
-			var payload := pending.slice(8, 8 + length)
-			pending = pending.slice(8 + length)
+			var payload := pending.slice(cursor+8, cursor+8+length)
+			cursor+=8+length
 			var size := int(payload.decode_u32(0))
 			if size < 2 or size > 65536 or size + 4 > payload.size():
 				return reject("Invalid binary metadata length")
@@ -56,21 +64,26 @@ func feed(bytes: PackedByteArray) -> Array:
 				return reject("Trailing particle stream bytes")
 			metadata["streams"] = streams
 			frames.append(metadata)
+			last_frame_sizes.append(8+length)
 		else:
-			var end := pending.find(10)
+			var end := pending.find(10,cursor)
 			if end < 0:
-				if pending.size() > MAX_JSON:
+				if pending.size()-cursor > MAX_JSON:
 					return reject("Oversized partial JSON bridge frame")
 				break
-			if end > MAX_JSON:
+			if end-cursor > MAX_JSON:
 				return reject("Oversized JSON bridge frame")
-			var value: Variant = JSON.parse_string(pending.slice(0, end).get_string_from_utf8())
+			var value: Variant = JSON.parse_string(pending.slice(cursor, end).get_string_from_utf8())
 			if not value is Dictionary:
 				return reject("Invalid JSON bridge frame")
 			if value.get("kind") == "particle-stream":
 				return reject("Particle streams require binary framing")
-			pending = pending.slice(end + 1)
 			frames.append(value)
+			last_frame_sizes.append(end-cursor+1)
+			cursor=end+1
+	# Fully consumed batches need no suffix allocation. Incomplete trailing JSON
+	# or binary data is retained exactly once for the next feed call.
+	if cursor>0:pending=pending.slice(cursor) if cursor<pending.size() else PackedByteArray()
 	return frames
 
 func _integer(value: Variant) -> bool:

@@ -1,0 +1,42 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+
+const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+const sourceStage = path.join(project, '.cache/native-140fps/render-agent/pushed-inputs-v3');
+const manifestFile = path.join(sourceStage, 'manifest.json');
+const manifest = JSON.parse(fs.readFileSync(manifestFile));
+const engine = path.join(project, '.tools/Godot_v4.7.2-stable_win64.exe');
+const script = path.join(project, 'tests/native_perf140_render_transform_setter_contract_test.gd');
+const reportDir = path.join(project, '.cache/native-140fps/render-agent', `transform-contract-${Date.now()}`);
+const reportFile = path.join(reportDir, 'native.json');
+const args = ['--headless', '--path', manifest.project, '--log-file', path.join(reportDir, 'engine.log'), '--script', script, '--', `--report=${reportFile}`];
+if (!process.argv.includes('--run')) {
+  console.log(JSON.stringify({engine, args, gpu: false, serverConnections: 0, run: false}));
+  process.exit(0);
+}
+const changedBefore = manifest.pins.filter(pin => hash(fs.readFileSync(path.join(manifest.project, pin.relative))) !== pin.sha256).map(pin => pin.relative);
+if (changedBefore.length) throw Error('Retained private project source drift: ' + changedBefore.join(', '));
+fs.mkdirSync(reportDir);
+const scriptSha256 = hash(fs.readFileSync(script));
+fs.writeFileSync(path.join(reportDir, 'invocation.json'), JSON.stringify({engine, args, scriptSha256, engineSha256: hash(fs.readFileSync(engine)), manifestSha256: hash(fs.readFileSync(manifestFile)), gpu: false, serverConnections: 0}, null, 2), {flag: 'wx'});
+const start = performance.now();
+const result = spawnSync(engine, args, {encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024, timeout: 60000});
+const elapsedMs = performance.now() - start;
+fs.writeFileSync(path.join(reportDir, 'stdout.log'), result.stdout ?? '', {flag: 'wx'});
+fs.writeFileSync(path.join(reportDir, 'stderr.log'), result.stderr ?? '', {flag: 'wx'});
+const native = fs.existsSync(reportFile) ? JSON.parse(fs.readFileSync(reportFile)) : null;
+const text = (result.stdout ?? '') + '\n' + (result.stderr ?? '') + '\n' + (fs.existsSync(path.join(reportDir, 'engine.log')) ? fs.readFileSync(path.join(reportDir, 'engine.log'), 'utf8') : '');
+const permitted = /ERROR: Failed to read the root certificate store\.\r?\n\s+at: get_system_ca_certificates \(platform\/windows\/os_windows\.cpp:2582\)/g;
+const permittedEnvironmentWarnings = [...text.matchAll(permitted)].map(match => match[0]);
+const noUnexpectedErrors = !/SCRIPT ERROR|ERROR:|leaked|still in use|crash/i.test(text.replace(permitted, ''));
+const changedInputs = manifest.pins.filter(pin => hash(fs.readFileSync(path.join(manifest.project, pin.relative))) !== pin.sha256).map(pin => pin.relative);
+const sourceUnchanged = scriptSha256 === hash(fs.readFileSync(script));
+const success = result.status === 0 && native?.success === true && noUnexpectedErrors && changedInputs.length === 0 && sourceUnchanged;
+const receipt = {success, reportDir, elapsedMs, exitCode: result.status, error: result.error?.message ?? null, noUnexpectedErrors, permittedEnvironmentWarnings, changedInputs, sourceUnchanged, native, gpu: false, serverConnections: 0};
+fs.writeFileSync(path.join(reportDir, 'receipt.json'), JSON.stringify(receipt, null, 2), {flag: 'wx'});
+console.log(JSON.stringify(receipt, null, 2));
+process.exitCode = success ? 0 : 1;

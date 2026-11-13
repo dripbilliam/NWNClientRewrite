@@ -1,0 +1,24 @@
+extends "@SUITE_RES@"
+# Same startup/module barrier for every unchanged test entrypoint.
+var full_startup:=""
+var full_ready:=""
+func _initialize()->void:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--observer-startup="):full_startup=arg.trim_prefix("--observer-startup=")
+		elif arg.begins_with("--observer-ready="):full_ready=arg.trim_prefix("--observer-ready=")
+	call_deferred("full_wait")
+func full_wait()->void:
+	if full_startup.is_empty() or full_ready.is_empty():push_error("Full fixture observer paths missing");quit(2);return
+	var cursor: RefCounted=ClassDB.instantiate("NwnStaticPrefixCursor")
+	var capability: Dictionary=cursor.call("dispatch",0,{})
+	var collision_source:="res://systems/native_render/drive_collision_indexed.gd"
+	var startup:={"pid":OS.get_process_id(),"executable":OS.get_executable_path(),"engine_sha256":FileAccess.get_sha256(OS.get_executable_path()),"collision_sha256":FileAccess.get_sha256(collision_source),"display":DisplayServer.get_name(),"main_thread":OS.get_thread_caller_id()==OS.get_main_thread_id(),"capability":capability,"loaded_extensions":Array(GDExtensionManager.get_loaded_extensions()),"user_args":Array(OS.get_cmdline_user_args())}
+	var file:=FileAccess.open(full_startup,FileAccess.WRITE);file.store_string(JSON.stringify(startup));file.close()
+	var deadline:=Time.get_ticks_msec()+15000
+	while not FileAccess.file_exists(full_ready):
+		if Time.get_ticks_msec()>deadline:push_error("Full fixture observer timed out");quit(2);return
+		await process_frame
+	var ready_file:=FileAccess.open(full_ready,FileAccess.READ);var ready: Variant=JSON.parse_string(ready_file.get_as_text());ready_file.close()
+	if not ready is Dictionary or ready.get("pid")!=OS.get_process_id() or ready.get("engine_sha256")!=startup.engine_sha256:push_error("Full fixture observer process mismatch");quit(2);return
+	cursor=null
+	super._initialize()

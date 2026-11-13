@@ -85,6 +85,7 @@ func refresh() -> void:
 			var item: Dictionary=object.item; var base: Dictionary=inventory.IconPlan.row(owner_ui.text.tables,"baseitems",int(item.get("baseItem",-1)))
 			var row:={"entryId":id,"itemId":id,"channel":channel,"x":int(entry.x),"y":int(entry.y),"width":maxi(1,int(inventory.IconPlan.number(base.get("InvSlotWidth")))) ,"height":maxi(1,int(inventory.IconPlan.number(base.get("InvSlotHeight")))),"stack":int(item.get("stackSize",item.get("field454",1))),"name":owner_ui.text.resolve(item.get("name",{}),actor),"pending":pending.has("item:"+str(id))}
 			var fingerprint:=Cache.digest(var_to_bytes([item,object.get("inventoryLocation")]))
+			row.tooltip=preload("res://systems/native_data/item_tooltip.gd").project(item,owner_ui.text,actor)
 			row.signature=fingerprint; rows.append(row); sources.append([channel,entry,item,object.get("inventoryLocation")]); all[id]=row
 			if channel=="B": own[id]=row
 	var identities: Dictionary={}; var identity_signature: Array=[]

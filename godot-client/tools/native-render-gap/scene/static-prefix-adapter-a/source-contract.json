@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "kind": "private-incremental-static-prefix-adapter-source",
+  "status": "UNCOMPILED_UNPARSED_UNACCEPTED",
+  "class": "NwnStaticPrefixCursor",
+  "library": "nwn-static-prefix-cursor.dll",
+  "entry": "nwn_static_prefix_cursor_init",
+  "schema": "nwn-static-prefix-cursor-v1",
+  "ops": {
+    "0": "capabilities",
+    "1": {
+      "input": [
+        "groups(original Dictionary)",
+        "from(Vector3)",
+        "to(Vector3)",
+        "radius(number)"
+      ],
+      "status": "ready"
+    },
+    "2": {
+      "input": [
+        "groups(current property)",
+        "models(current property)",
+        "model_bounds(current property)",
+        "prior_key",
+        "prior_group",
+        "prior_bounds",
+        "prior_states"
+      ],
+      "status": [
+        "admit",
+        "fallback",
+        "unready",
+        "done"
+      ],
+      "admit": [
+        "key",
+        "ordinal",
+        "scanned",
+        "script_only",
+        "group",
+        "bounds",
+        "states",
+        "pending",
+        "expansion"
+      ],
+      "fallback": "Same current key before its prefix; sticky script-only remainder. Never restart completed queries."
+    },
+    "5": "close (original iterator container released)",
+    "6": "statistics"
+  },
+  "seamObligations": [
+    "Root owns fresh private GDScript function transformer; product untouched",
+    "Bind payload group/bounds/states to original locals then clear admission packet BEFORE calling original group index query",
+    "Pass prior_key/group/bounds/states on resume. Lost original-container group/bounds identity or current model_bounds states identity forces sticky original prefix at the next key",
+    "Status unready retains earlier original body side effects/results; wrapper marks result.ready=false and returns, after closing cursor at matching function lifetime point",
+    "Never restart full baseline after partially completed group queries; fallback executes original prefix/body at returned SAME key",
+    "Unknown top-level resume types or reentrant unsupported errors require a precisely scoped continuation/error policy; not yet accepted",
+    "Raw const Dictionary/Array element pointers are call-local only; no undocumented container layout or retained element pointers"
+  ],
+  "sourceSemantics": {
+    "dictionary": "variant_iter_* delegates to the same Dictionary::next logic as specialized GDScript Dictionary VM iteration. Original container retained; live property fetched per resume; deletion of current key terminates next(), insertion/reordering observed via current Dictionary::next.",
+    "typedNumeric": "bool/int/float already typed values only; NaN/Inf preserved. Unknown conversions/getters fallback before current prefix; not pre-coerced or silently rejected."
+  },
+  "knownUnverified": [
+    "No compilation or parser check yet",
+    "No actual owner callback/lifetime differential run",
+    "No actual route timing or adapter activation",
+    "Vector per-group allocation is present; numeric proof prioritizes semantics, no speed claim",
+    "Unsupported top-level resume/error branch continuation must be reviewed with root seam before runtime acceptance"
+  ],
+  "sourcePins": [
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-drive-numeric\\drive_numeric_extension.cpp",
+      "sha256": "494d120da8845ae5f964c8153c7207334d477922c892aa43e987be974bbf65ae"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\static-prefix-core-c\\frozen-inputs\\coarse_prefix_c.hpp",
+      "sha256": "48145313ba59b51bb88ba5dea495d5192fef1777e1472549d307ae138ef17fc5"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\cursor_extension.cpp",
+      "sha256": "377b529ce60510f3966edaadcefa9728c9d66a1f80b09df33c26f2f8bc9959bf"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\abi.hpp",
+      "sha256": "5ed322106573c5479f6e7adaea4716ebd9970bcb727a4c553a33e53af0ab309a"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\coarse_prefix_core.hpp",
+      "sha256": "48145313ba59b51bb88ba5dea495d5192fef1777e1472549d307ae138ef17fc5"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\prepare-source.cjs",
+      "sha256": "80d7f1329b7f841f43deb865b95ffa9c19f5383a40bf464259afe415763b79fe"
+    }
+  ],
+  "scope": "Source-only after PC window ended. Separate optional class/library only; installed/shared sources and binaries unchanged. Sealed numeric C remains immutable."
+}

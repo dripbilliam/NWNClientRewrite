@@ -10,11 +10,7 @@ static func signed32(value: int) -> int:
 	value&=0xffffffff
 	return value-0x100000000 if value>=0x80000000 else value
 static func cfg(tables: Dictionary,name: String,fallback: int) -> int:
-	var value:=fallback
-	for row in tables.get("ruleset",{}).get("orderedRows",[]):
-		if str(Rules.cell(row,"Label","")).to_upper()==name:
-			value=int(Query.query({"orderedRows":[row]},0,"Value","integer").value)
-	return value
+	return preload("res://systems/native_data/character_record_values.gd").cfg(tables,name,fallback)
 static func gain_table(tables: Dictionary) -> String:
 	# Original constructor starts with one level of class4 and race6, before
 	# incoming creature fields. These are storage defaults, not gameplay choices.

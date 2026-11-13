@@ -1,0 +1,44 @@
+Current header receipt handoff (v2)
+
+Helper source SHA:
+009834c3076cf155cdd74cde0531803904f594a5132435fb0e090b096ace201e
+
+Current APIs remain capture /prepare_name /prepare_prefix /prepare. Prefix
+preparation is INDEPENDENT of canonical name readiness. Combined prepare calls
+name first and then prefix; a shared caller using independent stages owns the
+same native body ->name ->prefix order. Prefix is a raw label, so only the
+existing14/30 receiver branch adds brackets. Explicit nonempty remote literal
+or split prepare_name never needs a canonical source-name provider.
+
+Root's intended shared promotion is deliberately partial: proven native
+prefixes and explicit remote speakerName. Canonical local name remains the
+existing adapter until the real ctor/P-name/stored-string owner is integrated.
+That remaining adapter is a backlog item, not completed native header parity.
+The helper's optional noncreature/pure stored-slot provider paths have isolated
+component evidence; this handoff does not silently promote them into Gameplay.
+
+Current isolated gate:
+.cache/overhead-settings/native-ordinary-speech-header-v2/proof.json
+22 checks /13 immutable inputs, clean engine, six native outputs unchanged,
+0.76s. Previous21 assertions are retained. The added assertion proves a ready
+native Whisper label while canonical creature name provenance remains pending.
+The former prefix->canonical dependency is removed; no shared source or parser
+was edited. v1 and the exact pre-correction helper/test are retained separately.
+
+Canonical ownership findings remain explicit:
+P/appearance mask400 writes first/last through80a810, including raw first plus
+empty last. U/replicated mask10000 is party/portrait GUI text and does not write
+those actor slots. Neither updates stats+40. Stats ctor7ea230 initializes that
+override empty, reached by genuine creatureCtor7fb140 only when native
+CGameObjectArray type5 lookup6d8100 is null. Current generic data-proxy creation,
+nativeLifetime, clientKnownLifetime, first snapshot, movement.created and D+A
+are not proof of that full constructor. Header.capture does not invent it.
+
+Detailed source:
+reports/native-ordinary-speech-header-source-v1.json
+reports/native-ordinary-speech-name-owner-boundary-v1.json
+NATIVE-ORDINARY-SPEECH-HEADER-RECEIPT.txt contains the initial partial helper
+API/ownership discussion and its v1 evidence. Its21-check result is historical;
+the v2 proof is the current helper pin. No whole-table snapshot, controlled
+context fallback, legacy resolve, shared-body/Gameplay edit, server, GPU,
+profile/key access, native build or user-process action is part of this slice.

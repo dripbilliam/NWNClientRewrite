@@ -1,0 +1,13 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {stage,hash,particleChanges} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),root=path.join(project,'.cache/native-140fps/root');
+const parentFile=path.join(root,'icon-fence-runtime-v3/manifest.json'),parent=JSON.parse(fs.readFileSync(parentFile));
+const relative='tests/native_perf140_render_icon_fence_gpu_test.gd',from=path.join(project,relative);
+const fixture=stage(project,parentFile,'icon-fence-runtime-v4',[{relative,from,before:parent.pins.find(p=>p.relative===relative)?.sha256??null,after:hash(fs.readFileSync(from))}]);
+const clockFile=path.join(root,'compact-clock-fenced-v3/manifest.json');
+const commonReceipt=path.join(project,'.cache/native-140fps/particles-agent/retained-common-input-v1/candidate-built-sources.json');
+const common=stage(project,clockFile,'compact-common-fenced-v1',particleChanges(commonReceipt),[commonReceipt]);
+const leaseFile=path.join(root,'compact-lease-fenced-v1/manifest.json'),lease=JSON.parse(fs.readFileSync(leaseFile));
+const poseFile=path.join(project,'.cache/native-140fps/render-agent/lease-clock-pose-guarded-v1/manifest.json'),pose=JSON.parse(fs.readFileSync(poseFile));if(pose.builds!==1)throw Error('Pose build not finalized');
+const changes=['native/model_pose_storage.hpp','native/particle_kernel.cpp','.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-kernel/build-manifest.json'].map(relative=>({relative,from:path.join(pose.project,relative),before:lease.pins.find(p=>p.relative===relative)?.sha256??null,after:pose.pins.find(p=>p.relative===relative).sha256}));
+const combined=stage(project,leaseFile,'compact-lease-pose-fenced-v1',changes,[poseFile]);
+const file=path.join(project,'reports/native-perf140-runtime-followups-extra-v1.json');fs.writeFileSync(file,JSON.stringify({fixture,common,combined},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({file,fixture,common,combined}));

@@ -3,6 +3,7 @@ const Timing=preload("res://systems/native_render/frame_profile.gd")
 
 const Runs = preload("res://systems/model_runs.gd")
 const Pose = preload("res://systems/model_native_pose.gd")
+const ControllerPlan=preload("res://systems/native_data/model_control_plan.gd")
 var pose := Pose.new()
 var gob: Dictionary
 var model: Dictionary
@@ -12,6 +13,7 @@ var events: Array = []
 var diagnostics: Array = []
 var providers: Dictionary
 var closed := false
+var controller_plans: Dictionary={}
 
 func configure(asset: Dictionary, source: Dictionary, entity: Dictionary) -> void:
 	entry = entity
@@ -69,7 +71,21 @@ static func event_names(source: Array, from: float, to: float, flags: int = 0) -
 
 func _apply(clip: Dictionary, previous: float, time: float, weight: float, scale_value: float, _motion: Variant, _reverse: int) -> void:
 	if clip.native.has("root"):
-		pose.apply(clip.native.root, previous, time, weight, scale_value, entry.manual_poses)
+		var plan: Variant=null
+		if pose.prepared_plan and pose.bulk_evaluation and pose.compiled_controls:
+			var name:=str(clip.name)
+			if not controller_plans.has(name):
+				var began:=Time.get_ticks_usec();var acquired:=ControllerPlan.acquire(clip.native.root);var elapsed:=(Time.get_ticks_usec()-began)/1000.0
+				pose.plan_requests+=1;pose.plan_prepare_ms+=elapsed;pose.plan_prepare_peak_ms=maxf(pose.plan_prepare_peak_ms,elapsed)
+				if Timing.enabled: Timing.record("model_plan_prepare_ms",elapsed);Timing.count("count_model_plan_requests",1)
+				if acquired.has("error"):
+					pose.plan_prepare_failures+=1;pose.diagnose("model plan preparation failed: "+str(acquired.error));controller_plans[name]=null
+				else:
+					controller_plans[name]=acquired.value
+					if acquired.hit: pose.plan_hits+=1
+					else: pose.plan_builds+=1
+			plan=controller_plans[name]
+		pose.apply(clip.native.root, previous, time, weight, scale_value, entry.manual_poses,plan)
 	else:
 		diagnose("active native clip has no controller storage")
 
@@ -81,12 +97,10 @@ func close() -> void:
 	Timing.finish("rig_close_stop_ms",began); began=Timing.begin()
 	events.clear()
 	# Parts retain physical dictionaries with child arrays, never parent cycles.
-	pose.parts.clear()
-	pose.root_part = {}
-	pose.nodes = []
-	pose.binding = {}
+	pose.close()
 	entry = {}
 	model = {}
 	descriptors.clear()
+	controller_plans.clear()
 	providers.clear()
 	Timing.finish("rig_close_data_ms",began)

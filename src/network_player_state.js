@@ -61,7 +61,9 @@ export function readPlayerState(r,build,p={}){
   state.featUses=list(r,r.readWord(),3,'feat use',()=>({feat:r.readWord(),uses:r.readByte()}));
  }
  if(mask&0x200){
-  const mode=[r.readBool(),r.readBool()];if(mode[0]&&mode[1])throw new Error('Invalid native automap mode');
+  // Original mask0x200 reader gives the packed flag priority. Both bits
+  // set is valid; rejecting it loses the rest of this server message.
+  const mode=[r.readBool(),r.readBool()];
   const map={mode};
   if(mode[1])map.bytes=Uint8Array.from(list(r,r.readByte(),1,'automap byte',()=>r.readByte()));
   else map.points=list(r,r.readDword(),2,'automap point',()=>mode[0]?{x:r.readByte(),y:r.readByte()}:{state:r.readBool(),x:r.readByte(),y:r.readByte()});

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "mainWorld": "1c3dac8b586234f5feeaa6d1e149b1ee9aa0c17945224e7303c16f78be4d0ab0",
+  "capsuleWorld": "defef1bd928cf103270a555d201824bc14c261203ce848b0cc5b5305c447bf91",
+  "fullReceive": {
+    "main": "845276bc09a692e1bad25fb47cdfda4c66393cb2fbf43658e71ab3c6a49b12ee",
+    "capsule": "1ce1639b3871fea7a6fe47639b75aba38edc5ce539d10f4c076462eccf5d3632",
+    "onlyDifference": "FrameProfile begin/finish drive_publish_full around unchanged drive collision full publication"
+  },
+  "deltaReceive": {
+    "main": "f68f78d0ea02ae9484298f609b68a8ac3d41642fde5908dfb5eb4df78e517e82",
+    "capsule": "177f942e211a04920a6ecddfcb44f8bd7d1237df25e3df7446260129c4f64d1b",
+    "onlyDifference": "FrameProfile begin/finish drive_publish_delta around unchanged drive collision delta publication"
+  },
+  "lifetimeIdentical": true,
+  "snapshotPrefixAndCompletenessIdentical": true,
+  "mainReceiveOwner": "2efc06ea9e49f6018ca7e7824457398da4ed7682bbbbdc51c54cd0abd6d826c8",
+  "capsuleReceiveOwner": "1781136ece9134606102fcb1d71422628a0cf1c8dd2282a8f921792468825e72",
+  "tinyPort": {
+    "relative": "fake_profile.gd",
+    "sha256": "f9a93ee62d75b90d1e389ec5d725b49fa5b187a2df9fe8d4f9dc0f942052bd5a",
+    "begin": "static begin() -> int",
+    "finish": "static finish(String,int) -> void",
+    "changed": false
+  },
+  "runtimeNormalization": false,
+  "auditOnlyNormalization": "Exact timer removal is used only to prove source differences; the staged capsule retains every actual timer line.",
+  "engineStarts": 0,
+  "sharedRuntimeEdits": 0
+}

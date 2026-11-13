@@ -11,6 +11,7 @@ var buttons: Dictionary = {}
 var textures: Dictionary = {}
 var view_id := -1
 var wanted := false
+var item_commands_enabled:=true
 var selected := -1
 var creature_slots := false
 var equipment: Control
@@ -35,10 +36,14 @@ var native_equipment
 var native_frame
 var gold_owner
 var barter_owner
+var item_tooltips
+var structural_key: Variant=null
+var equipment_controls: Dictionary={}
+var repository_controls: Dictionary={}
 
-func setup(storage: String = "user://native-menu-layout.cfg") -> void:
+func setup(storage: String = "user://native-menu-layout.cfg",window_key: String="inventory") -> void:
 	layout_storage = storage
-	configure("Inventory", "inventory", Vector2(80, 95), storage)
+	configure("Inventory", window_key, Vector2(80,95) if window_key=="inventory" else Vector2(560,95), storage)
 	custom_minimum_size = Vector2(450, 660)
 	equipment = Control.new()
 	equipment.custom_minimum_size = Vector2(420, 240)
@@ -115,6 +120,8 @@ func reset() -> void:
 	blocked_store_generation = -1
 	if is_instance_valid(store_panel): store_panel.reset()
 	state.clear(); items.clear(); textures.clear(); buttons.clear()
+	structural_key=null
+	equipment_controls.clear(); repository_controls.clear()
 	if equipment != null:
 		wipe(equipment); wipe(repository)
 		wipe(container_repository)
@@ -133,6 +140,13 @@ func open() -> void:
 	show(); move_to_front()
 	notice.text = "Waiting for server inventory…"
 	request.emit({"kind": "inventory-open"})
+
+func present_received(opened: bool) -> void:
+	# Server13/1 is a visibility instruction, not a user input to echo back.
+	wanted=opened
+	if opened:show();move_to_front()
+	else:
+		examine_mode=false;hide()
 
 func close_inventory() -> void:
 	examine_mode=false
@@ -180,7 +194,12 @@ func receive(message: Dictionary) -> void:
 
 func render() -> void:
 	if state.is_empty(): return
-	wipe(equipment); wipe(repository); wipe(container_repository); buttons.clear()
+	var layouts: Array=native_equipment.rows(creature_slots) if native_equipment!=null and native_equipment.layout_ready else state.layout
+	var next_key:=hash([layouts,creature_slots,state.page,state.get("container",{}).get("ownerId"),state.get("container",{}).get("page"),state.get("store",{}).get("open",false),native_frame.layout_ready if native_frame!=null else false])
+	var rebuild: bool=structural_key!=next_key
+	structural_key=next_key
+	if rebuild:
+		wipe(equipment); wipe(repository); wipe(container_repository); buttons.clear(); equipment_controls.clear(); repository_controls.clear()
 	set_caption("Inventory" + (": " + str(state.title) if not str(state.title).is_empty() else ""))
 	equipment.custom_minimum_size.y = 320 if creature_slots else 240
 	if native_equipment!=null and native_equipment.layout_ready:
@@ -195,34 +214,51 @@ func render() -> void:
 	container_title.text = str(container.get("title", "Container"))
 	container_page.text = "%s / %s" % [int(container.get("page", 0)) + 1, int(container.get("pageCount", 1))]
 	for key in ["previous", "next"]: container_controls[key].disabled = int(container.get("pageCount", 1)) <= 1
-	for layout in native_equipment.rows(creature_slots) if native_equipment!=null and native_equipment.layout_ready else state.layout:
+	for layout in layouts:
 		if int(layout.slot) >= 16384 and not creature_slots: continue
 		var item := {}
 		for value in items.values():
 			if value.channel == "I" and int(value.slot) == int(layout.slot): item = value; break
-		var button := Slot.new()
-		button.setup(self, item, int(layout.slot))
-		button.position = Vector2(layout.x, layout.y)
-		button.size = Vector2(layout.w, layout.h)
+		var button=equipment_controls.get(int(layout.slot))
+		var changed: bool=button==null or int(button.row.get("entryId",-1))!=int(item.get("entryId",-1))
+		if button==null:
+			button=Slot.new(); button.setup(self,item,int(layout.slot)); equipment_controls[int(layout.slot)]=button
+			button.position=Vector2(layout.x,layout.y); button.size=Vector2(layout.w,layout.h); equipment.add_child(button)
+		else:
+			var old_id:=int(button.row.get("entryId",-1))
+			if buttons.get(old_id)==button: buttons.erase(old_id)
+			if changed:
+				if native_equipment!=null: native_equipment.art.unbind(button.image)
+				button.image.texture=null
+			button.refresh_row(item,view_id)
 		if item.is_empty(): button.tooltip_text = layout.label
-		equipment.add_child(button)
-		if native_equipment!=null: native_equipment.bind_slot(button,layout)
+		if native_equipment!=null and (rebuild or changed): native_equipment.bind_slot(button,layout)
 		if item.has("entryId"): register_button(item, button)
 	if ac.get_parent() == null: equipment.add_child(ac)
 	ac.move_to_front()
 	ac.text = "AC: " + (str(int(state.armorClass)) if state.armorClass != null else "—")
+	var visible_rows: Dictionary={}
 	for item in items.values():
+		if item.channel not in ["R","C"]: continue
+		var page: int=int(container.get("page",0)) if item.channel=="C" else int(state.page)
+		var page_rows:=5 if item.channel=="C" else 6
+		if floori(float(item.y)/page_rows)!=page or item.channel=="C" and not opened: continue
+		visible_rows[int(item.entryId)]=item
+	for id in repository_controls.keys():
+		var item: Dictionary=visible_rows.get(id,{})
+		var target=container_repository if item.get("channel","")=="C" else repository
+		var button: Control=repository_controls[id]
+		if not item.is_empty() and button.get_parent()==target and button.position.is_equal_approx(target.item_position(item)) and button.size.is_equal_approx(target.item_size(item)): continue
+		if buttons.get(id)==button: buttons.erase(id)
+		repository_controls.erase(id); button.get_parent().remove_child(button); button.queue_free()
+	for item in visible_rows.values():
 		var target = container_repository if item.channel == "C" else repository
-		var page: int = int(container.get("page", 0)) if item.channel == "C" else int(state.page)
-		var page_rows := 5 if item.channel == "C" else 6
-		if item.channel not in ["R", "C"] or floori(float(item.y) / page_rows) != page: continue
-		if item.channel == "C" and not opened: continue
-		var button := Slot.new()
-		button.setup(self, item)
-		button.position=target.item_position(item)
-		button.size=target.item_size(item)
-		target.add_child(button)
-		if native_frame!=null: native_frame.decorate_item(button,target,item)
+		var button=repository_controls.get(int(item.entryId))
+		if button==null:
+			button=Slot.new(); button.setup(self,item); repository_controls[int(item.entryId)]=button
+			button.position=target.item_position(item); button.size=target.item_size(item); target.add_child(button)
+			if native_frame!=null: native_frame.decorate_item(button,target,item)
+		else: button.refresh_row(item,view_id)
 		register_button(item, button)
 	for index in pages.size(): pages[index].disabled = index == int(state.page)
 	if store.get("open", false) and not is_instance_valid(store_panel):
@@ -235,11 +271,15 @@ func render() -> void:
 	footer.text = "%s / %s lbs.                  GP: %s" % [str(int(summary.weight)) if summary.weight != null else "—", str(int(summary.capacity)) if summary.capacity != null else "—", str(int(summary.gold)) if summary.gold != null else "—"]
 	notice.text = "Click or drag an item to select Buy / Sell." if store.get("open", false) else "Double-click: use / equip · Drag: move / equip · Right-click: actions"
 	if native_frame!=null: native_frame.refresh()
+	if not item_commands_enabled:
+		for control in item_controls.values():control.disabled=true
+		notice.text=""
 	_clamp()
 
 func register_button(item: Dictionary, button) -> void:
 	var id := int(item.entryId)
 	buttons[id] = button
+	if not item_commands_enabled:button.disabled=true
 	if textures.has(id): button.set_icon(textures[id])
 
 func install_native_icon(view: int,entry: int,texture: Texture2D) -> bool:
@@ -256,6 +296,7 @@ func select_item(id: int) -> void:
 	if is_instance_valid(store_panel) and state.get("store", {}).get("open", false): store_panel.select_item(id)
 
 func operation(id: int, action: String, fields: Dictionary = {}) -> void:
+	if not item_commands_enabled:return
 	if not wanted or view_id < 0 or not items.has(id): return
 	if state.get("store", {}).get("open", false) and action != "examine": select_item(id); return
 	var message := {"kind": "inventory-activate" if action == "activate" else "inventory-action", "viewId": view_id, "entryId": id, "operation": action}
@@ -263,16 +304,19 @@ func operation(id: int, action: String, fields: Dictionary = {}) -> void:
 	request.emit(message)
 
 func item_menu(id: int, point: Vector2) -> void:
+	if not item_commands_enabled:return
 	select_item(id)
 	menu_requested.emit(id, point)
 
 func can_drop(data: Variant, slot: int) -> bool:
+	if not item_commands_enabled:return false
 	if not data is Dictionary or data.get("kind") != "native-inventory-item" or int(data.get("viewId", -1)) != view_id or not items.has(int(data.get("entryId", -1))): return false
 	var item: Dictionary = items[int(data.entryId)]
 	if state.get("store", {}).get("open", false) and slot != 0: return false
 	return not item.pending and (slot == 0 or (int(item.slotMask) & slot) != 0)
 
 func can_shortcut(data: Dictionary) -> bool:
+	if not item_commands_enabled:return false
 	if not wanted or int(data.get("viewId", -1)) != view_id or not items.has(int(data.get("entryId", -1))): return false
 	var item: Dictionary = items[int(data.entryId)]
 	return not item.get("pending", false) and item.get("channel", "") in ["R", "I"]

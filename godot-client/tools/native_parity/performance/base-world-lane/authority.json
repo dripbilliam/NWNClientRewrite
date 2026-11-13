@@ -1,0 +1,223 @@
+{
+  "version": 3,
+  "expectedChecks": 120,
+  "sourceFiles": [
+    {
+      "relative": "systems/native_render/live_world.gd",
+      "sha256": "1c3dac8b586234f5feeaa6d1e149b1ee9aa0c17945224e7303c16f78be4d0ab0",
+      "allowedSha256": [
+        "1c3dac8b586234f5feeaa6d1e149b1ee9aa0c17945224e7303c16f78be4d0ab0",
+        "defef1bd928cf103270a555d201824bc14c261203ce848b0cc5b5305c447bf91"
+      ]
+    },
+    {
+      "relative": "systems/native_render/object_stream.gd",
+      "sha256": "926332c074203cd817422292c6ec1c4126020e7093aca041a97dc08cf8abe6be",
+      "allowedSha256": [
+        "926332c074203cd817422292c6ec1c4126020e7093aca041a97dc08cf8abe6be",
+        "4e8ec504c42f9eac7fdda8f27e57ba85b6104d0e404261358a89090ff5522f14"
+      ]
+    },
+    {
+      "relative": "systems/native_render/base_world_scenery.gd",
+      "sha256": "848a0465c97eed5ea9d8e6ceade8f8b231640dcf3e43fe95d83f5b343197c071"
+    },
+    {
+      "relative": "systems/native_data/entity_presentation_lifetime.gd",
+      "sha256": "68434998252beaaea08a76f1182f94828aaecad0d037aba4345f06024f2dbbaa"
+    }
+  ],
+  "files": [
+    {
+      "relative": "planner_fixture_prefix.gd",
+      "sha256": "afaa663a55a6a5a3df03e53e3abd1e6e9191398f91b321a28d574897038b5355"
+    },
+    {
+      "relative": "receive_fixture_prefix.gd",
+      "sha256": "6c4e16422183f858f599159cc43533f097fc612cb47fee713b899516d476baf4"
+    },
+    {
+      "relative": "configure_fixture_prefix.gd",
+      "sha256": "213f26229e0f778760d2c6ffa35b88997e24bf6c55c0cf6af6dacbc7188e7af2"
+    },
+    {
+      "relative": "reference/before_planner.gd",
+      "sha256": "92043b58572b166e154df8e74914f9df33a29205f85d9e3ab71055e9ee37edfe",
+      "target": "before_planner.gd"
+    },
+    {
+      "relative": "fake_assets.gd",
+      "sha256": "415ae274089522760ea93cb52f6f5165d5eec0dc159b12f3f3a3e5d55411bc67",
+      "target": "fake_assets.gd"
+    },
+    {
+      "relative": "fake_owner.gd",
+      "sha256": "984b4343c5dfa788b0ea333da394bc243083d42e650886f84a6f8e043cea69b0",
+      "target": "fake_owner.gd"
+    },
+    {
+      "relative": "fake_profile.gd",
+      "sha256": "f9a93ee62d75b90d1e389ec5d725b49fa5b187a2df9fe8d4f9dc0f942052bd5a",
+      "target": "fake_profile.gd"
+    },
+    {
+      "relative": "check.gd",
+      "sha256": "4bbea54f8100229b0ce0f0706a0f723d4e018523978cdd3e038b7d41fad1d102",
+      "target": "check.gd"
+    },
+    {
+      "relative": "evidence/source-and-baseline-v2.json",
+      "sha256": "485b88268e739f9d7861ef41f4bf0df1ea1ce011867eddf4b4ed972704965bdc"
+    },
+    {
+      "relative": "evidence/historical-v3-120-checks.json",
+      "sha256": "4beb19ce7e629ac7fe3fe0eac6090452ff8d7a1e23a72b175336947b7bad8859"
+    },
+    {
+      "relative": "evidence/historical-v3-extraction.json",
+      "sha256": "bf74e5e23a827dad982d3e782a4a4a4da325d9b9bc8d95d5b4a853881a711c1c"
+    },
+    {
+      "relative": "evidence/table-elision-71-checks.json",
+      "sha256": "c441e373b19fa4540fbbfc07f6bb287e11227c01fc10669ec0973ea83820cbaf"
+    },
+    {
+      "relative": "evidence/table-elision-patch-compatibility.json",
+      "sha256": "2454fb48ad606f138e8a87ee75a9d896077f88a681f47544d02513a14a6fe055"
+    },
+    {
+      "relative": "reference/capsule-live_world.gd.txt",
+      "sha256": "defef1bd928cf103270a555d201824bc14c261203ce848b0cc5b5305c447bf91"
+    },
+    {
+      "relative": "reference/capsule-object_stream.gd.txt",
+      "sha256": "4e8ec504c42f9eac7fdda8f27e57ba85b6104d0e404261358a89090ff5522f14"
+    },
+    {
+      "relative": "evidence/capsule-receive-profiling-difference.json",
+      "sha256": "1c817ccfc98bba417f374339e3dc5498da0e003ccf40daca987b62edf0bbedcc"
+    },
+    {
+      "relative": "evidence/combined-configure-main-120-checks.json",
+      "sha256": "c456dd3c7f6519f789c9e828e766eda96f61b98ccc95af17d8a91d219c767e20"
+    }
+  ],
+  "generated": [
+    {
+      "relative": "candidate_planner.gd",
+      "sha256": "d21ba8b906824c9f7365a90a5ce34c610af55808adc32fdacb6e0b86dd1c454d"
+    },
+    {
+      "relative": "no_memo_planner.gd",
+      "sha256": "e0618c59e313363f73ee253597480ea6865e74b67ba1d31217ad48ef06841dd7"
+    },
+    {
+      "relative": "configure_owner.gd",
+      "sha256": "527c7b85f6b36be2671509053fc64d109f277212a0c101d4f7b394b89b43adc7"
+    },
+    {
+      "relative": "object_pose.gd",
+      "sha256": "fbe6a9ab478364047b79780e1150c15c08185f13d6edcc5a965d61b9e941e1d0"
+    },
+    {
+      "relative": "receive_owner.gd",
+      "sha256": "2efc06ea9e49f6018ca7e7824457398da4ed7682bbbbdc51c54cd0abd6d826c8"
+    },
+    {
+      "relative": "base_world_scenery.gd",
+      "sha256": "848a0465c97eed5ea9d8e6ceade8f8b231640dcf3e43fe95d83f5b343197c071"
+    },
+    {
+      "relative": "entity_lifetime.gd",
+      "sha256": "68434998252beaaea08a76f1182f94828aaecad0d037aba4345f06024f2dbbaa"
+    }
+  ],
+  "caBundle": {
+    "relative": ".cache/native-140fps/render-agent/engine-font-atlas-ownership-v1/source/thirdparty/certs/ca-bundle.crt",
+    "sha256": "33a22c7286f7752131636a11fb9feb3fb12ecd02f1a9b3e54e5901349d37362e"
+  },
+  "historicalReceipt": {
+    "relative": "evidence/historical-v3-120-checks.json",
+    "sha256": "4beb19ce7e629ac7fe3fe0eac6090452ff8d7a1e23a72b175336947b7bad8859",
+    "checks": 120,
+    "elapsedMs": 396,
+    "scope": "Historical pre-relocation actual-extracted bodies. Not a run of the durable runner/full current composition."
+  },
+  "historicalFreeze": {
+    "file": "godot-client/.cache/native-presentation-parity/base-world-admission-agent/base-lane-v3/freeze.json",
+    "sha256": "d818b5299ba78859c081bdc79f435f4bd0200f9600f8b474acad2d4d7340d924"
+  },
+  "baseline": {
+    "originalWorld": "db69b6ce507054498e25f780efd7838b065804bd4cb0ffbf13c274b034ee4dff",
+    "capsuleWorld": "c9701bdd49533284588a0919c2990bd3b16832449773dd01b391c54fc4f290f5",
+    "workerBefore": "8be11ef7048beeac65985f548dd1765208d5b1f804846dc8cb675372bdf5fa71",
+    "workerAfter": "449944a097aca5040fe3f8b974c8ed7a1029ab83e3f25a53978a3c9fcfc7fd27",
+    "rootAttemptedBudget": "f4787d9c8fbaf724e5af2bab021305de2a45565ccb27735d37bfea592ef94e1b",
+    "rootWorkerAttemptedComposition": "468701de3e538a4971232100e846588d8177ae00c1e3ec77b267e600b738c56d"
+  },
+  "scope": "Focused actual-source extraction only; prefix/owner stubs and signature/ready inputs. No full World import, native extension, original assets, GPU, network, FPS or load-time acceptance.",
+  "configureRevision": {
+    "dependency": "Actual base_static_snapshot() body and initial_static_tables_only prefix state",
+    "main": "926332c074203cd817422292c6ec1c4126020e7093aca041a97dc08cf8abe6be",
+    "capsule": "4e8ec504c42f9eac7fdda8f27e57ba85b6104d0e404261358a89090ff5522f14",
+    "priorObject": "468701de3e538a4971232100e846588d8177ae00c1e3ec77b267e600b738c56d",
+    "historical120Retained": true,
+    "additionalCoverage": "Existing four worker/order assertions now cover six input batches for each worker1/4. Original empty-batch checks remain; static1-table, mixed-door3-table, actor/live-placeable/item3-table branches are added. Deferred mutation/escalation remains in the separate71-check actual-stream proof."
+  },
+  "sourceProfiles": [
+    {
+      "name": "main-v3-static-table-elision",
+      "sources": [
+        {
+          "relative": "systems/native_render/live_world.gd",
+          "sha256": "1c3dac8b586234f5feeaa6d1e149b1ee9aa0c17945224e7303c16f78be4d0ab0"
+        },
+        {
+          "relative": "systems/native_render/object_stream.gd",
+          "sha256": "926332c074203cd817422292c6ec1c4126020e7093aca041a97dc08cf8abe6be"
+        },
+        {
+          "relative": "systems/native_render/base_world_scenery.gd",
+          "sha256": "848a0465c97eed5ea9d8e6ceade8f8b231640dcf3e43fe95d83f5b343197c071"
+        },
+        {
+          "relative": "systems/native_data/entity_presentation_lifetime.gd",
+          "sha256": "68434998252beaaea08a76f1182f94828aaecad0d037aba4345f06024f2dbbaa"
+        }
+      ],
+      "generatedOverrides": {}
+    },
+    {
+      "name": "capsule-v3-preserved-motion-profiling",
+      "sources": [
+        {
+          "relative": "systems/native_render/live_world.gd",
+          "sha256": "defef1bd928cf103270a555d201824bc14c261203ce848b0cc5b5305c447bf91"
+        },
+        {
+          "relative": "systems/native_render/object_stream.gd",
+          "sha256": "4e8ec504c42f9eac7fdda8f27e57ba85b6104d0e404261358a89090ff5522f14"
+        },
+        {
+          "relative": "systems/native_render/base_world_scenery.gd",
+          "sha256": "848a0465c97eed5ea9d8e6ceade8f8b231640dcf3e43fe95d83f5b343197c071"
+        },
+        {
+          "relative": "systems/native_data/entity_presentation_lifetime.gd",
+          "sha256": "68434998252beaaea08a76f1182f94828aaecad0d037aba4345f06024f2dbbaa"
+        }
+      ],
+      "generatedOverrides": {
+        "receive_owner.gd": "1781136ece9134606102fcb1d71422628a0cf1c8dd2282a8f921792468825e72"
+      }
+    }
+  ],
+  "currentMainConfigureEvidence": {
+    "relative": "evidence/combined-configure-main-120-checks.json",
+    "sha256": "c456dd3c7f6519f789c9e828e766eda96f61b98ccc95af17d8a91d219c767e20",
+    "checks": 120,
+    "elapsedMs": 400,
+    "authorityAtRun": "4625711c335fbf633622dd5a4af6bab42e847bf0b06df3b05e3190b0aa61bc37",
+    "scope": "One actual-source combined configure run on main1c3/Object926 before adding capsule-specific hash selection. No capsule tiny engine run or full-client/performance claim."
+  }
+}

@@ -1,0 +1,1722 @@
+{
+  "version": 1,
+  "date": "2026-11-12",
+  "description": "Exact bytes of untouched, newly added historical test/workbench files. Files referenced by retained sources or tools remain live. This is historical input, not current acceptance.",
+  "archive": "docs/archive/test-workbenches-2026-11-12.zip",
+  "archiveSha256": "0e7a3a630063698a01d5bff2cc5f4d6a543d3a90d2569d9e2c8a7c8e8b54cba1",
+  "originalCount": 264,
+  "originalBytes": 1356729.0,
+  "entries": [
+    {
+      "path": "godot-client/tests/nwn61_entity_entry_test.gd",
+      "bytes": 5153,
+      "sha256": "2375dafd68f41becdd8823fb7225c21163e32a3de8fe8d67488a0fe1c627c68e"
+    },
+    {
+      "path": "godot-client/tests/nwn61_entry_api_batch_test.gd",
+      "bytes": 4305,
+      "sha256": "f846f96d74b6693a983ae53f36e20f4e00ebd1c28f5403b27eec961717be96fa"
+    },
+    {
+      "path": "godot-client/tests/nwn61_helper_parse_test.gd",
+      "bytes": 850,
+      "sha256": "55e52fb694e2310b7ca8592f5b8a458a11d51c56fc7a4c3205f223b8d342b6ca"
+    },
+    {
+      "path": "godot-client/tests/nwn61_session_entry_test.gd",
+      "bytes": 9063,
+      "sha256": "d014f2f01ad9fe5a17e102d4570d9da90e40ca8e47930a8b6d89e70698acbae8"
+    },
+    {
+      "path": "godot-client/tests/nwn61_style_cache_test.gd",
+      "bytes": 5687,
+      "sha256": "b8198fc7ba82d8d9a9f0ca86a467bf46a38ecf2e0a2f8377fde9b2a396afad69"
+    },
+    {
+      "path": "godot-client/tests/nwn61_style_publication_test.gd",
+      "bytes": 8493,
+      "sha256": "099ebcb002655f7be6664411aa210846c7fda31836fa0813d1fb321ec8eae4f5"
+    },
+    {
+      "path": "godot-client/tests/nwn61_tail_menu_test.gd",
+      "bytes": 6179,
+      "sha256": "e9cd02d45f93f713c562ed05c839bd8a13bdc07da3a54583e6803c1f924227b4"
+    },
+    {
+      "path": "godot-client/tests/nwn61_tail_owners.gd",
+      "bytes": 3531,
+      "sha256": "ec5bb0c42913bdf571fcff41c2c64b2cc0f15362bc0223cccb0388669549fbbb"
+    },
+    {
+      "path": "godot-client/tests/nwn61_tail_session_test.gd",
+      "bytes": 8612,
+      "sha256": "22279c0dc788774b17992ccd7810e43d6ab195b8da49e42e3d5bcb6d998752da"
+    },
+    {
+      "path": "godot-client/tests/nwn61_world_entry_test.gd",
+      "bytes": 8108,
+      "sha256": "93c7fd15889e4e5c4b4f9cab6168c66fd29bfa7e8f223223673bf6d151d71e41"
+    },
+    {
+      "path": "godot-client/tests/nwn63_arithmetic_interval_component_test.gd",
+      "bytes": 3801,
+      "sha256": "0851715799bb5f964c6d8a5ca5827fe61985d9d4db529e2fc34ba760f1df6cf9"
+    },
+    {
+      "path": "godot-client/tests/nwn63_arithmetic_publish_component_test.gd",
+      "bytes": 4207,
+      "sha256": "0be6c2dd1d1bc471dee56f12e65f8f0a265fe953d3034c018e6217a107840c3f"
+    },
+    {
+      "path": "godot-client/tests/nwn63_floor_coverage_benchmark.gd",
+      "bytes": 5444,
+      "sha256": "35a305db7a62c3d36e353331810696250507c4f01f85c154b3374c1ad608c14b"
+    },
+    {
+      "path": "godot-client/tests/nwn63_floor_coverage_test.gd",
+      "bytes": 8847,
+      "sha256": "dad785ebb2af9b37b641a4af44f32d48ab10a4117ddb30f0dcc2f3ce5fa90cb6"
+    },
+    {
+      "path": "godot-client/tests/nwn63_frame_input_admission_test.gd",
+      "bytes": 19254,
+      "sha256": "92c0a525ce8461c424890b767497e067ec06801b308a7ffb004e5cab11684d51"
+    },
+    {
+      "path": "godot-client/tests/nwn63_frame_input_graphical_probe.gd",
+      "bytes": 3754,
+      "sha256": "c59fb670ffdd9e7874b61440a72a4c982340f24abda3b9efe3b8c1a338f257bf"
+    },
+    {
+      "path": "godot-client/tests/nwn63_frame_input_protocol_test.gd",
+      "bytes": 9132,
+      "sha256": "092dd418b6f118f9b70ee6648643892f42645b819875a17788e20385e8a91cb8"
+    },
+    {
+      "path": "godot-client/tests/nwn63_group_flat_probe.gd",
+      "bytes": 2099,
+      "sha256": "3ab0b0f91ad18f60568b3a0e218c62458573e1116db81b105d37b091676b7693"
+    },
+    {
+      "path": "godot-client/tests/nwn63_group_small_flat_benchmark.gd",
+      "bytes": 2025,
+      "sha256": "68b2be94c7b2260302f6ffeeea4a20c93afc57d5419c59903fc5bb4d3c29365a"
+    },
+    {
+      "path": "godot-client/tests/nwn63_group_small_flat_test.gd",
+      "bytes": 2228,
+      "sha256": "c4849c9ac2dd3690701af95041b325dc51317709ff4f1f03fd921494e66878e6"
+    },
+    {
+      "path": "godot-client/tests/nwn63_height_gate_test.gd",
+      "bytes": 4256,
+      "sha256": "7f97bc39649069bc9eb50b16065d8919f27a0d3a61b0ba42d0b62da880845396"
+    },
+    {
+      "path": "godot-client/tests/nwn63_height_original_correctness_test.gd",
+      "bytes": 3664,
+      "sha256": "62cad5fa64cb0389ad36b18b30b6235879a992f3f27cb0c9c80e974250fd4952"
+    },
+    {
+      "path": "godot-client/tests/nwn63_height_original_wok_test.gd",
+      "bytes": 11080,
+      "sha256": "c8d0dd10b54431c14b9d2d0719e69354513d9e054eeb0ce8e1979950aa203759"
+    },
+    {
+      "path": "godot-client/tests/nwn63_height_parity_test.gd",
+      "bytes": 2851,
+      "sha256": "85fae30a75dc1f4d083055a038a6930ad989ee385c85b27afb8cbc72098ee6cf"
+    },
+    {
+      "path": "godot-client/tests/nwn63_height_production_original_test.gd",
+      "bytes": 2393,
+      "sha256": "0d617d3d14f466695ecbdcc165f725a0a63da90de21e3528b14d51e6ad86defd"
+    },
+    {
+      "path": "godot-client/tests/nwn63_interval_edges_floor_benchmark.gd",
+      "bytes": 727,
+      "sha256": "f40ddd4c6be8dbbd89d66fa75a66fc1be372f75578372428c12de53ea0da6ebd"
+    },
+    {
+      "path": "godot-client/tests/nwn63_interval_edges_floor_test.gd",
+      "bytes": 723,
+      "sha256": "10cabc1e6ccf506d61e2009a8b70c4824c6ea71428d0613d85b24a01bde71326"
+    },
+    {
+      "path": "godot-client/tests/nwn63_interval_edges_groups_benchmark.gd",
+      "bytes": 1374,
+      "sha256": "3f86c307f0d59feb44654d514402cfc6ee1dd4b815d141306e4cf04f5c73fba8"
+    },
+    {
+      "path": "godot-client/tests/nwn63_interval_edges_groups_test.gd",
+      "bytes": 1375,
+      "sha256": "68916fff02686cb6a7a9ec35c6a0508e2782d4a063250cfa0c5140a9893c26f1"
+    },
+    {
+      "path": "godot-client/tests/nwn63_model_groups_benchmark.gd",
+      "bytes": 4006,
+      "sha256": "ed80da1b2505517e16f9532c3af959465d2ff87d76f7f3022b46797fd0682e24"
+    },
+    {
+      "path": "godot-client/tests/nwn63_model_groups_test.gd",
+      "bytes": 8116,
+      "sha256": "558234bfda3e5ac6a83a588db54042b36787607e36371ea67e0b8d5161883189"
+    },
+    {
+      "path": "godot-client/tests/nwn63_model_scalar_boundaries_test.gd",
+      "bytes": 4516,
+      "sha256": "ccddcb0dea081f5309a495748622950b945f9032899ee86241452a1bcb5e4d63"
+    },
+    {
+      "path": "godot-client/tests/nwn63_model_scalars_benchmark.gd",
+      "bytes": 3802,
+      "sha256": "88c06d7ed28d39dd8804752eff62e20babb86d1b668ced4db4d7dff94e9f705b"
+    },
+    {
+      "path": "godot-client/tests/nwn63_model_scalars_test.gd",
+      "bytes": 7457,
+      "sha256": "9eda7fb9da47b083dd3a699995a9e6a717386038ac6b1f9d79275fc6febf5275"
+    },
+    {
+      "path": "godot-client/tests/nwn63_original_preview_phase_test.gd",
+      "bytes": 735,
+      "sha256": "1859025826f3ed30cb1c1d70edeff73a845368d46c63bd80dd4d157888d2bcce"
+    },
+    {
+      "path": "godot-client/tests/nwn63_preview_duplicate_probe_test.gd",
+      "bytes": 2001,
+      "sha256": "931d6cfcd7ad9446968f61b45bf1256cb734b0805774120da501524d4df489da"
+    },
+    {
+      "path": "godot-client/tests/nwn63_single_preview_breakdown_test.gd",
+      "bytes": 4569,
+      "sha256": "ed3ace64955e0c4a400e9552f56a1accd2eaa66ce47c5bc4eb65cda108507302"
+    },
+    {
+      "path": "godot-client/tests/nwn63_spatial_owner_test.gd",
+      "bytes": 3701,
+      "sha256": "4853b34ca1e3c41ef28c497a33ef3f306731f4b5fc0a0b1359311f446649c02b"
+    },
+    {
+      "path": "godot-client/tests/nwn63_spatial_scalars_benchmark.gd",
+      "bytes": 4509,
+      "sha256": "504da39aa59b8d82b402badcca3d7462c1d94151fca11df8d0f2e6d236390114"
+    },
+    {
+      "path": "godot-client/tests/nwn63_spatial_scalars_test.gd",
+      "bytes": 4419,
+      "sha256": "8d9337bc6a6ac6cddd9ffef86fe888e297b046999d87aa55a3c6de27757a4456"
+    },
+    {
+      "path": "godot-client/tests/nwn63_support_diagnostic_parse_test.gd",
+      "bytes": 336,
+      "sha256": "14d697506424dda520860d967fd4c37720012bc6fd4b1280c015ccfec3164bf0"
+    },
+    {
+      "path": "godot-client/tests/nwn63_support_witness_reuse_test.gd",
+      "bytes": 3379,
+      "sha256": "bc9ea3979400fea118eb7acd5945d06386a62d47861153221adb06dd82aa4de7"
+    },
+    {
+      "path": "godot-client/tests/nwn63_support_world_part_box_benchmark.gd",
+      "bytes": 1770,
+      "sha256": "55072f4626f3b8a28f9b6a96f1b0667a0a304cb6c6d98148c0decb23c6359677"
+    },
+    {
+      "path": "godot-client/tests/nwn63_support_world_part_box_test.gd",
+      "bytes": 8340,
+      "sha256": "e15f41a15d2405eb425cad9077c2e623f538eff262450706d0396b505b7ed24d"
+    },
+    {
+      "path": "godot-client/tests/nwn63_walkable_aabb_component_test.gd",
+      "bytes": 6890,
+      "sha256": "fec749e5939a9345423333fca322278ef9f0fae33b4bf396d290b36f7bb86c5e"
+    },
+    {
+      "path": "godot-client/tests/nwn63_walkable_aabb_original_wok_test.gd",
+      "bytes": 7754,
+      "sha256": "e01ff00d799f7f86ca650e7606f21227b1a9079929569cd70e0419f0ed51843b"
+    },
+    {
+      "path": "godot-client/tests/nwn63_walkable_aabb_parity_test.gd",
+      "bytes": 1514,
+      "sha256": "8ad84b66be87d02ae303e0caa71ab3ec3ddd71a4fb1800738882ced6f1f6e538"
+    },
+    {
+      "path": "godot-client/tests/nwn63_xy_hit_original_component_test.gd",
+      "bytes": 6132,
+      "sha256": "0f8670575b93949509e0f06e1f3776e772f30a427fcd1014510862fe1a40f3ee"
+    },
+    {
+      "path": "godot-client/tests/nwn65_active_cost_breakdown_test.gd",
+      "bytes": 3051,
+      "sha256": "1f5e0f32d91861d11aa9cbd84afe2e03238d7aca5306a18e7469ec4b39779199"
+    },
+    {
+      "path": "godot-client/tests/nwn65_active_event_component_test.gd",
+      "bytes": 4158,
+      "sha256": "ae4a3ca6cf16d6e54b0542a62921ce194a7c1cc64aa418eefc9a29f71ee00267"
+    },
+    {
+      "path": "godot-client/tests/nwn65_active_native_event_component_test.gd",
+      "bytes": 3724,
+      "sha256": "57a4506b04aa8438b4176805b821c2882aca72cb3d65b97213f28444edf424e5"
+    },
+    {
+      "path": "godot-client/tests/nwn65_dormant_animation_test.gd",
+      "bytes": 8215,
+      "sha256": "edc30df5f91bb0c8a2e428601bffd065267e0a1eaa5ce7ead176fa660f6ba04c"
+    },
+    {
+      "path": "godot-client/tests/nwn65_dormant_cost_test.gd",
+      "bytes": 4592,
+      "sha256": "2f5d91e0e4bd43fd979d573edcf128466422451898e0b48ec180730184725c80"
+    },
+    {
+      "path": "godot-client/tests/nwn65_native_batch_component_test.gd",
+      "bytes": 4559,
+      "sha256": "05a1a6f13438d6565b7f6addd7937e0a88bbb5224294d55f4189a8611282f261"
+    },
+    {
+      "path": "godot-client/tests/nwn65_native_rig_coverage_test.gd",
+      "bytes": 4824,
+      "sha256": "b076f6b7ebf25c2a68b87940a0dd5211c0caa7012841f83039100c7d5cdb5dca"
+    },
+    {
+      "path": "godot-client/tests/nwn65_native_sparse_component_test.gd",
+      "bytes": 2378,
+      "sha256": "d9cd09bda4c4751b31f474d157454458dc448202d3bcfe03dc391b96b21c432c"
+    },
+    {
+      "path": "godot-client/tests/nwn65_native_sparse_engine_test.gd",
+      "bytes": 12495,
+      "sha256": "cc6ec140fe6f3d4061669d4746c5c6f6e083265b70d8a34e3c9371c6ea53130a"
+    },
+    {
+      "path": "godot-client/tests/nwn65_native_sparse_full_rig_test.gd",
+      "bytes": 2461,
+      "sha256": "38c603149f4fa899b563cd6cf39b12279759624f2cca357e875e9bf7a698a443"
+    },
+    {
+      "path": "godot-client/tests/nwn65_native_sparse_original_gpu_test.gd",
+      "bytes": 12178,
+      "sha256": "973e844ddf5e81b0accbe5204c08a0f5dab2f687d61714a582588330a19413f2"
+    },
+    {
+      "path": "godot-client/tests/nwn65_original_active_event_component_test.gd",
+      "bytes": 8504,
+      "sha256": "cb2b07d82537471490f71033a3537cfa3afc7c529a9176607ca24396470ed8f1"
+    },
+    {
+      "path": "godot-client/tests/nwn65_original_event_census_test.gd",
+      "bytes": 4404,
+      "sha256": "e2f5f0e53e634057c784a8562801362352f78d6463af1ac2f618683c6e63ce3c"
+    },
+    {
+      "path": "godot-client/tests/nwn65_pose_getter_bits_diagnostic.gd",
+      "bytes": 2013,
+      "sha256": "9b5c13b0351110a07ca80ac12c68f28b7ad2110a4a5aeb9e567f320414937997"
+    },
+    {
+      "path": "godot-client/tests/nwn65_script_skin_identity_test.gd",
+      "bytes": 3182,
+      "sha256": "b9d08bc61c7075fdbf169d579208c36af018a76748c726a19cc8c81cdf9ff557"
+    },
+    {
+      "path": "godot-client/tests/nwn65_script_skin_setter_test.gd",
+      "bytes": 2864,
+      "sha256": "c0ba16cf0e420561588d38d6394b8b46c20db8bd51562396e3e2c2a265daa578"
+    },
+    {
+      "path": "godot-client/tests/nwn65_script_skin_sparse_skip_test.gd",
+      "bytes": 3827,
+      "sha256": "9a2678fd223b301692fd73132fda77de86384f1463ef1646fd331043c4269d5d"
+    },
+    {
+      "path": "godot-client/tests/nwn65_sparse_default_tracks_test.gd",
+      "bytes": 5891,
+      "sha256": "d7611f5f2162a28ea56107df800b68f31c05ce899493248077acd3a3ad68fec4"
+    },
+    {
+      "path": "godot-client/tests/nwn65_sparse_skin_benchmark.gd",
+      "bytes": 699,
+      "sha256": "81fc83b5715ff6318c0ae1d76365b48d066287ae11026e04d1c98de878e0dc42"
+    },
+    {
+      "path": "godot-client/tests/nwn65_static_pose_skip_private_test.gd",
+      "bytes": 6515,
+      "sha256": "872b856bb7e495bd36864bf74073b13405b0f19cb1449566e1014c1b9fdb507b"
+    },
+    {
+      "path": "godot-client/tests/nwn65_timer_component_test.gd",
+      "bytes": 4265,
+      "sha256": "af32985caa385a3f89f2a604c9a129b3d5af10f167ab9ae835a0c0d5e8670a49"
+    },
+    {
+      "path": "godot-client/tests/nwn67_effect_inputs_test.gd",
+      "bytes": 8062,
+      "sha256": "84cdbce7e59c3d0bd671ae550e650d76b14c5c4a8b9dc3a4ee334507f7bb4ea0"
+    },
+    {
+      "path": "godot-client/tests/nwn67_effect_timing_test.gd",
+      "bytes": 4678,
+      "sha256": "764465c62b20594ddb8fe2cf705bbda6d74c18f1938480b9b7eec8012dfa2c84"
+    },
+    {
+      "path": "godot-client/tests/nwn68_nameplate_reuse_test.gd",
+      "bytes": 7299,
+      "sha256": "7a3c28be34b8d6060f8dba4d21c521db1446a03025a06149bbc863d8e1f3f632"
+    },
+    {
+      "path": "godot-client/tests/nwn68_nameplate_timing_test.gd",
+      "bytes": 8409,
+      "sha256": "d097144f4460510f6a706efa252675758ac00782ff27058511c30f8b25fb435a"
+    },
+    {
+      "path": "godot-client/tests/nwn70_hash_counts_test.gd",
+      "bytes": 6216,
+      "sha256": "d8745fd5657dba551f2719f3cd97874fde883084eb3be7322527b6a13b5f8071"
+    },
+    {
+      "path": "godot-client/tests/nwn70_identity_handoff_test.gd",
+      "bytes": 8369,
+      "sha256": "6f820f455ba9a688d2727f627462fa7d843b528c7f7e06f17a5ec114925823a7"
+    },
+    {
+      "path": "godot-client/tests/nwn70_pair_cost_test.gd",
+      "bytes": 3959,
+      "sha256": "d37cb111dbd7254bf2187886a7b3b02346dedde6d3d94f49e89b8aea7e02c1f2"
+    },
+    {
+      "path": "godot-client/tests/nwn70_worker_parity_test.gd",
+      "bytes": 8160,
+      "sha256": "5ff64dbd4db5d5de08e45cbd525c90de877e842b35b5913b37d9f6bceb982338"
+    },
+    {
+      "path": "godot-client/tests/nwn70_worker_throughput_test.gd",
+      "bytes": 5825,
+      "sha256": "afdced5a6312970fa3ab7c25e3333f6e819c680d29c819cbf128109cebf5ac1e"
+    },
+    {
+      "path": "godot-client/tests/nwn72_captured_stream_test.gd",
+      "bytes": 6458,
+      "sha256": "edc78c6a11e7020439060d22d3de1c04f9f7feee94384f05305a084b4de301a6"
+    },
+    {
+      "path": "godot-client/tests/nwn72_motion_component_test.gd",
+      "bytes": 4562,
+      "sha256": "a3c47bafe6671af428350183080fddccf244d83ba2aa8183eeff3e5470eed75e"
+    },
+    {
+      "path": "godot-client/tests/nwn72_motion_facing_test.gd",
+      "bytes": 6055,
+      "sha256": "bbbe275f46deeec1264220993b4a7b2c38f270a4ee3f4f52126444d8c112151d"
+    },
+    {
+      "path": "godot-client/tests/nwn72_pose_gait_guard_test.gd",
+      "bytes": 4766,
+      "sha256": "417d1aa11692040cbbd7ab60ddb4b9ae87f1f506de8988ed8b1cad070ef3edb2"
+    },
+    {
+      "path": "godot-client/tests/nwn73_ancestor_deeper_selection_test.gd",
+      "bytes": 3675,
+      "sha256": "47d9938b85941e803a783b5f83737e68ec83c504ec11a1c91393f4d16551e2b6"
+    },
+    {
+      "path": "godot-client/tests/nwn73_ancestor_early_saved_metrics_test.cjs",
+      "bytes": 2333,
+      "sha256": "309d42e58997f9d3652d8523935c1df3038fe3128318339aba1a0cd32e69f59f"
+    },
+    {
+      "path": "godot-client/tests/nwn73_ancestor_early_selection_test.gd",
+      "bytes": 4791,
+      "sha256": "d337f214b198f89a4eaaafbf82f090d37d24e4ccb85278bda486dbbd5d46c2c0"
+    },
+    {
+      "path": "godot-client/tests/nwn73_api_phase_attribution_test.gd",
+      "bytes": 2221,
+      "sha256": "5cc288ebc4912dcc16d7750c23f1378adbef8313e1f0c9bffeefaf0ab59c29e7"
+    },
+    {
+      "path": "godot-client/tests/nwn73_asset_integration_test.gd",
+      "bytes": 8564,
+      "sha256": "51ecddb474f4729d3594d8af9294bb2e7dd1990bef6e582ea5ca36efe5716dc2"
+    },
+    {
+      "path": "godot-client/tests/nwn73_binary_clip_component_benchmark.gd",
+      "bytes": 2186,
+      "sha256": "ed581e7dbde7abc754097f9f29016115cc8901d07c6c15c6e1326d3c250b980b"
+    },
+    {
+      "path": "godot-client/tests/nwn73_binary_clip_overlap_test.gd",
+      "bytes": 4309,
+      "sha256": "3b7513eb95a0b49d11f404fb6fc92cc0cdda088675ab766efeb0cda390550cb4"
+    },
+    {
+      "path": "godot-client/tests/nwn73_binary_clip_parallel_test.gd",
+      "bytes": 5177,
+      "sha256": "c7e54247ad03402e1aa923a512433cd523e5a4fe12d7319f7d1759fd11f042ff"
+    },
+    {
+      "path": "godot-client/tests/nwn73_binary_clips_flag.test.cjs",
+      "bytes": 1913,
+      "sha256": "a921eb5b6a55f120ddc55c9cf807a8ce38dad302be52f49b59f21eea68eaa959"
+    },
+    {
+      "path": "godot-client/tests/nwn73_binary_phase_probe_next.gd",
+      "bytes": 2777,
+      "sha256": "c13c6e4b28fdaf78b76b125f93e5f62bd429a1d87004ac0560744a7808679701"
+    },
+    {
+      "path": "godot-client/tests/nwn73_drive_height_original_test.gd",
+      "bytes": 5347,
+      "sha256": "173f24afe282c68002540597f9400892dfded016de2801d63c8b86ec70661894"
+    },
+    {
+      "path": "godot-client/tests/nwn73_drive_height_plan_test.gd",
+      "bytes": 7351,
+      "sha256": "50de3825c26f81af94b57ced8159e59e4c12e9db383c67c4eba88f3f0dd80c1d"
+    },
+    {
+      "path": "godot-client/tests/nwn73_keyboard_async_completion_test.gd",
+      "bytes": 3140,
+      "sha256": "df9d33e39394edfc35bb8824a3fcd81dd3c6dbc44f9d34e342dbd77ae53715df"
+    },
+    {
+      "path": "godot-client/tests/nwn73_movement_window_summary_test.gd",
+      "bytes": 1864,
+      "sha256": "83cd4c9c0622ebfaa6d8e3cda084c51b1fd55f0569a399ddc69281449acc61f6"
+    },
+    {
+      "path": "godot-client/tests/nwn73_pool_inventory.gd",
+      "bytes": 1001,
+      "sha256": "a164580442f300322b5cf37a46e8ea26dffab5816a66965fd6fc665a1b6e6a77"
+    },
+    {
+      "path": "godot-client/tests/nwn73_preview_surface_cache_test.gd",
+      "bytes": 6898,
+      "sha256": "de097051df947b33daf3959e26bcac0d236e114e77079dd7093364d81a29fb37"
+    },
+    {
+      "path": "godot-client/tests/nwn73_preview_worker_component_test.gd",
+      "bytes": 6177,
+      "sha256": "d007b39af3d1bc9d25b8028b33184e396c41d3ec0e187b401220b9400c5dcc6f"
+    },
+    {
+      "path": "godot-client/tests/nwn73_preview_worker_flag.test.cjs",
+      "bytes": 1811,
+      "sha256": "067e65d5508da0fb6fa5cce1df2fbf12c0a8bcca52cfd27cac611911df909f60"
+    },
+    {
+      "path": "godot-client/tests/nwn73_preview_worker_original_wok_test.gd",
+      "bytes": 4111,
+      "sha256": "7f4ea7842764e15ac842124ab0ff70e008c3e5df50a884a94851f69b0cdf4d48"
+    },
+    {
+      "path": "godot-client/tests/nwn73_preview_worker_parity_test.gd",
+      "bytes": 6202,
+      "sha256": "c3ed4eaa4b0d693185acbd08bcd11b1d81ac073f51c1053554c21009e7523fdf"
+    },
+    {
+      "path": "godot-client/tests/nwn73_probe_test.gd",
+      "bytes": 3944,
+      "sha256": "222af599569ea34d9c2d7d1ea64df3c54eda2f859e273494ad50db7889de8222"
+    },
+    {
+      "path": "godot-client/tests/nwn73_proposal_parse_test.gd",
+      "bytes": 422,
+      "sha256": "15dd4f78a70fe58e1450c878c56e5d41908e80533196206c054c641c271a5f61"
+    },
+    {
+      "path": "godot-client/tests/nwn73_raster_asset_corpus_test.gd",
+      "bytes": 6489,
+      "sha256": "45f4325cbd83df07ad49c1385cc3976cf1c85994eb7e6765cf90c3588485ce6c"
+    },
+    {
+      "path": "godot-client/tests/nwn73_raster_census.gd",
+      "bytes": 1534,
+      "sha256": "29ddaae433485ac6e649479b6f00ed453052edfcc55cac8e201eb555d0a23208"
+    },
+    {
+      "path": "godot-client/tests/nwn73_raster_test.gd",
+      "bytes": 14899,
+      "sha256": "fc479702d027d1e24a25eac1a05d4a4ff06c73c26b392e9398e10975b813bdf0"
+    },
+    {
+      "path": "godot-client/tests/nwn73_recorded_catalog_phase_test.gd",
+      "bytes": 3710,
+      "sha256": "804712c70004c336a2a438e41e18ca66b27b8d11349172c8747ab4e5c1b2584b"
+    },
+    {
+      "path": "godot-client/tests/nwn73_recorded_identity_test.gd",
+      "bytes": 1702,
+      "sha256": "6facde34475bf0653b9a6bcf6043bf3ab1b805a7474be40fc94c5c30fe79264a"
+    },
+    {
+      "path": "godot-client/tests/nwn73_recorded_mount_pair_test.gd",
+      "bytes": 2590,
+      "sha256": "ff30033cf2b0c4d155ecccd8bc02e8113f51ec450e7b26c5600a623f733f6988"
+    },
+    {
+      "path": "godot-client/tests/nwn73_recorded_overlap_test.gd",
+      "bytes": 7113,
+      "sha256": "baa669c0ac64957826c9713be5c6df2a16155b9c9703867660a5f3302c08d0d3"
+    },
+    {
+      "path": "godot-client/tests/nwn73_static_group_roi_test.gd",
+      "bytes": 4505,
+      "sha256": "da8fcb143ea7eed4a8d3cd9680511c6af94db91933fc484603b6bd876b7718c9"
+    },
+    {
+      "path": "godot-client/tests/nwn73_verified_snapshot_packet_test.gd",
+      "bytes": 5155,
+      "sha256": "5a615df3485b85352900e8e67a6995f48a09600dd3be9790518229412e8fc743"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/NWN-73-entry-worker-cap-checkpoint.md",
+      "bytes": 2592,
+      "sha256": "6952aeab25998283049b5ee8d7a04ee46968bf87e7abb04598584a85b4f78dbd"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/NWN-73-movement-critical-path-checkpoint.md",
+      "bytes": 8868,
+      "sha256": "4430e6fd4912485bf909746991146e1f95eac4db86e4e918b05accaf8282801a"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/NWN-73-preview-cache-current-checkpoint.md",
+      "bytes": 4438,
+      "sha256": "88b4819b1cf273356fd7036ffbe4e7a1813015aa3375ecafef46dfffa27a30aa"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/NWN-73-snapshot-worker-priority.md",
+      "bytes": 1919,
+      "sha256": "387ee9ef02650a31a07201df3e530b2888e031e09d8c49c5d6ca82439f381924"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/WindowsCpu.cs",
+      "bytes": 7595,
+      "sha256": "00334db0468ba15248b78e86148caf5d76dfc93f4ec2bc8dc826b16cd8060d79"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/audit-raster-keys.cjs",
+      "bytes": 4895,
+      "sha256": "b00cd418cb7283f74578ffc7a2d12d80a49833206d597ff18714be422b277902"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/audit-worker-queue.cjs",
+      "bytes": 1604,
+      "sha256": "23c02803167f86b4cbd613dfa0fe612c3c668e1c1b523488330126eab9a833c5"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/build-probe.ps1",
+      "bytes": 4913,
+      "sha256": "2e880e0c254e51640f88c5074f869406484e673aaf493407ba11dc20207d8d99"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/check-preview-surface-flag.cjs",
+      "bytes": 2450,
+      "sha256": "8dd377b8df8b7175f1fbf57e1ee190c857abe7542b2d636207cb3a9a1589edc1"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/cpu_probe.cpp",
+      "bytes": 10948,
+      "sha256": "bc81bb8aab955cc63a9d3264a6375ddaed3f5de5816d0447627ef71c311ef33c"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/inventory.ps1",
+      "bytes": 3242,
+      "sha256": "c1c4333535b49ac561061e06258c12e681338c36786597b565170dea0b63e8f4"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/localize-raster-corpus.cjs",
+      "bytes": 5254,
+      "sha256": "c133c8f877fecf31b1d03060174ea3b7f59c512f81344ef7b6e2c148b79cdd99"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/materialize-clock-placement.cjs",
+      "bytes": 4853,
+      "sha256": "2283e52726c401e55fae253ebdd87f4e0e94eeac963e9d355f1f16e973b19362"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/materialize-probe.cjs",
+      "bytes": 2530,
+      "sha256": "ad2923ad970f37200ab6de723ecf5fec417bfb17aeaa28951c99f1275d523de7"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/materialize-raster-integration.cjs",
+      "bytes": 5120,
+      "sha256": "fb7cecad8fc34c5997354cab563e5181c989b74f80ccb536a652b0e343c0497a"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/materialize-raster.cjs",
+      "bytes": 2747,
+      "sha256": "a5f71f5dfed2ccf2d978f7f5be3365968e91c555840518682796a59c6a85990d"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/observe-pool.ps1",
+      "bytes": 2983,
+      "sha256": "8767778bbf3607276bb04c8913ac059320978ba07a01a2cb2d2f2adc8b8d97bf"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/particle_callback_eligibility.gd",
+      "bytes": 2520,
+      "sha256": "df66b4802091c26a207cb766b42923497a4f2833e01bfbf4fa6370fa50cbb345"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/prepare-api-phase-fixture.cjs",
+      "bytes": 2010,
+      "sha256": "3b85e13f8a7d735bdb4a2959273b07abf2f2f0932af9a6b26b35d191d0883e70"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/prepare-probe.cjs",
+      "bytes": 2605,
+      "sha256": "4b1a435e1d5fefa2a6116b7455ca47d012c55fd024914db3a5cde1a9ddf4b0fb"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/prepare-raster-adapters.cjs",
+      "bytes": 11166,
+      "sha256": "c346ddcd557502ff431c9df5cc49bf41799e22efa3e5bb7a496fc36bdd8817d9"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/prepare-raster-corpus.cjs",
+      "bytes": 2232,
+      "sha256": "aedf7ab1556960a1efae7db42ae992b8c7087133da5a18ae979554cc54fac8d3"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/prepare-raster-entry.cjs",
+      "bytes": 9637,
+      "sha256": "be3c417faa8d5682a84f937701be4d1e7517563d41f86dfeb9f6ca09da1ee427"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/review-raster-asset-result.cjs",
+      "bytes": 2596,
+      "sha256": "eab87df84eb3a060a411a4ed4f14ea95efc1b29759c14f5fffd55bd7278b94df"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/review-raster-entry.cjs",
+      "bytes": 4722,
+      "sha256": "9fd20fa5f28265399cdc2c556b264a4b69be4914091b43b54ba91016f216b091"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/review-raster-result.cjs",
+      "bytes": 2555,
+      "sha256": "78dece042c9e73325491e4a6509bdfb7ece158491ba42e031f9db03e6ea3a5d3"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/run-binary-clip-entry.cjs",
+      "bytes": 7419,
+      "sha256": "ad47405b7aaab749f4ba130f62007c1d421a9e0f847fb2e4a7e5039405781081"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/run-binary-clip-overlap.cjs",
+      "bytes": 3717,
+      "sha256": "de57eedb8c4377e0b66d4b96eeeebff7fc45ab8b697de4739890040557a4747c"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/run-preview-cache-pair.cjs",
+      "bytes": 7613,
+      "sha256": "0f544d00d606442a5fcfd2de1a0a62d1974cd05573f95e24e10e14f83c6ed166"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/run-raster-entry.cjs",
+      "bytes": 5191,
+      "sha256": "9867e7373f1906d5a56f481fcf215de1b359cd2edecee6b062dba290cfb4ec7e"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/run-snapshot-proof-entry.cjs",
+      "bytes": 6149,
+      "sha256": "f1652e3e377def38675c82581c00e77031b348a36003de346c81b7b0990be46b"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/run-snapshot-proof-graphical.cjs",
+      "bytes": 8530,
+      "sha256": "717717b446a834fcbeadcf474037c1ac12a3fc8678ab5e6e9ad6a05d14355e40"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/stage-binary-clip-entry.cjs",
+      "bytes": 5797,
+      "sha256": "745f4fd744f18e8e315ca9aa389eff72407ce83059fbc31b8aac2152947adc4c"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/stage-particle-callback-census.cjs",
+      "bytes": 5222,
+      "sha256": "57f143e89b868b0d07e725841ebfd4c91e8e639233f35eab960b3b94abf4bd75"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/stage-preview-cache-pair.cjs",
+      "bytes": 5466,
+      "sha256": "7fb2135f6f20de2fb370d04a640ff71de4870288029748dcb55bc2c3061f724c"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/stage-preview-worker-entry.cjs",
+      "bytes": 6823,
+      "sha256": "8f576de7c6dee6d9bfb079647db494d6510b1592259712d3e5132f6aa2b50084"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/stage-raster-entry.cjs",
+      "bytes": 3412,
+      "sha256": "a6dbc05edb4f38c0955b019318391a01a3605fcee0221a7dca60df82c6125254"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/stage-snapshot-proof-entry.cjs",
+      "bytes": 4780,
+      "sha256": "be538334e23608faff9b32a431fc11447fd4f236063dc69af8f73d2279c78372"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/stage-snapshot-proof-graphical.cjs",
+      "bytes": 4315,
+      "sha256": "57470f2153f6f5c339f54560e89aa7e4d114a04d46fea0da834aee23cdff3797"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/telemetry.gd",
+      "bytes": 3181,
+      "sha256": "d902ea31f40f6070d5deda278701ae7da9e70709abfbcdeef4e19f97a5123d17"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/watch-proof-client.ps1",
+      "bytes": 4865,
+      "sha256": "d74117769fb96b535b0b0a217aea796345c4d0c40ad7e8f1b91fc02db35f308e"
+    },
+    {
+      "path": "godot-client/tools/native-cpu-parallelism/with-placement.ps1",
+      "bytes": 4936,
+      "sha256": "496d943cd5cb0295a39ac2121a873e27ae430f544523c8f276121ef6cac4a71e"
+    },
+    {
+      "path": "godot-client/tools/nwn61/current-entry-pair-review.md",
+      "bytes": 7366,
+      "sha256": "9956aa4ee3f4543568ff38f59400c3746bad88d41570e7d8931546fb47634e82"
+    },
+    {
+      "path": "godot-client/tools/nwn61/prepare-entry-api-batch.cjs",
+      "bytes": 6724,
+      "sha256": "161a9d01c2047b07767ac85ae668cab2aa8f1394b19068e25dd2e104949e9871"
+    },
+    {
+      "path": "godot-client/tools/nwn61/prepare-style-fixture.cjs",
+      "bytes": 1361,
+      "sha256": "cf45ce60541bbe393d19e6213d7e2a89297ad02134f082f9a18321fca364f6ac"
+    },
+    {
+      "path": "godot-client/tools/nwn61/prepare-tail-entry-pair.cjs",
+      "bytes": 6112,
+      "sha256": "ed8a41c538a4fc102d8138e2f328857f613bec748d753e1b3a2591d51393b51c"
+    },
+    {
+      "path": "godot-client/tools/nwn61/prepare-tail-menu-fixture.cjs",
+      "bytes": 1933,
+      "sha256": "fdd5e54353d8b4e9ab9058301a872ae653c2c7bdb7b76e3dbe4bc7ba03bcc79c"
+    },
+    {
+      "path": "godot-client/tools/nwn61/prepare-tail-session-fixture.cjs",
+      "bytes": 1840,
+      "sha256": "08b57e67461a3ef142e7ea7d289c1e4b11ccdf53780b1989e4c818182dce74a7"
+    },
+    {
+      "path": "godot-client/tools/nwn61/review-entry-api-batch.cjs",
+      "bytes": 2810,
+      "sha256": "32d510f30e2905890c4bf8552c7d96396a85ba053269caa040e69f6bb9b4f669"
+    },
+    {
+      "path": "godot-client/tools/nwn61/review-tail-entry-pair-b.cjs",
+      "bytes": 5575,
+      "sha256": "73593778e4841d3d7f317bc8467c56a79f91debffd56bd9a0b89c603f242b8aa"
+    },
+    {
+      "path": "godot-client/tools/nwn61/review-tail-entry-pair-c.cjs",
+      "bytes": 6236,
+      "sha256": "347baeb092cf062158d8cc2981004ffd6aa431a6b8c843530dcc5ee2795c3043"
+    },
+    {
+      "path": "godot-client/tools/nwn61/review-tail-entry-pair-d.cjs",
+      "bytes": 6236,
+      "sha256": "bad6043e1d9a08de6271b2371020f328e1c8af59969fabc2a817fc04e3bec310"
+    },
+    {
+      "path": "godot-client/tools/nwn61/review-tail-entry-pair.cjs",
+      "bytes": 5575,
+      "sha256": "3c559cc5a4494e72dd26b64df81edbc5c4ed1296916a23f44b023103f4f3f724"
+    },
+    {
+      "path": "godot-client/tools/nwn61/run-current-entry-budget-matrix.cjs",
+      "bytes": 6966,
+      "sha256": "eb8c096ac910a5d18b7505b384069b3bd5ed4cfff623a3830df082360e183f16"
+    },
+    {
+      "path": "godot-client/tools/nwn61/run-ready-phase-a.cjs",
+      "bytes": 4178,
+      "sha256": "7f414051f4f42a80b27a6f2414b4ed901c23514c720543a3231bddd77ed74fa9"
+    },
+    {
+      "path": "godot-client/tools/nwn61/run-ready-phase-b.cjs",
+      "bytes": 4179,
+      "sha256": "3b7ddc710336ff1a5629ed231e3093edc2f3d9ea3859a006d58ca1cb4c3581bf"
+    },
+    {
+      "path": "godot-client/tools/nwn61/run-tail-entry-pair-b.cjs",
+      "bytes": 4004,
+      "sha256": "6ae14f8bb329657d64d976bd7a75d7d72dd94c72471f73ed988636616c87a4e0"
+    },
+    {
+      "path": "godot-client/tools/nwn61/run-tail-entry-pair-c.cjs",
+      "bytes": 4004,
+      "sha256": "1a694de22c239f86515169fec3b8e59c1212311f4f61f994bc2aa48aa994c794"
+    },
+    {
+      "path": "godot-client/tools/nwn61/run-tail-entry-pair-d.cjs",
+      "bytes": 4004,
+      "sha256": "abb7bbefc88e3ab8f74093d721ec43e8a582b1970eb7cd896a081d597ddf2628"
+    },
+    {
+      "path": "godot-client/tools/nwn61/run-tail-entry-pair.cjs",
+      "bytes": 4004,
+      "sha256": "0796efcf8b6ca06a79d8954be9bc999409f8bf8d637abb2a8d0884a0cc84d964"
+    },
+    {
+      "path": "godot-client/tools/nwn61/stage-current-entry-budget-matrix.cjs",
+      "bytes": 3811,
+      "sha256": "44f80b75c7ead8d8993aa58f8e8c6da6b6a353fda9b53f72dcfc4982df7fb104"
+    },
+    {
+      "path": "godot-client/tools/nwn61/stage-current-entry-pair.cjs",
+      "bytes": 3504,
+      "sha256": "b094331d96c99cef3c9311d1010a5c5aac51dae4a2f782e6a6694e6abac26a79"
+    },
+    {
+      "path": "godot-client/tools/nwn63/accept.cjs",
+      "bytes": 3757,
+      "sha256": "0ec30736640b7d55e7f11b9d431553d0c210f9cf91ebc363763da9cf29caa90d"
+    },
+    {
+      "path": "godot-client/tools/nwn63/arithmetic-publish-interval-review.md",
+      "bytes": 2325,
+      "sha256": "4d8e240e4b284584121d11a4f9d663626344688ba7404bf21285b08966cb94bf"
+    },
+    {
+      "path": "godot-client/tools/nwn63/checkpoint-frame-input-e.cjs",
+      "bytes": 5290,
+      "sha256": "eead41548b084f6d1569ad09c8c4ea2020b5f37140e58d5c453d0d7d7c986966"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame-input-admission-current-a.json",
+      "bytes": 647,
+      "sha256": "ce156d7c4dd0215b2453d5b4f91ac8629cdac50d1c62a2827aa7e4dafc12ae64"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame-input-current-review.md",
+      "bytes": 4055,
+      "sha256": "57c645a3cd429c323bc20e5847726d387a15e6caf7177ed4cbba9c278db1539d"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame-input-live-adapter.cjs",
+      "bytes": 2613,
+      "sha256": "461a3e97cb6df7570a1bc11c9c77f9e1dc91befbf9ab7ff0333562e625576371"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame-input-protocol-current-off-a.json",
+      "bytes": 1932,
+      "sha256": "9f66cd1d10d7b03d486b5de805dad95e74358deb54ce1ea8fead8ea29b871e5c"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame-input-protocol-current-on-a.json",
+      "bytes": 1829,
+      "sha256": "5ab5cfa31059f82c60e271d94136dee4f13fd9a72f46e959dd82902094c3cabd"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame-input-request-count-current-a.json",
+      "bytes": 1046,
+      "sha256": "99cc3dd4df4eab034f7267e5a9e8d52b741f99c552708de48704cc02ced11d3c"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame_input_admission_current.gd",
+      "bytes": 18502,
+      "sha256": "dc0b99765a524a6e8c1a84b40c75d87cedbb3038a02e2127246843400c2365c2"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame_input_protocol_current.gd",
+      "bytes": 8727,
+      "sha256": "1d53adbe142e525f98278185a2e1ea85b4013e8e1036138515581a343d82f884"
+    },
+    {
+      "path": "godot-client/tools/nwn63/frame_input_request_count_current.gd",
+      "bytes": 2447,
+      "sha256": "d49f12d240cef533e30abd598de82a4f64a62abb53c13137643758db9c9c9c24"
+    },
+    {
+      "path": "godot-client/tools/nwn63/height-index-live-preflight.cjs",
+      "bytes": 2852,
+      "sha256": "d87b829797be95552a4144817ca79ba89185c829ad3c0a8646fbb522274db5bc"
+    },
+    {
+      "path": "godot-client/tools/nwn63/height-xy-bins-rejection.md",
+      "bytes": 1338,
+      "sha256": "d15284ac816a25c11b242b666b23b8dd1d75ee69359fc5ea85f6e498b802fde9"
+    },
+    {
+      "path": "godot-client/tools/nwn63/input-frame-admission-proposal.cjs",
+      "bytes": 9563,
+      "sha256": "33095f76c3f420bc41acc90b4ccf3a0a75cc05dccc7c6abadea55a531b033cd5"
+    },
+    {
+      "path": "godot-client/tools/nwn63/materialize-frame-input-test.cjs",
+      "bytes": 6187,
+      "sha256": "a2e1a39ebe5657193f58b8038300daf68c228bec8ac974d002814261d15b2f1e"
+    },
+    {
+      "path": "godot-client/tools/nwn63/materialize-graphical-replay-driver.cjs",
+      "bytes": 2399,
+      "sha256": "c507c3f41693429f17db9103a0ab868a396d7c942af6bf995a387076b3ca8c48"
+    },
+    {
+      "path": "godot-client/tools/nwn63/prepare-frame-input-pair.cjs",
+      "bytes": 9196,
+      "sha256": "2881f5dd2d4b7eb6784e032ca9882438d790076690364438abb516fe533e72ca"
+    },
+    {
+      "path": "godot-client/tools/nwn63/review-frame-input-graphics.cjs",
+      "bytes": 5736,
+      "sha256": "2ac466eb607eba93db50d3ce1672d0da3e39abc8f3acc2688d7120ea3e3217c0"
+    },
+    {
+      "path": "godot-client/tools/nwn63/run-model-empty.ps1",
+      "bytes": 2182,
+      "sha256": "ec1deadc5ed47849dd97c2fc52e60933b6897fe7281a3f7455c4b75497a46660"
+    },
+    {
+      "path": "godot-client/tools/nwn63/run-model-groups.ps1",
+      "bytes": 2163,
+      "sha256": "732851cebb09330d571fc1d83d373fc49e1413ba2036b6ee6242b2c8e41208b6"
+    },
+    {
+      "path": "godot-client/tools/nwn63/run-model-scalars.ps1",
+      "bytes": 2164,
+      "sha256": "5232361eead46a2bf8a745677d46366b57216f38705c618a550c598914b64a7f"
+    },
+    {
+      "path": "godot-client/tools/nwn63/run-spatial-scalars.ps1",
+      "bytes": 2178,
+      "sha256": "fb9714b788d50cc73eae5095158adb9c2ac394de80d9352254334818fe04266b"
+    },
+    {
+      "path": "godot-client/tools/nwn63/verify-frame-input-current.cjs",
+      "bytes": 1590,
+      "sha256": "ca536a41778e5914c7b7f5c390d8ae701261d33266cfd8142f0269c2705c3d43"
+    },
+    {
+      "path": "godot-client/tools/nwn70/hash_probe.gd",
+      "bytes": 1325,
+      "sha256": "7a6d6d9eecb26932be1ac29ed5981544f135f50375fdb06b5d24b510c6713f11"
+    },
+    {
+      "path": "godot-client/tools/nwn70/prepare-probe.cjs",
+      "bytes": 3509,
+      "sha256": "ece13f6c0e26c40daf5091530b244d6335097a48dcec474de678785476cd438f"
+    },
+    {
+      "path": "godot-client/tools/nwn72/diagnostics_component_test.gd",
+      "bytes": 4462,
+      "sha256": "d550871209e710fddc2f65b58c96ad6d731fc3c8dbb00cb0600bb7b74c70f8a9"
+    },
+    {
+      "path": "godot-client/tools/nwn72/no_request_facing/captured_fixture.gd",
+      "bytes": 6723,
+      "sha256": "cf27ee768258ff2574cd9e7ce90c61c6e8f04be9f7cc112b14d8b561825e9d58"
+    },
+    {
+      "path": "godot-client/tools/nwn72/no_request_facing/component_fixture.gd",
+      "bytes": 4602,
+      "sha256": "5ca61c819d78620e267f844b1722aaae4e341c5006ca2dbde67fc9161a42acab"
+    },
+    {
+      "path": "godot-client/tools/nwn72/no_request_facing/facing_fixture.gd",
+      "bytes": 6062,
+      "sha256": "9a76ca6756e1d6be9e62f93fa8c201277c587f265a6b8be79c587e449fe24afc"
+    },
+    {
+      "path": "godot-client/tools/nwn72/no_request_facing/math_fixture.gd",
+      "bytes": 1653,
+      "sha256": "9050afb11507f7bd47841a2b8f19da9c74248157a807e35c098dd79d0ea5d80d"
+    },
+    {
+      "path": "godot-client/tools/nwn72/no_request_facing/network_motion_before.gd",
+      "bytes": 24327,
+      "sha256": "9818d4bf7f7aab474c21609ffa802115bbe2d576026dafd7380255d148bae18d"
+    },
+    {
+      "path": "godot-client/tools/nwn72/no_request_facing/network_motion_candidate.gd",
+      "bytes": 25449,
+      "sha256": "7b943610ba9765c8052e22fccdeaf2ca0e33f27eb86917db8ac44be5ab1d0762"
+    },
+    {
+      "path": "godot-client/tools/nwn72/no_request_facing/review.md",
+      "bytes": 2033,
+      "sha256": "da90043eae7f368dbcdb400eb0eb8a858247d8bdb5a1c3f0a40202c25b208e2f"
+    },
+    {
+      "path": "godot-client/tools/nwn72/path_traversal_exact_test.gd",
+      "bytes": 2755,
+      "sha256": "e0bf15a741963171c15b1af724021c2543d70828e628fc6f75dd9e747cdd2dcb"
+    },
+    {
+      "path": "godot-client/tools/nwn72/pose-gait-guard-proposal.txt",
+      "bytes": 620,
+      "sha256": "50ff7ec4cd9de30a58476ae0d4b0ab01dca05afbf6e7a7cd8def84fcee0c7340"
+    },
+    {
+      "path": "godot-client/tools/nwn72/prepare-captured-motion.cjs",
+      "bytes": 2766,
+      "sha256": "85f23c0105224d02de9198b7d2aa584516f5294df8eaf8fcf2eab365c7237e55"
+    },
+    {
+      "path": "godot-client/tools/nwn72/prepare-pose-guard.cjs",
+      "bytes": 1399,
+      "sha256": "f3bdc498623cb6549244e401eb37bbc01c6014fafd1faf6367e435fdb012027d"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/audit_ptrcall_returns.mjs",
+      "bytes": 4459,
+      "sha256": "f2572eedcdbb286d37b017aa6f1f310fe1b2b19654d0ad9dc7ed0fb89eec4cd4"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/build.ps1",
+      "bytes": 4982,
+      "sha256": "7dafeed454fbee5a40250bd8ff6cd39ec28c1b5a1e94a0fc2377bf9e19f5484a"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/check_managed_policy.ps1",
+      "bytes": 3482,
+      "sha256": "93789a97a5ff1a347f0e5949d1570ce5b7aa56df6983c60cecf9ba26725d535d"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/check_patch.mjs",
+      "bytes": 1816,
+      "sha256": "cd26da59565de1638ffe2ebba5c5a92e7420620ecb5d0b99f2c0f23fb3d82766"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/check_retained_common_policy.ps1",
+      "bytes": 3494,
+      "sha256": "d27f1ca50c9be60e3caa67ba705027b3dd4a111c6689168ab10b6e5998a5bba1"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/check_rig_identity_census.mjs",
+      "bytes": 3637,
+      "sha256": "8d5edbf5e6f878cd4c0a3fedc6c585404652c2012df6ab5b860c0fb4f76012cf"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/check_scene_snapshot_abi.ps1",
+      "bytes": 3482,
+      "sha256": "ad61ce6864039612d051c23d7b5b2b720a99e4baf8274d04450993a1ee011267"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/endpoint_frame_pose_cache.hpp",
+      "bytes": 3578,
+      "sha256": "c9fc80be2fbcf14a781a39ab6bbf2ffd5214483779d3b90fae6178fd1e350fa6"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/finalize.mjs",
+      "bytes": 2294,
+      "sha256": "593e7fbd969a3740e6407d601d61709ef8e8a26e33ff971cf69c5961b697b01e"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/finalize_gd_candidate.mjs",
+      "bytes": 2206,
+      "sha256": "d762741ee40ffd7e7dd9c7fb8b5ab401b564e7309d6927ba0e0763e0dd9d9e91"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/frame_pose_cache_test.cpp",
+      "bytes": 2714,
+      "sha256": "cf309b2a816b8b672f5f712c9a391390c2f2845dad82fa19a6aec4e60732ff1a"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/make_patch.mjs",
+      "bytes": 2858,
+      "sha256": "07a3b36b693df9c7dfb770b834a0a60c197214847bbbb00dc9e726ed5cc91a54"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/native_managed_eligibility.hpp",
+      "bytes": 14169,
+      "sha256": "e6f7ce929a732ee40bc012aeaf5630d4cb07f9f6610adc033f4f3a7a9dbe6cec"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/native_managed_pose_lease.hpp",
+      "bytes": 10013,
+      "sha256": "c9d70301590eba848b78bd1e1677efad42aa05c158d287d0246d535db8379852"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/native_particle_clock.hpp",
+      "bytes": 10206,
+      "sha256": "e814ce7ddf7b0219fefab4584341cf06b481091fe37917e11548c8033cf18e76"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/native_perf140_particle_endpoint_slot_test.cpp",
+      "bytes": 10693,
+      "sha256": "3937ec0804dd8bdf9db3e1cbf67d227cae899809545d07b1c3599d7ccfc0250f"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/native_scene_snapshot.hpp",
+      "bytes": 13029,
+      "sha256": "c4268fcb046b7e1ddd5b367b89a167dcc40fb27b48f87e7474461e25553cbd6e"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/native_visual_random.hpp",
+      "bytes": 9034,
+      "sha256": "9c47c73f1b6be6bb19e6b0e00134be269342af17737b87a6fd032cc49f0ca5df"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/particle_clock_rig_helpers.gd.inc",
+      "bytes": 2146,
+      "sha256": "6762494962ba16d1c30c34eae11344f3f6c3e3a7ce79fb0e4784eb1d3939bd9b"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare.mjs",
+      "bytes": 8804,
+      "sha256": "635c95e68b8e56fc76cdff2f7abb398e3f26b8bf6e2aa8d97f10c0a893aa8310"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_census.mjs",
+      "bytes": 6040,
+      "sha256": "e917f43fea5032f3f96066aef76fd020e54c392be58fd510d554ebba026e9da8"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_cold_census.mjs",
+      "bytes": 8012,
+      "sha256": "3103510bf97fc89ebd7f9a41e4be7d88eb34c4f98e251f7e5d371d38e5ff7374"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_combined.mjs",
+      "bytes": 5179,
+      "sha256": "a6781149d362a032441830190919768a8ac6df0aa6c32bee4ab14801a924f96d"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_common_probe.mjs",
+      "bytes": 4069,
+      "sha256": "5563e134ddc4032a1fe50060143b76d735c26ce4a67b4d02f690b4c9657f10a0"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_controls.mjs",
+      "bytes": 3544,
+      "sha256": "49d5bcd7eeebea6858a5d61f6e6a2c477b00818b47f38894674a395f5609e38a"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_endpoint_slot_fixture.mjs",
+      "bytes": 1937,
+      "sha256": "435eefd1baeab6cf8ec65c0489f29b04f7411f3e4c9ff8f37b4e5caa3fdf4ca7"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_endpoint_slot_models_fixture.mjs",
+      "bytes": 1634,
+      "sha256": "eada0eaf02227122974417ddd93dc8c233d766347cc4dc959aea61526c32a300"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_endpoint_slots.mjs",
+      "bytes": 8273,
+      "sha256": "5af05ad62cd892587d02a88c5b3fd7a1ac740ad78c0e2f6e4e86186b3621da28"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_generated_light_manual.mjs",
+      "bytes": 9685,
+      "sha256": "6ffc43f9fe32d3b4d34609d6e48872d5df2ba1976bd5a2490a384f06295599cd"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_managed_eligibility.mjs",
+      "bytes": 11997,
+      "sha256": "1d5fd45641ac8446593d1d80a5cc3cf5034eeb72367aa0a9ef91f6f97823628f"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_managed_eligibility_models_test.mjs",
+      "bytes": 2802,
+      "sha256": "a70def2dbb0b9ec3bc88c63ae5f2f15eaa448617b905f87c19fb85db7879de0d"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_managed_leases.mjs",
+      "bytes": 11741,
+      "sha256": "63e0cc5faede40c9f52786c404f06cb40442db95a306bddfe28f3b3792d02307"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_managed_model_test.mjs",
+      "bytes": 3350,
+      "sha256": "6bc0dee82c751f8b1212878a103798414223e4e584ea6abba61e24dfd8ac2103"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_native_clock.mjs",
+      "bytes": 10425,
+      "sha256": "b66f34e4eb96335642e8ebb6a53f296767a0c73bc93cb1a2f8820c25e691d5cb"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_native_random.mjs",
+      "bytes": 7906,
+      "sha256": "84dce3d21f9e3116052a41419c47a4632daa4ba3d54578bfa6c50786497a07d4"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_provider_reference.mjs",
+      "bytes": 6262,
+      "sha256": "83f897115fb70c041ff8cc720636c6ca5219e5c094acc0617effab8362f6af06"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_provider_reference_test.mjs",
+      "bytes": 7949,
+      "sha256": "392334ffd33fda86d47b5bd9c5b74d25908572b12a2b6939da056848e1200c64"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_retained_common.mjs",
+      "bytes": 6220,
+      "sha256": "6ac84fa867e32824ac876d0eb1f2f16833e2205be2168dbf26e401e7bbfc8339"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_scene_snapshot.mjs",
+      "bytes": 12497,
+      "sha256": "da5e457a0b42dbea7e89f81700e6a455a1005622442d25b9180e5ba41c149694"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_scene_snapshot_capability_test.mjs",
+      "bytes": 2739,
+      "sha256": "aaf51234ff771247f02a27aac59af01695cb6225d4bf52c93ce56c687a6c3b11"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_scene_snapshot_direct_slots.mjs",
+      "bytes": 9197,
+      "sha256": "2b37bc782cda188514e3bda097c9f5ebab7b8391faf47e956c1f76afa12864cc"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_scene_snapshot_direct_slots_test.mjs",
+      "bytes": 6436,
+      "sha256": "0ad5a0b5d2f32b69818a5eaf1b2e0ac08d9bda7397c2e64139ac7a775cc05435"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_scene_snapshot_scheduled_test.mjs",
+      "bytes": 2564,
+      "sha256": "70eb2dd34f82b28c5a361d1027bc639f277bb6d891511d2f8f459c3f57e56d19"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_typed_boundary.mjs",
+      "bytes": 13347,
+      "sha256": "e5918d4b8343d3b238089692cbc0aa412b883e8f8a492141d6f3dc77925c55e8"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_typed_boundary_test.mjs",
+      "bytes": 10951,
+      "sha256": "7c4a2bc28893e18aaa28d94e6320f35b9e71133dafc3b90d2feefcd3a68eee44"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/prepare_typed_proof.mjs",
+      "bytes": 7626,
+      "sha256": "a71136532cc053b6b14d2c4fa39ecda078205a28fc1e7e2e29599be4206498c3"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/run_endpoint_slot_pure.ps1",
+      "bytes": 3221,
+      "sha256": "2e0951416f0b2c8f0f8c3b764b1ba841b1ed9540416b00c1a6ac55d0eb0efaad"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/stage_scene_snapshot_engine_followup.mjs",
+      "bytes": 3460,
+      "sha256": "3776da50a5b0f6fc41c38e80e181a8d07e1b92871e76e0166761d501479fd58c"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/typed_boundary_step.hpp",
+      "bytes": 10132,
+      "sha256": "1c13b298babdcca036acf9751f2dfa742cff23e6b4579a492e9b2fd4414ee792"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/typed_object_proof.hpp",
+      "bytes": 814,
+      "sha256": "17b2987ed0ba6f1fa1b3ac83f80399785b32215d9e3dfb6eac3402c6f3e92f03"
+    },
+    {
+      "path": "godot-client/tools/perf140/particles/typed_object_proof_test.cpp",
+      "bytes": 1700,
+      "sha256": "3a958206065998f6cab8070ff1bf59a3bab020a90f9acff9d2541ebd405df616"
+    }
+  ],
+  "alreadyArchivedIndexEntries": [
+    "evidence/native-godot-room-lighting-comparison.md",
+    "godot-client/CLIENT-PARITY-RESUMPTION-GOAL.md",
+    "godot-client/CODEX-HANDOFF-2026-11-07.md",
+    "godot-client/NATIVE-140FPS-LOADING.md",
+    "godot-client/NATIVE-140FPS-PERFORMANCE-GOAL.md",
+    "godot-client/NATIVE-140FPS-RENDER.md",
+    "godot-client/NATIVE-140FPS-SHADOWS.md",
+    "godot-client/NATIVE-ACTION-QUEUE.md",
+    "godot-client/NATIVE-ACTOR-NAME-CONTROLLED-LOAD-AUDIT.md",
+    "godot-client/NATIVE-ACTOR-NAME-GAMEPLAY-ACCEPTANCE.md",
+    "godot-client/NATIVE-ACTOR-NAME-INTEGRATION.md",
+    "godot-client/NATIVE-ACTOR-NAME-OWNER-REVIEW.md",
+    "godot-client/NATIVE-ACTOR-NAME-RECEIVED.md",
+    "godot-client/NATIVE-ACTOR-NAME-STATE.md",
+    "godot-client/NATIVE-AREA-BORDER-GEOMETRY-ADDENDUM.md",
+    "godot-client/NATIVE-AREA-BORDER-RESEARCH.md",
+    "godot-client/NATIVE-AREA-BORDER.md",
+    "godot-client/NATIVE-AREA-SCENERY-COMPLETION-AUDIT.md",
+    "godot-client/NATIVE-ASSOCIATE-RADIAL.md",
+    "godot-client/NATIVE-BASE-STATIC-DRAW-MERGE.md",
+    "godot-client/NATIVE-BASE-WORLD-LOADING-GOAL.md",
+    "godot-client/NATIVE-CHARACTER-PICKER-RESPONSIVENESS.md",
+    "godot-client/NATIVE-CHARACTER-SUMMARY.md",
+    "godot-client/NATIVE-CHAT-CATEGORIES.md",
+    "godot-client/NATIVE-CHAT-DISPATCH.md",
+    "godot-client/NATIVE-CHAT-HUD.md",
+    "godot-client/NATIVE-CHAT-LOCAL-ACCEPTANCE.md",
+    "godot-client/NATIVE-CHAT-REPLIES.md",
+    "godot-client/NATIVE-CHAT-TOOLTIPS.md",
+    "godot-client/NATIVE-CLIENT-CLOCK-LIFECYCLE-CONTRACT.md",
+    "godot-client/NATIVE-CLIENT-CLOCK-RUNTIME.md",
+    "godot-client/NATIVE-CLIENT-CREATURE-CONSTRUCTION-BOUNDARY.md",
+    "godot-client/NATIVE-CLIENT-PAUSE-LOWER-OWNERS.md",
+    "godot-client/NATIVE-CLOCK-BRIDGE-CONTRACT.md",
+    "godot-client/NATIVE-CLOCK-INGRESS-CONTRACT.md",
+    "godot-client/NATIVE-CLOCK-SOURCE-CANDIDATE.md",
+    "godot-client/NATIVE-COMBAT-CLASS-STATE.md",
+    "godot-client/NATIVE-COMBAT-EVENT-PROVENANCE.md",
+    "godot-client/NATIVE-COMBAT-HANDOFF.md",
+    "godot-client/NATIVE-COMBAT-LOCOMOTION.md",
+    "godot-client/NATIVE-COMBAT-NPC.md",
+    "godot-client/NATIVE-COMMAND-ASSOCIATES-STAGED.md",
+    "godot-client/NATIVE-CONNECTION-NEXT-AUDIT-2026-11-04.md",
+    "godot-client/NATIVE-CONTINUOUS-BASE-STREAMING.md",
+    "godot-client/NATIVE-CREATION-ALIGNMENT.md",
+    "godot-client/NATIVE-CREATION-APPEARANCE-INFO.md",
+    "godot-client/NATIVE-CREATION-ASSOCIATES.md",
+    "godot-client/NATIVE-CREATION-ATTRIBUTES.md",
+    "godot-client/NATIVE-CREATION-AUTHORITATIVE-ACCEPTANCE.md",
+    "godot-client/NATIVE-CREATION-CLAIMED-TITLES.md",
+    "godot-client/NATIVE-CREATION-CLASS-FLOW.md",
+    "godot-client/NATIVE-CREATION-CLASS.md",
+    "godot-client/NATIVE-CREATION-DOMAINS.md",
+    "godot-client/NATIVE-CREATION-DRAFT-RESET.md",
+    "godot-client/NATIVE-CREATION-FEAT-ADAPTER.md",
+    "godot-client/NATIVE-CREATION-FEAT-CAPACITY.md",
+    "godot-client/NATIVE-CREATION-FEAT-RESPONSIVENESS.md",
+    "godot-client/NATIVE-CREATION-FEATS.md",
+    "godot-client/NATIVE-CREATION-FLOW-INTEGRATION.md",
+    "godot-client/NATIVE-CREATION-FOREGROUND-LABELS.md",
+    "godot-client/NATIVE-CREATION-GENDER.md",
+    "godot-client/NATIVE-CREATION-PACKAGE.md",
+    "godot-client/NATIVE-CREATION-PARENT.md",
+    "godot-client/NATIVE-CREATION-RACE.md",
+    "godot-client/NATIVE-CREATION-SCHOOL.md",
+    "godot-client/NATIVE-CREATION-SKILL-SUMMARY.md",
+    "godot-client/NATIVE-CREATION-SKILLS.md",
+    "godot-client/NATIVE-CREATION-SPELLS.md",
+    "godot-client/NATIVE-CREATION-SUMMARY-BINDING.md",
+    "godot-client/NATIVE-CREATION-SUMMARY-LISTS.md",
+    "godot-client/NATIVE-CREATION-TAIL-BIC.md",
+    "godot-client/NATIVE-CREATION-TAIL-INTEGRATION.md",
+    "godot-client/NATIVE-CREATION-TITLE-CLASS-REPAIRS.md",
+    "godot-client/NATIVE-CREATION-UI-REPAIRS.md",
+    "godot-client/NATIVE-CREATION-VITALS.md",
+    "godot-client/NATIVE-DENSE-AREA-PERFORMANCE-GOAL.md",
+    "godot-client/NATIVE-DENSE-BENCHMARK-FIXTURE.md",
+    "godot-client/NATIVE-DENSE-COLLISION-BINARY.md",
+    "godot-client/NATIVE-DENSE-PARTICLE-FRAME-SPANS.md",
+    "godot-client/NATIVE-DENSE-PARTICLE-PLAN.md",
+    "godot-client/NATIVE-DIRECT-HANDOFF-GOAL.md",
+    "godot-client/NATIVE-DIRECT-HANDOFF-OWNED-FIXTURE.md",
+    "godot-client/NATIVE-DIRECT-HANDOFF-PROGRESS-V2.md",
+    "godot-client/NATIVE-DIRECT-HANDOFF-PROGRESS.md",
+    "godot-client/NATIVE-DIRECT-HANDOFF-RETIRE-RECOVERY.md",
+    "godot-client/NATIVE-DIRECT-HOST-CLOSURES-2026-11-04.md",
+    "godot-client/NATIVE-DIRECT-PORTAL-CANDIDATE.md",
+    "godot-client/NATIVE-DM-PERMISSION.md",
+    "godot-client/NATIVE-DRAW-BUNDLE-CACHE.md",
+    "godot-client/NATIVE-DRAW-CACHE-RUNTIME.md",
+    "godot-client/NATIVE-DRIVE-COLLISION-ROUTES.md",
+    "godot-client/NATIVE-EFFECT-BAR.md",
+    "godot-client/NATIVE-ENTITY-LIFETIME.md",
+    "godot-client/NATIVE-FEAT-INSPECTION.md",
+    "godot-client/NATIVE-FEAT-LABEL-BOUNDS.md",
+    "godot-client/NATIVE-FEAT-POPUP-SELECTION.md",
+    "godot-client/NATIVE-FLAME-LIGHTING.md",
+    "godot-client/NATIVE-FLAT-GRASS-VISUAL-CONTROL.md",
+    "godot-client/NATIVE-FLAT-GRASS-VISUAL-FOLLOWUP.md",
+    "godot-client/NATIVE-GAMMA-SETTINGS.md",
+    "godot-client/NATIVE-GUI-CONTEXT-EVENTS.md",
+    "godot-client/NATIVE-GUI-PACKED-PALETTE.md",
+    "godot-client/NATIVE-GUI-PANEL-ACCESS-PLAN.md",
+    "godot-client/NATIVE-GUI-PANEL-ACCESS.md",
+    "godot-client/NATIVE-HANDOFF-CHARACTER-PROOF.md",
+    "godot-client/NATIVE-HANDOFF-LIFECYCLE-ACCEPTANCE.md",
+    "godot-client/NATIVE-HIGHLIGHT-TOOLTIPS.md",
+    "godot-client/NATIVE-HUD-LOCAL-ACCEPTANCE.md",
+    "godot-client/NATIVE-HUD-TOOLTIPS.md",
+    "godot-client/NATIVE-INVENTORY-PUBLICATION.md",
+    "godot-client/NATIVE-INVENTORY-WINDOW-OWNERS.md",
+    "godot-client/NATIVE-ITEM-TOOLTIP-CONTEXTS.md",
+    "godot-client/NATIVE-ITEM-TOOLTIPS.md",
+    "godot-client/NATIVE-JOURNAL-EVENTS.md",
+    "godot-client/NATIVE-LEVEL-UP-ATTRIBUTES-PRESENTATION.md",
+    "godot-client/NATIVE-LEVEL-UP-CLASS-DEPENDENCIES.md",
+    "godot-client/NATIVE-LEVEL-UP-CLASS-EXTRA-FIELDS.md",
+    "godot-client/NATIVE-LEVEL-UP-CLASS-PUBLICATION.md",
+    "godot-client/NATIVE-LEVEL-UP-CONTEXT-RETRY.md",
+    "godot-client/NATIVE-LEVEL-UP-CONTEXT-WAIT.md",
+    "godot-client/NATIVE-LEVEL-UP-DRAFT-CONTEXT.md",
+    "godot-client/NATIVE-LEVEL-UP-FEATS-SPELLS-RECOMMENDED.md",
+    "godot-client/NATIVE-LEVEL-UP-MODULE-FLAGS.md",
+    "godot-client/NATIVE-LEVEL-UP-NEXT-AUDIT-2026-11-04.md",
+    "godot-client/NATIVE-LEVEL-UP-NUMERIC-FEATS.md",
+    "godot-client/NATIVE-LEVEL-UP-OPENING.md",
+    "godot-client/NATIVE-LEVEL-UP-PARITY-AUDIT.md",
+    "godot-client/NATIVE-LEVEL-UP-PARITY-GOAL.md",
+    "godot-client/NATIVE-LEVEL-UP-PATH-MATRIX.md",
+    "godot-client/NATIVE-LEVEL-UP-PENDING-CANCEL.md",
+    "godot-client/NATIVE-LEVEL-UP-PLAYER-WIRE-CONTEXT.md",
+    "godot-client/NATIVE-LEVEL-UP-PROPOSAL-FIELDS.md",
+    "godot-client/NATIVE-LEVEL-UP-RANDOM-OWNER-PLAN.md",
+    "godot-client/NATIVE-LEVEL-UP-RANDOM-OWNER.md",
+    "godot-client/NATIVE-LEVEL-UP-RECOMMENDED.md",
+    "godot-client/NATIVE-LEVEL-UP-REPLY-CORRELATION-PLAN.md",
+    "godot-client/NATIVE-LEVEL-UP-SOURCE.md",
+    "godot-client/NATIVE-LEVEL-UP-SPELL-COUNTER.md",
+    "godot-client/NATIVE-LIGHT-HISTORY-PUBLICATION.md",
+    "godot-client/NATIVE-LIGHT-LIMIT-CORRECTION.md",
+    "godot-client/NATIVE-LIGHT-REGISTRY-RETAINED-CANDIDATE.md",
+    "godot-client/NATIVE-LIGHT-UPDATE-CACHE-PLAN.md",
+    "godot-client/NATIVE-LIGHTING-CORRECTION.md",
+    "godot-client/NATIVE-LIVE-PERFORMANCE-GOAL.md",
+    "godot-client/NATIVE-LIVE-WORLD-NAME-SIGNATURE-PLAN.md",
+    "godot-client/NATIVE-LOADING-PIPELINE.md",
+    "godot-client/NATIVE-MATERIAL-CONTRACT.md",
+    "godot-client/NATIVE-MENU-EXIT-LIFECYCLE.md",
+    "godot-client/NATIVE-MESH-RESOURCE-CACHE.md",
+    "godot-client/NATIVE-MODAL-CLASS-ALIGNMENT.md",
+    "godot-client/NATIVE-MODAL-FEAT-PARENT.md",
+    "godot-client/NATIVE-MODAL-GENDER-PORTRAIT.md",
+    "godot-client/NATIVE-MODAL-OPTIONS.md",
+    "godot-client/NATIVE-MODAL-ORDER.md",
+    "godot-client/NATIVE-MODAL-OWNERS-PLAN.md",
+    "godot-client/NATIVE-MODAL-OWNERS.md",
+    "godot-client/NATIVE-MODAL-PACKAGE.md",
+    "godot-client/NATIVE-MODAL-RACE.md",
+    "godot-client/NATIVE-MODAL-SKILLS.md",
+    "godot-client/NATIVE-MODEL-TEMPLATE-RECIPE.md",
+    "godot-client/NATIVE-MOVEMENT-RECORDING.md",
+    "godot-client/NATIVE-NAME-GENERATION.md",
+    "godot-client/NATIVE-NAMEPLATE-ANCHOR.md",
+    "godot-client/NATIVE-NAMEPLATE-CAPTION.md",
+    "godot-client/NATIVE-NAMEPLATE-GEOMETRY.md",
+    "godot-client/NATIVE-NAMEPLATE-OVERRIDES.md",
+    "godot-client/NATIVE-NAMEPLATE-TEXT.md",
+    "godot-client/NATIVE-NATIVE-HANDOFF-PLAN.md",
+    "godot-client/NATIVE-NUI-MODAL-AUDIT.md",
+    "godot-client/NATIVE-OBJECT-CAPTIONS.md",
+    "godot-client/NATIVE-ORDINARY-CHAT-LITERAL-PARSE-ADDENDUM.md",
+    "godot-client/NATIVE-ORDINARY-SPEECH-ACTOR-NAMES-ACCEPTANCE.md",
+    "godot-client/NATIVE-ORDINARY-SPEECH-CURRENT-ACCEPTANCE.md",
+    "godot-client/NATIVE-ORDINARY-SPEECH-HEADER-SOURCE.md",
+    "godot-client/NATIVE-ORDINARY-SPEECH-NAME-OWNER-ADDENDUM.md",
+    "godot-client/NATIVE-ORDINARY-SPEECH-NATIVE-HEADERS-ACCEPTANCE.md",
+    "godot-client/NATIVE-ORDINARY-SPEECH-TEXT.md",
+    "godot-client/NATIVE-ORDINARY-SPEECH-VISUAL-METADATA.md",
+    "godot-client/NATIVE-ORDINARY-SPEECH-VISUAL-PARTIAL.md",
+    "godot-client/NATIVE-OTHER-CREATURE-RADIAL.md",
+    "godot-client/NATIVE-OVERHEAD-AREA-EDGES-MILESTONE.md",
+    "godot-client/NATIVE-OVERHEAD-CHAT-POLICY.md",
+    "godot-client/NATIVE-OVERHEAD-CURRENT-CAPTION-ADDENDUM.md",
+    "godot-client/NATIVE-OVERHEAD-CURRENT-STATUS.md",
+    "godot-client/NATIVE-OVERHEAD-ITEM-ANCHOR-ADDENDUM.md",
+    "godot-client/NATIVE-OVERHEAD-MODE-CHANGE.md",
+    "godot-client/NATIVE-OVERHEAD-SETTINGS-PLAN.md",
+    "godot-client/NATIVE-OVERHEAD-TOGGLE-DEFAULT-ADDENDUM.md",
+    "godot-client/NATIVE-PARTICLE-IMAGE-LOOKUP.md",
+    "godot-client/NATIVE-PARTICLE-OPTIMIZATION-GOAL.md",
+    "godot-client/NATIVE-PARTICLE-POSE-REUSE.md",
+    "godot-client/NATIVE-PARTY-INDICATORS.md",
+    "godot-client/NATIVE-PARTY-LOCATOR.md",
+    "godot-client/NATIVE-PAUSE-FIXES-GOAL.md",
+    "godot-client/NATIVE-PEER-CANCELLATION-RACE-FIX.md",
+    "godot-client/NATIVE-PERFORMANCE-PIPELINE-GOAL.md",
+    "godot-client/NATIVE-PERFORMANCE-RUNTIME.md",
+    "godot-client/NATIVE-PLAYABILITY-PARITY-GOAL.md",
+    "godot-client/NATIVE-PLAYER-IDENTITY.md",
+    "godot-client/NATIVE-PLAYERS-LEAVE.md",
+    "godot-client/NATIVE-PLT-ICONS.md",
+    "godot-client/NATIVE-POPUP-CACHED-CAPTION.md",
+    "godot-client/NATIVE-POPUP-FRESH-HOVER-ACCEPTANCE.md",
+    "godot-client/NATIVE-POPUP-HOT-SETTINGS-REVIEW.md",
+    "godot-client/NATIVE-POPUP-SCENE-ACCEPTANCE.md",
+    "godot-client/NATIVE-POPUP-SCENE-VISUAL-READINESS.md",
+    "godot-client/NATIVE-POPUP-SCENE-VISUAL.md",
+    "godot-client/NATIVE-POPUP-TEXT-LAYOUT-AUDIT.md",
+    "godot-client/NATIVE-POPUP-TYPOGRAPHY.md",
+    "godot-client/NATIVE-PORTRAIT-CHOICES.md",
+    "godot-client/NATIVE-PORTRAIT-PANE.md",
+    "godot-client/NATIVE-PREGAME-FLOW.md",
+    "godot-client/NATIVE-PREPARED-RESOURCE-STORE.md",
+    "godot-client/NATIVE-PRIVATE-CLOCK-TIMER-ACCEPTANCE.md",
+    "godot-client/NATIVE-PRODUCTION-PARITY-GOAL.md",
+    "godot-client/NATIVE-PRODUCTION-REPLAY.md",
+    "godot-client/NATIVE-QUICKBAR-ASSOCIATE.md",
+    "godot-client/NATIVE-QUICKBAR-CONTEXT.md",
+    "godot-client/NATIVE-QUICKBAR-POLYMORPH.md",
+    "godot-client/NATIVE-RADIAL-PARTICLE-GOAL.md",
+    "godot-client/NATIVE-RECORD-TARGET-ACCESS.md",
+    "godot-client/NATIVE-REFERENCE-ADMISSION.md",
+    "godot-client/NATIVE-REMOTE-CLIENT-CLOCK-COMPONENT-ACCEPTANCE.md",
+    "godot-client/NATIVE-REMOTE-CLIENT-CLOCK-HOOK-CONTRACT.md",
+    "godot-client/NATIVE-REMOTE-CLIENT-CLOCK-NORMALIZATION.md",
+    "godot-client/NATIVE-REMOTE-CLIENT-CLOCKS.md",
+    "godot-client/NATIVE-RENDER-12H-GOAL.md",
+    "godot-client/NATIVE-RENDER-LAUNCH-PROFILE.md",
+    "godot-client/NATIVE-RESOURCE-MANAGER.md",
+    "godot-client/NATIVE-RULESET-CACHE.md",
+    "godot-client/NATIVE-SCENERY-FIXTURE-ADJACENCY-AUDIT.md",
+    "godot-client/NATIVE-SCRIPT-FLOATING-ECHO-PLAN.md",
+    "godot-client/NATIVE-SCRIPT-FLOATING-LIFECYCLE-ADDENDUM.md",
+    "godot-client/NATIVE-SCRIPT-FLOATING-RESEARCH.md",
+    "godot-client/NATIVE-SCRIPT-FLOATING.md",
+    "godot-client/NATIVE-SHADOW-FOCUS.md",
+    "godot-client/NATIVE-SHARED-ANIMATION-PREPARATION.md",
+    "godot-client/NATIVE-SKILL-ADMISSION.md",
+    "godot-client/NATIVE-SKILL-DESCRIPTIONS.md",
+    "godot-client/NATIVE-STATIC-SCENERY-BATCHES.md",
+    "godot-client/NATIVE-STATIC-SCENERY-MERGE.md",
+    "godot-client/NATIVE-TALK-PARSER-CERTIFIED-PLAN.md",
+    "godot-client/NATIVE-TALK-PARSER.md",
+    "godot-client/NATIVE-TCP-FRAMING-CHECK.md",
+    "godot-client/NATIVE-TCP-IDLE35-CHECK.md",
+    "godot-client/NATIVE-TOOLTIP-TIMING.md",
+    "godot-client/NATIVE-TTF-HEIGHT-CANDIDATE.md",
+    "godot-client/NATIVE-TTF-METRICS-INVESTIGATION.md",
+    "godot-client/NATIVE-UI-PORT-2026-11-02.md",
+    "godot-client/NATIVE-UI-RESPONSIVENESS-REGRESSION.md",
+    "godot-client/NATIVE-VISIBILITY-WORK-AUDIT.md",
+    "godot-client/NATIVE-WORLD-NAMEPLATES.md",
+    "godot-client/NATIVE-WORLD-PRESENTATION-PARITY-GOAL.md",
+    "godot-client/NATIVE-WORLD-QUIESCENT-PLANNING.md",
+    "godot-client/NATIVE-WORLD-RADIAL.md",
+    "godot-client/systems/native_render/LIGHT-INPUT-REGISTRY.md",
+    "godot-client/tools/native-drive-numeric/ACCEPTANCE.md",
+    "godot-client/tools/native-render-gap/original/compiler/pgo/README.md",
+    "godot-client/tools/native-render-gap/particles/ARCHITECTURE.md",
+    "godot-client/tools/native-render-gap/particles/EMPTY_CLIPS_AUDIT.md",
+    "godot-client/tools/native-render-gap/particles/HOT_PARAMETERS_AUDIT.md",
+    "godot-client/tools/native-render-gap/particles/RNG_BRIDGE_PLAN.md",
+    "godot-client/tools/native-render-gap/particles/VAR_COPY_FOLLOWUP.md",
+    "godot-client/tools/native-render-gap/particles/pgo/PLAN.md",
+    "godot-client/tools/native-render-gap/scene/EFFECT_ACTIVITY_AUDIT.md",
+    "godot-client/tools/native-render-gap/scene/EFFECT_PHASE_CONTRACT.md",
+    "godot-client/tools/native-render-gap/scene/LIVE_LIGHT_FIELDS_PLAN.md",
+    "godot-client/tools/native-render-gap/scene/POSE_BATCH_DESIGN.md",
+    "godot-client/tools/native-render-gap/scene/README.md",
+    "godot-client/tools/native-render-gap/scene/light-poll-live/ACCEPTANCE.md",
+    "godot-client/tools/native-render-gap/scene/light-poll-segment/PROOF.md",
+    "godot-client/tools/native-render-gap/scene/skeleton-force-pass/ORACLE_PLAN.md",
+    "godot-client/tools/native-render-gap/transport/ENCODED-FRAMER.md",
+    "godot-client/tools/native-render-gap/transport/IMMUTABLE-PRODUCER.md",
+    "godot-client/tools/native-render-gap/transport/PLAN.md",
+    "godot-client/tools/native-render-gap/transport/live/README.md",
+    "godot-client/tools/native_parity/doors/ASSET-SOURCE-FINDINGS.md",
+    "godot-client/tools/native_parity/doors/DOORWAY-PICKING.md",
+    "godot-client/tools/native_parity/doors/check-assets-RESULTS.md",
+    "godot-client/tools/native_parity/highlighting/BOUNDS-RENDERER-CONTRACT.md",
+    "godot-client/tools/native_parity/highlighting/CLADDATH-GHOST-MODEL-RECOVERY.md",
+    "godot-client/tools/native_parity/highlighting/CLADDATH-HIGHLIGHT-INPUT-DEPTH-REVIEW.md",
+    "godot-client/tools/native_parity/highlighting/MATERIAL-INTERACTION.md",
+    "godot-client/tools/native_parity/highlighting/NATIVE-KERNEL-HANDOFF.md",
+    "godot-client/tools/native_parity/highlighting/TEXTURED-SUCCESSOR.md",
+    "godot-client/tools/native_parity/highlighting/whole_character_glow.md",
+    "godot-client/tools/native_parity/instance_uniforms/allocation_audit.md",
+    "godot-client/tools/native_parity/instance_uniforms/buffer_backstop_audit.md",
+    "godot-client/tools/native_parity/loading/BRIDGE-INTEGRATED-ACCEPTANCE.md",
+    "godot-client/tools/native_parity/loading/BRIDGE-SUPPORT-PARITY.md",
+    "godot-client/tools/native_parity/loading/DIALOGUE-OVERRIDE-FIX.md",
+    "godot-client/tools/native_parity/loading/NATIVE-LAUNCH-COMPOSITION-V4.md",
+    "godot-client/tools/native_parity/loading/NATIVE-LAUNCH-COMPOSITION-V5.md",
+    "godot-client/tools/native_parity/loading/SCENE-VISIBILITY-INTEGRATION.md",
+    "godot-client/tools/native_parity/loading/SEVEN-FIX-CAPSULE.md",
+    "godot-client/tools/native_parity/performance/base-world-lane/README.md",
+    "godot-client/tools/native_parity/performance/check_production_local.md",
+    "godot-client/tools/native_parity/performance/first-placement/README.md",
+    "godot-client/tools/native_parity/ui/STATIC-ALPHA-DISPATCH-VALIDATION.md",
+    "godot-client/tools/native_parity/ui/actor-alpha-contract.md",
+    "godot-client/tools/native_parity/ui_image_update/INVESTIGATION.md",
+    "godot-client/tools/native_parity/ui_image_update/MERGED-ACCEPTANCE.md",
+    "godot-client/tools/native_parity/visibility/BLOCKER-ASSET-SOURCE.md",
+    "godot-client/tools/native_parity/visibility/BSP-KERNEL-ABI-OWNERSHIP-AUDIT.md",
+    "godot-client/tools/native_parity/visibility/COLD-VISIBILITY-DIAGNOSTICS.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-ALPHA-PROGRAM-CONTRACT.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-ASCII-TRANS.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-DOOR-BOX-INTERSECTION.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-DOOR-HIGHLIGHT.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-HIGHLIGHT-TEXTURE-BINDING.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-LAUNCH-COMPOSITION.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-MOTION-POSITION-BOUNDARY.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-REVEAL-CLOCK.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-REVEAL-FADE-CONTRACT.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-REVEAL-LOWERS.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-SCENE-VISIBILITY-INTEGRATION.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-TILE-FOG-PARTICIPANTS.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-TILE-REVEAL-OWNER.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-TRANS-HOVER-INTEGRATION.md",
+    "godot-client/tools/native_parity/visibility/NATIVE-VISIBILITY-AND-ALPHA-POLICY.md",
+    "godot-client/tools/native_parity/visibility/PHYSICAL-TILE-FOG.md",
+    "godot-client/tools/native_parity/visibility/PLACEABLE-ANIMATION-PRESENTATION.md",
+    "godot-client/tools/native_parity/visibility/SEVEN-ITEM-ACCEPTANCE-REVIEW.md",
+    "godot-client/tools/native_parity/visibility/TILE-DATA-FOG-SETTER.md",
+    "godot-client/tools/native_parity/visibility/TILE-DATA-PARTICIPANT-RESOLVER.md",
+    "godot-client/tools/native_parity/visibility/TILE-FOG-CALLBACK-ORACLE.md",
+    "godot-client/tools/native_parity/visibility/camera_tangent_candidate.md",
+    "godot-client/tools/native_parity/visibility/camera_tangent_candidate_provider.md",
+    "godot-client/tools/perf140/driver/HEIGHT-REPLAY-ACCEPTANCE.md",
+    "godot-client/tools/perf140/loading/ACCOUNTING-BUILTIN-ACCESS.md",
+    "godot-client/tools/perf140/loading/BULK-FLOAT-STREAM.md",
+    "godot-client/tools/perf140/loading/COMBINED-LOADING.md",
+    "godot-client/tools/perf140/loading/DEFERRED-DRIVE-REGRESSIONS.md",
+    "godot-client/tools/perf140/loading/DRIVE-CLEAR-KERNEL.md",
+    "godot-client/tools/perf140/loading/DRIVE-HEIGHT-DESIGN.md",
+    "godot-client/tools/perf140/loading/DRIVE-PREVIEW-AUDIT.md",
+    "godot-client/tools/perf140/loading/DRIVE-PREVIEW-ENVELOPE.md",
+    "godot-client/tools/perf140/loading/ENGINE-IDENTITY.md",
+    "godot-client/tools/perf140/loading/PARTICLE-CONTROLS-SETUP-AUDIT.md",
+    "godot-client/tools/perf140/loading/PLACEABLE-LIGHT-ATTACHMENT-AUDIT.md",
+    "godot-client/tools/perf140/loading/PROCESSOR-IDENTITY-DESIGN.md",
+    "godot-client/tools/perf140/loading/PURE-DATA-DLL-PLAN.md",
+    "godot-client/tools/perf140/loading/RASTER-CHILD-DESIGN.md",
+    "godot-client/tools/perf140/loading/RASTER-CHILD-TIMING-PROTOCOL.md",
+    "godot-client/tools/perf140/loading/RASTER-WRITE-QUEUE.md",
+    "godot-client/tools/perf140/loading/RAW-WORLD-PLAN-SNAPSHOT.md",
+    "godot-client/tools/perf140/loading/SESSION-PUBLICATION-AUDIT.md",
+    "godot-client/tools/perf140/loading/STARTUP-ACCOUNTING-AUDIT.md",
+    "godot-client/tools/perf140/loading/STATIC-ACTOR-ROUTE.md",
+    "godot-client/tools/perf140/loading/TERRAIN-HEIGHT-INTEGRATION.md",
+    "godot-client/tools/perf140/loading/TERRAIN-HEIGHT-QUERY-REUSE-AUDIT.md",
+    "godot-client/tools/perf140/particles/bulk_scene_snapshot_plan.md",
+    "godot-client/tools/perf140/particles/current_particle_publication_audit.md",
+    "godot-client/tools/perf140/particles/engine_owner_boundary_feasibility.md",
+    "godot-client/tools/perf140/particles/generated_light_manual_publication_plan.md",
+    "godot-client/tools/perf140/particles/instance_binding_liveness_audit.md",
+    "godot-client/tools/perf140/particles/managed_static_eligibility_plan.md",
+    "godot-client/tools/perf140/particles/managed_tile_pose_lease_plan.md",
+    "godot-client/tools/perf140/particles/native_cosine_service_plan.md",
+    "godot-client/tools/perf140/particles/ptrcall_return_audit.md",
+    "godot-client/tools/perf140/particles/session_failure_surface_plan.md",
+    "godot-client/tools/perf140/particles/typed_boundary_contract.md",
+    "godot-client/tools/perf140/particles/typed_endpoint_slot_plan.md",
+    "godot-client/tools/perf140/particles/typed_persistent_particle_plan.md",
+    "godot-client/tools/perf140/particles/upstream_admission_audit.md",
+    "godot-client/tools/perf140/particles/upstream_preadmission_plan.md",
+    "godot-client/tools/perf140/render/BUILTIN-LIGHT-REGISTRY-PLAN.md",
+    "godot-client/tools/perf140/render/CREATURE-CREATION-ATTACK-PAYLOAD.md",
+    "godot-client/tools/perf140/render/ENGINE-SCENE-SNAPSHOT.md",
+    "godot-client/tools/perf140/render/FONT-ATLAS-UPLOAD-OWNERSHIP.md",
+    "godot-client/tools/perf140/render/GODOT-SAME-VALUE-TRANSFORM-SETTERS.md",
+    "godot-client/tools/perf140/render/GODOT-VISIBILITY-GETTER-CONTRACT.md",
+    "godot-client/tools/perf140/render/NATIVE-BUCKET-IDENTITY-AND-REPEATED-WALKS.md",
+    "godot-client/tools/perf140/render/NATIVE-EMITTER-COLLECTION-AND-CLOCKS.md",
+    "godot-client/tools/perf140/render/OPAQUE-OCCLUSION-PLAN.md",
+    "godot-client/tools/perf140/render/PALETTE-IDEMPOTENT-UPDATE.md",
+    "godot-client/tools/perf140/render/PALETTE-UPLOAD-OWNERSHIP.md",
+    "godot-client/tools/perf140/render/PARTICLE-ANCESTOR-CENSUS.md",
+    "godot-client/tools/perf140/render/PUSHED-FIELDS-CLOSE-SUCCESSOR.md",
+    "godot-client/tools/perf140/render/PUSHED-FIELDS-SOURCE-GUARD-AUDIT.md",
+    "godot-client/tools/perf140/render/RD-LIFECYCLE-ENGINE-FIX.md",
+    "godot-client/tools/perf140/render/STATIC-LEAF-CENSUS.md",
+    "godot-client/tools/perf140/render/STATIONARY-CAMERA-ALIGNMENT.md",
+    "godot-client/tools/perf140/render/SYNCHRONOUS-PARTICLE-READ-PRODUCER.md",
+    "godot-client/tools/perf140/render/SYNCHRONOUS-READ-LIFECYCLE-RECIPE.md",
+    "godot-client/tools/perf140/render/SYNCHRONOUS-READ-NEXT-REDUCTION.md",
+    "godot-client/tools/perf140/render/UPSTREAM-COLLECTION-STUDY.md",
+    "godot-client/tools/perf140/render/pushed_fields_v4/PLAN.md"
+  ],
+  "alreadyArchivedCollection": "docs/archive/manifest.json"
+}

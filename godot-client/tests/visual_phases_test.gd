@@ -230,6 +230,11 @@ func recorded_case(row: Dictionary, control: bool) -> Dictionary:
 	native.providers.clear()
 	return actual
 
+func retained_phase_state(value: Dictionary) -> Dictionary:
+	# Schema extension only: these phase-only provider fixtures never run the
+	# Alpha5 program. Its separately proved constructor byte must remain zero.
+	var result:=value.duplicate(true);result.alphaPhaseFb=0;return result
+
 func run() -> void:
 	var oracle_path := ""
 	for arg in OS.get_cmdline_user_args():
@@ -238,7 +243,12 @@ func run() -> void:
 		elif arg.begins_with("--report="):
 			output = arg.substr(9)
 	var oracle: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(oracle_path))
-	expect(equal(Phases.constructor_state(), oracle.constructorState), "Constructor logical fields agree with original owner")
+	# The older retained JS schema omitted byteFB. Original constructor968660
+	# instruction96875a clears DWORDF8, independently proving alphaPhaseFb=0.
+	# Keep every older oracle field exact while extending that schema explicitly.
+	var constructor_reference: Dictionary=oracle.constructorState.duplicate(true)
+	constructor_reference.alphaPhaseFb=0
+	expect(equal(Phases.constructor_state(), constructor_reference), "Constructor logical fields including original byteFB agree with original owner")
 	for sample in oracle.milliseconds:
 		var seconds := NAN if sample.value == "NaN" else (INF if sample.value == "Infinity" else (-INF if sample.value == "-Infinity" else float(sample.value)))
 		expect(str(Phases.milliseconds_long(seconds)) == sample.long, "Signed 64-bit millisecond conversion " + sample.value, str(Phases.milliseconds_long(seconds)), sample.long)
@@ -252,7 +262,8 @@ func run() -> void:
 			var actual_state: Dictionary = encode(fixture.state)
 			var label := "%s/%s/%s" % [scenario.name, index, step.operation.kind]
 			expect(equal(actual_trace, step.trace), label + " callback order/arguments", actual_trace, step.trace)
-			expect(equal(actual_state, step.state), label + " full state", actual_state, step.state)
+			var expected_state:=retained_phase_state(step.state)
+			expect(equal(actual_state, expected_state), label + " full state", actual_state, expected_state)
 			expect(fixture.phase.is_retired() == step.retired, label + " retirement")
 			expect(fixture.phase.has_cessation() == step.cessation, label + " cessation")
 		fixture.close()
@@ -272,7 +283,7 @@ func run() -> void:
 			var expected_elapsed: float = str(step.elapsedBits).hex_decode().decode_double(0)
 			expect(clock.advance(delta), "Valid native frame is accepted")
 			expect(equal(encode(fixture.trace), step.trace), "Native clock preserves original update callbacks")
-			expect(equal(encode(fixture.state), step.state), "Native clock preserves phase state")
+			expect(equal(encode(fixture.state), retained_phase_state(step.state)), "Native clock preserves phase state")
 			expect(clock.elapsed_ms == expected_elapsed and clock.previous_ms == float(step.previous) and clock.frames == int(step.frames), "Fractional frame time and DWORD wrapping agree", clock.elapsed_ms, expected_elapsed)
 			clock_steps += 1
 		var elapsed: float = clock.elapsed_ms
@@ -307,7 +318,7 @@ func run() -> void:
 			var actual := recorded_case(row, group == "control")
 			expect(equal(actual, expected), "Recorded original phase %s/%s" % [group, original_cases], actual, expected)
 			original_cases += 1
-	var report := {"scope": "Native phase lifecycle and frame clock; authored source differential plus retained original-function observations, not fresh live binary profiling or effect/GPU acceptance", "passed": failed_checks == 0, "checks": checks, "cases": oracle.cases.size(), "steps": 2400, "clock_steps": clock_steps, "recorded_original_cases": original_cases, "failed_checks": failed_checks, "failures": failures}
+	var report := {"scope": "Native phase lifecycle and frame clock; authored source differential plus retained original-function observations, not fresh live binary profiling or effect/GPU acceptance", "success":failed_checks==0,"passed": failed_checks == 0, "checks": checks, "cases": oracle.cases.size(), "steps": 2400, "clock_steps": clock_steps, "recorded_original_cases": original_cases, "failed_checks": failed_checks, "failures": failures}
 	var file := FileAccess.open(output, FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	file.close()

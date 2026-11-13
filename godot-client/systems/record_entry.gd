@@ -17,7 +17,7 @@ func setup(sheet, row: Dictionary) -> void:
 	if row.has("value"):
 		var value := Label.new(); value.text = str(int(row.value)); value.mouse_filter = Control.MOUSE_FILTER_IGNORE; line.add_child(value)
 	pressed.connect(func():
-		if current(): owner_sheet.select_entry(entry_id))
+		if current(): owner_sheet.inspect_entry(entry_id))
 
 func current() -> bool: return is_instance_valid(owner_sheet) and owner_sheet.wanted and owner_sheet.view_id == bound_view
 

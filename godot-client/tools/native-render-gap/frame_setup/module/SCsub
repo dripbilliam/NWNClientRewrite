@@ -1,0 +1,5 @@
+#!/usr/bin/env python
+Import("env")
+Import("env_modules")
+env_nwn_frame_probe = env_modules.Clone()
+env_nwn_frame_probe.add_source_files(env.modules_sources, "*.cpp")

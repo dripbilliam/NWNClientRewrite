@@ -1,6 +1,7 @@
 extends PanelContainer
 
 signal request(message: Dictionary)
+var native_skin
 const Text = preload("res://systems/server_text.gd")
 var messages: RichTextLabel
 var system_messages: RichTextLabel
@@ -8,6 +9,8 @@ var entry: LineEdit
 var recipient: LineEdit
 var channel: OptionButton
 var rows: Array[Dictionary] = []
+var history_limit:=200
+var sequence:=0
 
 func setup() -> void:
 	custom_minimum_size = Vector2(520, 260)
@@ -51,6 +54,7 @@ func setup() -> void:
 	entry.text_submitted.connect(submit)
 
 func submit(value: String) -> void:
+	if native_skin!=null: native_skin.submit(value); return
 	if value.strip_edges().is_empty():
 		return
 	var message := {"kind": "chat", "channel": channel.get_selected_id(), "text": value}
@@ -67,7 +71,10 @@ func submit(value: String) -> void:
 	entry.clear()
 	entry.release_focus()
 func prime_tell(name: String) -> void:
+	if native_skin!=null: native_skin.prime_tell(name); return
 	channel.select(0); recipient.hide(); entry.text='/t "'+name+'" '; entry.grab_focus(); entry.caret_column=entry.text.length()
+func prime_player(account: String) -> void:
+	if native_skin!=null: native_skin.prime_player(account)
 
 func reset() -> void:
 	rows.clear()
@@ -77,27 +84,40 @@ func reset() -> void:
 	recipient.clear()
 	channel.select(0)
 	recipient.hide()
+	if native_skin!=null: native_skin.reset()
 
 func append_message(message: Dictionary) -> void:
 	var row := message.duplicate(true)
+	sequence+=1; row.chat_sequence=sequence
+	if not row.has("received_at"): row.received_at=Time.get_time_string_from_system()
 	row["system"] = row.get("system", false) or int(row.get("channel", 0)) in [5, 15]
 	rows.append(row)
 	var indices: Array[int] = []
 	for index in rows.size():
 		if rows[index].system == row.system:
 			indices.append(index)
-	if indices.size() > 200:
+	if indices.size() > history_limit:
 		rows.remove_at(indices[0])
+	if native_skin!=null: native_skin.receive_row(row); return
 	# Rebuild only on a received message; history is bounded independently.
 	messages.clear()
 	system_messages.clear()
 	for item in rows:
 		var target := system_messages if item.system else messages
 		var name: Dictionary = item.get("name", {})
-		if not str(name.get("text", "")).is_empty():
+		if not str(name.get("text", "")).is_empty() or item.get("nativeNameResolved")==true and not item.system:
 			Text.append(target, name, Color(0.65, 0.65, 1.0))
 			Text.append(target, {"text": ": "})
 		var color := str(item.get("color", ""))
 		var fallback := Color.html(color) if color.length() == 7 and color.begins_with("#") and color.substr(1).is_valid_hex_number(false) else Color(0.9, 0.88, 0.78)
 		Text.append(target, item.get("rich", {"text": item.get("text", "")}), fallback)
 		Text.append(target, {"text": "\n"})
+
+func blocks_pointer(point: Vector2) -> bool:
+	return native_skin.blocks_pointer(point) if native_skin!=null else visible and get_global_rect().has_point(point)
+
+func trim_history() -> void:
+	var counts: Dictionary={false:0,true:0}
+	for index in range(rows.size()-1,-1,-1):
+		var system:=bool(rows[index].get("system",false)); counts[system]+=1
+		if int(counts[system])>history_limit: rows.remove_at(index)

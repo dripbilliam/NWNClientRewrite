@@ -1,0 +1,48 @@
+{
+  "sources": [
+    {
+      "file": "src/network_area.js",
+      "sha256": "735b577c3b25f15962bfc651a28242c18f5a1d8d981813021a566fa1e3f5da48"
+    },
+    {
+      "file": "src/network_world.js",
+      "sha256": "81f434acc0c32b4d098ee1b4bd8d37ad8e87e300578f3422a0a6c6b4803094cb"
+    },
+    {
+      "file": "godot-client/systems/native_interaction_policy.gd",
+      "sha256": "868adf39bf0ea7f444080b165adbf676023ccfa728ccc7225e639b59f56894d6"
+    },
+    {
+      "file": "godot-client/systems/native_render/native_scene_visibility.gd",
+      "sha256": "88058dc0e13f7e95368bb701427c7cf34cbbf544990bf0088a47ba13955f599b"
+    },
+    {
+      "file": "godot-client/systems/native_data/asset_service.gd",
+      "sha256": "fd0748a70bd0ebd13a46a9701cbea7f80cddddfcb654c5cda46112699a2c9cb7"
+    },
+    {
+      "file": "godot-client/systems/native_render/creature_stream.gd",
+      "sha256": "eecae3b7deedc24c24b7d0c24dadea2c0cd221703f25b1ecf7def71fc3e4b201"
+    },
+    {
+      "file": "godot-client/systems/native_render/resource_pool.gd",
+      "sha256": "abecc7d402b845c4a3bf9d411e1dcc585bff4f2a020b63fc8c90b0d8b011625f"
+    }
+  ],
+  "provenance": {
+    "decode": "network_area.js60–61 dedicated ClientArea.staticPlaceables",
+    "projection": "network_world.js137 staticState",
+    "nativeCategory": "native_scene_visibility.gd186 excludes native ClientArea static geometry from CNWC live tile notifications",
+    "normalType9": "May be a usable/dynamic placeable; not classified by type alone"
+  },
+  "baseline": {
+    "report": "godot-client/reports/live-walk-test-v2.native.json",
+    "rootAudit": "godot-client/.cache/native-presentation-parity/root/base-world-entry-baseline-v1",
+    "terrainAdmissionMs": 1270.14,
+    "controlledReceivedMs": 5966.821,
+    "playableMs": 6969.592,
+    "cameraBoundMs": 7025.879,
+    "source": "Parent-provided closed-report audit; scheduler conclusions do not attribute all model preparation cost."
+  },
+  "sharedEdits": 0
+}

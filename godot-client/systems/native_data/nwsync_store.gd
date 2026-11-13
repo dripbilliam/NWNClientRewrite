@@ -7,6 +7,7 @@ const SourceCache=preload("res://systems/native_data/source_bytes_cache.gd")
 const Binary=preload("res://systems/native_data/binary_data.gd")
 const Residency=preload("res://systems/native_data/resource_residency.gd")
 const Writes=preload("res://systems/native_data/prepared_write_queue.gd")
+const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 const LIMIT:=256*1024*1024
 const MANIFEST_LIMIT:=64*1024*1024
 var directory:=""
@@ -65,6 +66,7 @@ static func decode_manifest(bytes: PackedByteArray, expected: String) -> Diction
 		var value:=decode_verified_manifest(bytes)
 		return {"value":value,"error":str(value.get("error",""))}).value
 static func decode_verified_manifest(bytes: PackedByteArray) -> Dictionary:
+	if Backend.available(): return Backend.parse("manifest",bytes)
 	var count:=int(bytes.decode_u32(8)); var mappings:=int(bytes.decode_u32(12))
 	if count<1 or count+mappings>1000000 or 16+count*42+mappings*22!=bytes.size(): return {"error":"Invalid native NWSync manifest length"}
 	var entries: Dictionary={}; var base: Array=[]; var sizes: Dictionary={}
@@ -101,6 +103,7 @@ func manifest(hash: String) -> Dictionary:
 		var value:=decode_installed_manifest(bytes)
 		return {"value":value,"error":str(value.get("error",""))}).value
 static func decode_installed_manifest(bytes: PackedByteArray) -> Dictionary:
+	if Backend.available(): return Backend.parse("installed-manifest",bytes)
 	if bytes.size()<4: return {"error":"Invalid installed NWSync catalog"}
 	var count:=int(bytes.decode_u32(0)); var entries: Dictionary={}
 	if count<1 or count>1000000 or bytes.size()!=4+count*58: return {"error":"Invalid installed NWSync catalog length"}

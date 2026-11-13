@@ -3,6 +3,13 @@
 The normal multiplayer launchers now use the **direct native Godot renderer**.
 Normal startup opens **Main Menu**. Choose **Multiplayer** there to open the
 server-selection flow; launching the program does not start a server connection.
+
+Normal launches now keep the previously validated lighting and shared particles
+together in the [gameplay rendering profile](NATIVE-RENDER-LAUNCH-PROFILE.md).
+Run `.\godot-client\join-native.ps1`; `-SharedParticles` remains compatible.
+`-RenderProfile legacy` is the explicit older-rendering diagnostic rollback.
+[Responsiveness correction and diagnostics](NATIVE-UI-RESPONSIVENESS-REGRESSION.md)
+also removes blocking native loopback writes and instruments record selection.
 The [original character picker](NATIVE-CHARACTER-FRONTEND.md) prepares alongside
 Main Menu. Server data updates that stable pregame screen; it does not rebuild
 the frame from gameplay resources after the roster arrives.
@@ -344,6 +351,17 @@ portraits, server tokens and script overhead prompts now pass real local tests;
 see [NATIVE-GAMEPLAY-TEXT.md](NATIVE-GAMEPLAY-TEXT.md). The FPS counter is visible
 immediately and F3 toggles it. `join-local.ps1 -AutoPlay` enters the local server
 with the installed wizard and leaves the preview open.
+
+Ordinary [overhead speech](NATIVE-OVERHEAD-SPEECH.md) now uses the original
+popup/font/timer and shared nameplate behavior, with source/context lifetimes.
+[Server-script floating text](NATIVE-SCRIPT-FLOATING.md) has a separate native
+queue and widget lifetime, model-independent pose anchoring and optional chat
+echo; it no longer uses the legacy combat-digit widget.
+The missing [area-border scenery](NATIVE-AREA-BORDER.md) now uses the original
+`<tileset>_Edge.2da` rules and models through optional native streaming after
+player admission. Original-data and isolated native functional checks pass;
+live visual acceptance for these additions remains pending. These checkpoints
+do not complete the broader UI/gameplay migration.
 
 Right click now opens a native context-action wheel with original icons, deeper
 spell/feat pages, independent use counters and typed targeting. Actual local

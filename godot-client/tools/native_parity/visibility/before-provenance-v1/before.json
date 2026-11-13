@@ -1,0 +1,10 @@
+[
+  {
+    "path": "godot-client/systems/native_render/model_instance.gd",
+    "sha256": "e2f680f732b95d60d9bcb3ed4c86b14fef23535bd5fe1188cbc114cbf0f97339"
+  },
+  {
+    "path": "godot-client/systems/native_render/actor_instance.gd",
+    "sha256": "b6413372a1f93d1e9bbbeda19d774ed5af61ea2fe4d7dc38ffb7c61497c5a723"
+  }
+]

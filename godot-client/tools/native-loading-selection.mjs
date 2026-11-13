@@ -1,3 +1,4 @@
+import {movementEventKinds} from './native-movement-recording.mjs';
 // Select one captured area as a fresh process/cache load. Preserve resource,
 // protocol and persistent server UI state, without replaying earlier worlds.
 export function selectGeneration(records,generation){
@@ -17,6 +18,7 @@ export function selectGeneration(records,generation){
   if(row.kind==='acknowledgement'&&(row.value.connection!==connection||row.value.generation!==generation))continue;
   if(row.kind==='baseline'&&row.value.generation!==generation)continue;
   if(row.kind==='view'&&row.value.connection!==connection)continue;
+  if(movementEventKinds.has(row.kind)&&(row.value.connection!==connection||row.value.generation!==generation))continue;
   selected.push({...row,at:Math.max(0,row.at-origin)});
  }
  return [...seed,...selected].map((row,index)=>({...row,sequence:index+1}));

@@ -1,0 +1,11 @@
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const project=path.resolve(__dirname,'../../..'),stage=path.join(project,'.cache/native-render-gap/engine'),file=path.join(stage,'manifest.json'),m=JSON.parse(fs.readFileSync(file));
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex'),relative='modules/nwn_light_input_registry/light_input_registry.cpp',target=path.join(m.source,relative);
+const old=m.modules.find(p=>p.relative.replaceAll('\\','/')===relative),before=fs.readFileSync(target);
+if(sha(before)!==old.sha256)throw Error('Unexpected module drift');
+const proposal=path.join(project,'.cache/native-render-gap/scene/light-live-b'),proof=path.join(proposal,'manifest.json'),r=JSON.parse(fs.readFileSync(proof));
+const input=path.join(proposal,'engine_module/nwn_light_input_registry/light_input_registry.cpp'),pin=r.outputs.find(p=>path.resolve(p.file)===input),after=fs.readFileSync(input);
+if(!pin||sha(after)!==pin.sha256)throw Error('Corrected sealed module changed');
+const dir=path.join(stage,'upgrade-v4-fix');if(fs.existsSync(dir))throw Error('Existing fix retained');fs.mkdirSync(dir);fs.writeFileSync(path.join(dir,'before.cpp'),before);fs.copyFileSync(file,path.join(dir,'previous-manifest.json'));fs.writeFileSync(target,after);
+old.sha256=sha(after);m.revision='4.1';m.lightReaderProposal={file:proof,sha256:sha(fs.readFileSync(proof))};fs.writeFileSync(file,JSON.stringify(m,null,2)+'\n');fs.writeFileSync(path.join(dir,'receipt.json'),JSON.stringify({success:true,relative,before:sha(before),after:sha(after),reason:'Use deduced pointer type from public GDScript schema accessor; no GDScript core or runtime logic change.'},null,2)+'\n');
+console.log(JSON.stringify({success:true}));

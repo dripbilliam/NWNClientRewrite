@@ -1,0 +1,89 @@
+Current popup settings checkpoint
+
+Canonical settings are owned by the existing ChatOptions/ChatPreferences file
+and chat-hud section: ui.text-bubble-mode is an actual INT 0/1/2 (default 2),
+ui.large-font is an actual BOOL (default true). Message text size remains an
+independent preference. No original profile is opened or migrated.
+
+Gameplay reads both values before configuring speech and shares one settings
+reader with the popup construction registry. Only a change of those two values
+notifies popup presentations. Same-mode or unrelated chat changes do no work.
+
+Each exact scoped popup slot owns one presentation record, including its raw
+current caption, owner-name cache, remaining seconds, forceVisible DWORD128,
+timed/source DWORD144, scene activity and GUI registration. The Registry alone
+ticks a delegated record; the speech State only observes it. Local isolated
+States continue to own their own clock. Hover source flag 0 does not disable an
+otherwise registered timer. Current hover text replaces speech; cache-only
+name publication does not overwrite the current caption or restart time.
+
+Mode changes visit all constructed slots in construction order, including
+inactive and hover slots, and refit the current raw CP1252 C stream up to its
+first NUL. Color bytes, spaces and newlines are retained. Source flag144 is
+preserved, forceVisible128 is reset and remaining seconds use the native f32
+4..12 clamp. Off stops registered clocks and activity. Enabling does not
+activate within the preference callback; a later eligible owner projection may
+activate, respecting the existing panel state and pinned default ToggleOff.
+The pinned global141296dec initializes to1 and has only the two source reads
+documented in the original report. This is not a new configurable preference;
+unproved indirect/external mutation is outside this checkpoint.
+
+Font-only changes rebind the requested dialog font and refresh display metrics
+inside the existing bubble. They do not rerun the fit chooser, rewrap current
+lines, change current raw bytes, resize the bubble or restart time. An initially
+unavailable requested font leaves layout pending; callbacks are weak-view and
+scope/witness fenced and cannot alone make a retired view visible. This does
+not claim exact native lower font shaping or rendered pixel equality.
+
+Expiry uses strict-negative remaining seconds; exactly zero waits for a later
+positive GUI delta. It restores the latest owner cache, clears source flag144
+and stops registration. Native CR-relative color restoration is proven at the
+binary boundary but the target stats+90 received owner is still unknown.
+Only exact bypasses (empty cache, invalid native cache owner, or controlled
+owner itself) publish that cached caption. A remote restoration requiring the
+unmapped provider marks current raw unavailable and cannot revive old speech
+on a later mode change. Neither missing CR, an Examine-only field nor the
+constructor's6.0 value is substituted for received state.
+
+The Gameplay atom also preserves Root's ordinary text/context/native TLK pair
+hooks. Current-family primary/female read success is tracked separately from
+surviving legacy tables: a failed current read cannot publish prior TLK bytes.
+The base pair similarly requires current successful primary and female/known
+absence. Proven literal chat channels use text.raw for the message body;
+localized/native reference receipt paths and name/prefix paths remain separate.
+
+Accepted focused evidence
+
+  .cache/overhead-settings/native-popup-preferences-v2/proof.json
+    46 strict preference/persistence and actual settings-control checks.
+  .cache/overhead-settings/native-popup-caption-state-v4/proof.json
+    224 checks; exact fields against unchanged80 mode +12 font original cases,
+    with current/cache bytes and single-clock lifecycle checks. The immutable
+    oracle's old elapsedBits label mechanically refers to forceVisible128.
+  .cache/overhead-settings/native-popup-hot-settings-v2/proof.json
+    34 checks,668 immutable inputs. Actual embedded Options pointer/keyboard/
+    checkbox -> Gameplay -> Registry/Owner/HUD -> actual Bubble/Nameplate,
+    installed native fonts and popup geometry, controlled raster texture.
+    Authored received rows/scopes and GUI delta; current SessionWorld graph
+    compiled without instantiation. Off/inactive, font no-refit, current hover,
+    cache/expiry, ID reuse, unavailable restoration and idle checks pass.
+
+Preserved rejection
+
+  native-popup-hot-settings-v1 rejected because the new test's manually
+  constructed HUD lacked the root Control normally created by configure.
+  Only that fixture root was corrected for v2; production/assertions stayed.
+
+  .cache/tlk-family-before/native-tlk-family-before-v1/proof.json retains the
+  sealed-before Gameplay20 case: exactly two stale warm-family publication
+  failures, clean engine, all476 prior source inputs unchanged. Current same-
+  fixture after proof and ordinary/log regressions are owned by Root and must
+  be reported separately; this document does not preaccept their result.
+
+All focused gates preserve six native outputs and use the existing engine,
+with no server, key/profile reads, native build, GPU, OS input or user-process
+actions. Historical ordinary/ScriptFloating authority seals remain unchanged.
+Headless functional/layout evidence does not establish new original-server,
+rendered-pixel, native lower activation/font shaping or full CR restoration
+acceptance. See reports/native-popup-hot-settings-checkpoint-v1.json for exact
+source pins, original evidence links and dirty-before backup provenance.

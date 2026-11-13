@@ -20,7 +20,7 @@ var prepared_store:=PreparationStore.new()
 var source_store:=PreparationStore.new()
 var decoder_store=Residency.decoded
 func _init() -> void:
-	prepared_store.maximum_bytes=512*1024*1024; prepared_store.maximum_entries=2048
+	prepared_store.maximum_bytes=Residency.prepared_budget(); prepared_store.maximum_entries=2048
 var bif_store := BifStore.new()
 var bifs: Dictionary = bif_store.entries # Read-only view outside get_resource.
 var stats := {"index_bytes":0,"payload_bytes":0,"reads":0,"lookup_us":0,"lookups":0,"loose_read_us":0,"archive_read_us":0,"bif_index_wait_us":0,"nwsync_read_us":0,"nwsync_wait_us":0,"nwsync_pipe_us":0,"nwsync_decode_us":0,"source_memory_hits":0,"source_coalesced_wait_us":0,"source_requests":0}
@@ -89,12 +89,12 @@ func mount_nwsync(manifest_hash: String, cache_directory: String, native_directo
 	invalidate()
 	layers.sort_custom(func(a,b): return a.priority>b.priority or (a.priority==b.priority and a.serial<b.serial))
 	return true
-func mount_directory(directory: String, priority: int=10000000, types: Array=[]) -> bool:
+func mount_directory(directory: String, priority: int=10000000, types: Array=[],portrait_alias: String="") -> bool:
 	failure=""
 	var reader:=Loose.new(); var index:=reader.scan(directory,types)
 	if not reader.failure.is_empty(): failure=reader.failure; return false
 	if index.entries.is_empty(): return true
-	layers.append({"kind":"loose","priority":priority,"serial":layers.size(),"storage_class":2,"entries":index.entries,"binding_identity":reader.index_identity})
+	layers.append({"kind":"loose","priority":priority,"serial":layers.size(),"storage_class":2,"entries":index.entries,"binding_identity":reader.index_identity,"portrait_alias":portrait_alias})
 	invalidate()
 	layers.sort_custom(func(a,b):return a.priority>b.priority or (a.priority==b.priority and a.serial<b.serial))
 	return true
@@ -131,6 +131,7 @@ func location(name: String, type: int) -> Dictionary:
 	stats.lookup_us+=Time.get_ticks_usec()-began
 	return {}
 func has_resource(name: String, type: int) -> bool: return not location(name, type).is_empty()
+func portrait_files() -> Array: return preload("res://systems/native_data/portrait_resources.gd").files(layers)
 func resource_names(type: int) -> Array:
 	var names: Dictionary={}; var suffix:=":"+str(type)
 	if resolved_ready:

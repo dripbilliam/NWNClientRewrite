@@ -1,0 +1,8 @@
+[configuration]
+entry_symbol = "nwn_drive_numeric_init"
+compatibility_minimum = "4.7.2"
+reloadable = false
+
+[libraries]
+windows.release.x86_64 = "./nwn-drive-numeric.dll"
+windows.debug.x86_64 = "./nwn-drive-numeric.dll"

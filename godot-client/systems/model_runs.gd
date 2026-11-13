@@ -3,8 +3,9 @@ extends RefCounted
 # Gob::PlayAnimation140052580 and the run stage of Animate14004e455.
 # Port of the retained original-derived owners; callbacks keep allocation,
 # physical pose, events and outer scene scheduling explicit.
+static var scalar_values:=preload("res://systems/native_data/scalar_representation.gd").configured()
 static func f(value: float) -> float:
-	return PackedFloat32Array([value])[0]
+	return Color(value,0,0,0).r if scalar_values else PackedFloat32Array([value])[0]
 
 static func lower(value: String) -> String:
 	var result := ""

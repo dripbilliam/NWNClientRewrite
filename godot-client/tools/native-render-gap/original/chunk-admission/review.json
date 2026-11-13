@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "status": "Native/source proof audit. No active particle source changes, compilation or visual performance acceptance performed by this audit.",
+  "originalSha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "nativeRadius": {
+    "address": "0x140061710",
+    "retainedProjection": ".cache/native-render-gap/original/retained-c/bodies/0x140061710.json",
+    "order": "Eligible model controller sampling and CalculateRadius precede ManageSceneBSP emitter admission; DoEmitterBucket particle simulation, creation and child-model placement occur afterward.",
+    "fields": [
+      "source50->model68 classification byte+0x92 bit0: store radius20c=1000 and return",
+      "part world transform via virtual+0x18 gives emitter origin",
+      "target1c0 present: radius is current target distance, separate from chunk handling",
+      "otherwise analytic lifetime/velocity/random velocity/gravity/wind and sprite-size extent bound",
+      "active188 pointer and active count+0x190 only; free130 particles are not scanned",
+      "active particle virtual+0x8 AsChunkyParticle returns null: terminate loop and return current analytic/max bound",
+      "chunk particle childGob+0x78 null: continue without child geometry contribution",
+      "live childGob: radius=max(radius, distance(childGob.position+a8-currentEmitterWorldOrigin)+childGob.minimumSphereRadius178)"
+    ],
+    "limitations": [
+      "Child Gob position is retained current pre-simulation model placement, not a prediction of this frame's new particle position.",
+      "Meaning/scale ownership of child Gob radius178 must be substantiated before replacing live-child fallback with a Godot template radius.",
+      "Original static analysis does not measure native frame cost."
+    ]
+  },
+  "nullResource": {
+    "adapter": "systems/native_render/chunk_models.gd lowercases resource and recognizes exact null, sets no_model=true, performs no resource I/O, and create_model returns null. Nonempty NULL still selects ChunkyParticle semantics.",
+    "freshOriginalInstructionObservations": [
+      "FindModel entry0x140098cd0 initializes RSI=0 at0x140098cf2",
+      "0x140098e5f tests input pointer and branches to zero-return block when absent",
+      "0x140098e68 loads0x140d81fb4; exact PE bytes4e554c4c00 encode NULL followed byNUL",
+      "0x140098e72 calls0x140c9a9fc, named _stricmp in exact original retained Ghidra call metadata",
+      "0x140098e79 equal branch goes to0x140098f5b; RSI zero flows through RBX to returnRAX at0x140098fbd",
+      "Model lookup/resource work begins at0x140098e7f only after the NULL gate"
+    ],
+    "scope": "Bounded read-only PE disassembly and data read; Ghidra remained closed. These are branch observations, not a claimed complete new FindModel dossier."
+  },
+  "currentGap": {
+    "file": "native/particle_resident.hpp",
+    "point": "Owner::frame computes checked only when !chunk, so all670 current chunk emitters skip conservative admission regardless of child presence.",
+    "alreadyPresent": "Control sampling, patches, current native source/pose reads and conservative particle bounds already precede simulation. The missing work is chunk-cohort admission proof, not a missing universal frustum test.",
+    "census": "Root fresh cold actual census:1829 members,670 chunks, no effect-class source flags; resource-name and live-child breakdown pending. This is parent-reported capture evidence, not a source-inferred population."
+  },
+  "safeProofOptions": [
+    {
+      "name": "authoritative_active_children_all_nil",
+      "recommended": true,
+      "precondition": "Compact owner metadata fully accounts for every current active particle and proves no nonnil child model. Any nonnil, stale/freed-looking or unknown child fails the proof and retains existing fallback.",
+      "reason": "Native CalculateRadius also inspects only current active child state before this frame's spawn/initialize callbacks. A future custom createChunkModel result is absent from the original pre-simulation radius too.",
+      "scope": "Do not inspect the free pool; it is excluded by original radius. Do not invoke custom child geometry/radius callbacks during this proof."
+    },
+    {
+      "name": "canonical_null_model_binding",
+      "precondition": "A canonical chunk_models.no_model binding proves children are null. Resource spelling alone does not prove the behavior of arbitrary custom providers.",
+      "reason": "Native FindModel(NULL) returns null; analytic radius has no child contribution.",
+      "scope": "Preserve nonempty chunkName, chunk-particle type, callbacks, recycling and snapshot semantics; never convert NULL into an empty sprite resource."
+    }
+  ],
+  "preserve": [
+    "Keep unknown source classification, point-source wind, target/lightning, invalid/negative lifetime and unsupported bounds on conservative fallback.",
+    "Keep current active/trail padding in the live adapter as a conservative extension; do not shrink existing visible geometry bounds without a separate native-parity proof.",
+    "When any actual live child appears, disable this childless proof for the next pre-simulation admission. Live chunk template bounds require separate resource-specific evidence.",
+    "Keep per-emitter callback and shared RNG order. Culling correctly removes simulation/RNG calls that native admission rejects, so unchanged output is evaluated against native admission semantics rather than assuming the previous always-simulate chunk path was authoritative."
+  ],
+  "requiredCases": [
+    "NULL/empty-active outside and inside analytic bounds",
+    "Case-insensitive NULL resource spelling retains chunk particle type",
+    "All authoritative active children nil, then one child becomes nonnil on an admitted spawn",
+    "Any existing nonnil, stale object or unavailable metadata retains fallback",
+    "Nonnil child only in free pool does not contribute to original active radius",
+    "Custom creator returning geometry: childless admission before creation, fallback after actual child exists",
+    "Scene and source pause/fade/force behavior remains at existing boundaries",
+    "Effect-class radius1000, dynamic channel bounds, unknown/point wind and camera-boundary epsilon safety",
+    "Shared-RNG/callback trace against native admission oracle and production visual checks"
+  ]
+}

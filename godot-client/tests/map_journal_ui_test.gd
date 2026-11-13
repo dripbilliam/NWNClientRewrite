@@ -1,7 +1,6 @@
 extends SceneTree
 const Map = preload("res://systems/server_map.gd")
 const Journal = preload("res://systems/server_journal.gd")
-const Connection = preload("res://systems/local_connection.gd")
 var failures: Array = []
 var checks := 0
 func _initialize() -> void: call_deferred("run")

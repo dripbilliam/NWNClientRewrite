@@ -1,0 +1,11 @@
+{
+  "createdAtUtc": "2026-11-08T09:06:59.570Z",
+  "original": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\systems\\native_render\\model_point_light.gd",
+  "originalSha256": "e803135ef951ea13d3d83267f0d671d2072e2df4d676bdf320a98fd9b4d1b9f6",
+  "candidate": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\model_point_light_candidate.gd",
+  "candidateSha256": "9b699aff90130b0400fad66db544e49b49b86ad89b81437507b902f37daf906d",
+  "originalFallbackBodySha256": "791f331924907af4443eb9360d8f83216bfec68476f1646700f9143f550aa6b3",
+  "oneArgumentPublicApi": true,
+  "unchangedOriginalFallback": true,
+  "sourceOnly": true
+}

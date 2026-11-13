@@ -1,0 +1,974 @@
+{
+  "version": 1,
+  "scope": "Installed base placeable static/controller metadata; selection labels are not visibility classification; no runtime draw/hit test",
+  "keys": [
+    {
+      "name": "data/nwn_retail.key",
+      "sha256": "dc1a96582a44e614bcd55ce42abf119416848ba47a9ef2a8818b227832c7b37a"
+    },
+    {
+      "name": "data/nwn_base.key",
+      "sha256": "09cdafb6dbfb9cdb544993154c514c65ef9fd5be4e0c1b8fd971ed05aff90935"
+    }
+  ],
+  "table": {
+    "name": "placeables",
+    "type": 2017,
+    "bif": "data/base_2da.bif",
+    "resourceIndex": 501,
+    "bytes": 3019695,
+    "sha256": "b772eafec5e6b380ad41e163e2a52585f2ddcec1c5bd7acea230b7e1a618df90",
+    "columns": [
+      "Label",
+      "StrRef",
+      "ModelName",
+      "LightColor",
+      "LightOffsetX",
+      "LightOffsetY",
+      "LightOffsetZ",
+      "SoundAppType",
+      "ShadowSize",
+      "BodyBag",
+      "LowGore",
+      "Reflection",
+      "Static"
+    ],
+    "rowCount": 16500,
+    "candidates": [
+      {
+        "index": 157,
+        "Label": "InvisObj",
+        "StrRef": "5800",
+        "ModelName": "PLC_U02",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "34",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 479,
+        "Label": "InvisObj",
+        "StrRef": "110122",
+        "ModelName": "PLC_INV",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "34",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 520,
+        "Label": "new:Hay block 01",
+        "StrRef": "111042",
+        "ModelName": "tnp_hay_001",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "33",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 526,
+        "Label": "new:Hay block 02",
+        "StrRef": "111048",
+        "ModelName": "tnp_hay_002",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "33",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 818,
+        "Label": "new:Path Finding Blocker",
+        "StrRef": "111341",
+        "ModelName": "pwc_block_01",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "****",
+        "ShadowSize": "****",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "0"
+      },
+      {
+        "index": 15105,
+        "Label": "Invisible Barrier",
+        "StrRef": "****",
+        "ModelName": "dag_bls",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "34",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15106,
+        "Label": "Invisible Ground 4x4",
+        "StrRef": "****",
+        "ModelName": "dag_invground4x4",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "****",
+        "ShadowSize": "****",
+        "BodyBag": "****",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15107,
+        "Label": "Light, Blue",
+        "StrRef": "****",
+        "ModelName": "dag_invisible",
+        "LightColor": "13",
+        "LightOffsetX": "0",
+        "LightOffsetY": "0",
+        "LightOffsetZ": "0",
+        "SoundAppType": "****",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15108,
+        "Label": "Light, Green",
+        "StrRef": "****",
+        "ModelName": "dag_invisible",
+        "LightColor": "9",
+        "LightOffsetX": "0",
+        "LightOffsetY": "0",
+        "LightOffsetZ": "0",
+        "SoundAppType": "****",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15109,
+        "Label": "Light, Orange",
+        "StrRef": "****",
+        "ModelName": "dag_invisible",
+        "LightColor": "29",
+        "LightOffsetX": "0",
+        "LightOffsetY": "0",
+        "LightOffsetZ": "0",
+        "SoundAppType": "****",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15110,
+        "Label": "Light, Purple",
+        "StrRef": "****",
+        "ModelName": "dag_invisible",
+        "LightColor": "17",
+        "LightOffsetX": "0",
+        "LightOffsetY": "0",
+        "LightOffsetZ": "0",
+        "SoundAppType": "****",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15111,
+        "Label": "Light, Red",
+        "StrRef": "****",
+        "ModelName": "dag_invisible",
+        "LightColor": "25",
+        "LightOffsetX": "0",
+        "LightOffsetY": "0",
+        "LightOffsetZ": "0",
+        "SoundAppType": "****",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15112,
+        "Label": "Light, White",
+        "StrRef": "****",
+        "ModelName": "dag_invisible",
+        "LightColor": "1",
+        "LightOffsetX": "0",
+        "LightOffsetY": "0",
+        "LightOffsetZ": "0",
+        "SoundAppType": "****",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15113,
+        "Label": "Light, Yellow",
+        "StrRef": "****",
+        "ModelName": "dag_invisible",
+        "LightColor": "5",
+        "LightOffsetX": "0",
+        "LightOffsetY": "0",
+        "LightOffsetZ": "0",
+        "SoundAppType": "****",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15199,
+        "Label": "Stone Block 1",
+        "StrRef": "****",
+        "ModelName": "dag_blk",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "26",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15200,
+        "Label": "Stone Block Top 1",
+        "StrRef": "****",
+        "ModelName": "dag_bkt",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "26",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      },
+      {
+        "index": 15201,
+        "Label": "Stone Block Trap",
+        "StrRef": "****",
+        "ModelName": "dag_bl2",
+        "LightColor": "****",
+        "LightOffsetX": "****",
+        "LightOffsetY": "****",
+        "LightOffsetZ": "****",
+        "SoundAppType": "26",
+        "ShadowSize": "1",
+        "BodyBag": "0",
+        "LowGore": "****",
+        "Reflection": "****",
+        "Static": "1"
+      }
+    ]
+  },
+  "models": [
+    {
+      "name": "plc_u02",
+      "type": 2002,
+      "bif": "data/models_02.bif",
+      "resourceIndex": 4668,
+      "bytes": 2940,
+      "sha256": "ee21e9c8ddca96c9c7e7e5b81ea2c340c22a7067c1507390c5b77b5fd3e5442d",
+      "tableRows": [
+        {
+          "index": 157,
+          "Label": "InvisObj",
+          "StrRef": "5800",
+          "ModelName": "PLC_U02",
+          "LightColor": "****",
+          "LightOffsetX": "****",
+          "LightOffsetY": "****",
+          "LightOffsetZ": "****",
+          "SoundAppType": "34",
+          "ShadowSize": "1",
+          "BodyBag": "0",
+          "LowGore": "****",
+          "Reflection": "****",
+          "Static": "1"
+        },
+        {
+          "index": 327,
+          "Label": "CorpseObj",
+          "StrRef": "8900",
+          "ModelName": "PLC_U02",
+          "LightColor": "****",
+          "LightOffsetX": "****",
+          "LightOffsetY": "****",
+          "LightOffsetZ": "****",
+          "SoundAppType": "33",
+          "ShadowSize": "1",
+          "BodyBag": "0",
+          "LowGore": "****",
+          "Reflection": "****",
+          "Static": "1"
+        }
+      ],
+      "format": "Binary MDL",
+      "classificationFlags": 0,
+      "supermodel": "NULL",
+      "unsupportedAnimations": [],
+      "records": [
+        {
+          "index": 0,
+          "name": "PLC_U02",
+          "parent": -1,
+          "flags": 1,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": null,
+          "alphaTracks": []
+        },
+        {
+          "index": 1,
+          "name": "Rectangle13",
+          "parent": 0,
+          "flags": 33,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": {
+            "renderRaw": 0,
+            "shadowRaw": 0,
+            "tilefadeRaw": 0,
+            "transparencyHint": 0,
+            "bounds": {
+              "min": [
+                -0.30000001192092896,
+                -0.30000001192092896,
+                0
+              ],
+              "max": [
+                0.30000001192092896,
+                0.30000001192092896,
+                0.1770000010728836
+              ]
+            },
+            "bitmap": "",
+            "textures": [],
+            "vertices": 20,
+            "faces": 10,
+            "sourceOffsets": {
+              "render": 600,
+              "tilefade": 868,
+              "bounds": 512
+            }
+          },
+          "alphaTracks": []
+        },
+        {
+          "index": 2,
+          "name": "U02_hand",
+          "parent": 0,
+          "flags": 1,
+          "position": [
+            0.003984369803220034,
+            -0.5051950216293335,
+            0.9344019889831543
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": null,
+          "alphaTracks": []
+        },
+        {
+          "index": 3,
+          "name": "U02_head",
+          "parent": 0,
+          "flags": 1,
+          "position": [
+            0.003984369803220034,
+            0.010825200006365776,
+            1.2100199460983276
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": null,
+          "alphaTracks": []
+        },
+        {
+          "index": 4,
+          "name": "U02_head_hit",
+          "parent": 0,
+          "flags": 1,
+          "position": [
+            0.003984369803220034,
+            0.010825200006365776,
+            0.5338979959487915
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": null,
+          "alphaTracks": []
+        },
+        {
+          "index": 5,
+          "name": "U02_impact",
+          "parent": 0,
+          "flags": 1,
+          "position": [
+            0.003984369803220034,
+            0.011001000180840492,
+            0.250216007232666
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": null,
+          "alphaTracks": []
+        },
+        {
+          "index": 6,
+          "name": "U02_ground",
+          "parent": 0,
+          "flags": 1,
+          "position": [
+            -0.003632809966802597,
+            0.006987299770116806,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": null,
+          "alphaTracks": []
+        }
+      ],
+      "animations": []
+    },
+    {
+      "name": "plc_inv",
+      "type": 2002,
+      "bif": "data/xp2_models.bif",
+      "resourceIndex": 322,
+      "bytes": 2248,
+      "sha256": "82fd8a0fe3fea9cd988dd2cb2b3b6e8b93da75b3da8526f06f2e767b5d423d93",
+      "tableRows": [
+        {
+          "index": 479,
+          "Label": "InvisObj",
+          "StrRef": "110122",
+          "ModelName": "PLC_INV",
+          "LightColor": "****",
+          "LightOffsetX": "****",
+          "LightOffsetY": "****",
+          "LightOffsetZ": "****",
+          "SoundAppType": "34",
+          "ShadowSize": "1",
+          "BodyBag": "0",
+          "LowGore": "****",
+          "Reflection": "****",
+          "Static": "1"
+        }
+      ],
+      "format": "Binary MDL",
+      "classificationFlags": 4,
+      "supermodel": "NULL",
+      "unsupportedAnimations": [],
+      "records": [
+        {
+          "index": 0,
+          "name": "PLC_INV",
+          "parent": -1,
+          "flags": 1,
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": null,
+          "alphaTracks": []
+        },
+        {
+          "index": 1,
+          "name": "Box01",
+          "parent": 0,
+          "flags": 33,
+          "position": [
+            0.003795060096308589,
+            0.00759002985432744,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": {
+            "renderRaw": 0,
+            "shadowRaw": 0,
+            "tilefadeRaw": 0,
+            "transparencyHint": 0,
+            "bounds": {
+              "min": [
+                -0.75,
+                -0.75,
+                0
+              ],
+              "max": [
+                0.75,
+                0.75,
+                1.5
+              ]
+            },
+            "bitmap": "",
+            "textures": [],
+            "vertices": 24,
+            "faces": 12,
+            "sourceOffsets": {
+              "render": 580,
+              "tilefade": 848,
+              "bounds": 492
+            }
+          },
+          "alphaTracks": []
+        }
+      ],
+      "animations": []
+    },
+    {
+      "name": "pwc_block_01",
+      "type": 2002,
+      "bif": "data/xp3.bif",
+      "resourceIndex": 4526,
+      "bytes": 4252,
+      "sha256": "d82528dca8952e3a2190df956f7692ebac957f8914f56fd574916aaadab90089",
+      "tableRows": [
+        {
+          "index": 818,
+          "Label": "new:Path Finding Blocker",
+          "StrRef": "111341",
+          "ModelName": "pwc_block_01",
+          "LightColor": "****",
+          "LightOffsetX": "****",
+          "LightOffsetY": "****",
+          "LightOffsetZ": "****",
+          "SoundAppType": "****",
+          "ShadowSize": "****",
+          "BodyBag": "0",
+          "LowGore": "****",
+          "Reflection": "****",
+          "Static": "0"
+        }
+      ],
+      "format": "ASCII MDL",
+      "classificationFlags": null,
+      "supermodel": "NULL",
+      "unsupportedAnimations": [],
+      "records": [
+        {
+          "index": 0,
+          "name": "pwc_block_01",
+          "parent": "NULL",
+          "kind": "dummy",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "orientation": [
+            0,
+            0,
+            1,
+            0
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": null,
+          "alphaTracks": []
+        },
+        {
+          "index": 1,
+          "name": "grabme_05",
+          "parent": "pwc_block_01",
+          "kind": "trimesh",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "orientation": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": {
+            "renderRaw": 0,
+            "tilefadeRaw": 0,
+            "tilefadeDefaultIfAbsent": 0,
+            "transparencyHint": 0,
+            "bitmap": "NULL",
+            "vertices": 8,
+            "faces": 10,
+            "rawProperties": {
+              "wirecolor": [
+                0.65098,
+                0.898039,
+                0.898039
+              ],
+              "tilefade": 0,
+              "scale": 1,
+              "render": 0,
+              "shadow": 0,
+              "beaming": 0,
+              "inheritcolor": 0,
+              "rotatetexture": 0,
+              "alpha": 1,
+              "transparencyhint": 0,
+              "selfillumcolor": [
+                0,
+                0,
+                0
+              ],
+              "diffuse": [
+                1,
+                1,
+                1
+              ],
+              "specular": [
+                0,
+                0,
+                0
+              ],
+              "center": [
+                0,
+                0,
+                25
+              ],
+              "verts": 8,
+              "faces": 10,
+              "tverts": 12
+            }
+          },
+          "alphaTracks": []
+        },
+        {
+          "index": 2,
+          "name": "visible",
+          "parent": "pwc_block_01",
+          "kind": "trimesh",
+          "position": [
+            0,
+            0,
+            0.05
+          ],
+          "orientation": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "scale": 1,
+          "staticAlpha": 1,
+          "mesh": {
+            "renderRaw": 1,
+            "tilefadeRaw": 0,
+            "tilefadeDefaultIfAbsent": 0,
+            "transparencyHint": 0,
+            "bitmap": "twc03_books",
+            "vertices": 4,
+            "faces": 2,
+            "rawProperties": {
+              "wirecolor": [
+                0.890196,
+                0.596078,
+                0.596078
+              ],
+              "tilefade": 0,
+              "scale": 1,
+              "render": 1,
+              "shadow": 0,
+              "beaming": 0,
+              "inheritcolor": 0,
+              "rotatetexture": 0,
+              "alpha": 1,
+              "transparencyhint": 0,
+              "selfillumcolor": [
+                0,
+                0,
+                0
+              ],
+              "diffuse": [
+                0.862745,
+                0.862745,
+                0.862745
+              ],
+              "specular": [
+                0,
+                0,
+                0
+              ],
+              "center": [
+                0,
+                0,
+                0
+              ],
+              "ambient": [
+                0.862745,
+                0.862745,
+                0.862745
+              ],
+              "shininess": 10,
+              "verts": 4,
+              "faces": 2,
+              "tverts": 4
+            }
+          },
+          "alphaTracks": []
+        }
+      ],
+      "animations": [
+        {
+          "name": "default",
+          "length": 0.0333333,
+          "transition": 0.25,
+          "tracks": [
+            {
+              "node": "visible",
+              "property": "position",
+              "interpolation": "linear",
+              "frames": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0.05
+                  ]
+                },
+                {
+                  "time": 0.0333333,
+                  "value": [
+                    0,
+                    0,
+                    0.05
+                  ]
+                }
+              ]
+            },
+            {
+              "node": "visible",
+              "property": "orientation",
+              "interpolation": "slerp",
+              "frames": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "time": 0.0333333,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "on",
+          "length": 0.0333333,
+          "transition": 0.25,
+          "tracks": [
+            {
+              "node": "visible",
+              "property": "position",
+              "interpolation": "linear",
+              "frames": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0.05
+                  ]
+                },
+                {
+                  "time": 0.0333333,
+                  "value": [
+                    0,
+                    0,
+                    0.05
+                  ]
+                }
+              ]
+            },
+            {
+              "node": "visible",
+              "property": "orientation",
+              "interpolation": "slerp",
+              "frames": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "time": 0.0333333,
+                  "value": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "off",
+          "length": 0.0333333,
+          "transition": 0.25,
+          "tracks": [
+            {
+              "node": "visible",
+              "property": "position",
+              "interpolation": "linear",
+              "frames": [
+                {
+                  "time": 0,
+                  "value": [
+                    0,
+                    0,
+                    -10.95
+                  ]
+                },
+                {
+                  "time": 0.0333333,
+                  "value": [
+                    0,
+                    0,
+                    -10.95
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

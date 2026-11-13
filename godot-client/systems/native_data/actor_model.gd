@@ -1,9 +1,11 @@
 extends RefCounted
+const SOURCE_DECODER:="mdl-actor-packed-ascii-native-v5"
 # Original MDL geometry plus original clips, controller storage and skin arrays.
 # Data only: safe on workers. Physical node order is retained for bone slots.
 const Binary=preload("res://systems/native_data/binary_data.gd")
 const BinaryModel=preload("res://systems/native_data/binary_model.gd")
 const AsciiModel=preload("res://systems/native_data/ascii_model.gd")
+const AsciiNative=preload("res://systems/native_data/ascii_native_animation.gd")
 const Emitter=preload("res://systems/native_data/emitter_data.gd")
 const PackedKeys=preload("res://systems/native_data/packed_animation_keys.gd")
 var packed_keys:=false
@@ -40,6 +42,7 @@ func parse(bytes: PackedByteArray) -> Dictionary:
 		if not parser.failure.is_empty(): reject(parser.failure); return {}
 		ascii_skins(text,model,parser.source_nodes)
 		model.animations=ascii_animations(text)
+		model.native_ascii_preparation=AsciiNative.new().prepare(text,model,parser.source_nodes)
 		if parser.source_nodes.any(func(node):return node.kind=="animmesh"):
 			var decoder:=preload("res://systems/native_data/animated_mesh.gd").new(); decoder.ascii_tracks(text,model,parser.source_nodes)
 			if not decoder.failure.is_empty(): reject(decoder.failure); return {}
@@ -396,6 +399,12 @@ func rig_asset(model: Dictionary) -> Dictionary:
 	if not native.is_empty(): result.nativeAnimation=native
 	return result
 func native_animation(model: Dictionary) -> Dictionary:
+	if model.has("native_ascii_preparation"):
+		var prepared: Dictionary=model.native_ascii_preparation
+		if prepared.get("available",false):return prepared.value
+		var unavailable: Dictionary={}
+		for clip in model.animations:unavailable[clip.name]={"unavailable":str(prepared.get("reason","Native ASCII controller preparation unavailable"))}
+		return {"version":1,"root":-1,"parts":[],"clips":unavailable,"emitterFields":Emitter.FIELDS}
 	# Preserve original binary controller storage/IDs and physical child order.
 	# ASCII and inherited-clip native run reconstruction remain separate work.
 	var parts: Array=[]

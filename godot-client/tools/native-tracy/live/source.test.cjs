@@ -1,0 +1,62 @@
+'use strict';
+// Bounded JavaScript/filesystem checks. No subprocess, game, settings or large data.
+const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto'), vm = require('node:vm'), assert = require('node:assert/strict');
+const { one, runtimeSource, hostSource, manualArguments } = require('./source.cjs');
+const project = path.resolve(__dirname, '../../..'), sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+const label = process.argv[2] || 'a'; assert(/^[a-z0-9-]+$/.test(label));
+const out = path.join(project, '.cache/native-tracy/live-source-check-' + label); assert(!fs.existsSync(out)); fs.mkdirSync(out, { recursive: true });
+let checks = 0; const ok = callback => { callback(); checks++; }; const rejected = callback => ok(() => assert.throws(callback));
+async function rejectAsync(callback) { await assert.rejects(callback); checks++; }
+async function main() {
+ const accepted = JSON.parse(fs.readFileSync(path.join(project, '.tools/native-core/accepted-core-d.json')));
+ const config = { out, view: path.join(out, 'project'), run: 'source-fixture', userdata: path.join(out, 'working-settings'), appdata: path.join(out, 'working-appdata'), localappdata: path.join(out, 'working-localappdata'), engineRelative: '.tools/native-tracy/test-engine.exe', descriptorRelative: '.tools/native-tracy/runtime.json' };
+ config.engineLaunch = path.join(config.view, config.engineRelative);
+ const binary = Buffer.from('engine-fixture'), native = Buffer.from('dll-fixture');
+ const descriptor = { engineSha256: sha(binary), engineBytes: binary.length, nativeKernelSha256: sha(native), originalGameAssetsPacked: false, fullFunctionalFlags: accepted.fullFunctionalFlags, tracing: { onDemand: true }, acceptedReference: { production: false }, engineBuildProof: { fixtureOnly: true } };
+ const descriptorData = Buffer.from(JSON.stringify(descriptor)), descriptorHash = sha(descriptorData);
+ const helperSource = runtimeSource(fs.readFileSync(path.join(project, 'tools/native-performance-runtime.cjs'), 'utf8'), descriptor, descriptorHash, config);
+ const hostOriginal = fs.readFileSync(path.join(project, 'tools/native-session-host.cjs'), 'utf8'); const host = hostSource(hostOriginal, config);
+ ok(() => new vm.Script(helperSource)); ok(() => new vm.Script(host));
+ rejected(() => one('none', 'missing', 'new')); rejected(() => one('xx', 'x', 'new'));
+ rejected(() => hostSource(hostOriginal.replace('const performanceOptions=', 'const changedOptions='), config));
+ ok(() => assert(host.includes('const runtimeSelection=await privateTracyRuntime.selectPerformanceRuntime(' + JSON.stringify(config.view))));
+ ok(() => assert(!host.includes("const runtimeSelection=(await require('./native-performance-runtime.cjs')")));
+ ok(() => assert(host.includes("...(engineRuntime==='editor'?['--path'," + JSON.stringify(config.view))));
+ ok(() => assert(host.includes('featureManifest.createStartupManifest({run,project:' + JSON.stringify(config.view))));
+ for (const guard of ["message.kind!=='hello'||message.token!==token", 'featureManifest.verifyNativeObservation(startupFeatureManifest,message.runtimeFeatures)', "send({kind:'finish-ack'})", 'browser=new ServerBrowserService']) ok(() => assert(host.includes(guard)));
+ ok(() => assert.equal((host.match(/native=spawn\(launch,launchArgs/g) || []).length, 1));
+ ok(() => assert(!fs.readFileSync(path.join(__dirname, 'host-preload.cjs'), 'utf8').includes('child_process')));
+ for (const file of ['source.cjs', 'prepare.cjs', 'materialize.cjs', 'verify.cjs', 'bootstrap-preload.cjs', 'host-preload.cjs']) ok(() => new vm.Script(fs.readFileSync(path.join(__dirname, file), 'utf8'), { filename: file }));
+ ok(() => assert.deepEqual(manualArguments('foo'), ['--run=foo', '--public-servers', '--detailed-profiling=off'])); rejected(() => manualArguments('bad space'));
+ const mayLink = require('./storage-policy.cjs').mayLink;
+ ok(() => assert.equal(mayLink({ relative: '.cache/native-kernel/nwn-particle-kernel.dll', sha256: descriptor.nativeKernelSha256 }), false));
+ ok(() => assert.equal(mayLink({ relative: 'native/particle_presentation.hpp', sha256: 'a'.repeat(64) }), false));
+ function put(relative, bytes) { const file = path.join(config.view, relative); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, bytes); return file; }
+ const engineFile = put(config.engineRelative, binary), nativeFile = put('.cache/native-kernel/nwn-particle-kernel.dll', native), descriptorFile = put(config.descriptorRelative, descriptorData);
+ put('project.godot', Buffer.from('fixture')); const globalCache = put('.godot/global_script_class_cache.cfg', Buffer.from('fixture'));
+ const helperFile = put('tools/native-performance-runtime.cjs', Buffer.from(helperSource)), helper = require(helperFile);
+ const normal = require(path.join(project, 'tools/native-client-flags.cjs')).resolvePerformanceOptions(['--detailed-profiling=off'], { env: {} });
+ const nativeBefore = [...normal.nativeArguments], requestedBefore = JSON.stringify(normal.requested);
+ ok(() => assert.equal(normal.renderCore.flags.length, 16)); helper.decorateOptions(normal); checks++;
+ ok(() => assert.deepEqual(normal.nativeArguments, nativeBefore)); ok(() => assert.equal(JSON.stringify(normal.requested), requestedBefore));
+ ok(() => assert.equal(normal.renderCore.engineSha256, descriptor.engineSha256)); ok(() => assert.equal(normal.renderCore.nativeKernelSha256, descriptor.nativeKernelSha256));
+ ok(() => assert.equal(normal.renderCore.policy, 'private-tracy-diagnostic')); ok(() => assert.equal(normal.renderCore.diagnosticTrace.performanceAccepted, false));
+ rejected(() => helper.decorateOptions({ ...normal, runtime: 'standard' })); rejected(() => helper.decorateOptions({ ...normal, renderCore: { ...normal.renderCore, typed: false } })); rejected(() => helper.decorateOptions({ ...normal, renderCore: { ...normal.renderCore, flags: [] } }));
+ const runtime = await helper.selectPerformanceRuntime(config.view, 'verified-native'); checks++;
+ ok(() => assert.equal(runtime.kind, 'private-tracy-diagnostic')); ok(() => assert.equal(runtime.executable, engineFile)); ok(() => assert.equal(runtime.executableSha256, descriptor.engineSha256));
+ ok(() => assert.equal(runtime.expectedCapabilities.length, 6)); ok(() => assert.equal(runtime.selectionEvidence.referenceEngineDescriptor.relative, config.descriptorRelative));
+ ok(() => assert.equal(runtime.selectionEvidence.revision, 'private-tracy-source-equivalent-d'));
+ ok(() => assert.equal(runtime.selectionEvidence.sourceClosure.fixtureOnly, true));
+ await rejectAsync(() => helper.selectPerformanceRuntime(config.view, 'unknown'));
+ ok(() => assert.equal(helper.acceptedRenderCore().nativeKernelSha256, descriptor.nativeKernelSha256));
+ fs.writeFileSync(nativeFile, 'wrong'); await rejectAsync(() => helper.selectPerformanceRuntime(config.view, 'verified-native')); fs.writeFileSync(nativeFile, native);
+ fs.writeFileSync(engineFile, Buffer.alloc(binary.length, 0)); await rejectAsync(() => helper.selectPerformanceRuntime(config.view, 'verified-native')); fs.writeFileSync(engineFile, binary);
+ fs.writeFileSync(descriptorFile, '{}'); await rejectAsync(() => helper.selectPerformanceRuntime(config.view, 'verified-native')); fs.writeFileSync(descriptorFile, descriptorData);
+ fs.renameSync(globalCache, globalCache + '.saved'); await rejectAsync(() => helper.selectPerformanceRuntime(config.view, 'verified-native')); fs.renameSync(globalCache + '.saved', globalCache);
+ helper.recordNativeSpawn({ pid: 123 }); checks++;
+ const spawnProof = JSON.parse(fs.readFileSync(path.join(out, 'native-start.json')));
+ ok(() => assert.equal(spawnProof.engine, engineFile)); ok(() => assert.equal(spawnProof.pid, 123)); ok(() => assert.equal(spawnProof.performanceAccepted, false)); ok(() => assert.equal(spawnProof.diagnosticOnly, true));
+ const receipt = { version: 1, success: true, checks, scope: 'Pure JavaScript/source transforms plus tiny fake-binary hash checks using actual transformed runtime helper. No native/runtime/parser/capture/visual/performance or settings acceptance.', nativeStarts: 0, compilerStarts: 0, realBinariesHashed: 0, publicConnections: 0, files: fs.readdirSync(__dirname).filter(name => /\.(cjs|ps1|txt)$/.test(name)).map(name => { const file = path.join(__dirname, name), data = fs.readFileSync(file); return { file, sha256: sha(data), bytes: data.length }; }) };
+ const file = path.join(out, 'receipt.json'); fs.writeFileSync(file, JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx' }); console.log(JSON.stringify({ file, sha256: sha(fs.readFileSync(file)), checks, nativeStarts: 0 }));
+}
+main().catch(error => { fs.writeFileSync(path.join(out, 'failure.json'), JSON.stringify({ error: error.message, checks, nativeStarts: 0 }, null, 2)); console.error(error); process.exitCode = 1; });

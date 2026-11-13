@@ -1,0 +1,15 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+const here=path.dirname(fileURLToPath(import.meta.url)),project=path.resolve(here,'../../..'),label=process.argv[2];if(!/^[a-z0-9-]+$/.test(label??''))throw Error('Project label required');
+const stage=path.join(project,'.cache/native-render-gap/particles',label),receipt=JSON.parse(fs.readFileSync(path.join(stage,'project-receipt.json'))),engine=path.join(project,'.cache/native-render-gap/engine/build-1794129649064/godot.windows.template_release.x86_64.exe'),output=path.join(stage,'focused');
+if(fs.existsSync(output))throw Error('Previous test evidence retained');fs.mkdirSync(output);
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex');if(hash(fs.readFileSync(engine))!=='fa5151fdda9a0c6a62802a150fa459406ddc885c8084a7b6df343e4a63f3bbe0')throw Error('Engine pin mismatch');
+for(const pin of receipt.pins)if(hash(fs.readFileSync(path.join(receipt.project,pin.relative)))!==pin.sha256)throw Error('Changed project input '+pin.relative);
+const selected=process.argv[3]?receipt.scripts.filter(script=>script===process.argv[3]):receipt.scripts;if(!selected.length)throw Error('Unknown selected fixture');
+const rows=[];outer:for(const mode of ['legacy','native'])for(const script of selected){
+ const name=mode+'-'+path.basename(script,'.gd'),report=path.join(output,name+'.json'),log=path.join(output,name+'.engine.log');
+ const child=spawnSync(engine,['--headless','--path',receipt.project,'--log-file',log,'--script','res://tests/'+script,'--','--particle-scene-boundary='+mode,'--report='+report],{cwd:receipt.project,windowsHide:true,encoding:'utf8',timeout:20000,maxBuffer:2*1024*1024});
+ fs.writeFileSync(path.join(output,name+'.stdout.log'),child.stdout??'');fs.writeFileSync(path.join(output,name+'.stderr.log'),child.stderr??'');
+ const text=[child.stdout,child.stderr,fs.existsSync(log)?fs.readFileSync(log,'utf8'):''].join('\n');const errors=text.split(/\r?\n/).filter(line=>/SCRIPT ERROR|Parse Error|(?:^|\s)ERROR:|WARNING:|ObjectDB.*leak|resources still in use|CrashHandler|Unhandled exception/.test(line));let value;try{value=JSON.parse(fs.readFileSync(report));}catch{}
+ const row={mode,script,exit:child.status,error:child.error?.message??null,success:child.status===0&&!child.error&&!errors.length&&value?.success===true,checks:value?.checks??0,failures:value?.failures??[],errors};rows.push(row);console.log(JSON.stringify(row));if(!row.success)break outer;
+}
+const summary={success:rows.length===2*selected.length&&rows.every(row=>row.success),checks:rows.reduce((sum,row)=>sum+row.checks,0),rows,engineSha256:hash(fs.readFileSync(engine)),binarySha256:receipt.binary.sha256,graphicalProcesses:0,serverConnections:0,scope:'Focused functional state/geometry/order/RNG/callback/lifetime oracles, not performance/visual acceptance'};fs.writeFileSync(path.join(output,'summary.json'),JSON.stringify(summary,null,2)+'\n');if(!summary.success)process.exitCode=1;

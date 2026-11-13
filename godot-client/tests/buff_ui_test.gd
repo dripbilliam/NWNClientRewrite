@@ -67,4 +67,4 @@ func run() -> void:
 	first = null; bar.reset(); await process_frame; await process_frame
 	check(bar.buttons.is_empty() and bar.images.is_empty() and bar.retired_alive() == 0, "Connection reset releases native status buttons and images")
 	bar.free(); world.free(); layer.free(); lobby.free(); await process_frame
-	var file := FileAccess.open(output, FileAccess.WRITE); file.store_string(JSON.stringify({"checks":checks,"passed":failures.is_empty(),"failures":failures},"\t")); file.close(); quit(0 if failures.is_empty() else 1)
+	var file := FileAccess.open(output, FileAccess.WRITE); file.store_string(JSON.stringify({"checks":checks,"passed":failures.is_empty(),"success":failures.is_empty(),"failures":failures},"\t")); file.close(); quit(0 if failures.is_empty() else 1)

@@ -1,4 +1,6 @@
 extends Control
+signal effect_selected(effect_id: int)
+var native_skin
 # Passive status presentation. Buttons only pin a tooltip; no gameplay packet.
 const Images = preload("res://systems/runtime_image.gd")
 var view_id := -1
@@ -26,12 +28,14 @@ func setup() -> void:
 	tip_text = Label.new(); tip_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tip_text.mouse_filter = Control.MOUSE_FILTER_IGNORE; tip_text.add_theme_color_override("font_color", Color("f0e5c5")); tip_text.add_theme_color_override("font_shadow_color", Color.BLACK); tip_text.add_theme_constant_override("shadow_offset_x", 1); tip_text.add_theme_constant_override("shadow_offset_y", 1); tip.add_child(tip_text)
 	get_viewport().size_changed.connect(place); reset()
 func reset() -> void:
+	if native_skin!=null: native_skin.reset(); return
 	if not buttons.is_empty() or not images.is_empty(): retired = (buttons.values() + images.values()).map(func(value): return weakref(value))
 	view_id = -1; actor_id = -1; staged.clear(); rows.clear(); images.clear(); hide_tip()
 	for button in buttons.values(): grid.remove_child(button); button.queue_free()
 	buttons.clear(); hide()
 func retired_alive() -> int: return retired.filter(func(value): return value.get_ref() != null).size()
 func receive(message: Dictionary) -> void:
+	if native_skin!=null: native_skin.receive(message); return
 	match message.kind:
 		"buff-begin": staged = {"id":int(message.viewId),"actor":int(message.actorId),"count":int(message.count),"rows":[]}
 		"buff-rows":
@@ -90,6 +94,7 @@ func hide_tip() -> void:
 	hovered = -1; pinned = false; pinned_id = -1
 	if is_instance_valid(tip): tip.hide()
 func blocks_pointer(point: Vector2) -> bool:
+	if native_skin!=null: return native_skin.blocks_pointer(point)
 	if not visible: return false
 	if scroll.get_v_scroll_bar().visible and scroll.get_v_scroll_bar().get_global_rect().has_point(point): return true
 	return buttons.values().any(func(button): return scroll.get_global_rect().has_point(point) and button.get_global_rect().has_point(point))

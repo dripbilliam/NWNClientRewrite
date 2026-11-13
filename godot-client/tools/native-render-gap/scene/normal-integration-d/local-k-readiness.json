@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "case": "k",
+  "prepared": false,
+  "serverStarted": false,
+  "nativeStarted": false,
+  "requiredOrder": [
+    "Root completes normal C/D matched graphical acceptance and reviewed promotion",
+    "node godot-client/tools/native-render-gap/scene/normal-integration-d/prepare-local-d.cjs k",
+    "pwsh -NoProfile -File godot-client/tools/native-render-gap/scene/normal-integration-d/start-local-server-d.ps1 -Config godot-client/.cache/native-render-gap/original/local-authority/k/config.json",
+    "Read owned PID from k/server-start-receipt.json",
+    "pwsh -NoProfile -File godot-client/.cache/native-render-gap/original/local-authority/k/source/run.ps1 -Config godot-client/.cache/native-render-gap/original/local-authority/k/config.json -ServerPid <ownedPID>",
+    "Root stops only owned local test server after the client/harness closes"
+  ],
+  "expectedOutputs": [
+    ".cache/native-render-gap/original/local-authority/k/config.json",
+    ".cache/native-render-gap/original/local-authority/k/server-start-receipt.json",
+    ".cache/native-render-gap/original/local-authority/k/launcher.json",
+    ".cache/native-render-gap/original/local-authority/k/frontend-progress.json",
+    ".cache/native-render-gap/original/local-authority/k/normal-policy-proof.json",
+    ".cache/native-render-gap/original/local-authority/k/acceptance.json"
+  ],
+  "provenance": "prepare-local-d copies the exact four frozen j harness/runtime source files and substitutes only a fresh D policy verifier. Expected ordered flags, engine and DLL are derived from the sealed selected runtime artifact; no hardcoded12/14/16/17 count.",
+  "authority": "Existing client choice and public frontend IPC on owned Prelude/127.0.0.1 only. Stable native PID/creation/executable, exact loaded DLL/resource hashes, original profile/preference hashes, server-received and native-presented movement with matching connection/generation/area/lifetime, clean finish/ack, nonprimary unfocused no-activate presentation.",
+  "scope": "Source readiness only. Frozen C j case and sources are unchanged; no server or client may start until root releases the test slot after promotion. No public traffic or FPS claim."
+}

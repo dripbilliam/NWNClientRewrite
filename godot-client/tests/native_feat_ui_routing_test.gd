@@ -8,6 +8,13 @@ class Text extends RefCounted:
 	func name(_value: Variant,_id: int) -> String: return "Authored actor"
 class Ui extends RefCounted:
 	var text:=Text.new()
+	var tables_ready:=true
+	var hud_ready:=false
+	var inventory:=Inventory.new()
+class Inventory extends RefCounted:
+	var item_context:=ItemContext.new()
+class ItemContext extends RefCounted:
+	func cancel() -> void:pass
 class Art extends Node:
 	func bind(_target: Object,_resource: String,_property: String="texture",_model: bool=false,_clip: String="up",_portrait: bool=false) -> void: pass
 	func close() -> void: pass
@@ -25,6 +32,8 @@ func feat_rows() -> Array:
 	return rows
 func open_ability(desktop,target: int) -> void:
 	desktop.open_radial({"id":target,"position":Vector3(1,0,2)},Vector2(600,350)); desktop.radial.choose(6)
+	for index in desktop.radial_entries:
+		if desktop.radial_entries[index].get("menu",{}).get("kind","")=="class-abilities":desktop.radial.choose(int(index));break
 	var slot:=-1
 	for index in desktop.radial_entries:
 		if desktop.radial_entries[index].has("children") and desktop.radial_entries[index].label=="TLK 1002": slot=int(index); break
@@ -36,10 +45,12 @@ func run() -> void:
 		if arg.begins_with("--report="): output=arg.substr(9)
 	if output.is_empty() or FileAccess.file_exists(output): quit(2); return
 	var desktop:=Desktop.new(); root.add_child(desktop); desktop.actor_id=99; desktop.area_id=42; desktop.generation=1; desktop.owner_ui=Ui.new(); desktop.rules.text=desktop.owner_ui.text; desktop.feat_rules.rules=desktop.rules
+	desktop.ability_rules.rules=desktop.rules;desktop.ability_rules.feats=desktop.feat_rules;desktop.spell_rules.rules=desktop.rules;desktop.spell_rules.abilities=desktop.ability_rules
 	desktop.art=Art.new(); desktop.add_child(desktop.art); desktop.radial=Radial.new(); desktop.add_child(desktop.radial); desktop.radial.request.connect(desktop.input_request)
 	desktop.target_prompt=Label.new(); desktop.add_child(desktop.target_prompt); desktop.target_prompt.hide()
 	desktop.owner_ui.text.tables={"feat":{"orderedRows":feat_rows()},"spells":{"orderedRows":[{"Name":2000,"SubRadSpell1":99,"SubRadSpell2":1},{"Name":2001,"FeatID":Feats.signed32((65001<<16)|25),"IconResRef":"server_child","TargetType":1}]},"skills":{"orderedRows":[]}}
 	desktop.objects={99:{"id":99,"objectType":5,"replicated":{},"playerState":{"feats":[2,5,17,23,28,39],"featUses":{"2":3,"39":2}}},100:{"id":100,"objectType":5,"replicated":{}}}
+	desktop.owner_ui.text.tables.classes={"orderedRows":[{"Name":3000,"FeatsTable":"fixture_feats"}]};desktop.owner_ui.text.tables.fixture_feats={"orderedRows":[{"FeatIndex":2,"OnMenu":1},{"FeatIndex":5,"OnMenu":1}]};desktop.objects[99].replicated.stats={"classes":[{"id":0,"level":1}]}
 	desktop.request.connect(func(message):sent.append(message))
 	open_ability(desktop,100)
 	check(desktop.radial_entries.has(1) and not desktop.radial_entries.has(0),"Live family retains a physical missing-child hole")
@@ -51,7 +62,11 @@ func run() -> void:
 	open_ability(desktop,100)
 	check(desktop.radial_entries[1].disabled,"Received target-self metadata disables a family leaf on another creature")
 	desktop.radial.choose(1); check(sent.size()==2,"A disabled family leaf cannot dispatch a native request")
-	desktop.objects[99].playerState.featUses["2"]=0; desktop.shortcut_menu(4,Vector2(600,350)); desktop.radial.choose(2)
+	desktop.quick_bindings=[]
+	for index in 36:desktop.quick_bindings.append({"type":0})
+	desktop.objects[99].playerState.featUses["2"]=0; desktop.shortcut_menu(4,Vector2(600,350)); desktop.radial.choose(6)
+	for slot in desktop.radial_entries:
+		if desktop.radial_entries[slot].get("menu",{}).get("kind","")=="class-abilities":desktop.radial.choose(int(slot));break
 	var family:=-1
 	for slot in desktop.radial_entries:
 		if desktop.radial_entries[slot].label=="TLK 1002": family=int(slot); break

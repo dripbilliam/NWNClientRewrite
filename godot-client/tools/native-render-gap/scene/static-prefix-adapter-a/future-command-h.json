@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "status": "SOURCE_ONLY_FUTURE_COMMAND_NOT_EXECUTED",
+  "source": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\cursor_extension_h.cpp",
+    "sha256": "150b296aa697230471bcf6ebf414d9d38eb59a28c143acdacf46e99407c0c6a3"
+  },
+  "contract": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\source-contract-h.json",
+    "sha256": "864dcb69b72623c2ce3ba2b450586cb760cfcd6a33a9fe3c6eb6e91d52dca9ea"
+  },
+  "buildRecipe": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\build-private-h.ps1",
+    "sha256": "b0a66408b93c634d49289b87017043d43b3ccb3ebdc00414849fd21df16db55f"
+  },
+  "futureBuild": {
+    "executable": "pwsh",
+    "arguments": [
+      "-NoProfile",
+      "-File",
+      "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\build-private-h.ps1",
+      "-Label",
+      "h-source-a",
+      "-Build"
+    ],
+    "slotOwner": "Root exclusively controls compiler/native scheduling"
+  },
+  "futureCapsule": "Requires a fresh candidate manifest explicitly pinning H; older G/F prerequisites must not silently select H. Unknown future DLL/build-receipt hashes are not invented.",
+  "nativeStarts": 0,
+  "compilerStarts": 0
+}

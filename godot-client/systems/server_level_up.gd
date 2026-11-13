@@ -1,6 +1,8 @@
 extends "res://systems/draggable_panel.gd"
 
 signal request(message: Dictionary)
+signal presentation_reset
+signal source_reopen
 var wanted := false
 var view_id := -1
 var state: Dictionary = {}
@@ -17,6 +19,8 @@ var finish: Button
 var cancel: Button
 var positions: Dictionary = {}
 var waiting := false
+var source_active:=false
+var request_serial:=0
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Level Up", "level-up", Vector2(100, 70), storage)
@@ -42,16 +46,22 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	reset()
 
 func reset() -> void:
-	wanted = false; view_id = -1; waiting = false; state.clear(); positions.clear(); clear_body(); hide()
+	wanted = false; view_id = -1; waiting = false; source_active=false;request_serial+=1;state.clear(); positions.clear(); clear_body(); hide();presentation_reset.emit()
 
 func clear_body() -> void:
 	inputs.clear(); controls.clear()
 	for child in body.get_children(): body.remove_child(child); child.queue_free()
 
 func open() -> void:
+	if wanted and source_active:source_reopen.emit();return
 	if wanted: show(); move_to_front(); return
-	wanted = true; show(); move_to_front(); status.text = "Requesting server level-up choices…"
+	wanted = true;request_serial+=1; show(); move_to_front(); status.text = "Requesting server level-up choices…"
 	request.emit({"kind": "level-open"})
+
+func activate_source(value: bool) -> void:
+	source_active=value
+	if value:hide()
+	elif wanted:show();move_to_front()
 
 func text_values() -> Array:
 	var result: Array = []

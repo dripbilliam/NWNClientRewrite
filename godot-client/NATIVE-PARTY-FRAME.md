@@ -79,7 +79,10 @@ observations; it is not acceptance evidence.
 
 ## Remaining gaps
 
-Full party/HUD parity is **false**. Member locator/status/leader indicators,
+Full party/HUD parity is **false**. The [state/leader follow-up](NATIVE-PARTY-INDICATORS.md)
+connects original member-state artwork and the shared leader crest, with820
+scoped headless checks and independent original instruction observations.
+Their complete original-client visual/input acceptance is still open. Member locator,
 associate/DM/possession behavior, original roster
 ordering/disclosure, viewport inset settings, all name/font/tooltip/state/input
 variants and original-client visual/input comparison remain open. The current

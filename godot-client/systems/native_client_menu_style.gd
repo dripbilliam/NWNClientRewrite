@@ -61,7 +61,7 @@ static func picker_theme() -> Theme:
 			result.set_color("font_color",variant,Color("19150f") if primary else PICKER_IVORY); result.set_color("font_disabled_color",variant,Color("727a7e")); result.set_font_size("font_size",variant,16)
 	return result
 func configure(painter) -> void:
-	frame=painter; current=base_theme(); frame.art.loaded.connect(art_loaded); frame.fonts.loaded.connect(font_loaded)
+	frame=painter; frame.art.loaded.connect(art_loaded); frame.fonts.loaded.connect(font_loaded)
 	frame.fonts.request(FONT)
 	for clip in ["up","hilite","down"]: keys[frame.art.request_model(SPECS.button,clip)]="button:"+clip
 	for clip in ["up","hilite","down"]: keys[frame.art.request_model(SPECS.close,clip)]="close:"+clip

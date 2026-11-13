@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NativeMessageReader} from '../src/native_message.js';
+import {NativeMessageReader,NativeMessageWriter} from '../src/native_message.js';
 import {readObjectUpdates} from '../src/network_object_updates.js';
 import {networkAttackAnimationRecords} from '../src/network_attack_animation.js';
 import {ClientAnimationQueue} from '../src/client_animation_queue.js';
@@ -45,6 +45,49 @@ test('identical attack groups remain distinct events; failed imports publish no 
  const q=new ClientAnimationQueue(7200000);for(const e of [first,second])q.insert({animation:200,duration:e.records[0].duration,speed:1,record:e.records[0]},{day:7,time:100});assert.equal(q.count,2);
  const before=structuredClone(actor);assert.throws(()=>world.apply({kind:'object-updates',records:[...d.records,{action:'create',objectType:10,id:actor.id,state:{}}]}),/Conflicting/);assert.deepEqual(actor,before);assert.equal(world.presentationChanges[0],second);assert.deepEqual(d,source);
  world.apply({kind:'object-updates',records:[{action:'update',id:actor.id,objectType:5,state:{position:[1,2,3]}}]});assert.deepEqual(world.presentationChanges.filter(e=>e.action==='attack-animation'),[]);assert.equal(world.presentationChanges[0].action,'movement');assert.deepEqual(actor.replicated.position,[1,2,3]);
+});
+
+test('native creation discloses an attacking creature without an attack group',()=>{
+ for(const format of [0,1]){
+  const w=new NativeMessageWriter(format);w.create(128,0xffffffff,1);w.setPrefix(new Uint8Array([0x70,5,1]));
+  w.writeType(4);w.writeByte(65,8,0); // CHAR A, not a BYTE type tag.
+  w.writeByte(5);w.writeObjectIdServer(0x00fedcba);
+  for(const value of [1,2,3,0,1,0])w.writeFloat(value);
+  w.writeWord(9);w.writeInt(0);w.writeInt(0); // Initial WORD + empty transform maps.
+  const bytes=w.getWriteMessage().data.subarray(3),errors=[],r=new NativeMessageReader(format,{diagnose:e=>errors.push(e)});
+  assert.equal(r.setReadMessage(bytes,bytes.length,0xffffffff,1),1);
+  const records=readObjectUpdates(r,{clientBuild:{number:8193,revision:37,postfix:17}});
+  assert.equal(records.complete,true);assert.equal(records.records.length,1);
+  const created=records.records[0];assert.equal(created.action,'create');assert.equal(created.state.animation,9);
+  assert.equal(Object.hasOwn(created.state,'attacks'),false);
+  assert.equal(r.messageReadOverflow(),0);assert.equal(r.messageReadUnderflow(),0);assert.deepEqual(errors,[]);
+  const world=new NetworkWorld({onDiagnostic:d=>assert.fail(JSON.stringify(d))});
+  assert.doesNotThrow(()=>world.apply({kind:'object-updates',...records}));
+  const actor=world.registry.get(created.id);assert.equal(actor.replicated.animation,9);
+  assert.equal(Object.hasOwn(actor.replicated,'attacks'),false);
+  assert.deepEqual(world.presentationChanges.map(e=>e.action),['movement']);
+  assert.equal(world.presentationChanges[0].created,true);
+  // A later real U/9 contains its own group; creation must not suppress it.
+  const fixture=load('native-network-attack-record-observations').cases.find(c=>c.case.present&&c.case.groups.length===3&&c.case.format===format);
+  assert.ok(fixture);const updateReader=new NativeMessageReader(format),updateBytes=Buffer.from(fixture.packet,'hex').subarray(3);
+  updateReader.setReadMessage(updateBytes,updateBytes.length,0xffffffff,1);
+  world.apply({kind:'object-updates',...readObjectUpdates(updateReader,{clientBuild:{number:8193,revision:37,postfix:17}})});
+  assert.deepEqual(world.presentationChanges[0].records,fixture.calls[0].records);
+  assert.equal(world.registry.get(created.id),actor);
+ }
+});
+
+test('attack update groups retain the native two-bit bound and atomic rejection',()=>{
+ const world=new NetworkWorld({onDiagnostic:()=>{}}),id=0x80fedcba;
+ world.apply({kind:'object-updates',records:[{action:'create',id,objectType:5,state:{animation:0,position:[1,2,3]}}]});
+ const actor=world.registry.get(id),before=structuredClone(actor),events=world.presentationChanges;
+ for(const attacks of [undefined,null,[{},{},{},{}]]){
+  assert.throws(()=>world.apply({kind:'object-updates',records:[{action:'update',id,objectType:5,state:{animation:9,animationTime:1,attacks}}]}),/Native attack animation group is invalid/);
+  assert.deepEqual(actor,before);assert.equal(world.presentationChanges,events);
+ }
+ world.apply({kind:'object-updates',records:[{action:'update',id,objectType:5,state:{animation:9,animationTime:1,attacks:[]}}]});
+ assert.deepEqual(world.presentationChanges[0].records,networkAttackAnimationRecords(id,[]));
+ assert.equal(world.presentationChanges[0].records[0].type,0);
 });
 
 test('60 original queue sequences verify stable ordering, pointer duplication, growth, removal and exact FLOAT timing',()=>{

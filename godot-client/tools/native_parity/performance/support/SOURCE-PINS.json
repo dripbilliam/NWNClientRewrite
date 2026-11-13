@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "relative": "authority.json",
+      "bytes": 5131,
+      "sha256": "9f4f49fa0adec8757abe4b27ec1364c77793b0e953b77c1065513c295bdaff95"
+    },
+    {
+      "relative": "check_support.mjs",
+      "bytes": 10849,
+      "sha256": "e9c537420af4b02e5bb8746d8d75aba479efdbd3f03c422cd9971d720e46babd"
+    },
+    {
+      "relative": "fixtures/missing_kernel_test.gd",
+      "bytes": 1823,
+      "sha256": "2f225f8b172f3fb91b542c7ddec808533b0a80696cd941c9381f0e086de23e23"
+    },
+    {
+      "relative": "fixtures/setup_error_test.gd",
+      "bytes": 2252,
+      "sha256": "2ba0c1ac433d8b984247e0d2bb8f299cf9e3e7366375b618982bfa1863f30d83"
+    },
+    {
+      "relative": "fixtures/support_unmasked_test.gd",
+      "bytes": 9994,
+      "sha256": "9ee35964fba291391792fb971b42539b29d2940f5aab6ecd121e681dcf57a5b4"
+    },
+    {
+      "relative": "README.md",
+      "bytes": 3883,
+      "sha256": "46d14ef88f9a2c9a9f1fbc0b094dca38f42f8137c68d3a8a96f7801bb9fb1560"
+    },
+    {
+      "relative": "reference/native_support_triangle.gd",
+      "bytes": 3529,
+      "sha256": "139d780ec402ceef9af16b2e5eba3e0402ff93b671b790839782e84878818ff4"
+    },
+    {
+      "relative": "reference/scene_geometry.gd",
+      "bytes": 3500,
+      "sha256": "1ba547bf77c7ef2e6babdec1c327accfdbb2fda7395466cc6f893cbd58a2123c"
+    },
+    {
+      "relative": "shared-dll-source-audit.json",
+      "bytes": 1763,
+      "sha256": "a97509fd798bbd6e800c55c237a59f879bfd5b4a59d6284e5b5b035ea7db1ebc"
+    }
+  ],
+  "validation": {
+    "relative": ".cache/native-presentation-parity/loading-agent/support-durable-runner-stage-v1/runner-validation.json",
+    "sha256": "559139348d247a3ea2c157aebe0ae26e2013c1374c0a43ec6c167ebde246d5e0",
+    "nodeChecks": 13,
+    "engineStarts": 0,
+    "fixtureReruns": 0
+  },
+  "acceptedPriorBehaviorChecks": 216,
+  "scope": "Durable relocation and runner validation only; approved copiedDLL672. Current shared b3f remains unexecuted.",
+  "newFilesOnly": true,
+  "engineStarts": 0,
+  "nativeBuilds": 0,
+  "gpuTests": 0,
+  "sharedExistingSourceEdits": 0,
+  "liveSessionTouched": false
+}

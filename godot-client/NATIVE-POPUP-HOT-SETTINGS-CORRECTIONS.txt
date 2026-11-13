@@ -1,0 +1,59 @@
+Popup hot settings: reviewed clock and visual-publication corrections
+
+The first scoped checkpoint and its successful34 checks remain unchanged.
+Read-only review found two additional paths not covered by that fixture.
+
+1. A delayed native speech body may become ready after the Owner has already
+   added the current GUI delta to request.elapsed. Transferring that record to
+   the later Registry callback must not tick the same delta again. Every such
+   elapsed update now records the actual Engine process frame on the pending
+   request, including pre-firstscope requests. ANY later same-frame resolution
+   propagates it to the shared record. The Registry skips that accounted delta
+   once in the matching frame and clears the bookkeeping marker. Fresh text
+   or an actual mode refit clears it; font/cache-only changes preserve it.
+   accountedGuiFrame is local handoff bookkeeping, not a claimed native field,
+   second timer, packet value or gameplay authority.
+
+2. Enabling an inactive popup while its model/head anchor is unavailable used
+   to lose its one-shot projection request. Eligible popup IDs now wait in a
+   bounded exact-witness/scope set without ongoing idle processing. The actual
+   NativeLiveWorld instance-ready/state-changed path stamps the visual first,
+   then calls Gameplay.popup_visual_ready(id,visual_source,visual_scope) only
+   for the accepted local connection/generation/area tuple. Gameplay forwards
+   to the speech Owner, which validates both the current received source and
+   the supplied visual source against the event's exact lifetime. It attempts
+   synchronization once. Off, hidden, unknown-current-raw, removed, reused or
+   retired sources cannot activate; scope closure clears candidates. No extra
+   world/entity registry or per-frame world scan was added.
+
+Current focused evidence, all clean engine/source/copy/six-output guards:
+
+  .cache/overhead-settings/native-popup-handoff-v2/proof.json
+    17 checks /40 inputs: actual native TLK receipt -> actual Owner/Registry,
+    revision/source/visual callback handoffs, next-frame tick, font/cache
+    preservation, fresh text/mode reset, dormant exact visual wake, stale
+    scope/lifetime rejection and ID reuse. Passive view; authored GUI delta,
+    row and scope. No original-server or native lower projection claim.
+
+  .cache/overhead-settings/native-popup-hot-settings-v3/proof.json
+    Current34 checks /668 inputs, including current SessionWorld/LiveWorld
+    compile. Actual settings controls, Gameplay/Registry/Owner/HUD and real
+    passive popup views/fonts; same limitations as the first checkpoint.
+
+  .cache/overhead-settings/native-popup-caption-state-v5/proof.json
+    Current224 checks /7 inputs against the same unchanged original92 mode/
+    font cases and raw current/cache/single-clock lifecycle cases.
+
+The first handoff fixture was rejected because its authored localized11
+reference omitted the mandatory wire gender0. The strict receipt rejected it;
+no producer assertion was relaxed. Only the authored packet gained gender0.
+Evidence remains at native-popup-handoff-v1. The9 original hotsettings producer
+preimages and the4 pre-correction producer preimages remain separately backed.
+
+Root owns the independent actual NativeLiveWorld publication test and ordinary/
+received-HUD regression run. Their results are separate from these focused
+proofs and are not preaccepted here. All shared sources remain frozen after
+this handoff. No new server, key/profile access, GPU, native build, OS input or
+user-process action is part of these corrections. Native lower activation/font
+shaping, rendered pixels and unmapped remote CR-relative restoration remain
+outside the accepted scope.

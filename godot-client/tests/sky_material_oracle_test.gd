@@ -38,6 +38,6 @@ func run() -> void:
 		if delta > .005: failures.append({"case":c,"nativeColor":call.value,"actual":[a.r,a.g,a.b],"expected":[b.r,b.g,b.b],"delta":delta})
 		if c.sky == 1 and c.fade == 0 and row.calls.filter(func(v):return v.kind == "blend" and v.value.map(func(n):return int(n)) == [0,1]).size() != 1: failures.append({"case":c,"missing":"Native normal-alpha blend request"})
 	host.free();await process_frame;await process_frame
-	var file := FileAccess.open(output,FileAccess.WRITE);file.store_string(JSON.stringify({"passed":failures.is_empty() and cases == 24,"nativeCases":cases,"maximumPixelDelta":maximum,"failures":failures,"scope":"Actual production sky shader vs standard materials using original instruction color/alpha outputs; synthetic geometry, no complete native GPU parity claim"},"\t"));file.close()
+	var file := FileAccess.open(output,FileAccess.WRITE);file.store_string(JSON.stringify({"success":failures.is_empty() and cases == 24,"passed":failures.is_empty() and cases == 24,"checks":cases,"nativeCases":cases,"maximumPixelDelta":maximum,"failures":failures,"scope":"Actual production sky shader vs standard materials using original instruction color/alpha outputs; synthetic geometry, no complete native GPU parity claim"},"\t"));file.close()
 	print("SKY_MATERIAL_ORACLE ",cases," cases; ",failures.size()," failures")
 	quit(0 if failures.is_empty() and cases == 24 else 1)

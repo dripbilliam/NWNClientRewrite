@@ -12,14 +12,18 @@ var last_save: Dictionary={}
 var path_publication:=not OS.get_cmdline_user_args().has("--prepared-cache-lock=global")
 static func configured_writes_enabled() -> bool: return not OS.get_cmdline_user_args().has("--prepared-cache-write=disabled")
 func configure(path: String) -> bool:
-	failure = ""
+	failure = ""; directory = ""
 	var resolved := ProjectSettings.globalize_path(path).replace("\\","/").simplify_path().trim_suffix("/")
 	var source := ProjectSettings.globalize_path("res://").replace("\\","/").simplify_path().trim_suffix("/")
 	if source.get_file() == "godot-client": source = source.get_base_dir()
 	if not resolved.is_absolute_path() or resolved == source or resolved.begins_with(source + "/"):
 		failure = "Prepared assets must remain outside the source workspace"; return false
-	if DirAccess.make_dir_recursive_absolute(resolved) != OK: failure = "Native prepared cache is unavailable"; return false
+	# Decoders configure a cache per resource. A warm directory needs one lookup,
+	# not a recursive create/check of every ancestor for every resource.
+	if not DirAccess.dir_exists_absolute(resolved) and not create_directory(resolved): failure = "Native prepared cache is unavailable"; return false
 	directory = resolved; return true
+func create_directory(path: String) -> bool:
+	return DirAccess.make_dir_recursive_absolute(path)==OK and DirAccess.dir_exists_absolute(path)
 static func digest(bytes: PackedByteArray) -> String:
 	var context := HashingContext.new(); context.start(HashingContext.HASH_SHA256)
 	if not bytes.is_empty(): context.update(bytes)
@@ -87,6 +91,10 @@ func save_data(identity: String, source_sha: String, decoder: String, value: Dic
 	var temporary := path + "." + str(OS.get_process_id()) + "-" + str(OS.get_thread_caller_id()) + "-" + str(Time.get_ticks_usec()) + ".tmp"
 	began=Time.get_ticks_usec()
 	var file := FileAccess.open(temporary,FileAccess.WRITE)
+	# A configured directory can be removed externally. Recover only on a failed
+	# open of a missing directory, with one bounded retry of the same temp file.
+	if file==null and not DirAccess.dir_exists_absolute(directory) and create_directory(directory):
+		file=FileAccess.open(temporary,FileAccess.WRITE)
 	if file == null: failure = "Cannot write prepared native data"; return false
 	file.store_buffer("NWNC".to_ascii_buffer()); file.store_32(1); file.store_64(payload.size()); file.store_buffer(checksum); file.store_buffer(payload)
 	last_save.write_ms=(Time.get_ticks_usec()-began)/1000.0; began=Time.get_ticks_usec(); file.flush(); last_save.flush_ms=(Time.get_ticks_usec()-began)/1000.0

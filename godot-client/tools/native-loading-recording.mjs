@@ -1,6 +1,6 @@
 import {Worker} from 'node:worker_threads';
 import {performance} from 'node:perf_hooks';
-export const frameKinds=new Set(['session-reset','setup','raw-world-begin','raw-world-chunk','raw-world-end','movement','raw-visual-events','raw-combat-events','raw-voice-events','raw-script-sounds','ui-protocol']);
+export const frameKinds=new Set(['session-reset','setup','raw-world-begin','raw-world-chunk','raw-world-end','movement','drive-ack','native-clock-protocol','raw-visual-events','raw-combat-events','raw-voice-events','raw-script-sounds','ui-protocol']);
 export const ackKinds=new Set(['catalog-ready','area-ready','raw-world-accepted']);
 export function ackKey(value){return JSON.stringify([value.kind,value.connection??0,value.generation??null,value.serial??null]);}
 export class NativeLoadingRecording {

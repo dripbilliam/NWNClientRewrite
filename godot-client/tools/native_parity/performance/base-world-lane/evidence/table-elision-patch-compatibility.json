@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "patchSha": "76bf1b8cbf047a1bb20227198a0e5e00221969a6792a168896acb002a9dc35d5",
+  "probes": [
+    {
+      "label": "main",
+      "before": "468701de3e538a4971232100e846588d8177ae00c1e3ec77b267e600b738c56d",
+      "after": "926332c074203cd817422292c6ec1c4126020e7093aca041a97dc08cf8abe6be",
+      "restored": "468701de3e538a4971232100e846588d8177ae00c1e3ec77b267e600b738c56d",
+      "exact": true
+    },
+    {
+      "label": "capsule",
+      "before": "cbda1ecac5a3c7604bf2bb8c46e00489ebac041a00c2343bd47843a4479bb305",
+      "after": "4e8ec504c42f9eac7fdda8f27e57ba85b6104d0e404261358a89090ff5522f14",
+      "restored": "cbda1ecac5a3c7604bf2bb8c46e00489ebac041a00c2343bd47843a4479bb305",
+      "exact": true
+    }
+  ],
+  "frozenRootPortChanged": false
+}

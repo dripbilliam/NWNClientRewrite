@@ -3,6 +3,8 @@ const Service=preload("res://systems/native_data/asset_service.gd")
 const Ancestors=preload("res://systems/native_data/ancestor_preparation.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
 const Recorded=preload("res://systems/native_data/recorded_catalog.gd")
+const SourceParser=preload("res://systems/native_data/actor_model.gd")
+const SourceStore=preload("res://systems/native_data/preparation_store.gd")
 class SlowSource:
 	extends RefCounted
 	func decode(_bytes: PackedByteArray,_type: int,_decoder: String,_cache_path: String,_store) -> Dictionary:
@@ -10,7 +12,7 @@ class SlowSource:
 class SlowService:
 	extends Service
 	func decode(bytes: PackedByteArray,type: int,decoder: String,cache_path: String,store=null,immutable_source: bool=false) -> Dictionary:
-		if decoder=="mdl-actor-packed-v3" and bytes.get_string_from_ascii().begins_with("newmodel grandparent"): OS.delay_msec(80)
+		if decoder==SourceParser.SOURCE_DECODER and bytes.get_string_from_ascii().begins_with("newmodel grandparent"): OS.delay_msec(80)
 		return super.decode(bytes,type,decoder,cache_path,store,immutable_source)
 func authored(name: String,parent: String="") -> String:
 	return model().replace("authored",name).replace("beginmodelgeom",("setsupermodel "+name+" "+parent+"\n" if not parent.is_empty() else "")+"beginmodelgeom")
@@ -36,6 +38,15 @@ func run() -> void:
 	write(folder.path_join("root.mdl"),authored("root","parent")); write(folder.path_join("parent.mdl"),authored("parent","grandparent")); write(folder.path_join("grandparent.mdl"),authored("grandparent"))
 	var result:=compare(folder,"root","Valid three-level chain")
 	check(result.ancestor_preparation.jobs_started==mini(2,Ancestors.configured_share()) and result.ancestor_preparation.sources.size()==mini(2,Ancestors.configured_share()),"Actual production path starts and joins its configured bounded source share")
+	var isolated:=Catalog.new(); isolated.mount_directory(folder); isolated.decoder_store=SourceStore.new(); result=prepare(isolated,"root",true)
+	check(result.error.is_empty() and isolated.decoder_store.snapshot().entries==3,"Helper and authoritative actor decoding share exactly one residency identity per source")
+	var service:=Service.new(); root.add_child(service); var source: PackedByteArray=isolated.get_resource("root",2002)
+	var source_first:=service.decode(source,2002,SourceParser.SOURCE_DECODER,"",isolated.decoder_store); source_first.value.name="private changed name"; source_first.value.animations.clear()
+	var source_next:=service.decode(source,2002,SourceParser.SOURCE_DECODER,"",isolated.decoder_store)
+	check(source_next.error.is_empty() and source_next.memory_decode_hit and source_next.value.name=="root","Current source decoder retains private model headers on a resident hit")
+	source_first.value.animations.append({"name":"private clip"})
+	check(not source_next.value.animations.any(func(clip):return clip.name=="private clip"),"Private animation containers never mutate another instance or cached source")
+	service.close(); service.free()
 	write(folder.path_join("parent.mdl"),authored("parent","root")); compare(folder,"root","Supermodel cycle")
 	write(folder.path_join("parent.mdl"),"bad model"); compare(folder,"root","Malformed parent")
 	write(folder.path_join("root.mdl"),authored("root","absent")); compare(folder,"root","Missing parent")

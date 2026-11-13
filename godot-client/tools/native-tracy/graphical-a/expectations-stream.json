@@ -1,0 +1,19 @@
+{
+  "cpuZones": [
+    { "name": "Main::iteration", "minimumEvents": 80 },
+    { "name": "NWNCapture/Particles/frame", "minimumEvents": 80 },
+    { "name": "NWNCapture/Particles/advance_batch", "minimumEvents": 80 },
+    { "name": "NWNCapture/Particles/geometry_batch", "minimumEvents": 80 },
+    { "name": "NWNCapture/Particles/render_submit", "minimumEvents": 80 },
+    { "name": "NWNCapture/Particles/render_draw", "minimumEvents": 80 },
+    { "name": "NWNCapture/Render/draw_cpu", "minimumEvents": 80 }
+  ],
+  "minimumCPUThreads": 2,
+  "minimumSpanSeconds": 4,
+  "maximumSpanSeconds": 20,
+  "differentThreadZones": [
+    [ "NWNCapture/Particles/render_submit", "NWNCapture/Particles/render_draw" ],
+    [ "Main::iteration", "NWNCapture/Render/draw_cpu" ]
+  ],
+  "gpu": { "required": false }
+}

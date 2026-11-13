@@ -1,6 +1,8 @@
 extends "res://tests/native_particle_simulation_test.gd"
 const Channels=preload("res://systems/native_render/particle_channels.gd")
 const FIELDS=preload("res://systems/native_render/particle_emitter.gd").FIELDS
+var compact_records:=false
+var typed_frame:=false
 func channel_asset() -> Dictionary:
 	var word:=PackedByteArray(); word.resize(4); word.encode_u32(0,0x3f800001)
 	var vector_pool:=PackedFloat32Array([0,1])
@@ -17,7 +19,7 @@ func test_channels() -> void:
 		var source:=make_owner(false,"fountain",32,false,false)
 		var resident: RefCounted=ClassDB.instantiate("NwnParticleOwner")
 		var parameters:={"birthrate":99.0,"fps":10.0}
-		var configured: Dictionary=resident.call("dispatch",0,{"state":source.state,"parameters":parameters,"clips":gd.clips,"update":"fountain","cacheConstants":cached},{})
+		var configured: Dictionary=resident.call("dispatch",0,{"state":source.state,"parameters":parameters,"clips":gd.clips,"update":"fountain","cacheConstants":cached,"compactRecords":compact_records,"typedEmitter":typed_frame},{})
 		check(not configured.has("error"),"Native channels compile lazily, including unused malformed storage")
 		for clip in ["constant","linear","bezier","empty","missing","constant"]:
 			for time in [-10.0,-0.001,0.0,0.2,0.5,1.0,2.0,100.0]:
@@ -54,6 +56,8 @@ func run() -> void:
 		var pair:=arg.trim_prefix("--").split("=",true,1)
 		if pair.size()==2: args[pair[0]]=pair[1]
 	if not args.has("report") or FileAccess.file_exists(args.report): quit(2); return
+	compact_records=args.get("particle-records","")=="compact"
+	typed_frame=args.get("particle-emitter","")=="typed"
 	check(Kernel.available() and ClassDB.class_exists("NwnParticleOwner"),"Resident RefCounted native owner loads")
 	test_channels()
 	for kind in ["fountain","explosion","single"]:
@@ -64,7 +68,7 @@ func run() -> void:
 			if scenario>=3: flags|=16
 			var gd:=make_owner(false,kind,flags,scenario==1,false)
 			var resident: RefCounted=ClassDB.instantiate("NwnParticleOwner")
-			var configured: Dictionary=resident.call("dispatch",0,{"state":gd.state,"update":kind},{})
+			var configured: Dictionary=resident.call("dispatch",0,{"state":gd.state,"update":kind,"compactRecords":compact_records,"typedEmitter":typed_frame},{})
 			check(not configured.has("error"),"Native owner configures "+kind+str(scenario))
 			var rng:=Random.new(); rng.seed_value(321)
 			var providers:={"random":rng.next,"cameraPosition":func():return [5.0,2.0,8.0],"cosineDouble":func(value):return cos(value),"addPointSourceWind":func(_p,_r,_l,_f):pass}
@@ -81,6 +85,7 @@ func run() -> void:
 				var actual: Dictionary=resident.call("dispatch",1,input,providers)
 				check(not actual.has("error"),"Resident frame prepares "+kind+"/"+str(scenario)+"/"+str(frame)+" "+str(actual.get("error","")))
 				if actual.has("error"): break
+				check(bool(actual.compact_records)==compact_records,"Requested particle storage path is active")
 				capacity=int(actual.capacity)
 				var packed:=expected_bytes(expected.buffer,capacity)
 				check(actual.positions==packed[0] and actual.attributes==packed[1] and int(actual.count)==int(expected.draw_count),"Resident GPU streams exactly match reference "+kind+"/"+str(scenario)+"/"+str(frame))

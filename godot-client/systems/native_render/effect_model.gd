@@ -35,12 +35,15 @@ func reset_part_world_orientation(name: String) -> bool:
 func attach_to(target: Node3D,flags: int=0,inherit_scale: bool=false) -> bool:
 	if not installed or retired or not is_instance_valid(target) or flags not in [0,3]: return false
 	anchor_node=target; anchor_flags=flags; anchor_scale=scale; anchor_inherit_scale=inherit_scale
+	set_meta("native_light_anchor",weakref(target))
 	global_transform=Transform3D(Basis(target.global_basis.orthonormalized().get_rotation_quaternion()).scaled(anchor_scale*(target.global_basis.get_scale() if anchor_inherit_scale else Vector3.ONE)),target.global_position)
 	return true
-func detach() -> void: anchor_node=null
+func detach() -> void:
+	anchor_node=null
+	if has_meta("native_light_anchor"): remove_meta("native_light_anchor")
 func _process(_delta: float) -> void:
 	if not is_instance_valid(anchor_node): return
 	var rotation: Quaternion=(global_basis if anchor_flags==3 else anchor_node.global_basis).orthonormalized().get_rotation_quaternion()
 	global_transform=Transform3D(Basis(rotation).scaled(anchor_scale*(anchor_node.global_basis.get_scale() if anchor_inherit_scale else Vector3.ONE)),anchor_node.global_position)
 func retire() -> void:
-	anchor_node=null; visible=false; set_process(false); super.retire()
+	detach(); visible=false; set_process(false); super.retire()

@@ -10,6 +10,7 @@ func _has_point(point: Vector2) -> bool:
 func _draw() -> void:
 	# Only a temporary/missing-resource fallback. Original model art owns the
 	# normal appearance; an inherited Button theme must never add rectangles.
+	if is_instance_valid(radial) and radial.hide_icons: return
 	if frame!=null and frame.texture!=null: return
 	draw_circle(size*0.5,minf(size.x,size.y)*0.5-1,Color(0.02,0.02,0.02,0.85))
 	draw_arc(size*0.5,minf(size.x,size.y)*0.5-1,0,TAU,64,Color(0.65,0.55,0.3),1,true)

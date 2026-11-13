@@ -9,6 +9,16 @@ var native_skin
 var scroll: ScrollContainer
 var detail_width:=440.0
 var detail_font:=17
+var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
+func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
+	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
+	if not visibility_changed.is_connected(modal_visibility_changed):visibility_changed.connect(modal_visibility_changed)
+	if visible and not state.is_empty():modal_lease.activate([],"other",superseded_modal_owner)
+func modal_visibility_changed() -> void:
+	if not visible:modal_lease.retire()
+func superseded_modal_owner(_ticket: Dictionary) -> void:reset()
+func close_modal_owner() -> void:modal_lease.close()
+func _exit_tree() -> void:close_modal_owner()
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Examine", "local-examine", Vector2(90, 90), storage)
@@ -36,6 +46,8 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	reset()
 
 func reset() -> void:
+	modal_lease.retire()
+	dragging=false
 	state.clear()
 	portrait.texture = null
 	portrait.hide()
@@ -55,6 +67,7 @@ func present(message: Dictionary) -> void:
 	render_details(message)
 	show()
 	move_to_front()
+	modal_lease.activate([],"other",superseded_modal_owner)
 
 func detail(rich: Dictionary) -> RichTextLabel:
 	var label:=Text.label({},detail_width); label.add_theme_font_size_override("normal_font_size",detail_font)

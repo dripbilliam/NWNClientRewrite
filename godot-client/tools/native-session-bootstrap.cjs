@@ -10,7 +10,7 @@ app.whenReady().then(async()=>{
  let privateTestKey='';
  if(loginPipe){
   const privateLogin=require('./private-login.cjs'),input=privateLogin.connectPrivatePipe(loginPipe);
-  if(['--action-check','--local-check','--creation-check'].some(flag=>process.argv.includes(flag)))privateTestKey=await privateLogin.readPrivateKey(input);
+  if(['--action-check','--local-check','--creation-check','--script-floating-check','--script-floating-visual','--direct-handoff-check'].some(flag=>process.argv.includes(flag)))privateTestKey=await privateLogin.readPrivateKey(input);
   else await privateLogin.savePrivateLogin(input,settings);
  }
  const partnerPipe=process.argv.find(value=>value.startsWith('--barter-peer-key-pipe='))?.slice('--barter-peer-key-pipe='.length);

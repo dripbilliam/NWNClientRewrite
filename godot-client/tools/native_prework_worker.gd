@@ -6,9 +6,12 @@ var directory:=""
 var controller
 var completing:=false
 func _initialize() -> void: call_deferred("run")
+func engine_runtime() -> Dictionary:
+	return {"editor":OS.has_feature("editor"),"debug":OS.is_debug_build(),"version":Engine.get_version_info()}
 func publish(state: Dictionary) -> void:
 	if completing: return
 	var snapshot:=state.duplicate(true)
+	snapshot.engine_runtime=engine_runtime()
 	snapshot.diagnostics_path=directory.path_join("model-diagnostics.jsonl")
 	snapshot.phase="indexing" if controller.source_loader!=null else "preparing"
 	Exchange.write_json(directory.path_join("status.json"),{"done":false,"state":snapshot})
@@ -38,6 +41,7 @@ func run() -> void:
 			if Time.get_unix_time_from_system()-last_heartbeat>15: cancelled=true; controller.cancel()
 		await process_frame
 	completing=true; var state: Dictionary=controller.state.duplicate(true)
+	state.engine_runtime=engine_runtime()
 	state.diagnostics_path=directory.path_join("model-diagnostics.jsonl")
 	controller.close(); controller.queue_free(); await process_frame; await process_frame
 	if journal!=null: journal.close()

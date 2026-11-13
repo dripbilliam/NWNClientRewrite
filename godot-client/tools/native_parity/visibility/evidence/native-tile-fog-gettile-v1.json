@@ -1,0 +1,97 @@
+{
+  "source_evidence_id": "ev_9d5c1e66ab68dbeb2f973914d5095188a8b8ea5bf2071ac8d16999d7f217aa8e",
+  "subject": {
+    "name": "nwmain.exe",
+    "digest": {
+      "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+    },
+    "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+    "format": "pe",
+    "architecture": "x86_64"
+  },
+  "authority": "shipped-artifact",
+  "procedure": {
+    "address": "0x1400dd7b0",
+    "name": "SceneBSPGetTileData",
+    "classification": {
+      "external": false,
+      "thunk": false,
+      "thunk_target": null,
+      "provenance": "ghidra-function-manager"
+    },
+    "body": {
+      "available": true,
+      "provenance": "ghidra-function-body-address-set",
+      "ranges": [
+        {
+          "start": "0x1400dd7b0",
+          "end": "0x1400dd7de"
+        }
+      ],
+      "total_bytes": 47,
+      "span_bytes": 47,
+      "non_contiguous": false,
+      "contains_entry": true
+    },
+    "signature": "TileData * __cdecl SceneBSPGetTileData(Scene * param_1, Vector * param_2)",
+    "locals": []
+  },
+  "assembly": [
+    "0x1400dd7b0: SUB RSP, 0x28",
+    "0x1400dd7b4: MOV RCX, qword ptr [RCX + 0x188]",
+    "0x1400dd7bb: TEST RCX, RCX",
+    "0x1400dd7be: JNZ 0x1400dd7c7",
+    "0x1400dd7c0: XOR EAX, EAX",
+    "0x1400dd7c2: ADD RSP, 0x28",
+    "0x1400dd7c6: RET",
+    "0x1400dd7c7: XORPS XMM2, XMM2",
+    "0x1400dd7ca: CALL 0x140229690",
+    "0x1400dd7cf: MOV RAX, qword ptr [RAX + 0x70]",
+    "0x1400dd7d3: MOV RAX, qword ptr [RAX + 0x98]",
+    "0x1400dd7da: ADD RSP, 0x28",
+    "0x1400dd7de: RET"
+  ],
+  "pseudocode": "\r\n/* class TileData * __ptr64 __cdecl SceneBSPGetTileData(class Scene * __ptr64,class Vector const &\r\n   __ptr64) */\r\n\r\nTileData * __cdecl SceneBSPGetTileData(Scene *param_1,Vector *param_2)\r\n\r\n{\r\n  BSPNode *pBVar1;\r\n  \r\n                    /* 0xdd7b0  12335\r\n                       ?SceneBSPGetTileData@@YAPEAVTileData@@PEAVScene@@AEBVVector@@@Z */\r\n  if (*(BSPNode **)(param_1 + 0x188) == (BSPNode *)0x0) {\r\n    return (TileData *)0x0;\r\n  }\r\n  pBVar1 = BSPFitSphere(*(BSPNode **)(param_1 + 0x188),param_2,0.0);\r\n  return *(TileData **)(*(longlong *)(pBVar1 + 0x70) + 0x98);\r\n}\r\n\r\n",
+  "callees": [
+    {
+      "address": "0x140229690",
+      "name": "BSPFitSphere",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x140229690",
+            "end": "0x14022970e"
+          }
+        ],
+        "total_bytes": 127,
+        "span_bytes": 127,
+        "non_contiguous": false,
+        "contains_entry": true
+      }
+    }
+  ],
+  "limitations": [
+    "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+    "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+    "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+    "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+    "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+    "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+    "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+    "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+    "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+    "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+    "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+    "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+    "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+  ]
+}
+

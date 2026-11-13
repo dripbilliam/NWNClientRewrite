@@ -1,0 +1,196 @@
+{
+  "projection": "Selected authoritative function identity, pseudocode and outgoing callee facets only; complete dossier retained in provider evidence.",
+  "evidence_id": "ev_47e2aeb0ea92d7931ef94d265dc95ec12067c7248082aaae6d4710883520568d",
+  "authority": "shipped-artifact",
+  "confidence": "observed",
+  "analysis_profile": {
+    "provider": {
+      "id": "ghidra",
+      "name": "Ghidra",
+      "version": "12.1.4"
+    },
+    "parameters": {
+      "target_kind": "executable",
+      "target_format": "pe",
+      "executable_role": "application",
+      "managed": false,
+      "native_aot_metadata": {
+        "contract_revision": "rtr-9.1-x64-pe-read-only-v3",
+        "source_bytes": 134217728,
+        "work_units": 67108864,
+        "working_memory_bytes": 67108864,
+        "report_bytes": 4194304
+      },
+      "architecture": "x86_64",
+      "available_architectures": [
+        "x86_64"
+      ],
+      "import_mode": "ephemeral-source-immutable",
+      "pdb_observations": "program-info-v1",
+      "annotation_policy": "atomic-function-entry-metadata-v1",
+      "load_image_observations": "source-mappings-entry-context-v2",
+      "function_body_evidence": "complete-inclusive-ranges-v1",
+      "function_references": "complete-body-and-entry-reference-manager-v2",
+      "call_relationship_coverage": "function-body-call-coverage-v5",
+      "function_dossier_coverage": "observed-facets-and-call-relationships-v1",
+      "string_inventory_evidence": "defined-data-coverage-v1",
+      "location_resolution": "explicit-address-exact-entry-symbol-first-v3",
+      "procedure_file_offset_resolution": "address-first-unique-target-source-mapping-v2",
+      "instruction_flow_evidence": "decoded-return-pcode-v1",
+      "instruction_references": "exact-address-incoming-v1",
+      "function_boundary_observations": "ghidra-function-boundary-limitations-v3",
+      "no_return_repair": "disabled-windows-p0",
+      "process_launch": "official-headless-script-v1",
+      "jump_table_evidence": "typed-case-default-blocks-v1",
+      "decompiler_jump_loads": true,
+      "loader": "auto-from-header",
+      "language_id": "auto-from-header",
+      "compiler_spec_id": "auto-default",
+      "analyzer_preset": "ghidra-default"
+    },
+    "digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374"
+  },
+  "locations": [],
+  "subject": {
+    "name": "nwmain.exe",
+    "digest": {
+      "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+    },
+    "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+    "format": "pe",
+    "architecture": "x86_64"
+  },
+  "procedure": {
+    "address": "0x1400d0ab0",
+    "name": "Scene::RenderShadows",
+    "classification": {
+      "external": false,
+      "thunk": false,
+      "thunk_target": null,
+      "provenance": "ghidra-function-manager"
+    },
+    "body": {
+      "available": true,
+      "provenance": "ghidra-function-body-address-set",
+      "ranges": [
+        {
+          "start": "0x1400d0ab0",
+          "end": "0x1400d0f03"
+        }
+      ],
+      "total_bytes": 1108,
+      "span_bytes": 1108,
+      "non_contiguous": false,
+      "contains_entry": true
+    },
+    "signature": "void __thiscall RenderShadows(Scene * this, int param_1, bool param_2)",
+    "locals": [
+      {
+        "description": "undefined1[16] local_28 @ Stack[-0x28]:16",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_38 @ Stack[-0x38]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined1 local_40 @ Stack[-0x40]:1",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_48 @ Stack[-0x48]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_res10 @ Stack[0x10]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_res18 @ Stack[0x18]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_res8 @ Stack[0x8]:8",
+        "provenance": "ghidra-function-database"
+      }
+    ]
+  },
+  "pseudocode": "\r\n/* public: virtual void __cdecl Scene::RenderShadows(int,bool) __ptr64 */\r\n\r\nvoid __thiscall Scene::RenderShadows(Scene *this,int param_1,bool param_2)\r\n\r\n{\r\n  ulonglong uVar1;\r\n  longlong lVar2;\r\n  undefined8 uVar3;\r\n  ulonglong uVar4;\r\n  bool bVar5;\r\n  longlong lVar6;\r\n  ExplicitProducer *pEVar7;\r\n  ExplicitProducer *extraout_RAX;\r\n  ExplicitProducer *extraout_RAX_00;\r\n  ExplicitProducer *pEVar8;\r\n  undefined1 *puVar9;\r\n  longlong local_38;\r\n  \r\n                    /* 0xd0ab0  11966  ?RenderShadows@Scene@@UEAAXH_N@Z */\r\n  if ((((g_bTracyEnabled) && (g_bTracyProfilerConnected)) && (g_bTracyScopeDisableCounter == 0)) &&\r\n     (lVar6 = FUN_140b9f050(), *(char *)(lVar6 + 0x288) != '\\0')) {\r\n    lVar6 = FUN_140b9f050();\r\n    local_38 = *(longlong *)(lVar6 + 0x290);\r\n    pEVar7 = (ExplicitProducer *)FUN_140b9f300();\r\n    uVar1 = *(ulonglong *)(pEVar7 + 0x28);\r\n    pEVar8 = pEVar7;\r\n    if ((uVar1 & 0xffff) == 0) {\r\n      tracy::moodycamel::\r\n      ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n      ExplicitProducer::enqueue_begin_alloc(pEVar7,uVar1);\r\n      pEVar8 = extraout_RAX;\r\n    }\r\n    puVar9 = (undefined1 *)((uVar1 & 0xffff) * 0x20 + *(longlong *)(pEVar7 + 0x48));\r\n    *puVar9 = 0xf;\r\n    uVar4 = rdtsc();\r\n    *(ulonglong *)(puVar9 + 1) =\r\n         CONCAT44((int)((ulonglong)pEVar8 >> 0x20),(int)uVar4) | uVar4 & 0xffffffff00000000;\r\n    *(undefined **)(puVar9 + 9) = &DAT_140d8ea80;\r\n    *(ulonglong *)(pEVar7 + 0x28) = uVar1 + 1;\r\n    bVar5 = true;\r\n  }\r\n  else {\r\n    bVar5 = false;\r\n    local_38 = 0;\r\n  }\r\n  RenderInterface::Disable(4);\r\n  RenderInterface::Disable(0xe);\r\n  RenderInterface::Disable(1);\r\n  RenderInterface::Disable(5);\r\n  RenderInterface::SetStencilMask(0xff);\r\n  RenderInterface::Enable(10);\r\n  if (param_2) {\r\n    RenderInterface::ClearStencilValue(0x7f);\r\n    RenderInterface::SetStencilMask(0xff);\r\n    RenderInterface::Clear(4);\r\n  }\r\n  RenderInterface::SetDepthMask('\\0');\r\n  RenderInterface::SetColorMask('\\0','\\0','\\0','\\0');\r\n  RenderInterface::SetStencilFunc(7,0xf,0xf);\r\n  if (param_1 == 0) {\r\n    lVar6 = (longlong)(*(int *)(this + 0x78) + -1);\r\n    if (-1 < *(int *)(this + 0x78) + -1) {\r\n      do {\r\n        lVar2 = *(longlong *)(*(longlong *)(this + 0x70) + lVar6 * 8);\r\n        *(longlong *)(this + 0x50) = lVar2;\r\n        if (shadowdynamicgeom != 0) {\r\n          (**(code **)(*(longlong *)this + 0x1c0))(this,lVar2);\r\n        }\r\n        if (shadowstaticgeom != 0) {\r\n          (**(code **)(*(longlong *)this + 0x1d8))(this,lVar2);\r\n        }\r\n        RenderDynamicShadows(this);\r\n        if (1000.0 < *(float *)(lVar2 + 0x74)) break;\r\n        RenderInterface::SetColorMask('\\x01','\\x01','\\x01','\\x01');\r\n        RenderInterface::SetStencilMask(0);\r\n        *(undefined8 *)(this + 0x50) = *(undefined8 *)(*(longlong *)(this + 0x70) + lVar6 * 8);\r\n        RenderShadowPlanes(this,8,*(int *)(this + 0x78));\r\n        RenderInterface::SetStencilMask(0xff);\r\n        RenderInterface::SetStencilFunc(7,0xf,0xf);\r\n        RenderInterface::SetColorMask('\\0','\\0','\\0','\\0');\r\n        RenderInterface::Clear(4);\r\n        lVar6 = lVar6 + -1;\r\n      } while (-1 < lVar6);\r\n    }\r\n    RenderInterface::SetColorMask('\\x01','\\x01','\\x01','\\x01');\r\n    RenderInterface::SetStencilMask(0);\r\n  }\r\n  else {\r\n    if (shadowstaticgeom != 0) {\r\n      (**(code **)(*(longlong *)this + 0x1c8))(this);\r\n    }\r\n    RenderInterface::SetColorMask('\\x01','\\x01','\\x01','\\x01');\r\n    RenderInterface::SetStencilMask(0);\r\n    if (0 < *(int *)(this + 0x68)) {\r\n      *(undefined8 *)(this + 0x50) = **(undefined8 **)(this + 0x60);\r\n      RenderShadowPlanes(this,8,1);\r\n    }\r\n    if (g_nRenderShadowVolumes != 0) {\r\n      if ((g_nRenderShadowVolumes - 1U & 0xfffffffd) == 0) {\r\n        RenderInterface::SetPolygonRenderMode(1);\r\n      }\r\n      RenderInterface::Disable(10);\r\n      RenderInterface::SetDepthMask('\\x01');\r\n      RenderInterface::Enable(0);\r\n      RenderInterface::SetBlendFunc(0,1);\r\n      if (g_nRenderShadowVolumes - 3U < 2) {\r\n        RenderInterface::Disable(0xb);\r\n      }\r\n      (**(code **)(*(longlong *)this + 0x1c8))(this);\r\n      lVar6 = (longlong)(*(int *)(this + 0x78) + -1);\r\n      if (-1 < *(int *)(this + 0x78) + -1) {\r\n        do {\r\n          uVar3 = *(undefined8 *)(*(longlong *)(this + 0x70) + lVar6 * 8);\r\n          *(undefined8 *)(this + 0x50) = uVar3;\r\n          if (shadowdynamicgeom != 0) {\r\n            (**(code **)(*(longlong *)this + 0x1c0))(this,uVar3);\r\n          }\r\n          if (shadowstaticgeom != 0) {\r\n            (**(code **)(*(longlong *)this + 0x1d8))(this,uVar3);\r\n          }\r\n          RenderDynamicShadows(this);\r\n          lVar6 = lVar6 + -1;\r\n        } while (-1 < lVar6);\r\n      }\r\n      if (g_nRenderShadowVolumes - 3U < 2) {\r\n        RenderInterface::Enable(0xb);\r\n      }\r\n      if ((g_nRenderShadowVolumes - 1U & 0xfffffffd) == 0) {\r\n        RenderInterface::SetPolygonRenderMode(2);\r\n      }\r\n    }\r\n  }\r\n  RenderInterface::SetDepthMask('\\x01');\r\n  RenderInterface::Enable(4);\r\n  RenderInterface::Enable(1);\r\n  RenderInterface::Enable(5);\r\n  RenderInterface::Disable(10);\r\n  if ((bVar5) && (lVar6 = FUN_140b9f050(), *(longlong *)(lVar6 + 0x290) == local_38)) {\r\n    pEVar7 = (ExplicitProducer *)FUN_140b9f300();\r\n    uVar1 = *(ulonglong *)(pEVar7 + 0x28);\r\n    pEVar8 = pEVar7;\r\n    if ((uVar1 & 0xffff) == 0) {\r\n      tracy::moodycamel::\r\n      ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n      ExplicitProducer::enqueue_begin_alloc(pEVar7,uVar1);\r\n      pEVar8 = extraout_RAX_00;\r\n    }\r\n    puVar9 = (undefined1 *)((uVar1 & 0xffff) * 0x20 + *(longlong *)(pEVar7 + 0x48));\r\n    *puVar9 = 0x11;\r\n    uVar4 = rdtsc();\r\n    *(ulonglong *)(puVar9 + 1) =\r\n         CONCAT44((int)((ulonglong)pEVar8 >> 0x20),(int)uVar4) | uVar4 & 0xffffffff00000000;\r\n    *(ulonglong *)(pEVar7 + 0x28) = uVar1 + 1;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+  "callees": [
+    {
+      "name": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+      "address": "0x140045f10"
+    },
+    {
+      "name": "RenderInterface::Clear",
+      "address": "0x1400be8f0"
+    },
+    {
+      "name": "RenderInterface::ClearStencilValue",
+      "address": "0x1400be900"
+    },
+    {
+      "name": "RenderInterface::Disable",
+      "address": "0x1400be9e0"
+    },
+    {
+      "name": "RenderInterface::Enable",
+      "address": "0x1400bea90"
+    },
+    {
+      "name": "RenderInterface::SetBlendFunc",
+      "address": "0x1400beff0"
+    },
+    {
+      "name": "RenderInterface::SetColorMask",
+      "address": "0x1400bf060"
+    },
+    {
+      "name": "RenderInterface::SetDepthMask",
+      "address": "0x1400bf0e0"
+    },
+    {
+      "name": "RenderInterface::SetPolygonRenderMode",
+      "address": "0x1400bf220"
+    },
+    {
+      "name": "RenderInterface::SetStencilFunc",
+      "address": "0x1400bf2d0"
+    },
+    {
+      "name": "RenderInterface::SetStencilMask",
+      "address": "0x1400bf2e0"
+    },
+    {
+      "name": "Scene::RenderDynamicShadows",
+      "address": "0x1400ce3a0"
+    },
+    {
+      "name": "Scene::RenderShadowPlanes",
+      "address": "0x1400d0350"
+    },
+    {
+      "name": "FUN_140b9f050",
+      "address": "0x140b9f050"
+    },
+    {
+      "name": "FUN_140b9f300",
+      "address": "0x140b9f300"
+    }
+  ],
+  "limitations": [
+    "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+    "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+    "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+    "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+    "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+    "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+    "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+    "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+    "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+    "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+    "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+    "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+    "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+  ]
+}

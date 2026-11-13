@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const {NativeCombatCheckLifecycle}=createRequire(import.meta.url)('../godot-client/tools/native-combat-check-lifecycle.cjs');
+const stages=['actions-complete','export-complete','finish-sent','finished','ack-sent'];
+const clean={success:true,protocol_finish_ack:true,clean_exit:true,workers_remaining:0};
+function completed(){const life=new NativeCombatCheckLifecycle();for(const stage of stages)assert.equal(life.mark(stage,4),true);return life;}
+test('owned completion, export, finish, finished and ACK permit the expected native close',()=>{const life=completed();assert.equal(life.transportClosed(),true);assert.equal(life.result(clean,0).success,true);assert.deepEqual(life.events.map(row=>row.stage),[...stages,'transport-close']);});
+for(let count=0;count<stages.length;count++)test('close after '+count+' completion stages remains an active transport failure',()=>{const life=new NativeCombatCheckLifecycle();for(const stage of stages.slice(0,count))life.mark(stage,4);assert.equal(life.transportClosed(),false);for(const stage of stages.slice(count))life.mark(stage,4);assert.equal(life.result(clean,0).success,false);});
+test('a socket error after ACK remains a failure',()=>{const life=completed();assert.equal(life.transportClosed(true),false);assert.equal(life.result(clean,0).success,false);});
+test('stale finished cannot satisfy the current owned completion',()=>{const life=new NativeCombatCheckLifecycle();for(const stage of stages.slice(0,3))life.mark(stage,4);assert.equal(life.mark('finished',3),false);life.mark('finished',4);life.mark('ack-sent',4);assert.equal(life.result(clean,0).success,false);});
+test('finished before export/finish cannot become success after later stages',()=>{const life=new NativeCombatCheckLifecycle();life.mark('actions-complete',4);assert.equal(life.mark('finished',4),false);for(const stage of stages.slice(1))life.mark(stage,4);assert.equal(life.result(clean,0).success,false);});
+test('failed native finished remains failed despite later ACK and zero exit',()=>{const life=new NativeCombatCheckLifecycle();for(const stage of stages.slice(0,3))life.mark(stage,4);life.mark('finished',4,false);life.mark('ack-sent',4);assert.equal(life.result(clean,0).success,false);});
+test('raw native finish ACK, clean exit, drained workers, success and exit code are independently mandatory',()=>{for(const patch of [{protocol_finish_ack:false},{clean_exit:false},{workers_remaining:1},{success:false}])assert.equal(completed().result({...clean,...patch},0).success,false);assert.equal(completed().result(clean,1).success,false);assert.equal(completed().result(null,0).success,false);});
+test('duplicate completion and invalid connection do not arm expected shutdown',()=>{const duplicate=completed();assert.equal(duplicate.mark('ack-sent',4),false);assert.equal(duplicate.transportClosed(),false);const life=new NativeCombatCheckLifecycle();assert.equal(life.mark('actions-complete',0),false);assert.equal(life.transportClosed(),false);});

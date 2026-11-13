@@ -1,0 +1,31 @@
+'use strict';
+// Source/metadata gates only. This does not compile C++ or execute cursor logic.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),file=name=>path.join(__dirname,name),pins=[];
+let checks=0;const check=(ok,name)=>{assert(ok,name);++checks;};
+const contract=JSON.parse(fs.readFileSync(file('source-contract-g.json'))),source=fs.readFileSync(file('cursor_extension_g.cpp'),'utf8'),future=JSON.parse(fs.readFileSync(file('future-command-g.json')));
+for(const pin of contract.sourcePins){check(sha(pin.file)===pin.sha256,'source pin '+pin.file);pins.push(pin);}
+check(sha(contract.parentSource.file)===contract.parentSource.sha256,'F source preserved');
+check(sha(file('source-contract-f.json'))==='b29a15b0ca7d67d28a33f4938e8bce37ff582faae6db812d2e3163bf519b6898','F contract preserved');
+check(future.contract.sha256===sha(future.contract.file),'future contract pin');
+check(future.source.sha256===sha(future.source.file),'future source pin');
+check(future.buildRecipe.sha256===sha(future.buildRecipe.file),'future recipe pin');
+check(future.metadataFinalizer.sha256===sha(future.metadataFinalizer.file),'finalizer pin');
+check(source.includes('deferred_key=key_value;deferred_ordinal=ordinal;deferred_active=true;'),'primitive key/ordinal first checkpoint');
+check(source.includes('if(rewind){iterator=deferred_key;ordinal=deferred_ordinal;more=true;'),'fallback rewinds iterator and ordinal');
+check(source.includes('yielded_status("fallback",rewind?iterator:key_value,reason)'),'fallback returns first unexecuted key');
+check(source.includes('if(deferred_active)return fallback(current,"Deferred skips precede original pending-state early return")'),'pending unready rollback');
+check(source.includes('if(!result.ready){if(deferred_active)return fallback(current,'),'core unready rollback');
+check(source.includes('deferred_active&&(result.rows[0].pending||size(states_value)==0)'),'empty or pending admit rollback');
+check(source.indexOf('clear_deferred();++admitted;')>source.indexOf('deferred_active&&(result.rows[0].pending||size(states_value)==0)'),'commit only after safe reset predicate');
+check(source.includes('if(!valid)throw std::runtime_error("Original iterator key unavailable")'),'iterator get failure reaches rollback catch');
+check(source.includes('if(!advance_valid)throw std::runtime_error("Original iterator changed while scanning")'),'iterator advance failure reaches rollback catch');
+check(source.includes('catch(const std::exception&failure){if(owner.deferred_active){auto out=owner.fallback(owner.iterator,failure.what())'),'exception rolls back outstanding skips');
+check(source.includes('if(deferred_active){if(!terminal_ownership_proven||!plain(groups)||!same(groups,origin))return fallback('),'terminal current-map identity gate');
+check(source.includes('++fast_terminal_scans;}\n  clear_deferred();finished=true;return status("done");'),'terminal fast end avoids unconditional rollback');
+check(source.includes('Nonprimitive transaction checkpoint refused'),'only primitive checkpoint key');
+check(contract.ops[2].fallback.includes('First UNEXECUTED skipped key'),'contract describes rewind result');
+check(contract.status==='UNCOMPILED_UNPARSED_UNACCEPTED','honest source-only status');
+const project=path.resolve(__dirname,'../../../..'),out=path.join(project,'.cache/native-render-gap/scene/static-prefix-g-source-a');fs.mkdirSync(out,{recursive:true});
+const receipt={version:1,kind:'private-static-prefix-G-source-metadata-check',success:true,checkedUtc:new Date().toISOString(),checks,source:{file:file('cursor_extension_g.cpp'),sha256:sha(file('cursor_extension_g.cpp'))},contract:{file:file('source-contract-g.json'),sha256:sha(file('source-contract-g.json'))},futureCommand:{file:file('future-command-g.json'),sha256:sha(file('future-command-g.json'))},executor:{file:__filename,sha256:sha(__filename)},pins,nativeStarts:0,compilerStarts:0,clones:0,cppParsed:false,godotParsed:false,functionalAcceptance:false,activationAccepted:false,limitations:['Only metadata and explicit source-path assertions were checked. No C++ behavior, GDScript parser, callback lifecycle, actual cursor differential, or performance acceptance is claimed.','Conditional terminal-END retention relies on exact unchanged owner/helper/main-thread/plain-domain source obligations, not arbitrary Objects or public concurrent mutation.','B4 explicitly requires F and must not silently consume G; a fresh candidate/fixture manifest and actual V2+isolated differential acceptance remain required.']};
+const receiptFile=path.join(out,'receipt.json');fs.writeFileSync(receiptFile,JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({checks,receipt:receiptFile,sha256:sha(receiptFile),nativeStarts:0,compilerStarts:0}));

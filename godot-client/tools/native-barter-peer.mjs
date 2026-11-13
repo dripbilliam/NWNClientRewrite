@@ -6,7 +6,7 @@ import {actionTestCharacter} from './native-actions-fixture.mjs';
 export async function startNativeBarterPeer({install,userDirectory,cdKey,publish,mainSession,port=5125,signal}){
  if(port!==5125)throw Error('Barter fixture is restricted to owned loopback5125');
  let session,created,last='',disposed=false,ready=false,preparedItemId=null,stage='resources';
- const diagnostics=[];
+ const diagnostics=[],receivedChat=[],receivedHud=[],hudCommands=[];
  const cancel=()=>{disposed=true;void session?.disconnect().catch(()=>{});};signal?.addEventListener('abort',cancel,{once:true});
  const wait=async predicate=>{const deadline=Date.now()+45000;while(!predicate()){if(disposed||session?.closed||Date.now()>=deadline)throw Error('Owned barter peer could not reach its requested local state');await new Promise(resolve=>setTimeout(resolve,25));}};
  const disclosedActor=(world,player)=>[player?.objectId,player?.character?.id].find(id=>world.registry.get(id)?.objectType===5)??0x7f000000;
@@ -17,11 +17,14 @@ export async function startNativeBarterPeer({install,userDirectory,cdKey,publish
  };
  const snapshot=()=>{
   const actor=session?.world.registry.get(session.world.localObjectId),state=session?.world.barter;
-  return{party:session?.world.party??[],partyState:actor?.replicated?.party??{},partyInviteNotice:session?.world.partyInviteNotice??null,mainTargetId:peerViewOfMain(),ready,phase:session?.phase??'starting',actorId:session?.world.localObjectId??0x7f000000,mainViewActorId:mainViewOfPeer(),areaId:session?.world.areaId??0x7f000000,preparedItemId,gold:actor?.playerState?.combat?.field898??null,backpack:(session?.world.inventories.get('R')?.entries??[]).map(v=>v.id).sort((a,b)=>a-b),offered:(session?.world.inventories.get('B')?.entries??[]).map(v=>v.id).sort((a,b)=>a-b),trade:state?structuredClone(state):null};
+  const captionId=preparedItemId??session?.world.inventories.get('I')?.entries.find(row=>row.slot===2)?.id,caption=session?.world.registry.get(captionId)?.item;
+  return{chat:receivedChat.map(row=>({...row})),hudReceipts:receivedHud.map(row=>({...row})),hudCommands:hudCommands.map(row=>({...row})),party:session?.world.party??[],partyState:actor?.replicated?.party??{},partyInviteNotice:session?.world.partyInviteNotice??null,mainTargetId:peerViewOfMain(),ready,phase:session?.phase??'starting',actorId:session?.world.localObjectId??0x7f000000,mainViewActorId:mainViewOfPeer(),areaId:session?.world.areaId??0x7f000000,preparedItemId,equipmentCaption:caption?{id:captionId,mode:caption.field2b8,text:caption.field2c0}:null,gold:actor?.playerState?.combat?.field898??null,backpack:(session?.world.inventories.get('R')?.entries??[]).map(v=>v.id).sort((a,b)=>a-b),offered:(session?.world.inventories.get('B')?.entries??[]).map(v=>v.id).sort((a,b)=>a-b),trade:state?structuredClone(state):null};
  };
  const update=()=>{if(disposed)return;const value=snapshot(),key=JSON.stringify(value);if(key!==last){last=key;publish(value);}};
  try{
   created=await createInstalledNetworkSession({signal,install,userDirectory,cacheDirectory:path.join(userDirectory,'barter-peer-content'),modsDirectory:path.join(userDirectory,'workshop'),disabledMods:[],host:'127.0.0.1',port,name:'NativeBarterPartner',credentials:{cdKey},onDiagnostic:d=>{if(diagnostics.length<32)diagnostics.push({code:d.code,connectionError:Number.isInteger(d.connectionError)?d.connectionError:null});}});cdKey='';session=created.session;session.on('state',update);
+  session.on('message',({message})=>{const text=message.text?.text;if(message.kind==='server-speech'&&typeof text==='string'&&/^\/?NATIVE_CHAT_[A-Z_]+$/.test(text)){if(receivedChat.length>=64)receivedChat.shift();receivedChat.push({channel:message.channel,objectId:message.objectId,text});update();}});
+  session.on('message',({message})=>{const text=message.text?.text;if(message.kind==='server-speech'&&typeof text==='string'&&/^NATIVE_HUD_ACK:[a-z-]+$/.test(text)){if(receivedHud.length>=32)receivedHud.shift();receivedHud.push({operation:text.slice('NATIVE_HUD_ACK:'.length),at:Date.now()});update();}});
   stage='connect';await session.connect({host:'127.0.0.1',port,metadata:created.metadata,timeout:30000});stage='character-selection';await wait(()=>session.phase==='character-selection'&&session.resourceResult?.ready);
   const original=await fs.readFile(path.join(install,'data/lcv/fighter.bic')),hash=crypto.createHash('sha256').update(original).digest('hex'),character=await actionTestCharacter(original);
   stage='character-upload';await session.selectCharacter(character.bytes);character.bytes.fill(0);await wait(()=>session.phase==='area-loading');stage='area-ready';await session.areaReady(session.areaGeneration);await wait(()=>session.phase==='playing'&&session.world.registry.get(session.world.localObjectId)?.objectType===5);
@@ -31,6 +34,15 @@ export async function startNativeBarterPeer({install,userDirectory,cdKey,publish
   const api={snapshot,metadata:{originalCharacterSha256:hash,protocolOnly:true,endpoint:'127.0.0.1:5125'},async perform(operation,value){
    if(disposed||session.phase!=='playing')throw Error('Owned barter peer is unavailable');
    const actorId=session.world.localObjectId,scope={actorId,areaId:session.world.areaId,areaGeneration:session.areaGeneration},state=session.world.barter;
+   if(operation==='hud-command'){
+    if(!['poison','disease','bubble-replace','bubble-prefix','bubble-suffix','bubble-clear','item-prefix','item-clear'].includes(value))throw Error('Unsupported owned HUD command');
+    await session.chat({...scope,channel:1,text:'-native-hud-'+value});if(hudCommands.length>=32)hudCommands.shift();hudCommands.push({operation:value,at:Date.now()});update();return;
+   }
+   if(operation==='chat'){
+    if(!value||![1,4,6].includes(value.channel)||typeof value.text!=='string'||!/^NATIVE_CHAT_[A-Z_]+$/.test(value.text))throw Error('Owned chat marker is invalid');
+    const player=[...session.world.players.values()].find(row=>row.objectId===peerViewOfMain()||row.character?.id===peerViewOfMain());if(value.channel===4&&!player)throw Error('Owned Tell target is unavailable');
+    await session.chat({...scope,channel:value.channel,text:value.text,...(value.channel===4?{playerId:player.playerId}:{})});update();return;
+   }
    if(operation==='attitude'){
     const player=[...session.world.players.values()].find(row=>row.objectId===peerViewOfMain());if(!player)throw Error('Owned attitude target is unavailable');await session.playerAttitude({...scope,playerId:player.playerId,likes:Boolean(value)});update();return;
    }
@@ -43,6 +55,9 @@ export async function startNativeBarterPeer({install,userDirectory,cdKey,publish
     const entry=session.world.inventories.get('I')?.entries.find(row=>row.slot===2);
     if(!entry)throw Error('Owned barter peer has no sample chest item');preparedItemId=entry.id;
     await session.itemAction({...scope,itemId:preparedItemId,operation:'unequip'});await wait(()=>session.world.registry.get(preparedItemId)?.inventoryLocation?.channel==='R');
+   }else if(operation==='restore-item'){
+    if(preparedItemId===null)throw Error('Owned barter peer has no prepared item');
+    await session.itemAction({...scope,itemId:preparedItemId,operation:'equip',slot:2});await wait(()=>session.world.registry.get(preparedItemId)?.inventoryLocation?.channel==='I');
    }else if(operation==='add'){
     const id=Number.isInteger(value)?value:preparedItemId;
     const item=id!==null?session.world.registry.get(id):(session.world.inventories.get('R')?.entries??[]).map(row=>session.world.registry.get(row.id)).find(item=>item?.inventoryLocation?.ownerId===actorId&&!session.objectRules.quickbarItemInfo?.(item.item?.baseItem)?.container);

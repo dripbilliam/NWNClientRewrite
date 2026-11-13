@@ -1,0 +1,17 @@
+{
+  "schema": "native-overhead-mode-change-fixtures-v1",
+  "lineBoundary": "Authored current caption GetTextLine C strings; null, empty and NUL-terminated bytes are explicit. These are not asserted original font-wrap outputs.",
+  "fixtures": [
+    {"name":"no-lines","lines":[]},
+    {"name":"null-empty","lines":[null,""]},
+    {"name":"no-inserted-separator","lines":["4669727374","5365636f6e64"]},
+    {"name":"returned-space","lines":["466972737420","5365636f6e64"]},
+    {"name":"returned-newline","lines":["46697273740a","5365636f6e64"]},
+    {"name":"literal-native-markup","lines":["3c63ff01023e4869","3c2f633e"]},
+    {"name":"cp1252","lines":["4a6f73e920","96676f"]},
+    {"name":"embedded-nul","lines":["416c7068610049474e4f524544","42657461"]},
+    {"name":"minimum-clamp","lines":["616263"]},
+    {"name":"middle-duration","lines":["6162636465666768696a6b6c6d6e6f707172737475767778797a30313233343536373839"]},
+    {"name":"maximum-clamp","lines":["6162636465666768696a6b6c6d6e6f707172737475767778797a30313233343536373839","6162636465666768696a6b6c6d6e6f707172737475767778797a30313233343536373839","6162636465666768696a6b6c6d6e6f707172737475767778797a30313233343536373839"]}
+  ]
+}

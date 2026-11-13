@@ -1,7 +1,8 @@
 extends RefCounted
 # Index selected local directories without reading their resource payloads.
 # Reads use the inventoried filename, never a path supplied by a resource name.
-const TYPES={"tga":3,"wav":4,"plt":6,"bmu":8,"mdl":2002,"nss":2009,"ncs":2010,"are":2012,"set":2013,"ifo":2014,"wok":2016,"2da":2017,"tlk":2018,"txi":2022,"git":2023,"uti":2025,"dlg":2029,"dds":2033,"utd":2042,"utp":2044,"gui":2047,"dwk":2052,"pwk":2053,"jrl":2056,"utw":2058,"ssf":2060,"shd":2069,"ktx":2073,"ttf":2074,"tml":2076,"jui":2083}
+const Extensions=preload("res://systems/native_data/resource_extensions.gd")
+const TYPES=Extensions.TYPES
 const LIMIT:=256*1024*1024
 const Residency=preload("res://systems/native_data/resource_residency.gd")
 var failure:=""
@@ -15,7 +16,7 @@ func scan(directory: String, types: Array=[]) -> Dictionary:
 		return {"entries":{},"directory":root}
 	var names:=folder.get_files()
 	if names.size()>1000000: failure="Loose resource directory exceeds bound"; return {}
-	var cached:=Residency.index("loose-directory",[root,types],[var_to_bytes(names)],func():
+	var cached:=Residency.index("loose-directory",[root,types,Extensions.REVISION],[var_to_bytes(names)],func():
 		return {"value":scan_names(root,names,types),"error":""})
 	index_identity=str(cached.identity)
 	return cached.value

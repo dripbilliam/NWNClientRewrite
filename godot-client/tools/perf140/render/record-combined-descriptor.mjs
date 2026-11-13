@@ -1,0 +1,11 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {fileURLToPath} from 'node:url';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),id=process.argv[2];
+if(!/^[a-z0-9-]+$/.test(id??''))throw Error('Finalized private combined label required');
+const stage=path.join(project,'.cache/native-140fps/render-agent',id),file=path.join(stage,'manifest.json'),manifest=JSON.parse(fs.readFileSync(file));
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+if(manifest.builds!==1)throw Error('Combined build must be finalized');
+for(const pin of manifest.pins)if(hash(fs.readFileSync(path.join(manifest.project,pin.relative)))!==pin.sha256)throw Error('Frozen combined source drift: '+pin.relative);
+const commonFile=path.join(project,'.cache/native-140fps/root/common-v1/manifest.json'),common=JSON.parse(fs.readFileSync(commonFile)),base=new Map(common.pins.map(pin=>[pin.relative,pin.sha256]));
+const runtimeChanges=manifest.pins.filter(pin=>pin.relative!=='project.godot'&&!pin.relative.startsWith('tests/')&&!pin.relative.startsWith('.godot/')&&base.get(pin.relative)!==pin.sha256).map(pin=>({...pin,file:path.join(manifest.project,pin.relative),baselineSha256:base.get(pin.relative)??null}));
+const value={version:1,id,manifest:{file,sha256:hash(fs.readFileSync(file))},project:manifest.project,binarySha256:manifest.build.binarySha256,combinedParents:manifest.combinedParents,commonBaseline:{file:commonFile,sha256:hash(fs.readFileSync(commonFile))},runtimeChanges,componentProjectConfigurationOnly:true,fullRuntimeProjectSource:manifest.fullRuntimeProjectSource,scope:'Exact finalized merged source dependencies relative to common-v1. Excludes component-only project/test/global-cache files; root keeps its graphical launch configuration, UI fence and monitor/HUD hooks. No graphical or FPS claim.'};
+const output=path.join(stage,'runtime-descriptor.json');if(fs.existsSync(output))throw Error('Previous dependency descriptor preserved');fs.writeFileSync(output,JSON.stringify(value,null,2));console.log(JSON.stringify({output,sha256:hash(fs.readFileSync(output)),manifest:value.manifest,binarySha256:value.binarySha256,changes:runtimeChanges.map(row=>row.relative)},null,2));

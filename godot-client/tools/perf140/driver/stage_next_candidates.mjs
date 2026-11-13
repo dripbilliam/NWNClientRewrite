@@ -1,0 +1,9 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {stage,hash,particleChanges} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),parentFile=path.join(project,'.cache/native-140fps/root/common-v1/manifest.json'),parent=JSON.parse(fs.readFileSync(parentFile));
+const relative='native_live_world.gd',before=parent.pins.find(p=>p.relative===relative).sha256;let live=fs.readFileSync(path.join(parent.project,relative),'utf8');
+const boundary='if not authenticated: authenticated=true; send({"kind":"hello","token":ticket.token}); ticket.clear()';if(live.split(boundary).length!==2)throw Error('Native handshake boundary differs');
+live=live.replace(boundary,'if not authenticated:\n\t\t\tif str(args.get("protocol-no-delay","false"))=="true": peer.set_no_delay(true); report.protocol_no_delay_enabled=true\n\t\t\tauthenticated=true; send({"kind":"hello","token":ticket.token}); ticket.clear()');
+const drafts=path.join(project,'.cache/native-140fps/root/transport-draft-v1');if(fs.existsSync(drafts))throw Error('Prior transport draft preserved');fs.mkdirSync(drafts,{recursive:true});const from=path.join(drafts,relative);fs.writeFileSync(from,live);
+const transport=stage(project,parentFile,'transport-nodelay-v1',[{relative,before,after:hash(Buffer.from(live)),from}]);
+const particleFile=path.join(project,'.cache/native-140fps/particles-agent/combined-particles-v1/candidate-built-sources.json'),particle=stage(project,parentFile,'particles-all3-v1',particleChanges(particleFile),[particleFile]);
+const file=path.join(project,'reports/native-perf140-next-candidates-v1.json');fs.writeFileSync(file,JSON.stringify({transport,particle},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({file,transport,particle}));

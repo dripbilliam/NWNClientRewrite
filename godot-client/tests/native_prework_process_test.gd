@@ -58,6 +58,12 @@ func run() -> void:
 	var decoder:=Assets.new(); var expected:=Store.request_key("shape0",2002,"actor-model",options,str(hashes.shape0),[decoder.mesh_preparation_enabled,decoder.skin_preparation_enabled,decoder.mesh_revision()]); decoder.free()
 	check(not store.cache.load_data(expected,expected,Store.REVISION).is_empty(),"Appearance options retain exact integer types and live-session cache identities")
 	var completed_state:=owner.state.duplicate(true)
+	var runtime: Dictionary=completed_state.get("engine_runtime",{})
+	check(runtime.get("editor")==OS.has_feature("editor") and runtime.get("debug")==OS.is_debug_build(),"Background worker uses the selected editor or packaged release runtime")
+	# JSON carries version-number fields as floats; compare the immutable
+	# version/build identity without mistaking that transport type for a change.
+	var child_version: Dictionary=runtime.get("version",{}); var parent_version:=Engine.get_version_info()
+	check(child_version.get("hash")==parent_version.hash and child_version.get("string")==parent_version.string and child_version.get("build")==parent_version.build and int(child_version.get("hex",-1))==int(parent_version.hex),"Background worker retains the exact parent engine version")
 	check(owner.start_sources(sources,cache_path),"A later isolated run can start")
 	await wait_child(owner)
 	var failed_pid: int=owner.child_pid; OS.kill(failed_pid); await wait_done(owner)

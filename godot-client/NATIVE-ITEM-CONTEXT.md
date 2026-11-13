@@ -1,5 +1,10 @@
 # Native inventory, store and trade item wheels — scoped milestone
 
+Tooltip follow-up: [native item captions and bubbles](NATIVE-ITEM-TOOLTIPS.md)
+now connects original24/5 updates, shared rich tooltip ownership and source
+placement, with671 strict native checks and127 combined real local checks.
+Authoritative store/trade tooltip coverage, original timing and pixels remain open.
+
 The former rectangular native inventory action popup has been replaced by an
 original-artwork radial owner, `systems/native_item_context.gd`. It owns item
 context lifetimes independently of the world/character wheel, shares its native

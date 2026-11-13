@@ -27,16 +27,19 @@ func run() -> void:
 	ui.creator.cancel(); await process_frame
 	check(ui.creator.phase=="closed" and not ui.creator.view.panel.is_visible_in_tree(),"Creator cancellation retires its independent canvas")
 	ui.set_gameplay_visible(true); await process_frame
+	check(await wait_until(func():return ui.chat_skin.layout_ready),"Original chat resources also prepare through the actual gameplay owner")
 	check(ui.chat.is_visible_in_tree() and ui.is_processing_unhandled_key_input() and ui.desktop.is_processing_unhandled_key_input(),"World presentation restores chat and gameplay shortcut owners")
 	ui.chat.entry.text="Retained draft"; ui.chat.entry.grab_focus(); await process_frame
 	check(surface.gui_get_focus_owner()==ui.chat.entry,"Visible gameplay chat receives normal native focus")
 	ui.inventory.ui.position=Vector2(117,91); var retained: Vector2=ui.inventory.ui.position
 	ui.desktop.radial.open_at(Vector2(410,410),42,Vector3.ZERO,false)
 	ui.inventory.item_context.wheel.open_at(Vector2(700,410),43,Vector3.ZERO,false)
+	ui.chat_skin.open_context(0,Vector2(200,410)); check(ui.chat_skin.context.active,"Native chat context opens in admitted gameplay")
 	check(ui.desktop.radial.stage.is_visible_in_tree() and ui.inventory.item_context.wheel.stage.is_visible_in_tree(),"Both independent radial canvases are presented before the transition gate")
 	ui.set_gameplay_visible(false); await process_frame
 	check(surface.gui_get_focus_owner()!=ui.chat.entry and not ui.chat.is_visible_in_tree(),"Hiding gameplay releases its focused entry")
 	check(not ui.desktop.radial.stage.is_visible_in_tree() and not ui.inventory.item_context.wheel.stage.is_visible_in_tree(),"Transition gate also hides both independent radial canvases")
+	check(not ui.chat_skin.context.active and not ui.chat_skin.context.visible and not ui.chat_skin.context.can_process(),"Transition gate immediately retires chat's independent radial canvas and input")
 	check(not ui.desktop.radial.can_process() and not ui.inventory.item_context.wheel.can_process() and not ui.desktop.quickbar.can_process(),"Hidden radial and quickbar input trees stop processing")
 	var before:=requests.size(); await click(Vector2(10,10)); await key(KEY_ENTER); await key(KEY_ENTER,false)
 	check(requests.size()==before and surface.gui_get_focus_owner()!=ui.chat.entry,"Hidden active wheels and chat cannot consume clicks/Enter or dispatch requests")

@@ -32,6 +32,35 @@ var repeat_elapsed:=0
 var repeat_initial:=true
 var repeat_button: Button
 var stats:={"opened":0,"drags":0,"sent":0,"stale":0,"canceled":0}
+var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
+var modal_surface: Control
+var pending_modal_order
+var pending_modal_surfaces
+var pending_modal_canvas: CanvasLayer
+func set_modal_order(order,surfaces=null,source_canvas: CanvasLayer=null) -> void:
+	var moved_focus: Control
+	if not is_instance_valid(modal_surface) and is_instance_valid(surfaces) and is_instance_valid(source_canvas):
+		modal_surface=surfaces.create_root(get_parent(),source_canvas)
+		if is_instance_valid(modal):
+			var focused:=get_viewport().gui_get_focus_owner()
+			if is_instance_valid(focused) and (focused==modal or modal.is_ancestor_of(focused)):moved_focus=focused
+			# Both parents represent the same authored viewport coordinates.
+			# Preserve local geometry and the painter's exact live subtree leases.
+			frame.relocate(modal,modal_surface,Rect2(modal.position,modal.size))
+	pending_modal_order=order;pending_modal_surfaces=surfaces;pending_modal_canvas=modal_surface.get_parent() if is_instance_valid(modal_surface) else null
+	if not modal_lease.admission_changed.is_connected(modal_admission_changed):modal_lease.admission_changed.connect(modal_admission_changed)
+	if is_instance_valid(modal):bind_modal_control()
+	if is_instance_valid(moved_focus) and moved_focus.is_inside_tree() and modal_lease.admits():moved_focus.grab_focus()
+func bind_modal_control() -> void:
+	# The actual amount Control is the original panel owner. This controller's
+	# separate private drag-preview surface never receives a modal lease.
+	modal_lease.configure(modal,pending_modal_order,pending_modal_surfaces,pending_modal_canvas);modal_lease.bind_input(modal)
+	# Setup may follow preparation/show. Adopt that exact current amount once;
+	# repeated setup does not promote an existing lower lease or register a drag.
+	if modal.visible and not context.is_empty() and context==current_context() and modal_lease.ticket.is_empty():modal_lease.activate(context)
+func modal_admission_changed(admitted: bool) -> void:
+	if not admitted:repeat_step=0;repeat_button=null;repeat_elapsed=0
+func modal_parent() -> Node:return modal_surface if is_instance_valid(modal_surface) else get_parent()
 func dialog_title() -> String: return owner_inventory.text_owner.raw({"strRef":63448})
 func configure(inventory,parent: Control,catalog,cache_path: String) -> void:
 	owner_inventory=inventory; frame=inventory.frame_skin
@@ -67,7 +96,7 @@ func build() -> void:
 	if not flatten(gui,-panel.bounds.position): return
 	for tag in ["title","numedit","okbutton","cancelbutton","allbutton","upbutton","downbutton"]:
 		if not entries.has(tag): failure="Original amount control missing: "+tag; return
-	modal=Control.new(); modal.mouse_filter=Control.MOUSE_FILTER_STOP; get_parent().add_child(modal); modal.size=panel.bounds.size
+	modal=Control.new(); modal.mouse_filter=Control.MOUSE_FILTER_STOP; modal_parent().add_child(modal); modal.size=panel.bounds.size;bind_modal_control()
 	frame.image(str(gui.Obj_ResRef),Rect2(Vector2.ZERO,panel.bounds.size),modal)
 	for tag in ["ctl_btn_inv_st","numedit"]:
 		if entries.has(tag): frame.image(entries[tag].resource,entries[tag].rect,modal)
@@ -105,12 +134,13 @@ func open(barter_source: bool=false) -> void:
 	var barter: Dictionary=barter_context.call() if barter_context.is_valid() else {}
 	if closed or not layout_ready or balance()<=0 or (barter_source and (not barter.get("open",false) or barter.get("locked",false))) or not barter_source and not owner_inventory.ui.wanted: return
 	cancel(); from_barter=barter_source; context=current_context(); maximum=balance(); number.text="1"; modal.position=(get_viewport_rect().size-modal.size)*0.5; modal.show(); modal.move_to_front(); number.grab_focus(); number.select_all(); set_process(true); stats.opened+=1
+	modal_lease.activate(context)
 func change(step: int) -> void: number.text=str(Amount.changed(number.text,maximum,step))
 func confirm() -> void:
-	if closed or not is_instance_valid(modal) or not modal.visible: return
+	if closed or not is_instance_valid(modal) or not modal.visible or not modal_lease.admits(): return
 	var amount:=Amount.confirmed(number.text,maximum)
 	if context!=current_context() or amount>balance(): stats.stale+=1; cancel(); return
-	modal.hide(); repeat_step=0; repeat_button=null; repeat_elapsed=0; repeat_initial=true; number.release_focus()
+	modal_lease.retire();modal.hide(); repeat_step=0; repeat_button=null; repeat_elapsed=0; repeat_initial=true; number.release_focus()
 	if amount<=0: set_process(false); return
 	serial+=1; payload={"kind":"native-inventory-gold","serial":serial,"context":context.duplicate(),"amount":amount}
 	var preview:=Control.new(); var image:=TextureRect.new(); image.mouse_filter=Control.MOUSE_FILTER_IGNORE; image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; image.size=Vector2(32,32); preview.add_child(image); frame.art.bind(image,"ir_buy")
@@ -156,20 +186,21 @@ func send(target: Dictionary) -> void:
 func _notification(what: int) -> void:
 	if what==NOTIFICATION_DRAG_END and not payload.is_empty(): payload.clear(); hide(); set_process(false); stats.canceled+=1
 func cancel() -> void:
+	modal_lease.retire()
 	repeat_step=0; repeat_elapsed=0; repeat_initial=true; repeat_button=null
 	if is_instance_valid(number): number.release_focus()
 	if is_instance_valid(modal): modal.hide()
 	if not payload.is_empty(): get_viewport().gui_cancel_drag(); payload.clear()
 	hide(); set_process(false)
 func _input(event: InputEvent) -> void:
-	if closed: return
+	if closed or not modal_lease.admits(): return
 	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE and (not payload.is_empty() or is_instance_valid(modal) and modal.visible): cancel(); get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and is_instance_valid(modal) and modal.visible and number.has_focus() and not event.ctrl_pressed and not event.alt_pressed and not event.meta_pressed and not Amount.accepts_character(event.unicode): get_viewport().set_input_as_handled()
 func _process(delta: float) -> void:
 	if closed: return
 	if not context.is_empty() and context!=current_context(): cancel(); context.clear()
 	if not owner_inventory.ui.wanted and not from_barter: cancel()
-	if repeat_step!=0:
+	if repeat_step!=0 and modal_lease.admits():
 		var held: bool=is_instance_valid(repeat_button) and repeat_button.get_draw_mode() in [BaseButton.DRAW_PRESSED,BaseButton.DRAW_HOVER_PRESSED]
 		var next:=Amount.tick(repeat_elapsed,repeat_initial,roundi(delta*1000000.0),held)
 		repeat_elapsed=int(next.elapsed); repeat_initial=next.initial
@@ -178,6 +209,7 @@ func blocks_pointer(point: Vector2) -> bool: return is_instance_valid(modal) and
 func snapshot() -> Dictionary: return {"ready":layout_ready,"failure":failure,"dragging":not payload.is_empty(),"amount_dialog":is_instance_valid(modal) and modal.visible,"stats":stats.duplicate()}
 func close() -> void:
 	if closed: return
-	cancel(); closed=true; assets.close(); jobs.clear(); models.clear()
+	cancel();modal_lease.close(); closed=true; assets.close(); jobs.clear(); models.clear()
+	pending_modal_order=null;pending_modal_surfaces=null;pending_modal_canvas=null
 	if is_instance_valid(modal): modal.queue_free()
 	queue_free()

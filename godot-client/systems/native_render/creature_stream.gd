@@ -188,7 +188,7 @@ func _profile_process(_delta: float) -> void:
 		var pieces: Array=[]
 		for source in plan.pieces:
 			var piece: Dictionary=source.duplicate(); piece.bundle=bundles[source.key]; pieces.append(piece)
-		var actor:=Actor.new(); actor.use_skeleton=use_skeleton; actor.position=plan.position; actor.rotation.y=plan.rotation
+		var actor:=Actor.new();actor.actor_alpha_enabled=int(plan.kind)==5; actor.use_skeleton=use_skeleton; actor.position=plan.position; actor.rotation.y=plan.rotation
 		if is_instance_valid(admission_parent): actor.hide(); admission_parent.add_child(actor)
 		else: add_child(actor)
 		if not actor.install(pieces,pool,int(plan.id),plan.maps,int(plan.animation),plan.get("animation_context",{})): object_failed(int(plan.id),actor.failure); actor.retire()

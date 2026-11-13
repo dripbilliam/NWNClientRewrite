@@ -1,5 +1,6 @@
 extends RefCounted
-static func f(v: float) -> float:return PackedFloat32Array([v])[0]
+static var scalar_values:=preload("res://systems/native_data/scalar_representation.gd").configured()
+static func f(v: float) -> float:return Color(v,0,0,0).r if scalar_values else PackedFloat32Array([v])[0]
 static func normalize(v: Array) -> Array:
 	var x := f(v[0]);var y := f(v[1]);var z := f(v[2]);var squared := f(f(f(x*x)+f(y*y))+f(z*z))
 	if squared == 1 or (squared >= 0.9999899864196777 and squared <= 1.0000100135803223):return [x,y,z]

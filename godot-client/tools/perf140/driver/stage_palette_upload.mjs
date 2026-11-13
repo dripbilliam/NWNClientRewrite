@@ -1,0 +1,7 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {stage,hash} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),root=path.join(project,'.cache/native-140fps/root'),relative='systems/native_render/native_light_palette.gd',fixtureFile=path.join(project,'.cache/native-140fps/render-agent/palette-upload-gpu-parse-v2/manifest.json'),fixture=JSON.parse(fs.readFileSync(fixtureFile));
+const fixed=path.join(fixture.project,relative),old=path.join(root,'scene-direct-slots-fenced-v1/project',relative),fixedHash='6d4fac94284f6f68fce745be1221ff48a6958f41ffb203bc84d37c8688d09e6f',oldHash='2485df8c97d8ede450aa85ca8407812d35ecf5fd456c47d524b8921a22d3eb21';if(hash(fs.readFileSync(fixed))!==fixedHash||hash(fs.readFileSync(old))!==oldHash)throw Error('Palette proof differs');
+const control=stage(project,fixtureFile,'palette-old-control-v1',[{relative,from:old,before:fixedHash,after:oldHash}]);
+function fixedRuntime(parent,label){return stage(project,path.join(root,parent,'manifest.json'),label,[{relative,from:fixed,before:oldHash,after:fixedHash}],[fixtureFile]);}
+const lease=fixedRuntime('lease-scene-diagnostics-v1','palette-fixed-lease-v1'),slots=fixedRuntime('scene-direct-slots-fenced-v1','palette-fixed-slots-v1');
+const file=path.join(project,'reports/native-perf140-palette-staging-v1.json');fs.writeFileSync(file,JSON.stringify({control,lease,slots},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({file,control,lease,slots}));

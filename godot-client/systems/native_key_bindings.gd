@@ -5,7 +5,10 @@ signal changed
 signal capture_changed(active: bool)
 signal edited
 signal cancel_requested
+signal highlight_changed(enabled: bool)
 const Rules=preload("res://systems/native_data/keymap_rules.gd")
+const Highlight=preload("res://systems/native_data/tooltip_highlight.gd")
+const TooltipPreferences=preload("res://systems/native_data/tooltip_preferences.gd")
 const SHIFT:=1
 const CTRL:=2
 const ALT:=4
@@ -23,6 +26,35 @@ var capture_kind:=""
 var capture_index:=-1
 var revision:=0
 var failure:=""
+var highlight_policy:=Highlight.new()
+var highlighted:=false
+var highlight_key:=0
+func _ready() -> void:
+	get_viewport().gui_focus_changed.connect(highlight_focus)
+	get_window().focus_exited.connect(clear_highlight)
+	set_process(false)
+func highlight_focus(control: Control) -> void:
+	if control is LineEdit or control is TextEdit: clear_highlight()
+func apply_highlight(value: int) -> void:
+	if value<0: return
+	var previous:=highlighted; highlighted=bool(value)
+	var viewport:=get_viewport()
+	if is_instance_valid(viewport) and viewport.has_meta("native_tooltip_router"):
+		var router: Object=viewport.get_meta("native_tooltip_router").get_ref()
+		if is_instance_valid(router) and not router.closed: router.instant_mode(highlighted)
+	if highlighted!=previous: highlight_changed.emit(highlighted)
+	set_process(highlight_policy.held!=0)
+func clear_highlight() -> void:
+	highlight_key=0; highlight_policy.clear(); apply_highlight(0)
+func _process(_delta: float) -> void:
+	apply_highlight(highlight_policy.advance(Time.get_ticks_msec()))
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not event is InputEventKey or not event.pressed or event.echo or blocked(): return
+	var focus:=get_viewport().gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit or not action_matches(97,event): return
+	highlight_key=physical(event)
+	apply_highlight(highlight_policy.key(true,Time.get_ticks_msec(),TooltipPreferences.doubletap_ms))
+	get_viewport().set_input_as_handled()
 func configure(storage: String) -> void: path=storage
 static func physical(event: InputEventKey) -> int: return int(event.physical_keycode) if event.physical_keycode!=0 else int(event.keycode)
 static func chord(event: InputEventKey) -> Dictionary:
@@ -71,7 +103,7 @@ func start_capture(kind: String,index: int,ticket: int) -> bool:
 	if not valid_transaction(ticket) or kind not in ["normal","hotbar"]: return false
 	if kind=="hotbar" and (index<0 or index>=36): return false
 	if kind=="normal" and not pending.normal.rows.any(func(row):return int(row.action)==index): return false
-	stop_capture(); capture_kind=kind; capture_index=index; capturing=true; capture_changed.emit(true); edited.emit(); return true
+	clear_highlight(); stop_capture(); capture_kind=kind; capture_index=index; capturing=true; capture_changed.emit(true); edited.emit(); return true
 func stop_capture() -> void:
 	var was:=capturing; capturing=false; capture_kind=""; capture_index=-1
 	if was: capture_changed.emit(false)
@@ -115,9 +147,9 @@ func commit(ticket: int) -> bool:
 		for name in writes: saved.set_value("Keymapping",name,writes[name])
 		for index in 36: saved.set_value("HotbarKeymapping","Slot"+str(index),pending.hotbar[index])
 		if saved.save(path)!=OK: failure="Key preferences could not be saved"; return false
-	active=pending.duplicate(true); pending.clear(); revision+=1; changed.emit(); return true
+	clear_highlight(); active=pending.duplicate(true); pending.clear(); revision+=1; changed.emit(); return true
 func retire() -> void:
-	stop_capture(); pending.clear(); revision+=1
+	clear_highlight(); stop_capture(); pending.clear(); revision+=1
 func blocked() -> bool: return closed or not bindings_ready or capturing
 func hotbar_index(event: InputEventKey,page: int=0) -> int:
 	if blocked(): return -1
@@ -155,7 +187,12 @@ func caption(value: Dictionary,resolve: Callable) -> String:
 	if modifiers&META: parts.append("Meta")
 	parts.append(text); return " + ".join(parts)
 func _input(event: InputEvent) -> void:
-	if not capturing or not event is InputEventKey: return
+	if not event is InputEventKey: return
+	# Observe owned release before a text widget can consume it. Do not take
+	# that event away from the GUI; focus/capture retirement clears ownership.
+	if not event.pressed and physical(event)==highlight_key:
+		highlight_key=0; apply_highlight(highlight_policy.key(false,Time.get_ticks_msec(),TooltipPreferences.doubletap_ms))
+	if not capturing: return
 	get_viewport().set_input_as_handled()
 	if not event.pressed or event.echo: return
 	if physical(event)==KEY_ESCAPE: cancel_requested.emit(); return
@@ -163,7 +200,7 @@ func _input(event: InputEvent) -> void:
 	if capture_kind=="normal": value.modifiers=0
 	assign(capture_kind,capture_index,value,revision)
 func snapshot() -> Dictionary:
-	return {"ready":bindings_ready,"capturing":capturing,"pending":not pending.is_empty(),"revision":revision,"failure":failure,"hotbar_slots":active.get("hotbar",[]).size(),"native_only":true,"full_key_settings_parity":false}
+	return {"ready":bindings_ready,"capturing":capturing,"pending":not pending.is_empty(),"revision":revision,"failure":failure,"hotbar_slots":active.get("hotbar",[]).size(),"highlight":{"enabled":highlighted,"held":highlight_policy.held,"phase":highlight_policy.phase,"doubletap_ms":TooltipPreferences.doubletap_ms},"native_only":true,"full_key_settings_parity":false}
 func close() -> void:
 	if closed: return
 	retire(); closed=true; bindings_ready=false; active.clear(); table={}

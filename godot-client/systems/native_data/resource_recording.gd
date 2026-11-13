@@ -37,6 +37,7 @@ func write_loop() -> void:
 		wake.wait(); mutex.lock(); var jobs:=queue; queue=[]; var ending:=stopping; mutex.unlock()
 		for job in jobs:
 			if job.has("layers"):
+				manifest.portraitFiles=preload("res://systems/native_data/portrait_resources.gd").files(job.layers)
 				for layer in job.layers:
 					for key in layer.entries:
 						if not manifest.availability.has(key): manifest.availability[key]=int(layer.get("storage_class",1 if layer.kind=="key" else 3))

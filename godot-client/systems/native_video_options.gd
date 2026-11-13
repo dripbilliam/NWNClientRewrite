@@ -33,6 +33,13 @@ var layout_path:="user://native-menu-layout.cfg"
 var retained_position:=Vector2.INF
 var dragging:=false
 var drag_offset:=Vector2.ZERO
+var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
+func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
+	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
+	if not modal_lease.admission_changed.is_connected(modal_admission_changed):modal_lease.admission_changed.connect(modal_admission_changed)
+	if visible and not scope.is_empty() and modal_lease.ticket.is_empty():modal_lease.activate(scope)
+func modal_admission_changed(admitted: bool) -> void:
+	if not admitted:dragging=false;held.clear();stop_arrow()
 func configure(painter,text,catalog,cache_path: String,service,placement_path: String="user://native-menu-layout.cfg") -> void:
 	frame=painter; text_owner=text; settings=service; mouse_filter=Control.MOUSE_FILTER_STOP; hide()
 	layout_path=placement_path
@@ -69,7 +76,7 @@ func build() -> void:
 	for tag in ["applybutton","okbutton","cancelbutton","xbutton","intupbutton","intdownbutton"]:
 		var button: Button=frame.create_button(definition.entries[tag],self,models); buttons[tag]=button
 		frame.button_caption(button,text_owner.raw({"strRef":int(definition.entries[tag].caption.get("Obj_StrRef",-1))}))
-		button.button_down.connect(func():held[tag]=revision; if_arrow(tag))
+		button.button_down.connect(capture.bind(tag))
 		button.button_up.connect(stop_arrow)
 		if tag not in ["intupbutton","intdownbutton"]: button.pressed.connect(invoke.bind(tag))
 	for tag in Plan.LABELS:
@@ -97,6 +104,7 @@ func place() -> void:
 	var maximum: Vector2=(get_viewport_rect().size-size).max(Vector2.ZERO)
 	position=retained_position.clamp(Vector2.ZERO,maximum) if retained_position.is_finite() else maximum*0.5
 func title_input(event: InputEvent) -> void:
+	if not modal_lease.admits():return
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		dragging=event.pressed
 		if dragging: drag_offset=event.global_position-global_position; move_to_front()
@@ -105,23 +113,27 @@ func save_position() -> void:
 	if layout_path.is_empty(): return
 	var saved:=ConfigFile.new(); saved.load(layout_path); saved.set_value("positions","video-options",position); saved.save(layout_path)
 func _input(event: InputEvent) -> void:
-	if closed or not visible: return
+	if closed or not visible or not modal_lease.admits(): return
 	if dragging and event is InputEventMouseMotion: position=(event.position-drag_offset).clamp(Vector2.ZERO,(get_viewport_rect().size-size).max(Vector2.ZERO))
 	if dragging and event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed: dragging=false; save_position()
 func show_page(value: Array) -> void:
 	if closed or not layout_ready: return
 	revision+=1; scope=value.duplicate(); held.clear(); stop_arrow(); pending_scale=settings.applied_scale; applied=false; refresh(); show(); place()
+	modal_lease.activate(scope)
+func capture(tag: String) -> void:
+	if not modal_lease.admits():return
+	held[tag]=revision;if_arrow(tag)
 func stop_arrow() -> void: repeat_clock.stop(); arrow=0
 func if_arrow(tag: String) -> void:
 	if tag not in ["intupbutton","intdownbutton"]: return
 	arrow=1 if tag=="intupbutton" else -1; step_scale(); repeat_clock.begin()
 func step_scale() -> void:
-	if closed or not is_visible_in_tree() or arrow==0: return
+	if closed or not is_visible_in_tree() or arrow==0 or not modal_lease.admits(): return
 	var current: Dictionary=settings.current(); pending_scale=Plan.scale_step(pending_scale,arrow>0,float(current.minimum),float(current.maximum)); refresh()
 func _process(delta: float) -> void:
 	if not closed and is_visible_in_tree() and arrow!=0 and repeat_clock.tick(int(round(delta*1000000)),buttons.intupbutton.is_hovered() if arrow>0 else buttons.intdownbutton.is_hovered()): step_scale()
 func invoke(tag: String) -> void:
-	if closed or not is_visible_in_tree() or int(held.get(tag,-1))!=revision: return
+	if closed or not is_visible_in_tree() or not modal_lease.admits() or int(held.get(tag,-1))!=revision: return
 	held.erase(tag)
 	if tag in ["cancelbutton","xbutton"]: finish_page(); return
 	if tag in ["applybutton","okbutton"]:
@@ -132,9 +144,10 @@ func finish_page() -> void:
 	if closed: return
 	if dragging: dragging=false; save_position()
 	if applied: settings.commit()
-	applied=false; revision+=1; held.clear(); stop_arrow(); hide(); finished.emit()
+	applied=false; revision+=1; held.clear(); stop_arrow();modal_lease.retire(); hide(); finished.emit()
 func retire_scope() -> void:
 	if visible: finish_page()
+	else:modal_lease.retire()
 	revision+=1; held.clear(); stop_arrow()
 func settings_changed() -> void:
 	if closed or not layout_ready: return
@@ -167,6 +180,7 @@ func _notification(what: int) -> void:
 func close() -> void:
 	if closed: return
 	retire_scope(); closed=true
+	modal_lease.close()
 	if is_instance_valid(settings) and settings.changed.is_connected(settings_changed): settings.changed.disconnect(settings_changed)
 	if is_instance_valid(scrollbar): scrollbar.close()
 	if is_instance_valid(assets): assets.close()

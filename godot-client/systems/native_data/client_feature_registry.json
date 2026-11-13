@@ -1,0 +1,462 @@
+{
+  "version": 1,
+  "scope": "Authoritative supported performance selections. Application ingress flags are additionally inventoried from their parser declarations; research-only flags are explicitly non-selectable here.",
+  "features": [
+    {
+      "name": "performance-runtime",
+      "target": "host",
+      "default": "standard",
+      "choices": [
+        "standard",
+        "verified-native"
+      ],
+      "owner": "tools/native-performance-runtime.cjs",
+      "description": "Use the ordinary engine selection or the exact verified native template against current project sources.",
+      "status": "selectable",
+      "powershell": "PerformanceRuntime",
+      "forwarder": "performance"
+    },
+    {
+      "name": "render-thread",
+      "target": "engine",
+      "default": "default",
+      "choices": [
+        "default",
+        "safe",
+        "separate"
+      ],
+      "owner": "RenderingServer engine option",
+      "description": "Select engine render-thread policy; actual thread IDs are observed independently.",
+      "status": "selectable",
+      "powershell": "RenderThread",
+      "forwarder": "performance"
+    },
+    {
+      "name": "drive-collision",
+      "target": "native",
+      "default": "indexed",
+      "choices": [
+        "legacy",
+        "indexed"
+      ],
+      "owner": "systems/native_render/live_world.gd",
+      "description": "Choose the actual collision owner before opening a World.",
+      "status": "selectable",
+      "powershell": "DriveCollision",
+      "forwarder": "performance"
+    },
+    {
+      "name": "light-input-registry",
+      "target": "native",
+      "default": "script",
+      "choices": [
+        "script",
+        "builtin"
+      ],
+      "owner": "systems/native_render/focus_lighting.gd",
+      "description": "Use script collection or the native registry capability. Explicit unavailable native selection rejects.",
+      "status": "selectable",
+      "powershell": "LightInputRegistry",
+      "forwarder": "performance",
+      "requiresClass": "NwnBuiltinLightInputRegistry"
+    },
+    {
+      "name": "world-snapshot-preparation",
+      "target": "native",
+      "default": "script",
+      "choices": [
+        "script",
+        "workers"
+      ],
+      "owner": "native_session_world.gd",
+      "description": "Prepare immutable area snapshot data in script or owned workers; actual worker dispatch/use and lifecycle are reported separately.",
+      "status": "selectable",
+      "powershell": "WorldSnapshotPreparation",
+      "forwarder": "performance"
+    },
+    {
+      "name": "detailed-profiling",
+      "target": "host",
+      "default": "saved",
+      "choices": [
+        "saved",
+        "on",
+        "off"
+      ],
+      "owner": "systems/native_render_settings.gd",
+      "description": "Explicit profiling policy for matched tests; saved retains the user preference. Actual enabled state is observed.",
+      "status": "selectable",
+      "powershell": "DetailedProfiling",
+      "forwarder": "performance"
+    },
+    {
+      "name": "loading-pipeline",
+      "target": "host",
+      "default": "ordinary",
+      "choices": [
+        "ordinary",
+        "streamed",
+        "merged"
+      ],
+      "owner": "tools/native-loading-pipeline.cjs",
+      "description": "Named loading family. It does not select a faster engine, render thread, light registry or collision owner.",
+      "status": "selectable",
+      "powershell": "LoadingPipeline",
+      "forwarder": "loading"
+    },
+    {
+      "name": "shared-animation-preparation",
+      "target": "native",
+      "default": "false",
+      "choices": [
+        "false",
+        "true"
+      ],
+      "owner": "systems/native_data/shared_animation_preparation.gd",
+      "description": "Worker preparation sharing; private runtime poses remain private.",
+      "status": "selectable",
+      "powershell": "SharedAnimationPreparation",
+      "forwarder": "loading",
+      "bare": "true"
+    },
+    {
+      "name": "native-draw-cache",
+      "target": "native",
+      "default": "off",
+      "choices": [
+        "off",
+        "prepared"
+      ],
+      "owner": "systems/native_render/native_draw_cache_runtime.gd",
+      "description": "Optional converted static-model geometry files, produced on demand.",
+      "status": "selectable",
+      "powershell": "NativeDrawCache",
+      "forwarder": "loading",
+      "bare": "prepared"
+    },
+    {
+      "name": "native-draw-cache-gib",
+      "target": "native",
+      "default": "25",
+      "choices": null,
+      "owner": "systems/native_data/prepared_resource_store.gd",
+      "description": "Committed converted-geometry payload limit in GiB; no up-front allocation.",
+      "status": "selectable",
+      "powershell": "NativeCacheGiB",
+      "forwarder": "loading",
+      "type": "integer",
+      "minimum": 25,
+      "maximum": 1024,
+      "requires": {
+        "native-draw-cache": "prepared"
+      }
+    },
+    {
+      "name": "base-scenery-owner",
+      "target": "native",
+      "default": "original",
+      "choices": [
+        "original",
+        "retained"
+      ],
+      "owner": "systems/native_render/live_world.gd",
+      "description": "BASE object preparation owner; selected through the loading pipeline.",
+      "status": "selectable",
+      "forwarder": "pipeline-output",
+      "directHost": false
+    },
+    {
+      "name": "base-scenery-templates",
+      "target": "native",
+      "default": "original",
+      "choices": [
+        "original",
+        "retained"
+      ],
+      "owner": "systems/native_render/base_world_scenery.gd",
+      "description": "Reuse source templates in the retained BASE owner.",
+      "status": "selectable",
+      "forwarder": "pipeline-output",
+      "directHost": false
+    },
+    {
+      "name": "base-scenery-template-probe",
+      "target": "native",
+      "default": "ordinary",
+      "choices": [
+        "ordinary",
+        "ready"
+      ],
+      "owner": "systems/native_render/base_template_directory.gd",
+      "description": "Allow ready preparation hits past cold jobs.",
+      "status": "selectable",
+      "forwarder": "pipeline-output",
+      "directHost": false
+    },
+    {
+      "name": "base-scenery-admission",
+      "target": "native",
+      "default": "ordinary",
+      "choices": [
+        "ordinary",
+        "timed"
+      ],
+      "owner": "systems/native_render/live_world.gd",
+      "description": "Optional time-bounded BASE admission.",
+      "status": "selectable",
+      "forwarder": "pipeline-output",
+      "directHost": false
+    },
+    {
+      "name": "base-scenery-stream",
+      "target": "native",
+      "default": "waves",
+      "choices": [
+        "waves",
+        "continuous"
+      ],
+      "owner": "systems/native_render/base_stream_schedule.gd",
+      "description": "Continuously replenish bounded player-centric reservations.",
+      "status": "selectable",
+      "forwarder": "pipeline-output",
+      "directHost": false
+    },
+    {
+      "name": "model-template",
+      "target": "native",
+      "default": "packed",
+      "choices": [
+        "packed",
+        "recipe"
+      ],
+      "owner": "systems/native_render/model_template.gd",
+      "description": "PackedScene or known-property model construction, with explicit unsupported-graph fallback.",
+      "status": "selectable",
+      "forwarder": "pipeline-output",
+      "directHost": false
+    },
+    {
+      "name": "static-scenery",
+      "target": "native",
+      "default": "individual",
+      "choices": [
+        "individual",
+        "batched",
+        "merged"
+      ],
+      "owner": "systems/native_render/static_scenery_batches.gd",
+      "description": "Terrain batching selection; exact eligible geometry only.",
+      "status": "selectable",
+      "forwarder": "pipeline-output",
+      "directHost": false
+    },
+    {
+      "name": "base-scenery-draw",
+      "target": "native",
+      "default": "individual",
+      "choices": [
+        "individual",
+        "merged"
+      ],
+      "owner": "systems/native_render/base_static_draw_context.gd",
+      "description": "Verified immutable BASE draw-leaf merging.",
+      "status": "selectable",
+      "forwarder": "pipeline-output",
+      "directHost": false
+    },
+    {
+      "name": "render-profile",
+      "target": "host",
+      "default": "gameplay",
+      "choices": [
+        "gameplay",
+        "legacy"
+      ],
+      "owner": "tools/native-render-configuration.cjs",
+      "description": "Existing lighting and particle presentation bundle. Isolated test defaults may differ.",
+      "status": "selectable",
+      "powershell": "RenderProfile",
+      "forwarder": "render"
+    },
+    {
+      "name": "native-runtime",
+      "target": "host",
+      "default": "editor",
+      "choices": [
+        "editor",
+        "release"
+      ],
+      "owner": "tools/native-engine-runtime.cjs",
+      "description": "Existing editor or packaged release route, used when performance-runtime is standard.",
+      "status": "selectable",
+      "powershell": "EngineRuntime",
+      "forwarder": "existing"
+    },
+    {
+      "name": "native-lighting",
+      "target": "native",
+      "default": "enhanced",
+      "choices": [
+        "godot",
+        "enhanced"
+      ],
+      "owner": "tools/native-render-configuration.cjs",
+      "description": "Existing lighting selection; explicit individual overrides are recorded as custom.",
+      "status": "selectable",
+      "powershell": "Lighting",
+      "forwarder": "render"
+    },
+    {
+      "name": "native-light-history",
+      "target": "native",
+      "default": "1",
+      "choices": [
+        "0",
+        "1"
+      ],
+      "owner": "tools/native-render-configuration.cjs",
+      "description": "Original light-selection/history policy.",
+      "status": "selectable",
+      "forwarder": "render",
+      "nativeBare": "1"
+    },
+    {
+      "name": "native-surface-output",
+      "target": "native",
+      "default": "true",
+      "choices": [
+        "false",
+        "true"
+      ],
+      "owner": "tools/native-render-configuration.cjs",
+      "description": "Native surface color-transfer path.",
+      "status": "selectable",
+      "forwarder": "render"
+    },
+    {
+      "name": "particle-presentation",
+      "target": "native",
+      "default": "shared",
+      "choices": [
+        "individual",
+        "shared"
+      ],
+      "owner": "tools/native-render-configuration.cjs",
+      "description": "Existing particle presentation route.",
+      "status": "selectable",
+      "powershell": "SharedParticles",
+      "forwarder": "render"
+    },
+    {
+      "name": "particle-lighting",
+      "target": "native",
+      "default": "pooled",
+      "choices": [
+        "scene",
+        "pooled"
+      ],
+      "owner": "tools/native-render-configuration.cjs",
+      "description": "Existing particle light ownership.",
+      "status": "selectable",
+      "forwarder": "render"
+    },
+    {
+      "name": "native-overhead-clocks",
+      "target": "native",
+      "default": "false",
+      "choices": [
+        "false",
+        "true"
+      ],
+      "owner": "systems/native_client_clock_runtime.gd",
+      "description": "Live overhead clock handling; offline replay has a separate policy.",
+      "status": "selectable",
+      "forwarder": "existing",
+      "bare": "true"
+    },
+    {
+      "name": "profile",
+      "target": "native",
+      "default": "saved",
+      "choices": [
+        "true",
+        "false"
+      ],
+      "owner": "native_session_world.gd",
+      "description": "Native output of detailed-profiling or the existing native-profile switch; saved preference otherwise applies.",
+      "status": "selectable",
+      "forwarder": "existing-output",
+      "directHost": false
+    }
+  ],
+  "researchOnly": [
+    {
+      "name": "particle-random",
+      "owner": "private native kernel",
+      "status": "benchmark-only",
+      "reason": "V4 used native selection and a different pinned particle DLL. Normal-launch support/capabilities must be proven separately."
+    },
+    {
+      "name": "particle-clocks",
+      "owner": "private native kernel",
+      "status": "benchmark-only",
+      "reason": "V4 used native clocks; copying a flag is not proof the current kernel implements it."
+    },
+    {
+      "name": "particle-pose-leases",
+      "owner": "private capsule and particle kernel",
+      "status": "benchmark-only",
+      "reason": "V4 selected managed leases. Current-source and kernel parity must be verified before normal forwarding."
+    },
+    {
+      "name": "highlight",
+      "owner": "systems/entity_registry.gd",
+      "status": "native-entry-only",
+      "reason": "V4 selected whole-character; ordinary host currently does not expose this option."
+    }
+  ],
+  "normalGameplayDefaults": {
+    "version": 1,
+    "scope": "Applied by the ordinary launcher only; explicit selections win. Base feature defaults remain the direct/isolated/conservative policy.",
+    "values": {
+      "performance-runtime": "verified-native",
+      "render-thread": "separate",
+      "light-input-registry": "builtin",
+      "detailed-profiling": "off"
+    },
+    "acceptedRenderCore": "Accepted combined-b normal bundle; diagnostic timers OFF and explicit conservative selections preserved.",
+    "acceptedNativeBundle": {
+      "version": 3,
+      "flags": [
+        "--particle-scene-boundary=native",
+        "--particle-scene-direct=pod",
+        "--particle-setup-boundary=bound",
+        "--particle-hot-parameters=bound",
+        "--visibility-chain-cache=epochs",
+        "--light-input-read=typed",
+        "--light-input-proof=segments",
+        "--light-pair-layer-repair=exact",
+        "--light-pair-filter=consumers",
+        "--pair-record-reuse=exact",
+        "--rig-skin-publisher=native",
+        "--skeleton-force-pass=once",
+        "--particle-resident-text=borrow",
+        "--particle-empty-clips=skip",
+        "--light-dictionary-read=single",
+        "--light-input-lifetime=guarded"
+      ],
+      "rawInternalFlagsExposed": false,
+      "diagnosticTimers": false,
+      "optionalTypedInput": "Explicit script input omits typed and segmented readers",
+      "fallback": "Explicit standard/editor/release and isolated routes retain no implicit bundle flags; accepted DLL flag-absent paths preserve conservative behavior",
+      "omitted": [
+        "motion",
+        "childless",
+        "skeleton-upload",
+        "bone-only-pair",
+        "sparse/coarse/pacing diagnostics"
+      ],
+      "scope": "Combined resident text borrowing and immutable empty-clip lookup skip; private normal integration acceptance remains separately receipted."
+    }
+  }
+}

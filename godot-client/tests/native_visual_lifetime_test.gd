@@ -18,6 +18,12 @@ func run() -> void:
 	var world:=World.new(); root.add_child(world)
 	var actor:=Node3D.new(); world.add_child(actor); world.desired[1]={"object":{"nativeLifetime":10},"key":"new-appearance"}; world.instances[1]=actor; world.installed[1]="old-appearance"
 	var effects:=Effects.new(); root.add_child(effects); effects.set_process(false); effects.world=world; effects.client=effects
+	for name in ["visualeffects","progfx","appearance"]: effects.tables[name]={"orderedRows":[]}
+	check(effects.tables_ready(),"All required effect dependencies enable delivery")
+	for name in ["ruleset","racialtypes","classes"]: effects.tables[name]={"orderedRows":[]}
+	check(effects.tables_ready(),"Unrelated shared rules tables cannot stall already-ready visual delivery")
+	effects.tables.erase("progfx")
+	check(not effects.tables_ready(),"Extra tables cannot conceal a missing effect dependency")
 	effects.reserve(1,10,{"visualId":1,"sourceId":0x7f000000},false)
 	var entry: Dictionary=effects.entries[1]
 	check(effects._bound(entry) and effects.host(1)==actor,"Existing effects retain the source while its new appearance streams")

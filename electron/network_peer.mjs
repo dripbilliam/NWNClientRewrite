@@ -11,6 +11,7 @@ import {disconnectRequest,readDisconnectResponse} from '../src/network_login_pac
 import {readReliableFrame,writeReliableFrame} from '../src/network_frames.js';
 import {isNetworkBytes} from '../src/network_bytes.js';
 import {runtimeDiagnostics} from '../src/runtime_diagnostics.js';
+import {networkConnectionFailure} from '../src/network_connection_failure.js';
 
 // Main-process connection owner. It has no observation-duration limit and no
 // resource, character, renderer or local simulation policy. Game messages are
@@ -21,23 +22,28 @@ export class NetworkPeer extends EventEmitter {
   super();this.crypto=crypto;this.onDiagnostic=onDiagnostic;this.inflater=new NetworkMessageInflater();this.queue=Promise.resolve();this.started=false;this.closed=false;this.disconnecting=false;
  }
  diagnose(d){this.onDiagnostic(d);this.emit('diagnostic',d);}
- enqueue(task){const result=this.queue.then(()=>{if(this.closed)throw new Error('Native network peer is closed');return task();});this.queue=result.catch(()=>{this.finish(new Error('Native network peer operation failed'));});return result;}
+ enqueue(task){const result=this.queue.then(()=>{if(this.closed)throw new Error('Native network peer is closed');return task();});this.queue=result.catch(error=>{if(!this.window&&!this.connectionFailure)this.connectionFailure=networkConnectionFailure(error,this.connectionStage??'key-exchange');this.finish(new Error('Native network peer operation failed'));});return result;}
  async connect(identity,{host,port=5121,metadata,expectedServerPublicKey=null,timeout=12000}={}){
   if(this.started||this.closed)throw new Error('Native network peer has already started');this.started=true;
-  if(typeof host!=='string'||!host.length||!Number.isInteger(port)||port<1||port>65535||!metadata||!Number.isInteger(timeout)||timeout<1||timeout>120000){this.finish();throw new Error('Invalid native network connection settings');}
+  if(typeof host!=='string'||!host.length||!Number.isInteger(port)||port<1||port>65535||!metadata||!Number.isInteger(timeout)||timeout<1||timeout>120000){const error=new Error('Invalid native network connection settings');this.connectionFailure=networkConnectionFailure(error,'validate-options');this.finish();throw error;}
   this.port=port;
+  this.connectionStage='resolve-address';
   try{
    this.host=(await lookup(host,{family:4})).address;
    if(this.closed)throw new Error('Native network connection closed');
+   this.connectionStage='bind-socket';
    this.socket=dgram.createSocket('udp4');
    this.socket.on('error',()=>this.finish(new Error('Native network socket failed')));
    await new Promise((resolve,reject)=>{
     this.socket.once('error',reject);this.socket.bind(0,'0.0.0.0',()=>{this.bound=true;this.socket.removeListener('error',reject);if(this.closed){this.socket.close();this.bound=false;}resolve();});
    });
    if(this.closed)throw new Error('Native network connection closed');
+   this.connectionStage='application-identity';
    const nativeMetadata={...metadata,port:this.socket.address().port,applicationId:metadata.applicationId??await this.crypto.applicationId()};
+   this.connectionStage='platform-identity';
    if(typeof nativeMetadata.platformIdentifier==='function')nativeMetadata.platformIdentifier=await nativeMetadata.platformIdentifier(this.crypto);
    if(this.closed)throw new Error('Native network connection closed');
+   this.connectionStage='login-context';
    this.login=new NetworkLogin(this.crypto,identity,nativeMetadata,{expectedServerPublicKey,onDiagnostic:d=>this.diagnose(d)});
    this.socket.on('message',(bytes,peer)=>{
     if(this.closed||peer.address!==this.host||peer.port!==this.port)return;
@@ -45,9 +51,9 @@ export class NetworkPeer extends EventEmitter {
    });
    const admitted=new Promise((resolve,reject)=>{this.resolveConnect=resolve;this.rejectConnect=reject;});
    this.connectTimer=setTimeout(()=>this.finish(new Error('Native network login timed out')),timeout);
-   void this.enqueue(async()=>{const next=await this.login.begin();await this.send(next.send);});
+   void this.enqueue(async()=>{this.connectionStage='key-exchange';const next=await this.login.begin();this.connectionStage='send-key-exchange';await this.send(next.send);this.connectionStage='await-admission';});
    return await admitted;
-  }catch(error){this.finish();throw new Error(error?.message==='Native network login timed out'?error.message:'Native network connection failed');}
+  }catch(error){if(!this.disconnecting){this.connectionFailure??=networkConnectionFailure(error,this.connectionStage);this.diagnose({code:'network.connect-failed',reason:'Native connection preparation or admission failed',failure:this.connectionFailure});}this.finish();throw new Error(error?.message==='Native network login timed out'?error.message:'Native network connection failed',{cause:error});}
  }
  packet(direction,plain,wire){
   const p={direction,tag:plain[0]===77?'M':Buffer.from(plain.subarray(0,4)).toString('ascii').replace(/[^A-Za-z0-9]/g,'?'),length:plain.length,wireLength:wire.length,encrypted:wire[0]===73};
@@ -94,9 +100,13 @@ export class NetworkPeer extends EventEmitter {
   if(this.closed||this.disconnecting||this.login?.phase!=='admitted'||!this.window)return Promise.reject(new Error('Native game connection is not ready'));
   const frames=packetizeUncompressedMessage(Uint8Array.from(bytes));
   return this.enqueue(async()=>{
-   if(this.disconnecting||this.login?.phase!=='admitted'||!this.window)throw new Error('Native game connection is not ready');
+   // Local cancellation is a request outcome, not a failed protocol operation.
+   // Reject its caller after this serial task, so queued disconnect can finish.
+   if(this.disconnecting)return false;
+   if(this.login?.phase!=='admitted'||!this.window)throw new Error('Native game connection is not ready');
    for(const frame of frames)for(const response of this.window.enqueue(frame,performance.now()))await this.send(response);
-  });
+   return true;
+  }).then(sent=>{if(!sent)throw new Error('Native game connection is not ready');});
  }
  disconnect(){
   if(this.closed)return Promise.resolve();if(this.disconnectPromise)return this.disconnectPromise;

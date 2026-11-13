@@ -25,7 +25,9 @@ func setup() -> void:
 func reset() -> void:
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.reset_view()
 	if not cards.is_empty(): retired = cards.values().map(func(card): return weakref(card))
-	for card in cards.values(): card.get_parent().remove_child(card); card.queue_free()
+	for card in cards.values():
+		if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.retire_card(card)
+		card.get_parent().remove_child(card); card.queue_free()
 	cards.clear(); action_buttons.clear(); art.clear(); rows.clear(); actions.clear(); view_id = -1; actor_id = -1; hide()
 
 func retired_alive() -> int: return retired.filter(func(value): return value.get_ref() != null).size()
@@ -36,6 +38,7 @@ func receive(message: Dictionary) -> void:
 		view_id = int(message.viewId); actor_id = int(message.actorId); rows = message.rows; actions = message.actions
 		for entry_id in cards.keys():
 			if entry_id >= rows.size() or int(cards[entry_id].get_meta("object_id")) != int(rows[entry_id].id) or bool(cards[entry_id].get_meta("self")) != bool(rows[entry_id].self):
+				if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.retire_card(cards[entry_id])
 				cards[entry_id].get_parent().remove_child(cards[entry_id]); cards[entry_id].queue_free(); cards.erase(entry_id)
 		action_buttons.clear()
 		for row in rows:

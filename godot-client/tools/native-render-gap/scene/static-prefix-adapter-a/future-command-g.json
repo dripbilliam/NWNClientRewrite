@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "status": "SOURCE_ONLY_FUTURE_COMMAND_NOT_EXECUTED",
+  "contract": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\source-contract-g.json",
+    "sha256": "4c1bbce396c6136eeabcbcde208f4d422af776f3fd52bbea8b99a69c9b1ae863"
+  },
+  "source": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\cursor_extension_g.cpp",
+    "sha256": "05fae92e89fc94eee06f21a468d8b4a4c2613c639a62cf4cb8a549aec0682ffe"
+  },
+  "futureBuild": {
+    "executable": "pwsh",
+    "arguments": [
+      "-NoProfile",
+      "-File",
+      "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\build-private-g.ps1",
+      "-Label",
+      "g-source-a",
+      "-Build"
+    ],
+    "requiresNewPcAuthorization": true
+  },
+  "futureCapsule": "Requires a NEW candidate manifest explicitly pinning G; known B4/F manifests must not silently select this module. Actual future DLL/build SHA values are unavailable, never invented.",
+  "nativeStarts": 0,
+  "compilerStarts": 0,
+  "buildRecipe": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\build-private-g.ps1",
+    "sha256": "7592b0e8ffaec54274478c445707f025be5c1bd7042b41713f4f6c4e2ff156a4"
+  },
+  "metadataFinalizer": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\static-prefix-adapter-a\\finalize-g.cjs",
+    "sha256": "ae40bd5ca8abfdce9640d0be9f6b6b3fc4f7c4df7e0d66a630987d397b21d1c7"
+  }
+}

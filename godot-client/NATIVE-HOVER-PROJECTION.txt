@@ -1,0 +1,49 @@
+Native hover projection correction
+
+Source766ea0 ->6e9820 projects the model-head point without a behind-camera,
+viewport containment or popup-footprint clamp. The earlier ordinary Bubble
+already follows this policy. HUD/Nameplate now share it for admitted native
+hover: the current raw source's exact lifetime and accepted connection/area
+tuple go through Gameplay.overhead_anchor ->NativeRoot.native_text_anchor.
+That callback returns an unrounded native head screen point. Plate.place with
+native_projection=true performs GuiProjection.screen_down exactly once before
+center-bottom placement. Shared registry overlap may subsequently move it;
+this does not alter fitting, raw text or clocks.
+
+Any non-null admitted connection disables the inspection fallback, even if its
+generation/area or anchor owner is pending/unavailable. A native caption with
+missing/invalid source, stale model stamp, missing scope/callback or nonfinite
+projection is unplaced. It never borrows an interaction AABB or guesses an
+offset. Existing explicit no-connection/offline/debug callers retain the old
+two-argument Plate.place containment/footprint policy. That branch is labeled
+inspection behaviour and is not native projection acceptance. Tooltips remain
+on their existing independent placement path.
+
+Current existing anchor owner has a known type limit: project handles creature5,
+placeable9 and static7/10, but not item6. Native item-hover projection therefore
+remains unavailable until Root approves a separate original-backed anchor.
+This correction does not invent item height or borrow its interaction AABB.
+
+Focused accepted proof:
+  .cache/overhead-settings/native-hover-projection-v1/proof.json
+  25 checks /585 immutable source+copy inputs, six native outputs unchanged,
+  clean engine/no leaks,9.68s. Actual NativeRoot anchor ->Gameplay ->HUD ->real
+  Plate, actual installed dialog font, controlled canonical row/Node3D/head
+  metadata and Camera. Seven explicit expected negative/fractional coordinates
+  verify GUI-up truncation, actual offscreen/behind-camera projection is not
+  culled, and stale/pending/no-callback native owners never read the inspection
+  AABB. Explicit-null offline inspection fallback remains independently tested.
+
+Original lifecycle/anchor dossier:
+  reports/native-overhead-chat-lifecycle-anchor-v3.json
+  SHA ab7b65431509e97e782e7bf4a67ef096cfc71720cd5d2f9816a122444d9e4ad1
+See NATIVE-OVERHEAD-CHAT-POLICY.md screen-edge row and cached-anchor overlap
+distinction. Exact dirty-before HUD/Nameplate bytes remain under
+.cache/popup-hover-projection/before-v1/manifest.json. Previous popup settings,
+ordinary packet/HUD and v3/v4/v5 server authority artifacts remain unchanged.
+
+No new server, GPU, native build, profile/key read or user-process action.
+Headless Canvas visibility is distinct from rendered pixels. No source text,
+popup timer, Registry clock, settings policy or world architecture changed.
+Root owns final current text/log/TLK/received-HUD regressions separately; their
+results are not preaccepted by this focused document.

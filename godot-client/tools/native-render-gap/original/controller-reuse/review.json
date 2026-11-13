@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "status": "Source audit only. Current heavy replay has no native-model controller coverage, so this bridge is not a proposed FPS patch for that replay.",
+  "census": {
+    "source": "Root reported fresh cold actual census; exact capture/report hash is owned by the root and particle census agent.",
+    "members": 1829,
+    "canonicalModelClocks": 17,
+    "staticClocks": 1812,
+    "modelNativeOwnerEmitters": 0,
+    "noSelectedChannels": 1770,
+    "selectedChannelEmitters": 59,
+    "selectedChannels": 712,
+    "constantChannels": 86,
+    "dynamicChannels": 626,
+    "chunkEmitters": 670
+  },
+  "ownership": [
+    "emitter.native_owner is the particle simulation owner and does not prove that model_pose_storage already evaluated its channels.",
+    "model.native_owner is the full native Gob/Part controller owner. Ordinary AnimationPlayer actor models use a separate controller path.",
+    "model_rigs._update uses one branch or the other, with continue after native_owner.advance; the actor animation clock is not doubled there."
+  ],
+  "nativeBasis": [
+    "Scene animation advances eligible Gob AnimRuns, calls AnimateHierarchy, stores controller outputs in Part fields, and calculates emitter admission radius before renderer admission.",
+    "Native AnimateParticles reads retained Part fields and does not sample controller channels again.",
+    "The complete exact original flow and body hashes are retained in ../render-chain-review.json and ../fresh-a/original-render-chain.snapshot.json."
+  ],
+  "currentSource": [
+    {"file": "native/model_pose_storage.hpp", "finding": "Owner.control updates retained 0x240-byte Part state; kind3 emitter values are available through allocating operation6. Owner.publish currently publishes TRS/material/light state but no direct retained emitter-parameter bridge."},
+    {"file": "systems/model_native_pose.gd", "finding": "emitter_properties maps a rig node to its private Part and reads operation6, producing a Dictionary. Reusing this accessor per emitter/frame would introduce allocations and engine boundary traffic."},
+    {"file": "systems/model_native_animation.gd", "finding": "Each active AnimRun applies its clip/weight through pose.apply; final Part values can include multiple blended runs and manual-Part control gates."},
+    {"file": "systems/model_rigs.gd", "finding": "_native_clock exposes runsE0[0] as model.clip/time; playback_state returns that single clip/time/serial."},
+    {"file": "native/particle_resident.hpp", "finding": "Owner.sample independently evaluates the selected single clip into parameters/state/compact emitter fields, then current pose/bounds admission precedes simulation."
+    }
+  ],
+  "futureBridgePrerequisites": [
+    "Admit only a validated model.native_owner/native_context cohort and bind immutable Part index/source identity, retaining the context lifetime across callbacks and deferred close.",
+    "Read final retained parameter fields after all relevant clip blends and manual-Part gates; do not share merely a first-clip time cache.",
+    "Use a typed fixed emitter parameter block and change mask/version rather than per-frame Dictionary snapshots. Avoid copying all fields every frame when selected channels are empty or constant.",
+    "Keep standalone/static AnimationPlayer emitters and unsupported controller/hierarchy/reference states on their current path.",
+    "Treat detonate and other consumed latches separately. Copying a stale Part latch into a particle owner every frame can retrigger an effect; establish matching controller publication and consumption semantics first.",
+    "Preserve synchronous consumer, event, RNG, collision and child-model callback order; do not defer callbacks into a second global phase.",
+    "Test multi-run blends, clock changes, manual Part60, context close/reentry and diagnostics against original native behavior before accepting a parity change."
+  ],
+  "nextMeasuredOpportunity": "The current 670 chunk emitters have admission disabled because child bounds are unknown. Case-insensitive NULL chunk resources have provably null child models and can use analytic radius admission without inventing geometry bounds; resource-name census is pending."
+}

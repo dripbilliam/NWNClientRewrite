@@ -17,6 +17,7 @@ var action: Callable
 var extra_pointer_block: Callable
 var context_action: Callable
 var cursor_action: Callable
+var hover_presentation: Callable
 var pending_point := Vector2.ZERO
 var last_hit: Dictionary = {}
 var key_bindings
@@ -25,9 +26,13 @@ func set_key_bindings(value) -> void:
 	if is_instance_valid(key_bindings):
 		if key_bindings.changed.is_connected(clear_binding_keys): key_bindings.changed.disconnect(clear_binding_keys)
 		if key_bindings.capture_changed.is_connected(binding_capture): key_bindings.capture_changed.disconnect(binding_capture)
+		if key_bindings.highlight_changed.is_connected(highlight_changed): key_bindings.highlight_changed.disconnect(highlight_changed)
 	key_bindings=value
-	if is_instance_valid(key_bindings): key_bindings.changed.connect(clear_binding_keys); key_bindings.capture_changed.connect(binding_capture)
+	if is_instance_valid(key_bindings):
+		key_bindings.changed.connect(clear_binding_keys); key_bindings.capture_changed.connect(binding_capture); key_bindings.highlight_changed.connect(highlight_changed)
 	clear_binding_keys()
+	if is_instance_valid(key_bindings): highlight_changed(key_bindings.highlighted)
+func highlight_changed(enabled: bool) -> void: tab=enabled
 func clear_binding_keys() -> void: tab=false; highlight_key=0
 func binding_capture(active: bool) -> void:
 	if active: clear_binding_keys()
@@ -35,14 +40,23 @@ func binding_capture(active: bool) -> void:
 func configure(value, view: Camera3D, interface) -> void:
 	registry = value
 	camera = view
+	if registry.has_method("configure_highlights"):registry.configure_highlights(view)
 	hud = interface
+	get_viewport().gui_focus_changed.connect(text_focus_changed)
+
+func text_focus_changed(control: Control) -> void:
+	if control is LineEdit or control is TextEdit: clear_binding_keys()
+
+func _input(event: InputEvent) -> void:
+	# GUI text controls may consume key-up before _unhandled_input. Observe
+	# release without taking the event, so holding Tab cannot leave plates on
+	# after entering chat, editing a field or moving focus between controls.
+	if event is InputEventKey and not event.pressed:
+		if not is_instance_valid(key_bindings) and event.keycode==KEY_TAB: clear_binding_keys()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey:
-		if is_instance_valid(key_bindings):
-			if not event.pressed and key_bindings.physical(event)==highlight_key: clear_binding_keys(); get_viewport().set_input_as_handled()
-			elif not event.echo and event.pressed and key_bindings.action_matches(97,event): tab=true; highlight_key=key_bindings.physical(event); get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_TAB and not event.echo:
+		if not is_instance_valid(key_bindings) and event.keycode == KEY_TAB and not event.echo:
 			tab = event.pressed
 			get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
@@ -88,9 +102,13 @@ func _pointer_step(delta: float) -> void:
 				else:
 					hud.inspect_entity(selected)
 			pending_button = 0
-	var ids: Array = registry.eligible_ids() if tab else ([hovered] if hovered >= 0 else [])
-	registry.mark(ids)
-	hud.labels(ids)
+	var selection_hover:=hovered
+	if hover_presentation.is_valid():
+		var presentation: Variant=hover_presentation.call(last_hit,blocked)
+		if presentation is Dictionary and presentation.get("suppress_hover",false):selection_hover=-1
+	var ids: Array = registry.eligible_ids() if tab else ([selection_hover] if selection_hover >= 0 else [])
+	registry.mark(ids,selection_hover,tab)
+	hud.labels(ids,selection_hover)
 	if cursor_action.is_valid():
 		cursor_action.call(last_hit, blocked)
 	else:

@@ -13,10 +13,11 @@ var source_texture: Texture2D
 var additive := false
 var two_sided := false
 var engine_lighting := false
+var native_surface_output := false
 var draw_material: Material
 static var lighting_shaders: Dictionary = {}
 
-func configure(texture: Texture2D, owner_epoch: int, use_additive: bool = false, double_sided: bool = false, scene_lighting: bool = false) -> void:
+func configure(texture: Texture2D, owner_epoch: int, use_additive: bool = false, double_sided: bool = false, scene_lighting: bool = false, native_output: bool=false) -> void:
 	retire()
 	retired = false
 	sequence = -1
@@ -26,6 +27,7 @@ func configure(texture: Texture2D, owner_epoch: int, use_additive: bool = false,
 	additive = use_additive
 	two_sided = double_sided
 	engine_lighting = scene_lighting
+	native_surface_output = native_output
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	visible = false
 	transform = Transform3D.IDENTITY
@@ -64,14 +66,19 @@ func _allocate(next_capacity: int) -> bool:
 	return true
 
 func _material() -> Material:
+	if native_surface_output: return preload("res://systems/native_render/native_particle_material.gd").make(source_texture,additive,two_sided)
 	if engine_lighting:
-		var key := str(additive)+str(two_sided)
+		var enhanced:=preload("res://systems/native_render/native_light_policy.gd").requested()
+		if enhanced: preload("res://systems/native_render/native_light_palette.gd").ensure()
+		var key := str(additive)+str(two_sided)+str(enhanced)
 		if not lighting_shaders.has(key):
 			var shader := Shader.new()
 			# Point-sampled native particle tint is replaced by Godot scene
 			# lighting, an explicit engine visual difference. No surface-normal
 			# Lambert term: weather quads represent lit points, not solid faces.
 			shader.code = "shader_type spatial; render_mode depth_draw_never,shadows_disabled,specular_disabled,"+("blend_add" if additive else "blend_mix")+","+("cull_disabled" if two_sided else "cull_front")+";\nuniform sampler2D original_texture : source_color,filter_linear_mipmap;\nvoid fragment(){vec4 value=texture(original_texture,UV)*COLOR; ALBEDO=value.rgb; ALPHA=value.a; SPECULAR=0.0;}\nvoid light(){DIFFUSE_LIGHT+=ATTENUATION*LIGHT_COLOR/PI;}"
+			if enhanced:
+				shader.code=shader.code.replace("uniform sampler2D original_texture",preload("res://systems/native_render/native_light_palette.gd").shader_code()+"\nvoid vertex(){nwn_world_vertex=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;}\nuniform sampler2D original_texture").replace("DIFFUSE_LIGHT+=ATTENUATION*LIGHT_COLOR/PI;","vec2 native_lamp=nwn_local_light(ATTENUATION,SPECULAR_AMOUNT,LIGHT_IS_DIRECTIONAL); DIFFUSE_LIGHT+=native_lamp.x*LIGHT_COLOR/PI;")
 			lighting_shaders[key] = shader
 		var lit := ShaderMaterial.new();lit.shader = lighting_shaders[key];lit.set_shader_parameter("original_texture",source_texture)
 		return lit

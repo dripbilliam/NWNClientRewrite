@@ -3,8 +3,9 @@ extends RefCounted
 # Runtime-remapped controller records, not serialized disk type identifiers.
 # Sampling/control/hierarchy preserve binary32 grouping from the reviewed
 # owners at 1400512c0, 140051530, 140051750, 140051c50 and 14004fe90.
+static var scalar_values:=preload("res://systems/native_data/scalar_representation.gd").configured()
 static func f(value: float) -> float:
-	return PackedFloat32Array([value])[0]
+	return Color(value,0,0,0).r if scalar_values else PackedFloat32Array([value])[0]
 
 static func read_value(node: Dictionary, index: int) -> float:
 	assert(index >= 0 and index < node.values88.size(), "Native controller storage is unavailable")
@@ -154,3 +155,27 @@ static func hierarchy(part: Dictionary, node: Dictionary, previous: float, time:
 					hierarchy(child, candidate, previous, time, weight, context, p)
 					break
 	context.depth = int(context.depth) - 1
+
+# Child arguments already contain exactly representable binary32 values. Keep
+# the original physical walk/callback order while avoiding repeated idempotent
+# PackedFloat32Array conversions at every recursive entry. Retain hierarchy()
+# unchanged as the measured reference and rollback.
+static func hierarchy_root(part: Dictionary,node: Dictionary,previous: float,time: float,weight: float,context: Dictionary,p: Dictionary) -> void:
+	_hierarchy_quantized(part,node,f(previous),f(time),f(weight),context,p)
+static func _hierarchy_quantized(part: Dictionary,node: Dictionary,previous: float,time: float,weight: float,context: Dictionary,p: Dictionary) -> void:
+	context.depth=int(context.depth)+1
+	if int(part.dirty60)==0:
+		p.control.call(node,part,previous,time,weight)
+		var light: Variant=p.light.call(part)
+		if light!=null and int(light.field8c)==0: p.animateStaticLight.call(part.owner50,light)
+	if context.depth<1000:
+		for index in int(part.childCount40):
+			var count:=int(node.childCount70)
+			if count<=0: continue
+			var child: Dictionary=part.children38[index]
+			for offset in count:
+				var candidate: Dictionary=node.children68[(index+offset)%count]
+				if int(child.id30)==int(candidate.id34):
+					_hierarchy_quantized(child,candidate,previous,time,weight,context,p)
+					break
+	context.depth=int(context.depth)-1

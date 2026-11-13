@@ -43,7 +43,7 @@ var publication: Array=[]
 var maximum_names:=4096
 var maximum_cached:=64
 var maximum_publications:=2
-var stats:={"requested":0,"jobs":0,"cache_hits":0,"published":0,"bundles_published":0,"chunk_models":0,"stale":0,"failed":0,"errors":[],"worker_ms":0.0,"max_publication_ms":0.0}
+var stats:={"requested":0,"jobs":0,"cache_hits":0,"published":0,"bundles_published":0,"chunk_models":0,"stale":0,"failed":0,"missing_root_requests":0,"errors":[],"worker_ms":0.0,"max_publication_ms":0.0}
 func configure(catalog,shared_pool,cache_path: String="") -> void:
 	pool=shared_pool; assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(completed)
 func request_reference(reference: Node3D,resource: String) -> void:
@@ -58,6 +58,17 @@ func request_model(reference: Node3D,resource: String,kind: String) -> void:
 	var request:={"node":weakref(reference),"generation":generation,"resource":resource,"kind":kind}
 	if prepared.has(resource):
 		stats.cache_hits+=1; publication.append({"request":request,"bundle":prepared[resource]}); return
+	# Catalog lookup uses the current ordered bindings, including absent names.
+	# A missing root cannot be prepared: avoid a worker, fork and later delivery
+	# for every new physical owner of the same absent chunk/reference. Do not
+	# cache a failure here: a later catalog mount must be visible immediately,
+	# and a present but malformed/unreadable resource keeps its existing path.
+	if not assets.catalog.has_resource(resource,2002):
+		var reason:="Resource not found: "+resource+":2002"
+		stats.failed+=1; stats.missing_root_requests+=1
+		# Owner failures remain explicit; bound repetitive diagnostic samples.
+		if stats.errors.size()<512: stats.errors.append({"resource":resource,"reason":reason})
+		reference.reject("Original referenced model unavailable: "+resource+": "+reason); return
 	if not requests.has(resource): requests[resource]=[]; waiting[resource]=true
 	requests[resource].append(request)
 func current(request: Dictionary):

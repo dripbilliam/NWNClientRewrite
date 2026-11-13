@@ -1,5 +1,5 @@
 extends SceneTree
-const Collision=preload("res://systems/native_render/drive_collision.gd")
+const Collision=preload("res://systems/native_render/drive_collision_indexed.gd")
 const Surface=preload("res://systems/native_render/terrain_surface.gd")
 const Parser=preload("res://systems/native_data/object_surface.gd")
 const Catalog=preload("res://systems/native_data/resource_catalog.gd")
@@ -8,6 +8,8 @@ const Motion=preload("res://systems/network_motion.gd")
 const Plan=preload("res://systems/native_data/drive_preview.gd")
 class TestWorld:
 	extends Node
+	var generation:=1
+	var area_id:=91
 	var surface
 	var desired: Dictionary={}
 	var motion:=Motion.new()
@@ -30,27 +32,33 @@ func run() -> void:
 	var collision:=Collision.new(); world.add_child(collision); collision.world=world
 	collision.tables={"appearance":{"orderedRows":[{"PERSPACE":"0.3","HEIGHT":"1.8"}]},"placeables":{"orderedRows":[{"ModelName":"chest"}]},"genericdoors":{"orderedRows":[{"ModelName":"gate"}]},"doortypes":{}}
 	world.desired[1]={"object":{"objectType":5,"appearance":{"appearance":0}}}; world.motion.ensure(1,{"position":[1,1,0]})
+	collision.sync_full()
 	var clear:=collision.query(1)
 	check(clear.is_valid() and clear.call(Vector3(1,1,0),Vector3(5,1,0)),"Native floor line is clear")
 	check(clear.call(Vector3(9,3,0),Vector3(11,3,0)),"Crossing into rotated adjacent tile preserves floor coverage")
 	check(not clear.call(Vector3(19,3,0),Vector3(21,3,0)),"Missing base tiles block prediction")
 	# A non-interactable static chest still owns its original footprint.
 	var footprint:={"vertices":[Vector3(0,0,0),Vector3(1,0,0),Vector3(1,1,1),Vector3(0,1,1)],"faces":[[0,1,2],[0,2,3]]}
-	collision.models["chest:placeable"]={"states":[footprint]}
+	collision.publish_model("chest:placeable",{"states":[footprint]})
 	world.desired[2]={"object":{"id":2,"objectType":9,"staticState":{"appearance":0,"position":[4,1,0],"orientation":{"yaw":0},"usable":false,"static":true}}}
+	collision.sync_delta([world.desired[2].object],[])
 	clear=collision.query(1)
 	check(not clear.call(Vector3(2,1.5,0),Vector3(6,1.5,0)),"Static unhighlightable PWK blocks local prediction")
 	check(clear.call(Vector3(2,3,0),Vector3(6,3,0)),"Original footprint does not become a large guessed bounding box")
 	check(not clear.call(Vector3(2,0.8,0),Vector3(6,0.8,0)),"Appearance PERSPACE keeps the capsule off an obstacle edge")
-	var open:={"vertices":[],"faces":[]}; collision.models["gate:door"]={"states":[footprint,open,open]}
+	var open:={"vertices":[],"faces":[]}; collision.publish_model("gate:door",{"states":[footprint,open,open]})
 	world.desired.erase(2); world.desired[3]={"object":{"id":3,"objectType":10,"replicated":{"doorType":0,"genericType":0,"doorOpenState":0,"position":[4,1,0],"orientation":{"yaw":0}}}}
+	collision.sync_delta([world.desired[3].object],[2])
 	check(not collision.query(1).call(Vector3(2,1.5,0),Vector3(6,1.5,0)),"Closed door DWK state blocks movement")
 	world.desired[3].object.replicated.doorOpenState=1
+	collision.sync_delta([world.desired[3].object],[])
 	check(collision.query(1).call(Vector3(2,1.5,0),Vector3(6,1.5,0)),"Server open-door state changes native collision")
 	world.desired.erase(3); world.desired[4]={"object":{"id":4,"objectType":5,"appearance":{"appearance":0}}}; world.motion.ensure(4,{"position":[4,1,0]})
+	collision.sync_delta([world.desired[4].object],[3])
 	check(not collision.query(1).call(Vector3(2,1,0),Vector3(6,1,0)),"Other displayed creature radii block a drive line")
 	check(collision.query(1,1.0/64).call(Vector3(2,1,0),Vector3(6,1,0)),"Acknowledgement geometry excludes creatures")
 	world.desired.erase(4); world.motion.objects.erase(4)
+	collision.sync_delta([],[4])
 	var wall:=Collision.triangle(Vector3(4,0,0),Vector3(4,5,0),Vector3(4,5,3)); wall.walk=false
 	collision.tiles[0].append(wall)
 	check(not collision.query(1).call(Vector3(3,2,0),Vector3(5,2,0)),"Original nonwalk tile geometry blocks a line")

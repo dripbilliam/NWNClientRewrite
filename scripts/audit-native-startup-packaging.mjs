@@ -1,0 +1,43 @@
+// Read-only audit. Never launches Godot, exports a pack, builds, or reads keys.
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'godot-client');
+const output=path.join(project,'reports/native-startup-packaging-audit-v1.json');assert.ok(!fs.existsSync(output));
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');const sources={};
+function read(relative){const value=fs.readFileSync(path.join(root,relative));sources[relative]=sha(value);return value;}
+const files=['godot-client/join-native.ps1','godot-client/tools/native-engine-runtime.cjs','godot-client/tools/prepare-release-test.ps1','godot-client/tools/prepare-release-pack.gd','godot-client/project.godot','godot-client/runtime-lock.json','godot-client/.tools/release-runtime-4.7.2.verified.json'];
+for(const file of files)read(file);
+const selectionFile='godot-client/.cache/release-tests/00d959791811979a/project/runtime.json';
+const selection=JSON.parse(read(selectionFile));const packInfo=JSON.parse(read(path.relative(root,selection.receipt)));
+const fd=fs.openSync(selection.pack,'r'),stat=fs.fstatSync(fd);let inspectedBytes=0;
+function at(offset,length){assert.ok(Number.isSafeInteger(offset)&&length>=0&&length<=2*1024*1024&&offset+length<=stat.size);const value=Buffer.alloc(length);assert.equal(fs.readSync(fd,value,0,length,offset),length);inspectedBytes+=length;return value;}
+let entries=[],samples=[];
+try{
+ const header=at(0,40);assert.equal(header.toString('ascii',0,4),'GDPC');assert.equal(header.readUInt32LE(4),4);assert.equal(header.readUInt32LE(20),2);
+ const base=Number(header.readBigUInt64LE(24)),directory=Number(header.readBigUInt64LE(32));let cursor=directory;const count=at(cursor,4).readUInt32LE();cursor+=4;assert.ok(count>0&&count<10000);
+ for(let index=0;index<count;index++){
+  const length=at(cursor,4).readUInt32LE();cursor+=4;assert.ok(length>0&&length<=4096);
+  const name=at(cursor,length).toString('utf8').replaceAll('\0','');cursor+=length;
+  const row=at(cursor,36);cursor+=36;const offset=Number(row.readBigUInt64LE()),size=Number(row.readBigUInt64LE(8)),flags=row.readUInt32LE(32);
+  assert.equal(flags,0);assert.ok(base+offset+size<=directory);entries.push({name,offset:base+offset,size});
+ }
+ for(const name of ['native_session_world.gd','native_live_world.gd','systems/native_creation.gd']){
+  const entry=entries.find(row=>row.name===name);assert.ok(entry);
+  const payload=at(entry.offset,entry.size),expected=packInfo.source_files.find(row=>row.path===name);assert.ok(expected);assert.equal(sha(payload),expected.sha256);
+  samples.push({name,bytes:entry.size,sha256:sha(payload),prefix:payload.subarray(0,48).toString('utf8'),rawSourceMatchesReceipt:true,binaryTokenMagic:payload.subarray(0,4).toString('ascii')==='GDSC'});
+ }
+}finally{fs.closeSync(fd);}
+const graph=new Map();function visit(relative){
+ if(graph.has(relative))return;const file=path.join(project,relative);assert.ok(file.startsWith(project+path.sep));const data=fs.readFileSync(file),source=data.toString('utf8');const deps=new Set();
+ for(const match of source.matchAll(/preload\s*\(\s*["']res:\/\/([^"']+\.gd)["']/g))deps.add(match[1]);
+ for(const match of source.matchAll(/extends\s+["']res:\/\/([^"']+\.gd)["']/g))deps.add(match[1]);
+ graph.set(relative,{path:relative,bytes:data.length,sha256:sha(data),dependencies:[...deps]});for(const name of deps)visit(name);
+}
+visit('native_session_world.gd');
+const git='https://github.com/godotengine/godot/blob/ed1daf0bf001b61586d9930840f2f1394092c079/';
+const officialSources=[{url:git+'modules/gdscript/register_types.cpp#L78-L109',meaning:'Official exporter stores optionally compressed GDScriptTokenizerBuffer output as remapped .gdc.'},{url:git+'modules/gdscript/gdscript.cpp#L758-L805',meaning:'Both binary-token and text paths proceed through parser, analyzer and compiler on script load.'},{url:git+'core/io/pck_packer.cpp#L139-L184',meaning:'PCKPacker copies supplied file bytes; it does not invoke the GDScript export plugin.'}];
+const report={success:true,scope:'Read-only current launcher/packer and bounded existing PCK inspection; isolated experiment proposal only.',sources,defaults:{launcher:'editor unless explicit EngineRuntime or NWN_GODOT_RUNTIME',auditShellEnvironment:process.env.NWN_GODOT_RUNTIME??null,editorCommand:'Pinned editor-capable optimized executable, --path project --script res://native_session_world.gd; this does not open editor UI.',releaseCommand:'Pinned release template and explicitly prepared PCK; bootstrap dynamically loads the same SceneTree script.',globalScriptClassCache:fs.readFileSync(path.join(project,'.godot/global_script_class_cache.cfg'),'utf8').trim()},existingReleasePack:{selection:selectionFile,sourceSignature:selection.sourceSignature,recordedPackSha256:selection.packSha256,recordedOriginalAssetsPacked:selection.originalGameAssetsPacked,fileBytes:stat.size,format:4,entries:entries.length,sourceScripts:entries.filter(row=>row.name.endsWith('.gd')).length,binaryTokenScripts:entries.filter(row=>row.name.endsWith('.gdc')).length,remaps:entries.filter(row=>row.name.endsWith('.remap')).length,inspectedBytes,samples,limitation:'Historical package demonstrates packaging format, not current production behavior. Whole-pack hash is recorded by prior verified receipt, not recomputed here.'},currentRootStaticGraph:{scripts:graph.size,sourceBytes:[...graph.values()].reduce((sum,row)=>sum+row.bytes,0),files:[...graph.values()],limitation:'Lexical literal preload/extends graph, not a loader trace. Dynamic loads and non-script resources are separate; commented references may overcount.'},officialSources,conclusion:'Current editor and custom release-PCK routes both retain source-text GDScript. Real .gdc export is binary tokenizer data, not serialized VM bytecode; parse/analyze/codegen remain. No claim that tokenization eliminates measured root-entry delay.',proposedExperiment:{status:'PROPOSAL ONLY; not executed or made default',location:'.cache/startup-export-probe/<full-source-signature>/',arms:['A: same-source pinned editor +raw-source PCK','B: same-source pinned release +raw-source PCK','C: same-source pinned release +official exported binary-token PCK'],isolation:['Use current source copied privately; do not reuse this historical pack as current.','Verify existing engine/templates and every native DLL/manifest; do not invoke ensure/build helpers or change shared outputs.','Same minimal headless boot and project/autoload/settings/native extension references in all arms.','Only load the actual root Script resource and verify can_instantiate/method inventory; do not instantiate/run gameplay, open sockets, access credentials, or mount game/server catalogs.','Genuine exporter runs only against the private copy and writes private PCK/import caches. Inspect .gdc/remaps/token magic and source hash mapping before timing.'],phases:['Host process-create→first probe marker (engine/bootstrap/autoload cost).','Explicit ResourceLoader.load(root) start→completion (remaining dependency resource parse/analyze/codegen).','Final report/clean exit; no root.run(), world, visual frame or FPS measurement.'],order:'After smoke correctness, balanced A/B/C/C/B/A fresh processes, fixed90s cap each; distinguish first-process/OS-warm runs without flushing system caches.',requiredGuards:['Source, engines, packs, both DLLs and six native outputs hashed before/after.','Original profiles/defaults unchanged; unique authored probe identity and no credential broker.','No visible window/focus/user-process action; explicit completion flags and bounded owned-process cleanup.','Creator/first-world diagnosis has scheduling priority.'],interpretation:'B-v-C isolates tokenization/pack differences within one release engine; A-v-B separately measures editor/debug engine feature cost. Binary tokens cannot remove semantic analysis or codegen, so report measured contribution rather than promise14.7s eliminated.'},engineLaunches:0,packBuilds:0,nativeBuilds:0,sourceEdits:0,userProcessActions:0,keyAccess:0,gpuBenchmarks:0};
+fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({report:path.relative(root,output),sha256:sha(fs.readFileSync(output)),pckEntries:report.existingReleasePack.entries,rawGd:report.existingReleasePack.sourceScripts,gdc:report.existingReleasePack.binaryTokenScripts,staticScripts:graph.size,staticBytes:report.currentRootStaticGraph.sourceBytes,inspectedBytes,engineLaunches:0,packBuilds:0,sourceEdits:0}));

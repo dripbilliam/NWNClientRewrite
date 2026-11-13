@@ -27,7 +27,7 @@ func click(button: Button) -> void:
 func run(tree) -> void:
 	client=tree; identity=current_identity(); owner_id=client.character_lobby.native_chooser.get_instance_id(); result={}
 	var ui=client.character_lobby; var native=ui.native_chooser; var pane=native.record_feats
-	var ready: bool=await wait_until(func():return native.layout_ready and client.gameplay_ui.tables_ready and native.frame.fonts.pending.is_empty() and not ui.record_preview().is_empty() and native.record_projection.get("ready",false) and native.skill_projection.get("ready",false) and native.spell_projection.get("ready",false) and native.rule_jobs.is_empty())
+	var ready: bool=await wait_until(func():return native.layout_ready and client.gameplay_ui.tables_ready and native.frame.fonts.pending.is_empty() and not ui.record_preview().is_empty() and native.record_projection.get("ready",false) and native.skill_projection.get("ready",false) and native.spell_projection.get("ready",false) and native.rule_jobs.is_empty() and ui.can_select() and ui.native_selection.is_empty() and native.automatic_selection.is_empty() and native.record_tabs.all(func(tab):return tab.is_visible_in_tree() and not tab.disabled))
 	if not owned(): retire(); return
 	check(ready,"Actual native BIC record and active tables are ready for pregame Feats input")
 	if ready:

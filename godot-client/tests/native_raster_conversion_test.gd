@@ -81,7 +81,7 @@ func run() -> void:
 		compare(altered,3,"Seeded malformed/changed raster "+str(trial),false)
 	check(Convert.bgra(PackedByteArray([1,2,3]),0,9223372036854775807,4).is_empty() and Convert.bgra(PackedByteArray([1,2,3]),-1,1,3).is_empty(),"Native direct converter rejects huge count and negative offset without overflow")
 	check(Convert.colorize(plt(2,2),PackedByteArray([1])).is_empty() and Convert.layer_order(PackedByteArray())==0,"Native PLT entrypoints reject invalid lookup/header")
-	var oracle: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://../backups/animations/native-tga-origin-v1.json"))
+	var oracle: Dictionary=JSON.parse_string(FileAccess.get_file_as_string(str(args.get("oracle","res://../backups/animations/native-tga-origin-v1.json"))))
 	check(oracle.target=="3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a" and oracle.cases.size()==288,"Pinned original resource-handler oracle is complete")
 	for index in oracle.cases.size():
 		var row: Dictionary=oracle.cases[index]; var parser:=Raster.new(); parser.use_native=true; var value:=parser.parse(PackedByteArray(row.input),3); var expected:=PackedByteArray(); var channels:=int(row.depth)/8

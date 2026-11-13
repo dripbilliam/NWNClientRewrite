@@ -3,6 +3,7 @@ const ModelPointLight=preload("res://systems/native_render/model_point_light.gd"
 const ParticleEmitter=preload("res://systems/native_render/particle_emitter.gd")
 const ModelReference=preload("res://systems/native_render/model_reference.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
+const MeshProvenance=preload("res://tools/native_parity/visibility/mesh_provenance.gd")
 # Direct original-data scene assembly. Physical parts/instances stay private;
 # immutable mesh/texture/material resources are shared by the native pool.
 var failure := ""
@@ -14,98 +15,153 @@ var installed := false
 var retired := false
 var install_timings: Dictionary={}
 func install(bundle: Dictionary, pool) -> bool:
-	if installed or retired: failure = "Native model owner already used"; return false
-	if not str(bundle.get("error","")).is_empty(): failure = bundle.error; return false
-	var model: Dictionary = bundle.value
+	# Preserve the synchronous pool seam. Only cooperative requests require
+	# suspend/resume; legacy begin/end-only pools retain their original bracket.
+	if pool.has_method("begin_native_model") and (not pool.has_method("suspend_native_model") or not pool.has_method("resume_native_model")):
+		var context: Dictionary=pool.begin_native_model(bundle);_legacy_capture_active=true
+		var accepted:=install_original(bundle,pool);_legacy_capture_active=false
+		if not context.is_empty():pool.end_native_model(context)
+		return accepted
+	return install_original(bundle,pool)
+var _installation: Dictionary={}
+var _legacy_capture_active:=false
+var _install_capture: Dictionary={}
+var _capture_pool
+func _end_install_capture() -> void:
+	if not _install_capture.is_empty():_capture_pool.end_native_model(_install_capture)
+	_install_capture={};_capture_pool=null
+func begin_install(bundle: Dictionary,pool) -> bool:
+	if OS.get_thread_caller_id()!=OS.get_main_thread_id():failure="Native model publication requires main thread";return false
+	if installed or retired or not _installation.is_empty():failure="Native model owner already used";return false
+	if pool.has_method("begin_native_model") and (not pool.has_method("suspend_native_model") or not pool.has_method("resume_native_model")) and not _legacy_capture_active:
+		failure="Pool does not support cooperative native capture";return false
+	if not str(bundle.get("error","")).is_empty():failure=str(bundle.error);return false
+	set_meta("native_light_source",true)
+	var model: Dictionary=bundle.value
 	set_meta("native_model_name",str(bundle.get("resource_name",model.name)))
 	limitations.append_array(model.get("rig_asset",{}).get("unsupported",[]))
-	var basis := Quaternion(Vector3.RIGHT,-PI/2)
-	var parents: Dictionary={}
-	if pool.compact_static_parts:
-		for row in model.nodes:
-			if int(row.parent)>=0: parents[int(row.parent)]=true
-	for index in model.nodes.size():
-		var phase_began:=Timing.begin()
-		var row: Dictionary = model.nodes[index]
-		# A leaf renderable can be the physical Part itself, as in a native
-		# PartTriMesh. Keep source transforms/data unchanged; never absorb a
-		# parent, hidden collision part, emitter, reference or model light.
-		var compact: bool=pool.compact_static_parts and not parents.has(index) and not row.mesh.is_empty() and not row.mesh.indices.is_empty() and bool(row.mesh.render) and not row.has("emitter") and not row.has("reference") and row.get("light",{}).is_empty() and not row.features.any(func(feature):return feature in ["skin","animated-mesh","dangly"])
-		var part: Node3D=MeshInstance3D.new() if compact else Node3D.new()
-		part.name = "part_"+str(index); part.set_meta("native_part_name",row.name); part.set_meta("native_part_index",index)
-		part.set_meta("native_part_parent",int(row.parent)); part.set_meta("native_part_area",row.mesh.get("native_area") if (int(row.flags)&0x21)==0x21 or int(row.flags)==0 and not row.mesh.is_empty() else 0.0)
-		var parent := int(row.parent)
-		if parent >= index or parent < -1: part.free(); failure = "Invalid physical native model parent"; _clear_parts(); return false
-		if parent == -1: add_child(part)
-		else: parts[parent].add_child(part)
-		parts.append(part)
-		part.position = Vector3(row.position[0],row.position[2],-row.position[1])
-		var q := Quaternion(row.orientation[0],row.orientation[1],row.orientation[2],row.orientation[3])
-		if q.length_squared() < 1e-16: q = Quaternion.IDENTITY
-		part.quaternion = basis * q.normalized() * basis.inverse(); part.scale = Vector3.ONE * float(row.scale)
-		for feature in row.features:
-			if not limitations.has(feature): limitations.append(feature)
-		if row.features.has("light") and not row.get("light",{}).is_empty():
-			var light:=ModelPointLight.new(); light.configure(row.light); part.add_child(light)
-		if row.has("reference"):
-			var reference:=ModelReference.new(); reference.name="native_reference"; reference.original_header=row.reference; reference.origin_resource=str(bundle.get("resource_name",model.name)); part.add_child(reference)
-		if row.has("emitter"):
-			var emitter:=ParticleEmitter.new(); emitter.name="native_emitter"; emitter.original_properties=row.emitter; emitter.channel_asset=model.get("rig_asset",{}); emitter.physical_part=index
-			emitter.origin_resource=str(bundle.get("resource_name",model.name))
-			emitter.source_model_flags=int(model.get("classification_flags",-1))
-			var texture_name:=str(row.emitter.get("texture","")).to_lower(); var emitter_raster: Dictionary=bundle.get("emitter_textures",{}).get(texture_name,{})
-			if not emitter_raster.is_empty():
-				emitter.original_texture=pool.texture(emitter_raster)
-				if emitter.original_texture==null: emitter.free(); failure=pool.failure; _clear_parts(); return false
-			emitter.source_path=NodePath("../"+str(part.get_path_to(self))); part.add_child(emitter)
-		var data: Dictionary = row.mesh
-		if phase_began>0: install_timings.parts_ms=float(install_timings.get("parts_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
-		if data.is_empty() or data.indices.is_empty(): continue
-		if not data.render:
-			var hit=pool.hidden_geometry(str(bundle.sha256),index,data)
-			if phase_began>0: install_timings.hidden_ms=float(install_timings.get("hidden_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0
-			if hit==null: failure=pool.failure; _clear_parts(); return false
-			# Retain hit data on the existing physical part: scenery does not
-			# need a new scene node just to support a possible later flag change.
-			part.set_meta("native_pick_geometry",hit); pick_surfaces.append(part)
+	_installation={"bundle":bundle,"pool":pool,"model":model,"parents":{},"index":0,"phase":"parents" if pool.compact_static_parts else "parts","basis":Quaternion(Vector3.RIGHT,-PI/2)}
+	if pool.has_method("begin_native_model") and pool.has_method("suspend_native_model") and pool.has_method("resume_native_model"):
+		_capture_pool=pool;_install_capture=pool.begin_native_model(bundle);pool.suspend_native_model(_install_capture)
+	elif _legacy_capture_active:
+		install_timings.native_draw_capture_mode="synchronous-legacy"
+	return true
+func install_step(maximum_units: int=8,budget_us: int=1500) -> Dictionary:
+	if OS.get_thread_caller_id()!=OS.get_main_thread_id():return {"status":"failed","reason":"Native model publication requires main thread","units":0}
+	if installed:return {"status":"ready","units":0}
+	if retired or _installation.is_empty():return {"status":"failed","reason":failure if not failure.is_empty() else "No active model installation","units":0}
+	var began:=Time.get_ticks_usec();var units:=0
+	if not _install_capture.is_empty():_capture_pool.resume_native_model(_install_capture)
+	while units<maxi(1,maximum_units):
+		if units>0 and budget_us>0 and Time.get_ticks_usec()-began>=budget_us:break
+		var state: Dictionary=_installation;var model: Dictionary=state.model;var index:=int(state.index)
+		if index>=model.nodes.size():
+			if state.phase=="parents":state.phase="parts";state.index=0;continue
+			installed=true;_installation.clear();_end_install_capture();return {"status":"ready","units":units}
+		state.index=index+1;units+=1
+		if state.phase=="parents":
+			if int(model.nodes[index].parent)>=0:state.parents[int(model.nodes[index].parent)]=true
 			continue
-		var mesh = pool.geometry(str(bundle.sha256),index,data)
-		if phase_began>0: install_timings.geometry_ms=float(install_timings.get("geometry_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
-		if mesh == null: failure = pool.failure; _clear_parts(); return false
-		var raster := {}; var texture_names: Array = data.textures
-		if not texture_names.is_empty():
-			var texture_name := str(texture_names[0]).to_lower()
-			if not texture_name.is_empty() and texture_name != "null":
-				if not bundle.get("textures",{}).has(texture_name): failure = "Original bitmap not prepared: "+texture_name; _clear_parts(); return false
-				raster = bundle.textures[texture_name]
-		var material = pool.material(row,raster)
-		if phase_began>0: install_timings.material_ms=float(install_timings.get("material_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
-		if material == null: failure = pool.failure; _clear_parts(); return false
-		var binding_began:=Timing.begin()
-		var geometry: MeshInstance3D=part if compact else MeshInstance3D.new()
-		if not compact: geometry.name="mesh"
-		if binding_began>0: install_timings.node_create_ms=float(install_timings.get("node_create_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0; binding_began=Time.get_ticks_usec()
-		geometry.mesh=mesh
-		if binding_began>0: install_timings.mesh_bind_ms=float(install_timings.get("mesh_bind_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0; binding_began=Time.get_ticks_usec()
-		geometry.material_override=material
-		if binding_began>0: install_timings.material_bind_ms=float(install_timings.get("material_bind_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0
-		if mesh.has_meta("native_pick_shape"): geometry.set_meta("native_pick_shape",mesh.get_meta("native_pick_shape"))
-		geometry.set_meta("native_pick_geometry",mesh.get_meta("native_pick_geometry"))
-		geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if data.shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		geometry.visible = data.render and float(row.alpha)>0
-		if not compact: part.add_child(geometry)
-		meshes.append(geometry)
-		if phase_began>0: install_timings.mesh_nodes_ms=float(install_timings.get("mesh_nodes_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0
-	for index in model.nodes.size():
-		var emitter=parts[index].get_node_or_null("native_emitter")
-		if emitter==null: continue
-		for child in model.nodes.size():
-			if int(model.nodes[child].parent)==index and model.nodes[child].has("reference"): emitter.reference_paths.append(emitter.get_path_to(parts[child].get_node("native_reference")))
-	installed = true; return true
+		if not _install_part(state.bundle,state.pool,model,index,state.parents,state.basis):
+			_installation.clear();_end_install_capture();return {"status":"failed","reason":failure,"units":units}
+	if not _install_capture.is_empty():_capture_pool.suspend_native_model(_install_capture)
+	return {"status":"pending","units":units}
+func cancel_install() -> void:
+	_installation.clear();_clear_parts()
+func install_original(bundle: Dictionary,pool) -> bool:
+	if not begin_install(bundle,pool):return false
+	while not installed:
+		var result:=install_step(65536,0)
+		if result.status=="failed":return false
+	return true
+func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents: Dictionary,basis: Quaternion) -> bool:
+	var phase_began:=Timing.begin()
+	var row: Dictionary = model.nodes[index]
+	# A leaf renderable can be the physical Part itself, as in a native
+	# PartTriMesh. Keep source transforms/data unchanged; never absorb a
+	# parent, hidden collision part, emitter, reference or model light.
+	var compact: bool=pool.compact_static_parts and not parents.has(index) and not row.mesh.is_empty() and not row.mesh.indices.is_empty() and bool(row.mesh.render) and not row.has("emitter") and not row.has("reference") and row.get("light",{}).is_empty() and not row.features.any(func(feature):return feature in ["skin","animated-mesh","dangly"])
+	var part: Node3D=MeshInstance3D.new() if compact else Node3D.new()
+	part.name = "part_"+str(index); part.set_meta("native_part_name",row.name); part.set_meta("native_part_index",index)
+	if not row.mesh.is_empty(): part.set_meta("native_mesh_source",MeshProvenance.capture(bundle,row,index))
+	part.set_meta("native_part_parent",int(row.parent)); part.set_meta("native_part_area",row.mesh.get("native_area") if (int(row.flags)&0x21)==0x21 or int(row.flags)==0 and not row.mesh.is_empty() else 0.0)
+	var parent := int(row.parent)
+	if parent >= index or parent < -1: part.free(); failure = "Invalid physical native model parent"; _clear_parts(); return false
+	if parent == -1: add_child(part)
+	else: parts[parent].add_child(part)
+	parts.append(part)
+	part.position = Vector3(row.position[0],row.position[2],-row.position[1])
+	var q := Quaternion(row.orientation[0],row.orientation[1],row.orientation[2],row.orientation[3])
+	if q.length_squared() < 1e-16: q = Quaternion.IDENTITY
+	part.quaternion = basis * q.normalized() * basis.inverse(); part.scale = Vector3.ONE * float(row.scale)
+	for feature in row.features:
+		if not limitations.has(feature): limitations.append(feature)
+	if row.features.has("light") and not row.get("light",{}).is_empty():
+		var light:=ModelPointLight.new(); light.set_meta("native_enhanced_light",pool.native_lighting and not pool.unshaded); light.configure(row.light); part.add_child(light)
+	if row.has("reference"):
+		var reference:=ModelReference.new(); reference.name="native_reference"; reference.original_header=row.reference; reference.origin_resource=str(bundle.get("resource_name",model.name)); part.add_child(reference)
+	if row.has("emitter"):
+		var emitter:=ParticleEmitter.new(); emitter.name="native_emitter"; emitter.original_properties=row.emitter; emitter.channel_asset=model.get("rig_asset",{}); emitter.physical_part=index
+		emitter.origin_resource=str(bundle.get("resource_name",model.name))
+		emitter.source_model_flags=int(model.get("classification_flags",-1))
+		var texture_name:=str(row.emitter.get("texture","")).to_lower(); var emitter_raster: Dictionary=bundle.get("emitter_textures",{}).get(texture_name,{})
+		if not emitter_raster.is_empty():
+			emitter.original_texture=pool.texture(emitter_raster)
+			if emitter.original_texture==null: emitter.free(); failure=pool.failure; _clear_parts(); return false
+		emitter.source_path=NodePath("../"+str(part.get_path_to(self))); part.add_child(emitter)
+	# Reference nodes are already constructed in source-index order; their
+	# parent emitter exists because physical parents always precede children.
+	if row.has("reference") and int(row.parent)>=0:
+		var parent_emitter=parts[int(row.parent)].get_node_or_null("native_emitter")
+		if parent_emitter!=null:parent_emitter.reference_paths.append(parent_emitter.get_path_to(part.get_node("native_reference")))
+	var data: Dictionary = row.mesh
+	if phase_began>0: install_timings.parts_ms=float(install_timings.get("parts_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
+	if data.is_empty() or data.indices.is_empty(): return true
+	if not data.render:
+		var hit=pool.hidden_geometry(str(bundle.sha256),index,data)
+		if phase_began>0: install_timings.hidden_ms=float(install_timings.get("hidden_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0
+		if hit==null: failure=pool.failure; _clear_parts(); return false
+		# Retain hit data on the existing physical part: scenery does not
+		# need a new scene node just to support a possible later flag change.
+		part.set_meta("native_pick_geometry",hit); pick_surfaces.append(part)
+		return true
+	var mesh = pool.geometry(str(bundle.sha256),index,data)
+	if phase_began>0: install_timings.geometry_ms=float(install_timings.get("geometry_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
+	if mesh == null: failure = pool.failure; _clear_parts(); return false
+	var raster := {}; var texture_names: Array = data.textures
+	if not texture_names.is_empty():
+		var texture_name := str(texture_names[0]).to_lower()
+		if not texture_name.is_empty() and texture_name != "null":
+			if not bundle.get("textures",{}).has(texture_name): failure = "Original bitmap not prepared: "+texture_name; _clear_parts(); return false
+			raster = bundle.textures[texture_name]
+	var material = pool.material(row,raster)
+	if phase_began>0: install_timings.material_ms=float(install_timings.get("material_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
+	if material == null: failure = pool.failure; _clear_parts(); return false
+	var binding_began:=Timing.begin()
+	var geometry: MeshInstance3D=part if compact else MeshInstance3D.new()
+	if not compact: geometry.name="mesh"
+	if binding_began>0: install_timings.node_create_ms=float(install_timings.get("node_create_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0; binding_began=Time.get_ticks_usec()
+	geometry.mesh=mesh
+	if binding_began>0: install_timings.mesh_bind_ms=float(install_timings.get("mesh_bind_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0; binding_began=Time.get_ticks_usec()
+	geometry.material_override=material
+	geometry.set_meta("native_mesh_source",part.get_meta("native_mesh_source"))
+	if binding_began>0: install_timings.material_bind_ms=float(install_timings.get("material_bind_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0
+	if mesh.has_meta("native_pick_shape"): geometry.set_meta("native_pick_shape",mesh.get_meta("native_pick_shape"))
+	geometry.set_meta("native_pick_geometry",mesh.get_meta("native_pick_geometry"))
+	geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if data.shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	geometry.visible = data.render and float(row.alpha)>0
+	if not compact: part.add_child(geometry)
+	meshes.append(geometry)
+	if phase_began>0: install_timings.mesh_nodes_ms=float(install_timings.get("mesh_nodes_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0
+	return true
 func _clear_parts() -> void:
+	_end_install_capture()
+	_installation.clear()
 	for part in parts:
 		if is_instance_valid(part) and part.get_parent() == self: part.free()
 	parts.clear(); meshes.clear(); pick_surfaces.clear()
 func retire() -> void:
 	if retired: return
 	retired = true; _clear_parts(); queue_free()
+func _notification(what: int) -> void:
+	if what==NOTIFICATION_PREDELETE:_end_install_capture()

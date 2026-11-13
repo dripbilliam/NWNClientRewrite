@@ -6,6 +6,9 @@ const Assets=preload("res://systems/native_data/asset_service.gd")
 const Slot=preload("res://systems/inventory_slot.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 var publisher: Callable
+# Isolated test seam. Production leaves this empty and uses Input directly.
+var hardware_publisher: Callable
+var cursor_images: Dictionary={}
 var ui
 var assets
 var jobs: Dictionary={}
@@ -122,26 +125,30 @@ func publish(value: Dictionary,down: bool,scale: float) -> void:
 	if stamp==publication_key: return
 	var geometry:=Policy.geometry(scale,bool(value.centered) if present==id else false)
 	var texture_key:="%s:%s"%[present,geometry.size]
-	if not textures.has(texture_key):
-		while textures.size()>=128: textures.erase(texture_order.pop_front())
+	if not cursor_images.has(texture_key):
+		while cursor_images.size()>=128:
+			var retired_key: Variant=texture_order.pop_front();cursor_images.erase(retired_key);textures.erase(retired_key)
 		var image: Image=images[present].duplicate()
 		image.resize(geometry.size,geometry.size,Image.INTERPOLATE_NEAREST)
-		textures[texture_key]=ImageTexture.create_from_image(image)
+		cursor_images[texture_key]=image
 	texture_order.erase(texture_key); texture_order.append(texture_key)
-	# Missing/in-flight images use the native arrow without caching that fallback
-	# as a successful desired publication. Worker completion can then replace it.
-	var packet:={"id":present,"requested_id":id,"name":Policy.resource(present),"hotspot":Vector2(geometry.hotspot),"size":geometry.size,"texture":textures[texture_key]}
-	if publisher.is_valid(): publisher.call(packet)
-	elif DisplayServer.get_name()!="headless":
-		for shape in [Input.CURSOR_ARROW,Input.CURSOR_POINTING_HAND,Input.CURSOR_HELP]: Input.set_custom_mouse_cursor(packet.texture,shape,packet.hotspot)
-		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	# Physical cursor publication keeps CPU pixels on CPU. The legacy injected
+	# publisher owns the only TextureRect consumer and receives its texture lazily.
+	var packet:={"id":present,"requested_id":id,"name":Policy.resource(present),"hotspot":Vector2(geometry.hotspot),"size":geometry.size,"image":cursor_images[texture_key]}
+	if publisher.is_valid():
+		if not textures.has(texture_key):textures[texture_key]=ImageTexture.create_from_image(cursor_images[texture_key])
+		packet.texture=textures[texture_key];publisher.call(packet)
+	else:publish_hardware(packet.image,packet.hotspot)
 	installed=true; publications+=1; stamp=publication_key
+func publish_hardware(image: Image,hotspot: Vector2) -> void:
+	for shape in [Input.CURSOR_ARROW,Input.CURSOR_POINTING_HAND,Input.CURSOR_HELP]:
+		if hardware_publisher.is_valid():hardware_publisher.call(image,shape,hotspot)
+		elif DisplayServer.get_name()!="headless":Input.set_custom_mouse_cursor(image,shape,hotspot)
+	if not hardware_publisher.is_valid() and DisplayServer.get_name()!="headless":Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 func release() -> void:
 	if installed:
 		if publisher.is_valid(): publisher.call({"reset":true})
-		elif DisplayServer.get_name()!="headless":
-			for shape in [Input.CURSOR_ARROW,Input.CURSOR_POINTING_HAND,Input.CURSOR_HELP]: Input.set_custom_mouse_cursor(null,shape)
-			Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+		else:publish_hardware(null,Vector2.ZERO)
 	installed=false; stamp=""
 func snapshot() -> Dictionary:
 	return {"native_only":true,"prepared":images.size(),"pending":jobs.size(),"missing":missing.keys(),"failures":failures.duplicate(),"publications":publications,"desired":desired.duplicate(),"focused":focused,"full_cursor_parity":false}
@@ -149,5 +156,5 @@ func close() -> void:
 	if closed: return
 	closed=true; release()
 	if is_instance_valid(assets): assets.close()
-	jobs.clear(); images.clear(); textures.clear(); texture_order.clear(); ui=null
+	jobs.clear(); images.clear(); textures.clear(); cursor_images.clear(); texture_order.clear(); ui=null; hardware_publisher=Callable()
 func _exit_tree() -> void: close()

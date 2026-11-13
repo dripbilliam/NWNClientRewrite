@@ -1,6 +1,13 @@
 extends "res://tests/native_character_lobby_frame_test.gd"
 const Writer=preload("res://systems/native_data/gff_writer.gd")
 const Digest=preload("res://systems/native_data/prepared_cache.gd")
+func headless_scrollbar_art(bar) -> void:
+	# Native GUI model images use frame_post_draw, which a headless renderer
+	# never emits. Substitute only that texture-provider boundary; real source
+	# geometry, range calculations, arrow controls and input handlers still run.
+	var image:=Image.create(1,1,false,Image.FORMAT_RGBA8); image.fill(Color.WHITE)
+	var texture:=ImageTexture.create_from_image(image)
+	for key in [bar.rail_key,bar.thumb_key]: bar.art.textures[key]=texture; bar.loaded(key,texture,{})
 func run() -> void:
 	var output:=""; var install:=""; var oracle:=""
 	for arg in OS.get_cmdline_user_args():
@@ -95,7 +102,11 @@ func run() -> void:
 		await click(pane.rows[0].get_global_rect().get_center())
 		check(pane.selected==0 and pane.rows[0].button_pressed and pane.description.get_parsed_text().begins_with("Server feat 26 description."),"Original row input selects and displays active server feat help")
 		check(requests.size()==before,"Pregame inspection issues no fabricated cast or gameplay request")
-		check(await wait_until(func():return pane.bars.all(func(bar):return bar.art_ready) and pane.description_scroll.get_v_scroll_bar().max_value>pane.description_scroll.get_v_scroll_bar().page),"Original scrollbar artwork and long native help content become ready before input")
+		if DisplayServer.get_name()=="headless":
+			for bar in pane.bars: headless_scrollbar_art(bar)
+		var scroll_ready: bool=await wait_until(func():return pane.bars.all(func(bar):return bar.art_ready) and pane.description_scroll.get_v_scroll_bar().max_value>pane.description_scroll.get_v_scroll_bar().page)
+		if not scroll_ready: print("NATIVE_RECORD_SCROLL_DIAGNOSTIC ",JSON.stringify({"bars":pane.bars.map(func(bar):return bar.snapshot()),"description":{"max":pane.description_scroll.get_v_scroll_bar().max_value,"page":pane.description_scroll.get_v_scroll_bar().page,"size":pane.description_scroll.size,"text_size":pane.description.get_combined_minimum_size(),"lines":pane.description.get_line_count()},"list":{"max":pane.list.get_v_scroll_bar().max_value,"page":pane.list.get_v_scroll_bar().page},"art_failed":game.inventory.frame_skin.art.failed}))
+		check(scroll_ready,"Declared headless scrollbar texture double and real text ranges become ready" if DisplayServer.get_name()=="headless" else "Original scrollbar artwork and long native help content become ready before input")
 		await click(pane.bars[1].down.get_global_rect().get_center()); await click(pane.bars[0].down.get_global_rect().get_center())
 		check(pane.list.scroll_vertical>0 and pane.description_scroll.scroll_vertical>0,"Both original scrollbar arrows move their native list/help content")
 		var kept: int=pane.list.scroll_vertical
@@ -119,4 +130,4 @@ func run() -> void:
 		ui.close_native(); check(pane.closed and pane.bars.is_empty(),"Closing the chooser retires both original page scrollbar owners")
 	var window_state:={"focused":root.has_focus(),"unfocusable":root.unfocusable,"screen":root.current_screen,"primary":DisplayServer.get_primary_screen(),"mouse_mode":Input.mouse_mode}
 	ui.free(); game.close(); game.free(); await process_frame; await process_frame
-	var out:=FileAccess.open(output,FileAccess.WRITE); out.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"window":window_state,"publicConnections":0,"fullUiParity":false,"fullCharacterLobbyParity":false,"fullSkillUiParity":false,"scope":"Actual native BIC worker and original pregame Skills/Feats tabs, active server admission/order/values/descriptions, original controls, stale input, scroll and125-percent input. Spells/derived combat and complete original-client comparison remain open."},"  ")+"\n"); out.close(); quit(0 if failures.is_empty() else 1)
+	var out:=FileAccess.open(output,FileAccess.WRITE); out.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"window":window_state,"publicConnections":0,"headlessScrollbarArtDouble":DisplayServer.get_name()=="headless","fullUiParity":false,"fullCharacterLobbyParity":false,"fullSkillUiParity":false,"scope":"Actual native BIC worker and original pregame Skills/Feats/Spells tabs, active rule admission/order/values/descriptions, original controls, stale input, scroll and125-percent input. Headless scrollbar texture-provider boundary uses an explicit non-rendering double. Complete derived combat, original pixels and authoritative server acceptance remain separate."},"  ")+"\n"); out.close(); quit(0 if failures.is_empty() else 1)

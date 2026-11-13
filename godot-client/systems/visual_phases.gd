@@ -6,6 +6,7 @@ extends RefCounted
 var state: Dictionary
 var providers: Dictionary
 var disposed := false
+static var scalar_values:=preload("res://systems/native_data/scalar_representation.gd").configured()
 
 func _init(value: Dictionary, services: Dictionary) -> void:
 	state = value
@@ -15,11 +16,11 @@ static func constructor_state() -> Dictionary:
 	return {"vector18": [0, 0, 0], "sourceAnchor28": "", "targetAnchor38": "", "point48": [0, 0, 0], "target54": 0x7f000000, "source58": 0x7f000000,
 		"modelRemaining5c": [0, 0, 0], "modelStates68": [0, 0, 0], "models88": [null, null, null], "extraModelsA0": [null, null, null], "proceduralB8": null,
 		"retireRemainingC0": [0, 0, 0], "programRemainingCc": 0, "programsD0": [0, 0, 0], "updateProgramD8": 0, "retiredDc": [0, 0, 0], "retiringE8": 0,
-		"closedEc": 0, "startedF0": 0, "finishedF4": 0, "visualF8": 0, "programPhaseFa": 0, "durationFc": 0, "field100": 1, "field104": 0, "shadow108": 0,
+		"closedEc": 0, "startedF0": 0, "finishedF4": 0, "visualF8": 0, "programPhaseFa": 0, "alphaPhaseFb": 0, "durationFc": 0, "field100": 1, "field104": 0, "shadow108": 0,
 		"scope10c": 0, "programType10d": 0, "field110": 0, "attached114": 0, "sound118": null, "orient120": 0, "controllers128": null}
 
 static func f32(value: float) -> float:
-	return PackedFloat32Array([value])[0]
+	return Color(value,0,0,0).r if scalar_values else PackedFloat32Array([value])[0]
 
 static func milliseconds_long(seconds: float) -> int:
 	var value := f32(f32(seconds) * 1000.0)

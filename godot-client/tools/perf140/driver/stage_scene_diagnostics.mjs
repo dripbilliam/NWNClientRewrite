@@ -1,0 +1,12 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {stage,hash} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),[parentLabel,label]=process.argv.slice(2),root=path.join(project,'.cache/native-140fps/root');
+if(!/^[a-z0-9-]+$/.test(parentLabel??'')||!/^[a-z0-9-]+$/.test(label??''))throw Error('Private fresh labels required');
+const parentFile=path.join(root,parentLabel,'manifest.json'),parent=JSON.parse(fs.readFileSync(parentFile));
+const folder=path.join(root,label+'-draft');if(fs.existsSync(folder))throw Error('Draft preserved');fs.mkdirSync(folder);
+const relative='native_live_world.gd';let text=fs.readFileSync(path.join(parent.project,relative),'utf8');
+const needle='\tif is_instance_valid(world): report.perf140_cold_particles=preload("res://systems/native_render/perf140_cold_particle_dump.gd").capture(world)';
+if(text.split(needle).length!==2)throw Error('Post-window boundary differs');
+text=text.replace(needle,needle+'\n\tif is_instance_valid(world):\n\t\treport.perf140_particle_modes=preload("res://tools/perf140/driver/particle_modes_dump.gd").capture(world)\n\t\treport.static_leaf_census=preload("res://tools/perf140/render/static_leaf_census.gd").save(world,str(args.report)+".static-leaves.json")');
+const from=path.join(folder,relative);fs.writeFileSync(from,text);
+const files=['tools/perf140/driver/particle_modes_dump.gd','tools/perf140/render/static_leaf_census.gd'];
+console.log(JSON.stringify(stage(project,parentFile,label,[{relative,from,before:parent.pins.find(p=>p.relative===relative).sha256,after:hash(Buffer.from(text))},...files.map(relative=>({relative,from:path.join(project,relative),before:parent.pins.find(p=>p.relative===relative)?.sha256??null,after:hash(fs.readFileSync(path.join(project,relative)))}))])));

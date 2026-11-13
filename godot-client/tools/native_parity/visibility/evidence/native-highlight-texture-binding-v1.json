@@ -1,0 +1,1820 @@
+{
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "loader_source": "backups/animations/native-client-area-load-message-asm.txt lines2650..2654: Scene248 loaded, fxpa_dot02 at7de7ca, slot128 call7de7d4.",
+  "shader_source_capsule": ".cache/native-presentation-parity/render-agent/highlight-shader-binding-v1/installed-shaders.json",
+  "items": {
+    "highlightTextureSetter": {
+      "evidence_id": "ev_a490b3277ccf7d4dbaa208c5cdf011a5eec6bab7548d46dce0c7075e1284c2d7",
+      "value": {
+        "procedure": {
+          "address": "0x1400d3420",
+          "name": "Scene::SetHighlightGobTexture",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400d3420",
+                "end": "0x1400d34b3"
+              }
+            ],
+            "total_bytes": 148,
+            "span_bytes": 148,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "void __thiscall SetHighlightGobTexture(Scene * this, char * param_1)",
+          "locals": [
+            {
+              "description": "undefined8 local_res8 @ Stack[0x8]:8",
+              "provenance": "ghidra-function-database"
+            }
+          ]
+        },
+        "pseudocode": "\r\n/* public: virtual void __cdecl Scene::SetHighlightGobTexture(char const * __ptr64) __ptr64 */\r\n\r\nvoid __thiscall Scene::SetHighlightGobTexture(Scene *this,char *param_1)\r\n\r\n{\r\n  SafePointer<CAurTexture> *this_00;\r\n  longlong lVar1;\r\n  CAurTexture *pCVar2;\r\n  int iVar3;\r\n  int iVar4;\r\n  \r\n                    /* 0xd3420  13011  ?SetHighlightGobTexture@Scene@@UEAAXPEBD@Z */\r\n  this_00 = (SafePointer<CAurTexture> *)(this + 0xa0);\r\n  lVar1 = *(longlong *)this_00;\r\n  if (lVar1 != 0) {\r\n    iVar3 = *(int *)(this + 0xa8);\r\n    iVar4 = *(int *)(lVar1 + 0x10);\r\n    if ((iVar3 < iVar4) && (-1 < iVar3)) {\r\n      *(undefined8 *)(*(longlong *)(lVar1 + 8) + (longlong)iVar3 * 8) =\r\n           *(undefined8 *)(*(longlong *)(lVar1 + 8) + -8 + (longlong)iVar4 * 8);\r\n      *(int *)(lVar1 + 0x10) = *(int *)(lVar1 + 0x10) + -1;\r\n      iVar4 = *(int *)(lVar1 + 0x10);\r\n      iVar3 = *(int *)(this + 0xa8);\r\n    }\r\n    if (iVar3 < iVar4) {\r\n      *(int *)(*(longlong *)(*(longlong *)(lVar1 + 8) + (longlong)iVar3 * 8) + 8) = iVar3;\r\n    }\r\n    *(undefined4 *)(this + 0xa8) = 0xffffffff;\r\n    *(undefined8 *)this_00 = 0;\r\n    AurTextureRelease((CAurTexture *)0x0);\r\n  }\r\n  pCVar2 = AurTextureGetReference(param_1,(char *)0x0,false);\r\n  SafePointer<CAurTexture>::operator=(this_00,pCVar2);\r\n  return;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400d3420: MOV qword ptr [RSP + 0x8], RBX",
+          "0x1400d3425: PUSH RDI",
+          "0x1400d3426: SUB RSP, 0x20",
+          "0x1400d342a: LEA RBX, [RCX + 0xa0]",
+          "0x1400d3431: MOV RDI, RDX",
+          "0x1400d3434: MOV R8, qword ptr [RBX]",
+          "0x1400d3437: TEST R8, R8",
+          "0x1400d343a: JZ 0x1400d3492",
+          "0x1400d343c: MOVSXD R9, dword ptr [RBX + 0x8]",
+          "0x1400d3440: MOVSXD RAX, dword ptr [R8 + 0x10]",
+          "0x1400d3444: MOV ECX, R9D",
+          "0x1400d3447: MOV EDX, EAX",
+          "0x1400d3449: CMP R9D, EAX",
+          "0x1400d344c: JGE 0x1400d346b",
+          "0x1400d344e: TEST R9D, R9D",
+          "0x1400d3451: JS 0x1400d346b",
+          "0x1400d3453: MOV RDX, qword ptr [R8 + 0x8]",
+          "0x1400d3457: MOV RAX, qword ptr [RDX + RAX*0x8 + -0x8]",
+          "0x1400d345c: MOV qword ptr [RDX + R9*0x8], RAX",
+          "0x1400d3460: DEC dword ptr [R8 + 0x10]",
+          "0x1400d3464: MOV EDX, dword ptr [R8 + 0x10]",
+          "0x1400d3468: MOV ECX, dword ptr [RBX + 0x8]",
+          "0x1400d346b: CMP ECX, EDX",
+          "0x1400d346d: JGE 0x1400d347d",
+          "0x1400d346f: MOV RAX, qword ptr [R8 + 0x8]",
+          "0x1400d3473: MOVSXD RDX, ECX",
+          "0x1400d3476: MOV RDX, qword ptr [RAX + RDX*0x8]",
+          "0x1400d347a: MOV dword ptr [RDX + 0x8], ECX",
+          "0x1400d347d: XOR ECX, ECX",
+          "0x1400d347f: MOV dword ptr [RBX + 0x8], 0xffffffff",
+          "0x1400d3486: MOV qword ptr [RBX], 0x0",
+          "0x1400d348d: CALL 0x1400e9130",
+          "0x1400d3492: XOR R8D, R8D",
+          "0x1400d3495: XOR EDX, EDX",
+          "0x1400d3497: MOV RCX, RDI",
+          "0x1400d349a: CALL 0x1400e8b60",
+          "0x1400d349f: MOV RDX, RAX",
+          "0x1400d34a2: MOV RCX, RBX",
+          "0x1400d34a5: MOV RBX, qword ptr [RSP + 0x30]",
+          "0x1400d34aa: ADD RSP, 0x20",
+          "0x1400d34ae: POP RDI",
+          "0x1400d34af: JMP 0x14004bb00"
+        ],
+        "referenced_strings": []
+      }
+    },
+    "highlightTextureSetterRefs": {
+      "evidence_id": "ev_ac9380e2ae3fb1df0fdc420e25ff94be22bf758b7794fe0969f108298ddac332",
+      "value": {
+        "procedure": {
+          "address": "0x1400d3420",
+          "name": "Scene::SetHighlightGobTexture",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400d3420",
+                "end": "0x1400d34b3"
+              }
+            ],
+            "total_bytes": 148,
+            "span_bytes": 148,
+            "non_contiguous": false,
+            "contains_entry": true
+          }
+        },
+        "references": [
+          {
+            "source_address": "0x1400d343a",
+            "target_address": "0x1400d3492",
+            "source_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "target_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "kind": {
+              "available": true,
+              "provenance": "ghidra-reference-manager",
+              "type": "CONDITIONAL_JUMP",
+              "flow": true,
+              "call": false,
+              "jump": true,
+              "data": false,
+              "read": false,
+              "write": false,
+              "indirect": false,
+              "computed": false,
+              "conditional": true,
+              "terminal": false,
+              "primary": true,
+              "operand_index": 0,
+              "external": false
+            }
+          },
+          {
+            "source_address": "0x1400d344c",
+            "target_address": "0x1400d346b",
+            "source_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "target_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "kind": {
+              "available": true,
+              "provenance": "ghidra-reference-manager",
+              "type": "CONDITIONAL_JUMP",
+              "flow": true,
+              "call": false,
+              "jump": true,
+              "data": false,
+              "read": false,
+              "write": false,
+              "indirect": false,
+              "computed": false,
+              "conditional": true,
+              "terminal": false,
+              "primary": true,
+              "operand_index": 0,
+              "external": false
+            }
+          },
+          {
+            "source_address": "0x1400d3451",
+            "target_address": "0x1400d346b",
+            "source_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "target_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "kind": {
+              "available": true,
+              "provenance": "ghidra-reference-manager",
+              "type": "CONDITIONAL_JUMP",
+              "flow": true,
+              "call": false,
+              "jump": true,
+              "data": false,
+              "read": false,
+              "write": false,
+              "indirect": false,
+              "computed": false,
+              "conditional": true,
+              "terminal": false,
+              "primary": true,
+              "operand_index": 0,
+              "external": false
+            }
+          },
+          {
+            "source_address": "0x1400d346d",
+            "target_address": "0x1400d347d",
+            "source_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "target_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "kind": {
+              "available": true,
+              "provenance": "ghidra-reference-manager",
+              "type": "CONDITIONAL_JUMP",
+              "flow": true,
+              "call": false,
+              "jump": true,
+              "data": false,
+              "read": false,
+              "write": false,
+              "indirect": false,
+              "computed": false,
+              "conditional": true,
+              "terminal": false,
+              "primary": true,
+              "operand_index": 0,
+              "external": false
+            }
+          },
+          {
+            "source_address": "0x140d8de58",
+            "target_address": "0x1400d3420",
+            "source_procedure": null,
+            "target_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "kind": {
+              "available": true,
+              "provenance": "ghidra-reference-manager",
+              "type": "DATA",
+              "flow": false,
+              "call": false,
+              "jump": false,
+              "data": true,
+              "read": false,
+              "write": false,
+              "indirect": false,
+              "computed": false,
+              "conditional": false,
+              "terminal": false,
+              "primary": true,
+              "operand_index": 0,
+              "external": false
+            }
+          },
+          {
+            "source_address": "0x1410de210",
+            "target_address": "0x1400d3420",
+            "source_procedure": null,
+            "target_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "kind": {
+              "available": true,
+              "provenance": "ghidra-reference-manager",
+              "type": "DATA",
+              "flow": false,
+              "call": false,
+              "jump": false,
+              "data": true,
+              "read": false,
+              "write": false,
+              "indirect": false,
+              "computed": false,
+              "conditional": false,
+              "terminal": false,
+              "primary": false,
+              "operand_index": 0,
+              "external": false
+            }
+          },
+          {
+            "source_address": "0x1415e1b2c",
+            "target_address": "0x1400d3420",
+            "source_procedure": null,
+            "target_procedure": {
+              "address": "0x1400d3420",
+              "name": "Scene::SetHighlightGobTexture",
+              "classification": {
+                "external": false,
+                "thunk": false,
+                "thunk_target": null,
+                "provenance": "ghidra-function-manager"
+              },
+              "body": {
+                "available": true,
+                "provenance": "ghidra-function-body-address-set",
+                "ranges": [
+                  {
+                    "start": "0x1400d3420",
+                    "end": "0x1400d34b3"
+                  }
+                ],
+                "total_bytes": 148,
+                "span_bytes": 148,
+                "non_contiguous": false,
+                "contains_entry": true
+              }
+            },
+            "kind": {
+              "available": true,
+              "provenance": "ghidra-reference-manager",
+              "type": "DATA",
+              "flow": false,
+              "call": false,
+              "jump": false,
+              "data": true,
+              "read": false,
+              "write": false,
+              "indirect": false,
+              "computed": false,
+              "conditional": false,
+              "terminal": false,
+              "primary": true,
+              "operand_index": 0,
+              "external": false
+            }
+          }
+        ]
+      }
+    },
+    "highlightTextureBindUnit": {
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1",
+      "value": {
+        "procedure": {
+          "address": "0x1400ea490",
+          "name": "CAurTexture::BindInUnit",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400ea490",
+                "end": "0x1400ea59a"
+              }
+            ],
+            "total_bytes": 267,
+            "span_bytes": 267,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "void __thiscall BindInUnit(CAurTexture * this, uint param_1, int param_2)",
+          "locals": [
+            {
+              "description": "undefined8 local_res10 @ Stack[0x10]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res8 @ Stack[0x8]:8",
+              "provenance": "ghidra-function-database"
+            }
+          ]
+        },
+        "pseudocode": "\r\n/* public: virtual void __cdecl CAurTexture::BindInUnit(unsigned int,int) __ptr64 */\r\n\r\nvoid __thiscall CAurTexture::BindInUnit(CAurTexture *this,uint param_1,int param_2)\r\n\r\n{\r\n  bool bVar1;\r\n  uint uVar2;\r\n  longlong *plVar3;\r\n  CAurTexture *pCVar4;\r\n  CAurTexture *pCVar5;\r\n  longlong lVar6;\r\n  \r\n                    /* 0xea490  5909  ?BindInUnit@CAurTexture@@UEAAXIH@Z */\r\n  plVar3 = (longlong *)(**(code **)(*(longlong *)this + 0x10))();\r\n  pCVar4 = (CAurTexture *)(**(code **)(*plVar3 + 8))(plVar3);\r\n  if (((pCVar4 == (CAurTexture *)0x0) || (pCVar5 = AurTextureGetNULL(), pCVar4 == pCVar5)) ||\r\n     (pCVar4[0xe7] != (CAurTexture)0x0)) {\r\n    if (bindzero == 0) {\r\n      RenderInterface::Disable(0xe);\r\n      RenderInterface::SetActiveTextureAndBind(param_1,4,0);\r\n      countbinds = countbinds + 1;\r\n      return;\r\n    }\r\n    RenderInterface::SetActiveTextureAndBind(param_1,4,0);\r\n    return;\r\n  }\r\n  if ((-1 < param_2) && (*(longlong *)(pCVar4 + 0x50) != 0)) {\r\n    (**(code **)(*(longlong *)pCVar4 + 0xe0))(pCVar4,param_2);\r\n  }\r\n  bVar1 = (bool)(**(code **)(*(longlong *)pCVar4 + 0x18))(pCVar4);\r\n  uVar2 = AurTextureGetTID(pCVar4);\r\n  AurTextureBindTIDInUnit(param_1,uVar2,bVar1);\r\n  plVar3 = (longlong *)(**(code **)(*(longlong *)pCVar4 + 0x10))(pCVar4);\r\n  lVar6 = (**(code **)(*plVar3 + 8))(plVar3);\r\n  if (*(longlong **)(lVar6 + 0x38) == (longlong *)0x0) {\r\n    return;\r\n  }\r\n  if (enabletexturecontrollers == 0) {\r\n    return;\r\n  }\r\n                    /* WARNING: Could not recover jumptable at 0x0001400ea543. Too many branches */\r\n                    /* WARNING: Treating indirect jump as call */\r\n  (**(code **)(**(longlong **)(lVar6 + 0x38) + 8))();\r\n  return;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400ea490: MOV qword ptr [RSP + 0x8], RBX",
+          "0x1400ea495: MOV qword ptr [RSP + 0x10], RSI",
+          "0x1400ea49a: PUSH RDI",
+          "0x1400ea49b: SUB RSP, 0x20",
+          "0x1400ea49f: MOV RAX, qword ptr [RCX]",
+          "0x1400ea4a2: MOV EBX, R8D",
+          "0x1400ea4a5: MOV ESI, EDX",
+          "0x1400ea4a7: CALL qword ptr [RAX + 0x10]",
+          "0x1400ea4aa: MOV RCX, RAX",
+          "0x1400ea4ad: MOV R9, qword ptr [RAX]",
+          "0x1400ea4b0: CALL qword ptr [R9 + 0x8]",
+          "0x1400ea4b4: MOV RDI, RAX",
+          "0x1400ea4b7: TEST RAX, RAX",
+          "0x1400ea4ba: JZ 0x1400ea547",
+          "0x1400ea4c0: CALL 0x1400e8a20",
+          "0x1400ea4c5: CMP RDI, RAX",
+          "0x1400ea4c8: JZ 0x1400ea547",
+          "0x1400ea4ca: CMP byte ptr [RDI + 0xe7], 0x0",
+          "0x1400ea4d1: JNZ 0x1400ea547",
+          "0x1400ea4d3: TEST EBX, EBX",
+          "0x1400ea4d5: JS 0x1400ea4ec",
+          "0x1400ea4d7: CMP qword ptr [RDI + 0x50], 0x0",
+          "0x1400ea4dc: JZ 0x1400ea4ec",
+          "0x1400ea4de: MOV RAX, qword ptr [RDI]",
+          "0x1400ea4e1: MOV EDX, EBX",
+          "0x1400ea4e3: MOV RCX, RDI",
+          "0x1400ea4e6: CALL qword ptr [RAX + 0xe0]",
+          "0x1400ea4ec: MOV RAX, qword ptr [RDI]",
+          "0x1400ea4ef: MOV RCX, RDI",
+          "0x1400ea4f2: CALL qword ptr [RAX + 0x18]",
+          "0x1400ea4f5: MOV RCX, RDI",
+          "0x1400ea4f8: MOVZX EBX, AL",
+          "0x1400ea4fb: CALL 0x1400e8ba0",
+          "0x1400ea500: MOVZX R8D, BL",
+          "0x1400ea504: MOV EDX, EAX",
+          "0x1400ea506: MOV ECX, ESI",
+          "0x1400ea508: CALL 0x1400e6870",
+          "0x1400ea50d: MOV RAX, qword ptr [RDI]",
+          "0x1400ea510: MOV RCX, RDI",
+          "0x1400ea513: CALL qword ptr [RAX + 0x10]",
+          "0x1400ea516: MOV RCX, RAX",
+          "0x1400ea519: MOV RDX, qword ptr [RAX]",
+          "0x1400ea51c: CALL qword ptr [RDX + 0x8]",
+          "0x1400ea51f: MOV RCX, qword ptr [RAX + 0x38]",
+          "0x1400ea523: TEST RCX, RCX",
+          "0x1400ea526: JZ 0x1400ea58b",
+          "0x1400ea528: CMP dword ptr [0x14128ee04], 0x0",
+          "0x1400ea52f: JZ 0x1400ea58b",
+          "0x1400ea531: MOV RAX, qword ptr [RCX]",
+          "0x1400ea534: MOV RBX, qword ptr [RSP + 0x30]",
+          "0x1400ea539: MOV RSI, qword ptr [RSP + 0x38]",
+          "0x1400ea53e: ADD RSP, 0x20",
+          "0x1400ea542: POP RDI",
+          "0x1400ea543: JMP qword ptr [RAX + 0x8]",
+          "0x1400ea547: CMP dword ptr [0x14140b2ac], 0x0",
+          "0x1400ea54e: JZ 0x1400ea56d",
+          "0x1400ea550: XOR R8D, R8D",
+          "0x1400ea553: MOV ECX, ESI",
+          "0x1400ea555: LEA EDX, [R8 + 0x4]",
+          "0x1400ea559: MOV RBX, qword ptr [RSP + 0x30]",
+          "0x1400ea55e: MOV RSI, qword ptr [RSP + 0x38]",
+          "0x1400ea563: ADD RSP, 0x20",
+          "0x1400ea567: POP RDI",
+          "0x1400ea568: JMP 0x1400befc0",
+          "0x1400ea56d: MOV ECX, 0xe",
+          "0x1400ea572: CALL 0x1400be9e0",
+          "0x1400ea577: XOR R8D, R8D",
+          "0x1400ea57a: MOV ECX, ESI",
+          "0x1400ea57c: LEA EDX, [R8 + 0x4]",
+          "0x1400ea580: CALL 0x1400befc0",
+          "0x1400ea585: INC dword ptr [0x14140b2a8]",
+          "0x1400ea58b: MOV RBX, qword ptr [RSP + 0x30]",
+          "0x1400ea590: MOV RSI, qword ptr [RSP + 0x38]",
+          "0x1400ea595: ADD RSP, 0x20",
+          "0x1400ea599: POP RDI",
+          "0x1400ea59a: RET"
+        ],
+        "referenced_strings": []
+      }
+    },
+    "highlightSceneSetTextureSlot": {
+      "evidence_id": "ev_abcff111ccb32a7dec10da8c4f14b22521ac3c5b9cadb6d51b0a594db4ff955c",
+      "value": {
+        "address": "0x140d8de58",
+        "requested_bytes": 8,
+        "returned_bytes": 8,
+        "bytes_hex": "20340d4001000000",
+        "complete": true
+      }
+    },
+    "highlightBindTextureSlot": {
+      "evidence_id": "ev_fcf7f67ac8a1dcb73537b6926b50ca207c088139745bc2b62e6b8c9551051480",
+      "value": {
+        "address": "0x140d90d70",
+        "requested_bytes": 8,
+        "returned_bytes": 8,
+        "bytes_hex": "90a40e4001000000",
+        "complete": true
+      }
+    },
+    "highlightTextureCtor": {
+      "evidence_id": "ev_305d28611dce0eb253596075b1d7ac26a968348c0bef1a30f870c5c40921020f",
+      "value": {
+        "procedure": {
+          "address": "0x1400e4cc0",
+          "name": "CAurTexture::CAurTexture",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400e4cc0",
+                "end": "0x1400e4d53"
+              }
+            ],
+            "total_bytes": 148,
+            "span_bytes": 148,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "undefined __thiscall CAurTexture(CAurTexture * this)",
+          "locals": [
+            {
+              "description": "undefined8 local_18 @ Stack[-0x18]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res8 @ Stack[0x8]:8",
+              "provenance": "ghidra-function-database"
+            }
+          ]
+        },
+        "pseudocode": "\r\n/* public: __cdecl CAurTexture::CAurTexture(void) __ptr64 */\r\n\r\nCAurTexture * __thiscall CAurTexture::CAurTexture(CAurTexture *this)\r\n\r\n{\r\n  longlong lVar1;\r\n  int iVar2;\r\n  int iVar3;\r\n  \r\n                    /* 0xe4cc0  1458  ??0CAurTexture@@QEAA@XZ */\r\n  *(undefined8 *)(this + 0x10) = 0;\r\n  *(undefined8 *)(this + 8) = 0;\r\n  *(undefined ***)this = vftable;\r\n  *(undefined8 *)(this + 0x18) = 0;\r\n  countregulartextures = countregulartextures + 1;\r\n  lVar1 = *(longlong *)(this + 0x18);\r\n  if (lVar1 != 0) {\r\n    iVar2 = *(int *)(this + 0x20);\r\n    iVar3 = *(int *)(lVar1 + 0x10);\r\n    if ((iVar2 < iVar3) && (-1 < iVar2)) {\r\n      *(undefined8 *)(*(longlong *)(lVar1 + 8) + (longlong)iVar2 * 8) =\r\n           *(undefined8 *)(*(longlong *)(lVar1 + 8) + -8 + (longlong)iVar3 * 8);\r\n      *(int *)(lVar1 + 0x10) = *(int *)(lVar1 + 0x10) + -1;\r\n      iVar3 = *(int *)(lVar1 + 0x10);\r\n      iVar2 = *(int *)(this + 0x20);\r\n    }\r\n    if (iVar2 < iVar3) {\r\n      *(int *)(*(longlong *)(*(longlong *)(lVar1 + 8) + (longlong)iVar2 * 8) + 8) = iVar2;\r\n    }\r\n    *(undefined4 *)(this + 0x20) = 0xffffffff;\r\n  }\r\n  *(undefined8 *)(this + 0x18) = 0;\r\n  return this;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400e4cc0: SUB RSP, 0x18",
+          "0x1400e4cc4: MOV qword ptr [RSP], -0x2",
+          "0x1400e4ccc: MOV R8, RCX",
+          "0x1400e4ccf: LEA RAX, [RCX + 0x8]",
+          "0x1400e4cd3: MOV qword ptr [RSP + 0x20], RAX",
+          "0x1400e4cd8: XOR R11D, R11D",
+          "0x1400e4cdb: MOV qword ptr [RAX + 0x8], R11",
+          "0x1400e4cdf: MOV qword ptr [RAX], R11",
+          "0x1400e4ce2: LEA RAX, [0x140d90c70]",
+          "0x1400e4ce9: MOV qword ptr [RCX], RAX",
+          "0x1400e4cec: MOV qword ptr [RCX + 0x18], R11",
+          "0x1400e4cf0: INC dword ptr [0x14140b2b4]",
+          "0x1400e4cf6: MOV R9, qword ptr [RCX + 0x18]",
+          "0x1400e4cfa: TEST R9, R9",
+          "0x1400e4cfd: JZ 0x1400e4d48",
+          "0x1400e4cff: MOVSXD RCX, dword ptr [RCX + 0x20]",
+          "0x1400e4d03: MOVSXD RAX, dword ptr [R9 + 0x10]",
+          "0x1400e4d07: MOV EDX, ECX",
+          "0x1400e4d09: MOV R10D, EAX",
+          "0x1400e4d0c: CMP ECX, EAX",
+          "0x1400e4d0e: JGE 0x1400e4d2d",
+          "0x1400e4d10: TEST ECX, ECX",
+          "0x1400e4d12: JS 0x1400e4d2d",
+          "0x1400e4d14: MOV RDX, qword ptr [R9 + 0x8]",
+          "0x1400e4d18: MOV RAX, qword ptr [RDX + RAX*0x8 + -0x8]",
+          "0x1400e4d1d: MOV qword ptr [RDX + RCX*0x8], RAX",
+          "0x1400e4d21: DEC dword ptr [R9 + 0x10]",
+          "0x1400e4d25: MOV R10D, dword ptr [R9 + 0x10]",
+          "0x1400e4d29: MOV EDX, dword ptr [R8 + 0x20]",
+          "0x1400e4d2d: CMP EDX, R10D",
+          "0x1400e4d30: JGE 0x1400e4d40",
+          "0x1400e4d32: MOVSXD RCX, EDX",
+          "0x1400e4d35: MOV RAX, qword ptr [R9 + 0x8]",
+          "0x1400e4d39: MOV RCX, qword ptr [RAX + RCX*0x8]",
+          "0x1400e4d3d: MOV dword ptr [RCX + 0x8], EDX",
+          "0x1400e4d40: MOV dword ptr [R8 + 0x20], 0xffffffff",
+          "0x1400e4d48: MOV qword ptr [R8 + 0x18], R11",
+          "0x1400e4d4c: MOV RAX, R8",
+          "0x1400e4d4f: ADD RSP, 0x18",
+          "0x1400e4d53: RET"
+        ],
+        "referenced_strings": []
+      }
+    },
+    "highlightRenderStream": {
+      "evidence_id": "ev_faed7a96ea930f48e2170d7800f7dc1d4110c2b5267b35fe6813a21dee29899a",
+      "value": {
+        "procedure": {
+          "address": "0x1400b5c20",
+          "name": "GLRender::RenderVertexStreamData",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400b5c20",
+                "end": "0x1400b5dbf"
+              }
+            ],
+            "total_bytes": 416,
+            "span_bytes": 416,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "void __cdecl RenderVertexStreamData(VertexStreamDataObject * param_1, AuroraPrimitiveTypes param_2, uint param_3, uint param_4)",
+          "locals": [
+            {
+              "description": "undefined8 local_res10 @ Stack[0x10]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res18 @ Stack[0x18]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res20 @ Stack[0x20]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res8 @ Stack[0x8]:8",
+              "provenance": "ghidra-function-database"
+            }
+          ]
+        },
+        "pseudocode": "\r\n/* private: static void __cdecl GLRender::RenderVertexStreamData(class VertexStreamDataObject *\r\n   __ptr64,enum Aurora::AuroraPrimitiveTypes,unsigned int,unsigned int) */\r\n\r\nvoid __cdecl\r\nGLRender::RenderVertexStreamData\r\n          (VertexStreamDataObject *param_1,AuroraPrimitiveTypes param_2,uint param_3,uint param_4)\r\n\r\n{\r\n  uint uVar1;\r\n  ShaderType_t SVar2;\r\n  uint uVar3;\r\n  \r\n                    /* 0xb5c20  11974\r\n                       ?RenderVertexStreamData@GLRender@@CAXPEAVVertexStreamDataObject@@W4AuroraPrimitiveTypes@Aurora@@II@Z\r\n                        */\r\n  if (param_1 == (VertexStreamDataObject *)0x0) {\r\n    if ((m_bEnabledStates >> 0x12 & 1) != 0) {\r\n      m_bEnabledStates = m_bEnabledStates & 0xfffbffff;\r\n    }\r\n    if ((m_bEnabledStates >> 0x15 & 1) != 0) {\r\n      m_bEnabledStates = m_bEnabledStates & 0xffdfffff;\r\n      DAT_1413d2704 = DAT_1413d2704 + 1;\r\n    }\r\n  }\r\n  else {\r\n    SetVertexStreamDataObject(param_1);\r\n    if (m_pCurrentCustomProgram == (PROG_FIXED *)0x0) {\r\n      SVar2 = 0xc;\r\n      uVar1 = *(uint *)(param_1 + 0x24);\r\n      uVar3 = m_bEnabledStates & 0x40000;\r\n      if ((uVar1 & 4) != 0) {\r\n        if ((m_bEnabledStates & 0x20) == 0) {\r\n          if (((uVar1 & 0x800) == 0) || ((m_bEnabledStates & 0x10) == 0)) {\r\n            SVar2 = (uVar1 & 1) << 2;\r\n          }\r\n          else if ((uVar1 & 1) == 0) {\r\n            SVar2 = (uVar3 != 0) + 1;\r\n          }\r\n          else {\r\n            SVar2 = 3;\r\n          }\r\n        }\r\n        else if (((uVar1 & 0x800) == 0) || ((m_bEnabledStates & 0x10) == 0)) {\r\n          SVar2 = (uVar3 != 0) + 5;\r\n        }\r\n        else if ((((byte)uVar1 & 0x18) == 0x18) && (usenew != 0)) {\r\n          SVar2 = 8;\r\n          if (uVar3 != 0) {\r\n            SVar2 = 10;\r\n          }\r\n        }\r\n        else {\r\n          SVar2 = 7;\r\n          if (uVar3 != 0) {\r\n            SVar2 = 9;\r\n          }\r\n        }\r\n      }\r\n    }\r\n    else {\r\n      SVar2 = 0xe;\r\n    }\r\n    SetProgram(SVar2);\r\n    if (param_1[8] == (VertexStreamDataObject)0x0) {\r\n      glDrawArrays(*(undefined4 *)(&DAT_140d8ad20 + (longlong)(int)param_2 * 4),(ulonglong)param_4,\r\n                   param_3);\r\n    }\r\n    else {\r\n      glDrawElements(*(undefined4 *)(&DAT_140d8ad20 + (longlong)(int)param_2 * 4),param_3,0x1403,\r\n                     (ulonglong)param_4 * 2);\r\n    }\r\n    if ((m_bEnabledStates >> 0x12 & 1) != 0) {\r\n      m_bEnabledStates = m_bEnabledStates & 0xfffbffff;\r\n    }\r\n    if ((m_bEnabledStates >> 0x15 & 1) != 0) {\r\n      m_bEnabledStates = m_bEnabledStates & 0xffdfffff;\r\n      DAT_1413d2704 = DAT_1413d2704 + 1;\r\n    }\r\n  }\r\n  m_pCurrentCustomProgram = (PROG_FIXED *)0x0;\r\n  m_nRenderHint = 0;\r\n  return;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400b5c20: MOV qword ptr [RSP + 0x8], RBX",
+          "0x1400b5c25: MOV qword ptr [RSP + 0x10], RBP",
+          "0x1400b5c2a: MOV qword ptr [RSP + 0x18], RSI",
+          "0x1400b5c2f: MOV qword ptr [RSP + 0x20], RDI",
+          "0x1400b5c34: PUSH R14",
+          "0x1400b5c36: SUB RSP, 0x20",
+          "0x1400b5c3a: MOV ESI, R9D",
+          "0x1400b5c3d: MOV EBP, R8D",
+          "0x1400b5c40: MOVSXD R14, EDX",
+          "0x1400b5c43: MOV RDI, RCX",
+          "0x1400b5c46: TEST RCX, RCX",
+          "0x1400b5c49: JNZ 0x1400b5c7e",
+          "0x1400b5c4b: MOV EAX, dword ptr [0x1413d2944]",
+          "0x1400b5c51: BT EAX, 0x12",
+          "0x1400b5c55: JNC 0x1400b5c61",
+          "0x1400b5c57: BTR EAX, 0x12",
+          "0x1400b5c5b: MOV dword ptr [0x1413d2944], EAX",
+          "0x1400b5c61: BT EAX, 0x15",
+          "0x1400b5c65: JNC 0x1400b5c77",
+          "0x1400b5c67: BTR EAX, 0x15",
+          "0x1400b5c6b: INC dword ptr [0x1413d2704]",
+          "0x1400b5c71: MOV dword ptr [0x1413d2944], EAX",
+          "0x1400b5c77: XOR EBX, EBX",
+          "0x1400b5c79: JMP 0x1400b5d98",
+          "0x1400b5c7e: CALL 0x1400bacc0",
+          "0x1400b5c83: XOR EBX, EBX",
+          "0x1400b5c85: CMP qword ptr [0x1413d2750], RBX",
+          "0x1400b5c8c: JZ 0x1400b5c96",
+          "0x1400b5c8e: LEA ECX, [RBX + 0xe]",
+          "0x1400b5c91: JMP 0x1400b5d36",
+          "0x1400b5c96: MOV R8D, dword ptr [0x1413d2944]",
+          "0x1400b5c9d: MOV ECX, 0xc",
+          "0x1400b5ca2: MOV EAX, dword ptr [RDI + 0x24]",
+          "0x1400b5ca5: MOV EDX, R8D",
+          "0x1400b5ca8: MOV R9D, R8D",
+          "0x1400b5cab: AND EDX, 0x40000",
+          "0x1400b5cb1: AND R9D, 0x20",
+          "0x1400b5cb5: TEST AL, 0x4",
+          "0x1400b5cb7: JZ 0x1400b5d36",
+          "0x1400b5cb9: MOV ECX, EAX",
+          "0x1400b5cbb: AND ECX, 0x800",
+          "0x1400b5cc1: TEST R9D, R9D",
+          "0x1400b5cc4: JZ 0x1400b5d0d",
+          "0x1400b5cc6: TEST ECX, ECX",
+          "0x1400b5cc8: JZ 0x1400b5d01",
+          "0x1400b5cca: TEST R8B, 0x10",
+          "0x1400b5cce: JZ 0x1400b5d01",
+          "0x1400b5cd0: AND EAX, 0x18",
+          "0x1400b5cd3: CMP AL, 0x18",
+          "0x1400b5cd5: JNZ 0x1400b5cf0",
+          "0x1400b5cd7: CMP dword ptr [0x14128e9d4], EBX",
+          "0x1400b5cdd: JZ 0x1400b5cf0",
+          "0x1400b5cdf: TEST EDX, EDX",
+          "0x1400b5ce1: MOV ECX, 0x8",
+          "0x1400b5ce6: MOV EAX, 0xa",
+          "0x1400b5ceb: CMOVNZ ECX, EAX",
+          "0x1400b5cee: JMP 0x1400b5d36",
+          "0x1400b5cf0: TEST EDX, EDX",
+          "0x1400b5cf2: MOV ECX, 0x7",
+          "0x1400b5cf7: MOV EAX, 0x9",
+          "0x1400b5cfc: CMOVNZ ECX, EAX",
+          "0x1400b5cff: JMP 0x1400b5d36",
+          "0x1400b5d01: TEST EDX, EDX",
+          "0x1400b5d03: MOV ECX, EBX",
+          "0x1400b5d05: SETNZ CL",
+          "0x1400b5d08: ADD ECX, 0x5",
+          "0x1400b5d0b: JMP 0x1400b5d36",
+          "0x1400b5d0d: TEST ECX, ECX",
+          "0x1400b5d0f: JZ 0x1400b5d2d",
+          "0x1400b5d11: TEST R8B, 0x10",
+          "0x1400b5d15: JZ 0x1400b5d2d",
+          "0x1400b5d17: TEST AL, 0x1",
+          "0x1400b5d19: JZ 0x1400b5d22",
+          "0x1400b5d1b: MOV ECX, 0x3",
+          "0x1400b5d20: JMP 0x1400b5d36",
+          "0x1400b5d22: TEST EDX, EDX",
+          "0x1400b5d24: MOV ECX, EBX",
+          "0x1400b5d26: SETNZ CL",
+          "0x1400b5d29: INC ECX",
+          "0x1400b5d2b: JMP 0x1400b5d36",
+          "0x1400b5d2d: MOVZX ECX, AL",
+          "0x1400b5d30: AND ECX, 0x1",
+          "0x1400b5d33: SHL ECX, 0x2",
+          "0x1400b5d36: CALL 0x1400b7a40",
+          "0x1400b5d3b: LEA RCX, [0x140d8ad20]",
+          "0x1400b5d42: MOV ECX, dword ptr [RCX + R14*0x4]",
+          "0x1400b5d46: CMP byte ptr [RDI + 0x8], BL",
+          "0x1400b5d49: JZ 0x1400b5d61",
+          "0x1400b5d4b: MOV R9, RSI",
+          "0x1400b5d4e: MOV R8D, 0x1403",
+          "0x1400b5d54: ADD R9, R9",
+          "0x1400b5d57: MOV EDX, EBP",
+          "0x1400b5d59: CALL qword ptr [0x140d7ca70]",
+          "0x1400b5d5f: JMP 0x1400b5d6c",
+          "0x1400b5d61: MOV R8D, EBP",
+          "0x1400b5d64: MOV EDX, ESI",
+          "0x1400b5d66: CALL qword ptr [0x140d7ca78]",
+          "0x1400b5d6c: MOV EAX, dword ptr [0x1413d2944]",
+          "0x1400b5d72: BT EAX, 0x12",
+          "0x1400b5d76: JNC 0x1400b5d82",
+          "0x1400b5d78: BTR EAX, 0x12",
+          "0x1400b5d7c: MOV dword ptr [0x1413d2944], EAX",
+          "0x1400b5d82: BT EAX, 0x15",
+          "0x1400b5d86: JNC 0x1400b5d98",
+          "0x1400b5d88: BTR EAX, 0x15",
+          "0x1400b5d8c: INC dword ptr [0x1413d2704]",
+          "0x1400b5d92: MOV dword ptr [0x1413d2944], EAX",
+          "0x1400b5d98: MOV RBP, qword ptr [RSP + 0x38]",
+          "0x1400b5d9d: MOV RSI, qword ptr [RSP + 0x40]",
+          "0x1400b5da2: MOV RDI, qword ptr [RSP + 0x48]",
+          "0x1400b5da7: MOV qword ptr [0x1413d2750], RBX",
+          "0x1400b5dae: MOV dword ptr [0x1413d2948], EBX",
+          "0x1400b5db4: MOV RBX, qword ptr [RSP + 0x30]",
+          "0x1400b5db9: ADD RSP, 0x20",
+          "0x1400b5dbd: POP R14",
+          "0x1400b5dbf: RET"
+        ],
+        "referenced_strings": []
+      }
+    },
+    "highlightSetProgram": {
+      "evidence_id": "ev_c2fa9ed1743a63b47c3b92d6a2cd636bdebff3734eddc2913bdeac583cee5a97",
+      "value": {
+        "procedure": {
+          "address": "0x1400b7a40",
+          "name": "GLRender::SetProgram",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400b7a40",
+                "end": "0x1400b7b03"
+              }
+            ],
+            "total_bytes": 196,
+            "span_bytes": 196,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "void __cdecl SetProgram(ShaderType_t param_1)",
+          "locals": [
+            {
+              "description": "undefined8 local_8 @ Stack[-0x8]:8",
+              "provenance": "ghidra-function-database"
+            }
+          ]
+        },
+        "pseudocode": "\r\n/* private: static void __cdecl GLRender::SetProgram(enum Aurora::ShaderType_t) */\r\n\r\nvoid __cdecl GLRender::SetProgram(ShaderType_t param_1)\r\n\r\n{\r\n  uint uVar1;\r\n  int iVar2;\r\n  longlong lVar3;\r\n  \r\n                    /* 0xb7a40  13257  ?SetProgram@GLRender@@CAXW4ShaderType_t@Aurora@@@Z */\r\n  if ((param_1 == 0xe) && (m_pCurrentCustomProgram != (PROG_FIXED *)0x0)) {\r\n    uVar1 = *(uint *)(m_pCurrentCustomProgram + 100);\r\n    if (uVar1 != 0) {\r\n      if (m_currentProgram != uVar1) {\r\n        m_currentProgram = uVar1;\r\n        (*DAT_141442680)(uVar1);\r\n      }\r\n      SetUniforms(m_pCurrentCustomProgram);\r\n      return;\r\n    }\r\n    param_1 = 0xc;\r\n  }\r\n  if ((&DAT_1413d2a04)[(longlong)(int)param_1 * 0x7be] == 0) {\r\n    param_1 = 0xc;\r\n  }\r\n  if ((((byte)m_bEnabledStates & 2) == 0) && (m_canDissolve == 0)) {\r\n    iVar2 = 1;\r\n  }\r\n  else {\r\n    iVar2 = 0;\r\n  }\r\n  lVar3 = (longlong)(int)(iVar2 + param_1 * 2);\r\n  uVar1 = (&DAT_1413d2a04)[lVar3 * 0x7be];\r\n  if ((m_currentProgram != uVar1) && (uVar1 != 0)) {\r\n    m_currentProgram = uVar1;\r\n    (*DAT_141442680)();\r\n  }\r\n  SetUniforms((PROG_FIXED *)(&m_StockShaders + lVar3 * 0x3df));\r\n  return;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400b7a40: SUB RSP, 0x28",
+          "0x1400b7a44: MOV EDX, ECX",
+          "0x1400b7a46: MOV R8D, 0xc",
+          "0x1400b7a4c: CMP ECX, 0xe",
+          "0x1400b7a4f: JNZ 0x1400b7a8d",
+          "0x1400b7a51: MOV RCX, qword ptr [0x1413d2750]",
+          "0x1400b7a58: TEST RCX, RCX",
+          "0x1400b7a5b: JZ 0x1400b7a8d",
+          "0x1400b7a5d: MOV EAX, dword ptr [RCX + 0x64]",
+          "0x1400b7a60: TEST EAX, EAX",
+          "0x1400b7a62: JZ 0x1400b7a8a",
+          "0x1400b7a64: CMP dword ptr [0x1413d26e4], EAX",
+          "0x1400b7a6a: JZ 0x1400b7a81",
+          "0x1400b7a6c: MOV ECX, EAX",
+          "0x1400b7a6e: MOV dword ptr [0x1413d26e4], EAX",
+          "0x1400b7a74: CALL qword ptr [0x141442680]",
+          "0x1400b7a7a: MOV RCX, qword ptr [0x1413d2750]",
+          "0x1400b7a81: ADD RSP, 0x28",
+          "0x1400b7a85: JMP 0x1400b8380",
+          "0x1400b7a8a: MOV EDX, R8D",
+          "0x1400b7a8d: MOVSXD RAX, EDX",
+          "0x1400b7a90: LEA R9, [0x1413d29a0]",
+          "0x1400b7a97: IMUL RCX, RAX, 0x1ef8",
+          "0x1400b7a9e: MOV qword ptr [RSP + 0x20], RBX",
+          "0x1400b7aa3: CMP dword ptr [RCX + R9*0x1 + 0x64], 0x0",
+          "0x1400b7aa9: CMOVZ EDX, R8D",
+          "0x1400b7aad: TEST byte ptr [0x1413d2944], 0x2",
+          "0x1400b7ab4: JNZ 0x1400b7ac6",
+          "0x1400b7ab6: CMP dword ptr [0x1413d298c], 0x0",
+          "0x1400b7abd: JNZ 0x1400b7ac6",
+          "0x1400b7abf: MOV EAX, 0x1",
+          "0x1400b7ac4: JMP 0x1400b7ac8",
+          "0x1400b7ac6: XOR EAX, EAX",
+          "0x1400b7ac8: LEA EAX, [RAX + RDX*0x2]",
+          "0x1400b7acb: MOVSXD RCX, EAX",
+          "0x1400b7ace: IMUL RBX, RCX, 0x1ef8",
+          "0x1400b7ad5: ADD RBX, R9",
+          "0x1400b7ad8: MOV ECX, dword ptr [RBX + 0x64]",
+          "0x1400b7adb: CMP dword ptr [0x1413d26e4], ECX",
+          "0x1400b7ae1: JZ 0x1400b7af3",
+          "0x1400b7ae3: TEST ECX, ECX",
+          "0x1400b7ae5: JZ 0x1400b7af3",
+          "0x1400b7ae7: MOV dword ptr [0x1413d26e4], ECX",
+          "0x1400b7aed: CALL qword ptr [0x141442680]",
+          "0x1400b7af3: MOV RCX, RBX",
+          "0x1400b7af6: MOV RBX, qword ptr [RSP + 0x20]",
+          "0x1400b7afb: ADD RSP, 0x28",
+          "0x1400b7aff: JMP 0x1400b8380"
+        ],
+        "referenced_strings": []
+      }
+    },
+    "highlightSetActiveAndBind": {
+      "evidence_id": "ev_b2cc57320fd688a85c532ba7e3db16139ba5a50e615344e5fa41f15cc00e8856",
+      "value": {
+        "procedure": {
+          "address": "0x1400b66e0",
+          "name": "GLRender::SetActiveTextureAndBind",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400b66e0",
+                "end": "0x1400b67df"
+              }
+            ],
+            "total_bytes": 256,
+            "span_bytes": 256,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "void __cdecl SetActiveTextureAndBind(uint param_1, AuroraEnableEnums param_2, uint param_3)",
+          "locals": [
+            {
+              "description": "undefined8 local_res10 @ Stack[0x10]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res18 @ Stack[0x18]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res20 @ Stack[0x20]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res8 @ Stack[0x8]:8",
+              "provenance": "ghidra-function-database"
+            }
+          ]
+        },
+        "pseudocode": "\r\n/* private: static void __cdecl GLRender::SetActiveTextureAndBind(unsigned int,enum\r\n   Aurora::AuroraEnableEnums,unsigned int) */\r\n\r\nvoid __cdecl GLRender::SetActiveTextureAndBind(uint param_1,AuroraEnableEnums param_2,uint param_3)\r\n\r\n{\r\n  uint uVar1;\r\n  ulonglong uVar2;\r\n  \r\n                    /* 0xb66e0  12693\r\n                       ?SetActiveTextureAndBind@GLRender@@CAXIW4AuroraEnableEnums@Aurora@@I@Z */\r\n  uVar1 = 1 << ((byte)param_1 & 0x1f);\r\n  if (param_3 == 0) {\r\n    m_bEnabledTextureStages = m_bEnabledTextureStages & ~uVar1;\r\n  }\r\n  else {\r\n    m_bEnabledTextureStages = m_bEnabledTextureStages | uVar1;\r\n    if ((*(AuroraEnableEnums *)(&m_boundTextures + param_1) != param_2) ||\r\n       (*(uint *)((longlong)&m_boundTextures + (ulonglong)param_1 * 8 + 4) != param_3)) {\r\n      if (m_activeTextureStage != param_1) {\r\n        (*DAT_141442150)(param_1 + 0x84c0);\r\n        m_activeTextureStage = param_1;\r\n      }\r\n      m_bEnabledTextureStages = m_bEnabledTextureStages | 1 << ((byte)m_activeTextureStage & 0x1f);\r\n      if ((m_activeTextureStage < 0x10) &&\r\n         ((*(AuroraEnableEnums *)(&m_boundTextures + m_activeTextureStage) != param_2 ||\r\n          (*(uint *)((longlong)&m_boundTextures + (ulonglong)m_activeTextureStage * 8 + 4) !=\r\n           param_3)))) {\r\n        if (param_2 == 4) {\r\n          glBindTexture(0xde1,param_3);\r\n          uVar2 = (ulonglong)m_activeTextureStage;\r\n          *(undefined4 *)(&m_boundTextures + uVar2) = 4;\r\n        }\r\n        else {\r\n          if (param_2 != 0xe) {\r\n            return;\r\n          }\r\n          glBindTexture(0x8513,param_3);\r\n          uVar2 = (ulonglong)m_activeTextureStage;\r\n          *(undefined4 *)(&m_boundTextures + uVar2) = 0xe;\r\n        }\r\n        *(uint *)((longlong)&m_boundTextures + uVar2 * 8 + 4) = param_3;\r\n      }\r\n    }\r\n  }\r\n  return;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400b66e0: MOV qword ptr [RSP + 0x10], RBX",
+          "0x1400b66e5: MOV qword ptr [RSP + 0x18], RBP",
+          "0x1400b66ea: MOV qword ptr [RSP + 0x20], RSI",
+          "0x1400b66ef: PUSH RDI",
+          "0x1400b66f0: SUB RSP, 0x20",
+          "0x1400b66f4: MOV EBP, 0x1",
+          "0x1400b66f9: MOV ESI, ECX",
+          "0x1400b66fb: MOV EAX, EBP",
+          "0x1400b66fd: MOV EBX, R8D",
+          "0x1400b6700: SHL EAX, CL",
+          "0x1400b6702: MOV EDI, EDX",
+          "0x1400b6704: TEST R8D, R8D",
+          "0x1400b6707: JNZ 0x1400b6716",
+          "0x1400b6709: NOT EAX",
+          "0x1400b670b: AND dword ptr [0x1413d2940], EAX",
+          "0x1400b6711: JMP 0x1400b67cb",
+          "0x1400b6716: MOV EDX, dword ptr [0x1413d2940]",
+          "0x1400b671c: OR EDX, EAX",
+          "0x1400b671e: MOV qword ptr [RSP + 0x30], R14",
+          "0x1400b6723: LEA R14, [0x1413d28c0]",
+          "0x1400b672a: MOV dword ptr [0x1413d2940], EDX",
+          "0x1400b6730: CMP dword ptr [R14 + RSI*0x8], EDI",
+          "0x1400b6734: JNZ 0x1400b6741",
+          "0x1400b6736: CMP dword ptr [R14 + RSI*0x8 + 0x4], EBX",
+          "0x1400b673b: JZ 0x1400b67c6",
+          "0x1400b6741: MOV ECX, dword ptr [0x1413d28bc]",
+          "0x1400b6747: CMP ECX, ESI",
+          "0x1400b6749: JZ 0x1400b6765",
+          "0x1400b674b: LEA ECX, [RSI + 0x84c0]",
+          "0x1400b6751: CALL qword ptr [0x141442150]",
+          "0x1400b6757: MOV EDX, dword ptr [0x1413d2940]",
+          "0x1400b675d: MOV ECX, ESI",
+          "0x1400b675f: MOV dword ptr [0x1413d28bc], ECX",
+          "0x1400b6765: SHL EBP, CL",
+          "0x1400b6767: OR EDX, EBP",
+          "0x1400b6769: MOV dword ptr [0x1413d2940], EDX",
+          "0x1400b676f: CMP ECX, 0x10",
+          "0x1400b6772: JNC 0x1400b67c6",
+          "0x1400b6774: MOV EAX, ECX",
+          "0x1400b6776: CMP dword ptr [R14 + RAX*0x8], EDI",
+          "0x1400b677a: JNZ 0x1400b6783",
+          "0x1400b677c: CMP dword ptr [R14 + RAX*0x8 + 0x4], EBX",
+          "0x1400b6781: JZ 0x1400b67c6",
+          "0x1400b6783: CMP EDI, 0x4",
+          "0x1400b6786: JZ 0x1400b67a6",
+          "0x1400b6788: CMP EDI, 0xe",
+          "0x1400b678b: JNZ 0x1400b67c6",
+          "0x1400b678d: MOV EDX, EBX",
+          "0x1400b678f: MOV ECX, 0x8513",
+          "0x1400b6794: CALL qword ptr [0x140d7cae0]",
+          "0x1400b679a: MOV EAX, dword ptr [0x1413d28bc]",
+          "0x1400b67a0: MOV dword ptr [R14 + RAX*0x8], EDI",
+          "0x1400b67a4: JMP 0x1400b67c1",
+          "0x1400b67a6: MOV EDX, EBX",
+          "0x1400b67a8: MOV ECX, 0xde1",
+          "0x1400b67ad: CALL qword ptr [0x140d7cae0]",
+          "0x1400b67b3: MOV EAX, dword ptr [0x1413d28bc]",
+          "0x1400b67b9: MOV dword ptr [R14 + RAX*0x8], 0x4",
+          "0x1400b67c1: MOV dword ptr [R14 + RAX*0x8 + 0x4], EBX",
+          "0x1400b67c6: MOV R14, qword ptr [RSP + 0x30]",
+          "0x1400b67cb: MOV RBX, qword ptr [RSP + 0x38]",
+          "0x1400b67d0: MOV RBP, qword ptr [RSP + 0x40]",
+          "0x1400b67d5: MOV RSI, qword ptr [RSP + 0x48]",
+          "0x1400b67da: ADD RSP, 0x20",
+          "0x1400b67de: POP RDI",
+          "0x1400b67df: RET"
+        ],
+        "referenced_strings": []
+      }
+    },
+    "highlightReloadShaders": {
+      "evidence_id": "ev_361946a82e8041a43d16b35ebc5bb1cff6d848f7d94c23405d3802602f1437c7",
+      "value": {
+        "procedure": {
+          "address": "0x1400b5110",
+          "name": "GLRender::ReloadShaders",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400b5110",
+                "end": "0x1400b544c"
+              }
+            ],
+            "total_bytes": 829,
+            "span_bytes": 829,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "void __cdecl ReloadShaders(void)",
+          "locals": [
+            {
+              "description": "undefined4 local_100 @ Stack[-0x100]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_108 @ Stack[-0x108]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_110 @ Stack[-0x110]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_118 @ Stack[-0x118]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_120 @ Stack[-0x120]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_128 @ Stack[-0x128]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_130 @ Stack[-0x130]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_138 @ Stack[-0x138]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_140 @ Stack[-0x140]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_148 @ Stack[-0x148]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_150 @ Stack[-0x150]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_158 @ Stack[-0x158]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_160 @ Stack[-0x160]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_168 @ Stack[-0x168]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_170 @ Stack[-0x170]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_178 @ Stack[-0x178]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_188 @ Stack[-0x188]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_198 @ Stack[-0x198]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined local_30 @ Stack[-0x30]:1",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_38 @ Stack[-0x38]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_48 @ Stack[-0x48]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_50 @ Stack[-0x50]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_58 @ Stack[-0x58]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_60 @ Stack[-0x60]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_68 @ Stack[-0x68]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_70 @ Stack[-0x70]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_78 @ Stack[-0x78]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_80 @ Stack[-0x80]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_88 @ Stack[-0x88]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_90 @ Stack[-0x90]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_98 @ Stack[-0x98]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_a0 @ Stack[-0xa0]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_a8 @ Stack[-0xa8]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_b0 @ Stack[-0xb0]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_b8 @ Stack[-0xb8]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_c0 @ Stack[-0xc0]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_c8 @ Stack[-0xc8]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_d0 @ Stack[-0xd0]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_d8 @ Stack[-0xd8]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_e0 @ Stack[-0xe0]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined4 local_e8 @ Stack[-0xe8]:4",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_f0 @ Stack[-0xf0]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_f8 @ Stack[-0xf8]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res0 @ Stack[0x0]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res10 @ Stack[0x10]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res18 @ Stack[0x18]:8",
+              "provenance": "ghidra-function-database"
+            },
+            {
+              "description": "undefined8 local_res8 @ Stack[0x8]:8",
+              "provenance": "ghidra-function-database"
+            }
+          ]
+        },
+        "pseudocode": "\r\n/* WARNING: Function: __security_check_cookie replaced with injection: security_check_cookie */\r\n/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */\r\n/* private: static void __cdecl GLRender::ReloadShaders(void) */\r\n\r\nvoid __cdecl GLRender::ReloadShaders(void)\r\n\r\n{\r\n  PROG_FIXED *pPVar1;\r\n  int iVar2;\r\n  char *pcVar3;\r\n  int iVar4;\r\n  aurMatrixStack **this;\r\n  longlong lVar5;\r\n  undefined **ppuVar6;\r\n  undefined1 auStackY_1b8 [32];\r\n  longlong local_188;\r\n  undefined *local_170;\r\n  undefined *local_168;\r\n  undefined4 local_160;\r\n  undefined *local_158;\r\n  undefined *local_150;\r\n  undefined4 local_148;\r\n  char *local_140;\r\n  char *local_138;\r\n  undefined4 local_130;\r\n  char *local_128;\r\n  undefined *local_120;\r\n  undefined4 local_118;\r\n  undefined *local_110;\r\n  undefined *local_108;\r\n  undefined4 local_100;\r\n  char *local_f8;\r\n  char *local_f0;\r\n  undefined4 local_e8;\r\n  char *local_e0;\r\n  char *local_d8;\r\n  undefined4 local_d0;\r\n  char *local_c8;\r\n  char *local_c0;\r\n  undefined4 local_b8;\r\n  char *local_b0;\r\n  char *local_a8;\r\n  undefined4 local_a0;\r\n  char *local_98;\r\n  char *local_90;\r\n  undefined4 local_88;\r\n  char *local_80;\r\n  char *local_78;\r\n  undefined4 local_70;\r\n  char *local_68;\r\n  char *local_60;\r\n  undefined4 local_58;\r\n  char *local_50;\r\n  char *local_48;\r\n  ulonglong local_38;\r\n  \r\n                    /* 0xb5110  11715  ?ReloadShaders@GLRender@@CAXXZ */\r\n  local_38 = DAT_1412a1b28 ^ (ulonglong)auStackY_1b8;\r\n  (*DAT_141442680)(0);\r\n  iVar4 = 0;\r\n  if (0 < DAT_141404f40) {\r\n    lVar5 = 0;\r\n    iVar2 = DAT_141404f40;\r\n    do {\r\n      pPVar1 = *(PROG_FIXED **)(lVar5 + 0x60 + _m_loadedCustomPrograms);\r\n      if (pPVar1 != (PROG_FIXED *)0x0) {\r\n        (*DAT_141442500)(*(undefined4 *)(pPVar1 + 100));\r\n        pcVar3 = (char *)((longlong)iVar4 * 0x70 + _m_loadedCustomPrograms);\r\n        LoadShader(pPVar1,pcVar3,pcVar3 + 0x20,*(bool *)(lVar5 + 0x68 + _m_loadedCustomPrograms),\r\n                   pcVar3 + 0x40);\r\n        iVar2 = DAT_141404f40;\r\n      }\r\n      iVar4 = iVar4 + 1;\r\n      lVar5 = lVar5 + 0x70;\r\n    } while (iVar4 < iVar2);\r\n  }\r\n  lVar5 = 0;\r\n  do {\r\n    (*DAT_141442500)(*(undefined4 *)((longlong)&DAT_1413d2a04 + lVar5));\r\n    (*DAT_141442500)(*(undefined4 *)((longlong)&DAT_1413d48fc + lVar5));\r\n    lVar5 = lVar5 + 0x3df0;\r\n  } while (lVar5 < 0x32530);\r\n  local_d8 = \"fslit_sm\";\r\n  local_170 = &DAT_140d8c470;\r\n  local_f0 = \"fslit\";\r\n  local_168 = &DAT_140d8c474;\r\n  local_c0 = \"fslit\";\r\n  local_158 = &DAT_140d8c478;\r\n  local_90 = \"fslit_sm\";\r\n  local_150 = &DAT_140d8c480;\r\n  local_160 = 1;\r\n  local_140 = \"vsvt_sm\";\r\n  local_148 = 2;\r\n  local_138 = \"fst_sm\";\r\n  local_128 = \"vsvtc\";\r\n  local_120 = &DAT_140d8c4a0;\r\n  local_110 = &DAT_140d8c4a8;\r\n  local_108 = &DAT_140d8c4b0;\r\n  local_f8 = \"vslitnotex\";\r\n  local_e0 = \"vslitnt_sm\";\r\n  local_c8 = \"vslit\";\r\n  local_b0 = \"vslit_nm\";\r\n  local_a8 = \"fslit_nm\";\r\n  local_98 = \"vslit_sm\";\r\n  local_80 = \"vslit_sm_nm\";\r\n  local_78 = \"fslit_sm_nm\";\r\n  local_68 = \"vsglu\";\r\n  local_60 = \"fsglu\";\r\n  local_50 = \"vs_invalid\";\r\n  local_48 = \"fs_invalid\";\r\n  local_130 = 3;\r\n  local_188 = 4;\r\n  local_118 = 4;\r\n  local_100 = 5;\r\n  local_e8 = 6;\r\n  local_d0 = 7;\r\n  local_b8 = 8;\r\n  local_a0 = 9;\r\n  local_88 = 10;\r\n  local_70 = 0xb;\r\n  local_58 = 0xc;\r\n  FUN_140c42060(0x1413d26f0,0,0x60);\r\n  lVar5 = 0xd;\r\n  ppuVar6 = &local_170;\r\n  do {\r\n    iVar4 = *(int *)(ppuVar6 + -1);\r\n    LoadShader((PROG_FIXED *)(&m_StockShaders + (longlong)(iVar4 * 2) * 0x3df),*ppuVar6,ppuVar6[1],\r\n               false,\"\");\r\n    LoadShader((PROG_FIXED *)(&m_StockShaders + (longlong)(iVar4 * 2 + 1) * 0x3df),*ppuVar6,\r\n               ppuVar6[1],true,\"\");\r\n    ppuVar6 = ppuVar6 + 3;\r\n    lVar5 = lVar5 + -1;\r\n  } while (lVar5 != 0);\r\n  this = &m_aurMtxStack;\r\n  do {\r\n    aurMatrixStack::SetIdentity((aurMatrixStack *)this);\r\n    this = (aurMatrixStack **)((longlong)this + 0x58);\r\n    local_188 = local_188 + -1;\r\n  } while (local_188 != 0);\r\n  FUN_140c42060(&m_shaderExposedRuntimeData,0,0xa4);\r\n  ResetRenderStates();\r\n  return;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400b5110: MOV qword ptr [RSP + 0x8], RBX",
+          "0x1400b5115: MOV qword ptr [RSP + 0x10], RSI",
+          "0x1400b511a: MOV qword ptr [RSP + 0x18], RDI",
+          "0x1400b511f: PUSH RBP",
+          "0x1400b5120: PUSH R12",
+          "0x1400b5122: PUSH R13",
+          "0x1400b5124: PUSH R14",
+          "0x1400b5126: PUSH R15",
+          "0x1400b5128: LEA RBP, [RSP + -0x90]",
+          "0x1400b5130: SUB RSP, 0x190",
+          "0x1400b5137: MOV RAX, qword ptr [0x1412a1b28]",
+          "0x1400b513e: XOR RAX, RSP",
+          "0x1400b5141: MOV qword ptr [RBP + 0x80], RAX",
+          "0x1400b5148: XOR ECX, ECX",
+          "0x1400b514a: CALL qword ptr [0x141442680]",
+          "0x1400b5150: MOV ECX, dword ptr [0x141404f40]",
+          "0x1400b5156: XOR EBX, EBX",
+          "0x1400b5158: TEST ECX, ECX",
+          "0x1400b515a: JLE 0x1400b51b6",
+          "0x1400b515c: XOR EDI, EDI",
+          "0x1400b515e: NOP",
+          "0x1400b5160: MOV RAX, qword ptr [0x141404f38]",
+          "0x1400b5167: MOV RSI, qword ptr [RDI + RAX*0x1 + 0x60]",
+          "0x1400b516c: TEST RSI, RSI",
+          "0x1400b516f: JZ 0x1400b51ac",
+          "0x1400b5171: MOV ECX, dword ptr [RSI + 0x64]",
+          "0x1400b5174: CALL qword ptr [0x141442500]",
+          "0x1400b517a: MOV R9, qword ptr [0x141404f38]",
+          "0x1400b5181: MOV RCX, RSI",
+          "0x1400b5184: MOVSXD RAX, EBX",
+          "0x1400b5187: IMUL RDX, RAX, 0x70",
+          "0x1400b518b: ADD RDX, R9",
+          "0x1400b518e: MOVZX R9D, byte ptr [RDI + R9*0x1 + 0x68]",
+          "0x1400b5194: LEA RAX, [RDX + 0x40]",
+          "0x1400b5198: LEA R8, [RDX + 0x20]",
+          "0x1400b519c: MOV qword ptr [RSP + 0x20], RAX",
+          "0x1400b51a1: CALL 0x1400b45b0",
+          "0x1400b51a6: MOV ECX, dword ptr [0x141404f40]",
+          "0x1400b51ac: INC EBX",
+          "0x1400b51ae: ADD RDI, 0x70",
+          "0x1400b51b2: CMP EBX, ECX",
+          "0x1400b51b4: JL 0x1400b5160",
+          "0x1400b51b6: XOR EBX, EBX",
+          "0x1400b51b8: LEA R13, [0x1413d29a0]",
+          "0x1400b51bf: NOP",
+          "0x1400b51c0: MOV ECX, dword ptr [RBX + R13*0x1 + 0x64]",
+          "0x1400b51c5: CALL qword ptr [0x141442500]",
+          "0x1400b51cb: MOV ECX, dword ptr [RBX + R13*0x1 + 0x1f5c]",
+          "0x1400b51d3: CALL qword ptr [0x141442500]",
+          "0x1400b51d9: ADD RBX, 0x3df0",
+          "0x1400b51e0: CMP RBX, 0x32530",
+          "0x1400b51e7: JL 0x1400b51c0",
+          "0x1400b51e9: LEA RDX, [0x140d8c4e0]",
+          "0x1400b51f0: MOV dword ptr [RSP + 0x40], 0x0",
+          "0x1400b51f8: LEA RAX, [0x140d8c470]",
+          "0x1400b51ff: MOV qword ptr [RBP + -0x20], RDX",
+          "0x1400b5203: MOV qword ptr [RSP + 0x48], RAX",
+          "0x1400b5208: LEA RCX, [0x140d8c4c4]",
+          "0x1400b520f: LEA RAX, [0x140d8c474]",
+          "0x1400b5216: MOV qword ptr [RBP + -0x38], RCX",
+          "0x1400b521a: MOV qword ptr [RSP + 0x50], RAX",
+          "0x1400b521f: MOV R14D, 0x4",
+          "0x1400b5225: LEA RAX, [0x140d8c478]",
+          "0x1400b522c: MOV qword ptr [RBP + -0x8], RCX",
+          "0x1400b5230: MOV qword ptr [RSP + 0x60], RAX",
+          "0x1400b5235: LEA RCX, [0x1413d26f0]",
+          "0x1400b523c: LEA RAX, [0x140d8c480]",
+          "0x1400b5243: MOV qword ptr [RBP + 0x28], RDX",
+          "0x1400b5247: MOV qword ptr [RSP + 0x68], RAX",
+          "0x1400b524c: LEA R8D, [R14 + 0x5c]",
+          "0x1400b5250: LEA RAX, [0x140d8c488]",
+          "0x1400b5257: MOV dword ptr [RSP + 0x58], 0x1",
+          "0x1400b525f: MOV qword ptr [RSP + 0x78], RAX",
+          "0x1400b5264: XOR EDX, EDX",
+          "0x1400b5266: LEA RAX, [0x140d8c490]",
+          "0x1400b526d: MOV dword ptr [RSP + 0x70], 0x2",
+          "0x1400b5275: MOV qword ptr [RBP + -0x80], RAX",
+          "0x1400b5279: LEA RAX, [0x140d8c498]",
+          "0x1400b5280: MOV qword ptr [RBP + -0x70], RAX",
+          "0x1400b5284: LEA RAX, [0x140d8c4a0]",
+          "0x1400b528b: MOV qword ptr [RBP + -0x68], RAX",
+          "0x1400b528f: LEA RAX, [0x140d8c4a8]",
+          "0x1400b5296: MOV qword ptr [RBP + -0x58], RAX",
+          "0x1400b529a: LEA RAX, [0x140d8c4b0]",
+          "0x1400b52a1: MOV qword ptr [RBP + -0x50], RAX",
+          "0x1400b52a5: LEA RAX, [0x140d8c4b8]",
+          "0x1400b52ac: MOV qword ptr [RBP + -0x40], RAX",
+          "0x1400b52b0: LEA RAX, [0x140d8c4d0]",
+          "0x1400b52b7: MOV qword ptr [RBP + -0x28], RAX",
+          "0x1400b52bb: LEA RAX, [0x140d8c4ec]",
+          "0x1400b52c2: MOV qword ptr [RBP + -0x10], RAX",
+          "0x1400b52c6: LEA RAX, [0x140d8c4f8]",
+          "0x1400b52cd: MOV qword ptr [RBP + 0x8], RAX",
+          "0x1400b52d1: LEA RAX, [0x140d8c508]",
+          "0x1400b52d8: MOV qword ptr [RBP + 0x10], RAX",
+          "0x1400b52dc: LEA RAX, [0x140d8c518]",
+          "0x1400b52e3: MOV qword ptr [RBP + 0x20], RAX",
+          "0x1400b52e7: LEA RAX, [0x140d8c528]",
+          "0x1400b52ee: MOV qword ptr [RBP + 0x38], RAX",
+          "0x1400b52f2: LEA RAX, [0x140d8c538]",
+          "0x1400b52f9: MOV qword ptr [RBP + 0x40], RAX",
+          "0x1400b52fd: LEA RAX, [0x140d8c544]",
+          "0x1400b5304: MOV qword ptr [RBP + 0x50], RAX",
+          "0x1400b5308: LEA RAX, [0x140d8c54c]",
+          "0x1400b530f: MOV qword ptr [RBP + 0x58], RAX",
+          "0x1400b5313: LEA RAX, [0x140d8c3f8]",
+          "0x1400b531a: MOV qword ptr [RBP + 0x68], RAX",
+          "0x1400b531e: LEA RAX, [0x140d8c408]",
+          "0x1400b5325: MOV qword ptr [RBP + 0x70], RAX",
+          "0x1400b5329: MOV dword ptr [RBP + -0x78], 0x3",
+          "0x1400b5330: MOV qword ptr [RSP + 0x30], R14",
+          "0x1400b5335: MOV dword ptr [RBP + -0x60], R14D",
+          "0x1400b5339: MOV dword ptr [RBP + -0x48], 0x5",
+          "0x1400b5340: MOV dword ptr [RBP + -0x30], 0x6",
+          "0x1400b5347: MOV dword ptr [RBP + -0x18], 0x7",
+          "0x1400b534e: MOV dword ptr [RBP], 0x8",
+          "0x1400b5355: MOV dword ptr [RBP + 0x18], 0x9",
+          "0x1400b535c: MOV dword ptr [RBP + 0x30], 0xa",
+          "0x1400b5363: MOV dword ptr [RBP + 0x48], 0xb",
+          "0x1400b536a: MOV dword ptr [RBP + 0x60], 0xc",
+          "0x1400b5371: CALL 0x140c42060",
+          "0x1400b5376: LEA R12D, [R14 + 0x9]",
+          "0x1400b537a: LEA R14, [0x140d80070]",
+          "0x1400b5381: LEA R15, [RSP + 0x48]",
+          "0x1400b5386: NOP dword ptr [RAX + RAX*0x1]",
+          "0x1400b5390: MOV EAX, dword ptr [R15 + -0x8]",
+          "0x1400b5394: XOR R9D, R9D",
+          "0x1400b5397: MOV R8, qword ptr [R15 + 0x8]",
+          "0x1400b539b: MOV RDX, qword ptr [R15]",
+          "0x1400b539e: MOV qword ptr [RSP + 0x20], R14",
+          "0x1400b53a3: LEA EBX, [RAX + RAX*0x1]",
+          "0x1400b53a6: MOVSXD RAX, EBX",
+          "0x1400b53a9: IMUL RCX, RAX, 0x1ef8",
+          "0x1400b53b0: ADD RCX, R13",
+          "0x1400b53b3: CALL 0x1400b45b0",
+          "0x1400b53b8: MOV R8, qword ptr [R15 + 0x8]",
+          "0x1400b53bc: LEA EAX, [RBX + 0x1]",
+          "0x1400b53bf: MOV RDX, qword ptr [R15]",
+          "0x1400b53c2: MOV R9B, 0x1",
+          "0x1400b53c5: MOVSXD RCX, EAX",
+          "0x1400b53c8: IMUL RCX, RCX, 0x1ef8",
+          "0x1400b53cf: MOV qword ptr [RSP + 0x20], R14",
+          "0x1400b53d4: ADD RCX, R13",
+          "0x1400b53d7: CALL 0x1400b45b0",
+          "0x1400b53dc: LEA R15, [R15 + 0x18]",
+          "0x1400b53e0: SUB R12, 0x1",
+          "0x1400b53e4: JNZ 0x1400b5390",
+          "0x1400b53e6: MOV R14, qword ptr [RSP + 0x30]",
+          "0x1400b53eb: LEA RBX, [0x141408640]",
+          "0x1400b53f2: MOV RCX, RBX",
+          "0x1400b53f5: CALL 0x140086460",
+          "0x1400b53fa: ADD RBX, 0x58",
+          "0x1400b53fe: SUB R14, 0x1",
+          "0x1400b5402: JNZ 0x1400b53f2",
+          "0x1400b5404: XOR EDX, EDX",
+          "0x1400b5406: LEA RCX, [0x14128ea10]",
+          "0x1400b540d: MOV R8D, 0xa4",
+          "0x1400b5413: CALL 0x140c42060",
+          "0x1400b5418: CALL 0x1400b6050",
+          "0x1400b541d: MOV RCX, qword ptr [RBP + 0x80]",
+          "0x1400b5424: XOR RCX, RSP",
+          "0x1400b5427: CALL 0x140c10410",
+          "0x1400b542c: LEA R11, [RSP + 0x190]",
+          "0x1400b5434: MOV RBX, qword ptr [R11 + 0x30]",
+          "0x1400b5438: MOV RSI, qword ptr [R11 + 0x38]",
+          "0x1400b543c: MOV RDI, qword ptr [R11 + 0x40]",
+          "0x1400b5440: MOV RSP, R11",
+          "0x1400b5443: POP R15",
+          "0x1400b5445: POP R14",
+          "0x1400b5447: POP R13",
+          "0x1400b5449: POP R12",
+          "0x1400b544b: POP RBP",
+          "0x1400b544c: RET"
+        ],
+        "referenced_strings": [
+          {
+            "address": "0x140d8c3f8",
+            "value": "vs_invalid",
+            "source_address": "0x1400b5313"
+          },
+          {
+            "address": "0x140d8c3f8",
+            "value": "vs_invalid",
+            "source_address": "0x1400b531a"
+          },
+          {
+            "address": "0x140d8c408",
+            "value": "fs_invalid",
+            "source_address": "0x1400b531e"
+          },
+          {
+            "address": "0x140d8c408",
+            "value": "fs_invalid",
+            "source_address": "0x1400b5325"
+          },
+          {
+            "address": "0x140d8c488",
+            "value": "vsvt_sm",
+            "source_address": "0x1400b5250"
+          },
+          {
+            "address": "0x140d8c488",
+            "value": "vsvt_sm",
+            "source_address": "0x1400b525f"
+          },
+          {
+            "address": "0x140d8c490",
+            "value": "fst_sm",
+            "source_address": "0x1400b5266"
+          },
+          {
+            "address": "0x140d8c490",
+            "value": "fst_sm",
+            "source_address": "0x1400b5275"
+          },
+          {
+            "address": "0x140d8c498",
+            "value": "vsvtc",
+            "source_address": "0x1400b5279"
+          },
+          {
+            "address": "0x140d8c498",
+            "value": "vsvtc",
+            "source_address": "0x1400b5280"
+          },
+          {
+            "address": "0x140d8c4b8",
+            "value": "vslitnotex",
+            "source_address": "0x1400b52a5"
+          },
+          {
+            "address": "0x140d8c4b8",
+            "value": "vslitnotex",
+            "source_address": "0x1400b52ac"
+          },
+          {
+            "address": "0x140d8c4c4",
+            "value": "fslit",
+            "source_address": "0x1400b5208"
+          },
+          {
+            "address": "0x140d8c4c4",
+            "value": "fslit",
+            "source_address": "0x1400b5216"
+          },
+          {
+            "address": "0x140d8c4c4",
+            "value": "fslit",
+            "source_address": "0x1400b522c"
+          },
+          {
+            "address": "0x140d8c4d0",
+            "value": "vslitnt_sm",
+            "source_address": "0x1400b52b0"
+          },
+          {
+            "address": "0x140d8c4d0",
+            "value": "vslitnt_sm",
+            "source_address": "0x1400b52b7"
+          },
+          {
+            "address": "0x140d8c4e0",
+            "value": "fslit_sm",
+            "source_address": "0x1400b51e9"
+          },
+          {
+            "address": "0x140d8c4e0",
+            "value": "fslit_sm",
+            "source_address": "0x1400b51ff"
+          },
+          {
+            "address": "0x140d8c4e0",
+            "value": "fslit_sm",
+            "source_address": "0x1400b5243"
+          },
+          {
+            "address": "0x140d8c4ec",
+            "value": "vslit",
+            "source_address": "0x1400b52bb"
+          },
+          {
+            "address": "0x140d8c4ec",
+            "value": "vslit",
+            "source_address": "0x1400b52c2"
+          },
+          {
+            "address": "0x140d8c4f8",
+            "value": "vslit_nm",
+            "source_address": "0x1400b52c6"
+          },
+          {
+            "address": "0x140d8c4f8",
+            "value": "vslit_nm",
+            "source_address": "0x1400b52cd"
+          },
+          {
+            "address": "0x140d8c508",
+            "value": "fslit_nm",
+            "source_address": "0x1400b52d1"
+          },
+          {
+            "address": "0x140d8c508",
+            "value": "fslit_nm",
+            "source_address": "0x1400b52d8"
+          },
+          {
+            "address": "0x140d8c518",
+            "value": "vslit_sm",
+            "source_address": "0x1400b52dc"
+          },
+          {
+            "address": "0x140d8c518",
+            "value": "vslit_sm",
+            "source_address": "0x1400b52e3"
+          },
+          {
+            "address": "0x140d8c528",
+            "value": "vslit_sm_nm",
+            "source_address": "0x1400b52e7"
+          },
+          {
+            "address": "0x140d8c528",
+            "value": "vslit_sm_nm",
+            "source_address": "0x1400b52ee"
+          },
+          {
+            "address": "0x140d8c538",
+            "value": "fslit_sm_nm",
+            "source_address": "0x1400b52f2"
+          },
+          {
+            "address": "0x140d8c538",
+            "value": "fslit_sm_nm",
+            "source_address": "0x1400b52f9"
+          },
+          {
+            "address": "0x140d8c544",
+            "value": "vsglu",
+            "source_address": "0x1400b52fd"
+          },
+          {
+            "address": "0x140d8c544",
+            "value": "vsglu",
+            "source_address": "0x1400b5304"
+          },
+          {
+            "address": "0x140d8c54c",
+            "value": "fsglu",
+            "source_address": "0x1400b5308"
+          },
+          {
+            "address": "0x140d8c54c",
+            "value": "fsglu",
+            "source_address": "0x1400b530f"
+          }
+        ]
+      }
+    },
+    "highlightPartRestoreTextureMatrix": {
+      "evidence_id": "ev_d60534fa4f18e9912b52dcf872773520abadd6ff2ac523fbda1178cc4949eb03",
+      "value": {
+        "procedure": {
+          "address": "0x1400a4880",
+          "name": "PartTriMesh::RestoreTextureMatrix",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400a4880",
+                "end": "0x1400a488c"
+              }
+            ],
+            "total_bytes": 13,
+            "span_bytes": 13,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "void __thiscall RestoreTextureMatrix(PartTriMesh * this)",
+          "locals": []
+        },
+        "pseudocode": "\r\n/* public: virtual void __cdecl PartTriMesh::RestoreTextureMatrix(void) __ptr64 */\r\n\r\nvoid __thiscall PartTriMesh::RestoreTextureMatrix(PartTriMesh *this)\r\n\r\n{\r\n                    /* 0xa4880  12131  ?RestoreTextureMatrix@PartTriMesh@@UEAAXXZ */\r\n  RenderInterface::RestoreTextureMatrix(*(float *)(this + 0xb8));\r\n  return;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400a4880: MOVSS XMM0, dword ptr [RCX + 0xb8]",
+          "0x1400a4888: JMP 0x1400bef20"
+        ],
+        "referenced_strings": []
+      }
+    },
+    "highlightGLRestoreTextureMatrix": {
+      "evidence_id": "ev_a0f6aa543240133b1b4fb707036414a4024b0a6b894437488145dc4a33b50e3e",
+      "value": {
+        "procedure": {
+          "address": "0x1400b6550",
+          "name": "GLRender::RestoreTextureMatrix",
+          "classification": {
+            "external": false,
+            "thunk": false,
+            "thunk_target": null,
+            "provenance": "ghidra-function-manager"
+          },
+          "body": {
+            "available": true,
+            "provenance": "ghidra-function-body-address-set",
+            "ranges": [
+              {
+                "start": "0x1400b6550",
+                "end": "0x1400b659d"
+              }
+            ],
+            "total_bytes": 78,
+            "span_bytes": 78,
+            "non_contiguous": false,
+            "contains_entry": true
+          },
+          "signature": "void __cdecl RestoreTextureMatrix(float param_1)",
+          "locals": []
+        },
+        "pseudocode": "\r\n/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */\r\n/* private: static void __cdecl GLRender::RestoreTextureMatrix(float) */\r\n\r\nvoid __cdecl GLRender::RestoreTextureMatrix(float param_1)\r\n\r\n{\r\n                    /* 0xb6550  12130  ?RestoreTextureMatrix@GLRender@@CAXM@Z */\r\n  if (param_1 != 0.0) {\r\n    _DAT_141408760 = DAT_141408750[-8];\r\n    uRam0000000141408768 = DAT_141408750[-7];\r\n    _DAT_141408770 = DAT_141408750[-6];\r\n    uRam0000000141408778 = DAT_141408750[-5];\r\n    _DAT_141408780 = DAT_141408750[-4];\r\n    uRam0000000141408788 = DAT_141408750[-3];\r\n    _DAT_141408790 = DAT_141408750[-2];\r\n    uRam0000000141408798 = DAT_141408750[-1];\r\n    DAT_1413d274c = DAT_1413d274c + 1;\r\n    DAT_141408750 = DAT_141408750 + -8;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+        "assembly": [
+          "0x1400b6550: XORPS XMM1, XMM1",
+          "0x1400b6553: UCOMISS XMM0, XMM1",
+          "0x1400b6556: JP 0x1400b655a",
+          "0x1400b6558: JZ 0x1400b659d",
+          "0x1400b655a: MOV RAX, qword ptr [0x141408750]",
+          "0x1400b6561: ADD RAX, -0x40",
+          "0x1400b6565: MOVUPS XMM0, xmmword ptr [RAX]",
+          "0x1400b6568: MOVAPS xmmword ptr [0x141408760], XMM0",
+          "0x1400b656f: MOVUPS XMM1, xmmword ptr [RAX + 0x10]",
+          "0x1400b6573: MOVAPS xmmword ptr [0x141408770], XMM1",
+          "0x1400b657a: MOVUPS XMM0, xmmword ptr [RAX + 0x20]",
+          "0x1400b657e: MOVAPS xmmword ptr [0x141408780], XMM0",
+          "0x1400b6585: MOVUPS XMM1, xmmword ptr [RAX + 0x30]",
+          "0x1400b6589: INC dword ptr [0x1413d274c]",
+          "0x1400b658f: MOV qword ptr [0x141408750], RAX",
+          "0x1400b6596: MOVAPS xmmword ptr [0x141408790], XMM1",
+          "0x1400b659d: RET"
+        ],
+        "referenced_strings": []
+      }
+    },
+    "highlightUniformAlphaBlend": {
+      "parent_evidence_id": "ev_78ddd7d82a84606192ce47f6d4c353c8088d59fd79b099054ae9319a1a08c6f1",
+      "view_digest": "94498765d61ac8ecc6d956cc2aad17857222d06b0d78e3a5c57ba93205c0c663",
+      "coverage": {
+        "status": "page",
+        "examined": 59142,
+        "total": 59142,
+        "next_offset": null,
+        "exhausted": true
+      },
+      "selection": "Exact alpha-discard/blend/globalColor excerpt of complete retained pseudocode; unrelated uniforms omitted.",
+      "pseudocode": "if (*(int *)(param_1 + 0x3c) != DAT_1413d272c) {\r\n    *(int *)(param_1 + 0x3c) = DAT_1413d272c;\r\n    if ((m_bEnabledStates & 2) == 0) {\r\n      uVar31 = 0xbf800000;\r\n    }\r\n    else {\r\n      uVar31 = 0x3e4ccccd;\r\n    }\r\n    if (-1 < *(int *)(param_1 + 0xac4)) {\r\n      (*DAT_1414425e8)(*(int *)(param_1 + 0xac4),uVar31);\r\n    }\r\n  }\r\n  if (*(int *)(param_1 + 0x44) != DAT_1413d2734) {\r\n    *(int *)(param_1 + 0x44) = DAT_1413d2734;\r\n    if ((m_bEnabledStates & 1) == 0) {\r\n      uVar31 = 2;\r\n    }\r\n    else if ((cm_nPrevSrcBlendMode == 0) && (cm_nPrevDstBlendMode == 2)) {\r\n      uVar31 = 1;\r\n    }\r\n    else {\r\n      uVar31 = 0;\r\n    }\r\n    if (-1 < *(int *)(param_1 + 0x9c)) {\r\n      (*DAT_1414425f8)(*(int *)(param_1 + 0x9c),uVar31);\r\n    }\r\n  }\r\n  if (*(int *)(param_1 + 0x1c) != DAT_1413d270c) {\r\n    *(int *)(param_1 + 0x1c) = DAT_1413d270c;\r\n    pcVar7 = DAT_141442650;\r\n    iVar26 = *(int *)(param_1 + 0xacc);\r\n    if (-1 < iVar26) {\r\n      local_e98 = _m_globalColor;\r\n      uStack_e90 = _DAT_14128ead0;\r\n      uVar11 = RenderInterface::GetColorSpaceFromSRGB(local_fd0,&local_e98);\r\n      (*pcVar7)(iVar26,1,uVar11);\r\n    }\r\n  }\r\n  uVar12 = 0;\r\n  if ((*(int *)(param_1 + 0x30) != DAT_1413d2720) &&\r\n     (*(int *)(param_1 + 0x30) = DAT_1413d2720, 0 < m_nSchemeNum)) {\r\n    ppfVar16 = &m_fScheme;\r\n    uVar21 = uVar12;\r\n    iVar26 = m_nSchemeNum;\r\n    do {\r\n      if (-1 < *(int *)(param_1 + -0x1413d0bec + (longlong)ppfVar16)) {\r\n        (*DAT_1414425e8)(*(int *)(param_1 + -0x1413d0bec + (longlong)ppfVar16),\r\n                         *(undefined4 *)ppfVar16);\r\n        iVar26 = m_nSchemeNum;\r\n      }\r\n      uVar18 = (int)uVar21 + 1;\r\n      uVar21 = (ulonglong)uVar18;\r\n      ppfVar16 = (float **)((longlong)ppfVar16 + 4);\r\n    } while ((int)uVar18 < iVar26);\r\n  }\r\n  if (*(int *)(param_1 + 0x20) != DAT_1413d2710) {\r\n    *(int *)(param_1 + 0x20) = DAT_1413d2710;\r\n    if (-1 < *(int *)(param_1 + 0x1d04)) {\r\n      (*DAT_1414425f8)(*(int *)(param_1 + 0x1d04),(m_bEnabledStates & 0x80000) != 0);\r\n    }\r\n  }\r\n  if (*(int *)(param_1 + 4) != DAT_1413d26f4) {\r\n    *(int *)(param_1 + 4) = DAT_"
+    }
+  }
+}
+

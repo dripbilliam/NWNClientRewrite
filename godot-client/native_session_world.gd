@@ -8,6 +8,7 @@ const MainMenu=preload("res://systems/native_main_menu.gd")
 const ParticleVisibility=preload("res://systems/native_render/particle_visibility.gd")
 const MaterialPrewarm=preload("res://systems/native_render/material_prewarm.gd")
 var render_settings
+var camera_fov_binding=preload("res://tools/native_parity/ui/camera_fov_binding.gd").new()
 var entity_inspector
 var render_menu
 var login_profiles
@@ -35,7 +36,8 @@ var character_preview_probe
 var chooser_ready_connection:=-1
 var fixture_filter_connection:=-1
 var session_connection:=0
-var pending_creator:=false
+var pending_creator: Dictionary={}
+var creation_request_serial:=0
 var loading_announced:=false
 var raw_world: Dictionary={}
 var raw_serial:=-1
@@ -47,15 +49,162 @@ var catalog_retirement
 var replay_view: Dictionary={}
 var test_barter_peer: Dictionary={}
 var export_receipt_serial:=0
+var entity_api_binding: RefCounted
+var native_clock_runtime: RefCounted
+var native_visibility_runtime: RefCounted
+var snapshot_preparation=preload("res://systems/native_data/world_snapshot_preparation.gd").new()
+var snapshot_backlog=preload("res://systems/native_data/snapshot_protocol_backlog.gd").new()
+var pending_prepared_snapshot: Dictionary={}
+var snapshot_wire_depth:=0
+var snapshot_commit_running:=false
+var snapshot_preparation_enabled:=false
+func runtime_features_snapshot() -> Dictionary:
+	var value: Dictionary=super.runtime_features_snapshot()
+	# Report saved-setting owners separately from replay/command-line overrides.
+	# This runs only at protocol/report boundaries, never as a per-frame scan.
+	if is_instance_valid(render_settings):
+		value.presentation.settings={"preference_path":render_settings.preference_path,"menu_layout_path":render_settings.settings_path,"gamma":render_settings.gamma_value,"particles_enabled":render_settings.particles_enabled,"particle_collision_enabled":render_settings.particle_collision_enabled,"compact_scenery_enabled":render_settings.compact_scenery_enabled,"fov_degrees":render_settings.fov_degrees}
+	if is_instance_valid(gamma_controller): value.presentation.gamma=gamma_controller.snapshot()
+	if is_instance_valid(particle_visibility): value.presentation.particle_visibility=particle_visibility.snapshot()
+	value.presentation.replay_fov_policy=str(args.get("replay-fov-policy","recorded")) if args.get("offline-replay","")=="true" else "live-preferences"
+	value.snapshot_preparation={"enabled":snapshot_preparation_enabled,"requested":snapshot_preparation_choice(),"diagnostic":snapshot_preparation_diagnostic()}
+	return value
+func native_clock_startup()->void:
+	native_clock_runtime=preload("res://systems/native_client_clock_runtime.gd").new()
+	native_clock_runtime.configure(self)
+func native_clock_prefix()->void:
+	poll_snapshot_preparation()
+	if native_clock_runtime!=null:native_clock_runtime.prefix(Engine.get_process_frames())
+func native_material_policy_ready() -> void:
+	if is_instance_valid(material_prewarm):material_prewarm.configure_policy(MaterialPrewarm.policy_from_pool(render_pool))
+func snapshot_preparation_scope(snapshot: Dictionary) -> Array:
+	return [int(snapshot.get("connection",session_connection)),int(snapshot.generation),int(snapshot.serial),int(snapshot.data.get("area",{}).get("id",-1))]
+func snapshot_preparation_choice() -> String:
+	return str(runtime_feature_report.resolved.get("world-snapshot-preparation",{}).get("value","script"))
+func snapshot_preparation_diagnostic() -> Dictionary:
+	return {"worker":snapshot_preparation.snapshot(),"backlog":snapshot_backlog.snapshot(),"waiting_for_metadata":not pending_prepared_snapshot.is_empty(),"commit_running":snapshot_commit_running}
+func snapshot_transition_waiting() -> bool:
+	var incoming: Dictionary=pending_prepared_snapshot if not pending_prepared_snapshot.is_empty() else raw_world if snapshot_preparation.active else {}
+	return not incoming.is_empty() and int(incoming.generation)!=epoch
+func native_snapshot_transition_waiting() -> bool:return snapshot_transition_waiting()
+func raw_snapshot_context() -> Dictionary:
+	return {"received":received,"epoch":epoch,"initialized":initialized,"world":world.get_instance_id() if is_instance_valid(world) else 0,"world_generation":int(world.generation) if is_instance_valid(world) else -1,"world_area":int(world.area_id) if is_instance_valid(world) else -1,"ui":gameplay_ui.get_instance_id() if is_instance_valid(gameplay_ui) else 0,"ui_generation":int(gameplay_ui.generation) if is_instance_valid(gameplay_ui) else -1,"ui_area":int(gameplay_ui.area_id) if is_instance_valid(gameplay_ui) else -1}
+func raw_snapshot_current(snapshot: Dictionary,context: Dictionary) -> bool:
+	return not closing and int(snapshot.get("connection",session_connection))==session_connection and session_connection!=cancelled_connection and int(snapshot.serial)==raw_serial and raw_snapshot_context()==context
+func keyboard_context() -> Dictionary:
+	return {} if snapshot_transition_waiting() else super.keyboard_context()
+func player_command(value: Dictionary) -> void:
+	if not snapshot_transition_waiting():super.player_command(value)
+func deliver_snapshot_wire_message(message: Dictionary) -> void:
+	snapshot_wire_depth+=1
+	receive(message)
+	snapshot_wire_depth-=1
+func snapshot_interrupt(message: Dictionary) -> bool:
+	var incoming: Variant=message.get("connection")
+	if not (incoming is int or incoming is float) or not is_finite(float(incoming)) or float(incoming)!=floor(float(incoming)) or float(incoming)<0:return true
+	if int(incoming)<session_connection:return false
+	var kind:=str(message.get("kind",""))
+	if kind in ["session-reset","finish","finish-ack"]:return true
+	if kind!="lobby":return false
+	if int(message.get("connection",-1))>session_connection:return true
+	var state: Variant=message.get("state")
+	return state is Dictionary and str(state.get("phase","")) in ["closed","disconnecting"]
+func dispatch_protocol_messages(messages: Array,wire_sizes: PackedInt32Array) -> void:
+	if messages.size()!=wire_sizes.size():fail("Native protocol frame size accounting mismatch");return
+	for index in messages.size():
+		if closing and messages[index].get("kind")!="finish-ack":return
+		var message: Dictionary=messages[index]
+		if not pending_prepared_snapshot.is_empty() and snapshot_interrupt(message):
+			cancel_snapshot_preparation()
+			deliver_snapshot_wire_message(message)
+		elif not pending_prepared_snapshot.is_empty() or snapshot_backlog.size()>0:
+			if not snapshot_backlog.push(message,int(wire_sizes[index])):
+				fail("Native snapshot preparation exceeded its bounded protocol backlog");return
+		else:deliver_snapshot_wire_message(message)
+func poll_snapshot_preparation() -> void:
+	if not snapshot_preparation.active and snapshot_preparation.running.is_empty() and snapshot_preparation.retired.is_empty() and pending_prepared_snapshot.is_empty() and snapshot_backlog.size()==0:return
+	var began:=FrameProfile.begin()
+	snapshot_preparation.poll()
+	if not closing and not snapshot_commit_running and not pending_prepared_snapshot.is_empty():
+		var snapshot: Dictionary=pending_prepared_snapshot
+		var scope:=snapshot_preparation_scope(snapshot)
+		if int(snapshot.serial)!=raw_serial or int(snapshot.get("connection",session_connection))!=session_connection or session_connection==cancelled_connection:
+			cancel_snapshot_preparation()
+		else:
+			var metadata: Dictionary=snapshot_preparation.take(scope)
+			if not metadata.is_empty():
+				pending_prepared_snapshot={}
+				commit_raw_snapshot(snapshot,metadata)
+	while not closing and pending_prepared_snapshot.is_empty() and snapshot_backlog.size()>0:
+		var entry: Dictionary=snapshot_backlog.pop()
+		deliver_snapshot_wire_message(entry.message)
+	FrameProfile.finish("snapshot_metadata_poll_ms",began)
+func cancel_snapshot_preparation(discard_messages: bool=true) -> void:
+	var borrowed_raw: Dictionary=raw_world if snapshot_preparation.active else {}
+	var discarded:={"snapshot":pending_prepared_snapshot,"raw":borrowed_raw,"messages":snapshot_backlog.detach() if discard_messages else []}
+	snapshot_preparation.cancel()
+	pending_prepared_snapshot={};snapshot_metadata={};snapshot_metadata_objects=[]
+	if not borrowed_raw.is_empty():raw_world={}
+	if is_instance_valid(data_retirement) and (not discarded.snapshot.is_empty() or not discarded.raw.is_empty() or not discarded.messages.is_empty()):data_retirement.defer_release(discarded)
+func fail(reason: String) -> void:
+	cancel_snapshot_preparation()
+	super.fail(reason)
+func native_clock_post_receive()->void:
+	if snapshot_transition_waiting():return
+	if not closing and native_clock_runtime!=null:native_clock_runtime.post_receive()
+	if not closing and native_visibility_runtime!=null:native_visibility_runtime.advance()
+func native_visibility_lifecycle(event: Dictionary) -> void:
+	if not closing and native_visibility_runtime!=null:native_visibility_runtime.accepted_lifecycle(event)
+func native_text_connection() -> Variant:
+	return session_connection if not closing and session_connection!=cancelled_connection else null
+func native_tile_borders_enabled() -> bool:
+	return render_settings.tile_borders_enabled if is_instance_valid(render_settings) else true
+func install_entity_api() -> void:
+	if entity_api_binding!=null: return
+	var api: Node=preload("res://systems/client_api/client_api.gd").install(root)
+	if api!=null: entity_api_binding=api.bind_native(entity_api_received,entity_api_presentation)
+func entity_api_received(id: int) -> Variant:
+	return gameplay_ui.text.objects.get(id) if is_instance_valid(gameplay_ui) else null
+func entity_api_presentation(id: int) -> Variant:
+	return world.motion.objects.get(id) if is_instance_valid(world) and not world.closed and not world.retiring else null
+func entity_api_snapshot_diagnostic(reason: String,invalidate: bool) -> void:
+	# Fixed counters/reason only; no snapshot payloads or unbounded history.
+	var diagnostic: Dictionary=report.get("entity_api_observer",{"ignored":0,"invalidated":0,"last_reason":""})
+	diagnostic.last_reason=reason
+	if invalidate:
+		diagnostic.invalidated=int(diagnostic.invalidated)+1
+		entity_api_binding.reset("observer_"+reason)
+	else: diagnostic.ignored=int(diagnostic.ignored)+1
+	report.entity_api_observer=diagnostic
+func entity_api_snapshot(snapshot: Dictionary,received_before: int) -> void:
+	# Observer-only acceptance checks. Never gate the existing core ACK path.
+	if entity_api_binding==null: return
+	if received==received_before:
+		entity_api_snapshot_diagnostic("base_ignored",false); return
+	if received!=received_before+1 or not initialized or not is_instance_valid(world) or not is_instance_valid(gameplay_ui):
+		entity_api_snapshot_diagnostic("owner_scope_missing",true); return
+	if epoch!=int(snapshot.generation) or gameplay_ui.generation!=epoch or world.area_id!=int(snapshot.data.get("area",{}).get("id",-1)) or gameplay_ui.area_id!=world.area_id:
+		entity_api_snapshot_diagnostic("owner_scope_mismatch",true); return
+	if not entity_api_binding.commit(session_connection,epoch,world.area_id,snapshot.data):
+		entity_api_snapshot_diagnostic("binding_rejected",true)
+func entity_api_movement(message: Dictionary) -> void:
+	if entity_api_binding==null or closing or message.get("kind")!="movement": return
+	if int(message.get("connection",-1))!=session_connection or session_connection==cancelled_connection: return
+	if not is_instance_valid(world) or int(message.get("generation",-1))!=epoch or int(message.get("areaId",-1))!=world.area_id: return
+	if world.closed or world.retiring: return
+	entity_api_binding.presentation_records(session_connection,epoch,world.area_id,message.get("records",[]))
 func send(value: Dictionary) -> void:
 	var scoped:=value.duplicate()
 	if not scoped.has("connection"): scoped.connection=session_connection
 	if str(scoped.get("kind",""))=="observed":
 		scoped.nativeProcessId=OS.get_process_id()
+		if FrameProfile.enabled:
+			scoped.profile_presentation=runtime_features_snapshot().presentation
+			scoped.native_ticks_ms=Time.get_ticks_msec()
 		if is_instance_valid(particle_visibility): scoped.particle_visibility=particle_visibility.snapshot()
+		if is_instance_valid(environment): scoped.area_lighting=environment.lighting_diagnostic()
 	if str(scoped.get("kind","")) in ["observed","catalog-ready"] and args.get("recording","")=="true":
-		scoped.nativeView={"connection":session_connection,"position":[0,0,0],"quaternion":[0,0,0,1],"size":[root.size.x,root.size.y],"particles":render_settings.particles_enabled,"particle_collision":render_settings.particle_collision_enabled,"gore":render_settings.gore}
-		if is_instance_valid(camera): scoped.nativeView.merge({"position":[camera.position.x,camera.position.y,camera.position.z],"quaternion":[camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w],"camera_state":controller.remembered_pose(),"fov":camera.fov,"near":camera.near,"far":camera.far})
+		scoped.nativeView=CameraObservation.capture_view(camera,controller,{"connection":session_connection,"position":[0,0,0],"quaternion":[0,0,0,1],"pose_valid":false,"pose_space":"unavailable","size":[root.size.x,root.size.y],"particles":render_settings.particles_enabled,"particle_collision":render_settings.particle_collision_enabled,"gore":render_settings.gore})
 	super.send(scoped)
 func accept_connection(message: Dictionary) -> bool:
 	var value: Variant=message.get("connection")
@@ -76,7 +225,11 @@ func accept_connection(message: Dictionary) -> bool:
 	return true
 func run() -> void:
 	print("NATIVE_SESSION_START")
+	install_entity_api()
+	native_visibility_runtime=preload("res://systems/native_render/native_scene_visibility_runtime.gd").new()
+	native_visibility_runtime.configure(self)
 	super.run()
+	snapshot_preparation_enabled=snapshot_preparation_choice()=="workers"
 	print("NATIVE_SESSION_PROTOCOL_OPEN ",host!=null)
 	if closing or host==null: return
 	catalog_retirement=WorldRetirement.new(); host.add_child(catalog_retirement)
@@ -90,6 +243,9 @@ func run() -> void:
 	login_profiles=preload("res://systems/native_login_profiles.gd").new(); login_profiles_layer.add_child(login_profiles); login_profiles.setup(str(args.get("menu-layout","user://native-menu-layout.cfg"))); login_profiles.request.connect(send)
 	render_settings=RenderSettings.new(); render_settings_layer.add_child(render_settings)
 	render_settings.setup(str(args.get("render-preferences","user://native-options.cfg")),str(args.get("menu-layout","user://native-menu-layout.cfg")),args.get("profile","")=="true",str(args.get("static-parts","")),str(args.get("profile","")))
+	camera_fov_binding.configure(render_settings)
+	if not gamma_controller.bind_settings(render_settings,args.has("native-gamma")):
+		fail("Native gamma settings binding is unavailable"); return
 	window_settings=preload("res://systems/native_window_settings.gd").new(); host.add_child(window_settings); window_settings.configure(root,str(args.get("render-preferences","user://native-options.cfg")))
 	asset_prework=preload("res://systems/native_prework_process.gd").new(); host.add_child(asset_prework); asset_prework.changed.connect(render_settings.update_prework)
 	ui_preload=preload("res://systems/native_ui_preload.gd").new(); host.add_child(ui_preload); ui_preload.changed.connect(render_settings.update_ui_preload)
@@ -113,19 +269,26 @@ func run() -> void:
 	prework_sources_configured=ticket.has("preworkSources")
 	prework_discovery.start(ticket.get("preworkSources",{}))
 	render_settings.particles_changed.connect(particle_visibility.set_enabled)
+	render_settings.show_blockers_changed.connect(func(enabled):
+		if is_instance_valid(world):world.set_show_blockers(enabled))
+	render_settings.creature_shadow_detail_changed.connect(func(value):
+		if native_visibility_runtime!=null:native_visibility_runtime.shadow_detail_changed(value))
 	render_settings.particle_collision_changed.connect(particle_visibility.set_collision_enabled)
 	host.set_meta("native_gore",render_settings.gore)
 	render_settings.gore_changed.connect(func(value):host.set_meta("native_gore",value))
 	render_settings.creature_slots_changed.connect(func(on):
 		if is_instance_valid(gameplay_ui): gameplay_ui.inventory.ui.creature_slots=on; gameplay_ui.inventory.signature="")
+	render_settings.radial_preferences_changed.connect(func(value):
+		if is_instance_valid(gameplay_ui): gameplay_ui.set_radial_preferences(value))
 	particle_visibility.set_enabled(render_settings.particles_enabled)
 	particle_visibility.set_collision_enabled(render_settings.particle_collision_enabled)
 	render_settings.profiling_changed.connect(set_profiling)
 	entity_inspector=preload("res://systems/native_entity_inspector.gd").new(); render_settings_layer.add_child(entity_inspector)
-	entity_inspector.setup(func():return {"world":world,"generation":epoch},object_name,str(args.report).trim_suffix(".json"),str(args.get("menu-layout","user://native-menu-layout.cfg")))
+	entity_inspector.setup(func():return {"world":world,"generation":epoch,"connection":session_connection,"registry":registry,"camera":camera,"known_objects":gameplay_ui.text.objects if is_instance_valid(gameplay_ui) and gameplay_ui.text!=null else {}},object_name,str(args.report).trim_suffix(".json"),str(args.get("menu-layout","user://native-menu-layout.cfg")))
 	render_settings.entity_inspector_requested.connect(open_entity_inspector)
 	set_profiling(render_settings.profiling_enabled)
 	material_prewarm=MaterialPrewarm.new(); host.add_child(material_prewarm)
+	material_prewarm.configure_policy(MaterialPrewarm.policy_from_pool(render_pool))
 	material_prewarm.start(str(args.get("material-prewarm","true"))=="true" and DisplayServer.get_name()!="headless")
 	report.material_prewarm=material_prewarm.stats
 	render_menu=MainMenu.new(); host.add_child(render_menu); render_menu.layout_path=str(args.get("menu-layout","user://native-menu-layout.cfg"))
@@ -152,6 +315,7 @@ func run() -> void:
 	server_browser=Browser.new(); host.add_child(server_browser)
 	server_browser.login_profiles_requested.connect(open_login_profiles)
 	render_settings.login_profiles_requested.connect(open_login_profiles)
+	render_settings.chat_settings_requested.connect(open_chat_settings)
 	if is_instance_valid(render_menu.pregame): render_menu.pregame.source_ready.connect(server_browser.configure_native)
 	character_lobby=Lobby.new(); host.add_child(character_lobby)
 	character_lobby.local_catalog.configure(ticket.get("localCharacterRoots",[]))
@@ -170,9 +334,31 @@ func run() -> void:
 	render_menu.multiplayer_requested.connect(func():
 		if character_lobby.state.get("connected",false) or character_lobby.state.get("busy",false): character_lobby.panel.show()
 		else: server_browser.open(true,true))
-	character_lobby.creation_requested.connect(func(): pending_creator=true; character_lobby.message.text="Preparing character resources…")
+	character_lobby.creation_requested.connect(request_creation)
 	server_browser.closed.connect(server_browser_closed)
 	label.text="Native renderer · choose a server"
+func creation_entry_current(connection: int) -> bool:
+	if closing or connection!=session_connection or connection==cancelled_connection or not is_instance_valid(character_lobby) or character_lobby.connection!=connection:return false
+	var state: Dictionary=character_lobby.state
+	return str(state.get("phase","")) in ["character-selection","character-rejected"] and state.get("connected",false) and state.get("canCreate",false) and not state.get("busy",false) and not state.get("creating",false)
+func request_creation() -> void:
+	if not creation_entry_current(session_connection) or not pending_creator.is_empty():return
+	if is_instance_valid(gameplay_ui) and gameplay_ui.creator.phase!="closed":return
+	if creation_request_serial>=9007199254740991:return
+	creation_request_serial+=1;pending_creator={"connection":session_connection,"request":creation_request_serial}
+	character_lobby.message.text="Preparing character resources…"
+	open_pending_creation()
+func open_pending_creation() -> void:
+	if pending_creator.is_empty():return
+	var request: Dictionary=pending_creator.duplicate()
+	if not creation_entry_current(int(request.connection)):
+		pending_creator.clear();return
+	if not is_instance_valid(gameplay_ui):return
+	pending_creator.clear()
+	if gameplay_ui.creator.phase=="closed":gameplay_ui.creator.open(int(request.connection))
+func open_chat_settings() -> void:
+	var window=preload("res://systems/native_chat_options.gd").acquire(host.get_viewport(),str(args.get("menu-layout","user://native-menu-layout.cfg")))
+	window.open_settings()
 func open_login_profiles() -> void:
 	var player: String=server_browser.name_edit.text if is_instance_valid(server_browser) else ""
 	login_profiles.open(player,session_connection)
@@ -191,7 +377,7 @@ func open_startup_menu() -> void:
 	if is_instance_valid(ui): ui.refresh()
 	var ready: bool=is_instance_valid(ui) and ui.failure.is_empty() and is_instance_valid(ui.main) and ui.main.layout_ready and (DisplayServer.get_name()=="headless" or ui.main.art_ready())
 	report.startup_menu={"ready":ready,"mainVisible":ready and ui.main.is_visible_in_tree(),"browserHidden":not server_browser.wanted,"lobbyHidden":not character_lobby.panel.visible}
-	send({"kind":"main-menu-observed","ready":ready,"mainVisible":report.startup_menu.mainVisible,"browserHidden":report.startup_menu.browserHidden,"lobbyHidden":report.startup_menu.lobbyHidden})
+	send({"kind":"main-menu-observed","ready":ready,"mainVisible":report.startup_menu.mainVisible,"browserHidden":report.startup_menu.browserHidden,"lobbyHidden":report.startup_menu.lobbyHidden,"runtimeFeatures":runtime_features_snapshot()})
 	if ready: print("NATIVE_STARTUP_MAIN_MENU_READY")
 func open_render_settings() -> void:
 	refresh_prework_sources()
@@ -275,8 +461,14 @@ func _profile_tick() -> void:
 	if args.get("offline-replay","")=="true":
 		for input_owner in [keyboard,world_input]:
 			if is_instance_valid(input_owner): input_owner.process_mode=Node.PROCESS_MODE_DISABLED
-	if pending_creator and is_instance_valid(gameplay_ui) and not closing:
-		pending_creator=false; gameplay_ui.creator.open(session_connection)
+	if not pending_creator.is_empty():open_pending_creation()
+	# Pregame source readiness may arrive after the first creation request.
+	if not closing and is_instance_valid(gameplay_ui) and gameplay_ui.creator.phase!="closed" and not is_instance_valid(gameplay_ui.creator.source_frontend) and is_instance_valid(render_menu):
+		var pregame=render_menu.pregame
+		if is_instance_valid(pregame) and is_instance_valid(pregame.painter) and pregame.catalog!=null: gameplay_ui.creator.configure_source(pregame.painter,pregame.text,pregame.catalog,pregame.cache_path)
+	if not closing and is_instance_valid(gameplay_ui) and gameplay_ui.desktop.level_owner!=null and not gameplay_ui.desktop.level_owner.source_configured and is_instance_valid(render_menu):
+		var level_pregame=render_menu.pregame
+		if is_instance_valid(level_pregame) and is_instance_valid(level_pregame.painter) and level_pregame.catalog!=null:gameplay_ui.desktop.level_owner.configure_source(level_pregame.painter,level_pregame.text,level_pregame.catalog,level_pregame.cache_path)
 	if is_instance_valid(render_settings) and render_settings.visible and Time.get_ticks_msec()-settings_at>=500:
 		settings_at=Time.get_ticks_msec(); var began:=FrameProfile.begin()
 		refresh_prework_sources()
@@ -285,40 +477,75 @@ func _profile_tick() -> void:
 func expose_local_fixture(chooser,connection: int) -> void:
 	# Owned-local automation only: original installed fixtures are pregenerated.
 	# Use the real checkbox rather than bypassing the default-off source filter.
-	var point: Vector2=chooser.pregen.get_global_rect().get_center(); var motion:=InputEventMouseMotion.new(); motion.position=point; motion.global_position=point; root.push_input(motion,true); await process_frame
-	for pressed in [true,false]:
+	var attempts: Array=[]
+	for attempt in 3:
 		if closing or not is_instance_valid(character_lobby) or character_lobby.connection!=connection or character_lobby.native_chooser!=chooser or not is_instance_valid(chooser) or not chooser.is_visible_in_tree(): return
-		var event:=InputEventMouseButton.new(); event.position=point; event.global_position=point; event.button_index=MOUSE_BUTTON_LEFT; event.pressed=pressed; event.button_mask=MOUSE_BUTTON_MASK_LEFT if pressed else 0; root.push_input(event,true); await process_frame
-	report.local_fixture_filter={"connection":connection,"checked":chooser.show_pregenerated,"native_input":true,"unadmitted":not is_instance_valid(world),"catalog":character_lobby.local_catalog.snapshot(),"keys":chooser.row_keys.duplicate()}
+		if chooser.show_pregenerated: break
+		# Late original art/table publication can invalidate a held click. Wait
+		# for actual presentation, then retry real input if its lease was retired.
+		await process_frame
+		if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw
+		var before: int=chooser.interaction_epoch
+		var point: Vector2=chooser.pregen.get_global_rect().get_center(); var motion:=InputEventMouseMotion.new(); motion.position=point; motion.global_position=point; root.push_input(motion,true); await process_frame
+		for pressed in [true,false]:
+			if closing or not is_instance_valid(character_lobby) or character_lobby.connection!=connection or character_lobby.native_chooser!=chooser or not is_instance_valid(chooser) or not chooser.is_visible_in_tree(): return
+			var event:=InputEventMouseButton.new(); event.position=point; event.global_position=point; event.button_index=MOUSE_BUTTON_LEFT; event.pressed=pressed; event.button_mask=MOUSE_BUTTON_MASK_LEFT if pressed else 0; root.push_input(event,true); await process_frame
+		attempts.append({"epoch_before":before,"epoch_after":chooser.interaction_epoch,"checked":chooser.show_pregenerated,"disabled":chooser.pregen.disabled})
+	report.local_fixture_filter={"connection":connection,"checked":chooser.show_pregenerated,"native_input":true,"attempts":attempts,"unadmitted":not is_instance_valid(world),"catalog":character_lobby.local_catalog.snapshot(),"keys":chooser.row_keys.duplicate()}
+	if not chooser.show_pregenerated: fail("Owned local checkbox did not accept its input after three presentation attempts")
 func gameplay_presentation_allowed() -> bool:
 	return super.gameplay_presentation_allowed() and (args.get("offline-replay","")=="true" or str(character_lobby.state.get("phase",""))=="playing")
+static func refresh_entry_menu_scope(menu: Object,value: Array) -> bool:
+	# Readiness/lobby changes notify the menu independently. Its scope setter
+	# duplicates input and rebuilds context, so identical snapshots need no call.
+	if value==menu.native_scope:return false
+	menu.set_native_scope(value);return true
 func receive(message: Dictionary) -> void:
 	if not FrameProfile.enabled:
-		receive_profiled(message); return
+		receive_profiled(message); entity_api_movement(message)
+		if message.get("kind")=="movement" and native_visibility_runtime!=null:native_visibility_runtime.receive_movement(message)
+		return
 	# Finite labels keep untrusted message names out of profiler key cardinality.
 	# These spans cover synchronous handler work; awaited continuations remain
 	# separately owned. They are children of protocol_apply, not additive CPU.
-	var kind:=str(message.get("kind",""))
-	if kind not in ["raw-world-begin","raw-world-chunk","raw-world-end","ui-protocol","raw-visual-events","raw-combat-events","raw-voice-events","raw-script-sounds","lobby","session-reset","setup"]: kind="other"
+	var kind:=preload("res://systems/native_render/protocol_profile_labels.gd").message_kind(str(message.get("kind","")))
 	var began:=FrameProfile.begin()
 	receive_profiled(message)
+	entity_api_movement(message)
+	if message.get("kind")=="movement" and native_visibility_runtime!=null:native_visibility_runtime.receive_movement(message)
 	FrameProfile.finish("protocol_message_"+kind+"_ms",began)
 	FrameProfile.count("count_protocol_message_"+kind,1)
 func receive_profiled(message: Dictionary) -> void:
 	if closing and message.get("kind")!="finish-ack": return
 	if not accept_connection(message): return
+	if message.get("kind")=="native-clock-protocol":
+		# Local constructor facts arrive from the canonical decoded lifecycle,
+		# independent of optional clock sampling and visual model preparation.
+		var context: Variant=message.get("scope")
+		var event: Variant=message.get("event")
+		if context is Dictionary and event is Dictionary and event.get("type")=="accepted-lifecycle":
+			var next_generation: Variant=context.get("generation");var next_area: Variant=context.get("areaId")
+			if preload("res://systems/native_data/native_tile_visibility.gd")._integer(next_generation,0,4294967295) and preload("res://systems/native_data/native_tile_visibility.gd")._integer(next_area,0,4294967295) and next_generation>=epoch:native_visibility_lifecycle(event)
+		if native_clock_runtime!=null:native_clock_runtime.receive(message)
+		return
+	if message.get("kind") in ["raw-tile-visibility","raw-creature-visibility-permission"]:
+		if native_visibility_runtime!=null:native_visibility_runtime.receive(message)
+		return
 	if message.get("kind")=="setup" and message.get("resourceSources") is Dictionary: current_prework_sources=message.resourceSources.duplicate(true)
 	match str(message.get("kind","")):
 		"test-lobby-participant-status":
 			if args.get("lobby-pages-check","")=="true" and args.get("actions-check","")=="true": test_lobby_participant=message.get("value",{}).duplicate(true)
 		"test-barter-peer-status":
-			if args.get("actions-check","")=="true" and args.get("actions-barter-check","")=="true": test_barter_peer=message.get("value",{}).duplicate(true)
+			if args.get("actions-check","")=="true" and args.get("actions-barter-check","")=="true":
+				test_barter_peer=message.get("value",{}).duplicate(true)
+				send({"kind":"test-barter-peer-observed","serial":int(message.get("serial",0)),"invitation":bool(test_barter_peer.get("partyState",{}).get("field7DC",false))})
 		"begin-performance-window":
 			if args.get("offline-replay","")!="true": return
 			if not is_instance_valid(world) or int(message.get("generation",-1))!=epoch or int(message.get("areaId",-1))!=world.area_id or not world.ready_for_control() or not world.snapshot(false).get("object_visuals_complete",false):
 				send({"kind":"performance-window-ready","success":false}); return
 			samples.clear(); previous=0
 			report.performance_window={"steady":true,"started_at_ms":Time.get_ticks_msec(),"generation":epoch,"areaId":world.area_id,"entities":world.instances.size(),"scope":"Offline post-completion measurement; numeric frame interval window reset only, scene and server inputs unchanged"}
+			report.performance_window.view_begin=runtime_features_snapshot().presentation
 			send({"kind":"performance-window-ready","success":true,"generation":epoch,"areaId":world.area_id})
 		"replay-view":
 			if args.get("offline-replay","")!="true": return
@@ -332,12 +559,26 @@ func receive_profiled(message: Dictionary) -> void:
 				var pose: Dictionary=view.get("camera_state",{})
 				for field in ["yaw","pitch","distance"]:
 					if pose.has(field) and is_finite(float(pose[field])): controller.follow_state.state[field]=float(pose[field])
-			if is_instance_valid(camera) and view.has("fov"): camera.fov=clampf(float(view.fov),1,179)
+			if is_instance_valid(camera):
+				if args.get("replay-fov-policy","recorded")=="preferences":
+					if not is_instance_valid(render_settings) or not camera_fov_binding.FovProjection.apply(camera,render_settings.fov_degrees): fail("Replay preference FOV unavailable"); return
+				elif args.get("replay-fov-policy","recorded")=="recorded":
+					if view.has("fov"): camera.fov=clampf(float(view.fov),1,179)
+				else: fail("Unsupported offline replay FOV policy"); return
+		"replay-movement-input":
+			if args.get("offline-replay","")!="true" or args.get("movement-timing","")!="true":return
+			var outcome: Dictionary={"accepted":false,"reason":"retired world scope"}
+			if is_instance_valid(world) and int(message.get("generation",-1))==epoch and int(message.get("areaId",-1))==world.area_id:
+				outcome=preload("res://systems/native_data/movement_timing.gd").replay(message.get("value",{}),keyboard_context(),keyboard,Callable(world,"preview_drive"),Callable(world,"end_drive"))
+			send({"kind":"movement-replay-result","inputSequence":message.get("inputSequence"),"outcome":outcome})
 		"probe-native-creation":
 			if args.get("settings-check","")!="true": return
 			var probe=preload("res://tests/native_creation_live_probe.gd").new(); host.add_child(probe); probe.run(self)
 		"native-creation-result":
 			if is_instance_valid(gameplay_ui): gameplay_ui.creator.result(message)
+		"probe-level-source":
+			if args.get("level-source-check","")!="true":return
+			var probe=preload("res://tests/native_live_level_up_source_probe.gd").new();host.add_child(probe);probe.run(self)
 		"probe-live-actions":
 			if args.get("actions-check","")!="true": return
 			var probe=preload("res://tests/native_live_actions_probe.gd").new(); host.add_child(probe); probe.run(self)
@@ -348,32 +589,32 @@ func receive_profiled(message: Dictionary) -> void:
 			if args.get("settings-check","")!="true": return
 			probe_render_settings()
 		"raw-world-begin":
+			if snapshot_preparation.active and snapshot_wire_depth==0:fail("Native snapshot preparation cannot mix direct and wire messages");return
+			creation_trace("raw-world:begin")
 			var serial:=int(message.get("serial",-1)); var count:=int(message.get("count",-1))
 			if serial<=raw_serial or count<0 or count>65536 or not message.get("data") is Dictionary: fail("Invalid native raw-world header"); return
 			var mode:=str(message.data.get("bridgeMode","full"))
-			if mode not in ["full","delta"] or mode=="delta" and (int(message.data.get("bridgeBaseSerial",-2))!=accepted_raw_serial or int(message.generation)!=epoch): fail("Native raw-world delta has no accepted base"); return
-			raw_serial=serial; raw_world={"serial":serial,"generation":int(message.generation),"count":count,"data":message.data}; raw_world.data.objects=[]
+			if mode not in ["full","delta"] or mode=="delta" and (accepted_raw_serial<0 or epoch<0 or int(message.data.get("bridgeBaseSerial",-2))!=accepted_raw_serial or int(message.generation)!=epoch): fail("Native raw-world delta has no accepted base"); return
+			cancel_snapshot_preparation(false)
+			raw_serial=serial; raw_world={"serial":serial,"connection":session_connection,"generation":int(message.generation),"count":count,"data":message.data}; raw_world.data.objects=[]
+			if snapshot_preparation_enabled and snapshot_wire_depth>0 and initialized and mode=="full" and int(message.generation)>=epoch:
+				if not snapshot_preparation.begin(snapshot_preparation_scope(raw_world),int(message.data.get("area",{}).get("id",-1)),count):fail("Native snapshot metadata scope unavailable");return
 		"raw-world-chunk":
+			if snapshot_preparation.active and snapshot_wire_depth==0:fail("Native snapshot preparation cannot mix direct and wire messages");return
 			if raw_world.is_empty() or int(message.get("serial",-1))!=raw_serial or int(message.get("generation",-1))!=int(raw_world.generation) or not message.get("objects") is Array or message.objects.size()>64 or raw_world.data.objects.size()+message.objects.size()>int(raw_world.count): fail("Invalid native raw-world chunk"); return
 			raw_world.data.objects.append_array(message.objects)
+			if snapshot_preparation.active and not snapshot_preparation.submit(message.objects):fail("Native snapshot metadata chunk rejected");return
 		"raw-world-end":
+			if snapshot_preparation.active and snapshot_wire_depth==0:fail("Native snapshot preparation cannot mix direct and wire messages");return
+			creation_trace("raw-world:end-received")
 			if raw_world.is_empty() or int(message.get("serial",-1))!=raw_serial or int(message.get("generation",-1))!=int(raw_world.generation) or raw_world.data.objects.size()!=int(raw_world.count): fail("Incomplete native raw-world snapshot"); return
 			var snapshot:=raw_world; raw_world={}
-			# Apply the persisted render policy only at the next area boundary.
-			# Existing placements and in-flight batches keep their original layout.
-			if int(snapshot.generation)!=epoch: render_pool.compact_static_parts=render_settings.compact_scenery_enabled
-			super.receive({"kind":"snapshot","generation":snapshot.generation,"data":snapshot.data})
-			if closing: return
-			accepted_raw_serial=raw_serial
-			if args.get("offline-replay","")=="true" and is_instance_valid(character_lobby): character_lobby.panel.hide()
-			if is_instance_valid(gameplay_ui) and not gameplay_ui.options_requested.is_connected(open_game_options):
-				render_menu.key_bindings=gameplay_ui.key_bindings
-				render_menu.configure_native(gameplay_ui.inventory.frame_skin,gameplay_ui.text,catalog,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),[session_connection,gameplay_ui.generation,gameplay_ui.area_id,gameplay_ui.controlled_id])
-				gameplay_ui.options_requested.connect(open_game_options)
-				gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
-			if is_instance_valid(gameplay_ui): render_menu.set_native_scope([session_connection,gameplay_ui.generation,gameplay_ui.area_id,gameplay_ui.controlled_id])
-			if is_instance_valid(world_input): world_input.extra_pointer_block=native_pointer_blocked
-			send({"kind":"raw-world-accepted","serial":raw_serial,"generation":snapshot.generation})
+			var metadata: Dictionary={}
+			if snapshot_preparation.active:
+				if not snapshot_preparation.seal():fail("Native snapshot metadata count mismatch");return
+				metadata=snapshot_preparation.take(snapshot_preparation_scope(snapshot))
+				if metadata.is_empty():pending_prepared_snapshot=snapshot;return
+			commit_raw_snapshot(snapshot,metadata)
 		"browser-open":
 			character_lobby.panel.hide(); server_browser.open()
 		"main-menu-open":
@@ -389,11 +630,16 @@ func receive_profiled(message: Dictionary) -> void:
 				send({"kind":"browser-observed","viewId":int(message.viewId),"native_rendering":true})
 		"lobby":
 			session_connection=int(message.connection); character_lobby.apply_state(message)
+			if not pending_creator.is_empty() and not creation_entry_current(int(pending_creator.connection)):pending_creator.clear()
 			render_menu.observe_lobby(message.state)
 			var phase:=str(message.state.get("phase",""))
 			if phase in ["closed","disconnecting"]:
 				cancelled_connection=session_connection; reset_session()
 			if phase=="closed": return_to_browser=true
+			# A failed destination can return menu without a local Cancel request.
+			# Reuse the normal browser route once; explicit Main Menu stays first.
+			if phase=="menu" and message.state.get("error") is String and not message.state.error.is_empty() and message.state.get("connected") is bool and not message.state.connected and message.state.get("busy") is bool and not message.state.busy and not server_browser.wanted:
+				return_to_browser=true
 			if phase in ["menu","closed"] and return_to_main_menu and not message.state.get("busy",false):
 				return_to_main_menu=false; return_to_browser=false
 				if server_browser.wanted: server_browser.close()
@@ -434,6 +680,14 @@ func receive_profiled(message: Dictionary) -> void:
 			send({"kind":"raw-world-accepted","connection":retired_connection,"generation":epoch,"serial":0})
 			send({"kind":"observed","connection":retired_connection,"state":{"ready":false}})
 			report.stale_input_probes=int(report.get("stale_input_probes",0))+1
+		"probe-original-menu-exit":
+			if args.get("menu-exit-check","")!="true": return
+			var page=render_menu.pregame if is_instance_valid(render_menu) else null
+			var button=page.main.buttons.get("exitbutton") if is_instance_valid(page) and is_instance_valid(page.main) else null
+			var ready: bool=not initialized and not is_instance_valid(world) and is_instance_valid(button) and button.is_visible_in_tree() and not button.disabled
+			report.menu_exit_check={"success":ready,"resource":"pre_main","control":"exitbutton","world_present":is_instance_valid(world),"initialized":initialized,"scope":"Actual source-defined Exit button pressed signal through original frame, pregame owner and normal application shutdown; no server join or gameplay acceptance."}
+			if not ready: fail("Original Main Menu Exit control is unavailable"); return
+			button.pressed.emit()
 		"finish-menu-check":
 			record_menu_check_stage("entry_begin")
 			var pregame_ready:=await probe_pregame_entry()
@@ -512,7 +766,13 @@ func probe_pregame_entry() -> bool:
 		ui.main.buttons.multibutton.pressed.emit()
 		while server_browser.view_id<=previous and Time.get_ticks_msec()<deadline: await process_frame
 		while Time.get_ticks_msec()<deadline and (not is_instance_valid(server_browser.profile_dialog) or not server_browser.profile_dialog.layout_ready): await process_frame
-		checks.profile=is_instance_valid(server_browser.profile_dialog) and server_browser.profile_dialog.visible and server_browser.profile_first and not server_browser.panel.visible
+		# A saved login profile intentionally skips the first-entry name dialog.
+		# Exercise the explicit profile action in that case, rather than treating
+		# the supported saved-profile route as a resource-loading failure.
+		if server_browser.state.get("hasSessionProfile",false):
+			checks.saved_profile_route=not server_browser.profile_first and not server_browser.profile_dialog.visible
+			server_browser.open_profile()
+		checks.profile=is_instance_valid(server_browser.profile_dialog) and server_browser.profile_dialog.visible and (server_browser.profile_first or server_browser.state.get("hasSessionProfile",false)) and not server_browser.panel.visible
 		if checks.profile:
 			server_browser.profile_dialog.edits.pnameeditbox.text="GodotMenuProbe"; server_browser.profile_dialog.invoke("okbutton")
 			while Time.get_ticks_msec()<deadline and (server_browser.profile_dialog.pending or server_browser.state.get("busy",false) or not is_instance_valid(server_browser.entry_menu) or not server_browser.entry_menu.layout_ready): await process_frame
@@ -541,7 +801,9 @@ func probe_native_admission() -> void:
 		ui.open_profile(); checks.profile_open=ui.profile_dialog.visible and not ui.panel.visible
 		ui.profile_dialog.edits.pnameeditbox.text="GodotNativeLocalTest"; ui.profile_dialog.buttons.passwordcheck.set_pressed_no_signal(false); ui.profile_dialog.invoke("okbutton")
 		checks.profile_pending=ui.profile_dialog.pending
-		while Time.get_ticks_msec()<deadline and (ui.profile_dialog.pending or ui.state.get("busy",false)): await process_frame
+		# A committed name can precede the entry menu's asynchronous artwork.
+		# The next click requires the actual visible controls, not just the RPC.
+		while Time.get_ticks_msec()<deadline and (ui.profile_dialog.pending or ui.state.get("busy",false) or ui.profile_dialog.visible or not ui.entry_menu.visible or ui.name_edit.text!="GodotNativeLocalTest"): await process_frame
 		checks.profile_committed=ui.name_edit.text=="GodotNativeLocalTest" and not ui.profile_dialog.visible and ui.entry_menu.visible and not ui.state.get("busy",false)
 		if checks.profile_committed:
 			ui.host_edit.text="127.0.0.1"; ui.port_edit.value=5125; ui.entry_menu.buttons.dirconnectbutton.pressed.emit()
@@ -550,7 +812,7 @@ func probe_native_admission() -> void:
 			checks.saved_key=ui.key_edit.text.is_empty() and ui.state.get("hasSavedCdKey",false)
 	var success: bool=checks.values().all(func(value):return value) and checks.size()==7
 	report.native_admission={"success":success,"checks":checks,"server":"127.0.0.1:5125","public_connections":0,"via":"native profile, Multiplayer and Direct Connect controls"}
-	send({"kind":"native-admission-proof","success":success,"checks":checks})
+	send({"kind":"native-admission-proof","success":success,"checks":checks,"diagnostic":{"elapsed_deadline_ms":Time.get_ticks_msec()-deadline,"view_id":ui.view_id,"capture":ui.profile_capture.duplicate(),"dialog_scope":ui.profile_dialog.scope.duplicate(),"pending":ui.profile_dialog.pending,"wanted":ui.wanted,"status":ui.status.text,"notice":ui.profile_dialog.notice_ref}})
 	if success: ui.direct_dialog.invoke("okbutton")
 func probe_native_desktop() -> void:
 	var deadline:=Time.get_ticks_msec()+15000
@@ -603,6 +865,14 @@ func save_last_seen_appearance() -> void:
 		var saved: bool=character_lobby.save_last_seen(gameplay_ui.text.objects.get(gameplay_ui.controlled_id,{}))
 		report.last_seen_appearance={"saved":saved,"error":character_lobby.appearance_cache.error}
 func reset_session() -> void:
+	cancel_snapshot_preparation()
+	camera_fov_binding.unbind()
+	if native_visibility_runtime!=null:
+		report.native_scene_visibility=native_visibility_runtime.snapshot()
+		native_visibility_runtime.cleanup_connection()
+	if native_clock_runtime!=null:native_clock_runtime.cleanup_connection()
+	if entity_api_binding!=null: entity_api_binding.reset("session_reset")
+	retain_world_diagnostics("return-main-menu" if return_to_main_menu else "session-reset",session_connection)
 	if is_instance_valid(login_profiles): login_profiles.reset()
 	save_last_seen_appearance()
 	if is_instance_valid(character_lobby): character_lobby.close_native()
@@ -610,7 +880,7 @@ func reset_session() -> void:
 	preload("res://systems/native_data/prework_store.gd").forget(catalog)
 	current_prework_sources={}
 	pending_combat.clear(); pending_visual.clear(); pending_voice.clear(); pending_script_sounds.clear()
-	pending_creator=false
+	pending_creator.clear()
 	loading_announced=false
 	if is_instance_valid(loading_screen): loading_screen.reset()
 	if is_instance_valid(render_menu): render_menu.dismiss()
@@ -629,10 +899,24 @@ func reset_session() -> void:
 	world=null; environment=null; keyboard=null; world_input=null; hud=null; registry=null; transition_targets=null; gameplay_ui=null; catalog_loader=null
 	catalog=Catalog.new(); initialized=false; catalog_loading=false; epoch=-1; acknowledged=-1; previous=0
 	initial_controlled=null; maximum_distance=0.0; observed_at=0; presentation_stats={}; stats_at=0; walkmesh_registered=false
+	raw_world={}
+	accepted_raw_serial=-1
+	label.text="Native renderer · choose a server or character"
+func application_exit_policy() -> bool: return true
 func shutdown() -> void:
+	cancel_snapshot_preparation()
+	snapshot_preparation.close()
+	report.snapshot_preparation=snapshot_preparation_diagnostic()
+	if not closing and native_visibility_runtime!=null:
+		report.native_scene_visibility=native_visibility_runtime.snapshot()
+		native_visibility_runtime.close()
+	if not closing and native_clock_runtime!=null:native_clock_runtime.close()
+	preload("res://systems/client_api/access.gd").stop_rest()
+	if entity_api_binding!=null: entity_api_binding.reset("shutdown")
 	if is_instance_valid(login_profiles): login_profiles.reset()
 	if is_instance_valid(character_lobby) and is_instance_valid(character_lobby.native_preview): character_lobby.native_preview.close(); report.character_preview=character_lobby.native_preview.snapshot()
 	if closing: return
+	camera_fov_binding.close()
 	save_last_seen_appearance()
 	if is_instance_valid(lobby_pages_probe): lobby_pages_probe.stop()
 	if is_instance_valid(local_delete_probe): local_delete_probe.stop()
@@ -649,11 +933,8 @@ func shutdown() -> void:
 	if is_instance_valid(asset_prework): asset_prework.close(); report.asset_prework=asset_prework.state.duplicate(true)
 	super.shutdown()
 func native_pointer_blocked(point: Vector2) -> bool:
-	if closing or not is_instance_valid(world): return true
+	if closing or snapshot_transition_waiting() or not is_instance_valid(world): return true
 	return (is_instance_valid(login_profiles) and login_profiles.visible and login_profiles.get_global_rect().has_point(point)) or (is_instance_valid(server_browser) and server_browser.blocks_pointer(point)) or (is_instance_valid(character_lobby) and character_lobby.blocks_pointer(point)) or (is_instance_valid(gameplay_ui) and gameplay_ui.blocks_pointer(point)) or (is_instance_valid(render_menu) and render_menu.blocks_pointer(point)) or (is_instance_valid(render_settings) and render_settings.visible and render_settings.get_global_rect().has_point(point)) or (is_instance_valid(entity_inspector) and entity_inspector.blocks_pointer(point))
-	raw_world={}
-	accepted_raw_serial=-1
-	label.text="Native renderer · choose a server or character"
 func cancel_loading() -> void:
 	request_disconnect(false)
 func lobby_request(message: Dictionary) -> void:
@@ -668,3 +949,85 @@ func request_disconnect(save_character: bool) -> void:
 	reset_session()
 	character_lobby.panel.hide(); label.text="Disconnecting…"
 	send({"kind":"lobby-cancel-join" if cancel else "lobby-disconnect","saveCharacter":save_character})
+
+func commit_raw_snapshot(snapshot: Dictionary,metadata: Dictionary={}) -> void:
+	# Workers have completed and released all borrowed rows before this boundary.
+	# The original authority/visibility/API/ACK body remains synchronous.
+	if closing or int(snapshot.get("connection",session_connection))!=session_connection or session_connection==cancelled_connection:return
+	if str(metadata.get("error",""))=="row-not-dictionary":fail("Native raw-world snapshot row is not a dictionary");return
+	snapshot_commit_running=true
+	if not str(metadata.get("error","")).is_empty():
+		report.snapshot_metadata_fallbacks=int(report.get("snapshot_metadata_fallbacks",0))+1
+		# Internal fixed worker-result reasons only; never retain a received row.
+		report.snapshot_metadata_last_fallback=str(metadata.error);metadata={}
+	snapshot_metadata=metadata;snapshot_metadata_objects=snapshot.data.objects
+	var began:=FrameProfile.begin()
+	apply_raw_snapshot(snapshot)
+	FrameProfile.finish("entry_snapshot_commit_ms",began)
+	snapshot_metadata={};snapshot_metadata_objects=[];snapshot_commit_running=false
+	report.snapshot_preparation=snapshot_preparation_diagnostic()
+func apply_raw_snapshot(snapshot: Dictionary) -> void:
+	# Apply the persisted render policy only at the next area boundary.
+	# Existing placements and in-flight batches keep their original layout.
+	if int(snapshot.generation)!=epoch: render_pool.compact_static_parts=render_settings.compact_scenery_enabled
+	var received_before:=received
+	var before_context:=raw_snapshot_context()
+	creation_trace("raw-world:super-before")
+	var entry_began:=FrameProfile.begin()
+	super.receive({"kind":"snapshot","generation":snapshot.generation,"data":snapshot.data})
+	var context:=raw_snapshot_context()
+	if received==received_before:
+		if context!=before_context:return
+	elif received!=received_before+1 or not initialized or not is_instance_valid(world) or not is_instance_valid(gameplay_ui):return
+	if not raw_snapshot_current(snapshot,context):return
+	FrameProfile.finish("entry_snapshot_core_ms",entry_began);entry_began=FrameProfile.begin()
+	if is_instance_valid(world):world.set_show_blockers(render_settings.show_blockers_enabled)
+	FrameProfile.finish("entry_blocker_policy_ms",entry_began)
+	creation_trace("raw-world:super-after")
+	if not raw_snapshot_current(snapshot,context):return
+	# Ordered wire reveal operations publish only after their matching
+	# accepted native state, never against the previous actor/position.
+	entry_began=FrameProfile.begin()
+	if received==received_before+1 and native_visibility_runtime!=null:native_visibility_runtime.accepted_world(snapshot.data)
+	if not raw_snapshot_current(snapshot,context):return
+	FrameProfile.finish("entry_visibility_commit_ms",entry_began);entry_began=FrameProfile.begin()
+	# Apply the saved vertical FOV when the gameplay camera is first bound.
+	# Later snapshots must not overwrite a script/replay camera adjustment.
+	if is_instance_valid(camera): camera_fov_binding.bind(camera)
+	if not raw_snapshot_current(snapshot,context):return
+	FrameProfile.finish("entry_camera_bind_ms",entry_began)
+	creation_trace("raw-world:entity-observer-before")
+	entry_began=FrameProfile.begin()
+	entity_api_snapshot(snapshot,received_before)
+	if not raw_snapshot_current(snapshot,context):return
+	FrameProfile.finish("entry_entity_api_commit_ms",entry_began)
+	creation_trace("raw-world:entity-observer-after")
+	accepted_raw_serial=raw_serial
+	if args.get("offline-replay","")=="true" and is_instance_valid(character_lobby): character_lobby.panel.hide()
+	if is_instance_valid(gameplay_ui) and not gameplay_ui.options_requested.is_connected(open_game_options):
+		entry_began=FrameProfile.begin()
+		render_menu.key_bindings=gameplay_ui.key_bindings
+		render_menu.set_modal_order(gameplay_ui.modal_order,gameplay_ui.modal_surfaces)
+		if not raw_snapshot_current(snapshot,context):return
+		creation_trace("raw-world:menu-configure-before")
+		render_menu.configure_native(gameplay_ui.inventory.frame_skin,gameplay_ui.text,catalog,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),[session_connection,gameplay_ui.generation,gameplay_ui.area_id,gameplay_ui.controlled_id])
+		if not raw_snapshot_current(snapshot,context):return
+		creation_trace("raw-world:menu-configure-after")
+		gameplay_ui.options_requested.connect(open_game_options)
+		gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
+		FrameProfile.finish("entry_options_configure_ms",entry_began)
+	if not raw_snapshot_current(snapshot,context):return
+	entry_began=FrameProfile.begin()
+	if is_instance_valid(gameplay_ui):
+		gameplay_ui.set_radial_preferences(render_settings.radial_preferences)
+		if not raw_snapshot_current(snapshot,context):return
+		refresh_entry_menu_scope(render_menu,[session_connection,gameplay_ui.generation,gameplay_ui.area_id,gameplay_ui.controlled_id])
+	if is_instance_valid(world_input): world_input.extra_pointer_block=native_pointer_blocked
+	FrameProfile.finish("entry_ui_scope_ms",entry_began)
+	if not raw_snapshot_current(snapshot,context):return
+	creation_trace("raw-world:ack-before")
+	entry_began=FrameProfile.begin()
+	send({"kind":"raw-world-accepted","serial":raw_serial,"generation":snapshot.generation})
+	if creation_runtime.enabled:creation_runtime.acknowledge(creation_runtime_values())
+	FrameProfile.finish("entry_ack_ms",entry_began)
+	creation_trace("raw-world:ack-after")

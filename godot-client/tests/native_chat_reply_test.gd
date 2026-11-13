@@ -1,0 +1,57 @@
+extends "res://tests/native_chat_categories_test.gd"
+const Reply=preload("res://systems/native_data/chat_reply.gd")
+const Projector=preload("res://systems/native_gameplay_ui.gd")
+func adjustments(frame,chat,surface,art,args) -> void:
+	await super.adjustments(frame,chat,surface,art,args)
+	var retained: Dictionary=frame.preferences.duplicate(true); var desktop=frame.owner_ui.desktop; var text=frame.owner_ui.text
+	var player:={"name":"Player Account","objectId":88,"character":{"id":77,"portraitRef":"po_clsbard_","firstName":{"text":"Other"},"lastName":{"text":"Character"}}}
+	desktop.state={"players":[[7,player]]}; text.objects={77:{"objectType":5,"replicated":{"name":{"text":"Other Character"}}},78:{"objectType":5,"replicated":{"name":{"text":"An NPC"},"portraitRef":"po_clsbard_"}},88:{"objectType":5,"replicated":{"name":{"text":"Controlled proxy"}}}}
+	check(Reply.for_speaker(desktop.state.players,88)==7 and Reply.for_speaker(desktop.state.players,77)==Reply.NO_PLAYER,"Original chat ownership resolves the current controlled speaker, not the separate character ID")
+	check(Reply.account_id(desktop.state.players,"Player Account")==7 and Reply.account_id(desktop.state.players,"player account")==-1,"Original player-account lookup retains case-sensitive byte matching")
+	for command in ["tp","tellplayer"]:
+		var result:=Prompt.dispatch('/'+command+' "Player Account" hello',3,desktop.state.players)
+		check(result=={"kind":"chat","channel":4,"playerId":7,"playerAccount":"Player Account","text":"hello"},"Original account Tell resolves PLAYER_ID for /"+command)
+	check(Prompt.dispatch('/tp "Gone" hello',2,desktop.state.players).has("error_ref"),"Missing account never becomes public speech or a character-name Tell")
+	var projector:=Projector.new(); projector.text=text; projector.desktop=desktop; projector.controlled_id=42
+	var pc:=projector.speech({"channel":1,"objectId":88,"text":{"text":"Player speech"}})
+	var npc:=projector.speech({"channel":1,"objectId":78,"text":{"text":"NPC speech"}})
+	var remote:=projector.speech({"channel":2,"objectId":99,"speakerName":{"text":"Distant speaker"},"text":{"text":"Remote speech"}})
+	var system:=projector.speech({"channel":5,"text":{"text":"Server speech"}})
+	check(pc.reply=={"player_id":7,"portrait":"po_clsbard_t"} and npc.reply.player_id==Reply.NO_PLAYER and remote.reply.portrait=="po_hu_m_99_t" and not system.has("reply"),"Actual native speech projection discloses original PC/NPC/remote portraits and omits server portraits")
+	projector.free(); chat.reset(); frame.original_preset(); frame.heights[0]=300; frame.expanded[0]=300; frame.place()
+	var requests_before: int=art.models.requests.size()
+	for row in [pc,npc,remote,system]: chat.append_message(row)
+	await frames(4); var pane: Dictionary=frame.panes[0]
+	check(pane.replies.size()==3 and pane.label.get_parsed_text().contains("Player speech\n\n") and pane.label.get_parsed_text().contains("NPC speech\n\n"),"Original received portrait rows reserve two text lines and leave server lines without a reply button")
+	var record: Dictionary=pane.replies[int(chat.rows[0].chat_sequence)]; var button: Button=record.button
+	check(button.size.distance_to(Vector2(18,27))<0.001 and button.scale==Vector2.ONE and absf(button.position.x-6)<0.001 and absf(pane.label.position.x-30)<0.001,"Source18x27 reply control occupies the original fractional left margin without stretching portrait or text")
+	var portrait=button.planes.Portrait; var border=button.planes.PortraitFrame
+	check(portrait.position.distance_to(Vector2(1,1))<0.001 and portrait.size.distance_to(Vector2(16,25))<0.001 and is_equal_approx(portrait.uv[0].y,1) and is_equal_approx(portrait.uv[2].y,0.21875),"Tiny portrait plane keeps the exact source25-of32-row UV crop")
+	var identity:=button.get_instance_id(); frame.render_history(); await frames()
+	check(pane.replies[int(chat.rows[0].chat_sequence)].button.get_instance_id()==identity and art.models.requests.size()==requests_before,"History updates retain reply controls and use Canvas planes rather than per-portrait model-raster jobs")
+	var raster:=ImageTexture.create_from_image(Image.create(16,32,false,Image.FORMAT_RGBA8)); art.deliver("po_clsbard_t",raster)
+	check(portrait.texture==raster and not portrait.texture is AtlasTexture,"Portrait publication binds original raster rows without applying a second crop")
+	var small: Dictionary=frame.preferences.duplicate(true); small.font_size=10; small.width=320; frame.apply_preferences(small); await frames(4)
+	var portraits: Array=pane.replies.values(); portraits.sort_custom(func(a,b):return int(a.row.chat_sequence)<int(b.row.chat_sequence))
+	check(portraits[1].button.position.y>=portraits[0].button.position.y+portraits[0].button.size.y and portraits[2].button.position.y>=portraits[1].button.position.y+portraits[1].button.size.y and button.size.distance_to(Vector2(18,27))<0.001,"Small adjustable text retains source portrait size and enough row space to prevent overlapping controls")
+	frame.original_preset(); frame.heights[0]=300; frame.expanded[0]=300; frame.place(); await frames(4)
+	var normal_uv: PackedVector2Array=border.uv.duplicate(); var point:=button.get_global_rect().get_center(); var motion:=InputEventMouseMotion.new(); motion.position=point; motion.global_position=point; surface.push_input(motion,true); await frames()
+	check(border.uv!=normal_uv,"Actual hover selects the original hilite UV frame without regenerating artwork")
+	var held_count:=requests.size(); point=button.get_global_rect().get_center(); await mouse(surface,point,true); desktop.actor_id=43; desktop.objects[43]={}; await mouse(surface,point,false)
+	check(requests.size()==held_count,"A held reply gesture cannot dispatch against a different controlled actor after a scope change")
+	desktop.actor_id=42; desktop.objects.erase(43)
+	frame.select_mode(3); chat.entry.grab_focus(); await frames(); var before:=requests.size(); await self.button(surface,button)
+	var fresh: Array=requests.slice(before)
+	check(fresh.size()==2 and fresh[0].panel=="chat-reply" and fresh[0].targetId==88 and fresh[0].playerId==7 and fresh[1].panel=="chat-focus" and fresh[1].mode==3 and chat.entry.text=='/tp "Player Account" ' and frame.mode==3,"Actual reply click sends GUI27 before original focus1 and preserves the selected mode while priming the account")
+	chat.entry.text+="Hello there"; await key(surface,KEY_ENTER); await key(surface,KEY_ENTER,false)
+	check(requests.back()=={"kind":"chat","channel":4,"playerId":7,"playerAccount":"Player Account","text":"Hello there"} and not chat.rows.any(func(row):return row.get("text","")=="Hello there"),"Actual Enter sends account Tell by PLAYER_ID without a local echo")
+	before=requests.size(); var npc_button: Button=pane.replies[int(chat.rows[1].chat_sequence)].button; await self.button(surface,npc_button)
+	check(requests.size()==before and chat.entry.text.is_empty(),"NPC portrait has the original no-player reply behavior")
+	desktop.state.players=[]; await self.button(surface,button); check(requests.size()==before,"A departed player's retained portrait cannot send a stale reply event")
+	desktop.state.players=[[7,player]]; player.objectId=123; await self.button(surface,button)
+	check(requests[-2].panel=="chat-reply" and requests[-2].targetId==123,"Original reply callback resolves the current controlled player object at click time")
+	chat.entry.text='/tp "player account" hello'; before=requests.size(); await key(surface,KEY_ENTER); await key(surface,KEY_ENTER,false)
+	check(requests.size()==before+1 and requests.back().panel=="chat-focus" and not requests.back().open and chat.entry.text.is_empty() and chat.rows.back().text=="Player not found." and Categories.bits(chat.rows.back())==0x80,"Missing exact account clears/releases the original prompt and displays local combat feedback without sending speech")
+	await key(surface,KEY_ESCAPE); await key(surface,KEY_ESCAPE,false); var owned_epoch: int=frame.epoch; var serial:=int(chat.rows[0].chat_sequence); chat.reset(); before=requests.size(); frame.reply_clicked(0,serial,owned_epoch)
+	check(pane.replies.is_empty() and requests.size()==before and not button.is_visible_in_tree(),"Reset retires reply controls and rejects held callbacks from the previous history")
+	frame.apply_preferences(retained); frame.save(); frame.options_window.reflect(frame.preferences); desktop.state={}; text.objects={}; await frames()

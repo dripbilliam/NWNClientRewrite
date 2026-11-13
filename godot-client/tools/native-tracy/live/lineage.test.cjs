@@ -1,0 +1,31 @@
+'use strict';
+const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto'), assert = require('node:assert/strict');
+const { verifyPlanLineage } = require('./lineage.cjs');
+const project = path.resolve(__dirname, '../../..'), out = path.join(project, '.cache/native-tracy/live-lineage-check-a'); assert(!fs.existsSync(out)); fs.mkdirSync(out, { recursive: true });
+const hash = data => crypto.createHash('sha256').update(data).digest('hex'); let n = 0, checks = 0;
+function put(data) { const file = path.join(out, 'input-' + (++n) + '.json'), bytes = Buffer.from(JSON.stringify(data)); fs.writeFileSync(file, bytes); return { file, sha256: hash(bytes) }; }
+const source = 'e'.repeat(64), reconstruction = put({ accepted: true }), overlay = put({ diagnostic: true }), reproducer = put({ success: true }), fix = { ...put({ constantInitialization: true }), reproducer };
+const base = { kind: 'private-tracy-source-plan', installedSourceIdentity: source, source: 'private/engine', particle: 'private/native', engineArguments: ['strict', 'on-demand'], reconstruction, overlay, particlePins: [{ relative: 'kernel.cpp', sha256: 'a'.repeat(64) }, { relative: 'bridge.hpp', sha256: 'b'.repeat(64) }] };
+const receipt = plan => ({ success: true, exit: 0, normalRuntimeChanged: false, plan: plan.file, planSha256: plan.sha256 });
+const a = put(base), b = put({ ...base, parentPlan: a, shutdownFix: fix }), c = put({ ...base, parentPlan: b, shutdownFix: fix, shutdownPatchCorrection: put({ correctedApply: true }) });
+const valid = verifyPlanLineage(receipt(c), receipt(a), source); checks++;
+assert.equal(valid.chain.length, 3); checks++; assert.equal(valid.relation, 'verified-engine-descendant-of-unchanged-DLL-plan'); checks++;
+assert.equal(valid.chain[2].sha256, a.sha256); checks++;
+assert.equal(verifyPlanLineage(receipt(a), receipt(a), source).relation, 'same-plan'); checks++;
+function reject(callback) { assert.throws(callback); checks++; }
+reject(() => verifyPlanLineage({ ...receipt(c), success: false }, receipt(a), source));
+reject(() => verifyPlanLineage(receipt(c), { ...receipt(a), normalRuntimeChanged: true }, source));
+reject(() => verifyPlanLineage(receipt(c), receipt(a), 'f'.repeat(64)));
+reject(() => verifyPlanLineage(receipt(c), receipt(put(base)), source));
+reject(() => verifyPlanLineage(receipt(put({ ...base, parentPlan: { ...a, sha256: '0'.repeat(64) } })), receipt(a), source));
+reject(() => verifyPlanLineage(receipt(put({ ...base, parentPlan: a, particlePins: [] })), receipt(a), source));
+reject(() => verifyPlanLineage(receipt(put({ ...base, parentPlan: a, engineArguments: ['changed'] })), receipt(a), source));
+reject(() => verifyPlanLineage(receipt(put({ ...base, parentPlan: a, reconstruction: put({ accepted: false }) })), receipt(a), source));
+reject(() => verifyPlanLineage(receipt(put({ ...base, parentPlan: a, shutdownFix: { ...fix, sha256: '0'.repeat(64) } })), receipt(a), source));
+reject(() => verifyPlanLineage(receipt(put({ ...base, parentPlan: a, shutdownFix: { ...fix, reproducer: put({ success: false }) } })), receipt(a), source));
+let deep = a; for (let i = 0; i < 8; i++) deep = put({ ...base, parentPlan: deep }); reject(() => verifyPlanLineage(receipt(deep), receipt(a), source));
+const actualEngine = JSON.parse(fs.readFileSync(path.join(project, '.cache/native-tracy/engine-msvc-a/engine-build-c/receipt.json'))), actualDll = JSON.parse(fs.readFileSync(path.join(project, '.cache/native-tracy/engine-msvc-a/particle-build/receipt.json')));
+const actual = verifyPlanLineage(actualEngine, actualDll, 'ea3469f0b87fa346acd28c0ffe97bba646601ed567e80d5f8eee03068989ebda'); checks++;
+assert.equal(actual.chain.length, 3); checks++; assert.equal(actual.leaf.installedSourceIdentity, 'ea3469f0b87fa346acd28c0ffe97bba646601ed567e80d5f8eee03068989ebda'); checks++;
+const file = path.join(out, 'receipt.json'), result = { version: 1, success: true, checks, actualChain: actual.chain, relation: actual.relation, sourceFiles: ['lineage.cjs', 'prepare.cjs', 'verify.cjs', 'lineage.test.cjs'].map(name => { const file = path.join(__dirname, name); return { file, sha256: hash(fs.readFileSync(file)) }; }), scope: 'Read-only actualC->B->A metadata plus tiny synthetic positive/adversarial ancestry checks. No compiler/native/runtime/materialization/real-binary hash.' };
+fs.writeFileSync(file, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' }); console.log(JSON.stringify({ file, sha256: hash(fs.readFileSync(file)), checks, actualDepth: actual.chain.length, nativeStarts: 0 }));

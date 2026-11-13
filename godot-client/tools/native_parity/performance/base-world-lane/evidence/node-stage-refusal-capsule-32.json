@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "success": true,
+  "checks": 32,
+  "error": null,
+  "engineStarts": 0,
+  "nativeBuilds": 0,
+  "ensureCalls": 0,
+  "gpuTests": 0,
+  "assets": 0,
+  "worlds": 0,
+  "benchmarks": 0,
+  "serverConnections": 0,
+  "sharedRuntimeEdits": 0,
+  "liveSessionTouched": false,
+  "runnerSha256": "a814746493b73c70cdaf819aa9759c7be815c7924b7fdf9cfcb9c7eb653b0ee9",
+  "sourceBefore": [
+    {
+      "relative": "systems/native_render/live_world.gd",
+      "sha256": "1c3dac8b586234f5feeaa6d1e149b1ee9aa0c17945224e7303c16f78be4d0ab0"
+    },
+    {
+      "relative": "systems/native_render/object_stream.gd",
+      "sha256": "926332c074203cd817422292c6ec1c4126020e7093aca041a97dc08cf8abe6be"
+    },
+    {
+      "relative": "systems/native_render/base_world_scenery.gd",
+      "sha256": "848a0465c97eed5ea9d8e6ceade8f8b231640dcf3e43fe95d83f5b343197c071"
+    },
+    {
+      "relative": "systems/native_data/entity_presentation_lifetime.gd",
+      "sha256": "68434998252beaaea08a76f1182f94828aaecad0d037aba4345f06024f2dbbaa"
+    }
+  ],
+  "stages": [
+    {
+      "out": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\base-world-admission-agent\\durable-capsule-v3\\node-checks\\main-stage",
+      "stageOnly": true,
+      "engineStarts": 0,
+      "stageSha256": "f611cb84807c845ed918ffe040e4cca11573342cd5fb20068f37ec62bf688374"
+    },
+    {
+      "out": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\base-world-admission-agent\\durable-capsule-v3\\node-checks\\guard-only-run-stage",
+      "stageOnly": false,
+      "engineStarts": 0,
+      "stageSha256": "e73e147987d8a2e88fc1176c754bfbaae494f9dc379394b15f661dc68a80e713"
+    },
+    {
+      "out": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\base-world-admission-agent\\durable-capsule-v3\\node-checks\\existing-report-stage",
+      "stageOnly": false,
+      "engineStarts": 0,
+      "stageSha256": "8f562ace90fa8e384ae25007a7c0a9050da9bd55f5d99a0b49801c24a54258f0"
+    },
+    {
+      "out": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\base-world-admission-agent\\durable-capsule-v3\\node-checks\\private-source-stage",
+      "stageOnly": false,
+      "engineStarts": 0,
+      "stageSha256": "fe29011677039e28b3b7fbbf454a50e282588f8c07f045d6c0a11a15e63b47df"
+    },
+    {
+      "out": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\base-world-admission-agent\\durable-capsule-v3\\node-checks\\capsule-stage",
+      "stageOnly": true,
+      "engineStarts": 0,
+      "stageSha256": "dfe35b3ec30ae55cc60a30fdb1adee30db81a92567e8a6385b2661cfe63eb3ff"
+    }
+  ],
+  "scope": "Node-only staged-body and refusal checks. Explicit-run receipts are staged to exercise pure validation; the engine-run function is never called."
+}

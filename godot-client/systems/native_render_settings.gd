@@ -1,5 +1,10 @@
 extends "res://systems/draggable_panel.gd"
 signal particles_changed(value: bool)
+signal tile_borders_changed(value: bool)
+signal show_blockers_changed(value: bool)
+signal gamma_changed(value: float)
+signal fov_changed(value: float)
+signal creature_shadow_detail_changed(value: int)
 signal particle_collision_changed(value: bool)
 signal profiling_changed(value: bool)
 signal creature_slots_changed(value: bool)
@@ -14,6 +19,25 @@ signal prework_folder_requested
 signal ui_preload_requested
 signal ui_preload_cancel_requested
 signal login_profiles_requested
+signal chat_settings_requested
+signal radial_preferences_changed(value: Dictionary)
+var radial_preferences: Dictionary={"group_abilities":false,"group_spells":false,"submenu_previews":true,"submenu_mode":1,"text_mode":1,"hide_icons":false,"text_in_center":false,"center_align_text":false,"screen_center":false,"left_mirror":true}
+var radial_toggles: Dictionary={}
+var radial_choices: Dictionary={}
+const TooltipPreferences=preload("res://systems/native_data/tooltip_preferences.gd")
+const CameraFov=preload("res://tools/native_parity/ui/camera_fov_projection.gd")
+var fov_degrees:=CameraFov.DEFAULT_DEGREES
+var fov_control: HSlider
+var fov_value: Label
+var fov_reset: Button
+# Original CreatureShadowDetail / graphics.shadows.creatures.mode, default2.
+# This policy is separate from the point-light/shadow-map budget.
+var creature_shadow_detail:=2
+var creature_shadow_select: OptionButton
+var tooltip_delay_usec:=TooltipPreferences.DEFAULT_USEC
+var tooltip_delay_control: SpinBox
+var tooltip_doubletap_ms:=TooltipPreferences.Highlight.DEFAULT_MS
+var tooltip_doubletap_control: SpinBox
 var ui_preload_prepare: Button
 var ui_preload_cancel: Button
 var ui_preload_content: OptionButton
@@ -37,6 +61,12 @@ var prework_clearing:=false
 var entity_inspector_button: Button
 var preference_path:="user://native-options.cfg"
 var particles_enabled:=false
+var tile_borders_enabled:=true
+var tile_borders_toggle: CheckBox
+var show_blockers_enabled:=false
+var show_blockers_toggle: CheckBox
+var gamma_value:=2.2
+var gamma_control: SpinBox
 var particle_collision_enabled:=true
 var profiling_enabled:=false
 var creature_slots:=false
@@ -53,8 +83,27 @@ var tabs: TabContainer
 func setup(preferences: String="user://native-options.cfg",layout: String="user://native-menu-layout.cfg",profile_requested: bool=false,static_parts_requested: String="",profiling_override: String="") -> void:
 	preference_path=preferences
 	var config:=ConfigFile.new(); config.load(preference_path)
+	tooltip_delay_usec=TooltipPreferences.apply(config.get_value("interface","tooltip_delay_usec",TooltipPreferences.DEFAULT_USEC))
+	tooltip_doubletap_ms=TooltipPreferences.apply_doubletap(config.get_value("interface","tooltip_doubletap_ms",TooltipPreferences.Highlight.DEFAULT_MS))
+	var saved_gamma: Variant=config.get_value("rendering","gamma",2.2)
+	if preload("res://systems/native_render/native_gamma_effect.gd").valid_value(saved_gamma): gamma_value=clampf(float(saved_gamma),0.0,1000.0)
+	var saved_fov: Variant=config.get_value("rendering","fov_degrees",CameraFov.DEFAULT_DEGREES)
+	fov_degrees=float(saved_fov) if CameraFov.valid(saved_fov) else CameraFov.DEFAULT_DEGREES
+	var saved_shadows: Variant=config.get_value("rendering","creature_shadow_detail",2)
+	creature_shadow_detail=int(saved_shadows) if (saved_shadows is int or saved_shadows is float) and is_finite(float(saved_shadows)) and saved_shadows in [0,1,2] else 2
+	for key in radial_preferences:
+		var setting: Variant=config.get_value("interface","radial_"+str(key),radial_preferences[key])
+		if typeof(setting)==typeof(radial_preferences[key]) and (setting is bool or int(setting) in [0,1,2]): radial_preferences[key]=setting
+	if not config.has_section_key("interface","radial_submenu_mode"): radial_preferences.submenu_mode=int(radial_preferences.submenu_previews)
+	radial_preferences.submenu_previews=int(radial_preferences.submenu_mode)!=0
 	var value: Variant=config.get_value("rendering","particles_enabled",false)
 	particles_enabled=value if value is bool else false
+	# Original graphics.tile-borders.enabled / Enable TileBorder defaults on.
+	# A server area's separate TileBorderDisabled state still takes priority.
+	value=config.get_value("rendering","tile_borders_enabled",true)
+	tile_borders_enabled=value if value is bool else true
+	value=config.get_value("rendering","show_blockers",false)
+	show_blockers_enabled=value if value is bool else false
 	value=config.get_value("rendering","particle_collision_enabled",true)
 	particle_collision_enabled=value if value is bool else true
 	value=config.get_value("rendering","profiling_enabled",false)
@@ -73,14 +122,42 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 	apply_native_theme(preload("res://systems/native_client_menu_style.gd").base_theme())
 	var built:=MenuBuilder.build(content,preload("res://systems/native_data/client_options_layout.gd").definition())
 	assert(str(built.error).is_empty(),str(built.error))
+	for key in radial_preferences:
+		if key=="submenu_previews": continue # Migrate the former Boolean, no duplicate control.
+		if radial_preferences[key] is int:
+			var choice: OptionButton=built.nodes["radial_"+str(key)]; choice.select(int(radial_preferences[key])); radial_choices[key]=choice
+			choice.item_selected.connect(func(index):save_radial_preference(key,index)); continue
+		var toggle: CheckBox=built.nodes["radial_"+str(key)]; toggle.set_pressed_no_signal(bool(radial_preferences[key]))
+		radial_toggles[key]=toggle
+		toggle.toggled.connect(func(on):save_radial_preference(key,on))
 	tabs=built.nodes.tabs
+	tooltip_delay_control=built.nodes.tooltip_delay_control; tooltip_delay_control.set_value_no_signal(float(tooltip_delay_usec)/1000.0)
+	tooltip_delay_control.value_changed.connect(func(value):tooltip_delay_usec=TooltipPreferences.save(preference_path,roundi(value*1000.0)))
+	tooltip_doubletap_control=built.nodes.tooltip_doubletap_control; tooltip_doubletap_control.set_value_no_signal(tooltip_doubletap_ms)
+	tooltip_doubletap_control.value_changed.connect(func(value):tooltip_doubletap_ms=TooltipPreferences.save_doubletap(preference_path,roundi(value)))
+	gamma_control=built.nodes.gamma_control; gamma_control.set_value_no_signal(gamma_value)
+	gamma_control.value_changed.connect(func(value):gamma_value=value; persist("gamma",value); gamma_changed.emit(value))
+	fov_value=built.nodes.fov_value;fov_reset=built.nodes.fov_reset
+	fov_control=HSlider.new();fov_control.min_value=CameraFov.MIN_DEGREES;fov_control.max_value=CameraFov.MAX_DEGREES;fov_control.step=1;fov_control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;fov_control.custom_minimum_size.x=120;fov_control.tooltip_text="Vertical angle. Original gameplay camera:45°. Wider angles show more of the world."
+	built.nodes.fov_row.add_child(fov_control);built.nodes.fov_row.move_child(fov_control,1)
+	fov_control.set_value_no_signal(fov_degrees);fov_degrees=fov_control.value;fov_value.text="%d°"%roundi(fov_degrees)
+	fov_control.value_changed.connect(set_fov_degrees)
+	fov_reset.pressed.connect(func():set_fov_degrees(CameraFov.DEFAULT_DEGREES))
+	creature_shadow_select=built.nodes.creature_shadow_select
+	creature_shadow_select.select(creature_shadow_select.get_item_index(creature_shadow_detail))
+	creature_shadow_select.item_selected.connect(func(index):
+		creature_shadow_detail=creature_shadow_select.get_item_id(index)
+		persist("creature_shadow_detail",creature_shadow_detail);creature_shadow_detail_changed.emit(creature_shadow_detail))
 	particles_toggle=built.nodes.particles_toggle
+	tile_borders_toggle=built.nodes.tile_borders_toggle
+	show_blockers_toggle=built.nodes.show_blockers_toggle
 	particle_collision_toggle=built.nodes.particle_collision_toggle
 	gore_select=built.nodes.gore_select
 	compact_scenery_toggle=built.nodes.compact_scenery_toggle
 	profile_toggle=built.nodes.profile_toggle
 	entity_inspector_button=built.nodes.entity_inspector_button
 	built.nodes.login_profiles_button.pressed.connect(func():login_profiles_requested.emit())
+	built.nodes.chat_settings_button.pressed.connect(func():chat_settings_requested.emit())
 	performance=built.nodes.performance
 	creature_toggle=built.nodes.creature_toggle
 	prework_content=built.nodes.prework_content
@@ -98,12 +175,16 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 	ui_preload_progress=built.nodes.ui_preload_progress
 	ui_preload_status=built.nodes.ui_preload_status
 	particles_toggle.set_pressed_no_signal(particles_enabled)
+	tile_borders_toggle.set_pressed_no_signal(tile_borders_enabled)
+	show_blockers_toggle.set_pressed_no_signal(show_blockers_enabled)
 	particle_collision_toggle.set_pressed_no_signal(particle_collision_enabled)
 	compact_scenery_toggle.set_pressed_no_signal(compact_scenery_enabled)
 	profile_toggle.set_pressed_no_signal(profiling_enabled); creature_toggle.set_pressed_no_signal(creature_slots)
 	gore_select.select(gore); prework_workers.select(prework_workers.get_item_index(prework_worker_setting))
 	for control in [prework_clear,prework_folder]: control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	particles_toggle.toggled.connect(func(on): particles_enabled=on; persist("particles_enabled",on); particles_changed.emit(on))
+	tile_borders_toggle.toggled.connect(func(on):tile_borders_enabled=on;persist("tile_borders_enabled",on);tile_borders_changed.emit(on))
+	show_blockers_toggle.toggled.connect(func(on):show_blockers_enabled=on;persist("show_blockers",on);show_blockers_changed.emit(on))
 	particle_collision_toggle.toggled.connect(func(on): particle_collision_enabled=on; persist("particle_collision_enabled",on); particle_collision_changed.emit(on))
 	gore_select.item_selected.connect(func(index): gore=index; persist("gore",index); gore_changed.emit(index))
 	compact_scenery_toggle.toggled.connect(func(on): compact_scenery_enabled=on; persist("compact_scenery",on); compact_scenery_changed.emit(on))
@@ -122,6 +203,19 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 	ui_preload_prepare.pressed.connect(func():ui_preload_requested.emit())
 	ui_preload_cancel.pressed.connect(func():ui_preload_cancel_requested.emit())
 	hide()
+func set_fov_degrees(value: float) -> void:
+	if not CameraFov.valid(value):return
+	fov_control.set_value_no_signal(value);fov_degrees=fov_control.value
+	fov_value.text="%d°"%roundi(fov_degrees)
+	persist("fov_degrees",fov_degrees);fov_changed.emit(fov_degrees)
+func save_radial_preference(key: String,value: Variant) -> void:
+	if not radial_preferences.has(key) or typeof(value)!=typeof(radial_preferences[key]): return
+	if value is int and value not in [0,1,2]: return
+	radial_preferences[key]=value
+	var saved:=ConfigFile.new(); saved.load(preference_path); saved.set_value("interface","radial_"+key,value)
+	if key=="submenu_mode":
+		radial_preferences.submenu_previews=int(value)!=0; saved.set_value("interface","radial_submenu_previews",radial_preferences.submenu_previews)
+	saved.save(preference_path); radial_preferences_changed.emit(radial_preferences.duplicate())
 func set_prework_available(available: bool) -> void:
 	prework_available=available; update_preparation_controls()
 func update_preparation_controls() -> void:

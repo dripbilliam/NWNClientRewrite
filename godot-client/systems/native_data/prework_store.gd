@@ -2,7 +2,8 @@ extends RefCounted
 # Explicitly generated, data-only artifacts. Never contains game downloads or
 # live nodes. Dependency bytes, lookup decisions and engine/schema identify reuse.
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
-const REVISION:="session-prework-v1"
+const REVISION:="session-prework-v2"
+const MODEL_METADATA_REVISION:="native-part-bounds-1-tilefade-1"
 # Preserve v1's identity across changes to cache locking/scheduling. This is
 # the original v1 store fingerprint, not a model processor. Format changes
 # bump REVISION; actual decoder/render source hashes remain tracked below.
@@ -13,6 +14,8 @@ const V1_SOURCE_DISCOVERY_FINGERPRINT:="33ecd4f83867df4f8f1a7490308b5d5495018b61
 # revalidates actual dependency bytes and lookup/absence facts. Changes to a
 # decoded representation or calculated output require updating its schema.
 const RESIDENCY_SOURCE_FINGERPRINTS={
+	"preparation_store.gd":"d0febfea936400d90031507cc179122259c23a52035ef84b3b7efbd1d047e681",
+	"recorded_catalog.gd":"fe5eee5ea072edd2ef18dbd03d7e0410b9a6ef89c54eeb6246c7bfa7bb08df50",
 	"archive_index.gd":"c267f1419568682c945177ae95368083093bf4a05cbcfde2bf107a6c12319af2",
 	"loose_index.gd":"bee820a82e58ccb0dd48ad68542b02f9920cb44b3e6f18f2d51311173227e698",
 	"nwsync_store.gd":"6bdae43bb428cca29938c244e09b074abd391ceeca5964847b22575473a034ea",
@@ -44,7 +47,7 @@ static func processor_identity() -> String:
 		for directory in ["res://systems/native_data","res://systems/native_render"]:
 			for filename in DirAccess.get_files_at(directory):
 				if not filename.ends_with(".gd"): continue
-				if directory=="res://systems/native_data" and filename=="resource_residency.gd": continue
+				if directory=="res://systems/native_data" and filename in ["resource_residency.gd","resource_index_backend.gd"]: continue
 				var digest:=FileAccess.get_sha256(directory.path_join(filename))
 				if directory=="res://systems/native_data":
 					if filename=="prework_store.gd": digest=V1_STORE_FINGERPRINT
@@ -87,7 +90,11 @@ static func current_generation(prepared_directory: String) -> int:
 	gate.lock(); var value:=int(generations.get(path,0)); gate.unlock(); return value
 static func request_key(name: String,type: int,decoder: String,options: Dictionary,source_sha: String,policy: Array) -> String:
 	var settings:=options.duplicate(); settings.erase("icon_descriptor")
-	return Cache.key(Cache.digest(var_to_bytes([name.to_lower(),type,decoder,settings,source_sha,policy,processor_identity()])),REVISION)
+	var identity: Array=[name.to_lower(),type,decoder,settings,source_sha,policy,processor_identity()]
+	# Baked models must retain original Part selection/render metadata. Do not
+	# change unrelated bitmap/2DA cache identities to invalidate a model payload.
+	if decoder in ["actor-model","static-model"]:identity.append(MODEL_METADATA_REVISION)
+	return Cache.key(Cache.digest(var_to_bytes(identity)),REVISION)
 static func valid_icon(data: Dictionary) -> bool:
 	var width:=int(data.get("width",0)); var height:=int(data.get("height",0)); var pixels: Variant=data.get("pixels")
 	return width>0 and height>0 and width<=4096 and height<=4096 and pixels is PackedByteArray and pixels.size()==width*height*4 and data.get("bounds") is Dictionary

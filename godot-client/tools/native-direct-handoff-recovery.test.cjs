@@ -1,0 +1,45 @@
+const test=require('node:test'),assert=require('node:assert/strict'),path=require('node:path'),crypto=require('node:crypto');
+const {NativeDirectHandoffRecovery}=require('./native-direct-handoff-recovery.cjs');
+const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
+function setup(scenario='cancel',options={}){
+ const sent=[],captures={transfers:[],recoveries:[]},source={closed:true,portalHandoffReady:true};let disposed=false,now=0,canJoin=false;
+ const state={session:null,portalState:{pending:true,phase:'retiring'},lobby:{connection:2,session:null,phase:'transferring',busy:true,transferring:true,cancelling:false,error:'',snapshot:()=>({canJoin})}};
+ const bytes=Uint8Array.from({length:1200},(_,i)=>i&255),destination={closed:false,character:bytes,identity:{toJSON:()=>({disposed})},peer:{closed:false},async connect(){await this.disconnect();throw Error('actual mocked peer connect refused');},async disconnect(){this.character?.fill(0);this.character=null;this.closed=true;this.peer.closed=true;disposed=true;}};
+ const row={from:1,to:2,endpoint:{host:'127.0.0.1',port:5130},character:{kind:'bic',bytes:1200,sha256:sha(bytes),parsedOriginal:true},transmittedSha256:null,originReleased:true,originHandoffReady:true,stages:['prepared','adopting'],previous:new WeakRef(source)};
+ const driver={scenario,fixture:{directory:path.resolve(__dirname,'../.cache/native-direct-handoff/native-direct-handoff-recovery-unit-v1'),nonce:'owned-fixture-nonce'},send:v=>sent.push(structuredClone(v)),getScope:()=>state,capture:{data:{admissions:[{connection:1}]},transfer:v=>captures.transfers.push(structuredClone(v)),recovery:v=>captures.recoveries.push(structuredClone(v))}};
+ const controller=new NativeDirectHandoffRecovery(driver,{clock:()=>now,...options});controller.prepare(row,destination);const abort=new AbortController(),context={previous:source,next:{session:destination},from:1,to:2,signal:abort.signal,current:()=>!abort.signal.aborted&&state.lobby.connection===2&&state.lobby.session===null};
+ const menu=(connection=3)=>{state.session=state.lobby.session=null;Object.assign(state.lobby,{connection,phase:'menu',busy:false,transferring:false,cancelling:false});state.portalState={pending:false,phase:'idle'};canJoin=true;};
+ const cancelInput=()=>controller.input({kind:'lobby-cancel-join'},null,2);
+ const cancelAck=()=>controller.input({kind:'direct-handoff-control',mode:'cancel',requestId:1,connection:2,pointerClick:true,sourceWorldRetired:true,retiredAlive:0,phase:'menu'},null,2);
+ const retry=()=>{const from=state.lobby.connection;assert.equal(controller.input({kind:'browser-input',operation:'join',direct:true,values:{host:'127.0.0.1',port:5129}},null,from),false);state.lobby.connection=from+1;controller.input({kind:'direct-handoff-control',mode:'recover',requestId:2,connection:from,backPointer:true,directPointer:true,confirmPointer:true,menuUsable:true,sourceWorldRetired:true,retiredAlive:0},null,from);driver.capture.data.admissions.push({connection:from+1});};
+ return{controller,driver,state,source,destination,row,bytes,sent,captures,abort,context,menu,cancelInput,cancelAck,retry,setNow:v=>{now=v;}};
+}
+test('mock retire cancellation waits for actual abort, wipe, idle menu and real UI request chain',async()=>{
+ const t=setup(),hold=t.controller.retire(t.context);assert.equal(t.sent.at(-1).mode,'cancel');assert.equal(t.controller.mayRead(4),false);assert.equal(t.cancelInput(),false);t.abort.abort();await t.destination.disconnect();await hold;assert.equal(t.cancelAck(),true);t.menu();t.controller.tick();assert.equal(t.sent.at(-1).mode,'recover');assert.equal(t.sent.at(-1).connection,3);assert.equal(t.row.connectCalls,0);assert.equal(t.row.cleanup.releasedBufferWiped,true);assert.ok(t.bytes.every(v=>v===0));
+ t.retry();assert.equal(t.controller.maySelect(4),true);t.controller.complete();assert.equal(t.captures.transfers.length,1);assert.equal(t.captures.recoveries.length,1);const r=t.captures.recoveries[0];assert.equal(r.abortObserved,true);assert.equal(r.destinationConnectCalls,0);assert.equal(r.privateCharacterWiped,true);assert.equal(r.identityDisposed,true);assert.equal(r.peerClosed,true);assert.equal(r.joinWhileClosing,false);assert.equal(r.backPointer,true);assert.equal(r.error,'');const snapshot=t.controller.snapshot();assert.ok(!('character'in snapshot));assert.equal(snapshot.sourceReady.sha256,t.row.character.sha256);snapshot.destinationLifecycle.cleanup.closed=false;assert.equal(t.controller.snapshot().destinationLifecycle.cleanup.closed,true);t.controller.close();
+});
+test('mock pending or partial cleanup cannot trigger native retry',async()=>{
+ const t=setup(),hold=t.controller.retire(t.context);t.cancelInput();t.abort.abort();await t.destination.disconnect();await hold;t.cancelAck();t.menu();
+ for(const mutate of [()=>{t.state.portalState.pending=true;},()=>{t.state.lobby.busy=true;},()=>{t.row.cleanup.identityDisposed=false;},()=>{t.row.connectCalls=1;}]){const old={pending:t.state.portalState.pending,busy:t.state.lobby.busy,disposed:t.row.cleanup.identityDisposed,calls:t.row.connectCalls};mutate();t.controller.tick();assert.equal(t.controller.retrySent,false);t.state.portalState.pending=old.pending;t.state.lobby.busy=old.busy;t.row.cleanup.identityDisposed=old.disposed;t.row.connectCalls=old.calls;}
+ t.controller.tick();assert.equal(t.controller.retrySent,true);t.controller.close();
+});
+test('mock source/lobby mismatch and forged UI acknowledgments are rejected',async()=>{
+ const t=setup();t.state.session=t.source;await assert.rejects(t.controller.retire(t.context),/null-lobby/);t.state.session=null;const hold=t.controller.retire(t.context);
+ assert.throws(()=>t.controller.input({kind:'direct-handoff-control',mode:'cancel',requestId:1,connection:2,pointerClick:true},null,2),/acknowledgment/);assert.throws(()=>t.controller.input({kind:'lobby-cancel-join'},null,1),/outside/);
+ t.cancelInput();t.abort.abort();await t.destination.disconnect();await hold;t.cancelAck();t.menu();t.controller.tick();assert.throws(()=>t.controller.input({kind:'browser-input',operation:'join',direct:true,values:{host:'example.org',port:5129}},null,3),/owned-A/);
+ assert.throws(()=>t.controller.input({kind:'direct-handoff-control',mode:'recover',requestId:2,connection:3,backPointer:true,directPointer:true,confirmPointer:true,menuUsable:true,sourceWorldRetired:true,retiredAlive:0},null,3),/acknowledgment/);t.controller.close();
+});
+test('mock destination-unavailable barrier verifies nonce and exact request hash before connect',async()=>{
+ let request=null;const io={async writeFile(file,text,options){assert.equal(options.flag,'wx');request={file,text};},async readFile(file){assert.match(file,/destination-stopped\.json$/);return Buffer.from(JSON.stringify({version:1,kind:'native-direct-handoff-stopped',host:'127.0.0.1',port:5130,fixtureNonce:'owned-fixture-nonce',requestSha256:sha(request.text),stopped:true}));}};
+ const t=setup('failure',{io});await t.controller.retire(t.context);assert.equal(t.controller.destinationStopped,true);assert.equal(t.row.connectCalls,0);assert.match(request.file,/stop-destination\.json$/);assert.deepEqual(Object.keys(JSON.parse(request.text)).sort(),['version','kind','host','port','fixtureNonce','from','to'].sort());
+ await assert.rejects(t.destination.connect(),/refused/);await t.destination.disconnect();assert.equal(t.row.connectCalls,1);assert.equal(t.row.cleanup.releasedBufferWiped,true,'idempotent cleanup preserves the actually inspected wipe');t.row.stages.push('installed','failed');assert.equal(t.controller.event({stage:'failed'}),true);t.state.lobby.error='Destination connection failed';t.menu(2);t.controller.tick();assert.equal(t.sent.at(-1).mode,'recover');t.retry();t.controller.complete();assert.equal(t.captures.recoveries[0].destinationStopped,true);assert.equal(t.captures.recoveries[0].destinationConnectCalls,1);assert.equal(t.captures.recoveries[0].cancelPointer,false);t.controller.close();
+});
+test('mock stop acknowledgment cannot borrow another fixture or successful delivery',async()=>{
+ for(const change of [r=>r.fixtureNonce='other',r=>r.requestSha256='0'.repeat(64),r=>r.stopped=false,r=>r.port=5129]){
+  let text;const io={async writeFile(_file,value){text=value;},async readFile(){const ack={version:1,kind:'native-direct-handoff-stopped',host:'127.0.0.1',port:5130,fixtureNonce:'owned-fixture-nonce',requestSha256:sha(text),stopped:true};change(ack);return Buffer.from(JSON.stringify(ack));}};
+  const t=setup('failure',{io});await assert.rejects(t.controller.retire(t.context),/acknowledgment differs/);assert.equal(t.row.connectCalls,0);assert.equal(t.controller.destinationStopped,false);t.controller.close();
+ }
+});
+test('closing a mock retirement releases its hold and restores only owned wrappers',async()=>{
+ const t=setup(),wrapped=t.destination.connect,hold=t.controller.retire(t.context);t.controller.close();await assert.rejects(hold,/controller closed/);assert.notEqual(t.destination.connect,wrapped);assert.equal(t.sent.filter(r=>r.mode==='recover').length,0);
+});

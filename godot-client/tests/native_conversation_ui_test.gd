@@ -73,7 +73,15 @@ func run() -> void:
 		var old_callback: Callable=dialog.replies.get_child(0).pressed.get_connections()[0].callable
 		await receive(ui,{"kind":"dialog-replies","entryId":7,"end":false,"firstCount":1,"secondCount":0,"tokenObjectId":43,"replies":[{"id":4294967293,"text":{"text":"Fresh callback owner"}}]}); old_callback.call(); check(requests.size()==before,"A retired callback cannot select a repeated wire ID in a replacement view")
 		retired=null
-		ui.chat.entry.grab_focus(); await key(KEY_1); await key(KEY_1,false); check(requests.size()==before,"Typing numbers in chat leaves dialogue choices untouched"); ui.chat.entry.release_focus()
+		# Chat focus now has its own native-panel notifications. Those are valid
+		# server UI events, so testing all request traffic as though it were only
+		# dialogue commands incorrectly rejects a successful focus transition.
+		var chat_start: int=requests.size(); var chat_entry: int=dialog.entry_id; var chat_serial: int=dialog.serial; var chat_pending: bool=dialog.pending
+		ui.chat.entry.grab_focus(); await key(KEY_1); await key(KEY_1,false); ui.chat.entry.release_focus(); await process_frame
+		var chat_messages: Array=requests.slice(chat_start)
+		var focus_messages: Array=chat_messages.filter(func(message):return message.kind=="native-panel" and message.get("panel")=="chat-focus")
+		check(not chat_messages.any(func(message):return message.kind=="reply") and dialog.entry_id==chat_entry and dialog.serial==chat_serial and dialog.pending==chat_pending,"Typing numbers in chat leaves dialogue choices, entry serial and pending state untouched")
+		check(focus_messages.size()==2 and focus_messages.map(func(message):return message.open)==[true,false] and focus_messages.all(func(message):return message.actorId==42 and message.areaId==55 and message.generation==1 and message.mode==2),"Chat focus emits its separate open/close native-panel notifications")
 		ui.desktop.panel("character"); await key(KEY_1); await key(KEY_1,false); check(not dialog.pending,"A covered dialogue does not steal another window's numeric shortcuts"); ui.desktop.sheet.close_sheet(); before=requests.size()
 		dialog.move_to_front(); await key(KEY_1); await key(KEY_1,false); check(requests.size()==before+1 and requests.back().entryId==7,"The front dialogue accepts its real numeric choice")
 		await receive(ui,{"kind":"dialog-entry","ownerId":43,"speakerId":43,"tokenObjectId":43,"text":{"text":"A terminal entry"}})

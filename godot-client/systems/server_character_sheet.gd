@@ -14,13 +14,16 @@ var tabs: Array = []
 var body: VBoxContainer
 var image_nodes: Dictionary = {}
 var entry_nodes: Dictionary = {}
+var entry_data: Dictionary = {}
 var selected: Dictionary = {}
 var scrolls: Dictionary = {}
 var active_scrolls: Dictionary = {}
 var description: RichTextLabel
+var displayed_description: Dictionary={}
 var notice: Label
 var level_button: Button
 var native_skin
+var selection_timings:={"count":0,"last_ms":0.0,"max_ms":0.0,"text_ms":0.0,"selection_ms":0.0,"entry":-1,"characters":0}
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Character Record", "character-sheet", Vector2(110, 80), storage)
@@ -45,7 +48,7 @@ func reset() -> void:
 func clear_body() -> void:
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.clear_page()
 	for child in body.get_children(): body.remove_child(child); child.queue_free()
-	image_nodes.clear(); entry_nodes.clear(); active_scrolls.clear(); description = null
+	image_nodes.clear(); entry_nodes.clear(); entry_data.clear(); active_scrolls.clear(); description = null; displayed_description.clear()
 
 func open() -> void:
 	wanted = true; show(); move_to_front(); notice.text = "Waiting for server character details…"
@@ -72,6 +75,12 @@ func receive(message: Dictionary) -> void:
 			if not wanted or int(message.viewId) != view_id or not image_nodes.has(str(message.key)): return
 			var texture: Texture2D = Images.png(str(message.image), 1024)
 			if texture != null: image_nodes[str(message.key)].texture = texture
+		"sheet-description":
+			if not wanted or int(message.get("viewId",-1))!=view_id or int(message.get("page",-1))!=page: return
+			var id:=int(message.get("entryId",-1))
+			if not entry_data.has(id): return
+			entry_data[id].description=message.description.duplicate(true)
+			if int(selected.get(str(page),-1))==int(entry_data[id].id): set_description(entry_data[id].description)
 
 func value(raw: Variant) -> String:
 	return preload("res://systems/native_data/game_numbers.gd").text(raw)
@@ -89,6 +98,7 @@ func picture(key: String, size_hint: Vector2) -> TextureRect:
 
 func render() -> void:
 	clear_body()
+	for row in state.get("entries",[]): entry_data[int(row.entryId)]=row
 	var model: Dictionary = state.model
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render()
 	else:
@@ -141,17 +151,35 @@ func entries() -> void:
 		if int(row.id) == int(selected.get(str(page), -1)): select_entry(int(row.entryId))
 	if state.entries.is_empty(): list.add_child(Text.label({"text": str(state.model.get("waiting", {}).get("Skills" if page == 1 else "Feats", "Waiting for server details…"))}, 320))
 
+func inspect_entry(id: int) -> void:
+	# Original character-sheet9bf640 fetches the current TLK text on every
+	# physical skill selection, then sends GUI event3. Restoring selection while
+	# rebuilding a view must not simulate another click or trigger a server loop.
+	if not wanted or not entry_data.has(id): return
+	select_entry(id)
+	request.emit({"kind":"sheet-select","viewId":view_id,"page":page,"entryId":id})
+
+func set_description(rich: Dictionary) -> void:
+	if not is_instance_valid(description) or displayed_description==rich: return
+	displayed_description=rich.duplicate(true)
+	Text.set_text(description,rich)
+
 func select_entry(id: int) -> void:
 	if not wanted: return
-	for row in state.get("entries", []):
-		if int(row.entryId) == id:
-			selected[str(page)] = int(row.id)
-			Text.set_text(description, row.description)
-			if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.select_entry(id)
-			else:
-				for entry_id in entry_nodes: entry_nodes[entry_id].modulate = Color(1.0, 0.86, 0.5) if entry_id == id else Color.WHITE
-			if active_scrolls.has("description"): active_scrolls.description.scroll_vertical = 0
-			return
+	if entry_data.has(id):
+		var row: Dictionary=entry_data[id]
+		var began:=Time.get_ticks_usec()
+		selected[str(page)] = int(row.id)
+		set_description(row.description)
+		var text_done:=Time.get_ticks_usec()
+		if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.select_entry(id)
+		else:
+			for entry_id in entry_nodes: entry_nodes[entry_id].modulate = Color(1.0, 0.86, 0.5) if entry_id == id else Color.WHITE
+		if active_scrolls.has("description"): active_scrolls.description.scroll_vertical = 0
+		var elapsed: float=(Time.get_ticks_usec()-began)/1000.0
+		selection_timings.count+=1; selection_timings.last_ms=elapsed; selection_timings.max_ms=maxf(float(selection_timings.max_ms),elapsed); selection_timings.text_ms=(text_done-began)/1000.0; selection_timings.selection_ms=elapsed-float(selection_timings.text_ms); selection_timings.entry=int(row.id); selection_timings.characters=description.get_total_character_count()
+		preload("res://systems/native_render/frame_profile.gd").record("ui_record_selection_ms",elapsed)
+		if elapsed>=8: print("NATIVE_RECORD_SELECTION page=",page," id=",int(row.id)," chars=",selection_timings.characters," total_ms=",elapsed," text_ms=",selection_timings.text_ms," selection_ms=",selection_timings.selection_ms)
 
 func can_drag(data: Dictionary) -> bool:
 	return wanted and int(data.get("viewId", -1)) == view_id and state.get("entries", []).any(func(row): return int(row.entryId) == int(data.get("entryId", -1)) and row.get("canDrag", false))

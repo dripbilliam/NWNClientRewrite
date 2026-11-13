@@ -5,6 +5,9 @@ const Core = preload("res://systems/area_environment_state.gd")
 var camera: Camera3D
 var controller
 var sunlight: DirectionalLight3D
+var native_enhanced_lighting:=false
+var native_surface_output:=false
+var lighting_world: WeakRef
 var source: Dictionary = {}
 var elapsed := 0.0
 var revision := -1
@@ -50,6 +53,7 @@ func advance_weather(delta: float) -> void:
 
 func receive_sky(message: Dictionary) -> bool:
 	var next = preload("res://systems/area_sky.gd").new()
+	next.native_surface_output=native_surface_output
 	add_child(next)
 	if not next.install(message):
 		push_warning(next.error)
@@ -62,6 +66,12 @@ func receive_sky(message: Dictionary) -> bool:
 	return true
 
 func configure(metadata: Dictionary,room: Node) -> void:
+	lighting_world=weakref(room)
+	native_enhanced_lighting=room.get_meta("native_enhanced_lighting",false)
+	native_surface_output=room.get_meta("native_surface_output",false)
+	# Native live worlds provide a data-only sky owner. The older GLB delivery
+	# API remains confined to its reference fixtures/local_connection path.
+	if room.has_meta("native_sky_owner"): sky=room.get_meta("native_sky_owner")
 	environment = Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color.BLACK
@@ -96,9 +106,10 @@ func receive(message: Dictionary) -> bool:
 	var period := int(state.time.get("timeOfDay",-1))
 	if period < 0 or period > 4: return false
 	source = state.duplicate(true); elapsed = Core.f(state.elapsed); revision = next
+	if is_instance_valid(sky) and sky.has_method("select_sky"): sky.select_sky(int(fields.e0))
 	colors = {"moonAmbient":packed(int(fields["98"])),"moonDiffuse":packed(int(fields["9c"])),"moonFog":packed(int(fields.a0)),"sunAmbient":packed(int(fields.b8)),"sunDiffuse":packed(int(fields.bc)),"sunFog":packed(int(fields.c0))}
 	sample.clear()
-	environment.fog_enabled = true
+	environment.fog_enabled = not native_surface_output
 	environment.fog_mode = Environment.FOG_MODE_DEPTH
 	environment.fog_light_energy = 1.0
 	environment.fog_density = 1.0
@@ -130,14 +141,31 @@ func advance(delta: float) -> void:
 	if sample.is_empty() or not sample.complete:
 		sample = Core.phase_sample(colors,{"moon":fields.a4,"sun":fields.c4},mode,elapsed,Core.f(float(source.minutesPerHour)*60),fields["104"],night)
 		var fog := rgb(sample.fog)
-		environment.background_color = fog
+		# Godot decodes the color property into its linear framebuffer. The
+		# candidate framebuffer instead carries native gamma-space values.
+		environment.background_color = fog.linear_to_srgb() if native_surface_output else fog
 		environment.ambient_light_color = rgb(sample.ambient)
+		if native_enhanced_lighting: preload("res://systems/native_render/native_light_palette.gd").ambient(preload("res://systems/native_render/native_light_policy.gd").linear_rgb(sample.ambient))
 		environment.fog_light_color = fog
 		_apply_sun(fields)
 		phase_updates += 1
+	var room=lighting_world.get_ref() if lighting_world!=null else null
+	var reference: WeakRef=room.get_meta("native_focus_light_owner") if is_instance_valid(room) and room.has_meta("native_focus_light_owner") else null
+	var focus_owner=reference.get_ref() if reference!=null else null
+	# Original Scene::DoFog replaces only the geometry fog RGB while m_pOnlyGob
+	# is set. The clear color and sky/horizon still use the area's authored RGB.
+	var geometry_fog:=Color.BLACK if is_instance_valid(focus_owner) and focus_owner.only_light_owner()!=0 else rgb(sample.fog)
+	if environment.fog_light_color!=geometry_fog: environment.fog_light_color=geometry_fog
+	if is_instance_valid(focus_owner):
+		focus_owner.set_area(sample.ambient,sample.diffuse)
+		focus_owner.history_camera=weakref(camera); focus_owner.history_environment=weakref(self)
+		if is_instance_valid(controller): focus_owner.focus=controller.target
 	var distance: float = float(controller.distance) if is_instance_valid(controller) else 20.0
 	if is_instance_valid(controller) and controller.follow_state != null: distance = controller.follow_state.state.distance
 	range_state = Core.fog_range(camera.near,fields["108"],distance,sample.amount,int(fields.e0) != 0,true)
+	if native_surface_output and is_instance_valid(room):
+		preload("res://systems/native_render/native_surface_state.gd").publish(room,Vector3(geometry_fog.r,geometry_fog.g,geometry_fog.b),true,range_state.start,range_state.end)
+	if is_instance_valid(focus_owner): focus_owner.history_radius=range_state.end
 	# Godot setters maintain begin<=end, including when the new interval is
 	# wholly before/after the previous one. Native negative starts are retained.
 	if range_state.start != environment.fog_depth_begin or range_state.end != environment.fog_depth_end:
@@ -145,8 +173,16 @@ func advance(delta: float) -> void:
 		environment.fog_depth_begin = range_state.start
 		environment.fog_depth_end = range_state.end
 	if camera.far != range_state.far: camera.far = range_state.far
-	if is_instance_valid(sky): sky.advance(source,elapsed,rgb(sample.fog))
+	if is_instance_valid(sky):
+		sky.camera=camera
+		sky.advance(source,elapsed,rgb(sample.fog))
 	updates += 1
+
+func apply_native_area_light(ambient: Vector3,diffuse: Vector3) -> void:
+	# Native history supplies already converted raw-color * fade. Preserve sun
+	# direction, shadows and fog; only the two independent RGB channels change.
+	preload("res://systems/native_render/native_light_palette.gd").ambient(ambient)
+	if is_instance_valid(sunlight): sunlight.light_color=Color(diffuse.x,diffuse.y,diffuse.z).linear_to_srgb()
 
 func _apply_sun(fields: Dictionary) -> void:
 	var moon: bool = sample.isNight
@@ -156,9 +192,27 @@ func _apply_sun(fields: Dictionary) -> void:
 		sunlight.global_basis = Basis.looking_at(-z,Vector3.RIGHT if absf(z.dot(Vector3.UP)) > .999 else Vector3.UP)
 	# No guessed light direction for old packets that omit the direction.
 	sunlight.light_color = rgb(sample.diffuse)
+	if native_enhanced_lighting:
+		var value: Vector3=preload("res://systems/native_render/native_light_policy.gd").linear_rgb(sample.diffuse)
+		sunlight.light_color=Color(value.x,value.y,value.z).linear_to_srgb()
 	sunlight.light_energy = 1.0 if not direction.is_zero_approx() else 0.0
 	sunlight.shadow_enabled = bool(fields.a8 if moon else fields.c8)
 	sunlight.shadow_opacity = sample.shadow
 
 func snapshot() -> Dictionary:
-	return {"revision":revision,"updates":updates,"phaseUpdates":phase_updates,"elapsed":elapsed,"sample":sample.duplicate(true),"range":range_state.duplicate(true),"fog":environment.fog_enabled,"background":[environment.background_color.r,environment.background_color.g,environment.background_color.b],"sky":sky.snapshot() if is_instance_valid(sky) else null,"weather":weather.snapshot() if weather_revision >= 0 else null}
+	return {"revision":revision,"updates":updates,"phaseUpdates":phase_updates,"elapsed":elapsed,"sample":sample.duplicate(true),"range":range_state.duplicate(true),"fog":environment.fog_enabled,"native_surface_output":native_surface_output,"native_fog":preload("res://systems/native_render/native_surface_state.gd").snapshot() if native_surface_output else {},"background":[environment.background_color.r,environment.background_color.g,environment.background_color.b],"sky":sky.snapshot() if is_instance_valid(sky) else null,"weather":weather.snapshot() if weather_revision >= 0 else null}
+
+func lighting_diagnostic() -> Dictionary:
+	# Read cached renderer properties only: no GPU readback, scene mutation,
+	# resource requests or light/quality overrides during a user's live session.
+	if environment==null: return {"configured":false}
+	var ambient:=environment.ambient_light_color;var fog:=environment.fog_light_color
+	var result:={"configured":true,"revision":revision,"source":source.duplicate(true),"sample":sample.duplicate(true),"ambient":{"color":[ambient.r,ambient.g,ambient.b],"energy":environment.ambient_light_energy,"source":environment.ambient_light_source},"fog":{"enabled":environment.fog_enabled,"color":[fog.r,fog.g,fog.b],"begin":environment.fog_depth_begin,"end":environment.fog_depth_end},"sun":{"present":is_instance_valid(sunlight)}}
+	result.native_lighting={"enabled":native_enhanced_lighting,"active_lamps":preload("res://systems/native_render/native_light_palette.gd").active.size(),"metadata_capacity":preload("res://systems/native_render/native_light_palette.gd").CAPACITY,"metadata_uploads":preload("res://systems/native_render/native_light_palette.gd").flushes,"metadata_overflows":preload("res://systems/native_render/native_light_palette.gd").overflows,"policy":"Enhanced native light/material candidate; Godot cluster/shadow owners retained"}
+	if is_instance_valid(camera) and camera.compositor!=null:
+		for effect in camera.compositor.compositor_effects:
+			if effect.has_method("snapshot") and effect.get_meta("native_final_color",false): result.native_lighting.gamma=effect.snapshot()
+	if is_instance_valid(sunlight):
+		var color:=sunlight.light_color;var axis:=sunlight.global_basis.z
+		result.sun={"present":true,"visible":sunlight.is_visible_in_tree(),"energy":sunlight.light_energy,"color":[color.r,color.g,color.b],"basis_z":[axis.x,axis.y,axis.z],"shadows":sunlight.shadow_enabled}
+	return result

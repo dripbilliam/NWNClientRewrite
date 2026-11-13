@@ -1,0 +1,13 @@
+config_version=5
+
+[application]
+config/name="Private Tracy CPU Wire Smoke"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="NwnTracyPrivateSmoke"
+
+[display]
+window/vsync/vsync_mode=0
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+driver/threads/thread_model=2

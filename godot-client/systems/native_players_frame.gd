@@ -124,8 +124,8 @@ func rows() -> Array:
 	for pair in desktop.state.get("players",[]):
 		var player: Dictionary=pair[1]; var target:=int(player.get("objectId",-1)); var character: Dictionary=player.get("character",{}); var pc:=int(character.get("id",-1))
 		if target==desktop.actor_id or pc==desktop.actor_id or bool(player.get("isDM",player.get("dm",false))): continue
-		var attitude: Dictionary=attitudes.get(int(pair[0]),{}); var object: Dictionary=desktop.objects.get(target,{})
-		result.append({"entryId":result.size(),"playerId":int(pair[0]),"objectId":target,"characterId":pc,"label":desktop.owner_ui.text.name({"firstName":character.get("firstName",{}),"lastName":character.get("lastName",{})},pc),"account":str(player.get("name","")),"dm":false,"self":false,"member":desktop.state.get("party",[]).any(func(row):return int(row.id)==target),"ownLikes":int(attitude.get("ownLikes",1)),"incomingLikes":int(attitude.get("incomingLikes",1)),"reaction":reaction(object)})
+		var attitude: Dictionary=attitudes.get(int(pair[0]),{}); var object: Dictionary=desktop.objects.get(pc,{})
+		result.append({"entryId":result.size(),"playerId":int(pair[0]),"objectId":target,"characterId":pc,"label":preload("res://systems/native_data/chat_reply.gd").character_name(player,desktop.owner_ui.text),"account":str(player.get("name","")),"dm":false,"self":false,"member":desktop.state.get("party",[]).any(func(row):return int(row.id)==pc),"ownLikes":int(attitude.get("ownLikes",1)),"incomingLikes":int(attitude.get("incomingLikes",1)),"reaction":reaction(object)})
 	return result
 func row_entry(source: Dictionary,origin: Vector2) -> Dictionary:
 	var entry:=source.duplicate(true); entry.offset-=origin; entry.rect.position-=origin; return entry
@@ -163,10 +163,10 @@ func select_player(id: int,notify: bool) -> void:
 	for index in panel.rows.size():
 		if int(panel.rows[index].playerId)!=id: continue
 		selected=index; render()
-		if notify: send("native-players",{"operation":"select","playerId":id,"targetId":int(panel.rows[index].objectId)})
+		if notify: send("native-players",{"operation":"select","playerId":id,"targetId":int(panel.rows[index].characterId)})
 		return
 func action_context() -> Dictionary:
-	var row:=selected_row(); return {"scope":scope(),"view":panel.view_id,"id":int(row.get("playerId",-1)),"target":int(row.get("objectId",-1)),"inviter":invitation()}
+	var row:=selected_row(); return {"scope":scope(),"view":panel.view_id,"id":int(row.get("playerId",-1)),"target":int(row.get("objectId",-1)),"character":int(row.get("characterId",-1)),"inviter":invitation()}
 func update_actions() -> void:
 	var row:=selected_row(); var invited:=invitation()>=0; var member:=bool(row.get("member",false)); var leader:=bool(flags().get("leader",false))
 	var states: Dictionary={"invitebutton":["ir_accept",0x1051d,invited],"leavebutton":["ir_reject",0x1051c,invited],"transferbutton":["ir_ignore",0x1051b,invited],"tellbutton":["ir_chat",0x104db,not row.is_empty()]}
@@ -181,12 +181,12 @@ func invoke(tag: String) -> void:
 	if began!=now: return
 	var row:=selected_row(); var invited:=invitation()>=0
 	if tag=="tellbutton":
-		send("native-players",{"operation":"tell","playerId":int(row.playerId),"targetId":int(row.characterId)}); desktop.owner_ui.chat.prime_tell(row.label); return
+		send("native-players",{"operation":"tell","playerId":int(row.playerId),"targetId":int(row.objectId)}); desktop.owner_ui.chat.prime_tell(row.label); return
 	var operation: String={"invitebutton":"accept","leavebutton":"reject","transferbutton":"ignore"}.get(tag,"") if invited else {"invitebutton":"kick" if row.get("member",false) else "invite","leavebutton":"leave","transferbutton":"transfer"}.get(tag,"")
 	if operation.is_empty(): return
 	var message: Dictionary={"operation":operation}
 	if invited: message.targetId=invitation()
-	elif operation!="leave": message.playerId=int(row.playerId); message.targetId=int(row.objectId)
+	else: message.playerId=int(row.playerId); message.targetId=int(row.characterId)
 	send("native-party",message)
 func attitude_click(id: int) -> void:
 	if not pending.is_empty(): render(); return

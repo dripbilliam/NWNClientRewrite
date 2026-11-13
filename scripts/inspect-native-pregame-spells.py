@@ -14,6 +14,7 @@ from unicorn.x86_const import *
 u=m.u;u.hook_del(m.hook_handle)
 actor,rules,classes,races,gain_lists,known_lists,spells,page,string,vtable=[m.heap+n for n in [0x1000,0x10000,0x12000,0x18000,0x20000,0x30000,0x50000,0x60000,0x62000,0x63000]]
 text_stub=m.stop+0x100
+creature=m.heap+0x75000
 ranges=[(0x1407f1110,0x1407f1226),(0x140299710,0x14029978e),(0x1407ec3a0,0x1407ec50b),(0x1407f6b20,0x1407f710a),(0x1407f7130,0x1407f742f),(0x1407f0f60,0x1407f0fc6),(0x1407f1080,0x1407f109f),(0x1407f69a0,0x1407f6a06),(0x1402a4a30,0x1402a4a49),(0x140299e40,0x140299e68),(0x1407f66e0,0x1407f674c),(0x1407f5c50,0x1407f5d00),(0x1409c1b50,0x1409c1e4e),(0x1407ebed0,0x1407ebffa)]
 def hook(u,a,n,_):
  global last_ref
@@ -22,6 +23,7 @@ def hook(u,a,n,_):
  if a==0x1402ae870:
   key=bytes(u.mem_read(x,100)).split(b'\0')[0].decode('ascii');key='C'+key if key.startswith('HARGEN_')else key;keys.append(key);m.finish(len(keys))
  elif a==0x1402a4130:m.finish(settings.get(keys[y-1],z&0xffffffff))
+ elif a==0x140800c90:m.finish(creature)
  elif a in[0x140115890,0x140c10370,0x140c10410,0x1401fb540,text_stub]:m.finish()
  elif a==0x1401edf80:captured.clear();m.finish()
  elif a==0x140198c60:last_ref=y&0xffffffff;m.wq(z,string+0x100);m.wi(z+8,0);m.finish(1)
@@ -32,7 +34,7 @@ def hook(u,a,n,_):
   m.finish((tables['spells']['orderedRows'][id].get(data['SpellTableColumn'],255)&255)if data['SpellCaster']or not data['PlayerClass']else 255)
  elif a==0x1409c1490:
   id=y&0xffffffff;icon=bytes(u.mem_read(z,17)).split(b'\0')[0].decode('ascii').lower();captured.append(dict(id=-1 if id==0xffffffff else id,nameRef=last_ref,icon=icon));m.finish()
- elif not any(lo<=a<hi for lo,hi in ranges):raise AssertionError(f'Uncaptured pregame spell dependency {a:x}')
+ elif not any(lo<=a<hi for lo,hi in ranges+[(0x1409c1810,0x1409c1b4e)]):raise AssertionError(f'Uncaptured summary spell dependency {a:x}')
 u.hook_add(UC_HOOK_CODE,hook)
 def call(address,args):
  rsp=m.stack+0x1fe08;m.wq(rsp,m.stop);u.reg_write(UC_X86_REG_RSP,rsp)
@@ -40,7 +42,7 @@ def call(address,args):
  u.emu_start(address,m.stop,count=3000000);assert u.reg_read(UC_X86_REG_RIP)==m.stop
  return u.reg_read(UC_X86_REG_RAX)
 def signed(v):return (v&255)-256 if v&128 else v&255
-def run(c):
+def run(c,live=False):
  global tables,settings,keys,captured,last_ref
  tables=c['tables'];settings=c['settings'];source=c['source'];stats=source['stats'];keys=[];captured=[];last_ref=0
  u.mem_write(m.heap,bytes(0x100000));u.mem_write(m.stack,bytes(0x20000));m.wq(0x1412df8f8,rules);m.wq(0x1412df968,string+0x500);m.wq(rules+0x110,classes);m.wq(rules+0x118,races)
@@ -65,8 +67,17 @@ def run(c):
  for id,row in enumerate(tables['spells']['orderedRows']):m.wi(spells+id*0x1b0+0x10,row['Name']);u.mem_write(spells+id*0x1b0+0x18,row['IconResRef'].encode()+b'\0')
  minimums=[[bool(call(0x1407f7130,[actor,index,level])&255)for level in range(10)]for index in range(len(stats['classes']))]
  slots=[[call(0x1407f6b20,[actor,index,level])&255 for level in range(10)]for index in range(len(stats['classes']))]
- m.wq(page+0x188,string);m.wq(string,vtable);m.wq(vtable+0xd0,text_stub);call(0x1409c1b50,[page,actor])
- return dict(case=c,minimums=minimums,slots=slots,captured=list(captured))
+ m.wq(page+0x188,string);m.wq(string,vtable);m.wq(vtable+0xd0,text_stub);m.wq(creature+0x3b0,actor);call(0x1409c1810 if live else 0x1409c1b50,[page,42 if live else actor])
+ levels=[]
+ for index in range(len(stats['classes'])):
+  book=[]
+  for level in range(10):
+   count=m.si(actor+index*0x150+0x150+level*0x10);ptr=m.q(actor+index*0x150+0x148+level*0x10)
+   book.append(list(struct.unpack('<'+'I'*count,u.mem_read(ptr,count*4))))
+  levels.append(dict(school=source['books'][index]['school'],levels=book))
+ result=dict(case=c,minimums=minimums,slots=slots,captured=list(captured))
+ if live:result['liveBooks']=levels
+ return result
 if __name__=='__main__':
  rng=random.Random(9123);cases=[]
  for index in range(72):

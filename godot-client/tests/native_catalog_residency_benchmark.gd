@@ -41,6 +41,10 @@ func run() -> void:
 		check(str(result.error).is_empty(),"Original installed catalog prepares: "+str(iteration))
 		if not str(result.error).is_empty(): break
 		var catalog=result.catalog; var sample:={"iteration":iteration,"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"catalog":result.stats}
+		if args.get("verify-indexes","")=="true":
+			var verification_began:=Time.get_ticks_usec(); var fingerprints: Array=[]
+			for layer in catalog.layers: fingerprints.append({"kind":layer.kind,"entries":layer.entries.size(),"sha256":Cache.digest(var_to_bytes(layer.entries))})
+			sample.index_fingerprints=fingerprints; sample.binding_fingerprint=Cache.digest(var_to_bytes(catalog.resolved)); sample.verification_ms=(Time.get_ticks_usec()-verification_began)/1000.0
 		if iteration==0:
 			# Read several real resource types through the same resolver. No scene,
 			# renderer, network traffic or guessed dependencies are involved.

@@ -50,7 +50,9 @@ std::vector<uint8_t> bgra(const uint8_t* p,size_t length,int64_t at,int64_t coun
 }
 size_t plt_count(const uint8_t* p,size_t length){
  if(!range(length,0,24)||std::memcmp(p,"PLT V1  ",8)!=0)return 0;
- const auto layers=u32(p+8),w=u32(p+16),h=u32(p+20);if(layers<1||layers>10||!dimensions(w,h))return 0;
+ // Original texture loading ignores header+8 for palette bounds. Declared11
+ // is present in shipped inventory icons; pixel selectors still choose colors.
+ const auto w=u32(p+16),h=u32(p+20);if(!dimensions(w,h))return 0;
  const size_t count=static_cast<size_t>(w)*h;return range(length,24,count*2)?count:0;
 }
 int64_t layer_mask(const uint8_t* p,size_t length){

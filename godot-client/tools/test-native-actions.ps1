@@ -1,9 +1,18 @@
 [CmdletBinding()]
-param([ValidatePattern('^[a-z0-9-]+$')][string]$Run='native-actions-live-v1',[switch]$Nui,[switch]$Effects,[switch]$Ranged,[switch]$Profile,[string]$ProtectedKeyFile='',[ValidateSet('bow','sling')][string]$RangedWeapon='bow',[switch]$Deflection,[switch]$Miss,[switch]$Parry,[switch]$Shield,[ValidateSet('small','large','tower')][string]$ShieldKind='small',[switch]$SpecialAttack,[ValidateSet('stun','quivering','ki')][string]$SpecialAttackKind='stun',[switch]$ParticleCrowd,[switch]$Correction,[switch]$Radial,[switch]$Feat,[switch]$Barter,[string]$BarterPeerKeyFile='',[switch]$Journal,[switch]$Map,[switch]$Players,[switch]$LobbyPages,[switch]$LocalVault,[switch]$LocalDelete)
+param([ValidatePattern('^[a-z0-9-]+$')][string]$Run='native-actions-live-v1',[switch]$Nui,[switch]$Headless,[switch]$Effects,[switch]$Ranged,[switch]$Profile,[string]$ProtectedKeyFile='',[ValidateSet('bow','sling')][string]$RangedWeapon='bow',[switch]$Deflection,[switch]$Miss,[switch]$Parry,[switch]$Shield,[ValidateSet('small','large','tower')][string]$ShieldKind='small',[switch]$SpecialAttack,[ValidateSet('stun','quivering','ki')][string]$SpecialAttackKind='stun',[switch]$ParticleCrowd,[switch]$Correction,[switch]$Radial,[switch]$Feat,[switch]$Barter,[string]$BarterPeerKeyFile='',[switch]$Journal,[switch]$Map,[switch]$Players,[switch]$LobbyPages,[switch]$LocalVault,[switch]$LocalDelete,[ValidateSet('standard','wizard','cleric')][string]$RadialCaster='standard',[switch]$Quickbar,[switch]$Polymorph,[switch]$WorldRadial,[switch]$CombatPresentation,[switch]$NpcCombat,[string]$NpcCombatDistinctAudit='')
 if($LobbyPages -and ($Players -or $Barter -or $Map -or $Journal -or $Nui -or $Effects -or $Ranged -or $Parry -or $SpecialAttack -or $Correction -or $Radial -or $Feat -or $ParticleCrowd -or -not $BarterPeerKeyFile)){throw 'Lobby page checks require the isolated standard fixture and an explicit protected participant key'}
+if($Headless -and -not ($Players-or$Quickbar-or$Polymorph-or$WorldRadial-or$CombatPresentation-or$NpcCombat)){throw 'Headless action coverage requires an isolated owned fixture'}
+if($NpcCombat-and(-not$Headless-or$Quickbar-or$Polymorph-or$WorldRadial-or$CombatPresentation-or$Players-or$Barter-or$Map-or$Journal-or$Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$Correction-or$Radial-or$Feat-or$ParticleCrowd-or$LobbyPages-or$LocalVault-or$LocalDelete)){throw 'NPC combat requires its isolated headless loopback fixture'}
+if($NpcCombat-and(-not$NpcCombatDistinctAudit-or-not$ProtectedKeyFile)){throw 'NPC combat requires its explicit protected participant and reference audit'}
+if($NpcCombatDistinctAudit-and-not$NpcCombat){throw 'NPC combat audit requires its isolated fixture'}
+if($CombatPresentation-and(-not$Headless-or$Quickbar-or$Polymorph-or$WorldRadial-or$Players-or$Barter-or$Map-or$Journal-or$Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$Correction-or$Radial-or$Feat-or$ParticleCrowd-or$LobbyPages-or$LocalVault-or$LocalDelete)){throw 'CombatPresentation requires its isolated headless loopback fixture'}
+if($WorldRadial-and(-not$Headless-or$Quickbar-or$Polymorph-or$Players-or$Barter-or$Map-or$Journal-or$Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$Correction-or$Radial-or$Feat-or$ParticleCrowd-or$LobbyPages-or$LocalVault-or$LocalDelete)){throw 'WorldRadial requires its isolated headless loopback fixture'}
+if($Polymorph-and(-not$Headless-or$Quickbar-or$Players-or$Barter-or$Map-or$Journal-or$Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$Correction-or$Radial-or$Feat-or$ParticleCrowd-or$LobbyPages-or$LocalVault-or$LocalDelete)){throw 'Polymorph requires its isolated headless loopback fixture'}
+if($Quickbar-and(-not$Headless-or$Players-or$Barter-or$Map-or$Journal-or$Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$Correction-or$Radial-or$Feat-or$ParticleCrowd-or$LobbyPages-or$LocalVault-or$LocalDelete)){throw 'Quickbar requires its isolated headless loopback fixture'}
 if($Players){if($Barter-or$Map-or$Journal-or$Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$Correction-or$Radial-or$Feat-or$ParticleCrowd){throw 'Players requires its isolated two-participant fixture'};$Barter=$true}
 if($Correction-and($Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$ParticleCrowd)){throw 'Correction requires one isolated standard action fixture'}
 if($Radial-and($Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$ParticleCrowd-or$Correction)){throw 'Radial requires the isolated standard action fixture'}
+if($RadialCaster-ne'standard'-and-not$Radial){throw 'Radial caster variants require the owned radial action test'}
 if($Feat-and($Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$ParticleCrowd-or$Correction-or$Radial)){throw 'Feat requires the isolated standard action fixture'}
 if($ParticleCrowd-and(-not$Effects-or-not$Profile)){throw 'Particle crowd requires Effects and Profile'}
 if($Deflection-and(-not$Ranged-or$RangedWeapon-ne'bow')){throw 'Deflection requires the isolated bow test'}
@@ -31,7 +40,8 @@ $actionsArgs=@((Join-Path $PSScriptRoot 'native-actions-fixture.mjs'));if($Nui){
 if($Journal){$actionsArgs+='--journal'}
 if($Map){$actionsArgs+='--map'}
 if($Players){$actionsArgs+='--players'}
-if(-not($Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$ParticleCrowd-or$Correction-or$Radial-or$Feat-or$Barter)){$actionsArgs+='--identify'}
+if($Quickbar){$actionsArgs+='--quickbar'}
+if(-not($Nui-or$Effects-or$Ranged-or$Parry-or$SpecialAttack-or$ParticleCrowd-or$Correction-or$Radial-or$Feat-or$Barter-or$Quickbar-or$WorldRadial-or$CombatPresentation-or$NpcCombat)){$actionsArgs+='--identify'}
 if($Correction){$actionsArgs+='--correction'}
 if($Effects){$actionsArgs+='--effects'}
 if($ParticleCrowd){$actionsArgs+='--particle-crowd'}
@@ -41,6 +51,8 @@ if($Miss){$actionsArgs+='--miss'}
 if($Parry){$actionsArgs+='--parry'}
 if($Shield){$actionsArgs+=@('--shield',('--shield-kind='+$ShieldKind))}
 if($SpecialAttack){$actionsArgs+='--special-attack'}
+if($Polymorph){$actionsArgs=@((Join-Path $actionsWorkspace 'godot-client/tests/native_polymorph_server_fixture.mjs'),('--directory='+$actionsHome),('--install='+[IO.Path]::GetFullPath((Join-Path $actionsWorkspace '../FullDecomp/NwnRootInstall'))))}
+if($NpcCombat){$actionsArgs=@((Join-Path $actionsWorkspace 'godot-client/tests/native_npc_combat_server_fixture.mjs'))}
 node @actionsArgs
 $actionsFixture=Get-Content (Join-Path $actionsHome 'fixture.json') -Raw|ConvertFrom-Json
 if($LASTEXITCODE-ne0){throw 'Authored fixture preparation failed'}
@@ -72,7 +84,7 @@ try{
    [IO.File]::Copy($actionsVaultOriginal,$candidate,$false);$actionsDeleteFiles+=@{path=$candidate;sha256=$actionsVaultHash}
   }}
  }
- & (Join-Path $PSScriptRoot '../join-native.ps1') -ActionCheck -LocalDeleteCheck:$LocalDelete -LocalVaultCheck:$LocalVault -LobbyPagesCheck:$LobbyPages -PlayersCheck:$Players -BarterCheck:$Barter -BarterPeerKeyFile $BarterPeerKeyFile -FeatCheck:$Feat -RadialCheck:$Radial -CorrectionCheck:$Correction -ParticleCrowdCheck:$ParticleCrowd -NuiCheck:$Nui -EffectsCheck:$Effects -RangedCheck:$Ranged -RangedWeapon $RangedWeapon -DeflectionCheck:$Deflection -MissCheck:$Miss -ParryCheck:$Parry -ShieldCheck:$Shield -ShieldKind $ShieldKind -SpecialAttackCheck:$SpecialAttack -SpecialAttackKind $SpecialAttackKind -Profile:$Profile -Debugger -Run $Run -ProtectedKeyFile $ProtectedKeyFile
+ & (Join-Path $PSScriptRoot '../join-native.ps1') -ActionCheck -Headless:$Headless -QuickbarCheck:$Quickbar -PolymorphCheck:$Polymorph -WorldRadialCheck:$WorldRadial -CombatPresentationCheck:$CombatPresentation -NpcCombatCheck:$NpcCombat -NpcCombatDistinctAudit $NpcCombatDistinctAudit -LocalDeleteCheck:$LocalDelete -LocalVaultCheck:$LocalVault -LobbyPagesCheck:$LobbyPages -PlayersCheck:$Players -BarterCheck:$Barter -BarterPeerKeyFile $BarterPeerKeyFile -FeatCheck:$Feat -RadialCheck:$Radial -RadialCaster $RadialCaster -CorrectionCheck:$Correction -ParticleCrowdCheck:$ParticleCrowd -NuiCheck:$Nui -EffectsCheck:$Effects -RangedCheck:$Ranged -RangedWeapon $RangedWeapon -DeflectionCheck:$Deflection -MissCheck:$Miss -ParryCheck:$Parry -ShieldCheck:$Shield -ShieldKind $ShieldKind -SpecialAttackCheck:$SpecialAttack -SpecialAttackKind $SpecialAttackKind -Profile:$Profile -Debugger -Run $Run -ProtectedKeyFile $ProtectedKeyFile
  $actionsExit=$LASTEXITCODE
  if($Feat-and$actionsExit-eq0){
   $actionsFeatProof=Get-Content -LiteralPath (Join-Path $actionsWorkspace "godot-client/reports/$Run.json") -Raw|ConvertFrom-Json
@@ -112,7 +124,7 @@ try{
   }
  }finally{
   $actionsOwned=Get-CimInstance Win32_Process -Filter "ProcessId = $($actionsProcess.Id)"
-  if($actionsOwned-and$actionsOwned.ExecutablePath-eq$actionsServer-and$actionsOwned.CommandLine.Contains('"'+$actionsHome+'"')){Stop-Process -Id $actionsProcess.Id}
+  if($actionsOwned-and$actionsOwned.ExecutablePath-eq$actionsServer-and$actionsOwned.CommandLine.Contains('"'+$actionsHome+'"')){Stop-Process -Id $actionsProcess.Id;if(-not$actionsProcess.WaitForExit(3000)){throw 'Owned local action server did not finish terminating'}}
  }
 }
 exit $actionsExit

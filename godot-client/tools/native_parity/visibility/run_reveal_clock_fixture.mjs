@@ -1,0 +1,24 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawn} from 'node:child_process';
+const root=process.cwd(),run=path.resolve(process.argv[2]??''),boundary=path.join(root,'godot-client/.cache/native-presentation-parity/render-agent')+path.sep;
+if(!run.startsWith(boundary)||fs.existsSync(run))throw Error('Fresh owned run required');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const descriptor=JSON.parse(fs.readFileSync(path.join(root,'godot-client/.cache/native-140fps/render-agent/engine-builtin-light-v2/engine-descriptor.json'),'utf8')),engine=descriptor.engines.candidate;
+if(engine.sha256!=='ce2d36407d0a6107a3076a00faf7d9f9dae185c86994ccea8dfd7e450c50f12a'||sha(engine.path)!==engine.sha256)throw Error('Engine identity mismatch');
+const relatives=['systems/native_data/client_clock_services.gd','systems/native_data/client_object_clocks.gd','systems/native_data/client_pause_state.gd','systems/native_data/world_timer.gd','tests/native_reveal_clock_test.gd'];
+const project=path.join(run,'project'),pins=[];
+for(const relative of relatives){const source=path.join(root,'godot-client',relative),target=path.join(project,relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(source,target);pins.push({relative,sha256:sha(source)});}
+fs.mkdirSync(path.join(project,'.godot'),{recursive:true});fs.writeFileSync(path.join(project,'.godot/global_script_class_cache.cfg'),'list=[]\n');
+fs.writeFileSync(path.join(project,'project.godot'),'[application]\nconfig/name="Native scene visibility owner correctness"\n\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');
+fs.writeFileSync(path.join(run,'sources.json'),JSON.stringify({engine,pins,scope:'Five small scripts/minimal project, deterministic existing timer source; no assets/extensions/new clocks/server/GPU'},null,2));
+const args=['--headless','--path',project,'--script','res://tests/native_reveal_clock_test.gd','--',`--report=${path.join(run,'checks.json')}`];
+const start=performance.now(),child=spawn(engine.path,args,{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});let stdout='',stderr='',error=null,timedOut=false;
+child.stdout.on('data',data=>stdout+=data);child.stderr.on('data',data=>stderr+=data);child.on('error',value=>error=String(value));
+const timer=setTimeout(()=>{timedOut=true;child.kill();},20000);
+const exit=await new Promise(resolve=>child.once('close',(code,signal)=>resolve({code,signal})));clearTimeout(timer);
+const engineErrors=/\b(?:ERROR|SCRIPT ERROR|Parse Error|Compile Error|WARNING):|ObjectDB instances leaked|resources still in use|was never freed/.test(stdout+'\n'+stderr);
+const result={engineErrors,...exit,pid:child.pid,timedOut,error,elapsedMs:performance.now()-start,args,engineSha256:engine.sha256,sourceChanged:pins.filter(p=>sha(path.join(root,'godot-client',p.relative))!==p.sha256).map(p=>p.relative)};
+fs.writeFileSync(path.join(run,'process.json'),JSON.stringify(result,null,2));fs.writeFileSync(path.join(run,'stdout.log'),stdout);fs.writeFileSync(path.join(run,'stderr.log'),stderr);
+console.log(JSON.stringify(result));console.log(stdout);console.log(stderr);process.exitCode=exit.code===0&&!engineErrors&&!result.sourceChanged.length?0:1;

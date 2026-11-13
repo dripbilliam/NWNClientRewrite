@@ -13,7 +13,7 @@ func _ready() -> void:
 	rigs=Facade.new(); add_child(rigs); engine.configure(rigs,pivots)
 func sync(id: int,object: Dictionary,instance) -> void:
 	if closed or not is_instance_valid(instance) or not instance.has_meta("native_combat_actor"): return
-	var metadata: Dictionary=instance.get_meta("native_combat_actor").duplicate(true); Actor.refresh(metadata,object)
+	var metadata: Dictionary=instance.get_meta("native_combat_actor").duplicate(true); Actor.refresh(metadata,object,engine.actors.get(id,{}))
 	if rigs.targets.get(id)!=instance.rigs:
 		if rigs.targets.has(id): stats.model_replacements+=1
 		engine.states.erase(id); rigs.attach(id,instance.rigs)
@@ -33,8 +33,10 @@ func receive(message: Dictionary) -> void:
 		if row.get("action","") not in ["cast-animation","attack-animation"]: continue
 		if pending.size()>=512: stats.overflow+=1; continue
 		pending.append({"row":row.duplicate(true),"received":Time.get_ticks_msec()}); stats.received+=1
-func base_frame(id: int,animation: int,speed: float) -> void:
-	if not closed: engine.base_frame(id,animation,speed)
+func base_frame(id: int,animation: int,speed: float,remaining_path: Variant=null) -> void:
+	if not closed:
+		engine.motion_frame(id,remaining_path)
+		engine.base_frame(id,animation,speed)
 func visual_animation(id: int,fallback: int) -> int:
 	return int(engine.states[id].visual) if not closed and engine.states.has(id) else fallback
 func movement_cue(id: int,request: Dictionary) -> bool:

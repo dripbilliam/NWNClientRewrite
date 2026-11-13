@@ -21,7 +21,7 @@ def hook(u,a,n,_):
  elif a==0x1402a4130:m.finish(case['settings'].get(keys[y-1],z&0xffffffff))
  elif a==0x140115890:m.finish()
  elif not any(lo<=a<hi for lo,hi in ranges):raise AssertionError(f'Uncaptured pregame skill dependency {a:x}')
-u.hook_add(UC_HOOK_CODE,hook)
+hook_handle=u.hook_add(UC_HOOK_CODE,hook)
 def call(address,args):
  rsp=m.stack+0x1fe08;m.wq(rsp,m.stop);u.reg_write(UC_X86_REG_RSP,rsp)
  for reg,value in zip([UC_X86_REG_RCX,UC_X86_REG_RDX,UC_X86_REG_R8,UC_X86_REG_R9],args):u.reg_write(reg,value)

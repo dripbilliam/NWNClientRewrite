@@ -9,6 +9,12 @@ remains deferred under [the active goal](NATIVE-UI-PARITY-GOAL.md).
 
 ## Original layout and state
 
+The [chat dispatch/transport follow-up](NATIVE-CHAT-DISPATCH.md) corrects an
+earlier reversed interpretation of player object fields. Selection/party use
+character.id (+38); Tell GUI uses current objectId (+34) and primes the original
+full-character `/t` command. Earlier equal-ID local scenarios did not expose
+this distinction; the current headless checks deliberately separate the IDs.
+
 [Player research](NATIVE-PLAYERS-RESEARCH.md) retains the original constructor,
 runtime control inventory and data plan. The native frame is360×461, its rows
 use335×29 art with approximately31-pixel source linkage, and name/attitude/
@@ -113,6 +119,12 @@ pins, screenshots, fixture and read-back-verified rollback
 [party protocol checkpoint](NATIVE-PLAYERS-PROTOCOL.md) remains historical.
 
 ## Still open
+
+The later [Leave correction](NATIVE-PLAYERS-LEAVE.md) removes a source-inaccurate
+singleton-flag rejection during split party-list/creature updates and preserves
+the selected target. It passes42 native editor/release headless checks,
+62 packet/session regressions and82 authoritative local HUD/player/chat checks.
+These scoped results do not replace the remaining original-client audit.
 
 Administrator/hosting privileges and Boot/Ban confirmations; direct original
 client appearance, gesture, sort, keyboard and tooltip comparison; all

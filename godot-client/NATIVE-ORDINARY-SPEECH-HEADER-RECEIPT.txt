@@ -1,0 +1,78 @@
+Native ordinary speech header receipt: partial implementation checkpoint
+
+New owner only:
+  systems/native_data/ordinary_speech_header_receipt.gd
+No Gameplay, body receipt, parser, Host or world hook is changed by this slice.
+
+API for Root integration:
+  capture(message,text,current,retained_call_state={}) -> detached Dictionary
+  prepare_name(receipt,text,current,body_call_state={}) -> ready/name/system
+  prepare_prefix(receipt,text,current,body_call_state={}) -> ready/prefix
+  prepare(receipt,text,current,body_call_state={}) -> ready/name/prefix/system
+
+Prefix is a RAW label. Existing receiver punctuation, including only14/30's
+explicit '[' label '] ', remains the caller's responsibility. An empty ready
+name is successful, not permission to insert5189 or omit the native colon.
+Root should capture Header once inside the shared speech receipt, carry the
+existing receipt through its queue/pending-log path, and prepare header AFTER
+body log resolution. The overhead raw-source name path remains unchanged.
+
+Remote mask:2,4,6,14,17,18,19,20,30. Remote literal strings are copied without
+ParseStr. Localized first and last each fetch with their own wire gender and
+fetchFlag0, in that order; exactly ONE separator is inserted, without trim.
+Empty/empty remote split is a one-byte space and does not use5189. Empty remote
+literal may proceed to the source-name provider. Prefix refs match the original
+map and explicitly use gender0/fetchFlag0. Normal TLK values remain raw; only
+native runtime overrides invoke parse_native. Combined log text is not reparsed.
+
+Snapshot ownership:
+  - Small detached descriptors contain wire literals/references and matched
+    source witness/provider fields. They never reread a reused source ID.
+  - CUSTOM values are copied at receipt, with explicit completeness. Only this
+    header's possible runtime-override reference keys are captured, not whole
+    native tables or world rows.
+  - Explicit retained context/B8/BC is projected to identity, name and the
+    already-certified race/first-class scalar providers. Arbitrary actor graphs
+    and object references are discarded. Missing fields stay missing.
+  - Body11/12 may supply its safely captured context plus B8=BC=0 after body
+    preparation. Only previously unknown call-state fields can be filled; a
+    later provider cannot rewrite the captured context.
+  - Real named/TLK provider tables remain owned by TalkText. Deferred missing
+    rows/retained state do not claim a whole-table receipt-time snapshot. A
+    newly arriving direct runtime override is not adopted as an earlier fetch.
+
+Supported lower/provider cases include successful empty door names; item stored
+name only with known identification, otherwise actual baseitems.Name and5548
+when unidentified; empty placeable name through actual appearance/StrRef; empty
+trigger name through556; and proven provider failure through5189. Unknown
+stored localized name bytes remain pending rather than refetched as if they
+were native strings already saved at an earlier entity update.
+
+Important NOT-YET-INTEGRATED canonical creature boundary:
+  7f3f00 returns nonempty stats+40 override, otherwise stored first/last, inserting
+  a separator only when both are nonempty. Its empty result succeeds (no5189).
+  The pure stored_creature(override,first,last) utility implements that lower.
+  Capture currently leaves creature names pending because no actual ctor/stored
+  override projection is supplied yet. P/appearance.name writes first/last via
+  80a810. U/replicated.name is party/portrait row text and cannot replace them.
+  A generic proxy/nativeLifetime, first snapshot, D+A or movement.created is not
+  proof of a newly constructed stats owner. Root is reviewing the exact native
+  creation boundary for the constructor's known-empty override, preserving
+  retained/preexisting/cloned owners. No constructor flag is invented here.
+
+Accepted isolated proof:
+  .cache/overhead-settings/native-ordinary-speech-header-v1/proof.json
+  21 checks /13 immutable source+copy inputs, clean engine, six native outputs
+  unchanged. Actual TalkText native fetch/parser with controlled valid TLK pair,
+  provider rows and explicit contexts. Whitespace/fetch order, raw versus
+  override parsing, empty-success distinctions, selected providers, CUSTOM /
+  context isolation, missing data and ID reuse pass. No shared-hook integration,
+  canonical creature ctor acceptance, original-server/pixels, GPU, profile/key
+  reads, native build or user-process actions.
+
+Original source dossier:
+  reports/native-ordinary-speech-header-source-v1.json
+  SHA269a8f0cbae01357a1c5e5118d9c39912c6ddb50de257be1d876de2a059907a1
+See NATIVE-ORDINARY-SPEECH-HEADER-SOURCE.md for exact call order and native
+provider routines; the later canonical creation-boundary addendum remains
+separate. Historical ordinary/header/body/projection receipts are unchanged.

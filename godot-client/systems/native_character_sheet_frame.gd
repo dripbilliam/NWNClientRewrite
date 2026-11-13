@@ -28,6 +28,7 @@ var resizing:=false
 var resize_start:=Vector2.ZERO
 var resizable_scrolls: Dictionary={}
 var background_height:=2048.0
+var selected_entry:=-1
 func configure(target,catalog,cache_path: String,text,painter) -> void:
 	panel=target; panel.native_skin=self; frame=painter; text_owner=text
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
@@ -92,6 +93,7 @@ func activate() -> void:
 	set_height(window_height)
 	if not panel.state.is_empty(): panel.render()
 func clear_page() -> void:
+	selected_entry=-1
 	for bar in bars: if is_instance_valid(bar): bar.close()
 	bars.clear(); labels.clear(); resizable_scrolls.clear()
 	if is_instance_valid(page_root):
@@ -173,8 +175,13 @@ func entries() -> void:
 		if int(row.id)==int(panel.selected.get(str(panel.page),-1)): panel.select_entry(int(row.entryId))
 		origin+=row_model.hooks.next
 func select_entry(id: int) -> void:
-	for entry_id in panel.entry_nodes:
-		var button: Button=panel.entry_nodes[entry_id]; button.modulate=Color.WHITE; button.set_pressed_no_signal(int(entry_id)==id)
+	if selected_entry!=id and panel.entry_nodes.has(selected_entry):
+		var prior: Button=panel.entry_nodes[selected_entry]; prior.modulate=Color.WHITE
+		if prior.button_pressed: prior.set_pressed_no_signal(false)
+	if panel.entry_nodes.has(id):
+		var button: Button=panel.entry_nodes[id]; button.modulate=Color.WHITE
+		if not button.button_pressed: button.set_pressed_no_signal(true)
+		selected_entry=id
 func footer_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		if event.pressed:

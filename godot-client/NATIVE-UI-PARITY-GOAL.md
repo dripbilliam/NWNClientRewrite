@@ -2,6 +2,408 @@
 
 Requested 2026-10-28. Active; completion is unproven.
 
+Immediate priority requested 2026-11-03: [complete native level-up UI
+parity](NATIVE-LEVEL-UP-PARITY-GOAL.md), including original presentation, all
+actions/class-dependent paths and original-local-server acceptance. Every
+unfinished broader requirement in this document remains active.
+
+The [current first-level creator checkpoint](NATIVE-CREATION.md) supersedes the
+older staged-creator descriptions below only within its documented scope.
+Original source controls, class-dependent native paths and typed BIC construction
+are integrated; installed caster and cached Arelith Warlock control/BIC cases
+pass. Original-local-server Fighter and Wizard create/reconnect have scoped
+acceptance, including saved-row play without another BIC upload. Automatic
+caster preference completion and the source-only writer follow-up pass their
+documented gates. Intermittent loading/local-connection failures remain
+unresolved despite later successful runs. Level-up now has a private compiled
+class publication checkpoint; Recommended actions and full authoritative
+level-up remain unfinished. Complete original pixels and every other unresolved
+requirement remain part of this active objective; this is not full creator or
+client acceptance.
+
+The [latest creator title/class repair](NATIVE-CREATION-TITLE-CLASS-REPAIRS.md)
+adds the omitted CG_MAIN bounded title and enables available-first class
+grouping. The [Attributes repair](NATIVE-CREATION-ATTRIBUTES.md) now uses the
+original static label artwork in creation and level-up, with actual installed
+artwork and input checks; these supersede the earlier font-rectangle-only
+acceptance. [Native Customize](NATIVE-CREATION-TAIL-INTEGRATION.md) is integrated
+through Appearance/Information, refreshed parent summary and parsed BIC output.
+Its isolated responsiveness follow-up removes the large synchronous table copy
+and worker join; captured open callbacks are about4ms and preview callbacks
+under1ms, with a remaining one-time cleanup around27ms. These local observations
+do not establish live-server, FPS or complete visual parity.
+
+The [creation presentation repairs](NATIVE-CREATION-UI-REPAIRS.md) address the
+reported portrait-scroll failures, covered ability values, feat subtype
+selection, misplaced titles and covered headers. The [Feats bounds
+correction](NATIVE-FEAT-LABEL-BOUNDS.md) and complete active spell-column picker
+snapshot are now integrated, with isolated current-source regressions.
+Complete source level-up, live graphical/server acceptance and every other
+unfinished requirement below remain active; scoped repair tests do not finish
+the complete objective.
+
+The [2026-11-02 coordinated continuation](NATIVE-UI-PORT-2026-11-02.md) preserves
+this complete objective and prioritizes character-picker stalls, context-specific
+nested quickbar menus and server-updated repeated skill descriptions. Per-feature
+input, lifecycle, authoritative outcomes and measured responsiveness are required.
+Its scoped progress does not establish full UI or multiplayer completion.
+
+Later scoped first-level milestones now bind [Feats](NATIVE-CREATION-FEAT-ADAPTER.md),
+[School](NATIVE-CREATION-SCHOOL.md) and [Domains](NATIVE-CREATION-DOMAINS.md) through
+the actual draft/source controls and class-dependent coordinator. The
+[Spells follow-up](NATIVE-CREATION-SPELLS.md) now binds original-backed policy,
+active tables, original controls, asynchronous Package preferences, scoped
+Reset/Cancel/OK and real BIC workers (47 memorizing / 15 non-memorizing checks).
+Warm actual spell edit pairs measured 0.436–1.164 ms with controlled artwork.
+These supersede older
+milestone descriptions below; the whole source creator, remaining children,
+level-up, server upload/saving, original pixels and full UI remain unaccepted.
+
+The [quickbar context/activation follow-up](NATIVE-QUICKBAR-CONTEXT.md) passes
+58 original-local-server checks,71 protocol/cache regression suites and12 actual
+Godot item-wheel input checks. Received equipment cache ownership is separate
+from last-disclosed inventory coordinates. Talk, macro original-server BIC
+persistence and item Unequip/re-equip are verified; complete role/DM/bound types,
+world menus, original pixels and the entire UI/creation/level-up goal remain open.
+
+[Cancel Polymorph type43](NATIVE-QUICKBAR-POLYMORPH.md) now has scoped original
+activation/packet, physical native input and original-server shape/reversion
+acceptance (49/13/29 checks). Continue other bound types and all remaining UI
+requirements; active-mode artwork and complete original pixels remain open.
+
+The [nameplate text-fitting follow-up](NATIVE-NAMEPLATE-TEXT.md) now passes2119
+original width/wrap/bubble-policy and actual-control checks, plus573 installed
+font/shared-mesh/HUD physical-input checks. Original font raster metrics,
+original-client pixels and the full HUD remain open. This is a scoped text
+behavior milestone, not completion of the UI-first objective.
+
+The [Feats follow-up](NATIVE-CREATION-FEATS.md) now unifies actual creation and
+level-up feat-slot counters using active physical race/class tables and original
+byte widths. It also has a staged original two-list/family/info view with31
+physical input checks and scoped original prerequisite/non-memorizing/choice
+cores (725/869/964 checks). These components are not yet a complete active-table
+draft/commit adapter. Memorizing capacity, full class-dependent continuation,
+source creation/level-up, safe saving, original pixels and full UI remain open.
+
+The [original Skills source child](NATIVE-CREATION-SKILLS.md) is now bound to
+Configure Package and the live draft. It passes5,144 editor/release input/rule
+checks, actual mounted server data and41 original localhost creation/export
+checks, including the exact28 skill ranks after native rank edits. Feats and
+the class-dependent continuation, full creator/level-up, safe saving and original
+pixels remain open. Source creation stays staged; continue with CG_FEATS and
+the proper downstream chain rather than treating a leaf's export as full parity.
+
+User reaffirmation: creation AND level-up must use base or active-server `.2da`
+data and all referenced rules/resources. The [shared skill allocation follow-up](NATIVE-CREATION-SKILLS.md)
+now checks original first/later-level arithmetic and two actual mounted server
+rulesets through native creation/level-up owners. Fixed level-up skill formulas
+and ignored disabled flags are corrected. Complete Package continuation,
+original pixels and full source level-up lifecycle remain open; finish
+those dependencies without promoting scoped arithmetic checks to UI completion.
+
+The [source Package workflow](NATIVE-CREATION-PACKAGE.md) now has original
+list/help/actions and live draft metadata/preferences, with389 editor/release
+checks, actual mounted-server replacements and37 original localhost creation/
+export checks. Configure's remaining Feats/Spells continuation, associate
+name generator, complete helper instruction parity and original pixels remain
+open. Full source creation stays staged. Finish those Package dependencies and
+remaining children rather than treating the scoped local admission as full UI
+or creation completion.
+
+The [original Abilities child](NATIVE-CREATION-ATTRIBUTES.md) now edits the real
+draft with the original remaining-point cache, costs, hold timers, live Cancel
+semantics and parent8003. It passes2719 editor/release checks, mounted server
+2DA/TLK replacements and original localhost admission/export of the exact six
+selected scores. The source creator remains staged; Package's remaining chain,
+other children,
+level-up variants, safe saving and original-client pixels remain open. Creation
+AND level-up must use the base or active server's resolved2DA data, including
+custom classes/races/feats/spells and all referenced rule tables.
+
+The [original Alignment child](NATIVE-CREATION-ALIGNMENT.md) now commits through
+the real draft/parent using active class restrictions. Shared original help,
+3,231 editor/release checks, mounted server2DA/TLK tests and original localhost
+alignment admission/export have scoped acceptance. The source creator remains
+staged; Package and all remaining children, level-up variants, safe
+saving and original-client pixels remain open.
+
+The [original Class child](NATIVE-CREATION-CLASS.md) is connected to the real
+native draft and parent. Shared Race/Class list/help controls, original
+prerequisite/commit behavior and active-server table/TLK replacements have
+headless checks; the owned original server admits/exports the source-selected
+Wizard. Full source creation stays staged. Package and
+remaining children, level-up variants, safe saving and original pixels remain
+open. Creation and level-up rules must always come from the base/active-server
+2DA data; pregame artwork ownership must not substitute stock rules.
+
+The [original Race/Subrace child](NATIVE-CREATION-RACE.md) now commits through
+the real draft and scoped parent, using a shared native source-modal/edit owner.
+It passes1,131 editor/release checks against original callbacks/key handling and
+real input, plus24 authoritative local creation/export checks. The original
+server exports matching race/subrace/age/appearance/biography/gender and skill
+ranks. Full source creation remains staged; all remaining children,
+existing-BIC preservation/save, exact visuals and the complete UI goal stay open.
+
+Latest scoped user feedback: generated flame lights are restored, followed by a
+[camera-orbit shadow-selection correction](NATIVE-SHADOW-FOCUS.md). Native
+headless and authoritative local binding checks pass; manual original-client
+shadow pixels remain unaccepted. This does not replace or complete the UI-first
+goal. Remaining creation children, full HUD/menu input and visual acceptance,
+and preservation-safe existing-BIC save/catalog workflows remain required.
+
+[The original Gender child](NATIVE-CREATION-GENDER.md) is connected to the real
+draft and scoped source parent. It passes208 editor/release headless checks,
+35 parent/portrait/reset regressions and20 original-server local creation
+checks including exported gender and all28 skill ranks. Original pixels/help
+input and the other source children/save lifecycle remain unfinished; the
+complete creator is still staged and this does not complete the full UI goal.
+
+The [live creation-vitals follow-up](NATIVE-CREATION-VITALS.md) connects the
+original class/ability cache policy to the real draft and staged source summary.
+677 original-instruction comparisons and80 actual headless creator/binding
+checks pass. Source children, details, preservation-safe save, pixels and fresh
+authoritative admission remain open. The [launch/color follow-up](NATIVE-RENDER-LAUNCH-PROFILE.md)
+records the user's continuing live lighting mismatch and prepares matching
+contrast/vibrance; it is not visual or full lighting acceptance.
+
+Latest user steering: investigate the live responsiveness regression before
+resuming the remaining UI port. The [inspection launch/output correction](NATIVE-UI-RESPONSIVENESS-REGRESSION.md)
+restores the explicitly selected shared particle test configuration, replaces
+blocking loopback writes and narrows/instruments record selection work. Local
+functional checks pass; cold-loading, row-stall and live FPS acceptance remain
+unproven. No broad renderer default or UI completion is claimed.
+
+User resumption request,2026-10-31: return to full UI parity first, then combat,
+connection/travel reliability, performance/effects and remaining native migration.
+The complete requested objective and preserved acceptance requirements are in
+[CLIENT-PARITY-RESUMPTION-GOAL.md](CLIENT-PARITY-RESUMPTION-GOAL.md). On2026-11-01
+the goal service reported no goal; the requested UI-first resumption objective
+was created successfully and is active. The user deferred lighting and directed
+work to UI/HUD/nameplates; unfinished lighting evidence is preserved.
+
+The [native world-nameplate pass](NATIVE-WORLD-NAMEPLATES.md) is connected to the
+live native HUD: portrait/name/disclosed injury, active server text/resources,
+hover/Tab filtering, passive input and lifecycle guards. It passed67 scoped
+release-headless checks. Exact original visual policy and graphical/local-world
+acceptance remain open; this does not complete the HUD or whole-UI goal.
+
+The later [source-caption correction](NATIVE-NAMEPLATE-CAPTION.md) identifies
+the original creature-caption routine and fixes production name/injury colors,
+including severity gradients and controlled-player behavior. It passes138
+editor/release headless checks with executed original evidence. The later
+[source-geometry integration](NATIVE-NAMEPLATE-GEOMETRY.md) connects original
+backdrop/portrait meshes, UVs and shared preparation, passing184 scoped checks.
+Complete original text/placement/pixels, wider local acceptance and the broader
+UI goal remain open.
+
+The [source-anchor correction](NATIVE-NAMEPLATE-ANCHOR.md) connects original
+creature hook/fallback height, camera-distance lift and projected-pixel rounding.
+It passes313 native editor/release headless checks and83 authoritative local
+HUD/player/chat checks. Full camera/visual-curve, text, overlap, display and pixel
+acceptance remain open; the objective is still complete UI parity.
+
+The [creature override follow-up](NATIVE-NAMEPLATE-OVERRIDES.md) now maps the
+already received original mode/text fields, composes one native rich caption
+and handles replacement/prefix/suffix/clear. It passes472 strict editor/release
+headless checks and93 original-server HUD/player/chat checks. Complete original
+font fitting, props/items, placement/display/pixels and whole-UI acceptance
+remain open. An intermittent local TCP loss remains unexplained.
+
+The [world object-caption follow-up](NATIVE-OBJECT-CAPTIONS.md) adds original
+item/placeable colors and overrides, maps the precise received placeable flag
+and preserves separate door/trigger highlighting without invented name captions.
+It passes573 strict native editor/release checks and108 real local HUD/player/
+chat checks, including actual hover and server replace/prefix/suffix/hide/clear.
+Inventory tooltip24/5/reconciliation, full font/display/pixels and the complete
+UI objective remain open.
+
+The [inventory-item tooltip follow-up](NATIVE-ITEM-TOOLTIPS.md) connects original
+24/5 item-caption packets, canonical received item ordering and shared native
+tooltip bubbles. It passes671 strict native editor/release checks and127 actual
+local-server HUD/player/chat checks, including equipped-item overrides and real
+hover/hide/clear/close. Store/trade rows use the shared owner; authoritative
+coverage for those contexts, original timing, font fitting and pixels remain open.
+
+The [tooltip ownership/context follow-up](NATIVE-ITEM-TOOLTIP-CONTEXTS.md)
+retains item controls through metadata changes and passes10 focused editor/release
+checks in its first milestone. It now reconciles equipment/repository/store
+controls individually, passes18 focused editor/release checks and159 scoped
+authoritative local checks including merchant/trade tooltips and retirement.
+Original tooltip timing, pixels and full menu parity remain open; failed
+diagnostics and next steps are recorded there. The later
+[PLT icon correction](NATIVE-PLT-ICONS.md) removes an invented header cap that
+rejected six shipped resources. It passes79 scoped editor/release checks,
+604 shared raster release checks and161 local-server checks with no inventory
+icon preparation errors. Headless preparation is not graphical icon acceptance.
+
+[Tooltip delay configuration](NATIVE-TOOLTIP-TIMING.md) now uses the executed
+original100ms default and1ms–5s range, with saved Client Options input and a
+captured delay for an existing item hover. It passes21 scoped editor/release,
+87 chat-route release and162 actual local-server checks. Complete shared
+movement/hit/instant policy and graphical review remain open.
+
+The [shared tooltip manager follow-up](NATIVE-TOOLTIP-TIMING.md) connects one
+viewport timing/hit router across source-painter buttons and inventory/store/
+trade items, with anchored bubbles and repository item/dirty invalidation. It
+matches224 complete original execution observations and passes30 actual native
+editor/release headless input/lifecycle checks,671 source-caption release and
+162 original-server local checks. Pregame key/resource-flag mapping,
+unsupported controls and complete graphical/modal acceptance remain open.
+
+The [highlight/instant-tooltip follow-up](NATIVE-HIGHLIGHT-TOOLTIPS.md) connects
+the active mapped highlight key to both world labels and instant native GUI
+hints, with the original double-tap latch and saved200ms threshold. It matches
+580 original execution cases and passes46 actual native input/lifecycle,
+33 Options and145 keybinding checks in editor/release headless runtimes.
+Scoped original-server checks pass168; full GUI/input/resource coverage and
+original-client visual comparison remain open. Whole UI parity stays active.
+
+The [HUD tooltip/cancellation follow-up](NATIVE-HUD-TOOLTIPS.md) connects effect,
+quickbar and party-portrait hints plus the queue's borrowed source tooltip
+scope. It verifies explicit retirement and live control handoff across scopes,
+passes24 full-controller and50 shared input checks in editor/release headless
+runtimes, and178 original-server checks including actual mouse queue cancellation
+and effect GUI5/expiry. A bounded-history test bug is corrected using monotonic
+message sequences. Remaining HUD/menu content, original behavior and graphical
+acceptance remain open; the full objective is unchanged.
+
+The [creation draft-reset follow-up](NATIVE-CREATION-DRAFT-RESET.md) connects
+original domain/derived-choice invalidation to the shipping creator and corrects
+the native first-level BIC's conditional class fields and type. It matches160
+original CPU reset observations, passes237 editor/release headless checks and
+three original-server localhost creation/export paths. CG_MAIN's fixed four-tab
+summary, child screens, live adapter, existing-BIC preservation/save and original
+visual acceptance remain required. This is not completion of creation or UI.
+
+The [shared fixed-summary follow-up](NATIVE-CHARACTER-SUMMARY.md) extracts one
+original four-tab view for the shipping picker and CG_MAIN at its source hook.
+It passes35 parent and50 list/input checks in editor/release headless runtimes,
+25 statistics and29 picker checks, plus a real localhost creation/export
+regression. Creation's verified data dispatch is9b6380, distinct from the
+picker's imported-BIC projection; that live data/adapter, source children and
+preservation-safe save lifecycle remain unfinished. Frame readiness is not
+summary-content or complete-creator acceptance.
+
+The [real creation binding](NATIVE-CREATION-SUMMARY-BINDING.md) now connects
+session/draft ownership, masked identity/abilities and original portrait commit
+to that staged source view. It matches39 bounded original/title observations,
+passes74 editor/release headless checks and15 original-server local creation/
+export checks. Presentation stays hidden; original vitals/details/list getters,
+child/helper actions, preservation-safe save and graphical acceptance remain
+required. Full creation/UI completion is still unproven.
+
+The [live creation Feats/Spells follow-up](NATIVE-CREATION-SUMMARY-LISTS.md)
+connects those two source lists to the actual native draft. It executes87
+original callback cases, passes334 editor/release headless checks each,50
+picker and74 binding regressions, plus17 original-localhost creation checks
+and authoritative Wizard admission/export. Live Skills-cache initialization,
+vitals/details/XP, remaining child/helper integration, safe existing-BIC saves
+and original pixels remain open; source creation presentation stays staged.
+
+The [live Skills-cache follow-up](NATIVE-CREATION-SKILL-SUMMARY.md) now binds
+the third summary list, preserving original initialization/commit/edit/reset
+semantics. It passes482 editor/release headless checks each,334 list and237
+reset regressions, plus17 native/original-localhost checks and an exact export
+comparison of all28 allocated ranks. Vitals/details/XP, original child/helper
+workflow, preservation-safe existing-BIC saves and graphical parity remain
+unaccepted; the complete UI goal remains active.
+
+The [native effect/status bar](NATIVE-EFFECT-BAR.md) now uses source layered
+quads/UVs, flashing opacity keys, received addition order and original GUI-event
+clicks. It passes46 strict editor/release headless checks, plus protocol and
+health regressions. Actual worker loading also exposed and fixed the party
+locator's static-decoder mistake;797 locator checks now include that real path.
+Original pixels, sound/tooltips and authoritative server-script acceptance stay
+open. The chat follow-up and remaining complete UI inventory follow below.
+
+The [native chat HUD](NATIVE-CHAT-HUD.md) now connects original pane/prompt/mode
+resources and GUI focus events, plus the user-requested adjustable chat settings.
+Width/height/position, text size, opacity, timestamps, channel visibility,
+history, follow/lock and reconnect persistence pass86 scoped checks in strict
+editor and packaged release headless runtimes. The shared pregame Options route
+also uses the gameplay layout file. The [chat category/context follow-up](NATIVE-CHAT-CATEGORIES.md)
+now adds original per-pane masks, arrival-versus-rebuild history behavior and
+the seven-entry source radial, with126 scoped headless checks. The
+[portrait reply follow-up](NATIVE-CHAT-REPLIES.md) adds source tiny portraits,
+GUI27, account `/tp` and corrected player-list Tell behavior, with148 scoped
+editor/release headless checks and39 native player-control checks. The
+[tooltip/transition follow-up](NATIVE-CHAT-TOOLTIPS.md) now connects the original
+party-member lookup/cache and verifies retained chat/draft through actual area
+changes with23 full-controller checks in editor/release headless runtimes.
+Tooltip pixels/timing, complete command/history behavior, disconnect/server
+history and wider authoritative chat scenarios remain open.
+The [executed chat-dispatch/transport follow-up](NATIVE-CHAT-DISPATCH.md) now
+compares255 non-console original decisions, corrects full-name/account and
+controlled/character mappings, and preserves actual Godot input through the
+host adapter into native packets. Scoped headless/controller/packet checks
+pass; they do not replace original visual or authoritative local acceptance.
+The [local chat/player acceptance follow-up](NATIVE-CHAT-LOCAL-ACCEPTANCE.md)
+now passes55 checks against the original server: actual Enter, portrait mouse
+reply, Tell/Party delivery, typed Invite/Accept and player/party controls have
+authoritative outcomes. Its explicit headless scope excludes prejoin artwork
+and pixels; wider original-client/content/lifecycle acceptance stays open.
+Keep working through those and the full HUD/UI inventory; this is not
+whole-UI acceptance. No GPU tests while the user's other game runs.
+
+The [authoritative local HUD follow-up](NATIVE-HUD-LOCAL-ACCEPTANCE.md) now
+passes81 combined checks with two real local participants: actual Tab/nameplate
+identity/focus, party health/leadership/retirement/locator geometry, server
+damage/healing/temporary HP, poison/disease and effect mouse release through
+original GUI5. Original pixels, completed health rasters, wider indicator/
+locator/role/transition cases and the full menu goal remain open. The existing
+point-to-point particle warning is recorded as unresolved.
+
+The later [Leave correction](NATIVE-PLAYERS-LEAVE.md) removes an extra adapter
+singleton-flag gate absent from the original callback and preserves the selected
+wire identity. It passes42 native editor/release headless checks,62 packet/
+session regressions and82 original-server HUD/player/chat checks including final
+source nameplate bitmap readiness. An earlier unexplained protocol loss remains
+under investigation; this scoped success does not complete any full-UI gate.
+
+The [party indicator follow-up](NATIVE-PARTY-INDICATORS.md) connects source
+dead/combat/resting/default member artwork and the shared leader crest to received
+state. It passes820 scoped checks in editor and release headless runtimes;
+original GUI pixels and wider authoritative party states remain unaccepted;
+the later local HUD follow-up confirms transfer/crest and member retirement.
+The [party locator](NATIVE-PARTY-LOCATOR.md) is now connected using original
+camera-relative bearing/area/timing policy and source quad/UV sampling. It passes
+795 scoped headless checks; original pixel comparison and authoritative local
+party movement/transitions remain open. Neither milestone closes party/HUD parity.
+
+The [native action queue](NATIVE-ACTION-QUEUE.md) now uses original40px geometry,
+source icon/state artwork and persistent controls, with scoped cancel/removal,
+metadata refresh and stale-input ownership. It passes35 editor/release headless
+checks plus combat/desktop regressions. Graphical and authoritative local-server
+acceptance remain open; this does not complete the HUD or whole-UI goal.
+
+Resumed scoped audit: [Main Menu Exit and retained world diagnostics](NATIVE-MENU-EXIT-LIFECYCLE.md)
+fixes normal menu Exit being classified as a failed world test and preserves the
+last world's native lighting/source data across retirement. Actual source Exit
+and two real Prelude connections pass separate process/local checks. Other
+controls, physical gestures and the full UI audit remain unverified.
+
+The [Client Options gamma binding follow-up](NATIVE-GAMMA-SETTINGS.md) checks
+actual numeric keyboard input, persistence, reopened/retired settings ownership
+and rendered world pixels in both ordinary and native-output modes. It does not
+establish complete original graphics-page or whole-UI parity.
+
+The [shared native portrait chooser policy](NATIVE-PORTRAIT-CHOICES.md) corrects
+the active creator and menu resource selection using original size/admission
+corpora, scoped profile/Workshop discovery and headless form/recording checks.
+Customize's panels, file lifecycle and complete original appearance/input
+acceptance remain open. GPU testing stays off while the user's other game runs.
+
+The [original portrait-pane component](NATIVE-PORTRAIT-PANE.md) now adds the
+source layout, pooled grid, exact bitmap-plane UVs and306 release headless
+source/input/ownership checks. It is not connected to the shipping creator or
+Customize; visual/keyboard/scale acceptance remains open.
+
+The [CG_MAIN parent follow-up](NATIVE-CREATION-PARENT.md) adds the original frame,
+source callback/completion policy and parent/portrait coordinator with334 scoped
+release-headless checks. It remains outside the live creator pending the
+creation-mode summary, other source child panes and the real draft/helper
+adapter. UI parity and server gameplay acceptance are not claimed by it.
+
 Latest character-picker direction,2026-10-29: restore the original native-style
 chooser for normal launches. This supersedes the redesign appearance exception
 recorded below. The experimental redesign stays off unless explicitly requested
@@ -432,7 +834,7 @@ evidence exists; it does not grant complete visual or functional parity.
 | Party / portraits / health / HUD buttons | `systems/server_party.gd`, `native_party_frame.gd`, `native_status_bar.gd`, `native_game_desktop.gd` | Original frame/hooks/health/level overlay and fixed-self roster have scoped native-input acceptance. Locator/status/leader, group/associate/DM/disclosure variants, exact tooltips/fonts/input and original-client comparison remain open. |
 | Quickbars and assignment menus | `systems/server_quickbar.gd`, `native_quickbar_frame.gd`, `native_game_desktop.gd` | Original model table/hooks/poses/font/count frame has scoped native-input acceptance. Full states, tooltips, alternate layouts, assignment families/variants and original-client comparison remain open. |
 | Buffs / debuffs / action queue | `systems/server_buffs.gd`, `server_action_queue.gd` | Functional native widgets exist. Verify original placement, ordering, art, visibility, tooltips and cancellation feedback. |
-| Chat, combat log and floating text | `systems/server_chat.gd`, `server_floating.gd`, `native_gameplay_ui.gd` | Native text handling exists. Audit original tabs/channels, formatting, controls, shortcuts, history and server feedback. |
+| Chat, combat log and floating text | `systems/server_chat.gd`, `native_chat_hud.gd`, `native_chat_options.gd`, `server_floating.gd`, `native_gameplay_ui.gd` | Source pane/prompt/mode geometry, scoped entry/focus behavior, adjustable persistent settings, original per-pane category/radial behavior and portrait replies checked headlessly. Portrait tooltips, full formatting/commands/history, pixels and local-server feedback remain open — NATIVE-CHAT-HUD.md, NATIVE-CHAT-CATEGORIES.md and NATIVE-CHAT-REPLIES.md. |
 | Context radial menus | `systems/server_radial.gd`, `native_game_desktop.gd`, `native_data/feat_radial.gd` | Original discs/hooks/icons and scoped actions verified. Full context/role trees, previews, preferences, rubber-band art and state/input parity remain. |
 | Inventory / equipment / creature slots | `systems/server_inventory.gd`, `native_inventory*.gd` | Original layouts and scoped actions verified. Complete state/tooltips/drag/drop/font/scale audit remains; creature toggle stays in Options and defaults off. |
 | Containers and inventory paging | `systems/inventory_repository.gd`, `native_inventory_frame.gd` | Original framing/grid and real transfers verified in scoped cases. All container/page/close/context variants still require acceptance. |
@@ -471,6 +873,9 @@ an overall completion percentage from the number of existing widgets or tests.
   existing protocol/download services. Use active server resources and rules.
 - Simultaneous movable windows, retained positions and correct front ordering.
   Preserve WASD, middle-mouse camera use and click movement outside menus.
+- Chat must remain adjustable: saved position/width/height, independent split
+  panes, readable text/opacity, timestamps, channel filters, history/follow and
+  layout locking. Native styling must preserve this requested customization.
 - Creature slots default off, with their toggle in Options. Particles default
   off; Compact scenery remains opt-in. Keep performance diagnostics.
 - Normal play shows the game, with optional debug tools separate from it.
@@ -508,3 +913,21 @@ agreement and focus-loss drag rollback. Partial-line page extents, all visual
 states, GUI sounds and original-client comparison remain open. Continue the
 larger screen inventory/layout work without treating this widget milestone as
 full UI acceptance.
+
+The staged first-level creation flow now binds original Feats controls to the
+active draft/rules. See [NATIVE-CREATION-FEAT-ADAPTER.md](NATIVE-CREATION-FEAT-ADAPTER.md)
+for515 raw-adapter/original checks,17 actual source-control/draft checks and the
+bounded projection-cache timings. This does not complete original creation,
+level-up, graphics or authoritative character admission; class-dependent
+post-Feats children and the wider UI/gameplay inventory remain active work.
+
+The [production creation-flow integration](NATIVE-CREATION-FLOW-INTEGRATION.md)
+now enters original CG_MAIN from the real picker Create action. Composed native
+navigation24 checks cover Gender commit, Cancel/reopen, scoped old-reply rejection
+and return through Browser to Main. A separate actual Package-to-Associate path24
+uses active UTC/TLK/2DA, native name/private stats workers and the real parsed BIC
+output. Standalone Familiar controls30 use a bounded row pool. Appearance/info,
+complete level-up, original pixels and real server admission remain unfinished;
+40–87 ms synchronous action/cleanup measurements still require optimization.
+API expansion is deferred in favor of completing these flows. This milestone
+does not reduce or complete the overall migration/parity objective.

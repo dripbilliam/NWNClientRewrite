@@ -1,7 +1,7 @@
 extends RefCounted
 # Optional immutable-source cache publication. One low-priority native thread
 # per active asset-service lifetime, never scene/GPU work or a reader pool task.
-# Bounds charge the existing decoded-store serialized-size estimate, not RSS.
+# Bounds charge the decoded store's conservative estimate, not exact RSS.
 static var service_mutex:=Mutex.new()
 static var shared
 static func configured_enabled() -> bool:
@@ -11,6 +11,7 @@ class State:
 	extends RefCounted
 	const Cache=preload("res://systems/native_data/prepared_cache.gd")
 	const RawCache=preload("res://systems/native_data/source_bytes_cache.gd")
+	const Accounting=preload("res://systems/native_data/resource_index_backend.gd")
 	var raw_caches: Dictionary={}
 	var maintenance_pending: Dictionary={}
 	var mutex:=Mutex.new()
@@ -19,7 +20,7 @@ class State:
 	var owners:=0
 	var closed:=false
 	var maximum_packets:=128
-	var maximum_bytes:=64*1024*1024
+	var maximum_bytes: int=(128 if Accounting.accounting_available() else 64)*1024*1024
 	var packets: Array=[]
 	var identities: Dictionary={}
 	var retained_bytes:=0

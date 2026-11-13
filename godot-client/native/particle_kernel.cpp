@@ -5,15 +5,21 @@
 #include "gdextension_interface.h"
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <mutex>
+#include <thread>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "experimental/particle_pose_cache.hpp"
 
 namespace {
 GDExtensionClassLibraryPtr library;
@@ -33,11 +39,13 @@ GDExtensionInterfaceVariantGetPtrConstructor ptr_constructor;
 GDExtensionInterfaceVariantGetPtrDestructor ptr_destructor;
 GDExtensionInterfaceVariantGetPtrBuiltinMethod builtin_method;
 GDExtensionInterfacePackedByteArrayOperatorIndex packed_index;
+GDExtensionInterfacePackedByteArrayOperatorIndexConst packed_bytes_read;
 GDExtensionInterfaceStringNameNewWithUtf8Chars name_new;
 GDExtensionInterfaceStringNewWithUtf8Chars string_new;
 GDExtensionInterfaceClassdbRegisterExtensionClass6 register_class;
 GDExtensionInterfaceClassdbRegisterExtensionClassMethod register_method;
 GDExtensionInterfaceClassdbUnregisterExtensionClass unregister_class;
+GDExtensionInterfaceGlobalGetSingleton global_singleton;
 GDExtensionVariantFromTypeConstructorFunc from[ GDEXTENSION_VARIANT_TYPE_VARIANT_MAX ];
 GDExtensionTypeFromVariantConstructorFunc to[ GDEXTENSION_VARIANT_TYPE_VARIANT_MAX ];
 struct Name {
@@ -96,7 +104,21 @@ double polynomial(double v,bool cosine){const double c[]={0.041666666666666664,-
 float trig(float input,bool cosine){const double value=input,absolute=std::abs(value);if(!std::isfinite(value)||absolute>=500000)throw std::runtime_error("Unmapped native CRT particle angle");if(!cosine&&absolute<0.0001220703125)return input;if(absolute<=0.7853981633974483){if(absolute<0.0078125&&!cosine)return static_cast<float>(value-(value*value*value)*(1.0/6.0));return static_cast<float>(polynomial(value,cosine));}const int quadrant=static_cast<int>(absolute*0.6366197723675814+0.5);const double first=absolute-1.5707963267341256*quadrant;double reduced=first-6.077100506506192e-11*quadrant;const auto exp=exponent(reduced);if(exponent(absolute)-exp>15){const double next=first-6.077100506303966e-11*quadrant;reduced=next-(2.0222662487959506e-21*quadrant-((first-next)-6.077100506303966e-11*quadrant));}const bool use_cos=cosine?(quadrant&1)==0:(quadrant&1)!=0;double result;if(exp<1010){if(exp<=990)result=use_cos?1:reduced;else result=use_cos?1-(reduced*reduced)*0.5:reduced-((1.0/6.0)*reduced)*(reduced*reduced);}else result=polynomial(reduced,use_cos);const bool negative=cosine?((quadrant+1)&2)!=0:((quadrant>>1)&1)!=static_cast<int>(value<0);return static_cast<float>(negative?-result:result);}
 uint32_t color_word(const V3& color,float alpha){return (static_cast<uint32_t>(cvtt(alpha))&255)<<24|(static_cast<uint32_t>(cvtt(color[2]))&255)<<16|(static_cast<uint32_t>(cvtt(color[1]))&255)<<8|(static_cast<uint32_t>(cvtt(color[0]))&255);}
 float color_scale(float n){return std::clamp(n,0.0f,1.0f)*255.99000549316406f;}
-Var byte_array(const std::vector<uint8_t>& bytes){alignas(8) uint8_t raw[16];ptr_constructor(GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY,0)(raw,nullptr);struct Guard{void* ptr;~Guard(){ptr_destructor(GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY)(ptr);}}guard{raw};Name resize("resize");GDExtensionInt length=static_cast<GDExtensionInt>(bytes.size()),error=-1;const GDExtensionConstTypePtr args[]={&length};builtin_method(GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY,resize.data,848867239)(raw,args,&error,1);if(error!=0)throw std::runtime_error("Native particle buffer allocation failed");if(length)std::memcpy(packed_index(raw,0),bytes.data(),bytes.size());Var out;destroy(out.data);from[GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY](out.data,raw);return out;}
+// One uniquely owned Godot byte array is written before publication. No
+// queued command ever borrows a mutable native staging vector.
+struct WritableBytes {
+ alignas(8) uint8_t raw[16];uint8_t* data=nullptr;size_t length;
+ explicit WritableBytes(size_t count):length(count){
+  ptr_constructor(GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY,0)(raw,nullptr);
+  try{Name resize("resize");GDExtensionInt size=static_cast<GDExtensionInt>(length),error=-1;const GDExtensionConstTypePtr args[]={&size};builtin_method(GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY,resize.data,848867239)(raw,args,&error,1);if(error!=0)throw std::runtime_error("Native particle buffer allocation failed");if(length)data=packed_index(raw,0);}
+  catch(...){ptr_destructor(GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY)(raw);throw;}
+ }
+ WritableBytes(const WritableBytes&)=delete;WritableBytes& operator=(const WritableBytes&)=delete;
+ ~WritableBytes(){ptr_destructor(GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY)(raw);}
+ Var publish(){Var out;destroy(out.data);from[GDEXTENSION_VARIANT_TYPE_PACKED_BYTE_ARRAY](out.data,raw);return out;}
+};
+Var byte_array(const std::vector<uint8_t>& bytes){WritableBytes out(bytes.size());if(!bytes.empty())std::memcpy(out.data,bytes.data(),bytes.size());return out.publish();}
+#include "particle_field_keys.hpp"
 #include "particle_simulation.hpp"
 #include "particle_streams.hpp"
 void vertex(std::vector<uint8_t>& bytes,int64_t index,uint32_t color,const V3& position,float u,float v,ParticleStreams* streams=nullptr){if(streams){streams->write(index,color,position,u,v);return;}const auto offset=static_cast<size_t>(index)*24;std::memcpy(bytes.data()+offset,&color,4);std::memcpy(bytes.data()+offset+4,position.data(),12);std::memcpy(bytes.data()+offset+16,&u,4);std::memcpy(bytes.data()+offset+20,&v,4);}
@@ -113,18 +135,35 @@ void call_streams(void*,GDExtensionClassInstancePtr,const GDExtensionConstVarian
  try{Var emitter(args[0]),input(args[1]),atlas(args[2]),retained(args[3]);thread_local ParticleStreams staging;auto out=build(emitter,input,atlas.boolean(),&staging,retained.integer());new_copy(result,out.data);}catch(const std::exception& err){auto out=Var::dictionary();set(out,"error",Var::text(err.what()));new_copy(result,out.data);}
 }
 bool direct_scene_trace(uint64_t terrain,uint64_t statics,const V3& start,V3& end,V3& normal,bool& hit);
+GDExtensionInterfaceClassdbConstructObject3 construct_object;
+GDExtensionInterfaceObjectSetInstance set_instance;
+#include "scene_wind.hpp"
 #include "particle_resident.hpp"
+#include "particle_upload.hpp"
+#include "particle_counters.hpp"
+#include "particle_frame_group.hpp"
+#include "particle_native_sort.hpp"
+#include "emitter_lighting.hpp"
+#include "particle_presentation.hpp"
+#include "particle_stream_render.hpp"
 #include "scene_geometry.hpp"
 #include "scene_model.hpp"
 #include "scene_index.hpp"
 #include "animation_keys.hpp"
 #include "raster_conversion.hpp"
+#include "model_control.hpp"
+#include "visual_selection.hpp"
+#include "model_plan.hpp"
+#include "model_hierarchy.hpp"
+#include "model_pose_storage.hpp"
+#include "light_history.hpp"
 bool bind_pose_api(){ {Name node("Node3D"),global("get_global_transform"),ortho("orthonormalized"),quaternion("get_rotation_quaternion"),scale("get_scale"),basis("basis"),origin("origin"),x("x"),y("y"),z("z");
  node_transform=class_method(node.data,global.data,3229777777);node_tag=class_tag(node.data);basis_orthonormal=builtin_method(GDEXTENSION_VARIANT_TYPE_BASIS,ortho.data,594669093);basis_quaternion=builtin_method(GDEXTENSION_VARIANT_TYPE_BASIS,quaternion.data,4274879941);basis_scale=builtin_method(GDEXTENSION_VARIANT_TYPE_BASIS,scale.data,1776574132);transform_basis=member_getter(GDEXTENSION_VARIANT_TYPE_TRANSFORM3D,basis.data);transform_origin=member_getter(GDEXTENSION_VARIANT_TYPE_TRANSFORM3D,origin.data);basis_columns[0]=member_getter(GDEXTENSION_VARIANT_TYPE_BASIS,x.data);basis_columns[1]=member_getter(GDEXTENSION_VARIANT_TYPE_BASIS,y.data);basis_columns[2]=member_getter(GDEXTENSION_VARIANT_TYPE_BASIS,z.data);
  if(!node_transform||!node_tag||!basis_orthonormal||!basis_quaternion||!basis_scale||!transform_basis||!transform_origin||!basis_columns[0]||!basis_columns[1]||!basis_columns[2])return false;}return true;}
 void initialize(void*,GDExtensionInitializationLevel level){
  if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;
  if(!bind_pose_api()||!bind_scene_model_api()||!scene_index::bind())return;
+ particle_scene_boundary::bind();resident::hot_parameters::bind();resident::resident_text::bind();resident::empty_clips::bind();
  Name name("NwnParticleKernel"),base("RefCounted"),method("vertices"),empty(""),arg0("emitter"),arg1("input"),arg2("atlas_prepared");
  alignas(8) uint8_t hint[8];string_new(hint,"");
  GDExtensionClassCreationInfo6 info{};info.is_abstract=true;info.is_exposed=true;info.is_runtime=true;info.free_instance_func=free_instance;register_class(library,name.data,base.data,&info);
@@ -134,23 +173,37 @@ void initialize(void*,GDExtensionInitializationLevel level){
  GDExtensionClassMethodArgumentMetadata metadata[3]{};GDExtensionClassMethodInfo m{};m.name=method.data;m.call_func=call_build;m.method_flags=GDEXTENSION_METHOD_FLAG_NORMAL|GDEXTENSION_METHOD_FLAG_STATIC;m.has_return_value=true;m.return_value_info=&ret;m.argument_count=3;m.arguments_info=args;m.arguments_metadata=metadata;register_method(library,name.data,&m);
  register_simulation(name,property);
  register_resident(property);
+ particle_upload::register_owner(property);
+ particle_counters::register_owner(property);
+ particle_frame_group::register_owner(property);
+ particle_presentation::register_owner(property);
+ particle_stream_render::register_owner(property);
+ register_scene_wind(property);
  register_scene_geometry(property);
  register_scene_model(property);
  register_scene_index(property);
  animation_keys::register_validation(name,property);
  raster_conversion::register_conversion(name,property);
+ model_control::register_methods(name,property);
+ model_plan::register_method_info(name,property);
+ model_pose_storage::register_owner(property);
+ light_history::register_owner(property);
+ model_hierarchy::register_method_info(name,property);
+ visual_selection::register_methods(name,property);
  Name stream_method("streams"),capacity_arg("retained_capacity");
  GDExtensionPropertyInfo stream_args[]={args[0],args[1],args[2],property(GDEXTENSION_VARIANT_TYPE_INT,capacity_arg)};
  GDExtensionClassMethodArgumentMetadata stream_metadata[4]{};m.name=stream_method.data;m.call_func=call_streams;m.argument_count=4;m.arguments_info=stream_args;m.arguments_metadata=stream_metadata;register_method(library,name.data,&m);
  ptr_destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
 }
-void deinitialize(void*,GDExtensionInitializationLevel level){if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;keys.clear();Name index("NwnSceneIndex");unregister_class(library,index.data);Name scene("NwnSceneModel");unregister_class(library,scene.data);Name geometry("NwnSceneGeometry");unregister_class(library,geometry.data);Name owner("NwnParticleOwner");unregister_class(library,owner.data);Name name("NwnParticleKernel");unregister_class(library,name.data);}
+void deinitialize(void*,GDExtensionInitializationLevel level){if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;light_history::unregister_owner();model_pose_storage::unregister_owner();keys.clear();particle_stream_render::unregister_owner();particle_presentation::unregister_owner();particle_frame_group::unregister_owner();particle_counters::unregister_owner();particle_upload::unregister_owner();Name wind("NwnWindManager");unregister_class(library,wind.data);Name index("NwnSceneIndex");unregister_class(library,index.data);Name scene("NwnSceneModel");unregister_class(library,scene.data);Name geometry("NwnSceneGeometry");unregister_class(library,geometry.data);Name owner("NwnParticleOwner");unregister_class(library,owner.data);Name name("NwnParticleKernel");unregister_class(library,name.data);}
 }
 extern "C" __declspec(dllexport) GDExtensionBool nwn_particle_kernel_init(GDExtensionInterfaceGetProcAddress address,GDExtensionClassLibraryPtr lib,GDExtensionInitialization* init){
- library=lib;
+ library=lib;particle_scene_boundary::direct_address=address;
 #define API(var,type,symbol) var=reinterpret_cast<type>(address(symbol));if(!var)return false
- API(new_nil,GDExtensionInterfaceVariantNewNil,"variant_new_nil");API(new_copy,GDExtensionInterfaceVariantNewCopy,"variant_new_copy");API(destroy,GDExtensionInterfaceVariantDestroy,"variant_destroy");API(get_type,GDExtensionInterfaceVariantGetType,"variant_get_type");API(get_keyed,GDExtensionInterfaceVariantGetKeyed,"variant_get_keyed");API(get_indexed,GDExtensionInterfaceVariantGetIndexed,"variant_get_indexed");API(set_keyed,GDExtensionInterfaceVariantSetKeyed,"variant_set_keyed");API(variant_call,GDExtensionInterfaceVariantCall,"variant_call");API(construct,GDExtensionInterfaceVariantConstruct,"variant_construct");API(from_type,GDExtensionInterfaceGetVariantFromTypeConstructor,"get_variant_from_type_constructor");API(to_type,GDExtensionInterfaceGetVariantToTypeConstructor,"get_variant_to_type_constructor");API(ptr_constructor,GDExtensionInterfaceVariantGetPtrConstructor,"variant_get_ptr_constructor");API(ptr_destructor,GDExtensionInterfaceVariantGetPtrDestructor,"variant_get_ptr_destructor");API(builtin_method,GDExtensionInterfaceVariantGetPtrBuiltinMethod,"variant_get_ptr_builtin_method");API(packed_index,GDExtensionInterfacePackedByteArrayOperatorIndex,"packed_byte_array_operator_index");API(name_new,GDExtensionInterfaceStringNameNewWithUtf8Chars,"string_name_new_with_utf8_chars");API(string_new,GDExtensionInterfaceStringNewWithUtf8Chars,"string_new_with_utf8_chars");API(register_class,GDExtensionInterfaceClassdbRegisterExtensionClass6,"classdb_register_extension_class6");API(register_method,GDExtensionInterfaceClassdbRegisterExtensionClassMethod,"classdb_register_extension_class_method");API(unregister_class,GDExtensionInterfaceClassdbUnregisterExtensionClass,"classdb_unregister_extension_class");
+ API(new_nil,GDExtensionInterfaceVariantNewNil,"variant_new_nil");API(new_copy,GDExtensionInterfaceVariantNewCopy,"variant_new_copy");API(destroy,GDExtensionInterfaceVariantDestroy,"variant_destroy");API(get_type,GDExtensionInterfaceVariantGetType,"variant_get_type");API(get_keyed,GDExtensionInterfaceVariantGetKeyed,"variant_get_keyed");API(get_indexed,GDExtensionInterfaceVariantGetIndexed,"variant_get_indexed");API(set_keyed,GDExtensionInterfaceVariantSetKeyed,"variant_set_keyed");API(variant_call,GDExtensionInterfaceVariantCall,"variant_call");API(construct,GDExtensionInterfaceVariantConstruct,"variant_construct");API(from_type,GDExtensionInterfaceGetVariantFromTypeConstructor,"get_variant_from_type_constructor");API(to_type,GDExtensionInterfaceGetVariantToTypeConstructor,"get_variant_to_type_constructor");API(ptr_constructor,GDExtensionInterfaceVariantGetPtrConstructor,"variant_get_ptr_constructor");API(ptr_destructor,GDExtensionInterfaceVariantGetPtrDestructor,"variant_get_ptr_destructor");API(builtin_method,GDExtensionInterfaceVariantGetPtrBuiltinMethod,"variant_get_ptr_builtin_method");API(packed_index,GDExtensionInterfacePackedByteArrayOperatorIndex,"packed_byte_array_operator_index");API(packed_bytes_read,GDExtensionInterfacePackedByteArrayOperatorIndexConst,"packed_byte_array_operator_index_const");API(name_new,GDExtensionInterfaceStringNameNewWithUtf8Chars,"string_name_new_with_utf8_chars");API(string_new,GDExtensionInterfaceStringNewWithUtf8Chars,"string_new_with_utf8_chars");API(register_class,GDExtensionInterfaceClassdbRegisterExtensionClass6,"classdb_register_extension_class6");API(register_method,GDExtensionInterfaceClassdbRegisterExtensionClassMethod,"classdb_register_extension_class_method");API(unregister_class,GDExtensionInterfaceClassdbUnregisterExtensionClass,"classdb_unregister_extension_class");
  API(construct_object,GDExtensionInterfaceClassdbConstructObject3,"classdb_construct_object3");API(set_instance,GDExtensionInterfaceObjectSetInstance,"object_set_instance");API(string_utf8,GDExtensionInterfaceStringToUtf8Chars,"string_to_utf8_chars");
+ API(global_singleton,GDExtensionInterfaceGlobalGetSingleton,"global_get_singleton");
+ API(particle_counters::packed_write,GDExtensionInterfacePackedInt64ArrayOperatorIndex,"packed_int64_array_operator_index");API(particle_counters::packed_read,GDExtensionInterfacePackedInt64ArrayOperatorIndexConst,"packed_int64_array_operator_index_const");
  API(instance_from_id,GDExtensionInterfaceObjectGetInstanceFromId,"object_get_instance_from_id");API(class_method,GDExtensionInterfaceClassdbGetMethodBind,"classdb_get_method_bind");API(ptrcall,GDExtensionInterfaceObjectMethodBindPtrcall,"object_method_bind_ptrcall");API(class_tag,GDExtensionInterfaceClassdbGetClassTag,"classdb_get_class_tag");API(cast_object,GDExtensionInterfaceObjectCastTo,"object_cast_to");API(member_getter,GDExtensionInterfaceVariantGetPtrGetter,"variant_get_ptr_getter");
  API(operator_evaluator,GDExtensionInterfaceVariantGetPtrOperatorEvaluator,"variant_get_ptr_operator_evaluator");
 #undef API
@@ -158,6 +211,7 @@ extern "C" __declspec(dllexport) GDExtensionBool nwn_particle_kernel_init(GDExte
  for(int t=1;t<GDEXTENSION_VARIANT_TYPE_VARIANT_MAX;++t){from[t]=from_type(static_cast<GDExtensionVariantType>(t));to[t]=to_type(static_cast<GDExtensionVariantType>(t));}
  if(!animation_keys::bind(address))return false;
  if(!raster_conversion::bind(address))return false;
+ if(!visual_selection::bind(address))return false;
 
  init->minimum_initialization_level=GDEXTENSION_INITIALIZATION_SCENE;init->initialize=initialize;init->deinitialize=deinitialize;init->userdata=nullptr;return true;
 }

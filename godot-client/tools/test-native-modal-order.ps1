@@ -1,0 +1,23 @@
+param([string]$Godot='')
+$ErrorActionPreference='Stop'
+$modalProject=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+if(-not$Godot){$Godot=Join-Path $modalProject '.tools/Godot_v4.7.2-stable_win64.exe'}
+if((Get-FileHash -LiteralPath $Godot -Algorithm SHA256).Hash-ne'AB1824F85BFD8E0E4128182C000C4003A3E042245B2967848D089B2A04B22424'){throw 'Unexpected existing Godot; runner never builds or downloads'}
+$modalRun=Join-Path $modalProject ('.cache/modal-order-tests/'+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss')+'-'+[Guid]::NewGuid().ToString('N').Substring(0,8));$modalCopy=Join-Path $modalRun 'project';[IO.Directory]::CreateDirectory($modalCopy)|Out-Null
+$modalPaths=@('systems/native_data/modal_order.gd','tests/native_modal_order_test.gd','reports/native-topmodal-close-original-v1.json','../scripts/inspect-native-topmodal-close.py','tools/test-native-modal-order.ps1');$modalHashes=@()
+foreach($relative in $modalPaths){$file=Join-Path $modalProject $relative;$target=Join-Path $modalCopy $relative;[IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target))|Out-Null;$hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant();Copy-Item -LiteralPath $file -Destination $target;if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()-ne$hash){throw 'Modal input changed while copying'};$modalHashes+=@{path=$relative;sha256=$hash}}
+[IO.File]::WriteAllText((Join-Path $modalCopy 'project.godot'),"config_version=5`n[application]`nconfig/name=""Owned Modal Order Test""`n[rendering]`nrenderer/rendering_method=""gl_compatibility""`n")
+$modalOutput=Join-Path $modalRun 'result.json';$modalLog=Join-Path $modalRun 'engine.log'
+$modalInfo=[Diagnostics.ProcessStartInfo]::new();$modalInfo.FileName=$Godot;$modalInfo.UseShellExecute=$false;$modalInfo.CreateNoWindow=$true;$modalInfo.WindowStyle=[Diagnostics.ProcessWindowStyle]::Hidden;$modalInfo.RedirectStandardOutput=$true;$modalInfo.RedirectStandardError=$true
+foreach($argument in @('--headless','--max-fps','60','--path',$modalCopy,'--log-file',$modalLog,'--script','res://tests/native_modal_order_test.gd','--',('--report='+$modalOutput),('--oracle='+(Join-Path $modalCopy 'reports/native-topmodal-close-original-v1.json')),'--entity-api-rest=false')){$modalInfo.ArgumentList.Add($argument)}
+$modalProcess=[Diagnostics.Process]::Start($modalInfo);$modalStdout=$modalProcess.StandardOutput.ReadToEndAsync();$modalStderr=$modalProcess.StandardError.ReadToEndAsync();$modalDeadline=[DateTime]::UtcNow.AddSeconds(15);$modalTimedOut=$false
+while(-not$modalProcess.WaitForExit(500)){if([DateTime]::UtcNow-ge$modalDeadline){$modalTimedOut=$true;$modalProcess.Kill($true);$modalProcess.WaitForExit();break}}
+$modalProcess.Refresh();[IO.File]::WriteAllText((Join-Path $modalRun 'stdout.log'),$modalStdout.GetAwaiter().GetResult());[IO.File]::WriteAllText((Join-Path $modalRun 'stderr.log'),$modalStderr.GetAwaiter().GetResult())
+$modalResult=if(Test-Path -LiteralPath $modalOutput){Get-Content -LiteralPath $modalOutput -Raw|ConvertFrom-Json}else{$null}
+$modalClean=([IO.File]::ReadAllText($modalLog)-notmatch '(?m)^ERROR:|^WARNING:|SCRIPT ERROR|Parse Error|ObjectDB instances leaked|Leaked instance|still in use at exit')
+$modalChanged=@($modalHashes|Where-Object{(Get-FileHash -LiteralPath (Join-Path $modalProject $_.path) -Algorithm SHA256).Hash.ToLowerInvariant()-ne$_.sha256})
+$modalReceipt=[ordered]@{success=[bool]($modalResult-and$modalResult.success-and$modalProcess.ExitCode-eq0-and-not$modalTimedOut-and$modalClean-and$modalChanged.Count-eq0);testedAtUtc=[DateTime]::UtcNow.ToString('o');directory=$modalRun;checks=if($modalResult){$modalResult.checks}else{0};exitCode=$modalProcess.ExitCode;timedOut=$modalTimedOut;cleanEngine=$modalClean;inputs=$modalHashes;changedInputs=$modalChanged;engineSha256=(Get-FileHash -LiteralPath $Godot -Algorithm SHA256).Hash.ToLowerInvariant();serverConnections=0;gpu=$false;nativeBuilds=0;scope='Copied unintegrated private modal-order helper versus pinned original480 decision corpus and authored owner lifetimes. No actual native UI modal membership/integration, server or pixel acceptance.'}
+[IO.File]::WriteAllText((Join-Path $modalRun 'runner.json'),($modalReceipt|ConvertTo-Json -Depth 7)+[Environment]::NewLine)
+if($modalReceipt.success){[IO.File]::WriteAllText((Join-Path $modalProject 'reports/native-modal-order-v1-receipt.json'),($modalReceipt|ConvertTo-Json -Depth 7)+[Environment]::NewLine)}
+[pscustomobject]$modalReceipt|Select-Object success,checks,exitCode,timedOut,cleanEngine,directory|ConvertTo-Json
+if(-not$modalReceipt.success){throw 'Owned isolated modal test failed; exact inputs/logs retained'}

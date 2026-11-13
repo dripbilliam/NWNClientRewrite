@@ -1,0 +1,383 @@
+{
+  "version": 1,
+  "kind": "private-isolated-exact-error-policy",
+  "engineSha256": "10b24711d277f745ad72cc504b6a3e573c12bb1ce1be7fd8545faabab82b9f13",
+  "candidateManifestSha256": "98e80d4ca5f9140e88252a8615b1cdb64197343c9d69f5fc4bc05b089259fb21",
+  "contractSha256": "b29a15b0ca7d67d28a33f4938e8bce37ff582faae6db812d2e3163bf519b6898",
+  "fixtureManifestSha256": "b3be1bfa5e3551a062ac853047d3a4af9eedc8b68ff631bc6c0eb2671532fbfe",
+  "cases": {
+    "ordinary": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "replace-groups-then-all-far": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "replace-groups-then-empty": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "replace-states-then-all-far": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "early-query-unready": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "late-pending": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "reentrant-query": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "erase-current-key-error": {
+      "reviewRequired": true,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "Potential error observation: actual closed original/candidate logs must be reviewed; no expected text is invented."
+    },
+    "clear-origin-error": {
+      "reviewRequired": true,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "Potential error observation: actual closed original/candidate logs must be reviewed; no expected text is invented."
+    },
+    "free-owner-error": {
+      "reviewRequired": true,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "Potential error observation: actual closed original/candidate logs must be reviewed; no expected text is invented."
+    },
+    "typed-bounds": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "typed-states": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "typed-live-groups": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "readonly-group": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "readonly-states": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "readonly-state": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "readonly-bounds-scratch": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "readonly-state-scratch": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "radius-object-error": {
+      "reviewRequired": true,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "Potential error observation: actual closed original/candidate logs must be reviewed; no expected text is invented."
+    },
+    "bounds-object-error": {
+      "reviewRequired": true,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "Potential error observation: actual closed original/candidate logs must be reviewed; no expected text is invented."
+    },
+    "bool-numeric": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "nan-radius": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "inf-radius": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "object-key-ordinary": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "object-key-replace-final": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "object-key-unready": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "object-key-erase-final-error": {
+      "reviewRequired": true,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "Potential error observation: actual closed original/candidate logs must be reviewed; no expected text is invented."
+    },
+    "state-loop-container-replacement": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "object-key-pending-prefix": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "state-loop-element-clear": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    },
+    "state-last-removed-makes-far-near": {
+      "reviewRequired": false,
+      "reviewed": false,
+      "expected": {
+        "engine": [],
+        "stdout": [],
+        "stderr": []
+      },
+      "normalizations": [],
+      "reviewEvidence": [],
+      "reason": "No errors expected; unknown output/errors reject."
+    }
+  },
+  "scope": "Default source-only policy. Potential error cases remain BLOCKED until actual role/channel logs are reviewed and explicitly pinned. Only capsule-path and reviewed exact role-frame line normalization is supported; messages, categories, ordering and missing frames are never discarded."
+}

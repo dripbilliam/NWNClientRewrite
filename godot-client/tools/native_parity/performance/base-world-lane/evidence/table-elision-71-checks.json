@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "exit": 0,
+  "error": null,
+  "errors": [],
+  "result": {
+    "checks": 71,
+    "failures": [],
+    "gpuDraws": 0,
+    "scope": "Full actual ObjectStream lifecycle with explicit async-delivery/model CPU ports, actual original 2DA reference parser/priority/animation admission, exact inherited pool policy and private worker-hook composition. No asset/GPU/performance validation.",
+    "serverConnections": 0,
+    "success": true
+  },
+  "sourceChanged": [],
+  "stage": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\visibility-agent\\object-appearance-table-elision-v3\\stage.json",
+    "sha256": "3cab63aac6d4f3ba33accd359b3bc2717d85f80e68369452f3f770bf18167ca7"
+  },
+  "gpuDraws": 0,
+  "serverConnections": 0
+}

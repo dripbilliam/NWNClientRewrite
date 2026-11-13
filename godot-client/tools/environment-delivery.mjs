@@ -1,6 +1,6 @@
 // Decoded native area state only; Godot owns interpolation and fog per frame.
 // Nothing here queries a server, advances game time, or invents area lighting.
-const offsets=['98','9c','a0','a4','a8','ac','b0','b4','b8','bc','c0','c4','c8','cc','d0','d4','d8','dc','e0','104','108'];
+const offsets=['98','9c','a0','a4','a8','ac','b0','b4','b8','bc','c0','c4','c8','cc','d0','d4','d8','dc','e0','104','108','e4','e8','ec','f0','f4','f8','fc'];
 export class EnvironmentDelivery {
  constructor({session,connection,active,ready,send,sky,weather,now=()=>performance.now()}){Object.assign(this,{session,connection,active,ready,send,sky,weather,now});this.revision=0;this.sent=null;this.clock=null;}
  receive(message){
@@ -8,7 +8,7 @@ export class EnvironmentDelivery {
   this.weather?.receive(message);
   if(message.kind==='client-area'||message.kind==='module-time'&&('timeOfDay' in message.changes||'transition' in message.changes)){
    this.clock={areaId:this.session.world.areaId,generation:this.session.areaGeneration,at:this.now(),transition:this.session.world.time.transition??0};this.revision++;
-  }else if(message.kind==='module-info')this.revision++;
+  }else if(message.kind==='module-info'||message.kind==='area-wind')this.revision++;
   this.flush();
  }
  flush(){

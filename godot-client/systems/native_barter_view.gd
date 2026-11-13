@@ -7,6 +7,7 @@ var wanted:=false
 var view_id:=0
 var examine_mode:=false
 var gold_owner
+var item_tooltips
 var stage: Control
 var grids: Dictionary={}
 var buttons: Dictionary={}
@@ -18,6 +19,7 @@ var frame
 var definition: Dictionary={}
 func setup(owner,storage: String) -> void:
 	owner_barter=owner; gold_owner=owner.owner_ui.inventory.gold; frame=owner.owner_ui.inventory.frame_skin
+	item_tooltips=owner.owner_ui.inventory.item_tooltips
 	configure("Barter","barter",Vector2(470,100),storage); close_hides=false; close_requested.connect(func():owner_barter.command("close")); hide()
 func build(plan: Dictionary,models: Dictionary) -> void:
 	definition=plan; window_column.hide(); add_theme_stylebox_override("panel",StyleBoxEmpty.new()); custom_minimum_size=plan.size; size=plan.size
@@ -69,7 +71,7 @@ func render(state: Dictionary,rows: Array,pending: Dictionary) -> void:
 		button.disabled=bool(row.pending) or closing or row.channel=="B" and bool(state.ownLocked)
 		button.position=Vector2(int(row.x)*33,(10-int(row.y)-int(row.height))*33); button.size=Vector2(int(row.width)*33-1,int(row.height)*33-1)
 		var center:=Layout.icon_center(int(row.x),int(row.y),int(row.width),int(row.height)); button.native_icon_center=Vector2(center.x,330-center.y)-button.position; button.refresh_icon()
-		button.count.text=str(int(row.stack)) if int(row.stack)>1 else ""; button.tooltip_text=str(row.name)
+		button.count.text=str(int(row.stack)) if int(row.stack)>1 else ""; button.update_tooltip()
 	for id in item_buttons.keys():
 		if not keep.has(id): item_buttons[id].get_parent().remove_child(item_buttons[id]); item_buttons[id].queue_free(); item_buttons.erase(id)
 	_clamp()

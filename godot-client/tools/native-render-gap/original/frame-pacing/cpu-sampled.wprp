@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0" Author="Native render gap investigation">
+ <Profiles>
+  <SystemCollector Id="NwnCpuCollector" Name="NwnRenderGapSampledCpu">
+   <BufferSize Value="256"/>
+   <Buffers Value="128"/>
+   <MaximumFileSize Value="128" FileMode="Circular"/>
+  </SystemCollector>
+  <SystemProvider Id="NwnCpuProvider">
+   <Keywords>
+    <Keyword Value="ProcessThread"/>
+    <Keyword Value="Loader"/>
+    <Keyword Value="SampledProfile"/>
+   </Keywords>
+   <Stacks><Stack Value="SampledProfile"/></Stacks>
+  </SystemProvider>
+  <Profile Id="NwnCpuSampled.Verbose.File" Name="NwnCpuSampled" Description="Thirty-second bounded CPU sample diagnostic. System-provider capture; target PID/TID selected during analysis." LoggingMode="File" DetailLevel="Verbose">
+   <Collectors><SystemCollectorId Value="NwnCpuCollector"><SystemProviderId Value="NwnCpuProvider"/></SystemCollectorId></Collectors>
+  </Profile>
+ </Profiles>
+</WindowsPerformanceRecorder>

@@ -1,0 +1,41 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),workspace=path.dirname(root),label=process.argv[2];
+if(!/^[a-z0-9-]{3,90}$/.test(label??''))throw Error('Supply a fresh private source-to-timer label');
+const base=path.join(root,'.cache/native-clock-source-candidate-v1'),directory=path.join(root,'.cache/native-private-clock-timer',label),project=path.join(directory,'project');
+if(fs.existsSync(directory))throw Error('Existing evidence retained');
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex'),fileHash=p=>hash(fs.readFileSync(p)),inputs=new Map(),gd=new Map();
+function pin(file,expected){file=path.resolve(file);const sha256=fileHash(file);if(expected&&sha256!==expected)throw Error('Accepted private input drift: '+file);if(!file.startsWith(workspace+path.sep))throw Error('Input escapes workspace');inputs.set(file,{path:path.relative(workspace,file).replaceAll('\\','/'),sha256});return file;}
+function includeGd(relative){const file=path.join(root,relative);if(gd.has(relative))return;pin(file);gd.set(relative,file);for(const m of fs.readFileSync(file,'utf8').matchAll(/["']res:\/\/([^"']+\.gd)["']/g))includeGd(m[1]);}
+includeGd('tests/native_private_clock_timer_integration_test.gd');
+pin(fileURLToPath(import.meta.url));pin(path.join(root,'NATIVE-PRIVATE-CLOCK-TIMER-INTEGRATION.md'));
+const manifestFile=pin(path.join(base,'manifest.json'),'779aab6051a30eb949517630344efdd9e4f58352cc192aeaa33b968109156f6f');
+const buildFile=pin(path.join(base,'builds/build-v1/build-manifest.json'),'23a0e24994c71a7cef4ff12994dd78f6826c63ff2ce52d6468e54b4509d973d6');
+const acceptedFile=pin(path.join(base,'runs/clock-source-headless-v1/proof.json'),'831d4323f2aa8b263200ee12b7dba9be2d9c840ca1fd66567bf45c7c62326e1f');
+for(const n of ['source/clock_source.cpp','builds/build-v1/inputs/clock_source.cpp','builds/build-v1/inputs/gdextension_interface.h','README.md'])pin(path.join(base,n));
+const descriptor=pin(path.join(base,'runs/clock-source-headless-v1/project/clock_source.gdextension'),'955b58917cb61c33c1de2b04f3ee6254cc5e4914210f803d120b2cd96e30a85f');
+const dll=pin(path.join(base,'builds/build-v1/bin/nwn-clock-source.dll'),'497e483e44595a7518b860f92c55e3ab3cef9cd372b15c53a2ac31dfd2498190');
+pin(path.join(root,'project.godot'));pin(path.join(root,'native/particle_kernel.gdextension'));
+const manifest=JSON.parse(fs.readFileSync(manifestFile)),build=JSON.parse(fs.readFileSync(buildFile)),accepted=JSON.parse(fs.readFileSync(acceptedFile));
+if(!build.success||build.exitCode!==0||!build.copiesCorrect||build.changedPins.length||!accepted.success||accepted.checks!==663)throw Error('Prior private candidate acceptance is not intact');
+for(const row of build.copiedInputs)pin(path.join(base,'builds/build-v1',row.path),row.sha256);
+for(const row of manifest.inputs)if(row.location==='candidate'&&row.path.startsWith('source/'))pin(path.join(base,row.path),row.sha256);
+fs.mkdirSync(project,{recursive:true});
+const copies=[];
+function copy(file,relative){const target=path.resolve(project,relative);if(!target.startsWith(project+path.sep))throw Error('Private copy escapes project');fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(file,target);const sha256=inputs.get(file).sha256;if(fileHash(target)!==sha256)throw Error('Private copy readback differs');copies.push({source:file,target,sha256});}
+for(const[relative,file]of gd)copy(file,relative);copy(dll,'nwn-clock-source.dll');copy(descriptor,'clock_source.gdextension');
+fs.writeFileSync(path.join(project,'project.godot'),'config_version=5\n[application]\nconfig/name="Owned Private Native Clock Timer"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');fs.mkdirSync(path.join(project,'.godot'),{recursive:true});fs.writeFileSync(path.join(project,'.godot/extension_list.cfg'),'res://clock_source.gdextension\n');
+fs.writeFileSync(path.join(directory,'input-manifest.json'),JSON.stringify({scope:'Private accepted DLL/descriptor +current3GD only copied into own project; accepted source/build/proof/manifests read-only pinned.',inputs:[...inputs.values()],copies:copies.map(x=>({source:inputs.get(x.source).path,target:path.relative(directory,x.target).replaceAll('\\','/'),sha256:x.sha256}))},null,2)+'\n');
+const nativeNames=['.cache/native-window/nwn-window-modes.exe','.cache/native-window/build-manifest.json','.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-kernel/build-manifest.json','.cache/native-resource-index/nwn-resource-index.dll','.cache/native-resource-index/build-manifest.json'],nativeOutputs=nativeNames.map(file=>({file,sha256:fileHash(path.join(root,file))}));
+const engine=path.join(root,'.tools/Godot_v4.7.2-stable_win64.exe'),engineSha256=fileHash(engine);
+if(engineSha256!=='ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424')throw Error('Unexpected existing engine');
+const resultFile=path.join(directory,'result.json'),log=path.join(directory,'engine.log');
+const outcome=await new Promise(resolve=>{const child=spawn(engine,['--headless','--max-fps','60','--path',project,'--log-file',log,'--script','res://tests/native_private_clock_timer_integration_test.gd','--','--report='+resultFile],{windowsHide:true,stdio:['ignore','pipe','pipe']});let stdout='',stderr='',failure=null;const stop=why=>{failure??=why;if(child.exitCode===null)child.kill();};const consume=(kind,b)=>{if(kind==='stdout')stdout+=b.toString();else stderr+=b.toString();if(Buffer.byteLength(stdout)+Buffer.byteLength(stderr)>2*1024*1024){stdout=stdout.slice(-512*1024);stderr=stderr.slice(-512*1024);stop('Private integration output exceeds2MiB');}if(/SCRIPT ERROR|Parse Error|^ERROR:/m.test(stdout+'\n'+stderr))stop('Private integration engine error');};child.stdout.on('data',b=>consume('stdout',b));child.stderr.on('data',b=>consume('stderr',b));const deadline=setTimeout(()=>stop('Private source-to-timer gate exceeds65s'),65000);child.once('error',e=>{failure??=e.message});child.once('close',(code,signal)=>{clearTimeout(deadline);resolve({code,signal,failure,stdout,stderr,ownedProcessId:child.pid})});});
+fs.writeFileSync(path.join(directory,'stdout.log'),outcome.stdout);fs.writeFileSync(path.join(directory,'stderr.log'),outcome.stderr);
+let result=null,reportError=null;try{if(fs.existsSync(resultFile))result=JSON.parse(fs.readFileSync(resultFile));}catch(e){reportError=e.message;}
+const text=fs.existsSync(log)?fs.readFileSync(log,'utf8'):'',cleanEngine=!/^(?:WARNING:|ERROR:)|SCRIPT ERROR|Parse Error|ObjectDB instances leaked|Leaked instance|still in use at exit/m.test(text+'\n'+outcome.stderr),changedInputs=[...inputs].filter(([f,r])=>fileHash(f)!==r.sha256).map(([,r])=>r.path),changedCopies=copies.filter(r=>fileHash(r.target)!==r.sha256).map(r=>path.relative(directory,r.target)),changedOutputs=nativeOutputs.filter(r=>fileHash(path.join(root,r.file))!==r.sha256).map(r=>r.file),engineUnchanged=fileHash(engine)===engineSha256;
+const proof={success:outcome.code===0&&!outcome.failure&&!reportError&&cleanEngine&&result?.success===true&&!changedInputs.length&&!changedCopies.length&&!changedOutputs.length&&engineUnchanged,checks:result?.checks??0,failures:result?.failures??[],cleanEngine,exitCode:outcome.code,error:outcome.failure,reportError,signal:outcome.signal,inputs:[...inputs.values()],changedInputs,changedCopies,nativeOutputs,changedOutputs,engineSha256,engineUnchanged,candidateDllSha256:inputs.get(dll).sha256,ownedProcessId:outcome.ownedProcessId,privateProject:project,mainDescriptorChanged:changedInputs.includes('godot-client/project.godot')||changedInputs.includes('godot-client/native/particle_kernel.gdextension'),compilerLaunches:0,serverConnections:0,keyReads:0,profileReads:0,gpu:false,userProcessActions:0,scope:result?.scope??'No accepted private source-to-timer result; rejected evidence retained.'};fs.writeFileSync(path.join(directory,'proof.json'),JSON.stringify(proof,null,2)+'\n');console.log(JSON.stringify({...proof,inputs:inputs.size,failures:proof.failures.length,directory}));process.exitCode=proof.success?0:1;
+

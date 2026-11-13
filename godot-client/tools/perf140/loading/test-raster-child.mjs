@@ -1,0 +1,2 @@
+import fs from 'node:fs';import path from 'node:path';import {isolatedHeadless} from './isolated-headless.mjs';
+await isolatedHeadless({label:process.argv[2],pattern:/^raster-child-[a-z0-9-]+$/,script:'native_perf140_loading_raster_children_test.gd',timeoutMs:20000,argumentsForVariant:(variant,root)=>{const cache=path.join(root,'owned-prepared-cache');fs.mkdirSync(cache);return ['--cache-root='+cache,'--prepared-cache-write=sync','--prework-raster-children='+(variant==='candidate'?'enabled':'disabled'),'--expect-integration='+(variant==='candidate')];}});

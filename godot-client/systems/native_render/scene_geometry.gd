@@ -4,6 +4,11 @@ const Polygon=preload("res://systems/native_data/polygon_hit.gd")
 const Kernel=preload("res://systems/native_render/particle_kernel.gd")
 var native_geometry: RefCounted
 var native_attempted:=false
+# Support-only immutable view. Never replace the canonical masked owner.
+var native_support_geometry: RefCounted
+var native_support_attempted:=false
+var native_support_preparations:=0
+var native_support_reason:=""
 @export var vertices:=PackedFloat32Array()
 @export var indices:=PackedInt32Array()
 @export var planes:=PackedFloat32Array()
@@ -11,6 +16,8 @@ var native_attempted:=false
 @export var bounds:=AABB()
 func configure(data: Dictionary,prepared: Dictionary={}) -> void:
 	native_geometry=null; native_attempted=false; bounds=AABB()
+	native_support_geometry=null; native_support_attempted=false
+	native_support_preparations=0; native_support_reason=""
 	vertices=data.vertices; indices=data.get("collision_indices",data.indices); planes=data.get("native_planes",PackedFloat32Array()); surface_types=data.get("native_surface_types",PackedInt32Array())
 	if not prepared.is_empty(): bounds=prepared.source_bounds; planes=prepared.planes; return
 	var has_bounds:=false
@@ -35,6 +42,21 @@ func prepare_native() -> RefCounted:
 			var setup: Variant=native_geometry.call("dispatch",0,{"vertices":vertices,"indices":indices,"planes":planes,"types":surface_types})
 			if setup is Dictionary and setup.has("error"): push_error(str(setup.error)); native_geometry=null
 	return native_geometry
+func prepare_native_unmasked_support() -> RefCounted:
+	# Cold, per-configuration preparation; original arrays/materials stay intact.
+	if not native_support_attempted:
+		native_support_attempted=true
+		native_support_reason="Compiled unmasked support geometry unavailable"
+		if Kernel.enabled() and not OS.get_cmdline_user_args().has("--scene-geometry=gd") and Kernel.available() and ClassDB.class_exists("NwnSceneGeometry"):
+			native_support_geometry=ClassDB.instantiate("NwnSceneGeometry")
+			native_support_preparations+=1
+			var setup: Variant=native_support_geometry.call("dispatch",0,{"vertices":vertices,"indices":indices,"planes":planes,"types":PackedInt32Array()})
+			if setup is Dictionary and setup.has("error"):
+				native_support_reason=str(setup.error)
+				push_error(native_support_reason);native_support_geometry=null
+			else:native_support_reason=""
+	return native_support_geometry
+
 func nearest(start: Array,end: Array,details: bool=false,compiled: bool=true) -> Variant:
 	var low:=Vector3(minf(start[0],end[0]),minf(start[1],end[1]),minf(start[2],end[2])); var high:=Vector3(maxf(start[0],end[0]),maxf(start[1],end[1]),maxf(start[2],end[2]))
 	if high.x<bounds.position.x or high.y<bounds.position.y or high.z<bounds.position.z or low.x>bounds.end.x or low.y>bounds.end.y or low.z>bounds.end.z: return null

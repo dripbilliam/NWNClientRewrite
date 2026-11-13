@@ -9,8 +9,32 @@ const Definition = preload("res://systems/native_data/area_definition.gd")
 const Assets = preload("res://systems/native_data/asset_service.gd")
 const Template = preload("res://systems/native_render/model_template.gd")
 const TerrainBatches = preload("res://systems/native_render/terrain_batches.gd")
+const StaticSceneryBatches = preload("res://systems/native_render/static_scenery_batches.gd")
+const StaticSceneryMerge = preload("res://systems/native_render/static_scenery_merge.gd")
 const TileLights = preload("res://systems/native_render/tile_lights.gd")
 const Priority=preload("res://systems/native_render/stream_priority.gd")
+var _template_pending: Dictionary={}
+var _template_entry: Dictionary={}
+var _clone_pending: Dictionary={}
+var _clone_entry: Dictionary={}
+func _cancel_staged_publication() -> void:
+	if pool!=null and pool.has_method("cancel_template_step"):pool.cancel_template_step(_template_pending)
+	else:
+		if _template_pending.has("template"):_template_pending.template.cancel_staged_build()
+		_template_pending.clear()
+	Template.cancel_creation(_clone_pending);_clone_entry={};_template_entry={}
+func _resume_clone_head() -> void:
+	var entry: Dictionary=_clone_entry if not _clone_entry.is_empty() else _template_entry
+	if entry.is_empty():return
+	for index in publish_queue.size():
+		if is_same(publish_queue[index],entry):
+			if index>0:publish_queue.push_front(publish_queue.pop_at(index))
+			return
+	# The exact queued row retired; cancel only its private publication work.
+	if not _clone_entry.is_empty():Template.cancel_creation(_clone_pending);_clone_entry={}
+	if not _template_entry.is_empty():
+		if pool!=null and pool.has_method("cancel_template_step"):pool.cancel_template_step(_template_pending)
+		_template_entry={}
 var priority_origin:=Vector3.ZERO
 var has_priority_origin:=false
 var priority_dirty:=false
@@ -45,6 +69,8 @@ var bundles := {}
 var templates := {}
 var template_keys := {}
 var use_terrain_batches := false
+var static_scenery_mode:="merged" if OS.get_cmdline_user_args().has("--static-scenery=merged") else "batched" if OS.get_cmdline_user_args().has("--static-scenery=batched") else "individual"
+var static_scenery_batches
 var batcher
 var batch_queue: Array=[]
 var batch_remaining: Dictionary={}
@@ -59,7 +85,7 @@ var done := false
 var light_table_job:=-1
 var light_table: Dictionary={}
 var publication_budget_ms := 3.0
-var maximum_tiles_per_frame := 8
+var maximum_tiles_per_frame := 0 #0 uses the existing time/shared-pool budget; positive values cap units.
 var diagnostics := {}
 func open_area(catalog, area_name: String, shared_pool, cache_path: String = "") -> void:
 	open_source(catalog,area_name,shared_pool,cache_path,{})
@@ -71,6 +97,8 @@ func open_source(catalog, area_name: String, shared_pool, cache_path: String, ne
 	if not is_instance_valid(assets):
 		assets=Assets.new(); add_child(assets); assets.completed.connect(model_prepared)
 	if not is_instance_valid(batcher): batcher=TerrainBatches.new(); add_child(batcher)
+	if static_scenery_mode!="individual" and not is_instance_valid(static_scenery_batches):
+		static_scenery_batches=StaticSceneryMerge.new() if static_scenery_mode=="merged" else StaticSceneryBatches.new();add_child(static_scenery_batches)
 	assets.configure(catalog); assets.cache_directory=cache_path
 	definition_wait={"catalog":catalog.fork(),"name":area_name,"generation":generation,"network_area":network_area}
 	diagnostics={"generation":generation,"name":area_name,"unique_models":0,"model_jobs":0,"worker_ms":0.0,"publish_ms":0.0,"publish_frames":0,"max_publish_ms":0.0,"max_tile_publish_ms":0.0,"template_ms":0.0,"clone_ms":0.0,"attach_ms":0.0,"batch_prepare_ms":0.0,"batches_published":0,"batched":use_terrain_batches,"templates_built":0,"templates_reused":0,"cache_hits":0,"limitations":[],"errors":[],"definition_thread":0}
@@ -135,6 +163,12 @@ func _process(_delta: float) -> void:
 func _profile_process(_delta: float) -> void:
 	if closed: return
 	poll_definition()
+	# One bounded static draw-group publication, using the same shared pool gate.
+	# This continues after tiles finish; the original tile owners stay complete.
+	var static_pending: bool=is_instance_valid(static_scenery_batches) and (static_scenery_batches.has_pending() if static_scenery_batches.has_method("has_pending") else not static_scenery_batches.dirty.is_empty())
+	if static_pending and pool!=null and (not pool.has_method("can_publish") or pool.can_publish()):
+		var batch_begin:=Time.get_ticks_usec();static_scenery_batches.flush(0.5,1)
+		if pool.has_method("publication_finished") and Time.get_ticks_usec()!=batch_begin:pool.publication_finished(batch_begin)
 	if definition.is_empty() or done: return
 	refresh_priority()
 	while not waiting.is_empty() and assets.pending.size()+assets.running.size()<mini(assets.maximum_pending,assets.maximum_workers*2):
@@ -145,25 +179,53 @@ func _profile_process(_delta: float) -> void:
 	if use_terrain_batches:
 		publish_batches(); return
 	if light_table.is_empty(): return
-	var begin := Time.get_ticks_usec(); var published := 0
-	while not publish_queue.is_empty() and published<maximum_tiles_per_frame:
-		if published>0 and (Time.get_ticks_usec()-begin)/1000.0>=publication_budget_ms: break
+	_resume_clone_head()
+	var begin := Time.get_ticks_usec(); var published := 0 ; var attempted:=0
+	var shared_budget: bool=pool.has_method("can_publish") and pool.has_method("publication_finished")
+	while not publish_queue.is_empty() and (maximum_tiles_per_frame==0 or published<maximum_tiles_per_frame):
+		if attempted>=16 and not shared_budget:break
+		if attempted>0 and (Time.get_ticks_usec()-begin)/1000.0>=publication_budget_ms: break
 		if pool.has_method("can_publish") and not pool.can_publish(): break
+		attempted+=1
 		var row: Dictionary = publish_queue.pop_front(); var tile: Dictionary = definition.tiles[int(row.index)]
 		var tile_begin:=Time.get_ticks_usec(); var key:=str(template_keys[row.model])
 		if not templates.has(key):
 			var template_begin:=Time.get_ticks_usec()
 			var count_before:=int(pool.stats.templates_created)
-			var template=pool.model_template(bundles[row.model])
+			var template
+			var staged_created:=false
+			if Template.configured_recipe() and pool.has_method("model_template_step"):
+				var preparation: Dictionary=pool.model_template_step(bundles[row.model],_template_pending)
+				var created:=int(pool.stats.templates_created)-count_before
+				if created>0:diagnostics.templates_built+=created
+				if preparation.status=="pending":
+					_template_entry=row;publish_queue.push_front(row);diagnostics.staged_template_steps=int(diagnostics.get("staged_template_steps",0))+1
+					diagnostics.template_ms+=(Time.get_ticks_usec()-template_begin)/1000.0
+					if pool.has_method("publication_finished"):pool.publication_finished(tile_begin)
+					continue
+				_template_entry={};template=preparation.get("template")
+				staged_created=bool(preparation.get("created",false))
+			else:template=pool.model_template(bundles[row.model])
 			if template!=null:
 				templates[key]=template
-				if int(pool.stats.templates_created)>count_before: diagnostics.templates_built+=1
-				else: diagnostics.templates_reused+=1
+				if not Template.configured_recipe():
+					if int(pool.stats.templates_created)>count_before:diagnostics.templates_built+=1
+					else:diagnostics.templates_reused+=1
+				elif not staged_created:diagnostics.templates_reused+=1
 			else: diagnostics.errors.append(str(row.model)+": "+pool.failure)
 			diagnostics.template_ms+=(Time.get_ticks_usec()-template_begin)/1000.0
 		else: diagnostics.templates_reused+=1
 		var clone_begin:=Time.get_ticks_usec()
-		var model = templates[key].create() if templates.has(key) else null
+		var model
+		if templates.has(key) and Template.configured_recipe() and templates[key].has_method("create_step"):
+			var creation: Dictionary=templates[key].create_step(_clone_pending)
+			if creation.status=="pending":
+				_clone_entry=row;publish_queue.push_front(row);diagnostics.staged_clone_steps=int(diagnostics.get("staged_clone_steps",0))+1
+				diagnostics.clone_ms+=(Time.get_ticks_usec()-clone_begin)/1000.0
+				if pool.has_method("publication_finished"):pool.publication_finished(tile_begin)
+				continue
+			_clone_entry={};model=creation.get("instance")
+		else:model=templates[key].create() if templates.has(key) else null
 		diagnostics.clone_ms+=(Time.get_ticks_usec()-clone_begin)/1000.0
 		if model==null: failed_tiles+=1
 		else:
@@ -175,6 +237,7 @@ func _profile_process(_delta: float) -> void:
 			collision_index.put(model)
 			diagnostics.tile_lights.append({"index":int(row.index),"model":row.model,"indices":tile.main_lights.duplicate(),"lights":TileLights.apply(model,str(row.model),TileLights.colors(tile.main_lights,light_table))})
 			tile_published.emit(int(row.index),model)
+			if is_instance_valid(static_scenery_batches):static_scenery_batches.consider_tile(int(row.index),model)
 			for feature in model.limitations:
 				if not diagnostics.limitations.has(feature): diagnostics.limitations.append(feature)
 		published+=1
@@ -204,6 +267,7 @@ func publish_batches() -> void:
 func snapshot() -> Dictionary:
 	var state := diagnostics.duplicate(true)
 	state.collision_index=collision_index.snapshot()
+	state.static_scenery=static_scenery_batches.snapshot() if is_instance_valid(static_scenery_batches) else {"enabled":false,"mode":static_scenery_mode}
 	state.streaming_priority={"player_centered":has_priority_origin,"origin":[priority_origin.x,priority_origin.y,priority_origin.z],"policy":"nearest ready tile; unique model work ranked by nearest placement"}
 	state.merge({"complete":done,"success":done and diagnostics.errors.is_empty(),"tiles":definition.get("tiles",[]).size(),"rendered_tiles":completed_tiles,"failed_tiles":failed_tiles,"instances":instances.size(),"elapsed_ms":(Time.get_ticks_usec()-load_started)/1000.0,"rendering_native":true,"full_world":false})
 	return state
@@ -211,11 +275,17 @@ func complete() -> void:
 	if done: return
 	done=true; diagnostics.complete_ms=(Time.get_ticks_usec()-load_started)/1000.0; finished.emit(snapshot())
 func collision_candidates(start: Vector3,end: Vector3) -> Array: return collision_index.query(start,end)
+func invalidate_static_scenery_tile(index: int,reason: String="authored-tile-draw-change") -> void:
+	# Required before any future caller mutates a tile's immutable draw bindings
+	# or enables per-instance fog/fade; physical/query owners stay unchanged.
+	if is_instance_valid(static_scenery_batches) and instances.get(index) is Node3D:static_scenery_batches.withdraw_model(instances[index],reason)
 func retire_scope() -> void:
+	_cancel_staged_publication()
 	generation+=1; definition_wait={}; waiting.clear(); requests.clear(); publish_queue.clear(); bundles.clear(); template_keys.clear(); definition={}; light_table={}; light_table_job=-1; failure=""; done=false; completed_tiles=0; failed_tiles=0
 	batch_queue.clear(); batch_remaining.clear()
 	publication_remaining.clear(); priority_dirty=true
 	if is_instance_valid(batcher): batcher.retire_scope()
+	if is_instance_valid(static_scenery_batches):static_scenery_batches.clear()
 	if is_instance_valid(assets): assets.retire_scope()
 	for model in instances.values():
 		if model is Node and is_instance_valid(model): model.retire()
@@ -229,8 +299,10 @@ func close() -> void:
 	definition_mutex.lock(); definition_result={}; definition_mutex.unlock()
 	templates.clear()
 	if is_instance_valid(batcher): batcher.close()
+	if is_instance_valid(static_scenery_batches):static_scenery_batches.close()
 	pool=null
 func detach_prepared_data() -> Dictionary:
+	_cancel_staged_publication()
 	var payload:={"bundles":bundles,"definition":definition,"definition_result":definition_result,"light_table":light_table}
 	bundles={}; definition={}; definition_result={}; light_table={}
 	return payload

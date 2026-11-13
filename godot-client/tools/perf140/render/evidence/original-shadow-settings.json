@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "scope": "Read-only, selected graphics.shadows values from the two known original local profiles. No private login fields are retained, no settings were changed, and these files alone do not prove current process state or console overrides.",
+  "profiles": [
+    {
+      "path": "C:/Users/Niflheim/Documents/Neverwinter Nights.0/settings.tml",
+      "graphics.shadows.all-types-can-cast-dynamic": true,
+      "graphics.shadows.max-casting-lights": 3,
+      "graphics.shadows.creatures.mode": 2,
+      "graphics.shadows.environment.enabled": true
+    },
+    {
+      "path": "C:/Users/Niflheim/Documents/Neverwinter Nights/settings.tml",
+      "graphics.shadows.all-types-can-cast-dynamic": true,
+      "graphics.shadows.max-casting-lights": 3,
+      "graphics.shadows.creatures.mode": 2,
+      "graphics.shadows.environment.enabled": true
+    }
+  ]
+}

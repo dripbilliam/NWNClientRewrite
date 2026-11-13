@@ -22,14 +22,14 @@ export class NativeLobby {
   this.connection=0;this.session=null;this.phase='menu';this.locals=new Map();this.servers=new Map();this.selected=null;this.preview=null;this.busy=false;this.error='';this.previewVersion=0;this.vaultId=null;this.transferring=false;this.portalDestinationConnection=null;
   this.players=new Map();this.pageIndex=0;this.pageVersion=0;this.pageError='';this.serverStatus=null;
  }
- snapshot(){return{localRefreshAck:this.localRefreshAck??null,previewAccountScope:this.previewAccountScope??'',phase:this.phase,busy:this.busy,creating:Boolean(this.creating),error:this.error,resourceProgress:this.resourceProgress??null,endpoint:this.endpoint??null,canCancelJoin:Boolean(this.joinWork||canCancelResources(this.session)||this.portalPending())&&!this.cancelling,connected:Boolean(this.session&&!this.session.closed),localAllowed:this.session?.localVaultAllowed===true,canJoin:!this.busy&&!this.transferring&&(!this.session||this.session.closed),canSelect:!this.creating&&!this.busy&&this.selectable(),canCreate:!this.creating&&!this.busy&&this.selectable()&&Boolean(this.session.resourceResult?.ready&&this.session.resolver),selected:this.selected,selectionAck:this.selectionAck??null,preview:this.preview,lobbyPage:this.pageIndex,canLobbyPages:Boolean(this.selectable()&&!this.creating&&!this.busy),players:[...this.players.values()],serverInfo:{...lobbyServerInfo(this.session?.serverInfo),...this.serverDetails,...(this.session&&!this.session.closed&&this.serverStatus!==null?{serverStatus:this.serverStatus}:{})},serverInfoPending:Boolean(this.infoController),pageError:this.pageError,choices:[...(this.session?.localVaultAllowed===true?this.locals.values():[]),...this.servers.values()].map(lobbyChoice)};}
+ snapshot(){return{localRefreshAck:this.localRefreshAck??null,previewAccountScope:this.previewAccountScope??'',phase:this.phase,busy:this.busy,creating:Boolean(this.creating),error:this.error,...(this.clientFailure?{clientFailure:structuredClone(this.clientFailure)}:{}),resourceProgress:this.resourceProgress??null,endpoint:this.endpoint??null,canCancelJoin:Boolean(this.joinWork||canCancelResources(this.session)||this.portalPending())&&!this.cancelling,connected:Boolean(this.session&&!this.session.closed),localAllowed:this.session?.localVaultAllowed===true,canJoin:!this.busy&&!this.transferring&&(!this.session||this.session.closed),canSelect:!this.creating&&!this.busy&&this.selectable(),canCreate:!this.creating&&!this.busy&&this.selectable()&&Boolean(this.session.resourceResult?.ready&&this.session.resolver),selected:this.selected,selectionAck:this.selectionAck??null,preview:this.preview,lobbyPage:this.pageIndex,canLobbyPages:Boolean(this.selectable()&&!this.creating&&!this.busy),players:[...this.players.values()],serverInfo:{...lobbyServerInfo(this.session?.serverInfo),...this.serverDetails,...(this.session&&!this.session.closed&&this.serverStatus!==null?{serverStatus:this.serverStatus}:{})},serverInfoPending:Boolean(this.infoController),pageError:this.pageError,choices:[...(this.session?.localVaultAllowed===true?this.locals.values():[]),...this.servers.values()].map(lobbyChoice)};}
  emit(){if(this.selectionAck&&(this.selectionAck.connection!==this.connection||this.selectionAck.key!==this.selected))this.selectionAck=null;const message={kind:'lobby',connection:this.connection,state:this.snapshot()},key=JSON.stringify(message);if(key!==this.lastPublished){this.lastPublished=key;this.publish(message);}}
  selectable(){return !this.transferring&&this.session&&!this.session.closed&&['character-selection','character-rejected'].includes(this.session.phase)&&!this.session.characterSubmitted&&!this.session.characterUploaded&&!this.session.serverCharacterListPending;}
  portalPending(){return Boolean(this.transferring||this.session&&!this.session.closed&&this.session.phase==='transferring'&&this.session.portalTransfer?.pending);}
  advancePortal(previous,endpoint){
   if(this.session!==previous||!previous.portalHandoffReady||!previous.closed)throw Error('Portal handoff no longer owns the native lobby');
   this.resetPages();
-  this.connection++;this.portalDestinationConnection=this.connection;this.phase='transferring';this.transferring=true;this.busy=true;this.session=null;this.endpoint=endpoint;this.selected=this.preview=null;this.previewVersion++;this.servers.clear();this.vaultId=null;this.resourceProgress=null;this.error='';this.creating=false;this.emit();return this.connection;
+  this.connection++;this.portalDestinationConnection=this.connection;this.phase='transferring';this.transferring=true;this.busy=true;this.session=null;this.endpoint=endpoint;this.selected=this.preview=null;this.previewVersion++;this.servers.clear();this.vaultId=null;this.resourceProgress=null;this.error='';this.clientFailure=null;this.creating=false;this.emit();return this.connection;
  }
  portalConnected(session,connection){if(this.session!==session||this.connection!==connection)return;this.portalDestinationConnection=null;this.emit();}
  failPortal(connection,reason){if(this.connection!==connection)return;this.resetPages();this.portalDestinationConnection=null;this.transferring=false;this.busy=false;this.error=reason;this.phase='menu';this.session=null;this.resourceProgress=null;this.emit();}
@@ -57,7 +57,7 @@ export class NativeLobby {
  async join(message){
   this.requireOwner(message);if(this.busy||this.transferring||this.session&&!this.session.closed)throw Error('Disconnect the current session before joining');
   this.resetPages();
-  this.connection++;const connection=this.connection;this.previewAccountScope='';this.localRefreshAck=null;this.hiddenLocalRows=new Set();this.creating=false;this.busy=true;this.error='';this.resourceProgress=null;this.phase='connecting';this.servers.clear();this.selected=this.preview=null;this.previewVersion++;this.vaultId=null;this.emit();
+  this.connection++;const connection=this.connection;this.previewAccountScope='';this.localRefreshAck=null;this.hiddenLocalRows=new Set();this.creating=false;this.busy=true;this.error='';this.clientFailure=null;this.resourceProgress=null;this.phase='connecting';this.servers.clear();this.selected=this.preview=null;this.previewVersion++;this.vaultId=null;this.emit();
   const controller=new AbortController();this.joinController=controller;
   const pending=Promise.resolve().then(async()=>{const locals=await this.listLocal();controller.signal.throwIfAborted();if(connection!==this.connection)return;this.locals=new Map(locals.map(row=>[row.key,row]));await this.connect(connection,message.details,{signal:controller.signal});});
   const aborted=new Promise((_,reject)=>controller.signal.addEventListener('abort',()=>reject(controller.signal.reason),{once:true}));
@@ -85,7 +85,10 @@ export class NativeLobby {
    }
    this.resourceProgress=state.closed?null:finiteResourceProgress(state.resourceProgress);
    if(state.phase==='resources-unavailable')this.error='Required server content could not be loaded. Cancel this connection and retry.';
-   if(state.closed&&!session.portalHandoffReady&&state.disconnectReason){const reason=state.disconnectReason;this.error=reason.text||`Server closed the connection${reason.strRef!==null?` (message ${reason.strRef})`:''}.`;}
+   if(state.closed&&!session.portalHandoffReady){
+    if(state.clientFailure&&typeof state.clientFailure.code==='string'&&typeof state.clientFailure.reason==='string'){this.clientFailure=structuredClone(state.clientFailure);const cause=this.clientFailure.cause?.reason;this.error=this.clientFailure.reason+(typeof cause==='string'&&cause?` ${cause}`:'');}
+    if(state.disconnectReason){const reason=state.disconnectReason;this.error=reason.text||`Server closed the connection${reason.strRef!==null?` (message ${reason.strRef})`:''}.`;}
+   }
    if(state.closed){this.resetPages();this.creating=false;this.previewVersion++;this.selected=this.preview=null;this.servers.clear();}this.emit();
   });
   session.on('message',({message})=>{
@@ -146,7 +149,7 @@ export class NativeLobby {
  async leave(message){
   this.requireOwner(message);if(this.cancelling||typeof message.saveCharacter!=='boolean')throw Error('Invalid disconnect request');
   this.resetPages();
-  const targetSession=this.session;this.cancelling=true;this.connection++;this.busy=true;this.phase='disconnecting';this.error='';this.resourceProgress=null;
+  const targetSession=this.session;this.cancelling=true;this.connection++;this.busy=true;this.phase='disconnecting';this.error='';this.clientFailure=null;this.resourceProgress=null;
   this.joinController?.abort(new Error('Connection cancelled'));this.joinController=null;this.joinWork=null;
   this.creating=false;this.previewVersion++;this.selected=this.preview=null;this.servers.clear();this.emit();
   try{await this.disconnect({saveCharacter:message.saveCharacter,targetSession});}

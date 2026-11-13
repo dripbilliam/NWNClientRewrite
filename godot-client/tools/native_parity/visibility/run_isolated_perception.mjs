@@ -1,0 +1,26 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawn} from 'node:child_process';
+const root=process.cwd(),run=path.resolve(process.argv[2]??'');
+const boundary=path.join(root,'godot-client','.cache','native-presentation-parity','render-agent')+path.sep;
+if(!run.startsWith(boundary)||fs.existsSync(run))throw Error('Fresh owned run required');
+const descriptor=JSON.parse(fs.readFileSync(path.join(root,'godot-client/.cache/native-140fps/render-agent/engine-builtin-light-v2/engine-descriptor.json'),'utf8'));
+const engine=descriptor.engines.candidate,sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+if(!engine.sha256.startsWith('ce2d')||sha(engine.path)!==engine.sha256)throw Error('Engine pin mismatch');
+const oracle=path.join(boundary,'perception-original-v1','observations.json');
+if(!fs.existsSync(oracle))throw Error('Original oracle required');
+const relatives=['tools/native_parity/visibility/perception_latch.gd','tools/native_parity/visibility/perception_controller.gd','tests/native_parity_perception_latch_test.gd'];
+const project=path.join(run,'project'),pins=[];
+for(const relative of relatives){const source=path.join(root,'godot-client',relative),target=path.join(project,relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(source,target);pins.push({relative,sha256:sha(source)});}
+fs.mkdirSync(path.join(project,'.godot'),{recursive:true});fs.writeFileSync(path.join(project,'.godot/global_script_class_cache.cfg'),'list=[]\n');
+fs.writeFileSync(path.join(project,'project.godot'),'[application]\nconfig/name="Isolated native perception oracle"\n\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');
+fs.writeFileSync(path.join(run,'sources.json'),JSON.stringify({engine,pins,oracle,oracleSha256:sha(oracle)},null,2));
+const args=['--headless','--path',project,'--script','res://tests/native_parity_perception_latch_test.gd','--',`--report=${path.join(run,'checks.json')}`,`--oracle=${oracle}`];
+const child=spawn(engine.path,args,{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});let stdout='',stderr='',timedOut=false,error=null;
+child.stdout.on('data',v=>stdout+=v);child.stderr.on('data',v=>stderr+=v);child.on('error',e=>error=String(e));
+const timer=setTimeout(()=>{timedOut=true;child.kill();},20000);
+const exit=await new Promise(resolve=>child.once('close',(code,signal)=>resolve({code,signal})));clearTimeout(timer);
+const receipt={...exit,pid:child.pid,timedOut,error,engineSha256:engine.sha256,args,sourceChanged:pins.filter(p=>sha(path.join(root,'godot-client',p.relative))!==p.sha256).map(p=>p.relative)};
+fs.writeFileSync(path.join(run,'process.json'),JSON.stringify(receipt,null,2));fs.writeFileSync(path.join(run,'stdout.log'),stdout);fs.writeFileSync(path.join(run,'stderr.log'),stderr);
+console.log(JSON.stringify(receipt));console.log(stdout);console.log(stderr);process.exitCode=exit.code??1;

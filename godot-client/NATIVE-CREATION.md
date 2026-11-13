@@ -1,6 +1,71 @@
 # Native multiplayer character creation
 
-## Current direct-native entry
+## Current first-level acceptance — 2026-11-03
+
+The original source screens are integrated from the native character chooser
+through Gender/Race/Portrait/Class/Alignment/Abilities, Package and its
+class-dependent children, Appearance/Information, typed BIC construction and
+original-server upload. The older staged descriptions below are historical;
+they do not describe an unported Customize path in the current client.
+
+Current evidence distinguishes complete control/BIC paths from authoritative
+world entry and from original-client pixel acceptance:
+
+- Installed Wizard, Cleric, Druid, Sorcerer and Bard complete actual native
+  controls and parsed BIC checks. Separate memorizing/no-scroll cases preserve
+  the original different manual and Recommended spell budgets.
+- Cached, unmodified Arelith Warlock data completes manual creation and all five
+  visible automatic packages, including its real Pact submenu, native familiar
+  name/template, voice mapping, outfit and BIC. The automatic receipt replays
+  the original preference list and permits its ignored remaining bonus slot;
+  manual completion remains strict. This is offline custom-data evidence, not
+  a public-world admission claim. See
+  [the scoped cached-data receipt](reports/native-cached-warlock-creation-v1-receipt.json).
+- The original localhost Prelude server has accepted the source-controlled
+  Fighter, exported matching character data, and reaccepted the received
+  server-vault row with no BIC re-upload. The current Wizard run also passes
+  source controls, upload, world entry, movement, fresh export and clean native
+  shutdown. Its independent canonical HP witness validates the server's
+  Toughness recomputation. A fresh saved-row Wizard reconnect also passes:
+  original subtype17, no BIC upload, received HP/export and native readiness.
+  Its corrected outer schema receipt retains the original rejection and exact
+  evidence hashes; no additional login was used to correct that test predicate.
+- [Feat responsiveness](NATIVE-CREATION-FEAT-RESPONSIVENESS.md) now retains warm
+  immutable metadata and publishes post-Skills eligibility before presenting
+  Feats. Actual input checks cover stale eligibility, cancellation and cache
+  ownership. Real-run callback timings remain separate from FPS claims.
+- [Class/Package flow](NATIVE-CREATION-CLASS-FLOW.md) documents original legacy
+  class defaults before active overrides, native name workers, lazy Associate
+  entry, phase/rejection ownership and the source-auto feat policy.
+
+Automatic Wizard packages now complete with ordinary, missing and empty spell
+preferences. The source-only Known/Memorized writer is checked separately:
+native struct IDs and Spell-only memorized rows remain distinct from the
+generic writer. The automatic feat producer and mandatory worker replay now
+share the original preference policy, including rejection of feats granted
+only at later class levels. The cached Warlock automatic path was rerun after
+this correction; manual completion rules remain unchanged.
+
+The accepted Wizard diagnostic acknowledges its captured 31-object first world
+snapshot. A separate exact offline replay acknowledges an earlier retained
+24-object input and shuts down cleanly too. Neither explains the earlier
+uncaptured loading stall or intermittent pre-control local connection loss.
+Those failures remain unresolved and their rejected evidence is preserved in
+[the authoritative acceptance notes](NATIVE-CREATION-AUTHORITATIVE-ACCEPTANCE.md).
+The corrected test-only HP witness and probe teardown now pass their current
+scoped checks; no normal transport change is claimed.
+
+Completion is still unproven. Current work must resolve intermittent local
+connection/loading reliability and finish fresh authoritative caster
+creation/reconnect checks. Do not promote
+offline BIC checks, older narrower admissions or source-layout checks into full
+creator, level-up, pixel, multiplayer or client-parity acceptance.
+
+The broader objective remains active in
+[NATIVE-UI-PARITY-GOAL.md](NATIVE-UI-PARITY-GOAL.md) and
+[CLIENT-PARITY-RESUMPTION-GOAL.md](CLIENT-PARITY-RESUMPTION-GOAL.md).
+
+## Earlier direct-native milestones (historical)
 
 The normal `join-native.ps1` entry now owns all fifteen creation pages, rules,
 recommendations, validation, typed BIC writing, portraits, appearance preview and
@@ -16,6 +81,22 @@ The current direct-native live checks cover the local-vault Prelude campaign;
 server-vault-only creation still needs a fresh check on this route.
 
 ### Owners and server data
+
+The [original Alignment child](NATIVE-CREATION-ALIGNMENT.md) now commits through
+this real draft and parent, with active class2DA restrictions and local original
+server-exported axes verified. It shares readonly help with Race/Class. The
+source creator remains staged pending the other children and visual acceptance.
+
+The [original Class child](NATIVE-CREATION-CLASS.md) now shares Race's source
+list/help controls and commits through this real draft. It remains staged with
+CG_MAIN pending the other children. Original-server Wizard admission/export and
+actual mounted server2DA/custom-TLK Class input are checked; full source creator,
+level-up, allocation and visual acceptance remain open.
+
+The [source-summary binding](NATIVE-CREATION-SUMMARY-BINDING.md) is now owned
+by this actual creator/session, including real portrait commits and stale-draft
+retirement. It stages the original frame without replacing the incomplete
+presentation or inferring completion from default draft values.
 
 - `systems/native_creation.gd`: connection-owned draft, private view/control
   handles, resource queue and submit/cancel lifecycle.
@@ -42,6 +123,13 @@ the server; rejection restores Review. Disconnect drains owned work. This does
 not make the client authoritative over character legality.
 
 ### Current evidence
+
+The [draft-reset and class-file follow-up](NATIVE-CREATION-DRAFT-RESET.md)
+fixes retained domains and alignment invalidation in the live creator, and
+matches the original client's conditional School/Domain fields and first-level
+ClassList type0. It passes237 editor/release headless checks and authoritative
+Fighter/Cleric/Wizard creation/export on the original localhost Prelude server.
+The source CG_MAIN parent and fixed four-tab summary remain unfinished.
 
 - `reports/native-creation-ui-final-v1.json`: 103 checks, all eleven original base
   classes, native BIC generation, all pages, original animated/paletted appearance,

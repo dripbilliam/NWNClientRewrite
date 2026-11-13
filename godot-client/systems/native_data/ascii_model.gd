@@ -10,6 +10,7 @@ var by_name: Dictionary={}
 var by_folded_name: Dictionary={}
 var emitted: Dictionary={}
 var active: Dictionary={}
+var native_integer_pattern: RegEx
 func reject(reason: String) -> void:
 	if failure.is_empty(): failure=reason
 func numbers(tokens: PackedStringArray) -> Array:
@@ -54,6 +55,8 @@ func parse(text: String) -> Dictionary:
 			# Keep both physical records; name lookup follows the existing JS
 			# parser's final declaration, rather than rejecting the whole actor.
 			current={"name":name,"kind":tokens[1].to_lower(),"parent_name":"NULL","position":[0.0,0.0,0.0],"orientation":[0.0,0.0,1.0,0.0],"scale":1.0,"alpha":1.0,"selfillum":[0.0,0.0,0.0],"diffuse":[1.0,1.0,1.0],"shadow":0 if tokens[1].to_lower()=="light" else 1,"render":1,"transparencyhint":0,"verts":[],"tverts":[],"faces":[],"textures":[],"properties":{}}
+			current.native_tilefade=0;current.native_tilefade_available=true;current.native_tilefade_source="ascii_constructor_default"
+			current.ambient=[1.0,1.0,1.0]
 			by_name[name]=source_nodes.size()
 			var folded:=name.to_lower()
 			if not by_folded_name.has(folded): by_folded_name[folded]=[]
@@ -61,6 +64,7 @@ func parse(text: String) -> Dictionary:
 		if command=="endnode": current={}; continue
 		if current.is_empty(): continue
 		if tokens.size()>1: current.properties[command]=" ".join(tokens.slice(1))
+		if command=="tilefade":native_tilefade_field(current," ".join(tokens.slice(1)));continue
 		if command=="parent": current.parent_name=" ".join(tokens.slice(1)); continue
 		if command=="bitmap" and tokens.size()>1: current.textures.append(tokens[1].to_lower()); continue
 		# Emitter 'render Normal' is a mode, not a mesh visibility number.
@@ -68,8 +72,8 @@ func parse(text: String) -> Dictionary:
 		if command in ["verts","tverts","faces"]:
 			if tokens.size()!=2 or not tokens[1].is_valid_int() or tokens[1].to_int()<0 or tokens[1].to_int()>1000000: reject("Invalid ASCII MDL array count"); return {}
 			array_kind=command; remaining=tokens[1].to_int(); continue
-		if command in ["position","orientation","scale","alpha","selfillumcolor","diffuse","render","shadow","transparencyhint"]:
-			var values:=numbers(tokens.slice(1)); var count:=4 if command=="orientation" else (3 if command in ["position","selfillumcolor","diffuse"] else 1)
+		if command in ["position","orientation","scale","alpha","selfillumcolor","ambient","diffuse","render","shadow","transparencyhint"]:
+			var values:=numbers(tokens.slice(1)); var count:=4 if command=="orientation" else (3 if command in ["position","selfillumcolor","ambient","diffuse"] else 1)
 			if not failure.is_empty() or values.size()<count: reject("Invalid ASCII MDL static property"); return {}
 			var key:="selfillum" if command=="selfillumcolor" else command
 			current[key]=values[0] if count==1 else values.slice(0,count)
@@ -124,13 +128,16 @@ func emit_node(index: int, depth: int) -> int:
 func geometry(source: Dictionary) -> Array:
 	if source.faces.is_empty() and source.verts.is_empty(): return []
 	var groups: Array=[]; var material_indices: Array=[]
+	var native_metadata:=native_mesh_metadata(source)
 	for face in source.faces:
 		if face.size()<7: reject("ASCII MDL face has too few fields"); return []
 		var material_index:=0
 		if face.size()>7 and float(face[7])==floor(float(face[7])) and face[7]>=0 and face[7]<source.textures.size(): material_index=int(face[7])
 		if material_indices.is_empty() or material_indices.back()!=material_index:
 			groups.append({"vertices":PackedFloat32Array(),"normals":PackedFloat32Array(),"uv":[PackedFloat32Array()],"indices":PackedInt32Array(),"collision_indices":PackedInt32Array(),"textures":[source.textures[material_index]] if not source.textures.is_empty() else [],"render":float(source.render)!=0 and source.kind!="aabb","shadow":float(source.shadow)!=0,"transparency_hint":float(source.transparencyhint)!=0,"diffuse":source.diffuse}); material_indices.append(material_index)
+			groups.back().merge(native_metadata,true)
 		var group: Dictionary=groups.back(); var vertices: Array=[]
+		group.ambient=source.ambient
 		if source.kind=="animmesh" and not group.has("animation_vertices"): group.animation_vertices=[]; group.animation_uv=[]
 		for corner in 3:
 			var vertex_index:=int(face[corner])
@@ -144,3 +151,56 @@ func geometry(source: Dictionary) -> Array:
 			if source.kind=="animmesh": group.animation_vertices.append(int(face[corner])); group.animation_uv.append(uv_index)
 			group.vertices.append_array(PackedFloat32Array([vertex.x,vertex.y,vertex.z])); group.normals.append_array(PackedFloat32Array([normal.x,normal.y,normal.z])); group.uv[0].append_array(PackedFloat32Array([uv.x,uv.y])); group.indices.append(group.indices.size()); group.collision_indices.append(group.collision_indices.size())
 	return groups
+func native_tilefade_field(source: Dictionary,text: String) -> void:
+	# Parse(char*,int&)0a0280: %d first; return0 then token TRUE/FALSE;
+	# unknown/empty retains the previous field. Process every occurrence rather
+	# than only the final property, so "1" then "unknown" correctly retains1.
+	source.native_tilefade_ascii=text
+	if native_integer_pattern==null:native_integer_pattern=RegEx.new();native_integer_pattern.compile("^\\s*([+-]?[0-9]+)")
+	var match_value:=native_integer_pattern.search(text)
+	if match_value!=null:
+		var token: String=match_value.get_string(1);var negative:=token.begins_with("-")
+		var digits:=token.trim_prefix("-").trim_prefix("+")
+		while digits.length()>1 and digits.begins_with("0"):digits=digits.substr(1)
+		var limit:="2147483648" if negative else "2147483647"
+		if digits.length()>10 or digits.length()==10 and digits>limit:
+			source.native_tilefade=null;source.native_tilefade_available=false;source.native_tilefade_source="ascii_integer_overflow_unresolved";return
+		source.native_tilefade=token.to_int()&0xffffffff;source.native_tilefade_available=true;source.native_tilefade_source="ascii_decimal_prefix";return
+	var tokens:=text.strip_edges().split(" ",false)
+	if not tokens.is_empty() and tokens[0].to_lower() in ["true","false"]:
+		source.native_tilefade=1 if tokens[0].to_lower()=="true" else 0;source.native_tilefade_available=true;source.native_tilefade_source="ascii_boolean_token"
+func native_mesh_metadata(source: Dictionary) -> Dictionary:
+	# Once per physical source, shared by material groups. Native ASCII ctor
+	# zeroes C0..D4; explicit bmin/bmax seed those fields, then ProcessVerts
+	# reduces ALL original input vertices BEFORE face reindexing. Our generated
+	# face-corner AABB would lose origin, unused vertices and original seeds.
+	var result: Dictionary={"native_bounds":null,"native_bounds_available":false,"native_bounds_valid":false,"native_bounds_source":"ascii_processverts_unavailable","native_bounds_offset":null}
+	var minimum: Array=[0.0,0.0,0.0];var maximum: Array=[0.0,0.0,0.0];var scratch:=PackedFloat32Array([0.0])
+	# Exact native ProcessVerts proof currently covers ordinary unprocessed
+	# trimesh. Subtype/processed bypass ownership is not inferred from geometry.
+	var available: bool=source.kind=="trimesh"
+	if not available:result.native_bounds_source="ascii_subtype_bounds_unproven"
+	for entry in [["bmin",minimum],["bmax",maximum]]:
+		if not available:break
+		if not source.properties.has(entry[0]):continue
+		var tokens:=str(source.properties[entry[0]]).split(" ",false)
+		if tokens.size()<3:available=false;break
+		for axis in 3:
+			if not tokens[axis].is_valid_float() or not is_finite(tokens[axis].to_float()):available=false;break
+			scratch[0]=tokens[axis].to_float();entry[1][axis]=scratch[0]
+		if not available:break
+	if available:
+		for vertex in source.verts:
+			if vertex.size()<3:available=false;break
+			for axis in 3:
+				scratch[0]=float(vertex[axis]);var value: float=scratch[0]
+				if value<float(minimum[axis]):minimum[axis]=value
+				if value>float(maximum[axis]):maximum[axis]=value
+	if available:
+		result.native_bounds={"min":minimum,"max":maximum};result.native_bounds_available=true;result.native_bounds_valid=true;result.native_bounds_source="ascii_processverts"
+		for axis in 3:
+			if not is_finite(float(minimum[axis])) or not is_finite(float(maximum[axis])) or float(minimum[axis])>float(maximum[axis]):result.native_bounds_valid=false
+	result.native_tilefade=source.get("native_tilefade");result.native_tilefade_available=source.get("native_tilefade_available",false);result.native_tilefade_source=source.get("native_tilefade_source","ascii_unavailable")
+	if source.has("native_tilefade_ascii"):result.native_tilefade_ascii=source.native_tilefade_ascii
+	result.native_render_raw=source.render;result.native_render_source="ascii_field" if source.properties.has("render") else "client_parser_default"
+	return result

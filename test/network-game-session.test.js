@@ -10,7 +10,7 @@ import {spellCastRequest,spellLikeCastRequest,spellPreparationRequest,spellPrepa
 import {featUseRequest,modeChangeRequest} from '../src/network_feat_input.js';
 import {associateCommandRequest,quickChatRequest} from '../src/network_associate_input.js';
 import {itemUseRequest} from '../src/network_item_input.js';
-import {restRequest,characterSheetRequest,journalWindowRequest,playerAttitudeRequest} from '../src/network_hud_input.js';
+import {restRequest,characterSheetRequest,journalWindowRequest,playerAttitudeRequest,effectIconGuiRequest,chatFocusGuiRequest,chatReplyGuiRequest,skillDescriptionGuiRequest} from '../src/network_hud_input.js';
 import {chatRequest} from '../src/network_chat_input.js';
 
 const capture=JSON.parse(fs.readFileSync(new URL('../backups/animations/local-network-peer-v2.json',import.meta.url)));
@@ -63,6 +63,41 @@ test('HUD requests use controlled session and live player lookup, leaving all ca
 
 test('examination uses current canonical targets including owned inventory, rejecting stale scope and foreign items',async()=>{
  const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);const target={id:0x80000002,areaId:actor.areaId,objectType:10},item={id:0x80000003,objectType:6,inventoryLocation:{ownerId:actor.id},item:{identified:0}};s.world.registry.addObjectAtPos(target.id,target);s.world.registry.addObjectAtPos(item.id,item);const base={actorId:actor.id,areaId:actor.areaId,areaGeneration:2},before=structuredClone(item);await s.examine({...base,targetId:target.id});await s.examine({...base,targetId:item.id});assert.equal(h.sent.length,2);assert.deepEqual(item,before);for(const change of [{actorId:1},{areaId:0},{areaGeneration:1},{targetId:123}])await assert.rejects(s.examine({...base,targetId:target.id,...change}));item.inventoryLocation.ownerId=123;await assert.rejects(s.examine({...base,targetId:item.id}));item.equipmentOwnerId=actor.id;await s.examine({...base,targetId:item.id});assert.equal(h.sent.length,3);
+});
+test('chat-focus GUI events retain original mode IDs and controlled-scope admission',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);const base={areaId:actor.areaId,areaGeneration:2,actorId:actor.id,panel:'chat-focus',mode:2},before=structuredClone(actor);
+ for(const revision of [34,35])for(const open of [false,true]){s.serverBuild={number:8193,revision,postfix:0};await s.hudPanel({...base,open});assert.deepEqual(h.sent.at(-1),[...chatFocusGuiRequest({mode:2,focused:open,includePosition:revision>=35})]);}
+ for(const change of [{actorId:1},{areaId:0},{areaGeneration:1},{mode:5},{mode:-1},{open:1}])await assert.rejects(s.hudPanel({...base,open:true,...change}));assert.deepEqual(actor,before);assert.equal(h.sent.length,4);
+});
+test('chat replies resolve current controlled player targets and account Tells retain current identity',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);
+ const player={name:'Other Account',isDM:true,objectId:0x80000020,character:{id:0x80000010}},scope={areaId:actor.areaId,areaGeneration:2,actorId:actor.id},base={...scope,panel:'chat-reply',open:true,playerId:7,targetId:player.objectId};s.world.players.set(7,player);const before=structuredClone(player);
+ for(const revision of [34,35]){s.serverBuild={number:8193,revision,postfix:0};await s.hudPanel(base);assert.deepEqual(h.sent.at(-1),[...chatReplyGuiRequest({targetId:player.objectId,includePosition:revision>=35})]);}
+ for(const change of [{playerId:8},{playerId:'7'},{targetId:player.character.id},{open:false},{actorId:1},{areaId:1},{areaGeneration:1}])await assert.rejects(s.hudPanel({...base,...change}));
+ const tell={...scope,channel:4,playerId:7,playerAccount:'Other Account',text:'hello'};await s.chat(tell);assert.deepEqual(h.sent.at(-1),[...chatRequest({channel:4,playerId:7,text:'hello'})]);assert.deepEqual(player,before);
+ for(const change of [{playerAccount:'other account'},{playerId:8},{channel:1}])await assert.rejects(s.chat({...tell,...change}));
+ player.objectId=actor.id;await s.hudPanel({...base,targetId:actor.id});assert.deepEqual(h.sent.at(-1),[...chatReplyGuiRequest({targetId:actor.id,includePosition:true})]);
+ s.world.players.delete(7);await assert.rejects(s.hudPanel(base));await assert.rejects(s.chat(tell));s.world.players.set(7,{...player,name:'Reused player ID'});await assert.rejects(s.chat(tell));assert.deepEqual(actor,{id:0xffffffff,areaId:0x80000001,objectType:5});
+});
+test('repeated skill inspections send current controlled-row GUI3 without changing received skills or inventing a result',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffce,areaId:0x80000001,objectType:5,inventoryStats:{skills:[{index:11,flag:true,value:-1},{index:26,flag:true,value:0},{index:1,flag:false,value:5}]}};
+ s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);
+ const base={areaId:actor.areaId,areaGeneration:2,actorId:actor.id,targetId:actor.id,panel:'skill',open:true,skillId:11},before=structuredClone(actor);
+ for(const revision of [34,35])for(let click=0;click<2;click++){
+  s.serverBuild={number:8193,revision,postfix:0};assert.deepEqual(await s.hudPanel(base),{sent:true});
+  assert.deepEqual(h.sent.at(-1),[...skillDescriptionGuiRequest({skillId:11,targetId:actor.id,includePosition:revision>=35})]);
+ }
+ await s.hudPanel({...base,skillId:26});assert.deepEqual(actor,before);
+ for(const change of [{actorId:1},{areaId:0},{areaGeneration:1},{targetId:0xffffffff},{skillId:1},{skillId:99},{skillId:'11'},{skillId:65536},{skillId:11.5},{open:false}])await assert.rejects(s.hudPanel({...base,...change}));
+ actor.inventoryStats.skills=[];await assert.rejects(s.hudPanel(base));s.phase='area-loading';await assert.rejects(s.hudPanel(base));assert.equal(h.sent.length,5);
+});
+
+test('effect-icon GUI events require a live disclosed icon and preserve server state',async()=>{
+ const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5,playerState:{effectIcons:{1:0,600:1}}};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);const base={areaId:actor.areaId,areaGeneration:2,actorId:actor.id,panel:'effect',open:true},before=structuredClone(actor);
+ for(const revision of [34,35]){s.serverBuild={number:8193,revision,postfix:0};await s.hudPanel({...base,effectId:1});assert.deepEqual(h.sent.at(-1),[...effectIconGuiRequest({effectId:1,includePosition:revision>=35})]);}
+ await s.hudPanel({...base,effectId:600});assert.deepEqual(actor,before);
+ for(const change of [{actorId:1},{areaId:0},{areaGeneration:1},{effectId:99},{effectId:65536},{effectId:1.5},{open:false}])await assert.rejects(s.hudPanel({...base,effectId:1,...change}));
+ delete actor.playerState.effectIcons[1];await assert.rejects(s.hudPanel({...base,effectId:1}));s.phase='area-loading';await assert.rejects(s.hudPanel({...base,effectId:600}));assert.equal(h.sent.length,3);
 });
 test('container use, close/page and transfers preserve server ownership and reject stale scope',async()=>{
  const h=harness(),s=h.session,actor={id:0xffffffff,areaId:0x80000001,objectType:5,replicated:{position:[1,2,0]}},bag={id:0x80000002,objectType:6,item:{baseItem:66},inventoryLocation:{ownerId:actor.id,channel:'R'}},item={id:0x80000003,objectType:6,item:{},inventoryLocation:{ownerId:actor.id,channel:'R'}};s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;for(const o of [actor,bag,item])s.world.registry.addObjectAtPos(o.id,o);const base={areaId:actor.areaId,areaGeneration:2,actorId:actor.id},before=structuredClone(item);

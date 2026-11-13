@@ -39,6 +39,9 @@ func run() -> void:
 	check(rules.flag(1) and rules.flag(true) and not rules.flag(0) and not rules.flag(false),"Wire integer and control boolean flags share explicit native conversion")
 	text.tables.domains={"orderedRows":[{"Level_1":"0"}]}; actor.replicated.stats.classes[0].domains=[0]
 	var domain_family:=rules.spellbook(actor,0,1,0,[0],true)
+	check(domain_family.family[0].uses==0 and not domain_family.family[0].canCast,"A class without active PickDomains cannot gain domain casts from an assigned domain list")
+	text.tables.classes.orderedRows[0].PickDomains="1"
+	domain_family=rules.spellbook(actor,0,1,0,[0],true)
 	check(domain_family.family[0].domain and domain_family.family[0].binding.domainLevel==1 and domain_family.family[0].uses==1,"Spell family drag choices retain their domain preparation context")
 	var result:={"success":failures.is_empty(),"checks":checks,"failures":failures,"publicConnections":0,"scope":"Authored native UI projection contracts; original art/live gameplay checked separately"}
 	text.close(); var file:=FileAccess.open(output,FileAccess.WRITE); file.store_string(JSON.stringify(result,"  ")+"\n"); file.close(); quit(0 if failures.is_empty() else 1)

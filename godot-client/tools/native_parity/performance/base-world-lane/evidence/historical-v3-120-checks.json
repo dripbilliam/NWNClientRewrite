@@ -1,0 +1,95 @@
+{
+  "success": true,
+  "exit": 0,
+  "error": null,
+  "elapsedMs": 396,
+  "errors": [],
+  "result": {
+    "checks": 120,
+    "failures": [],
+    "gpuTests": 0,
+    "nativeBuilds": 0,
+    "scope": "Small actual-extracted receive/delta/pose/planner/classifier/configure/snapshot-prefix checks. No world/asset/GPU/native/server/performance acceptance; collision, terrain contention, complete dependency typing and actual loading remain pending.",
+    "serverConnections": 0,
+    "success": true
+  },
+  "sourceChanged": [],
+  "candidateChanged": [],
+  "fixturePins": [
+    {
+      "relative": "base_world_scenery.gd",
+      "sha256": "848a0465c97eed5ea9d8e6ceade8f8b231640dcf3e43fe95d83f5b343197c071"
+    },
+    {
+      "relative": "before_planner.gd",
+      "sha256": "92043b58572b166e154df8e74914f9df33a29205f85d9e3ab71055e9ee37edfe"
+    },
+    {
+      "relative": "candidate_planner.gd",
+      "sha256": "d21ba8b906824c9f7365a90a5ce34c610af55808adc32fdacb6e0b86dd1c454d"
+    },
+    {
+      "relative": "configure_owner.gd",
+      "sha256": "354415a44502823e28e148507c26952bab2e6e89634b53b61dbbdc652d492dad"
+    },
+    {
+      "relative": "entity_lifetime.gd",
+      "sha256": "68434998252beaaea08a76f1182f94828aaecad0d037aba4345f06024f2dbbaa"
+    },
+    {
+      "relative": "fake_assets.gd",
+      "sha256": "415ae274089522760ea93cb52f6f5165d5eec0dc159b12f3f3a3e5d55411bc67"
+    },
+    {
+      "relative": "fake_owner.gd",
+      "sha256": "984b4343c5dfa788b0ea333da394bc243083d42e650886f84a6f8e043cea69b0"
+    },
+    {
+      "relative": "fake_profile.gd",
+      "sha256": "f9a93ee62d75b90d1e389ec5d725b49fa5b187a2df9fe8d4f9dc0f942052bd5a"
+    },
+    {
+      "relative": "fixture-ca-bundle.crt",
+      "sha256": "33a22c7286f7752131636a11fb9feb3fb12ecd02f1a9b3e54e5901349d37362e"
+    },
+    {
+      "relative": "no_memo_planner.gd",
+      "sha256": "e0618c59e313363f73ee253597480ea6865e74b67ba1d31217ad48ef06841dd7"
+    },
+    {
+      "relative": "object_pose.gd",
+      "sha256": "fbe6a9ab478364047b79780e1150c15c08185f13d6edcc5a965d61b9e941e1d0"
+    },
+    {
+      "relative": "project.godot",
+      "sha256": "0c3929cd418830e60aa88f4bee029ab6e036427767d6be04706dfaa8d4e11ab6"
+    },
+    {
+      "relative": "receive_owner.gd",
+      "sha256": "2efc06ea9e49f6018ca7e7824457398da4ed7682bbbbdc51c54cd0abd6d826c8"
+    },
+    {
+      "relative": "test.gd",
+      "sha256": "86fd2c0b0928c6121d42921333f6ccdc6a9a0c2b1f54496bf9bc74c95ed1f64c"
+    }
+  ],
+  "stageSha256": "36fffa0d4079ed5bb03680d38fbd5c89b0f6103e296ee7682438416da64a42b7",
+  "engine": "62f54a7f7ff4638987730a246833cea4054779e7cb2a333bb5921fd5b0aea6dc",
+  "sourceObservedPins": {
+    "reason": "Root independently accepted attempted-publication elapsed-budget fix. Candidate worker hook still derives from frozen8be; no rebase or composition claimed by this fixture.",
+    "files": [
+      {
+        "relative": "systems/native_render/live_world.gd",
+        "sha256": "db69b6ce507054498e25f780efd7838b065804bd4cb0ffbf13c274b034ee4dff"
+      },
+      {
+        "relative": "systems/native_render/object_stream.gd",
+        "sha256": "f4787d9c8fbaf724e5af2bab021305de2a45565ccb27735d37bfea592ef94e1b"
+      }
+    ]
+  },
+  "gpuTests": 0,
+  "worldImports": 0,
+  "nativeBuilds": 0,
+  "publicConnections": 0
+}

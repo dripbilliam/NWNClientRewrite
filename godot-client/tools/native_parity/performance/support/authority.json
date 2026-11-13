@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "sourceFiles": [
+    {
+      "relative": "systems/native_render/scene_geometry.gd",
+      "sha256": "1d718dfd372236afbbe894aef0a853ce0bf556aaee176adfd62173811e1a3708"
+    },
+    {
+      "relative": "systems/native_data/native_support_triangle.gd",
+      "sha256": "4ade06896b9578dcdf0d80194b2c33c10bb4dcec4f2012ede19489a72d6a5faf"
+    },
+    {
+      "relative": "systems/native_data/polygon_hit.gd",
+      "sha256": "4e75dfaf7fb4ed9faebcf72491b8d005a9e7deace35a02c444c7fd26e01d6856"
+    },
+    {
+      "relative": "systems/native_render/particle_math.gd",
+      "sha256": "1fd4486ce8d0115d17de8831c666c90a13e53f0ec39044c7ebaffc39bb490fed"
+    },
+    {
+      "relative": "systems/native_data/tile_surface.gd",
+      "sha256": "2a3fc43db70c51b3bc4b93fdb63ddec87e90cea8a8f2a4101c2a040268bb87b2"
+    },
+    {
+      "relative": "systems/native_data/binary_data.gd",
+      "sha256": "82f7c26291c8c58c978442dd975f8d2eb7b9ba82420e9aaf383e1555cd2c7e37"
+    },
+    {
+      "relative": "systems/native_render/particle_kernel.gd",
+      "sha256": "ce9a116fa932a8fcb6640b14e40d9943b279c46d9994f58f74bd5bffd63b98ff"
+    },
+    {
+      "relative": "systems/native_render/particle_vertices.gd",
+      "sha256": "1d384f080d5956f3c416bbe0655af071616132fe2d937cdc29fe3e21ef6c03bc"
+    },
+    {
+      "relative": "systems/native_render/particle_schedule.gd",
+      "sha256": "2b47479328bbc5ab4d155dc235984ca9736b37c03b73060536ef04968ac201c3"
+    },
+    {
+      "relative": "systems/native_render/particle_trig.gd",
+      "sha256": "bdcdf05035d2b51b58357ef43ff1a07ac5cb1882b0e6f319c806634cc86d34bb"
+    }
+  ],
+  "descriptor": {
+    "relative": "native/particle_kernel.gdextension",
+    "sha256": "70a8c3450b1156e1154ccb7428b0b6783d5914a6d31a84eadbc7d70a46277d5a",
+    "role": "existing approved binary/descriptor"
+  },
+  "dll": {
+    "relative": ".cache/native-presentation-parity/root/whole-character-client-v3/project/.cache/native-kernel/nwn-particle-kernel.dll",
+    "sha256": "672bd24ae23f0be06bb209bc40ec5083fbe8ac14e92b2dd6b10f836255a840ea"
+  },
+  "files": [
+    {
+      "relative": "fixtures/support_unmasked_test.gd",
+      "sha256": "9ee35964fba291391792fb971b42539b29d2940f5aab6ecd121e681dcf57a5b4"
+    },
+    {
+      "relative": "fixtures/missing_kernel_test.gd",
+      "sha256": "2f225f8b172f3fb91b542c7ddec808533b0a80696cd941c9381f0e086de23e23"
+    },
+    {
+      "relative": "fixtures/setup_error_test.gd",
+      "sha256": "2ba0c1ac433d8b984247e0d2bb8f299cf9e3e7366375b618982bfa1863f30d83"
+    },
+    {
+      "relative": "reference/scene_geometry.gd",
+      "sha256": "1ba547bf77c7ef2e6babdec1c327accfdbb2fda7395466cc6f893cbd58a2123c"
+    },
+    {
+      "relative": "reference/native_support_triangle.gd",
+      "sha256": "139d780ec402ceef9af16b2e5eba3e0402ff93b671b790839782e84878818ff4"
+    }
+  ],
+  "originalPolicy": [
+    {
+      "file": "tools/native_parity/visibility/evidence/native-door-box-fivearg-v1.json",
+      "sha256": "86907219d3eb849689cfa341b6a991117b0db668611a9a5973542e207562acb6",
+      "key": "triMeshHit",
+      "evidence_id": "ev_90abc7c5927074437873c13688a68c095f93bed76fd5db0f0555d9323e499b94",
+      "name": "PartTriMesh::HitCheckGeom",
+      "address": "0x1400905b0",
+      "pseudocodeSha256": "26e8d6510de7073e16e25499b42967289ce12526a90996e5fae5d64c960d3df6",
+      "assemblySha256": "bcaa2ea6fe4a1ba4b9e913f33d878ee368e7f7e6187236899fcd0f47e3d21db0"
+    },
+    {
+      "file": "tools/native_parity/visibility/evidence/native-support-membership-lowers-v1.json",
+      "sha256": "61cf7e45ee4a39ad54185d147d51055984d2640fb25a603c79bde1a72a3303f2",
+      "key": "supportAabbHit",
+      "evidence_id": "ev_d9b3f922d7199eec6e1b12fe51c5449a922d0ea2ccd50da501bd5a0cfc8d1bd0",
+      "name": "HitCheckAABBnode",
+      "address": "0x140090170",
+      "pseudocodeSha256": "38399984c152602c8b8a6cdfc23e3cbc72eaad2f9b9e656e3e39f5f9a5006b3e",
+      "assemblySha256": "8c28fac894183f2bd2a3e2c1fbf46f71d5164db89e653d2db7c91a889ef39fa1"
+    },
+    {
+      "file": "tools/native_parity/visibility/evidence/native-support-membership-lowers-v1.json",
+      "sha256": "61cf7e45ee4a39ad54185d147d51055984d2640fb25a603c79bde1a72a3303f2",
+      "key": "hitPartBsp",
+      "evidence_id": "ev_3066213888bd361604e8769a48600c4c76f95e8670e04180a0c214ab55231a9e",
+      "name": "HitPartOnBSPNode",
+      "address": "0x1400d9f20",
+      "pseudocodeSha256": "1285fe9df590e3a52201ba02f026ec3797652ed493fa8a885645b9666fe3d061",
+      "assemblySha256": "ae4bc8a84d13a0886c6858bd0952dbe744aa38707504262f537a401468915f0f"
+    }
+  ],
+  "existingHeader": {
+    "relative": "native/scene_geometry.hpp",
+    "sha256": "9eefc17070c78295cb29c416ff0a53e9faa1e90f3162485dc52bc052252d9128",
+    "bytes": 6392
+  },
+  "historicalFreeze": {
+    "relative": ".cache/native-presentation-parity/loading-agent/support-unmasked-native-v1/freeze.json",
+    "sha256": "e2994a5df27e5d9730abb6121fff2c3617a4a877652daa0d14a4bc8fc0b5f9c6"
+  },
+  "expectedChecks": {
+    "native": 115,
+    "gd": 88,
+    "missing": 5,
+    "setup": 8
+  },
+  "scope": "Small headless face-policy correctness only; no assets, world, GPU, stress, FPS or native build"
+}

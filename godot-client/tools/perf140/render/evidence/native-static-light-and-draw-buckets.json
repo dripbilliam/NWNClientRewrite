@@ -1,0 +1,3447 @@
+[
+  {
+    "projection": "Procedure identity, pseudocode and callee facets; full dossier retained by provider.",
+    "key": "DoStaticLightBuckets",
+    "evidence_id": "ev_b76ef8dbfad8816f89634c3fb148848d5bd5e709b3138ae28f44f3c94f484c77",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "profile_digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374",
+    "subject": {
+      "name": "nwmain.exe",
+      "digest": {
+        "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+      },
+      "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+      "format": "pe",
+      "architecture": "x86_64"
+    },
+    "procedure": {
+      "address": "0x1400d9330",
+      "name": "DoStaticLightBuckets",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x1400d9330",
+            "end": "0x1400d94c7"
+          }
+        ],
+        "total_bytes": 408,
+        "span_bytes": 408,
+        "non_contiguous": false,
+        "contains_entry": true
+      },
+      "signature": "void __cdecl DoStaticLightBuckets(Scene * param_1)",
+      "locals": [
+        {
+          "description": "undefined8 local_18 @ Stack[-0x18]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1 local_20 @ Stack[-0x20]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_28 @ Stack[-0x28]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res10 @ Stack[0x10]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res18 @ Stack[0x18]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res8 @ Stack[0x8]:8",
+          "provenance": "ghidra-function-database"
+        }
+      ]
+    },
+    "pseudocode": "\r\n/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */\r\n/* void __cdecl DoStaticLightBuckets(class Scene * __ptr64) */\r\n\r\nvoid __cdecl DoStaticLightBuckets(Scene *param_1)\r\n\r\n{\r\n  ulonglong uVar1;\r\n  ulonglong uVar2;\r\n  bool bVar3;\r\n  longlong lVar4;\r\n  ExplicitProducer *pEVar5;\r\n  ExplicitProducer *extraout_RAX;\r\n  ExplicitProducer *extraout_RAX_00;\r\n  ExplicitProducer *pEVar6;\r\n  undefined1 *puVar7;\r\n  int iVar8;\r\n  longlong local_18;\r\n  \r\n                    /* 0xd9330  6898  ?DoStaticLightBuckets@@YAXPEAVScene@@@Z */\r\n  if ((((g_bTracyEnabled) && (g_bTracyProfilerConnected)) && (g_bTracyScopeDisableCounter == 0)) &&\r\n     (lVar4 = FUN_140b9f050(), *(char *)(lVar4 + 0x288) != '\\0')) {\r\n    lVar4 = FUN_140b9f050();\r\n    local_18 = *(longlong *)(lVar4 + 0x290);\r\n    pEVar5 = (ExplicitProducer *)FUN_140b9f300();\r\n    uVar1 = *(ulonglong *)(pEVar5 + 0x28);\r\n    pEVar6 = pEVar5;\r\n    if ((uVar1 & 0xffff) == 0) {\r\n      tracy::moodycamel::\r\n      ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n      ExplicitProducer::enqueue_begin_alloc(pEVar5,uVar1);\r\n      pEVar6 = extraout_RAX;\r\n    }\r\n    puVar7 = (undefined1 *)((uVar1 & 0xffff) * 0x20 + *(longlong *)(pEVar5 + 0x48));\r\n    *puVar7 = 0xf;\r\n    uVar2 = rdtsc();\r\n    *(ulonglong *)(puVar7 + 1) =\r\n         CONCAT44((int)((ulonglong)pEVar6 >> 0x20),(int)uVar2) | uVar2 & 0xffffffff00000000;\r\n    *(undefined **)(puVar7 + 9) = &DAT_140d90138;\r\n    *(ulonglong *)(pEVar5 + 0x28) = uVar1 + 1;\r\n    bVar3 = true;\r\n  }\r\n  else {\r\n    bVar3 = false;\r\n    local_18 = 0;\r\n  }\r\n  iVar8 = 0;\r\n  if (0 < DAT_14140b108) {\r\n    lVar4 = 0;\r\n    do {\r\n      LightNodeTile(*(BSPNode **)(lVar4 + _staticlightbucket),param_1);\r\n      iVar8 = iVar8 + 1;\r\n      lVar4 = lVar4 + 8;\r\n    } while (iVar8 < DAT_14140b108);\r\n  }\r\n  if ((DAT_14140b108 != 0) && (*(BSPNode **)(param_1 + 0x188) != (BSPNode *)0x0)) {\r\n    BSPTraverse(*(BSPNode **)(param_1 + 0x188),LightBins,param_1);\r\n  }\r\n  DAT_14140b108 = 0;\r\n  if ((bVar3) && (lVar4 = FUN_140b9f050(), *(longlong *)(lVar4 + 0x290) == local_18)) {\r\n    pEVar5 = (ExplicitProducer *)FUN_140b9f300();\r\n    uVar1 = *(ulonglong *)(pEVar5 + 0x28);\r\n    pEVar6 = pEVar5;\r\n    if ((uVar1 & 0xffff) == 0) {\r\n      tracy::moodycamel::\r\n      ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n      ExplicitProducer::enqueue_begin_alloc(pEVar5,uVar1);\r\n      pEVar6 = extraout_RAX_00;\r\n    }\r\n    puVar7 = (undefined1 *)((uVar1 & 0xffff) * 0x20 + *(longlong *)(pEVar5 + 0x48));\r\n    *puVar7 = 0x11;\r\n    uVar2 = rdtsc();\r\n    *(ulonglong *)(puVar7 + 1) =\r\n         CONCAT44((int)((ulonglong)pEVar6 >> 0x20),(int)uVar2) | uVar2 & 0xffffffff00000000;\r\n    *(ulonglong *)(pEVar5 + 0x28) = uVar1 + 1;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+    "referenced_names": [
+      {
+        "address": "0x140045f10",
+        "value": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "source_address": "0x1400d93b4"
+      },
+      {
+        "address": "0x140045f10",
+        "value": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "source_address": "0x1400d948e"
+      },
+      {
+        "address": "0x1400d93b9",
+        "value": "LAB_1400d93b9",
+        "source_address": "0x1400d93ac"
+      },
+      {
+        "address": "0x1400d93eb",
+        "value": "LAB_1400d93eb",
+        "source_address": "0x1400d9358"
+      },
+      {
+        "address": "0x1400d93eb",
+        "value": "LAB_1400d93eb",
+        "source_address": "0x1400d9365"
+      },
+      {
+        "address": "0x1400d93eb",
+        "value": "LAB_1400d93eb",
+        "source_address": "0x1400d9372"
+      },
+      {
+        "address": "0x1400d93eb",
+        "value": "LAB_1400d93eb",
+        "source_address": "0x1400d9382"
+      },
+      {
+        "address": "0x1400d93fc",
+        "value": "LAB_1400d93fc",
+        "source_address": "0x1400d93e9"
+      },
+      {
+        "address": "0x1400d9410",
+        "value": "LAB_1400d9410",
+        "source_address": "0x1400d9431"
+      },
+      {
+        "address": "0x1400d9435",
+        "value": "LAB_1400d9435",
+        "source_address": "0x1400d9406"
+      },
+      {
+        "address": "0x1400d9452",
+        "value": "LAB_1400d9452",
+        "source_address": "0x1400d9435"
+      },
+      {
+        "address": "0x1400d9452",
+        "value": "LAB_1400d9452",
+        "source_address": "0x1400d9441"
+      },
+      {
+        "address": "0x1400d9493",
+        "value": "LAB_1400d9493",
+        "source_address": "0x1400d9486"
+      },
+      {
+        "address": "0x1400d94b3",
+        "value": "LAB_1400d94b3",
+        "source_address": "0x1400d945f"
+      },
+      {
+        "address": "0x1400d94b3",
+        "value": "LAB_1400d94b3",
+        "source_address": "0x1400d9472"
+      },
+      {
+        "address": "0x1400da3d0",
+        "value": "LightBins",
+        "source_address": "0x1400d9446"
+      },
+      {
+        "address": "0x1400da6c0",
+        "value": "LightNodeTile",
+        "source_address": "0x1400d941e"
+      },
+      {
+        "address": "0x140229c60",
+        "value": "BSPTraverse",
+        "source_address": "0x1400d944d"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400d9374"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400d9389"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400d9461"
+      },
+      {
+        "address": "0x140b9f300",
+        "value": "FUN_140b9f300",
+        "source_address": "0x1400d939a"
+      },
+      {
+        "address": "0x140b9f300",
+        "value": "FUN_140b9f300",
+        "source_address": "0x1400d9474"
+      },
+      {
+        "address": "0x140d90138",
+        "value": "DAT_140d90138",
+        "source_address": "0x1400d93d1"
+      },
+      {
+        "address": "0x140d90138",
+        "value": "DAT_140d90138",
+        "source_address": "0x1400d93d8"
+      },
+      {
+        "address": "0x14140b100",
+        "value": "staticlightbucket",
+        "source_address": "0x1400d9413"
+      },
+      {
+        "address": "0x14140b108",
+        "value": "DAT_14140b108",
+        "source_address": "0x1400d93fe"
+      },
+      {
+        "address": "0x14140b108",
+        "value": "DAT_14140b108",
+        "source_address": "0x1400d9429"
+      },
+      {
+        "address": "0x14140b108",
+        "value": "DAT_14140b108",
+        "source_address": "0x1400d9452"
+      },
+      {
+        "address": "0x14141e310",
+        "value": "g_bTracyEnabled",
+        "source_address": "0x1400d9351"
+      },
+      {
+        "address": "0x14141e311",
+        "value": "g_bTracyProfilerConnected",
+        "source_address": "0x1400d935e"
+      },
+      {
+        "address": "0x14141e314",
+        "value": "g_bTracyScopeDisableCounter",
+        "source_address": "0x1400d936b"
+      }
+    ],
+    "callees": [
+      {
+        "name": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "address": "0x140045f10"
+      },
+      {
+        "name": "LightNodeTile",
+        "address": "0x1400da6c0"
+      },
+      {
+        "name": "BSPTraverse",
+        "address": "0x140229c60"
+      },
+      {
+        "name": "FUN_140b9f050",
+        "address": "0x140b9f050"
+      },
+      {
+        "name": "FUN_140b9f300",
+        "address": "0x140b9f300"
+      }
+    ],
+    "limitations": [
+      "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+      "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+      "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+      "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+      "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+      "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+      "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+      "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+      "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+      "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+      "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+      "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+      "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+    ]
+  },
+  {
+    "projection": "Procedure identity, pseudocode and callee facets; full dossier retained by provider.",
+    "key": "LightNodeTile",
+    "evidence_id": "ev_d40abf8169d9b8223444e9c59f175e1e675e91ece50aed58adbe3a7300d602cb",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "profile_digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374",
+    "subject": {
+      "name": "nwmain.exe",
+      "digest": {
+        "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+      },
+      "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+      "format": "pe",
+      "architecture": "x86_64"
+    },
+    "procedure": {
+      "address": "0x1400da6c0",
+      "name": "LightNodeTile",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x1400da6c0",
+            "end": "0x1400da96a"
+          }
+        ],
+        "total_bytes": 683,
+        "span_bytes": 683,
+        "non_contiguous": false,
+        "contains_entry": true
+      },
+      "signature": "void __cdecl LightNodeTile(BSPNode * param_1, void * param_2)",
+      "locals": [
+        {
+          "description": "undefined local_40 @ Stack[-0x40]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_58 @ Stack[-0x58]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_68 @ Stack[-0x68]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_78 @ Stack[-0x78]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_88 @ Stack[-0x88]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_90 @ Stack[-0x90]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_98 @ Stack[-0x98]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined local_a4 @ Stack[-0xa4]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_a8 @ Stack[-0xa8]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_ac @ Stack[-0xac]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_b0 @ Stack[-0xb0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_b8 @ Stack[-0xb8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_c0 @ Stack[-0xc0]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_c8 @ Stack[-0xc8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res10 @ Stack[0x10]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res18 @ Stack[0x18]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res20 @ Stack[0x20]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_res8 @ Stack[0x8]:4",
+          "provenance": "ghidra-function-database"
+        }
+      ]
+    },
+    "pseudocode": "\r\n/* void __cdecl LightNodeTile(class BSPNode * __ptr64,void * __ptr64) */\r\n\r\nvoid __cdecl LightNodeTile(BSPNode *param_1,void *param_2)\r\n\r\n{\r\n  float fVar1;\r\n  float fVar2;\r\n  float fVar3;\r\n  float fVar4;\r\n  float fVar5;\r\n  float fVar6;\r\n  longlong lVar7;\r\n  longlong lVar8;\r\n  longlong lVar9;\r\n  int iVar10;\r\n  int iVar11;\r\n  PartTriMesh *pPVar12;\r\n  MdlNodeTriMesh *pMVar13;\r\n  float *pfVar14;\r\n  longlong lVar15;\r\n  int iVar16;\r\n  int iVar17;\r\n  int iVar18;\r\n  longlong lVar19;\r\n  float fVar20;\r\n  int local_res8;\r\n  longlong local_res18;\r\n  float local_b0;\r\n  float local_ac;\r\n  float local_a8;\r\n  Quaternion local_a4 [12];\r\n  longlong local_98;\r\n  undefined8 local_90;\r\n  \r\n                    /* 0xda6c0  10516  ?LightNodeTile@@YAXPEAVBSPNode@@PEAX@Z */\r\n  lVar7 = *(longlong *)(param_1 + 0x70);\r\n  if ((lVar7 != 0) && (lVar19 = *(longlong *)(lVar7 + 0x98), lVar19 != 0)) {\r\n    local_90 = 0;\r\n    iVar17 = 0;\r\n    lVar15 = 0;\r\n    local_98 = 0;\r\n    lVar8 = *(longlong *)((longlong)param_2 + 0x158);\r\n    local_res8 = 0;\r\n    if (0 < *(int *)(lVar19 + 0x38)) {\r\n      local_res18 = 0;\r\n      do {\r\n        pPVar12 = (PartTriMesh *)\r\n                  (**(code **)(**(longlong **)(local_res18 + *(longlong *)(lVar19 + 0x30)) + 0x58))\r\n                            ();\r\n        if (pPVar12 != (PartTriMesh *)0x0) {\r\n          iVar18 = 0;\r\n          local_90 = local_90 & 0xffffffff00000000;\r\n          pMVar13 = MdlNode::AsMdlNodeTriMesh(*(MdlNode **)(pPVar12 + 8));\r\n          if (*(short *)(pMVar13 + 0x284) != 0) {\r\n            pfVar14 = (float *)operator*(local_a4,(Vector *)(pPVar12 + 0x1c));\r\n            fVar1 = *(float *)(pPVar12 + 0x18);\r\n            fVar2 = pfVar14[2];\r\n            fVar3 = *(float *)(pPVar12 + 0x14);\r\n            fVar4 = pfVar14[1];\r\n            fVar5 = *(float *)(pPVar12 + 0x10);\r\n            fVar6 = *pfVar14;\r\n            iVar16 = 0;\r\n            if (0 < *(int *)(lVar8 + 0x38)) {\r\n              lVar19 = 0;\r\n              do {\r\n                lVar9 = *(longlong *)(lVar19 + *(longlong *)(lVar8 + 0x30));\r\n                if ((*(int *)(lVar9 + 0x8c) == 0) &&\r\n                   (((*(float *)(lVar9 + 0x68) != 0.0 || (*(float *)(lVar9 + 0x6c) != 0.0)) ||\r\n                    (*(float *)(lVar9 + 0x70) != 0.0)))) {\r\n                  local_a8 = *(float *)(lVar9 + 0xb8) - (fVar1 + fVar2);\r\n                  local_ac = *(float *)(lVar9 + 0xb4) - (fVar3 + fVar4);\r\n                  local_b0 = *(float *)(lVar9 + 0xb0) - (fVar5 + fVar6);\r\n                  fVar20 = magnitude((Vector *)&local_b0);\r\n                  if (fVar20 < *(float *)(pMVar13 + 0xd8) + *(float *)(lVar9 + 0x74)) {\r\n                    iVar11 = iVar18;\r\n                    if (iVar18 == iVar17) {\r\n                      if (iVar17 == 0) {\r\n                        iVar10 = 0x10;\r\n                      }\r\n                      else {\r\n                        iVar10 = iVar17 * 2;\r\n                        if (iVar17 * 2 <= iVar17) goto LAB_1400da8be;\r\n                      }\r\n                      iVar17 = iVar10;\r\n                      local_90 = CONCAT44(iVar17,(undefined4)local_90);\r\n                      iVar11 = iVar17;\r\n                      if (iVar18 <= iVar17) {\r\n                        iVar11 = iVar18;\r\n                      }\r\n                      lVar15 = _realloc_base(lVar15,(longlong)iVar17 << 3);\r\n                      local_98 = lVar15;\r\n                    }\r\nLAB_1400da8be:\r\n                    *(longlong *)(lVar15 + (longlong)iVar11 * 8) = lVar9;\r\n                    iVar18 = iVar11 + 1;\r\n                    local_90 = CONCAT44(local_90._4_4_,iVar18);\r\n                  }\r\n                }\r\n                iVar16 = iVar16 + 1;\r\n                lVar19 = lVar19 + 8;\r\n              } while (iVar16 < *(int *)(lVar8 + 0x38));\r\n            }\r\n            LightPartTriMesh(pPVar12,(List<PartLight*___ptr64> *)&local_98,param_2);\r\n          }\r\n        }\r\n        local_res8 = local_res8 + 1;\r\n        local_res18 = local_res18 + 8;\r\n        lVar19 = *(longlong *)(lVar7 + 0x98);\r\n      } while (local_res8 < *(int *)(lVar19 + 0x38));\r\n    }\r\n    FUN_140c4f024(lVar15);\r\n    FUN_140c4f024(0);\r\n  }\r\n  return;\r\n}\r\n\r\n",
+    "referenced_names": [
+      {
+        "address": "0x14008c360",
+        "value": "MdlNode::AsMdlNodeTriMesh",
+        "source_address": "0x1400da77b"
+      },
+      {
+        "address": "0x1400da752",
+        "value": "LAB_1400da752",
+        "source_address": "0x1400da928"
+      },
+      {
+        "address": "0x1400da7f0",
+        "value": "LAB_1400da7f0",
+        "source_address": "0x1400da8d5"
+      },
+      {
+        "address": "0x1400da82d",
+        "value": "LAB_1400da82d",
+        "source_address": "0x1400da80d"
+      },
+      {
+        "address": "0x1400da82d",
+        "value": "LAB_1400da82d",
+        "source_address": "0x1400da80f"
+      },
+      {
+        "address": "0x1400da82d",
+        "value": "LAB_1400da82d",
+        "source_address": "0x1400da819"
+      },
+      {
+        "address": "0x1400da82d",
+        "value": "LAB_1400da82d",
+        "source_address": "0x1400da81b"
+      },
+      {
+        "address": "0x1400da82d",
+        "value": "LAB_1400da82d",
+        "source_address": "0x1400da825"
+      },
+      {
+        "address": "0x1400da893",
+        "value": "LAB_1400da893",
+        "source_address": "0x1400da888"
+      },
+      {
+        "address": "0x1400da898",
+        "value": "LAB_1400da898",
+        "source_address": "0x1400da891"
+      },
+      {
+        "address": "0x1400da8be",
+        "value": "LAB_1400da8be",
+        "source_address": "0x1400da884"
+      },
+      {
+        "address": "0x1400da8be",
+        "value": "LAB_1400da8be",
+        "source_address": "0x1400da88f"
+      },
+      {
+        "address": "0x1400da8cb",
+        "value": "LAB_1400da8cb",
+        "source_address": "0x1400da7ff"
+      },
+      {
+        "address": "0x1400da8cb",
+        "value": "LAB_1400da8cb",
+        "source_address": "0x1400da827"
+      },
+      {
+        "address": "0x1400da8cb",
+        "value": "LAB_1400da8cb",
+        "source_address": "0x1400da880"
+      },
+      {
+        "address": "0x1400da8ef",
+        "value": "LAB_1400da8ef",
+        "source_address": "0x1400da7d2"
+      },
+      {
+        "address": "0x1400da904",
+        "value": "LAB_1400da904",
+        "source_address": "0x1400da76b"
+      },
+      {
+        "address": "0x1400da904",
+        "value": "LAB_1400da904",
+        "source_address": "0x1400da78f"
+      },
+      {
+        "address": "0x1400da92e",
+        "value": "LAB_1400da92e",
+        "source_address": "0x1400da73e"
+      },
+      {
+        "address": "0x1400da93f",
+        "value": "LAB_1400da93f",
+        "source_address": "0x1400da702"
+      },
+      {
+        "address": "0x1400da93f",
+        "value": "LAB_1400da93f",
+        "source_address": "0x1400da712"
+      },
+      {
+        "address": "0x1400da970",
+        "value": "LightPartTriMesh",
+        "source_address": "0x1400da8ff"
+      },
+      {
+        "address": "0x14022ae90",
+        "value": "operator*",
+        "source_address": "0x1400da7a5"
+      },
+      {
+        "address": "0x1402303d0",
+        "value": "magnitude",
+        "source_address": "0x1400da86a"
+      },
+      {
+        "address": "0x140c4f024",
+        "value": "FUN_140c4f024",
+        "source_address": "0x1400da931"
+      },
+      {
+        "address": "0x140c4f024",
+        "value": "FUN_140c4f024",
+        "source_address": "0x1400da939"
+      },
+      {
+        "address": "0x140c4f038",
+        "value": "_realloc_base",
+        "source_address": "0x1400da8b1"
+      }
+    ],
+    "callees": [
+      {
+        "name": "MdlNode::AsMdlNodeTriMesh",
+        "address": "0x14008c360"
+      },
+      {
+        "name": "LightPartTriMesh",
+        "address": "0x1400da970"
+      },
+      {
+        "name": "operator*",
+        "address": "0x14022ae90"
+      },
+      {
+        "name": "magnitude",
+        "address": "0x1402303d0"
+      },
+      {
+        "name": "FUN_140c4f024",
+        "address": "0x140c4f024"
+      },
+      {
+        "name": "_realloc_base",
+        "address": "0x140c4f038"
+      }
+    ],
+    "limitations": [
+      "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+      "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+      "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+      "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+      "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+      "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+      "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+      "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+      "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+      "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+      "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+      "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+      "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+    ]
+  },
+  {
+    "projection": "Procedure identity, pseudocode and callee facets; full dossier retained by provider.",
+    "key": "LightBins",
+    "evidence_id": "ev_9b4f1c51442e254f1d61a4376106998d100b7242e2257931fe1aaae7073388c3",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "profile_digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374",
+    "subject": {
+      "name": "nwmain.exe",
+      "digest": {
+        "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+      },
+      "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+      "format": "pe",
+      "architecture": "x86_64"
+    },
+    "procedure": {
+      "address": "0x1400da3d0",
+      "name": "LightBins",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x1400da3d0",
+            "end": "0x1400da41d"
+          }
+        ],
+        "total_bytes": 78,
+        "span_bytes": 78,
+        "non_contiguous": false,
+        "contains_entry": true
+      },
+      "signature": "void __cdecl LightBins(BSPNode * param_1, void * param_2)",
+      "locals": [
+        {
+          "description": "undefined8 local_res10 @ Stack[0x10]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res8 @ Stack[0x8]:8",
+          "provenance": "ghidra-function-database"
+        }
+      ]
+    },
+    "pseudocode": "\r\n/* void __cdecl LightBins(class BSPNode * __ptr64,void * __ptr64) */\r\n\r\nvoid __cdecl LightBins(BSPNode *param_1,void *param_2)\r\n\r\n{\r\n  longlong lVar1;\r\n  int iVar2;\r\n  longlong lVar3;\r\n  \r\n                    /* 0xda3d0  10514  ?LightBins@@YAXPEAVBSPNode@@PEAX@Z */\r\n  lVar1 = *(longlong *)(param_1 + 0x70);\r\n  iVar2 = 0;\r\n  if (0 < *(int *)(lVar1 + 0x88)) {\r\n    lVar3 = 0;\r\n    do {\r\n      CAurTriangleBin::ReloadColor(*(CAurTriangleBin **)(lVar3 + *(longlong *)(lVar1 + 0x80)));\r\n      iVar2 = iVar2 + 1;\r\n      lVar3 = lVar3 + 8;\r\n    } while (iVar2 < *(int *)(lVar1 + 0x88));\r\n  }\r\n  return;\r\n}\r\n\r\n",
+    "referenced_names": [
+      {
+        "address": "0x14006d950",
+        "value": "CAurTriangleBin::ReloadColor",
+        "source_address": "0x1400da3fb"
+      },
+      {
+        "address": "0x1400da3f0",
+        "value": "LAB_1400da3f0",
+        "source_address": "0x1400da40c"
+      },
+      {
+        "address": "0x1400da413",
+        "value": "LAB_1400da413",
+        "source_address": "0x1400da3e6"
+      }
+    ],
+    "callees": [
+      {
+        "name": "CAurTriangleBin::ReloadColor",
+        "address": "0x14006d950"
+      }
+    ],
+    "limitations": [
+      "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+      "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+      "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+      "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+      "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+      "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+      "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+      "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+      "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+      "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+      "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+      "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+      "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+    ]
+  },
+  {
+    "projection": "Procedure identity, pseudocode and callee facets; full dossier retained by provider.",
+    "key": "LightPartTriMesh",
+    "evidence_id": "ev_4abfdfe89fe3d84482252aba192d3575d6aa32b6468fc3a11ea8b939c9a075be",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "profile_digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374",
+    "subject": {
+      "name": "nwmain.exe",
+      "digest": {
+        "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+      },
+      "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+      "format": "pe",
+      "architecture": "x86_64"
+    },
+    "procedure": {
+      "address": "0x1400da970",
+      "name": "LightPartTriMesh",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x1400da970",
+            "end": "0x1400db311"
+          }
+        ],
+        "total_bytes": 2466,
+        "span_bytes": 2466,
+        "non_contiguous": false,
+        "contains_entry": true
+      },
+      "signature": "void __cdecl LightPartTriMesh(PartTriMesh * param_1, List<PartLight*___ptr64> * param_2, Scene * param_3)",
+      "locals": [
+        {
+          "description": "undefined local_104 @ Stack[-0x104]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined local_110 @ Stack[-0x110]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_118 @ Stack[-0x118]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_120 @ Stack[-0x120]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_128 @ Stack[-0x128]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_138 @ Stack[-0x138]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_140 @ Stack[-0x140]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_148 @ Stack[-0x148]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_14c @ Stack[-0x14c]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_150 @ Stack[-0x150]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_154 @ Stack[-0x154]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_158 @ Stack[-0x158]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_15c @ Stack[-0x15c]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_160 @ Stack[-0x160]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_168 @ Stack[-0x168]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_16c @ Stack[-0x16c]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_170 @ Stack[-0x170]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_178 @ Stack[-0x178]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_17c @ Stack[-0x17c]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_180 @ Stack[-0x180]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_184 @ Stack[-0x184]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_188 @ Stack[-0x188]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_18c @ Stack[-0x18c]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_190 @ Stack[-0x190]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_194 @ Stack[-0x194]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_198 @ Stack[-0x198]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1a0 @ Stack[-0x1a0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1a4 @ Stack[-0x1a4]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1a8 @ Stack[-0x1a8]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1b0 @ Stack[-0x1b0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1b4 @ Stack[-0x1b4]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1b8 @ Stack[-0x1b8]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1c0 @ Stack[-0x1c0]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1c8 @ Stack[-0x1c8]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1d0 @ Stack[-0x1d0]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1d8 @ Stack[-0x1d8]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1e0 @ Stack[-0x1e0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1e8 @ Stack[-0x1e8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1ec @ Stack[-0x1ec]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1f0 @ Stack[-0x1f0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1f4 @ Stack[-0x1f4]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1f8 @ Stack[-0x1f8]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_20 @ Stack[-0x20]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_208 @ Stack[-0x208]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_28 @ Stack[-0x28]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_30 @ Stack[-0x30]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_38 @ Stack[-0x38]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_48 @ Stack[-0x48]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_58 @ Stack[-0x58]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_68 @ Stack[-0x68]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_78 @ Stack[-0x78]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_88 @ Stack[-0x88]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_98 @ Stack[-0x98]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_a8 @ Stack[-0xa8]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_b8 @ Stack[-0xb8]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_c8 @ Stack[-0xc8]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_d8 @ Stack[-0xd8]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined local_ec @ Stack[-0xec]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined local_f8 @ Stack[-0xf8]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res10 @ Stack[0x10]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_res20 @ Stack[0x20]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1 local_res8 @ Stack[0x8]:1",
+          "provenance": "ghidra-function-database"
+        }
+      ]
+    },
+    "pseudocode": "\r\n/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */\r\n/* void __cdecl LightPartTriMesh(class PartTriMesh * __ptr64,class List<class PartLight * __ptr64>\r\n   const & __ptr64,class Scene * __ptr64) */\r\n\r\nvoid __cdecl LightPartTriMesh(PartTriMesh *param_1,List<PartLight*___ptr64> *param_2,Scene *param_3)\r\n\r\n{\r\n  PartTriMesh *pPVar1;\r\n  PartTriMesh *pPVar2;\r\n  undefined8 uVar3;\r\n  bool bVar4;\r\n  bool bVar5;\r\n  AurRenderHint AVar6;\r\n  void *pvVar7;\r\n  void *pvVar8;\r\n  void *pvVar9;\r\n  float *pfVar10;\r\n  Vector *pVVar11;\r\n  undefined8 *puVar12;\r\n  uint uVar13;\r\n  longlong lVar14;\r\n  longlong lVar15;\r\n  longlong lVar16;\r\n  undefined4 *puVar17;\r\n  int iVar18;\r\n  float fVar19;\r\n  float fVar20;\r\n  float fVar21;\r\n  float fVar22;\r\n  float fVar23;\r\n  float fVar24;\r\n  float fVar25;\r\n  float fVar26;\r\n  float fVar27;\r\n  float fVar28;\r\n  float fVar29;\r\n  float fVar30;\r\n  float local_res20;\r\n  float local_1f8;\r\n  undefined8 local_1e8;\r\n  float local_1e0;\r\n  int local_1d8;\r\n  undefined8 local_1d0;\r\n  float local_1c8;\r\n  uint *local_1c0;\r\n  undefined4 local_1b8;\r\n  undefined4 local_1b4;\r\n  undefined4 local_1b0;\r\n  undefined4 local_1a8;\r\n  undefined4 local_1a4;\r\n  undefined4 local_1a0;\r\n  float local_198;\r\n  float local_194;\r\n  float local_190;\r\n  float local_18c;\r\n  float local_188;\r\n  float local_184;\r\n  float local_180;\r\n  float local_17c;\r\n  float local_178;\r\n  float local_170;\r\n  float local_16c;\r\n  float local_168;\r\n  float local_160;\r\n  float local_15c;\r\n  float local_158;\r\n  float local_154;\r\n  float local_150;\r\n  float local_14c;\r\n  undefined8 local_148;\r\n  float local_140;\r\n  undefined8 local_138;\r\n  undefined8 uStack_130;\r\n  longlong local_128;\r\n  longlong local_120;\r\n  longlong local_118;\r\n  Quaternion local_110 [12];\r\n  Quaternion local_104 [12];\r\n  Vector local_f8 [12];\r\n  Quaternion local_ec [180];\r\n  \r\n                    /* 0xda970  10517\r\n                       ?LightPartTriMesh@@YAXPEAVPartTriMesh@@AEBV?$List@PEAVPartLight@@@@PEAVScene@@@Z\r\n                        */\r\n  if ((param_1 != (PartTriMesh *)0x0) &&\r\n     ((*(longlong *)(param_1 + 0xa0) == 0 || (*(int *)(*(longlong *)(param_1 + 0xa0) + 0x54) == 0)))\r\n     ) {\r\n    local_1d0 = 0;\r\n    local_1c8 = 0.0;\r\n    local_138 = 0x3f800000;\r\n    uStack_130 = 0;\r\n    lVar15 = *(longlong *)(*(longlong *)(param_1 + 0x90) + 8);\r\n    if ((*(short *)(lVar15 + 0x284) != 0) && (*(int *)(lVar15 + 0x118) != 0)) {\r\n      bVar4 = false;\r\n      bVar5 = false;\r\n      local_120 = lVar15;\r\n      AVar6 = PartTriMesh::GetRenderHint(param_1);\r\n      if ((AVar6 == 2) || (AVar6 = PartTriMesh::GetRenderHint(param_1), AVar6 == 3)) {\r\n        bVar4 = true;\r\n        bVar5 = true;\r\n      }\r\n      if (g_bFullDynamicLighting == 0) {\r\n        pPVar1 = param_1 + 0x98;\r\n        uVar13 = (uint)*(ushort *)(lVar15 + 0x284) << 2;\r\n        if (*(uint *)pPVar1 == 0xffffffff) {\r\n          RenderInterface::RequestPool(0,uVar13,0x40,0,(uint *)pPVar1);\r\n        }\r\n        else {\r\n          RenderInterface::ResizePool(*(uint *)pPVar1,uVar13);\r\n        }\r\n        pPVar2 = param_1 + 0xb0;\r\n        if (bVar4) {\r\n          uVar13 = ((uint)*(ushort *)(lVar15 + 0x284) + (uint)*(ushort *)(lVar15 + 0x284) * 2) * 4;\r\n          if (*(uint *)pPVar2 == 0xffffffff) {\r\n            RenderInterface::RequestPool(0,uVar13,0x40,0,(uint *)pPVar2);\r\n          }\r\n          else {\r\n            RenderInterface::ResizePool(*(uint *)pPVar2,uVar13);\r\n          }\r\n        }\r\n        else {\r\n          *(uint *)pPVar2 = 0xffffffff;\r\n        }\r\n        param_1[0x9c] = (PartTriMesh)0x1;\r\n        VertexPrimitive::Rebuild(*(VertexPrimitive **)(param_1 + 0x90));\r\n        (**(code **)(*(longlong *)param_1 + 0x18))(param_1);\r\n        pvVar7 = RenderInterface::LockPool(*(uint *)(lVar15 + 0x280),0,0,8);\r\n        pvVar8 = RenderInterface::LockPool(*(uint *)(lVar15 + 0x298),0,0,8);\r\n        local_1c0 = RenderInterface::LockPool(*(uint *)pPVar1,0,0,1);\r\n        pvVar9 = (void *)0x0;\r\n        if (bVar5) {\r\n          pvVar9 = RenderInterface::LockPool(*(uint *)pPVar2,0,0,1);\r\n        }\r\n        local_1d8 = 0;\r\n        if (*(short *)(lVar15 + 0x284) != 0) {\r\n          puVar17 = (undefined4 *)((longlong)pvVar7 + 4);\r\n          local_118 = (longlong)pvVar8 - (longlong)pvVar7;\r\n          lVar16 = (longlong)pvVar9 - (longlong)pvVar7;\r\n          local_128 = lVar16;\r\n          do {\r\n            local_1b4 = *puVar17;\r\n            local_1b8 = puVar17[-1];\r\n            local_1b0 = puVar17[1];\r\n            local_1a0 = *(undefined4 *)(local_118 + 4 + (longlong)puVar17);\r\n            local_1a8 = *(undefined4 *)(local_118 + -4 + (longlong)puVar17);\r\n            local_1a4 = *(undefined4 *)(local_118 + (longlong)puVar17);\r\n            pfVar10 = (float *)operator*(local_110,(Vector *)&local_138);\r\n            fVar24 = local_1c8 + pfVar10[2];\r\n            fVar26 = local_1d0._4_4_ + pfVar10[1];\r\n            fVar27 = (float)local_1d0 + *pfVar10;\r\n            operator*((Quaternion *)&local_180,(Vector *)&local_138);\r\n            if (*(char *)(*(longlong *)(param_1 + 0x58) + 0x98) == '\\0') {\r\n              _DAT_14140b198 = *(undefined8 *)(param_1 + 0x80);\r\n              DAT_14140b1a0 = *(float *)(param_1 + 0x88);\r\n            }\r\n            else {\r\n              _DAT_14140b198 = 0x3f8000003f800000;\r\n              DAT_14140b1a0 = 1.0;\r\n            }\r\n            local_res20 = 0.0;\r\n            fVar30 = 0.0;\r\n            local_1f8 = 0.0;\r\n            fVar19 = 0.0;\r\n            fVar21 = 0.0;\r\n            fVar28 = 0.0;\r\n            iVar18 = 0;\r\n            if (0 < *(int *)(param_2 + 8)) {\r\n              lVar14 = 0;\r\n              do {\r\n                lVar15 = *(longlong *)(lVar14 + *(longlong *)param_2);\r\n                lVar16 = *(longlong *)(lVar15 + 8);\r\n                if (*(float *)(lVar15 + 0x74) != 0.0) {\r\n                  local_198 = *(float *)(lVar15 + 0xb0) - fVar27;\r\n                  local_194 = *(float *)(lVar15 + 0xb4) - fVar26;\r\n                  local_190 = *(float *)(lVar15 + 0xb8) - fVar24;\r\n                  local_184 = magnitude((Vector *)&local_198);\r\n                  if (local_184 == 0.0) {\r\n                    local_184 = 1e-06;\r\n                  }\r\n                  fVar29 = 1.0 - local_184 / *(float *)(lVar15 + 0x74);\r\n                  local_184 = 1.0 / local_184;\r\n                  local_18c = (*(float *)(lVar15 + 0xb0) - fVar27) * local_184;\r\n                  local_188 = (*(float *)(lVar15 + 0xb4) - fVar26) * local_184;\r\n                  local_184 = (*(float *)(lVar15 + 0xb8) - fVar24) * local_184;\r\n                  normalize((Vector *)&local_170);\r\n                  fVar20 = 1.0;\r\n                  fVar19 = local_res20;\r\n                  fVar21 = local_1f8;\r\n                  if ((*(int *)(lVar16 + 0xfc) != 0) ||\r\n                     (fVar20 = local_170 * local_180 + local_16c * local_17c + local_168 * local_178\r\n                     , 0.0 <= fVar20)) {\r\n                    fVar20 = fVar20 * fVar29;\r\n                    fVar25 = fVar20 * *(float *)(lVar15 + 0x68);\r\n                    fVar22 = fVar20 * *(float *)(lVar15 + 0x6c);\r\n                    fVar20 = fVar20 * *(float *)(lVar15 + 0x70);\r\n                    if (0.0 < fVar29) {\r\n                      DAT_14140b1a0 = fVar20 + DAT_14140b1a0;\r\n                      _DAT_14140b198 = CONCAT44(fVar22 + DAT_14140b19c,fVar25 + DAT_14140b198);\r\n                    }\r\n                    fVar23 = local_170 * local_180 + local_16c * local_17c + local_168 * local_178;\r\n                    fVar29 = 0.0;\r\n                    if (0.0 <= fVar23) {\r\n                      fVar29 = fVar23;\r\n                    }\r\n                    fVar29 = fVar29 * (fVar22 + fVar25 + fVar20);\r\n                    fVar20 = 0.001;\r\n                    if (0.001 <= fVar29) {\r\n                      fVar20 = fVar29;\r\n                    }\r\n                    if (0.0 < fVar20) {\r\n                      local_160 = *(float *)(lVar15 + 0xb0) - fVar27;\r\n                      local_15c = *(float *)(lVar15 + 0xb4) - fVar26;\r\n                      local_158 = *(float *)(lVar15 + 0xb8) - fVar24;\r\n                      normalize((Vector *)&local_1e8);\r\n                      pVVar11 = (Vector *)operator-(local_ec);\r\n                      puVar12 = (undefined8 *)operator*(local_104,pVVar11);\r\n                      uVar3 = *puVar12;\r\n                      local_1e0 = *(float *)(puVar12 + 1);\r\n                      local_1e8._0_4_ = (float)uVar3;\r\n                      local_1e8._4_4_ = (float)((ulonglong)uVar3 >> 0x20);\r\n                      local_1e8 = uVar3;\r\n                      if (fVar28 == 0.0) {\r\n                        fVar28 = fVar28 + fVar20;\r\n                        local_res20 = local_1e8._4_4_;\r\n                        fVar19 = local_1e8._4_4_;\r\n                        fVar21 = local_1e0;\r\n                        fVar30 = (float)local_1e8;\r\n                        local_1f8 = local_1e0;\r\n                      }\r\n                      else {\r\n                        local_154 = (float)local_1e8 * fVar20 + fVar30 * fVar28;\r\n                        local_150 = local_1e8._4_4_ * fVar20 + local_res20 * fVar28;\r\n                        local_14c = local_1e0 * fVar20 + local_1f8 * fVar28;\r\n                        puVar12 = (undefined8 *)normalize(local_f8);\r\n                        fVar28 = fVar28 + fVar20;\r\n                        local_148 = *puVar12;\r\n                        local_1f8 = *(float *)(puVar12 + 1);\r\n                        fVar19 = (float)((ulonglong)local_148 >> 0x20);\r\n                        fVar21 = local_1f8;\r\n                        fVar30 = (float)local_148;\r\n                        local_res20 = fVar19;\r\n                        local_140 = local_1f8;\r\n                      }\r\n                    }\r\n                  }\r\n                }\r\n                iVar18 = iVar18 + 1;\r\n                lVar14 = lVar14 + 8;\r\n                lVar15 = local_120;\r\n                lVar16 = local_128;\r\n              } while (iVar18 < *(int *)(param_2 + 8));\r\n            }\r\n            if (0.0 <= DAT_14140b198) {\r\n              fVar24 = DAT_14140b198;\r\n              if (1.0 < DAT_14140b198) {\r\n                fVar24 = 1.0;\r\n              }\r\n            }\r\n            else {\r\n              fVar24 = 0.0;\r\n            }\r\n            if (0.0 <= DAT_14140b19c) {\r\n              if (1.0 < DAT_14140b19c) {\r\n                DAT_14140b19c = 1.0;\r\n              }\r\n            }\r\n            else {\r\n              DAT_14140b19c = 0.0;\r\n            }\r\n            _DAT_14140b198 = CONCAT44(DAT_14140b19c,fVar24);\r\n            if (0.0 <= DAT_14140b1a0) {\r\n              if (1.0 < DAT_14140b1a0) {\r\n                DAT_14140b1a0 = 1.0;\r\n              }\r\n            }\r\n            else {\r\n              DAT_14140b1a0 = 0.0;\r\n            }\r\n            *local_1c0 = (((int)(DAT_14140b1a0 * 255.0 + 0.5) & 0xffU) << 8 |\r\n                         (int)(DAT_14140b19c * 255.0 + 0.5) & 0xffU) << 8 |\r\n                         (int)(fVar24 * 255.0 + 0.5) & 0xffU | 0xff000000;\r\n            if (bVar5) {\r\n              *(float *)(lVar16 + -4 + (longlong)puVar17) = fVar30;\r\n              *(float *)(lVar16 + (longlong)puVar17) = fVar19;\r\n              *(float *)(lVar16 + 4 + (longlong)puVar17) = fVar21;\r\n            }\r\n            local_1c0 = local_1c0 + 1;\r\n            local_1d8 = local_1d8 + 1;\r\n            puVar17 = puVar17 + 3;\r\n          } while (local_1d8 < (int)(uint)*(ushort *)(lVar15 + 0x284));\r\n        }\r\n        RenderInterface::UnlockPool(*(uint *)(param_1 + 0xb0),0xffffffff,0);\r\n        RenderInterface::UnlockPool(*(uint *)(param_1 + 0x98),0xffffffff,0);\r\n        RenderInterface::UnlockPool\r\n                  (*(uint *)(*(longlong *)(*(longlong *)(param_1 + 0x90) + 8) + 0x280),0xffffffff,0)\r\n        ;\r\n        RenderInterface::UnlockPool\r\n                  (*(uint *)(*(longlong *)(*(longlong *)(param_1 + 0x90) + 8) + 0x298),0xffffffff,0)\r\n        ;\r\n        if (*(longlong **)(param_1 + 0x90) != (longlong *)0x0) {\r\n          (**(code **)(**(longlong **)(param_1 + 0x90) + 0x40))();\r\n        }\r\n      }\r\n      else if (param_1[0x9c] == (PartTriMesh)0x1) {\r\n        RenderInterface::DeletePool(*(uint *)(param_1 + 0x98));\r\n        *(undefined4 *)(param_1 + 0x98) = 0xffffffff;\r\n        RenderInterface::DeletePool(*(uint *)(param_1 + 0xb0));\r\n        *(undefined4 *)(param_1 + 0xb0) = 0xffffffff;\r\n        param_1[0x9c] = (PartTriMesh)0x0;\r\n        VertexPrimitive::Rebuild(*(VertexPrimitive **)(param_1 + 0x90));\r\n      }\r\n    }\r\n  }\r\n  return;\r\n}\r\n\r\n",
+    "referenced_names": [
+      {
+        "address": "0x14008f800",
+        "value": "PartTriMesh::GetRenderHint",
+        "source_address": "0x1400daa12"
+      },
+      {
+        "address": "0x14008f800",
+        "value": "PartTriMesh::GetRenderHint",
+        "source_address": "0x1400daa1f"
+      },
+      {
+        "address": "0x1400be990",
+        "value": "RenderInterface::DeletePool",
+        "source_address": "0x1400daa4f"
+      },
+      {
+        "address": "0x1400be990",
+        "value": "RenderInterface::DeletePool",
+        "source_address": "0x1400daa66"
+      },
+      {
+        "address": "0x1400bee30",
+        "value": "RenderInterface::LockPool",
+        "source_address": "0x1400dab55"
+      },
+      {
+        "address": "0x1400bee30",
+        "value": "RenderInterface::LockPool",
+        "source_address": "0x1400dab6e"
+      },
+      {
+        "address": "0x1400bee30",
+        "value": "RenderInterface::LockPool",
+        "source_address": "0x1400dab83"
+      },
+      {
+        "address": "0x1400bee30",
+        "value": "RenderInterface::LockPool",
+        "source_address": "0x1400daba6"
+      },
+      {
+        "address": "0x1400beee0",
+        "value": "RenderInterface::RequestPool",
+        "source_address": "0x1400daacd"
+      },
+      {
+        "address": "0x1400beee0",
+        "value": "RenderInterface::RequestPool",
+        "source_address": "0x1400dab08"
+      },
+      {
+        "address": "0x1400bef00",
+        "value": "RenderInterface::ResizePool",
+        "source_address": "0x1400daad4"
+      },
+      {
+        "address": "0x1400bef00",
+        "value": "RenderInterface::ResizePool",
+        "source_address": "0x1400dab0f"
+      },
+      {
+        "address": "0x1400bf3d0",
+        "value": "RenderInterface::UnlockPool",
+        "source_address": "0x1400db26e"
+      },
+      {
+        "address": "0x1400bf3d0",
+        "value": "RenderInterface::UnlockPool",
+        "source_address": "0x1400db282"
+      },
+      {
+        "address": "0x1400bf3d0",
+        "value": "RenderInterface::UnlockPool",
+        "source_address": "0x1400db2a0"
+      },
+      {
+        "address": "0x1400bf3d0",
+        "value": "RenderInterface::UnlockPool",
+        "source_address": "0x1400db2be"
+      },
+      {
+        "address": "0x1400da9a9",
+        "value": "LAB_1400da9a9",
+        "source_address": "0x1400da99d"
+      },
+      {
+        "address": "0x1400daa29",
+        "value": "LAB_1400daa29",
+        "source_address": "0x1400daa1a"
+      },
+      {
+        "address": "0x1400daa31",
+        "value": "LAB_1400daa31",
+        "source_address": "0x1400daa27"
+      },
+      {
+        "address": "0x1400daa8f",
+        "value": "LAB_1400daa8f",
+        "source_address": "0x1400daa38"
+      },
+      {
+        "address": "0x1400daad4",
+        "value": "LAB_1400daad4",
+        "source_address": "0x1400daabd"
+      },
+      {
+        "address": "0x1400daad9",
+        "value": "LAB_1400daad9",
+        "source_address": "0x1400daad2"
+      },
+      {
+        "address": "0x1400dab0f",
+        "value": "LAB_1400dab0f",
+        "source_address": "0x1400daaf8"
+      },
+      {
+        "address": "0x1400dab16",
+        "value": "LAB_1400dab16",
+        "source_address": "0x1400daae2"
+      },
+      {
+        "address": "0x1400dab1e",
+        "value": "LAB_1400dab1e",
+        "source_address": "0x1400dab0d"
+      },
+      {
+        "address": "0x1400dab1e",
+        "value": "LAB_1400dab1e",
+        "source_address": "0x1400dab14"
+      },
+      {
+        "address": "0x1400dabb0",
+        "value": "LAB_1400dabb0",
+        "source_address": "0x1400dab97"
+      },
+      {
+        "address": "0x1400dac40",
+        "value": "LAB_1400dac40",
+        "source_address": "0x1400db205"
+      },
+      {
+        "address": "0x1400dad26",
+        "value": "LAB_1400dad26",
+        "source_address": "0x1400dad04"
+      },
+      {
+        "address": "0x1400dad44",
+        "value": "LAB_1400dad44",
+        "source_address": "0x1400dad24"
+      },
+      {
+        "address": "0x1400dad80",
+        "value": "LAB_1400dad80",
+        "source_address": "0x1400db0de"
+      },
+      {
+        "address": "0x1400dad9c",
+        "value": "LAB_1400dad9c",
+        "source_address": "0x1400dad94"
+      },
+      {
+        "address": "0x1400dadec",
+        "value": "LAB_1400dadec",
+        "source_address": "0x1400dade0"
+      },
+      {
+        "address": "0x1400dadec",
+        "value": "LAB_1400dadec",
+        "source_address": "0x1400dade2"
+      },
+      {
+        "address": "0x1400daeae",
+        "value": "LAB_1400daeae",
+        "source_address": "0x1400dae81"
+      },
+      {
+        "address": "0x1400daf07",
+        "value": "LAB_1400daf07",
+        "source_address": "0x1400daecc"
+      },
+      {
+        "address": "0x1400db003",
+        "value": "LAB_1400db003",
+        "source_address": "0x1400dafce"
+      },
+      {
+        "address": "0x1400db003",
+        "value": "LAB_1400db003",
+        "source_address": "0x1400dafd0"
+      },
+      {
+        "address": "0x1400db0a6",
+        "value": "LAB_1400db0a6",
+        "source_address": "0x1400daf50"
+      },
+      {
+        "address": "0x1400db0ae",
+        "value": "LAB_1400db0ae",
+        "source_address": "0x1400daea8"
+      },
+      {
+        "address": "0x1400db0bc",
+        "value": "LAB_1400db0bc",
+        "source_address": "0x1400db0ac"
+      },
+      {
+        "address": "0x1400db0ca",
+        "value": "LAB_1400db0ca",
+        "source_address": "0x1400daffe"
+      },
+      {
+        "address": "0x1400db0ca",
+        "value": "LAB_1400db0ca",
+        "source_address": "0x1400db0a4"
+      },
+      {
+        "address": "0x1400db0d3",
+        "value": "LAB_1400db0d3",
+        "source_address": "0x1400dad96"
+      },
+      {
+        "address": "0x1400db0fe",
+        "value": "LAB_1400db0fe",
+        "source_address": "0x1400dad69"
+      },
+      {
+        "address": "0x1400db10c",
+        "value": "LAB_1400db10c",
+        "source_address": "0x1400db105"
+      },
+      {
+        "address": "0x1400db11e",
+        "value": "LAB_1400db11e",
+        "source_address": "0x1400db10a"
+      },
+      {
+        "address": "0x1400db11e",
+        "value": "LAB_1400db11e",
+        "source_address": "0x1400db118"
+      },
+      {
+        "address": "0x1400db134",
+        "value": "LAB_1400db134",
+        "source_address": "0x1400db12d"
+      },
+      {
+        "address": "0x1400db146",
+        "value": "LAB_1400db146",
+        "source_address": "0x1400db132"
+      },
+      {
+        "address": "0x1400db146",
+        "value": "LAB_1400db146",
+        "source_address": "0x1400db140"
+      },
+      {
+        "address": "0x1400db15c",
+        "value": "LAB_1400db15c",
+        "source_address": "0x1400db155"
+      },
+      {
+        "address": "0x1400db16e",
+        "value": "LAB_1400db16e",
+        "source_address": "0x1400db15a"
+      },
+      {
+        "address": "0x1400db16e",
+        "value": "LAB_1400db16e",
+        "source_address": "0x1400db168"
+      },
+      {
+        "address": "0x1400db1dd",
+        "value": "LAB_1400db1dd",
+        "source_address": "0x1400db1c7"
+      },
+      {
+        "address": "0x1400db262",
+        "value": "LAB_1400db262",
+        "source_address": "0x1400dabbb"
+      },
+      {
+        "address": "0x1400db2ed",
+        "value": "LAB_1400db2ed",
+        "source_address": "0x1400daa42"
+      },
+      {
+        "address": "0x1400db2ed",
+        "value": "LAB_1400db2ed",
+        "source_address": "0x1400daa8a"
+      },
+      {
+        "address": "0x1400db2ed",
+        "value": "LAB_1400db2ed",
+        "source_address": "0x1400db2e5"
+      },
+      {
+        "address": "0x1400db2f5",
+        "value": "LAB_1400db2f5",
+        "source_address": "0x1400da9ef"
+      },
+      {
+        "address": "0x1400db2f5",
+        "value": "LAB_1400db2f5",
+        "source_address": "0x1400da9fc"
+      },
+      {
+        "address": "0x1400db305",
+        "value": "LAB_1400db305",
+        "source_address": "0x1400da9a3"
+      },
+      {
+        "address": "0x1400db311",
+        "value": "LAB_1400db311",
+        "source_address": "0x1400da973"
+      },
+      {
+        "address": "0x1400dcc20",
+        "value": "VertexPrimitive::Rebuild",
+        "source_address": "0x1400daa85"
+      },
+      {
+        "address": "0x1400dcc20",
+        "value": "VertexPrimitive::Rebuild",
+        "source_address": "0x1400dab2d"
+      },
+      {
+        "address": "0x14022ae90",
+        "value": "operator*",
+        "source_address": "0x1400dac96"
+      },
+      {
+        "address": "0x14022ae90",
+        "value": "operator*",
+        "source_address": "0x1400dacdf"
+      },
+      {
+        "address": "0x14022ae90",
+        "value": "operator*",
+        "source_address": "0x1400dafb4"
+      },
+      {
+        "address": "0x14022b0c0",
+        "value": "operator-",
+        "source_address": "0x1400dafa3"
+      },
+      {
+        "address": "0x1402303d0",
+        "value": "magnitude",
+        "source_address": "0x1400dadd5"
+      },
+      {
+        "address": "0x140230920",
+        "value": "normalize",
+        "source_address": "0x1400dae4e"
+      },
+      {
+        "address": "0x140230920",
+        "value": "normalize",
+        "source_address": "0x1400daf96"
+      },
+      {
+        "address": "0x140230920",
+        "value": "normalize",
+        "source_address": "0x1400db062"
+      },
+      {
+        "address": "0x140d8109c",
+        "value": "DAT_140d8109c",
+        "source_address": "0x1400dac09"
+      },
+      {
+        "address": "0x140d8109c",
+        "value": "DAT_140d8109c",
+        "source_address": "0x1400db0ca"
+      },
+      {
+        "address": "0x140d81920",
+        "value": "DAT_140d81920",
+        "source_address": "0x1400daf10"
+      },
+      {
+        "address": "0x140d81930",
+        "value": "DAT_140d81930",
+        "source_address": "0x1400dac1b"
+      },
+      {
+        "address": "0x140d81930",
+        "value": "DAT_140d81930",
+        "source_address": "0x1400db0ed"
+      },
+      {
+        "address": "0x140d81960",
+        "value": "DAT_140d81960",
+        "source_address": "0x1400da9b0"
+      },
+      {
+        "address": "0x140d81b34",
+        "value": "DAT_140d81b34",
+        "source_address": "0x1400dabf7"
+      },
+      {
+        "address": "0x140d81b34",
+        "value": "DAT_140d81b34",
+        "source_address": "0x1400db0e4"
+      },
+      {
+        "address": "0x140d862a0",
+        "value": "DAT_140d862a0",
+        "source_address": "0x1400dade4"
+      },
+      {
+        "address": "0x14140ac58",
+        "value": "g_bFullDynamicLighting",
+        "source_address": "0x1400daa31"
+      },
+      {
+        "address": "0x14140b198",
+        "value": "DAT_14140b198",
+        "source_address": "0x1400dace4"
+      },
+      {
+        "address": "0x14140b198",
+        "value": "DAT_14140b198",
+        "source_address": "0x1400dad06"
+      },
+      {
+        "address": "0x14140b198",
+        "value": "DAT_14140b198",
+        "source_address": "0x1400dad2f"
+      },
+      {
+        "address": "0x14140b198",
+        "value": "DAT_14140b198",
+        "source_address": "0x1400daed4"
+      },
+      {
+        "address": "0x14140b198",
+        "value": "DAT_14140b198",
+        "source_address": "0x1400daeef"
+      },
+      {
+        "address": "0x14140b198",
+        "value": "DAT_14140b198",
+        "source_address": "0x1400db0fe"
+      },
+      {
+        "address": "0x14140b198",
+        "value": "DAT_14140b198",
+        "source_address": "0x1400db10c"
+      },
+      {
+        "address": "0x14140b198",
+        "value": "DAT_14140b198",
+        "source_address": "0x1400db125"
+      },
+      {
+        "address": "0x14140b19c",
+        "value": "DAT_14140b19c",
+        "source_address": "0x1400dad10"
+      },
+      {
+        "address": "0x14140b19c",
+        "value": "DAT_14140b19c",
+        "source_address": "0x1400daedc"
+      },
+      {
+        "address": "0x14140b19c",
+        "value": "DAT_14140b19c",
+        "source_address": "0x1400daef7"
+      },
+      {
+        "address": "0x14140b19c",
+        "value": "DAT_14140b19c",
+        "source_address": "0x1400db11e"
+      },
+      {
+        "address": "0x14140b19c",
+        "value": "DAT_14140b19c",
+        "source_address": "0x1400db134"
+      },
+      {
+        "address": "0x14140b19c",
+        "value": "DAT_14140b19c",
+        "source_address": "0x1400db14d"
+      },
+      {
+        "address": "0x14140b1a0",
+        "value": "DAT_14140b1a0",
+        "source_address": "0x1400dacef"
+      },
+      {
+        "address": "0x14140b1a0",
+        "value": "DAT_14140b1a0",
+        "source_address": "0x1400dad1a"
+      },
+      {
+        "address": "0x14140b1a0",
+        "value": "DAT_14140b1a0",
+        "source_address": "0x1400dad3e"
+      },
+      {
+        "address": "0x14140b1a0",
+        "value": "DAT_14140b1a0",
+        "source_address": "0x1400daee7"
+      },
+      {
+        "address": "0x14140b1a0",
+        "value": "DAT_14140b1a0",
+        "source_address": "0x1400daeff"
+      },
+      {
+        "address": "0x14140b1a0",
+        "value": "DAT_14140b1a0",
+        "source_address": "0x1400db146"
+      },
+      {
+        "address": "0x14140b1a0",
+        "value": "DAT_14140b1a0",
+        "source_address": "0x1400db15c"
+      },
+      {
+        "address": "0x14140b1a0",
+        "value": "DAT_14140b1a0",
+        "source_address": "0x1400db16e"
+      }
+    ],
+    "callees": [
+      {
+        "name": "PartTriMesh::GetRenderHint",
+        "address": "0x14008f800"
+      },
+      {
+        "name": "RenderInterface::DeletePool",
+        "address": "0x1400be990"
+      },
+      {
+        "name": "RenderInterface::LockPool",
+        "address": "0x1400bee30"
+      },
+      {
+        "name": "RenderInterface::RequestPool",
+        "address": "0x1400beee0"
+      },
+      {
+        "name": "RenderInterface::ResizePool",
+        "address": "0x1400bef00"
+      },
+      {
+        "name": "RenderInterface::UnlockPool",
+        "address": "0x1400bf3d0"
+      },
+      {
+        "name": "VertexPrimitive::Rebuild",
+        "address": "0x1400dcc20"
+      },
+      {
+        "name": "operator*",
+        "address": "0x14022ae90"
+      },
+      {
+        "name": "operator-",
+        "address": "0x14022b0c0"
+      },
+      {
+        "name": "magnitude",
+        "address": "0x1402303d0"
+      },
+      {
+        "name": "normalize",
+        "address": "0x140230920"
+      }
+    ],
+    "limitations": [
+      "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+      "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+      "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+      "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+      "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+      "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+      "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+      "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+      "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+      "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+      "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+      "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+      "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+    ]
+  },
+  {
+    "projection": "Procedure identity, pseudocode and callee facets; full dossier retained by provider.",
+    "key": "Scene::RenderDynamicGeometry",
+    "evidence_id": "ev_abad7c99ecfc9fca7f54ac1625af38c883f82fcd0021740df819e73a438495ef",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "profile_digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374",
+    "subject": {
+      "name": "nwmain.exe",
+      "digest": {
+        "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+      },
+      "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+      "format": "pe",
+      "architecture": "x86_64"
+    },
+    "procedure": {
+      "address": "0x1400ce110",
+      "name": "Scene::RenderDynamicGeometry",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x1400ce110",
+            "end": "0x1400ce394"
+          }
+        ],
+        "total_bytes": 645,
+        "span_bytes": 645,
+        "non_contiguous": false,
+        "contains_entry": true
+      },
+      "signature": "void __thiscall RenderDynamicGeometry(Scene * this)",
+      "locals": [
+        {
+          "description": "undefined local_10 @ Stack[-0x10]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_18 @ Stack[-0x18]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_20 @ Stack[-0x20]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_58 @ Stack[-0x58]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_60 @ Stack[-0x60]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_68 @ Stack[-0x68]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1 local_70 @ Stack[-0x70]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1 local_78 @ Stack[-0x78]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res10 @ Stack[0x10]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res18 @ Stack[0x18]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res20 @ Stack[0x20]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res8 @ Stack[0x8]:8",
+          "provenance": "ghidra-function-database"
+        }
+      ]
+    },
+    "pseudocode": "\r\n/* WARNING: Function: __security_check_cookie replaced with injection: security_check_cookie */\r\n/* public: virtual void __cdecl Scene::RenderDynamicGeometry(void) __ptr64 */\r\n\r\nvoid __thiscall Scene::RenderDynamicGeometry(Scene *this)\r\n\r\n{\r\n  ulonglong uVar1;\r\n  ulonglong uVar2;\r\n  char cVar3;\r\n  longlong lVar4;\r\n  ExplicitProducer *pEVar5;\r\n  ExplicitProducer *extraout_RAX;\r\n  ExplicitProducer *extraout_RAX_00;\r\n  ExplicitProducer *pEVar6;\r\n  undefined1 *puVar7;\r\n  undefined1 auStack_98 [32];\r\n  undefined1 local_78;\r\n  char local_70;\r\n  longlong local_68;\r\n  undefined8 local_60;\r\n  undefined **local_58 [7];\r\n  undefined ***local_20;\r\n  ulonglong local_18;\r\n  \r\n                    /* 0xce110  11939  ?RenderDynamicGeometry@Scene@@UEAAXXZ */\r\n  local_60 = 0xfffffffffffffffe;\r\n  local_18 = DAT_1412a1b28 ^ (ulonglong)auStack_98;\r\n  if (((g_bTracyEnabled) && (g_bTracyProfilerConnected)) && (g_bTracyScopeDisableCounter == 0)) {\r\n    lVar4 = FUN_140b9f050();\r\n    if (*(char *)(lVar4 + 0x288) != '\\0') {\r\n      local_70 = '\\x01';\r\n      lVar4 = FUN_140b9f050();\r\n      local_68 = *(longlong *)(lVar4 + 0x290);\r\n      pEVar5 = (ExplicitProducer *)FUN_140b9f300();\r\n      uVar1 = *(ulonglong *)(pEVar5 + 0x28);\r\n      pEVar6 = pEVar5;\r\n      if ((uVar1 & 0xffff) == 0) {\r\n        tracy::moodycamel::\r\n        ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n        ExplicitProducer::enqueue_begin_alloc(pEVar5,uVar1);\r\n        pEVar6 = extraout_RAX;\r\n      }\r\n      puVar7 = (undefined1 *)((uVar1 & 0xffff) * 0x20 + *(longlong *)(pEVar5 + 0x48));\r\n      *puVar7 = 0xf;\r\n      uVar2 = rdtsc();\r\n      *(ulonglong *)(puVar7 + 1) =\r\n           CONCAT44((int)((ulonglong)pEVar6 >> 0x20),(int)uVar2) | uVar2 & 0xffffffff00000000;\r\n      *(undefined ***)(puVar7 + 9) = &PTR_s_Dynamic_Geometry_140d8e3c8;\r\n      *(ulonglong *)(pEVar5 + 0x28) = uVar1 + 1;\r\n      goto LAB_1400ce1ed;\r\n    }\r\n  }\r\n  local_70 = '\\0';\r\n  local_68 = 0;\r\nLAB_1400ce1ed:\r\n  cVar3 = local_70;\r\n  Instrumentation::StartScope(\"Dynamic Geometry\",false);\r\n  local_78 = 0;\r\n  local_58[0] = std::_Func_impl_no_alloc<<lambda_f5bd36a2c5f359d58fe11b6298d049d1>,void>::vftable;\r\n  local_20 = local_58;\r\n  if (enableshadows != 0) {\r\n    RenderInterface::Enable(10);\r\n    RenderInterface::SetStencilMask(0xff);\r\n    RenderInterface::SetStencilFunc(7,0x7f,0xffffffff);\r\n    RenderInterface::SetStencilOp(0,0,2);\r\n  }\r\n  if (g_bFullDynamicLighting == 0) {\r\n    (**(code **)(**(longlong **)(this + 0x158) + 0x10))();\r\n  }\r\n  RenderInterface::SetColor4f(0.0,0.0,0.0,1.0);\r\n  RenderInterface::Disable(0);\r\n  RenderInterface::Disable(1);\r\n  RenderDrawBucket(this,2);\r\n  RenderInterface::Enable(0);\r\n  RenderInterface::Enable(1);\r\n  RenderDrawBucket(this,3);\r\n  if (enableshadows != 0) {\r\n    RenderInterface::Disable(10);\r\n  }\r\n  if (*(int *)(this + 0x140) != 0) {\r\n    RenderInterface::Enable(2);\r\n  }\r\n  if (local_20 != (undefined ***)0x0) {\r\n    (*(code *)(*local_20)[2])();\r\n    if (local_20 != (undefined ***)0x0) {\r\n      (*(code *)(*local_20)[4])\r\n                (local_20,CONCAT71((int7)((ulonglong)local_58 >> 8),local_20 != local_58));\r\n      local_20 = (undefined ***)0x0;\r\n    }\r\n  }\r\n  if (cVar3 != '\\0') {\r\n    lVar4 = FUN_140b9f050();\r\n    if (*(longlong *)(lVar4 + 0x290) == local_68) {\r\n      pEVar5 = (ExplicitProducer *)FUN_140b9f300();\r\n      uVar1 = *(ulonglong *)(pEVar5 + 0x28);\r\n      pEVar6 = pEVar5;\r\n      if ((uVar1 & 0xffff) == 0) {\r\n        tracy::moodycamel::\r\n        ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n        ExplicitProducer::enqueue_begin_alloc(pEVar5,uVar1);\r\n        pEVar6 = extraout_RAX_00;\r\n      }\r\n      puVar7 = (undefined1 *)((uVar1 & 0xffff) * 0x20 + *(longlong *)(pEVar5 + 0x48));\r\n      *puVar7 = 0x11;\r\n      uVar2 = rdtsc();\r\n      *(ulonglong *)(puVar7 + 1) =\r\n           CONCAT44((int)((ulonglong)pEVar6 >> 0x20),(int)uVar2) | uVar2 & 0xffffffff00000000;\r\n      *(ulonglong *)(pEVar5 + 0x28) = uVar1 + 1;\r\n    }\r\n  }\r\n  return;\r\n}\r\n\r\n",
+    "referenced_names": [
+      {
+        "address": "0x140045f10",
+        "value": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "source_address": "0x1400ce1a7"
+      },
+      {
+        "address": "0x140045f10",
+        "value": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "source_address": "0x1400ce347"
+      },
+      {
+        "address": "0x1400be9e0",
+        "value": "RenderInterface::Disable",
+        "source_address": "0x1400ce281"
+      },
+      {
+        "address": "0x1400be9e0",
+        "value": "RenderInterface::Disable",
+        "source_address": "0x1400ce28b"
+      },
+      {
+        "address": "0x1400be9e0",
+        "value": "RenderInterface::Disable",
+        "source_address": "0x1400ce2c9"
+      },
+      {
+        "address": "0x1400bea90",
+        "value": "RenderInterface::Enable",
+        "source_address": "0x1400ce224"
+      },
+      {
+        "address": "0x1400bea90",
+        "value": "RenderInterface::Enable",
+        "source_address": "0x1400ce29f"
+      },
+      {
+        "address": "0x1400bea90",
+        "value": "RenderInterface::Enable",
+        "source_address": "0x1400ce2a9"
+      },
+      {
+        "address": "0x1400bea90",
+        "value": "RenderInterface::Enable",
+        "source_address": "0x1400ce2dc"
+      },
+      {
+        "address": "0x1400bf050",
+        "value": "RenderInterface::SetColor4f",
+        "source_address": "0x1400ce27a"
+      },
+      {
+        "address": "0x1400bf2d0",
+        "value": "RenderInterface::SetStencilFunc",
+        "source_address": "0x1400ce241"
+      },
+      {
+        "address": "0x1400bf2e0",
+        "value": "RenderInterface::SetStencilMask",
+        "source_address": "0x1400ce22e"
+      },
+      {
+        "address": "0x1400bf2f0",
+        "value": "RenderInterface::SetStencilOp",
+        "source_address": "0x1400ce24e"
+      },
+      {
+        "address": "0x1400cd210",
+        "value": "Scene::RenderDrawBucket",
+        "source_address": "0x1400ce298"
+      },
+      {
+        "address": "0x1400cd210",
+        "value": "Scene::RenderDrawBucket",
+        "source_address": "0x1400ce2b6"
+      },
+      {
+        "address": "0x1400ce1ac",
+        "value": "LAB_1400ce1ac",
+        "source_address": "0x1400ce19f"
+      },
+      {
+        "address": "0x1400ce1de",
+        "value": "LAB_1400ce1de",
+        "source_address": "0x1400ce14b"
+      },
+      {
+        "address": "0x1400ce1de",
+        "value": "LAB_1400ce1de",
+        "source_address": "0x1400ce158"
+      },
+      {
+        "address": "0x1400ce1de",
+        "value": "LAB_1400ce1de",
+        "source_address": "0x1400ce165"
+      },
+      {
+        "address": "0x1400ce1de",
+        "value": "LAB_1400ce1de",
+        "source_address": "0x1400ce175"
+      },
+      {
+        "address": "0x1400ce1ed",
+        "value": "LAB_1400ce1ed",
+        "source_address": "0x1400ce1dc"
+      },
+      {
+        "address": "0x1400ce253",
+        "value": "LAB_1400ce253",
+        "source_address": "0x1400ce21d"
+      },
+      {
+        "address": "0x1400ce269",
+        "value": "LAB_1400ce269",
+        "source_address": "0x1400ce25a"
+      },
+      {
+        "address": "0x1400ce2ce",
+        "value": "LAB_1400ce2ce",
+        "source_address": "0x1400ce2c2"
+      },
+      {
+        "address": "0x1400ce2e2",
+        "value": "LAB_1400ce2e2",
+        "source_address": "0x1400ce2d5"
+      },
+      {
+        "address": "0x1400ce316",
+        "value": "LAB_1400ce316",
+        "source_address": "0x1400ce2ea"
+      },
+      {
+        "address": "0x1400ce316",
+        "value": "LAB_1400ce316",
+        "source_address": "0x1400ce2fa"
+      },
+      {
+        "address": "0x1400ce34c",
+        "value": "LAB_1400ce34c",
+        "source_address": "0x1400ce33f"
+      },
+      {
+        "address": "0x1400ce36c",
+        "value": "LAB_1400ce36c",
+        "source_address": "0x1400ce318"
+      },
+      {
+        "address": "0x1400ce36c",
+        "value": "LAB_1400ce36c",
+        "source_address": "0x1400ce32b"
+      },
+      {
+        "address": "0x1400d5bd0",
+        "value": "FUN_1400d5bd0",
+        "source_address": "0x1400ce30a"
+      },
+      {
+        "address": "0x1400d5da0",
+        "value": "FUN_1400d5da0",
+        "source_address": "0x1400ce2ef"
+      },
+      {
+        "address": "0x14030f3c0",
+        "value": "Instrumentation::StartScope",
+        "source_address": "0x1400ce1f6"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400ce167"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400ce17c"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400ce31a"
+      },
+      {
+        "address": "0x140b9f300",
+        "value": "FUN_140b9f300",
+        "source_address": "0x1400ce18d"
+      },
+      {
+        "address": "0x140b9f300",
+        "value": "FUN_140b9f300",
+        "source_address": "0x1400ce32d"
+      },
+      {
+        "address": "0x140c10410",
+        "value": "__security_check_cookie",
+        "source_address": "0x1400ce377"
+      },
+      {
+        "address": "0x140d8109c",
+        "value": "DAT_140d8109c",
+        "source_address": "0x1400ce269"
+      },
+      {
+        "address": "0x140d8e3c8",
+        "value": "PTR_s_Dynamic_Geometry_140d8e3c8",
+        "source_address": "0x1400ce1c4"
+      },
+      {
+        "address": "0x140d8e3c8",
+        "value": "PTR_s_Dynamic_Geometry_140d8e3c8",
+        "source_address": "0x1400ce1cb"
+      },
+      {
+        "address": "0x140d8e3e8",
+        "value": "s_Dynamic_Geometry_140d8e3e8",
+        "source_address": "0x1400ce1ef"
+      },
+      {
+        "address": "0x140d8f2d0",
+        "value": "std::_Func_impl_no_alloc<<lambda_f5bd36a2c5f359d58fe11b6298d049d1>,void>::vftable",
+        "source_address": "0x1400ce200"
+      },
+      {
+        "address": "0x140d8f2d0",
+        "value": "std::_Func_impl_no_alloc<<lambda_f5bd36a2c5f359d58fe11b6298d049d1>,void>::vftable",
+        "source_address": "0x1400ce207"
+      },
+      {
+        "address": "0x140d8f2e0",
+        "value": "vftable[2]",
+        "source_address": "0x1400ce2ef"
+      },
+      {
+        "address": "0x140d8f2f0",
+        "value": "vftable[4]",
+        "source_address": "0x1400ce30a"
+      },
+      {
+        "address": "0x14128ebec",
+        "value": "enableshadows",
+        "source_address": "0x1400ce216"
+      },
+      {
+        "address": "0x14128ebec",
+        "value": "enableshadows",
+        "source_address": "0x1400ce2bb"
+      },
+      {
+        "address": "0x1412a1b28",
+        "value": "DAT_1412a1b28",
+        "source_address": "0x1400ce12f"
+      },
+      {
+        "address": "0x14140ac58",
+        "value": "g_bFullDynamicLighting",
+        "source_address": "0x1400ce253"
+      },
+      {
+        "address": "0x14141e310",
+        "value": "g_bTracyEnabled",
+        "source_address": "0x1400ce144"
+      },
+      {
+        "address": "0x14141e311",
+        "value": "g_bTracyProfilerConnected",
+        "source_address": "0x1400ce151"
+      },
+      {
+        "address": "0x14141e314",
+        "value": "g_bTracyScopeDisableCounter",
+        "source_address": "0x1400ce15e"
+      }
+    ],
+    "callees": [
+      {
+        "name": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "address": "0x140045f10"
+      },
+      {
+        "name": "RenderInterface::Disable",
+        "address": "0x1400be9e0"
+      },
+      {
+        "name": "RenderInterface::Enable",
+        "address": "0x1400bea90"
+      },
+      {
+        "name": "RenderInterface::SetColor4f",
+        "address": "0x1400bf050"
+      },
+      {
+        "name": "RenderInterface::SetStencilFunc",
+        "address": "0x1400bf2d0"
+      },
+      {
+        "name": "RenderInterface::SetStencilMask",
+        "address": "0x1400bf2e0"
+      },
+      {
+        "name": "RenderInterface::SetStencilOp",
+        "address": "0x1400bf2f0"
+      },
+      {
+        "name": "Scene::RenderDrawBucket",
+        "address": "0x1400cd210"
+      },
+      {
+        "name": "FUN_1400d5bd0",
+        "address": "0x1400d5bd0"
+      },
+      {
+        "name": "FUN_1400d5da0",
+        "address": "0x1400d5da0"
+      },
+      {
+        "name": "Instrumentation::StartScope",
+        "address": "0x14030f3c0"
+      },
+      {
+        "name": "FUN_140b9f050",
+        "address": "0x140b9f050"
+      },
+      {
+        "name": "FUN_140b9f300",
+        "address": "0x140b9f300"
+      },
+      {
+        "name": "__security_check_cookie",
+        "address": "0x140c10410"
+      }
+    ],
+    "limitations": [
+      "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+      "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+      "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+      "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+      "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+      "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+      "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+      "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+      "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+      "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+      "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+      "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+      "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+    ]
+  },
+  {
+    "projection": "Procedure identity, pseudocode and callee facets; full dossier retained by provider.",
+    "key": "Scene::RenderDrawBucket",
+    "evidence_id": "ev_05f4c923f9a05e41527720e54b2d50e38af2d28edb36f74e2d5a5e42af1c5b19",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "profile_digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374",
+    "subject": {
+      "name": "nwmain.exe",
+      "digest": {
+        "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+      },
+      "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+      "format": "pe",
+      "architecture": "x86_64"
+    },
+    "procedure": {
+      "address": "0x1400cd210",
+      "name": "Scene::RenderDrawBucket",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x1400cd210",
+            "end": "0x1400cdeee"
+          }
+        ],
+        "total_bytes": 3295,
+        "span_bytes": 3295,
+        "non_contiguous": false,
+        "contains_entry": true
+      },
+      "signature": "void __thiscall RenderDrawBucket(Scene * this, int param_1)",
+      "locals": [
+        {
+          "description": "undefined8 local_100 @ Stack[-0x100]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_108 @ Stack[-0x108]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_110 @ Stack[-0x110]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_118 @ Stack[-0x118]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_120 @ Stack[-0x120]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_128 @ Stack[-0x128]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_130 @ Stack[-0x130]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_138 @ Stack[-0x138]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_140 @ Stack[-0x140]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_148 @ Stack[-0x148]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_150 @ Stack[-0x150]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_158 @ Stack[-0x158]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_15c @ Stack[-0x15c]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_164 @ Stack[-0x164]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_168 @ Stack[-0x168]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_16c @ Stack[-0x16c]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_170 @ Stack[-0x170]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_178 @ Stack[-0x178]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_17c @ Stack[-0x17c]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_180 @ Stack[-0x180]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_184 @ Stack[-0x184]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_188 @ Stack[-0x188]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_190 @ Stack[-0x190]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1 local_198 @ Stack[-0x198]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined2 local_19e @ Stack[-0x19e]:2",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined2 local_1a0 @ Stack[-0x1a0]:2",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1a8 @ Stack[-0x1a8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1b0 @ Stack[-0x1b0]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1b8 @ Stack[-0x1b8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1c0 @ Stack[-0x1c0]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1c8 @ Stack[-0x1c8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1d0 @ Stack[-0x1d0]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1d8 @ Stack[-0x1d8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1e0 @ Stack[-0x1e0]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1e8 @ Stack[-0x1e8]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_1f8 @ Stack[-0x1f8]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_200 @ Stack[-0x200]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_208 @ Stack[-0x208]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_210 @ Stack[-0x210]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1 local_218 @ Stack[-0x218]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_220 @ Stack[-0x220]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_228 @ Stack[-0x228]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined local_38 @ Stack[-0x38]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_48 @ Stack[-0x48]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_58 @ Stack[-0x58]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_68 @ Stack[-0x68]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_80 @ Stack[-0x80]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_90 @ Stack[-0x90]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_a0 @ Stack[-0xa0]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_b0 @ Stack[-0xb0]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_b8 @ Stack[-0xb8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_c0 @ Stack[-0xc0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_c8 @ Stack[-0xc8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_d0 @ Stack[-0xd0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_d8 @ Stack[-0xd8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_e0 @ Stack[-0xe0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_e8 @ Stack[-0xe8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_f0 @ Stack[-0xf0]:4",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_f8 @ Stack[-0xf8]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_res10 @ Stack[0x10]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1 local_res18 @ Stack[0x18]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1 local_res20 @ Stack[0x20]:1",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined4 local_res8 @ Stack[0x8]:4",
+          "provenance": "ghidra-function-database"
+        }
+      ]
+    },
+    "pseudocode": "\r\n/* public: void __cdecl Scene::RenderDrawBucket(int) __ptr64 */\r\n\r\nvoid __thiscall Scene::RenderDrawBucket(Scene *this,int param_1)\r\n\r\n{\r\n  longlong *plVar1;\r\n  ulonglong uVar2;\r\n  bool bVar3;\r\n  bool bVar4;\r\n  bool bVar5;\r\n  bool bVar6;\r\n  uchar uVar7;\r\n  longlong lVar8;\r\n  ExplicitProducer *pEVar9;\r\n  ExplicitProducer *extraout_RAX;\r\n  CExoString *pCVar10;\r\n  undefined8 *puVar11;\r\n  ulonglong uVar12;\r\n  undefined8 uVar13;\r\n  ExplicitProducer *pEVar14;\r\n  DrawItem *pDVar15;\r\n  PartTriMesh *pPVar16;\r\n  MdlNodeTriMesh *pMVar17;\r\n  ExplicitProducer *extraout_RAX_00;\r\n  uint uVar18;\r\n  char cVar19;\r\n  int iVar20;\r\n  undefined1 *puVar21;\r\n  int iVar22;\r\n  float fVar23;\r\n  float local_res8;\r\n  longlong local_228;\r\n  undefined4 local_220;\r\n  char local_218;\r\n  undefined8 local_210;\r\n  undefined4 local_208;\r\n  undefined8 local_200;\r\n  undefined4 local_1f8;\r\n  undefined4 local_1e8;\r\n  undefined2 *local_1e0;\r\n  undefined8 local_1d8;\r\n  undefined4 *local_1d0;\r\n  undefined8 local_1c8;\r\n  undefined2 *local_1c0;\r\n  undefined8 local_1b8;\r\n  undefined4 *local_1b0;\r\n  undefined8 local_1a8;\r\n  undefined2 local_1a0;\r\n  ushort local_19e;\r\n  char local_198;\r\n  longlong local_190;\r\n  float local_188;\r\n  float local_184;\r\n  float local_180;\r\n  undefined4 local_17c;\r\n  undefined8 local_178;\r\n  undefined4 local_170;\r\n  undefined4 local_16c;\r\n  undefined4 local_168;\r\n  undefined8 local_164;\r\n  undefined4 local_15c;\r\n  undefined8 local_158;\r\n  undefined8 local_150;\r\n  undefined8 local_148;\r\n  undefined8 local_140;\r\n  undefined8 local_138;\r\n  undefined8 local_130;\r\n  undefined8 local_128;\r\n  undefined8 local_120;\r\n  undefined8 local_118;\r\n  undefined8 local_110;\r\n  undefined8 local_108;\r\n  undefined8 local_100;\r\n  undefined8 local_f8;\r\n  undefined4 local_f0;\r\n  undefined8 local_e8;\r\n  undefined4 local_e0;\r\n  undefined8 local_d8;\r\n  undefined4 local_d0;\r\n  undefined8 local_c8;\r\n  undefined4 local_c0;\r\n  undefined8 local_b8;\r\n  undefined8 local_b0;\r\n  undefined8 uStack_a8;\r\n  undefined8 local_a0;\r\n  undefined8 uStack_98;\r\n  undefined8 local_90;\r\n  undefined8 uStack_88;\r\n  undefined8 local_80;\r\n  undefined8 uStack_78;\r\n  \r\n                    /* 0xcd210  11935  ?RenderDrawBucket@Scene@@QEAAXH@Z */\r\n  local_b8 = 0xfffffffffffffffe;\r\n  if ((((g_bTracyEnabled) && (g_bTracyProfilerConnected)) && (g_bTracyScopeDisableCounter == 0)) &&\r\n     (lVar8 = FUN_140b9f050(), *(char *)(lVar8 + 0x288) != '\\0')) {\r\n    local_198 = '\\x01';\r\n    lVar8 = FUN_140b9f050();\r\n    local_190 = *(longlong *)(lVar8 + 0x290);\r\n    pEVar9 = (ExplicitProducer *)FUN_140b9f300();\r\n    uVar12 = *(ulonglong *)(pEVar9 + 0x28);\r\n    pEVar14 = pEVar9;\r\n    if ((uVar12 & 0xffff) == 0) {\r\n      tracy::moodycamel::\r\n      ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n      ExplicitProducer::enqueue_begin_alloc(pEVar9,uVar12);\r\n      pEVar14 = extraout_RAX;\r\n    }\r\n    puVar21 = (undefined1 *)((uVar12 & 0xffff) * 0x20 + *(longlong *)(pEVar9 + 0x48));\r\n    *puVar21 = 0xf;\r\n    uVar2 = rdtsc();\r\n    *(ulonglong *)(puVar21 + 1) =\r\n         CONCAT44((int)((ulonglong)pEVar14 >> 0x20),(int)uVar2) | uVar2 & 0xffffffff00000000;\r\n    *(undefined **)(puVar21 + 9) = &DAT_140d8e178;\r\n    *(ulonglong *)(pEVar9 + 0x28) = uVar12 + 1;\r\n  }\r\n  else {\r\n    local_198 = '\\0';\r\n    local_190 = 0;\r\n  }\r\n  if (((g_bTracyEnabled != false) && (g_bTracyProfilerConnected != false)) &&\r\n     (g_bTracyScopeDisableCounter == 0)) {\r\n    local_1a0 = 0x200;\r\n    local_1b0 = (undefined4 *)0x0;\r\n    FUN_140c10370(0);\r\n    local_1b0 = (undefined4 *)0x0;\r\n    local_1a8._0_4_ = 0;\r\n    local_1a8._4_4_ = 5;\r\n    local_1b0 = operator_new(5);\r\n    *(undefined1 *)(local_1b0 + 1) = 0;\r\n    local_1a8 = CONCAT44(local_1a8._4_4_,4);\r\n    *local_1b0 = 0x65707974;\r\n    local_1c0 = (undefined2 *)0x0;\r\n    FUN_140c10370(0);\r\n    local_1c0 = (undefined2 *)0x0;\r\n    local_1b8._0_4_ = 0;\r\n    local_1b8._4_4_ = 3;\r\n    local_1c0 = operator_new(3);\r\n    *(undefined1 *)(local_1c0 + 1) = 0;\r\n    local_1b8 = CONCAT44(local_1b8._4_4_,2);\r\n    *local_1c0 = 0x203a;\r\n    pCVar10 = (CExoString *)CExoString::operator+((CExoString *)&local_1b0,(CExoString *)&local_108)\r\n    ;\r\n    CExoString::ToString((int)&local_118);\r\n    puVar11 = (undefined8 *)CExoString::operator+(pCVar10,(CExoString *)&local_128);\r\n    puVar21 = &DAT_140d80070;\r\n    if ((undefined1 *)*puVar11 != (undefined1 *)0x0) {\r\n      puVar21 = (undefined1 *)*puVar11;\r\n    }\r\n    uVar12 = 0xffffffffffffffff;\r\n    do {\r\n      uVar12 = uVar12 + 1;\r\n    } while (puVar21[uVar12] != '\\0');\r\n    local_19e = (ushort)uVar12;\r\n    if (0x200 < local_19e) {\r\n      uVar12 = 0x200;\r\n    }\r\n    local_1d0 = (undefined4 *)0x0;\r\n    FUN_140c10370(0);\r\n    local_1d0 = (undefined4 *)0x0;\r\n    local_1c8._0_4_ = 0;\r\n    local_1c8._4_4_ = 5;\r\n    local_1d0 = operator_new(5);\r\n    *(undefined1 *)(local_1d0 + 1) = 0;\r\n    local_1c8 = CONCAT44(local_1c8._4_4_,4);\r\n    *local_1d0 = 0x65707974;\r\n    local_1e0 = (undefined2 *)0x0;\r\n    FUN_140c10370(0);\r\n    local_1e0 = (undefined2 *)0x0;\r\n    local_1d8._0_4_ = 0;\r\n    local_1d8._4_4_ = 3;\r\n    local_1e0 = operator_new(3);\r\n    *(undefined1 *)(local_1e0 + 1) = 0;\r\n    local_1d8 = CONCAT44(local_1d8._4_4_,2);\r\n    *local_1e0 = 0x203a;\r\n    pCVar10 = (CExoString *)CExoString::operator+((CExoString *)&local_1d0,(CExoString *)&local_138)\r\n    ;\r\n    CExoString::ToString((int)&local_148);\r\n    puVar11 = (undefined8 *)CExoString::operator+(pCVar10,(CExoString *)&local_158);\r\n    puVar21 = &DAT_140d80070;\r\n    if ((undefined1 *)*puVar11 != (undefined1 *)0x0) {\r\n      puVar21 = (undefined1 *)*puVar11;\r\n    }\r\n    if ((local_198 != '\\0') && (lVar8 = FUN_140b9f050(), *(longlong *)(lVar8 + 0x290) == local_190))\r\n    {\r\n      FUN_140ba0db0();\r\n      uVar13 = FUN_140bb3e40(uVar12 & 0xffff);\r\n      FUN_140c417f0(uVar13,puVar21);\r\n      pEVar14 = (ExplicitProducer *)FUN_140b9f300();\r\n      uVar2 = *(ulonglong *)(pEVar14 + 0x28);\r\n      if ((uVar2 & 0xffff) == 0) {\r\n        tracy::moodycamel::\r\n        ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n        ExplicitProducer::enqueue_begin_alloc(pEVar14,uVar2);\r\n      }\r\n      puVar21 = (undefined1 *)((uVar2 & 0xffff) * 0x20 + *(longlong *)(pEVar14 + 0x48));\r\n      *puVar21 = 0;\r\n      *(undefined8 *)(puVar21 + 1) = uVar13;\r\n      *(short *)(puVar21 + 9) = (short)uVar12;\r\n      *(ulonglong *)(pEVar14 + 0x28) = uVar2 + 1;\r\n    }\r\n    FUN_140c10370(local_158);\r\n    local_158 = 0;\r\n    local_150 = 0;\r\n    FUN_140c10370(local_148);\r\n    local_148 = 0;\r\n    local_140 = 0;\r\n    FUN_140c10370(local_138);\r\n    local_138 = 0;\r\n    local_130 = 0;\r\n    FUN_140c10370(local_1e0);\r\n    local_1e0 = (undefined2 *)0x0;\r\n    local_1d8 = 0;\r\n    FUN_140c10370(local_1d0);\r\n    local_1d0 = (undefined4 *)0x0;\r\n    local_1c8 = 0;\r\n    FUN_140c10370(local_128);\r\n    local_128 = 0;\r\n    local_120 = 0;\r\n    FUN_140c10370(local_118);\r\n    local_118 = 0;\r\n    local_110 = 0;\r\n    FUN_140c10370(local_108);\r\n    local_108 = 0;\r\n    local_100 = 0;\r\n    FUN_140c10370(local_1c0);\r\n    local_1c0 = (undefined2 *)0x0;\r\n    local_1b8 = 0;\r\n    FUN_140c10370(local_1b0);\r\n    local_1b0 = (undefined4 *)0x0;\r\n    local_1a8 = 0;\r\n  }\r\n  bVar3 = false;\r\n  pDVar15 = DrawBucketManager::GetFirstItem((DrawBucketManager *)(this + 0x208),param_1,0);\r\n  bVar5 = false;\r\n  local_res8 = (float)((uint)local_res8 & 0xffffff00);\r\n  fVar23 = local_res8;\r\n  iVar20 = 0;\r\n  cVar19 = '\\0';\r\n  if ((g_nRenderPartBBox != 0) || (bVar4 = false, g_nRenderPartPivots != 0)) {\r\n    bVar4 = true;\r\n  }\r\n  do {\r\n    while( true ) {\r\n      iVar22 = iVar20;\r\n      plVar1 = *(longlong **)pDVar15;\r\n      if (plVar1 != (longlong *)0x0) break;\r\n      if (iVar22 == 2) {\r\n        RenderInterface::Enable(3);\r\n        RenderInterface::SetCullFace(1);\r\n        RenderInterface::SetCanDissolve(0);\r\n        if (bVar3) {\r\n          RenderInterface::PopCurrentMatrix();\r\n        }\r\n        if ((local_198 != '\\0') &&\r\n           (lVar8 = FUN_140b9f050(), *(longlong *)(lVar8 + 0x290) == local_190)) {\r\n          pEVar9 = (ExplicitProducer *)FUN_140b9f300();\r\n          uVar12 = *(ulonglong *)(pEVar9 + 0x28);\r\n          pEVar14 = pEVar9;\r\n          if ((uVar12 & 0xffff) == 0) {\r\n            tracy::moodycamel::\r\n            ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n            ExplicitProducer::enqueue_begin_alloc(pEVar9,uVar12);\r\n            pEVar14 = extraout_RAX_00;\r\n          }\r\n          puVar21 = (undefined1 *)((uVar12 & 0xffff) * 0x20 + *(longlong *)(pEVar9 + 0x48));\r\n          *puVar21 = 0x11;\r\n          uVar2 = rdtsc();\r\n          *(ulonglong *)(puVar21 + 1) =\r\n               CONCAT44((int)((ulonglong)pEVar14 >> 0x20),(int)uVar2) | uVar2 & 0xffffffff00000000;\r\n          *(ulonglong *)(pEVar9 + 0x28) = uVar12 + 1;\r\n        }\r\n        return;\r\n      }\r\n      iVar20 = (iVar22 == 1) + 1;\r\n      pDVar15 = DrawBucketManager::GetFirstItem((DrawBucketManager *)(this + 0x208),param_1,iVar20);\r\n      cVar19 = local_res8._0_1_;\r\n      if (*(longlong *)pDVar15 != 0) {\r\n        if (iVar22 == 1) {\r\n          RenderInterface::Enable(3);\r\n          RenderInterface::SetCullFace(0);\r\n        }\r\n        else {\r\n          RenderInterface::Disable(3);\r\n        }\r\n      }\r\n    }\r\n    pPVar16 = (PartTriMesh *)(**(code **)(*plVar1 + 0x58))();\r\n    if ((pPVar16 == (PartTriMesh *)0x0) ||\r\n       ((lVar8 = *(longlong *)(pPVar16 + 0x90), (*(byte *)(lVar8 + 0x80) & 0x1e) == 0 &&\r\n        (*(longlong *)(*(longlong *)(lVar8 + 0x10) + 0x50) == 0)))) {\r\n      if (bVar3) {\r\n        RenderInterface::PopCurrentMatrix();\r\n      }\r\n      bVar3 = false;\r\n      uVar18 = 0;\r\n      if (pPVar16 != (PartTriMesh *)0x0) {\r\n        local_d8 = *(undefined8 *)(pPVar16 + 0x68);\r\n        local_d0 = *(undefined4 *)(pPVar16 + 0x70);\r\n        RenderInterface::SetShaderParamv(0,&local_d8);\r\n        local_c8 = *(undefined8 *)(pPVar16 + 0x74);\r\n        local_c0 = *(undefined4 *)(pPVar16 + 0x7c);\r\n        puVar11 = &local_c8;\r\n        goto LAB_1400cd7bd;\r\n      }\r\n    }\r\n    else {\r\n      if (!bVar3) {\r\n        RenderInterface::PushCurrentMatrix();\r\n        bVar3 = true;\r\n        lVar8 = *(longlong *)(pPVar16 + 0x90);\r\n      }\r\n      RenderInterface::SetModelMatrix((Matrix4x4 *)(lVar8 + 0x18));\r\n      pMVar17 = MdlNode::AsMdlNodeTriMesh((MdlNode *)plVar1[1]);\r\n      local_f8 = *(undefined8 *)(pMVar17 + 0xc0);\r\n      local_f0 = *(undefined4 *)(pMVar17 + 200);\r\n      RenderInterface::SetShaderParamv(0,&local_f8);\r\n      local_e8 = *(undefined8 *)(pMVar17 + 0xcc);\r\n      local_e0 = *(undefined4 *)(pMVar17 + 0xd4);\r\n      puVar11 = &local_e8;\r\nLAB_1400cd7bd:\r\n      RenderInterface::SetShaderParamv(1,puVar11);\r\n      lVar8 = *(longlong *)(pPVar16 + 0xa0);\r\n      if ((lVar8 != 0) && (*(float *)(lVar8 + 200) <= 1.0 && *(float *)(lVar8 + 200) != 1.0)) {\r\n        bVar5 = true;\r\n        RenderInterface::Enable(2);\r\n        local_188 = *(float *)(lVar8 + 200) * *(float *)(lVar8 + 200);\r\n        local_180 = local_188 * *(float *)(this + 0x154);\r\n        local_184 = local_188 * *(float *)(this + 0x150);\r\n        local_188 = local_188 * *(float *)(this + 0x14c);\r\n        RenderInterface::SetFogModev(2,(Vector *)&local_188);\r\n        RenderInterface::SetFogModef(0,*(float *)(this + 0x144) * *(float *)(lVar8 + 200));\r\n        RenderInterface::SetFogModef(1,*(float *)(this + 0x148) * *(float *)(lVar8 + 200) + 0.1);\r\n      }\r\n      cVar19 = local_res8._0_1_;\r\n      if (((param_1 == 8) && (lVar8 != 0)) && (*(float *)(lVar8 + 0x70) < 1.0)) {\r\n        fVar23 = *(float *)(pPVar16 + 0xa8);\r\n        *(float *)(pPVar16 + 0xa8) = fVar23 * *(float *)(lVar8 + 0x70);\r\n        local_res8 = 1.4013e-45;\r\n        cVar19 = '\\x01';\r\n      }\r\n      bVar6 = Camera::GetCanKeyholeDissolve(CurrentCamera,pPVar16);\r\n      uVar18 = (uint)bVar6;\r\n    }\r\n    RenderInterface::SetCanDissolve(uVar18);\r\n    (**(code **)(*plVar1 + 200))();\r\n    if (bVar5) {\r\n      bVar5 = false;\r\n      if (*(int *)(this + 0x140) == 0) {\r\n        RenderInterface::Disable(2);\r\n      }\r\n      RenderInterface::SetFogModef(0,*(float *)(this + 0x144));\r\n      RenderInterface::SetFogModef(1,*(float *)(this + 0x148));\r\n      RenderInterface::SetFogModev(2,(Vector *)(this + 0x14c));\r\n    }\r\n    if (cVar19 != '\\0') {\r\n      local_res8 = 0.0;\r\n      *(float *)(pPVar16 + 0xa8) = fVar23;\r\n    }\r\n    if (((bVar4) && (pPVar16 != (PartTriMesh *)0x0)) &&\r\n       (pMVar17 = MdlNode::AsMdlNodeTriMesh((MdlNode *)plVar1[1]), pMVar17 != (MdlNodeTriMesh *)0x0)\r\n       ) {\r\n      uVar7 = RenderInterface::IsEnabled(0xb);\r\n      local_218 = uVar7 != '\\0';\r\n      RenderInterface::Disable(0xb);\r\n      if ((*(int *)(*(longlong *)((longlong)ThreadLocalStoragePointer + (ulonglong)_tls_index * 8) +\r\n                   0x1e4) < DAT_14140af20) &&\r\n         (_Init_thread_header(&DAT_14140af20), DAT_14140af20 == -1)) {\r\n        atexit(FUN_140d78ae0);\r\n        _Init_thread_footer(&DAT_14140af20);\r\n      }\r\n      if (DAT_14140af18 == 0) {\r\n        CExoArrayList<Vector>::Allocate((CExoArrayList<Vector> *)&DAT_14140af10,0x10);\r\n        DAT_14140af18 = 0x10;\r\n      }\r\n      local_200 = 0;\r\n      local_1f8 = 0;\r\n      local_210 = 0;\r\n      local_208 = 0;\r\n      local_228 = 0;\r\n      local_220 = 0;\r\n      if (((plVar1[10] == 0) && (lVar8 = (**(code **)(*plVar1 + 0x98))(plVar1), lVar8 == 0)) &&\r\n         (lVar8 = (**(code **)(*plVar1 + 0x60))(plVar1), lVar8 == 0)) {\r\n        local_b0 = 0x3f800000;\r\n        uStack_a8 = 0;\r\n        local_a0 = 0x3f80000000000000;\r\n        uStack_98 = 0;\r\n        local_90 = 0;\r\n        uStack_88 = 0x3f800000;\r\n        local_80 = 0;\r\n        uStack_78 = 0x3f80000000000000;\r\n        RenderInterface::SetModelMatrix((Matrix4x4 *)&local_b0);\r\n        local_200 = *(undefined8 *)(pPVar16 + 0x68);\r\n        local_1f8 = *(undefined4 *)(pPVar16 + 0x70);\r\n        local_210 = *(undefined8 *)(pPVar16 + 0x74);\r\n        local_208 = *(undefined4 *)(pPVar16 + 0x7c);\r\n        local_228 = plVar1[2];\r\n        local_220 = (undefined4)plVar1[3];\r\n      }\r\n      else {\r\n        local_200 = *(undefined8 *)(pMVar17 + 0xc0);\r\n        local_1f8 = *(undefined4 *)(pMVar17 + 200);\r\n        local_210 = *(undefined8 *)(pMVar17 + 0xcc);\r\n        local_208 = *(undefined4 *)(pMVar17 + 0xd4);\r\n        local_228 = 0;\r\n        local_220 = 0;\r\n      }\r\n      puVar11 = DAT_14140af10;\r\n      if (g_nRenderPartBBox != 0) {\r\n        if (g_nRenderPartPivots != 0) {\r\n          *DAT_14140af10 = CONCAT44(local_210._4_4_,(undefined4)local_200);\r\n          *(undefined4 *)(puVar11 + 1) = local_208;\r\n          puVar11 = DAT_14140af10;\r\n          *(longlong *)((longlong)DAT_14140af10 + 0xc) = local_228;\r\n          *(undefined4 *)((longlong)puVar11 + 0x14) = local_220;\r\n          puVar11 = DAT_14140af10;\r\n          DAT_14140af10[3] = CONCAT44(local_210._4_4_,(undefined4)local_200);\r\n          *(undefined4 *)(puVar11 + 4) = local_1f8;\r\n          puVar11 = DAT_14140af10;\r\n          *(longlong *)((longlong)DAT_14140af10 + 0x24) = local_228;\r\n          *(undefined4 *)((longlong)puVar11 + 0x2c) = local_220;\r\n          puVar11 = DAT_14140af10;\r\n          DAT_14140af10[6] = local_200;\r\n          *(undefined4 *)(puVar11 + 7) = local_208;\r\n          puVar11 = DAT_14140af10;\r\n          *(longlong *)((longlong)DAT_14140af10 + 0x3c) = local_228;\r\n          *(undefined4 *)((longlong)puVar11 + 0x44) = local_220;\r\n          puVar11 = DAT_14140af10;\r\n          DAT_14140af10[9] = local_200;\r\n          *(undefined4 *)(puVar11 + 10) = local_1f8;\r\n          puVar11 = DAT_14140af10;\r\n          *(longlong *)((longlong)DAT_14140af10 + 0x54) = local_228;\r\n          *(undefined4 *)((longlong)puVar11 + 0x5c) = local_220;\r\n          puVar11 = DAT_14140af10;\r\n          DAT_14140af10[0xc] = local_210;\r\n          *(undefined4 *)(puVar11 + 0xd) = local_208;\r\n          puVar11 = DAT_14140af10;\r\n          *(longlong *)((longlong)DAT_14140af10 + 0x6c) = local_228;\r\n          *(undefined4 *)((longlong)puVar11 + 0x74) = local_220;\r\n          puVar11 = DAT_14140af10;\r\n          DAT_14140af10[0xf] = local_210;\r\n          *(undefined4 *)(puVar11 + 0x10) = local_1f8;\r\n          puVar11 = DAT_14140af10;\r\n          *(longlong *)((longlong)DAT_14140af10 + 0x84) = local_228;\r\n          *(undefined4 *)((longlong)puVar11 + 0x8c) = local_220;\r\n          puVar11 = DAT_14140af10;\r\n          DAT_14140af10[0x12] = CONCAT44(local_200._4_4_,(undefined4)local_210);\r\n          *(undefined4 *)(puVar11 + 0x13) = local_208;\r\n          puVar11 = DAT_14140af10;\r\n          *(longlong *)((longlong)DAT_14140af10 + 0x9c) = local_228;\r\n          *(undefined4 *)((longlong)puVar11 + 0xa4) = local_220;\r\n          puVar11 = DAT_14140af10;\r\n          local_1e8 = local_1f8;\r\n          DAT_14140af10[0x15] = CONCAT44(local_200._4_4_,(undefined4)local_210);\r\n          *(undefined4 *)(puVar11 + 0x16) = local_1f8;\r\n          puVar11 = DAT_14140af10;\r\n          *(longlong *)((longlong)DAT_14140af10 + 0xb4) = local_228;\r\n          *(undefined4 *)((longlong)puVar11 + 0xbc) = local_220;\r\n          local_17c = 0x3f400000;\r\n          local_178 = 0x3f400000;\r\n          RenderInterface::DrawLines((List<Vector> *)&DAT_14140af10,(Vector *)&local_17c);\r\n        }\r\n        if (g_nRenderPartBBox != 0) {\r\n          local_170 = 0x3e800000;\r\n          local_16c = 0x3e800000;\r\n          local_168 = 0x3f800000;\r\n          RenderInterface::DrawBoundingBox\r\n                    ((Vector *)&local_200,(Vector *)&local_210,(Vector *)&local_170);\r\n        }\r\n      }\r\n      if (g_nRenderPartPivots != 0) {\r\n        local_164 = 0x3f800000;\r\n        local_15c = 0x3f800000;\r\n        RenderInterface::DrawCrosshair3D(0.1,(Vector *)&local_228,(Vector *)&local_164);\r\n      }\r\n      if (local_218 != '\\0') {\r\n        RenderInterface::Enable(0xb);\r\n      }\r\n    }\r\n    pDVar15 = DrawBucketManager::GetNextItem((DrawBucketManager *)(this + 0x208),param_1,iVar22);\r\n    iVar20 = iVar22;\r\n    cVar19 = local_res8._0_1_;\r\n  } while( true );\r\n}\r\n\r\n",
+    "referenced_names": [
+      {
+        "address": "0x140045f10",
+        "value": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "source_address": "0x1400cd2ac"
+      },
+      {
+        "address": "0x140045f10",
+        "value": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "source_address": "0x1400cd514"
+      },
+      {
+        "address": "0x140045f10",
+        "value": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "source_address": "0x1400cde69"
+      },
+      {
+        "address": "0x14004bfe0",
+        "value": "CExoArrayList<Vector>::Allocate",
+        "source_address": "0x1400cd9c4"
+      },
+      {
+        "address": "0x140058c50",
+        "value": "Camera::GetCanKeyholeDissolve",
+        "source_address": "0x1400cd8be"
+      },
+      {
+        "address": "0x14008c360",
+        "value": "MdlNode::AsMdlNodeTriMesh",
+        "source_address": "0x1400cd72a"
+      },
+      {
+        "address": "0x14008c360",
+        "value": "MdlNode::AsMdlNodeTriMesh",
+        "source_address": "0x1400cd95c"
+      },
+      {
+        "address": "0x1400be9e0",
+        "value": "RenderInterface::Disable",
+        "source_address": "0x1400cd6b0"
+      },
+      {
+        "address": "0x1400be9e0",
+        "value": "RenderInterface::Disable",
+        "source_address": "0x1400cd8f6"
+      },
+      {
+        "address": "0x1400be9e0",
+        "value": "RenderInterface::Disable",
+        "source_address": "0x1400cd983"
+      },
+      {
+        "address": "0x1400bea10",
+        "value": "RenderInterface::DrawBoundingBox",
+        "source_address": "0x1400cddb0"
+      },
+      {
+        "address": "0x1400bea30",
+        "value": "RenderInterface::DrawCrosshair3D",
+        "source_address": "0x1400cddda"
+      },
+      {
+        "address": "0x1400bea70",
+        "value": "RenderInterface::DrawLines",
+        "source_address": "0x1400cdd7e"
+      },
+      {
+        "address": "0x1400bea90",
+        "value": "RenderInterface::Enable",
+        "source_address": "0x1400cd6c1"
+      },
+      {
+        "address": "0x1400bea90",
+        "value": "RenderInterface::Enable",
+        "source_address": "0x1400cd7f0"
+      },
+      {
+        "address": "0x1400bea90",
+        "value": "RenderInterface::Enable",
+        "source_address": "0x1400cddeb"
+      },
+      {
+        "address": "0x1400bea90",
+        "value": "RenderInterface::Enable",
+        "source_address": "0x1400cde16"
+      },
+      {
+        "address": "0x1400bee10",
+        "value": "RenderInterface::IsEnabled",
+        "source_address": "0x1400cd972"
+      },
+      {
+        "address": "0x1400bee50",
+        "value": "RenderInterface::PopCurrentMatrix",
+        "source_address": "0x1400cd774"
+      },
+      {
+        "address": "0x1400bee50",
+        "value": "RenderInterface::PopCurrentMatrix",
+        "source_address": "0x1400cde31"
+      },
+      {
+        "address": "0x1400bee60",
+        "value": "RenderInterface::PushCurrentMatrix",
+        "source_address": "0x1400cd70e"
+      },
+      {
+        "address": "0x1400bf010",
+        "value": "RenderInterface::SetCanDissolve",
+        "source_address": "0x1400cd8c6"
+      },
+      {
+        "address": "0x1400bf010",
+        "value": "RenderInterface::SetCanDissolve",
+        "source_address": "0x1400cde27"
+      },
+      {
+        "address": "0x1400bf080",
+        "value": "RenderInterface::SetCullFace",
+        "source_address": "0x1400cd6c8"
+      },
+      {
+        "address": "0x1400bf080",
+        "value": "RenderInterface::SetCullFace",
+        "source_address": "0x1400cde20"
+      },
+      {
+        "address": "0x1400bf100",
+        "value": "RenderInterface::SetFogModef",
+        "source_address": "0x1400cd852"
+      },
+      {
+        "address": "0x1400bf100",
+        "value": "RenderInterface::SetFogModef",
+        "source_address": "0x1400cd872"
+      },
+      {
+        "address": "0x1400bf100",
+        "value": "RenderInterface::SetFogModef",
+        "source_address": "0x1400cd906"
+      },
+      {
+        "address": "0x1400bf100",
+        "value": "RenderInterface::SetFogModef",
+        "source_address": "0x1400cd919"
+      },
+      {
+        "address": "0x1400bf110",
+        "value": "RenderInterface::SetFogModev",
+        "source_address": "0x1400cd83a"
+      },
+      {
+        "address": "0x1400bf110",
+        "value": "RenderInterface::SetFogModev",
+        "source_address": "0x1400cd92a"
+      },
+      {
+        "address": "0x1400bf1d0",
+        "value": "RenderInterface::SetModelMatrix",
+        "source_address": "0x1400cd721"
+      },
+      {
+        "address": "0x1400bf1d0",
+        "value": "RenderInterface::SetModelMatrix",
+        "source_address": "0x1400cda73"
+      },
+      {
+        "address": "0x1400bf2a0",
+        "value": "RenderInterface::SetShaderParamv",
+        "source_address": "0x1400cd74e"
+      },
+      {
+        "address": "0x1400bf2a0",
+        "value": "RenderInterface::SetShaderParamv",
+        "source_address": "0x1400cd79b"
+      },
+      {
+        "address": "0x1400bf2a0",
+        "value": "RenderInterface::SetShaderParamv",
+        "source_address": "0x1400cd7c2"
+      },
+      {
+        "address": "0x1400cd2b1",
+        "value": "LAB_1400cd2b1",
+        "source_address": "0x1400cd2a4"
+      },
+      {
+        "address": "0x1400cd2e0",
+        "value": "LAB_1400cd2e0",
+        "source_address": "0x1400cd257"
+      },
+      {
+        "address": "0x1400cd2e0",
+        "value": "LAB_1400cd2e0",
+        "source_address": "0x1400cd264"
+      },
+      {
+        "address": "0x1400cd2e0",
+        "value": "LAB_1400cd2e0",
+        "source_address": "0x1400cd26c"
+      },
+      {
+        "address": "0x1400cd2e0",
+        "value": "LAB_1400cd2e0",
+        "source_address": "0x1400cd27c"
+      },
+      {
+        "address": "0x1400cd2e8",
+        "value": "LAB_1400cd2e8",
+        "source_address": "0x1400cd2de"
+      },
+      {
+        "address": "0x1400cd3e4",
+        "value": "LAB_1400cd3e4",
+        "source_address": "0x1400cd3eb"
+      },
+      {
+        "address": "0x1400cd519",
+        "value": "LAB_1400cd519",
+        "source_address": "0x1400cd50c"
+      },
+      {
+        "address": "0x1400cd537",
+        "value": "LAB_1400cd537",
+        "source_address": "0x1400cd4c8"
+      },
+      {
+        "address": "0x1400cd537",
+        "value": "LAB_1400cd537",
+        "source_address": "0x1400cd4da"
+      },
+      {
+        "address": "0x1400cd60e",
+        "value": "LAB_1400cd60e",
+        "source_address": "0x1400cd2ef"
+      },
+      {
+        "address": "0x1400cd60e",
+        "value": "LAB_1400cd60e",
+        "source_address": "0x1400cd2fc"
+      },
+      {
+        "address": "0x1400cd60e",
+        "value": "LAB_1400cd60e",
+        "source_address": "0x1400cd309"
+      },
+      {
+        "address": "0x1400cd650",
+        "value": "LAB_1400cd650",
+        "source_address": "0x1400cd63f"
+      },
+      {
+        "address": "0x1400cd657",
+        "value": "LAB_1400cd657",
+        "source_address": "0x1400cd64e"
+      },
+      {
+        "address": "0x1400cd670",
+        "value": "LAB_1400cd670",
+        "source_address": "0x1400cd6bf"
+      },
+      {
+        "address": "0x1400cd670",
+        "value": "LAB_1400cd670",
+        "source_address": "0x1400cd6d7"
+      },
+      {
+        "address": "0x1400cd670",
+        "value": "LAB_1400cd670",
+        "source_address": "0x1400cde0c"
+      },
+      {
+        "address": "0x1400cd6c1",
+        "value": "LAB_1400cd6c1",
+        "source_address": "0x1400cd6ae"
+      },
+      {
+        "address": "0x1400cd6cd",
+        "value": "LAB_1400cd6cd",
+        "source_address": "0x1400cd6a5"
+      },
+      {
+        "address": "0x1400cd6d9",
+        "value": "LAB_1400cd6d9",
+        "source_address": "0x1400cd676"
+      },
+      {
+        "address": "0x1400cd709",
+        "value": "LAB_1400cd709",
+        "source_address": "0x1400cd6fc"
+      },
+      {
+        "address": "0x1400cd71d",
+        "value": "LAB_1400cd71d",
+        "source_address": "0x1400cd70c"
+      },
+      {
+        "address": "0x1400cd76f",
+        "value": "LAB_1400cd76f",
+        "source_address": "0x1400cd6e8"
+      },
+      {
+        "address": "0x1400cd76f",
+        "value": "LAB_1400cd76f",
+        "source_address": "0x1400cd707"
+      },
+      {
+        "address": "0x1400cd779",
+        "value": "LAB_1400cd779",
+        "source_address": "0x1400cd772"
+      },
+      {
+        "address": "0x1400cd7bd",
+        "value": "LAB_1400cd7bd",
+        "source_address": "0x1400cd76d"
+      },
+      {
+        "address": "0x1400cd877",
+        "value": "LAB_1400cd877",
+        "source_address": "0x1400cd7d1"
+      },
+      {
+        "address": "0x1400cd877",
+        "value": "LAB_1400cd877",
+        "source_address": "0x1400cd7de"
+      },
+      {
+        "address": "0x1400cd8ad",
+        "value": "LAB_1400cd8ad",
+        "source_address": "0x1400cd87b"
+      },
+      {
+        "address": "0x1400cd8ad",
+        "value": "LAB_1400cd8ad",
+        "source_address": "0x1400cd880"
+      },
+      {
+        "address": "0x1400cd8ad",
+        "value": "LAB_1400cd8ad",
+        "source_address": "0x1400cd88a"
+      },
+      {
+        "address": "0x1400cd8b4",
+        "value": "LAB_1400cd8b4",
+        "source_address": "0x1400cd8ab"
+      },
+      {
+        "address": "0x1400cd8c6",
+        "value": "LAB_1400cd8c6",
+        "source_address": "0x1400cd781"
+      },
+      {
+        "address": "0x1400cd8fb",
+        "value": "LAB_1400cd8fb",
+        "source_address": "0x1400cd8ef"
+      },
+      {
+        "address": "0x1400cd92f",
+        "value": "LAB_1400cd92f",
+        "source_address": "0x1400cd8de"
+      },
+      {
+        "address": "0x1400cd942",
+        "value": "LAB_1400cd942",
+        "source_address": "0x1400cd931"
+      },
+      {
+        "address": "0x1400cd9af",
+        "value": "LAB_1400cd9af",
+        "source_address": "0x1400cdecb"
+      },
+      {
+        "address": "0x1400cd9af",
+        "value": "LAB_1400cd9af",
+        "source_address": "0x1400cdeea"
+      },
+      {
+        "address": "0x1400cd9d3",
+        "value": "LAB_1400cd9d3",
+        "source_address": "0x1400cd9b6"
+      },
+      {
+        "address": "0x1400cdab0",
+        "value": "LAB_1400cdab0",
+        "source_address": "0x1400cda0b"
+      },
+      {
+        "address": "0x1400cdab0",
+        "value": "LAB_1400cdab0",
+        "source_address": "0x1400cda20"
+      },
+      {
+        "address": "0x1400cdab0",
+        "value": "LAB_1400cdab0",
+        "source_address": "0x1400cda32"
+      },
+      {
+        "address": "0x1400cdaf1",
+        "value": "LAB_1400cdaf1",
+        "source_address": "0x1400cdaae"
+      },
+      {
+        "address": "0x1400cdd89",
+        "value": "LAB_1400cdd89",
+        "source_address": "0x1400cdb06"
+      },
+      {
+        "address": "0x1400cddb5",
+        "value": "LAB_1400cddb5",
+        "source_address": "0x1400cdaf9"
+      },
+      {
+        "address": "0x1400cddb5",
+        "value": "LAB_1400cddb5",
+        "source_address": "0x1400cdd8b"
+      },
+      {
+        "address": "0x1400cdddf",
+        "value": "LAB_1400cdddf",
+        "source_address": "0x1400cddbc"
+      },
+      {
+        "address": "0x1400cddf0",
+        "value": "LAB_1400cddf0",
+        "source_address": "0x1400cd949"
+      },
+      {
+        "address": "0x1400cddf0",
+        "value": "LAB_1400cddf0",
+        "source_address": "0x1400cd952"
+      },
+      {
+        "address": "0x1400cddf0",
+        "value": "LAB_1400cddf0",
+        "source_address": "0x1400cd967"
+      },
+      {
+        "address": "0x1400cddf0",
+        "value": "LAB_1400cddf0",
+        "source_address": "0x1400cdde4"
+      },
+      {
+        "address": "0x1400cde11",
+        "value": "LAB_1400cde11",
+        "source_address": "0x1400cd67c"
+      },
+      {
+        "address": "0x1400cde37",
+        "value": "LAB_1400cde37",
+        "source_address": "0x1400cde2f"
+      },
+      {
+        "address": "0x1400cde6e",
+        "value": "LAB_1400cde6e",
+        "source_address": "0x1400cde61"
+      },
+      {
+        "address": "0x1400cde8e",
+        "value": "LAB_1400cde8e",
+        "source_address": "0x1400cde3b"
+      },
+      {
+        "address": "0x1400cde8e",
+        "value": "LAB_1400cde8e",
+        "source_address": "0x1400cde4d"
+      },
+      {
+        "address": "0x1400cdeb8",
+        "value": "LAB_1400cdeb8",
+        "source_address": "0x1400cd9a9"
+      },
+      {
+        "address": "0x1400d94f0",
+        "value": "DrawBucketManager::GetFirstItem",
+        "source_address": "0x1400cd621"
+      },
+      {
+        "address": "0x1400d94f0",
+        "value": "DrawBucketManager::GetFirstItem",
+        "source_address": "0x1400cd69a"
+      },
+      {
+        "address": "0x1400d9530",
+        "value": "DrawBucketManager::GetNextItem",
+        "source_address": "0x1400cddfd"
+      },
+      {
+        "address": "0x14016ab00",
+        "value": "CExoString::operator+",
+        "source_address": "0x1400cd3a4"
+      },
+      {
+        "address": "0x14016ab00",
+        "value": "CExoString::operator+",
+        "source_address": "0x1400cd3c3"
+      },
+      {
+        "address": "0x14016ab00",
+        "value": "CExoString::operator+",
+        "source_address": "0x1400cd495"
+      },
+      {
+        "address": "0x14016ab00",
+        "value": "CExoString::operator+",
+        "source_address": "0x1400cd4b4"
+      },
+      {
+        "address": "0x14016c810",
+        "value": "CExoString::ToString",
+        "source_address": "0x1400cd3b3"
+      },
+      {
+        "address": "0x14016c810",
+        "value": "CExoString::ToString",
+        "source_address": "0x1400cd4a4"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400cd26e"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400cd282"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400cd4ca"
+      },
+      {
+        "address": "0x140b9f050",
+        "value": "FUN_140b9f050",
+        "source_address": "0x1400cde3d"
+      },
+      {
+        "address": "0x140b9f300",
+        "value": "FUN_140b9f300",
+        "source_address": "0x1400cd292"
+      },
+      {
+        "address": "0x140b9f300",
+        "value": "FUN_140b9f300",
+        "source_address": "0x1400cd4fa"
+      },
+      {
+        "address": "0x140b9f300",
+        "value": "FUN_140b9f300",
+        "source_address": "0x1400cde4f"
+      },
+      {
+        "address": "0x140ba0db0",
+        "value": "FUN_140ba0db0",
+        "source_address": "0x1400cd4dc"
+      },
+      {
+        "address": "0x140bb3e40",
+        "value": "FUN_140bb3e40",
+        "source_address": "0x1400cd4e4"
+      },
+      {
+        "address": "0x140c10368",
+        "value": "operator_new",
+        "source_address": "0x1400cd338"
+      },
+      {
+        "address": "0x140c10368",
+        "value": "operator_new",
+        "source_address": "0x1400cd376"
+      },
+      {
+        "address": "0x140c10368",
+        "value": "operator_new",
+        "source_address": "0x1400cd41e"
+      },
+      {
+        "address": "0x140c10368",
+        "value": "operator_new",
+        "source_address": "0x1400cd462"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd320"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd35e"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd405"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd447"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd53b"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd550"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd565"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd57b"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd593"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd5a9"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd5be"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd5d3"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd5e8"
+      },
+      {
+        "address": "0x140c10370",
+        "value": "FUN_140c10370",
+        "source_address": "0x1400cd5fd"
+      },
+      {
+        "address": "0x140c10a1c",
+        "value": "atexit",
+        "source_address": "0x1400cded8"
+      },
+      {
+        "address": "0x140c10d98",
+        "value": "_Init_thread_footer",
+        "source_address": "0x1400cdee5"
+      },
+      {
+        "address": "0x140c10df8",
+        "value": "_Init_thread_header",
+        "source_address": "0x1400cdebf"
+      },
+      {
+        "address": "0x140c417f0",
+        "value": "FUN_140c417f0",
+        "source_address": "0x1400cd4f5"
+      },
+      {
+        "address": "0x140d78ae0",
+        "value": "FUN_140d78ae0",
+        "source_address": "0x1400cded1"
+      },
+      {
+        "address": "0x140d80070",
+        "value": "DAT_140d80070",
+        "source_address": "0x1400cd3cc"
+      },
+      {
+        "address": "0x140d80070",
+        "value": "DAT_140d80070",
+        "source_address": "0x1400cd3d3"
+      },
+      {
+        "address": "0x140d80070",
+        "value": "DAT_140d80070",
+        "source_address": "0x1400cd3e7"
+      },
+      {
+        "address": "0x140d8109c",
+        "value": "DAT_140d8109c",
+        "source_address": "0x1400cd657"
+      },
+      {
+        "address": "0x140d81960",
+        "value": "DAT_140d81960",
+        "source_address": "0x1400cda34"
+      },
+      {
+        "address": "0x140d81d08",
+        "value": "DAT_140d81d08",
+        "source_address": "0x1400cd38e"
+      },
+      {
+        "address": "0x140d81d08",
+        "value": "DAT_140d81d08",
+        "source_address": "0x1400cd47d"
+      },
+      {
+        "address": "0x140d83b74",
+        "value": "DAT_140d83b74",
+        "source_address": "0x1400cd65f"
+      },
+      {
+        "address": "0x140d86810",
+        "value": "DAT_140d86810",
+        "source_address": "0x1400cda42"
+      },
+      {
+        "address": "0x140d86820",
+        "value": "DAT_140d86820",
+        "source_address": "0x1400cda50"
+      },
+      {
+        "address": "0x140d86830",
+        "value": "DAT_140d86830",
+        "source_address": "0x1400cda5e"
+      },
+      {
+        "address": "0x140d8e178",
+        "value": "DAT_140d8e178",
+        "source_address": "0x1400cd2c9"
+      },
+      {
+        "address": "0x140d8e178",
+        "value": "DAT_140d8e178",
+        "source_address": "0x1400cd2d0"
+      },
+      {
+        "address": "0x140d8e1c4",
+        "value": "DAT_140d8e1c4",
+        "source_address": "0x1400cd350"
+      },
+      {
+        "address": "0x140d8e1c4",
+        "value": "DAT_140d8e1c4",
+        "source_address": "0x1400cd438"
+      },
+      {
+        "address": "0x1412e0318",
+        "value": "CurrentCamera",
+        "source_address": "0x1400cd8b7"
+      },
+      {
+        "address": "0x14140ac60",
+        "value": "g_nRenderPartBBox",
+        "source_address": "0x1400cd638"
+      },
+      {
+        "address": "0x14140ac60",
+        "value": "g_nRenderPartBBox",
+        "source_address": "0x1400cdaf1"
+      },
+      {
+        "address": "0x14140ac60",
+        "value": "g_nRenderPartBBox",
+        "source_address": "0x1400cdd83"
+      },
+      {
+        "address": "0x14140ac64",
+        "value": "g_nRenderPartPivots",
+        "source_address": "0x1400cd641"
+      },
+      {
+        "address": "0x14140ac64",
+        "value": "g_nRenderPartPivots",
+        "source_address": "0x1400cdaff"
+      },
+      {
+        "address": "0x14140ac64",
+        "value": "g_nRenderPartPivots",
+        "source_address": "0x1400cddb5"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cd9bd"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdb1e"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdb39"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdb64"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdb80"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdbab"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdbc7"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdbf2"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdc0e"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdc39"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdc55"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdc80"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdc9f"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdcd0"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdcf2"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdd23"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdd45"
+      },
+      {
+        "address": "0x14140af10",
+        "value": "DAT_14140af10",
+        "source_address": "0x1400cdd77"
+      },
+      {
+        "address": "0x14140af18",
+        "value": "DAT_14140af18",
+        "source_address": "0x1400cd9af"
+      },
+      {
+        "address": "0x14140af18",
+        "value": "DAT_14140af18",
+        "source_address": "0x1400cd9c9"
+      },
+      {
+        "address": "0x14140af20",
+        "value": "DAT_14140af20",
+        "source_address": "0x1400cd9a3"
+      },
+      {
+        "address": "0x14140af20",
+        "value": "DAT_14140af20",
+        "source_address": "0x1400cdeb8"
+      },
+      {
+        "address": "0x14140af20",
+        "value": "DAT_14140af20",
+        "source_address": "0x1400cdec4"
+      },
+      {
+        "address": "0x14140af20",
+        "value": "DAT_14140af20",
+        "source_address": "0x1400cdede"
+      },
+      {
+        "address": "0x14141e310",
+        "value": "g_bTracyEnabled",
+        "source_address": "0x1400cd250"
+      },
+      {
+        "address": "0x14141e310",
+        "value": "g_bTracyEnabled",
+        "source_address": "0x1400cd2e8"
+      },
+      {
+        "address": "0x14141e311",
+        "value": "g_bTracyProfilerConnected",
+        "source_address": "0x1400cd25d"
+      },
+      {
+        "address": "0x14141e311",
+        "value": "g_bTracyProfilerConnected",
+        "source_address": "0x1400cd2f5"
+      },
+      {
+        "address": "0x14141e314",
+        "value": "g_bTracyScopeDisableCounter",
+        "source_address": "0x1400cd266"
+      },
+      {
+        "address": "0x14141e314",
+        "value": "g_bTracyScopeDisableCounter",
+        "source_address": "0x1400cd302"
+      },
+      {
+        "address": "0x1415d65b0",
+        "value": "_tls_index",
+        "source_address": "0x1400cd98d"
+      },
+      {
+        "address": "0xff00000058",
+        "value": "ThreadLocalStoragePointer",
+        "source_address": "0x1400cd993"
+      }
+    ],
+    "callees": [
+      {
+        "name": "tracy::moodycamel::ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::ExplicitProducer::enqueue_begin_alloc",
+        "address": "0x140045f10"
+      },
+      {
+        "name": "CExoArrayList<Vector>::Allocate",
+        "address": "0x14004bfe0"
+      },
+      {
+        "name": "Camera::GetCanKeyholeDissolve",
+        "address": "0x140058c50"
+      },
+      {
+        "name": "MdlNode::AsMdlNodeTriMesh",
+        "address": "0x14008c360"
+      },
+      {
+        "name": "RenderInterface::Disable",
+        "address": "0x1400be9e0"
+      },
+      {
+        "name": "RenderInterface::DrawBoundingBox",
+        "address": "0x1400bea10"
+      },
+      {
+        "name": "RenderInterface::DrawCrosshair3D",
+        "address": "0x1400bea30"
+      },
+      {
+        "name": "RenderInterface::DrawLines",
+        "address": "0x1400bea70"
+      },
+      {
+        "name": "RenderInterface::Enable",
+        "address": "0x1400bea90"
+      },
+      {
+        "name": "RenderInterface::IsEnabled",
+        "address": "0x1400bee10"
+      },
+      {
+        "name": "RenderInterface::PopCurrentMatrix",
+        "address": "0x1400bee50"
+      },
+      {
+        "name": "RenderInterface::PushCurrentMatrix",
+        "address": "0x1400bee60"
+      },
+      {
+        "name": "RenderInterface::SetCanDissolve",
+        "address": "0x1400bf010"
+      },
+      {
+        "name": "RenderInterface::SetCullFace",
+        "address": "0x1400bf080"
+      },
+      {
+        "name": "RenderInterface::SetFogModef",
+        "address": "0x1400bf100"
+      },
+      {
+        "name": "RenderInterface::SetFogModev",
+        "address": "0x1400bf110"
+      },
+      {
+        "name": "RenderInterface::SetModelMatrix",
+        "address": "0x1400bf1d0"
+      },
+      {
+        "name": "RenderInterface::SetShaderParamv",
+        "address": "0x1400bf2a0"
+      },
+      {
+        "name": "DrawBucketManager::GetFirstItem",
+        "address": "0x1400d94f0"
+      },
+      {
+        "name": "DrawBucketManager::GetNextItem",
+        "address": "0x1400d9530"
+      },
+      {
+        "name": "CExoString::operator+",
+        "address": "0x14016ab00"
+      },
+      {
+        "name": "CExoString::ToString",
+        "address": "0x14016c810"
+      },
+      {
+        "name": "FUN_140b9f050",
+        "address": "0x140b9f050"
+      },
+      {
+        "name": "FUN_140b9f300",
+        "address": "0x140b9f300"
+      },
+      {
+        "name": "FUN_140ba0db0",
+        "address": "0x140ba0db0"
+      },
+      {
+        "name": "FUN_140bb3e40",
+        "address": "0x140bb3e40"
+      },
+      {
+        "name": "operator_new",
+        "address": "0x140c10368"
+      },
+      {
+        "name": "FUN_140c10370",
+        "address": "0x140c10370"
+      },
+      {
+        "name": "atexit",
+        "address": "0x140c10a1c"
+      },
+      {
+        "name": "_Init_thread_footer",
+        "address": "0x140c10d98"
+      },
+      {
+        "name": "_Init_thread_header",
+        "address": "0x140c10df8"
+      },
+      {
+        "name": "FUN_140c417f0",
+        "address": "0x140c417f0"
+      }
+    ],
+    "limitations": [
+      "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+      "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+      "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+      "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+      "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+      "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+      "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+      "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+      "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+      "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+      "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+      "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+      "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+    ]
+  },
+  {
+    "projection": "Procedure identity, pseudocode and callee facets; full dossier retained by provider.",
+    "key": "fullDynamicSetter",
+    "evidence_id": "ev_4e2687c786cd9d93ea0b422d58d967c77e68b301b2fce76adfb7e9ebd1a70136",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "profile_digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374",
+    "subject": {
+      "name": "nwmain.exe",
+      "digest": {
+        "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+      },
+      "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+      "format": "pe",
+      "architecture": "x86_64"
+    },
+    "procedure": {
+      "address": "0x1406bd260",
+      "name": "FUN_1406bd260",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x1406bd260",
+            "end": "0x1406bd288"
+          }
+        ],
+        "total_bytes": 41,
+        "span_bytes": 41,
+        "non_contiguous": false,
+        "contains_entry": true
+      },
+      "signature": "undefined FUN_1406bd260()",
+      "locals": []
+    },
+    "pseudocode": "\r\nvoid FUN_1406bd260(undefined8 param_1,byte *param_2)\r\n\r\n{\r\n  byte bVar1;\r\n  \r\n  bVar1 = *param_2;\r\n  g_bFullDynamicLighting = (int)bVar1;\r\n  RenderInterface::SetGlobalShaderParami(1,(uint)bVar1);\r\n  RenderInterface::SetGlobalShaderParami(0,(uint)bVar1);\r\n  return;\r\n}\r\n\r\n",
+    "referenced_names": [
+      {
+        "address": "0x1400bf150",
+        "value": "RenderInterface::SetGlobalShaderParami",
+        "source_address": "0x1406bd276"
+      },
+      {
+        "address": "0x1400bf150",
+        "value": "RenderInterface::SetGlobalShaderParami",
+        "source_address": "0x1406bd284"
+      },
+      {
+        "address": "0x14140ac58",
+        "value": "g_bFullDynamicLighting",
+        "source_address": "0x1406bd270"
+      }
+    ],
+    "callees": [
+      {
+        "name": "RenderInterface::SetGlobalShaderParami",
+        "address": "0x1400bf150"
+      }
+    ],
+    "limitations": [
+      "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+      "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+      "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+      "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+      "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+      "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+      "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+      "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+      "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+      "Ghidra Listing reports a terminal call at 0x1406bd284 to 0x1400bf150 RenderInterface::SetGlobalShaderParami (external=false, thunk=false, hasNoReturn=false); fallthrough is excluded by Ghidra's flow model. The reason for the terminal flow is not established by this observation.",
+      "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+      "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+      "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+      "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+    ]
+  }
+]

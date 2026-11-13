@@ -11,6 +11,7 @@ const AsciiModel = preload("res://systems/native_data/ascii_model.gd")
 const Raster = preload("res://systems/native_data/texture_data.gd")
 const Cache = preload("res://systems/native_data/prepared_cache.gd")
 const Palette = preload("res://systems/native_data/palette_texture.gd")
+const GuiPalette=preload("res://systems/native_data/gui_palette_texture.gd")
 const ActorModel = preload("res://systems/native_data/actor_model.gd")
 const TileSurface = preload("res://systems/native_data/tile_surface.gd")
 const ObjectSurface = preload("res://systems/native_data/object_surface.gd")
@@ -18,17 +19,22 @@ const UiSkin = preload("res://systems/native_data/ui_skin.gd")
 const FontData = preload("res://systems/native_data/font_data.gd")
 const WaveData = preload("res://systems/native_data/wave_data.gd")
 const SoundSet = preload("res://systems/native_data/sound_set.gd")
+const LetterTable=preload("res://systems/native_data/letter_table.gd")
 const Ancestors=preload("res://systems/native_data/ancestor_preparation.gd")
 const MeshPreparation=preload("res://systems/native_data/mesh_preparation.gd")
 const CacheWrites=preload("res://systems/native_data/prepared_write_queue.gd")
 const SkinPreparation=preload("res://systems/native_data/skin_preparation.gd")
 const Prework=preload("res://systems/native_data/prework_store.gd")
 const GuiTextureInfo=preload("res://systems/native_data/gui_texture_info.gd")
+const SharedAnimation=preload("res://systems/native_data/shared_animation_preparation.gd")
+const NativeDrawCache=preload("res://systems/native_render/native_draw_cache_runtime.gd")
+const BaseStaticDrawProof=preload("res://systems/native_render/base_static_draw_proof.gd")
 var prework_write:=false # Only the explicit preparation action publishes bundles.
 var prework_read:=true
 var status_only:=false # Preparation jobs keep/dispose large model graphs on workers.
 var skin_preparation_enabled:=SkinPreparation.configured_enabled()
 var prepared_write_lease:=false
+var native_draw_cache_lease:=false
 var catalog
 var epoch := 0
 var serial := 0
@@ -37,6 +43,7 @@ var maximum_pending := 128
 var high_priority:=false
 var ancestor_preparation_enabled:=Ancestors.configured_enabled() # --ancestor-preparation=false retains the measured reference.
 var mesh_preparation_enabled:=MeshPreparation.configured_enabled() # Immutable after requests start.
+var shared_animation_preparation_enabled:=SharedAnimation.configured_enabled()
 var failure := ""
 var closed := false
 var cache_directory := ""
@@ -47,10 +54,11 @@ var mutex := Mutex.new()
 func configure(source) -> void:
 	retire_scope(); catalog = source; closed = false
 	if CacheWrites.configured_enabled() and not prepared_write_lease: CacheWrites.acquire(); prepared_write_lease=true
+	if NativeDrawCache.enabled() and not native_draw_cache_lease:NativeDrawCache.acquire();native_draw_cache_lease=true
 func request(name: String, type: int, decoder: String = "bytes", options: Dictionary = {}) -> int:
 	failure = ""
 	if closed or catalog == null: failure = "Native asset service is unavailable"; return -1
-	if decoder not in ["bytes", "gff", "2da", "mdl-binary", "mdl-original", "raster", "static-model", "actor-model", "gui-icon-v1", "tile-surface-v1", "pwk-surface-v1", "dwk-surface-v1", "nui-skin-v1", "font-v1", "bitmap-font-v1", "wave-native-v1", "ssf-native-v1"]: failure = "Unknown native decoder"; return -1
+	if decoder not in ["bytes", "gff", "2da", "mdl-binary", "mdl-original", "raster", "static-model", "actor-model", "gui-icon-v1", "tile-surface-v1", "pwk-surface-v1", "dwk-surface-v1", "nui-skin-v1", "font-v1", "bitmap-font-v1", "wave-native-v1", "ssf-native-v1", "ltr-native-v1"]: failure = "Unknown native decoder"; return -1
 	if pending.size() + running.size() >= maximum_pending: failure = "Native asset queue is full"; return -1
 	Prework.remember_request(catalog,name,type,decoder,options)
 	serial += 1
@@ -72,7 +80,7 @@ func _work(job: Dictionary) -> void:
 	var began := Time.get_ticks_usec()
 	var reader = job.catalog
 	var bytes: PackedByteArray = reader.get_resource(job.name, job.type)
-	var result := {"id": job.id, "epoch": job.epoch, "resource_name":str(job.name),"error": reader.failure, "thread": OS.get_thread_caller_id(), "bytes": bytes, "read_ms":(Time.get_ticks_usec()-began)/1000.0}
+	var result := {"id": job.id, "epoch": job.epoch, "resource_name":str(job.name),"resource_error":reader.failure,"error": reader.failure, "thread": OS.get_thread_caller_id(), "bytes": bytes, "read_ms":(Time.get_ticks_usec()-began)/1000.0}
 	result.requested_ms=int(job.requested_us)/1000.0; result.started_ms=began/1000.0
 	var memory_key:=""
 	var phases:={"service_queue_ms":(int(job.dispatched_us)-int(job.requested_us))/1000.0,"worker_queue_ms":(began-int(job.dispatched_us))/1000.0,"memory_lookup_ms":0.0,"model_ms":0.0,"rig_ms":0.0,"textures_ms":0.0,"memory_save_ms":0.0}
@@ -80,7 +88,9 @@ func _work(job: Dictionary) -> void:
 	var prework:=Prework.new(); var prework_key:=""; var icon_key:=""
 	var eligible: bool=reader.failure.is_empty() and job.decoder in ["actor-model","static-model","gui-icon-v1"] and not str(job.cache_directory).is_empty()
 	if eligible and prework.configure(str(job.cache_directory)):
-		prework_key=Prework.request_key(str(job.name),int(job.type),str(job.decoder),job.options,Cache.digest(bytes),[mesh_preparation_enabled,skin_preparation_enabled,mesh_revision()])
+		var preparation_policy: Array=[mesh_preparation_enabled,skin_preparation_enabled,mesh_revision()]
+		if shared_animation_preparation_enabled: preparation_policy.append(SharedAnimation.REVISION)
+		prework_key=Prework.request_key(str(job.name),int(job.type),str(job.decoder),job.options,Cache.digest(bytes),preparation_policy)
 		if job.options.has("icon_descriptor"): icon_key=Cache.key(prework_key,"finished-icon-v1:"+Cache.digest(var_to_bytes(job.options.icon_descriptor)))
 		if job.prework_read:
 			var saved: Dictionary=prework.load_entry(icon_key,reader,true) if not icon_key.is_empty() else {}
@@ -93,21 +103,27 @@ func _work(job: Dictionary) -> void:
 	var inputs=Prework.Inputs.new(reader) if eligible else null
 	if inputs!=null: inputs.remember(str(job.name),int(job.type),bytes); reader=inputs
 	if reader.failure.is_empty() and job.memory_store!=null and job.decoder in ["2da","actor-model","static-model","gui-icon-v1"] and not (job.decoder=="2da" and job.options.get("immutable_source",false)):
-		memory_key=Cache.digest(var_to_bytes(["native-preparation-4-hit-faces-upload",job.decoder,Cache.digest(bytes),job.options,mesh_preparation_enabled,skin_preparation_enabled]))
+		var preparation_revision:="native-preparation-5-vertex-colors"
+		if job.decoder in ["actor-model","static-model"]:preparation_revision+=":"+Prework.MODEL_METADATA_REVISION
+		if shared_animation_preparation_enabled: preparation_revision+=":"+SharedAnimation.REVISION
+		memory_key=Cache.digest(var_to_bytes([preparation_revision,job.decoder,Cache.digest(bytes),job.options,mesh_preparation_enabled,skin_preparation_enabled]))
 		var saved: Dictionary=job.memory_store.load_data(memory_key,int(job.memory_epoch))
 		phases.memory_lookup_ms=(Time.get_ticks_usec()-phase_began)/1000.0
 		if not saved.is_empty():
 			result.merge(saved,true); result.cache_hit=true; result.memory_cache_hit=true; result.worker_ms=(Time.get_ticks_usec()-began)/1000.0; result.phases=phases
+			attach_shared_rig(job,result,phases)
 			result.phases.resource_io=resource_metrics(reader)
 			if job.prework_write and not prework_key.is_empty() and result.has("prework_inputs"):
 				result.prework_saved=prework.save_entry(prework_key,result.prework_inputs,bundle_content(result),int(job.prework_ticket))
 				if not result.prework_saved: result.prework_error=prework.failure
 			result.prework_icon_key=icon_key
+			if shared_animation_preparation_enabled: result.worker_ms=(Time.get_ticks_usec()-began)/1000.0
 			publish_result(job,result); return
 	if job.prework_read and not prework_key.is_empty():
 		var saved:=prework.load_entry(prework_key,job.catalog)
 		if not saved.is_empty():
 			result.merge(saved,true); result.prework_hit=true; result.cache_hit=true; result.prework_icon_key=icon_key
+			attach_shared_rig(job,result,phases)
 			if job.memory_store!=null and not memory_key.is_empty() and not job.status_only:
 				job.memory_store.save_data(memory_key,Cache.digest(var_to_bytes(saved.get("prework_inputs",[]))),saved,int(job.memory_epoch))
 			result.worker_ms=(Time.get_ticks_usec()-began)/1000.0; phases.prework_hit=true; result.phases=phases
@@ -124,13 +140,19 @@ func _work(job: Dictionary) -> void:
 		phases.model_ms=(Time.get_ticks_usec()-phase_began)/1000.0
 		phases.model_sources=decoded.get("preparation_sources",[])
 		if decoded.has("ancestor_preparation"): phases.ancestor_preparation=decoded.ancestor_preparation
+		if decoded.has("shared_animation_preparation"): phases.shared_animation_preparation=decoded.shared_animation_preparation
 		result.merge(decoded,true)
 		if job.decoder=="gui-icon-v1" and str(result.error).is_empty():
 			if not result.value.animations.is_empty(): result.error="Animated original GUI icon template needs a native up-pose adapter"
 			else: result.merge(icon_textures(reader,result.value,job.options.get("icon_layers",[]),str(job.cache_directory)),true)
 		phase_began=Time.get_ticks_usec()
-		if job.decoder in ["actor-model","static-model"] and str(result.error).is_empty() and result.value.has("animations"): result.value.rig_asset=rig_data(result.value,result.animation_sources,str(job.cache_directory))
+		if job.decoder in ["actor-model","static-model"] and str(result.error).is_empty() and result.value.has("animations"):
+			if shared_animation_preparation_enabled: attach_shared_rig(job,result,phases)
+			else: result.value.rig_asset=rig_data(result.value,result.animation_sources,str(job.cache_directory))
 		phases.rig_ms=(Time.get_ticks_usec()-phase_began)/1000.0
+		# Start the exact-cohort optional read before texture/prework work. Its
+		# owned thread joins on this asset worker at publish_result, never main.
+		if native_draw_cache_lease:NativeDrawCache.begin_on_worker(job,result)
 		phase_began=Time.get_ticks_usec()
 		if job.decoder in ["static-model","actor-model"] and str(result.error).is_empty():
 			var textures := {}; var dependencies: Array = []; var missing_textures: Array=[]
@@ -152,7 +174,14 @@ func _work(job: Dictionary) -> void:
 					if name.is_empty() or name == "null" or textures.has(name): continue
 					if not palette_override.is_empty():
 						textures[name]=palette_override; dependencies.append({"name":name,"sha256":palette_override.sha256,"cache_hit":palette_override.cache_hit,"palette":true}); continue
-					var raster_name:=str(job.options.get("texture_overrides",{}).get(name,name))
+					var replacement:Variant=job.options.get("texture_overrides",{}).get(name,name)
+					if replacement is Dictionary:
+						var gui_palette:=GuiPalette.prepare(reader,replacement,str(job.cache_directory))
+						if not str(gui_palette.get("error","")).is_empty():result.error=gui_palette.error;break
+						if job.options.has("gui_texture_info"):gui_palette=GuiTextureInfo.attach(reader,str(replacement.resource),gui_palette)
+						if not reader.failure.is_empty():result.error=reader.failure;break
+						textures[name]=gui_palette;dependencies.append({"name":name,"replacement":replacement.resource,"sha256":gui_palette.sha256,"cache_hit":gui_palette.cache_hit,"palette":true,"selector":gui_palette.selector,"palette_source":gui_palette.palette_source});continue
+					var raster_name:=str(replacement)
 					var selected: Dictionary = {"name":name,"type":6} if job.options.has("palette_colors") and reader.has_resource(name,6) else reader.raster_location(raster_name)
 					if selected.is_empty():
 						# An explicit original lookup failure is different from a
@@ -205,6 +234,12 @@ func _work(job: Dictionary) -> void:
 	result.worker_ms = (Time.get_ticks_usec()-began)/1000.0
 	publish_result(job,result)
 func publish_result(job: Dictionary,result: Dictionary) -> void:
+	if not job.status_only:
+		if OS.get_cmdline_user_args().has("--base-scenery-draw=merged") and job.decoder=="static-model" and str(result.get("error","")).is_empty() and result.get("value") is Dictionary:
+			result.static_draw_proof=BaseStaticDrawProof.capture(result.get("bytes",PackedByteArray()),result.value,str(result.get("sha256","")))
+		if native_draw_cache_lease:
+			var draw_began:=Time.get_ticks_usec();NativeDrawCache.attach_on_worker(job,result)
+			result.worker_ms=float(result.get("worker_ms",0.0))+(Time.get_ticks_usec()-draw_began)/1000.0
 	var packet:=result
 	if job.status_only:
 		packet={}
@@ -214,9 +249,25 @@ func publish_result(job: Dictionary,result: Dictionary) -> void:
 	mutex.lock(); results[job.id]=packet; mutex.unlock()
 func bundle_content(result: Dictionary) -> Dictionary:
 	var content: Dictionary={}
-	for field in ["value","sha256","animation_sources","textures","emitter_textures","dependencies","missing_textures","prework_inputs"]:
+	for field in ["value","sha256","animation_sources","animation_view_identity","textures","emitter_textures","dependencies","missing_textures","prework_inputs"]:
 		if result.has(field): content[field]=result[field]
+	# Normal saves occur before runtime attachment. Also keep this helper safe
+	# for later consumers saving an already-delivered result.
+	if result.has("native_draw_cache") and content.get("value") is Dictionary:
+		var model: Dictionary=content.value.duplicate();var nodes: Array=model.nodes.duplicate();model.nodes=nodes
+		for index in nodes.size():
+			if not nodes[index].get("mesh",{}).has("native_draw_buffers"):continue
+			var row: Dictionary=nodes[index].duplicate();var mesh: Dictionary=row.mesh.duplicate()
+			mesh.erase("native_draw_buffers");row.mesh=mesh;nodes[index]=row
+		content.value=model
 	return content
+func attach_shared_rig(job: Dictionary,result: Dictionary,phases: Dictionary) -> void:
+	if not shared_animation_preparation_enabled or not result.get("value",{}).has("animations"): return
+	# Complete bundle hits already contain calculated rig data. Seed from that
+	# immutable candidate instead of re-reading/reconstructing it after eviction.
+	var prepared_rig:=shared_rig_data(result.value,result.get("animation_sources",[]),str(job.cache_directory),job.decoder_store,str(result.get("animation_view_identity","")),result.value.get("rig_asset",{}))
+	result.value.rig_asset=prepared_rig.value
+	phases.shared_rig_preparation={"hit":prepared_rig.hit,"wait_ms":int(prepared_rig.wait_us)/1000.0,"elapsed_ms":prepared_rig.elapsed_ms,"resident":prepared_rig.resident,"first_use":prepared_rig.first_use,"seeded":prepared_rig.seeded,"admitted":prepared_rig.admitted,"derived_cache":SharedAnimation.snapshot(job.decoder_store)}
 func prepare_emitter_textures(reader,model: Dictionary,cache_path: String) -> Dictionary:
 	# Emitter bitmaps are original particle textures, never body-part PLT
 	# replacements, even if the same model also contains a recolored mesh.
@@ -271,7 +322,7 @@ func actor_data(reader, name: String, bytes: PackedByteArray, cache_path: String
 	return result
 func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null) -> Dictionary:
 	if ancestors.size()>=16 or ancestors.has(name.to_lower()): return {"error":"Original actor supermodel inheritance cycle/depth"}
-	var decoded:=decode(bytes,2002,"mdl-actor-packed-v4",cache_path,decoded_store(reader))
+	var decoded:=decode(bytes,2002,ActorModel.SOURCE_DECODER,cache_path,decoded_store(reader))
 	if not str(decoded.error).is_empty(): return decoded
 	decoded.preparation_sources=[{"name":name,"source_bytes":bytes.size(),"memory_hit":decoded.get("memory_decode_hit",false),"timings":decoded.get("timings",{})}]
 	var model: Dictionary=decoded.value; var parent_name:=str(model.get("supermodel","")).to_lower()
@@ -295,7 +346,9 @@ func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path:
 			clips.append(clip)
 		model.animations=clips
 	decoded.animation_sources=[{"name":name,"sha256":decoded.sha256}]
-	if parent_name in ["","null","****"]: return decoded
+	if parent_name in ["","null","****"]:
+		if shared_animation_preparation_enabled: decoded.animation_view_identity=SharedAnimation.view_identity(decoded.animation_sources,selected)
+		return decoded
 	var parent_bytes: PackedByteArray=reader.get_resource(parent_name,2002)
 	if not reader.failure.is_empty(): decoded.error=reader.failure; return decoded
 	var path:=ancestors.duplicate(); path.append(name.to_lower())
@@ -303,20 +356,28 @@ func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path:
 	if not str(parent.error).is_empty(): decoded.error=parent.error; return decoded
 	decoded.animation_sources.append_array(parent.animation_sources)
 	decoded.preparation_sources.append_array(parent.get("preparation_sources",[]))
+	# V1's broad projection cache had no reuse in the captured room and evicted
+	# parsed MDLs. Preserve the original composition; only rig data is admitted
+	# selectively to its own small derived partition after actual repeated use.
+	if shared_animation_preparation_enabled: decoded.animation_view_identity=SharedAnimation.view_identity(decoded.animation_sources,selected)
+	model.animations.append_array(inherited_clips(model,parent.value,parent_name).clips)
+	return decoded
+func inherited_clips(model: Dictionary,parent: Dictionary,parent_name: String) -> Dictionary:
+	var inherited: Array=[]
 	var own: Dictionary={}
 	for clip in model.animations: own[clip.name]=true
 	var scale_value:=float(model.get("animation_scale",1.0))
-	for source in parent.value.animations:
+	for source in parent.animations:
 		if own.has(source.name): continue
 		var clip: Dictionary=source.duplicate(); clip.inheritedFrom=parent_name; clip.tracks=[]
 		clip.emitter_tracks=[]
 		for original in source.get("emitter_tracks",[]):
 			var track: Dictionary=original.duplicate()
-			if str(track.node).to_lower()==str(parent.value.name).to_lower(): track.node=model.name
+			if str(track.node).to_lower()==str(parent.name).to_lower(): track.node=model.name
 			clip.emitter_tracks.append(track)
 		for original in source.tracks:
 			var track: Dictionary=original.duplicate()
-			if str(track.node).to_lower()==str(parent.value.name).to_lower(): track.node=model.name
+			if str(track.node).to_lower()==str(parent.name).to_lower(): track.node=model.name
 			if str(track.property)=="position" and scale_value!=1.0:
 				if track.has("packed_frames"):
 					track.position_scale=float(track.get("position_scale",1.0))*scale_value
@@ -327,10 +388,24 @@ func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path:
 						if frame.has(field): frame[field]=frame[field].map(func(value): return float(value)*scale_value)
 					track.frames.append(frame)
 			clip.tracks.append(track)
-		model.animations.append(clip)
-	return decoded
+		inherited.append(clip)
+	return {"clips":inherited}
+func shared_rig_data(model: Dictionary,sources: Array,cache_path: String,store,view_identity: String,seed: Dictionary={}) -> Dictionary:
+	# Source-chain bytes plus selected node names distinguish filtered skeleton
+	# views. In particular, a filtered derivative must never satisfy a full rig.
+	var identity:=Cache.digest(var_to_bytes([sources,view_identity]))
+	return SharedAnimation.acquire(store,"rig:"+identity,build_shared_rig.bind(model,identity,cache_path),seed)
+func build_shared_rig(model: Dictionary,identity: String,cache_path: String) -> Dictionary:
+	var decoder:="actor-rig-shared-v1"; var key:=Cache.key(identity,decoder)
+	var cache:=Cache.new(); var enabled:=not cache_path.is_empty() and cache.configure(cache_path)
+	if enabled:
+		var saved:=cache.load_data(key,identity,decoder)
+		if not saved.is_empty(): return saved
+	var result:=ActorModel.new().rig_asset(model)
+	if enabled: cache.save_data(key,identity,decoder,result)
+	return result
 func rig_data(model: Dictionary,sources: Array,cache_path: String) -> Dictionary:
-	var identity:=Cache.digest(var_to_bytes(sources)); var decoder:="actor-rig-emitter-v11-vertex-samples"; var key:=Cache.key(identity,decoder)
+	var identity:=Cache.digest(var_to_bytes(sources)); var decoder:="actor-rig-emitter-v12-ascii-native"; var key:=Cache.key(identity,decoder)
 	var cache:=Cache.new(); var enabled:=not cache_path.is_empty() and cache.configure(cache_path)
 	if enabled:
 		var saved:=cache.load_data(key,identity,decoder)
@@ -346,8 +421,8 @@ func decoded_store(reader):
 func decode(bytes: PackedByteArray, type: int, decoder: String, cache_path: String, store=null, immutable_source: bool=false) -> Dictionary:
 	if store==null or decoder=="bytes": return decode_uncached(bytes,type,decoder,cache_path)
 	var began:=Time.get_ticks_usec(); var source_sha:=Cache.digest(bytes)
-	var request_key:="decoded-native-v1:"+str(type)+":"+decoder+":"+source_sha+(":"+mesh_revision() if mesh_preparation_enabled and decoder.begins_with("mdl-") else "")
-	var immutable_model:=decoder in ["mdl-actor-v2","mdl-actor-packed-v1","mdl-actor-packed-v2","mdl-actor-packed-v3"]
+	var request_key:="decoded-native-v1:"+str(type)+":"+decoder+":"+source_sha+(":ambient-1:vertex-color-1:"+Prework.MODEL_METADATA_REVISION if decoder.begins_with("mdl-") else "")+(":"+mesh_revision() if mesh_preparation_enabled and decoder.begins_with("mdl-") else "")
+	var immutable_model:=decoder in ["mdl-actor-v2","mdl-actor-packed-v1","mdl-actor-packed-v2","mdl-actor-packed-v3",ActorModel.SOURCE_DECODER]
 	var borrowed:=immutable_model or decoder=="2da" and immutable_source
 	var generation:=int(store.generation()); var lease: Dictionary=store.begin_data(request_key,generation,not borrowed)
 	if not lease.owner:
@@ -392,7 +467,7 @@ func decode_uncached(bytes: PackedByteArray, type: int, decoder: String, cache_p
 	# Keep authoritative bytes plus shared session decoding, without putting that
 	# expanded derivative on the critical path. Model/raster persistence remains.
 	var cache_ok := decoder!="2da" and not cache_path.is_empty() and cache.configure(cache_path)
-	var identity := Cache.key(source_sha,decoder+":"+str(type)+(":emitter-3:reference-1:clip-duration-1:classification-1:mesh-area-1:hit-faces-1" if decoder.begins_with("mdl-") else ""))
+	var identity := Cache.key(source_sha,decoder+":"+str(type)+(":emitter-3:reference-1:clip-duration-1:classification-1:mesh-area-1:hit-faces-1:ambient-1:vertex-color-1:"+Prework.MODEL_METADATA_REVISION if decoder.begins_with("mdl-") else ""))
 	if mesh_preparation_enabled and decoder.begins_with("mdl-"): identity=Cache.key(identity,mesh_revision())
 	if decoder=="tile-surface-v1": identity=Cache.key(source_sha,decoder+":"+str(type)+":vertical-bounds-1")
 	var timings := {"identity_ms":(Time.get_ticks_usec()-began)/1000.0,"cache_read_ms":0.0,"decode_ms":0.0,"cache_write_ms":0.0}
@@ -405,6 +480,8 @@ func decode_uncached(bytes: PackedByteArray, type: int, decoder: String, cache_p
 	var result := {"error":"","sha256":source_sha,"cache_hit":false,"timings":timings}
 	began = Time.get_ticks_usec()
 	match decoder:
+		"ltr-native-v1":
+			var decoded:=LetterTable.decode(bytes);result.value=decoded;result.error="" if decoded.ready else str(decoded.reason)
 		"wave-native-v1":
 			var parser:=WaveData.new(); result.value=parser.parse(bytes); result.error=parser.failure
 		"ssf-native-v1":
@@ -427,7 +504,7 @@ func decode_uncached(bytes: PackedByteArray, type: int, decoder: String, cache_p
 			var parser := Model.new(); result.value = parser.parse(bytes); result.error = parser.failure
 		"mdl-actor-v2":
 			var parser := ActorModel.new(); result.value = parser.parse(bytes); result.error = parser.failure
-		"mdl-actor-packed-v1", "mdl-actor-packed-v2", "mdl-actor-packed-v3", "mdl-actor-packed-v4":
+		"mdl-actor-packed-v1", "mdl-actor-packed-v2", "mdl-actor-packed-v3", "mdl-actor-packed-v4", ActorModel.SOURCE_DECODER:
 			var parser:=ActorModel.new(); parser.packed_keys=true; result.value=parser.parse(bytes); result.error=parser.failure
 		"mdl-original":
 			if bytes.size()>=4 and bytes.decode_u32(0)==0:
@@ -452,6 +529,7 @@ func _process(_delta: float) -> void:
 	_profile_process(_delta)
 	Timing.finish("callback_assets",began)
 func _profile_process(_delta: float) -> void:
+	if native_draw_cache_lease:NativeDrawCache.poll()
 	Timing.count("count_asset_workers",running.size()); Timing.count("count_asset_queued",pending.size())
 	for id in running.keys():
 		if not running.has(id): continue
@@ -476,4 +554,5 @@ func close() -> void:
 	running.clear(); mutex.lock(); results.clear(); mutex.unlock()
 	catalog = null
 	if prepared_write_lease: prepared_write_lease=false; CacheWrites.release()
+	if native_draw_cache_lease:native_draw_cache_lease=false;NativeDrawCache.release()
 func _exit_tree() -> void: close()

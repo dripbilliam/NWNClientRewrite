@@ -1,0 +1,24 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const project=path.resolve(__dirname,'../../..');
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const id=process.argv[2]??'world-light-overlays-a';
+if(!/^[a-z0-9-]+$/.test(id))throw Error('Invalid fresh overlay label');
+const directory=path.join(project,'.cache/native-render-gap/scene',id);
+if(fs.existsSync(directory))throw Error('Existing overlay is frozen');
+const original=fs.readFileSync(path.join(project,'systems/native_render/model_point_light.gd'));
+const candidate=fs.readFileSync(path.join(__dirname,'model_point_light_candidate.gd'));
+if(sha(original)!=='e803135ef951ea13d3d83267f0d671d2072e2df4d676bdf320a98fd9b4d1b9f6'||sha(candidate)!=='9b699aff90130b0400fad66db544e49b49b86ad89b81437507b902f37daf906d')throw Error('Light inputs changed');
+let diagnostic=candidate.toString();
+const finalSeam='func _configure_final(properties: Dictionary,preserve_selected_shadow: bool) -> void:\n';
+const originalSeam='func _configure_original(properties: Dictionary) -> void:\n';
+for(const seam of [finalSeam,originalSeam])if(diagnostic.split(seam).length!==2)throw Error('Instrumentation seam changed');
+diagnostic=diagnostic.replace(finalSeam,finalSeam+'\tpublication_final_count+=1\n').replace(originalSeam,originalSeam+'\tpublication_original_count+=1\n');
+diagnostic+='\nvar publication_final_count:=0\nvar publication_original_count:=0\n';
+const rows=[];
+function put(relative,bytes){const file=path.join(directory,relative);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes,{flag:'wx'});rows.push({relative,file,sha256:sha(bytes)});}
+for(const [kind,bytes]of[['control',original],['candidate',candidate],['diagnostic',Buffer.from(diagnostic)]])put(kind+'/systems/native_render/model_point_light.gd',bytes);
+put('diagnostic/tools/light_activation_survey.gd',fs.readFileSync(path.join(__dirname,'light_activation_survey.gd')));
+const dependencies=['systems/native_render/native_light_palette.gd','systems/native_render/native_light_policy.gd','systems/native_render/frame_profile.gd'].map(relative=>({relative,sha256:sha(fs.readFileSync(path.join(project,relative)))}));
+const manifest={version:1,createdAtUtc:new Date().toISOString(),directory,applicationIdentityBefore:'e62371bcf4380f09ccd72a9a3eae432dc4751106353e369eb438a025d72c5d30',replacementTarget:'systems/native_render/model_point_light.gd',rows,dependencies,componentAcceptance:path.join(project,'.cache/native-render-gap/scene/light-guarded-a/receipt.json'),engineSelection:'Await common current engine chosen by root; all full-world pair variants must use identical engine/native libraries/settings',installed:false,launches:0,scope:'Sparse overlays only; apply through root shared full-world preparation with exact common source pins. Diagnostic counters/survey are excluded from profile-off FPS candidate.'};
+fs.writeFileSync(path.join(directory,'manifest.json'),JSON.stringify(manifest,null,2),{flag:'wx'});
+console.log(JSON.stringify({directory,rows:rows.length,candidateSha256:sha(candidate),diagnosticSha256:sha(diagnostic)}));

@@ -132,6 +132,11 @@ func result(message: Dictionary) -> void:
 		stats.stale_acks+=1; return
 	if message.has("sequence"):
 		current.state.driveSequence=int(message.sequence); accepted_serial=int(message.requestId); stats.acks+=1
+		# Preview-only requests reserve the original local sequence as well. They
+		# cannot change which sequence the server actually received on the wire.
+		if message.get("sent") is bool and message.sent:
+			current.state.driveSentSequence=int(message.sequence)
+			current.state.driveSentRequestId=int(message.requestId)
 func _process(_delta: float) -> void:
 	var began:=Timing.begin()
 	_profile_process(_delta)

@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "sourceFiles": [
+    {
+      "relative": "systems/native_render/resource_pool.gd",
+      "sha256": "abecc7d402b845c4a3bf9d411e1dcc585bff4f2a020b63fc8c90b0d8b011625f"
+    },
+    {
+      "relative": "systems/native_render/native_model_material.gd",
+      "sha256": "9cd83a015a740f1088723133651ad90c226b5d3b35f28f654d6d1c5022dd1ca7"
+    },
+    {
+      "relative": "systems/native_render/native_surface_state.gd",
+      "sha256": "ff4b76f5ba7944c11c694995fda757a99b6f06ab1236197ae37562eff7f85a27"
+    },
+    {
+      "relative": "systems/area_environment_state.gd",
+      "sha256": "e1db446d3feac3a77617c3566cc3928231f3a91829fe62c9513afd84f8a8e134"
+    },
+    {
+      "relative": "systems/native_render/native_surface_transfer.gd",
+      "sha256": "943b22ab9138bd2f90fb3852c3c1264c88f0d601a98e1763c8a5cfd4bbe27e37"
+    },
+    {
+      "relative": "systems/native_render/native_standard_light.gd",
+      "sha256": "8e5d44691cd87cc42c7e8521e7d81cc7222eacc5c8cdd46cf43350c4bf633f83"
+    },
+    {
+      "relative": "systems/native_render/native_light_palette.gd",
+      "sha256": "2485df8c97d8ede450aa85ca8407812d35ecf5fd456c47d524b8921a22d3eb21"
+    },
+    {
+      "relative": "systems/native_render/frame_profile.gd",
+      "sha256": "42d7585cd745c944a6a907dc11516994d639764d638cf1d7f7b5b041a6bcc9d0"
+    },
+    {
+      "relative": "systems/native_render/frame_summary_job.gd",
+      "sha256": "546eb682da0d7655ece0b16205b313b9aff9f34257da9209136724c32ff331f8"
+    },
+    {
+      "relative": "systems/native_render/render_thread_info.gd",
+      "sha256": "ce9cf18656d8e27e959dbe9cdedbe3b672cacad9ab2b0e31b3824a8fa7329120"
+    },
+    {
+      "relative": "systems/native_render/native_light_policy.gd",
+      "sha256": "f70f29abba02d4c0de199afa9de4958ed06980fffde5450eec4b6dac92a0c727"
+    },
+    {
+      "relative": "systems/native_data/mesh_preparation.gd",
+      "sha256": "00cf4b4e2a23871066b50e21d2343d6d02fb6536c3d6f4dbd669cb1560df4559"
+    },
+    {
+      "relative": "systems/native_data/skin_preparation.gd",
+      "sha256": "d3daa1e3b4e23009c2718e011d6b8040e52ad8ceca87918dd4c3c0f36b99947a"
+    },
+    {
+      "relative": "systems/native_data/polygon_hit.gd",
+      "sha256": "4e75dfaf7fb4ed9faebcf72491b8d005a9e7deace35a02c444c7fd26e01d6856"
+    },
+    {
+      "relative": "systems/native_data/tile_surface.gd",
+      "sha256": "2a3fc43db70c51b3bc4b93fdb63ddec87e90cea8a8f2a4101c2a040268bb87b2"
+    },
+    {
+      "relative": "systems/native_data/binary_data.gd",
+      "sha256": "82f7c26291c8c58c978442dd975f8d2eb7b9ba82420e9aaf383e1555cd2c7e37"
+    },
+    {
+      "relative": "systems/native_render/particle_math.gd",
+      "sha256": "1fd4486ce8d0115d17de8831c666c90a13e53f0ec39044c7ebaffc39bb490fed"
+    },
+    {
+      "relative": "systems/native_render/scene_geometry.gd",
+      "sha256": "1d718dfd372236afbbe894aef0a853ce0bf556aaee176adfd62173811e1a3708"
+    },
+    {
+      "relative": "systems/native_render/particle_kernel.gd",
+      "sha256": "ce9a116fa932a8fcb6640b14e40d9943b279c46d9994f58f74bd5bffd63b98ff"
+    },
+    {
+      "relative": "systems/native_render/particle_schedule.gd",
+      "sha256": "2b47479328bbc5ab4d155dc235984ca9736b37c03b73060536ef04968ac201c3"
+    },
+    {
+      "relative": "systems/native_render/particle_vertices.gd",
+      "sha256": "1d384f080d5956f3c416bbe0655af071616132fe2d937cdc29fe3e21ef6c03bc"
+    },
+    {
+      "relative": "systems/native_render/particle_trig.gd",
+      "sha256": "bdcdf05035d2b51b58357ef43ff1a07ac5cb1882b0e6f319c806634cc86d34bb"
+    },
+    {
+      "relative": "systems/native_render/pick_geometry.gd",
+      "sha256": "06995135378714441e056e0e7558a15073105d7efebfa7fb64f5f74464aa5403"
+    },
+    {
+      "relative": "systems/native_render/model_template.gd",
+      "sha256": "466e5f2508bc7b0787d8b5edbf0ac793cd094a78dc102d0f534a1ee4b510edfb"
+    },
+    {
+      "relative": "systems/native_data/model_random_part.gd",
+      "sha256": "815d760f4def40f6896a9ec84f53fd79387f6831a8e6cb2eeda15c4568857eae"
+    },
+    {
+      "relative": "tools/native_parity/ui/actor-alpha-owner.gd",
+      "sha256": "274824d5270eca2f104586f873d7bb396e7475bc2688302680a3552c29c20301"
+    },
+    {
+      "relative": "tools/native_parity/ui/actor-alpha-publication.gd",
+      "sha256": "ebd2cc12c15ae64c3fca17254722c42c3124dfbaef6f7ea5f6089fcbdfe73b8c"
+    },
+    {
+      "relative": "tools/native_parity/ui/actor-alpha-endpoint.gd",
+      "sha256": "b7fb711eb60ff13994612f7e27a4ed45ff31c39630c6e8f50cacff351f641eb6"
+    },
+    {
+      "relative": "tools/native_parity/ui/actor-alpha-state.gd",
+      "sha256": "55421705b00300a2f898a5d9a3a4c7b7da3705cfd5ff05a76f07135eb20d10b0"
+    },
+    {
+      "relative": "tools/native_parity/ui/actor-alpha-enhanced.gd",
+      "sha256": "84bee00dfe6aeff5c4fe98f365a1e321d79fd36e2bd198c104c9bfa63dfb61cb"
+    },
+    {
+      "relative": "tools/native_parity/ui/actor-alpha-standard.gd",
+      "sha256": "8dd237f52678421fd68b53dbc139b5ef86376df7eb8881a3de001b98ebfe3dcd"
+    },
+    {
+      "relative": "systems/native_render/reference_graph.gd",
+      "sha256": "0acf366fac9f9846ff622d16f59be3b49dc31b968f25b4439e13c742b657abdf"
+    },
+    {
+      "relative": "systems/model_reference_state.gd",
+      "sha256": "2698b7184604f1d214e163b5d34b160a489c6ffd6c7bdc590c091c4ddbf1e231"
+    },
+    {
+      "relative": "systems/native_data/scalar_representation.gd",
+      "sha256": "54056549f03c5c9287046af3315d5e473e0efe84dd82885d31c8d541dab14816"
+    },
+    {
+      "relative": "systems/native_data/prepared_cache.gd",
+      "sha256": "d5c714dcd8f39c2bc04468246c60020cfe0de675aa387a6fa1da9f52087bed8a"
+    },
+    {
+      "relative": "systems/native_render/model_instance.gd",
+      "sha256": "888e9a41247e67ad18cb94b7d5a24062c528a82d1916c030e6ed2f56f7fb4905"
+    },
+    {
+      "relative": "tools/native_parity/visibility/mesh_provenance.gd",
+      "sha256": "868483be45b99cae803b80e8391fc17ffc274ff99f18c54ca0c3d0f86b7e710d"
+    },
+    {
+      "relative": "systems/native_render/model_reference.gd",
+      "sha256": "d8e499f068071c3ba71cf22057015d17259f230ddb2e89bf1065810adfa7c7bc"
+    },
+    {
+      "relative": "systems/native_render/particle_emitter.gd",
+      "sha256": "78751fe54099bb683ca4dc5b26e0627bb28bf95ea2d958017604fd99ea56c747"
+    },
+    {
+      "relative": "systems/native_render/particle_stream_fog.gd",
+      "sha256": "2f66393664e82e34baa47ef84d37b739ac4a85badfaacff63d290e2e82361b31"
+    },
+    {
+      "relative": "systems/native_render/focus_light_sample.gd",
+      "sha256": "738bbf00aa5e04de10d7f1e901090e0ac50f78a7717c5c3272240a97205ee5aa"
+    },
+    {
+      "relative": "systems/native_render/particle_bounds.gd",
+      "sha256": "5d35ebf3d8a60131042992a74ca68bfe25f17e532b0dac047f630cfce5c12c32"
+    },
+    {
+      "relative": "systems/native_render/chunk_models.gd",
+      "sha256": "cf706b27c2f96c62af3203b24ff9d4dba70030ccd0cf914e7747d044624434a3"
+    },
+    {
+      "relative": "systems/native_render/particle_chunks.gd",
+      "sha256": "f173f24142717f916a7e775e3fc7db52328163341cf6ec3952a1d1ff671e027d"
+    },
+    {
+      "relative": "systems/native_render/particle_target.gd",
+      "sha256": "9ba4ccf10781cb1abf4ecd027ecf7194025feb38da461c19d952166540ab9882"
+    },
+    {
+      "relative": "systems/native_render/particle_lightning.gd",
+      "sha256": "898c81d77a34c03ae5ba4ef6d1c6267562aef729307938961c85b73935785e35"
+    },
+    {
+      "relative": "systems/particle_instance_surface.gd",
+      "sha256": "04ba0671592a0efdfcc792e22ca3f9772ed476d2928797217ca380de3edc205d"
+    },
+    {
+      "relative": "systems/native_render/particle_instance_codec.gd",
+      "sha256": "c2d7335e5428f19251a78fdb9a099d98b3d738935518f1196a47651337e97f2f"
+    },
+    {
+      "relative": "systems/native_render/native_particle_material.gd",
+      "sha256": "dab075d4f6043ede953db9864fd60ad8aa8d46e7bca0cf8f55bd7a392a03a9b9"
+    },
+    {
+      "relative": "systems/particle_surface.gd",
+      "sha256": "04830dc6e0b61d312ece41d0551b72d9f46fbb33630a4f6e03d00c44ab5e0203"
+    },
+    {
+      "relative": "systems/native_render/particle_channels.gd",
+      "sha256": "9540a715290097cdc94a88197f633e3d20741d2388793cfadc8a00888e81f249"
+    },
+    {
+      "relative": "systems/native_data/emitter_data.gd",
+      "sha256": "37089afcc087d3fb27829cb1731884eb3c41d021874b38f9defa4be7b49a75f2"
+    },
+    {
+      "relative": "systems/model_controllers.gd",
+      "sha256": "7312e8725ffb40452aa7dc66c37757c2627f21fbb932c79ab0c9bbef7210907b"
+    },
+    {
+      "relative": "systems/native_render/particle_random.gd",
+      "sha256": "65439b0eaabd19938ba8cf9345cfe479b23371bef34e830b222e8e9cc4bdd89b"
+    },
+    {
+      "relative": "systems/native_render/particle_movement.gd",
+      "sha256": "ec11eafc667152149b8ef612f39b2a594cb380cae845c4ecba1b0f45ec210561"
+    },
+    {
+      "relative": "systems/native_render/particle_initialization.gd",
+      "sha256": "c45644dd649aa38eb3bfb02db37213964a629439b3f3ab8f1aa7da03321f2880"
+    },
+    {
+      "relative": "systems/native_render/model_point_light.gd",
+      "sha256": "e803135ef951ea13d3d83267f0d671d2072e2df4d676bdf320a98fd9b4d1b9f6"
+    }
+  ],
+  "files": [
+    {
+      "relative": "reference/model_template.gd",
+      "target": "baseline_model_template.gd",
+      "sha256": "49d06144012ce94aeb4d1694fa4e0e9a1e315dec17bd1b3e249e310f7af5fd35"
+    },
+    {
+      "relative": "fixtures/current_first_placement_test.gd",
+      "target": "check.gd",
+      "sha256": "6e272428b99492fe2524fd3b781cf68207f87584ac066d99fc4d973fe4d8a8aa"
+    }
+  ],
+  "beforeTemplate": "49d06144012ce94aeb4d1694fa4e0e9a1e315dec17bd1b3e249e310f7af5fd35",
+  "candidateTemplate": "466e5f2508bc7b0787d8b5edbf0ac793cd094a78dc102d0f534a1ee4b510edfb",
+  "newerPlacementBodyByteIdentical": true,
+  "expectedChecks": 40,
+  "originalCheck": {
+    "relative": ".cache/native-presentation-parity/base-world-preparation-agent/first-placement-current-v1/run.json",
+    "sha256": "d2fce902c1ad10e839ffb747414cd1d51c193f4981fa63f5bd625ba1feb8265f",
+    "checks": 40,
+    "scope": "Historical pre-relocation actual-code check; not rerun by stage-only"
+  },
+  "priorReference": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\loading-agent\\first-placement-v3\\manifest.json",
+    "sha256": "7d5c91c3697bd55b1a7e0db34612cff08bf3f2750e5946a9f3942ad44875affe",
+    "checks": 146,
+    "rerun": false
+  },
+  "scope": "Tiny authored current template/root-transfer and alpha/provenance correctness only. No world/asset/native/GPU/FPS acceptance."
+}

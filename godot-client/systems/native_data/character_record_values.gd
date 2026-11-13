@@ -1,4 +1,5 @@
 extends RefCounted
+const RulesetCache=preload("res://systems/native_data/ruleset_cache.gd")
 # CCharPageChar1409b6380 and GetAbilityModifier1407ec3a0. Display only;
 # authoritative ability values/adjustments are never changed by this projection.
 const KEYS=["Str","Dex","Con","Int","Wis","Cha"]
@@ -24,13 +25,13 @@ static func field(row: Dictionary,name: String) -> Variant:
 static func cfg(tables: Dictionary,label: String,fallback: int) -> int:
 	# Ruleset cache uses case-sensitive labels, skips empty values and lets the
 	# last nonempty duplicate win. Its values use C atoi, not GetINTEntry hex.
-	var result:=fallback; var pattern:=RegEx.new(); pattern.compile("^\\s*([+-]?\\d+)")
-	for row in tables.get("ruleset",{}).get("orderedRows",[]):
-		if str(field(row,"Label"))!=label: continue
-		var raw: Variant=field(row,"Value")
-		if raw==null or str(raw) in ["","****"]: continue
-		var match_value:=pattern.search(str(raw)); result=signed32(match_value.get_string(1).to_int() if match_value!=null else 0)
-	return result
+	var owned:=RulesetCache.current(tables)
+	if owned!=null: return owned.integer(label,fallback)
+	# Explicit detached worker projections can supply the same native index.
+	if tables.get("_native_resolved_ruleset") is Dictionary: return int(tables._native_resolved_ruleset.get(label,fallback))
+	return RulesetCache.from_source(tables,label,fallback)
+static func resolved_ruleset(tables: Dictionary) -> Dictionary:
+	return RulesetCache.compile(tables.get("ruleset",{}))
 static func modifier(score: int,tables: Dictionary) -> Variant:
 	var neutral:=cfg(tables,"CHARGEN_ABILITY_NEUTRAL_VALUE",10); var increment:=cfg(tables,"CHARGEN_ABILITY_MODIFIER_INCREMENT",2)
 	score&=255

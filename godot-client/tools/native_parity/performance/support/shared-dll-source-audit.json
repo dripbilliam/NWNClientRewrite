@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "scope": "Read-only source/build receipt inspection; no engine or DLL execution",
+  "manifest": {
+    "relative": ".cache/native-kernel/build-manifest.json",
+    "sha256": "46f34de9ab6bcce817b4c979741d77e3c395e172c11b2bee45242eb4a2110ea2"
+  },
+  "sharedDll": {
+    "relative": ".cache/native-kernel/nwn-particle-kernel.dll",
+    "sha256": "b3f591291516e64321dee870c3cb5ff14a72d40092062ec36813c70cc40ffbfb",
+    "correctnessValidatedByThisTask": false
+  },
+  "files": [
+    {
+      "relative": "native/scene_geometry.hpp",
+      "recordedSha256": "9eefc17070c78295cb29c416ff0a53e9faa1e90f3162485dc52bc052252d9128",
+      "currentSha256": "9eefc17070c78295cb29c416ff0a53e9faa1e90f3162485dc52bc052252d9128"
+    },
+    {
+      "relative": "native/particle_kernel.cpp",
+      "recordedSha256": "a40d90a2acab6d1883b59e7feff64375a855ed003cfda2a71d42786436fb1c6b",
+      "currentSha256": "a40d90a2acab6d1883b59e7feff64375a855ed003cfda2a71d42786436fb1c6b"
+    }
+  ],
+  "registration": {
+    "file": "native/particle_kernel.cpp",
+    "includeLine": 148,
+    "registerLine": 180
+  },
+  "policy": {
+    "file": "native/scene_geometry.hpp",
+    "configureLine": 30,
+    "description": "face.excluded = index<type_count && (type&63)==30; empty types means no excluded faces",
+    "nearestLines": [
+      47,
+      48
+    ],
+    "dispatchLine": 64
+  },
+  "approvedTestDll": "672bd24ae23f0be06bb209bc40ec5083fbe8ac14e92b2dd6b10f836255a840ea",
+  "conclusion": "Recorded shared build uses identical scene geometry header and registration source. Current-source default launching can still choose shared b3f; this task validates only copied672. Shared artifact not executed, replaced, or rebuilt.",
+  "engineStarts": 0,
+  "nativeBuilds": 0,
+  "sharedEdits": 0
+}

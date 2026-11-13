@@ -24,6 +24,7 @@ var dragging:=false
 var drag_offset:=0.0
 var drag_start_value:=0.0
 var line_step:=14.0
+var visible_units_override:=-1 # Some original programmatic grids use logical page units.
 var closed:=false
 var previous_mode:=ScrollContainer.SCROLL_MODE_AUTO
 var repeat_clock:=Repeat.new()
@@ -125,7 +126,7 @@ func advance_repeat(microseconds: int) -> void:
 	elif page_held and repeat_clock.tick(microseconds):
 		var point:=get_local_mouse_position(); var direction: int=-1 if point.y<thumb.position.y else 1
 		var eligible:=Rect2(Vector2.ZERO,size).has_point(point) and not thumb.get_rect().has_point(point) and (page_direction==0 or page_direction==direction)
-		if eligible: page_direction=direction; change(direction*range_control.page)
+		if eligible: page_direction=direction; change(direction*visible_units())
 func _notification(what: int) -> void:
 	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT: cancel_drag(); stop_repeat()
 func changed(_value: float) -> void: refresh()
@@ -142,7 +143,7 @@ func request_thumb() -> void:
 	if closed or plan.is_empty() or not failure.is_empty() or not layout_target.is_empty() or not layout_inflight.is_empty(): return
 	# Godot exposes maximum position; original a4 stores one beyond it. The
 	# caller's content/page coordinate mapping remains a separate parity audit.
-	var desired:=ThumbRange.thumb(ceili(maximum())+1,roundi(range_control.page),float(plan.length))
+	var desired:=ThumbRange.thumb(ceili(maximum())+1,visible_units(),float(plan.length))
 	if float(desired.pixels)==requested_thumb_pixels: return
 	requested_thumb_pixels=float(desired.pixels); pending_thumb_plan=plan.duplicate(true)
 	pending_thumb_plan.thumb_pixels=requested_thumb_pixels; pending_thumb_plan.travel=maxf(0,float(plan.length)-requested_thumb_pixels)
@@ -162,7 +163,7 @@ func service_layout() -> void:
 	var next:=Layout.parse(source_models.scrollbar_simple,layout_target,source_models.pb_scrl_up,source_models.pb_scrl_down)
 	layout_target={}
 	if not str(next.error).is_empty(): failure=str(next.error); return
-	var desired:=ThumbRange.thumb(ceili(maximum())+1,roundi(range_control.page),float(next.length))
+	var desired:=ThumbRange.thumb(ceili(maximum())+1,visible_units(),float(next.length))
 	next.thumb_pixels=float(desired.pixels); next.travel=maxf(0,float(next.length)-float(desired.pixels)); next.poses[1]={"clip":"thumbsize","time":float(desired.time)}
 	var rail_request: String=art.request_model("scrollbar_simple","",{},0,"gui_boxes_ingame",next.poses)
 	var thumb_request: String=art.request_model("scrollbar_simple","",{},0,"gui_scrollbar",next.poses)
@@ -181,6 +182,8 @@ func publish_layout() -> void:
 	refresh(); set_process(true)
 func change(amount: float) -> void:
 	if art_ready: range_control.value=clampf(range_control.value+amount,range_control.min_value,maximum())
+func visible_units() -> int:
+	return visible_units_override if visible_units_override>=0 else roundi(range_control.page)
 func _gui_input(event: InputEvent) -> void:
 	if not art_ready: return
 	if event is InputEventMouseButton:

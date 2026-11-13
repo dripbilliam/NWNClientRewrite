@@ -17,7 +17,10 @@ export function applyPlayerState(current,changes){
  for(const change of c.spontaneousUses??[]){const s=classState(change.position);for(const {level,count}of change.levels)s.usesLeft[level]=count;}
  if(c.featChanges){result.feats??=[];result.bonusFeats??=[];for(const change of c.featChanges){const list=['A','D'].includes(change.action)?result.feats:result.bonusFeats;if(change.action==='A'||change.action==='B')list.push(change.feat);else {const i=list.indexOf(change.feat);if(i>=0)list.splice(i,1);}}}
  if(c.featUses){result.featUses??={};for(const change of c.featUses)result.featUses[change.feat]=change.uses;}
- if(c.effectIcons){result.effectIcons??={};for(const icon of c.effectIcons.removed)delete result.effectIcons[icon];for(const icon of c.effectIcons.added)result.effectIcons[icon.icon]=icon.state;}
+ // Preserve received addition order across snapshot coalescing. These are
+ // replication serials, like action widget serials, not presentation or IDs
+ // sent to the server. Numeric object keys alone lose wire ordering in JSON.
+ if(c.effectIcons){result.effectIcons??={};result.effectIconSerials??={};result.effectIconNextSerial??=0;for(const icon of c.effectIcons.removed){delete result.effectIcons[icon];delete result.effectIconSerials[icon];}for(const icon of c.effectIcons.added){result.effectIcons[icon.icon]=icon.state;result.effectIconSerials[icon.icon]=result.effectIconNextSerial++;}}
  if(c.specialAbilityChanges){result.specialAbilities??=[];for(const change of c.specialAbilityChanges){if(change.action==='S'){result.specialAbilities.length=change.size;for(let i=0;i<change.size;i++)result.specialAbilities[i]??=null;}else {if(change.index>=result.specialAbilities.length)throw new Error('Special-ability index exceeds server size');result.specialAbilities[change.index]=change;}}}
  if(c.visibilityChanges){result.visibility??={};for(const id of c.visibilityChanges.removed)delete result.visibility[id];for(const change of c.visibilityChanges.updated)result.visibility[change.id]=change.flags;}
  if(c.actionQueueChanges){const queue=mergeNetworkActionQueue(result.actionQueue,c.actionQueueChanges,result.actionQueueNextSerial);result.actionQueue=queue.entries;result.actionQueueNextSerial=queue.nextSerial;delete c.actionQueueChanges;}

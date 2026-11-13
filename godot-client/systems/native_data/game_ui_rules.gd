@@ -1,9 +1,24 @@
 extends RefCounted
+func effect_icons(state: Dictionary) -> Array:
+	var entries: Dictionary=state.get("effectIcons",{}); var serials: Dictionary=state.get("effectIconSerials",{}); var result: Array=[]
+	for key in entries:
+		var id:=number(key,-1)
+		if id<0 or id>65535: continue
+		var resource:=icon("effecticons",id)
+		# Original895340 does not create a button for an empty icon string.
+		if resource.is_empty() or resource=="****": continue
+		var label: String=text.raw({"strRef":number(cell(row("effecticons",id),"StrRef"),4294967295)})
+		result.append({"id":id,"state":flag(entries[key]),"resource":resource.to_lower(),"label":label,"serial":int(serials.get(str(id),serials.get(id,-1)))})
+	# Each received addition is inserted at the original linked-list head.
+	# Old sealed captures without serial metadata retain a deterministic order.
+	result.sort_custom(func(a,b):return int(a.serial)>int(b.serial) if int(a.serial)!=int(b.serial) else int(a.id)>int(b.id))
+	return result
 func queued_actions(entries: Array) -> Array:
 	var result: Array=[]
 	for source in entries:
 		var id:=int(source.type); var special:=flag(source.get("special",false)); var data:=row("actions",id)
 		var resource:=str(cell(data,"ICONRESREF","")); var spell:=int(source.get("spell",-1))
+		if resource=="****": resource=""
 		if not special and id in [4,19]:
 			var spell_data:=row("spells",spell)
 			if id==19 and spell_data.is_empty(): continue
@@ -17,10 +32,12 @@ func queued_actions(entries: Array) -> Array:
 # Presentation projections from received server fields and original native 2DAs.
 # Never predicts a combat outcome, grants a feat or changes a spell's uses.
 var text
+var party_indicators=preload("res://systems/native_data/party_indicators.gd").new()
 var record_errors: Array=[]
 const INVALID:=2130706432
 const ABILITIES=["Strength","Dexterity","Constitution","Intelligence","Wisdom","Charisma"]
 const RecordValues=preload("res://systems/native_data/character_record_values.gd")
+const SkillAdmission=preload("res://systems/native_data/skill_admission.gd")
 const Numbers=preload("res://systems/native_data/game_numbers.gd")
 const RecordEntries=preload("res://systems/native_data/character_record_entries.gd")
 const PartyHealth=preload("res://systems/native_data/party_health.gd")
@@ -42,6 +59,15 @@ static func cell(row: Dictionary,column: String,fallback: Variant=null) -> Varia
 func row(table: String,id: int) -> Dictionary:
 	var rows: Array=text.tables.get(table,{}).get("orderedRows",[])
 	return rows[id] if id>=0 and id<rows.size() else {}
+func skill_admission(actor: Dictionary,id: Variant) -> Dictionary:
+	var count:Dictionary=SkillAdmission.active_count(text.tables.get("skills") if text!=null else null)
+	if not count.available:return SkillAdmission.unknown("active_skills_unavailable")
+	if actor.get("objectType")!=5 or actor.get("replicationRemoved",false):return SkillAdmission.unknown("creature_unavailable")
+	# Only31/22's received current-actor clear is bound; DM update remains separate.
+	var view:Variant=actor.get("clientSkillAdmission")
+	var result:Dictionary=SkillAdmission.query(view,id,count.count,SkillAdmission.override_value(view))
+	result.rules={"source":count.source,"count":count.count,"physicalRows":count.physicalRows,"revision":int(text.revision)}
+	return result
 func title(table: String,id: int,column: String="Name") -> String:
 	var data:=row(table,id); var value: Variant=cell(data,column)
 	var result: String=text.raw({"strRef":number(value,4294967295)}) if value!=null else ""
@@ -73,14 +99,18 @@ func party(objects: Dictionary,controlled: int,members: Array,players: Array=[])
 	for member in members:
 		var id:=number(member.get("id") if member is Dictionary else member)
 		if id>=0 and not ids.has(id): ids.append(id)
+	party_indicators.observe(controlled,ids,objects)
 	for id in ids:
 		var object:=presentation_object(objects,int(id),players); var state: Dictionary=object.replicated
 		var hp: Dictionary=state.get("hitPoints",{})
 		var health: Variant=null
 		if hp.has("current") and hp.has("maximum"): health={"current":int(hp.current)+int(hp.get("fieldE8",0)),"maximum":int(hp.maximum),"clip":PartyHealth.from_party(state.get("party",{}))}
-		result.append({"entryId":result.size(),"id":id,"self":id==controlled,"available":int(object.get("objectType",0))==5 and not object.get("replicationRemoved",false),"label":text.name(state.get("name"),int(id)),"portraitKey":portrait(object,3 if id==controlled else 2),"health":health,"canLevelUp":object.get("playerState",{}).get("combat",{}).get("canLevelUp",false)})
+		if health is Dictionary and id==controlled and object.get("playerState",{}).has("effectIcons"): health.clip=PartyHealth.from_player_icons(object.playerState.effectIcons)
+		result.append({"entryId":result.size(),"id":id,"self":id==controlled,"available":int(object.get("objectType",0))==5 and not object.get("replicationRemoved",false),"label":text.name(state.get("name"),int(id)),"portraitKey":portrait(object,3 if id==controlled else 2),"health":health,"canLevelUp":object.get("playerState",{}).get("combat",{}).get("canLevelUp",false),"indicators":party_indicators.for_member(id)})
 	return result
 func feats(actor: Dictionary) -> Array:
+	return collect_feats(actor)
+static func collect_feats(actor: Dictionary) -> Array:
 	var result: Array=[]; var player: Dictionary=actor.get("playerState",{}); var stats: Dictionary=actor.get("inventoryStats",{})
 	for source in [player.get("feats",[]),player.get("bonusFeats",[]),stats.get("feats",[]),stats.get("fields118",[]),stats.get("fields128",[])]:
 		for entry in source:
@@ -112,12 +142,20 @@ func record_entries(actor: Dictionary,page: int) -> Array:
 		var inv: Dictionary=actor.get("inventoryStats",{}); var player: Dictionary=actor.get("playerState",{})
 		var fallback: Array=player.get("feats",inv.get("feats",[]).map(func(entry):return int(entry.id)))
 		var primary: Array=inv.get("fields118",fallback); var bonus: Array=inv.get("fields128",player.get("bonusFeats",[]))
-		var admitted:=RecordEntries.feat_admission(primary,bonus,func(id):
-			var data:=row("feat",int(id)); var name: Variant=cell(data,"FEAT")
-			return null if data.is_empty() or name==null or str(name) in ["","****"] else number(cell(data,"SUCCESSOR"),-1))
-		record_errors=admitted.errors
-		for id in admitted.ids: result.append({"id":id,"binding":{"type":4,"intParam":id}})
-	var table:="skills" if page==1 else "feat"
+		return record_feat_entries(primary,bonus)
+	return decorate_record_entries(result,"skills",1)
+func record_feat_definition(id: int) -> Dictionary:
+	var data:=row("feat",id); var name: Variant=cell(data,"FEAT")
+	return {} if data.is_empty() or name==null or str(name) in ["","****"] else data
+func record_feat_entries(primary: Array,bonus: Array=[]) -> Array:
+	var admitted:=RecordEntries.feat_admission(primary,bonus,func(id):
+		var data:=record_feat_definition(int(id))
+		return null if data.is_empty() else number(cell(data,"SUCCESSOR"),-1))
+	record_errors=admitted.errors
+	var result: Array=[]
+	for id in admitted.ids: result.append({"id":id,"binding":{"type":4,"intParam":id}})
+	return decorate_record_entries(result,"feat",2)
+func decorate_record_entries(result: Array,table: String,page: int) -> Array:
 	for index in result.size():
 		var entry: Dictionary=result[index]; entry.entryId=index; entry.name=title(table,int(entry.id),"Name" if page==1 else "FEAT"); entry.description=description(table,int(entry.id)); entry.icon=icon(table,int(entry.id)); entry.canDrag=page==2 or int(entry.get("value",0))>0
 	result=RecordEntries.ordered(result)
@@ -132,10 +170,7 @@ func spell_children(id: int,ancestors: Array=[]) -> Array:
 func spell_level(id: int,class_id: int) -> int:
 	return number(cell(row("spells",id),str(cell(row("classes",class_id),"SpellTableColumn",""))),255)&255
 func rule_value(label: String,fallback: int=0) -> int:
-	var result:=fallback
-	for data in text.tables.get("ruleset",{}).get("orderedRows",[]):
-		if str(cell(data,"Label",""))==label: result=number(cell(data,"Value"),fallback)
-	return result
+	return RecordValues.cfg(text.tables,label,fallback)
 func meta_cost(mask: int) -> int:
 	var options:={1:["EMPOWER",2],2:["EXTEND",1],4:["MAXIMIZE",3],8:["QUICKEN",4],16:["SILENT",1],32:["STILL",1]}
 	return rule_value("SPELL_METAMAGIC_"+str(options[mask][0])+"_COST",int(options[mask][1]))&255 if options.has(mask) else 0
@@ -146,14 +181,16 @@ func spell_uses(actor: Dictionary,id: int,class_index: int,meta: int=0,domain: i
 	var master:=number(cell(row("spells",id),"Master"))
 	if master>=0: id=master; level=spell_level(id,int(classes[class_index].id))
 	if domain>0:
+		if number(cell(row("classes",int(classes[class_index].id)),"PickDomains"),0)==0: return 0
 		if not classes[class_index].get("domains",[]).any(func(d):return number(cell(row("domains",int(d)),"Level_"+str(domain)))==id): return 0
 		level=domain
-	level+=meta_cost(meta)
+	level=(level+meta_cost(meta))&255
 	if level>=10: return 0
-	if number(cell(row("classes",int(classes[class_index].id)),"MemorizesSpells"),0)==0: return number(book.get("usesLeft",{}).get(str(level)),0)
+	if number(cell(row("classes",int(classes[class_index].id)),"MemorizesSpells"),0)==0: return number(book.get("usesLeft",{}).get(str(level)),0)&255
 	var count:=0
-	for slot in book.get("memorized",{}).get(str(level),[]):
-		if slot is Dictionary and int(slot.spell)==id and (meta==0 or int(slot.get("metamagic",0))&meta!=0) and flag(slot.get("ready",false)): count+=1
+	var slots: Array=book.get("memorized",{}).get(str(level),[])
+	for slot in slots.slice(0,slots.size()&255):
+		if slot is Dictionary and int(slot.spell)==id and (meta==0 or int(slot.get("metamagic",0))&meta!=0) and flag(slot.get("ready",false)): count=(count+1)&255
 	return count
 func spell_row(actor: Dictionary,id: int,class_index: int,level: int,meta: int,slot: int=-1,ready: bool=true,domain: bool=false) -> Dictionary:
 	var family:=not spell_children(id).is_empty(); var uses:=spell_uses(actor,id,class_index,meta,level-meta_cost(meta) if domain else 0) if id>=0 else 0

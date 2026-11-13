@@ -1,0 +1,6 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {stage,hash} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),parentFile=path.join(project,'.cache/native-140fps/root/common-v1/manifest.json'),parent=JSON.parse(fs.readFileSync(parentFile));
+const file=path.join(project,'.cache/native-140fps/render-agent/pushed-inputs-v3/manifest.json'),r=JSON.parse(fs.readFileSync(file));if(r.builds!==1)throw Error('Unfinalized registry candidate');
+const files=['native/experimental/light_input_registry.hpp','systems/native_render/model_point_light.gd','systems/native_render/focus_lighting_native_input_candidate.gd','.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-kernel/build-manifest.json'];
+const changes=files.map(relative=>{const from=path.join(r.project,relative),after=r.pins.find(p=>p.relative===relative)?.sha256;if(!after||hash(fs.readFileSync(from))!==after)throw Error('Registry candidate pin differs');return {relative,from,after,before:parent.pins.find(p=>p.relative===relative)?.sha256??null};});
+console.log(JSON.stringify(stage(project,parentFile,'render-pushed-v3',changes,[file,r.build.proofFile])));

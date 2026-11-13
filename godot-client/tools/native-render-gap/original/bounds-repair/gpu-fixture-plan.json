@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "status": "Design only; root coordinates GPU execution against the same private engine with the guard argument omitted or enabled.",
+  "control": "Same private instrumented engine, no --skeleton-pair-guard argument",
+  "candidate": "Same engine with --skeleton-pair-guard=exact",
+  "scene": {
+    "geometry": "Two-bone weighted ribbon or box mesh over a receiver plane, StandardMaterial3D, fixed conservative custom AABB enclosing both bone poses. One ordinary MeshInstance3D sibling provides a non-skinned control.",
+    "animation": "Only the second bone changes between two known finite poses. MeshInstance3D transforms and custom AABB stay constant during the pure-bone phases.",
+    "lighting": "One shadow-casting directional key light for visible deforming shadows; one colored omnidirectional light with small range for intersection membership changes; a second optional light for add/remove tests.",
+    "camera": "Fixed orthographic view showing both ribbon and its shadow; stable viewport/resolution and warmed shaders before capture.",
+    "observation": "Record root frame-probe pair wall time, bone-only candidates/skips, AABB/BVH counts and shadow invalidation/culling counts. Save control/candidate images at identical authored step IDs. Public instances_cull_aabb/ray queries map returned object IDs to stable node names before comparison."
+  },
+  "cases": [
+    {
+      "id": "stable_bounds_deforming_shadow",
+      "steps": "Alternate the two bone poses for several frames while keeping local/world custom bounds and all instance/volume transforms unchanged.",
+      "expect": "Candidate records eligible pair skips; bone/geometry publication and shadow dirtiness remain. Each candidate image matches the same control pose, while the two poses produce different visible deformations and shadows. A single frozen shadow image is a failure even if FPS improves."
+    },
+    {
+      "id": "light_moves_both_drain_orders",
+      "steps": "Move the small colored light from disjoint to intersecting and back. Queue its move before and after the bone write in separate runs.",
+      "expect": "Moved light performs its ordinary volume repair and updates both sides of the relation. Candidate lighting/shadows match control in both orders even when geometry skips its own pair repair."
+    },
+    {
+      "id": "new_and_removed_lights",
+      "steps": "Create an intersecting light, create a disjoint light, then free each after a completed frame while bone animation continues.",
+      "expect": "Creation inserts/pairs normally; deletion unpairs normally. No stale colored lighting, stale shadow association, absent light or freed instance access."
+    },
+    {
+      "id": "layer_and_cull_mask",
+      "steps": "Toggle geometry layers, light cull mask, decal/reflection masks where supported, and dynamic-GI flag with stable bounds. Exercise bone→ordinary and ordinary→bone coalescing orders.",
+      "expect": "Ordinary reasons promote the pending flag before queue coalescing; required unpair/reinsert/repair is never skipped. Images and public query sets match control."
+    },
+    {
+      "id": "visibility_and_scenario_reinsert",
+      "steps": "Hide then show the animated mesh; hide/show within one frame; detach/reassign scenario while bounds remain equal.",
+      "expect": "Existing-index guard rejects new insertions. Visibility, arrays, visibility parents and new pair membership match control."
+    },
+    {
+      "id": "skeleton_bind_and_topology",
+      "steps": "Detach/rebind the same skeleton, replace it with a second skeleton with equal initial bounds, and change bone allocation/topology before the next pose write.",
+      "expect": "Skeleton attachment and SKELETON_DATA force ordinary repair and dependency rebuild. Only subsequent pure SKELETON_BONES with exact finite unchanged bounds may skip."
+    },
+    {
+      "id": "changed_bound_and_extra_margin",
+      "steps": "Change custom AABB, margin, mesh resource, transform and blendshape state independently, including one finite float32 ULP of bound extent where the API retains it.",
+      "expect": "No approximate-equality shortcut. All ordinary reasons and actual changed world bounds repair normally; geometry render state and cull-query membership match control."
+    },
+    {
+      "id": "quantized_bvh_quiet_followup",
+      "steps": "Translate geometry slightly to trigger motion quantization, then hold transform/bounds and queue a pure bone update. Query a small region just outside the true bound but inside the previous quantized bound before/after the quiet update.",
+      "expect": "Candidate keeps DynamicBVH::update and shrinks exactly as the control does. Sorted stable-name public cull results match, including any baseline approximate BVH behavior. This rejects a guard moved before BVH update without extra indexed-bound state."
+    },
+    {
+      "id": "lightmap_capture_requeue",
+      "steps": "Where the private renderer supports capture volumes, create/move/remove an intersecting lightmap capture while the mesh has a pending bone update.",
+      "expect": "Capture queues using false/false still cancel fast repair. If enqueued during a drain, the next queue epoch retains the ordinary reason. Capture publication before the guard remains present."
+    },
+    {
+      "id": "teleport_and_motion_vectors",
+      "steps": "Queue a teleport/reset together with an unchanged-bound bone update, and separately change the instance transform.",
+      "expect": "Earlier geometry transform publication and motion-vector reset execute identically. Transform queues remain ordinary; no ghost trail or old temporal state."
+    },
+    {
+      "id": "signed_zero_and_nonfinite_predicate",
+      "steps": "Use the source-bound predicate/property checks for +0/-0, NaN and infinities. Do not submit invalid nonfinite geometry to a GPU as a visual test.",
+      "expect": "Signed zero follows exact numeric AABB operator== and preserves all preceding bounds writes. Every nonfinite local bound, transform, current bound or prior bound rejects the guard."
+    }
+  ],
+  "acceptance": [
+    "Default-off run retains pair counts and behavior of the original instrumented control.",
+    "Opt-in run skips only eligible unchanged finite pure-bone geometry pairing; all earlier work and BVH updates retain their control counts.",
+    "Every authored visual step, public cull-query stable-name set and membership transition matches its control.",
+    "Matched production replay separately measures whether reduced pair wall time translates into frame-time/FPS gains; the source/property audit alone establishes no speedup."
+  ]
+}

@@ -1,0 +1,8 @@
+[configuration]
+entry_symbol = "nwn_static_prefix_cursor_init"
+compatibility_minimum = "4.7.2"
+reloadable = false
+
+[libraries]
+windows.debug.x86_64 = "./nwn-static-prefix-cursor.dll"
+windows.release.x86_64 = "./nwn-static-prefix-cursor.dll"

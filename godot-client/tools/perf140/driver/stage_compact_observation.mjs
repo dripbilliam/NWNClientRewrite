@@ -1,0 +1,11 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {stage,hash} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),[label='compact-observation-v1']=process.argv.slice(2),parentFile=path.join(project,'.cache/native-140fps/root/engine-runtime-ready-v1/manifest.json'),parent=JSON.parse(fs.readFileSync(parentFile));
+if(!/^[a-z0-9-]+$/.test(label))throw Error('Fresh owned label required');
+let text=fs.readFileSync(path.join(parent.project,'native_live_world.gd'),'utf8');
+const hud='presentation_stats=world.snapshot(false); stats_at=now';if(text.split(hud).length!==2)throw Error('HUD boundary differs');
+text=text.replace(hud,'presentation_stats=preload("res://systems/native_render/presentation_counters.gd").capture(world); stats_at=now');
+const observed='"state":state,"ui_startup":';if(text.split(observed).length!==2)throw Error('Observation boundary differs');
+text=text.replace(observed,'"state":world.snapshot(false) if FrameProfile.enabled else preload("res://systems/native_render/compact_observation.gd").capture(world),"ui_startup":');
+const folder=path.join(project,'.cache/native-140fps/root',label+'-draft');if(fs.existsSync(folder))throw Error('Existing draft preserved');fs.mkdirSync(folder);const live=path.join(folder,'native_live_world.gd');fs.writeFileSync(live,text);
+const additions=[['systems/native_render/presentation_counters.gd','systems/native_render/presentation_counters.gd'],['tools/perf140/driver/compact_observation.gd','systems/native_render/compact_observation.gd'],['tests/native_perf140_compact_observation_test.gd','tests/native_perf140_compact_observation_test.gd'],['tests/native_perf140_presentation_counters_test.gd','tests/native_perf140_presentation_counters_test.gd']];
+console.log(JSON.stringify(stage(project,parentFile,label,[{relative:'native_live_world.gd',before:parent.pins.find(p=>p.relative==='native_live_world.gd').sha256,after:hash(Buffer.from(text)),from:live},...additions.map(([file,relative])=>({relative,before:null,after:hash(fs.readFileSync(path.join(project,file))),from:path.join(project,file)}))])));

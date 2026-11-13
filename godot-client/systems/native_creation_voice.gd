@@ -14,9 +14,13 @@ func configure(catalog,player_owner) -> void:
 	audio=player_owner; assets=Assets.new(); add_child(assets); assets.maximum_workers=1; assets.configure(catalog); assets.completed.connect(prepared)
 func play(id: int,name: String) -> void:
 	if dead: return
-	stop()
 	if id!=selected: selected=id; code=0
 	var line:=code; code=(code+1)%49
+	play_sample(id,name,line)
+func play_sample(id: int,name: String,line: int) -> void:
+	# CG_CHAR_INFO owns its sample counter. Do not advance it a second time.
+	if dead or id<0 or id>65535 or line<0 or line>=49:return
+	stop();selected=id
 	last={"voice":id,"code":line,"native":true}; audio.status="Loading sample "+str(line+1)+"…"
 	stage="ssf"; request_id=assets.request(name,2060,"bytes")
 func prepared(id: int,result: Dictionary) -> void:

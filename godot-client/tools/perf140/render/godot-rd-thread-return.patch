@@ -1,0 +1,17 @@
+diff --git a/servers/rendering/rendering_server_default.cpp b/servers/rendering/rendering_server_default.cpp
+--- a/servers/rendering/rendering_server_default.cpp
++++ b/servers/rendering/rendering_server_default.cpp
+@@ -298,6 +298,13 @@ void RenderingServerDefault::finish() {
+ 			server_task_id = WorkerThreadPool::INVALID_TASK_ID;
+ 		}
+ 		server_thread = Thread::MAIN_ID;
++		// _assign_mt_ids() transferred the main device to the rendering task.
++		// That task has now finished and cannot use the device again. Return
++		// ownership to this thread before DisplayServer destroys its screens
++		// and RenderingDevice during normal engine shutdown.
++		if (RenderingDevice *rd = RenderingDevice::get_singleton()) {
++			rd->make_current();
++		}
+ 	} else {
+ 		_finish();
+ 	}

@@ -34,8 +34,20 @@ var creature_voices
 var script_sounds
 var history: Array=[]
 var delivery:={"received":0,"stale":0,"overflow":0,"prepared":0}
+var perception_visuals
+func _selection_view_gate() -> bool:
+	var reference: WeakRef=world.get_meta("native_focus_light_owner") if world.has_meta("native_focus_light_owner") else null
+	var owner=reference.get_ref() if reference!=null else null
+	if not is_instance_valid(owner): diagnose("visual.native-view-light-sample-unavailable","Missing native scene focus owner",0); return false
+	owner.set_controlled(host(world.controlled_id))
+	return owner.view_gate()
+func tables_ready() -> bool:
+	# Blood/voice controllers may add rules tables to this shared cache. Their
+	# arrival must not stop ordinary effects that already have their dependencies.
+	return ["visualeffects","progfx","appearance"].all(func(name):return tables.has(name))
 func configure(owner) -> void:
 	world=owner; client=self; world_scope={"ticket":world.generation}; process_priority=45
+	perception_visuals=preload("res://systems/native_render/perception_visuals.gd").new();perception_visuals.configure(world,_apply_perception_visual,_remove_perception_visual)
 	assets=Assets.new(); add_child(assets); assets.configure(world.catalog); assets.cache_directory=world.cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	for name in ["visualeffects","progfx","appearance"]: jobs[assets.request(name,2017,"2da") ]={"kind":"table","name":name}
 	world_audio=preload("res://systems/native_render/effect_audio.gd").new(); add_child(world_audio); world_audio.configure(self)
@@ -80,9 +92,52 @@ func receive_raw(message: Dictionary) -> void:
 func host(id: int,_token: int=0) -> Node3D:
 	if _token!=0: return client_dummies.host(id,_token) if is_instance_valid(client_dummies) else null
 	return world.instances.get(id) if world.desired.has(id) else null
+func observe_perception(objects: Array,controlled: int) -> void:
+	if not closed and perception_visuals!=null:perception_visuals.receive(objects,controlled)
+func _apply_perception_visual(id: int,lifetime: int,visual: int) -> int:
+	var before:=next_effect
+	reserve(id,lifetime,{"visualId":visual,"sourceId":0x7f000000,"bodyPart":0,"delivery":{"instant":0,"sourcePart":0,"targetPart":0,"point":[0,0,0]}},false)
+	return next_effect if next_effect>before else 0
+func _remove_perception_visual(id: int,effect_id: int) -> void:
+	# The handler owns this exact instance; a server-sent visual6 is independent.
+	if entries.has(effect_id):super.receive({"kind":"visual-remove","actorId":id,"visualId":6,"effectId":effect_id})
+func alpha_commands(effect_id: int,actor_id: int,token: int,commands: Array) -> Dictionary:
+	if closed or not entries.has(effect_id) or not _bound(entries[effect_id]):return {"available":false,"reason":"Effect lifetime retired"}
+	var effect_entry: Dictionary=entries[effect_id]
+	if int(effect_entry.actor)!=actor_id or int(effect_entry.privateToken)!=token:return {"available":false,"reason":"Alpha target does not match owning effect"}
+	var instance:=host(actor_id,token)
+	if not is_instance_valid(instance) or token!=0 or not world.desired.has(actor_id) or str(world.installed.get(actor_id,""))!=str(world.desired[actor_id].key):return {"available":false,"reason":"Current target model is not admitted"}
+	var model_indices: Array=instance.call("renderer_alpha_model_indices") if instance.has_method("renderer_alpha_model_indices") else [0]
+	for command in commands:
+		if closed or not entries.has(effect_id) or not is_same(entries[effect_id],effect_entry) or not _bound(effect_entry) or host(actor_id,token)!=instance or instance.get("retired")==true or not world.desired.has(actor_id) or str(world.installed.get(actor_id,""))!=str(world.desired[actor_id].key):return {"available":false,"reason":"Target changed during alpha publication"}
+		var accepted:=true
+		match str(command.kind):
+			"set_alpha":accepted=instance.has_method("set_renderer_alpha") and instance.call("set_renderer_alpha",preload("res://tools/native_parity/visibility/alpha_program.gd").scalar(int(command.alpha_word)),model_indices)
+			"set_vector_channel":
+				var vector: Array=[]
+				for bits in command.vector_words:vector.append(preload("res://tools/native_parity/visibility/alpha_program.gd").scalar(int(bits)))
+				accepted=instance.has_method("set_renderer_vector") and instance.call("set_renderer_vector",int(command.channel),vector,model_indices)
+			"clear_vector_channel":accepted=instance.has_method("set_renderer_vector") and instance.call("set_renderer_vector",int(command.channel),null,model_indices)
+			"set_visible":accepted=instance.has_method("set_presentation_draw_enabled") and instance.call("set_presentation_draw_enabled",bool(command.value),model_indices)
+			"set_blocked":instance.set_meta("native_fade_blocked",bool(command.value))
+			"refresh_visibility":pass # The mesh gate above retains root/selection membership.
+			_:accepted=false
+		if not accepted:return {"available":false,"reason":"Unsupported native alpha command: "+str(command.kind)}
+	return {"available":true,"attachment_scope":"base model; child propagation remains explicit","scene_detach_parity":false}
 func _bound(entry: Dictionary) -> bool:
 	if int(entry.privateToken)!=0: return is_instance_valid(client_dummies) and client_dummies.has(int(entry.actor),int(entry.privateToken))
-	return world.desired.has(int(entry.actor)) and records.has(int(entry.id)) and int(world.desired[int(entry.actor)].object.get("nativeLifetime",0))==int(records[int(entry.id)].lifetime)
+	if not world.desired.has(int(entry.actor)) or not records.has(int(entry.id)):return false
+	var source: Dictionary=world.desired[int(entry.actor)].object;var record: Dictionary=records[int(entry.id)]
+	if int(source.get("nativeLifetime",0))!=int(record.lifetime):return false
+	return not record.has("presentation_lifetime") or record.presentation_lifetime==preload("res://systems/native_data/entity_presentation_lifetime.gd").token(source)
+func _selection_snapshot(actor: int,token: int) -> Dictionary:
+	# This private schema has no custom bound/property providers. Subclasses
+	# keep the general path so overridden lifetime hooks cannot be bypassed.
+	if get_script().resource_path!="res://systems/native_render/effect_world.gd": return {}
+	compiled_snapshot_calls+=1
+	if not compiled_snapshot_available: return {"error":"Native visual snapshot is unavailable"}
+	var live_dummies:=is_instance_valid(client_dummies)
+	return ClassDB.class_call_static("NwnParticleKernel","visual_snapshot",_member_entries(actor,token),actor,token,world.desired,records,client_dummies.entries if live_dummies else {},not live_dummies or client_dummies.closed)
 func anchor(id: int,_token: int,part: String) -> Node3D:
 	if _token!=0: return client_dummies.anchor(id,_token,part) if is_instance_valid(client_dummies) else null
 	var instance:=host(id)
@@ -109,6 +164,7 @@ func reserve(actor_id: int,lifetime: int,record: Dictionary,transient: bool,toke
 	next_effect+=1
 	super.receive({"kind":"visual-reserve","effectId":next_effect,"actorId":actor_id,"privateToken":token,"visualId":record.visualId,"transient":transient})
 	records[next_effect]={"actor":actor_id,"lifetime":lifetime,"privateToken":token,"area":false,"record":record,"definition":{}}
+	if token==0 and world.desired.has(actor_id):records[next_effect].presentation_lifetime=preload("res://systems/native_data/entity_presentation_lifetime.gd").token(world.desired[actor_id].object)
 var next_effect:=0
 func object(id: int) -> Variant: return world.desired[id].object if world.desired.has(id) else null
 func ensure_models(resources: Dictionary) -> bool:
@@ -168,7 +224,8 @@ func advance(delta: float) -> void:
 	for record in records.values():
 		if int(record.privateToken)==0: sources[int(record.actor)]=true
 	for id in sources: observe_source(int(id))
-	if tables.size()==3:
+	var visual_tables_ready:=tables_ready()
+	if visual_tables_ready:
 		var waiting: Array=[]
 		for event in queue:
 			var id:=int(event.id); var lifetime:=int(event.lifetime)
@@ -183,10 +240,11 @@ func advance(delta: float) -> void:
 	for effect_id in records.keys():
 		if not entries.has(effect_id): records.erase(effect_id); continue
 		var row: Dictionary=records[effect_id]; var entry: Dictionary=entries[effect_id]
+		if int(row.privateToken)==0 and row.has("presentation_lifetime") and world.desired.has(int(row.actor)) and row.presentation_lifetime!=preload("res://systems/native_data/entity_presentation_lifetime.gd").token(world.desired[int(row.actor)].object):_forget(effect_id,"retired");continue
 		if int(row.privateToken)==0 and (removed_states.get(row.actor,false) or known.has(row.actor) and int(known[row.actor])!=int(row.lifetime)): _forget(effect_id,"retired"); continue
 		if int(row.privateToken)!=0 and not client_dummies.has(int(row.actor),int(row.privateToken)): _forget(effect_id,"retired"); continue
 		if entry.runtime!=null and not row.area and host(int(row.actor),int(row.privateToken))==null: entry.runtime.detach_models()
-		if not entry.definition.is_empty() or (not row.area and host(row.actor,int(row.privateToken))==null) or tables.size()!=3: continue
+		if not entry.definition.is_empty() or (not row.area and host(row.actor,int(row.privateToken))==null) or not visual_tables_ready: continue
 		if row.definition.is_empty():
 			var hosts: Dictionary={}
 			for actor_id in [int(row.actor),int(row.record.sourceId)]:
@@ -238,6 +296,7 @@ func close_controller(owner,phase: String) -> void:
 	var began:=Timing.begin(); owner.close(); Timing.finish("retirement_effect_"+phase,began)
 func close() -> void:
 	if closed: return
+	if perception_visuals!=null:perception_visuals.close()
 	close_controller(projectiles,"projectiles"); close_controller(casts,"casts")
 	close_controller(blood,"blood"); close_controller(parries,"parries")
 	close_controller(special_attacks,"special_attacks"); close_controller(equipped_attacks,"equipped_attacks")

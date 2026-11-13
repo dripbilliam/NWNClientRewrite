@@ -11,6 +11,7 @@ var wheel
 var policy:=Policy.new()
 var rules:=Rules.new()
 var spell_entries: Callable
+var spell_menu: Callable
 var selection: Dictionary={}
 var trade
 var lifetime: Array=[]
@@ -19,15 +20,28 @@ var entries: Dictionary={}
 var serial:=0
 var trade_lock: Array=[]
 var closed:=false
+var quickbar_valid:=Callable()
+var quickbar_clear:=Callable()
+var quickbar_owned:=false
+var quickbar_binding: Dictionary={}
+var quickbar_texture: Texture2D
 func configure(owner) -> void:
 	inventory=owner; rules.text=owner.text_owner; policy.rules=rules
-	wheel=Radial.new(); add_child(wheel); wheel.shortcut_kind="item-radial-entry"; wheel.configure_art(inventory.frame_skin.art); wheel.request.connect(input)
+	wheel=Radial.new(); add_child(wheel); wheel.shortcut_kind="item-radial-entry"; wheel.configure_art(inventory.frame_skin.art); wheel.request.connect(input); wheel.preview_provider=preview
+	wheel.configure_text(inventory.frame_skin.fonts)
 func cancel() -> void:
 	if is_instance_valid(wheel): wheel.reset()
 	selection.clear(); lifetime.clear(); history.clear(); entries.clear(); trade=null; trade_lock.clear()
+	quickbar_valid=Callable();quickbar_clear=Callable();quickbar_owned=false;quickbar_binding.clear();quickbar_texture=null
 func item() -> Dictionary: return inventory.objects.get(int(selection.get("entryId",-1)),{}).get("item",{})
 func current_row() -> Dictionary:
 	if closed or selection.is_empty() or lifetime!=[inventory.generation,inventory.area_id,inventory.controlled_id]: return {}
+	if quickbar_owned:
+		if not quickbar_valid.is_valid() or not quickbar_valid.call():return {}
+		var id:=int(selection.entryId);var object: Dictionary=inventory.objects.get(id,{});var source: Dictionary=object.get("item",{})
+		if int(object.get("objectType",0))!=6 or object.get("replicationRemoved",false) or source.is_empty() or source!=selection.get("itemSnapshot") or object.get("equipmentOwnerId")!=selection.get("equipmentOwnerSnapshot"):return {}
+		var received_location: Variant=object.get("inventoryLocation");var location: Dictionary=received_location if received_location is Dictionary else {};var base:=rules.row("baseitems",int(source.get("baseItem",-1)))
+		return {"entryId":id,"itemId":id,"channel":str(location.get("channel","")),"equipped":object.get("equipmentOwnerId")==inventory.controlled_id,"name":inventory.text_owner.name(source.get("name"),id),"slotMask":Rules.number(Rules.cell(base,"EquipableSlots"),0),"stack":int(source.get("stackSize",source.get("field454",1)))}
 	if is_instance_valid(trade):
 		var id:=int(selection.entryId); var value: Dictionary=trade.all_rows.get(id,{})
 		if not trade.active() or int(trade.state.serial)!=int(selection.serial) or value.get("signature")!=selection.get("signature"): return {}
@@ -40,13 +54,19 @@ func open_inventory(id: int,point: Vector2,powers_only: bool=false) -> void:
 	if current_row().is_empty(): cancel(); return
 	inventory.ui.select_item(id); opened.emit(); wheel.open_at(point,id,Vector3.ZERO,false)
 	history=[{"kind":"powers" if powers_only else "root"}]; refresh()
+func open_quickbar(id: int,point: Vector2,valid: Callable,clear_slot: Callable,binding: Dictionary={},texture: Texture2D=null) -> void:
+	if not valid.is_valid() or not valid.call():return
+	cancel();quickbar_owned=true;quickbar_valid=valid;quickbar_clear=clear_slot;quickbar_binding=binding.duplicate(true);quickbar_texture=texture
+	selection={"entryId":id,"itemSnapshot":inventory.objects.get(id,{}).get("item",{}).duplicate(true),"equipmentOwnerSnapshot":inventory.objects.get(id,{}).get("equipmentOwnerId")};lifetime=[inventory.generation,inventory.area_id,inventory.controlled_id]
+	if current_row().is_empty():cancel();return
+	opened.emit();wheel.open_at(point,id,Vector3.ZERO,false);history=[{"kind":"root"}];refresh()
 func open_trade(owner,id: int,point: Vector2) -> void:
 	cancel()
 	if not owner.active() or not owner.all_rows.has(id): return
 	trade=owner; selection={"entryId":id,"serial":int(owner.state.serial),"signature":owner.all_rows[id].signature}; lifetime=[inventory.generation,inventory.area_id,inventory.controlled_id]
 	opened.emit(); wheel.open_at(point,id,Vector3.ZERO,false); history=[{"kind":"root"}]; refresh()
 func context(row: Dictionary) -> Dictionary:
-	var source: Dictionary=inventory.objects.get(int(row.itemId),{}); var location: Dictionary=source.get("inventoryLocation",{}); var base:=rules.row("baseitems",int(item().get("baseItem",-1)))
+	var source: Dictionary=inventory.objects.get(int(row.itemId),{}); var received_location: Variant=source.get("inventoryLocation");var location: Dictionary=received_location if received_location is Dictionary else {}; var base:=rules.row("baseitems",int(item().get("baseItem",-1)))
 	var actor: Dictionary=inventory.objects.get(inventory.controlled_id,{})
 	var learning:=false
 	for cls in actor.get("replicated",{}).get("stats",{}).get("classes",[]):
@@ -63,7 +83,14 @@ func refresh() -> void:
 	var page: Dictionary=history[-1]; var values: Array=[]; var source:=item(); var ctx:=context(row)
 	match str(page.kind):
 		"root":
-			if is_instance_valid(trade):
+			if quickbar_owned:
+				# Native9a59d0 bit0x10 replaces Drop with Clear and keeps the
+				# same item powers/equipment builders and source item lifetime.
+				var by_slot: Dictionary={0:policy.row(0,"IR_EXAMINE",549,"examine"),1:policy.row(1,"IR_CAST",557,"spells",1),4:policy.row(4,"IR_EMPTYQS",1389,"quickbar-clear")}
+				var equipment: Array=[policy.row(6,"IR_UNEQUIP",550,"unequip")] if row.equipped else policy.equipment(source,ctx)
+				for value in policy.powers(source,false,bool(ctx.learning))+equipment:by_slot[int(value.slot)]=value
+				values=by_slot.values()
+			elif is_instance_valid(trade):
 				values=[policy.row(0,"IR_EXAMINE",549,"examine")]
 				if trade.own_rows.has(int(row.itemId)):
 					var value:=policy.row(2,"IR_PICKUP",555,"barter-remove"); value.label="Remove offer"; value.disabled=not trade.can_remove(trade.payload(int(row.itemId))); values.append(value)
@@ -73,25 +100,39 @@ func refresh() -> void:
 		"more": values=policy.page(source,int(page.start))
 		"variants": values=policy.variants(source,int(page.index))
 		"spells": values=spell_entries.call() if spell_entries.is_valid() else []
+		"spell-menu": values=spell_menu.call(page.menu) if spell_menu.is_valid() else []
 		"children": values=page.values
 	if values.size()>8:
 		var rest:=values.slice(7); values=values.slice(0,7)
 		var more:=policy.row(7,"IR_USE",554,"children"); more.children=rest; values.append(more)
 	entries.clear(); serial+=1
 	for value in values:
+		if value.has("menu"): value.action="spell-menu"
 		if value.has("children"): value.action="children"
 		if value.action=="use": value.binding={"type":1,"itemId":int(row.itemId),"intParam":int(value.payload),"spellId":int(value.get("spellId",-1))}; value.canDrag=true
-		value.submenu=value.action in ["more","variants","spells","children"]
+		value.submenu=value.action in ["more","variants","spells","children","spell-menu"]
 		entries[int(value.slot)]=value
 	wheel.receive({"kind":"action-menu","requestId":wheel.request_id,"menuId":serial,"depth":history.size()-1,"title":str(row.name),"entries":values})
 	wheel.set_center("ir_use")
 	var texture: Texture2D=inventory.ui.textures.get(int(row.entryId))
+	if quickbar_owned:texture=quickbar_texture
 	if is_instance_valid(trade) and trade.view.item_buttons.has(int(row.itemId)): texture=trade.view.item_buttons[int(row.itemId)].image.texture
 	if texture!=null:
 		inventory.frame_skin.art.bind(wheel.center_image,""); wheel.center_image.texture=texture; wheel.center_image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	for slot in entries: inventory.frame_skin.art.bind(wheel.icons[int(slot)],str(entries[slot].icon))
 func can_shortcut(data: Dictionary) -> bool:
 	return data.get("kind","")=="item-radial-entry" and not current_row().is_empty() and wheel.can_shortcut(data) and entries.has(int(data.get("slot",-1))) and entries[int(data.slot)].has("binding")
+func preview(slot: int,request_id: int,menu_id: int) -> Array:
+	if request_id!=wheel.request_id or menu_id!=wheel.menu_id or not entries.has(slot) or current_row().is_empty(): return []
+	var value: Dictionary=entries[slot]; var source:=item(); var ctx:=context(current_row()); var result: Array=[]
+	match str(value.action):
+		"powers": result=policy.powers(source,false,bool(ctx.learning))
+		"more": result=policy.page(source,int(value.payload))
+		"variants": result=policy.variants(source,int(value.index))
+		"spells": result=spell_entries.call() if spell_entries.is_valid() else []
+		"spell-menu": result=spell_menu.call(value.menu) if spell_menu.is_valid() else []
+		"children": result=value.get("children",[])
+	return result.slice(0,8)
 func binding(data: Dictionary) -> Dictionary:
 	return entries[int(data.slot)].binding.duplicate(true) if can_shortcut(data) else {}
 func input(message: Dictionary) -> void:
@@ -107,10 +148,14 @@ func input(message: Dictionary) -> void:
 	var value: Dictionary=entries[int(message.slot)]
 	if value.get("disabled",false): refresh(); return
 	match str(value.action):
+		"quickbar-clear":
+			if quickbar_clear.is_valid():quickbar_clear.call()
+			cancel();return
 		"more": history.append({"kind":"more","start":int(value.payload)}); refresh(); return
 		"variants": history.append({"kind":"variants","index":int(value.index)}); refresh(); return
 		"spells": history.append({"kind":"spells"}); refresh(); return
 		"children": history.append({"kind":"children","values":value.children}); refresh(); return
+		"spell-menu": history.append({"kind":"spell-menu","menu":value.menu}); refresh(); return
 		"power":
 			# Spell-on-item submenu from the native desktop, with its active rules.
 			ability_selected.emit(value.binding.merged({"itemTarget":int(selection.entryId)})); cancel(); return
@@ -119,10 +164,21 @@ func input(message: Dictionary) -> void:
 			if is_instance_valid(trade): trade.remove_item(int(selection.entryId))
 		"examine":
 			if is_instance_valid(trade): trade.examine(int(selection.entryId))
+			elif quickbar_owned:inventory.send_command({"kind":"examine","targetId":int(selection.entryId)})
 			else: inventory.input_request({"kind":"inventory-action","viewId":selection.viewId,"entryId":selection.entryId,"operation":"examine"})
 		"buy","sell": inventory.store_command({"viewId":selection.viewId,"entryId":selection.entryId,"operation":value.action})
 		"split": inventory.stack_dialog.open_item(selection)
 		_:
+			if quickbar_owned and value.action in ["equip","unequip","learn"]:
+				var quick_request:={"kind":"item-action","itemId":int(selection.entryId),"operation":value.action}
+				if value.action=="equip":quick_request.slot=int(value.payload)
+				inventory.send_command(quick_request)
+				var second:=int(quickbar_binding.get("secondaryItemId",2130706432))
+				if second!=2130706432 and (value.action=="unequip" or value.action=="equip" and int(value.payload)==16):
+					var paired:=quick_request.duplicate();paired.itemId=second
+					if value.action=="equip":paired.slot=32
+					inventory.send_command(paired)
+				cancel();return
 			var request:={"kind":"inventory-action","viewId":selection.get("viewId",-1),"entryId":selection.entryId,"operation":value.action}
 			if value.action=="equip": request.slot=int(value.payload)
 			inventory.input_request(request)

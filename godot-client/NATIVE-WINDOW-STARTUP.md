@@ -3,6 +3,13 @@
 User preference: launches and test closures must not interrupt the foreground
 application or capture/reposition the mouse. Prefer a non-primary display.
 
+Normal interactive launches preserve the previously tested complete lighting
+and particle configuration through the [gameplay profile](NATIVE-RENDER-LAUNCH-PROFILE.md).
+The earlier `-SharedParticles` instruction restored particles alone and left
+the corrected world lighting disabled; it is superseded by the grouped profile.
+`-RenderProfile legacy` remains an explicit diagnostic rollback. See the
+[responsiveness correction](NATIVE-UI-RESPONSIVENESS-REGRESSION.md).
+
 `join-native.ps1` reads Windows monitor membership before starting the engine.
 `tools/native-window-screen.ps1` uses EnumDisplayMonitors and the primary flag;
 its ordering matches Godot's Windows display adapter. The protocol-only host

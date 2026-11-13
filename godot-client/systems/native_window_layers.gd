@@ -66,7 +66,7 @@ func removed(node: Node) -> void:
 func regions(node: Control) -> Array:
 	var result: Array=[]
 	if not node.is_visible_in_tree() or not node is PanelContainer: return result
-	result.append(node.get_global_transform_with_canvas()*Rect2(Vector2.ZERO,node.size))
+	if not node.get_meta("native_window_omit_body",false): result.append(node.get_global_transform_with_canvas()*Rect2(Vector2.ZERO,node.size))
 	for ref in node.get_meta("native_window_extras",[]):
 		var extra: Control=ref.get_ref() if ref is WeakRef else null
 		if is_instance_valid(extra) and extra.is_visible_in_tree(): result.append(extra.get_global_transform_with_canvas()*Rect2(Vector2.ZERO,extra.size))

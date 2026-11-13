@@ -5,7 +5,7 @@ const Gui=preload("res://systems/native_data/connection_dialog_layout.gd")
 const Record=preload("res://systems/native_data/character_sheet_layout.gd")
 const CAPTION={"AurString_Font":"fnt_galahad14"}
 const BUTTONS={"newcharbutton":"0x140711660","customcharbutton":"0x140710130","deletecharbutton":"0x1407103a0","playbutton":"0x140711d40","cancelbutton":"0x14070f8d0"}
-const RESOURCES=["ctl_pre_btn_char","ctl_pre_btn_plyr","ctl_playmod_page","ctl_pre_btn_tab","ctl_pre_btn_tab2","pmod_details800","ctl_pre_plyrlist","pnl_chrsht2","pnl_chrsht_char2","pnl_chrsht_skil2","ctl_chrsht_lstbx","ctl_chrsht_desc","ctl_chr_btnlstbx","ctl_chr_btn_feat","ctl_chr_btn_skil","ctl_chr_btn_tab5","ctl_chr_btn_tab6","ctl_chr_btn_tab7","ctl_chr_btn_tab8","scrollbar_simple","pb_scrl_up","pb_scrl_down"]
+const RESOURCES=["ctl_pre_btn_char","ctl_pre_btn_plyr","ctl_playmod_page","ctl_pre_btn_tab","ctl_pre_btn_tab2","pmod_details800","ctl_pre_plyrlist"]+preload("res://systems/native_data/character_summary_layout.gd").RESOURCES
 static func texture_bounds(source: Dictionary,texture: String) -> Dictionary:
 	var masked:=source.duplicate(); masked.nodes=[]
 	for item in source.get("nodes",[]):

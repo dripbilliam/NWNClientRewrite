@@ -1,0 +1,473 @@
+{
+  "scope": "Read-only source/ABI/ownership audit only. No native rebuild, engine execution or production mutation. No concrete mismatch found in exercised ClassDB.class_call_static path; no new blanket heap-safety claim.",
+  "kernel": {
+    "buildFile": "godot-client\\.cache\\native-presentation-parity\\loading-agent\\bsp-collector-kernel-build-v3\\build.json",
+    "buildSha256": "2f0e163701972bf77b6493baa882ab23e94bd3d676355735fc936335b6ddbe35",
+    "binary": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-presentation-parity\\loading-agent\\bsp-collector-kernel-build-v3\\nwn-bsp-collector.dll",
+    "binarySha256": "a5f0f477d1c86bc2d874c2214f90a443f9de363ce1aa14a36764230b7733852c",
+    "sources": [
+      {
+        "source": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native_parity\\visibility\\kernel\\bsp_collector.cpp",
+        "sha256": "fd69fa455d696652aa202e5ea6010b7071bb5a7dfe5ed794946693f51caa8f05"
+      },
+      {
+        "source": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native_parity\\visibility\\kernel\\bsp_math.hpp",
+        "sha256": "132788c0c179a50d23e92440f16cfcfa9b0b83d6c85c0bd88e61e3da2e4df363"
+      },
+      {
+        "source": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.tools\\extension-api\\gdextension_interface.h",
+        "sha256": "640b48188708ba0016f8d7ace9e0e1d3279a41fa1226c59ff3193b15538bd254"
+      },
+      {
+        "source": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.tools\\extension-api\\extension_api.json",
+        "sha256": "d0e4c08c03b165156dabe6bfb6a906baf0069189f62035341230a246c86d6986"
+      },
+      {
+        "source": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native_parity\\visibility\\build_bsp_collector_kernel.ps1",
+        "sha256": "efc1701ecfab8cbdb955800c9da9bb9cda6616efa9ade3ad6d292302f541bfe7"
+      }
+    ]
+  },
+  "engine": {
+    "descriptor": "godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\engine-descriptor.json",
+    "sourceCommit": "ed1daf0bf001b61586d9930840f2f1394092c079",
+    "source": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source",
+    "binary": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\build-1793998835313\\binaries\\godot.windows.template_release.x86_64.exe",
+    "binarySha256": "62f54a7f7ff4638987730a246833cea4054779e7cb2a333bb5921fd5b0aea6dc"
+  },
+  "api": {
+    "file": "godot-client\\.tools\\extension-api\\extension_api.json",
+    "sha256": "d0e4c08c03b165156dabe6bfb6a906baf0069189f62035341230a246c86d6986",
+    "header": {
+      "version_major": 4,
+      "version_minor": 7,
+      "version_patch": 2,
+      "version_status": "stable",
+      "version_build": "official",
+      "version_full_name": "Godot Engine v4.7.2.stable.official",
+      "precision": "single"
+    },
+    "sizes": [
+      {
+        "name": "bool",
+        "size": 1
+      },
+      {
+        "name": "int",
+        "size": 8
+      },
+      {
+        "name": "String",
+        "size": 8
+      },
+      {
+        "name": "Vector3",
+        "size": 12
+      },
+      {
+        "name": "StringName",
+        "size": 8
+      },
+      {
+        "name": "Dictionary",
+        "size": 8
+      },
+      {
+        "name": "PackedInt32Array",
+        "size": 16
+      },
+      {
+        "name": "PackedInt64Array",
+        "size": 16
+      },
+      {
+        "name": "PackedFloat32Array",
+        "size": 16
+      },
+      {
+        "name": "Variant",
+        "size": 24
+      }
+    ],
+    "packedMethods": [
+      {
+        "name": "PackedInt32Array",
+        "has_destructor": true,
+        "constructors": [
+          {
+            "index": 0
+          },
+          {
+            "index": 1,
+            "arguments": [
+              {
+                "name": "from",
+                "type": "PackedInt32Array"
+              }
+            ]
+          },
+          {
+            "index": 2,
+            "arguments": [
+              {
+                "name": "from",
+                "type": "Array"
+              }
+            ]
+          }
+        ],
+        "methods": [
+          {
+            "name": "size",
+            "return_type": "int",
+            "is_vararg": false,
+            "is_const": true,
+            "is_static": false,
+            "hash": 3173160232
+          },
+          {
+            "name": "resize",
+            "return_type": "int",
+            "is_vararg": false,
+            "is_const": false,
+            "is_static": false,
+            "hash": 848867239,
+            "arguments": [
+              {
+                "name": "new_size",
+                "type": "int"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "PackedInt64Array",
+        "has_destructor": true,
+        "constructors": [
+          {
+            "index": 0
+          },
+          {
+            "index": 1,
+            "arguments": [
+              {
+                "name": "from",
+                "type": "PackedInt64Array"
+              }
+            ]
+          },
+          {
+            "index": 2,
+            "arguments": [
+              {
+                "name": "from",
+                "type": "Array"
+              }
+            ]
+          }
+        ],
+        "methods": [
+          {
+            "name": "size",
+            "return_type": "int",
+            "is_vararg": false,
+            "is_const": true,
+            "is_static": false,
+            "hash": 3173160232
+          },
+          {
+            "name": "resize",
+            "return_type": "int",
+            "is_vararg": false,
+            "is_const": false,
+            "is_static": false,
+            "hash": 848867239,
+            "arguments": [
+              {
+                "name": "new_size",
+                "type": "int"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "PackedFloat32Array",
+        "has_destructor": true,
+        "constructors": [
+          {
+            "index": 0
+          },
+          {
+            "index": 1,
+            "arguments": [
+              {
+                "name": "from",
+                "type": "PackedFloat32Array"
+              }
+            ]
+          },
+          {
+            "index": 2,
+            "arguments": [
+              {
+                "name": "from",
+                "type": "Array"
+              }
+            ]
+          }
+        ],
+        "methods": [
+          {
+            "name": "size",
+            "return_type": "int",
+            "is_vararg": false,
+            "is_const": true,
+            "is_static": false,
+            "hash": 3173160232
+          },
+          {
+            "name": "resize",
+            "return_type": "int",
+            "is_vararg": false,
+            "is_const": false,
+            "is_static": false,
+            "hash": 848867239,
+            "arguments": [
+              {
+                "name": "new_size",
+                "type": "int"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "sourcePins": [
+    {
+      "relative": "core/extension/gdextension_interface.cpp",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\extension\\gdextension_interface.cpp",
+      "sha256": "493b1be35f8475bf8dad7a9398737114a3fa28718c7c76ab03c71e4b5b503a7b"
+    },
+    {
+      "relative": "core/variant/variant_internal.h",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\variant\\variant_internal.h",
+      "sha256": "80630263afd21979cc084b6d4de8b1fc1258ab44e4ae6eb9496694950dccaed9"
+    },
+    {
+      "relative": "core/variant/variant_construct.h",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\variant\\variant_construct.h",
+      "sha256": "e6aecba36f8ff90af382427fb6be8b69e161583cffba7751b2c2ffdfa5e632c9"
+    },
+    {
+      "relative": "core/variant/variant_call.cpp",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\variant\\variant_call.cpp",
+      "sha256": "d8d2add6e88fc77ec1243410704d56de3d6c42ad02902e58f15fe52e6368ba2d"
+    },
+    {
+      "relative": "core/variant/method_ptrcall.h",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\variant\\method_ptrcall.h",
+      "sha256": "3ba241d15d21752caf72a258accdc5352868c4614a8f4906f93413189b80a878"
+    },
+    {
+      "relative": "core/templates/vector.h",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\templates\\vector.h",
+      "sha256": "c04b957729a43e75b02e05ad98493204648b4b45f54271dce8acbb874a94f663"
+    },
+    {
+      "relative": "core/templates/cowdata.h",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\templates\\cowdata.h",
+      "sha256": "10c02b9a1b96ff54200f617177591d375412662255bfc42d91d88b4fee688143"
+    },
+    {
+      "relative": "core/math/vector3.h",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\math\\vector3.h",
+      "sha256": "60bd8b6351a45b4e0927bbbda7b605b89ebe0572173c7dc2a1d121f33c9d5ae9"
+    },
+    {
+      "relative": "core/math/math_defs.h",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\math\\math_defs.h",
+      "sha256": "db5046323f7cc8a6d6340c0303c0bd02e399768a8b11b2df8b88654540eb3fdd"
+    },
+    {
+      "relative": "core/variant/variant.cpp",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\variant\\variant.cpp",
+      "sha256": "4af0a620aa59d2376d1b35ab201f26edd352f056c908b970890ad9a3449bb5c0"
+    },
+    {
+      "relative": "core/extension/gdextension.cpp",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\extension\\gdextension.cpp",
+      "sha256": "a7f2f64bd1b05461f430ab499a5d2e4d87913179b2cbca223b9aa90a9c7a1d8b"
+    },
+    {
+      "relative": "core/core_bind.cpp",
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\source\\core\\core_bind.cpp",
+      "sha256": "e90ccae66bffe1e4aee4e319e7cf731df1202b2b262eacbded9b99b79d359e50"
+    }
+  ],
+  "snippets": [
+    {
+      "relative": "core/extension/gdextension_interface.cpp",
+      "start": 317,
+      "end": 326,
+      "text": "static void gdextension_variant_new_copy(GDExtensionUninitializedVariantPtr r_dest, GDExtensionConstVariantPtr p_src) {\n\tmemnew_placement(reinterpret_cast<Variant *>(r_dest), Variant(*reinterpret_cast<const Variant *>(p_src)));\n}\nstatic void gdextension_variant_new_nil(GDExtensionUninitializedVariantPtr r_dest) {\n\tmemnew_placement(reinterpret_cast<Variant *>(r_dest), Variant);\n}\nstatic void gdextension_variant_destroy(GDExtensionVariantPtr p_self) {\n\treinterpret_cast<Variant *>(p_self)->~Variant();\n}\n"
+    },
+    {
+      "relative": "core/extension/gdextension_interface.cpp",
+      "start": 564,
+      "end": 576,
+      "text": "static GDExtensionVariantFromTypeConstructorFunc gdextension_get_variant_from_type_constructor(GDExtensionVariantType p_type) {\n\tswitch (p_type) {\n\t\tcase GDEXTENSION_VARIANT_TYPE_BOOL:\n\t\t\treturn VariantTypeConstructor<bool>::variant_from_type;\n\t\tcase GDEXTENSION_VARIANT_TYPE_INT:\n\t\t\treturn VariantTypeConstructor<int64_t>::variant_from_type;\n\t\tcase GDEXTENSION_VARIANT_TYPE_FLOAT:\n\t\t\treturn VariantTypeConstructor<double>::variant_from_type;\n\t\tcase GDEXTENSION_VARIANT_TYPE_STRING:\n\t\t\treturn VariantTypeConstructor<String>::variant_from_type;\n\t\tcase GDEXTENSION_VARIANT_TYPE_VECTOR2:\n\t\t\treturn VariantTypeConstructor<Vector2>::variant_from_type;\n\t\tcase GDEXTENSION_VARIANT_TYPE_VECTOR2I:"
+    },
+    {
+      "relative": "core/extension/gdextension_interface.cpp",
+      "start": 649,
+      "end": 676,
+      "text": "static GDExtensionTypeFromVariantConstructorFunc gdextension_get_variant_to_type_constructor(GDExtensionVariantType p_type) {\n\tswitch (p_type) {\n\t\tcase GDEXTENSION_VARIANT_TYPE_BOOL:\n\t\t\treturn VariantTypeConstructor<bool>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_INT:\n\t\t\treturn VariantTypeConstructor<int64_t>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_FLOAT:\n\t\t\treturn VariantTypeConstructor<double>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_STRING:\n\t\t\treturn VariantTypeConstructor<String>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_VECTOR2:\n\t\t\treturn VariantTypeConstructor<Vector2>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_VECTOR2I:\n\t\t\treturn VariantTypeConstructor<Vector2i>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_RECT2:\n\t\t\treturn VariantTypeConstructor<Rect2>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_RECT2I:\n\t\t\treturn VariantTypeConstructor<Rect2i>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_VECTOR3:\n\t\t\treturn VariantTypeConstructor<Vector3>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_VECTOR3I:\n\t\t\treturn VariantTypeConstructor<Vector3i>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_TRANSFORM2D:\n\t\t\treturn VariantTypeConstructor<Transform2D>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_VECTOR4:\n\t\t\treturn VariantTypeConstructor<Vector4>::type_from_variant;\n\t\tcase GDEXTENSION_VARIANT_TYPE_VECTOR4I:\n\t\t\treturn VariantTypeConstructor<Vector4i>::type_from_variant;"
+    },
+    {
+      "relative": "core/extension/gdextension_interface.cpp",
+      "start": 823,
+      "end": 850,
+      "text": "static GDExtensionPtrBuiltInMethod gdextension_variant_get_ptr_builtin_method(GDExtensionVariantType p_type, GDExtensionConstStringNamePtr p_method, GDExtensionInt p_hash) {\n\tconst StringName method = *reinterpret_cast<const StringName *>(p_method);\n\tGDExtensionPtrBuiltInMethod ptr = (GDExtensionPtrBuiltInMethod)Variant::get_ptr_builtin_method_with_compatibility(Variant::Type(p_type), method, p_hash);\n\tif (!ptr) {\n\t\tERR_PRINT(\"Error getting method \" + method + \", missing or hash mismatch.\");\n\t}\n\treturn ptr;\n}\nstatic GDExtensionPtrConstructor gdextension_variant_get_ptr_constructor(GDExtensionVariantType p_type, int32_t p_constructor) {\n\treturn (GDExtensionPtrConstructor)Variant::get_ptr_constructor(Variant::Type(p_type), p_constructor);\n}\nstatic GDExtensionPtrDestructor gdextension_variant_get_ptr_destructor(GDExtensionVariantType p_type) {\n\treturn (GDExtensionPtrDestructor)Variant::get_ptr_destructor(Variant::Type(p_type));\n}\nstatic void gdextension_variant_construct(GDExtensionVariantType p_type, GDExtensionUninitializedVariantPtr r_base, const GDExtensionConstVariantPtr *p_args, int32_t p_argument_count, GDExtensionCallError *r_error) {\n\tmemnew_placement(r_base, Variant);\n\tVariant *base = reinterpret_cast<Variant *>(r_base);\n\n\tCallable::CallError error;\n\tVariant::construct(Variant::Type(p_type), *base, (const Variant **)p_args, p_argument_count, error);\n\n\tif (r_error) {\n\t\tr_error->error = (GDExtensionCallErrorType)(error.error);\n\t\tr_error->argument = error.argument;\n\t\tr_error->expected = error.expected;\n\t}\n}\nstatic GDExtensionPtrSetter gdextension_variant_get_ptr_setter(GDExtensionVariantType p_type, GDExtensionConstStringNamePtr p_member) {"
+    },
+    {
+      "relative": "core/extension/gdextension_interface.cpp",
+      "start": 1185,
+      "end": 1216,
+      "text": "static int32_t *gdextension_packed_int32_array_operator_index(GDExtensionTypePtr p_self, GDExtensionInt p_index) {\n\tPackedInt32Array *self = (PackedInt32Array *)p_self;\n\tif (unlikely(p_index < 0 || p_index >= self->size())) {\n\t\treturn nullptr;\n\t}\n\treturn &self->ptrw()[p_index];\n}\n\nstatic const int32_t *gdextension_packed_int32_array_operator_index_const(GDExtensionConstTypePtr p_self, GDExtensionInt p_index) {\n\tconst PackedInt32Array *self = (const PackedInt32Array *)p_self;\n\tif (unlikely(p_index < 0 || p_index >= self->size())) {\n\t\treturn nullptr;\n\t}\n\treturn &self->ptr()[p_index];\n}\n\nstatic int64_t *gdextension_packed_int64_array_operator_index(GDExtensionTypePtr p_self, GDExtensionInt p_index) {\n\tPackedInt64Array *self = (PackedInt64Array *)p_self;\n\tif (unlikely(p_index < 0 || p_index >= self->size())) {\n\t\treturn nullptr;\n\t}\n\treturn &self->ptrw()[p_index];\n}\n\nstatic const int64_t *gdextension_packed_int64_array_operator_index_const(GDExtensionConstTypePtr p_self, GDExtensionInt p_index) {\n\tconst PackedInt64Array *self = (const PackedInt64Array *)p_self;\n\tif (unlikely(p_index < 0 || p_index >= self->size())) {\n\t\treturn nullptr;\n\t}\n\treturn &self->ptr()[p_index];\n}\n"
+    },
+    {
+      "relative": "core/variant/variant_internal.h",
+      "start": 1003,
+      "end": 1014,
+      "text": "struct VariantTypeConstructor {\n\t_FORCE_INLINE_ static void variant_from_type(void *r_variant, void *p_value) {\n\t\t// r_variant is provided by caller as uninitialized memory\n\t\tmemnew_placement(r_variant, Variant(*((T *)p_value)));\n\t}\n\n\t_FORCE_INLINE_ static void type_from_variant(void *r_value, void *p_variant) {\n\t\t// r_value is provided by caller as uninitialized memory\n\t\tmemnew_placement(r_value, T(*reinterpret_cast<Variant *>(p_variant)));\n\t}\n};\n"
+    },
+    {
+      "relative": "core/variant/variant_construct.h",
+      "start": 730,
+      "end": 750,
+      "text": "class VariantConstructNoArgs {\npublic:\n\tstatic void construct(Variant &r_ret, const Variant **p_args, Callable::CallError &r_error) {\n\t\tVariantTypeChanger<T>::change_and_reset(&r_ret);\n\t\tr_error.error = Callable::CallError::CALL_OK;\n\t}\n\n\tstatic inline void validated_construct(Variant *r_ret, const Variant **p_args) {\n\t\tVariantTypeChanger<T>::change_and_reset(r_ret);\n\t}\n\tstatic void ptr_construct(void *base, const void **p_args) {\n\t\tPtrConstruct<T>::construct(T(), base);\n\t}\n\n\tstatic int get_argument_count() {\n\t\treturn 0;\n\t}\n\n\tstatic Variant::Type get_argument_type(int p_arg) {\n\t\treturn Variant::NIL;\n\t}"
+    },
+    {
+      "relative": "core/variant/variant_call.cpp",
+      "start": 2832,
+      "end": 2843,
+      "text": "\tbind_method(PackedInt32Array, size, sarray(), varray());\n\tbind_method(PackedInt32Array, is_empty, sarray(), varray());\n\tbind_method(PackedInt32Array, push_back, sarray(\"value\"), varray());\n\tbind_method(PackedInt32Array, append, sarray(\"value\"), varray());\n\tbind_method(PackedInt32Array, append_array, sarray(\"array\"), varray());\n\tbind_method(PackedInt32Array, remove_at, sarray(\"index\"), varray());\n\tbind_method(PackedInt32Array, insert, sarray(\"at_index\", \"value\"), varray());\n\tbind_method(PackedInt32Array, fill, sarray(\"value\"), varray());\n\tbind_methodv(PackedInt32Array, resize, &PackedInt32Array::resize_initialized, sarray(\"new_size\"), varray());\n\tbind_method(PackedInt32Array, clear, sarray(), varray());\n\tbind_method(PackedInt32Array, has, sarray(\"value\"), varray());\n\tbind_method(PackedInt32Array, reverse, sarray(), varray());"
+    },
+    {
+      "relative": "core/variant/method_ptrcall.h",
+      "start": 149,
+      "end": 175,
+      "text": "// Integer types.\ntemplate <>\nstruct PtrToArg<uint8_t> : Internal::PtrToArgConvert<uint8_t, int64_t> {};\ntemplate <>\nstruct PtrToArg<int8_t> : Internal::PtrToArgConvert<int8_t, int64_t> {};\ntemplate <>\nstruct PtrToArg<uint16_t> : Internal::PtrToArgConvert<uint16_t, int64_t> {};\ntemplate <>\nstruct PtrToArg<int16_t> : Internal::PtrToArgConvert<int16_t, int64_t> {};\ntemplate <>\nstruct PtrToArg<uint32_t> : Internal::PtrToArgConvert<uint32_t, int64_t> {};\ntemplate <>\nstruct PtrToArg<int32_t> : Internal::PtrToArgConvert<int32_t, int64_t> {};\ntemplate <>\nstruct PtrToArg<int64_t> : Internal::PtrToArgDirect<int64_t> {};\ntemplate <>\nstruct PtrToArg<uint64_t> : Internal::PtrToArgDirect<uint64_t> {};\n// Float types\ntemplate <>\nstruct PtrToArg<float> : Internal::PtrToArgConvert<float, double> {};\ntemplate <>\nstruct PtrToArg<double> : Internal::PtrToArgDirect<double> {};\n\ntemplate <>\nstruct PtrToArg<String> : Internal::PtrToArgDirect<String> {};\ntemplate <>\nstruct PtrToArg<Vector2> : Internal::PtrToArgDirect<Vector2> {};"
+    },
+    {
+      "relative": "core/variant/method_ptrcall.h",
+      "start": 244,
+      "end": 247,
+      "text": "template <typename T>\nstruct PtrToArg<T, std::enable_if_t<std::is_enum_v<T>>> : Internal::PtrToArgConvert<T, int64_t> {};\ntemplate <typename T>\nstruct PtrToArg<BitField<T>, std::enable_if_t<std::is_enum_v<T>>> : Internal::PtrToArgConvert<BitField<T>, int64_t> {};"
+    },
+    {
+      "relative": "core/templates/vector.h",
+      "start": 53,
+      "end": 72,
+      "text": "\t_FORCE_INLINE_ T &operator[](typename CowData<T>::Size p_index) {\n\t\tCRASH_BAD_INDEX(p_index, ((Vector<T> *)(this))->_cowdata.size());\n\n\t\treturn ((Vector<T> *)(this))->_cowdata.ptrw()[p_index];\n\t}\n};\n\ntemplate <typename T>\nclass Vector {\n\tfriend class VectorWriteProxy<T>;\n\npublic:\n\tVectorWriteProxy<T> write;\n\ttypedef typename CowData<T>::Size Size;\n\ttypedef typename CowData<T>::USize USize;\n\nprivate:\n\tCowData<T> _cowdata;\n\npublic:"
+    },
+    {
+      "relative": "core/templates/vector.h",
+      "start": 104,
+      "end": 116,
+      "text": "\n\t/// Resize the vector.\n\t/// Elements are initialized (or not) depending on what the default C++ behavior for this type is.\n\t_FORCE_INLINE_ Error resize(Size p_size) {\n\t\treturn _cowdata.template resize<!std::is_trivially_constructible_v<T>>(p_size);\n\t}\n\n\t/// Resize and set new values to 0 / false / nullptr.\n\t/// This is only available for zero constructible types.\n\t_FORCE_INLINE_ Error resize_initialized(Size p_size) {\n\t\treturn _cowdata.template resize<true>(p_size);\n\t}\n"
+    },
+    {
+      "relative": "core/templates/vector.h",
+      "start": 322,
+      "end": 327,
+      "text": "\t_FORCE_INLINE_ Vector() {}\n\t_FORCE_INLINE_ Vector(std::initializer_list<T> p_init) :\n\t\t\t_cowdata(p_init) {}\n\t_FORCE_INLINE_ Vector(const Vector &p_from) = default;\n\t_FORCE_INLINE_ Vector(Vector &&p_from) = default;\n};"
+    },
+    {
+      "relative": "core/templates/cowdata.h",
+      "start": 218,
+      "end": 239,
+      "text": "\n\t_FORCE_INLINE_ CowData() {}\n\t_FORCE_INLINE_ ~CowData() { _unref(); }\n\t_FORCE_INLINE_ CowData(std::initializer_list<T> p_init);\n\t_FORCE_INLINE_ CowData(const CowData<T> &p_from) { _ref(p_from); }\n\t_FORCE_INLINE_ CowData(CowData<T> &&p_from) {\n\t\t_ptr = p_from._ptr;\n\t\tp_from._ptr = nullptr;\n\t}\n};\n\ntemplate <typename T>\nvoid CowData<T>::_unref() {\n\tif (!_ptr) {\n\t\treturn;\n\t}\n\n\tif (_get_refcount()->decrement() > 0) {\n\t\t// Data is still in use elsewhere.\n\t\t_ptr = nullptr;\n\t\treturn;\n\t}"
+    },
+    {
+      "relative": "core/math/vector3.h",
+      "start": 61,
+      "end": 77,
+      "text": "\t};\n\n\tunion {\n\t\t// NOLINTBEGIN(modernize-use-default-member-init)\n\t\tstruct {\n\t\t\treal_t x;\n\t\t\treal_t y;\n\t\t\treal_t z;\n\t\t};\n\n\t\treal_t coord[3] = { 0 };\n\t\t// NOLINTEND(modernize-use-default-member-init)\n\t};\n\n\t_FORCE_INLINE_ const real_t &operator[](int p_axis) const {\n\t\tDEV_ASSERT((unsigned int)p_axis < 3);\n\t\treturn coord[p_axis];"
+    },
+    {
+      "relative": "core/math/math_defs.h",
+      "start": 140,
+      "end": 148,
+      "text": " * in contrast to integer numbers. Precision can be controlled with the\n * presence or absence of the REAL_T_IS_DOUBLE define.\n */\n#ifdef REAL_T_IS_DOUBLE\ntypedef double real_t;\n#else\ntypedef float real_t;\n#endif\n"
+    },
+    {
+      "relative": "core/variant/variant.cpp",
+      "start": 1241,
+      "end": 1267,
+      "text": "\t\tcase PACKED_BYTE_ARRAY: {\n\t\t\t_data.packed_array = static_cast<PackedArrayRef<uint8_t> *>(p_variant._data.packed_array)->reference();\n\t\t\tif (!_data.packed_array) {\n\t\t\t\t_data.packed_array = PackedArrayRef<uint8_t>::create();\n\t\t\t}\n\t\t} break;\n\t\tcase PACKED_INT32_ARRAY: {\n\t\t\t_data.packed_array = static_cast<PackedArrayRef<int32_t> *>(p_variant._data.packed_array)->reference();\n\t\t\tif (!_data.packed_array) {\n\t\t\t\t_data.packed_array = PackedArrayRef<int32_t>::create();\n\t\t\t}\n\t\t} break;\n\t\tcase PACKED_INT64_ARRAY: {\n\t\t\t_data.packed_array = static_cast<PackedArrayRef<int64_t> *>(p_variant._data.packed_array)->reference();\n\t\t\tif (!_data.packed_array) {\n\t\t\t\t_data.packed_array = PackedArrayRef<int64_t>::create();\n\t\t\t}\n\t\t} break;\n\t\tcase PACKED_FLOAT32_ARRAY: {\n\t\t\t_data.packed_array = static_cast<PackedArrayRef<float> *>(p_variant._data.packed_array)->reference();\n\t\t\tif (!_data.packed_array) {\n\t\t\t\t_data.packed_array = PackedArrayRef<float>::create();\n\t\t\t}\n\t\t} break;\n\t\tcase PACKED_FLOAT64_ARRAY: {\n\t\t\t_data.packed_array = static_cast<PackedArrayRef<double> *>(p_variant._data.packed_array)->reference();\n\t\t\tif (!_data.packed_array) {"
+    },
+    {
+      "relative": "core/variant/variant.cpp",
+      "start": 2525,
+      "end": 2560,
+      "text": "Variant::Variant(const Dictionary &p_dictionary) :\n\t\ttype(DICTIONARY) {\n\tmemnew_placement(_data._mem, Dictionary(p_dictionary));\n\tstatic_assert(sizeof(Dictionary) <= sizeof(_data._mem));\n}\n\nVariant::Variant(std::initializer_list<Variant> p_init) :\n\t\ttype(ARRAY) {\n\tmemnew_placement(_data._mem, Array(p_init));\n}\n\nVariant::Variant(const Array &p_array) :\n\t\ttype(ARRAY) {\n\tmemnew_placement(_data._mem, Array(p_array));\n\tstatic_assert(sizeof(Array) <= sizeof(_data._mem));\n}\n\nVariant::Variant(const PackedByteArray &p_byte_array) :\n\t\ttype(PACKED_BYTE_ARRAY) {\n\t_data.packed_array = PackedArrayRef<uint8_t>::create(p_byte_array);\n}\n\nVariant::Variant(const PackedInt32Array &p_int32_array) :\n\t\ttype(PACKED_INT32_ARRAY) {\n\t_data.packed_array = PackedArrayRef<int32_t>::create(p_int32_array);\n}\n\nVariant::Variant(const PackedInt64Array &p_int64_array) :\n\t\ttype(PACKED_INT64_ARRAY) {\n\t_data.packed_array = PackedArrayRef<int64_t>::create(p_int64_array);\n}\n\nVariant::Variant(const PackedFloat32Array &p_float32_array) :\n\t\ttype(PACKED_FLOAT32_ARRAY) {\n\t_data.packed_array = PackedArrayRef<float>::create(p_float32_array);\n}"
+    },
+    {
+      "relative": "core/extension/gdextension.cpp",
+      "start": 98,
+      "end": 114,
+      "text": "#endif // DEBUG_ENABLED\n\n\tvirtual Variant call(Object *p_object, const Variant **p_args, int p_arg_count, Callable::CallError &r_error) const override {\n#ifdef TOOLS_ENABLED\n\t\tERR_FAIL_COND_V_MSG(!valid, Variant(), vformat(\"Cannot call invalid GDExtension method bind '%s'. It's probably cached - you may need to restart Godot.\", name));\n\t\tERR_FAIL_COND_V_MSG(p_object && p_object->is_extension_placeholder(), Variant(), vformat(\"Cannot call GDExtension method bind '%s' on placeholder instance.\", name));\n#endif\n\t\tVariant ret;\n\t\tGDExtensionClassInstancePtr extension_instance = is_static() ? nullptr : p_object->_get_extension_instance();\n\t\tGDExtensionCallError ce{ GDEXTENSION_CALL_OK, 0, 0 };\n\t\tcall_func(method_userdata, extension_instance, reinterpret_cast<GDExtensionConstVariantPtr *>(p_args), p_arg_count, (GDExtensionVariantPtr)&ret, &ce);\n\t\tr_error.error = Callable::CallError::Error(ce.error);\n\t\tr_error.argument = ce.argument;\n\t\tr_error.expected = ce.expected;\n\t\treturn ret;\n\t}\n\tvirtual void validated_call(Object *p_object, const Variant **p_args, Variant *r_ret) const override {"
+    },
+    {
+      "relative": "core/extension/gdextension.cpp",
+      "start": 195,
+      "end": 215,
+      "text": "#ifdef TOOLS_ENABLED\n\t\tname = *reinterpret_cast<StringName *>(p_method_info->name);\n#endif\n\t\tmethod_userdata = p_method_info->method_userdata;\n\t\tcall_func = p_method_info->call_func;\n\t\tvalidated_call_func = nullptr;\n\t\tptrcall_func = p_method_info->ptrcall_func;\n\t\tset_name(*reinterpret_cast<StringName *>(p_method_info->name));\n\n\t\tif (p_method_info->has_return_value) {\n\t\t\treturn_value_info = PropertyInfo(*p_method_info->return_value_info);\n\t\t\treturn_value_metadata = GodotTypeInfo::Metadata(p_method_info->return_value_metadata);\n\t\t}\n\n\t\targuments_info.clear();\n\t\targuments_metadata.clear();\n\t\tfor (uint32_t i = 0; i < p_method_info->argument_count; i++) {\n\t\t\targuments_info.push_back(PropertyInfo(p_method_info->arguments_info[i]));\n\t\t\targuments_metadata.push_back(GodotTypeInfo::Metadata(p_method_info->arguments_metadata[i]));\n\t\t}\n"
+    },
+    {
+      "relative": "core/core_bind.cpp",
+      "start": 1722,
+      "end": 1739,
+      "text": "Variant ClassDB::class_call_static(const Variant **p_arguments, int p_argcount, Callable::CallError &r_call_error) {\n\tif (p_argcount < 2) {\n\t\tr_call_error.error = Callable::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;\n\t\treturn Variant::NIL;\n\t}\n\tif (!p_arguments[0]->is_string() || !p_arguments[1]->is_string()) {\n\t\tr_call_error.error = Callable::CallError::CALL_ERROR_INVALID_ARGUMENT;\n\t\treturn Variant::NIL;\n\t}\n\tStringName class_ = *p_arguments[0];\n\tStringName method = *p_arguments[1];\n\tconst MethodBind *bind = ::ClassDB::get_method(class_, method);\n\tERR_FAIL_NULL_V_MSG(bind, Variant::NIL, \"Cannot find static method.\");\n\tERR_FAIL_COND_V_MSG(!bind->is_static(), Variant::NIL, \"Method is not static.\");\n\treturn bind->call(nullptr, p_arguments + 2, p_argcount - 2, r_call_error);\n}\n\nPackedStringArray ClassDB::class_get_integer_constant_list(const StringName &p_class, bool p_no_inheritance) const {"
+    }
+  ],
+  "findings": [
+    {
+      "area": "construction",
+      "result": "Variant-from-type and type-from-Variant use placement copy construction into caller-provided storage; raw source wrappers construct once and destroy once."
+    },
+    {
+      "area": "packed outputs",
+      "result": "Default constructor index0 constructs Vector<T>(); resize is a checked Error encoded through int64. Mutable index pointers address ptrw storage after successful resize; copied output Variant retains packed/COW ownership before local raw destruction."
+    },
+    {
+      "area": "packed inputs",
+      "result": "Type conversion constructs retained Vector<T> copies. Read-only pointers live through synchronous collection; matching destructors release only those temporary copies."
+    },
+    {
+      "area": "camera layout",
+      "result": "Single precision Vector3 is three real_t floats/12 bytes, aligned4; std::array<float,3> provides the same12 byte capacity/alignment. No size overrun is identified."
+    },
+    {
+      "area": "copy semantics",
+      "result": "Var has explicit Variant-copy construction; present uses are construction/return, not raw-array copy assignment. Non-elided return copies retain engine ownership."
+    },
+    {
+      "area": "return path",
+      "result": "ClassDB.class_call_static dispatches MethodBind::call; its ret is fresh NIL. Copy publication retains Dictionary/packed values independently of local out destruction. No pre-existing owned return resource is overwritten on this inspected path."
+    },
+    {
+      "area": "registration",
+      "result": "MethodBind update copies PropertyInfo/argument metadata, so temporary Name/hint buffers are not retained by address."
+    }
+  ],
+  "limitations": [
+    "Read-only ABI/source audit is not dynamic memory-sanitizer proof.",
+    "No direct typed/validated extension-call path is claimed; the adapter uses ClassDB.class_call_static.",
+    "Parent reported CDB crash localization to endpoint helper reference() name collision; that debugger conclusion is external to this independent source audit."
+  ]
+}

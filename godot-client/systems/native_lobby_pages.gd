@@ -53,11 +53,15 @@ func configure(painter,text,plan: Dictionary,source: Dictionary) -> void:
 func present(index: int,state: Dictionary,connection: int) -> void:
 	if closed or not failure.is_empty(): return
 	info.visible=index==1; players.visible=index==2
-	var signature:=JSON.stringify([connection,state.get("serverInfo",{}),state.get("endpoint",{}),text_owner.overrides])
-	if signature!=info_signature:
+	# Hidden pages have no display work. Text/table publication increments the
+	# owner's revision; do not serialize entire class/portrait tables per click.
+	if index not in [1,2]: return
+	var signature:=JSON.stringify([connection,state.get("serverInfo",{}),state.get("endpoint",{}),text_owner.revision]) if index==1 else ""
+	if index==1 and signature!=info_signature:
 		var endpoint: Dictionary=state.endpoint if state.get("endpoint") is Dictionary else {}
 		Text.set_text(info_text,Rich.parse(format_info(state.get("serverInfo",{}),endpoint))); info_scroll.scroll_vertical=0; info_signature=signature
-	signature=JSON.stringify([connection,state.get("players",[]),text_owner.tables.get("classes",{}),text_owner.tables.get("portraits",{}),text_owner.overrides])
+	if index!=2: return
+	signature=JSON.stringify([connection,state.get("players",[]),text_owner.revision])
 	if signature!=player_signature: rebuild_players(state.get("players",[])); player_signature=signature
 func format_info(data: Dictionary,endpoint: Dictionary) -> String:
 	var lines: Array=[]

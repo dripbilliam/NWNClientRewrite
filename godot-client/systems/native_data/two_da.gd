@@ -1,4 +1,5 @@
 extends RefCounted
+const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 var failure := ""
 func tokens(line: String) -> Array:
 	# Most table rows have no quoted fields. Split those in engine code rather
@@ -22,6 +23,12 @@ func tokens(line: String) -> Array:
 		result.append(value)
 	return result
 func parse(text: String) -> Dictionary:
+	if not Backend.two_da_available(): return parse_reference(text)
+	failure=""
+	var result:=Backend.two_da(text)
+	if result.has("error"): failure=str(result.error); return {}
+	return result
+func parse_reference(text: String) -> Dictionary:
 	failure = ""
 	var lines: Array = []
 	for source in text.replace("\r", "").split("\n"):

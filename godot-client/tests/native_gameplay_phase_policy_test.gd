@@ -47,5 +47,16 @@ func run() -> void:
 	check(not gameplay_presentation_allowed(),"A retired world cannot retain a gameplay canvas")
 	for node in [loading_screen,gameplay_ui,character_lobby]: node.free()
 	loading_screen=null; gameplay_ui=null; character_lobby=null
+	# Client Options must share the gameplay layout file, not rendering options.
+	# This route also needs to work before any world/chat owner exists.
+	var chat_options=preload("res://systems/native_chat_options.gd")
+	var preferences=preload("res://systems/native_data/chat_preferences.gd")
+	args={"menu-layout":output+".layout.cfg"}; var saved: Dictionary=preferences.DEFAULTS.duplicate(); saved.width=640; preferences.save_settings(args["menu-layout"],saved)
+	host=Node3D.new(); root.add_child(host); open_chat_settings()
+	var window=chat_options.acquire(root,args["menu-layout"])
+	check(window.visible and window.settings_path==args["menu-layout"] and window.fields.width.value==640,"Actual pregame session route opens the same persisted chat layout used by gameplay")
+	window.fields.width.value=680; window.hide(); open_chat_settings()
+	check(window.visible and window.fields.width.value==680 and preferences.load_settings(args["menu-layout"]).width==680,"Actual session reopen retains chat settings without a live world")
+	window.get_parent().queue_free(); host.queue_free(); host=null
 	await process_frame
 	var file:=FileAccess.open(output,FileAccess.WRITE); file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"publicConnections":0,"fullUiParity":false,"scope":"Actual native session/base gameplay reveal predicates with authored readiness/loading/lobby owners; no world rendering, protocol peer or physical input."},"  ")+"\n"); file.close(); quit(0 if failures.is_empty() else 1)

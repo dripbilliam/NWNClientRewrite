@@ -15,10 +15,12 @@ func open_item(value: Dictionary) -> void:
 	cancel(); selection=value.duplicate(true)
 	if balance()<=1: return
 	context=current_context(); maximum=balance(); number.text="1"; modal.position=(get_viewport_rect().size-modal.size)*0.5; modal.show(); modal.move_to_front(); number.grab_focus(); number.select_all(); set_process(true); stats.opened+=1
+	# Verified original OPEN9a8660 ->9aa2f0 ->modal activation, callback9a6aa0.
+	modal_lease.activate(context)
 func confirm() -> void:
-	if closed or not is_instance_valid(modal) or not modal.visible: return
+	if closed or not is_instance_valid(modal) or not modal.visible or not modal_lease.admits(): return
 	var amount:=Amount.confirmed(number.text,maximum)
 	if context!=current_context() or amount>balance(): stats.stale+=1; cancel(); return
-	modal.hide(); repeat_step=0; repeat_button=null; repeat_elapsed=0; repeat_initial=true; number.release_focus(); set_process(false)
+	modal_lease.retire();modal.hide(); repeat_step=0; repeat_button=null; repeat_elapsed=0; repeat_initial=true; number.release_focus(); set_process(false)
 	if amount<=0: return
 	var message: Dictionary=selection.duplicate(true); message.kind="inventory-action"; message.operation="split"; message.amount=amount; owner_inventory.input_request(message)

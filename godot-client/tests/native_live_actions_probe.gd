@@ -10,6 +10,7 @@ var failures: Array=[]
 var finished:=false
 var transfer_source:=0
 var transfer_destination:=1
+var hud_probe=preload("res://tests/native_live_hud_probe.gd").new()
 func check(value: bool,label: String,details: Dictionary={}) -> bool:
 	var row:={"passed":value,"label":label,"details":details}; checks.append(row)
 	if not value: failures.append(label)
@@ -168,7 +169,7 @@ func journal_check() -> void:
 	if not await wait_for(func():return dialogue_history("NATIVE_JOURNAL_ACK_0"),"The real journal removal script supplies server chat feedback"): return
 	desktop.journal.close_button.pressed.emit(); check(not desktop.journal.visible and not desktop.journal.wanted,"Original journal close control closes the actual local gameplay window")
 func dialogue_history(value: String) -> bool:
-	return ui.chat.system_messages.get_parsed_text().contains(value)
+	return ui.chat.rows.any(func(row):return bool(row.get("system",false)) and str(row.get("text","")).contains(value))
 func known_count(spell: int) -> int:
 	var ids: Array=current().get("playerState",{}).get("spellbooks",{}).get("0",{}).get("known",[])
 	return ids.filter(func(value):return int(value)==spell).size()
@@ -181,27 +182,29 @@ func scroll_item(spell: int) -> int:
 func scroll_feedback_text(spell: int) -> String:
 	var saved: Dictionary=ui.text.custom_tokens.duplicate(); ui.text.custom_tokens[0]=desktop.rules.title("spells",spell)
 	var value: String=ui.text.resolve({"strRef":53307},2130706432); ui.text.custom_tokens=saved; return value
+func chat_since(sequence: int) -> Array:
+	return ui.chat.rows.filter(func(row):return int(row.get("chat_sequence",0))>sequence)
 func recent_feedback(start: int,text: String) -> bool:
-	return ui.chat.rows.slice(start).any(func(row):return row.get("category","")=="combat-feedback" and row.get("text","")==text)
+	return chat_since(start).any(func(row):return row.get("category","")=="combat-feedback" and row.get("text","")==text)
 func scroll_learning_check() -> bool:
 	if not check(known_count(50)==0 and known_count(321)==0,"Unmodified sample wizard does not already know the two original fixture scrolls"): return false
 	ui.chat.submit("-native-scroll-setup")
 	if not await wait_for(func():return dialogue_history("GODOT_SCROLL_ITEMS_READY") and scroll_item(50)>=0 and scroll_item(321)>=0,"Original server creates both installed scrolls through its real script/API"): return false
 	var first:=scroll_item(50); var last:=scroll_item(321); var menu=ui.inventory.item_context
 	if not check(stack(first)==2 and stack(last)==1,"Received original scroll stack sizes match the authored acquisition"): return false
-	var chat_start: int=ui.chat.rows.size(); var acknowledgements: int=ui.inventory.stats.get("learn_acks",0)
+	var chat_start: int=ui.chat.sequence; var acknowledgements: int=ui.inventory.stats.get("learn_acks",0)
 	ui.inventory.item_menu(first,Vector2(650,350))
 	if not check(menu.entries.has(5) and menu.entries[5].action=="learn" and not menu.entries[5].disabled,"Actual scroll wheel exposes Learn from the active class rules at native slot5"): return false
 	menu.wheel.choose(5)
 	if not check(known_count(50)==0 and stack(first)==2 and ui.inventory.pending.has(first),"Clicking Learn reserves pending without granting a spell or consuming a scroll"): return false
 	if not await wait_for(func():return known_count(50)==1 and stack(first)==1 and not ui.inventory.pending.has(first) and int(ui.inventory.stats.get("learn_acks",0))>acknowledgements and recent_feedback(chat_start,scroll_feedback_text(50)),"Original server learning updates known spells, stack, ACK and native success feedback"):
-		checks[-1].details={"known":current().get("playerState",{}).get("spellbooks",{}),"stack":stack(first),"pending":ui.inventory.pending.get(first),"acks":ui.inventory.stats.get("learn_acks",0),"expectedFeedback":scroll_feedback_text(50),"chat":ui.chat.rows.slice(chat_start)}; return false
+		checks[-1].details={"known":current().get("playerState",{}).get("spellbooks",{}),"stack":stack(first),"pending":ui.inventory.pending.get(first),"acks":ui.inventory.stats.get("learn_acks",0),"expectedFeedback":scroll_feedback_text(50),"chat":chat_since(chat_start)}; return false
 	if not await wait_for(func():return ui.inventory.views.get(first,{}).get("row",{}).get("stack",-1)==1 and not ui.inventory.views.get(first,{}).get("row",{}).get("pending",true),"Native inventory publishes the received learned-scroll count before its next interaction"): return false
-	chat_start=ui.chat.rows.size(); acknowledgements=int(ui.inventory.stats.get("learn_acks",0)); ui.inventory.item_menu(first,Vector2(650,350)); menu.wheel.choose(5)
+	chat_start=ui.chat.sequence; acknowledgements=int(ui.inventory.stats.get("learn_acks",0)); ui.inventory.item_menu(first,Vector2(650,350)); menu.wheel.choose(5)
 	if not await wait_for(func():return int(ui.inventory.stats.get("learn_acks",0))>acknowledgements and not ui.inventory.pending.has(first) and recent_feedback(chat_start,ui.text.raw({"strRef":53308})),"Original server duplicate refusal is visible and its ACK releases the native pending state"):
-		checks[-1].details={"acks":ui.inventory.stats.get("learn_acks",0),"pending":ui.inventory.pending.get(first),"wheel":menu.snapshot(),"chat":ui.chat.rows.slice(chat_start)}; return false
+		checks[-1].details={"acks":ui.inventory.stats.get("learn_acks",0),"pending":ui.inventory.pending.get(first),"wheel":menu.snapshot(),"chat":chat_since(chat_start)}; return false
 	if not check(known_count(50)==1 and stack(first)==1,"Refused duplicate learning preserves the received scroll and exactly one known spell"): return false
-	chat_start=ui.chat.rows.size(); ui.inventory.item_menu(last,Vector2(650,350)); menu.wheel.choose(5)
+	chat_start=ui.chat.sequence; ui.inventory.item_menu(last,Vector2(650,350)); menu.wheel.choose(5)
 	if not await wait_for(func():return known_count(321)==1 and not ui.inventory.views.has(last) and not ui.inventory.pending.has(last) and recent_feedback(chat_start,scroll_feedback_text(321)),"Original server consumes the final scroll, removes its UI cell and teaches its spell family"): return false
 	if not desktop.book.wanted: desktop.book.open()
 	desktop.book.query({"classIndex":0,"level":1,"metamagic":0})
@@ -342,6 +345,12 @@ func run(owner) -> void:
 	if not ui.inventory.ui.wanted: ui.inventory.ui.open()
 	if not desktop.sheet.wanted: desktop.sheet.open()
 	if not await wait_for(func():return ui.inventory.views.size()>0 and current().get("inventoryStats",{}).has("fields70"),"Inventory and record receive authoritative data"): complete(); return
+	if session.args.get("actions-quickbar-check","")=="true":await preload("res://tests/native_live_quickbar_probe.gd").new().run(self);complete();return
+	if session.args.get("actions-polymorph-check","")=="true":await preload("res://tests/native_live_polymorph_probe.gd").new().run(self);complete();return
+	if session.args.get("actions-world-radial-check","")=="true":await preload("res://tests/native_live_world_radial_probe.gd").new().run(self);complete();return
+	if session.args.get("actions-combat-presentation-check","")=="true":await preload("res://tests/native_live_combat_presentation_probe.gd").new().run(self);complete();return
+	if session.args.get("actions-npc-combat-check","")=="true":await preload("res://tests/native_live_npc_combat_probe.gd").new().run(self);complete();return
+	if session.args.get("actions-associate-record-check","")=="true":await preload("res://tests/native_live_associate_record_probe.gd").new().run(self);complete();return
 	if session.args.get("actions-nui-check","")=="true": await nui_check(); complete(); return
 	if session.args.get("actions-radial-check","")=="true": await radial_check(); complete(); return
 	if session.args.get("actions-feat-check","")=="true": await feat_family_check(); complete(); return
@@ -379,7 +388,7 @@ func run(owner) -> void:
 		if not original_potions.has(int(id)) and int(item(int(id)).get("baseItem",-1))==49 and channel(int(id))=="R": split_id=int(id)
 	if not check(split_id>=0 and stack(split_id)==1 and stack(split_id)+stack(potion)==before_split,"Server creates a separate potion item and conserves total stack count"): complete(); return
 	var acknowledgements:=int(ui.inventory.stats.get("learn_acks",0)); var preserved:=stack(potion)
-	var refusal_chat: int=ui.chat.rows.size()
+	var refusal_chat: int=ui.chat.sequence
 	ui.inventory.input_request({"kind":"inventory-action","viewId":ui.inventory.view_serial,"entryId":potion,"operation":"learn"})
 	if not await wait_for(func():return int(ui.inventory.stats.get("learn_acks",0))>acknowledgements and not ui.inventory.pending.has(potion) and not ui.inventory.views.get(potion,{}).get("row",{}).get("pending",true),"Original server learn reply releases pending even for a non-scroll refusal"): complete(); return
 	check(stack(potion)==preserved,"Learn acknowledgement does not fabricate success or consume a refused non-scroll")
@@ -587,27 +596,89 @@ func players_protocol_check() -> void:
 	barter_peer_command("party-accept")
 	if not await wait_for(func():return has_party_member(partner) and peer_has_party_member(remote_main),"Actual Accept joins both original-server party lists"): return
 	if not await wait_for(func():return party_flags().get("leader",false) and not session.test_barter_peer.get("partyState",{}).get("leader",true),"Server creature flags identify the original inviter as group leader"): return
+	if not await hud_probe.run(self,partner): return
 	await party_command("transfer",partner)
 	if not await wait_for(func():return not party_flags().get("leader",true) and session.test_barter_peer.get("partyState",{}).get("leader",false),"Native transfer request changes leadership through original-server replication"): return
+	if not await hud_probe.leader(partner): return
 	barter_peer_command("party-kick")
 	if not await wait_for(func():return not has_party_member(partner) and not peer_has_party_member(remote_main),"The new leader can actually remove the other participant through the original server"): return
+	if not await hud_probe.separated(): return
 	await party_command("invite",partner)
 	if not await wait_for(func():return session.test_barter_peer.get("partyState",{}).get("field7DC",false),"Split groups can receive another actual invitation"): return
 	barter_peer_command("party-accept")
 	if not await wait_for(func():return has_party_member(partner) and peer_has_party_member(remote_main),"Both real peers rejoin through their original party lists"): return
 	await party_command("leave")
 	if not await wait_for(func():return not has_party_member(partner) and not peer_has_party_member(remote_main),"Native Leave splits the group through the original server without a predicted membership edit"): return
+	# Ignore is intentionally last: the original server retains that choice for
+	# this participant. Do not expect a fresh invitation from an ignored peer.
+	await chat_live_check(partner,remote_main)
+	if not failures.is_empty(): return
 	barter_peer_command("party-invite")
 	if not await wait_for(func():return party_flags().get("field7DC",false),"The main client receives a peer-initiated original invitation"): return
 	await party_command("ignore")
 	if not await wait_for(func():return not party_flags().get("field7DC",true),"Native Ignore reaches the original server and retires the pending invitation"): return
 	if not check(not has_party_member(partner) and not peer_has_party_member(remote_main),"Ignoring an invitation never fabricates group membership"): return
 	var revision:=int(desktop.state.get("partyListRevision",0)); await party_command("list")
-	await wait_for(func():return int(desktop.state.get("partyListRevision",0))>revision,"Explicit native list refresh receives a new original-server party list")
+	if not await wait_for(func():return int(desktop.state.get("partyListRevision",0))>revision,"Explicit native list refresh receives a new original-server party list"): return
+func peer_chat(text: String,channel: int) -> bool:
+	return session.test_barter_peer.get("chat",[]).any(func(row):return int(row.get("channel",-1))==channel and row.get("text","")==text)
+func received_chat(text: String,channel: int) -> Dictionary:
+	for row in ui.chat.rows:
+		if int(row.get("channel",-1))==channel and row.get("text","")==text: return row
+	return {}
+func chat_enter(value: String) -> void:
+	ui.chat.entry.text=value; ui.chat.entry.grab_focus(); await get_tree().process_frame
+	await inject_key(KEY_ENTER); await inject_key(KEY_ENTER,false)
+func chat_live_check(partner: int,remote_main: int) -> void:
+	var player_id:=-1; var player: Dictionary={}
+	for pair in desktop.state.get("players",[]):
+		if str(pair[1].get("name",""))=="NativeBarterPartner": player_id=int(pair[0]); player=pair[1]; break
+	if not check(player_id>=0,"Actual player roster supplies the owned chat recipient"): return
+	var name:=preload("res://systems/native_data/chat_reply.gd").character_name(player,ui.text)
+	if not check(not name.is_empty(),"Active native text resolves the remote full character name",{"name":name}): return
+	desktop.players.close_players(); ui.chat_skin.select_mode(2)
+	await chat_enter('/tp "NativeBarterPartner" NATIVE_CHAT_ACCOUNT_TELL')
+	if not await wait_for(func():return peer_chat("NATIVE_CHAT_ACCOUNT_TELL",4),"Actual native Enter delivers account Tell through the original server to its intended peer"): return
+	await chat_enter('/t "'+name+'" NATIVE_CHAT_CHARACTER_TELL')
+	if not await wait_for(func():return peer_chat("NATIVE_CHAT_CHARACTER_TELL",4),"Full character-name Tell resolves to the recipient acknowledged by the original server"): return
+	await chat_enter('/NATIVE_CHAT_CUSTOM')
+	if not await wait_for(func():return peer_chat("/NATIVE_CHAT_CUSTOM",1),"Unknown slash command reaches the original server and retains its literal Talk text"): return
+	barter_peer_command("chat",{"channel":4,"text":"NATIVE_CHAT_REPLY_SOURCE"})
+	if not await wait_for(func():return not received_chat("NATIVE_CHAT_REPLY_SOURCE",4).is_empty(),"Remote Tell arrives through original-server speech into native received history"): return
+	var row:=received_chat("NATIVE_CHAT_REPLY_SOURCE",4); var serial:=int(row.chat_sequence)
+	if not await wait_for(func():return ui.chat_skin.panes[0].replies.has(serial),"Received peer Tell owns a source portrait reply button"): return
+	ui.chat_skin.heights[0]=250; ui.chat_skin.expanded[0]=250; ui.chat_skin.place(); ui.chat_skin.jump_latest()
+	await get_tree().process_frame; await get_tree().process_frame
+	var button: Button=ui.chat_skin.panes[0].replies[serial].button; var point:=button.get_global_rect().get_center(); var start: int=ui.chat.sequence
+	var motion:=InputEventMouseMotion.new(); motion.position=point; motion.global_position=point; get_viewport().push_input(motion,true)
+	for down in [true,false]:
+		var click:=InputEventMouseButton.new(); click.position=point; click.global_position=point; click.button_index=MOUSE_BUTTON_LEFT; click.pressed=down; click.button_mask=MOUSE_BUTTON_MASK_LEFT if down else 0; get_viewport().push_input(click,true); await get_tree().process_frame
+	if not await wait_for(func():return chat_since(start).any(func(item):return str(item.get("text","")).contains("NATIVE_PLAYERS_GUI_TYPE:27")) and chat_since(start).any(func(item):return str(item.get("text","")).contains("NATIVE_PLAYERS_GUI_TARGET:NativeBarterPartner")),"Real native portrait mouse input reaches server GUI27 and the intended player target"):
+		var live_reply=ui.chat_skin.panes[0].replies.get(serial,{}).get("button")
+		var hovered: Control=get_viewport().gui_get_hovered_control()
+		check(false,"Retain actual portrait-reply hit and feedback before teardown",{"requested":str(point),"pointer":str(get_viewport().get_mouse_position()),"reply_present":is_instance_valid(live_reply),"reply_rect":str(live_reply.get_global_rect()) if is_instance_valid(live_reply) else "retired","hovered":str(hovered.get_path()) if is_instance_valid(hovered) else "none","entry":ui.chat.entry.text,"focused":ui.chat.entry.has_focus(),"targeting":not desktop.target.is_empty(),"queue":current().get("playerState",{}).get("actionQueue",[]),"start_sequence":start,"current_sequence":ui.chat.sequence,"retained":ui.chat.rows.size(),"feedback":ui.chat.rows.slice(-12).map(func(value):return {"category":value.get("category",""),"text":str(value.get("text",""))})})
+		return
+	if not check(ui.chat.entry.text=='/tp "NativeBarterPartner" ' and ui.chat.entry.has_focus(),"Actual portrait reply primes the correct account entry"): return
+	ui.chat.entry.text+="NATIVE_CHAT_REPLY_TELL"; await inject_key(KEY_ENTER); await inject_key(KEY_ENTER,false)
+	if not await wait_for(func():return peer_chat("NATIVE_CHAT_REPLY_TELL",4),"Click-to-reply Tell is delivered by the original server to the other real client"): return
+	await chat_enter('/invite '+name)
+	if not await wait_for(func():return session.test_barter_peer.get("partyState",{}).get("field7DC",false),"Typed native Invite creates the original server invitation"): return
+	barter_peer_command("party-accept")
+	if not await wait_for(func():return has_party_member(partner) and peer_has_party_member(remote_main),"Original server joins both lists after the typed invitation"): return
+	await chat_enter('/p NATIVE_CHAT_PARTY')
+	if not await wait_for(func():return peer_chat("NATIVE_CHAT_PARTY",6),"Native party chat reaches the joined original-server participant"): return
+	await party_command("leave")
+	if not await wait_for(func():return not has_party_member(partner) and not peer_has_party_member(remote_main),"Real server Leave separates groups before chat acceptance test"): return
+	barter_peer_command("party-invite")
+	if not await wait_for(func():return party_flags().get("field7DC",false),"Other original client supplies an actual pending invitation before typed Accept"): return
+	await chat_enter('/accept')
+	if not await wait_for(func():return has_party_member(partner) and peer_has_party_member(remote_main),"Typed native Accept sentinel joins the original server group without local prediction"): return
+	await party_command("leave")
+	await wait_for(func():return not has_party_member(partner) and not peer_has_party_member(remote_main),"Owned chat/party acceptance leaves both real participants cleanly separated")
 func players_frame_check(partner: int) -> bool:
 	if not desktop.players.wanted: desktop.panel("pvp")
 	var skin=desktop.players_frame
-	if not await wait_for(func():return skin.layout_ready and skin.popup.layout_ready and skin.failure.is_empty() and skin.jobs.is_empty() and skin.bar.art_ready and skin.cards.size()==1,"Live original player frame, source controls and remote player row publish",30): return false
+	if not await wait_for(func():return ui.chat_skin.layout_ready and skin.layout_ready and skin.popup.layout_ready and skin.failure.is_empty() and skin.jobs.is_empty() and (DisplayServer.get_name()=="headless" or skin.bar.art_ready) and skin.cards.size()==1,"Live original player layout, source controls and remote player row publish (headless skips pixel readiness)",30): return false
 	var player_id:=int(desktop.players.rows[0].playerId); skin.cards[player_id].button.pressed.emit()
 	if not await wait_for(func():return dialogue_history("NATIVE_PLAYERS_GUI_TYPE:12") and dialogue_history("NATIVE_PLAYERS_GUI_TARGET:NativeBarterPartner"),"Native player selection reaches the original server GUI event12 and correct remote account"): return false
 	if not await wait_for(func():return skin.pending.is_empty(),"Selection send releases its actual native pending owner"): return false
@@ -625,7 +696,8 @@ func players_frame_check(partner: int) -> bool:
 	if not await wait_for(func():return desktop.players.rows[0].ownLikes==1 and desktop.players.rows[0].incomingLikes==0,"Restoring local Like preserves the independently received remote Dislike"): return false
 	barter_peer_command("attitude",true)
 	if not await wait_for(func():return desktop.players.rows[0].incomingLikes==1 and skin.pending.is_empty(),"Both real players restore their independent server-owned attitudes"): return false
-	await RenderingServer.frame_post_draw; get_viewport().get_texture().get_image().save_png(session.args.report.trim_suffix(".json")+"-players.png")
+	if DisplayServer.get_name()!="headless":
+		await RenderingServer.frame_post_draw; get_viewport().get_texture().get_image().save_png(session.args.report.trim_suffix(".json")+"-players.png")
 	return check(skin.cards[player_id].button.size.distance_to(Vector2(335,29))<0.01 and desktop.players.rows[0].objectId==partner,"Actual local multiplayer preserves the original player-row proportions and received target")
 func barter_check() -> void:
 	barter_peer_command("start-peer")
@@ -733,8 +805,12 @@ func find_control(operation: String,value: Variant=null) -> int:
 		var c: Dictionary=desktop.level_owner.controls[id]
 		if str(c.operation)==operation and (value==null or c.value==value): return int(id)
 	return -1
+func particle_visual_tables_ready() -> bool:
+	var tables: Dictionary=session.world.effects.tables
+	return ["visualeffects","progfx","appearance"].all(func(name):return not tables.get(name,{}).get("orderedRows",[]).is_empty())
 func heal_profile_window(label: String,seconds: float) -> Dictionary:
 	var profiler=session.frame_profile; var rows: Array=[]; var resources: Dictionary={}; var peaks:={"active":0,"vertices":0,"models":0}
+	var process_window:={"pid":OS.get_process_id(),"start_unix_ms":int(Time.get_unix_time_from_system()*1000.0)}
 	var deadline:=Time.get_ticks_msec()+int(seconds*1000)
 	while Time.get_ticks_msec()<deadline:
 		await get_tree().process_frame
@@ -743,8 +819,14 @@ func heal_profile_window(label: String,seconds: float) -> Dictionary:
 			var model=row.model
 			if is_instance_valid(model): resources[str(model.bundle_data.get("resource_name",model.bundle_data.get("value",{}).get("name","")))]=true
 		peaks.models=maxi(peaks.models,session.world.effects.models.size())
-		peaks.active=maxi(peaks.active,int(session.world.particle_metrics.sums[1])); peaks.vertices=maxi(peaks.vertices,int(session.world.particle_metrics.sums[2]))
-	return {"label":label,"particles":session.particle_visibility.enabled,"collision":session.particle_visibility.collision_enabled,"native_scene":session.world.static_collision_index.native_queries_enabled,"direct_scene":session.world.direct_particle_collision_enabled,"frames":rows,"resources":resources.keys(),"peaks":peaks,"particle_state":session.world.particle_metrics.snapshot()}
+		var metrics=session.world.particle_metrics
+		if metrics.native_counters!=null:
+			var totals: PackedInt64Array=metrics.native_counters.call("snapshot")
+			peaks.active=maxi(peaks.active,int(totals[1])); peaks.vertices=maxi(peaks.vertices,int(totals[2]))
+		else:
+			peaks.active=maxi(peaks.active,int(metrics.sums[1])); peaks.vertices=maxi(peaks.vertices,int(metrics.sums[2]))
+	process_window.end_unix_ms=int(Time.get_unix_time_from_system()*1000.0)
+	return {"label":label,"process_window":process_window,"particles":session.particle_visibility.enabled,"collision":session.particle_visibility.collision_enabled,"native_scene":session.world.static_collision_index.native_queries_enabled,"direct_scene":session.world.direct_particle_collision_enabled,"frames":rows,"resources":resources.keys(),"peaks":peaks,"particle_state":session.world.particle_metrics.snapshot()}
 func heal_profile_summary(rows: Array) -> Dictionary:
 	var fields: Dictionary={}; var metrics: Dictionary={}
 	for row in rows:
@@ -759,7 +841,7 @@ func heal_profile_summary(rows: Array) -> Dictionary:
 	return metrics
 func heal_profile_check() -> void:
 	var owner=session.world.effects
-	if not await wait_for(func():return owner.tables.size()==3,"Original visual tables ready for Heal profiling"): return
+	if not await wait_for(particle_visual_tables_ready,"Original visual tables ready for Heal profiling"): return
 	var captures: Array=[await heal_profile_window("Heal idle baseline",1.0)]
 	for attempt in 4:
 		session.particle_visibility.set_enabled(attempt!=3)
@@ -780,19 +862,70 @@ func save_heal_profile_captures(captures: Array,prefix: String="heal") -> void:
 		file.store_string(JSON.stringify(rows)); file.close(); capture.erase("frames")
 		capture.metrics=heal_profile_summary(rows); capture.frame_count=rows.size(); capture.raw_frames=path; capture.first_frames=rows.slice(0,12)
 		rows.sort_custom(func(a,b):return float(a.wall_ms)>float(b.wall_ms)); capture.worst_frames=rows.slice(0,12)
+		# Retain detailed frame examples on disk instead of duplicating them into
+		# every progress packet and the final aggregate command (which is bounded).
+		var evidence_path:=path.trim_suffix(".frames.json")+".summary.json"
+		var evidence:=FileAccess.open(evidence_path,FileAccess.WRITE)
+		if not check(evidence!=null,"Particle detailed timing evidence can be saved"): return
+		evidence.store_string(JSON.stringify(capture)); evidence.close()
+		capture.erase("first_frames"); capture.erase("worst_frames"); capture.detailed_evidence=evidence_path
 		check(not rows.is_empty(),str(capture.label),capture)
+func particle_crowd_camera_check(captures: Array) -> void:
+	if not await wait_for(func():return session.world.point_wind.point_count==0,"Point impulses expire before ambient culling comparison",10): return
+	var wind_emitters: Array=[]
+	for weak in session.particle_visibility.emitters.values():
+		var emitter=weak.get_ref()
+		if is_instance_valid(emitter) and int(emitter.original_properties.get("flags",0))&4:
+			wind_emitters.append({"emitter":emitter,"culling":emitter.frustum_enabled})
+	if not check(not wind_emitters.is_empty(),"Real crowd has wind emitters for admission comparison"): return
+	# A separate current camera leaves authoritative player/follow state intact.
+	var far:=Camera3D.new(); session.camera.get_parent().add_child(far)
+	far.global_transform=session.camera.global_transform; far.global_position+=Vector3(10000,0,0); far.make_current()
+	await get_tree().create_timer(0.5).timeout
+	for stage in 4:
+		var legacy:=stage in [0,3]
+		for row in wind_emitters:
+			if is_instance_valid(row.emitter): row.emitter.frustum_enabled=false if legacy else bool(row.culling)
+		var before: Dictionary=session.world.point_wind.native_owner.call("dispatch",7,{})
+		var capture:=await heal_profile_window("Crowd offscreen wind "+("legacy" if legacy else "bounded")+" "+str(stage),2.0)
+		var after: Dictionary=session.world.point_wind.native_owner.call("dispatch",7,{})
+		capture.wind_queries=int(after.queries)-int(before.queries); capture.legacy_wind_admission=legacy; capture.wind_emitters=wind_emitters.size()
+		captures.append(capture)
+		check(int(capture.wind_queries)>0 if legacy else int(capture.wind_queries)==0,"Offscreen ambient admission "+("retains legacy queries" if legacy else "omits all wind queries"),{"queries":capture.wind_queries,"wind_emitters":wind_emitters.size()})
+	for row in wind_emitters:
+		if is_instance_valid(row.emitter): row.emitter.frustum_enabled=bool(row.culling)
+	session.camera.make_current(); far.queue_free(); await get_tree().process_frame
+	check(get_viewport().get_camera_3d()==session.camera,"Crowd admission comparison restores the actual gameplay camera")
 func particle_crowd_profile_check() -> void:
 	var owner=session.world.effects; var actors: Array=[]
 	if not await wait_for(func():
 		actors.clear()
 		for id in desktop.objects:
 			if int(desktop.objects[id].get("objectType",0))==5 and ui.text.name(null,int(id)).begins_with("Particle Test "): actors.append(int(id))
-		return actors.size()==12 and actors.all(func(id):return session.world.instances.has(id)) and session.world.batches.is_empty() and session.world.terrain.done and owner.tables.size()==3,"Twelve original-server crowd actors and the room are rendered",45): return
+		return actors.size()==12 and actors.all(func(id):return session.world.instances.has(id)) and session.world.batches.is_empty() and session.world.terrain.done and particle_visual_tables_ready(),"Twelve original-server crowd actors and the room are rendered",45):
+		var observed: Array=[]
+		for id in desktop.objects:
+			if int(desktop.objects[id].get("objectType",0))==5: observed.append({"id":id,"name":ui.text.name(null,int(id)),"received_name":desktop.objects[id].get("replicated",{}).get("name",{}),"rendered":session.world.instances.has(id)})
+		check(false,"Particle benchmark admission diagnostics",{"actors":observed,"matched":actors.size(),"batches":session.world.batches.size(),"terrain_done":session.world.terrain.done,"visual_tables":owner.tables.keys()}); return
 	var visible:=0
 	for id in actors:
 		var point: Vector3=session.world.instances[id].global_position
 		if not session.camera.is_position_behind(point) and get_viewport().get_visible_rect().has_point(session.camera.unproject_position(point)): visible+=1
 	check(visible>=8,"Crowd timing includes visible characters",{"visible":visible,"actors":actors.size(),"world_instances":session.world.instances.size()})
+	ui.chat.submit("-native-wind")
+	if not await wait_for(func():return dialogue_history("GODOT_PARTICLE_WIND_2") and session.world.point_wind.parameters.get("wind",[])==[2.0,0.0,0.0],"Original server SetAreaWind updates the admitted native scene through its real packet"):
+		checks[-1].details={"parameters":session.world.point_wind.parameters,"ack":dialogue_history("GODOT_PARTICLE_WIND_2")}; return
+	check(session.world.point_wind.parameters.deviation>1.7 and session.world.point_wind.parameters.pitch>0.05,"Received native wind yaw and pitch retain their original renderer conversion")
+	ui.chat.submit("-native-wind-clear")
+	if not await wait_for(func():return dialogue_history("GODOT_PARTICLE_WIND_0") and session.world.point_wind.parameters.get("wind",[])==[0.0,0.0,0.0],"Original server restores zero wind before the matched Heal timing windows"): return
+	var emitter_inventory: Array=[]
+	for weak in session.particle_visibility.emitters.values():
+		var emitter=weak.get_ref()
+		if is_instance_valid(emitter): emitter_inventory.append({"node":str(emitter.get_path()),"source":emitter.origin_resource,"properties":emitter.original_properties,"backend":emitter.snapshot().backend,"compact_records":emitter.native_compact_records,"typed_emitter":emitter.native_typed_frame,"phase_collection_batch":emitter.batched_phase_collection,"native_counters":emitter.metrics_owner.native_counters!=null,"instance_streams":emitter.native_instance_streams,"upload_backend":emitter.surface.upload_backend() if emitter.surface.has_method("upload_backend") else "arrays","failure":emitter.failure})
+	var inventory_path:=str(session.args.report).trim_suffix(".json")+"-emitter-inventory.json"
+	var inventory:=FileAccess.open(inventory_path,FileAccess.WRITE)
+	if not check(inventory!=null,"Particle emitter admission inventory can be saved"): return
+	inventory.store_string(JSON.stringify(emitter_inventory)); inventory.close()
 	var prior_collision: bool=session.render_settings.particle_collision_enabled
 	session.render_settings.particle_collision_toggle.button_pressed=true
 	var captures: Array=[await heal_profile_window("Crowd idle baseline",2.0)]
@@ -810,6 +943,7 @@ func particle_crowd_profile_check() -> void:
 	session.render_settings.particle_collision_toggle.button_pressed=prior_collision
 	session.world.static_collision_index.native_queries_enabled=true; session.world.terrain.collision_index.native_queries_enabled=true
 	session.world.direct_particle_collision_enabled=true
+	await particle_crowd_camera_check(captures)
 	# Pixel inspection is outside all performance windows.
 	session.particle_visibility.set_enabled(true); ui.chat.submit("-native-heal12")
 	var healing:=func():return owner.models.values().filter(func(row):return is_instance_valid(row.model) and str(row.model.bundle_data.get("resource_name",row.model.bundle_data.get("value",{}).get("name","")))=="vim_heal01").map(func(row):return row.model)
@@ -829,10 +963,67 @@ func particle_crowd_profile_check() -> void:
 	check(pixels>20,"Crowd Heal effects change actual viewport pixels",{"changed_samples":pixels,"model_count":models.size()})
 	await wait_for(func():return not owner.entries.values().any(func(entry):return int(entry.visual)==69),"Inspected crowd Heal models retire",15)
 	check(owner.stats.failed==0,"Crowd effect delivery has no model-owner failures")
+	if OS.get_environment("NWN_EFFECT_MEMBERSHIP_STRESS")=="1": await particle_membership_stress(captures,actors)
 	save_heal_profile_captures(captures,"crowd")
+func particle_membership_stress(captures: Array,actors: Array) -> void:
+	var owner=session.world.effects; var visuals:=[3,8,267,147,224,229,249,277]
+	var selected:=func():return owner.entries.values().filter(func(entry):return int(entry.actor) in actors and int(entry.visual) in visuals)
+	var before: int=owner.stats.started; ui.chat.submit("-native-durable")
+	if not await wait_for(func():return dialogue_history("GODOT_DURABLE_CROWD_96") and selected.call().size()==96 and selected.call().all(func(entry):return entry.runtime!=null),"Original server admits all 96 duration effects across twelve actors",30): return
+	if not check(actors.all(func(actor):return selected.call().filter(func(entry):return int(entry.actor)==int(actor)).size()==8),"Every crowd actor retains all eight distinct server duration effects"): return
+	check(owner.stats.started>=before+96 and owner.stats.failed==0,"Duration-effect stress loses no native visual owners")
+	await get_tree().create_timer(2.0).timeout
+	var capture:=await heal_profile_window("Crowd 96 sustained duration effects",8.0)
+	capture.membership_indexed=owner.indexed_membership; capture.effect_entries=owner.entries.size(); capture.effect_models=owner.models.size(); capture.world_instances=session.world.instances.size()
+	capture.engine_runtime={"editor":OS.has_feature("editor"),"debug":OS.is_debug_build(),"version":Engine.get_version_info()}
+	capture.effect_states=selected.call().map(func(entry):return {"actor":entry.actor,"visual":entry.visual,"type":int(entry.runtime.state.programType10d),"attached":int(entry.runtime.state.attached114),"finished":int(entry.runtime.state.finishedF4)})
+	capture.model_controls={"compiled_requested":preload("res://systems/model_native_pose.gd").configured_compiled_controls(),"direct_requested":preload("res://systems/model_native_pose.gd").configured_direct_flush(),"root_requested":preload("res://systems/model_native_pose.gd").configured_root_hierarchy(),"bulk_requested":preload("res://systems/model_native_pose.gd").configured_bulk_evaluation(),"poses":0,"calls":0,"failures":0,"direct_flush_calls":0,"root_hierarchy_calls":0,"bulk_calls":0,"bulk_controls":0,"bulk_empty_controls":0,"bulk_failures":0,"bulk_poses":0}
+	capture.model_storage={"requested":preload("res://systems/model_native_pose.gd").configured_native_storage(),"poses":0,"calls":0,"publish_calls":0,"failures":0,"snapshot_arrays":0,"read_arrays":0,"writes":0,"part_state_bytes":0}
+	for row in owner.models.values():
+		for entity in row.model.rigs.entities.values():
+			for model in entity.models:
+				if not model.has("native_owner"): continue
+				var pose=model.native_owner.pose
+				var storage: Dictionary=pose.storage_statistics()
+				capture.model_storage.calls+=pose.native_calls;capture.model_storage.publish_calls+=pose.native_publish_calls;capture.model_storage.failures+=pose.native_failures
+				if not storage.is_empty():
+					capture.model_storage.poses+=1
+					for key in ["snapshot_arrays","read_arrays","writes","part_state_bytes"]:capture.model_storage[key]+=int(storage[key])
+				capture.model_controls.poses+=1; capture.model_controls.calls+=pose.compiled_control_calls; capture.model_controls.failures+=pose.compiled_control_failures
+				capture.model_controls.direct_flush_calls+=pose.direct_flush_calls; capture.model_controls.root_hierarchy_calls+=pose.root_hierarchy_calls
+				capture.model_controls.bulk_calls+=pose.bulk_calls; capture.model_controls.bulk_controls+=pose.bulk_controls; capture.model_controls.bulk_empty_controls+=pose.bulk_empty_controls; capture.model_controls.bulk_failures+=pose.bulk_failures
+				if pose.bulk_evaluation and pose.compiled_controls: capture.model_controls.bulk_poses+=1
+	var bulk: bool=capture.model_controls.bulk_requested and capture.model_controls.compiled_requested
+	var bulk_valid: bool=capture.model_controls.bulk_poses==capture.model_controls.poses and capture.model_controls.bulk_calls>0 and capture.model_controls.bulk_controls>0 and capture.model_controls.root_hierarchy_calls==0 if bulk else capture.model_controls.bulk_poses==0 and capture.model_controls.bulk_calls==0 and (capture.model_controls.root_hierarchy_calls>0 if capture.model_controls.root_requested else capture.model_controls.root_hierarchy_calls==0)
+	var plan_stats:={"requested":preload("res://systems/model_native_pose.gd").configured_prepared_plan(),"poses":0,"calls":0,"failures":0,"prepare_failures":0,"requests":0,"builds":0,"hits":0,"prepare_ms":0.0,"prepare_peak_ms":0.0,"cache":preload("res://systems/native_data/model_control_plan.gd").retained()}
+	for row in owner.models.values():
+		for entity in row.model.rigs.entities.values():
+			for model in entity.models:
+				if not model.has("native_owner"):continue
+				var pose=model.native_owner.pose
+				if pose.prepared_plan and pose.bulk_evaluation and pose.compiled_controls:plan_stats.poses+=1
+				plan_stats.calls+=pose.prepared_calls;plan_stats.failures+=pose.prepared_failures;plan_stats.prepare_failures+=pose.plan_prepare_failures;plan_stats.requests+=pose.plan_requests;plan_stats.builds+=pose.plan_builds;plan_stats.hits+=pose.plan_hits;plan_stats.prepare_ms+=pose.plan_prepare_ms;plan_stats.prepare_peak_ms=maxf(plan_stats.prepare_peak_ms,pose.plan_prepare_peak_ms)
+	var prepared_valid: bool=plan_stats.poses==capture.model_controls.poses and plan_stats.calls>0 and plan_stats.requests>0 and plan_stats.builds+plan_stats.hits==plan_stats.requests if plan_stats.requested and bulk else plan_stats.poses==0 and plan_stats.calls==0 and plan_stats.requests==0
+	capture.model_plans=plan_stats
+	var storage_valid: bool=capture.model_storage.poses==capture.model_controls.poses and capture.model_storage.calls>0 and capture.model_storage.publish_calls>0 if capture.model_storage.requested else capture.model_storage.poses==0 and capture.model_storage.calls==0
+	capture.scalar_representation={"requested":preload("res://systems/native_data/scalar_representation.gd").configured(),"runs":preload("res://systems/model_runs.gd").scalar_values,"controllers":preload("res://systems/model_controllers.gd").scalar_values,"references":preload("res://systems/model_reference_state.gd").scalar_values,"events":preload("res://systems/model_rigs.gd").scalar_values,"phases":preload("res://systems/visual_phases.gd").scalar_values}
+	for key in ["runs","controllers","references","events","phases"]:
+		if capture.scalar_representation[key]!=capture.scalar_representation.requested:storage_valid=false
+	check(capture.model_controls.failures==0 and capture.model_controls.bulk_failures==0 and bulk_valid and prepared_valid and storage_valid and capture.model_storage.failures==0 and plan_stats.failures==0 and plan_stats.prepare_failures==0 and (capture.model_controls.calls>0 if capture.model_controls.compiled_requested else capture.model_controls.calls==0) and (capture.model_controls.direct_flush_calls>0 if capture.model_controls.direct_requested else capture.model_controls.direct_flush_calls==0),"Duration scene uses requested controllers, immutable plans, pose publication and hierarchy without rejected parts",{"controls":capture.model_controls,"plans":plan_stats,"storage":capture.model_storage})
+	capture.selection_backend={"compiled_requested":owner.compiled_selection,"available":owner.compiled_selection_available,"calls":owner.compiled_selection_calls,"failures":owner.compiled_selection_failures,"reused_setup":owner.reused_selection_setup,"reused_calls":owner.reused_selection_calls,"context_depth":owner.selection_contexts.size(),"context_peak":owner.selection_context_peak}
+	capture.selection_backend.snapshot={"requested":owner.compiled_snapshot,"calls":owner.compiled_snapshot_calls,"failures":owner.compiled_snapshot_failures,"noops":owner.compiled_snapshot_noops}
+	var snapshot_valid: bool=owner.compiled_snapshot_failures==0 and (owner.compiled_snapshot_calls>0 and owner.compiled_snapshot_noops>0 if owner.compiled_snapshot else owner.compiled_snapshot_calls==0 and owner.compiled_snapshot_noops==0)
+	check(snapshot_valid and capture.selection_backend.failures==0 and capture.selection_backend.context_depth==0 and (capture.selection_backend.reused_calls>0 if capture.selection_backend.reused_setup else capture.selection_backend.reused_calls==0) and (capture.selection_backend.calls>0 if capture.selection_backend.compiled_requested else capture.selection_backend.calls==0),"Duration scene exercises its requested visual selector and setup without fallback/failure or retained invocation contexts",capture.selection_backend)
+	check(capture.effect_states.size()==96,"Complete-scene duration measurement retains every admitted effect")
+	check(int(capture.particle_state.failed)==0 and int(capture.peaks.active)>0,"Sustained crowd has active original particles without unsupported emitters",{"failed":capture.particle_state.failed,"reasons":capture.particle_state.reason_counts,"peaks":capture.peaks})
+	captures.append(capture)
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png(str(session.args.report).trim_suffix(".json")+"-duration-crowd.png")
+	if not await wait_for(func():return selected.call().is_empty(),"Authoritative server expiry retires all 96 duration effects",50): return
+	check(owner.stats.failed==0,"Sustained crowd retirement has no native effect-owner failures")
 func effects_check() -> void:
 	var owner=session.world.effects
-	if not await wait_for(func():return owner.tables.size()==3,"Native visual tables load from the admitted server scope"): return
+	if not await wait_for(particle_visual_tables_ready,"Native visual tables load from the admitted server scope"): return
 	var first: int=owner.next_effect; ui.chat.submit("-native-vfx")
 	if not await wait_for(func():return owner.entries.values().any(func(entry):return int(entry.visual)==1 and entry.runtime!=null),"Server duration effect starts with native resource preparation",25): return
 	var effect:=-1
@@ -989,7 +1180,7 @@ func ranged_check() -> void:
 	desktop.open_radial({"id":npc,"position":session.world.instances[npc].position},Vector2(600,350))
 	var clicked:=false
 	for index in desktop.radial_entries:
-		if str(desktop.radial_entries[index].get("interaction",""))=="combat.attack": desktop.radial.choose(int(index)); clicked=true; break
+		if str(desktop.radial_entries[index].get("action",""))=="world-attack" or str(desktop.radial_entries[index].get("interaction",""))=="combat.attack": desktop.radial.choose(int(index)); clicked=true; break
 	if not check(clicked,"Actual native radial attack command is selected"): return
 	if not await animation_check("attack"): return
 	# npc is selected above; miss packets intentionally have no canonical target.
@@ -1105,7 +1296,7 @@ func combat_check() -> bool:
 	desktop.open_radial({"id":npc,"position":position()},Vector2(600,350))
 	var attack_selected:=false
 	for index in desktop.radial_entries:
-		if str(desktop.radial_entries[index].get("interaction",""))=="combat.attack": desktop.radial.choose(int(index)); attack_selected=true; break
+		if str(desktop.radial_entries[index].get("action",""))=="world-attack" or str(desktop.radial_entries[index].get("interaction",""))=="combat.attack": desktop.radial.choose(int(index)); attack_selected=true; break
 	if not check(attack_selected,"Native radial selects the real attack interaction",{"target":npc,"targeting":not desktop.target.is_empty()}): return false
 	if not await wait_for(func():return ui.chat.rows.any(func(row):return row.get("category","")=="attack-feedback"),"Server attack result is formatted in native combat chat",25):
 		check(false,"Attack feedback failure diagnostics",{"target":npc,"chat":ui.chat.rows.slice(-12),"queue":desktop.action_queue.rows,"targeting":not desktop.target.is_empty()})
@@ -1123,13 +1314,18 @@ func combat_check() -> bool:
 	return await wait_for(func():return not desktop.action_queue.buttons.has(serial) and not desktop.action_queue.pending.has(serial),"Server deletion retires the canceled action widget")
 
 func contains_radial_feat(entry: Dictionary,id: int,auxiliary: int) -> bool:
+	return contains_radial_feat_at(entry,id,auxiliary,0)
+func contains_radial_feat_at(entry: Dictionary,id: int,auxiliary: int,depth: int) -> bool:
+	if depth>32: return false
 	var binding: Dictionary=entry.get("binding",{})
 	if int(binding.get("type",-1))==4 and (int(binding.intParam)&65535)==id and ((int(binding.intParam)>>16)&65535)==auxiliary: return true
-	for child in entry.get("children",[]):
-		if contains_radial_feat(child,id,auxiliary): return true
+	var children: Array=desktop.ability_entries(entry.menu) if entry.has("menu") else entry.get("children",[])
+	for child in children:
+		if contains_radial_feat_at(child,id,auxiliary,depth+1): return true
 	return false
 func feat_family_check() -> bool:
 	var id:=int(desktop.actor_id)
+	if not await wait_for(func():return desktop.ensure_ability_tables(),"Received classes preload their active native feat menu tables"): return false
 	if not check(current().get("replicated",{}).get("stats",{}).get("classes",[]).any(func(cls):return int(cls.id)==3) and desktop.rules.feats(current()).has(305),"Original installed Druid owns the native shape-family feat"): return false
 	var ctx: Dictionary=desktop.feat_rules.context(current(),id)
 	var parent: Dictionary=desktop.feat_rules.leaf(ctx,305)
@@ -1169,19 +1365,57 @@ func feat_family_check() -> bool:
 	var changed: Dictionary=rigs.compare_samples(before,rigs.diagnostic_sample([id],true))
 	return check(session.world.motion.objects[id].active and int(session.world.combat.engine.states[id].visual)==animation and rigs.entities[id].models.any(func(model):return model.loop and not str(model.clip).is_empty()) and int(changed.changed_local_parts)>0 and int(changed.advanced_model_clocks)>0 and changed.missing_requested_clips.is_empty(),"Shaped native locomotion keeps cycling past one original clip length",changed)
 func radial_click(slot: int) -> void:
-	var point: Vector2=desktop.radial.buttons[slot].get_global_rect().get_center()
+	# A physical click arrives after the newly opened page's controls have
+	# entered the viewport picking layout. Flush that boundary for this probe.
+	await get_tree().process_frame; await RenderingServer.frame_post_draw
+	var button: Button=desktop.radial.buttons[slot]; var pressed: Array=[]; var inputs: Array=[]
+	var receiver:=func():pressed.append(true)
+	var input_trace:=func(event):
+		if event is InputEventMouseButton: inputs.append({"pressed":event.pressed,"mask":event.button_mask,"button":event.button_index,"local":str(event.position),"button_pressed":button.is_pressed()})
+	var before:={"active":desktop.radial.active,"pending":desktop.radial.pending,"request":desktop.radial.request_id,"menu":desktop.radial.menu_id,"slot":slot,"disabled":button.disabled,"visible":button.is_visible_in_tree(),"path":str(button.get_path()),"rect":str(button.get_global_rect()),"viewport":str(get_tree().root.get_visible_rect()),"dragging":get_tree().root.gui_is_dragging()}
+	button.pressed.connect(receiver)
+	button.gui_input.connect(input_trace)
+	var point: Vector2=button.get_global_rect().get_center()
 	await radial_click_point(point)
+	button.pressed.disconnect(receiver)
+	button.gui_input.disconnect(input_trace)
+	var hovered: Control=get_tree().root.gui_get_hovered_control()
+	check(pressed.size()==1,"Actual native circular button receives one press at slot "+str(slot),before.merged({"signals":pressed.size(),"after_active":desktop.radial.active,"after_pending":desktop.radial.pending,"after_menu":desktop.radial.menu_id,"hovered":str(hovered.get_path()) if hovered!=null else "","input_trace":inputs}))
 func radial_click_point(point: Vector2) -> void:
+	var motion:=InputEventMouseMotion.new(); motion.position=point; motion.global_position=point
+	get_tree().root.push_input(motion,true); await get_tree().process_frame
 	for down in [true,false]:
-		var event:=InputEventMouseButton.new(); event.position=point; event.global_position=point; event.button_index=MOUSE_BUTTON_LEFT; event.pressed=down
-		get_tree().root.push_input(event,true); await get_tree().process_frame
+		var event:=InputEventMouseButton.new(); event.position=point; event.global_position=point; event.button_index=MOUSE_BUTTON_LEFT; event.pressed=down; event.button_mask=MOUSE_BUTTON_MASK_LEFT if down else 0
+		get_tree().root.push_input(event,true); await get_tree().process_frame; await RenderingServer.frame_post_draw
+func drag_radial_shortcut(slot: int,index: int) -> bool:
+	await get_tree().process_frame; await RenderingServer.frame_post_draw
+	var source: Button=desktop.radial.buttons[slot]; var destination: Button=desktop.quickbar.buttons[index]
+	var first:=source.get_global_rect().get_center(); var last:=destination.get_global_rect().get_center(); var previous:=first
+	var pressed: Array=[]; var receiver:=func():pressed.append(true)
+	source.pressed.connect(receiver)
+	for point in [first,first+Vector2(24,0),last]:
+		var motion:=InputEventMouseMotion.new(); motion.position=point; motion.global_position=point; motion.relative=point-previous; motion.button_mask=0 if point==first else MOUSE_BUTTON_MASK_LEFT
+		get_tree().root.push_input(motion,true); await get_tree().process_frame; await RenderingServer.frame_post_draw; previous=point
+		if point==first:
+			var down:=InputEventMouseButton.new(); down.position=point; down.global_position=point; down.button_index=MOUSE_BUTTON_LEFT; down.button_mask=MOUSE_BUTTON_MASK_LEFT; down.pressed=true
+			get_tree().root.push_input(down,true); await get_tree().process_frame; await RenderingServer.frame_post_draw
+	var dragging: bool=get_tree().root.gui_is_dragging(); var data: Variant=get_tree().root.gui_get_drag_data()
+	var up:=InputEventMouseButton.new(); up.position=last; up.global_position=last; up.button_index=MOUSE_BUTTON_LEFT; up.pressed=false
+	get_tree().root.push_input(up,true); await get_tree().process_frame; await RenderingServer.frame_post_draw
+	source.pressed.disconnect(receiver)
+	return check(dragging and data is Dictionary and data.get("kind","")=="radial-entry" and pressed.is_empty(),"Actual viewport drag/drop carries a current radial leaf without activating it",{"dragging":dragging,"payload":data,"source_presses":pressed.size(),"source":str(first),"destination":str(last)})
 func contains_radial_spell(entry: Dictionary,spell: int) -> bool:
+	return contains_radial_spell_at(entry,spell,0)
+func contains_radial_spell_at(entry: Dictionary,spell: int,depth: int) -> bool:
+	if depth>=32: return false
 	if int(entry.get("binding",{}).get("type",-1))==2 and int(entry.binding.get("intParam",-1))==spell: return true
-	for child in entry.get("children",[]):
-		if contains_radial_spell(child,spell): return true
+	var children: Array=desktop.ability_entries(entry.menu) if entry.has("menu") else entry.get("children",[])
+	for child in children:
+		if contains_radial_spell_at(child,spell,depth+1): return true
 	return false
 func radial_check() -> bool:
 	if not await wait_for(func():return desktop.radial.layout_ready and desktop.radial.center_frame.texture!=null and desktop.radial.selection.texture!=null,"Original radial layout and circular art are live in the server UI",15): return false
+	if not await radial_activity_check(): return false
 	var npc:=-1
 	for id in desktop.objects:
 		if int(id)!=desktop.actor_id and int(desktop.objects[id].get("objectType",0))==5 and session.world.instances.has(id): npc=int(id); break
@@ -1218,14 +1452,139 @@ func radial_check() -> bool:
 		for slot in desktop.radial_entries:
 			if contains_radial_spell(desktop.radial_entries[slot],100): chosen=int(slot); break
 		if not check(chosen>=0,"Live native radial resolves the spell through current server tables at depth "+str(depth_index)): return false
-		var entry: Dictionary=desktop.radial_entries[chosen]; leaf=not entry.has("children")
+		var entry: Dictionary=desktop.radial_entries[chosen]; leaf=not entry.has("children") and not entry.has("menu")
 		visited.append({"menu":desktop.radial.menu_id,"slot":chosen,"label":entry.label,"leaf":leaf})
 		await radial_click(chosen)
 		if leaf: break
 	if not check(leaf and visited.size()>=3,"Actual circular control clicks descend class/level/spell menus",{"visited":visited}): return false
 	click_spell_target()
 	if not await animation_check("cast",100): return false
-	return await wait_for(func():return desktop.rules.spell_uses(current(),100,0)==uses_before-1,"Native radial spell click consumes an authoritative prepared use")
+	if not await wait_for(func():return desktop.rules.spell_uses(current(),100,0)==uses_before-1,"Native radial spell click consumes an authoritative prepared use"): return false
+	if str(session.args.get("actions-radial-caster","standard"))!="standard" and not await radial_spell_resources_check(): return false
+	return true
+func radial_activity_check() -> bool:
+	# Observe server flags after actual menu clicks, never set the local actor's
+	# activity state. Test both directions so the owned session is restored.
+	for activity_id in [10,0,1,5]:
+		var target_id: int=desktop.actor_id; var target_position:=position()
+		if activity_id==5:
+			for id in desktop.objects:
+				if int(id)!=desktop.actor_id and int(desktop.objects[id].get("objectType",0))==5 and session.world.instances.has(id): target_id=int(id); target_position=session.world.instances[id].position; break
+			if not check(target_id!=desktop.actor_id,"Counterspell uses an actual other received creature"): return false
+		for direction in 2:
+			var mask: int={10:32768,0:1,1:2,5:512}[activity_id]
+			var before: int=int(current().get("playerState",{}).get("playerFlags",0))&mask
+			if activity_id==5 and direction==1:
+				if not await wait_for(func():return desktop.quick_bindings.size()>0 and int(desktop.quick_bindings[0].get("type",0))==10 and int(desktop.quick_bindings[0].get("intParam",0))==5 and desktop.quickbar.rows[0].label==ui.text.raw({"strRef":8118}),"Replicated active Counterspell shortcut uses the original cancel label"): return false
+				if not await wait_for(func():return current().get("playerState",{}).get("actionQueue",[]).any(func(row):return int(row.get("type",-1))==31),"Server exposes its current Counterspell action group for cancellation"): return false
+				await radial_click_point(desktop.quickbar.buttons[0].get_global_rect().get_center())
+				if not await wait_for(func():return (int(current().get("playerState",{}).get("playerFlags",0))&512)==0 and desktop.target.is_empty() and not current().get("playerState",{}).get("actionQueue",[]).any(func(row):return int(row.get("type",-1))==31),"Original server confirms active Counterspell shortcut cancellation without another target"): return false
+				continue
+			desktop.open_radial({"id":target_id,"position":target_position},Vector2(650,350))
+			if activity_id in [10,5]:
+				await radial_click(1)
+				if not await radial_branch(func(row):return row.get("menu",{}).get("kind","")=="spell-options","Actual wheel enters Spellcasting options"): return false
+			else:
+				if not await radial_branch(func(row):return row.get("menu",{}).get("kind","")=="abilities","Actual wheel enters Special abilities"): return false
+			if activity_id==5:
+				if not await drag_radial_shortcut(0,0): return false
+				if not await wait_for(func():return desktop.quick_bindings.size()>0 and int(desktop.quick_bindings[0].get("type",0))==10 and int(desktop.quick_bindings[0].get("intParam",0))==5,"Original server replicates the physically dragged native activity shortcut"): return false
+			var expected: Dictionary=desktop.ability_rules.activity(current(),activity_id)
+			if not await radial_branch(func(row):return row.get("action","")=="activity" and int(row.get("activityId",-1))==activity_id and row.label==ui.text.raw({"strRef":int(expected.labelRef)}),"Actual activity icon uses the current original active/inactive label"): return false
+			if activity_id==0 and desktop.rules.feats(current()).has(240):
+				if not check(ui.chat.rows.any(func(row):return str(row.get("text",""))==ui.text.raw({"strRef":66728})),"Keen Senses Search supplies the original local feedback"): return false
+				break
+			if not await wait_for(func():return (int(current().get("playerState",{}).get("playerFlags",0))&mask)!=before,"Original server confirms activity "+str(activity_id)+" toggle "+str(direction),6):
+				check(false,"Activity failure diagnostics",{"id":activity_id,"before":before,"flags":current().get("playerState",{}).get("playerFlags",null),"prompt":desktop.target_prompt.text,"prompt_visible":desktop.target_prompt.visible})
+				return false
+	desktop.open_radial({"id":desktop.actor_id,"position":position()},Vector2(650,350))
+	if not await radial_branch(func(row):return row.get("menu",{}).get("kind","")=="abilities","Actual wheel enters the skill/ability page"): return false
+	if not await radial_branch(func(row):return int(row.get("binding",{}).get("type",0))==3 and int(row.binding.get("intParam",-1))==22,"Actual native Craft icon requests the server skill"): return false
+	if not await wait_for(func():return ui.conversation.opened and ui.conversation.entry_id>=0 and not ui.conversation.reply_ids.is_empty(),"Original server answers the actual radial Craft action with its dialog"): return false
+	ui.conversation.choose(4294967295,true)
+	return await wait_for(func():return not ui.conversation.opened,"Original server closes the radial skill dialog before other actions")
+func radial_branch(predicate: Callable,label: String) -> bool:
+	var slot:=-1
+	for at in desktop.radial_entries:
+		if predicate.call(desktop.radial_entries[at]): slot=int(at); break
+	if not check(slot>=0,label,{"entries":desktop.radial_entries.values().map(func(row):return {"slot":row.slot,"label":row.label,"menu":row.get("menu",{})})}): return false
+	await radial_click(slot); return true
+func radial_spell_level(meta: int,level: int) -> bool:
+	desktop.open_radial({"id":desktop.actor_id,"position":position()},Vector2(650,350)); await radial_click(1)
+	var kind:="spell-meta" if meta else "spell-levels"
+	var direct:=func(row):return str(row.get("menu",{}).get("kind",""))==kind and int(row.menu.get("classIndex",-1))==0
+	if not desktop.radial_entries.values().any(direct):
+		if not await radial_branch(func(row):return row.get("menu",{}).get("kind","")=="spell-classes" and bool(row.menu.get("metamagic",false))==(meta!=0),"Actual wheel enters the grouped spell class branch"): return false
+	if not await radial_branch(direct,"Actual wheel selects the received caster's "+("metamagic" if meta else "ordinary")+" branch"): return false
+	if meta and not await radial_branch(func(row):return row.get("menu",{}).get("kind","")=="spell-levels" and int(row.menu.get("metamagic",0))==meta,"Actual native metamagic icon retains its mask"): return false
+	return await radial_branch(func(row):return row.get("menu",{}).get("kind","")=="spell-page" and int(row.menu.get("level",-1))==mini(7,level),"Actual native level icon opens physical spell level "+str(level))
+func radial_contains_binding(row: Dictionary,predicate: Callable,depth: int=0) -> bool:
+	if depth>32: return false
+	if row.has("binding") and predicate.call(row.binding): return true
+	var children: Array=desktop.ability_entries(row.menu) if row.has("menu") else row.get("children",[])
+	return children.any(func(child):return radial_contains_binding(child,predicate,depth+1))
+func radial_follow_binding(predicate: Callable,label: String) -> bool:
+	for depth in 32:
+		var slot:=-1
+		for at in desktop.radial_entries:
+			if radial_contains_binding(desktop.radial_entries[at],predicate): slot=int(at); break
+		if not check(slot>=0,label+" resolves at depth "+str(depth)): return false
+		var row: Dictionary=desktop.radial_entries[slot]; var leaf: bool=row.has("binding") and predicate.call(row.binding)
+		if not check(not row.get("disabled",false),label+" remains available for this target/resource",{"entry":row}): return false
+		await radial_click(slot)
+		if leaf: return true
+	return check(false,label+" exceeds verified menu depth")
+func radial_spell_resources_check() -> bool:
+	var family: Dictionary={}; var meta: Dictionary={}; var conversion: Dictionary={}
+	var book: Dictionary=current().get("playerState",{}).get("spellbooks",{}).get("0",{})
+	for key in book.get("memorized",{}):
+		for slot in book.memorized[key]:
+			if not slot is Dictionary: continue
+			var id:=int(slot.spell); var children: Array=desktop.rules.spell_children(id)
+			if not children.is_empty() and desktop.rules.spell_uses(current(),id,0)>0 and int(slot.get("metamagic",0))==0: family={"id":id,"children":children,"level":int(key)}
+			if int(slot.get("metamagic",0))==4 and Rules_number(slot.get("ready",0))!=0: meta={"id":id,"level":int(key),"mask":4}
+			if Rules_number(desktop.rules.cell(desktop.rules.row("spells",id),"SpontaneouslyCast"))!=0: conversion={"id":id,"level":int(key)}
+	if not check(not family.is_empty() and (not meta.is_empty() or str(session.args.get("actions-radial-caster",""))=="cleric"),"Original server receives the fixture's actual prepared resources",{"family":family,"metamagic":meta,"conversion":conversion,"received_memory":book.get("memorized",{})}): return false
+	var child:=-1
+	for id in family.children:
+		if (Rules_number(desktop.rules.cell(desktop.rules.row("spells",int(id)),"TargetType"))&1)!=0: child=int(id); break
+	if not check(child>=0,"Current server family data supplies a self-compatible child"): return false
+	var before: int=desktop.rules.spell_uses(current(),int(family.id),0)
+	if not await radial_spell_level(0,int(family.level)): return false
+	if not await radial_follow_binding(func(binding):return int(binding.get("type",0))==2 and int(binding.get("intParam",-1))==child,"Family child"): return false
+	click_spell_target()
+	if not await animation_check("cast",child,"family"): return false
+	if not await wait_for(func():return desktop.rules.spell_uses(current(),int(family.id),0)==before-1,"Actual family child cast spends the server's parent resource"): return false
+	if not meta.is_empty():
+		before=desktop.rules.spell_uses(current(),int(meta.id),0,int(meta.mask))
+		if not await radial_spell_level(int(meta.mask),int(meta.level)): return false
+		if not await radial_follow_binding(func(binding):return int(binding.get("type",0))==2 and int(binding.get("intParam",-1))==int(meta.id) and int(binding.get("metamagic",0))==int(meta.mask),"Maximized spell"): return false
+		click_spell_target()
+		if not await animation_check("cast",int(meta.id),"metamagic"): return false
+		if not await wait_for(func():return desktop.rules.spell_uses(current(),int(meta.id),0,int(meta.mask))==before-1,"Actual metamagic branch spends the server's matching prepared slot"): return false
+	if str(session.args.get("actions-radial-caster",""))=="cleric":
+		if not check(not conversion.is_empty(),"Original cleric fixture receives a convertible spell"): return false
+		var own_before: int=desktop.rules.spell_uses(current(),int(conversion.id),0)
+		if own_before>0:
+			if not await radial_spell_level(0,int(conversion.level)): return false
+			if not await radial_follow_binding(func(binding):return int(binding.get("type",0))==2 and int(binding.get("intParam",-1))==int(conversion.id) and int(binding.get("spontaneous",0))==0,"Ordinary cleric resource"): return false
+			click_spell_target()
+			if not await animation_check("cast",int(conversion.id),"ordinary-conversion-source"): return false
+			if not await wait_for(func():return desktop.rules.spell_uses(current(),int(conversion.id),0)==0,"An actual ordinary cast exhausts the convertible spell's own prepared use"): return false
+		var ready:=func():return book_ready_slots(int(conversion.level))
+		var ready_before: int=ready.call()
+		if not await radial_spell_level(0,int(conversion.level)): return false
+		if not await radial_follow_binding(func(binding):return int(binding.get("type",0))==2 and int(binding.get("intParam",-1))==int(conversion.id) and int(binding.get("spontaneous",0))==1,"Spontaneous conversion"): return false
+		click_spell_target()
+		if not await animation_check("cast",int(conversion.id),"conversion"): return false
+		if not await wait_for(func():return int(ready.call())==ready_before-1,"Actual spontaneous cast spends an ordinary server slot without inventing a use"): return false
+	return true
+func book_ready_slots(level: int) -> int:
+	var result:=0
+	for slot in current().get("playerState",{}).get("spellbooks",{}).get("0",{}).get("memorized",{}).get(str(level),[]):
+		if slot is Dictionary and Rules_number(slot.get("ready",0))!=0 and Rules_number(slot.get("domain",0))==0: result+=1
+	return result
+func Rules_number(value: Variant) -> int: return int(value) if value is bool else desktop.rules.number(value,0)
 func correction_check() -> bool:
 	var id:=int(session.world.controlled_id); var engine=session.world.combat.engine
 	if not await wait_for(func():return engine.states.has(id) and int(engine.states[id].visual) in [0,1] and engine.states[id].current.is_empty() and not session.world.motion.objects[id].active and int(session.world.motion.objects[id].correction)==0 and session.world.motion.objects[id].render.distance_to(session.world.motion.objects[id].position)<0.001,"Correction fixture reaches an idle native body before the server move",8): return false
@@ -1298,7 +1657,7 @@ func parry_check() -> void:
 		rigs.model_event.connect(callback); listeners.append({"rigs":rigs,"callback":callback})
 	desktop.open_radial({"id":npc,"position":session.world.instances[npc].position},Vector2(600,350)); var clicked:=false
 	for index in desktop.radial_entries:
-		if str(desktop.radial_entries[index].get("interaction",""))=="combat.attack": desktop.radial.choose(int(index)); clicked=true; break
+		if str(desktop.radial_entries[index].get("action",""))=="world-attack" or str(desktop.radial_entries[index].get("interaction",""))=="combat.attack": desktop.radial.choose(int(index)); clicked=true; break
 	if not check(clicked,"Native radial sends the actual melee attack request"): return
 	if not await animation_check("attack"): return
 	if not await wait_for(func():return not parry_model().is_empty(),"Original server miss/parry response produces actual native spark particles",45): return
@@ -1402,7 +1761,7 @@ func rigid_mesh_delta(before: Dictionary,after: Dictionary) -> float:
 		if not after.has(key): continue
 		for index in mini(before[key].size(),after[key].size()): delta=maxf(delta,before[key][index].distance_to(after[key][index]))
 	return delta
-func animation_check(kind: String,spell_id: int=-1) -> bool:
+func animation_check(kind: String,spell_id: int=-1,capture: String="") -> bool:
 	var id: int=desktop.actor_id
 	var ranged: bool=kind=="attack" and session.args.get("actions-ranged-check","")=="true"
 	var active:=func():
@@ -1433,7 +1792,7 @@ func animation_check(kind: String,spell_id: int=-1) -> bool:
 	# review. The geometry samples above still use the normal visible menus.
 	var was_visible: bool=ui.controls.visible; ui.controls.hide()
 	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(str(session.args.report).trim_suffix(".json")+"-"+kind+".png")
+	get_viewport().get_texture().get_image().save_png(str(session.args.report).trim_suffix(".json")+"-"+kind+("-"+capture if not capture.is_empty() else "")+".png")
 	ui.controls.visible=was_visible
 	return true
 
@@ -1496,7 +1855,7 @@ func impact_profile_check() -> void:
 	if not check(npc>=0,"Actual local combat target is available for impact profiling"): return
 	desktop.open_radial({"id":npc,"position":position()},Vector2(600,350))
 	for slot in desktop.radial_entries:
-		if str(desktop.radial_entries[slot].get("interaction",""))=="combat.attack": desktop.radial.choose(int(slot)); break
+		if str(desktop.radial_entries[slot].get("action",""))=="world-attack" or str(desktop.radial_entries[slot].get("interaction",""))=="combat.attack": desktop.radial.choose(int(slot)); break
 	if not await wait_for(func():return session.world.combat.engine.stats.hits>0,"Original server attacks drive native impact profiling",25): return
 	for pass_index in 4:
 		var enabled:=pass_index%2==1; session.particle_visibility.set_enabled(enabled)
@@ -1535,7 +1894,7 @@ func special_attack_check() -> void:
 		var chosen:=-1
 		if feat==0:
 			for slot in desktop.radial_entries:
-				if str(desktop.radial_entries[slot].get("interaction",""))=="combat.attack": chosen=int(slot); break
+				if str(desktop.radial_entries[slot].get("action",""))=="world-attack" or str(desktop.radial_entries[slot].get("interaction",""))=="combat.attack": chosen=int(slot); break
 		else:
 			for slot in desktop.radial_entries:
 				if str(desktop.radial_entries[slot].label)=="Special abilities": desktop.radial.choose(int(slot)); break

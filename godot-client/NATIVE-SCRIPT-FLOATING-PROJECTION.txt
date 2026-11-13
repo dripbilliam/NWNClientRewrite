@@ -1,0 +1,9 @@
+ScriptFloating original-local-server projection acceptance
+
+Run native-script-floating-received-v4 passed four actual original writer events (93/93/94/94, echo 0/1/0/1). All four real native View controls retained two samples from distinct Engine process frames with decreasing original remaining lifetime. In every sample View.has_frame and is_visible_in_tree were true, finite Control.position exactly equaled entry.lastPaint.point, View.base_alpha equaled cached alpha, and both scoped lifetime witnesses matched the actual received creature. Actual callable objects/methods remained Owner -> Gameplay.script_floating_anchor -> current NativeRoot.native_script_floating_anchor, with current world and camera instance IDs. The probe never invokes a substitute query, pose, clock or frame.
+
+The isolated Godot JSON/current-graph gate passed 13 checks/677 inputs. Its authored numeric paint values test schema and rejection only; actual paint authority is exclusively the four original-server events. The first boundary attempt preserves its test-only missing-bool-annotation parser rejection.
+
+Authority checks: Host 10, native probe 16, clean lifecycle 9. Four packets, two exact log echoes, no legacy script duplicate, current source, finish ACK and worker drain pass. Original server/editor/other processes, encrypted profiles, installed Wizard and all six native outputs remain unchanged. Owned server cleaned and private ALT lease released. No product source changed.
+
+This proves headless projection and Canvas visibility in the tree, not rasterized pixels, GPU correctness, picking, movement or complete special native timer/markup history parity. native.gameplay_success remains false and controlled distance is zero. V3 and its exact source seal remain unchanged historical layout acceptance.

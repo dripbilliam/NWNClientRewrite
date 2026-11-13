@@ -1,0 +1,188 @@
+extends Node3D
+const Timing=preload("res://systems/native_render/frame_profile.gd")
+# Native original-table/model selection for static replicated objects. Actor,
+# equipment, animated door state and visual-transform consumers follow separately.
+signal finished(state: Dictionary)
+const Assets=preload("res://systems/native_data/asset_service.gd")
+const Template=preload("res://systems/native_render/model_template.gd")
+const Priority=preload("res://systems/native_render/stream_priority.gd")
+const Placeable=preload("res://systems/native_render/placeable_instance.gd")
+var priority_origin:=Vector3.ZERO
+var has_priority_origin:=false
+var priority_dirty:=false
+func set_priority_origin(value: Vector3) -> void:
+	if not value.is_finite() or has_priority_origin and priority_origin.distance_squared_to(value)<4.0: return
+	priority_origin=value; has_priority_origin=true; priority_dirty=true
+func refresh_priority() -> void:
+	if not priority_dirty or not has_priority_origin: return
+	priority_dirty=false
+	var names: Array=Priority.model_order(groups.keys(),groups,priority_origin)
+	var ranks: Dictionary={}
+	for index in names.size(): ranks[names[index]]=index
+	waiting.sort_custom(func(a,b):return int(ranks[a])<int(ranks[b]))
+	assets.prioritize(Priority.request_order(model_requests,names))
+	queue.sort_custom(func(a,b):
+		var da: float=priority_origin.distance_squared_to(a.placement.position); var db: float=priority_origin.distance_squared_to(b.placement.position)
+		return da<db or (da==db and int(a.placement.id)<int(b.placement.id)))
+var assets
+var pool
+var maximum_asset_workers:=4
+var tables: Dictionary={}
+var table_requests: Dictionary={}
+var initial_static_tables_only:=false
+var model_requests: Dictionary={}
+var groups: Dictionary={}
+var waiting: Array=[]
+var queue: Array=[]
+var maximum_objects_per_frame:=0 #0 uses the existing time/shared-pool budget; positive values cap units.
+var templates: Dictionary={}
+var instances: Dictionary={}
+var invisible_ids: Array=[]
+var snapshot_objects: Array=[]
+var area_id: int=-1
+var admission_parent: Node3D
+var done:=false
+var closed:=false
+var stats: Dictionary={"planned":0,"rendered":0,"invisible":0,"deferred_actors":0,"deferred_items":0,"errors":[],"scope_errors":[],"object_failures":{},"warnings":[],"limitations":[],"model_jobs":0}
+func object_failed(id: int,reason: String,model: String="") -> void:
+	var diagnostic:={"id":id,"reason":reason}
+	if not model.is_empty(): diagnostic.model=model
+	stats.errors.append(diagnostic); stats.object_failures[id]=diagnostic
+func model_failed(name: String,reason: String) -> void:
+	for placement in groups.get(name,[]): object_failed(int(placement.id),reason,name)
+func configure(catalog, shared_pool, objects: Array, target_area: int, cache_path: String) -> void:
+	pool=shared_pool; snapshot_objects=objects; area_id=target_area
+	assets=Assets.new(); add_child(assets); assets.maximum_workers=maxi(1,maximum_asset_workers); assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
+	initial_static_tables_only=base_static_snapshot()
+	for table_name in (["placeables"] if initial_static_tables_only else ["placeables","genericdoors","doortypes"]): table_requests[assets.request(table_name,2017,"2da")]=table_name
+func base_static_snapshot() -> bool:
+	if snapshot_objects.is_empty():return false
+	for object in snapshot_objects:
+		if int(object.get("objectType",-1))!=9 or not object.has("staticState"):return false
+	return true
+static func pose(object: Dictionary) -> Dictionary:
+	var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{}))
+	var position: Variant=state.get("position",fixed.get("position"))
+	if not position is Array or position.size()<3: return {}
+	var orientation: Variant=state.get("orientation",fixed.get("orientation")); var rotation:=0.0
+	var vector: Variant=orientation.get("vector") if orientation is Dictionary else orientation
+	if vector is Array and vector.size()>=2: rotation=-atan2(float(vector[0]),float(vector[1]))
+	elif orientation is Dictionary: rotation=deg_to_rad(float(orientation.get("yaw",0)))
+	return {"position":Vector3(position[0],position[2],-position[1]),"rotation":rotation}
+func table_row(name: String, index: int) -> Dictionary:
+	var rows: Array=tables.get(name,{}).get("orderedRows",[])
+	return rows[index] if index>=0 and index<rows.size() else {}
+func plan_objects() -> void:
+	for object in snapshot_objects:
+		if int(object.get("areaId",-1))!=area_id or object.get("replicationRemoved",false): continue
+		var kind:=int(object.objectType); var placement:=pose(object)
+		if placement.is_empty(): continue
+		if kind==5: stats.deferred_actors+=1; continue
+		if kind==6: stats.deferred_items+=1; continue
+		if kind not in [9,10]: continue
+		var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{})); var row: Dictionary={}
+		if kind==9: row=table_row("placeables",int(state.get("appearance",fixed.get("appearance",-1))))
+		else:
+			var appearance:=int(state.get("doorType",0)); row=table_row("genericdoors" if appearance==0 else "doortypes",int(state.get("genericType",0)) if appearance==0 else appearance)
+			if str(row.get("VisibleModel","1"))=="0": stats.invisible+=1; invisible_ids.append(int(object.id)); continue
+		var name:=str(row.get("ModelName",row.get("Model",""))).to_lower()
+		if name.is_empty() or name=="****": object_failed(int(object.id),"Original appearance table has no model"); continue
+		placement.merge({"id":int(object.id),"object":object,"model":name}); stats.planned+=1
+		if not groups.has(name): groups[name]=[]
+		groups[name].append(placement)
+	waiting=groups.keys()
+	priority_dirty=true
+func prepared(id: int, result: Dictionary) -> void:
+	if closed: return
+	if table_requests.has(id):
+		var table_name: String=table_requests[id]; table_requests.erase(id)
+		if not str(result.error).is_empty():
+			var diagnostic:={"table":table_name,"reason":result.error}; stats.errors.append(diagnostic); stats.scope_errors.append(diagnostic)
+		else: tables[table_name]=result.value
+		if table_requests.is_empty():
+			# The caller owns mutable rows. Escalate before planning if the batch changed.
+			if initial_static_tables_only and not base_static_snapshot():
+				initial_static_tables_only=false
+				for name in ["genericdoors","doortypes"]:table_requests[assets.request(name,2017,"2da")]=name
+			else:plan_objects()
+		return
+	if not model_requests.has(id): return
+	var name: String=model_requests[id]; model_requests.erase(id)
+	if not str(result.error).is_empty(): model_failed(name,str(result.error)); return
+	for texture_name in result.get("missing_textures",[]): stats.warnings.append({"model":name,"texture":texture_name,"reason":"Original texture lookup was recorded as missing; material retained without a bitmap"})
+	for dependency in result.get("dependencies",[]):
+		if dependency.get("role")=="emitter" and dependency.get("missing",false): stats.warnings.append({"model":name,"texture":dependency.name,"reason":"Original emitter bitmap is unavailable; geometry retained, no replacement bitmap supplied"})
+	# Model de-duplication must not turn into model-group publication order.
+	for placement in groups[name]: queue.append({"model":name,"bundle":result,"placement":placement})
+	priority_dirty=true
+func _process(_delta: float) -> void:
+	var began:=Timing.begin()
+	_profile_process(_delta)
+	Timing.finish("callback_objects",began)
+func _profile_process(_delta: float) -> void:
+	if closed or done or not is_instance_valid(assets) or not table_requests.is_empty(): return
+	var phase_began:=Timing.begin()
+	refresh_priority()
+	Timing.finish("object_stream_priority_ms",phase_began); phase_began=Timing.begin()
+	while not waiting.is_empty() and assets.pending.size()+assets.running.size()<mini(assets.maximum_pending,assets.maximum_workers*2):
+		var name:=str(waiting.pop_front()); var door: bool=groups[name].any(func(row):return int(row.object.objectType)==10)
+		var animated: bool=door or groups[name].any(func(row):return int(row.object.objectType)==9 and Placeable.requires_animation(row.object.get("replicated",{})))
+		var id: int=assets.request(name,2002,"actor-model" if animated else "static-model",{"relevant_tracks":true} if animated else {})
+		if id<0: model_failed(name,str(assets.failure))
+		else: model_requests[id]=name; stats.model_jobs+=1
+	Timing.finish("object_stream_requests_ms",phase_began)
+	var began:=Time.get_ticks_usec(); var published:=0; var attempted:=0
+	while not queue.is_empty() and (maximum_objects_per_frame==0 or published<maximum_objects_per_frame):
+		if attempted>0 and Time.get_ticks_usec()-began>=3000: break
+		if pool.has_method("can_publish") and not pool.can_publish(): break
+		var unit_began:=Time.get_ticks_usec()
+		var entry: Dictionary=queue.pop_front(); var name: String=entry.model
+		attempted+=1
+		var placement: Dictionary=entry.placement; var door: bool=int(placement.object.objectType)==10
+		var placeable: bool=int(placement.object.objectType)==9 and Placeable.requires_animation(placement.object.get("replicated",{}))
+		if not door and not placeable and not templates.has(name):
+			phase_began=Timing.begin()
+			var template=pool.model_template(entry.bundle)
+			Timing.finish("object_stream_template_ms",phase_began)
+			if template==null: model_failed(name,str(pool.failure)); queue=queue.filter(func(row):return row.model!=name); continue
+			templates[name]=template
+			for feature in template.limitations:
+				if not stats.limitations.has(feature): stats.limitations.append(feature)
+		var instance
+		phase_began=Timing.begin()
+		if door:
+			instance=preload("res://systems/native_render/door_instance.gd").new()
+			if not instance.install_door(entry.bundle,pool,int(placement.id),placement.object.get("replicated",{})):
+				object_failed(int(placement.id),instance.failure,name); instance.retire(); instance=null
+		elif placeable:
+			instance=Placeable.new()
+			if not instance.install_placeable(entry.bundle,pool,int(placement.id),placement.object.get("replicated",{})):
+				object_failed(int(placement.id),instance.failure,name);instance.retire();instance=null
+		else: instance=templates[name].create()
+		Timing.finish("object_stream_door_ms" if door else "object_stream_clone_ms",phase_began)
+		if instance==null: object_failed(int(placement.id),"Native model instance failed",name)
+		else:
+			instance.position=placement.position; instance.rotation.y=float(placement.rotation); instance.set_meta("world_object_id",placement.id)
+			phase_began=Timing.begin()
+			if is_instance_valid(admission_parent): instance.hide(); admission_parent.add_child(instance)
+			else: add_child(instance)
+			Timing.finish("object_stream_attach_ms",phase_began)
+			if not door:instance.grant_particle_pose_lease(preload("res://systems/native_render/managed_particle_pose_leases.gd").scope_for(instance))
+			instances[placement.id]=instance; stats.rendered+=1
+		published+=1
+		phase_began=Timing.begin()
+		if pool.has_method("publication_finished"): pool.publication_finished(unit_began)
+		Timing.finish("object_stream_bookkeeping_ms",phase_began)
+	if waiting.is_empty() and model_requests.is_empty() and queue.is_empty(): done=true; finished.emit(stats.duplicate(true))
+func detach_prepared_data() -> Dictionary:
+	var payload:={"queue":queue,"groups":groups,"objects":snapshot_objects,"tables":tables}
+	queue=[]; groups={}; snapshot_objects=[]; tables={}
+	return payload
+func close() -> void:
+	if closed: return
+	closed=true
+	if is_instance_valid(assets): assets.close()
+	for instance in instances.values():
+		if is_instance_valid(instance): instance.retire()
+	instances.clear(); templates.clear(); queue.clear(); model_requests.clear(); waiting.clear(); groups.clear(); snapshot_objects.clear(); tables.clear()
+func _exit_tree() -> void: close()

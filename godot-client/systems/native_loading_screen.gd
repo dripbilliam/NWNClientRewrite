@@ -25,6 +25,7 @@ var started:=0
 var milestones: Dictionary={}
 var history: Array=[]
 var stats:={"shown":0,"completed":0,"early_dismissals":0,"errors":0,"art_loaded":0}
+var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
 func _ready() -> void:
 	layer=25; veil=Control.new(); veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); veil.mouse_filter=Control.MOUSE_FILTER_STOP; add_child(veil)
 	var background:=ColorRect.new(); background.color=Color("060a0b"); background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); veil.add_child(background)
@@ -42,6 +43,8 @@ func _ready() -> void:
 	veil.hide()
 func configure(owner) -> void:
 	ui=owner; table={}; table_job=ui.assets.request("loadscreens",2017,"2da"); ui.assets.completed.connect(prepared)
+	modal_lease.configure(self,modal_lease.property(owner,"modal_order"),modal_lease.property(owner,"modal_surfaces"),self);modal_lease.bind_input(veil)
+	if active and not dismissed:modal_lease.activate([epoch])
 	ui.desktop.art.loaded.connect(art_ready)
 	veil.theme=ui.skin_owner.theme()
 func prepared(id: int,result: Dictionary) -> void:
@@ -71,10 +74,12 @@ func replace_image() -> void:
 	if is_instance_valid(image): veil.remove_child(image); image.queue_free()
 	image=TextureRect.new(); image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED; image.mouse_filter=Control.MOUSE_FILTER_IGNORE; veil.add_child(image); veil.move_child(image,1)
 func begin(generation: int,area: String,entry: Dictionary={}) -> void:
+	modal_lease.retire()
 	epoch=generation; active=true; dismissed=false; error=""; milestones={}; started=Time.get_ticks_msec(); stats.shown+=1
 	# A new target makes delayed archive-image callbacks harmless on transition.
 	replace_image(); art_resource=""; art_key=""; chosen_row=-1
 	screen_id=int(entry.get("loadingScreen",-1)); heading.text="Loading "+area; status.text="Preparing terrain…"; details.text=""; progress.value=0; veil.show(); select_art()
+	modal_lease.activate([epoch])
 func advance(generation: int,values: Dictionary) -> void:
 	if generation!=epoch or not active: return
 	if milestones==values: return
@@ -91,14 +96,16 @@ func advance(generation: int,values: Dictionary) -> void:
 	if terrain and player and camera:
 		stats.completed+=1
 		if history.size()<32: history.append({"generation":epoch,"elapsed_ms":Time.get_ticks_msec()-started,"dismissed_early":dismissed,"milestones":milestones.duplicate(true)})
-		active=false; veil.hide()
+		modal_lease.retire();active=false; veil.hide()
 func dismiss_early() -> void:
-	if active and not dismissed: dismissed=true; stats.early_dismissals+=1; veil.hide()
+	if active and not dismissed: modal_lease.retire();dismissed=true; stats.early_dismissals+=1; veil.hide()
 func blocks_input() -> bool: return active and not dismissed
 func reset() -> void:
+	modal_lease.retire()
 	epoch=-1; active=false; dismissed=false; error=""; art_key=""; art_resource=""; veil.hide(); image.texture=null; table_job=-1; ui=null; table={}
 func snapshot() -> Dictionary:
 	var result:=stats.duplicate(true); result.merge({"active":active,"generation":epoch,"dismissed":dismissed,"error":error,"milestones":milestones.duplicate(true),"history":history.duplicate(true),"shortcut":"Ctrl+Shift+L"}); return result
 func _input(event: InputEvent) -> void:
-	if active and event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed and event.shift_pressed and event.keycode==KEY_L:
+	if active and modal_lease.admits() and event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed and event.shift_pressed and event.keycode==KEY_L:
 		dismiss_early(); get_viewport().set_input_as_handled()
+func _exit_tree() -> void:modal_lease.close()

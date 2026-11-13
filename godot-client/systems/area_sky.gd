@@ -22,6 +22,7 @@ var last_draw: Array = []
 var material_updates := 0
 var horizon := ""
 var horizon_color := Color.WHITE
+var native_surface_output:=false # Explicit research world; default output unchanged.
 
 func install(message: Dictionary) -> bool:
 	error = ""
@@ -38,7 +39,7 @@ func install(message: Dictionary) -> bool:
 	resources.configure({"connection":message.connection,"areaId":message.areaId,"generation":message.generation,"transferId":message.transferId})
 	# All surfaces have one program; only their uniforms and blend order vary.
 	# Do not create/compile identical shaders for every material and phase.
-	var sky_shader: Shader = _shader() if not message.resources.is_empty() else null
+	var sky_shader: Shader = _shader(native_surface_output) if not message.resources.is_empty() else null
 	for key in message.resources:
 		if not resources.prepare_resource(key, message.resources[key]): return _fail(resources.error)
 		var model = resources.instantiate_model(key, self)
@@ -59,7 +60,7 @@ func install(message: Dictionary) -> bool:
 					material.set_shader_parameter("horizon", key == fade)
 					material.set_shader_parameter("original_texture", original.albedo_texture)
 					material.set_shader_parameter("textured", original.albedo_texture != null)
-					material.set_shader_parameter("original_color", original.albedo_color)
+					color_parameter(material,"original_color",original.albedo_color,native_surface_output)
 					material.set_shader_parameter("vertex_tint", original.vertex_color_use_as_albedo)
 					material.set_shader_parameter("uv_scale", Vector2(original.uv1_scale.x, original.uv1_scale.y))
 					material.set_shader_parameter("uv_offset", Vector2(original.uv1_offset.x, original.uv1_offset.y))
@@ -72,7 +73,7 @@ func install(message: Dictionary) -> bool:
 	configured = true
 	return true
 
-static func _shader() -> Shader:
+static func _shader(native_output: bool=false) -> Shader:
 	var shader := Shader.new()
 	shader.code = """shader_type spatial;
 render_mode unshaded, fog_disabled, depth_draw_never, cull_disabled, blend_mix;
@@ -100,7 +101,20 @@ void fragment() {
  ALPHA = value.a * sky_weight;
 }
 """
+	if native_output:
+		# Original vsvtc/inc_standard converts vertex RGB before interpolation;
+		# fstc uses the converted global color and texture, then RevertColorSpace.
+		# Keep the resulting gamma-space surface through original alpha blending.
+		shader.code=shader.code.replace("source_color, ","").replace(": source_color =", "=")
+		shader.code=shader.code.replace("void vertex() {","varying vec4 native_vertex_color;\nvoid vertex() {\n native_vertex_color=vec4(sign(COLOR.rgb)*pow(abs(COLOR.rgb),vec3(2.2)),COLOR.a);")
+		shader.code=shader.code.replace("if (textured) value *= texture(original_texture, UV * uv_scale + uv_offset);", "value.rgb=sign(value.rgb)*pow(abs(value.rgb),vec3(2.2));\n if (textured){vec4 texel=texture(original_texture,UV*uv_scale+uv_offset); value*=vec4(sign(texel.rgb)*pow(abs(texel.rgb),vec3(2.2)),texel.a);}")
+		shader.code=shader.code.replace("if (vertex_tint) value *= COLOR;", "if (vertex_tint) value *= native_vertex_color;\n value.rgb=sign(value.rgb)*pow(abs(value.rgb),vec3(0.45454545));")
 	return shader
+
+static func color_parameter(material: ShaderMaterial,key: String,value: Color,native_output: bool=false) -> void:
+	# Godot converts Color shader parameters for the linear renderer even without
+	# a source_color hint. Vector4 preserves the original gamma-space channels.
+	material.set_shader_parameter(key,Vector4(value.r,value.g,value.b,value.a) if native_output else value)
 
 func advance(source: Dictionary, elapsed: float, fog: Variant = null) -> void:
 	if not configured or phases.is_empty() or not is_instance_valid(camera): return
@@ -124,7 +138,7 @@ func advance(source: Dictionary, elapsed: float, fog: Variant = null) -> void:
 			instances[horizon].show()
 			for row in materials[horizon]:
 				row.base.set_shader_parameter("sky_weight",1.0)
-				row.base.set_shader_parameter("horizon_color",horizon_color)
+				color_parameter(row.base,"horizon_color",horizon_color,native_surface_output)
 				row.mesh.set_surface_override_material(int(row.surface),row.base)
 		last_draw = weights
 		material_updates += 1
@@ -143,7 +157,7 @@ func _apply(index: int, weight: float, additive: bool) -> void:
 		row.mesh.set_surface_override_material(int(row.surface), material)
 
 func snapshot() -> Dictionary:
-	return {"configured":configured,"skyId":sky_id,"resources":instances.keys(),"phases":phases.duplicate(),"imports":resources.stats.imports if resources != null else 0,"updates":updates,"materialUpdates":material_updates,"current":state.current,"target":state.target,"alpha":state.alpha,"position":[position.x,position.y,position.z],"error":error,"horizon":horizon,"horizonColor":[horizon_color.r,horizon_color.g,horizon_color.b],"blend":"normal-alpha","fullRenderingParity":false}
+	return {"configured":configured,"skyId":sky_id,"resources":instances.keys(),"phases":phases.duplicate(),"imports":resources.stats.imports if resources != null else 0,"updates":updates,"materialUpdates":material_updates,"current":state.current,"target":state.target,"alpha":state.alpha,"position":[position.x,position.y,position.z],"error":error,"horizon":horizon,"horizonColor":[horizon_color.r,horizon_color.g,horizon_color.b],"native_surface_output":native_surface_output,"blend":"normal-alpha","fullRenderingParity":false}
 
 func _fail(reason: String) -> bool:
 	error = reason

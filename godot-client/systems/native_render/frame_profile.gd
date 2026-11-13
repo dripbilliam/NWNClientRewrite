@@ -4,7 +4,7 @@ const RenderThreadInfo=preload("res://systems/native_render/render_thread_info.g
 const SummaryJob=preload("res://systems/native_render/frame_summary_job.gd")
 # Callback totals are disjoint owners. Detailed child spans, render CPU/GPU,
 # physics and profiler self-time overlap and must not be added to that total.
-const CALLBACKS=["callback_root","callback_world","callback_rigs","callback_particles","callback_effects","callback_dummies","callback_projectiles","callback_audio","callback_terrain","callback_objects","callback_creatures","callback_references","callback_reference_poses","callback_wind","callback_lights","callback_walkmesh","callback_drive_geometry","callback_retirement","callback_data_retirement","callback_assets","callback_catalog","callback_ui","callback_inventory","callback_icons","callback_fonts","callback_keyboard","callback_camera","callback_environment","callback_material_prewarm"]
+const CALLBACKS=["callback_root","callback_world","callback_rigs","callback_particles","callback_effects","callback_dummies","callback_projectiles","callback_audio","callback_terrain","callback_area_border","callback_objects","callback_creatures","callback_references","callback_reference_poses","callback_wind","callback_lights","callback_light_history","callback_focus_lighting","callback_native_lighting","callback_walkmesh","callback_drive_geometry","callback_retirement","callback_data_retirement","callback_assets","callback_catalog","callback_ui","callback_overhead_text","callback_overhead_layout","callback_script_floating","callback_inventory","callback_icons","callback_fonts","callback_keyboard","callback_selection","callback_mouse_cursor","callback_camera","callback_environment","callback_material_prewarm"]
 static var enabled:=false
 static var phase_frame:=-1
 static var phases: Dictionary={}
@@ -58,6 +58,14 @@ static func count(name: String,value: int) -> void:
 	ensure_frame()
 	if collected_frame==Engine.get_process_frames(): postdraw_phases[name]=int(postdraw_phases.get(name,0))+value
 	else: phases[name]=int(phases.get(name,0))+value
+static func record_batch(batch: Dictionary) -> void:
+	if not enabled or batch.is_empty(): return
+	var began:=Time.get_ticks_usec(); ensure_frame()
+	var after_collection:=collected_frame==Engine.get_process_frames()
+	var target: Dictionary=postdraw_phases if after_collection else phases
+	for name in batch: target[str(name)]=float(target.get(str(name),0.0))+float(batch[name])
+	if after_collection: postdraw_record_usec+=Time.get_ticks_usec()-began
+	else: record_usec+=Time.get_ticks_usec()-began
 func configure(value: Viewport) -> void:
 	viewport=value; process_priority=1000000
 	render_thread_info.request()

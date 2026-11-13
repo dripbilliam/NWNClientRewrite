@@ -1,0 +1,582 @@
+{
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original sampler defaults/getters/TXI fields/GL translation for regular non-cube textures. Active overrides and explicit APIs can change metadata.",
+  "items": {
+    "highlightTextureBasicCtor": {
+      "evidence_id": "ev_7c6b4e03abdc85bad33e4653d02caa5265596f7ede5fbfae061f8f6b7ed5b276",
+      "procedure": {
+        "address": "0x1400e4d60",
+        "name": "CAurTextureBasic::CAurTextureBasic",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1400e4d60",
+              "end": "0x1400e4fa7"
+            }
+          ],
+          "total_bytes": 584,
+          "span_bytes": 584,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined __thiscall CAurTextureBasic(CAurTextureBasic * this, char * param_1, char * param_2)",
+        "locals": [
+          {
+            "description": "undefined4 local_28 @ Stack[-0x28]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_38 @ Stack[-0x38]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res10 @ Stack[0x10]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res18 @ Stack[0x18]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res20 @ Stack[0x20]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res8 @ Stack[0x8]:8",
+            "provenance": "ghidra-function-database"
+          }
+        ]
+      },
+      "pseudocode": "\r\n/* public: __cdecl CAurTextureBasic::CAurTextureBasic(char const * __ptr64,char const * __ptr64)\r\n   __ptr64 */\r\n\r\nCAurTextureBasic * __thiscall\r\nCAurTextureBasic::CAurTextureBasic(CAurTextureBasic *this,char *param_1,char *param_2)\r\n\r\n{\r\n  CAurTextureBasic *_Dest;\r\n  uint uVar1;\r\n  undefined8 *puVar2;\r\n  undefined8 *puVar3;\r\n  \r\n                    /* 0xe4d60  1459  ??0CAurTextureBasic@@QEAA@PEBD0@Z */\r\n  CAurTexture::CAurTexture((CAurTexture *)this);\r\n  *(undefined ***)this = vftable;\r\n  puVar3 = (undefined8 *)0x0;\r\n  *(undefined8 *)(this + 0x60) = 0;\r\n  *(undefined4 *)(this + 0x68) = 0;\r\n  counttextures = counttextures + 1;\r\n  _Dest = this + 0xa8;\r\n  *_Dest = (CAurTextureBasic)0x0;\r\n  *(undefined8 *)(this + 0x88) = 0;\r\n  *(undefined8 *)(this + 0x90) = 0;\r\n  *(undefined8 *)(this + 0x98) = 0;\r\n  *(undefined8 *)(this + 0xa0) = 0;\r\n  if ((param_1 != (char *)0x0) || (param_1 = param_2, param_2 != (char *)0x0)) {\r\n    strncpy((char *)(this + 0x88),param_1,0x1f);\r\n  }\r\n  *(undefined8 *)_Dest = 0;\r\n  *(undefined8 *)(this + 0xb0) = 0;\r\n  *(undefined8 *)(this + 0xb8) = 0;\r\n  *(undefined8 *)(this + 0xc0) = 0;\r\n  if (param_2 != (char *)0x0) {\r\n    strncpy((char *)_Dest,param_2,0x1f);\r\n  }\r\n  *(undefined4 *)(this + 0x34) = 0x3f800000;\r\n  *(undefined4 *)(this + 0x28) = 0x3f800000;\r\n  *(undefined4 *)(this + 0x2c) = 0x3f800000;\r\n  *(undefined4 *)(this + 0x30) = 0xbf800000;\r\n  *(undefined4 *)(this + 0x74) = 2;\r\n  *(undefined8 *)(this + 0x78) = 2;\r\n  *(undefined4 *)(this + 0xd0) = 0x20002;\r\n  *(undefined8 *)(this + 0x6c) = 0;\r\n  *(undefined4 *)(this + 200) = 0x10000;\r\n  *(undefined4 *)(this + 0xcc) = 1;\r\n  *(undefined2 *)(this + 0xd4) = 0;\r\n  *(undefined8 *)(this + 0x80) = 7;\r\n  this[0xdd] = (CAurTextureBasic)g_bModeIsDynamic;\r\n  this[0xdc] = (CAurTextureBasic)0x0;\r\n  *(undefined2 *)(this + 0xe2) = 0;\r\n  *(undefined2 *)(this + 0xdf) = 0x101;\r\n  this[0xe1] = (CAurTextureBasic)0x0;\r\n  *(undefined4 *)(this + 0xe4) = 0x101;\r\n  *(undefined2 *)(this + 0xe8) = 0;\r\n  this[0xde] = (CAurTextureBasic)0x0;\r\n  this[0xeb] = (CAurTextureBasic)0x0;\r\n  *(undefined8 *)(this + 0x60) = 0x3f8000003f800000;\r\n  *(undefined4 *)(this + 0x68) = 0x3f800000;\r\n  puVar2 = operator_new(0x78);\r\n  if (puVar2 != (undefined8 *)0x0) {\r\n    *puVar2 = 0;\r\n    puVar2[1] = 0;\r\n    puVar2[2] = 0;\r\n    *(undefined4 *)(puVar2 + 3) = 0;\r\n    puVar2[5] = 0;\r\n    puVar2[4] = 0;\r\n    puVar2[7] = 0;\r\n    puVar2[6] = 0;\r\n    puVar2[8] = 0;\r\n    puVar2[9] = 0;\r\n    puVar2[10] = 0;\r\n    puVar2[0xc] = 0;\r\n    puVar2[0xb] = 0;\r\n    *(undefined2 *)(puVar2 + 0xd) = 0x100;\r\n    *(undefined4 *)((longlong)puVar2 + 0x6c) = 0x3f800000;\r\n    *(undefined4 *)(puVar2 + 0xe) = 0x3dcccccd;\r\n    *(undefined4 *)((longlong)puVar2 + 0x74) = 0x3eb33333;\r\n    puVar3 = puVar2;\r\n  }\r\n  *(undefined8 **)(this + 0x40) = puVar3;\r\n  *(undefined8 *)(this + 0x58) = 0;\r\n  *(undefined8 *)(this + 0x38) = 0;\r\n  *(undefined8 *)(this + 0x50) = 0;\r\n  *(undefined8 *)(this + 0x48) = 0;\r\n  *(undefined4 *)(this + 0xd8) = 0;\r\n  uVar1 = AurTextureCalculateHashID((char *)_Dest,*(short *)(this + 0xd4),(int *)0x0);\r\n  *(uint *)(this + 0xd8) = uVar1;\r\n  AddToOrderedLists(this);\r\n  countbasictextures = countbasictextures + 1;\r\n  *(undefined4 *)(this + 0xec) = 0xffffffff;\r\n  this[0xea] = (CAurTextureBasic)0x1;\r\n  return this;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1400e4d60: MOV qword ptr [RSP + 0x8], RCX",
+        "0x1400e4d65: PUSH RSI",
+        "0x1400e4d66: PUSH RDI",
+        "0x1400e4d67: PUSH R14",
+        "0x1400e4d69: SUB RSP, 0x40",
+        "0x1400e4d6d: MOV qword ptr [RSP + 0x20], -0x2",
+        "0x1400e4d76: MOV qword ptr [RSP + 0x70], RBX",
+        "0x1400e4d7b: MOV qword ptr [RSP + 0x78], RBP",
+        "0x1400e4d80: MOV RSI, R8",
+        "0x1400e4d83: MOV RBP, RDX",
+        "0x1400e4d86: MOV RBX, RCX",
+        "0x1400e4d89: CALL 0x1400e4cc0",
+        "0x1400e4d8e: NOP",
+        "0x1400e4d8f: LEA RAX, [0x140d90d90]",
+        "0x1400e4d96: MOV qword ptr [RBX], RAX",
+        "0x1400e4d99: XOR R14D, R14D",
+        "0x1400e4d9c: MOV qword ptr [RBX + 0x60], R14",
+        "0x1400e4da0: MOV dword ptr [RBX + 0x68], R14D",
+        "0x1400e4da4: INC dword ptr [0x14140b2bc]",
+        "0x1400e4daa: LEA RDI, [RBX + 0xa8]",
+        "0x1400e4db1: MOV byte ptr [RDI], R14B",
+        "0x1400e4db4: LEA RCX, [RBX + 0x88]",
+        "0x1400e4dbb: XOR EAX, EAX",
+        "0x1400e4dbd: MOV qword ptr [RCX], RAX",
+        "0x1400e4dc0: MOV qword ptr [RCX + 0x8], RAX",
+        "0x1400e4dc4: MOV qword ptr [RCX + 0x10], RAX",
+        "0x1400e4dc8: MOV qword ptr [RCX + 0x18], RAX",
+        "0x1400e4dcc: TEST RBP, RBP",
+        "0x1400e4dcf: JZ 0x1400e4dd6",
+        "0x1400e4dd1: MOV RDX, RBP",
+        "0x1400e4dd4: JMP 0x1400e4dde",
+        "0x1400e4dd6: TEST RSI, RSI",
+        "0x1400e4dd9: JZ 0x1400e4de9",
+        "0x1400e4ddb: MOV RDX, RSI",
+        "0x1400e4dde: MOV R8D, 0x1f",
+        "0x1400e4de4: CALL 0x140c4eec0",
+        "0x1400e4de9: XOR EAX, EAX",
+        "0x1400e4deb: MOV qword ptr [RDI], RAX",
+        "0x1400e4dee: MOV qword ptr [RDI + 0x8], RAX",
+        "0x1400e4df2: MOV qword ptr [RDI + 0x10], RAX",
+        "0x1400e4df6: MOV qword ptr [RDI + 0x18], RAX",
+        "0x1400e4dfa: TEST RSI, RSI",
+        "0x1400e4dfd: JZ 0x1400e4e0e",
+        "0x1400e4dff: LEA R8D, [RAX + 0x1f]",
+        "0x1400e4e03: MOV RDX, RSI",
+        "0x1400e4e06: MOV RCX, RDI",
+        "0x1400e4e09: CALL 0x140c4eec0",
+        "0x1400e4e0e: MOV dword ptr [RBX + 0x34], 0x3f800000",
+        "0x1400e4e15: MOV dword ptr [RBX + 0x28], 0x3f800000",
+        "0x1400e4e1c: MOV dword ptr [RBX + 0x2c], 0x3f800000",
+        "0x1400e4e23: MOV dword ptr [RBX + 0x30], 0xbf800000",
+        "0x1400e4e2a: MOV EAX, 0x2",
+        "0x1400e4e2f: MOV dword ptr [RBX + 0x74], EAX",
+        "0x1400e4e32: MOV qword ptr [RBX + 0x78], RAX",
+        "0x1400e4e36: MOV dword ptr [RBX + 0xd0], 0x20002",
+        "0x1400e4e40: MOV qword ptr [RBX + 0x6c], R14",
+        "0x1400e4e44: MOV dword ptr [RBX + 0xc8], 0x10000",
+        "0x1400e4e4e: MOV dword ptr [RBX + 0xcc], 0x1",
+        "0x1400e4e58: MOV word ptr [RBX + 0xd4], R14W",
+        "0x1400e4e60: MOV qword ptr [RBX + 0x80], 0x7",
+        "0x1400e4e6b: MOVZX EAX, byte ptr [0x14128edf8]",
+        "0x1400e4e72: MOV byte ptr [RBX + 0xdd], AL",
+        "0x1400e4e78: MOV byte ptr [RBX + 0xdc], R14B",
+        "0x1400e4e7f: MOV word ptr [RBX + 0xe2], R14W",
+        "0x1400e4e87: MOV word ptr [RBX + 0xdf], 0x101",
+        "0x1400e4e90: MOV byte ptr [RBX + 0xe1], R14B",
+        "0x1400e4e97: MOV dword ptr [RBX + 0xe4], 0x101",
+        "0x1400e4ea1: MOV word ptr [RBX + 0xe8], R14W",
+        "0x1400e4ea9: MOV byte ptr [RBX + 0xde], R14B",
+        "0x1400e4eb0: MOV byte ptr [RBX + 0xeb], R14B",
+        "0x1400e4eb7: MOVSS XMM1, dword ptr [0x140d8109c]",
+        "0x1400e4ebf: MOV dword ptr [RSP + 0x30], 0x3f800000",
+        "0x1400e4ec7: MOVAPS XMM0, XMM1",
+        "0x1400e4eca: UNPCKLPS XMM0, XMM1",
+        "0x1400e4ecd: MOVSD qword ptr [RBX + 0x60], XMM0",
+        "0x1400e4ed2: MOV EAX, dword ptr [RSP + 0x30]",
+        "0x1400e4ed6: MOV dword ptr [RBX + 0x68], EAX",
+        "0x1400e4ed9: MOV ECX, 0x78",
+        "0x1400e4ede: CALL 0x140c10324",
+        "0x1400e4ee3: MOV qword ptr [RSP + 0x68], RAX",
+        "0x1400e4ee8: TEST RAX, RAX",
+        "0x1400e4eeb: JZ 0x1400e4f3d",
+        "0x1400e4eed: MOV qword ptr [RAX], R14",
+        "0x1400e4ef0: MOV qword ptr [RAX + 0x8], R14",
+        "0x1400e4ef4: MOV qword ptr [RAX + 0x10], R14",
+        "0x1400e4ef8: MOV dword ptr [RAX + 0x18], R14D",
+        "0x1400e4efc: MOV qword ptr [RAX + 0x28], R14",
+        "0x1400e4f00: MOV qword ptr [RAX + 0x20], R14",
+        "0x1400e4f04: MOV qword ptr [RAX + 0x38], R14",
+        "0x1400e4f08: MOV qword ptr [RAX + 0x30], R14",
+        "0x1400e4f0c: MOV qword ptr [RAX + 0x40], R14",
+        "0x1400e4f10: MOV qword ptr [RAX + 0x48], R14",
+        "0x1400e4f14: MOV qword ptr [RAX + 0x50], R14",
+        "0x1400e4f18: MOV qword ptr [RAX + 0x60], R14",
+        "0x1400e4f1c: MOV qword ptr [RAX + 0x58], R14",
+        "0x1400e4f20: MOV word ptr [RAX + 0x68], 0x100",
+        "0x1400e4f26: MOV dword ptr [RAX + 0x6c], 0x3f800000",
+        "0x1400e4f2d: MOV dword ptr [RAX + 0x70], 0x3dcccccd",
+        "0x1400e4f34: MOV dword ptr [RAX + 0x74], 0x3eb33333",
+        "0x1400e4f3b: JMP 0x1400e4f40",
+        "0x1400e4f3d: MOV RAX, R14",
+        "0x1400e4f40: MOV qword ptr [RBX + 0x40], RAX",
+        "0x1400e4f44: MOV qword ptr [RBX + 0x58], R14",
+        "0x1400e4f48: MOV qword ptr [RBX + 0x38], R14",
+        "0x1400e4f4c: MOV qword ptr [RBX + 0x50], R14",
+        "0x1400e4f50: MOV qword ptr [RBX + 0x48], R14",
+        "0x1400e4f54: MOV dword ptr [RBX + 0xd8], R14D",
+        "0x1400e4f5b: XOR R8D, R8D",
+        "0x1400e4f5e: MOVZX EDX, word ptr [RBX + 0xd4]",
+        "0x1400e4f65: MOV RCX, RDI",
+        "0x1400e4f68: CALL 0x1400e6f20",
+        "0x1400e4f6d: MOV dword ptr [RBX + 0xd8], EAX",
+        "0x1400e4f73: MOV RCX, RBX",
+        "0x1400e4f76: CALL 0x1400e57d0",
+        "0x1400e4f7b: INC dword ptr [0x14140b2b8]",
+        "0x1400e4f81: MOV dword ptr [RBX + 0xec], 0xffffffff",
+        "0x1400e4f8b: MOV byte ptr [RBX + 0xea], 0x1",
+        "0x1400e4f92: MOV RAX, RBX",
+        "0x1400e4f95: MOV RBX, qword ptr [RSP + 0x70]",
+        "0x1400e4f9a: MOV RBP, qword ptr [RSP + 0x78]",
+        "0x1400e4f9f: ADD RSP, 0x40",
+        "0x1400e4fa3: POP R14",
+        "0x1400e4fa5: POP RDI",
+        "0x1400e4fa6: POP RSI",
+        "0x1400e4fa7: RET"
+      ]
+    },
+    "highlightTextureGetClamp": {
+      "evidence_id": "ev_dcf52402f9cbf5b8943ad787e92fe11f4018632cfb07efad3259d2985d53c148",
+      "procedure": {
+        "address": "0x1400eb700",
+        "name": "CAurTexture::GetClamp",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1400eb700",
+              "end": "0x1400eb728"
+            }
+          ],
+          "total_bytes": 41,
+          "span_bytes": 41,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "int __thiscall GetClamp(CAurTexture * this)",
+        "locals": []
+      },
+      "pseudocode": "\r\n/* public: virtual int __cdecl CAurTexture::GetClamp(void) __ptr64 */\r\n\r\nint __thiscall CAurTexture::GetClamp(CAurTexture *this)\r\n\r\n{\r\n  longlong *plVar1;\r\n  longlong lVar2;\r\n  \r\n                    /* 0xeb700  8171  ?GetClamp@CAurTexture@@UEAAHXZ */\r\n  plVar1 = (longlong *)(**(code **)(*(longlong *)this + 0x10))();\r\n  lVar2 = (**(code **)(*plVar1 + 8))(plVar1);\r\n  if (lVar2 != 0) {\r\n    return (int)*(short *)(lVar2 + 200);\r\n  }\r\n  return 0;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1400eb700: SUB RSP, 0x28",
+        "0x1400eb704: MOV RAX, qword ptr [RCX]",
+        "0x1400eb707: CALL qword ptr [RAX + 0x10]",
+        "0x1400eb70a: MOV RCX, RAX",
+        "0x1400eb70d: MOV RDX, qword ptr [RAX]",
+        "0x1400eb710: CALL qword ptr [RDX + 0x8]",
+        "0x1400eb713: TEST RAX, RAX",
+        "0x1400eb716: JZ 0x1400eb724",
+        "0x1400eb718: MOVSX EAX, word ptr [RAX + 0xc8]",
+        "0x1400eb71f: ADD RSP, 0x28",
+        "0x1400eb723: RET",
+        "0x1400eb724: ADD RSP, 0x28",
+        "0x1400eb728: RET"
+      ]
+    },
+    "highlightTextureGetFilter": {
+      "evidence_id": "ev_1de9798077bc34d1f42f8ce27fc2c2037e4d47425399116b9ff32c4109d898f6",
+      "procedure": {
+        "address": "0x1400eb820",
+        "name": "CAurTexture::GetFilter",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1400eb820",
+              "end": "0x1400eb848"
+            }
+          ],
+          "total_bytes": 41,
+          "span_bytes": 41,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "bool __thiscall GetFilter(CAurTexture * this)",
+        "locals": []
+      },
+      "pseudocode": "\r\n/* public: virtual bool __cdecl CAurTexture::GetFilter(void) __ptr64 */\r\n\r\nbool __thiscall CAurTexture::GetFilter(CAurTexture *this)\r\n\r\n{\r\n  longlong *plVar1;\r\n  longlong lVar2;\r\n  \r\n                    /* 0xeb820  8473  ?GetFilter@CAurTexture@@UEAA_NXZ */\r\n  plVar1 = (longlong *)(**(code **)(*(longlong *)this + 0x10))();\r\n  lVar2 = (**(code **)(*plVar1 + 8))(plVar1);\r\n  if (lVar2 != 0) {\r\n    return (bool)*(undefined1 *)(lVar2 + 0xe5);\r\n  }\r\n  return false;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1400eb820: SUB RSP, 0x28",
+        "0x1400eb824: MOV RAX, qword ptr [RCX]",
+        "0x1400eb827: CALL qword ptr [RAX + 0x10]",
+        "0x1400eb82a: MOV RCX, RAX",
+        "0x1400eb82d: MOV RDX, qword ptr [RAX]",
+        "0x1400eb830: CALL qword ptr [RDX + 0x8]",
+        "0x1400eb833: TEST RAX, RAX",
+        "0x1400eb836: JZ 0x1400eb844",
+        "0x1400eb838: MOVZX EAX, byte ptr [RAX + 0xe5]",
+        "0x1400eb83f: ADD RSP, 0x28",
+        "0x1400eb843: RET",
+        "0x1400eb844: ADD RSP, 0x28",
+        "0x1400eb848: RET"
+      ]
+    },
+    "highlightGLSampler": {
+      "evidence_id": "ev_ebf0c51e4d1e334a56cb43d3b8a060374dc9846251ab313acb8f07ddbabbc144",
+      "procedure": {
+        "address": "0x1400b8100",
+        "name": "GLRender::SetTextureParameters",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1400b8100",
+              "end": "0x1400b8258"
+            }
+          ],
+          "total_bytes": 345,
+          "span_bytes": 345,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "void __cdecl SetTextureParameters(AuroraTexParamTargets param_1, uchar param_2, uchar param_3, int param_4)",
+        "locals": [
+          {
+            "description": "undefined8 local_res10 @ Stack[0x10]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res18 @ Stack[0x18]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res8 @ Stack[0x8]:8",
+            "provenance": "ghidra-function-database"
+          }
+        ]
+      },
+      "pseudocode": "\r\n/* private: static void __cdecl GLRender::SetTextureParameters(enum\r\n   Aurora::AuroraTexParamTargets,unsigned char,unsigned char,int) */\r\n\r\nvoid __cdecl\r\nGLRender::SetTextureParameters\r\n          (AuroraTexParamTargets param_1,uchar param_2,uchar param_3,int param_4)\r\n\r\n{\r\n  longlong lVar1;\r\n  undefined4 uVar2;\r\n  undefined8 uVar3;\r\n  float fVar4;\r\n  \r\n                    /* 0xb8100  13595\r\n                       ?SetTextureParameters@GLRender@@CAXW4AuroraTexParamTargets@Aurora@@EEH@Z */\r\n  lVar1 = (longlong)(int)param_1;\r\n  uVar3 = 0x2901;\r\n  if ((param_4 & 1U) != 0) {\r\n    uVar3 = 0x812f;\r\n  }\r\n  glTexParameteri(*(undefined4 *)(&DAT_140d8ad50 + lVar1 * 4),0x2802,uVar3);\r\n  uVar2 = 0x2901;\r\n  if ((param_4 & 2U) != 0) {\r\n    uVar2 = 0x812f;\r\n  }\r\n  glTexParameteri(*(undefined4 *)(&DAT_140d8ad50 + lVar1 * 4),0x2803,uVar2);\r\n  if (param_1 == 1) {\r\n    uVar2 = 0x2901;\r\n    if ((param_4 & 4U) != 0) {\r\n      uVar2 = 0x812f;\r\n    }\r\n    glTexParameteri(0x8513,0x8072,uVar2);\r\n  }\r\n  glTexParameteri(*(undefined4 *)(&DAT_140d8ad50 + lVar1 * 4),0x2800,(param_2 != '\\0') + 0x2600);\r\n  uVar2 = 0x2600;\r\n  if (param_3 != '\\0') {\r\n    uVar2 = 0x2700;\r\n    if (param_2 != '\\0') {\r\n      uVar2 = 0x2703;\r\n    }\r\n  }\r\n  glTexParameteri(*(undefined4 *)(&DAT_140d8ad50 + lVar1 * 4),0x2801,uVar2);\r\n  if ((param_3 == '\\0') || (param_2 == '\\0')) {\r\n    fVar4 = 1.0;\r\n  }\r\n  else {\r\n    if (DAT_14128eb00 == -1.0) {\r\n      glGetFloatv(0x84ff,&DAT_14128eb00);\r\n    }\r\n    fVar4 = DAT_14128eb00;\r\n    if ((float)g_nTexAnisoFilterLevel <= DAT_14128eb00) {\r\n      fVar4 = (float)g_nTexAnisoFilterLevel;\r\n    }\r\n  }\r\n                    /* WARNING: Could not recover jumptable at 0x0001400b8252. Too many branches */\r\n                    /* WARNING: Treating indirect jump as call */\r\n  glTexParameterf(*(undefined4 *)(&DAT_140d8ad50 + lVar1 * 4),0x84fe,fVar4);\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1400b8100: MOV qword ptr [RSP + 0x8], RBX",
+        "0x1400b8105: MOV qword ptr [RSP + 0x10], RBP",
+        "0x1400b810a: MOV qword ptr [RSP + 0x18], RSI",
+        "0x1400b810f: PUSH RDI",
+        "0x1400b8110: PUSH R12",
+        "0x1400b8112: PUSH R13",
+        "0x1400b8114: PUSH R14",
+        "0x1400b8116: PUSH R15",
+        "0x1400b8118: SUB RSP, 0x20",
+        "0x1400b811c: MOVSXD RBX, ECX",
+        "0x1400b811f: LEA R12, [0x140d8ad50]",
+        "0x1400b8126: MOVZX R14D, R8B",
+        "0x1400b812a: TEST R9B, 0x1",
+        "0x1400b812e: MOVZX ESI, DL",
+        "0x1400b8131: MOV EBP, 0x2901",
+        "0x1400b8136: MOV R8D, EBP",
+        "0x1400b8139: MOV R13D, 0x812f",
+        "0x1400b813f: MOV ECX, dword ptr [R12 + RBX*0x4]",
+        "0x1400b8143: CMOVNZ R8D, R13D",
+        "0x1400b8147: MOV EDX, 0x2802",
+        "0x1400b814c: MOV R15D, R9D",
+        "0x1400b814f: MOV RDI, RBX",
+        "0x1400b8152: CALL qword ptr [0x140d7c9e8]",
+        "0x1400b8158: MOV ECX, dword ptr [R12 + RBX*0x4]",
+        "0x1400b815c: MOV R8D, EBP",
+        "0x1400b815f: TEST R15B, 0x2",
+        "0x1400b8163: MOV EDX, 0x2803",
+        "0x1400b8168: CMOVNZ R8D, R13D",
+        "0x1400b816c: CALL qword ptr [0x140d7c9e8]",
+        "0x1400b8172: CMP EBX, 0x1",
+        "0x1400b8175: JNZ 0x1400b8191",
+        "0x1400b8177: MOV ECX, dword ptr [R12 + RBX*0x4]",
+        "0x1400b817b: TEST R15B, 0x4",
+        "0x1400b817f: MOV EDX, 0x8072",
+        "0x1400b8184: CMOVNZ EBP, R13D",
+        "0x1400b8188: MOV R8D, EBP",
+        "0x1400b818b: CALL qword ptr [0x140d7c9e8]",
+        "0x1400b8191: MOV ECX, dword ptr [R12 + RDI*0x4]",
+        "0x1400b8195: XOR R8D, R8D",
+        "0x1400b8198: TEST SIL, SIL",
+        "0x1400b819b: MOV EBX, 0x2600",
+        "0x1400b81a0: MOV EDX, 0x2800",
+        "0x1400b81a5: SETNZ R8B",
+        "0x1400b81a9: ADD R8D, EBX",
+        "0x1400b81ac: CALL qword ptr [0x140d7c9e8]",
+        "0x1400b81b2: TEST R14B, R14B",
+        "0x1400b81b5: JZ 0x1400b81c7",
+        "0x1400b81b7: TEST SIL, SIL",
+        "0x1400b81ba: MOV EBX, 0x2700",
+        "0x1400b81bf: MOV EAX, 0x2703",
+        "0x1400b81c4: CMOVNZ EBX, EAX",
+        "0x1400b81c7: MOV ECX, dword ptr [R12 + RDI*0x4]",
+        "0x1400b81cb: MOV R8D, EBX",
+        "0x1400b81ce: MOV EDX, 0x2801",
+        "0x1400b81d3: CALL qword ptr [0x140d7c9e8]",
+        "0x1400b81d9: TEST R14B, R14B",
+        "0x1400b81dc: JZ 0x1400b8225",
+        "0x1400b81de: TEST SIL, SIL",
+        "0x1400b81e1: JZ 0x1400b8225",
+        "0x1400b81e3: MOVSS XMM2, dword ptr [0x14128eb00]",
+        "0x1400b81eb: UCOMISS XMM2, dword ptr [0x140d82188]",
+        "0x1400b81f2: JP 0x1400b8210",
+        "0x1400b81f4: JNZ 0x1400b8210",
+        "0x1400b81f6: LEA RDX, [0x14128eb00]",
+        "0x1400b81fd: MOV ECX, 0x84ff",
+        "0x1400b8202: CALL qword ptr [0x140d7ca48]",
+        "0x1400b8208: MOVSS XMM2, dword ptr [0x14128eb00]",
+        "0x1400b8210: MOVD XMM0, dword ptr [0x14128ee08]",
+        "0x1400b8218: CVTDQ2PS XMM0, XMM0",
+        "0x1400b821b: COMISS XMM0, XMM2",
+        "0x1400b821e: JA 0x1400b822d",
+        "0x1400b8220: MOVAPS XMM2, XMM0",
+        "0x1400b8223: JMP 0x1400b822d",
+        "0x1400b8225: MOVSS XMM2, dword ptr [0x140d8109c]",
+        "0x1400b822d: MOV ECX, dword ptr [R12 + RDI*0x4]",
+        "0x1400b8231: MOV EDX, 0x84fe",
+        "0x1400b8236: MOV RBX, qword ptr [RSP + 0x50]",
+        "0x1400b823b: MOV RBP, qword ptr [RSP + 0x58]",
+        "0x1400b8240: MOV RSI, qword ptr [RSP + 0x60]",
+        "0x1400b8245: ADD RSP, 0x20",
+        "0x1400b8249: POP R15",
+        "0x1400b824b: POP R14",
+        "0x1400b824d: POP R13",
+        "0x1400b824f: POP R12",
+        "0x1400b8251: POP RDI",
+        "0x1400b8252: JMP qword ptr [0x140d7c9f0]"
+      ]
+    },
+    "highlightTextureParseField": {
+      "evidence_id": "ev_20268a1ff656eb3ffe22cf37d278d8272f952622791f8d02277c90cb63c1e602",
+      "procedure": {
+        "address": "0x1400ecf20",
+        "name": "CAurTextureBasic::ParseField",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1400ecf20",
+              "end": "0x1400ed4f6"
+            }
+          ],
+          "total_bytes": 1495,
+          "span_bytes": 1495,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "void __thiscall ParseField(CAurTextureBasic * this, char * param_1)",
+        "locals": [
+          {
+            "description": "undefined8 local_28 @ Stack[-0x28]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined1 local_68 @ Stack[-0x68]:1",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_70 @ Stack[-0x70]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_78 @ Stack[-0x78]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res10 @ Stack[0x10]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res18 @ Stack[0x18]:8",
+            "provenance": "ghidra-function-database"
+          }
+        ]
+      },
+      "selection": "Exact sampler-related pseudocode excerpt; not the complete function.",
+      "pseudocode": "iVar3 = _stricmp(\"mipmap\",pcVar4);\r\n  if (iVar3 == 0) {\r\n    ::Parse(param_1 + 6,(bool *)(this + 0xe4));\r\n  }\r\n  pcVar4 = firstword(param_1);\r\n  iVar3 = _stricmp(\"filter\",pcVar4);\r\n  if (iVar3 == 0) {\r\n    ::Parse(param_1 + 6,(bool *)(this + 0xe5));\r\n  }\r\n  pcVar4 = firstword(param_1);\r\n  iVar3 = _stricmp(\"gamma\",pcVar4);\r\n  if (iVar3 == 0) {\r\n    ::Parse(param_1 + 5,(float *)(this + 0x34));\r\n  }\r\n  pcVar4 = firstword(param_1);\r\n  iVar3 = _stricmp(\"isbumpmap\",pcVar4);\r\n  if (iVar3 == 0) {\r\n    ::Parse(param_1 + 9,(bool *)(this + 0xde));\r\n  }\r\n  pcVar4 = firstword(param_1);\r\n  iVar3 = _stricmp(\"clamp\",pcVar4);\r\n  if (iVar3 == 0) {\r\n    ::Parse(param_1 + 5,(short *)(this + 200));\r\n  }\r\n  pcVar4 = firstword(param_1);\r\n  "
+    },
+    "highlightGLCreateTexture": {
+      "evidence_id": "ev_e1457697c281f0b9e795822e361fb5ff23463a3aee7d7f612d5a10add1480310",
+      "procedure": {
+        "address": "0x1400af440",
+        "name": "GLRender::CreateTexture",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1400af440",
+              "end": "0x1400afbb9"
+            }
+          ],
+          "total_bytes": 1914,
+          "span_bytes": 1914,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "void __cdecl CreateTexture(CAurTexture * param_1, bool param_2, int param_3)",
+        "locals": [
+          {
+            "description": "undefined8 local_40 @ Stack[-0x40]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined1[16] local_50 @ Stack[-0x50]:16",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_58 @ Stack[-0x58]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_60 @ Stack[-0x60]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_64 @ Stack[-0x64]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_68 @ Stack[-0x68]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_6c @ Stack[-0x6c]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_70 @ Stack[-0x70]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_74 @ Stack[-0x74]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_78 @ Stack[-0x78]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_7c @ Stack[-0x7c]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined1 local_80 @ Stack[-0x80]:1",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_84 @ Stack[-0x84]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_88 @ Stack[-0x88]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_98 @ Stack[-0x98]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_a0 @ Stack[-0xa0]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_a8 @ Stack[-0xa8]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_b0 @ Stack[-0xb0]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_b8 @ Stack[-0xb8]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res10 @ Stack[0x10]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res8 @ Stack[0x8]:8",
+            "provenance": "ghidra-function-database"
+          }
+        ]
+      },
+      "selection": "Exact sampler-related pseudocode excerpt; not the complete function.",
+      "pseudocode": "\r\n/* WARNING: Function: __security_check_cookie replaced with injection: security_check_cookie */\r\n/* private: static void __cdecl GLRender::CreateTexture(class CAurTexture * __ptr64,bool,int) */\r\n\r\nvoid __cdecl GLRender::CreateTexture(CAurTexture *param_1,bool param_2,int param_3)\r\n\r\n{\r\n  code *pcVar1;\r\n  uchar *puVar2;\r\n  uchar uVar3;\r\n  uchar uVar4;\r\n  char cVar5;\r\n  int iVar6;\r\n  uint uVar7;\r\n  int iVar8;\r\n  int iVar9;\r\n  int iVar10;\r\n  int iVar11;\r\n  int iVar12;\r\n  int iVar13;\r\n  int iVar14;\r\n  uchar *puVar15;\r\n  uchar *puVar16;\r\n  longlong lVar17;\r\n  byte bVar18;\r\n  byte bVar19;\r\n  uint uVar20;\r\n  ulonglong uVar21;\r\n  uchar *puVar22;\r\n  int iVar23;\r\n  uint uVar24;\r\n  undefined1 auStackY_d8 [32];\r\n  int local_84;\r\n  int local_7c;\r\n  int local_78;\r\n  uchar *local_50;\r\n  undefined8 uStack_48;\r\n  ulonglong local_40;\r\n  \r\n                    /* 0xaf440  6605  ?CreateTexture@GLRender@@CAXPEAVCAurTexture@@_NH@Z */\r\n  local_40 = DAT_1412a1b28 ^ (ulonglong)auStackY_d8;\r\n  iVar6 = (**(code **)(*(longlong *)param_1 + 0x78))();\r\n  uVar7 = (**(code **)(*(longlong *)param_1 + 0x80))(param_1);\r\n  puVar15 = (uchar *)(**(code **)(*(longlong *)param_1 + 0x60))(param_1);\r\n  iVar8 = (**(code **)(*(longlong *)param_1 + 0x88))(param_1);\r\n  iVar9 = (**(code **)(*(longlong *)param_1 + 0x90))(param_1);\r\n  iVar10 = (**(code **)(*(longlong *)param_1 + 0x70))(param_1);\r\n  iVar11 = iVar10 / iVar8;\r\n  iVar12 = iVar6 / iVar9;\r\n  uVar3 = (**(code **)(*(longlong *)param_1 + 0xb8))(param_1);\r\n  if ((iVar8 != 1) || (puVar16 = puVar15, iVar9 != 1)) {\r\n    puVar16 = ImageGetSubImage(puVar15,iVar10,iVar6,uVar7,(param_3 % iVar8) * iVar11,\r\n                               (param_3 / iVar8) * iVar12,iVar11,iVar12);\r\n  }\r\n  local_50 = puVar16;\r\n  if ((DAT_14128eafc == -1) && (glGetIntegerv(0xd33,&DAT_14128eafc), DAT_14128eafc == 0)) {\r\n    DAT_14128eafc = 0x1000;\r\n  }\r\n  iVar8 = (**(code **)(*(longlong *)param_1 + 0x98))(param_1);\r\n  uVar4 = (**(code **)(*(longlong *)param_1 + 0xc0))();\r\n  SetTextureParameters(0,uVar4,uVar3,iVar8);\r\n  "
+    }
+  }
+}
+

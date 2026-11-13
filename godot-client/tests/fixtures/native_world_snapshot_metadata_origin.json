@@ -1,0 +1,55 @@
+{
+  "scope": "Exact dirty source bytes before worker integration; no runtime acceptance",
+  "files": [
+    {
+      "file": "systems/native_render/live_world.gd",
+      "sha256": "8db15cb3d3482febc725d5218ec5488c491e88278410359dc12f28cfca03f7ee",
+      "bytes": 80927
+    },
+    {
+      "file": "systems/native_render/creature_stream.gd",
+      "sha256": "eecae3b7deedc24c24b7d0c24dadea2c0cd221703f25b1ecf7def71fc3e4b201",
+      "bytes": 14872
+    },
+    {
+      "file": "systems/native_render/object_stream.gd",
+      "sha256": "e3dcbc95d46696b6f64960016b823d7a027eeb99e4b74ca4a2f608daf8528e3c",
+      "bytes": 28264
+    },
+    {
+      "file": "systems/native_render/placeable_instance.gd",
+      "sha256": "8ad84145c496763cb11fbd2c3d98ec86dfe46dcfa0c1f5a95660201c13835339",
+      "bytes": 4775
+    },
+    {
+      "file": "systems/native_data/prepared_cache.gd",
+      "sha256": "d5c714dcd8f39c2bc04468246c60020cfe0de675aa387a6fa1da9f52087bed8a",
+      "bytes": 9964
+    },
+    {
+      "file": "systems/native_data/entity_presentation_lifetime.gd",
+      "sha256": "68434998252beaaea08a76f1182f94828aaecad0d037aba4345f06024f2dbbaa",
+      "bytes": 1289
+    },
+    {
+      "file": "systems/native_data/object_animation.gd",
+      "sha256": "e6d79f155d79cb7f0cbc6b91394f7d27bfc68ac707f771c75927c3f6a856f7c3",
+      "bytes": 781
+    },
+    {
+      "file": "systems/native_render/base_world_scenery.gd",
+      "sha256": "848a0465c97eed5ea9d8e6ceade8f8b231640dcf3e43fe95d83f5b343197c071",
+      "bytes": 3614
+    }
+  ],
+  "oracle": {
+    "file": "tests/fixtures/native_world_snapshot_metadata_oracle.gd",
+    "sha256": "4ece1d91bb29339ca5947646056c85a877094b058d01be2ddb2a56d71afd3ba0",
+    "source_functions": {
+      "signature": "9ad13d86c1325f2ff1bf667e3ebfb0cb7a95ff8d69ae84c2d2acc947753a0eee",
+      "creature_pose": "f0cc8a032f2f41e5fad679aa05b099b789eedbfddca74942db07d5af3b8f7687",
+      "static_pose": "84e3d737b493f859687f4e4bf42457f38e5e20f950c9d05129ca4ef8f8412856",
+      "object_pose": "3668bec2a7e16909e6681250b349bd2f2545c42aa057b1bb497e0363bdbfa3d8"
+    }
+  }
+}

@@ -46,6 +46,7 @@ func receive(rows: Array,removed: Array=[],delta: bool=false) -> bool:
 		var visual:=MeshInstance3D.new(); visual.mesh=mesh
 		var material:=StandardMaterial3D.new(); material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA; material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED; material.albedo_color=Color(0,0,0,0); material.cull_mode=BaseMaterial3D.CULL_DISABLED; material.depth_draw_mode=BaseMaterial3D.DEPTH_DRAW_DISABLED
 		visual.material_override=material; visual.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		material.set_meta("native_invisible_pick",true)
 		var shape:=ConcavePolygonShape3D.new(); shape.set_faces(data.faces); shape.backface_collision=true
 		visual.set_meta("native_pick_shape",shape); visual.set_meta("native_pick_bounds",data.bounds); target.add_child(visual); target.meshes=[visual]
 		var raw_name: Variant=object.get("replicated",{}).get("name",{})

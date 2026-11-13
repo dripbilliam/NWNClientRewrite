@@ -1,8 +1,8 @@
 extends RefCounted
 # View construction only: definitions describe controls, controllers own actions.
 # Authored original GUI geometry still goes through the same source painter.
-const KINDS=["column","row","tabs","label","rich","button","check","choice","progress","scroll","control","edit"]
-const PROPERTIES=["name","text","custom_minimum_size","size_flags_horizontal","size_flags_vertical","autowrap_mode","horizontal_scroll_mode","vertical_scroll_mode","show_percentage","disabled","focus_mode","mouse_filter","tooltip_text"]
+const KINDS=["column","row","tabs","label","rich","button","check","choice","progress","scroll","control","edit","number"]
+const PROPERTIES=["name","text","custom_minimum_size","size_flags_horizontal","size_flags_vertical","autowrap_mode","horizontal_scroll_mode","vertical_scroll_mode","show_percentage","disabled","focus_mode","mouse_filter","tooltip_text","min_value","max_value","step","value"]
 static func validate(specs: Array,ids: Dictionary={}) -> String:
 	for spec in specs:
 		if not spec is Dictionary or str(spec.get("kind","")) not in KINDS: return "Unknown menu control kind"
@@ -45,6 +45,7 @@ static func create(kind: String,parent: Control,properties: Dictionary={}) -> Co
 		"progress": node=ProgressBar.new()
 		"scroll": node=ScrollContainer.new()
 		"edit": node=LineEdit.new()
+		"number": node=SpinBox.new()
 		_: node=Control.new()
 	if node is BaseButton: node.focus_mode=Control.FOCUS_NONE
 	for key in properties: node.set(key,properties[key])

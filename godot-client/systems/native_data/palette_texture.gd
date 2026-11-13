@@ -13,8 +13,11 @@ func reject(reason: String) -> Dictionary:
 func header(bytes: PackedByteArray) -> Dictionary:
 	failure=""
 	if bytes.size()<24 or bytes.slice(0,8).get_string_from_ascii()!="PLT V1  ": return reject("Invalid original PLT header")
-	var layers:=bytes.decode_u32(8); var width:=bytes.decode_u32(16); var height:=bytes.decode_u32(20)
-	if layers<1 or layers>NAMES.size() or width<1 or height<1 or width>32767 or height>32767 or width*height>Raster.MAX_PIXELS: return reject("Invalid original PLT dimensions/layers")
+	# Original CResPLT passes header+8 through as metadata; LoadImagePLT does
+	# not use it to bound the ten palette selectors. Installed icons/body parts
+	# legitimately declare11 while using ordinary per-pixel palette indices.
+	var width:=bytes.decode_u32(16); var height:=bytes.decode_u32(20)
+	if width<1 or height<1 or width>32767 or height>32767 or width*height>Raster.MAX_PIXELS: return reject("Invalid original PLT dimensions")
 	if bytes.size()<24+width*height*2: return reject("Original PLT pixels are truncated")
 	var used: Array=[]; var mask:=0; var order:=Conversion.layer_order(bytes) if use_native and Conversion.available else 0
 	if order!=0:

@@ -4,6 +4,19 @@ The Customize control is still disabled. This milestone implements and verifies
 the existing-BIC editing layer and records the original flow; it does not claim
 the editor, file-save lifecycle or complete character UI is usable.
 
+The [shared native portrait-policy follow-up](NATIVE-PORTRAIT-CHOICES.md) now
+corrects the existing creator's ordering, size/Exists selection, deduplication
+and scoped custom-file discovery, with original-instruction and headless native
+integration evidence. The unfinished existing-BIC editor can reuse that owner;
+this does not enable Customize or claim its portrait panel is complete.
+
+The [native portrait-pane component](NATIVE-PORTRAIT-PANE.md) now prepares the
+original source panel, pooled grid and huge preview, with306 release headless
+checks. The [CG_MAIN parent component](NATIVE-CREATION-PARENT.md) now connects
+its source parent/portrait result route headlessly, but it is not connected to
+the shipping creator or existing-BIC editor. Graphical/input-scale and full
+customization acceptance remain open.
+
 ## Original flow and source evidence
 
 `backups/animations/rea-native-character-customization-v1.json` retains selected
@@ -19,7 +32,7 @@ existing BIC through `7f7e20/802290`, and immediately opens `CG_PORTRAIT` throug
 | Surface / transition | Original evidence | Current acceptance |
 | --- | --- | --- |
 | Picker Customize | `710130`, return callback `70fec0`; selected local type0 enables it in the earlier picker evidence | Disabled pending complete native editor |
-| Portrait | `8e58c0`, attachment `8edb00`: original GUI has five controls; a programmatic portrait chooser is added at `portraits` | Source/resource metadata only |
+| Portrait | `8e58c0`, attachment `8edb00`: original GUI has five controls; a programmatic portrait chooser is added at `portraits` | Native component and headless source/input checks; parent integration and visual acceptance open |
 | Portrait selection | `8edb00` filters by received gender/race, remaps race4 to6; absent selection uses NWN logo and disables OK | Native behavior/visual acceptance open |
 | Portrait result | Main callback `8e9be0`: mode1 result2 cancels; `0x8009` opens Appearance | Source only |
 | Appearance | `8e25c0`, constructor `8dbab0`, attachment `8eb480`, callback `8e9ab0` | Source/resource metadata only |

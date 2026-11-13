@@ -36,6 +36,22 @@ func run() -> void:
 	check(actions==[["particles",true]] and a.particles_enabled and not b.particles_enabled,"The definition's checkbox updates only its owning controller")
 	var saved:=ConfigFile.new(); saved.load(output+".a.cfg")
 	check(saved.get_value("rendering","particles_enabled",false),"Controller-owned preference persistence remains functional after construction moves")
+	var radial_signals: Array=[]; a.radial_preferences_changed.connect(func(value):radial_signals.append(value))
+	a.radial_toggles.group_abilities.button_pressed=true; a.radial_toggles.group_spells.button_pressed=true; a.radial_choices.submenu_mode.select(2); a.radial_choices.submenu_mode.item_selected.emit(2); a.radial_toggles.screen_center.button_pressed=true
+	check(a.radial_preferences.group_abilities and a.radial_preferences.group_spells and a.radial_preferences.submenu_previews and a.radial_preferences.submenu_mode==2 and a.radial_preferences.screen_center and radial_signals.size()==4 and b.radial_preferences.submenu_mode==1 and not b.radial_preferences.group_spells,"Each radial option has its own bound setting and current preference signal")
+	check(a.radial_preferences.left_mirror and b.radial_preferences.left_mirror,"Left-button mirroring uses the original enabled default")
+	a.radial_toggles.left_mirror.button_pressed=false
+	check(not a.radial_preferences.left_mirror and b.radial_preferences.left_mirror and not radial_signals.back().left_mirror,"Left-button mirroring changes only its owning options instance")
+	for key in ["hide_icons","text_in_center","center_align_text"]: a.radial_toggles[key].button_pressed=true
+	a.radial_choices.text_mode.select(2); a.radial_choices.text_mode.item_selected.emit(2)
+	var restored:=Options.new(); host.add_child(restored); restored.setup(output+".a.cfg","")
+	check(restored.radial_preferences==a.radial_preferences and restored.radial_toggles.group_abilities.button_pressed and restored.radial_choices.submenu_mode.selected==2 and restored.radial_choices.text_mode.selected==2,"Radial choices survive reconstructing options")
+	check(not restored.radial_toggles.left_mirror.button_pressed,"Left-button mirroring persists independently of menu grouping and presentation")
+	restored.free()
+	var legacy:=ConfigFile.new(); legacy.set_value("interface","radial_submenu_previews",false); legacy.save(output+".legacy.cfg")
+	var migrated:=Options.new(); host.add_child(migrated); migrated.setup(output+".legacy.cfg","")
+	check(migrated.radial_choices.submenu_mode.selected==0 and not migrated.radial_preferences.submenu_previews,"The former preview checkbox migrates to Off without changing the saved choice")
+	migrated.free()
 	a.set_prework_sources(["Owned local assets"],false)
 	a.prework_prepare.pressed.emit(); a.ui_preload_prepare.pressed.emit()
 	check(actions.slice(1)==[["prework"],["ui-preload"]],"Separate model/UI-preload actions remain connected to their owning signals")

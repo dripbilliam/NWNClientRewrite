@@ -2,10 +2,17 @@ extends RefCounted
 # Process-owned immutable data, not a server's resref bindings or live objects.
 # Catalogs still select their own winning layer before using these stores.
 const Store=preload("res://systems/native_data/preparation_store.gd")
+const Accounting=preload("res://systems/native_data/resource_index_backend.gd")
 static var indexes=make_store(256*1024*1024,256)
 static var bindings=make_store(256*1024*1024,16)
 static var decoded=make_store(1024*1024*1024,4096)
 static var synced_bytes=make_store(256*1024*1024,4096)
+static func prepared_budget() -> int:
+	var requested:=OS.get_environment("NWN_RESOURCE_PREPARED_MIB")
+	# Retained-container accounting includes allocator/container overhead absent
+	# from the old serialized-byte charge. This is an eviction threshold, not a
+	# reservation; preserve the prior working set under the new conservative units.
+	return clampi(int(requested),64,4096)*1024*1024 if requested.is_valid_int() else (2048 if Accounting.accounting_available() else 512)*1024*1024
 static func make_store(budget: int,limit: int):
 	var store:=Store.new(); store.maximum_bytes=budget; store.maximum_entries=limit; return store
 static func freeze_index(value: Variant) -> void:

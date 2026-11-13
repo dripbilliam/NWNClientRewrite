@@ -1,0 +1,4 @@
+Import("env")
+Import("env_modules")
+env_nwn_motion_numeric = env_modules.Clone()
+env_nwn_motion_numeric.add_source_files(env.modules_sources, "*.cpp")

@@ -1,0 +1,9 @@
+ScriptFloating current echo-transport authority regression
+
+Run native-script-floating-received-v5 is accepted on the corrected production transport path. NativeLiveWorld forwards the actual accepted outer connection; Gameplay publishes93/94 directly to the transport-aware Owner. A detached connection-owned text receipt supplies optional log echo separately from the area-owned widget. No probe, Host readiness/finish, wrapper or acceptance assertion was changed for this run.
+
+Current copied composed196 and projection/JSON-boundary13 passed on678 exact inputs each. The separate authored echo24 gate proves unknown/stale/future-area log independence and connection retirement; that is an offline functional scope, not original-server traffic in those edge states. The v5 server run verifies the normal current-area path with four actual original writer messages93/93/94/94 and showChat0/1/0/1.
+
+All four real native View controls publish two distinct real-frame paints. View.has_frame and visible-in-tree are true, finite Control.position equals cached lastPaint.point, base_alpha equals cached alpha, both lifetime witnesses and connection/generation/area scope match, and actual Owner -> Gameplay -> current NativeRoot world/camera callable ownership remains stable. Host10/native16/exit9 all pass, two echoes only, no legacy duplicate, lifetimes finish, workers0 and finish acknowledged.
+
+Owned original server5129 cleaned, ALT lease released; original server/editor/other processes, encrypted profiles, installed Wizard and six native outputs unchanged. No native build/public connection/GPU/movement/picking/raster-pixel acceptance. Existing v3/v4 reports and exact input seals remain unchanged. No further original-server run or implicit retry.

@@ -6,6 +6,9 @@ const PickGeometry=preload("res://systems/native_render/pick_geometry.gd")
 const SceneGeometry=preload("res://systems/native_render/scene_geometry.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const MeshPreparation=preload("res://systems/native_data/mesh_preparation.gd")
+const NativeDrawCache=preload("res://systems/native_render/native_draw_cache_runtime.gd")
+const NativeDrawCodec=preload("res://systems/native_render/native_mesh_resource_cache.gd")
+var native_draw_captures: Array=[]
 var use_prepared_geometry:=MeshPreparation.configured_enabled()
 var publication_budget_us:=3000
 var maximum_publications_per_frame:=16
@@ -26,6 +29,9 @@ var meshes: Dictionary = {}
 var textures: Dictionary = {}
 var materials: Dictionary = {}
 var unshaded := false
+var native_lighting:=false
+var native_standard:=false # Only after the active native shader profile matches.
+var native_surface_output:=false # Research carrier, never selected implicitly.
 var texture_filter := BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 var picking := false
 var compact_static_parts:=OS.get_cmdline_user_args().has("--static-parts=compact")
@@ -55,6 +61,21 @@ func retain(kind: String,entries: Dictionary,key: String,value: Resource,limit: 
 func main_thread() -> bool:
 	if OS.get_thread_caller_id() != OS.get_main_thread_id(): failure = "Native render resources must be published on the main thread"; return false
 	return true
+func begin_native_model(bundle: Dictionary) -> Dictionary:
+	var context:=NativeDrawCache.begin_model(bundle)
+	if not context.is_empty():native_draw_captures.append(context)
+	return context
+func end_native_model(context: Dictionary) -> void:
+	if context.is_empty():return
+	native_draw_captures.erase(context);NativeDrawCache.end_model(context)
+func suspend_native_model(context: Dictionary) -> void:
+	# A cooperative builder retains its ticket, never an active capture scope.
+	# Unrelated model publication between steps cannot enter that ticket.
+	native_draw_captures.erase(context)
+func resume_native_model(context: Dictionary) -> void:
+	if not context.is_empty() and not native_draw_captures.has(context):native_draw_captures.append(context)
+func capture_native_geometry(source_sha: String,index: int,rigid_skin: bool,mesh: ArrayMesh) -> void:
+	for context in native_draw_captures:NativeDrawCache.capture(context,source_sha,index,rigid_skin,mesh)
 func model_template(bundle: Dictionary):
 	var began:=Timing.begin(); var result=prepare_model_template(bundle)
 	Timing.finish("publication_template_cpu_ms",began); return result
@@ -67,8 +88,19 @@ func prepare_model_template(bundle: Dictionary):
 		return templates[key]
 	var template:=Template.new()
 	if not template.build(bundle,self): failure=template.failure; return null
+	return _remember_template(key,bundle,template)
+func _remember_template(key: String,bundle: Dictionary,template):
+	# A cooperative peer may have published this identity while we yielded.
+	# Preserve its binding/first-root ownership and keep exactly one LRU entry.
+	if templates.has(key):
+		stats.template_hits+=1;template_order.erase(key);template_order.append(key);return templates[key]
+	if int(template.get("recipe_capture_successes"))>0:stats.recipe_templates_created=int(stats.get("recipe_templates_created",0))+1
 	if not template.preparation_timings.is_empty():
 		var measured: Dictionary=template.preparation_timings.duplicate(); measured.model=str(bundle.get("resource_name",bundle.value.name)); measured.sha256=str(bundle.sha256)
+		if bool(measured.get("staged",false)):
+			# Total active CPU spans yields; retain the actual largest invocation
+			# separately so a per-model step tail is not inferred from that total.
+			measured.staged_max_step_us=int(template.staged_max_step_us);measured.staged_steps=int(template.staged_steps)
 		template_preparation_peaks.append(measured); template_preparation_peaks.sort_custom(func(a,b):return float(a.total_ms)>float(b.total_ms))
 		if template_preparation_peaks.size()>16: template_preparation_peaks.resize(16)
 	stats.templates_created+=1
@@ -79,6 +111,37 @@ func prepare_model_template(bundle: Dictionary):
 	return template
 static func point(values: PackedFloat32Array, index: int) -> Vector3:
 	return Vector3(values[index*3], values[index*3+2], -values[index*3+1])
+func model_template_step(bundle: Dictionary,pending: Dictionary,maximum_units: int=8,budget_us: int=1500) -> Dictionary:
+	if not main_thread():return {"status":"failed","reason":failure}
+	if not Template.configured_recipe():
+		var synchronous=model_template(bundle)
+		return {"status":"ready" if synchronous!=null else "failed","template":synchronous,"reason":failure}
+	var key:=Template.identity(bundle,self)
+	# Each stream pins the request's source row until completion. A caller asking
+	# for another key must not receive this job's success or failure as its own.
+	if not pending.is_empty():
+		if int(pending.pool)!=get_instance_id():cancel_template_step(pending);return {"status":"failed","reason":"Staged template pool changed"}
+		if Template.identity(pending.bundle,self)!=str(pending.key):cancel_template_step(pending);return {"status":"pending","phase":"policy-invalidated","units":0}
+		if str(pending.key)!=key:return {"status":"pending","phase":"resume-original-source","active_key":str(pending.key),"requested_key":key,"units":0}
+		if templates.has(key):
+			cancel_template_step(pending);stats.template_hits+=1;template_order.erase(key);template_order.append(key)
+			return {"status":"ready","template":templates[key],"created":false}
+		var progress: Dictionary=pending.template.staged_build_step(maximum_units,budget_us)
+		progress.key=key
+		if progress.status=="failed":failure=str(progress.reason);pending.clear();return progress
+		if progress.status=="pending":return progress
+		var finished_key:=str(pending.key);var finished=_remember_template(finished_key,pending.bundle,pending.template);pending.clear()
+		if finished_key==key:return {"status":"ready","template":finished,"created":true}
+	if templates.has(key):
+		stats.template_hits+=1;template_order.erase(key);template_order.append(key)
+		return {"status":"ready","template":templates[key],"created":false}
+	var builder:=Template.new()
+	if not builder.begin_staged_build(bundle,self):failure=builder.failure;return {"status":"failed","reason":failure}
+	pending.merge({"key":key,"pool":get_instance_id(),"bundle":bundle,"template":builder})
+	return {"status":"pending","phase":"begin","units":0}
+func cancel_template_step(pending: Dictionary) -> void:
+	if pending.has("template"):pending.template.cancel_staged_build()
+	pending.clear()
 func texture(record: Dictionary) -> Texture2D:
 	var began:=Timing.begin(); var result:=prepare_texture(record)
 	Timing.finish("publication_texture_cpu_ms",began); return result
@@ -110,7 +173,8 @@ func geometry(source_sha: String, index: int, data: Dictionary, rigid_skin: bool
 func prepare_geometry(source_sha: String, index: int, data: Dictionary, rigid_skin: bool=false) -> ArrayMesh:
 	if not main_thread(): return null
 	var key := Cache.key(source_sha,"mesh:"+str(index)+("-rigid-skin" if rigid_skin else "")+("-pick" if picking else ""))
-	if meshes.has(key): stats.mesh_hits += 1; touch("mesh",key); return meshes[key]
+	if meshes.has(key):
+		stats.mesh_hits+=1;touch("mesh",key);capture_native_geometry(source_sha,index,rigid_skin,meshes[key]);return meshes[key]
 	var phase_began:=Timing.begin()
 	var vertices: PackedFloat32Array = data.vertices; var source_indices: PackedInt32Array = data.indices
 	if vertices.size() % 3 != 0 or source_indices.size() % 3 != 0: failure = "Invalid native mesh stream lengths"; return null
@@ -144,12 +208,25 @@ func prepare_geometry(source_sha: String, index: int, data: Dictionary, rigid_sk
 			for vertex in count: normals[vertex] = normals[vertex].normalized()
 	var arrays: Array = []; arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = positions; arrays[Mesh.ARRAY_NORMAL] = normals; arrays[Mesh.ARRAY_TEX_UV] = uv; arrays[Mesh.ARRAY_INDEX] = indices
+	var original_colors: PackedByteArray=data.get("vertex_colors",PackedByteArray())
+	if not original_colors.is_empty():
+		if original_colors.size()!=count*4: failure="Native vertex color count does not match geometry"; return null
+		arrays[Mesh.ARRAY_COLOR]=prepared.colors if not prepared.is_empty() else MeshPreparation.colors(original_colors,count)
 	if rigid_skin:
 		var bones:=PackedInt32Array(); var weights:=PackedFloat32Array(); bones.resize(count*4); weights.resize(count*4); bones.fill(0); weights.fill(0)
 		for vertex in count: weights[vertex*4]=1.0
 		arrays[Mesh.ARRAY_BONES]=bones; arrays[Mesh.ARRAY_WEIGHTS]=weights
 	Timing.finish("publication_mesh_arrays_ms",phase_began); phase_began=Timing.begin()
-	var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	var mesh: ArrayMesh=null
+	var native_buffers: Dictionary=data.get("native_draw_buffers",{}) if not rigid_skin else {}
+	if not native_buffers.is_empty() and NativeDrawCodec.valid_buffers(native_buffers) and native_buffers.surfaces.size()==1 and int(native_buffers.surfaces[0].vertex_count)==count and int(native_buffers.surfaces[0].get("index_count",-1))==indices.size():
+		mesh=NativeDrawCodec.new().restore_draw_buffers(native_buffers)
+		if mesh!=null:stats.native_draw_buffer_hits=int(stats.get("native_draw_buffer_hits",0))+1
+	if mesh==null:
+		mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	# Optional merge workers reuse the immutable prepared CPU draw streams;
+	# retrieving them must not force a GPU buffer readback per placement.
+	if OS.get_cmdline_user_args().has("--static-scenery=merged") or OS.get_cmdline_user_args().has("--base-scenery-draw=merged"):mesh.set_meta("native_cpu_draw_streams",arrays)
 	Timing.finish("publication_mesh_submit_ms",phase_began); phase_began=Timing.begin()
 	var hit:=PickGeometry.new(); hit.vertices=positions; hit.indices=indices; hit.bounds=mesh.get_aabb(); mesh.set_meta("native_pick_geometry",hit)
 	var scene_faces:=SceneGeometry.new(); scene_faces.configure(data,prepared); mesh.set_meta("native_scene_geometry",scene_faces)
@@ -160,6 +237,7 @@ func prepare_geometry(source_sha: String, index: int, data: Dictionary, rigid_sk
 	retain("mesh",meshes,key,mesh,maximum_meshes)
 	if maximum_meshes>0 and picking: pick_shapes[key]=mesh.get_meta("native_pick_shape")
 	stats.meshes_created += 1
+	capture_native_geometry(source_sha,index,rigid_skin,mesh)
 	Timing.finish("publication_mesh_cache_ms",phase_began)
 	return mesh
 static func valid_prepared(value: Dictionary,count: int,indices: int) -> bool:
@@ -188,11 +266,15 @@ func hidden_geometry(source_sha: String,index: int,data: Dictionary) -> Resource
 		while hidden_hit_geometry.size()>=maximum_meshes and not hidden_hit_order.is_empty(): hidden_hit_geometry.erase(hidden_hit_order.pop_front())
 		hidden_hit_geometry[key]=hit; hidden_hit_order.append(key)
 	return hit
-func material(part: Dictionary, raster: Dictionary = {}) -> StandardMaterial3D:
+func material(part: Dictionary, raster: Dictionary = {}) -> Material:
+	var began:=Timing.begin();var result:=prepare_material(part,raster)
+	Timing.finish("publication_material_cpu_ms",began);return result
+func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 	if not main_thread(): return null
 	var opacity := clampf(float(part.get("alpha",1)),0,1); var data: Dictionary = part.mesh
 	var diffuse: Array = data.get("diffuse",[1.0,1.0,1.0]); var emission: Array = part.get("selfillum",[0.0,0.0,0.0]); var hint: bool = data.get("transparency_hint",false)
-	var key := JSON.stringify([raster.get("sha256",""),diffuse,emission,opacity,hint,unshaded,texture_filter])
+	var ambient: Array=data.get("ambient",diffuse)
+	var key := JSON.stringify([raster.get("sha256",""),diffuse,emission,opacity,hint,unshaded,texture_filter,native_lighting,ambient if native_lighting else [],native_standard,native_surface_output])
 	if materials.has(key): stats.material_hits += 1; touch("material",key); return materials[key]
 	var result := StandardMaterial3D.new()
 	result.albedo_color = Color(diffuse[0],diffuse[1],diffuse[2],opacity)
@@ -207,19 +289,32 @@ func material(part: Dictionary, raster: Dictionary = {}) -> StandardMaterial3D:
 		if result.albedo_texture == null: return null
 		if not hint and opacity >= 1 and raster.value.format != "dxt1_rgb":
 			result.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; result.alpha_scissor_threshold = 0.035
-	retain("material",materials,key,result,maximum_materials); stats.materials_created += 1
-	return result
+	var published: Material=result
+	if native_lighting and not unshaded:
+		var configure_began:=Timing.begin()
+		var corrected:=preload("res://systems/native_render/native_model_material.gd").new(); corrected.configure(result,ambient,emission,native_standard,2,native_surface_output); published=corrected
+		corrected.native_world_fog=native_surface_output
+		Timing.finish("publication_material_native_configure_ms",configure_began)
+	retain("material",materials,key,published,maximum_materials); stats.materials_created += 1
+	return published
 func snapshot() -> Dictionary:
 	var state:=stats.duplicate()
 	state.static_part_layout="compact" if compact_static_parts else "separate"
+	state.lighting_policy="native-enhanced-candidate" if native_lighting else "godot"
+	state.native_standard_materials=native_standard
+	state.native_surface_output=native_surface_output
 	state.retained={"templates":templates.size(),"meshes":meshes.size(),"textures":textures.size(),"materials":materials.size(),"pick_shapes":pick_shapes.size(),"hidden_hit_geometry":hidden_hit_geometry.size()}
 	state.limits={"templates":maximum_templates,"meshes":maximum_meshes,"textures":maximum_textures,"materials":maximum_materials}
 	state.mesh_preparation={"enabled":use_prepared_geometry,"revision":MeshPreparation.REVISION,"policy":"Immutable worker upload data; main-thread ArrayMesh/scene publication with legacy fallback"}
 	state.publication_budget={"frame":publication_frame,"used_us":publication_us,"units":publications,"budget_us":publication_budget_us,"maximum_units":maximum_publications_per_frame,"scope":"Shared scene/GPU API submission budget; asynchronous GPU work measured separately; a single indivisible model may exceed budget"}
 	state.scope="Cumulative immutable GPU/template cache bindings; not live draw counts or a hard VRAM budget"
 	state.template_preparation_peaks=template_preparation_peaks.duplicate(true)
+	state.template_construction=Template.construction_totals()
+	if NativeDrawCache.enabled():state.native_draw_cache=NativeDrawCache.snapshot()
 	return state
 func clear() -> void:
+	for context in native_draw_captures:NativeDrawCache.end_model(context)
+	native_draw_captures.clear()
 	templates.clear(); template_order.clear(); meshes.clear(); textures.clear(); materials.clear(); pick_shapes.clear()
 	hidden_hit_geometry.clear(); hidden_hit_order.clear()
 	for order in resource_order.values(): order.clear()

@@ -1,0 +1,61 @@
+Current partial native speech header integration acceptance
+
+Root shared Gameplay source:
+a36eb9339bc93f2e3e8f87ada784dc4b7f99c536b5cf7c93eb25e0b06b360d78
+
+NEW isolated fixture/runner:
+tests/native_speech_headers_integration_test.gd
+tools/test-native-speech-headers-integration.mjs
+
+Accepted proof:
+.cache/overhead-settings/native-speech-headers-integration-v3/proof.json
+33 checks /669 immutable source+copy pins, clean engine/no leaks, six native
+outputs unchanged,9.88s. Current SessionWorld/Gameplay graph compiles without
+startup. Actual Gameplay.receive captures Header inside the existing speech
+receipt before the log queue; actual speech/present and actual Chat consume it.
+Native TalkText fetch/parser uses controlled valid TLK bytes, source rows and
+explicit context omissions. No authoritative actor/server result is invented.
+
+The accepted shared slice is narrow:
+ - Native base labels fetch with gender0 and stay raw at fetchFlag0; literal
+   remote names likewise preserve tokens and escapes as literal text.
+ - Only runtime overrides use native ParseStr. Captured direct override and
+   CUSTOM state survive a queue delay, later packet edits and source changes.
+ - Remote localized first/last fetch in order with each wire gender, followed
+   by the prefix; exact separator/leading/trailing whitespace is preserved.
+   Empty+empty split remains one space and retains normal colon formatting.
+ - Missing retained named context remains pending with no controlled-actor
+   fallback. Actual deferred-log retry retains it, and the existing connection
+   owner drops that pending log when its accepted connection is retired.
+ - Captured remote names survive canonical source removal/reuse. Channel,
+   system classification, chat category masks and14/30 brackets are retained;
+   an empty14 label still produces '[] ' exactly as the receiver does.
+
+Cold optional-table capture is tested before the fixture's authored unrelated
+job is completed. To exercise the existing deferred drain, that fixture-only
+placeholder is then removed. tables_ready stays false; no complete startup or
+world-readiness result is fabricated. The source header/body assertions stay
+unchanged across the corrected fixture sequence.
+
+Preserved rejected evidence:
+ - v1: NEW fixture Variant inference needed an explicit int annotation.
+ - v2: the authored unrelated table job correctly prevented the log drain, so
+   expecting stale-connection cleanup before removing it was premature. Clean
+   engine33, with exactly that one failed assertion; guards unchanged.
+ - The first v3 command did not execute because approval-review infrastructure
+   returned Bad Request. The identical authorized command was resubmitted to
+   approval review and then ran normally, with no bypass or prior process.
+
+Canonical local names intentionally remain the existing Gameplay adapter.
+Their real stats constructor/P-name/stored override ownership is separate
+backlog, not completed native header parity. Neither the shared integration
+nor this test invents constructor provenance from generic proxies, lifetimes,
+first snapshots or D+A. No whole native-table snapshot or parser rewrite was
+added by this fixture slice. Component Header22 has separate proof; this
+composed proof does not expand its missing-provider boundaries.
+
+No server/network, GPU, rendered pixels, profile/key reads, native build, OS
+input or user-process action. Historical ordinary/ScriptFloating accepted
+source seals and every prior header proof remain unchanged. Exact current
+source/fixture/native evidence is indexed in
+reports/native-speech-headers-integration-v1.json.

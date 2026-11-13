@@ -30,6 +30,25 @@ var drag_offset:=Vector2.ZERO
 var child_return_scope: Array=[]
 var pregame
 var pregame_cleanup: Dictionary={}
+var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
+var modal_order
+var modal_surfaces
+func set_modal_order(order,surfaces=null) -> void:
+	modal_order=order;modal_surfaces=surfaces;modal_lease.configure(self,order,surfaces,self)
+	if not modal_lease.admission_changed.is_connected(modal_admission_changed):modal_lease.admission_changed.connect(modal_admission_changed)
+	if is_instance_valid(native_frame):native_frame.set_modal_order(order,surfaces,self,modal_lease.admits)
+	if is_instance_valid(video_owner):video_owner.set_modal_order(order,surfaces,self)
+	if is_instance_valid(key_owner):key_owner.set_modal_order(order,surfaces,self)
+	if native_playing and is_instance_valid(panel) and panel.visible:modal_lease.activate(native_scope)
+func modal_admission_changed(admitted: bool) -> void:
+	if not admitted:
+		dragging=false
+		if is_instance_valid(native_frame):
+			native_frame.held.clear()
+			for button in native_frame.buttons.values():native_frame.release_button(button)
+func modal_input_admitted() -> bool:
+	if is_instance_valid(native_frame) and is_instance_valid(native_frame.confirmation) and native_frame.confirmation.visible:return native_frame.confirmation_lease.admits()
+	return modal_lease.admits()
 func _ready() -> void:
 	layer = 30
 	var root := Control.new(); root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(root)
@@ -41,6 +60,7 @@ func _ready() -> void:
 	disconnect_button=Button.new(); disconnect_button.text="Cancel connection"; disconnect_button.focus_mode=Control.FOCUS_NONE; box.add_child(disconnect_button); disconnect_button.pressed.connect(choose.bind("disconnect")); disconnect_button.hide()
 	get_viewport().size_changed.connect(place); panel.hide(); call_deferred("place")
 func choose(id: String) -> void:
+	if not modal_lease.admits():return
 	dismiss()
 	if id == "multiplayer": multiplayer_requested.emit()
 	elif id == "options": options_requested.emit()
@@ -57,6 +77,7 @@ func open(playing: bool) -> void:
 	if playing and is_instance_valid(native_frame): native_frame.start(); show_fallback(); update_native()
 	else: show_fallback()
 	panel.show(); place()
+	if playing:modal_lease.activate(native_scope)
 func configure_pregame(sources: Dictionary,cache_path: String) -> void:
 	close_pregame()
 	pregame=preload("res://systems/native_pregame_menu.gd").new(); get_child(0).add_child(pregame); pregame.configure(sources,cache_path,layout_path,window_settings)
@@ -76,6 +97,7 @@ func configure_native(shared_frame,text,catalog,cache_path: String,value: Array)
 	if is_instance_valid(pregame): pregame.dismiss()
 	detach_native()
 	native_scope=value.duplicate(); native_frame=preload("res://systems/native_entry_menu_frame.gd").new(); panel.add_child(native_frame); native_frame.configure(shared_frame,text,catalog,cache_path)
+	native_frame.set_modal_order(modal_order,modal_surfaces,self,modal_lease.admits)
 	native_frame.prepared.connect(func():update_native(); place())
 	native_frame.artwork_ready.connect(func():update_native(); place())
 	native_frame.action_requested.connect(native_action)
@@ -83,11 +105,13 @@ func configure_native(shared_frame,text,catalog,cache_path: String,value: Array)
 	native_frame.start(); configure_client_style(shared_frame)
 	if is_instance_valid(window_settings):
 		video_owner=preload("res://systems/native_video_options.gd").new(); get_child(0).add_child(video_owner); video_owner.configure(shared_frame,text,catalog,cache_path,window_settings,layout_path)
+		video_owner.set_modal_order(modal_order,modal_surfaces,self)
 		video_owner.prepared.connect(update_native); video_owner.finished.connect(child_closed)
 	if is_instance_valid(key_bindings):
 		observed_bindings=key_bindings
 		if not observed_bindings.changed.is_connected(update_native): observed_bindings.changed.connect(update_native)
 		key_owner=preload("res://systems/native_key_settings.gd").new(); get_child(0).add_child(key_owner); key_owner.configure(shared_frame,text,catalog,cache_path,key_bindings,layout_path)
+		key_owner.set_modal_order(modal_order,modal_surfaces,self)
 		key_owner.prepared.connect(update_native); key_owner.finished.connect(child_closed)
 	var saved:=ConfigFile.new()
 	if not layout_path.is_empty() and saved.load(layout_path)==OK:
@@ -107,6 +131,7 @@ func update_native() -> void:
 	native_frame.set_context(native_scope,{"resumegamebutton":true,"xbutton":true,"gamebutton":true,"controlsbutton":is_instance_valid(key_owner) and key_owner.layout_ready and key_owner.failure.is_empty() and key_bindings.bindings_ready,"videooptionsbutton":is_instance_valid(video_owner) and video_owner.layout_ready and video_owner.failure.is_empty(),"exitbutton":connected and not busy,"savecharbutton":connected and not busy and str(lobby_state.get("phase","")) in ["playing","area-loading"]})
 	if native_playing and native_frame.art_ready():
 		fallback.hide(); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.custom_minimum_size=native_frame.definition.size; panel.size=native_frame.definition.size; native_frame.show()
+		modal_lease.bind_input(native_frame.stage)
 func native_action(tag: String) -> void:
 	match tag:
 		"resumegamebutton","xbutton": dismiss()
@@ -122,7 +147,9 @@ func native_action(tag: String) -> void:
 func show_fallback() -> void:
 	if is_instance_valid(native_frame): native_frame.dismiss()
 	fallback.show(); panel.add_theme_stylebox_override("panel",fallback_style); panel.custom_minimum_size=Vector2(320,280); panel.reset_size()
+	modal_lease.bind_input(fallback)
 func dismiss() -> void:
+	modal_lease.retire()
 	dragging=false; child_return_scope.clear()
 	if is_instance_valid(pregame): pregame.dismiss()
 	if is_instance_valid(key_owner): key_owner.retire_scope()
@@ -135,6 +162,7 @@ func child_closed() -> void:
 	child_return_scope.clear()
 	if restore: open(true)
 func detach_native() -> void:
+	modal_lease.retire()
 	child_return_scope.clear()
 	if is_instance_valid(observed_bindings) and observed_bindings.changed.is_connected(update_native): observed_bindings.changed.disconnect(update_native)
 	observed_bindings=null
@@ -150,6 +178,7 @@ func place() -> void:
 	var maximum: Vector2=(get_viewport().get_visible_rect().size-panel.size*panel.scale.abs()).max(Vector2.ZERO)
 	panel.position=retained_position.clamp(Vector2.ZERO,maximum) if native_playing and retained_position.is_finite() else maximum*0.5
 func drag_title(event: InputEvent) -> void:
+	if not modal_lease.admits():return
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		dragging=event.pressed
 		if dragging: drag_offset=event.global_position-panel.global_position
@@ -165,6 +194,8 @@ func blocks_pointer(point: Vector2) -> bool:
 	if is_instance_valid(native_frame) and is_instance_valid(native_frame.confirmation) and native_frame.confirmation.visible: return native_frame.confirmation.get_global_rect().has_point(point)
 	return panel.get_global_rect().has_point(point)
 func _unhandled_key_input(event: InputEvent) -> void:
+	if is_instance_valid(key_owner) and key_owner.visible or is_instance_valid(video_owner) and video_owner.visible:return
+	if panel.visible and not modal_input_admitted():return
 	if not event is InputEventKey or not event.pressed or event.echo or event.keycode!=KEY_ESCAPE: return
 	var focus:=get_viewport().gui_get_focus_owner()
 	if focus is LineEdit or focus is TextEdit: return
@@ -174,15 +205,19 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 func _input(event: InputEvent) -> void:
+	if panel.visible and not modal_input_admitted():return
 	if event is InputEventMouseMotion and dragging:
 		var maximum: Vector2=(get_viewport().get_visible_rect().size-panel.size*panel.scale.abs()).max(Vector2.ZERO)
 		panel.global_position=(event.position-drag_offset).clamp(Vector2.ZERO,maximum)
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed and dragging: dragging=false; save_position()
 	if not event is InputEventKey or not event.pressed or event.echo or event.keycode!=KEY_ESCAPE: return
 	if is_instance_valid(pregame) and pregame.escape(): get_viewport().set_input_as_handled(); return
-	if is_instance_valid(key_owner) and key_owner.visible: key_owner.finish_page(false); get_viewport().set_input_as_handled(); return
+	if is_instance_valid(key_owner) and key_owner.visible:
+		if key_owner.modal_lease.admits():key_owner.finish_page(false); get_viewport().set_input_as_handled()
+		return
 	if is_instance_valid(video_owner) and video_owner.visible:
-		video_owner.finish_page(); get_viewport().set_input_as_handled(); return
+		if video_owner.modal_lease.admits():video_owner.finish_page(); get_viewport().set_input_as_handled()
+		return
 	if panel.visible:
 		if not is_instance_valid(native_frame) or not native_frame.cancel_confirmation(): dismiss()
 		get_viewport().set_input_as_handled()
@@ -190,5 +225,6 @@ func _input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT: dragging=false
 func _exit_tree() -> void:
+	modal_lease.close()
 	if is_instance_valid(client_style): client_style.close()
 	close_pregame()

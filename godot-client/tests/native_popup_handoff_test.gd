@@ -1,0 +1,92 @@
+extends SceneTree
+# Focused authored data publication -> actual Owner/Registry clock handoff.
+const Owner=preload("res://systems/native_overhead_speech.gd")
+const Registry=preload("res://systems/native_overhead_popup_registry.gd")
+const Talk=preload("res://systems/native_data/talk_text.gd")
+const CaptionState=preload("res://systems/native_data/popup_caption_state.gd")
+class PassiveView extends Control:
+	var layout_ready:=true
+	func configure(_art,_fonts,_source)->void:hide()
+	func set_content(_model: Dictionary,_portrait: String,_identity: Array)->void:pass
+	func place(point: Vector2)->void:position=point;show()
+	func release()->void:hide()
+	func close()->void:release()
+	func apply_popup_state(record: Dictionary,_mode: bool,_font: bool)->void:
+		if record.mode==0 or record.hidden:hide()
+class PassiveOwner extends Owner:
+	func _make_view()->Control:return PassiveView.new()
+var checks:=0
+var failures: Array=[]
+var current:={"connection":3,"generation":7,"areaId":91,"enabled":true}
+var preference:={"mode":1,"largeFont":false}
+var rows:={42:{"id":42,"objectType":5,"areaId":91,"nativeLifetime":8,"clientKnownLifetime":13,"replicated":{"name":{"text":"Owner"}}}}
+var anchor_ready:=true
+func check(value: bool,label: String)->void:
+	checks+=1
+	if not value:failures.append(label)
+func context()->Dictionary:return current
+func row(id: int)->Dictionary:return rows.get(id,{})
+func settings()->Dictionary:return preference
+func anchor(_id: int,_witness: Array,_scope: Array)->Dictionary:return {"ready":true,"screen":Vector2(100,200)} if anchor_ready else {"ready":false}
+func packet(serial: int,channel: int=1)->Dictionary:
+	return {"kind":"server-speech","channel":channel,"objectId":42,"contextId":4294967295,"text":{"strRef":0x01000000,"gender":0} if channel==11 else {"text":"Immediate"},"nativeTextEvent":{"version":1,"serial":serial,"connection":3,"generation":7,"areaId":91,"context":null,"source":{"id":42,"objectType":5,"areaId":91,"nativeLifetime":8,"knownLifetime":13}}}
+static func tlk(body: String)->PackedByteArray:
+	var raw:=body.to_ascii_buffer();var bytes:=PackedByteArray();bytes.resize(60+raw.size());var magic:="TLK V3.0".to_ascii_buffer()
+	for i in magic.size():bytes[i]=magic[i]
+	bytes.encode_u32(8,0);bytes.encode_u32(12,1);bytes.encode_u32(16,60);bytes.encode_u32(20,1);bytes.encode_u32(48,0);bytes.encode_u32(52,raw.size());bytes.encode_float(56,0.0)
+	for i in raw.size():bytes[60+i]=raw[i]
+	return bytes
+func _initialize()->void:run.call_deferred()
+func run()->void:
+	var report:=""
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--report="):report=arg.trim_prefix("--report=")
+	if report.is_empty() or FileAccess.file_exists(report):quit(2);return
+	var talk:=Talk.new();talk.objects=rows;talk.retire_native_family(true)
+	var surface:=Control.new();root.add_child(surface)
+	var registry:=Registry.new();root.add_child(registry);registry.automatic=false;registry.configure(context,row,settings)
+	var owner:=PassiveOwner.new();root.add_child(owner);owner.configure(surface,talk,null,null,null,context,row,anchor,settings);owner.configure_processing(false);owner.bind_popup_registry(registry)
+	owner.receive(packet(1,11));owner.frame_advance(0.5)
+	check(owner.pending.has(42) and owner.state.speakers.is_empty(),"Actual native TLK receipt remains pending while its family is unavailable")
+	await process_frame
+	check(talk.custom.open_bytes(tlk("Delayed body")) and talk.publish_native_family(true,true),"Current actual native TLK family publishes after the prior GUI frames")
+	talk.mark_changed();owner.frame_advance(0.25)
+	check(owner.state.speakers.has(42) and owner.pending.is_empty(),"Actual Owner resolves pending body on current text revision within its GUI frame")
+	var record: Dictionary=registry.slots[42].caption
+	check(record.remaining==3.25 and is_same(record,owner.state.speakers[42].popup),"Delegated record includes previous0.5 and current0.25 GUI elapsed exactly once")
+	registry.advance_clocks(0.25)
+	check(record.remaining==3.25 and record.accountedGuiFrame==-1,"Late Registry publication skips its handoff delta exactly once and clears the marker")
+	await process_frame
+	registry.advance_clocks(0.25)
+	check(record.remaining==3.0,"The next actual frame resumes the sole Registry clock normally")
+	# Source publication can occur after Owner100 and before Registry110 too.
+	owner.reset();registry.reset();talk.retire_native_family(true);owner.receive(packet(2,11));owner.frame_advance(0.5)
+	talk.custom.open_bytes(tlk("Second delayed body"));talk.publish_native_family(true,true);talk.mark_changed();owner.observe_sources([42]);record=registry.slots[42].caption
+	check(record.remaining==3.5 and record.accountedGuiFrame==Engine.get_process_frames(),"Same-frame source publication inherits the request's actual already-accounted GUI frame")
+	var frame: int=record.accountedGuiFrame;CaptionState.font_changed(record,true);CaptionState.cache_name(record,"cache only",{})
+	check(record.accountedGuiFrame==frame,"Font/cache-only changes preserve the handoff marker and timer owner")
+	registry.advance_clocks(0.5);check(record.remaining==3.5,"Source-boundary body resolution consumes that GUI delta once")
+	# Actual visual publication may also resolve text after the elapsed update.
+	owner.reset();registry.reset();talk.retire_native_family(true);owner.receive(packet(3,11));owner.frame_advance(0.25)
+	talk.custom.open_bytes(tlk("Third delayed body"));talk.publish_native_family(true,true);talk.mark_changed();owner.popup_visual_ready(42,rows[42],[3,7,91]);record=registry.slots[42].caption
+	check(record.remaining==3.75 and record.accountedGuiFrame==Engine.get_process_frames(),"Visual-publication pending resolution uses the same actual elapsed-frame receipt")
+	# Fresh same-frame writers must supersede the just-published marker.
+	owner.receive(packet(4));record=registry.slots[42].caption;registry.advance_clocks(0.25)
+	check(record.remaining==3.75,"A fresh immediate replacement in the handoff frame receives its normal GUI delta")
+	owner.reset();registry.reset();talk.retire_native_family(true);owner.receive(packet(5,11));owner.frame_advance(0.25)
+	talk.custom.open_bytes(tlk("Fourth delayed body"));talk.publish_native_family(true,true);talk.mark_changed();owner.observe_sources([42]);record=registry.slots[42].caption
+	preference.mode=2;registry.apply_preferences(preference);registry.advance_clocks(0.25)
+	check(record.remaining==3.75 and record.accountedGuiFrame==-1,"A real mode refit supersedes the handoff marker with its fresh native timer")
+	preference.mode=0;registry.apply_preferences(preference);anchor_ready=false;preference.mode=1;registry.apply_preferences(preference);owner.configure_processing(true);owner.frame_advance(0.0)
+	check(not record.sceneActive and owner.awaiting_visual.has(42) and not owner.is_processing(),"Off-to-On waits dormant for exact visual publication without idle anchor polling")
+	owner.popup_visual_ready(42,rows[42],[3,8,91]);var wrong: Dictionary=rows[42].duplicate(true);wrong.clientKnownLifetime=14;owner.popup_visual_ready(42,wrong,[3,7,91])
+	check(not record.sceneActive and owner.awaiting_visual.has(42),"Stale area generation and reused visual lifetime cannot wake a dormant popup")
+	anchor_ready=true;owner.popup_visual_ready(42,rows[42],[3,7,91])
+	check(record.sceneActive and record.guiRegistered and owner.awaiting_visual.is_empty(),"Later exact visual readiness activates without a new raw object publication")
+	preference.mode=0;registry.apply_preferences(preference);owner.frame_advance(0.0)
+	owner.popup_visual_ready(42,rows[42],[3,7,91])
+	check(not record.sceneActive and not owner.is_processing() and not registry.is_processing(),"Off cancels wake candidates and unregisters all idle GUI processing")
+	preference.mode=1;anchor_ready=false;registry.apply_preferences(preference);owner.frame_advance(0.0);rows[42].clientKnownLifetime=14;owner.observe_sources([42]);registry.observe([42]);anchor_ready=true;owner.popup_visual_ready(42,rows[42],[3,7,91])
+	check(owner.state.speakers.is_empty() and owner.awaiting_visual.is_empty(),"ID reuse retires the pending candidate; late visual publication cannot resurrect it")
+	owner.close();owner.queue_free();registry.close();registry.queue_free();surface.queue_free();talk.close();await process_frame;await process_frame
+	var file:=FileAccess.open(report,FileAccess.WRITE);file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"scope":"Actual native TLK receipt and actual Owner/Registry with authored scope/row/GUI deltas and passive view; delayed text-to-clock handoff and later visual readiness, no server/GPU/profile/native lower projection or pixels."}));file.close();quit(0 if failures.is_empty() else 1)

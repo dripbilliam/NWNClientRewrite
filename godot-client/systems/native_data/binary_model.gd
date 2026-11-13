@@ -101,7 +101,23 @@ func read_mesh(at: int) -> Dictionary:
 	var draw_offset: int = reader.u32(at + 416); var draw_count: int = reader.u32(at + 420)
 	var mode: int = reader.u8(at + 436); var vertex_offset: int = reader.u32(at + 444); var vertex_count: int = reader.u16(at + 448); var texture_count: int = reader.u16(at + 450)
 	var normal_offset: int = reader.u32(at + 468)
+	var color_offset: int = reader.u32(at + 472)
 	var result := {"vertices": PackedFloat32Array(), "normals": PackedFloat32Array(), "uv": [], "indices": PackedInt32Array(), "collision_indices": PackedInt32Array(), "textures": [], "render": reader.u32(at + 108) == 1, "shadow": reader.u32(at + 100) == 1, "transparency_hint": reader.u32(at + 112) == 1, "diffuse": [reader.f32(at + 72),reader.f32(at + 76),reader.f32(at + 80)]}
+	# Native MdlNodeTriMesh header copier078ab0 preserves these authored local
+	# bounds (plain full-node84/90 -> runtimeC0/CC). HitCheckGeom uses the header,
+	# including invisible Parts; recalculating a vertex AABB can change the box.
+	var authored_min: Array=[reader.f32(at+0x14),reader.f32(at+0x18),reader.f32(at+0x1c)]
+	var authored_max: Array=[reader.f32(at+0x20),reader.f32(at+0x24),reader.f32(at+0x28)]
+	result.native_bounds={"min":authored_min,"max":authored_max}
+	result.native_bounds_available=true;result.native_bounds_source="binary_mdl_header";result.native_bounds_offset=at+0x14
+	result.native_bounds_valid=true
+	for axis in 3:
+		if not is_finite(float(authored_min[axis])) or not is_finite(float(authored_max[axis])) or float(authored_min[axis])>float(authored_max[axis]):result.native_bounds_valid=false
+	# Serialized full-node1e8 -> runtime224 -> Part+ac is tilefade. The
+	# separately exported transparency_hint at extension70 is not this field.
+	result.native_tilefade=reader.u32(at+0x178);result.native_tilefade_available=true;result.native_tilefade_source="binary_mdl_header"
+	result.native_render_raw=reader.u32(at+0x6c);result.native_render_source="binary_mdl_header"
+	result.ambient=[reader.f32(at+60),reader.f32(at+64),reader.f32(at+68)]
 	# Original header copier078ab0: mesh extension1f8 (disk268) -> runtime2bc.
 	# Skin/dangly mesh headers inherit this field; do not derive it from triangles.
 	result.native_area=reader.f32(at+0x1f8)
@@ -116,6 +132,12 @@ func read_mesh(at: int) -> Dictionary:
 	if normal_offset != 0xffffffff:
 		if not raw_range(normal_offset, vertex_count * 12): return {}
 		for index in vertex_count * 3: result.normals.append(reader.f32(raw_start + normal_offset + index * 4))
+	# Serialized node248 -> runtime29c (header copier140078ab0); reader
+	# 14007be10 copies vertexCount*4 unchanged. GLRender::SetVertexDataObject
+	# 1400ba770 binds attribute2 as four normalized unsigned bytes, RGBA order.
+	if color_offset!=0xffffffff:
+		if not raw_range(color_offset,vertex_count*4): return {}
+		result.vertex_colors=reader.bytes(raw_start+color_offset,vertex_count*4)
 	for layer in mini(texture_count, 4):
 		result.textures.append(reader.text(at + 120 + layer * 64, 64, true))
 		var uv_offset: int = reader.u32(at + 452 + layer * 4); var uv := PackedFloat32Array()

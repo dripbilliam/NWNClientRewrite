@@ -12,8 +12,136 @@ var controls: Dictionary={}
 var serial:=0
 var status:=""
 var submitting:=false
+var source_runtime
+var source_configured:=false
+var pending_open: Array=[]
+var requesting_ticket: Array=[]
+var protocol_features: Dictionary={}
+var class_publication=preload("res://systems/native_data/level_up_class_publication.gd").new()
+const ReplyScope=preload("res://systems/native_data/level_up_reply_scope.gd")
+var reply_scope:=ReplyScope.new()
 const ABILITIES=["Str","Dex","Con","Int","Wis","Cha"]
-func configure(owner,view) -> void: desktop=owner; ui=view; rules=desktop.rules
+const SkillRules=preload("res://systems/native_data/creation_skill_rules.gd")
+const FeatSlots=preload("res://systems/native_data/creation_feat_slots.gd")
+const NativeRandom=preload("res://systems/native_data/native_client_random.gd")
+func configure(owner,view) -> void:
+	desktop=owner; ui=view; rules=desktop.rules
+	NativeRandom.acquire()
+	ui.presentation_reset.connect(retire_source);ui.source_reopen.connect(reopen_source)
+func source_identity() -> Array:return [desktop.generation,desktop.area_id,desktop.actor_id]
+func source_catalog() -> Object:
+	if not is_instance_valid(desktop) or desktop.get("closed")==true:return null
+	var owner: Variant=desktop.get("owner_ui")
+	if owner is Dictionary:
+		var catalog: Variant=owner.get("catalog")
+		return catalog if typeof(catalog)==TYPE_OBJECT and is_instance_valid(catalog) else null
+	if typeof(owner)==TYPE_OBJECT and is_instance_valid(owner) and owner.get("closed")!=true:
+		var catalog: Variant=owner.get("catalog")
+		if typeof(catalog)==TYPE_OBJECT and is_instance_valid(catalog):return catalog
+	return null
+func source_module() -> Dictionary:
+	if source_catalog()==null:return {}
+	var current_state: Variant=desktop.get("state")
+	var module: Variant=current_state.get("module") if current_state is Dictionary else null
+	return module if module is Dictionary else {}
+func source_actor() -> Dictionary:
+	if not is_instance_valid(desktop) or desktop.get("closed")==true or not desktop.has_method("actor"):return {}
+	var current: Variant=desktop.actor()
+	return current if current is Dictionary else {}
+func observe_received() -> void:
+	if reply_scope.is_open() and not reply_scope.current(reply_context(),int(ui.request_serial)):
+		ui.reset();return
+	if is_instance_valid(source_runtime):source_runtime.observe_received()
+func reply_context() -> Dictionary:
+	var actor:=source_actor()
+	if actor.get("id")!=desktop.actor_id or actor.get("areaId")!=desktop.area_id or actor.get("objectType")!=5 or actor.get("replicationRemoved",false)!=false:return {}
+	return ReplyScope.context({"generation":desktop.generation,"areaId":desktop.area_id,"actorId":desktop.actor_id,"nativeLifetime":actor.get("nativeLifetime"),"knownLifetime":actor.get("clientKnownLifetime")})
+func send_level_request(message: Dictionary) -> bool:
+	if not ui.wanted or not reply_scope.current(reply_context(),int(ui.request_serial)):return false
+	var issued:=reply_scope.issue(str(message.get("operation","")),int(message.get("token",-1)))
+	if not issued.ready:return false
+	var outgoing:=message.duplicate(true);outgoing.levelRequest=issued.value
+	if outgoing.operation=="begin":present_requesting(issued.value)
+	desktop.command(outgoing);return true
+func configure_source(painter,base_text,base_catalog,cache_path: String) -> void:
+	if source_configured or painter==null or base_text==null or base_catalog==null or desktop.owner_ui.catalog==null:return
+	source_runtime=preload("res://systems/native_level_up_runtime.gd").new();ui.add_child(source_runtime)
+	source_runtime.configure(painter,base_text,base_catalog,desktop.owner_ui.catalog,cache_path,desktop.owner_ui.modal_order,desktop.owner_ui.modal_surfaces,source_identity,source_catalog,source_module,source_actor)
+	source_runtime.watch_tables(desktop.owner_ui.get("assets"))
+	source_runtime.command_requested.connect(source_command);source_runtime.fallback_requested.connect(source_fallback);source_runtime.cancelled.connect(ui.reset)
+	source_runtime.frontend.cancelled.connect(requesting_cancelled);source_runtime.frontend.unavailable.connect(requesting_unavailable)
+	# Prepare only the original Class frame offscreen, before the first click.
+	# Choices still require the real server begin result and active rules.
+	source_runtime.frontend.ensure_pane("class")
+	source_configured=true
+func requesting_current(ticket: Array) -> bool:
+	return ui.wanted and not requesting_ticket.is_empty() and ticket==requesting_ticket and is_instance_valid(source_runtime) and is_instance_valid(source_runtime.frontend) and source_runtime.frontend.owns(ticket) and reply_scope.current(reply_context(),int(ui.request_serial))
+func present_requesting(metadata: Dictionary) -> void:
+	if not source_configured or not is_instance_valid(source_runtime) or not is_instance_valid(source_runtime.frontend) or source_runtime.frontend.closed:return
+	retire_requesting()
+	var front=source_runtime.frontend
+	# This is a LOCAL presentation identity, not a fabricated server token.
+	var identity: Array=[metadata.owner,metadata.entry,metadata.request,"requesting-begin"]
+	front.present_waiting(front.text,desktop.art,identity,"Requesting server level-up choices…")
+	requesting_ticket=front.ticket.duplicate();ui.activate_source(true)
+	if front.panes.has("class") and not str(front.panes["class"].failure).is_empty():requesting_unavailable("class",str(front.panes["class"].failure),requesting_ticket)
+func retire_requesting() -> void:
+	var previous:=requesting_ticket.duplicate();requesting_ticket=[]
+	if not previous.is_empty() and is_instance_valid(source_runtime) and is_instance_valid(source_runtime.frontend) and source_runtime.frontend.owns(previous):source_runtime.frontend.dismiss()
+func requesting_cancelled(ticket: Array) -> void:
+	if requesting_current(ticket):input({"kind":"level-cancel"})
+func requesting_unavailable(_stage: String,reason: String,ticket: Array) -> void:
+	if not requesting_current(ticket):return
+	retire_requesting();ui.activate_source(false);status=reason;ui.status.text=reason
+func source_command(message: Dictionary,identity: Array) -> void:
+	if identity!=source_identity() or not ui.wanted:return
+	if send_level_request(message):submitting=message.operation=="submit"
+func source_fallback(_result: Dictionary,private_draft: Dictionary,stage: String,reason: String) -> void:
+	if not ui.wanted:return
+	ui.activate_source(false)
+	if draft.is_empty():select_class(initial_class())
+	if not private_draft.is_empty():
+		var id:=int(private_draft.get("classId",-1))
+		if id>=0 and id<available.size() and available[id]:select_class(id)
+		for key in ["ability","domains"]:
+			if private_draft.has(key):draft[key]=private_draft[key].duplicate(true) if private_draft[key] is Array else private_draft[key]
+		if private_draft.get("skills") is Array and private_draft.skills.size()==snapshot.skills.size():draft.skills=private_draft.skills.duplicate()
+		if private_draft.get("selectedFeats") is Array:draft.feats=private_draft.selectedFeats.duplicate()
+		if int(private_draft.get("school",-1))>=0:draft.school=int(private_draft.school)
+		for key in ["known","removed"]:
+			if private_draft.get(key) is Dictionary:
+				draft[key]={}
+				for level in private_draft[key]:draft[key][str(level)]=private_draft[key][level].duplicate()
+		for key in ["fieldE34","fieldE48","fieldE30","fieldE38"]:
+			if private_draft.get("receivedFields",{}).has(key):draft[key]=private_draft.receivedFields[key]
+		step=int({"class":0,"attributes":1,"skills":2,"feats":3,"spells":4,"domains":5,"school":5,"associate":5,"post":5,"summary":6}.get(stage,0))
+	status="Using standard level-up controls. "+reason;render()
+func retire_source() -> void:
+	retire_requesting()
+	if is_instance_valid(source_runtime):source_runtime.retire()
+	reply_scope.retire()
+	snapshot={};available=[];draft={};token=-1;pending_open=[];submitting=false;protocol_features={};class_publication.reset()
+func reopen_source() -> void:
+	if requesting_current(requesting_ticket):source_runtime.frontend.surface.show();return
+	if is_instance_valid(source_runtime):source_runtime.reopen()
+func receive_result(message: Dictionary) -> void:
+	if not reply_scope.consume(message.get("levelRequest"),reply_context(),int(ui.request_serial),str(message.get("operation",""))):return
+	if not message.get("accepted",false):
+		submitting=false;status=str(message.get("text","The action was not accepted."))
+		if requesting_current(requesting_ticket):source_runtime.frontend.panes["class"].set_waiting(status)
+		elif is_instance_valid(source_runtime) and source_runtime.owns():source_runtime.notice(status)
+		else:render();ui.status.text=status
+		return
+	match str(message.get("operation","")):
+		"begin":
+			if ui.wanted and (pending_open.is_empty() or pending_open==source_identity()+[ui.request_serial]):begin(message.result)
+		"submit":
+			if message.result.get("accepted",false):ui.reset()
+			elif is_instance_valid(source_runtime) and source_runtime.owns():source_runtime.rejected("The server rejected these choices. Cancel and reopen Level Up.")
+			else:submitting=false;status="The server rejected these choices; reopen Level Up and check chat.";render()
+func close() -> void:
+	retire_source()
+	if is_instance_valid(source_runtime):source_runtime.close()
 func total() -> int:
 	var result:=0
 	for cls in snapshot.get("classes",[]): result+=int(cls.level)
@@ -27,15 +155,24 @@ func table(key: String) -> Dictionary:
 	var name:=str(rules.cell(rules.row("classes",int(draft.get("classId",-1))),key,"")).to_lower()
 	return desktop.owner_ui.text.tables.get(name,{})
 func rows(key: String) -> Array: return table(key).get("orderedRows",[])
+func initial_class() -> int:
+	for cls in snapshot.get("classes",[]):
+		if int(cls.id)<available.size() and available[int(cls.id)]:return int(cls.id)
+	return available.find(true)
 func class_row(key: String,level: int) -> Dictionary:
 	var list:=rows(key); return list[level] if level>=0 and level<list.size() else {}
 func begin(result: Dictionary) -> void:
-	snapshot=result.snapshot.duplicate(true); available=result.available.duplicate(); token=int(result.token); step=0; status=""; submitting=false
-	var selected:=-1
-	for cls in snapshot.classes:
-		if int(cls.id)<available.size() and available[int(cls.id)]: selected=int(cls.id); break
-	if selected<0: selected=available.find(true)
-	select_class(selected)
+	if not result.get("snapshot") is Dictionary or result.snapshot.get("actorId")!=desktop.actor_id:return
+	retire_requesting()
+	if is_instance_valid(source_runtime):source_runtime.retire()
+	snapshot=result.snapshot.duplicate(true); available=result.available.duplicate(); token=int(result.token);protocol_features=result.get("protocolFeatures",{}).duplicate();class_publication.reset(); step=0; status=""; submitting=false
+	# The native Class pane owns its own asynchronous dependencies. Building
+	# the older editor first delays this pane and exposes a visible UI swap.
+	if source_configured:
+		var started: bool=source_runtime.begin(result,source_identity(),desktop.owner_ui.text.tables,desktop.owner_ui.text,desktop.art,desktop.state.get("module",{}))
+		ui.activate_source(started)
+		if started:return
+	select_class(initial_class())
 func select_class(id: int) -> void:
 	if id<0 or id>=available.size() or not available[id]: return
 	var ranks: Array=[]; ranks.resize(snapshot.skills.size()); ranks.fill(0)
@@ -51,9 +188,7 @@ func abilities(chosen: Variant=null) -> Array:
 	for cls in levels:
 		if int(cls.id)==int(draft.classId): cls.level=int(cls.level)+1; found=true
 	if not found: levels.append({"id":int(draft.classId),"level":1})
-	var bonus:=1
-	for row in desktop.owner_ui.text.tables.get("ruleset",{}).get("orderedRows",[]):
-		if str(rules.cell(row,"Label","")).to_upper()=="EPIC_GREAT_STAT_BONUS": bonus=num(row,"Value",1)
+	var bonus: int=rules.rule_value("EPIC_GREAT_STAT_BONUS",1)
 	for index in mini(6,result.size()):
 		result[index]=int(result[index])+num(race,ABILITIES[index]+"Adjust")+(1 if int(draft.get("ability",6))==index else 0)
 		for cls in levels:
@@ -62,17 +197,16 @@ func abilities(chosen: Variant=null) -> Array:
 		for feat in chosen:
 			if int(feat)>=[814,784,774,794,804,764][index] and int(feat)<[814,784,774,794,804,764][index]+10: result[index]+=bonus
 	return result
+func skill_budget_value() -> Variant:
+	# Shared original7ec0c0 uses this session's resolved tables and adds its
+	# point WORD at the new total level. Unknown ability strings mean no
+	# modifier; the ruleset owns modifier arithmetic and rank-cap bonuses.
+	return SkillRules.budget(desktop.owner_ui.text.tables,int(draft.classId),int(snapshot.race),abilities(),0,int(snapshot.fieldDC6),total()+1)
 func budget() -> int:
-	var race: Dictionary=rules.row("racialtypes",int(snapshot.race)); var ability:=str(rules.cell(race,"SkillPointModifierAbility","Int")).to_upper(); var index:= ["STR","DEX","CON","INT","WIS","CHA"].find(ability)
-	if index<0: index=rules.number(ability,3)
-	var scores:=abilities(); var score:=int(scores[index]) if index>=0 and index<scores.size() else 10
-	return int(snapshot.fieldDC6)+maxi(1,num(rules.row("classes",int(draft.classId)),"SkillPointBase")+floori((score-10)/2.0))+num(race,"ExtraSkillPointsPerLevel")
+	var value: Variant=skill_budget_value();return int(value) if value!=null else 0
 func skill_rule(id: int) -> Dictionary:
-	var entry: Dictionary={}
-	for row in rows("SkillsTable"):
-		if num(row,"SkillIndex",-1)==id: entry=row; break
-	var class_skill:=num(entry,"ClassSkill")!=0
-	return {"allowed":not entry.is_empty() or num(rules.row("skills",id),"AllClassesCanUse")!=0,"cost":1 if class_skill else 2,"maximum":floori((total()+4)/(1.0 if class_skill else 2.0))}
+	var value:=SkillRules.rule(desktop.owner_ui.text.tables,int(draft.classId),id,total()+1)
+	return {"allowed":value.allowed,"cost":value.cost,"maximum":value.max}
 func balance() -> int:
 	var result:=budget()
 	for index in draft.get("skills",[]).size(): result-=int(draft.skills[index])*int(skill_rule(index).cost)
@@ -89,8 +223,7 @@ func granted() -> Array:
 			if id>=0 and not snapshot.feats.has(id) and not result.has(id): result.append(id)
 	return result
 func feat_slots() -> Dictionary:
-	var race: Dictionary=rules.row("racialtypes",int(snapshot.race)); var every:=num(race,"NormalFeatEveryNthLevel",3)
-	return {"normal":num(race,"NumberNormalFeatsEveryNthLevel",1) if every>0 and (total()+1)%every==0 else 0,"bonus":num(class_row("BonusFeatsTable",class_level(int(draft.classId))),"Bonus")}
+	return FeatSlots.calculate(desktop.owner_ui.text.tables,int(snapshot.race),int(draft.classId),total()+1,class_level(int(draft.classId))+1)
 func feat_allowed(id: int,kind: String) -> bool:
 	var feat: Dictionary=rules.row("feat",id)
 	if feat.is_empty() or num(feat,"HideFromLevelUp")!=0 or str(rules.cell(feat,"FEAT","****"))=="****": return false
@@ -181,6 +314,7 @@ func spell_count(level: int) -> int:
 	return maxi(0,num(class_row("SpellKnownTable",current),"SpellLevel"+str(level))-known_count)
 func errors() -> Array:
 	var result: Array=[]
+	if skill_budget_value()==null:result.append("The active skill point rules are unavailable.")
 	if (total()+1)%4==0 and int(draft.ability)==6: result.append("Choose an ability increase.")
 	if balance()<0: result.append("Too many skill points spent.")
 	var slots:=feat_slots()
@@ -206,8 +340,9 @@ func errors() -> Array:
 			if not allowed.has(id): result.append("Invalid spell selection.")
 	return result
 func add(items: Array,type: String,label: String,operation: String="",value: Variant=null,extra: Dictionary={}) -> void:
-	var id:=controls.size(); controls[id]={"operation":operation,"value":value}; var item:={"type":type,"label":label,"controlId":id,"disabled":submitting}; item.merge(extra); items.append(item)
+	var id:=controls.size(); controls[id]={"operation":operation,"value":value}; var item:={"type":type,"label":label,"controlId":id,"disabled":submitting}; item.merge(extra,true);item.disabled=submitting or bool(item.get("disabled",false));items.append(item)
 func render() -> void:
+	if is_instance_valid(source_runtime) and source_runtime.owns():return
 	if not ui.wanted or snapshot.is_empty() or draft.is_empty(): return
 	var ready: bool=desktop.class_tables_ready(int(draft.classId))
 	for cls in snapshot.classes: ready=desktop.class_tables_ready(int(cls.id)) and ready
@@ -217,8 +352,8 @@ func render() -> void:
 	serial+=1; controls.clear(); var items: Array=[]; var cls: Dictionary=rules.row("classes",int(draft.classId))
 	match step:
 		0:
-			for id in available.size():
-				if available[id]: add(items,"button",rules.title("classes",id),"class",id,{"selected":id==int(draft.classId)})
+			var class_model: Dictionary=class_publication.read(desktop.owner_ui.text.tables,desktop.owner_ui.text,{"available":available,"classes":snapshot.classes,"currentClassIndex":snapshot.get("fieldC0"),"multiclassRulesetFeature":protocol_features.get("multiclassRuleset")})
+			for entry in class_model.get("entries",[]):add(items,"button",entry.name,"class",int(entry.id),{"selected":int(entry.id)==int(draft.classId),"disabled":not entry.enabled})
 		1:
 			if (total()+1)%4!=0: add(items,"text","No ability increase at this level.")
 			else:
@@ -261,16 +396,24 @@ func render() -> void:
 				if (snapshot.feats+granted()+draft.feats).has(pair[2]): add(items,"input",pair[0],"name",pair[1],{"value":str(draft[pair[1]]),"maxLength":63})
 		6:
 			add(items,"text",rules.title("classes",int(draft.classId))+" level "+str(class_level(int(draft.classId))+1)+"\nHit die: "+str(draft.hitDie)+"\nUnspent skill points: "+str(balance())+"\nFeats selected: "+str(draft.feats.size())+"\nThe server validates and applies these choices.")
-	var problems:=errors(); ui.receive({"kind":"level-view","viewId":serial,"step":step,"items":items,"status":status,"errors":problems,"canEdit":not submitting,"canBack":step>0 and not submitting,"canNext":step<6 and not submitting,"canFinish":problems.is_empty() and not submitting,"canCancel":not submitting})
+	# Original Summary can close while its proposal awaits the server. The
+	# Session's cancel path preserves that pending submission and its draft.
+	var problems:=errors(); ui.receive({"kind":"level-view","viewId":serial,"step":step,"items":items,"status":status,"errors":problems,"canEdit":not submitting,"canBack":step>0 and not submitting,"canNext":step<6 and not submitting,"canFinish":problems.is_empty() and not submitting,"canCancel":true})
 func input(message: Dictionary) -> void:
+	if ui.source_active and str(message.get("kind","")) in ["level-page","level-control","level-submit"]:return
 	if message.has("viewId") and int(message.viewId)!=serial: return
 	for entry in message.get("texts",[]):
 		var control: Dictionary=controls.get(int(entry.controlId),{})
 		if str(control.get("operation",""))=="name": draft[str(control.value)]=str(entry.value).left(63)
 	status=""
 	match str(message.kind):
-		"level-open": desktop.command({"kind":"native-level-up","operation":"begin"})
-		"level-cancel": desktop.command({"kind":"native-level-up","operation":"cancel"}); snapshot.clear(); draft.clear(); ui.reset()
+		"level-open":
+			if reply_scope.is_open() and reply_scope.current(reply_context(),int(ui.request_serial)):
+				reopen_source();return
+			pending_open=source_identity()+[ui.request_serial]
+			if not reply_scope.open(reply_context(),int(ui.request_serial)) or not send_level_request({"kind":"native-level-up","operation":"begin"}):
+				status="Waiting for the current controlled character.";ui.status.text=status
+		"level-cancel": send_level_request({"kind":"native-level-up","operation":"cancel","token":token}); snapshot.clear(); draft.clear(); ui.reset()
 		"level-page":
 			if int(message.viewId)==serial: step=clampi(int(message.step),0,6); render()
 		"level-control":
@@ -302,4 +445,4 @@ func input(message: Dictionary) -> void:
 		"level-submit":
 			if int(message.viewId)!=serial or not errors().is_empty(): return
 			var proposal:=draft.duplicate(true); proposal.skillPoints=balance(); proposal.feats=granted()+draft.feats
-			submitting=true; render(); desktop.command({"kind":"native-level-up","operation":"submit","token":token,"proposal":proposal})
+			if send_level_request({"kind":"native-level-up","operation":"submit","token":token,"proposal":proposal}):submitting=true;render()

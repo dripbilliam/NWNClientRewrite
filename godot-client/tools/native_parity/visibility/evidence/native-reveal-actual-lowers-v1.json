@@ -1,0 +1,1469 @@
+{
+  "version": 1,
+  "scope": "Selected original read-only virtual mappings, actual AnimBase/Gob shadow/secondary attachment, native world-timer difference and stats constructor. No native renderer/server/gameplay execution.",
+  "rows": [
+    {
+      "key": "nativeRevealVTable0",
+      "evidence_id": "ev_26b224bbf65993455185ae28c7b65323133e2f835f1007911c39f01885056a52",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "bytes": {
+        "address": "0x140e3c150",
+        "requested_bytes": 40,
+        "returned_bytes": 40,
+        "bytes_hex": "306d7640010000000035764001000000305e764001000000e06d764001000000c06d764001000000",
+        "complete": true
+      },
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealVTable1",
+      "evidence_id": "ev_d1f7bf96fb3edd38861f9c8feee59c8059ade75acccf0501753d7655ffc1c1e4",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "bytes": {
+        "address": "0x140e476e0",
+        "requested_bytes": 40,
+        "returned_bytes": 40,
+        "bytes_hex": "306d7640010000000035764001000000305e76400100000080f2804001000000f0f1804001000000",
+        "complete": true
+      },
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealAnimSlots",
+      "evidence_id": "ev_4c7f2e02163dcf5a5f9c68c6f01892ef6e7fa6cfc8ed9f5db761c7a3495602bc",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "bytes": {
+        "address": "0x140e6ea90",
+        "requested_bytes": 40,
+        "returned_bytes": 40,
+        "bytes_hex": "e084964001000000805c964001000000f08096400100000070859640010000005085964001000000",
+        "complete": true
+      },
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealGobSlots",
+      "evidence_id": "ev_dee9b5a2d79e08f15fb8cb2442967f530e56ca590056969ad83ae4fa9c981a3c",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "bytes": {
+        "address": "0x140d88b90",
+        "requested_bytes": 16,
+        "returned_bytes": 16,
+        "bytes_hex": "20ae04400100000030ae044001000000",
+        "complete": true
+      },
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealSecondary0",
+      "evidence_id": "ev_3fefc1242dc4f5d734c1cecda8553f39b7453fb5c6729751b5fd8a62608d5a9c",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "bytes": {
+        "address": "0x140d88a98",
+        "requested_bytes": 8,
+        "returned_bytes": 8,
+        "bytes_hex": "40c5084001000000",
+        "complete": true
+      },
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealSecondary1",
+      "evidence_id": "ev_d24eab4653dc63e92f235e35166fbf0a2758e93ca7aa0d087e996c5a91139114",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "bytes": {
+        "address": "0x140d88d38",
+        "requested_bytes": 8,
+        "returned_bytes": 8,
+        "bytes_hex": "726f6f7400000000",
+        "complete": true
+      },
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealActual0",
+      "evidence_id": "ev_5f27f3de3a02971ab4909632a29b313f6b9d04e13bfa9c2b6c15150b2f0cc3c3",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x1400a5070",
+        "name": "AuroraSetTileFoggedByWar",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1400a5070",
+              "end": "0x1400a50ea"
+            }
+          ],
+          "total_bytes": 123,
+          "span_bytes": 123,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "void __cdecl AuroraSetTileFoggedByWar(Vector * param_1, bool param_2)",
+        "locals": [
+          {
+            "description": "undefined4 local_10 @ Stack[-0x10]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_18 @ Stack[-0x18]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res8 @ Stack[0x8]:8",
+            "provenance": "ghidra-function-database"
+          }
+        ]
+      },
+      "pseudocode": "\r\n/* void __cdecl AuroraSetTileFoggedByWar(class Vector & __ptr64,bool) */\r\n\r\nvoid __cdecl AuroraSetTileFoggedByWar(Vector *param_1,bool param_2)\r\n\r\n{\r\n  longlong lVar1;\r\n  Scene *pSVar2;\r\n  BSPNode *pBVar3;\r\n  undefined8 local_18;\r\n  undefined4 local_10;\r\n  \r\n                    /* 0xa5070  5858  ?AuroraSetTileFoggedByWar@@YAXAEAVVector@@_N@Z */\r\n  pSVar2 = FindScene(\"mainscene\");\r\n  local_10 = *(undefined4 *)(param_1 + 8);\r\n  local_18 = *(undefined8 *)param_1;\r\n  pBVar3 = BSPSearch(*(undefined8 *)(pSVar2 + 0x188),&local_18,&LAB_1400a5100,0);\r\n  lVar1 = *(longlong *)(pBVar3 + 0x70);\r\n  *(bool *)(*(longlong *)(lVar1 + 0x98) + 0xc4) = param_2;\r\n  if (param_2) {\r\n    *(undefined4 *)(*(longlong *)(lVar1 + 0x98) + 200) = 0;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1400a5070: MOV qword ptr [RSP + 0x8], RBX",
+        "0x1400a5075: PUSH RDI",
+        "0x1400a5076: SUB RSP, 0x30",
+        "0x1400a507a: MOV RBX, RCX",
+        "0x1400a507d: MOVZX EDI, DL",
+        "0x1400a5080: LEA RCX, [0x140d8a7f8]",
+        "0x1400a5087: CALL 0x1400c9840",
+        "0x1400a508c: MOV ECX, dword ptr [RBX + 0x8]",
+        "0x1400a508f: LEA R8, [0x1400a5100]",
+        "0x1400a5096: MOVSD XMM0, qword ptr [RBX]",
+        "0x1400a509a: LEA RDX, [RSP + 0x20]",
+        "0x1400a509f: MOV dword ptr [RSP + 0x28], ECX",
+        "0x1400a50a3: XOR R9D, R9D",
+        "0x1400a50a6: MOV RCX, qword ptr [RAX + 0x188]",
+        "0x1400a50ad: MOVSD qword ptr [RSP + 0x20], XMM0",
+        "0x1400a50b3: CALL 0x140229980",
+        "0x1400a50b8: MOV RCX, qword ptr [RAX + 0x70]",
+        "0x1400a50bc: MOV RAX, qword ptr [RCX + 0x98]",
+        "0x1400a50c3: MOV byte ptr [RAX + 0xc4], DIL",
+        "0x1400a50ca: TEST DIL, DIL",
+        "0x1400a50cd: JZ 0x1400a50e0",
+        "0x1400a50cf: MOV RAX, qword ptr [RCX + 0x98]",
+        "0x1400a50d6: MOV dword ptr [RAX + 0xc8], 0x0",
+        "0x1400a50e0: MOV RBX, qword ptr [RSP + 0x40]",
+        "0x1400a50e5: ADD RSP, 0x30",
+        "0x1400a50e9: POP RDI",
+        "0x1400a50ea: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealActual1",
+      "evidence_id": "ev_31bd1f62996651d84a73eb88c4655101d87c58537428dc7dc67f0a1f32c9131f",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x14008c540",
+        "name": "Gob::AttachToObject",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x14008c540",
+              "end": "0x14008c6eb"
+            }
+          ],
+          "total_bytes": 428,
+          "span_bytes": 428,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "void * __thiscall AttachToObject(Gob * this, CAurObject * param_1, char * param_2, int param_3)",
+        "locals": [
+          {
+            "description": "undefined8 local_28 @ Stack[-0x28]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res10 @ Stack[0x10]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res18 @ Stack[0x18]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res8 @ Stack[0x8]:8",
+            "provenance": "ghidra-function-database"
+          }
+        ]
+      },
+      "pseudocode": "\r\n/* public: virtual void * __ptr64 __cdecl Gob::AttachToObject(class CAurObject * __ptr64,char const\r\n   * __ptr64,int) __ptr64 */\r\n\r\nvoid * __thiscall Gob::AttachToObject(Gob *this,CAurObject *param_1,char *param_2,int param_3)\r\n\r\n{\r\n  CAurPart *pCVar1;\r\n  CAurBehaviorAttachGUIScale *this_00;\r\n  void *pvVar2;\r\n  CAurBehaviorAttachNoOrientation *this_01;\r\n  CAurBehaviorAttachRotate *this_02;\r\n  CAurBehaviorAttachTranslate *this_03;\r\n  CAurBehaviorAttach *this_04;\r\n  undefined4 in_register_0000008c;\r\n  \r\n                    /* 0x8c540  5687  ?AttachToObject@Gob@@UEAAPEAXPEAVCAurObject@@PEBDH@Z */\r\n  pvVar2 = (void *)0x0;\r\n  if (param_1 != (CAurObject *)0x0) {\r\n    if (param_2 == (char *)0x0) {\r\n      pCVar1 = *(CAurPart **)(param_1 + 0x90);\r\n    }\r\n    else {\r\n      pCVar1 = (CAurPart *)\r\n               (**(code **)(*(longlong *)param_1 + 0x230))\r\n                         (param_1,param_2,param_2,CONCAT44(in_register_0000008c,param_3),\r\n                          0xfffffffffffffffe);\r\n    }\r\n    if (pCVar1 != (CAurPart *)0x0) {\r\n      (**(code **)(*(longlong *)pCVar1 + 0x18))(pCVar1,this + 0xa8,this + 0xb4);\r\n      if (param_3 == 0) {\r\n        this_04 = operator_new(0x70);\r\n        if (this_04 != (CAurBehaviorAttach *)0x0) {\r\n          pvVar2 = (void *)CAurBehaviorAttach::CAurBehaviorAttach\r\n                                     (this_04,(CAurObject *)this,param_1,pCVar1);\r\n        }\r\n      }\r\n      else if (param_3 == 1) {\r\n        this_03 = operator_new(0x80);\r\n        if (this_03 != (CAurBehaviorAttachTranslate *)0x0) {\r\n          pvVar2 = (void *)CAurBehaviorAttachTranslate::CAurBehaviorAttachTranslate\r\n                                     (this_03,(CAurObject *)this,param_1,pCVar1);\r\n        }\r\n      }\r\n      else if (param_3 == 2) {\r\n        this_02 = operator_new(0x80);\r\n        if (this_02 != (CAurBehaviorAttachRotate *)0x0) {\r\n          pvVar2 = (void *)CAurBehaviorAttachRotate::CAurBehaviorAttachRotate\r\n                                     (this_02,(CAurObject *)this,param_1,pCVar1);\r\n        }\r\n      }\r\n      else if (param_3 == 3) {\r\n        this_01 = operator_new(0x70);\r\n        if (this_01 != (CAurBehaviorAttachNoOrientation *)0x0) {\r\n          pvVar2 = (void *)CAurBehaviorAttachNoOrientation::CAurBehaviorAttachNoOrientation\r\n                                     (this_01,(CAurObject *)this,param_1,pCVar1);\r\n        }\r\n      }\r\n      else if ((param_3 == 4) &&\r\n              (this_00 = operator_new(0x70), this_00 != (CAurBehaviorAttachGUIScale *)0x0)) {\r\n        pvVar2 = (void *)CAurBehaviorAttachGUIScale::CAurBehaviorAttachGUIScale\r\n                                   (this_00,(CAurObject *)this,param_1,pCVar1);\r\n      }\r\n      (**(code **)(*(longlong *)this + 0xa8))(this,pvVar2);\r\n      SetScene(this,*(Scene **)(param_1 + 0x88));\r\n      return pvVar2;\r\n    }\r\n  }\r\n  (**(code **)(*(longlong *)this + 0xa8))(this,0);\r\n  return (void *)0x0;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x14008c540: PUSH RDI",
+        "0x14008c542: PUSH R14",
+        "0x14008c544: PUSH R15",
+        "0x14008c546: SUB RSP, 0x30",
+        "0x14008c54a: MOV qword ptr [RSP + 0x20], -0x2",
+        "0x14008c553: MOV qword ptr [RSP + 0x50], RBX",
+        "0x14008c558: MOV qword ptr [RSP + 0x60], RSI",
+        "0x14008c55d: MOV EDI, R9D",
+        "0x14008c560: MOV R15, RDX",
+        "0x14008c563: MOV RSI, RCX",
+        "0x14008c566: XOR EBX, EBX",
+        "0x14008c568: TEST RDX, RDX",
+        "0x14008c56b: JZ 0x14008c6c7",
+        "0x14008c571: TEST R8, R8",
+        "0x14008c574: JZ 0x14008c58a",
+        "0x14008c576: MOV RAX, qword ptr [RDX]",
+        "0x14008c579: MOV RDX, R8",
+        "0x14008c57c: MOV RCX, R15",
+        "0x14008c57f: CALL qword ptr [RAX + 0x230]",
+        "0x14008c585: MOV R14, RAX",
+        "0x14008c588: JMP 0x14008c591",
+        "0x14008c58a: MOV R14, qword ptr [RDX + 0x90]",
+        "0x14008c591: TEST R14, R14",
+        "0x14008c594: JZ 0x14008c6c7",
+        "0x14008c59a: MOV RAX, qword ptr [R14]",
+        "0x14008c59d: LEA R8, [RSI + 0xb4]",
+        "0x14008c5a4: LEA RDX, [RSI + 0xa8]",
+        "0x14008c5ab: MOV RCX, R14",
+        "0x14008c5ae: CALL qword ptr [RAX + 0x18]",
+        "0x14008c5b1: TEST EDI, EDI",
+        "0x14008c5b3: JZ 0x14008c67e",
+        "0x14008c5b9: SUB EDI, 0x1",
+        "0x14008c5bc: JZ 0x14008c654",
+        "0x14008c5c2: SUB EDI, 0x1",
+        "0x14008c5c5: JZ 0x14008c62a",
+        "0x14008c5c7: SUB EDI, 0x1",
+        "0x14008c5ca: JZ 0x14008c600",
+        "0x14008c5cc: CMP EDI, 0x1",
+        "0x14008c5cf: JNZ 0x14008c6a6",
+        "0x14008c5d5: LEA ECX, [RDI + 0x6f]",
+        "0x14008c5d8: CALL 0x140c10324",
+        "0x14008c5dd: MOV qword ptr [RSP + 0x58], RAX",
+        "0x14008c5e2: TEST RAX, RAX",
+        "0x14008c5e5: JZ 0x14008c5fb",
+        "0x14008c5e7: MOV R9, R14",
+        "0x14008c5ea: MOV R8, R15",
+        "0x14008c5ed: MOV RDX, RSI",
+        "0x14008c5f0: MOV RCX, RAX",
+        "0x14008c5f3: CALL 0x140053ce0",
+        "0x14008c5f8: MOV RBX, RAX",
+        "0x14008c5fb: JMP 0x14008c6a6",
+        "0x14008c600: MOV ECX, 0x70",
+        "0x14008c605: CALL 0x140c10324",
+        "0x14008c60a: MOV qword ptr [RSP + 0x58], RAX",
+        "0x14008c60f: TEST RAX, RAX",
+        "0x14008c612: JZ 0x14008c628",
+        "0x14008c614: MOV R9, R14",
+        "0x14008c617: MOV R8, R15",
+        "0x14008c61a: MOV RDX, RSI",
+        "0x14008c61d: MOV RCX, RAX",
+        "0x14008c620: CALL 0x140053d10",
+        "0x14008c625: MOV RBX, RAX",
+        "0x14008c628: JMP 0x14008c6a6",
+        "0x14008c62a: MOV ECX, 0x80",
+        "0x14008c62f: CALL 0x140c10324",
+        "0x14008c634: MOV qword ptr [RSP + 0x58], RAX",
+        "0x14008c639: TEST RAX, RAX",
+        "0x14008c63c: JZ 0x14008c652",
+        "0x14008c63e: MOV R9, R14",
+        "0x14008c641: MOV R8, R15",
+        "0x14008c644: MOV RDX, RSI",
+        "0x14008c647: MOV RCX, RAX",
+        "0x14008c64a: CALL 0x140053d40",
+        "0x14008c64f: MOV RBX, RAX",
+        "0x14008c652: JMP 0x14008c6a6",
+        "0x14008c654: MOV ECX, 0x80",
+        "0x14008c659: CALL 0x140c10324",
+        "0x14008c65e: MOV qword ptr [RSP + 0x58], RAX",
+        "0x14008c663: TEST RAX, RAX",
+        "0x14008c666: JZ 0x14008c67c",
+        "0x14008c668: MOV R9, R14",
+        "0x14008c66b: MOV R8, R15",
+        "0x14008c66e: MOV RDX, RSI",
+        "0x14008c671: MOV RCX, RAX",
+        "0x14008c674: CALL 0x140053d70",
+        "0x14008c679: MOV RBX, RAX",
+        "0x14008c67c: JMP 0x14008c6a6",
+        "0x14008c67e: MOV ECX, 0x70",
+        "0x14008c683: CALL 0x140c10324",
+        "0x14008c688: MOV qword ptr [RSP + 0x58], RAX",
+        "0x14008c68d: TEST RAX, RAX",
+        "0x14008c690: JZ 0x14008c6a6",
+        "0x14008c692: MOV R9, R14",
+        "0x14008c695: MOV R8, R15",
+        "0x14008c698: MOV RDX, RSI",
+        "0x14008c69b: MOV RCX, RAX",
+        "0x14008c69e: CALL 0x140053b30",
+        "0x14008c6a3: MOV RBX, RAX",
+        "0x14008c6a6: MOV R8, qword ptr [RSI]",
+        "0x14008c6a9: MOV RDX, RBX",
+        "0x14008c6ac: MOV RCX, RSI",
+        "0x14008c6af: CALL qword ptr [R8 + 0xa8]",
+        "0x14008c6b6: MOV RDX, qword ptr [R15 + 0x88]",
+        "0x14008c6bd: MOV RCX, RSI",
+        "0x14008c6c0: CALL 0x140095250",
+        "0x14008c6c5: JMP 0x14008c6d5",
+        "0x14008c6c7: MOV RAX, qword ptr [RSI]",
+        "0x14008c6ca: XOR EDX, EDX",
+        "0x14008c6cc: MOV RCX, RSI",
+        "0x14008c6cf: CALL qword ptr [RAX + 0xa8]",
+        "0x14008c6d5: MOV RAX, RBX",
+        "0x14008c6d8: MOV RBX, qword ptr [RSP + 0x50]",
+        "0x14008c6dd: MOV RSI, qword ptr [RSP + 0x60]",
+        "0x14008c6e2: ADD RSP, 0x30",
+        "0x14008c6e6: POP R15",
+        "0x14008c6e8: POP R14",
+        "0x14008c6ea: POP RDI",
+        "0x14008c6eb: RET"
+      ],
+      "bytes": null,
+      "limitations": [
+        "Ghidra's callee inventory omits targets of 4 call reference(s) or decoded call(s) without destinations."
+      ]
+    },
+    {
+      "key": "nativeRevealSnapshotDifference",
+      "evidence_id": "ev_af2dab73590b9a25a98c96aa659b0554e41b751b3e1f4487a12c496d82673291",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x140597050",
+        "name": "CWorldTimer::GetSnapshotTimeDifference",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x140597050",
+              "end": "0x140597058"
+            }
+          ],
+          "total_bytes": 9,
+          "span_bytes": 9,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "__uint64 __thiscall GetSnapshotTimeDifference(CWorldTimer * this)",
+        "locals": []
+      },
+      "pseudocode": "\r\n/* public: unsigned __int64 __cdecl CWorldTimer::GetSnapshotTimeDifference(void) __ptr64 */\r\n\r\n__uint64 __thiscall CWorldTimer::GetSnapshotTimeDifference(CWorldTimer *this)\r\n\r\n{\r\n                    /* 0x597050  9341  ?GetSnapshotTimeDifference@CWorldTimer@@QEAA_KXZ */\r\n  return *(longlong *)(this + 8) - *(longlong *)(this + 0x10);\r\n}\r\n\r\n",
+      "assembly": [
+        "0x140597050: MOV RAX, qword ptr [RCX + 0x8]",
+        "0x140597054: SUB RAX, qword ptr [RCX + 0x10]",
+        "0x140597058: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealStatsCtor",
+      "evidence_id": "ev_ee85c0b22e38e3e5e0ef2022caaccd6ebe0615e2b530e25ca13cb286c341e06a",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x1407ea230",
+        "name": "FUN_1407ea230",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1407ea230",
+              "end": "0x1407ea6fe"
+            }
+          ],
+          "total_bytes": 1231,
+          "span_bytes": 1231,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_1407ea230()",
+        "locals": [
+          {
+            "description": "undefined local_18 @ Stack[-0x18]:1",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_30 @ Stack[-0x30]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_38 @ Stack[-0x38]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_48 @ Stack[-0x48]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_50 @ Stack[-0x50]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_58 @ Stack[-0x58]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res10 @ Stack[0x10]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res18 @ Stack[0x18]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res20 @ Stack[0x20]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res8 @ Stack[0x8]:8",
+            "provenance": "ghidra-function-database"
+          }
+        ]
+      },
+      "pseudocode": "\r\nundefined8 * FUN_1407ea230(undefined8 *param_1)\r\n\r\n{\r\n  int iVar1;\r\n  __uint64 _Var2;\r\n  void *pvVar3;\r\n  CCombatInformation *this;\r\n  undefined8 uVar4;\r\n  uint uVar5;\r\n  ulonglong uVar6;\r\n  undefined8 local_30 [3];\r\n  \r\n  *param_1 = CNWCCreatureStats::vftable;\r\n  param_1[1] = 0;\r\n  param_1[2] = 0;\r\n  *(undefined1 *)(param_1 + 3) = 0;\r\n  uVar4 = 0;\r\n  param_1[4] = 0;\r\n  FUN_140c10370(0);\r\n  param_1[4] = 0;\r\n  param_1[5] = 0;\r\n  param_1[6] = 0;\r\n  FUN_140c10370(0);\r\n  param_1[6] = 0;\r\n  param_1[7] = 0;\r\n  param_1[8] = 0;\r\n  FUN_140c10370(0);\r\n  param_1[8] = 0;\r\n  param_1[9] = 0;\r\n  param_1[0xb] = 0;\r\n  FUN_140c10370(0);\r\n  param_1[0xb] = 0;\r\n  param_1[0xc] = 0;\r\n  FUN_14084c170((longlong)param_1 + 0xb4);\r\n  param_1[0x1f] = 0;\r\n  FUN_140c10370(0);\r\n  param_1[0x1f] = 0;\r\n  param_1[0x20] = 0;\r\n  param_1[0x24] = 0;\r\n  param_1[0x23] = 0;\r\n  param_1[0x26] = 0;\r\n  param_1[0x25] = 0;\r\n  param_1[0x28] = 0;\r\n  param_1[0x27] = 0;\r\n  _eh_vector_constructor_iterator_(param_1 + 0x29,0x150,8,FUN_1407ea700,FUN_1407eada0);\r\n  param_1[0x179] = 0;\r\n  FUN_140c10370(0);\r\n  param_1[0x179] = 0;\r\n  param_1[0x17a] = 0;\r\n  FUN_140c10370(param_1[4]);\r\n  param_1[4] = 0;\r\n  param_1[5] = 0;\r\n  CTlkTable::GetSimpleString(g_pTlkTable,(uint)local_30);\r\n  FUN_140c10370(local_30[0]);\r\n  FUN_140c10370(param_1[6]);\r\n  param_1[6] = 0;\r\n  param_1[7] = 0;\r\n  CTlkTable::GetSimpleString(g_pTlkTable,(uint)local_30);\r\n  FUN_140c10370(local_30[0]);\r\n  *(undefined1 *)((longlong)param_1 + 0x6a) = 0;\r\n  *(undefined2 *)(param_1 + 10) = 6;\r\n  *(undefined4 *)((longlong)param_1 + 0x6c) = 0;\r\n  *(undefined4 *)(param_1 + 0x21) = 0;\r\n  FUN_140c10370(param_1[0xb]);\r\n  param_1[0xb] = 0;\r\n  param_1[0xc] = 0;\r\n  CResRef::operator=((CResRef *)(param_1 + 1),\"\");\r\n  *(undefined2 *)(param_1 + 0xd) = 0x800;\r\n  *(undefined1 *)((longlong)param_1 + 0x295) = 4;\r\n  *(undefined1 *)((longlong)param_1 + 0x296) = 1;\r\n  uVar6 = 1;\r\n  do {\r\n    if ((byte)uVar6 < 8) {\r\n      *(undefined1 *)((uVar6 & 0xff) * 0x150 + 0x295 + (longlong)param_1) = 0xff;\r\n    }\r\n    else {\r\n      ExoLog::Emit(3,7,\"SetClass\",\"game\\\\clientcore\\\\nwccreaturestats.cpp\",0x440,\"EXOWARNING: %s\",\r\n                   \"nMultiClass < CNUMMULTICLASS\");\r\n    }\r\n    if ((byte)uVar6 < 8) {\r\n      *(undefined1 *)((uVar6 & 0xff) * 0x150 + 0x296 + (longlong)param_1) = 0;\r\n    }\r\n    else {\r\n      ExoLog::Emit(3,7,\"SetClassLevel\",\"game\\\\clientcore\\\\nwccreaturestats.cpp\",0x452,\r\n                   \"EXOWARNING: %s\",\"nMultiClass < CNUMMULTICLASS\");\r\n    }\r\n    uVar5 = (int)uVar6 + 1;\r\n    uVar6 = (ulonglong)uVar5;\r\n  } while ((int)uVar5 < 8);\r\n  *(undefined1 *)((longlong)param_1 + 0x69) = 1;\r\n  _Var2 = CNWRules::fnv1a(\"HARGEN_BASE_ABILITY_MIN\",0x17,0xaf63fe4c86022652);\r\n  iVar1 = CNWRules::GetRulesetIntEntry(g_pRules,_Var2,8);\r\n  *(char *)(param_1 + 0xe) = (char)iVar1;\r\n  _Var2 = CNWRules::fnv1a(\"HARGEN_BASE_ABILITY_MIN\",0x17,0xaf63fe4c86022652);\r\n  iVar1 = CNWRules::GetRulesetIntEntry(g_pRules,_Var2,8);\r\n  *(char *)((longlong)param_1 + 0x71) = (char)iVar1;\r\n  _Var2 = CNWRules::fnv1a(\"HARGEN_BASE_ABILITY_MIN\",0x17,0xaf63fe4c86022652);\r\n  iVar1 = CNWRules::GetRulesetIntEntry(g_pRules,_Var2,8);\r\n  *(char *)((longlong)param_1 + 0x73) = (char)iVar1;\r\n  _Var2 = CNWRules::fnv1a(\"HARGEN_BASE_ABILITY_MIN\",0x17,0xaf63fe4c86022652);\r\n  iVar1 = CNWRules::GetRulesetIntEntry(g_pRules,_Var2,8);\r\n  *(char *)((longlong)param_1 + 0x74) = (char)iVar1;\r\n  _Var2 = CNWRules::fnv1a(\"HARGEN_BASE_ABILITY_MIN\",0x17,0xaf63fe4c86022652);\r\n  iVar1 = CNWRules::GetRulesetIntEntry(g_pRules,_Var2,8);\r\n  *(char *)((longlong)param_1 + 0x75) = (char)iVar1;\r\n  _Var2 = CNWRules::fnv1a(\"HARGEN_BASE_ABILITY_MIN\",0x17,0xaf63fe4c86022652);\r\n  iVar1 = CNWRules::GetRulesetIntEntry(g_pRules,_Var2,8);\r\n  *(char *)((longlong)param_1 + 0x72) = (char)iVar1;\r\n  *(undefined2 *)((longlong)param_1 + 0x76) = 0;\r\n  *(undefined8 *)((longlong)param_1 + 0x79) = 0;\r\n  *(undefined1 *)(param_1 + 0xf) = 0;\r\n  *(undefined2 *)((longlong)param_1 + 0x81) = 0;\r\n  *(undefined4 *)((longlong)param_1 + 0x8a) = 0;\r\n  *(undefined4 *)((longlong)param_1 + 0x84) = 0;\r\n  *(undefined2 *)(param_1 + 0x11) = 0;\r\n  *(undefined1 *)((longlong)param_1 + 0x8e) = 0;\r\n  param_1[0x12] = 0x40c00000;\r\n  *(undefined2 *)(param_1 + 0x13) = 0;\r\n  *(undefined1 *)((longlong)param_1 + 0x9a) = 0;\r\n  *(undefined4 *)((longlong)param_1 + 0xc6) = 0x320032;\r\n  *(undefined4 *)(param_1 + 0x14) = 0;\r\n  *(undefined2 *)((longlong)param_1 + 0xe4) = *(undefined2 *)(param_1 + 10);\r\n  pvVar3 = operator_new(0xff);\r\n  param_1[0x1a] = pvVar3;\r\n  pvVar3 = operator_new(0xff);\r\n  param_1[0x1b] = pvVar3;\r\n  FUN_140c42060(param_1[0x1a],0,0xff);\r\n  FUN_140c42060(param_1[0x1b],0,0xff);\r\n  *(undefined4 *)((longlong)param_1 + 0xc6) = 0xf0055;\r\n  this = operator_new(0x70);\r\n  if (this != (CCombatInformation *)0x0) {\r\n    uVar4 = CCombatInformation::CCombatInformation(this);\r\n  }\r\n  param_1[0x15] = uVar4;\r\n  *(undefined4 *)(param_1 + 0x16) = 0;\r\n  param_1[0x22] = 0;\r\n  *(undefined2 *)(param_1 + 0x17b) = 0xffff;\r\n  *(undefined4 *)(param_1 + 0x1c) = 0;\r\n  param_1[0x17c] = 0;\r\n  *(undefined4 *)((longlong)param_1 + 0x9b) = 0xff;\r\n  return param_1;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1407ea230: MOV RAX, RSP",
+        "0x1407ea233: MOV qword ptr [RAX + 0x8], RCX",
+        "0x1407ea237: PUSH RSI",
+        "0x1407ea238: PUSH RDI",
+        "0x1407ea239: PUSH R14",
+        "0x1407ea23b: SUB RSP, 0x60",
+        "0x1407ea23f: MOV qword ptr [RAX + -0x38], -0x2",
+        "0x1407ea247: MOV qword ptr [RAX + 0x18], RBX",
+        "0x1407ea24b: MOV qword ptr [RAX + 0x20], RBP",
+        "0x1407ea24f: MOV RSI, RCX",
+        "0x1407ea252: LEA RAX, [0x140e468c0]",
+        "0x1407ea259: MOV qword ptr [RCX], RAX",
+        "0x1407ea25c: XOR EAX, EAX",
+        "0x1407ea25e: MOV qword ptr [RCX + 0x8], RAX",
+        "0x1407ea262: MOV qword ptr [RCX + 0x10], RAX",
+        "0x1407ea266: MOV byte ptr [RCX + 0x18], AL",
+        "0x1407ea269: XOR EBP, EBP",
+        "0x1407ea26b: MOV qword ptr [RCX + 0x20], RBP",
+        "0x1407ea26f: XOR ECX, ECX",
+        "0x1407ea271: CALL 0x140c10370",
+        "0x1407ea276: MOV qword ptr [RSI + 0x20], RBP",
+        "0x1407ea27a: MOV qword ptr [RSI + 0x28], RBP",
+        "0x1407ea27e: MOV qword ptr [RSI + 0x30], RBP",
+        "0x1407ea282: XOR ECX, ECX",
+        "0x1407ea284: CALL 0x140c10370",
+        "0x1407ea289: MOV qword ptr [RSI + 0x30], RBP",
+        "0x1407ea28d: MOV qword ptr [RSI + 0x38], RBP",
+        "0x1407ea291: MOV qword ptr [RSI + 0x40], RBP",
+        "0x1407ea295: XOR ECX, ECX",
+        "0x1407ea297: CALL 0x140c10370",
+        "0x1407ea29c: MOV qword ptr [RSI + 0x40], RBP",
+        "0x1407ea2a0: MOV qword ptr [RSI + 0x48], RBP",
+        "0x1407ea2a4: MOV qword ptr [RSI + 0x58], RBP",
+        "0x1407ea2a8: XOR ECX, ECX",
+        "0x1407ea2aa: CALL 0x140c10370",
+        "0x1407ea2af: MOV qword ptr [RSI + 0x58], RBP",
+        "0x1407ea2b3: MOV qword ptr [RSI + 0x60], RBP",
+        "0x1407ea2b7: LEA RCX, [RSI + 0xb4]",
+        "0x1407ea2be: CALL 0x14084c170",
+        "0x1407ea2c3: NOP",
+        "0x1407ea2c4: MOV qword ptr [RSI + 0xf8], RBP",
+        "0x1407ea2cb: XOR ECX, ECX",
+        "0x1407ea2cd: CALL 0x140c10370",
+        "0x1407ea2d2: MOV qword ptr [RSI + 0xf8], RBP",
+        "0x1407ea2d9: MOV qword ptr [RSI + 0x100], RBP",
+        "0x1407ea2e0: MOV qword ptr [RSI + 0x120], RBP",
+        "0x1407ea2e7: MOV qword ptr [RSI + 0x118], RBP",
+        "0x1407ea2ee: MOV qword ptr [RSI + 0x130], RBP",
+        "0x1407ea2f5: MOV qword ptr [RSI + 0x128], RBP",
+        "0x1407ea2fc: MOV qword ptr [RSI + 0x140], RBP",
+        "0x1407ea303: MOV qword ptr [RSI + 0x138], RBP",
+        "0x1407ea30a: LEA RAX, [0x1407eada0]",
+        "0x1407ea311: MOV qword ptr [RSP + 0x20], RAX",
+        "0x1407ea316: LEA R9, [0x1407ea700]",
+        "0x1407ea31d: MOV EDX, 0x150",
+        "0x1407ea322: LEA R8D, [RBP + 0x8]",
+        "0x1407ea326: LEA RCX, [RSI + 0x148]",
+        "0x1407ea32d: CALL 0x140c11414",
+        "0x1407ea332: NOP",
+        "0x1407ea333: MOV qword ptr [RSI + 0xbc8], RBP",
+        "0x1407ea33a: XOR ECX, ECX",
+        "0x1407ea33c: CALL 0x140c10370",
+        "0x1407ea341: MOV qword ptr [RSI + 0xbc8], RBP",
+        "0x1407ea348: MOV qword ptr [RSI + 0xbd0], RBP",
+        "0x1407ea34f: MOV RCX, qword ptr [RSI + 0x20]",
+        "0x1407ea353: CALL 0x140c10370",
+        "0x1407ea358: MOV qword ptr [RSI + 0x20], RBP",
+        "0x1407ea35c: MOV qword ptr [RSI + 0x28], RBP",
+        "0x1407ea360: MOV R8D, 0x10c4c",
+        "0x1407ea366: LEA RDX, [RSP + 0x48]",
+        "0x1407ea36b: MOV RCX, qword ptr [0x1412df968]",
+        "0x1407ea372: CALL 0x1401994d0",
+        "0x1407ea377: MOV RCX, qword ptr [RSP + 0x48]",
+        "0x1407ea37c: CALL 0x140c10370",
+        "0x1407ea381: MOV RCX, qword ptr [RSI + 0x30]",
+        "0x1407ea385: CALL 0x140c10370",
+        "0x1407ea38a: MOV qword ptr [RSI + 0x30], RBP",
+        "0x1407ea38e: MOV qword ptr [RSI + 0x38], RBP",
+        "0x1407ea392: MOV R8D, 0x10c4d",
+        "0x1407ea398: LEA RDX, [RSP + 0x48]",
+        "0x1407ea39d: MOV RCX, qword ptr [0x1412df968]",
+        "0x1407ea3a4: CALL 0x1401994d0",
+        "0x1407ea3a9: MOV RCX, qword ptr [RSP + 0x48]",
+        "0x1407ea3ae: CALL 0x140c10370",
+        "0x1407ea3b3: MOV byte ptr [RSI + 0x6a], BPL",
+        "0x1407ea3b7: MOVZX EAX, word ptr [0x140dc3e70]",
+        "0x1407ea3be: MOV word ptr [RSI + 0x50], AX",
+        "0x1407ea3c2: MOV dword ptr [RSI + 0x6c], EBP",
+        "0x1407ea3c5: MOV dword ptr [RSI + 0x108], EBP",
+        "0x1407ea3cb: MOV RCX, qword ptr [RSI + 0x58]",
+        "0x1407ea3cf: CALL 0x140c10370",
+        "0x1407ea3d4: MOV qword ptr [RSI + 0x58], RBP",
+        "0x1407ea3d8: MOV qword ptr [RSI + 0x60], RBP",
+        "0x1407ea3dc: LEA RDX, [0x140d80070]",
+        "0x1407ea3e3: LEA RCX, [RSI + 0x8]",
+        "0x1407ea3e7: CALL 0x14018ded0",
+        "0x1407ea3ec: MOV word ptr [RSI + 0x68], 0x800",
+        "0x1407ea3f2: MOVZX EAX, byte ptr [0x140dc3018]",
+        "0x1407ea3f9: MOV byte ptr [RSI + 0x295], AL",
+        "0x1407ea3ff: MOV byte ptr [RSI + 0x296], 0x1",
+        "0x1407ea406: MOV EBX, 0x1",
+        "0x1407ea40b: LEA RDI, [0x140de5da8]",
+        "0x1407ea412: LEA R14, [0x140d93a90]",
+        "0x1407ea419: NOP dword ptr [RAX]",
+        "0x1407ea420: CMP BL, 0x8",
+        "0x1407ea423: JC 0x1407ea457",
+        "0x1407ea425: MOV qword ptr [RSP + 0x30], RDI",
+        "0x1407ea42a: MOV qword ptr [RSP + 0x28], R14",
+        "0x1407ea42f: MOV dword ptr [RSP + 0x20], 0x440",
+        "0x1407ea437: LEA R9, [0x140e46903]",
+        "0x1407ea43e: LEA R8, [0x140de5e00]",
+        "0x1407ea445: MOV EDX, 0x7",
+        "0x1407ea44a: LEA ECX, [RDX + -0x4]",
+        "0x1407ea44d: CALL 0x140115890",
+        "0x1407ea452: MOVZX ECX, BL",
+        "0x1407ea455: JMP 0x1407ea469",
+        "0x1407ea457: MOVZX ECX, BL",
+        "0x1407ea45a: IMUL RAX, RCX, 0x150",
+        "0x1407ea461: MOV byte ptr [RAX + RSI*0x1 + 0x295], 0xff",
+        "0x1407ea469: CMP BL, 0x8",
+        "0x1407ea46c: JC 0x1407ea49d",
+        "0x1407ea46e: MOV qword ptr [RSP + 0x30], RDI",
+        "0x1407ea473: MOV qword ptr [RSP + 0x28], R14",
+        "0x1407ea478: MOV dword ptr [RSP + 0x20], 0x452",
+        "0x1407ea480: LEA R9, [0x140e46903]",
+        "0x1407ea487: LEA R8, [0x140de5e10]",
+        "0x1407ea48e: MOV EDX, 0x7",
+        "0x1407ea493: LEA ECX, [RDX + -0x4]",
+        "0x1407ea496: CALL 0x140115890",
+        "0x1407ea49b: JMP 0x1407ea4ac",
+        "0x1407ea49d: IMUL RAX, RCX, 0x150",
+        "0x1407ea4a4: MOV byte ptr [RAX + RSI*0x1 + 0x296], 0x0",
+        "0x1407ea4ac: INC EBX",
+        "0x1407ea4ae: CMP EBX, 0x8",
+        "0x1407ea4b1: JL 0x1407ea420",
+        "0x1407ea4b7: MOV byte ptr [RSI + 0x69], 0x1",
+        "0x1407ea4bb: MOV RBX, -0x509c01b379fdd9ae",
+        "0x1407ea4c5: MOV R8, RBX",
+        "0x1407ea4c8: MOV EDX, 0x17",
+        "0x1407ea4cd: LEA RCX, [0x140df3e69]",
+        "0x1407ea4d4: CALL 0x1402ae870",
+        "0x1407ea4d9: MOV R8D, 0x8",
+        "0x1407ea4df: MOV RDX, RAX",
+        "0x1407ea4e2: MOV RCX, qword ptr [0x1412df8f8]",
+        "0x1407ea4e9: CALL 0x1402a4130",
+        "0x1407ea4ee: MOV byte ptr [RSI + 0x70], AL",
+        "0x1407ea4f1: MOV R8, RBX",
+        "0x1407ea4f4: MOV EDX, 0x17",
+        "0x1407ea4f9: LEA RCX, [0x140df3e69]",
+        "0x1407ea500: CALL 0x1402ae870",
+        "0x1407ea505: MOV R8D, 0x8",
+        "0x1407ea50b: MOV RDX, RAX",
+        "0x1407ea50e: MOV RCX, qword ptr [0x1412df8f8]",
+        "0x1407ea515: CALL 0x1402a4130",
+        "0x1407ea51a: MOV byte ptr [RSI + 0x71], AL",
+        "0x1407ea51d: MOV R8, RBX",
+        "0x1407ea520: MOV EDX, 0x17",
+        "0x1407ea525: LEA RCX, [0x140df3e69]",
+        "0x1407ea52c: CALL 0x1402ae870",
+        "0x1407ea531: MOV R8D, 0x8",
+        "0x1407ea537: MOV RDX, RAX",
+        "0x1407ea53a: MOV RCX, qword ptr [0x1412df8f8]",
+        "0x1407ea541: CALL 0x1402a4130",
+        "0x1407ea546: MOV byte ptr [RSI + 0x73], AL",
+        "0x1407ea549: MOV R8, RBX",
+        "0x1407ea54c: MOV EDX, 0x17",
+        "0x1407ea551: LEA RCX, [0x140df3e69]",
+        "0x1407ea558: CALL 0x1402ae870",
+        "0x1407ea55d: MOV R8D, 0x8",
+        "0x1407ea563: MOV RDX, RAX",
+        "0x1407ea566: MOV RCX, qword ptr [0x1412df8f8]",
+        "0x1407ea56d: CALL 0x1402a4130",
+        "0x1407ea572: MOV byte ptr [RSI + 0x74], AL",
+        "0x1407ea575: MOV R8, RBX",
+        "0x1407ea578: MOV EDX, 0x17",
+        "0x1407ea57d: LEA RCX, [0x140df3e69]",
+        "0x1407ea584: CALL 0x1402ae870",
+        "0x1407ea589: MOV R8D, 0x8",
+        "0x1407ea58f: MOV RDX, RAX",
+        "0x1407ea592: MOV RCX, qword ptr [0x1412df8f8]",
+        "0x1407ea599: CALL 0x1402a4130",
+        "0x1407ea59e: MOV byte ptr [RSI + 0x75], AL",
+        "0x1407ea5a1: MOV R8, RBX",
+        "0x1407ea5a4: MOV EDX, 0x17",
+        "0x1407ea5a9: LEA RCX, [0x140df3e69]",
+        "0x1407ea5b0: CALL 0x1402ae870",
+        "0x1407ea5b5: MOV R8D, 0x8",
+        "0x1407ea5bb: MOV RDX, RAX",
+        "0x1407ea5be: MOV RCX, qword ptr [0x1412df8f8]",
+        "0x1407ea5c5: CALL 0x1402a4130",
+        "0x1407ea5ca: MOV byte ptr [RSI + 0x72], AL",
+        "0x1407ea5cd: MOV word ptr [RSI + 0x76], 0x0",
+        "0x1407ea5d3: MOV qword ptr [RSI + 0x79], 0x0",
+        "0x1407ea5db: MOV byte ptr [RSI + 0x78], 0x0",
+        "0x1407ea5df: MOV word ptr [RSI + 0x81], 0x0",
+        "0x1407ea5e8: MOV dword ptr [RSI + 0x8a], EBP",
+        "0x1407ea5ee: MOV dword ptr [RSI + 0x84], EBP",
+        "0x1407ea5f4: MOV word ptr [RSI + 0x88], BP",
+        "0x1407ea5fb: MOV byte ptr [RSI + 0x8e], 0x0",
+        "0x1407ea602: MOV qword ptr [RSI + 0x90], 0x40c00000",
+        "0x1407ea60d: MOV word ptr [RSI + 0x98], 0x0",
+        "0x1407ea616: MOV byte ptr [RSI + 0x9a], 0x0",
+        "0x1407ea61d: MOV dword ptr [RSI + 0xc6], 0x320032",
+        "0x1407ea627: MOV dword ptr [RSI + 0xa0], EBP",
+        "0x1407ea62d: MOVZX EAX, word ptr [RSI + 0x50]",
+        "0x1407ea631: MOV word ptr [RSI + 0xe4], AX",
+        "0x1407ea638: MOV ECX, 0xff",
+        "0x1407ea63d: CALL 0x140c10368",
+        "0x1407ea642: MOV qword ptr [RSI + 0xd0], RAX",
+        "0x1407ea649: MOV ECX, 0xff",
+        "0x1407ea64e: CALL 0x140c10368",
+        "0x1407ea653: MOV qword ptr [RSI + 0xd8], RAX",
+        "0x1407ea65a: XOR EDX, EDX",
+        "0x1407ea65c: MOV R8D, 0xff",
+        "0x1407ea662: MOV RCX, qword ptr [RSI + 0xd0]",
+        "0x1407ea669: CALL 0x140c42060",
+        "0x1407ea66e: XOR EDX, EDX",
+        "0x1407ea670: MOV R8D, 0xff",
+        "0x1407ea676: MOV RCX, qword ptr [RSI + 0xd8]",
+        "0x1407ea67d: CALL 0x140c42060",
+        "0x1407ea682: MOV dword ptr [RSI + 0xc6], 0xf0055",
+        "0x1407ea68c: MOV ECX, 0x70",
+        "0x1407ea691: CALL 0x140c10324",
+        "0x1407ea696: MOV qword ptr [RSP + 0x88], RAX",
+        "0x1407ea69e: TEST RAX, RAX",
+        "0x1407ea6a1: JZ 0x1407ea6ad",
+        "0x1407ea6a3: MOV RCX, RAX",
+        "0x1407ea6a6: CALL 0x1402a22b0",
+        "0x1407ea6ab: JMP 0x1407ea6b0",
+        "0x1407ea6ad: MOV RAX, RBP",
+        "0x1407ea6b0: MOV qword ptr [RSI + 0xa8], RAX",
+        "0x1407ea6b7: MOV dword ptr [RSI + 0xb0], EBP",
+        "0x1407ea6bd: MOV qword ptr [RSI + 0x110], RBP",
+        "0x1407ea6c4: MOV EAX, 0xffff",
+        "0x1407ea6c9: MOV word ptr [RSI + 0xbd8], AX",
+        "0x1407ea6d0: MOV dword ptr [RSI + 0xe0], EBP",
+        "0x1407ea6d6: MOV qword ptr [RSI + 0xbe0], RBP",
+        "0x1407ea6dd: MOV dword ptr [RSI + 0x9b], 0xff",
+        "0x1407ea6e7: MOV RAX, RSI",
+        "0x1407ea6ea: LEA R11, [RSP + 0x60]",
+        "0x1407ea6ef: MOV RBX, qword ptr [R11 + 0x30]",
+        "0x1407ea6f3: MOV RBP, qword ptr [R11 + 0x38]",
+        "0x1407ea6f7: MOV RSP, R11",
+        "0x1407ea6fa: POP R14",
+        "0x1407ea6fc: POP RDI",
+        "0x1407ea6fd: POP RSI",
+        "0x1407ea6fe: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealLower766d30",
+      "evidence_id": "ev_300d082d2ad91640a5a2cc6f19b53fa04f1975202934eaae425313fdc14860e7",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x140766d30",
+        "name": "FUN_140766d30",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x140766d30",
+              "end": "0x140766d51"
+            }
+          ],
+          "total_bytes": 34,
+          "span_bytes": 34,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_140766d30()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_140766d30(longlong param_1)\r\n\r\n{\r\n  longlong *plVar1;\r\n  \r\n  plVar1 = *(longlong **)(param_1 + 0x78);\r\n  if ((plVar1 != (longlong *)0x0) && (*(int *)(param_1 + 0xf4) != 0)) {\r\n                    /* WARNING: Could not recover jumptable at 0x000140766d4a. Too many branches */\r\n                    /* WARNING: Treating indirect jump as call */\r\n    (**(code **)(*plVar1 + 0x118))(plVar1,0);\r\n    return;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x140766d30: MOV RAX, RCX",
+        "0x140766d33: MOV RCX, qword ptr [RCX + 0x78]",
+        "0x140766d37: TEST RCX, RCX",
+        "0x140766d3a: JZ 0x140766d51",
+        "0x140766d3c: CMP dword ptr [RAX + 0xf4], 0x0",
+        "0x140766d43: JZ 0x140766d51",
+        "0x140766d45: MOV RAX, qword ptr [RCX]",
+        "0x140766d48: XOR EDX, EDX",
+        "0x140766d4a: JMP qword ptr [RAX + 0x118]",
+        "0x140766d51: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealLower763500",
+      "evidence_id": "ev_c55b4a1060788df725bb290dbeaeee784fb44a7dc2871db84e43fa0745b0b3d0",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x140763500",
+        "name": "FUN_140763500",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x140763500",
+              "end": "0x140763513"
+            }
+          ],
+          "total_bytes": 20,
+          "span_bytes": 20,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_140763500()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_140763500(longlong param_1)\r\n\r\n{\r\n  if (*(longlong **)(param_1 + 0x78) != (longlong *)0x0) {\r\n                    /* WARNING: Could not recover jumptable at 0x00014076350c. Too many branches */\r\n                    /* WARNING: Treating indirect jump as call */\r\n    (**(code **)(**(longlong **)(param_1 + 0x78) + 0x120))();\r\n    return;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x140763500: MOV RCX, qword ptr [RCX + 0x78]",
+        "0x140763504: TEST RCX, RCX",
+        "0x140763507: JZ 0x140763513",
+        "0x140763509: MOV RAX, qword ptr [RCX]",
+        "0x14076350c: JMP qword ptr [RAX + 0x120]",
+        "0x140763513: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealLower766de0",
+      "evidence_id": "ev_f3ac0ddf60669d12676c88668793c2907eda3737b2e35895fa835e00c4d77ffe",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x140766de0",
+        "name": "FUN_140766de0",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x140766de0",
+              "end": "0x140766df3"
+            }
+          ],
+          "total_bytes": 20,
+          "span_bytes": 20,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_140766de0()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_140766de0(longlong param_1)\r\n\r\n{\r\n  if (*(longlong **)(param_1 + 0x78) != (longlong *)0x0) {\r\n                    /* WARNING: Could not recover jumptable at 0x000140766dec. Too many branches */\r\n                    /* WARNING: Treating indirect jump as call */\r\n    (**(code **)(**(longlong **)(param_1 + 0x78) + 0x130))();\r\n    return;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x140766de0: MOV RCX, qword ptr [RCX + 0x78]",
+        "0x140766de4: TEST RCX, RCX",
+        "0x140766de7: JZ 0x140766df3",
+        "0x140766de9: MOV RAX, qword ptr [RCX]",
+        "0x140766dec: JMP qword ptr [RAX + 0x130]",
+        "0x140766df3: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealLower766dc0",
+      "evidence_id": "ev_390407072f95104631989afb4e6e620c71f0379ae4db2def45728f6253e1fc8a",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x140766dc0",
+        "name": "FUN_140766dc0",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x140766dc0",
+              "end": "0x140766dd3"
+            }
+          ],
+          "total_bytes": 20,
+          "span_bytes": 20,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_140766dc0()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_140766dc0(longlong param_1)\r\n\r\n{\r\n  if (*(longlong **)(param_1 + 0x78) != (longlong *)0x0) {\r\n                    /* WARNING: Could not recover jumptable at 0x000140766dcc. Too many branches */\r\n                    /* WARNING: Treating indirect jump as call */\r\n    (**(code **)(**(longlong **)(param_1 + 0x78) + 0x138))();\r\n    return;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x140766dc0: MOV RCX, qword ptr [RCX + 0x78]",
+        "0x140766dc4: TEST RCX, RCX",
+        "0x140766dc7: JZ 0x140766dd3",
+        "0x140766dc9: MOV RAX, qword ptr [RCX]",
+        "0x140766dcc: JMP qword ptr [RAX + 0x138]",
+        "0x140766dd3: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealLower80f280",
+      "evidence_id": "ev_81d7979d639eee3aa8bd8e5514ad36a7787337abf17ae1c72a1e1686d24efa85",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x14080f280",
+        "name": "FUN_14080f280",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x14080f280",
+              "end": "0x14080f30d"
+            }
+          ],
+          "total_bytes": 142,
+          "span_bytes": 142,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_14080f280()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_14080f280(longlong param_1)\r\n\r\n{\r\n  longlong lVar1;\r\n  \r\n  lVar1 = FUN_1406abc80(*(undefined8 *)g_pAppManager,*(undefined4 *)(param_1 + 0x318));\r\n  if (lVar1 != 0) {\r\n    (**(code **)(*(longlong *)(lVar1 + 0x48) + 0x210))(lVar1 + 0x48);\r\n  }\r\n  lVar1 = FUN_1406abc80(*(undefined8 *)g_pAppManager,*(undefined4 *)(param_1 + 0x31c));\r\n  if (lVar1 != 0) {\r\n    (**(code **)(*(longlong *)(lVar1 + 0x48) + 0x210))(lVar1 + 0x48);\r\n  }\r\n  lVar1 = FUN_1406abc80(*(undefined8 *)g_pAppManager,*(undefined4 *)(param_1 + 0x308));\r\n  if (lVar1 != 0) {\r\n    (**(code **)(*(longlong *)(lVar1 + 0x48) + 0x210))(lVar1 + 0x48);\r\n  }\r\n  FUN_140766de0(param_1);\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x14080f280: PUSH RBX",
+        "0x14080f282: SUB RSP, 0x20",
+        "0x14080f286: MOV RAX, qword ptr [0x1412df970]",
+        "0x14080f28d: MOV RBX, RCX",
+        "0x14080f290: MOV EDX, dword ptr [RCX + 0x318]",
+        "0x14080f296: MOV RCX, qword ptr [RAX]",
+        "0x14080f299: CALL 0x1406abc80",
+        "0x14080f29e: TEST RAX, RAX",
+        "0x14080f2a1: JZ 0x14080f2b1",
+        "0x14080f2a3: LEA RCX, [RAX + 0x48]",
+        "0x14080f2a7: MOV RAX, qword ptr [RAX + 0x48]",
+        "0x14080f2ab: CALL qword ptr [RAX + 0x210]",
+        "0x14080f2b1: MOV RAX, qword ptr [0x1412df970]",
+        "0x14080f2b8: MOV EDX, dword ptr [RBX + 0x31c]",
+        "0x14080f2be: MOV RCX, qword ptr [RAX]",
+        "0x14080f2c1: CALL 0x1406abc80",
+        "0x14080f2c6: TEST RAX, RAX",
+        "0x14080f2c9: JZ 0x14080f2d9",
+        "0x14080f2cb: LEA RCX, [RAX + 0x48]",
+        "0x14080f2cf: MOV RAX, qword ptr [RAX + 0x48]",
+        "0x14080f2d3: CALL qword ptr [RAX + 0x210]",
+        "0x14080f2d9: MOV RAX, qword ptr [0x1412df970]",
+        "0x14080f2e0: MOV EDX, dword ptr [RBX + 0x308]",
+        "0x14080f2e6: MOV RCX, qword ptr [RAX]",
+        "0x14080f2e9: CALL 0x1406abc80",
+        "0x14080f2ee: TEST RAX, RAX",
+        "0x14080f2f1: JZ 0x14080f301",
+        "0x14080f2f3: LEA RCX, [RAX + 0x48]",
+        "0x14080f2f7: MOV RAX, qword ptr [RAX + 0x48]",
+        "0x14080f2fb: CALL qword ptr [RAX + 0x210]",
+        "0x14080f301: MOV RCX, RBX",
+        "0x14080f304: ADD RSP, 0x20",
+        "0x14080f308: POP RBX",
+        "0x14080f309: JMP 0x140766de0"
+      ],
+      "bytes": null,
+      "limitations": [
+        "Ghidra's callee inventory omits targets of 3 call reference(s) or decoded call(s) without destinations."
+      ]
+    },
+    {
+      "key": "nativeRevealLower80f1f0",
+      "evidence_id": "ev_f9d0631e4a80f271fc56c70bd6f081642abab062812bdee2e389bd3cf6cdc7b9",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x14080f1f0",
+        "name": "FUN_14080f1f0",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x14080f1f0",
+              "end": "0x14080f27d"
+            }
+          ],
+          "total_bytes": 142,
+          "span_bytes": 142,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_14080f1f0()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_14080f1f0(longlong param_1)\r\n\r\n{\r\n  longlong lVar1;\r\n  \r\n  lVar1 = FUN_1406abc80(*(undefined8 *)g_pAppManager,*(undefined4 *)(param_1 + 0x318));\r\n  if (lVar1 != 0) {\r\n    (**(code **)(*(longlong *)(lVar1 + 0x48) + 0x218))(lVar1 + 0x48);\r\n  }\r\n  lVar1 = FUN_1406abc80(*(undefined8 *)g_pAppManager,*(undefined4 *)(param_1 + 0x31c));\r\n  if (lVar1 != 0) {\r\n    (**(code **)(*(longlong *)(lVar1 + 0x48) + 0x218))(lVar1 + 0x48);\r\n  }\r\n  lVar1 = FUN_1406abc80(*(undefined8 *)g_pAppManager,*(undefined4 *)(param_1 + 0x308));\r\n  if (lVar1 != 0) {\r\n    (**(code **)(*(longlong *)(lVar1 + 0x48) + 0x218))(lVar1 + 0x48);\r\n  }\r\n  FUN_140766dc0(param_1);\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x14080f1f0: PUSH RBX",
+        "0x14080f1f2: SUB RSP, 0x20",
+        "0x14080f1f6: MOV RAX, qword ptr [0x1412df970]",
+        "0x14080f1fd: MOV RBX, RCX",
+        "0x14080f200: MOV EDX, dword ptr [RCX + 0x318]",
+        "0x14080f206: MOV RCX, qword ptr [RAX]",
+        "0x14080f209: CALL 0x1406abc80",
+        "0x14080f20e: TEST RAX, RAX",
+        "0x14080f211: JZ 0x14080f221",
+        "0x14080f213: LEA RCX, [RAX + 0x48]",
+        "0x14080f217: MOV RAX, qword ptr [RAX + 0x48]",
+        "0x14080f21b: CALL qword ptr [RAX + 0x218]",
+        "0x14080f221: MOV RAX, qword ptr [0x1412df970]",
+        "0x14080f228: MOV EDX, dword ptr [RBX + 0x31c]",
+        "0x14080f22e: MOV RCX, qword ptr [RAX]",
+        "0x14080f231: CALL 0x1406abc80",
+        "0x14080f236: TEST RAX, RAX",
+        "0x14080f239: JZ 0x14080f249",
+        "0x14080f23b: LEA RCX, [RAX + 0x48]",
+        "0x14080f23f: MOV RAX, qword ptr [RAX + 0x48]",
+        "0x14080f243: CALL qword ptr [RAX + 0x218]",
+        "0x14080f249: MOV RAX, qword ptr [0x1412df970]",
+        "0x14080f250: MOV EDX, dword ptr [RBX + 0x308]",
+        "0x14080f256: MOV RCX, qword ptr [RAX]",
+        "0x14080f259: CALL 0x1406abc80",
+        "0x14080f25e: TEST RAX, RAX",
+        "0x14080f261: JZ 0x14080f271",
+        "0x14080f263: LEA RCX, [RAX + 0x48]",
+        "0x14080f267: MOV RAX, qword ptr [RAX + 0x48]",
+        "0x14080f26b: CALL qword ptr [RAX + 0x218]",
+        "0x14080f271: MOV RCX, RBX",
+        "0x14080f274: ADD RSP, 0x20",
+        "0x14080f278: POP RBX",
+        "0x14080f279: JMP 0x140766dc0"
+      ],
+      "bytes": null,
+      "limitations": [
+        "Ghidra's callee inventory omits targets of 3 call reference(s) or decoded call(s) without destinations."
+      ]
+    },
+    {
+      "key": "nativeRevealAnim9684e0",
+      "evidence_id": "ev_3fb183d21fb02b39dea679a5dc6a868476838502ca956ebd2cd59903d857fbc9",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x1409684e0",
+        "name": "FUN_1409684e0",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1409684e0",
+              "end": "0x140968534"
+            }
+          ],
+          "total_bytes": 85,
+          "span_bytes": 85,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_1409684e0()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_1409684e0(longlong param_1,int param_2)\r\n\r\n{\r\n  longlong *plVar1;\r\n  \r\n  plVar1 = *(longlong **)(param_1 + 0xd0);\r\n  if (((plVar1 != (longlong *)0x0) && (*(longlong *)(param_1 + 200) != 0)) &&\r\n     ((param_2 != 0 || (*(int *)(param_1 + 0xf4) == 0)))) {\r\n    (**(code **)(*plVar1 + 0x98))(plVar1,*(longlong *)(param_1 + 200),&DAT_140d88d38,3);\r\n    *(undefined4 *)(param_1 + 0xf4) = 1;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1409684e0: PUSH RBX",
+        "0x1409684e2: SUB RSP, 0x20",
+        "0x1409684e6: MOV RBX, RCX",
+        "0x1409684e9: MOV EAX, EDX",
+        "0x1409684eb: MOV RCX, qword ptr [RCX + 0xd0]",
+        "0x1409684f2: TEST RCX, RCX",
+        "0x1409684f5: JZ 0x14096852f",
+        "0x1409684f7: MOV RDX, qword ptr [RBX + 0xc8]",
+        "0x1409684fe: TEST RDX, RDX",
+        "0x140968501: JZ 0x14096852f",
+        "0x140968503: TEST EAX, EAX",
+        "0x140968505: JNZ 0x14096850f",
+        "0x140968507: CMP dword ptr [RBX + 0xf4], EAX",
+        "0x14096850d: JNZ 0x14096852f",
+        "0x14096850f: MOV RAX, qword ptr [RCX]",
+        "0x140968512: LEA R8, [0x140d88d38]",
+        "0x140968519: MOV R9D, 0x3",
+        "0x14096851f: CALL qword ptr [RAX + 0x98]",
+        "0x140968525: MOV dword ptr [RBX + 0xf4], 0x1",
+        "0x14096852f: ADD RSP, 0x20",
+        "0x140968533: POP RBX",
+        "0x140968534: RET"
+      ],
+      "bytes": null,
+      "limitations": [
+        "Ghidra's callee inventory omits targets of 1 call reference(s) or decoded call(s) without destinations."
+      ]
+    },
+    {
+      "key": "nativeRevealAnim965c80",
+      "evidence_id": "ev_80729fa52f0f43dd41c8233534d28208037cea9b8cde9223dd93a6dd1bc9c484",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x140965c80",
+        "name": "FUN_140965c80",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x140965c80",
+              "end": "0x140965cd0"
+            }
+          ],
+          "total_bytes": 81,
+          "span_bytes": 81,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_140965c80()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_140965c80(longlong param_1)\r\n\r\n{\r\n  longlong *plVar1;\r\n  \r\n  plVar1 = *(longlong **)(param_1 + 0xd0);\r\n  if ((plVar1 != (longlong *)0x0) && (*(int *)(param_1 + 0xf4) != 0)) {\r\n    (**(code **)(*plVar1 + 0x98))(plVar1,0,0,0);\r\n    (**(code **)(**(longlong **)(param_1 + 0xd0) + 0x90))(*(longlong **)(param_1 + 0xd0),0);\r\n    *(undefined4 *)(param_1 + 0xf4) = 0;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x140965c80: PUSH RBX",
+        "0x140965c82: SUB RSP, 0x20",
+        "0x140965c86: MOV RBX, RCX",
+        "0x140965c89: MOV RCX, qword ptr [RCX + 0xd0]",
+        "0x140965c90: TEST RCX, RCX",
+        "0x140965c93: JZ 0x140965ccb",
+        "0x140965c95: CMP dword ptr [RBX + 0xf4], 0x0",
+        "0x140965c9c: JZ 0x140965ccb",
+        "0x140965c9e: MOV RAX, qword ptr [RCX]",
+        "0x140965ca1: XOR R9D, R9D",
+        "0x140965ca4: XOR R8D, R8D",
+        "0x140965ca7: XOR EDX, EDX",
+        "0x140965ca9: CALL qword ptr [RAX + 0x98]",
+        "0x140965caf: MOV RCX, qword ptr [RBX + 0xd0]",
+        "0x140965cb6: XOR EDX, EDX",
+        "0x140965cb8: MOV RAX, qword ptr [RCX]",
+        "0x140965cbb: CALL qword ptr [RAX + 0x90]",
+        "0x140965cc1: MOV dword ptr [RBX + 0xf4], 0x0",
+        "0x140965ccb: ADD RSP, 0x20",
+        "0x140965ccf: POP RBX",
+        "0x140965cd0: RET"
+      ],
+      "bytes": null,
+      "limitations": [
+        "Ghidra's callee inventory omits targets of 2 call reference(s) or decoded call(s) without destinations."
+      ]
+    },
+    {
+      "key": "nativeRevealAnim968570",
+      "evidence_id": "ev_d00c5f7b3edbf614adce206db972e47b1ca4262392dde7abacb22c5c18ec592b",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x140968570",
+        "name": "FUN_140968570",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x140968570",
+              "end": "0x140968586"
+            }
+          ],
+          "total_bytes": 23,
+          "span_bytes": 23,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_140968570()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_140968570(longlong param_1)\r\n\r\n{\r\n  if (*(longlong **)(param_1 + 200) != (longlong *)0x0) {\r\n                    /* WARNING: Could not recover jumptable at 0x00014096857f. Too many branches */\r\n                    /* WARNING: Treating indirect jump as call */\r\n    (**(code **)(**(longlong **)(param_1 + 200) + 0x198))();\r\n    return;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x140968570: MOV RCX, qword ptr [RCX + 0xc8]",
+        "0x140968577: TEST RCX, RCX",
+        "0x14096857a: JZ 0x140968586",
+        "0x14096857c: MOV RAX, qword ptr [RCX]",
+        "0x14096857f: JMP qword ptr [RAX + 0x198]",
+        "0x140968586: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealAnim968550",
+      "evidence_id": "ev_ad5ef7136a872f2bc9474be5dbc1d5eaea8a79368a2e5d7ccc4e483c60a56fe7",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x140968550",
+        "name": "FUN_140968550",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x140968550",
+              "end": "0x140968566"
+            }
+          ],
+          "total_bytes": 23,
+          "span_bytes": 23,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_140968550()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_140968550(longlong param_1)\r\n\r\n{\r\n  if (*(longlong **)(param_1 + 200) != (longlong *)0x0) {\r\n                    /* WARNING: Could not recover jumptable at 0x00014096855f. Too many branches */\r\n                    /* WARNING: Treating indirect jump as call */\r\n    (**(code **)(**(longlong **)(param_1 + 200) + 400))();\r\n    return;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x140968550: MOV RCX, qword ptr [RCX + 0xc8]",
+        "0x140968557: TEST RCX, RCX",
+        "0x14096855a: JZ 0x140968566",
+        "0x14096855c: MOV RAX, qword ptr [RCX]",
+        "0x14096855f: JMP qword ptr [RAX + 0x190]",
+        "0x140968566: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealGob04ae20",
+      "evidence_id": "ev_a621b71b11704b1fbfe1e7e0c877ca5129c68abedabde1957d03691790e51500",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x14004ae20",
+        "name": "Gob::TurnOffShadows",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x14004ae20",
+              "end": "0x14004ae29"
+            }
+          ],
+          "total_bytes": 10,
+          "span_bytes": 10,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "void __thiscall TurnOffShadows(Gob * this)",
+        "locals": []
+      },
+      "pseudocode": "\r\n/* public: virtual void __cdecl Gob::TurnOffShadows(void) __ptr64 */\r\n\r\nvoid __thiscall Gob::TurnOffShadows(Gob *this)\r\n\r\n{\r\n                    /* 0x4ae20  13972  ?TurnOffShadows@Gob@@UEAAXXZ */\r\n  *(undefined2 *)(this + 0xf4) = 0;\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x14004ae20: XOR EAX, EAX",
+        "0x14004ae22: MOV word ptr [RCX + 0xf4], AX",
+        "0x14004ae29: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    },
+    {
+      "key": "nativeRevealGob04ae30",
+      "evidence_id": "ev_a1fe32d399aa3999fe61d6903861ae32f642b4870cd9f24404841a1f080562e9",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x14004ae30",
+        "name": "Gob::TurnOnShadows",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x14004ae30",
+              "end": "0x14004ae3c"
+            }
+          ],
+          "total_bytes": 13,
+          "span_bytes": 13,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "void __thiscall TurnOnShadows(Gob * this)",
+        "locals": []
+      },
+      "pseudocode": "\r\n/* public: virtual void __cdecl Gob::TurnOnShadows(void) __ptr64 */\r\n\r\nvoid __thiscall Gob::TurnOnShadows(Gob *this)\r\n\r\n{\r\n                    /* 0x4ae30  13974  ?TurnOnShadows@Gob@@UEAAXXZ */\r\n  *(undefined2 *)(this + 0xf4) = 1;\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x14004ae30: MOV EAX, 0x1",
+        "0x14004ae35: MOV word ptr [RCX + 0xf4], AX",
+        "0x14004ae3c: RET"
+      ],
+      "bytes": null,
+      "limitations": []
+    }
+  ]
+}

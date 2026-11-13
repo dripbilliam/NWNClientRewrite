@@ -55,21 +55,41 @@ func setup(owner, value: Dictionary, target_slot: int = 0) -> void:
 	count.add_theme_constant_override("shadow_offset_x", 1)
 	count.add_theme_constant_override("shadow_offset_y", 1)
 	add_child(count)
-	tooltip_text = str(row.get("name", ""))
-	if not row.is_empty():
-		disabled = row.get("pending", false)
-		count.text = str(int(row.stack)) if int(row.get("stack", 1)) > 1 else ""
-		caption.text = str(row.get("name", "")).left(8)
-		add_theme_font_size_override("font_size", 11)
+	update_tooltip()
+	mouse_entered.connect(func():
+		if current() and is_instance_valid(inventory.item_tooltips) and row.has("entryId"): inventory.item_tooltips.enter(self))
+	mouse_exited.connect(func():
+		if is_instance_valid(inventory) and is_instance_valid(inventory.item_tooltips): inventory.item_tooltips.leave(self))
+	refresh_row(row,inventory.view_id)
 	pressed.connect(func():
 		if current() and row.has("entryId"): inventory.select_item(int(row.entryId)))
 
 func current() -> bool:
 	return is_instance_valid(inventory) and inventory.wanted and inventory.view_id == bound_view
+func refresh_row(value: Dictionary,view: int) -> void:
+	row=value; channel=str(row.get("channel","")); bound_view=view
+	update_tooltip(); disabled=bool(row.get("pending",false))
+	count.text=str(int(row.get("stack",1))) if int(row.get("stack",1))>1 else ""
+	caption.text=str(row.get("name","")).left(8)
+	add_theme_font_size_override("font_size",11)
+func update_tooltip() -> void:
+	tooltip_text="" if is_instance_valid(inventory.item_tooltips) and row.has("entryId") else str(row.get("name",""))
+	if is_instance_valid(inventory.item_tooltips): inventory.item_tooltips.register_control(self)
+func _get_tooltip(_point: Vector2) -> String:
+	return "" if get_meta("native_tooltip_managed",false) else tooltip_text
+func native_tooltip_content() -> Dictionary:
+	if not current(): return {}
+	if row.is_empty():
+		if tooltip_text.is_empty(): return {}
+		var empty_rich:=preload("res://systems/native_data/rich_text.gd").parse(tooltip_text)
+		return {"rich":empty_rich,"owner":get_instance_id(),"identity":[-1,hash(empty_rich)],"below":false}
+	var rich: Dictionary=row.get("tooltip",{"text":str(row.get("name","")),"spans":[]})
+	return {"rich":rich,"owner":get_parent().get_instance_id() if channel in ["R","C","M","A","B"] else get_instance_id(),"identity":[int(row.get("itemId",-1)),hash(rich)],"below":preload("res://systems/native_data/item_tooltip.gd").merchant_below(row)}
 
 func _gui_input(event: InputEvent) -> void:
 	if not current() or not row.has("entryId"): return
 	if event is InputEventMouseButton and event.pressed:
+		if is_instance_valid(inventory.item_tooltips): inventory.item_tooltips.cancel()
 		if event.button_index == MOUSE_BUTTON_LEFT and event.double_click:
 			if inventory.examine_mode: return
 			inventory.operation(int(row.entryId), "activate")
@@ -80,6 +100,7 @@ func _gui_input(event: InputEvent) -> void:
 
 func _get_drag_data(_position: Vector2) -> Variant:
 	if not current() or not row.has("entryId") or disabled or inventory.examine_mode: return null
+	if is_instance_valid(inventory.item_tooltips): inventory.item_tooltips.cancel()
 	var preview := TextureRect.new()
 	preview.texture = image.texture
 	preview.custom_minimum_size = Vector2(50, 50)

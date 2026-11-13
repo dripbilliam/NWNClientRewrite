@@ -22,6 +22,9 @@ var revision:=0
 var layout_ready:=false
 var failure:=""
 var closed:=false
+var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
+func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
+	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
 func configure(painter,text,catalog,cache_path: String) -> void:
 	frame=painter; text_owner=text; set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter=Control.MOUSE_FILTER_STOP; focus_mode=Control.FOCUS_ALL; hide()
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=1; assets.completed.connect(received)
@@ -55,24 +58,24 @@ func place() -> void:
 func ask(message_ref: int,yes_ref: int,no_ref: int,capture: Array) -> bool:
 	if closed or not layout_ready or not failure.is_empty(): return false
 	dismiss(); scope=capture.duplicate(true); message.text=text_owner.raw({"strRef":message_ref}); captions.okbutton.text=text_owner.raw({"strRef":yes_ref}); captions.cancelbutton.text=text_owner.raw({"strRef":no_ref})
-	show(); move_to_front(); place(); grab_focus(); return true
+	show(); move_to_front(); place(); grab_focus();modal_lease.activate(scope); return true
 func invoke(tag: String) -> void:
 	var capture: Array=held.get(tag,[]); held.erase(tag)
-	if not is_visible_in_tree() or buttons[tag].disabled or capture!=[scope,revision]: return
+	if not is_visible_in_tree() or not modal_lease.admits() or buttons[tag].disabled or capture!=[scope,revision]: return
 	finish(1 if tag=="okbutton" else 2)
 func finish(result: int) -> void:
-	if not is_visible_in_tree(): return
+	if not is_visible_in_tree() or not modal_lease.admits(): return
 	var capture:=scope.duplicate(true); dismiss(); answered.emit(result,capture)
 func _input(event: InputEvent) -> void:
 	# CGuiMan dispatches Escape to the top modal even if another GUI control
 	# owns edit focus. Do not rely on this Control retaining Godot GUI focus.
-	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE and is_visible_in_tree(): get_viewport().set_input_as_handled(); finish(2)
+	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE and is_visible_in_tree() and modal_lease.admits(): get_viewport().set_input_as_handled(); finish(2)
 func dismiss() -> void:
-	revision+=1; held.clear(); scope=[]; hide(); release_focus()
+	modal_lease.retire();revision+=1; held.clear(); scope=[]; hide(); release_focus()
 	for button in buttons.values():
 		if button.has_method("reset_native_pressed_state"): button.reset_native_pressed_state()
 func close() -> void:
 	if closed: return
-	dismiss(); closed=true
+	dismiss();modal_lease.close(); closed=true
 	if is_instance_valid(assets): assets.close()
 func _exit_tree() -> void: close()

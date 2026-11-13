@@ -1,0 +1,453 @@
+{
+  "version": 1,
+  "kind": "exact-accepted-d-authored-source-inputs",
+  "createdUtc": "2026-11-08T23:23:43.844Z",
+  "accepted": {
+    "application": "ea3469f0b87fa346acd28c0ffe97bba646601ed567e80d5f8eee03068989ebda",
+    "engineSha256": "10b24711d277f745ad72cc504b6a3e573c12bb1ce1be7fd8545faabab82b9f13",
+    "particleSha256": "485741af15f0581a3c60c0f9a8ae738888eba08716c7a5c2c2d1bd550828963d",
+    "flags": [
+      "--particle-scene-boundary=native",
+      "--particle-scene-direct=pod",
+      "--particle-setup-boundary=bound",
+      "--particle-hot-parameters=bound",
+      "--visibility-chain-cache=epochs",
+      "--light-input-read=typed",
+      "--light-input-proof=segments",
+      "--light-pair-layer-repair=exact",
+      "--light-pair-filter=consumers",
+      "--pair-record-reuse=exact",
+      "--rig-skin-publisher=native",
+      "--skeleton-force-pass=once",
+      "--particle-resident-text=borrow",
+      "--particle-empty-clips=skip",
+      "--light-dictionary-read=single",
+      "--light-input-lifetime=guarded"
+    ]
+  },
+  "originalArchive": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-text-build\\godot-source.tar.gz",
+    "sha256": "e607e9985e1c201bc9cdc1aec8a120f0c3f53b9603f1f828e2b748534a2471ef",
+    "commit": "ed1daf0bf001b61586d9930840f2f1394092c079",
+    "hashMustBeVerifiedBeforeExtraction": true
+  },
+  "overrides": [
+    {
+      "relative": "main/main.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\main\\main.cpp",
+      "sha256": "c78f4082515cff6201ea94024d961d870570e38e74d0c08fa9c4b1ed9fece812",
+      "bytes": 211346,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "modules/gdscript/gdscript_function.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\gdscript\\gdscript_function.h",
+      "sha256": "15fc4f20e61a8b94e48d74316cf0afdf26c8df627c3b8d68d736b88323e01e16",
+      "bytes": 17794,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "modules/gdscript/gdscript_vm.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\gdscript\\gdscript_vm.cpp",
+      "sha256": "10ce3f39d0191c20ffea2fe9bd56bbf9d71fd885bcda51040996d669d5ccd9bd",
+      "bytes": 130430,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "modules/nwn_frame_pacing/config.py",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_pacing\\config.py",
+      "sha256": "5f174054eb0f382af05bc30389a71b4ebbf3a624681b3f433f1b875d8366f48b",
+      "bytes": 76,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_pacing/frame_pacing.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_pacing\\frame_pacing.cpp",
+      "sha256": "32f418ce665f9ff7adff816f4876952771b290887853121c75d4f8fc4b868146",
+      "bytes": 11333,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_pacing/frame_pacing.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_pacing\\frame_pacing.h",
+      "sha256": "283ae54fe7eafee9f6fede612ca2afbe82cdddbd1f9d0aaa5637adf35c38e63a",
+      "bytes": 1134,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_pacing/register_types.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_pacing\\register_types.cpp",
+      "sha256": "dfabd229870c7f0abf405363abde9e63b75cb80a9bf72061ed1b60b15f07f0c8",
+      "bytes": 313,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_pacing/register_types.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_pacing\\register_types.h",
+      "sha256": "cb314ae1c2c9197cff6a076b5d14325d0597d05a7ad2b67ff2e7d0fdd2363465",
+      "bytes": 206,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_pacing/SCsub",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_pacing\\SCsub",
+      "sha256": "5305ba0df7b4b400ddba72cc74015923b35c419d2b753c7cf047e092b45f55af",
+      "bytes": 166,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_probe/config.py",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_probe\\config.py",
+      "sha256": "fae7fe7e24d53a91104088eb15221bba8545813ab584469999c15d5e79a9a54d",
+      "bytes": 93,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_probe/frame_probe.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_probe\\frame_probe.cpp",
+      "sha256": "6ed6b12344874346514610ad94a96846be84be04f4077f21d568d4ff063b1e3a",
+      "bytes": 9822,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_probe/frame_probe.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_probe\\frame_probe.h",
+      "sha256": "65937b0377568cc966b0d0f9582591dfa49a068c2dce9a3bc66d5abea975141e",
+      "bytes": 2854,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_probe/register_types.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_probe\\register_types.cpp",
+      "sha256": "258e2b9ad3c2d4707bad91382e4e9dd640efcf73e25d696a476e9a1d0bc73b12",
+      "bytes": 320,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_probe/register_types.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_probe\\register_types.h",
+      "sha256": "86179ec83ef69da1e2677290d6a3d1747ade53e4aa9faa75edad87a6d42f4d53",
+      "bytes": 204,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_frame_probe/SCsub",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_frame_probe\\SCsub",
+      "sha256": "72d4b674e7d1c6dd74b08f6649d07f2498d5fb14ae11b516d658a6fbc8d0cb35",
+      "bytes": 167,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_light_input_registry/config.py",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_light_input_registry\\config.py",
+      "sha256": "c2c54f97a2ea9ccbe909159bb10ece7f4e830fb19af6fdaad836af34a6fb74bd",
+      "bytes": 94,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_light_input_registry/light_input_registry.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\light-member-build-c-a\\candidate\\source-evidence\\modules\\nwn_light_input_registry\\light_input_registry.cpp",
+      "sha256": "c3fba024fc4e0582b2c84bc35676f752aa3bc1aa4595b41a09b4e170c40d54d8",
+      "bytes": 28677,
+      "layer": "Accepted-D-manual-light-C"
+    },
+    {
+      "relative": "modules/nwn_light_input_registry/light_input_registry.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\light-member-build-c-a\\candidate\\source-evidence\\modules\\nwn_light_input_registry\\light_input_registry.h",
+      "sha256": "a0214be29f101ca7662eb35d76903e82b0fd30972cfada581e2d87659dc7babd",
+      "bytes": 2171,
+      "layer": "Accepted-D-manual-light-C"
+    },
+    {
+      "relative": "modules/nwn_light_input_registry/register_types.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\light-member-build-c-a\\candidate\\source-evidence\\modules\\nwn_light_input_registry\\register_types.cpp",
+      "sha256": "af962ca09e875f2a9e1f4f498bd3348f9bed62a7b8ad49a47015de1e6a7988e8",
+      "bytes": 365,
+      "layer": "Accepted-D-manual-light-C"
+    },
+    {
+      "relative": "modules/nwn_light_input_registry/register_types.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\light-member-build-c-a\\candidate\\source-evidence\\modules\\nwn_light_input_registry\\register_types.h",
+      "sha256": "141ad3d533f6987f125f9c3cf2a6512b2495e876ac4376b9f9fc7f8a07fc919b",
+      "bytes": 222,
+      "layer": "Accepted-D-manual-light-C"
+    },
+    {
+      "relative": "modules/nwn_light_input_registry/SCsub",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_light_input_registry\\SCsub",
+      "sha256": "70bfbfea75f3e7748680933f2e4873cdab973aedf2381dc52ba962d9a38a063d",
+      "bytes": 225,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_motion_numeric/config.py",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_motion_numeric\\config.py",
+      "sha256": "fae7fe7e24d53a91104088eb15221bba8545813ab584469999c15d5e79a9a54d",
+      "bytes": 93,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_motion_numeric/motion_numeric.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_motion_numeric\\motion_numeric.cpp",
+      "sha256": "04c764f52cf17ba95e4bba0b59f698389db46113b7794cb64b99bd531423a86c",
+      "bytes": 3257,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_motion_numeric/motion_numeric.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_motion_numeric\\motion_numeric.h",
+      "sha256": "6156c1a749ab0ec6fca3e9159b963a7a324d8e8ae10b717798c24504e7034ea7",
+      "bytes": 476,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_motion_numeric/register_types.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_motion_numeric\\register_types.cpp",
+      "sha256": "b739e68cf34fe04cdc9359d262be74c8757a6a90b62705b52b86d85e68b41f68",
+      "bytes": 329,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_motion_numeric/register_types.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_motion_numeric\\register_types.h",
+      "sha256": "604b510eec7ac1bb42b4b8810552aa928f9add29123ebf0e68e2bedf24902644",
+      "bytes": 210,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_motion_numeric/SCsub",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_motion_numeric\\SCsub",
+      "sha256": "82640c78615a866a01773b06ecb89b10a790a6727f69d7ce714ccb194fbfbe89",
+      "bytes": 151,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/config.py",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\config.py",
+      "sha256": "c2c54f97a2ea9ccbe909159bb10ece7f4e830fb19af6fdaad836af34a6fb74bd",
+      "bytes": 94,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/particle_scene_direct_abi.hpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\particle_scene_direct_abi.hpp",
+      "sha256": "4494e56b12c3c129851c7b8141b5bfa3f27698062e33140fd54565ae4eb15f1a",
+      "bytes": 1317,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/register_types.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\register_types.cpp",
+      "sha256": "799c2f55b17e8380b4cf8255297cb100993da42cfd1c9c770d8a093fa534c195",
+      "bytes": 497,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/register_types.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\register_types.h",
+      "sha256": "52c815339ac7e3b3198e75886d4cd655b78daf1621ac1ec8b1b9ee3313bd2123",
+      "bytes": 216,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/rig_skin_publisher.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\rig_skin_publisher.cpp",
+      "sha256": "9f33849cdc8b85f5f66a69adfb72e897868415db0f6ed0bf48f7a549dca6a33e",
+      "bytes": 7421,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/rig_skin_publisher.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\rig_skin_publisher.h",
+      "sha256": "b4c613c47237efd73ba68dce4f1095f38aba85a321f5c203ae92c9b758e6666f",
+      "bytes": 1059,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/scene_boundary.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\scene_boundary.cpp",
+      "sha256": "459caec4a1c835d76560a3127ab49171632ebcf33b3cebb2d44fbae1a0962cc1",
+      "bytes": 4933,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/scene_boundary.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\scene_boundary.h",
+      "sha256": "da9afcc782b886fb167350d613dc3864a12be7d0324721adb0fea3a96263629e",
+      "bytes": 796,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/scene_snapshot_abi.hpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\scene_snapshot_abi.hpp",
+      "sha256": "50326cec02dd2200ccbeae933a7a37cf0cb013c5fdc51134e113327152821f20",
+      "bytes": 3851,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/scene_snapshot.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\scene_snapshot.cpp",
+      "sha256": "92beb05d84387954fc37005e63ce7115782665ecdc5f82c54315efbcc9ce9635",
+      "bytes": 3327,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/scene_snapshot.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\scene_snapshot.h",
+      "sha256": "707acbeeb4803c2e50b817563398e19abb6d6b4e3cceb849bbf054d8bdc549a4",
+      "bytes": 368,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/nwn_particle_snapshot/SCsub",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\modules\\nwn_particle_snapshot\\SCsub",
+      "sha256": "88199e3a57210741810ac8892fa53d431e581da8a1594203d9e80ab650aaada2",
+      "bytes": 219,
+      "layer": "NoTrace-module"
+    },
+    {
+      "relative": "modules/text_server_adv/text_server_adv.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\render-agent\\engine-font-atlas-ownership-v1\\text_server_adv.cpp.after",
+      "sha256": "a8610a38de07f7286b49813065bfdab0bf655a0bf8076e6ffb05a9a93ffa188e",
+      "bytes": 311661,
+      "layer": "Inherited-font-atlas-ownership"
+    },
+    {
+      "relative": "scene/3d/node_3d_visibility_cache.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\scene\\3d\\node_3d_visibility_cache.h",
+      "sha256": "79f54a37d6646e07e99d93dcded33185baecd2ad70d04317c633cdcdeaa8b420",
+      "bytes": 186,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "scene/3d/node_3d.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\scene\\3d\\node_3d.cpp",
+      "sha256": "8de7d096cff9ba748be063b3be9d36b39e305066bed93325f8240bde271378a9",
+      "bytes": 60187,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "scene/3d/node_3d.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\scene\\3d\\node_3d.h",
+      "sha256": "6d15bde6e5e664f950c56ca9468e79bec844e1d129d731193ab7ee1a5ced45f8",
+      "bytes": 14383,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "scene/3d/skeleton_3d.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\scene\\3d\\skeleton_3d.cpp",
+      "sha256": "a904cef08f3ab6be9c63e5a68fd7c6752999ef581d2de668db180134b57a80b4",
+      "bytes": 49125,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "scene/main/node.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-140fps\\particles-agent\\scene-snapshot-thread-preflight-v1\\node.h.after",
+      "sha256": "e164f2119130eddbf1a320c856a5643ccb4244189bb0e5c30868d03459e6b513",
+      "bytes": 38218,
+      "layer": "Inherited-node-main-thread"
+    },
+    {
+      "relative": "servers/rendering/renderer_rd/storage_rd/light_storage.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\servers\\rendering\\renderer_rd\\storage_rd\\light_storage.cpp",
+      "sha256": "3e644ad77b1f84b740e5b3eac95e70ac4a77dfb6e82bd43fc33064c1940776f8",
+      "bytes": 103954,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "servers/rendering/renderer_rd/storage_rd/mesh_storage.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\servers\\rendering\\renderer_rd\\storage_rd\\mesh_storage.cpp",
+      "sha256": "aa4700101566b6b78854095d20a0c5f3f46340f6539753434c3bceea7a08dc99",
+      "bytes": 91925,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "servers/rendering/renderer_rd/storage_rd/mesh_storage.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\servers\\rendering\\renderer_rd\\storage_rd\\mesh_storage.h",
+      "sha256": "2cb10f98bfbaf85b187114ac0f55e72c55d4e25f29b0780395df8c89d85557be",
+      "bytes": 30044,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "servers/rendering/renderer_rd/storage_rd/utilities.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\servers\\rendering\\renderer_rd\\storage_rd\\utilities.cpp",
+      "sha256": "7dd4e947c15f83c17f7d4d415e7f6b3c05a299bf1bc5742d5b56b3218b7492e0",
+      "bytes": 14503,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "servers/rendering/renderer_scene_cull.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\servers\\rendering\\renderer_scene_cull.cpp",
+      "sha256": "8c44ff239e74f5a444ab1475b2ac67a0f65dde87d574840384f08206bc36bd2c",
+      "bytes": 191469,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "servers/rendering/renderer_scene_cull.h",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\servers\\rendering\\renderer_scene_cull.h",
+      "sha256": "130136a59326b232f8f992cb6f19451b166a30f5e9c440d226076aa5dfa6505c",
+      "bytes": 55930,
+      "layer": "NoTrace-patch"
+    },
+    {
+      "relative": "servers/rendering/rendering_server_default.cpp",
+      "sourceFile": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-evidence\\servers\\rendering\\rendering_server_default.cpp",
+      "sha256": "c51caa908bea822d4f9418f71c0353c4ccbe4472bd1cca7c1332e73b09eaa501",
+      "bytes": 18041,
+      "layer": "NoTrace-patch"
+    }
+  ],
+  "proofs": {
+    "auditReceipt": {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-tracy\\source-audit-a\\receipt.json",
+      "sha256": "066bffe48c33980e895aee8b1f5f15e02dd70994103f1b829c571ced08bf8bd1"
+    },
+    "acceptedDescriptor": {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.tools\\native-core\\accepted-core-d.json",
+      "bytes": 12973,
+      "sha256": "5b76f260b5c65f18fcaa332ce806f2843325e08ec218f751652dd545689c579e"
+    },
+    "acceptedManualSourceManifest": {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\light-member-build-c-a\\candidate\\source-manifest.json",
+      "bytes": 247368,
+      "sha256": "1f4d7aeecc0cf3c9a8d674f567bd7d6883e94d1f27e6e3405a1ff7b4367cfcb3"
+    },
+    "noTraceSourceManifest": {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\engine\\build-1794156669344\\source-manifest.json",
+      "bytes": 17534,
+      "sha256": "b1a00dfd5190e3ce1d619be0afb48e329792ba09be414d02f6c20c7a5f660e51"
+    }
+  },
+  "sourceInventoryExclusions": {
+    "compiledReuseForbidden": true,
+    "excludedWhenCopyingAnExistingTree": [
+      ".git/**",
+      "bin/**",
+      "obj/**",
+      ".sconsign*",
+      ".scons_cache/**",
+      "compile_commands.json",
+      "*.o",
+      "*.obj",
+      "*.a",
+      "*.lib",
+      "*.pdb",
+      "*.ilk",
+      "*.exp"
+    ],
+    "originalTar": "Verify and extract the whole original archive. Apply these52 complete files by target-relative path. Do not blanket-delete tracked/generated *.gen.h files; let pinned SCons regenerate its declared outputs.",
+    "currentTree": "Do not use unlisted current engine/source content as accepted authority; the original archive supplies unmodified source."
+  },
+  "buildDecision": {
+    "rootSelectedCompiler": "MSVC private diagnostic rebuild with debug_symbols=yes/PDB",
+    "sourceEqualsAcceptedD": true,
+    "binaryIdentityClaim": false,
+    "baselineRecordedCompiler": "GCC16.2/MinGW, debug_symbols=no, optimize=speed,lto=none",
+    "requirements": [
+      "Keep target=template_release,arch=x86_64,disable_path_overrides=no,d3d12=no,optimize=speed,lto=none and real_t32.",
+      "MSVC use_mingw=no and debug_symbols=yes are deliberate diagnostic differences; record exact toolchain/flags and source-matched control.",
+      "Preserve strict floating-point/no-fast-math intent and all16 runtime features/particle485.",
+      "No compiled object or cache reuse. Active files are independent copies."
+    ]
+  }
+}

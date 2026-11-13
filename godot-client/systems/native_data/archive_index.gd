@@ -1,6 +1,7 @@
 extends RefCounted
 const Binary = preload("res://systems/native_data/binary_data.gd")
 const Residency=preload("res://systems/native_data/resource_residency.gd")
+const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 const MAX_ENTRIES := 1000000
 const MAX_RESOURCE_BYTES := 256 * 1024 * 1024
 var failure := ""
@@ -47,6 +48,10 @@ func erf(path: String) -> Dictionary:
 		return {"value":value,"error":failure})
 func erf_entries(path: String,version: String,count: int,stride: int,name_size: int,names,locations) -> Dictionary:
 	var entries := {}
+	if Backend.available():
+		var parsed:=Backend.parse("erf",names.data,locations.data,{"count":count,"stride":stride,"name_size":name_size,"size":opened_size})
+		if parsed.has("error"): return reject(str(parsed.error))
+		return {"entries":parsed.entries,"path":path,"size":opened_size,"modified":FileAccess.get_modified_time(path),"index_bytes":index_bytes,"version":version}
 	for index in count:
 		var name: String = names.text(index * stride, name_size, true).to_lower()
 		var kind: int = names.u16(index * stride + name_size + 4)
@@ -80,6 +85,10 @@ func key(path: String) -> Dictionary:
 		return {"value":value,"error":failure})
 func key_entries(version: String,count: int,stride: int,filenames: Array,resources) -> Dictionary:
 	var entries := {}
+	if Backend.available():
+		var parsed:=Backend.parse("key",resources.data,PackedByteArray(),{"count":count,"stride":stride,"filenames":filenames})
+		if parsed.has("error"): return reject(str(parsed.error))
+		return {"entries":parsed.entries,"bifs":filenames,"version":version,"index_bytes":index_bytes}
 	for index in count:
 		var at := index * stride; var name: String = resources.text(at, 16, true).to_lower()
 		var kind: int = resources.u16(at + 16); var resource_id: int = resources.u32(at + 18)
@@ -104,6 +113,10 @@ func bif(path: String) -> Dictionary:
 		return {"value":value,"error":failure})
 func bif_entries(path: String,version: String,count: int,stride: int,table) -> Dictionary:
 	var entries: Array = []
+	if Backend.available():
+		var parsed:=Backend.parse("bif",table.data,PackedByteArray(),{"count":count,"stride":stride,"size":opened_size})
+		if parsed.has("error"): return reject(str(parsed.error))
+		return {"entries":parsed.entries,"path":path,"size":opened_size,"modified":FileAccess.get_modified_time(path),"index_bytes":index_bytes}
 	for index in count:
 		var cursor := index * stride + (8 if version == "V1.1" else 4)
 		var at: int = table.u32(cursor); var size: int = table.u32(cursor + 4)

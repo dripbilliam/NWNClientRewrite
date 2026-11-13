@@ -4,7 +4,14 @@ extends RefCounted
 # skin/collision consumers. Main-thread ArrayMesh/Resource publication stays put.
 const Polygon=preload("res://systems/native_data/polygon_hit.gd")
 const Skins=preload("res://systems/native_data/skin_preparation.gd")
-const REVISION:="mesh-upload-v1"
+const REVISION:="mesh-upload-v2-colors"
+static func colors(bytes: PackedByteArray,count: int) -> PackedColorArray:
+	var result:=PackedColorArray()
+	if bytes.is_empty() or bytes.size()!=count*4: return result
+	result.resize(count)
+	for index in count:
+		var at:=index*4; result[index]=Color(bytes[at]/255.0,bytes[at+1]/255.0,bytes[at+2]/255.0,bytes[at+3]/255.0)
+	return result
 static func configured_enabled() -> bool: return not OS.get_cmdline_user_args().has("--mesh-preparation=main")
 static func point(values: PackedFloat32Array,index: int) -> Vector3: return Vector3(values[index*3],values[index*3+2],-values[index*3+1])
 static func prepare(data: Dictionary) -> Dictionary:
@@ -12,6 +19,8 @@ static func prepare(data: Dictionary) -> Dictionary:
 	if vertices.size()%3!=0 or source_indices.size()%3!=0: return {"error":"Invalid native mesh stream lengths"}
 	if vertices.is_empty() or source_indices.is_empty(): return {"error":"","empty":true}
 	var count:=vertices.size()/3; var positions:=PackedVector3Array(); var normals:=PackedVector3Array(); var uv:=PackedVector2Array()
+	var authored_colors: PackedByteArray=data.get("vertex_colors",PackedByteArray())
+	if not authored_colors.is_empty() and authored_colors.size()!=count*4: return {"error":"Native vertex color count does not match geometry"}
 	positions.resize(count); normals.resize(count); uv.resize(count)
 	var authored_normals: PackedFloat32Array=data.normals; var authored_uv: PackedFloat32Array=data.uv[0] if not data.uv.is_empty() else PackedFloat32Array()
 	if not authored_normals.is_empty() and authored_normals.size()!=vertices.size(): return {"error":"Native normal count does not match geometry"}
@@ -45,7 +54,7 @@ static func prepare(data: Dictionary) -> Dictionary:
 				physical.append([vertices[index],vertices[index+1],vertices[index+2]])
 			var p:=Polygon.plane(physical); planes.append_array(PackedFloat32Array([p.normal[0],p.normal[1],p.normal[2],p.constant]))
 	source_bounds=source_bounds.grow(maxf(1.0,maxf(source_bounds.position.abs().length(),source_bounds.end.abs().length()))*0.000003814697265625)
-	return {"error":"","revision":REVISION,"positions":positions,"normals":normals,"uv":uv,"indices":indices,"pick_bounds":pick_bounds,"source_bounds":source_bounds,"planes":planes}
+	return {"error":"","revision":REVISION,"positions":positions,"normals":normals,"uv":uv,"colors":colors(authored_colors,count),"indices":indices,"pick_bounds":pick_bounds,"source_bounds":source_bounds,"planes":planes}
 static func model(value: Dictionary,prepare_skins: bool=false) -> Dictionary:
 	var began:=Time.get_ticks_usec(); var meshes:=0; var vertices:=0; var faces:=0
 	var skins:=0; var skin_vertices:=0; var skin_ms:=0.0; var skin_fallbacks: Array=[]

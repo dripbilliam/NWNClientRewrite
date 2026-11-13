@@ -1,0 +1,285 @@
+{
+  "version": 1,
+  "subject": {
+    "name": "nwmain.exe",
+    "digest": {
+      "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+    },
+    "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+    "format": "pe",
+    "architecture": "x86_64"
+  },
+  "provider": {
+    "id": "ghidra",
+    "name": "Ghidra",
+    "version": "12.1.4"
+  },
+  "analysis_profile_digest": "ab1af6a0e002de5d4940f7e3d2cfd844cfe45f918fcd3678b343002640413374",
+  "evidence_id": "ev_ae5dd1aec23503dd4a60d768f4d5b4b038bcb00ebb9471808e554a36487d0735",
+  "operation": "analyze_function",
+  "parameters": {
+    "procedure": "0x140061710"
+  },
+  "procedure": {
+    "address": "0x140061710",
+    "name": "PartEmitter::CalculateRadius",
+    "classification": {
+      "external": false,
+      "thunk": false,
+      "thunk_target": null,
+      "provenance": "ghidra-function-manager"
+    },
+    "body": {
+      "available": true,
+      "provenance": "ghidra-function-body-address-set",
+      "ranges": [
+        {
+          "start": "0x140061710",
+          "end": "0x1400619ed"
+        }
+      ],
+      "total_bytes": 734,
+      "span_bytes": 734,
+      "non_contiguous": false,
+      "contains_entry": true
+    },
+    "signature": "void __thiscall CalculateRadius(PartEmitter * this)",
+    "locals": [
+      {
+        "description": "undefined1[16] local_18 @ Stack[-0x18]:16",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined1[16] local_28 @ Stack[-0x28]:16",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined1[16] local_40 @ Stack[-0x40]:16",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined local_4c @ Stack[-0x4c]:1",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined4 local_50 @ Stack[-0x50]:4",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_58 @ Stack[-0x58]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined4 local_60 @ Stack[-0x60]:4",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_68 @ Stack[-0x68]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_res10 @ Stack[0x10]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_res18 @ Stack[0x18]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_res20 @ Stack[0x20]:8",
+        "provenance": "ghidra-function-database"
+      },
+      {
+        "description": "undefined8 local_res8 @ Stack[0x8]:8",
+        "provenance": "ghidra-function-database"
+      }
+    ]
+  },
+  "pseudocode": "\r\n/* public: void __cdecl PartEmitter::CalculateRadius(void) __ptr64 */\r\n\r\nvoid __thiscall PartEmitter::CalculateRadius(PartEmitter *this)\r\n\r\n{\r\n  longlong *plVar1;\r\n  float *pfVar2;\r\n  longlong lVar3;\r\n  int iVar4;\r\n  longlong lVar5;\r\n  float fVar6;\r\n  float fVar7;\r\n  float fVar8;\r\n  float fVar9;\r\n  undefined8 local_68;\r\n  float local_60;\r\n  undefined8 local_58;\r\n  float local_50;\r\n  undefined1 local_4c [12];\r\n  undefined4 local_40;\r\n  undefined4 uStack_3c;\r\n  undefined4 uStack_38;\r\n  undefined4 uStack_34;\r\n  \r\n                    /* 0x61710  5987  ?CalculateRadius@PartEmitter@@QEAAXXZ */\r\n  if (((*(longlong *)(this + 0x50) != 0) &&\r\n      (lVar5 = *(longlong *)(*(longlong *)(this + 0x50) + 0x68), lVar5 != 0)) &&\r\n     ((*(byte *)(lVar5 + 0x92) & 1) != 0)) {\r\n    *(undefined4 *)(this + 0x20c) = 0x447a0000;\r\n    return;\r\n  }\r\n  local_68 = 0;\r\n  local_60 = 0.0;\r\n  local_40 = 0x3f800000;\r\n  uStack_3c = 0;\r\n  uStack_38 = 0;\r\n  uStack_34 = 0;\r\n  (**(code **)(*(longlong *)this + 0x18))(this,&local_68,&local_40);\r\n  plVar1 = *(longlong **)(this + 0x1c0);\r\n  if (plVar1 == (longlong *)0x0) {\r\n    lVar5 = *(longlong *)(this + 0x1f8);\r\n    fVar6 = ABS(*(float *)(this + 0xb0) * -9.81);\r\n    fVar7 = 0.0;\r\n    *(float *)(this + 0x210) = fVar6;\r\n    if (lVar5 != 0) {\r\n      local_58 = *(undefined8 *)(lVar5 + 0x20);\r\n      local_50 = *(float *)(lVar5 + 0x28);\r\n      fVar7 = magnitude((Vector *)&local_58);\r\n      fVar6 = *(float *)(this + 0x210);\r\n    }\r\n    fVar8 = *(float *)(this + 0xac);\r\n    fVar7 = (*(float *)(this + 0xdc) + *(float *)(this + 0xc0) + fVar7) * fVar8 +\r\n            fVar6 * 0.5 * fVar8 * fVar8;\r\n    *(float *)(this + 0x20c) = fVar7;\r\n    fVar6 = *(float *)(this + 200);\r\n    if (*(float *)(this + 200) <= *(float *)(this + 0xc4)) {\r\n      fVar6 = *(float *)(this + 0xc4);\r\n    }\r\n    fVar8 = *(float *)(this + 0x228);\r\n    if (*(float *)(this + 0x228) <= fVar6) {\r\n      fVar8 = fVar6;\r\n    }\r\n    fVar8 = fVar8 * 0.5;\r\n    fVar6 = *(float *)(this + 0xd0);\r\n    if (*(float *)(this + 0xd0) <= *(float *)(this + 0xcc)) {\r\n      fVar6 = *(float *)(this + 0xcc);\r\n    }\r\n    fVar9 = *(float *)(this + 0x22c);\r\n    if (*(float *)(this + 0x22c) <= fVar6) {\r\n      fVar9 = fVar6;\r\n    }\r\n    fVar6 = fVar9 * 0.5;\r\n    if (fVar9 * 0.5 <= 0.0) {\r\n      fVar6 = fVar8;\r\n    }\r\n    fVar6 = (float)FUN_140c7d6d8(fVar8 * fVar8 + fVar6 * fVar6);\r\n    iVar4 = 0;\r\n    *(float *)(this + 0x20c) = fVar6 + fVar7;\r\n    if (0 < *(int *)(this + 400)) {\r\n      lVar5 = 0;\r\n      do {\r\n        lVar3 = (**(code **)(**(longlong **)(lVar5 + *(longlong *)(this + 0x188)) + 8))();\r\n        if (lVar3 == 0) {\r\n          return;\r\n        }\r\n        lVar3 = *(longlong *)(lVar3 + 0x78);\r\n        if (lVar3 != 0) {\r\n          local_50 = *(float *)(lVar3 + 0xb0) - local_60;\r\n          local_58 = CONCAT44(*(float *)(lVar3 + 0xac) - local_68._4_4_,\r\n                              *(float *)(lVar3 + 0xa8) - (float)local_68);\r\n          fVar6 = magnitude((Vector *)&local_58);\r\n          fVar6 = fVar6 + *(float *)(lVar3 + 0x178);\r\n          if (fVar6 <= *(float *)(this + 0x20c)) {\r\n            fVar6 = *(float *)(this + 0x20c);\r\n          }\r\n          *(float *)(this + 0x20c) = fVar6;\r\n        }\r\n        iVar4 = iVar4 + 1;\r\n        lVar5 = lVar5 + 8;\r\n      } while (iVar4 < *(int *)(this + 400));\r\n    }\r\n  }\r\n  else {\r\n    pfVar2 = (float *)(**(code **)(*plVar1 + 0xc0))(plVar1,local_4c);\r\n    local_50 = pfVar2[2] - local_60;\r\n    local_58 = CONCAT44(pfVar2[1] - local_68._4_4_,*pfVar2 - (float)local_68);\r\n    fVar6 = magnitude((Vector *)&local_58);\r\n    *(float *)(this + 0x20c) = fVar6;\r\n  }\r\n  return;\r\n}\r\n\r\n",
+  "assembly": [
+    "0x140061710: MOV qword ptr [RSP + 0x20], RBX",
+    "0x140061715: PUSH RBP",
+    "0x140061716: MOV RBP, RSP",
+    "0x140061719: SUB RSP, 0x80",
+    "0x140061720: MOV RAX, qword ptr [RCX + 0x50]",
+    "0x140061724: MOV RBX, RCX",
+    "0x140061727: TEST RAX, RAX",
+    "0x14006172a: JZ 0x140061759",
+    "0x14006172c: MOV RCX, qword ptr [RAX + 0x68]",
+    "0x140061730: TEST RCX, RCX",
+    "0x140061733: JZ 0x140061759",
+    "0x140061735: TEST byte ptr [RCX + 0x92], 0x1",
+    "0x14006173c: JZ 0x140061759",
+    "0x14006173e: MOV dword ptr [RBX + 0x20c], 0x447a0000",
+    "0x140061748: MOV RBX, qword ptr [RSP + 0xa8]",
+    "0x140061750: ADD RSP, 0x80",
+    "0x140061757: POP RBP",
+    "0x140061758: RET",
+    "0x140061759: MOVAPS XMM0, xmmword ptr [0x140d81960]",
+    "0x140061760: LEA R8, [RBP + -0x38]",
+    "0x140061764: MOV RAX, qword ptr [RBX]",
+    "0x140061767: LEA RDX, [RBP + -0x60]",
+    "0x14006176b: MOVAPS xmmword ptr [RSP + 0x60], XMM7",
+    "0x140061770: MOV RCX, RBX",
+    "0x140061773: XORPS XMM7, XMM7",
+    "0x140061776: MOV qword ptr [RBP + -0x60], 0x0",
+    "0x14006177e: MOV dword ptr [RBP + -0x58], 0x0",
+    "0x140061785: MOVUPS xmmword ptr [RBP + -0x38], XMM0",
+    "0x140061789: CALL qword ptr [RAX + 0x18]",
+    "0x14006178c: MOV RCX, qword ptr [RBX + 0x1c0]",
+    "0x140061793: TEST RCX, RCX",
+    "0x140061796: JZ 0x1400617e7",
+    "0x140061798: MOV RAX, qword ptr [RCX]",
+    "0x14006179b: LEA RDX, [RBP + -0x44]",
+    "0x14006179f: CALL qword ptr [RAX + 0xc0]",
+    "0x1400617a5: LEA RCX, [RBP + -0x50]",
+    "0x1400617a9: MOVSS XMM2, dword ptr [RAX + 0x8]",
+    "0x1400617ae: MOVSS XMM1, dword ptr [RAX + 0x4]",
+    "0x1400617b3: MOVSS XMM0, dword ptr [RAX]",
+    "0x1400617b7: SUBSS XMM2, dword ptr [RBP + -0x58]",
+    "0x1400617bc: SUBSS XMM1, dword ptr [RBP + -0x5c]",
+    "0x1400617c1: SUBSS XMM0, dword ptr [RBP + -0x60]",
+    "0x1400617c6: MOVSS dword ptr [RBP + -0x48], XMM2",
+    "0x1400617cb: MOVSS dword ptr [RBP + -0x4c], XMM1",
+    "0x1400617d0: MOVSS dword ptr [RBP + -0x50], XMM0",
+    "0x1400617d5: CALL 0x1402303d0",
+    "0x1400617da: MOVSS dword ptr [RBX + 0x20c], XMM0",
+    "0x1400617e2: JMP 0x1400619d8",
+    "0x1400617e7: MOVSS XMM0, dword ptr [RBX + 0xb0]",
+    "0x1400617ef: MOV RAX, qword ptr [RBX + 0x1f8]",
+    "0x1400617f6: MOV qword ptr [RSP + 0x90], RSI",
+    "0x1400617fe: MOVAPS xmmword ptr [RSP + 0x70], XMM6",
+    "0x140061803: CVTPS2PD XMM0, XMM0",
+    "0x140061806: MULSD XMM0, qword ptr [0x140d84aa8]",
+    "0x14006180e: ANDPS XMM0, xmmword ptr [0x140d81980]",
+    "0x140061815: CVTPD2PS XMM2, XMM0",
+    "0x140061819: XORPS XMM0, XMM0",
+    "0x14006181c: MOVSS dword ptr [RBX + 0x210], XMM2",
+    "0x140061824: TEST RAX, RAX",
+    "0x140061827: JZ 0x14006184a",
+    "0x140061829: MOVSD XMM0, qword ptr [RAX + 0x20]",
+    "0x14006182e: LEA RCX, [RBP + -0x50]",
+    "0x140061832: MOVSD qword ptr [RBP + -0x50], XMM0",
+    "0x140061837: MOV EAX, dword ptr [RAX + 0x28]",
+    "0x14006183a: MOV dword ptr [RBP + -0x48], EAX",
+    "0x14006183d: CALL 0x1402303d0",
+    "0x140061842: MOVSS XMM2, dword ptr [RBX + 0x210]",
+    "0x14006184a: MOVSS XMM1, dword ptr [RBX + 0xac]",
+    "0x140061852: MOVSS XMM6, dword ptr [RBX + 0xdc]",
+    "0x14006185a: ADDSS XMM6, dword ptr [RBX + 0xc0]",
+    "0x140061862: MOVSS XMM3, dword ptr [0x140d81930]",
+    "0x14006186a: MULSS XMM2, XMM3",
+    "0x14006186e: ADDSS XMM6, XMM0",
+    "0x140061872: MULSS XMM2, XMM1",
+    "0x140061876: MULSS XMM6, XMM1",
+    "0x14006187a: MULSS XMM2, XMM1",
+    "0x14006187e: ADDSS XMM6, XMM2",
+    "0x140061882: MOVSS dword ptr [RBX + 0x20c], XMM6",
+    "0x14006188a: MOVSS XMM0, dword ptr [RBX + 0xc4]",
+    "0x140061892: MOVSS XMM1, dword ptr [RBX + 0xc8]",
+    "0x14006189a: COMISS XMM1, XMM0",
+    "0x14006189d: JA 0x1400618a2",
+    "0x14006189f: MOVAPS XMM1, XMM0",
+    "0x1400618a2: MOVSS XMM0, dword ptr [RBX + 0x228]",
+    "0x1400618aa: COMISS XMM0, XMM1",
+    "0x1400618ad: JA 0x1400618b2",
+    "0x1400618af: MOVAPS XMM0, XMM1",
+    "0x1400618b2: MOVSS XMM1, dword ptr [RBX + 0xcc]",
+    "0x1400618ba: MOVSS XMM2, dword ptr [RBX + 0xd0]",
+    "0x1400618c2: COMISS XMM2, XMM1",
+    "0x1400618c5: MULSS XMM0, XMM3",
+    "0x1400618c9: JA 0x1400618ce",
+    "0x1400618cb: MOVAPS XMM2, XMM1",
+    "0x1400618ce: MOVSS XMM1, dword ptr [RBX + 0x22c]",
+    "0x1400618d6: COMISS XMM1, XMM2",
+    "0x1400618d9: JA 0x1400618de",
+    "0x1400618db: MOVAPS XMM1, XMM2",
+    "0x1400618de: MULSS XMM1, XMM3",
+    "0x1400618e2: COMISS XMM7, XMM1",
+    "0x1400618e5: JC 0x1400618ea",
+    "0x1400618e7: MOVAPS XMM1, XMM0",
+    "0x1400618ea: MULSS XMM0, XMM0",
+    "0x1400618ee: MULSS XMM1, XMM1",
+    "0x1400618f2: ADDSS XMM0, XMM1",
+    "0x1400618f6: CALL 0x140c7d6d8",
+    "0x1400618fb: ADDSS XMM0, XMM6",
+    "0x1400618ff: XOR ESI, ESI",
+    "0x140061901: MOVAPS XMM6, xmmword ptr [RSP + 0x70]",
+    "0x140061906: MOVSS dword ptr [RBX + 0x20c], XMM0",
+    "0x14006190e: CMP dword ptr [RBX + 0x190], ESI",
+    "0x140061914: JLE 0x1400619d0",
+    "0x14006191a: MOV qword ptr [RSP + 0xa0], R14",
+    "0x140061922: MOV R14D, ESI",
+    "0x140061925: MOV qword ptr [RSP + 0x98], RDI",
+    "0x14006192d: NOP dword ptr [RAX]",
+    "0x140061930: MOV RAX, qword ptr [RBX + 0x188]",
+    "0x140061937: MOV RCX, qword ptr [R14 + RAX*0x1]",
+    "0x14006193b: MOV RAX, qword ptr [RCX]",
+    "0x14006193e: CALL qword ptr [RAX + 0x8]",
+    "0x140061941: TEST RAX, RAX",
+    "0x140061944: JZ 0x1400619c0",
+    "0x140061946: MOV RDI, qword ptr [RAX + 0x78]",
+    "0x14006194a: TEST RDI, RDI",
+    "0x14006194d: JZ 0x1400619ae",
+    "0x14006194f: MOVSS XMM0, dword ptr [RDI + 0xa8]",
+    "0x140061957: LEA RCX, [RBP + -0x50]",
+    "0x14006195b: SUBSS XMM0, dword ptr [RBP + -0x60]",
+    "0x140061960: MOVSS XMM1, dword ptr [RDI + 0xac]",
+    "0x140061968: SUBSS XMM1, dword ptr [RBP + -0x5c]",
+    "0x14006196d: MOVSS dword ptr [RBP + -0x50], XMM0",
+    "0x140061972: MOVSS XMM0, dword ptr [RDI + 0xb0]",
+    "0x14006197a: SUBSS XMM0, dword ptr [RBP + -0x58]",
+    "0x14006197f: MOVSS dword ptr [RBP + -0x4c], XMM1",
+    "0x140061984: MOVSS dword ptr [RBP + -0x48], XMM0",
+    "0x140061989: CALL 0x1402303d0",
+    "0x14006198e: ADDSS XMM0, dword ptr [RDI + 0x178]",
+    "0x140061996: MOVSS XMM1, dword ptr [RBX + 0x20c]",
+    "0x14006199e: COMISS XMM0, XMM1",
+    "0x1400619a1: JA 0x1400619a6",
+    "0x1400619a3: MOVAPS XMM0, XMM1",
+    "0x1400619a6: MOVSS dword ptr [RBX + 0x20c], XMM0",
+    "0x1400619ae: INC ESI",
+    "0x1400619b0: ADD R14, 0x8",
+    "0x1400619b4: CMP ESI, dword ptr [RBX + 0x190]",
+    "0x1400619ba: JL 0x140061930",
+    "0x1400619c0: MOV RDI, qword ptr [RSP + 0x98]",
+    "0x1400619c8: MOV R14, qword ptr [RSP + 0xa0]",
+    "0x1400619d0: MOV RSI, qword ptr [RSP + 0x90]",
+    "0x1400619d8: MOVAPS XMM7, xmmword ptr [RSP + 0x60]",
+    "0x1400619dd: MOV RBX, qword ptr [RSP + 0xa8]",
+    "0x1400619e5: ADD RSP, 0x80",
+    "0x1400619ec: POP RBP",
+    "0x1400619ed: RET"
+  ],
+  "callees": [
+    {
+      "address": "0x1402303d0",
+      "name": "magnitude"
+    },
+    {
+      "address": "0x140c7d6d8",
+      "name": "FUN_140c7d6d8"
+    }
+  ],
+  "limitations": [
+    "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+    "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+    "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+    "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+    "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+    "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+    "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+    "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+    "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+    "Windows Ghidra P0 accepts native x86 and x86-64 PE applications and DLLs, and explicitly selected raw 6502 images; managed, hostile, sensitive, and mutable-path targets are unsupported.",
+    "The Windows bridge uses authenticated IPv4 loopback because Node path-based IPC does not expose Java AF_UNIX sockets; the endpoint file contains no bearer token.",
+    "Windows sessions require the matching packaged Windows x64 native addon, local NTFS targets and runtimes, and Windows 10 or later. Native handles enforce path admission, private DACLs, and Job Object ownership automatically.",
+    "The target references PDB nwmain.pdb (GUID 29431f05-e0f2-461a-8bec-cfc9e80d8f27, age (hex) 1, signature unknown, version RSDS); Ghidra reports load state unknown. Original names and types may be missing; an empty name search does not prove a procedure is absent. Use list_procedures and address-based analysis to inspect recovered functions. REA does not admit a caller-selected PDB companion."
+  ],
+  "observations": [
+    "The first model-classification flag gate assigns radius1000.",
+    "The ordinary radius includes velocity/randvel/wind, lifetime, acceleration and sprite extents.",
+    "The retained active particle list can expand the radius using each current child object's world position and radius. A null particle view terminates the loop; a null child skips it."
+  ],
+  "scope": "Read-only native evidence. Existing particle_bounds.gd already ports this helper; this file does not establish that static chunk mesh bounds are a safe replacement for active child Gob spheres."
+}

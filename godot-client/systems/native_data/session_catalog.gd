@@ -6,6 +6,7 @@ const Timing=preload("res://systems/native_render/frame_profile.gd")
 signal completed(serial: int, catalog: RefCounted, error: String, stats: Dictionary)
 const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Workshop=preload("res://systems/native_data/workshop_index.gd")
+const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 var task:=-1
 var serial:=0
 var result: Dictionary={}
@@ -34,7 +35,7 @@ static func prepare(sources: Dictionary,guard: Callable=Callable()) -> Dictionar
 		var recorded:=preload("res://systems/native_data/recorded_catalog.gd").new()
 		var accepted:=recorded.mount(str(sources.recordedCatalog))
 		stop=stopped(guard,recorded,began,"recorded catalog"); if not stop.is_empty(): return stop
-		return {"catalog":recorded,"error":"" if accepted else recorded.failure,"stats":{"recorded":true,"rendering_prepared":false,"layers":recorded.layers.size()}}
+		return {"catalog":recorded,"error":"" if accepted else recorded.failure,"stats":{"recorded":true,"benchmark_clone":recorded.packed_catalog!=null,"metadata_backend":"compiled" if Backend.available() else "gd","mount_ms":(Time.get_ticks_usec()-began)/1000.0,"rendering_prepared":false,"layers":recorded.layers.size()}}
 	var install:=str(sources.get("install",""))
 	if not install.is_absolute_path() or not catalog.mount_install(install,str(sources.get("language","en"))): return {"catalog":catalog,"error":catalog.failure if not catalog.failure.is_empty() else "Native install path is unavailable"}
 	phases.installed_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
@@ -86,10 +87,10 @@ static func prepare(sources: Dictionary,guard: Callable=Callable()) -> Dictionar
 	overrides.append_array([install.path_join("ovr"),install.path_join("override")])
 	for selected in roots:
 		portraits.append(str(selected.directory).path_join("portraits")); overrides.append(str(selected.directory).path_join("override"))
-	if not catalog.mount_directory(install.path_join("data/prt"),90000000,[3,2033]): return {"catalog":catalog,"error":catalog.failure}
+	if not catalog.mount_directory(install.path_join("data/prt"),90000000,[3,2033],"portraitsinstall"): return {"catalog":catalog,"error":catalog.failure}
 	for number in portraits.size():
 		stop=stopped(guard,catalog,began,"portraits"); if not stop.is_empty(): return stop
-		if not catalog.mount_directory(str(portraits[number]),91000000-number,[3,2033]): return {"catalog":catalog,"error":catalog.failure}
+		if not catalog.mount_directory(str(portraits[number]),91000000-number,[3,2033],"portraits"): return {"catalog":catalog,"error":catalog.failure}
 	phases.portraits_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
 	for number in overrides.size():
 		stop=stopped(guard,catalog,began,"overrides"); if not stop.is_empty(): return stop
@@ -98,7 +99,7 @@ static func prepare(sources: Dictionary,guard: Callable=Callable()) -> Dictionar
 	stop=stopped(guard,catalog,began,"resource index"); if not stop.is_empty(): return stop
 	var index_stats:=catalog.build_resource_index()
 	stop=stopped(guard,catalog,began,"publication"); if not stop.is_empty(): return stop
-	return {"catalog":catalog,"error":"","stats":{"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"lookup_index":index_stats,"phases":phases,"layers":catalog.layers.size(),"manifests":index,"workshop_mods":roots.map(func(row):return row.id),"workshop_haks":local_haks,"worker_thread":OS.get_thread_caller_id(),"rendering_prepared":false,"residency":catalog.residency_stats()}}
+	return {"catalog":catalog,"error":"","stats":{"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"metadata_backend":"compiled" if Backend.available() else "gd","lookup_index":index_stats,"phases":phases,"layers":catalog.layers.size(),"manifests":index,"workshop_mods":roots.map(func(row):return row.id),"workshop_haks":local_haks,"worker_thread":OS.get_thread_caller_id(),"rendering_prepared":false,"residency":catalog.residency_stats()}}
 func _process(_delta: float) -> void:
 	var began:=Timing.begin()
 	_profile_process(_delta)

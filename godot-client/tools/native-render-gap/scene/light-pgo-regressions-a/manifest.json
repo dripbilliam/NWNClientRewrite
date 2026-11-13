@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "created": "2026-11-08T17:38:04.188Z",
+  "kind": "immutable-pgo-light-regression-runner-copies",
+  "sourcePins": [
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\fixture.gd",
+      "sha256": "30a1f95c63dceeeb9d0677764468a67fc4b8faeea859f45ccd5a0913cf22fa7c"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\typed-error.gd",
+      "sha256": "f16c6687a3885b7f721546344d642d5e201bafa6e7cac5c0c158f4bbf99cfc24"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\run-fixture.cjs",
+      "sha256": "5b0ecfaa81191d5804985b9632a89852a9a09236168073494d4a234949ef0f72"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\run-typed-error.cjs",
+      "sha256": "de12074114c98b831df67cab2df8f60c94a376dc0d69bb9dc43e741d18ac20fc"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\run-regressions.cjs",
+      "sha256": "e7878fbca9dc975bce73b8a213fd65b238b6ae52d0679257049a880518de207d"
+    }
+  ],
+  "copies": [
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-pgo-regressions-a\\fixture.gd",
+      "sha256": "30a1f95c63dceeeb9d0677764468a67fc4b8faeea859f45ccd5a0913cf22fa7c",
+      "original": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\fixture.gd",
+      "originalSha256": "30a1f95c63dceeeb9d0677764468a67fc4b8faeea859f45ccd5a0913cf22fa7c"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-pgo-regressions-a\\typed-error.gd",
+      "sha256": "f16c6687a3885b7f721546344d642d5e201bafa6e7cac5c0c158f4bbf99cfc24",
+      "original": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\typed-error.gd",
+      "originalSha256": "f16c6687a3885b7f721546344d642d5e201bafa6e7cac5c0c158f4bbf99cfc24"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-pgo-regressions-a\\run-fixture.cjs",
+      "sha256": "c9e30ffe3ff83117fcb5964c484f1a3e39ae570cf85a341af7aa05e7e8d6318a",
+      "original": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\run-fixture.cjs",
+      "originalSha256": "5b0ecfaa81191d5804985b9632a89852a9a09236168073494d4a234949ef0f72"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-pgo-regressions-a\\run-typed-error.cjs",
+      "sha256": "3dcf6816a8d369628fbe3baa4a2cf45259f984c259571d5ad3cd055c5856ff6f",
+      "original": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\run-typed-error.cjs",
+      "originalSha256": "de12074114c98b831df67cab2df8f60c94a376dc0d69bb9dc43e741d18ac20fc"
+    },
+    {
+      "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-pgo-regressions-a\\run-regressions.cjs",
+      "sha256": "b1b8081d2afcb53197afc63809d96ef1d4a11d03a2ae8a57607a76d1221f74b4",
+      "original": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-dictionary-read\\run-regressions.cjs",
+      "originalSha256": "e7878fbca9dc975bce73b8a213fd65b238b6ae52d0679257049a880518de207d"
+    }
+  ],
+  "engineRelative": ".cache/native-render-gap/engine/build-1794159304324/godot.windows.template_release.x86_64.exe",
+  "engineSha256": "30a114cadd5c431e4e3357295cba7147c5ffd066cf2d53d84a5c95385026a9ae",
+  "commands": [
+    [
+      "node",
+      "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-pgo-regressions-a\\run-fixture.cjs"
+    ],
+    [
+      "node",
+      "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-pgo-regressions-a\\run-typed-error.cjs"
+    ],
+    [
+      "node",
+      "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\tools\\native-render-gap\\scene\\light-pgo-regressions-a\\run-regressions.cjs"
+    ]
+  ],
+  "expectedExecutions": 1046,
+  "scope": "Source-only preparation. Original used D runners and frozen projects remain untouched. Same actual Dictionary/typed-error/canonical/segment/legacy tests, changed only pinned engine identity and fresh output labels."
+}

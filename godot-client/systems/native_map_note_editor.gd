@@ -17,6 +17,7 @@ var failure:=""
 var layout_ready:=false
 var pending:=false
 var caret_pending:=0
+var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
 func configure(owner,layout: Dictionary,models: Dictionary) -> void:
 	owner_frame=owner; set_process(false)
 	var main_name:=str(layout.get("Obj_ResRef","")).to_lower(); var main:=Geometry.model(models[main_name]); var origin: Vector2=-main.bounds.position
@@ -29,7 +30,12 @@ func configure(owner,layout: Dictionary,models: Dictionary) -> void:
 			if str(nested.error).is_empty() and nested.entries.has("title"): entries.title=nested.entries.title
 	for tag in ["pintextedit","title","okbutton","cancelbutton","deletebutton"]:
 		if not entries.has(tag): failure="Missing original map-note control: "+tag; return
-	panel=Draggable.new(); owner.desktop.owner_ui.controls.add_child(panel); panel.configure("Map Note","map-note",Vector2(250,160),owner.panel.settings_path); panel.window_column.hide(); panel.close_requested.connect(cancel); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.custom_minimum_size=main.bounds.size; panel.size=main.bounds.size
+	var ui=owner.desktop.owner_ui;var order=modal_lease.property(ui,"modal_order");var surfaces=modal_lease.property(ui,"modal_surfaces");var source_canvas=modal_lease.property(ui,"layer");var parent: Node=ui.controls
+	if is_instance_valid(surfaces) and source_canvas is CanvasLayer:parent=surfaces.create_root(ui.controls,source_canvas)
+	panel=Draggable.new(); parent.add_child(panel); panel.configure("Map Note","map-note",Vector2(250,160),owner.panel.settings_path); panel.window_column.hide(); panel.close_requested.connect(cancel); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.custom_minimum_size=main.bounds.size; panel.size=main.bounds.size
+	modal_lease.configure(panel,order,surfaces,parent.get_parent() if parent.get_parent() is CanvasLayer else null);modal_lease.bind_input(panel)
+	modal_lease.admission_changed.connect(func(admitted):
+		if not admitted:panel.dragging=false)
 	var stage:=Control.new(); panel.add_child(stage); stage.mouse_filter=Control.MOUSE_FILTER_IGNORE; stage.size=main.bounds.size
 	owner.image(owner.picture(stage),main_name,Rect2(Vector2.ZERO,main.bounds.size))
 	var title: Label=owner.frame.create_label(entries.title,stage,owner.desktop.owner_ui.text.raw({"strRef":int(entries.title.caption.get("Obj_StrRef",6379))})); title.mouse_filter=Control.MOUSE_FILTER_STOP; title.gui_input.connect(panel._title_input)
@@ -52,8 +58,9 @@ func open(value: Dictionary) -> void:
 	serial+=1; state=value.duplicate(true); pending=false; edit.text=str(state.get("text","")); notice.text=""; panel.show(); panel.move_to_front(); panel._clamp(); edit.editable=true; edit.grab_focus(); scroll.scroll_vertical=0
 	buttons.okbutton.disabled=false; buttons.deletebutton.visible=int(state.get("type",-1))==1; buttons.deletebutton.disabled=false
 	queue_caret()
+	modal_lease.activate([serial])
 func submit(operation: String) -> void:
-	if pending or state.is_empty(): return
+	if pending or state.is_empty() or not modal_lease.admits(): return
 	var value:=state.duplicate(true); value.operation=operation; value.text=edit.text; value.editorSerial=serial
 	if not owner_frame.submit_note(value): return
 	pending=true; edit.editable=false; buttons.okbutton.disabled=true; buttons.deletebutton.disabled=true; notice.text=""
@@ -69,7 +76,8 @@ func _process(_delta: float) -> void:
 	caret_changed(); caret_pending-=1
 	if caret_pending<=0: set_process(false)
 func _input(event: InputEvent) -> void:
-	if not is_instance_valid(panel) or not panel.visible or not event is InputEventKey or not event.pressed or event.echo or event.keycode!=KEY_ESCAPE: return
+	if not is_instance_valid(panel) or not panel.visible or not modal_lease.admits() or not event is InputEventKey or not event.pressed or event.echo or event.keycode!=KEY_ESCAPE: return
+	if is_instance_valid(modal_lease.order):cancel();get_viewport().set_input_as_handled();return
 	var windows: Array=panel.get_parent().get_children(); windows.reverse()
 	for window in windows:
 		if window is Draggable and window.visible:
@@ -81,9 +89,10 @@ func reject(message: String) -> void:
 func uncertain(message: String) -> void:
 	if layout_ready: notice.text=message
 func cancel() -> void:
+	modal_lease.retire()
 	serial+=1; state.clear(); pending=false; caret_pending=0; set_process(false)
 	if is_instance_valid(panel): panel.hide()
 func close() -> void:
-	cancel()
+	cancel();modal_lease.close()
 	if is_instance_valid(bar): bar.close()
 	if is_instance_valid(panel): panel.queue_free()

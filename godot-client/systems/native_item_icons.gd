@@ -28,6 +28,9 @@ var camera: Camera3D
 var image_bounds: Dictionary={}
 var active:=false
 var pending_draw: Dictionary={}
+var render_fence: CompositorEffect
+var render_fence_compositor: Compositor
+var render_epoch := 0
 var closed:=false
 var reuse_models_enabled:=not OS.get_cmdline_user_args().has("--icon-model-reuse=false")
 var maximum_cached_models:=32
@@ -45,6 +48,13 @@ func configure(source,cache_path: String) -> void:
 	assets=Assets.new(); add_child(assets); assets.maximum_workers=2; assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	viewport=SubViewport.new(); viewport.own_world_3d=true; viewport.transparent_bg=true; viewport.render_target_update_mode=SubViewport.UPDATE_DISABLED; viewport.msaa_3d=Viewport.MSAA_4X; add_child(viewport)
 	stage=Node3D.new(); viewport.add_child(stage); camera=Camera3D.new(); camera.projection=Camera3D.PROJECTION_ORTHOGONAL; camera.keep_aspect=Camera3D.KEEP_HEIGHT; camera.near=0.1; camera.far=200; stage.add_child(camera); camera.current=true
+	# Compositor callbacks are supported only by RD renderers. Keep the old
+	# non-RD/headless path; this experiment changes only the native Vulkan path.
+	if DisplayServer.get_name() != "headless" and RenderingServer.get_current_rendering_method() in ["forward_plus", "mobile"]:
+		render_fence = preload("res://systems/native_render/icon_draw_fence.gd").new(Callable(self, "icon_viewport_drawn"))
+		render_fence_compositor = Compositor.new()
+		render_fence_compositor.compositor_effects = [render_fence]
+		camera.compositor = render_fence_compositor
 	var world_environment:=WorldEnvironment.new(); var settings:=Environment.new(); settings.background_mode=Environment.BG_COLOR; settings.background_color=Color(0,0,0,0); settings.tonemap_mode=Environment.TONE_MAPPER_LINEAR; world_environment.environment=settings; stage.add_child(world_environment)
 func request(item: Dictionary,tables: Dictionary,gender: int=0) -> String:
 	var decoder:=Plan.new(); var plan:=decoder.plan(item,tables,gender)
@@ -198,9 +208,24 @@ func draw_icon(job: Dictionary) -> void:
 	camera.position=Vector3(center.x,100,center.z); camera.look_at(Vector3(center.x,0,center.z),Vector3(0,0,-1))
 	viewport.render_target_update_mode=SubViewport.UPDATE_ONCE
 	pending_draw={"job":job,"model":model,"wait_began":Timing.begin()}
-	RenderingServer.frame_post_draw.connect(frame_rendered,CONNECT_ONE_SHOT)
+	if render_fence != null:
+		render_epoch += 1
+		pending_draw.render_epoch = render_epoch
+		pending_draw.completed_epoch = 0
+		RenderingServer.call_on_render_thread(Callable(render_fence, "arm").bind(render_epoch, render_fence))
+	else:
+		RenderingServer.frame_post_draw.connect(frame_rendered,CONNECT_ONE_SHOT)
+func icon_viewport_drawn(epoch: int) -> void:
+	# Main-thread deferred receiver. Old/retired/replaced camera completions
+	# cannot consume another request, including after owner closure.
+	if closed or pending_draw.is_empty() or int(pending_draw.get("render_epoch", -1)) != epoch:
+		return
+	pending_draw.completed_epoch = epoch
+	frame_rendered()
 func frame_rendered() -> void:
 	if closed or pending_draw.is_empty(): return
+	if render_fence != null and int(pending_draw.get("completed_epoch", 0)) != int(pending_draw.get("render_epoch", -1)):
+		return
 	var draw: Dictionary=pending_draw; pending_draw={}
 	var job: Dictionary=draw.job; var model=draw.model
 	Timing.finish("icon_render_wait_ms",int(draw.wait_began))
@@ -246,6 +271,9 @@ func snapshot() -> Dictionary:
 func close() -> void:
 	if closed: return
 	closed=true
+	if is_instance_valid(camera): camera.compositor = null
+	render_fence = null
+	render_fence_compositor = null
 	if RenderingServer.frame_post_draw.is_connected(frame_rendered): RenderingServer.frame_post_draw.disconnect(frame_rendered)
 	for model in cached_models.values():
 		if is_instance_valid(model): model.free()

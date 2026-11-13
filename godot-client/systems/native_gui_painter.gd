@@ -8,13 +8,23 @@ var models: Dictionary={}
 var closed:=false
 var decorated: Array=[]
 var button_geometry: Dictionary={}
+var relocating_buttons: Dictionary={}
 var owns_art:=false
+var tooltips
+var owns_tooltips:=false
+var tooltip_catalog
+var tooltip_cache_path:=""
 func configure_source(catalog,cache_path: String) -> void:
 	art=preload("res://systems/native_ui_art.gd").new(); add_child(art); art.configure(catalog,cache_path); owns_art=true
 	configure_fonts(catalog,cache_path)
 func configure_fonts(catalog,cache_path: String) -> void:
 	fonts=preload("res://systems/native_bitmap_fonts.gd").new(); add_child(fonts); fonts.configure(catalog,cache_path)
 	art.loaded.connect(art_loaded); set_process(false)
+	tooltip_catalog=catalog; tooltip_cache_path=cache_path
+	tooltips=preload("res://systems/native_item_tooltip.gd").new(); add_child(tooltips); tooltips.configure(null,catalog,cache_path,self); owns_tooltips=true
+func borrow_tooltips(controller) -> void:
+	assert(not owns_tooltips,"A painter with its own tooltip scope cannot silently replace it")
+	tooltips=controller
 func shift(rect: Rect2) -> Rect2: return rect
 func create_button(entry: Dictionary,parent: Control,source_models: Dictionary,checkbox: bool=false) -> Button:
 	return Builder.source_button(self,parent,entry,source_models,checkbox)
@@ -23,9 +33,25 @@ func create_label(entry: Dictionary,parent: Control,value: String="") -> Label:
 func create_edit(entry: Dictionary,parent: Control) -> LineEdit:
 	return Builder.source_edit(self,parent,entry)
 func relocate(control: Control,parent: Control,rect: Rect2) -> void:
-	if control.get_parent()!=parent: control.reparent(parent,false)
+	if control.get_parent()!=parent:
+		# Godot reparenting emits tree_exiting for live descendants. Preserve
+		# only this exact subtree's painter leases during the synchronous move;
+		# an unrelated control leaving the tree still retires normally.
+		var moved: Array=[];guard_relocation(control,moved)
+		control.reparent(parent,false)
+		for id in moved:
+			var depth:=int(relocating_buttons.get(id,0))-1
+			if depth>0:relocating_buttons[id]=depth
+			else:relocating_buttons.erase(id)
 	control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT); control.custom_minimum_size=Vector2.ZERO
 	control.position=rect.position; control.size=rect.size
+func guard_relocation(node: Node,moved: Array) -> void:
+	var id:=node.get_instance_id()
+	if button_geometry.has(id):relocating_buttons[id]=int(relocating_buttons.get(id,0))+1;moved.append(id)
+	for child in node.get_children():guard_relocation(child,moved)
+func button_exiting(control: Button) -> void:
+	if relocating_buttons.has(control.get_instance_id()):return
+	button_geometry.erase(control.get_instance_id());decorated.erase(control)
 func image(resource: String,rect: Rect2,parent: Control) -> TextureRect:
 	var control:=TextureRect.new(); control.mouse_filter=Control.MOUSE_FILTER_IGNORE; control.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; control.stretch_mode=TextureRect.STRETCH_SCALE; parent.add_child(control)
 	control.set_meta("native_gui_static_image",true)
@@ -33,6 +59,7 @@ func image(resource: String,rect: Rect2,parent: Control) -> TextureRect:
 	return control
 func button(control: Button,entry: Dictionary,parent: Control,source_models: Dictionary={},follow_footer: bool=true,checkbox: bool=false) -> void:
 	relocate(control,parent,entry.rect); control.text=""; control.focus_mode=Control.FOCUS_NONE
+	if is_instance_valid(tooltips): tooltips.register_control(control)
 	control.add_theme_font_size_override("font_size",1) # Icon-only buttons must not inherit a font's minimum height.
 	var static_model:=Geometry.model((models if source_models.is_empty() else source_models)[str(entry.resource)])
 	button_geometry[control.get_instance_id()]={"control":control,"resource":str(entry.resource),"offset":entry.get("offset",entry.rect.position-static_model.bounds.position),"rect":entry.rect,"styles":{},"caption":entry.get("caption",{}),"follow_footer":follow_footer,"checkbox":checkbox,"disabled_checked_state":entry.get("disabled_checked_state",false),"overrides":entry.get("overrides",{}).duplicate(true)}
@@ -43,7 +70,7 @@ func button(control: Button,entry: Dictionary,parent: Control,source_models: Dic
 		button_geometry[control.get_instance_id()].styles[str(pair[1])]=[style,str(pair[0])]
 		art.bind(style,str(entry.resource),"texture",true,str(pair[0]),false,entry.get("overrides",{}))
 	decorated.append(control)
-	control.tree_exiting.connect(func():button_geometry.erase(control.get_instance_id()); decorated.erase(control),CONNECT_ONE_SHOT)
+	control.tree_exiting.connect(button_exiting.bind(control))
 	if checkbox:
 		var data: Dictionary=button_geometry[control.get_instance_id()]; data.held=false
 		control.button_down.connect(func():data.held=true; control.queue_redraw())
@@ -126,8 +153,14 @@ func place_floating_label(control: Label,entry: Dictionary) -> void:
 func close() -> void:
 	if closed: return
 	closed=true
+	if is_instance_valid(tooltips):
+		for control in decorated:
+			if is_instance_valid(control): tooltips.unregister_control(control)
+		if owns_tooltips: tooltips.close()
+	tooltips=null
+	tooltip_catalog=null
 	if is_instance_valid(art) and art.loaded.is_connected(art_loaded): art.loaded.disconnect(art_loaded)
 	if is_instance_valid(fonts): fonts.close()
 	if owns_art and is_instance_valid(art): art.close()
-	models.clear(); button_geometry.clear(); decorated.clear(); art=null
+	models.clear(); button_geometry.clear();relocating_buttons.clear();decorated.clear(); art=null
 func _exit_tree() -> void: close()

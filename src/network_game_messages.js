@@ -1,12 +1,17 @@
 import {isNetworkBytes} from './network_bytes.js';
 import {NativeMessageReader} from './native_message.js';
+import {readGameMasterPermission} from './network_dm_permission.js';
+import {readInventoryWindowStatus} from './network_inventory_window_status.js';
+import {readGuiPanelDisabled,readGuiPanelPopup} from './network_gui_panel_access.js';
 import {readNetworkBarter} from './network_barter.js';
+import {readItemTextBubbleOverride} from './network_item_text_bubble.js';
 import {readScriptTargeting,readScriptTargetingData,readSpellTargetingData} from './network_script_targeting.js';
 import {readServerResourceRequirements} from './network_resources.js';
 import {decodeGffText} from './gff_text.js';
 import {satisfiesNativeBuild} from './network_build.js';
 import {readClientArea} from './network_area.js';
 import {readAreaWeather} from './network_area_weather.js';
+import {readAreaWind} from './network_area_wind.js';
 import {readPlayerList} from './network_players.js';
 import {readObjectUpdates} from './network_object_updates.js';
 import {readNetworkDialog} from './network_dialog.js';
@@ -34,6 +39,7 @@ import {readNetworkInitiativeFeedback} from './network_initiative_feedback.js';
 import {readNetworkLevelUp} from './network_level_up.js';
 import {readNetworkNui} from './network_nui.js';
 import {readPortalActivate,readPortalCharacter} from './network_portal.js';
+import {readNetworkClientPause} from './network_client_pause.js';
 
 // HandlePlayerToServerMessage458b90 requires lowercase p (server replies use
 // uppercase P); status45d140 accepts subtype0 with no body.
@@ -72,6 +78,15 @@ export function decodeServerGameMessage(bytes,{clientBuild=null,serverBuild=null
  // clientBuild remains the explicit format supplied by offline writer fixtures.
  const incomingBuild=serverBuild??clientBuild;
  const envelope=readGameEnvelope(bytes),{major,minor,body}=envelope;
+ if(major===3&&minor===9){
+  const errors=[],reader=new NativeMessageReader(1,{diagnose:error=>errors.push(error)});
+  if(!reader.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native module-pause streams');
+  const value=readNetworkClientPause(reader);
+  if(reader.messageReadOverflow()||reader.messageReadUnderflow()||errors.length)throw Error('Invalid native module-pause fields');
+  return{...value,major,minor};
+ }
+ if(major===53&&minor===2||major===36&&minor===4){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native GUI access streams');const value=major===53?readGuiPanelDisabled(r,incomingBuild):readGuiPanelPopup(r);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native GUI access fields');return{...value,major,minor};}
+ if(major===24&&minor===5){const errors=[],reader=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!reader.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native item-caption streams');const value=readItemTextBubbleOverride(reader);if(reader.messageReadOverflow()||reader.messageReadUnderflow()||errors.length)throw Error('Invalid native item-caption fields');return{...value,major,minor};}
  if(major===42&&minor===1||major===43&&[2,3].includes(minor)){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native portal streams');const value=major===42?readPortalActivate(r):readPortalCharacter(r,minor);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length){value.data?.fill(0);throw Error('Invalid native portal fields');}return{...value,major,minor};}
  if(major===18&&minor===23||major===57&&[1,2].includes(minor)){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native script targeting streams');const value=major===18?readScriptTargeting(r):minor===1?readSpellTargetingData(r):readScriptTargetingData(r);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native script targeting fields');return{...value,major,minor};}
  if(major===55&&[1,2,4,5].includes(minor)){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native NUI streams');const value=readNetworkNui(r,minor);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native NUI fields');return{...value,major,minor};}
@@ -96,7 +111,9 @@ export function decodeServerGameMessage(bytes,{clientBuild=null,serverBuild=null
  const resourceMessage=major===1&&minor===3;
  const areaMessage=major===4&&minor===1;
  if(major===4&&minor===4){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native weather streams');const value=readAreaWeather(r);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native weather fields');return{...value,major,minor};}
+ if(major===4&&minor===13){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native wind streams');const value=readAreaWind(r);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native wind fields');return{...value,major,minor};}
  const objectControl=major===5&&minor===2||major===14&&minor===14;
+ if(major===31&&minor===22){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native DM-permission streams');const value=readGameMasterPermission(r);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native DM-permission fields');return{...value,major,minor};}
  const playerList=major===10&&[1,2,3].includes(minor);
  const objectUpdates=major===5&&minor===1;
  const dialog=major===20&&[1,2,4,5].includes(minor);
@@ -109,6 +126,7 @@ export function decodeServerGameMessage(bytes,{clientBuild=null,serverBuild=null
  const journal=major===28&&[1,2,3,4,5,6,7,8,9,12].includes(minor),timing=major===48&&minor===1,attitude=major===41&&minor===3,mapPin=major===32&&[1,4,6].includes(minor);
  const speech=major===9&&NETWORK_SPEECH_CHANNELS.includes(minor);
  const containerStatus=major===25&&minor===1;
+ if(major===13&&minor===1){const errors=[],r=new NativeMessageReader(1,{diagnose:e=>errors.push(e)});if(!r.setReadMessage(body,body.length,0xffffffff,1))throw Error('Invalid native inventory-window streams');const value=readInventoryWindowStatus(r);if(r.messageReadOverflow()||r.messageReadUnderflow()||errors.length)throw Error('Invalid native inventory-window fields');return {...value,major,minor};}
  const partyList=major===14&&[1,3,4].includes(minor);
  // Original4dee90 popup type1 uses36/3 and only a CExoString. Its
  // pending inviter is separately replicated in the controlled creature.

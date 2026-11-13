@@ -5,6 +5,7 @@ const Queue = preload("res://systems/animation_queue.gd")
 const Selector = preload("res://systems/attack_animation.gd")
 const MovementCue=preload("res://systems/native_data/movement_cue.gd")
 const RELEASE = {17: 250, 18: 251, 19: 252, 20: 253, 61: 261}
+const GAITS = [2, 3, 4, 78, 79, 84, 85, 86, 87]
 var rigs
 var pivots: Dictionary = {}
 var actors: Dictionary = {}
@@ -36,7 +37,7 @@ static func category(type: int, animation: int) -> int:
 static func base_loop(type: int,animation: int) -> bool:
 	# Animation category is an action-queue classification, not a loop flag.
 	# A repeated locomotion observation must retain its initial looping gait.
-	return type==5 and (animation&65535) in [2,3,4,78,79,84,85,86,87] or category(type,animation)==1
+	return type==5 and (animation&65535) in GAITS or category(type,animation)==1
 
 static func clock(ms: int) -> Dictionary:
 	# Leave a whole day before this engine's epoch for deferred loading cues.
@@ -134,16 +135,20 @@ func base_frame(id: int, animation: int, speed: float = 1.0) -> void:
 		var rotation: float = pivots[id].rotation.y
 		actors[id].orientation = Vector3(-sin(rotation), 0, -cos(rotation))
 	if int(s.observed) == animation:
+		if animation in GAITS and s.has("motionPathActive") and not s.motionPathActive:
+			return
 		if s.current.is_empty() and s.queue.entries.is_empty() and animation != 9 and not RELEASE.has(animation):
 			play(id, animation, speed, bool(rigs.entities[id].loop_map.get(str(animation), base_loop(int(actors[id].objectType),animation))), false)
 		return
 	s.observed = animation
 	if RELEASE.has(animation):
-		s.base = RELEASE[animation]
+		cast_base(id,s,animation)
 		return
 	if animation == 9:
 		return
-	s.base = animation
+	# SetBaseAnimation764300 retains its independent+64 resting owner for
+	# locomotion. The current gait is visual+5c, never a replacement rest base.
+	if animation not in GAITS: s.base = animation
 	if animation in [2, 3, 4, 5, 6, 7, 8, 24, 25]:
 		s.queue.clear()
 		s.current = {}
@@ -157,6 +162,32 @@ func base_frame(id: int, animation: int, speed: float = 1.0) -> void:
 		return
 	if s.current.is_empty() and s.queue.entries.is_empty():
 		play(id, animation, speed, base_loop(int(actors[id].objectType),animation), false)
+
+func motion_frame(id: int,remaining_path: Variant) -> void:
+	var s:=ensure(id)
+	if s.is_empty(): return
+	if remaining_path is bool: s.motionPathActive=remaining_path
+	else: s.erase("motionPathActive")
+
+func finish_locomotion(id: int,s: Dictionary) -> void:
+	# Original7fcd70 restores GetBaseAnimation before queue lookup when the
+	# current visual is a gait with no remaining path. Received attack handling
+	# happens first, so deferred moving-melee records retain their owner.
+	if not s.has("motionPathActive") or s.motionPathActive or int(s.visual) not in GAITS: return
+	var base:=int(s.base)
+	if not play(id,base,float(actors[id].get("animationSpeed",1.0)),bool(rigs.entities[id].loop_map.get(str(base),base_loop(int(actors[id].objectType),base))),false): return
+	if s.pending!=null:
+		var record: Dictionary=s.pending; s.pending=null
+		attack(id,record)
+
+func cast_base(id: int,s: Dictionary,animation: int) -> void:
+	# Original receiver781e80 sets250..253/261 before queuing the cast.
+	# SetBaseAnimation764300 immediately replaces a looping/current gait or an
+	# expired cue, while a positive-duration one-shot keeps its visual owner.
+	s.base = int(RELEASE[animation])
+	var visual:=int(s.visual)
+	if category(int(actors[id].objectType),visual)==1 or visual in GAITS or int(s.current.get("remaining",0))<1:
+		play(id,int(s.base),float(actors[id].get("animationSpeed",1.0)),bool(rigs.entities[id].loop_map.get(str(s.base),base_loop(int(actors[id].objectType),int(s.base)))),false)
 
 func play(id: int, animation: int, speed: float, loop: bool, restart: bool = true) -> bool:
 	var s := ensure(id)
@@ -331,7 +362,7 @@ func update(_delta: float = 0.0, now_ms: int = -1) -> void:
 			if not RELEASE.has(animation):
 				failure(id, "Invalid native cast animation")
 				continue
-			s.base = RELEASE[animation]
+			cast_base(id,s,animation)
 			var length: float = Queue.f(rigs.clip_length(id, animation) * 1000)
 			insert(id, {"animation": animation, "duration": 500, "speed": Queue.f(length / 500), "record": row.record, "delay": 0}, age)
 			stats.casts += 1
@@ -350,6 +381,7 @@ func update(_delta: float = 0.0, now_ms: int = -1) -> void:
 		if s.is_empty():
 			states.erase(id)
 			continue
+		finish_locomotion(id,s)
 		if not s.current.is_empty():
 			s.current.remaining = Queue.signed(int(s.current.remaining) - elapsed)
 			if int(s.current.remaining) < 0:

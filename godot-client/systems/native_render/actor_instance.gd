@@ -3,6 +3,7 @@ signal equipment_colour_changed(slot: int,scope: int,rgb: Variant)
 const ColourScopes=preload("res://systems/native_data/model_colour_scopes.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const SkinPreparation=preload("res://systems/native_data/skin_preparation.gd")
+const NameplateAnchor=preload("res://systems/native_data/nameplate_anchor.gd")
 var use_prepared_skins:=SkinPreparation.configured_enabled()
 # Assemble original native model data into the existing Godot rig/skin owner.
 # The adapter itself performs no JS export, GLB import or asset transfer.
@@ -11,7 +12,14 @@ const SkeletalRigs=preload("res://systems/native_render/skeletal_rigs.gd")
 const PointLight=preload("res://systems/native_render/model_point_light.gd")
 const ParticleEmitter=preload("res://systems/native_render/particle_emitter.gd")
 const ModelReference=preload("res://systems/native_render/model_reference.gd")
+const MeshProvenance=preload("res://tools/native_parity/visibility/mesh_provenance.gd")
 const ReferenceGraph=preload("res://systems/native_render/reference_graph.gd")
+const ActorAlpha=preload("res://tools/native_parity/ui/actor-alpha-owner.gd")
+# Explicit world-owner enrollment only. GUI/preview and ordinary actors retain
+# their existing materials until the caller opts in before install().
+var actor_alpha_enabled:=false
+var actor_alpha
+var renderer_alpha_primary_models: Array[int]=[]
 var failure:=""
 var rigs
 var object_id:=-1
@@ -70,13 +78,18 @@ func admitted_pieces(pieces: Array) -> Array:
 	return accepted
 func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animation: int=0,animation_context: Dictionary={}) -> bool:
 	if rigs!=null or retired or pieces.is_empty(): failure="Native actor owner is unavailable/already used"; return false
+	if actor_alpha_enabled:actor_alpha=ActorAlpha.new()
+	set_meta("native_light_source",true)
 	var began:=Timing.begin()
 	object_id=id
 	pieces=admitted_pieces(pieces)
+	renderer_alpha_primary_models=ActorAlpha.primary_model_indices(pieces)
 	var nodes: Array=[]; var models: Array=[]; var assets: Array=[]; var bindings: Array=[]; var anchors: Dictionary={}; var lights: Array=[]; var attachments: Array=[]; var emitters: Array=[]; var references: Array=[]
+	var provenance: Array=[]
 	var holder:=Node3D.new(); add_child(holder)
 	for model_index in pieces.size():
 		var piece: Dictionary=pieces[model_index]; var bundle: Dictionary=piece.bundle
+		if actor_alpha!=null:actor_alpha.begin_model(model_index)
 		var slot:=int(piece.get("equipmentSlot",0))
 		if slot==0: body_model_scopes[int(piece.get("nativeVisualScope",255 if model_index==0 else -1))]=true
 		if slot!=0:
@@ -97,6 +110,7 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 		nodes.append({"name":str(model.name)+"_owner","parent":parent,"position":[0.0,0.0,0.0],"quaternion":[0.0,0.0,0.0,1.0],"scale":[scale_value,scale_value,scale_value]})
 		var converted:=asset(model); var parts: Array=[]
 		if converted.is_empty(): failure="Native worker rig preparation is absent"; holder.free(); return false
+		if model_index==0: set_meta("native_nameplate_height",NameplateAnchor.model_height(model)*scale_value)
 		for index in model.nodes.size():
 			var row: Dictionary=model.nodes[index]; var original_parent:=int(row.parent); var target:=nodes.size(); parts.append(target)
 			if original_parent>=index or original_parent< -1: failure="Original actor physical parent is invalid"; holder.free(); return false
@@ -114,6 +128,8 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 					if texture==null: failure=shared_pool.failure; holder.free(); return false
 				emitters.append({"node":target,"root":root_index,"part":index,"model":model_index,"properties":row.emitter,"asset":converted,"texture":texture})
 			var data: Dictionary=row.mesh
+			var source_facts: Dictionary=MeshProvenance.capture(bundle,row,index,model_index) if not data.is_empty() else {}
+			if not source_facts.is_empty(): provenance.append({"node":target,"facts":source_facts})
 			if data.is_empty() or not data.get("render",false) or data.indices.is_empty(): continue
 			if row.features.has("skin") and not row.has("skin"): failure="Original ASCII skin data requires native decoding: "+str(model.name); holder.free(); return false
 			var geometry=shared_pool.geometry(bundle.sha256,index,data,use_skeleton and not row.has("skin"))
@@ -126,9 +142,12 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 			var material=shared_pool.material(row,raster)
 			if material==null: failure=shared_pool.failure; holder.free(); return false
 			var mesh:=MeshInstance3D.new(); mesh.name="actor_mesh_"+str(id)+"_"+str(bindings.size()); mesh.mesh=geometry; mesh.material_override=material; mesh.visible=float(row.get("alpha",1))>0
+			if actor_alpha!=null and not actor_alpha.enroll(mesh,model_index):
+				failure=actor_alpha.failure;mesh.free();holder.free();return false
 			# Animated meshes are children of one rig holder, unlike static Parts.
 			# Keep physical source identity for per-mesh consumers such as GUI TXI.
 			mesh.set_meta("native_source_part_index",index); mesh.set_meta("native_source_model_index",model_index)
+			mesh.set_meta("native_mesh_source",source_facts)
 			if geometry.has_meta("native_pick_shape"): mesh.set_meta("native_pick_shape",geometry.get_meta("native_pick_shape"))
 			mesh.set_meta("native_pick_geometry",geometry.get_meta("native_pick_geometry"))
 			mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_ON if data.shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -144,8 +163,11 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 	rigs=SkeletalRigs.new() if use_skeleton else Rigs.new(); add_child(rigs); rigs.configure(registry,{id:self},{"rigs":{"version":1,"assets":assets,"entities":[source]},"meshes":bindings})
 	Timing.finish("actor_install_rigs_ms",began); began=Timing.begin()
 	if not rigs.stats.failures.is_empty(): failure=str(rigs.stats.failures); holder.queue_free(); return false
+	for source_row in provenance:
+		var part: Node3D=rigs.node_at(id,int(source_row.node))
+		if is_instance_valid(part): part.set_meta("native_mesh_source",source_row.facts)
 	for row in lights:
-		var light:=PointLight.new(); light.configure(row.data); rigs.node_at(id,int(row.node)).add_child(light)
+		var light:=PointLight.new(); light.set_meta("native_enhanced_light",shared_pool.native_lighting and not shared_pool.unshaded); light.configure(row.data); rigs.node_at(id,int(row.node)).add_child(light)
 	for row in references:
 		var reference:=ModelReference.new(); reference.name="native_reference"; reference.original_header=row.data; reference.origin_resource=str(row.origin); rigs.node_at(id,int(row.node)).add_child(reference)
 	for row in emitters:
@@ -210,8 +232,16 @@ func reference_binding_signature() -> Array:
 	return result
 func set_animation(code: int,speed: float=1.0,loop: Variant=null) -> void:
 	if is_instance_valid(rigs): rigs.set_playback(object_id,code,speed,loop)
+func set_renderer_alpha(value: float,model_indices: Array=[0],gob_flag18: bool=false,colour_shift: bool=true) -> bool:
+	return not retired and actor_alpha!=null and actor_alpha.set_alpha(value,model_indices,gob_flag18,colour_shift)
+func renderer_alpha_model_indices() -> Array[int]:
+	return renderer_alpha_primary_models.duplicate() if not retired else []
+func set_renderer_vector(channel: int,value: Variant,model_indices: Array=[0]) -> bool:
+	return not retired and actor_alpha!=null and actor_alpha.set_vector(channel,value,model_indices)
+func set_presentation_draw_enabled(value: bool,model_indices: Array=[0]) -> bool:
+	return not retired and actor_alpha!=null and actor_alpha.set_presentation_draw_enabled(value,model_indices)
 func snapshot() -> Dictionary:
-	return {"models":model_names.duplicate(),"meshes":meshes.size(),"rigs":rigs.stats.duplicate(true) if is_instance_valid(rigs) else {},"failure":failure,"unattached_equipment":unattached_equipment.duplicate(true)}
+	return {"models":model_names.duplicate(),"meshes":meshes.size(),"rigs":rigs.stats.duplicate(true) if is_instance_valid(rigs) else {},"failure":failure,"unattached_equipment":unattached_equipment.duplicate(true),"actor_alpha":actor_alpha.snapshot() if actor_alpha!=null else {"enabled":false}}
 func retain_decoded_data() -> Dictionary:
 	# Keep only immutable parser/rig source graphs alive through main-thread
 	# teardown. Their final destruction can then run on the data-disposal worker.
@@ -229,6 +259,8 @@ func retain_decoded_data() -> Dictionary:
 func retire() -> void:
 	if retired: return
 	retired=true
+	renderer_alpha_primary_models.clear()
+	if actor_alpha!=null:actor_alpha.close();actor_alpha=null
 	if is_instance_valid(rigs):
 		for listener in emitter_listeners:
 			if rigs.model_event.is_connected(listener): rigs.model_event.disconnect(listener)

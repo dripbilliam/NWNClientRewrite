@@ -4,6 +4,9 @@ const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/party_bar_layout.gd")
 const Status=preload("res://systems/native_status_bar.gd")
 const Bar=preload("res://systems/native_scrollbar.gd")
+const Locator=preload("res://systems/native_party_locator.gd")
+const Bearing=preload("res://systems/native_data/party_locator.gd")
+const Timing=preload("res://systems/native_render/frame_profile.gd")
 var panel
 var frame
 var text_owner
@@ -18,15 +21,21 @@ var failure:=""
 var stage: Control
 var member_bar
 var last_bar_height:=-1.0
+var leader: TextureRect
+var locator_context: Callable
 func configure(target,catalog,cache_path: String,text,painter) -> void:
 	panel=target; panel.native_skin=self; frame=painter; text_owner=text
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	frame.fonts.loaded.connect(font_loaded)
 func _process(_delta: float) -> void:
+	if layout_ready:
+		if not closed and panel.visible:
+			var began:=Timing.begin(); update_locators(); Timing.finish("hud_party_locators_ms",began)
+		return
 	if closed or requested or not panel.visible: return
 	requested=true; set_process(false)
 	for name in Plan.RESOURCES:
-		var id: int=assets.request(name,2002,"actor-model" if name=="scrollbar_simple" else "mdl-original")
+		var id: int=assets.request(name,2002,"actor-model" if name in ["scrollbar_simple","pb_mbr_pos"] else "mdl-original")
 		if id<0: failure=str(assets.failure); return
 		jobs[id]=name
 func prepared(id: int,result: Dictionary) -> void:
@@ -40,6 +49,7 @@ func prepared(id: int,result: Dictionary) -> void:
 	activate()
 func activate() -> void:
 	layout_ready=true; stage=Control.new(); panel.add_child(stage); stage.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	leader=image("ctl_party_leader",Vector2.ZERO,stage); leader.name="NativeLeader"; leader.hide()
 	panel.column.add_theme_constant_override("separation",0)
 	for row in panel.rows:
 		var card: Control=panel.cards[int(row.entryId)]
@@ -52,9 +62,11 @@ func manual_box(previous: Control) -> Control:
 	var box:=Control.new(); box.name=name; box.mouse_filter=Control.MOUSE_FILTER_IGNORE; parent.add_child(box)
 	for child in previous.get_children(): child.reparent(box,false)
 	previous.queue_free(); return box
-func image(resource: String,offset: Vector2,parent: Control) -> TextureRect:
+func image(resource: String,offset: Vector2,parent: Control,bind_image: bool=true) -> TextureRect:
 	var result:=TextureRect.new(); parent.add_child(result); parent.move_child(result,0); result.mouse_filter=Control.MOUSE_FILTER_IGNORE; result.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; result.stretch_mode=TextureRect.STRETCH_SCALE
-	var rect: Rect2=definition.models[resource].bounds; result.position=offset+rect.position; result.size=rect.size; frame.art.bind(result,resource,"texture",true,""); return result
+	var rect: Rect2=definition.models[resource].bounds; result.position=offset+rect.position; result.size=rect.size
+	if bind_image: frame.art.bind(result,resource,"texture",true,"")
+	return result
 func update_card(row: Dictionary) -> void:
 	if not layout_ready or closed or not panel.cards.has(int(row.entryId)): return
 	var card: PanelContainer=panel.cards[int(row.entryId)]; var box: Control=card.get_node("Box")
@@ -71,6 +83,8 @@ func update_card(row: Dictionary) -> void:
 		if not row.self:
 			image("pb_nametag",definition.models.pb_pnl_member.hooks.text,box)
 			frame.label(name,{"rect":Rect2(Vector2.ZERO,Vector2(62,14)),"caption":{"AurString_Font":Plan.FONT,"AurString_AlignH":0.0,"AurString_AlignV":1.0,"AurString_ColorR":0.8,"AurString_ColorG":0.8,"AurString_ColorB":0.8}},box)
+			var indicator:=image("pb_mbr_state",definition.models.pb_pnl_member.hooks.properties,box,false); indicator.name="NativeState"; box.move_child(indicator,box.get_child_count()-1); indicator.hide()
+			var locator:=Locator.new(); locator.name="NativeLocator"; box.add_child(locator); locator.configure(models.pb_mbr_pos,frame.art,definition.models.pb_pnl_member.hooks.pos)
 		if row.self:
 			var actions:=manual_box(box.get_node("Actions")); actions.size=Vector2(80,definition.members.y)
 			for action in panel.actions:
@@ -79,9 +93,51 @@ func update_card(row: Dictionary) -> void:
 			var level: Button=box.get_node("Level"); frame.button(level,definition.level,box,models,false); level.tooltip_text=text_owner.raw({"strRef":0x209a})
 	box.get_node("Health").hide()
 	var portrait: Button=box.get_node("Portrait"); portrait.tooltip_text=str(row.label)+( " %d/%d"%[row.health.current,row.health.maximum] if row.health is Dictionary else "")
+	if is_instance_valid(frame.tooltips): frame.tooltips.register_control(portrait)
 	box.get_node("NativeHealth").set_health(row.health)
 	if row.self: box.get_node("Name").hide()
-	else: layout_name(card)
+	else:
+		set_process(true)
+		layout_name(card)
+		var indicator: TextureRect=box.get_node("NativeState"); var clip:=str(row.get("indicators",{}).get("state",""))
+		indicator.visible=not clip.is_empty()
+		if indicator.get_meta("native_state","")!=clip:
+			indicator.set_meta("native_state",clip); frame.art.unbind(indicator); indicator.texture=null
+			if not clip.is_empty(): frame.art.bind(indicator,"pb_mbr_state","texture",true,clip)
+	update_leader()
+func update_locators() -> void:
+	var context: Dictionary=locator_context.call() if locator_context.is_valid() else {}
+	for row in panel.rows:
+		if row.self or not panel.cards.has(int(row.entryId)): continue
+		var card: Control=panel.cards[int(row.entryId)]; var locator=card.get_node_or_null("Box/NativeLocator")
+		if not is_instance_valid(locator): continue
+		var rect:=card.get_global_rect()
+		if context.is_empty() or not rect.intersects(panel.scroll.get_global_rect()): locator.hide(); continue
+		var indicators: Dictionary=row.get("indicators",{})
+		var value:=Bearing.decide(int(indicators.get("area",0x7f000000))==int(context.area),context.position.call(int(row.id)),context.actor,float(context.yaw),0.0,bool(locator.get_meta("native_unknown",false)))
+		locator.set_meta("native_unknown",value.unknown)
+		if value.unknown: locator.set_unknown()
+		elif value.angle!=null: locator.set_angle(float(value.angle))
+		else: locator.show()
+func update_leader() -> void:
+	if closed or not is_instance_valid(leader): return
+	var target: Dictionary={}
+	for row in panel.rows:
+		if bool(row.get("indicators",{}).get("leader",false)): target=row; break
+	if target.is_empty() or not panel.cards.has(int(target.entryId)):
+		leader.hide(); return
+	var box: Control=panel.cards[int(target.entryId)].get_node("Box")
+	if leader.get_parent()!=box: leader.reparent(box,false)
+	leader.position=(definition.portrait.offset if target.self else definition.member_portrait.offset)+definition.models.ctl_party_leader.bounds.position; leader.show()
+func retire_card(card: Control) -> void:
+	if not is_instance_valid(card) or not card.has_node("Box"): return
+	var box: Control=card.get_node("Box")
+	if is_instance_valid(leader) and leader.get_parent()==box:
+		leader.reparent(stage,false); leader.hide()
+	if box.has_node("NativeState"): frame.art.unbind(box.get_node("NativeState"))
+	if box.has_node("NativeLocator"): box.get_node("NativeLocator").close()
+	if box.has_node("NativeHealth"): box.get_node("NativeHealth").close()
+	if box.has_node("Name"): frame.fonts.unbind(box.get_node("Name"))
 func layout_name(card: Control) -> void:
 	var label: Label=card.get_node("Box/Name"); var height:=label.get_minimum_size().y
 	var point: Vector2=definition.models.pb_pnl_member.hooks.text+definition.models.pb_nametag.hooks.text
@@ -105,6 +161,10 @@ func place() -> void:
 	elif not is_equal_approx(height,last_bar_height): member_bar.relayout(entry)
 	last_bar_height=height; member_bar.show()
 func reset_view() -> void:
+	if layout_ready: set_process(false)
+	if is_instance_valid(leader):
+		if leader.get_parent()!=stage: leader.reparent(stage,false)
+		leader.hide()
 	if is_instance_valid(member_bar): member_bar.close(); member_bar.queue_free(); member_bar=null
 	last_bar_height=-1
 func blocks_pointer(point: Vector2) -> bool:
@@ -120,13 +180,21 @@ func snapshot() -> Dictionary:
 	var health: Array=[]
 	for card in panel.cards.values():
 		if card.has_node("Box/NativeHealth"): health.append(card.get_node("Box/NativeHealth").snapshot())
-	return {"ready":layout_ready,"failure":failure,"pending":jobs.size(),"health":health,"native_only":true,"full_party_parity":false}
+	var indicators: Array=[]
+	for row in panel.rows: indicators.append({"id":row.id,"state":row.get("indicators",{}).get("state",""),"leader":row.get("indicators",{}).get("leader",false)})
+	var locators: Array=[]
+	for row in panel.rows:
+		var control=panel.cards.get(int(row.entryId))
+		if is_instance_valid(control) and control.has_node("Box/NativeLocator"):
+			var locator=control.get_node("Box/NativeLocator")
+			locators.append({"id":row.id,"area":row.get("indicators",{}).get("area",0x7f000000),"clip":locator.clip,"time":locator.time,"faces":locator.faces.size(),"poses":locator.poses,"raster":locator.resource,"texture_ready":locator.texture!=null,"failure":locator.failure})
+	return {"ready":layout_ready,"failure":failure,"pending":jobs.size(),"health":health,"indicators":indicators,"locators":locators,"native_only":true,"full_party_parity":false}
 func close() -> void:
 	if closed: return
-	closed=true; jobs.clear(); models.clear()
+	closed=true; set_process(false); jobs.clear(); models.clear()
 	if is_instance_valid(member_bar): member_bar.close()
-	for card in panel.cards.values():
-		if card.has_node("Box/NativeHealth"): card.get_node("Box/NativeHealth").close()
+	for card in panel.cards.values(): retire_card(card)
+	if is_instance_valid(leader): frame.art.unbind(leader); leader.queue_free(); leader=null
 	if is_instance_valid(assets): assets.close()
 	if is_instance_valid(frame) and is_instance_valid(frame.fonts) and frame.fonts.loaded.is_connected(font_loaded): frame.fonts.loaded.disconnect(font_loaded)
 func _exit_tree() -> void: close()

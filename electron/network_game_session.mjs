@@ -1,3 +1,5 @@
+import {nativeLevelUpDraftContext} from '../src/network_level_up_context.js';
+import {networkConnectionFailure,networkConnectionFailureText} from '../src/network_connection_failure.js';
 import {EventEmitter} from 'node:events';
 import {NetworkPortalTransfer} from './network_portal_transfer.mjs';
 import {decodeServerGameMessage,serverStatusRequest,moduleReadyRequest,clientAreaReadyRequest} from '../src/network_game_messages.js';
@@ -23,10 +25,17 @@ import {spellCastRequest,spellLikeCastRequest,spellPreparationRequest,spellPrepa
 import {itemUseRequest} from '../src/network_item_input.js';
 import {containerRequest} from '../src/network_container.js';
 import {storeRequest} from '../src/network_store.js';
-import {restRequest,characterSheetRequest,journalWindowRequest,playerAttitudeRequest} from '../src/network_hud_input.js';
+import {restRequest,characterSheetRequest,journalWindowRequest,playerAttitudeRequest,effectIconGuiRequest,chatFocusGuiRequest,chatReplyGuiRequest,skillDescriptionGuiRequest,featDescriptionGuiRequest} from '../src/network_hud_input.js';
+import {NativeJournalEvents} from '../src/network_journal_events.js';
+import {nativeRecordTarget,nativeRecordFeatPresent} from '../src/network_record_target.js';
+import {guiPanelAttemptRequest} from '../src/network_gui_panel_access.js';
+import {guiContextSource,guiContextPosition,guiContextOpenRequest} from '../src/network_gui_context_input.js';
 import {featUseRequest,modeChangeRequest,possessFamiliarRequest} from '../src/network_feat_input.js';
 import {associateCommandRequest,quickChatRequest,networkAssociateShortcut} from '../src/network_associate_input.js';
+import {emoteAnimationRequest} from '../src/network_emote_input.js';
+import {cancelPolymorphRequest} from '../src/network_polymorph_input.js';
 import {levelUpBeginRequest,levelUpRequest,networkLevelUpSnapshot} from '../src/network_level_up.js';
+import {levelUpCancelGuiRequest} from '../src/network_level_up_gui.js';
 import {nuiInputRequest} from '../src/network_nui.js';
 import {mapPinClickRequest,mapNoteRequest} from '../src/network_map_input.js';
 import {partyRequest,playerListGuiRequest} from '../src/network_party_input.js';
@@ -39,6 +48,7 @@ import {walkToWaypointRequest,doorActionRequest,talkToRequest,useObjectRequest,a
 // Application admission/presentation owner, distinct from the reliable peer.
 // Area-ready is acknowledged by the renderer after loading, never by a timer.
 // This owner does not instantiate ModuleSession, scripts, AI or local rules.
+const clientFailureText=value=>typeof value==='string'?value.replace(/\b[A-Z0-9]{5}(?:-[A-Z0-9]{5}){6}\b/gi,'[protected key]').replace(/[\x00-\x1f\x7f]/g,' ').slice(0,384):'';
 export class NetworkGameSession extends EventEmitter {
  constructor({peer,identity,build,resources,language,openModule,onDiagnostic=()=>{},decodeMessage=decodeServerGameMessage,loadRules=loadNetworkObjectRules,loginWaypoint='',persistCharacter=null,characterExportTimeoutMs=15000,serverInfo=null,localVaultAllowed=true,preparePortal=null,portalTimeoutMs=15000}){
   super();loginWaypointResponse(loginWaypoint);this.loginWaypoint=loginWaypoint;this.deviceEchoReplies=0;this.loginWaypointRequests=0;this.tlkOverrideMessages=0;Object.assign(this,{peer,identity,build,resources,language,openModule,onDiagnostic,decodeMessage,loadRules});
@@ -47,20 +57,27 @@ export class NetworkGameSession extends EventEmitter {
   this.serverInfo=serverInfo;this.localVaultAllowed=localVaultAllowed;this.serverCharacters=[];this.characterListGeneration=0;
   this.portalTransfer=new NetworkPortalTransfer(this,{prepare:preparePortal,timeout:portalTimeoutMs});
   peer.on('message',bytes=>{
-   const receivedAt=Date.now();this.delivery=this.delivery.then(()=>this.receive(bytes,receivedAt)).catch(()=>{
-    if(!this.closed){this.diagnose({code:'network.game-session-failed',reason:'Native game-message delivery failed'});void this.disconnect();}
+   const receivedAt=Date.now();this.delivery=this.delivery.then(()=>this.receive(bytes,receivedAt)).catch(error=>{
+    if(!this.closed){
+     const reason=clientFailureText(error?.message)||'Native game-message processing failed';
+     this.clientFailure??={code:'network.game-session-failed',reason:'The client could not process a server update.',cause:{code:this.lastImportFailure?.reason===reason?this.lastImportFailure.code:'network.message-processing-failed',reason},phase:this.phase,areaGeneration:this.areaGeneration};
+     this.diagnose({code:'network.game-session-failed',reason:'Native game-message delivery failed',clientFailure:structuredClone(this.clientFailure)});void this.disconnect();
+    }
    });
   });
-  peer.on('closed',event=>{if(event?.reason)this.disconnectReason={...event.reason};if(event?.failed&&this.portalTransfer.pending){this.portalTransfer.fail('The old connection failed during its portal handoff');return;}if(!this.portalTransfer.peerClosed())this.finish();});
+  peer.on('closed',event=>{if(event?.reason)this.disconnectReason={...event.reason};if(event?.failed&&this.portalTransfer.pending){this.portalTransfer.fail('The old connection failed during its portal handoff');return;}if(event?.failed&&!this.closed&&!this.disconnectReason)this.clientFailure??={code:'network.peer-failed',reason:'The game connection was lost.',cause:{code:'network.peer-failed',reason:'Native network peer failed'},phase:this.phase,areaGeneration:this.areaGeneration};if(!this.portalTransfer.peerClosed())this.finish();});
  }
- diagnose(d){this.onDiagnostic(d);this.emit('diagnostic',d);}
- state(){return{phase:this.phase,closed:this.closed,...(this.disconnectReason?{disconnectReason:{...this.disconnectReason}}:{}),resourceProgress:this.resourceProgress??null,resourcesReady:Boolean(this.resourceResult?.ready&&this.resolver),characterUploaded:Boolean(this.characterUploaded),characterSubmitted:Boolean(this.characterSubmitted||this.characterUploaded),characterConfirmed:Boolean(this.characterConfirmed),localVaultAllowed:this.localVaultAllowed,serverInfo:this.serverInfo,areaGeneration:this.areaGeneration,areaReady:Boolean(this.areaReadySent),deviceEchoReplies:this.deviceEchoReplies,loginWaypointRequests:this.loginWaypointRequests,tlkOverrideMessages:this.tlkOverrideMessages,world:this.world.snapshot()};}
+ diagnose(d){if(d.code==='network.object-import-failed')this.lastImportFailure={code:d.code,reason:clientFailureText(d.reason)};this.onDiagnostic(d);this.emit('diagnostic',d);}
+ state(){return{phase:this.phase,closed:this.closed,...(this.disconnectReason?{disconnectReason:{...this.disconnectReason}}:{}),...(this.clientFailure?{clientFailure:structuredClone(this.clientFailure)}:{}),resourceProgress:this.resourceProgress??null,resourcesReady:Boolean(this.resourceResult?.ready&&this.resolver),characterUploaded:Boolean(this.characterUploaded),characterSubmitted:Boolean(this.characterSubmitted||this.characterUploaded),characterConfirmed:Boolean(this.characterConfirmed),localVaultAllowed:this.localVaultAllowed,serverInfo:this.serverInfo,areaGeneration:this.areaGeneration,areaReady:Boolean(this.areaReadySent),deviceEchoReplies:this.deviceEchoReplies,loginWaypointRequests:this.loginWaypointRequests,tlkOverrideMessages:this.tlkOverrideMessages,world:this.world.snapshot()};}
  publish(){if(!this.closed)this.emit('state',this.state());}
  async connect(options){
   if(this.phase!=='new'||this.closed)throw new Error('Native game session has already started');
+  // NetworkPeer.connect forwards metadata to NetworkLogin. A top-level
+  // connectionType is not an effective handshake input and must not set role.
+  if(options?.metadata?.connectionType===16)this.world.beginClientConnection(16);
   this.phase='connecting';this.publish();
   try{const remote=await this.peer.connect(this.identity,options);if(this.closed)throw new Error('Native game session is closed');this.serverBuild=remote.build;this.phase='resources';this.publish();await this.peer.sendGameMessage(serverStatusRequest());return remote;}
-  catch{await this.disconnect();throw new Error('Native game session connection failed');}
+  catch(error){const failure=this.peer.connectionFailure??networkConnectionFailure(error,'session-connect');if(!this.peer.disconnecting)this.diagnose({code:'network.session-connect-failed',reason:'Native session connection failed',failure});await this.disconnect();throw new Error(networkConnectionFailureText(failure),{cause:error});}
  }
  async selectCharacter(bytes,{createOnServer=false}={}){
   if(this.closed||this.characterUploaded||this.characterSubmitted)throw new Error('Native character selection is unavailable');
@@ -189,7 +206,7 @@ export class NetworkGameSession extends EventEmitter {
   if(message.kind.startsWith('nui-')){message.nuiTiming={receivedAt,emittedAt:Date.now()};if(message.kind==='nui-create')this.diagnose({code:'network.nui-window-received',reason:'Native NUI create decoded and published',token:message.token,format:message.format,queueAndDecodeMs:Date.now()-receivedAt});}
   this.emit('message',{message,areaGeneration:this.areaGeneration});this.publish();
  }
- completeLevelUpBegin(){const pending=this.pendingLevelUp;if(pending?.operation!=='begin'||!pending.available)return;let actor,snapshot;try{actor=this.controlledActor(pending.areaId,pending.areaGeneration);if(actor.id!==pending.actorId)throw Error('Level-up creature changed');snapshot=networkLevelUpSnapshot(actor);}catch{return;}const token=this.levelUpToken=(this.levelUpToken??0)+1;this.levelUpDraft={actorId:pending.actorId,areaId:pending.areaId,areaGeneration:pending.areaGeneration,snapshot,available:pending.available,token};clearTimeout(pending.timer);this.pendingLevelUp=null;pending.resolve({token,snapshot,available:pending.available});}
+ completeLevelUpBegin(){const pending=this.pendingLevelUp;if(pending?.operation!=='begin'||!pending.available)return;let actor,snapshot,protocolFeatures;try{actor=this.controlledActor(pending.areaId,pending.areaGeneration);if(actor.id!==pending.actorId)throw Error('Level-up creature changed');snapshot=networkLevelUpSnapshot(actor);protocolFeatures={multiclassRuleset:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0})};}catch{return;}const token=this.levelUpToken=(this.levelUpToken??0)+1;this.levelUpDraft={actorId:pending.actorId,areaId:pending.areaId,areaGeneration:pending.areaGeneration,snapshot,available:pending.available,token};clearTimeout(pending.timer);this.pendingLevelUp=null;pending.resolve({token,snapshot,available:pending.available,protocolFeatures,draftContext:nativeLevelUpDraftContext(actor)});}
  async areaReady(generation){
   if(this.closed||this.phase!=='area-loading'||generation!==this.areaGeneration||this.areaReadySent)throw new Error('Native area presentation acknowledgement is stale');
   this.areaReadySent=true;
@@ -231,8 +248,9 @@ export class NetworkGameSession extends EventEmitter {
   const resolver=this.resolver,result=await availableCreationPortraits(resolver,refs);
   if(this.closed||resolver!==this.resolver)throw new Error('Character creation portrait catalog is stale');return result;
  }
- async chat({areaId,areaGeneration,actorId,...request}){
+ async chat({areaId,areaGeneration,actorId,playerAccount,...request}){
   const actor=this.controlledActor(areaId,areaGeneration);if(actor.id!==actorId)throw new Error('Chat belongs to an old controlled creature');
+  if(playerAccount!==undefined&&(request.channel!==4||typeof playerAccount!=='string'||this.world.players.get(request.playerId)?.name!==playerAccount))throw Error('That native Tell player has changed');
   await this.peer.sendGameMessage(chatRequest(request));return{sent:true};
  }
  async replyDialog({areaId,areaGeneration,entryId,replyId,abort=false}){
@@ -254,19 +272,36 @@ export class NetworkGameSession extends EventEmitter {
   if(!actor.playerState?.actionQueue?.some(e=>e.type===actionId&&e.group===groupId))return{sent:false,stale:true};
   await this.peer.sendGameMessage(packet);return{sent:true};
  }
- async inventoryWindow({areaId,areaGeneration,open,ownerId=this.world.localObjectId}){
+ async inventoryWindow({areaId,areaGeneration,open,ownerId=this.world.localObjectId,inventoryRole='primary',windowSerial,inventoryReceipt}){
   const actor=this.controlledActor(areaId,areaGeneration);
-  // Associate inventory needs its native ownership/control path before it
-  // can be exposed. Keep this initial request scoped to the controlled PC.
-  if(ownerId!==actor.id||typeof open!=='boolean')throw new Error('Native inventory owner is unavailable');
-  await this.peer.sendGameMessage(inventoryWindowRequest({ownerId,open}));return{sent:true};
+  if(typeof open!=='boolean')throw new Error('Native inventory owner is unavailable');
+  let token=null,rejected=null;
+  if(inventoryRole==='alternate')token=this.world.inventoryWindows.requireAlternate(this.world,actor,ownerId,windowSerial,inventoryReceipt);
+  else if(inventoryRole==='rejected'){
+   rejected=this.world.inventoryWindows.rejected;
+   if(open||!rejected||rejected.ownerId!==ownerId||rejected.receiptSerial!==inventoryReceipt||rejected.actorId!==actor.id||rejected.areaId!==this.world.areaId)throw Error('Native inventory rejection reply is retired');
+  }else if(inventoryRole!=='primary'||ownerId!==actor.id)throw new Error('Native inventory owner is unavailable');
+  await this.peer.sendGameMessage(inventoryWindowRequest({ownerId,open}));
+  const current=this.controlledActor(areaId,areaGeneration);if(current.id!==actor.id)throw Error('Native inventory controlled actor changed');
+  if(token){this.world.inventoryWindows.requireAlternate(this.world,current,ownerId,token.serial,token.receiptSerial);if(!open)this.world.inventoryWindows.closeAlternate(this.world,current,token);}
+  if(rejected){if(this.world.inventoryWindows.rejected!==rejected)throw Error('Native inventory rejection reply changed');this.world.inventoryWindows.rejected=null;}
+  return{sent:true};
  }
- async inventoryPanel({areaId,areaGeneration,panel}){
-  this.controlledActor(areaId,areaGeneration);
-  const packet=inventoryPanelRequest({panel,self:true});this.world.clearRepositoryView();await this.peer.sendGameMessage(packet);return{sent:true};
+ async inventoryPanel({areaId,areaGeneration,panel,ownerId=this.world.localObjectId,inventoryRole='primary',windowSerial,inventoryReceipt}){
+  const actor=this.controlledActor(areaId,areaGeneration),alternate=inventoryRole==='alternate';
+  const token=alternate?this.world.inventoryWindows.requireAlternate(this.world,actor,ownerId,windowSerial,inventoryReceipt):null;
+  if(!alternate&&(inventoryRole!=='primary'||ownerId!==actor.id))throw Error('Native inventory panel owner is unavailable');
+  const packet=inventoryPanelRequest({panel,self:!alternate});this.world.clearRepositoryView(!alternate);await this.peer.sendGameMessage(packet);
+  const current=this.controlledActor(areaId,areaGeneration);if(current.id!==actor.id)throw Error('Native inventory controlled actor changed');
+  if(token)this.world.inventoryWindows.requireAlternate(this.world,current,ownerId,token.serial,token.receiptSerial);
+  return{sent:true};
  }
  async assignQuickbar({areaId,areaGeneration,index,button}){
   const actor=this.controlledActor(areaId,areaGeneration),b=button??{type:0},normalized=Object.fromEntries(Object.keys(emptyQuickbarButton()).filter(k=>Object.hasOwn(b,k)).map(k=>[k,structuredClone(b[k])]));
+  // The wire's omitted secondary-item field means OBJECT_INVALID. Reflect
+  // that same value in the client-owned layout rather than retaining a zero
+  // constructor field or a previous pair through Object.assign.
+  if(b.type===1)normalized.secondaryItemId=b.secondaryItemId??OBJECT_INVALID;
   if(b.type===1)for(const id of [b.itemId,b.secondaryItemId??0x7f000000]){if(id===0x7f000000)continue;const item=this.world.registry.get(id),location=item?.inventoryLocation,existing=this.world.quickbar.some(q=>q.type===1&&(q.itemId===id||q.secondaryItemId===id));if(item?.objectType!==6||item.replicationRemoved||!(existing||location?.ownerId===actor.id&&['R','I'].includes(location.channel)))throw new Error('Native quickbar item is unavailable');}
   const packet=quickbarAssignmentRequest({index,button:normalized});await this.peer.sendGameMessage(packet);this.controlledActor(areaId,areaGeneration);
   // Native8602a0 sends after the local widget changes and suppresses sends
@@ -281,6 +316,18 @@ export class NetworkGameSession extends EventEmitter {
  async rest({areaId,areaGeneration,actorId}){
   const actor=this.controlledActor(areaId,areaGeneration);if(actorId!==actor.id)throw new Error('Rest belongs to an old controlled creature');
   await this.peer.sendGameMessage(restRequest());return{sent:true};
+ }
+ async disengage({areaId,areaGeneration,actorId}){
+  const actor=this.controlledActor(areaId,areaGeneration);if(actorId!==actor.id)throw Error('Disengage belongs to an old controlled creature');
+  // Original world callback996250 calls attack writer7bf180 with INVALID.
+  // Server6/2 owns action removal; sending is not an acknowledged combat result.
+  await this.peer.sendGameMessage(attackRequest({targetId:OBJECT_INVALID}));return{sent:true,serverAcknowledged:false};
+ }
+ async cancelPolymorph({areaId,areaGeneration,actorId}){
+  const actor=this.controlledActor(areaId,areaGeneration);if(actorId!==actor.id)throw Error('Cancel shape belongs to an old controlled creature');
+  // Direct world9960c0→804cc0→7bf460. No quickbar index, local effect
+  // removal or appearance prediction; the native server decides the result.
+  await this.peer.sendGameMessage(cancelPolymorphRequest({actorId:actor.id}));return{sent:true,serverAcknowledged:false};
  }
  async selectScriptTarget({areaId,areaGeneration,actorId,version,targetId=OBJECT_INVALID,position}){
   const actor=this.controlledActor(areaId,areaGeneration),mode=this.world.scriptTargeting;
@@ -305,7 +352,17 @@ export class NetworkGameSession extends EventEmitter {
  }
  levelUp({areaId,areaGeneration,actorId,operation,token,proposal}){
   const actor=this.controlledActor(areaId,areaGeneration);if(actor.id!==actorId)throw Error('Level-up belongs to an old controlled creature');
-  if(operation==='cancel'){if(!this.pendingLevelUp)this.levelUpDraft=null;return Promise.resolve({cancelled:true});}
+  if(operation==='cancel'){
+   const world=this.world,peer=this.peer,draft=this.levelUpDraft;
+   const includePosition=satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0});
+   return peer.sendGameMessage(levelUpCancelGuiRequest({includePosition})).then(()=>{
+    if(this.world!==world||this.peer!==peer||this.controlledActor(areaId,areaGeneration)!==actor)throw Error('Level-up cancellation scope retired');
+    // Closing the original summary does not revoke an already sent proposal.
+    // Only its genuine result may resolve/retire that pending transaction.
+    if(!this.pendingLevelUp&&this.levelUpDraft===draft)this.levelUpDraft=null;
+    return{cancelled:true,sent:true,serverAcknowledged:false};
+   });
+  }
   if(this.pendingLevelUp||this.levelUpUncertain)throw Error('Waiting for the previous server level-up reply');
   let packet;
   if(operation==='begin'){if(!actor.playerState?.combat?.canLevelUp)throw Error('The server has not made level-up available');this.levelUpDraft=null;packet=levelUpBeginRequest();}
@@ -340,10 +397,63 @@ export class NetworkGameSession extends EventEmitter {
   }
   await this.peer.sendGameMessage(packet);return{sent:true,serverAcknowledged:false};
  }
- async hudPanel({areaId,areaGeneration,actorId,panel,open,page=0}){
+ async hudPanel({areaId,areaGeneration,actorId,panel,open,page=0,effectId,mode,playerId,targetId,skillId,featId,journalLifetime,guiPanelId,accessRevision,attemptSerial,sourceKind,position,recordActorLifetime,recordTargetLifetime}){
   const actor=this.controlledActor(areaId,areaGeneration);if(actorId!==actor.id||typeof open!=='boolean')throw new Error('Native panel request is stale');
-  const packet=panel==='character'?characterSheetRequest({targetId:actor.id,page:open?page:-1}):panel==='journal'?journalWindowRequest(open):null;if(!packet)throw new Error('Unsupported native panel request');
-  await this.peer.sendGameMessage(packet);return{sent:true};
+  const recordWorld=this.world,recordPeer=this.peer,recordRequest={targetId,recordActorLifetime,recordTargetLifetime};let recordScope=null,recordRow=()=>true;
+  const recordTarget=()=>{const next=nativeRecordTarget(recordWorld,actor,recordRequest);if(recordScope&&next.target!==recordScope.target)throw Error('Native character-record target has retired');recordScope=next;return next.target;};
+  const assertRecordCurrent=()=>{if(!recordScope?.scoped)return;if(this.world!==recordWorld||this.peer!==recordPeer||this.controlledActor(areaId,areaGeneration)!==actor)throw Error('Native character-record session has retired');recordTarget();if(!recordRow())throw Error('Native character-record row has retired');};
+  let packet;
+  if(panel==='context-attempt'){
+   const source=guiContextSource(sourceKind),world=this.world,peer=this.peer;
+   if(!open||!source||guiPanelId!==source.panelId||!guiContextPosition(position)||sourceKind==='ground'&&targetId!==OBJECT_INVALID||sourceKind!=='ground'&&position.some(n=>n!==0)||!Number.isSafeInteger(accessRevision)||accessRevision!==world.guiPanelAccess.sequence||!Number.isSafeInteger(attemptSerial)||attemptSerial<=0)throw Error('Native world-context attempt is stale or unavailable');
+   const target=sourceKind==='ground'?null:world.registry.get(targetId);
+   if(sourceKind!=='ground'&&(!target||target.id!==targetId||target.objectType!==source.objectType||target.areaId!==areaId||target.replicationRemoved||target.destroyed))throw Error('Native world-context target is unavailable');
+   if(!this.guiPanelAttempt||this.guiPanelAttempt.world!==world||this.guiPanelAttempt.peer!==peer||this.guiPanelAttempt.actor!==actor||this.guiPanelAttempt.areaGeneration!==areaGeneration)this.guiPanelAttempt={world,peer,actor,areaGeneration,last:0};
+   if(attemptSerial<=this.guiPanelAttempt.last)throw Error('Native world-context attempt has retired');
+   this.guiPanelAttempt.last=attemptSerial;
+   const blocked=world.guiPanelAccess.matches(guiPanelId,targetId),includePosition=satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0});
+   await peer.sendGameMessage(blocked?guiPanelAttemptRequest({panelId:guiPanelId,targetId,includePosition}):guiContextOpenRequest({sourceKind,targetId,position,includePosition}));
+   if(this.peer!==peer||this.world!==world||this.controlledActor(areaId,areaGeneration)!==actor||target&&(world.registry.get(targetId)!==target||target.objectType!==source.objectType||target.areaId!==areaId||target.replicationRemoved||target.destroyed))throw Error('Native world-context owner has retired');
+   return{sent:true,blocked,serverAcknowledged:false};
+  }else if(panel==='blocked-attempt'){
+   const displayed=guiPanelId===8?recordTarget():null;
+   if(!open||![5,6,7,8].includes(guiPanelId)||targetId!==(guiPanelId===8?displayed.id:OBJECT_INVALID)||!Number.isSafeInteger(accessRevision)||accessRevision!==this.world.guiPanelAccess.sequence||!this.world.guiPanelAccess.matches(guiPanelId,targetId)||!Number.isSafeInteger(attemptSerial)||attemptSerial<=0)throw Error('Native blocked-panel attempt is stale or unavailable');
+   const world=this.world,peer=this.peer;
+   if(!this.guiPanelAttempt||this.guiPanelAttempt.world!==world||this.guiPanelAttempt.peer!==peer||this.guiPanelAttempt.actor!==actor||this.guiPanelAttempt.areaGeneration!==areaGeneration)this.guiPanelAttempt={world,peer,actor,areaGeneration,last:0};
+   if(attemptSerial<=this.guiPanelAttempt.last)throw Error('Native blocked-panel attempt has retired');
+   this.guiPanelAttempt.last=attemptSerial;
+   await peer.sendGameMessage(guiPanelAttemptRequest({panelId:guiPanelId,targetId,includePosition:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0})}));
+   if(this.peer!==peer||this.world!==world||this.controlledActor(areaId,areaGeneration)!==actor)throw Error('Native blocked-panel owner has retired');
+   assertRecordCurrent();
+   return{sent:true};
+  }else if(panel==='journal'&&journalLifetime!==undefined){
+   const peer=this.peer,world=this.world,policy=this.nativeJournalEvents??=new NativeJournalEvents();
+   return policy.transition({open,journalLifetime,includePosition:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0}),scope:{world,peer,actor,areaId,areaGeneration}},{
+    assertCurrent:()=>{if(this.peer!==peer||this.world!==world||actor.id!==actorId||this.controlledActor(areaId,areaGeneration)!==actor)throw Error('Native journal owner or scope has retired');},
+    send:packet=>peer.sendGameMessage(packet)
+   });
+  }else if(panel==='skill'){
+   const displayed=recordTarget();recordRow=()=>displayed.inventoryStats?.skills?.some(row=>row.index===skillId&&row.flag);
+   if(!open||targetId!==displayed.id||!Number.isInteger(skillId)||skillId<0||skillId>65535||!recordRow())throw Error('That native skill row is no longer present');
+   packet=skillDescriptionGuiRequest({skillId,targetId,includePosition:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0})});
+  }else if(panel==='feat'){
+   const displayed=recordTarget();recordRow=()=>nativeRecordFeatPresent(displayed,featId);
+   if(!open||targetId!==displayed.id||!Number.isInteger(featId)||featId<0||featId>65535)throw Error('That native feat row is no longer present');
+   // Match native record_entries' raw primary/secondary precedence exactly.
+   // Empty authoritative lists suppress fallbacks. Successor/table admission
+   // stays in native GameUiRules; transport only checks disclosed membership.
+   if(!recordRow())throw Error('That native feat row is no longer present');
+   packet=featDescriptionGuiRequest({featId,targetId,includePosition:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0})});
+  }else if(panel==='effect'){
+   if(!open||!Number.isInteger(effectId)||effectId<0||effectId>65535||!Object.hasOwn(actor.playerState?.effectIcons??{},effectId))throw Error('That native effect icon is no longer present');
+   packet=effectIconGuiRequest({effectId,includePosition:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0})});
+  }else if(panel==='chat-reply'){
+   const player=this.world.players.get(playerId);if(!open||!Number.isInteger(playerId)||!player||targetId!==(player.objectId??OBJECT_INVALID))throw Error('That native chat reply player is no longer available');
+   packet=chatReplyGuiRequest({targetId,includePosition:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0})});
+  }else if(panel==='chat-focus')packet=chatFocusGuiRequest({mode,focused:open,includePosition:satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0})});
+  else if(panel==='character'){const displayed=recordTarget();if(recordScope.foreign&&open&&(!Number.isInteger(page)||page<0||page>2))throw Error('Native character-record page is unavailable');packet=characterSheetRequest({targetId:displayed.id,page:open?page:-1});}
+  else packet=panel==='journal'?journalWindowRequest(open):null;if(!packet)throw new Error('Unsupported native panel request');
+  await (recordScope?.scoped?recordPeer:this.peer).sendGameMessage(packet);assertRecordCurrent();return{sent:true};
  }
  async playerAttitude({areaId,areaGeneration,actorId,playerId,likes}){
   const actor=this.controlledActor(areaId,areaGeneration),player=this.world.players.get(playerId);if(actorId!==actor.id||!player||player.isDM||player.objectId===actor.id||player.character?.id===actor.id)throw new Error('Native player attitude target is stale');
@@ -353,10 +463,18 @@ export class NetworkGameSession extends EventEmitter {
  async playerListInput({areaId,areaGeneration,actorId,operation,playerId,targetId}){
   const actor=this.controlledActor(areaId,areaGeneration),player=this.world.players.get(playerId);
   if(actorId!==actor.id||!player||player.isDM||player.objectId===actor.id||player.character?.id===actor.id||!['select','tell'].includes(operation))throw Error('Native player-list selection is stale');
-  const expected=operation==='tell'?player.character?.id:player.objectId;
+  const expected=operation==='tell'?player.objectId:player.character?.id;
   if(!Number.isInteger(expected)||expected===OBJECT_INVALID||targetId!==expected)throw Error('Native player-list target changed');
   const includePosition=satisfiesNativeBuild(this.serverBuild??this.build.build,{number:8193,revision:35,postfix:0});
   await this.peer.sendGameMessage(playerListGuiRequest({operation,targetId,includePosition}));return{sent:true,serverAcknowledged:false};
+ }
+ async partyChatInput({areaId,areaGeneration,actorId,operation,playerId,playerAccount,targetId}){
+  const actor=this.controlledActor(areaId,areaGeneration);if(actorId!==actor.id)throw Error('Native chat party owner is stale');
+  if(operation==='accept'){if(targetId!==OBJECT_INVALID||playerId!==undefined||playerAccount!==undefined)throw Error('Invalid native chat acceptance');}
+  else if(operation==='invite'){
+   const player=this.world.players.get(playerId);if(!Number.isInteger(playerId)||!player||typeof playerAccount!=='string'||player.name!==playerAccount||targetId!==(player.character?.id??OBJECT_INVALID))throw Error('Native chat invitation target changed');
+  }else throw Error('Unsupported native chat party operation');
+  await this.peer.sendGameMessage(partyRequest({operation,targetId}));return{sent:true,serverAcknowledged:false};
  }
  async partyInput({areaId,areaGeneration,actorId,operation,playerId,targetId}){
   const actor=this.controlledActor(areaId,areaGeneration);if(actorId!==actor.id)throw Error('Native party owner is stale');
@@ -365,9 +483,17 @@ export class NetworkGameSession extends EventEmitter {
   else if(['accept','reject','ignore'].includes(operation)){
    target=flags.field7D8;if(![true,1].includes(flags.field7DC)||!Number.isInteger(target)||target===OBJECT_INVALID||targetId!==target)throw Error('That party invitation is no longer current');
   }else if(operation==='leave'){
-   if(![false,0].includes(flags.singleton))throw Error('You are not currently in a group');target=actor.id;
+   // Original888c30 sends the selected player's +38 identity without consulting
+   // the separately replicated singleton flag. Server45b4a0 acts on the sender.
+   // A party-list update can precede the creature flags; do not reject a visible
+   // Leave action merely because that second packet has not arrived yet.
+   if(playerId===undefined&&targetId===undefined)target=actor.id;
+   else{
+    const player=this.world.players.get(playerId);target=player?.character?.id;
+    if(!player||player.isDM||!Number.isInteger(target)||target===OBJECT_INVALID||targetId!==target)throw Error('Native party target is stale');
+   }
   }else if(['invite','kick','transfer'].includes(operation)){
-   const player=this.world.players.get(playerId);target=player?.objectId;
+   const player=this.world.players.get(playerId);target=player?.character?.id;
    if(!player||player.isDM||target===actor.id||targetId!==target||!Number.isInteger(target)||target===OBJECT_INVALID)throw Error('Native party target is stale');
    const member=this.world.party.some(row=>row.id===target);
    if(operation==='invite'&&member)throw Error('That player is already in your group');
@@ -409,6 +535,7 @@ export class NetworkGameSession extends EventEmitter {
  }
  async activateQuickbar({areaId,areaGeneration,index}){
   const actor=this.controlledActor(areaId,areaGeneration);if(!Number.isInteger(index)||index<0||index>=36)throw new Error('Invalid native quickbar index');const b=this.world.quickbar[index];
+  if(b.type===43){await this.peer.sendGameMessage(cancelPolymorphRequest({actorId:actor.id}));return{sent:true};}
   if(b.type===38){await this.peer.sendGameMessage(possessFamiliarRequest());return{sent:true};}
   if(b.type===42){await this.peer.sendGameMessage(quickChatRequest({quickChat:b.intParam&65535}));return{sent:true};}
   if(b.type===39){const request=networkAssociateShortcut(b,actor);if(request)await this.peer.sendGameMessage(associateCommandRequest(request));return{sent:Boolean(request)};}
@@ -419,6 +546,11 @@ export class NetworkGameSession extends EventEmitter {
   if(b.type===1&&info?.container===0&&info.equipableSlots!==0&&(b.intParam&65535)===255){for(const id of [b.itemId,b.secondaryItemId??OBJECT_INVALID]){if(id===OBJECT_INVALID)continue;const item=this.world.registry.get(id);if(item?.objectType!==6||item.replicationRemoved)throw new Error('Native shortcut item is unavailable');}await this.peer.sendGameMessage(toggleItemEquipmentRequest({itemId:b.itemId,secondId:b.secondaryItemId??OBJECT_INVALID}));return{sent:true};}
   if(b.type===1&&info?.container!==0&&info?.container!==undefined){const item=this.world.registry.get(b.itemId);if(item?.inventoryLocation?.ownerId!==actor.id)throw new Error('Native shortcut container is unavailable');await this.peer.sendGameMessage(useObjectRequest({targetId:b.itemId,flag0:false,flag1:false}));return{sent:true};}
   this.diagnose({code:'network.quickbar-action-unhandled',reason:'Native quickbar activation request is not connected',index,type:b.type,parameter:b.intParam});throw new Error('This shortcut action is not connected yet');
+ }
+ async playEmote({areaId,areaGeneration,actorId,animation,position,duration,voice=65535}){
+  const actor=this.controlledActor(areaId,areaGeneration);if(actor.id!==actorId||!Number.isInteger(voice)||voice<0||voice>65535)throw Error('Native emote belongs to an old controlled creature');
+  await this.peer.sendGameMessage(emoteAnimationRequest({actorId,animation,position,duration}));
+  if(voice!==65535)await this.peer.sendGameMessage(quickChatRequest({quickChat:voice}));return{sent:true};
  }
  async storeInput({areaId,areaGeneration,actorId,storeGeneration,operation,itemId,panel,page,x,y}){
   const actor=this.controlledActor(areaId,areaGeneration),store=this.world.store,item=this.world.registry.get(itemId),location=item?.inventoryLocation;
@@ -472,7 +604,7 @@ export class NetworkGameSession extends EventEmitter {
  async itemAction({areaId,areaGeneration,itemId,operation,slot,x=255,y=255,position,destinationId,amount}){
   const actor=this.controlledActor(areaId,areaGeneration),item=this.world.registry.get(itemId),location=item?.inventoryLocation;
   if(item?.objectType!==6||item.replicationRemoved)throw new Error('Native item is unavailable');
-  const owned=location?.ownerId===actor.id&&['R','I'].includes(location.channel),container=this.world.containers.get('C'),fromContainer=container!==undefined&&container!==OBJECT_INVALID&&location?.channel==='C'&&location.ownerId===container;destinationId??=actor.id;if(destinationId!==actor.id&&(destinationId!==container||container===OBJECT_INVALID||container===undefined))throw new Error('Native destination container is not open');let packet;
+  const equipped=item.equipmentOwnerId===actor.id,owned=equipped||location?.ownerId===actor.id&&['R','I'].includes(location.channel),container=this.world.containers.get('C'),fromContainer=container!==undefined&&container!==OBJECT_INVALID&&location?.channel==='C'&&location.ownerId===container;destinationId??=actor.id;if(destinationId!==actor.id&&(destinationId!==container||container===OBJECT_INVALID||container===undefined))throw new Error('Native destination container is not open');let packet;
   if(operation==='pickup'){
    if(owned||item.equipmentOwnerId!=null||!fromContainer&&item.areaId!==areaId)throw new Error('Native pickup item is unavailable');
    packet=pickupItemRequest({itemId,destinationId:actor.id,x,y});
@@ -488,7 +620,7 @@ export class NetworkGameSession extends EventEmitter {
     if(!Number.isInteger(slot)||slot<=0||slot>0x20000||(slot&(slot-1))!==0)throw new Error('Native equipment slot is unavailable');
     packet=equipItemRequest({itemId,slot,destinationId:actor.id});
    }else if(operation==='unequip'){
-    if(location.channel!=='I')throw new Error('Native equipped item is unavailable');
+    if(!equipped)throw new Error('Native equipped item is unavailable');
     packet=unequipItemRequest({itemId,destinationId,x,y});
    }else if(operation==='move'){
     if(location.channel!=='R'&&!fromContainer)throw new Error('Native repository item is unavailable');

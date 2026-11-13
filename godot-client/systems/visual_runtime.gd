@@ -3,6 +3,7 @@ extends Node
 const Phases = preload("res://systems/visual_phases.gd")
 const Clock = preload("res://systems/visual_clock.gd")
 const Beam = preload("res://systems/visual_beam.gd")
+const AlphaProgram=preload("res://tools/native_parity/visibility/alpha_program.gd")
 var manager
 var effect_id := 0
 var definition: Dictionary
@@ -37,8 +38,7 @@ func configure(owner, id: int, data: Dictionary) -> bool:
 		"startProgram": _start_program,
 		"stopProgram": _stop_program,
 		"currentProgram": func(_effect): return current_program(),
-		"updateProgram": func(_effect, id, _delta):
-			if _type(id) in [5, 6]: _diagnose("visual.program-update-unimplemented", str(_type(id))),
+		"updateProgram": _update_program,
 		"detachProcedural": func(model, _a, _b, _c): _unparent(model),
 		"unsceneProcedural": func(model, _scene): _unscene(model),
 		"destroyProcedural": func(model, _flags): _destroy(model),
@@ -151,7 +151,7 @@ func place_models() -> void:
 	state.updateProgramD8 = 1
 	state.attached114 = 1
 	_start_program(state, current_program())
-	_diagnose("visual.renderer-controller-parity-pending", "animated lights, depth/blend pipeline and specialized finalization pending")
+	_diagnose("visual.renderer-controller-parity-pending", "ASCII/inherited light controllers, native light admission/fades, depth/blend pipeline and specialized finalization pending")
 
 func attach_models() -> void:
 	var view: Variant = _view(int(state.target54))
@@ -164,7 +164,9 @@ func attach_models() -> void:
 		_attach_type4(view)
 	elif type == 7:
 		_attach_beam()
-	elif type in [1, 2, 3, 5, 6]:
+	elif type == 5:
+		_alpha_apply(AlphaProgram.attach(_alpha_state(),_program(current_program()),_view(int(state.target54))!=null))
+	elif type in [1, 2, 3, 6]:
 		_diagnose("visual.program-attach-unimplemented", str(type))
 	elif is_instance_valid(state.proceduralB8):
 		_attach(state.proceduralB8, view, str(state.targetAnchor38), 0)
@@ -197,8 +199,34 @@ func _load_program(_effect: Dictionary, id: int) -> int:
 		state.proceduralB8 = _new_model(str(resource)) if resource != null else null
 		return 1 if is_instance_valid(state.proceduralB8) else 0
 	if type == 5:
-		state.field104 = Phases.f32(float(_query(id, "float", "param1")))
+		_alpha_apply(AlphaProgram.load_program(_alpha_state(),_program(id)))
 	return 1
+
+func _alpha_state() -> Dictionary:
+	return {"alpha_word":AlphaProgram.word(float(state.field100)),"minimum_word":AlphaProgram.word(float(state.field104)),"counter_ms":int(state.programRemainingCc)&0xffffffff,"phase":state.get("alphaPhaseFb",0)}
+
+func _alpha_store(value: Dictionary) -> void:
+	state.field100=AlphaProgram.scalar(int(value.alpha_word));state.field104=AlphaProgram.scalar(int(value.minimum_word))
+	state.programRemainingCc=int(value.counter_ms);state.alphaPhaseFb=int(value.phase)
+
+func _alpha_apply(result: Dictionary) -> void:
+	if not result.get("available",false):
+		_diagnose("visual.alpha-state-unavailable",str(result.get("reason","unknown")));return
+	if result.get("state") is Dictionary and not result.state.is_empty():_alpha_store(result.state)
+	if not result.get("commands",[]).is_empty():
+		if manager.has_method("alpha_commands"):
+			var published: Dictionary=manager.alpha_commands(effect_id,int(state.target54),int(definition.get("hosts",{}).get(str(state.target54),{}).get("privateToken",0)),result.commands)
+			if not published.get("available",false):_diagnose("visual.alpha-renderer-unavailable",str(published.get("reason","unknown")))
+		else:_diagnose("visual.alpha-renderer-unavailable","This visual manager has no native alpha endpoint")
+	# Publication can reenter and alter the live counter. Add the existing
+	# whole-millisecond clock delta only after the ordered renderer commands.
+	if result.get("counter_delta_after_publish")!=null:
+		var completed:=AlphaProgram.complete_update(_alpha_state(),result.counter_delta_after_publish)
+		if not completed.is_empty():_alpha_store(completed)
+
+func _update_program(_effect: Dictionary,id: int,delta_ms: int) -> void:
+	if _type(id)==5:_alpha_apply(AlphaProgram.update(_alpha_state(),_program(id),delta_ms,_view(int(state.target54))!=null))
+	elif _type(id)==6:_diagnose("visual.program-update-unimplemented","6")
 
 func _clear_program(_effect: Dictionary) -> void:
 	beam_signature.clear()
@@ -251,6 +279,8 @@ func _start_program(_effect: Dictionary, id: int) -> void:
 	elif type == 7 and is_instance_valid(state.proceduralB8):
 		Beam.start(state,id,_beam_providers())
 		beam_signature = _beam_signature()
+	elif type == 5:
+		_alpha_apply(AlphaProgram.attach(_alpha_state(),_program(id),_view(int(state.target54))!=null))
 	elif type >= 1 and type <= 13:
 		_diagnose("visual.program-start-unimplemented", str(type))
 
@@ -262,6 +292,8 @@ func _stop_program(_effect: Dictionary, id: int) -> void:
 	elif _type(id) == 4:
 		_unparent(state.proceduralB8)
 		_unscene(state.proceduralB8)
+	elif _type(id) == 5:
+		_alpha_apply(AlphaProgram.stop(_program(id),bool(state.updateProgramD8),_view(int(state.target54))!=null))
 	elif _type(id) >= 1 and _type(id) <= 13:
 		_diagnose("visual.program-stop-unimplemented", str(_type(id)))
 

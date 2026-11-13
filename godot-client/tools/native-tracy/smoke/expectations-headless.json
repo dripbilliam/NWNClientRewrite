@@ -1,0 +1,19 @@
+{
+  "cpuZones": [
+    { "name": "Main::iteration", "minimumEvents": 120 },
+    { "name": "smoke_main_tick", "minimumEvents": 120 },
+    { "name": "NWNCapture/Worker/task_scope", "minimumEvents": 20 },
+    { "name": "smoke_worker_task", "minimumEvents": 20 },
+    { "name": "NWNCapture/Particles/frame", "minimumEvents": 120 },
+    { "name": "NWNCapture/Particles/advance_batch", "minimumEvents": 120 },
+    { "name": "NWNCapture/Particles/geometry_batch", "minimumEvents": 120 }
+  ],
+  "minimumCPUThreads": 2,
+  "minimumSpanSeconds": 4,
+  "maximumSpanSeconds": 20,
+  "differentThreadZones": [
+    [ "Main::iteration", "NWNCapture/Worker/task_scope" ],
+    [ "smoke_main_tick", "smoke_worker_task" ]
+  ],
+  "gpu": { "required": false }
+}

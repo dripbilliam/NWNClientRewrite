@@ -3,6 +3,7 @@ extends RefCounted
 # at 14007a105 before walking nodes at 14007a301/36f. Parallelism/limits here are
 # our adaptation. Hints never replace full parsing or authoritative errors.
 const Binary=preload("res://systems/native_data/binary_data.gd")
+const ActorSource=preload("res://systems/native_data/actor_model.gd")
 static var budget_mutex:=Mutex.new()
 static var active:=0
 static var peak:=0
@@ -31,7 +32,7 @@ static func parent_hint(bytes: PackedByteArray) -> String:
 static func decode_source(decoder: Callable,bytes: PackedByteArray,cache_path: String,store) -> Dictionary:
 	# This task decodes exactly one source. It never inherits or submits/waits
 	# for pool work, so pool saturation cannot create a nested dependency cycle.
-	var began:=Time.get_ticks_usec(); var value: Dictionary=decoder.call(bytes,2002,"mdl-actor-packed-v3",cache_path,store)
+	var began:=Time.get_ticks_usec(); var value: Dictionary=decoder.call(bytes,2002,ActorSource.SOURCE_DECODER,cache_path,store)
 	var result:={"error":value.error,"memory_hit":value.get("memory_decode_hit",false),"timings":value.get("timings",{}),"elapsed_ms":(Time.get_ticks_usec()-began)/1000.0}
 	release(); return result
 static func start(reader,name: String,bytes: PackedByteArray,cache_path: String,decoder: Callable) -> Dictionary:

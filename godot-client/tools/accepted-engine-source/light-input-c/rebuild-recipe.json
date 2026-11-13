@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "kind": "manual-light-module-rebuild-recipe",
+  "outputSha256": "10b24711d277f745ad72cc504b6a3e573c12bb1ce1be7fd8545faabab82b9f13",
+  "persistentSources": [
+    {
+      "relative": "tools/accepted-engine-source/light-input-c/light_input_registry.cpp",
+      "sha256": "c3fba024fc4e0582b2c84bc35676f752aa3bc1aa4595b41a09b4e170c40d54d8"
+    },
+    {
+      "relative": "tools/accepted-engine-source/light-input-c/light_input_registry.h",
+      "sha256": "a0214be29f101ca7662eb35d76903e82b0fd30972cfada581e2d87659dc7babd"
+    },
+    {
+      "relative": "tools/accepted-engine-source/light-input-c/register_types.cpp",
+      "sha256": "af962ca09e875f2a9e1f4f498bd3348f9bed62a7b8ad49a47015de1e6a7988e8"
+    },
+    {
+      "relative": "tools/accepted-engine-source/light-input-c/register_types.h",
+      "sha256": "141ad3d533f6987f125f9c3cf2a6512b2495e876ac4376b9f9fc7f8a07fc919b"
+    }
+  ],
+  "receipt": {
+    "relative": ".cache/native-render-gap/scene/light-member-build-c-a/candidate/receipt.json",
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\light-member-build-c-a\\candidate\\receipt.json",
+    "sha256": "0cbc919fa8a0f8139fbf340a3d8eca4e51261b3f237cfaabe6e39690e85e8b49"
+  },
+  "sourceManifest": {
+    "relative": ".cache/native-render-gap/scene/light-member-build-c-a/candidate/source-manifest.json",
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\light-member-build-c-a\\candidate\\source-manifest.json",
+    "sha256": "1f4d7aeecc0cf3c9a8d674f567bd7d6883e94d1f27e6e3405a1ff7b4367cfcb3"
+  },
+  "manualBuild": {
+    "relative": ".cache/native-render-gap/scene/light-member-build-c-a/candidate/manual-build.json",
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\native-render-gap\\scene\\light-member-build-c-a\\candidate\\manual-build.json",
+    "sha256": "e46edc6e8dddfecd1d2688496a8aa6e30daeea5e7ed24c11941cb566d03f6ace"
+  },
+  "originalControlSha256": "982ac567f31fa7e3a834f46585b75a2601f22047803533029dde97efd66f5b61",
+  "builderSource": "tools/native-render-gap/scene/light-member-read/build-private-c.cjs",
+  "scope": "Exact original two TU/control/NORMAL archive/link recipe and frozen headers are retained in referenced immutable proof. Private changed module source persists here; this is not a full SCons claim."
+}

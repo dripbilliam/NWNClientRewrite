@@ -1,4 +1,5 @@
 extends RefCounted
+const Accounting=preload("res://systems/native_data/resource_index_backend.gd")
 # Bounded, data-only memory tier above the existing content-addressed disk
 # cache. Catalog mounting/reset invalidates request bindings. Returned graphs
 # are private copies, so callers cannot mutate another actor's cached source.
@@ -15,6 +16,7 @@ var misses:=0
 var evictions:=0
 var flights: Dictionary={}
 var coalesced:=0
+var accounting:={"native":0,"serialized":0,"hinted":0,"usec":0,"shared_storage":0,"bounded":0}
 func begin_data(request: String,expected: int,private_graph: bool=true) -> Dictionary:
 	var flight_key:=str(expected)+":"+request
 	mutex.lock()
@@ -55,7 +57,9 @@ func load_data(request: String,expected: int) -> Dictionary:
 	var value: Dictionary=entries[requests[request]].value; hits+=1; mutex.unlock()
 	return value.duplicate(true)
 func save_data(request: String,identity: String,value: Dictionary,expected: int,size_hint: int=-1,retain_immutable: bool=false) -> void:
-	var size:=size_hint if size_hint>=0 else var_to_bytes(value).size()
+	var began:=Time.get_ticks_usec(); var cost:=Accounting.retained_cost(value,maximum_bytes) if size_hint<0 else {}
+	var measured: bool=cost.has("estimated_bytes"); var size:=size_hint if size_hint>=0 else (int(cost.estimated_bytes) if measured else var_to_bytes(value).size())
+	mutex.lock(); accounting["hinted" if size_hint>=0 else ("native" if measured else "serialized")]+=1; accounting.usec+=Time.get_ticks_usec()-began; accounting.shared_storage+=int(cost.get("shared",0)); accounting.bounded+=int(cost.get("bounded",0)); mutex.unlock()
 	if size>maximum_bytes or size<=0: return
 	# Borrowing is restricted to an internal immutable source graph. Callers
 	# requesting private state retain the deep-copy default.
@@ -76,7 +80,7 @@ func snapshot() -> Dictionary:
 	# is owned only by this observer; worker code never mutates that dictionary.
 	if not mutex.try_lock():
 		var previous:=last_snapshot.duplicate(); previous.metadata_busy=true; return previous
-	var value:={"generation":epoch,"entries":entries.size(),"estimated_bytes":bytes,"maximum_bytes":maximum_bytes,"hits":hits,"misses":misses,"evictions":evictions,"inflight":flights.size(),"coalesced":coalesced,"metadata_busy":false}; mutex.unlock()
+	var value:={"generation":epoch,"entries":entries.size(),"estimated_bytes":bytes,"maximum_bytes":maximum_bytes,"hits":hits,"misses":misses,"evictions":evictions,"inflight":flights.size(),"coalesced":coalesced,"metadata_busy":false,"accounting":accounting.duplicate()}; mutex.unlock()
 	last_snapshot=value; return value.duplicate()
 func retained_size(request: String,expected: int) -> int:
 	mutex.lock()

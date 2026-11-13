@@ -105,7 +105,7 @@ func run() -> void:
 		for index in data.rows.size():
 			if kind == "playback": playback(data.rows[index], index)
 			else: clock(data.rows[index], index)
-	var report := {"passed": failures.is_empty(), "checks": checks, "cases": counts, "failures": failures, "scope": "Native run scheduling/clock against retained original executions; not pose/controllers or outer scene parity"}
+	var report := {"success":failures.is_empty(),"passed": failures.is_empty(), "checks": checks, "cases": counts, "failures": failures, "scope": "Native run scheduling/clock against retained original executions; not pose/controllers or outer scene parity"}
 	var file := FileAccess.open(output, FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	file.close()

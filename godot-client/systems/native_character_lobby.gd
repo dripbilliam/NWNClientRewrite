@@ -32,6 +32,7 @@ var list_content: Control
 var scrollbar
 var page: Control
 var record: Control
+var record_view
 var statistics: Control
 var record_feats
 var record_skills
@@ -67,10 +68,13 @@ var page_index:=0
 var page_connection:=-1
 var extra_pages
 var interaction_epoch:=0
+var projection_work
+var data_epoch:=0
 func configure(controller,painter,text,catalog,cache_path: String) -> void:
 	owner_ui=controller; frame=painter; text_owner=text; rules.text=text; hide(); mouse_filter=Control.MOUSE_FILTER_STOP; focus_mode=Control.FOCUS_ALL
 	show_pregenerated=owner_ui.preferences.show_pregenerated
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.high_priority=true; assets.completed.connect(received)
+	projection_work=preload("res://systems/native_data/character_picker_work.gd").new(); add_child(projection_work); projection_work.completed.connect(projections_received)
 	bind_data(text,catalog,cache_path,frame.art)
 	jobs[assets.request("pre_playmod",2047,"gff")]="@layout"
 	for name in Plan.RESOURCES: request_model(name)
@@ -83,9 +87,13 @@ func request_model(name: String) -> void:
 	models[name]={}; jobs[assets.request(name,2002,"actor-model" if name=="scrollbar_simple" else "mdl-original")]=name
 func bind_data(text,catalog,cache_path: String,images) -> void:
 	if data_catalog==catalog and text_owner==text: return
+	data_epoch+=1
+	if is_instance_valid(projection_work): projection_work.retire()
+	record_projection={}; skill_projection={}; spell_projection={}
 	if is_instance_valid(rule_assets): rule_assets.close(); rule_assets.queue_free()
 	if is_instance_valid(data_art) and is_instance_valid(record_portrait): data_art.unbind(record_portrait)
 	data_catalog=catalog; text_owner=text; rules.text=text; data_art=images; rule_jobs.clear()
+	if is_instance_valid(record_view): record_view.text_owner=text; record_view.refresh_captions()
 	rule_assets=Assets.new(); add_child(rule_assets); rule_assets.configure(catalog); rule_assets.cache_directory=cache_path; rule_assets.maximum_workers=2; rule_assets.high_priority=true; rule_assets.completed.connect(rule_received)
 	request_classes()
 	row_signature=""; preview_signature=""; record_signature=""; skill_signature=""; spell_signature=""; rule_signature=""
@@ -151,40 +159,15 @@ func build() -> void:
 	# PRE_PLAYMOD's right-hand pages use the417-pixel source viewport. Their
 	# tall record artwork must not cover the Play/Cancel controls below it.
 	page=control(self,Rect2(definition.page_origin,definition.models.pmod_details800.bounds.size)); page.clip_contents=true; move_child(page,2)
-	record=control(page,Rect2(Vector2.ZERO,page.size))
-	frame.image("pnl_chrsht2",definition.models.pnl_chrsht2.bounds,record)
-	var header: Dictionary=definition.models.pnl_chrsht2; var origin: Vector2=header.hooks.pages; var body: Dictionary=definition.models.pnl_chrsht_char2
-	var tab_point: Vector2=header.hooks.tabs
-	var record_group:=ButtonGroup.new()
-	for index in 4:
-		var resource: String="ctl_chr_btn_tab"+str(index+5); var tab: Button=frame.create_button(Sheet.entry(definition.models,resource,tab_point),record,models,true); tab.button_group=record_group; tab.disabled=index not in [0,2]; tab.set_pressed_no_signal(index==0); tab.tooltip_text=text_owner.raw({"strRef":[0x2940,0x147,0x146,0x145f][index]}); record_tabs.append(tab); tab_point+=definition.models[resource].hooks.next
-		tab.button_down.connect(func():held["record:"+str(index)]=[owner_ui.connection,interaction_epoch,owner_ui.state.get("selected")]); tab.pressed.connect(invoke_record.bind(index))
-	statistics=control(record,Rect2(Vector2.ZERO,record.size))
-	var region:=Rect2(0,0,page.size.x,page.size.y-origin.y); var background:=picture(statistics,Rect2(origin,region.size)); frame.art.bind(background,"pnl_chrsht_char2","texture",true,"",false,{},region)
-	record_portrait=picture(statistics,Rect2(origin+Vector2(1,0),Vector2(128,200)))
-	record_labels.title=label(record,"record:title",Sheet.box(header,"title0","title1"),"")
-	record_labels.classes=label(statistics,"record:classes",Sheet.box(body,"racealignclass0","racealignclass1",origin),""); record_labels.classes.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-	for item in [["str","strength",135],["dex","dexterity",133],["con","constitution",132],["int","intelligence",134],["wis","wisdom",136],["cha","charisma",131]]:
-		label(statistics,item[0]+"label",Sheet.box(body,"l"+item[1]+"0","l"+item[1]+"1",origin),text_owner.raw({"strRef":item[2]}))
-		for suffix in ["stat","mod"]: record_labels[item[0]+suffix]=label(statistics,item[0]+suffix,Sheet.box(body,item[0]+suffix+"0",item[0]+suffix+"1",origin),"")
-		var icon:=picture(statistics,Rect2(origin+body.hooks[item[0]+"icon"]-Vector2(8,8),Vector2(16,16))); frame.art.bind(icon,"gui_chrsht_"+item[0])
-	for tag in ["armorclass","hitpoints","experience","nextlevel","lac","lhp"]: record_labels[tag]=label(statistics,tag,Sheet.box(body,tag+"0",tag+"1",origin),"")
-	var detail_model: Dictionary=definition.models.ctl_chrsht_lstbx.duplicate(true)
-	for hook in ["text0","text1","scrollmin","scrollmax"]:
-		if not detail_model.hooks.has(hook): failure="Original Character detail hook missing: "+hook; return
-	var detail_offset: Vector2=origin+body.hooks.list
-	detail_model.hooks.text1.y=region.size.y-body.hooks.list.y; detail_model.hooks.scrollmax.y=detail_model.hooks.text1.y-14
-	var detail_rect:=Sheet.box(detail_model,"text0","text1",detail_offset)
-	detail_scroll=ScrollContainer.new(); statistics.add_child(detail_scroll); detail_scroll.position=detail_rect.position; detail_scroll.size=detail_rect.size; detail_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED; detail_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
-	detail=preload("res://systems/server_text.gd").label({},detail_rect.size.x); detail_scroll.add_child(detail); detail.custom_minimum_size.x=detail_rect.size.x; frame.font_style(detail,{"AurString_Font":"ttf fnt_default 14"})
-	detail_bar=preload("res://systems/native_scrollbar.gd").new(); statistics.add_child(detail_bar); detail_bar.configure(frame,models,{"offset":detail_offset,"model":detail_model,"caption":{"AurString_Font":""}},detail_scroll,20)
-	if not detail_bar.failure.is_empty(): failure=detail_bar.failure; return
-	frame.fonts.loaded.connect(detail_font_loaded); detail_font_loaded("ttf fnt_default 14")
-	record_feats=preload("res://systems/native_lobby_record_feats.gd").new(); record.add_child(record_feats); record_feats.position=origin; record_feats.configure(self,frame,definition.models,region.size)
+	record_view=preload("res://systems/native_character_summary_view.gd").new(); page.add_child(record_view); record_view.configure(frame,text_owner,models,page.size)
+	if not record_view.failure.is_empty(): failure=record_view.failure; return
+	record=record_view; record_tabs=record_view.tabs; statistics=record_view.statistics; record_labels=record_view.labels; record_portrait=record_view.portrait; detail=record_view.detail; detail_scroll=record_view.detail_scroll; detail_bar=record_view.detail_bar
+	record_view.page_down.connect(func(index):held["record:"+str(index)]=[owner_ui.connection,interaction_epoch,owner_ui.state.get("selected")]); record_view.page_pressed.connect(invoke_record)
+	record_feats=preload("res://systems/native_lobby_record_feats.gd").new(); record_view.pages[2].add_child(record_feats); record_feats.configure(self,frame,definition.models,record_view.definition.page_size)
 	if not record_feats.failure.is_empty(): failure=record_feats.failure; return
-	record_skills=preload("res://systems/native_lobby_record_feats.gd").new(); record.add_child(record_skills); record_skills.position=origin; record_skills.configure(self,frame,definition.models,region.size,1)
+	record_skills=preload("res://systems/native_lobby_record_feats.gd").new(); record_view.pages[1].add_child(record_skills); record_skills.configure(self,frame,definition.models,record_view.definition.page_size,1)
 	if not record_skills.failure.is_empty(): failure=record_skills.failure; return
-	record_spells=preload("res://systems/native_lobby_record_feats.gd").new(); record.add_child(record_spells); record_spells.position=origin; record_spells.configure(self,frame,definition.models,region.size,3)
+	record_spells=preload("res://systems/native_lobby_record_feats.gd").new(); record_view.pages[3].add_child(record_spells); record_spells.configure(self,frame,definition.models,record_view.definition.page_size,3)
 	if not record_spells.failure.is_empty(): failure=record_spells.failure; return
 	extra_pages=preload("res://systems/native_lobby_pages.gd").new(); page.add_child(extra_pages); extra_pages.configure(frame,text_owner,definition,models)
 	extra_pages.data_art=data_art
@@ -199,51 +182,36 @@ func invoke_record(index: int) -> void:
 		return
 	record_index=index; sync_record_page()
 func detail_font_loaded(name: String) -> void:
-	if closed or name!="ttf fnt_default 14" or not is_instance_valid(detail) or not frame.fonts.fonts.has(name): return
-	# CGuiListBox::AddItem uses the original Character constructor's fixed
-	#20-pixel item height. The dialog font does not replace that list step.
-	var font: Font=frame.fonts.fonts[name]
-	detail.add_theme_constant_override("line_separation",20-ceili(font.get_height(14)))
+	if not closed and is_instance_valid(record_view): record_view.detail_font_loaded(name)
 func sync_record_page() -> void:
+	record_view.set_page(record_index); record_view.refresh_captions()
 	statistics.visible=record_index==0; record_feats.visible=record_index==2; record_skills.visible=record_index==1; record_spells.visible=record_index==3
 	for index in record_tabs.size(): record_tabs[index].set_pressed_no_signal(index==record_index)
 	if record_index==2: record_feats.present(owner_ui.record_preview())
 	if record_index==1: record_skills.present(owner_ui.record_preview())
 	if record_index==3: record_spells.present(owner_ui.record_preview())
 func prepare_skills(value: Variant) -> void:
-	if owner_ui.native_frontend and owner_ui.native_base_only: return
-	var next:=JSON.stringify([owner_ui.connection,value.get("skillSource") if value is Dictionary else null,text_owner.revision])
-	if next==skill_signature: return
-	skill_signature=next; skill_projection={}
-	if not value is Dictionary or not value.get("skillSource") is Dictionary: return
-	var source_data: Dictionary=value.skillSource; var projector=preload("res://systems/native_data/pregame_skills.gd")
-	skill_projection=projector.compute(source_data,text_owner.tables)
-	for name in skill_projection.get("dependencies",[]):
-		if rule_jobs.values().has([name,owner_ui.connection]): continue
-		var id: int=rule_assets.request(name,2017,"2da")
-		if id>=0: rule_jobs[id]=[name,owner_ui.connection]
+	prepare_record(value)
 func prepare_spells(value: Variant) -> void:
-	if owner_ui.native_frontend and owner_ui.native_base_only: return
-	var next:=JSON.stringify([owner_ui.connection,value.get("spellSource") if value is Dictionary else null,text_owner.revision])
-	if next==spell_signature: return
-	spell_signature=next; spell_projection={}
-	if not value is Dictionary or not value.get("spellSource") is Dictionary: return
-	spell_projection=preload("res://systems/native_data/pregame_spells.gd").compute(value.spellSource,text_owner.tables)
-	for name in spell_projection.get("dependencies",[]):
-		if rule_jobs.values().has([name,owner_ui.connection]): continue
-		var id: int=rule_assets.request(name,2017,"2da")
-		if id>=0: rule_jobs[id]=[name,owner_ui.connection]
+	prepare_record(value)
 func prepare_record(value: Variant) -> void:
 	if owner_ui.native_frontend and owner_ui.native_base_only: return
-	var next:=JSON.stringify([owner_ui.connection,value.get("recordSource") if value is Dictionary else null,text_owner.revision])
-	if next==record_signature: return
-	record_signature=next; record_projection={}
-	if not value is Dictionary or not value.get("recordSource") is Dictionary: return
-	record_projection=preload("res://systems/native_data/pregame_record.gd").compute(value.recordSource,text_owner.tables)
-	for name in record_projection.get("dependencies",[]):
+	var scope: Array=[owner_ui.connection,data_epoch,owner_ui.state.get("selected")]
+	if not projection_work.observe(scope,value,text_owner.tables,text_owner.revision): return
+	record_projection={}; skill_projection={}; spell_projection={}; preview_signature=""
+func projections_received() -> void:
+	if closed or not is_instance_valid(owner_ui): return
+	# A hidden/cancelled owner may not have called sync since its state changed.
+	# Validate the live owner again before publishing even an accepted worker.
+	if projection_work.wanted.is_empty() or projection_work.wanted[0]!=[owner_ui.connection,data_epoch,owner_ui.state.get("selected")] or str(owner_ui.state.get("phase","")) not in ["character-selection","character-rejected"]:
+		projection_work.retire(); return
+	var projected: Dictionary=projection_work.result
+	record_projection=projected.get("record",{}); skill_projection=projected.get("skills",{}); spell_projection=projected.get("spells",{}); preview_signature=""
+	for name in projected.get("dependencies",[]):
 		if rule_jobs.values().has([name,owner_ui.connection]): continue
 		var id: int=rule_assets.request(name,2017,"2da")
 		if id>=0: rule_jobs[id]=[name,owner_ui.connection]
+	sync()
 func select_page(index: int) -> void:
 	if closed or not visible or index<0 or index>=tabs.size() or tabs[index].disabled: return
 	if page_index==index: return
@@ -312,8 +280,6 @@ func sync() -> void:
 	var value: Variant=owner_ui.record_preview(); var next_preview:=JSON.stringify([value,text_owner.tables.size(),text_owner.revision])
 	prepare_record(value)
 	if next_preview!=preview_signature: render_record(value); preview_signature=next_preview
-	prepare_skills(value)
-	prepare_spells(value)
 	for index in record_tabs.size():
 		record_tabs[index].disabled=index==3 and not spell_projection.get("ready",false) or index==1 and not skill_projection.get("ready",false) or not owner_ui.can_select() or not owner_ui.native_selection.is_empty()
 		record_tabs[index].tooltip_text=text_owner.raw({"strRef":[0x2940,0x147,0x146,0x145f][index]})
@@ -440,8 +406,10 @@ func close() -> void:
 	if is_instance_valid(extra_pages): extra_pages.close()
 	if is_instance_valid(scrollbar): scrollbar.close()
 	if is_instance_valid(detail_bar): detail_bar.close()
+	if is_instance_valid(record_view): record_view.close()
 	if is_instance_valid(frame) and is_instance_valid(frame.fonts) and frame.fonts.loaded.is_connected(detail_font_loaded): frame.fonts.loaded.disconnect(detail_font_loaded)
 	if is_instance_valid(assets): assets.close()
 	if is_instance_valid(rule_assets): rule_assets.close()
+	if is_instance_valid(projection_work): projection_work.close()
 	jobs.clear(); rule_jobs.clear(); models.clear(); frame=null; data_art=null; data_catalog=null; text_owner=null; owner_ui=null
 func _exit_tree() -> void: close()

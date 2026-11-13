@@ -1,0 +1,403 @@
+{
+  "version": 1,
+  "subject_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Exact instruction-boundary readback. Labels group addresses only; they do not override PlayerInfo branch-flow evidence.",
+  "items": [
+    {
+      "label": "set-call73b7",
+      "rows": [
+        {
+          "address": "0x1407b73a9",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x1407db1c0",
+          "evidence": "ev_a5dd32180d3eec0bf154c3af192ac1eab59c9688655e899601bd7d754328f272"
+        },
+        {
+          "address": "0x1407b73ae",
+          "length": 2,
+          "status": "decoded",
+          "asm": "XOR EDX,EDX",
+          "evidence": "ev_b1e1cfa37cc057a32fbda16881e0a926c8b3ab742c7c76f54f308061cffe4a27"
+        },
+        {
+          "address": "0x1407b73b0",
+          "length": 4,
+          "status": "decoded",
+          "asm": "LEA R8D,[RDX + 0x1]",
+          "evidence": "ev_38ffb38ffdc55aea6eafbe6a37c3f4578acda51c5d784d6b9a0bdb8e096e1917"
+        },
+        {
+          "address": "0x1407b73b4",
+          "length": 3,
+          "status": "decoded",
+          "asm": "MOV RCX,RAX",
+          "evidence": "ev_55438de94f1aed81344d0d478d5cdb175682d66685df5508abe7bd83485f09aa"
+        },
+        {
+          "address": "0x1407b73b7",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x140850120",
+          "evidence": "ev_46eaf1c23434d02e1b54adede95f5b1021544299b9e3596fe11324a74cbe07a6"
+        }
+      ]
+    },
+    {
+      "label": "conditional-set755d",
+      "rows": [
+        {
+          "address": "0x1407b74f3",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x1407db1c0",
+          "evidence": "ev_dfbd6d4e8629fc397d817caccbce77bdce791c45aaeb972519c10c0ee5de6134"
+        },
+        {
+          "address": "0x1407b74f8",
+          "length": 3,
+          "status": "decoded",
+          "asm": "TEST RAX,RAX",
+          "evidence": "ev_e5a8612ca69710f7d3d830180af26463c189f98c180ada299ab198c8d19a9a04"
+        },
+        {
+          "address": "0x1407b74fb",
+          "length": 2,
+          "status": "decoded",
+          "asm": "JNZ 0x1407b7546",
+          "evidence": "ev_76bc154e3b9ef2f22705bab8f9b87ec84c21c583d99b90b63abb9442f734e24c"
+        },
+        {
+          "address": "0x1407b74fd",
+          "length": 7,
+          "status": "decoded",
+          "asm": "LEA RAX,[0x140e40158]",
+          "evidence": "ev_cf54563c8d35a19add485c5ef2c2fcd01ba141f2247f8faed46263251d932c3e"
+        },
+        {
+          "address": "0x1407b7504",
+          "length": 5,
+          "status": "decoded",
+          "asm": "MOV qword ptr [RSP + 0x38],RAX",
+          "evidence": "ev_bca4a00b6381f7a25ae6b1c8a5929d3c95d98fd238a9e89a1c715d4e9649798a"
+        },
+        {
+          "address": "0x1407b7509",
+          "length": 7,
+          "status": "decoded",
+          "asm": "LEA RAX,[0x140e40168]",
+          "evidence": "ev_7daaedf8322577c342dd425a2764f429fadc2d9c08af13bf1ec51cfa46ad564b"
+        },
+        {
+          "address": "0x1407b7510",
+          "length": 5,
+          "status": "decoded",
+          "asm": "MOV qword ptr [RSP + 0x30],RAX",
+          "evidence": "ev_cac57c0049a09a435bc01a7978e7113d9124e1a1a6d598e46fe6aa24c8daf860"
+        },
+        {
+          "address": "0x1407b7515",
+          "length": 7,
+          "status": "decoded",
+          "asm": "LEA RAX,[0x140d93cb8]",
+          "evidence": "ev_d07d73710b68e0db82b491999623475818a1fc83a887ed97583e38a1f3a64929"
+        },
+        {
+          "address": "0x1407b751c",
+          "length": 5,
+          "status": "decoded",
+          "asm": "MOV qword ptr [RSP + 0x28],RAX",
+          "evidence": "ev_b9eec94dc268425f198ab18697fdd42312e5ccc42a23ac7a85f5b280b20f3997"
+        },
+        {
+          "address": "0x1407b7521",
+          "length": 8,
+          "status": "decoded",
+          "asm": "MOV dword ptr [RSP + 0x20],0x328d",
+          "evidence": "ev_dc2aec653129ec3ff1a0a727651a219977d1f2b1d5df51cb35ae6b1450a6eaa6"
+        },
+        {
+          "address": "0x1407b7529",
+          "length": 7,
+          "status": "decoded",
+          "asm": "LEA R9,[0x140e3e1a3]",
+          "evidence": "ev_7c0f4cf964711483d871d200bd3dc715326fcb1c0c911d19b504651e550b8809"
+        },
+        {
+          "address": "0x1407b7530",
+          "length": 7,
+          "status": "decoded",
+          "asm": "LEA R8,[0x140e40180]",
+          "evidence": "ev_e3401b43859d11a0c5571d33ee2f9fc03d584392574c87696fb17c67a0ae178d"
+        },
+        {
+          "address": "0x1407b7537",
+          "length": 5,
+          "status": "decoded",
+          "asm": "MOV EDX,0x7",
+          "evidence": "ev_4e3fde0063b26bd4a3c8c1b600f57bbbb3a95d5d8eea4184f3fad3279eb87c66"
+        },
+        {
+          "address": "0x1407b753c",
+          "length": 3,
+          "status": "decoded",
+          "asm": "LEA ECX,[RDX + -0x4]",
+          "evidence": "ev_0f1180a7119b8b5a0a1c3636605cddf148ad7b8f3086f1a89b659701d273f4f4"
+        },
+        {
+          "address": "0x1407b753f",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x140115890",
+          "evidence": "ev_67d4a38e2807fd20ee0a0c0cd481d648d1979e54679aa36eac00b37309db00fe"
+        },
+        {
+          "address": "0x1407b7544",
+          "length": 2,
+          "status": "decoded",
+          "asm": "JMP 0x1407b7562",
+          "evidence": "ev_c623b5d3321acc71acb5bad50ab02f73fd2bd69a3ade71203182fc8439e8eb51"
+        },
+        {
+          "address": "0x1407b7546",
+          "length": 3,
+          "status": "decoded",
+          "asm": "MOV RCX,RAX",
+          "evidence": "ev_bdc5e37bfa0c2d5ba8cfa1347b6fcd84a362ba500a382c6877c154ad0e8fce3b"
+        },
+        {
+          "address": "0x1407b7549",
+          "length": 3,
+          "status": "decoded",
+          "asm": "TEST R15D,R15D",
+          "evidence": "ev_a4909595c162feaa41135133c6cf83b4792aed6b7eb6fdcd42789c25e00c97a2"
+        },
+        {
+          "address": "0x1407b754c",
+          "length": 2,
+          "status": "decoded",
+          "asm": "JNZ 0x1407b7556",
+          "evidence": "ev_2ff99d1ed6cc1816a8117395ac37ffc756e1571a8e99680b9a62807ed331de35"
+        },
+        {
+          "address": "0x1407b754e",
+          "length": 2,
+          "status": "decoded",
+          "asm": "XOR EDX,EDX",
+          "evidence": "ev_87e39b90795bb5998a488b49753a263d2ac436eddab7b4facac283cb664bd674"
+        },
+        {
+          "address": "0x1407b7550",
+          "length": 4,
+          "status": "decoded",
+          "asm": "LEA R8D,[R15 + 0x1]",
+          "evidence": "ev_f9ada2ec4b7b22714573bda581494733366c78382ef8752064fc9eebba43c239"
+        },
+        {
+          "address": "0x1407b7554",
+          "length": 2,
+          "status": "decoded",
+          "asm": "JMP 0x1407b755d",
+          "evidence": "ev_c3c6e3788bb8da81881af7957bfb54a7d26730a0fb5fc7fe3f61e1e5e1616b02"
+        },
+        {
+          "address": "0x1407b7556",
+          "length": 3,
+          "status": "decoded",
+          "asm": "XOR R8D,R8D",
+          "evidence": "ev_94237d8c349088b8b58d38f81458318b2c5587713b57b3b1d3826b0ba7ee6095"
+        },
+        {
+          "address": "0x1407b7559",
+          "length": 4,
+          "status": "decoded",
+          "asm": "LEA EDX,[R8 + 0x1]",
+          "evidence": "ev_a1d83331c5988717a37ec05ffcaca6a8f2a3cb74e84283780282b39fba9b0ec7"
+        },
+        {
+          "address": "0x1407b755d",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x140850120",
+          "evidence": "ev_4b7f9a3590d2275d4ebbbad57e54917cf54de1ea4a935dd72d41c014dd16856f"
+        }
+      ]
+    },
+    {
+      "label": "set-call7268",
+      "rows": [
+        {
+          "address": "0x1407b7259",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x1407db1c0",
+          "evidence": "ev_092043c7edb21c0ca0cf39847ba1ed5f69c8b118a0416e4c07276585c88a522a"
+        },
+        {
+          "address": "0x1407b725e",
+          "length": 3,
+          "status": "decoded",
+          "asm": "XOR R8D,R8D",
+          "evidence": "ev_b1811db22731a541c91e3e2d041e39fb430032e73124f892e1a3d69203f5058a"
+        },
+        {
+          "address": "0x1407b7261",
+          "length": 4,
+          "status": "decoded",
+          "asm": "LEA EDX,[R8 + 0x1]",
+          "evidence": "ev_60f59daaeda42a3ea0d69ebb989308011215cdef45992819783f575c7b402659"
+        },
+        {
+          "address": "0x1407b7265",
+          "length": 3,
+          "status": "decoded",
+          "asm": "MOV RCX,RAX",
+          "evidence": "ev_d93b9ebc940cd4bc4d037cd2d6345b84d426d2043e823946c39ce198deff4f69"
+        },
+        {
+          "address": "0x1407b7268",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x140850120",
+          "evidence": "ev_3c899d83e520941f208e4e97e33436db0b115e64346ff411951d86d86b742b2b"
+        }
+      ]
+    },
+    {
+      "label": "set-call7439",
+      "rows": [
+        {
+          "address": "0x1407b742a",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x1407db1c0",
+          "evidence": "ev_555065f6ca98b910060a4c89793c8c9784bd3b32a411737b1cf6dc9c7b4666f5"
+        },
+        {
+          "address": "0x1407b742f",
+          "length": 3,
+          "status": "decoded",
+          "asm": "XOR R8D,R8D",
+          "evidence": "ev_2553f448bc88b258a9d85d130ed28cd929bdde921b4e33ffb006a1f023fe2b38"
+        },
+        {
+          "address": "0x1407b7432",
+          "length": 4,
+          "status": "decoded",
+          "asm": "LEA EDX,[R8 + 0x1]",
+          "evidence": "ev_03e4432d7f4cd2152fb5554b9848431cb4cb4c44b3bec377954a12ddf10f0404"
+        },
+        {
+          "address": "0x1407b7436",
+          "length": 3,
+          "status": "decoded",
+          "asm": "MOV RCX,RAX",
+          "evidence": "ev_3d90a009e38fbee9478e324e0f0b4b33255bd621e999143ff409f3a45c45d9bd"
+        },
+        {
+          "address": "0x1407b7439",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x140850120",
+          "evidence": "ev_2b1d25f6717abe7d64f44999e4bc2241c30760e030a86a358776047e3d049ace"
+        }
+      ]
+    },
+    {
+      "label": "packed-set7659",
+      "rows": [
+        {
+          "address": "0x1407b7633",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x1407db1c0",
+          "evidence": "ev_c9b8ec4ec4447543ebd303470455b3486f1cd1f302c84049d4ba537bbd71bfae"
+        },
+        {
+          "address": "0x1407b7638",
+          "length": 3,
+          "status": "decoded",
+          "asm": "TEST RAX,RAX",
+          "evidence": "ev_21236dc6dc5bd965d3ed302757fb6d9aa2c0c52d9de027d126e0c274a900c69c"
+        },
+        {
+          "address": "0x1407b763b",
+          "length": 2,
+          "status": "decoded",
+          "asm": "JZ 0x1407b765e",
+          "evidence": "ev_409ce9f1e921f4a341d2539b30f8084c7d36007d0737af675e804d66d3043ded"
+        },
+        {
+          "address": "0x1407b763d",
+          "length": 3,
+          "status": "decoded",
+          "asm": "XOR R8D,R8D",
+          "evidence": "ev_e28a9f93675d33d56542db789f0fa6120d2da988b202caa082c33d615b06b737"
+        },
+        {
+          "address": "0x1407b7640",
+          "length": 4,
+          "status": "decoded",
+          "asm": "LEA EDX,[R8 + 0x1]",
+          "evidence": "ev_76f2b1236d15bfddc086930d94d4270a0e8144cd3be677e7a19e4651cad0fa6d"
+        },
+        {
+          "address": "0x1407b7644",
+          "length": 2,
+          "status": "decoded",
+          "asm": "JMP 0x1407b7656",
+          "evidence": "ev_41e58fb36e7feedbef7b57eb89eb97840d947d1e57b6b4c2175804f56447f4dc"
+        },
+        {
+          "address": "0x1407b7646",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x1407db1c0",
+          "evidence": "ev_4c39177746b796afd4d45c7a343a9e8db44a2a82f6da919ee5d79153ed188990"
+        },
+        {
+          "address": "0x1407b764b",
+          "length": 3,
+          "status": "decoded",
+          "asm": "TEST RAX,RAX",
+          "evidence": "ev_0a49cce1ff23c7f4ebaea441d6444d398ad1b760fd070990ef6d769c1a92e553"
+        },
+        {
+          "address": "0x1407b764e",
+          "length": 2,
+          "status": "decoded",
+          "asm": "JZ 0x1407b765e",
+          "evidence": "ev_440745ab3f84ae5e56a0e9362bcabdd8ac5fb5b271dd3582114fc9ec15e52140"
+        },
+        {
+          "address": "0x1407b7650",
+          "length": 2,
+          "status": "decoded",
+          "asm": "XOR EDX,EDX",
+          "evidence": "ev_4a094ee22cddc24eb2a6a1f0d95f00cba309fe7e8fac6ad1ae5a32b438351efa"
+        },
+        {
+          "address": "0x1407b7652",
+          "length": 4,
+          "status": "decoded",
+          "asm": "LEA R8D,[RDX + 0x1]",
+          "evidence": "ev_69ad65bb68c17d5ff7164a0083ea2ebe0f481dc95fe260ca462cc582272bc531"
+        },
+        {
+          "address": "0x1407b7656",
+          "length": 3,
+          "status": "decoded",
+          "asm": "MOV RCX,RAX",
+          "evidence": "ev_5762646b83f216cab0952c33e6064faf61ab16c7b38ca26cceb2762e1139eea8"
+        },
+        {
+          "address": "0x1407b7659",
+          "length": 5,
+          "status": "decoded",
+          "asm": "CALL 0x140850120",
+          "evidence": "ev_60b3a1db35cb7fe74bc1793ee2e1a7f9eba0d54370e90dae299903f244abb877"
+        }
+      ]
+    }
+  ]
+}
