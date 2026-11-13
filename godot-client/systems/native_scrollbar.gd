@@ -64,6 +64,7 @@ func configure(painter,models: Dictionary,entry: Dictionary,owner: ScrollContain
 	rail_key=art.request_model("scrollbar_simple","",{},0,"gui_boxes_ingame",plan.poses)
 	request_thumb()
 	if rail_key.is_empty() or thumb_key.is_empty(): failure="Original scrollbar artwork could not be requested"; return
+	rail.set_meta("native_gui_art_key",rail_key); thumb.set_meta("native_gui_art_key",thumb_key)
 	for key in [rail_key,thumb_key]:
 		if art.textures.has(key): loaded(key,art.textures[key],art.bounds.get(key,{}))
 	refresh()
@@ -150,6 +151,7 @@ func request_thumb() -> void:
 	pending_thumb_plan.poses[1]={"clip":"thumbsize","time":float(desired.time)}
 	thumb_key=art.request_model("scrollbar_simple","",{},0,"gui_scrollbar",pending_thumb_plan.poses)
 	if thumb_key.is_empty(): failure="Original content-sized scrollbar thumb could not be requested"; return
+	thumb.set_meta("native_gui_art_key",thumb_key)
 	set_process(true)
 	if art.textures.has(thumb_key): loaded(thumb_key,art.textures[thumb_key],art.bounds.get(thumb_key,{}))
 func relayout(entry: Dictionary) -> void:
@@ -173,6 +175,7 @@ func service_layout() -> void:
 func publish_layout() -> void:
 	if closed or layout_inflight.is_empty() or not art.textures.has(layout_inflight.rail_key) or not art.textures.has(layout_inflight.thumb_key): return
 	plan=layout_inflight.plan; rail_key=layout_inflight.rail_key; thumb_key=layout_inflight.thumb_key; thumb_image_key=thumb_key
+	rail.set_meta("native_gui_art_key",rail_key); thumb.set_meta("native_gui_art_key",thumb_key)
 	rail.texture=art.textures[rail_key]; thumb.texture=art.textures[thumb_key]; pending_thumb_plan=plan; requested_thumb_pixels=float(plan.thumb_pixels); layout_inflight={}
 	position=plan.attachment+plan.bounds.position; size=plan.bounds.size
 	var origin: Vector2=-plan.bounds.position

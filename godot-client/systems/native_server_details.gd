@@ -5,6 +5,7 @@ const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/server_details_layout.gd")
 const Text=preload("res://systems/server_text.gd")
 const Rich=preload("res://systems/native_data/rich_text.gd")
+const Cohort=preload("res://systems/native_data/constructed_ui_cohort.gd")
 var frame
 var text_owner
 var assets
@@ -29,6 +30,8 @@ var labels: Dictionary={}
 var scrollbar
 var notice: Label
 var types: Array=[]
+var type_table_failure:=""
+var static_cohort: Dictionary={}
 func configure(painter,text,catalog,cache_path: String) -> void:
 	frame=painter; text_owner=text; mouse_filter=Control.MOUSE_FILTER_STOP; hide()
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(received)
@@ -45,7 +48,8 @@ func received(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var name: String=jobs[id]; jobs.erase(id)
 	if name=="@types":
-		if str(result.get("error","")).is_empty():
+		type_table_failure=str(result.get("error",""))
+		if type_table_failure.is_empty():
 			for row in result.value.get("orderedCells",[]):
 				if row.size()>2 and str(row[1]).is_valid_int() and str(row[2]).is_valid_int(): types.append(int(row[1]))
 	elif not str(result.get("error","")).is_empty(): failure=name+": "+str(result.error); return
@@ -77,11 +81,14 @@ func build() -> void:
 	scrollbar=preload("res://systems/native_scrollbar.gd").new(); add_child(scrollbar); scrollbar.configure(frame,models,entry,scroll)
 	if not scrollbar.failure.is_empty(): failure=scrollbar.failure; return
 	notice=Label.new(); add_child(notice); frame.font_style(notice,{"AurString_Font":"fnt_galahad14"}); notice.position=Vector2(0,size.y+4); notice.size=Vector2(size.x,40); notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; notice.clip_text=true; notice.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	static_cohort=Cohort.capture("srv_srvdetails+gamespyrooms",self,frame,models,[scrollbar])
 	layout_ready=true; place(); prepared.emit()
+func cohort_snapshot() -> Dictionary: return Cohort.snapshot(static_cohort,frame,failure if type_table_failure.is_empty() else type_table_failure)
+func art_ready() -> bool: return bool(cohort_snapshot().ready)
 func place() -> void:
 	if layout_ready: position=((get_viewport_rect().size-size)*0.5).max(Vector2.ZERO)
 func present(view: Dictionary) -> bool:
-	if closed or not layout_ready: return false
+	if closed or not art_ready(): return false
 	var data: Dictionary=view.get("details",{}) if view.get("details") is Dictionary else {}
 	if data.is_empty():
 		for row in view.get("rows",[]):

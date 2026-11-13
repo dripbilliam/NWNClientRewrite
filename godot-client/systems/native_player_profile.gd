@@ -56,9 +56,11 @@ func build() -> void:
 	notice_body=frame.create_label(notice_definition.entries.messagelabel,notice); notice_body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	notice_button=frame.create_button(notice_definition.entries.okbutton,notice,models); frame.button_caption(notice_button,text_owner.raw({"strRef":int(notice_definition.entries.okbutton.caption.get("Obj_StrRef",66))}))
 	notice_button.button_down.connect(func():held["@notice"]={"revision":revision,"scope":scope.duplicate()})
-	notice_button.pressed.connect(confirm_notice); notice.hide(); layout_ready=true; place(); prepared.emit()
+	notice_button.pressed.connect(confirm_notice); notice.hide()
+	static_cohort=Cohort.capture("multi_login+okpanel",self,frame,models)
+	layout_ready=true; place(); prepared.emit()
 func open_profile(player_name: String,capture: Array,reason: int=0) -> bool:
-	if closed or not layout_ready or not failure.is_empty(): return false
+	if closed or not art_ready() or not failure.is_empty(): return false
 	for child in get_children():
 		if child is CanvasItem: child.show()
 	dismiss(); revision+=1; scope=capture.duplicate(); edits.pnameeditbox.text=player_name; buttons.passwordcheck.set_pressed_no_signal(false)
@@ -91,7 +93,7 @@ func close_notice() -> void:
 	edits.pnameeditbox.editable=not pending
 	if not pending: edits.pnameeditbox.grab_focus()
 func open_external_notice(message: String,capture: Array) -> void:
-	if closed or not layout_ready: return
+	if closed or not art_ready(): return
 	dismiss(); scope=capture.duplicate(); external_notice=true
 	for child in get_children():
 		if child is CanvasItem and child!=notice and child!=notice_shield: child.hide()

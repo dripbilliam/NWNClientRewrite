@@ -13,6 +13,7 @@ signal action_requested(operation: String,fields: Dictionary,capture: Array)
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/server_browser_layout.gd")
 const Bar=preload("res://systems/native_scrollbar.gd")
+const Cohort=preload("res://systems/native_data/constructed_ui_cohort.gd")
 var frame
 var text_owner
 var assets
@@ -40,6 +41,7 @@ var refresh_timer: Timer
 var refresh_available_at:=0
 var game_types: Array=[]
 var type_table_failure:=""
+var static_cohort: Dictionary={}
 var reveal_selection:=false
 var list_keyboard:=false
 func configure(painter,text,catalog,cache_path: String) -> void:
@@ -127,7 +129,14 @@ func build() -> void:
 	login_profiles_button=Button.new(); add_child(login_profiles_button); login_profiles_button.position=Vector2(size.x-240,5); login_profiles_button.size=Vector2(194,30); login_profiles_button.focus_mode=Control.FOCUS_NONE
 	login_profiles_button.theme=preload("res://systems/native_client_menu_style.gd").for_tree(get_tree()); frame.font_style(login_profiles_button,{"AurString_Font":"fnt_galahad14"})
 	login_profiles_button.button_down.connect(func():held["@profiles"]={"scope":scope.duplicate(),"revision":revision}); login_profiles_button.pressed.connect(invoke.bind("@profiles"))
+	var scrollbars: Array=[]
+	for page in pages.values():
+		scrollbars.append(page.bar)
+		if page.side.has("filterlist"): scrollbars.append(page.side.filterlist.bar)
+	static_cohort=Cohort.capture("serverlist_panel+page1/3/4+gamespyrooms",self,frame,models,scrollbars)
 	layout_ready=true; place(); prepared.emit()
+func cohort_snapshot() -> Dictionary: return Cohort.snapshot(static_cohort,frame,failure if type_table_failure.is_empty() else type_table_failure)
+func art_ready() -> bool: return bool(cohort_snapshot().ready)
 func side_list(stage: Control,entry: Dictionary) -> Dictionary:
 	var scroll:=ScrollContainer.new(); stage.add_child(scroll); scroll.position=entry.rect.position; scroll.size=entry.rect.size; scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED; scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	var body:=Label.new(); scroll.add_child(body); body.custom_minimum_size=Vector2(entry.rect.size.x,0); body.size_flags_horizontal=Control.SIZE_EXPAND_FILL; body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; body.mouse_filter=Control.MOUSE_FILTER_IGNORE; frame.font_style(body,entry.caption)
@@ -137,7 +146,7 @@ func side_list(stage: Control,entry: Dictionary) -> Dictionary:
 func place() -> void:
 	if layout_ready: position=((get_viewport_rect().size-size)*0.5).max(Vector2.ZERO)
 func emit_action(operation: String,fields: Dictionary={}) -> void:
-	if not closed and visible and layout_ready: action_requested.emit(operation,fields,scope.duplicate())
+	if not closed and visible and art_ready(): action_requested.emit(operation,fields,scope.duplicate())
 func select_game_type(index: int,capture: Array,version: int) -> void:
 	if closed or not visible or not layout_ready or capture!=scope or version!=revision or state.get("busy",false) or active_tab!="Internet" or index<0 or index>game_types.size(): return
 	emit_action("game-type",{"gameType":null if index==0 else index-1})
@@ -198,7 +207,7 @@ func invoke(tag: String) -> void:
 		emit_action("visibility",{"filters":values})
 	else: emit_action("inspect" if name=="srvdetailsbutton" else "join" if name=="connectbutton" else "favorite",{"on":active_tab!="Favorites"})
 func set_view(value: Dictionary) -> void:
-	if closed or not layout_ready or not Plan.PAGES.has(str(value.get("tab",""))): return
+	if closed or not art_ready() or not Plan.PAGES.has(str(value.get("tab",""))): return
 	if rendered_revision==revision and value==state: duplicate_views_skipped+=1; return
 	var began:=Time.get_ticks_usec(); view_updates+=1
 	var next_scope: Array=[int(value.connection),int(value.viewId)]

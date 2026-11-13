@@ -1,6 +1,10 @@
 extends "res://tests/native_quickbar_frame_test.gd"
 const Browser=preload("res://systems/server_browser.gd")
 const Painter=preload("res://systems/native_gui_painter.gd")
+func wait_cohorts(predicate: Callable) -> bool:
+	var end:=Time.get_ticks_msec()+15000
+	while not predicate.call() and Time.get_ticks_msec()<end: await process_frame
+	return predicate.call()
 func capture(output: String,painter) -> void:
 	if DisplayServer.get_name()=="headless": return
 	check(await wait_until(func():return painter.art.waiting.is_empty() and painter.art.models.pending.is_empty() and not painter.art.models.active and painter.fonts.pending.is_empty()),"Original Details art/fonts settle")
@@ -17,9 +21,9 @@ func run() -> void:
 	var painter:=Painter.new(); surface.add_child(painter); painter.configure_source(catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var ui:=Browser.new(); surface.add_child(ui); ui.request.connect(func(message):requests.append(message.duplicate(true))); ui.configure_native(painter,text,catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var dialog=ui.details_dialog; var password=ui.password_dialog
-	check(await wait_until(func():return dialog.layout_ready and password.layout_ready and ui.native_browser.layout_ready or not dialog.failure.is_empty() or not password.failure.is_empty()),"Original Details and password owners prepare")
-	check(dialog.layout_ready and password.layout_ready and dialog.failure.is_empty() and password.failure.is_empty(),"Required source control geometry is available: "+dialog.failure+password.failure)
-	if dialog.layout_ready and password.layout_ready:
+	check(await wait_cohorts(func():return dialog.art_ready() and password.art_ready() and ui.native_browser.art_ready() or not dialog.cohort_snapshot().failures.is_empty() or not password.cohort_snapshot().failures.is_empty()),"Used Details, password and browser image/font cohorts prepare")
+	check(dialog.art_ready() and password.art_ready() and ui.native_browser.art_ready(),"Required source controls and artwork are available: "+str(dialog.cohort_snapshot().failures)+str(password.cohort_snapshot().failures))
+	if dialog.art_ready() and password.art_ready() and ui.native_browser.art_ready():
 		check(dialog.definition.entries.size()==22 and dialog.definition.labels.size()==18 and dialog.checks.size()==6 and dialog.fields.size()==11 and dialog.buttons.size()==4,"All40 Details children survive, including the duplicate LegalCharCheck label identity")
 		check(dialog.definition.entries.nextbutton.callback=="0x1408d0a50" and dialog.definition.entries.prevbutton.callback=="0x1408d15f0" and dialog.definition.entries.connectbutton.callback=="0x1408ce150","Original navigation and Connect actions remain paired with source controls")
 		ui.open(false,true); ui.entry_stage="browser"

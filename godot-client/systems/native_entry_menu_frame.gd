@@ -200,7 +200,7 @@ func art_failure(key: String) -> String:
 		if not reason.is_empty(): return reason
 	return "Original UI image could not be prepared"
 func art_ready() -> bool:
-	if kind=="pre_main": return bool(cohort_snapshot().ready)
+	if kind in ["pre_main","pre_multiplayer"]: return bool(cohort_snapshot().ready)
 	# The options page retains its existing admission rule until its own
 	# installed-content cohort has a separate readiness gate.
 	if not layout_ready or closed or not is_instance_valid(frame) or not failure.is_empty(): return false
@@ -217,7 +217,7 @@ func art_ready() -> bool:
 	return true
 func _process(_delta: float) -> void:
 	if art_announced: return
-	if kind!="pre_main":
+	if kind not in ["pre_main","pre_multiplayer"]:
 		if art_ready(): art_announced=true; set_process(false); artwork_ready.emit()
 		return
 	var cohort: Dictionary=cohort_snapshot()

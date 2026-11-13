@@ -64,6 +64,11 @@ var details_shield: Control
 var selection_pending: Dictionary={}
 var last_list_tab:="Internet"
 var login_profile_signature:=""
+var cohort_notice: Label
+var cohort_timer: Timer
+var pending_dialog:=""
+var deferred_profile_notice:=""
+var deferred_profile_capture: Array=[]
 
 func _ready() -> void:
 	layer = 25
@@ -132,9 +137,37 @@ func configure_native(painter,text,catalog,cache_path: String) -> void:
 	password_dialog=load("res://systems/native_server_password.gd").new(); parent.add_child(password_dialog); password_dialog.configure(painter,text,catalog,cache_path); password_dialog.password_confirmed.connect(confirm_password); password_dialog.canceled.connect(func():password_entry=-1; refresh_entry())
 	details_shield=Control.new(); parent.add_child(details_shield); details_shield.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); details_shield.mouse_filter=Control.MOUSE_FILTER_STOP; details_shield.hide()
 	parent.move_child(details_dialog,4); parent.move_child(details_shield,5); parent.move_child(direct_dialog,6); parent.move_child(filter_dialog,7); parent.move_child(password_dialog,8); parent.move_child(profile_dialog,9)
+	cohort_notice=Label.new(); parent.add_child(cohort_notice); cohort_notice.mouse_filter=Control.MOUSE_FILTER_IGNORE; cohort_notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; cohort_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; cohort_notice.hide()
+	cohort_timer=Timer.new(); add_child(cohort_timer); cohort_timer.wait_time=0.05; cohort_timer.timeout.connect(poll_cohorts); cohort_timer.start()
+
+func poll_cohorts() -> void:
+	if not deferred_profile_notice.is_empty() and is_instance_valid(profile_dialog) and profile_dialog.art_ready():
+		if wanted and deferred_profile_capture==[connection,view_id]: profile_dialog.open_external_notice(deferred_profile_notice,deferred_profile_capture)
+		deferred_profile_notice=""; deferred_profile_capture.clear(); pending_dialog=""
+	if wanted and profile_first and deferred_profile_notice.is_empty() and view_id>=0 and is_instance_valid(profile_dialog) and profile_dialog.art_ready() and not profile_dialog.visible and not state.get("busy",false): open_profile()
+	refresh_entry()
+	for owner in [entry_menu,native_browser,direct_dialog,profile_dialog,filter_dialog,details_dialog,password_dialog]:
+		if not is_instance_valid(owner): continue
+		var cohort: Dictionary=owner.cohort_snapshot()
+		if not cohort.ready and cohort.failures.is_empty(): return
+	cohort_timer.stop()
+
+func active_cohort() -> Dictionary:
+	var owner=null
+	match pending_dialog:
+		"profile": owner=profile_dialog
+	if owner==null:
+		owner=profile_dialog if profile_first else entry_menu if entry_stage=="entry" else native_browser
+	return owner.cohort_snapshot() if is_instance_valid(owner) else {"scope":"multiplayer","ready":false,"failures":[],"pending":["GUI layout"]}
+
+func profile_notice(message: String) -> void:
+	if not is_instance_valid(profile_dialog): return
+	if profile_dialog.art_ready(): profile_dialog.open_external_notice(message,[connection,view_id]); return
+	deferred_profile_notice=message; deferred_profile_capture=[connection,view_id]; pending_dialog="profile"; refresh_entry()
 
 func open_details() -> void:
 	if not wanted or state.get("busy",false) or selected<0 or not is_instance_valid(details_dialog): return
+	if not details_dialog.art_ready(): return
 	details_wanted=true; details_pending=true
 	if details_dialog.layout_ready: details_dialog.present(state)
 	_inspect(); refresh_entry()
@@ -211,7 +244,8 @@ func browser_visible() -> bool:
 	return panel.visible or is_instance_valid(native_browser) and native_browser.visible
 
 func open_filters() -> void:
-	if not wanted or view_id<0 or state.get("busy",false) or state.get("tab","")!="Internet" or not is_instance_valid(filter_dialog) or not filter_dialog.layout_ready: return
+	if not wanted or view_id<0 or state.get("busy",false) or state.get("tab","")!="Internet" or not is_instance_valid(filter_dialog): return
+	if not filter_dialog.art_ready(): return
 	if filter_dialog.visible or is_instance_valid(direct_dialog) and direct_dialog.visible or is_instance_valid(profile_dialog) and profile_dialog.visible: return
 	if filter_dialog.open_filters(state.get("advancedFilters",{}),[connection,view_id]): refresh_entry()
 
@@ -220,7 +254,8 @@ func confirm_filters(values: Dictionary,capture: Array) -> void:
 	filter_pending=true; _send("advanced-filter",{"values":values}); refresh_entry()
 
 func open_profile(destination: String="") -> void:
-	if not wanted or view_id<0 or state.get("busy",false) or not is_instance_valid(profile_dialog) or not profile_dialog.layout_ready: return
+	if not wanted or view_id<0 or state.get("busy",false) or not is_instance_valid(profile_dialog): return
+	if not profile_dialog.art_ready(): return
 	profile_return=entry_stage if destination.is_empty() else destination
 	if is_instance_valid(direct_dialog): direct_dialog.dismiss()
 	if profile_dialog.open_profile(name_edit.text,[connection,view_id]): panel.hide(); refresh_entry()
@@ -243,8 +278,7 @@ func open_direct() -> void:
 	if not wanted or view_id<0 or state.get("busy",false) or not state.get("canJoin",false) or not is_instance_valid(direct_dialog): return
 	if is_instance_valid(profile_dialog) and profile_dialog.visible: return
 	if name_edit.text.is_empty() and is_instance_valid(profile_dialog): open_profile("direct"); return
-	if not direct_dialog.layout_ready:
-		status.text="Preparing Direct Connect resources…" if direct_dialog.failure.is_empty() else direct_dialog.failure; return
+	if not direct_dialog.art_ready(): return
 	var address:=host_edit.text+(":"+str(int(port_edit.value)) if int(port_edit.value)!=5121 else "")
 	direct_return=entry_stage
 	if direct_dialog.open(address,password_edit.text,[connection,view_id]): password_edit.clear(); entry_stage="direct"; refresh_entry()
@@ -262,29 +296,46 @@ func entry_action(tag: String) -> void:
 func refresh_entry() -> void:
 	if is_instance_valid(entry_menu):
 		var ready: bool=entry_menu.layout_ready and entry_menu.failure.is_empty() and not state.get("busy",false)
-		entry_menu.set_context([connection,view_id],{"newbutton":false,"loadbutton":false,"intjoinbutton":ready,"lanjoinbutton":false,"dirconnectbutton":ready and state.get("canJoin",false),"cancelbutton":ready})
+		entry_menu.set_context([connection,view_id],{"newbutton":false,"loadbutton":false,"intjoinbutton":ready,"lanjoinbutton":false,"dirconnectbutton":ready and state.get("canJoin",false) and is_instance_valid(direct_dialog) and direct_dialog.art_ready(),"cancelbutton":ready})
 		for tag in ["newbutton","loadbutton","lanjoinbutton"]:
 			if entry_menu.buttons.has(tag): entry_menu.buttons[tag].tooltip_text="LAN discovery is not implemented yet." if tag=="lanjoinbutton" else "Hosting a new or saved game is not implemented yet."
 		entry_menu.position=((get_viewport().get_visible_rect().size-entry_menu.size)*0.5).max(Vector2.ZERO)
 		entry_menu.visible=wanted and not join_handoff_pending and entry_context and not profile_first and entry_menu.art_ready() and (entry_stage=="entry" or entry_stage=="direct" and direct_return=="entry")
 	var upper_modal: bool=is_instance_valid(profile_dialog) and profile_dialog.visible or is_instance_valid(direct_dialog) and direct_dialog.visible or is_instance_valid(filter_dialog) and filter_dialog.visible or is_instance_valid(password_dialog) and password_dialog.visible
 	if is_instance_valid(details_dialog):
-		if details_wanted and wanted and not join_handoff_pending and details_dialog.layout_ready: details_dialog.present(state)
+		if details_wanted and wanted and not join_handoff_pending and details_dialog.art_ready(): details_dialog.present(state)
 		elif details_dialog.visible: details_dialog.dismiss()
 	var modal: bool=upper_modal or is_instance_valid(details_dialog) and details_dialog.visible
 	if modal: selection_pending.clear()
 	if is_instance_valid(details_shield): details_shield.visible=upper_modal and is_instance_valid(details_dialog) and details_dialog.visible
 	if is_instance_valid(modal_shield): modal_shield.visible=modal
-	var source_visible: bool=entry_context and wanted and not join_handoff_pending and not profile_first and is_instance_valid(native_browser) and native_browser.layout_ready and str(state.get("tab","")) in ["Internet","History","Favorites"] and (entry_stage=="browser" or entry_stage=="direct" and direct_return=="browser")
+	var source_visible: bool=entry_context and wanted and not join_handoff_pending and not profile_first and is_instance_valid(native_browser) and native_browser.art_ready() and str(state.get("tab","")) in ["Internet","History","Favorites"] and (entry_stage=="browser" or entry_stage=="direct" and direct_return=="browser")
 	if is_instance_valid(native_browser):
 		if source_visible: native_browser.set_view(state)
 		native_browser.visible=source_visible
+		if source_visible and native_browser.pages.has(native_browser.active_tab):
+			var page: Dictionary=native_browser.pages[native_browser.active_tab]
+			var chosen: Dictionary={}
+			for row in state.get("rows",[]):
+				if row.get("selected",false): chosen=row; break
+			if page.buttons.has("dirconnectbutton"): page.buttons.dirconnectbutton.disabled=state.get("busy",false) or not state.get("canJoin",false) or not is_instance_valid(direct_dialog) or not direct_dialog.art_ready()
+			if page.buttons.has("filtersbutton"): page.buttons.filtersbutton.disabled=state.get("busy",false) or not is_instance_valid(filter_dialog) or not filter_dialog.art_ready()
+			if page.buttons.has("srvdetailsbutton"): page.buttons.srvdetailsbutton.disabled=state.get("busy",false) or chosen.is_empty() or not chosen.get("allowed",false) or not is_instance_valid(details_dialog) or not details_dialog.art_ready()
+			if page.buttons.has("connectbutton"): page.buttons.connectbutton.disabled=state.get("busy",false) or chosen.is_empty() or not chosen.get("allowed",false) or not state.get("canJoin",false) or chosen.get("passwordRequired",false) and (not is_instance_valid(password_dialog) or not password_dialog.art_ready())
+			if is_instance_valid(native_browser.login_profiles_button): native_browser.login_profiles_button.disabled=state.get("busy",false) or not is_instance_valid(profile_dialog) or not profile_dialog.art_ready()
 		if modal or not source_visible: native_browser.release_focus()
 	# The source-defined frontend never exposes the prototype while a native
 	# page or an authoritative opening view is preparing.
 	panel.visible=wanted and not join_handoff_pending and not modal and not source_visible and not entry_context
+	if is_instance_valid(cohort_notice):
+		var cohort: Dictionary=active_cohort() if wanted and entry_context and not join_handoff_pending else {"ready":true,"failures":[]}
+		cohort_notice.visible=wanted and entry_context and not modal and not join_handoff_pending and not cohort.ready
+		if cohort_notice.visible:
+			cohort_notice.text="Menu resources unavailable ("+str(cohort.scope)+"): "+str(cohort.failures[0]) if not cohort.failures.is_empty() else "Preparing "+str(cohort.scope)+" resources…"
+			cohort_notice.position=Vector2(24,24); cohort_notice.size=Vector2(maxf(300,get_viewport().get_visible_rect().size.x-48),90)
 
 func back() -> void:
+	pending_dialog=""
 	if entry_context and entry_stage=="browser":
 		entry_stage="entry"; clear_secrets()
 		if view_id>=0: _send("return-menu")
@@ -301,7 +352,7 @@ func confirm_direct(address: String,password: String,capture: Array) -> void:
 	elif name_edit.text.is_empty() or name_edit.text.length()>64: error="Choose a valid player name before connecting."
 	if not error.is_empty():
 		status.text=error; entry_stage=direct_return
-		if is_instance_valid(profile_dialog) and profile_dialog.layout_ready: profile_dialog.open_external_notice(error,[connection,view_id])
+		profile_notice(error)
 		refresh_entry(); return
 	host_edit.text=str(endpoint.host); port_edit.value=int(endpoint.port)
 	var values:=endpoint.duplicate(); values.merge({"name":name_edit.text,"password":password,"cdKey":key_edit.text},true)
@@ -318,6 +369,8 @@ func escape() -> bool:
 	return true
 
 func close_native() -> void:
+	if is_instance_valid(cohort_timer): cohort_timer.stop()
+	if is_instance_valid(cohort_notice): cohort_notice.hide()
 	if is_instance_valid(direct_dialog): direct_dialog.close()
 	if is_instance_valid(profile_dialog): profile_dialog.close()
 	if is_instance_valid(entry_menu): entry_menu.close()
@@ -349,6 +402,8 @@ func open(ask_profile: bool=false,original_entry: bool=false,list_tab: String=""
 	wanted = true; join_handoff_pending=false; entry_context=original_entry; entry_stage="entry" if original_entry and not list_page else "browser"; profile_return=entry_stage; pending_direct=false; return_to_main=false; profile_first=ask_profile; view_id = -1; loaded_draft = false; clear_secrets(); panel.visible=not original_entry; status.text = "Reading saved servers…"; _enable(false); place(); _send("open",{"listTab":list_tab} if list_page else {})
 
 func clear_secrets() -> void:
+	pending_dialog=""
+	deferred_profile_notice=""; deferred_profile_capture.clear()
 	password_edit.clear(); key_edit.clear()
 	selection_pending.clear()
 	if is_instance_valid(direct_dialog): direct_dialog.dismiss()
@@ -412,8 +467,7 @@ func _join() -> void:
 	if connect_button.disabled: return
 	if state.get("tab","Direct")=="Direct" and is_instance_valid(direct_dialog): open_direct(); return
 	if entry_context and entries.get(selected,{}).get("passwordRequired",false) and is_instance_valid(password_dialog):
-		if password_dialog.layout_ready: password_entry=selected; password_dialog.open_password([connection,view_id]); refresh_entry()
-		else: status.text="Preparing server password resources…" if password_dialog.failure.is_empty() else password_dialog.failure
+		if password_dialog.art_ready(): password_entry=selected; password_dialog.open_password([connection,view_id]); refresh_entry()
 		return
 	submit_selected_join(password_edit.text)
 
@@ -433,11 +487,12 @@ func _enable(enabled: bool) -> void:
 	for edit in [host_edit, name_edit, password_edit, key_edit, filter_edit]: edit.editable = enabled
 	port_edit.editable = enabled; sort_edit.disabled = not enabled; tree.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
 	for toggle in filters.values(): toggle.disabled = not enabled
-	if is_instance_valid(direct_dialog): direct_button.disabled=not enabled or not state.get("canJoin",false) or not direct_dialog.layout_ready
-	if is_instance_valid(profile_dialog): profile_button.disabled=not enabled or not profile_dialog.layout_ready; name_edit.editable=false
+	if is_instance_valid(direct_dialog): direct_button.disabled=not enabled or not state.get("canJoin",false) or not direct_dialog.art_ready()
+	if is_instance_valid(profile_dialog): profile_button.disabled=not enabled or not profile_dialog.art_ready(); name_edit.editable=false
 	if is_instance_valid(filter_dialog):
-		filter_button.visible=state.get("tab","")=="Internet"; filter_button.disabled=not enabled or not filter_dialog.layout_ready
-		filter_button.tooltip_text=filter_dialog.failure if not filter_dialog.failure.is_empty() else "Preparing original filter resources…" if not filter_dialog.layout_ready else ""
+		filter_button.visible=state.get("tab","")=="Internet"; filter_button.disabled=not enabled or not filter_dialog.art_ready()
+		var cohort: Dictionary=filter_dialog.cohort_snapshot()
+		filter_button.tooltip_text=str(cohort.failures[0]) if not cohort.failures.is_empty() else "Preparing original filter resources…" if not cohort.ready else ""
 
 func receive(message: Dictionary) -> void:
 	if int(message.get("connection", -1)) != connection: return
@@ -490,13 +545,13 @@ func receive(message: Dictionary) -> void:
 	if details_pending and enabled: details_pending=false
 	if filter_pending and enabled:
 		filter_pending=false
-		if not status.text.is_empty() and is_instance_valid(profile_dialog) and profile_dialog.layout_ready: profile_dialog.open_external_notice(status.text,[connection,view_id])
+		if not status.text.is_empty(): profile_notice(status.text)
 	refresh_button.visible = message.tab == "Internet"; refresh_button.disabled = not enabled or not message.get("canDiscover", false)
 	previous_button.disabled = not enabled or int(message.get("page", 0)) == 0; next_button.disabled = not enabled or int(message.get("page", 0)) + 1 >= int(message.get("pages", 1))
 	inspect_button.disabled = not enabled or not direct and (selected < 0 or not entries.get(selected, {}).get("allowed", false)); connect_button.disabled = not enabled or not message.get("canJoin", false) or not direct and (selected < 0 or not entries.get(selected, {}).get("allowed", false)); favorite_button.disabled = not enabled or not direct and selected < 0
 	if entry_context and entry_stage=="direct" and enabled and not status.text.is_empty() and not direct_dialog.visible:
 		entry_stage="entry"
-		if profile_dialog.layout_ready: profile_dialog.open_external_notice(status.text,[connection,view_id])
+		if is_instance_valid(profile_dialog): profile_notice(status.text)
 		else: entry_stage="browser"
 	place()
 	if profile_first and is_instance_valid(profile_dialog) and profile_dialog.layout_ready and not profile_dialog.visible and not state.get("busy",false): open_profile()

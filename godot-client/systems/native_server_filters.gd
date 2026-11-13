@@ -24,9 +24,10 @@ func build() -> void:
 		var ref:=int(data.caption.get("Obj_StrRef",-1))
 		if ref>=0 and ref!=4294967295: frame.button_caption(button,text_owner.raw({"strRef":ref}))
 		button.button_down.connect(func():held[tag]={"revision":revision,"scope":scope.duplicate()}); button.pressed.connect(invoke.bind(tag))
+	static_cohort=Cohort.capture("serverlist_filt",self,frame,models)
 	layout_ready=true; place(); prepared.emit()
 func open_filters(values: Dictionary,capture: Array) -> bool:
-	if closed or not layout_ready or not failure.is_empty(): return false
+	if closed or not art_ready() or not failure.is_empty(): return false
 	dismiss(); scope=capture.duplicate(); buttons.havepeoplebox.set_pressed_no_signal(values.get("hideEmpty",false)); buttons.notfullbox.set_pressed_no_signal(values.get("hideFull",false)); edits.moduleedit.text=str(values.get("module",""))
 	show(); move_to_front(); place(); return true
 func invoke(tag: String) -> void:

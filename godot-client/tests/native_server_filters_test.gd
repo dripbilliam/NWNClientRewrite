@@ -1,6 +1,10 @@
 extends "res://tests/native_quickbar_frame_test.gd"
 const Browser=preload("res://systems/server_browser.gd")
 const Painter=preload("res://systems/native_gui_painter.gd")
+func wait_cohorts(predicate: Callable) -> bool:
+	var end:=Time.get_ticks_msec()+15000
+	while not predicate.call() and Time.get_ticks_msec()<end: await process_frame
+	return predicate.call()
 func press(code: Key) -> void:
 	await key(code,true); await key(code,false)
 func run() -> void:
@@ -15,9 +19,9 @@ func run() -> void:
 	var painter:=Painter.new(); surface.add_child(painter); painter.configure_source(catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var ui:=Browser.new(); surface.add_child(ui); ui.request.connect(func(message):requests.append(message.duplicate(true))); ui.configure_native(painter,text,catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var dialog=ui.filter_dialog
-	check(await wait_until(func():return dialog.layout_ready and ui.profile_dialog.layout_ready or not dialog.failure.is_empty()),"Native filter and refusal-notice source assets prepare")
-	check(dialog.layout_ready and dialog.failure.is_empty(),"All required filter controls are present: "+dialog.failure)
-	if dialog.layout_ready and ui.profile_dialog.layout_ready:
+	check(await wait_cohorts(func():return dialog.art_ready() and ui.profile_dialog.art_ready() or not dialog.cohort_snapshot().failures.is_empty()),"Filter and refusal-notice image/font cohorts prepare")
+	check(dialog.art_ready(),"All required filter controls and artwork are present: "+str(dialog.cohort_snapshot().failures))
+	if dialog.art_ready() and ui.profile_dialog.art_ready():
 		check(dialog.definition.entries.size()==10 and dialog.buttons.size()==5 and dialog.labels.size()==4 and dialog.edits.size()==1,"Original nested labels, two checkboxes, edit and all three dismissal/accept controls are retained")
 		check(dialog.definition.entries.okbutton.callback=="0x1408d0b10" and dialog.definition.entries.cancelbutton.callback=="0x1408cdda0" and dialog.definition.entries.xbutton.callback=="0x1408cdda0","Original filter action associations are distinct from Direct Connect")
 		ui.open(); var view:={"kind":"browser-view","connection":0,"viewId":1,"tab":"Internet","direct":{"host":"127.0.0.1","port":5125,"name":"Nibs"},"hasSessionProfile":true,"canJoin":true,"canDiscover":false,"localOnly":true,"hasSavedCdKey":true,"page":0,"pages":1,"rows":[],"busy":false,"advancedFilters":{"hideEmpty":false,"hideFull":false,"module":""}}

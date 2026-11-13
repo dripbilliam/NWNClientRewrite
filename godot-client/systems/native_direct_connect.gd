@@ -6,6 +6,7 @@ signal confirmed(address: String,password: String,capture: Array)
 signal canceled
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/connection_dialog_layout.gd")
+const Cohort=preload("res://systems/native_data/constructed_ui_cohort.gd")
 var frame
 var text_owner
 var assets
@@ -22,6 +23,7 @@ var revision:=0
 var layout_ready:=false
 var failure:=""
 var closed:=false
+var static_cohort: Dictionary={}
 func configure(painter,text,catalog,cache_path: String) -> void:
 	frame=painter; text_owner=text; mouse_filter=Control.MOUSE_FILTER_STOP; hide()
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(received)
@@ -62,7 +64,10 @@ func build() -> void:
 		if ref>=0 and ref!=4294967295: frame.button_caption(button,text_owner.raw({"strRef":ref}))
 		button.button_down.connect(func():held[tag]={"revision":revision,"scope":scope.duplicate()})
 		button.pressed.connect(invoke.bind(tag))
+	static_cohort=Cohort.capture("directconnect",self,frame,models)
 	layout_ready=true; place(); prepared.emit()
+func cohort_snapshot() -> Dictionary: return Cohort.snapshot(static_cohort,frame,failure)
+func art_ready() -> bool: return bool(cohort_snapshot().ready)
 func place_label(tag: String) -> void:
 	if closed or not labels.has(tag): return
 	var label: Label=labels[tag]; var entry: Dictionary=definition.entries[tag]; var extent:=label.get_combined_minimum_size()
@@ -70,7 +75,7 @@ func place_label(tag: String) -> void:
 func place() -> void:
 	if layout_ready: position=((get_viewport_rect().size-size)*0.5).max(Vector2.ZERO)
 func open(address: String,password: String,capture: Array) -> bool:
-	if closed or not layout_ready or not failure.is_empty(): return false
+	if closed or not art_ready() or not failure.is_empty(): return false
 	dismiss(); revision+=1; scope=capture.duplicate(); edits.ipeditbox.text=address; edits.passwordeditbox.text=password
 	show(); move_to_front(); place(); edits.ipeditbox.grab_focus(); return true
 func invoke(tag: String) -> void:
@@ -92,7 +97,7 @@ func dismiss() -> void:
 	for button in buttons.values():
 		var disabled: bool=button.disabled; button.disabled=true; button.disabled=disabled
 func snapshot() -> Dictionary:
-	return {"ready":layout_ready,"failure":failure,"visible":visible,"jobs":jobs.size(),"closed":closed,"native_only":true,"full_connection_ui_parity":false}
+	return {"ready":layout_ready,"art_ready":art_ready(),"cohort":cohort_snapshot(),"failure":failure,"visible":visible,"jobs":jobs.size(),"closed":closed,"native_only":true,"full_connection_ui_parity":false}
 func close() -> void:
 	if closed: return
 	dismiss(); closed=true

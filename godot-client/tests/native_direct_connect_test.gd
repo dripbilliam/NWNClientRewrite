@@ -2,6 +2,10 @@ extends "res://tests/native_quickbar_frame_test.gd"
 const Browser=preload("res://systems/server_browser.gd")
 const Painter=preload("res://systems/native_gui_painter.gd")
 const DialogPlan=preload("res://systems/native_data/connection_dialog_layout.gd")
+func wait_cohort(predicate: Callable) -> bool:
+	var end:=Time.get_ticks_msec()+15000
+	while not predicate.call() and Time.get_ticks_msec()<end: await process_frame
+	return predicate.call()
 func press(code: Key) -> void:
 	await key(code,true); await key(code,false)
 func capture(output: String,painter) -> void:
@@ -22,9 +26,9 @@ func run() -> void:
 	var ui:=Browser.new(); surface.add_child(ui); ui.request.connect(func(message):requests.append(message.duplicate(true)))
 	ui.configure_native(painter,text,catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var dialog=ui.direct_dialog
-	check(await wait_until(func():return dialog.layout_ready or not dialog.failure.is_empty()),"Original Direct Connect GUI/model preparation terminates")
-	check(dialog.failure.is_empty() and dialog.layout_ready,"Source Direct Connect frame and every required control prepare: "+dialog.failure)
-	if dialog.layout_ready:
+	check(await wait_cohort(func():return dialog.art_ready() or not dialog.cohort_snapshot().failures.is_empty()),"Original Direct Connect model/image/font cohort terminates")
+	check(dialog.art_ready(),"Source Direct Connect frame and every required image/font prepare: "+str(dialog.cohort_snapshot().failures))
+	if dialog.art_ready():
 		var entries: Dictionary=dialog.definition.entries
 		check(entries.size()==8 and dialog.buttons.size()==3 and dialog.edits.size()==2 and dialog.labels.size()==3,"All eight original Direct Connect controls are retained")
 		check(dialog.labels.tguilabel.text=="Server IP Address" and dialog.labels.tguilabel2.text=="Direct Connect" and dialog.labels.passwordlabel.text=="Player Password:","Source caption references resolve from installed TLK")

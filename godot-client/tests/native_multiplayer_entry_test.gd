@@ -2,6 +2,10 @@ extends "res://tests/native_quickbar_frame_test.gd"
 const Browser=preload("res://systems/server_browser.gd")
 const Painter=preload("res://systems/native_gui_painter.gd")
 const Plan=preload("res://systems/native_data/entry_menu_layout.gd")
+func wait_cohorts(predicate: Callable) -> bool:
+	var end:=Time.get_ticks_msec()+15000
+	while not predicate.call() and Time.get_ticks_msec()<end: await process_frame
+	return predicate.call()
 func press(code: Key) -> void:
 	await key(code,true); await key(code,false)
 func capture(output: String,suffix: String,painter) -> void:
@@ -21,9 +25,9 @@ func run() -> void:
 	var painter:=Painter.new(); surface.add_child(painter); painter.configure_source(catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var ui:=Browser.new(); surface.add_child(ui); ui.request.connect(func(message):requests.append(message.duplicate(true))); ui.configure_native(painter,text,catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var menu=ui.entry_menu
-	check(await wait_until(func():return menu.art_ready() and ui.profile_dialog.layout_ready and ui.direct_dialog.layout_ready and ui.native_browser.layout_ready or not menu.failure.is_empty() or not ui.profile_dialog.failure.is_empty()),"Native multiplayer artwork and both prerequisite dialogs prepare")
-	check(menu.layout_ready and menu.failure.is_empty() and ui.profile_dialog.layout_ready and ui.direct_dialog.layout_ready,"Required original controls are available: "+menu.failure)
-	if menu.layout_ready and ui.profile_dialog.layout_ready and ui.direct_dialog.layout_ready:
+	check(await wait_cohorts(func():return menu.art_ready() and ui.profile_dialog.art_ready() and ui.direct_dialog.art_ready() and ui.native_browser.art_ready() or not menu.cohort_snapshot().failures.is_empty() or not ui.profile_dialog.cohort_snapshot().failures.is_empty()),"Used multiplayer, profile, Direct and browser cohorts prepare before activation")
+	check(menu.art_ready() and ui.profile_dialog.art_ready() and ui.direct_dialog.art_ready() and ui.native_browser.art_ready(),"Required original controls and artwork are available: "+str(menu.cohort_snapshot().failures))
+	if menu.art_ready() and ui.profile_dialog.art_ready() and ui.direct_dialog.art_ready() and ui.native_browser.art_ready():
 		check(menu.buttons.size()==6 and menu.definition.entries.size()==6 and menu.kind=="pre_multiplayer","The complete original six-button Multiplayer resource replaces a generic navigation row")
 		check(menu.definition.entries.dirconnectbutton.callback=="0x140710480" and menu.definition.entries.cancelbutton.callback=="0x14070f740" and menu.definition.entries.intjoinbutton.callback=="0x1407107e0","Source controls retain the inspected original action associations")
 		ui.open(true,true)

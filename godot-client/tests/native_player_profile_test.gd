@@ -2,6 +2,10 @@ extends "res://tests/native_quickbar_frame_test.gd"
 const Browser=preload("res://systems/server_browser.gd")
 const Painter=preload("res://systems/native_gui_painter.gd")
 const Policy=preload("res://systems/native_data/player_profile.gd")
+func wait_cohort(predicate: Callable) -> bool:
+	var end:=Time.get_ticks_msec()+15000
+	while not predicate.call() and Time.get_ticks_msec()<end: await process_frame
+	return predicate.call()
 func press(code: Key) -> void:
 	await key(code,true); await key(code,false)
 func capture(output: String,suffix: String,painter) -> void:
@@ -26,9 +30,9 @@ func run() -> void:
 	var painter:=Painter.new(); surface.add_child(painter); painter.configure_source(catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var ui:=Browser.new(); surface.add_child(ui); ui.request.connect(func(message):requests.append(message.duplicate(true))); ui.configure_native(painter,text,catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var dialog=ui.profile_dialog
-	check(await wait_until(func():return dialog.layout_ready or not dialog.failure.is_empty()),"Native profile preparation terminates")
-	check(dialog.layout_ready and dialog.failure.is_empty(),"Original profile and OK notice layouts prepare: "+dialog.failure)
-	if dialog.layout_ready:
+	check(await wait_cohort(func():return dialog.art_ready() or not dialog.cohort_snapshot().failures.is_empty()),"Native profile and OK notice image/font cohort terminates")
+	check(dialog.art_ready(),"Original profile and OK notice art prepare: "+str(dialog.cohort_snapshot().failures))
+	if dialog.art_ready():
 		check(dialog.definition.entries.size()==9 and dialog.labels.size()==4 and dialog.buttons.size()==4 and dialog.edits.size()==1,"All original profile controls, including the nested checkbox caption, are represented")
 		check(dialog.labels.tguilabel3.text=="Save As Default" and dialog.labels.tguireason.text.is_empty(),"Checkbox uses modern original wording and clears the source's placeholder reason")
 		check(dialog.edits.pnameeditbox.max_length==0,"Original profile edits are corrected on confirmation rather than silently blocked at32 characters")

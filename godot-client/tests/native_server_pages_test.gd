@@ -1,6 +1,10 @@
 extends "res://tests/native_quickbar_frame_test.gd"
 const Browser=preload("res://systems/server_browser.gd")
 const Painter=preload("res://systems/native_gui_painter.gd")
+func wait_cohorts(predicate: Callable) -> bool:
+	var end:=Time.get_ticks_msec()+15000
+	while not predicate.call() and Time.get_ticks_msec()<end: await process_frame
+	return predicate.call()
 func art_ready(painter) -> bool:
 	return painter.art.waiting.is_empty() and painter.art.models.pending.is_empty() and not painter.art.models.active and painter.fonts.pending.is_empty()
 func capture(output: String,suffix: String,painter) -> void:
@@ -19,9 +23,9 @@ func run() -> void:
 	var painter:=Painter.new(); surface.add_child(painter); painter.configure_source(catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var ui:=Browser.new(); surface.add_child(ui); ui.request.connect(func(message):requests.append(message.duplicate(true))); ui.configure_native(painter,text,catalog,ProjectSettings.globalize_path("user://native-prepared-v2"))
 	var native=ui.native_browser
-	check(await wait_until(func():return native.layout_ready and ui.entry_menu.art_ready() and ui.filter_dialog.layout_ready and ui.profile_dialog.layout_ready and ui.direct_dialog.layout_ready and ui.details_dialog.layout_ready and ui.password_dialog.layout_ready or not native.failure.is_empty()),"All original browser/navigation source resources prepare")
-	check(native.layout_ready and native.failure.is_empty(),"The three native page definitions are usable: "+native.failure)
-	if native.layout_ready and ui.entry_menu.art_ready():
+	check(await wait_cohorts(func():return native.art_ready() and ui.entry_menu.art_ready() and ui.filter_dialog.art_ready() and ui.direct_dialog.art_ready() and ui.details_dialog.art_ready() or not native.cohort_snapshot().failures.is_empty()),"Used browser, entry, Filters, Direct and Details cohorts prepare")
+	check(native.art_ready(),"The three native page definitions and artwork are usable: "+str(native.cohort_snapshot().failures))
+	if native.art_ready() and ui.entry_menu.art_ready() and ui.filter_dialog.art_ready() and ui.direct_dialog.art_ready() and ui.details_dialog.art_ready():
 		check(native.tabs.size()==3 and native.definition.entries.size()==5 and native.pages.size()==3,"The five original tab definitions retain the three available visible page controls")
 		check(native.definition.attachment.distance_to(Vector2(0,19))<0.001 and native.definition.size.is_equal_approx(Vector2(792,537)),"Header page attachment produces original fixed page/window extents")
 		check(native.definition.pages.Internet.clip.size.is_equal_approx(Vector2(625,366)) and native.definition.pages.History.clip.size.is_equal_approx(Vector2(785,415)),"Internet and saved-server pages use distinct original list viewports")

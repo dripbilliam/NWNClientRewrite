@@ -16,9 +16,10 @@ func build() -> void:
 	for tag in PasswordPlan.BUTTONS:
 		var source_entry: Dictionary=definition.entries[tag]; var control: Button=frame.create_button(source_entry,self,models); frame.button_caption(control,text_owner.raw({"strRef":int(source_entry.caption.get("Obj_StrRef",-1))})); buttons[tag]=control
 		control.button_down.connect(func():held[tag]={"scope":scope.duplicate(),"revision":revision}); control.pressed.connect(invoke.bind(tag))
+	static_cohort=Cohort.capture("playerpassword",self,frame,models)
 	layout_ready=true; place(); prepared.emit()
 func open_password(capture: Array) -> bool:
-	if closed or not layout_ready: return false
+	if closed or not art_ready(): return false
 	dismiss(); scope=capture.duplicate(); show(); place(); edits.passwordeditbox.grab_focus(); return true
 func invoke(tag: String) -> void:
 	if closed or not visible or not layout_ready or not buttons.has(tag) or buttons[tag].disabled: return
