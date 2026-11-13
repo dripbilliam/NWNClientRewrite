@@ -28,6 +28,9 @@ These are examples of the intended modding direction, not a promise that every c
 
 ## Run
 
+I will note at this time, this project is not *built* for use outside the dev enviroment. It is here right now just to show what there currently is. In the future a proper download and executable will be provided. 
+
+
 Windows/PowerShell development setup, from the repository root:
 
 ```powershell

@@ -1,0 +1,406 @@
+{
+  "issue": "NWN-63",
+  "accepted": false,
+  "failures": [
+    "1:control: CPU profile windows missing",
+    "1:control: memory observation windows missing",
+    "1:control: no static-query profile windows",
+    "1:control: source-pinned per-preview query samples missing",
+    "2:candidate: CPU profile windows missing",
+    "2:candidate: memory observation windows missing",
+    "2:candidate: no profiled indexed candidate reduction during movement",
+    "2:candidate: no static-query profile windows",
+    "2:candidate: source-pinned per-preview query samples missing",
+    "3:candidate: CPU profile windows missing",
+    "3:candidate: memory observation windows missing",
+    "3:candidate: no profiled indexed candidate reduction during movement",
+    "3:candidate: no static-query profile windows",
+    "3:candidate: source-pinned per-preview query samples missing",
+    "4:control: CPU profile windows missing",
+    "4:control: memory observation windows missing",
+    "4:control: no static-query profile windows",
+    "4:control: source-pinned per-preview query samples missing",
+    "2:candidate: final controlled distance differs",
+    "3:candidate: final controlled distance differs",
+    "4:control: final controlled distance differs"
+  ],
+  "pair": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\nwn63\\final-keyboard-collision-b\\pair.json",
+    "sha256": "861c8b3367d356cee3ad05bbde996a44d5bc9b88e41617710cc8b7f7dde4f718"
+  },
+  "summary": {
+    "file": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\.cache\\nwn63\\final-keyboard-collision-b\\abba-b-summary.json",
+    "sha256": "14d66cf7d5ae676926c269058399007a023c103907e2db752924399598c8f8c6"
+  },
+  "rows": [
+    {
+      "label": "1:control",
+      "mode": "control",
+      "report": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\reports\\nwn63-final-keyboard-collision-b-b-control-a.json",
+      "source": "f3c2b35e783dd7d0dec24a1978a6f47edc2e3024ef2f37d8b158b6a8cfaca928",
+      "settings": {
+        "viewport": [
+          3440,
+          1369
+        ],
+        "screen": 1,
+        "vsync": 0,
+        "msaa_3d": 2,
+        "fov_degrees": 45,
+        "gamma": 1.2,
+        "particles": true,
+        "compact": true,
+        "camera_follow": {
+          "distance": 25,
+          "mode": 1,
+          "pitch": 37.8369026184082,
+          "yaw": -234.460494995117
+        }
+      },
+      "scene": {
+        "area": 2147618622,
+        "generation": 2,
+        "entities": 1918,
+        "desired": 1918,
+        "expected": 1784,
+        "resolved": 1784,
+        "pending": 0,
+        "failed": 0
+      },
+      "movement": {
+        "inputs": 360,
+        "accepted": 360,
+        "dispatches": 360,
+        "packets": 320,
+        "samples": 2971,
+        "distance": 91.7393646240234
+      },
+      "frame": {
+        "average_ms": 7.66122281776417,
+        "count": 1306,
+        "median_ms": 7.427,
+        "over_50ms": 0,
+        "p95_ms": 8.456,
+        "p99_ms": 17.851,
+        "scope": "Retained active-world tick samples (up to4096), may include loading unless performance_window.steady is true; functional run, not clean performance acceptance",
+        "worst_ms": 19.024
+      },
+      "loading": {
+        "playable_ms": 3115.37,
+        "full_base_ms": 12905.382
+      },
+      "index": null,
+      "query": {
+        "profile_windows": 0,
+        "sample_count": 0,
+        "median_ms": null,
+        "p95_ms": null,
+        "p99_ms": null,
+        "worst_ms": null
+      },
+      "cpu": {
+        "profile_windows": 0
+      },
+      "memory": {
+        "profile_windows": 0
+      },
+      "diagnosticKinds": {
+        "stdout": [],
+        "stderr": []
+      }
+    },
+    {
+      "label": "2:candidate",
+      "mode": "candidate",
+      "report": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\reports\\nwn63-final-keyboard-collision-b-b-candidate-a.json",
+      "source": "c9d5dbebbda14dac1b2afb79c9e10f95003e1f58aad39723a41124343a039110",
+      "settings": {
+        "viewport": [
+          3440,
+          1369
+        ],
+        "screen": 1,
+        "vsync": 0,
+        "msaa_3d": 2,
+        "fov_degrees": 45,
+        "gamma": 1.2,
+        "particles": true,
+        "compact": true,
+        "camera_follow": {
+          "distance": 25,
+          "mode": 1,
+          "pitch": 37.8369026184082,
+          "yaw": -234.460494995117
+        }
+      },
+      "scene": {
+        "area": 2147618622,
+        "generation": 2,
+        "entities": 1918,
+        "desired": 1918,
+        "expected": 1784,
+        "resolved": 1784,
+        "pending": 0,
+        "failed": 0
+      },
+      "movement": {
+        "inputs": 360,
+        "accepted": 360,
+        "dispatches": 360,
+        "packets": 320,
+        "samples": 2971,
+        "distance": 91.7679290771484
+      },
+      "frame": {
+        "average_ms": 7.91126324110672,
+        "count": 1265,
+        "median_ms": 7.571,
+        "over_50ms": 0,
+        "p95_ms": 8.952,
+        "p99_ms": 17.957,
+        "scope": "Retained active-world tick samples (up to4096), may include loading unless performance_window.steady is true; functional run, not clean performance acceptance",
+        "worst_ms": 26.363
+      },
+      "loading": {
+        "playable_ms": 3518.33,
+        "full_base_ms": 13917.344
+      },
+      "index": {
+        "build_cursor": 418,
+        "build_pending": false,
+        "build_steps": 418,
+        "build_total": 0,
+        "entries": 436,
+        "group_keys": 463,
+        "last_query": {
+          "matched_rows": 47,
+          "tested_leaves": 47,
+          "visited_nodes": 371
+        },
+        "ready": true,
+        "unsafe_groups": 0
+      },
+      "query": {
+        "profile_windows": 0,
+        "sample_count": 0,
+        "median_ms": null,
+        "p95_ms": null,
+        "p99_ms": null,
+        "worst_ms": null
+      },
+      "cpu": {
+        "profile_windows": 0
+      },
+      "memory": {
+        "profile_windows": 0
+      },
+      "diagnosticKinds": {
+        "stdout": [],
+        "stderr": []
+      }
+    },
+    {
+      "label": "3:candidate",
+      "mode": "candidate",
+      "report": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\reports\\nwn63-final-keyboard-collision-b-b-candidate-b.json",
+      "source": "c9d5dbebbda14dac1b2afb79c9e10f95003e1f58aad39723a41124343a039110",
+      "settings": {
+        "viewport": [
+          3440,
+          1369
+        ],
+        "screen": 1,
+        "vsync": 0,
+        "msaa_3d": 2,
+        "fov_degrees": 45,
+        "gamma": 1.2,
+        "particles": true,
+        "compact": true,
+        "camera_follow": {
+          "distance": 25,
+          "mode": 1,
+          "pitch": 37.8369026184082,
+          "yaw": -234.460494995117
+        }
+      },
+      "scene": {
+        "area": 2147618622,
+        "generation": 2,
+        "entities": 1918,
+        "desired": 1918,
+        "expected": 1784,
+        "resolved": 1784,
+        "pending": 0,
+        "failed": 0
+      },
+      "movement": {
+        "inputs": 360,
+        "accepted": 360,
+        "dispatches": 360,
+        "packets": 320,
+        "samples": 2971,
+        "distance": 91.7574310302734
+      },
+      "frame": {
+        "average_ms": 8.01787730553328,
+        "count": 1247,
+        "median_ms": 7.809,
+        "over_50ms": 0,
+        "p95_ms": 8.922,
+        "p99_ms": 18.311,
+        "scope": "Retained active-world tick samples (up to4096), may include loading unless performance_window.steady is true; functional run, not clean performance acceptance",
+        "worst_ms": 20.925
+      },
+      "loading": {
+        "playable_ms": 3203.749,
+        "full_base_ms": 13490.307
+      },
+      "index": {
+        "build_cursor": 418,
+        "build_pending": false,
+        "build_steps": 418,
+        "build_total": 0,
+        "entries": 436,
+        "group_keys": 463,
+        "last_query": {
+          "matched_rows": 47,
+          "tested_leaves": 47,
+          "visited_nodes": 309
+        },
+        "ready": true,
+        "unsafe_groups": 0
+      },
+      "query": {
+        "profile_windows": 0,
+        "sample_count": 0,
+        "median_ms": null,
+        "p95_ms": null,
+        "p99_ms": null,
+        "worst_ms": null
+      },
+      "cpu": {
+        "profile_windows": 0
+      },
+      "memory": {
+        "profile_windows": 0
+      },
+      "diagnosticKinds": {
+        "stdout": [],
+        "stderr": []
+      }
+    },
+    {
+      "label": "4:control",
+      "mode": "control",
+      "report": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\reports\\nwn63-final-keyboard-collision-b-b-control-b.json",
+      "source": "f3c2b35e783dd7d0dec24a1978a6f47edc2e3024ef2f37d8b158b6a8cfaca928",
+      "settings": {
+        "viewport": [
+          3440,
+          1369
+        ],
+        "screen": 1,
+        "vsync": 0,
+        "msaa_3d": 2,
+        "fov_degrees": 45,
+        "gamma": 1.2,
+        "particles": true,
+        "compact": true,
+        "camera_follow": {
+          "distance": 25,
+          "mode": 1,
+          "pitch": 37.8369026184082,
+          "yaw": -234.460494995117
+        }
+      },
+      "scene": {
+        "area": 2147618622,
+        "generation": 2,
+        "entities": 1918,
+        "desired": 1918,
+        "expected": 1784,
+        "resolved": 1784,
+        "pending": 0,
+        "failed": 0
+      },
+      "movement": {
+        "inputs": 360,
+        "accepted": 360,
+        "dispatches": 360,
+        "packets": 320,
+        "samples": 2971,
+        "distance": 91.7566757202148
+      },
+      "frame": {
+        "average_ms": 7.83807601880878,
+        "count": 1276,
+        "median_ms": 7.612,
+        "over_50ms": 0,
+        "p95_ms": 8.434,
+        "p99_ms": 18.541,
+        "scope": "Retained active-world tick samples (up to4096), may include loading unless performance_window.steady is true; functional run, not clean performance acceptance",
+        "worst_ms": 19.893
+      },
+      "loading": {
+        "playable_ms": 3255.255,
+        "full_base_ms": 15032.87
+      },
+      "index": null,
+      "query": {
+        "profile_windows": 0,
+        "sample_count": 0,
+        "median_ms": null,
+        "p95_ms": null,
+        "p99_ms": null,
+        "worst_ms": null
+      },
+      "cpu": {
+        "profile_windows": 0
+      },
+      "memory": {
+        "profile_windows": 0
+      },
+      "diagnosticKinds": {
+        "stdout": [],
+        "stderr": []
+      }
+    }
+  ],
+  "paired": {
+    "frame.median_ms": {
+      "control": 7.5195,
+      "candidate": 7.6899999999999995,
+      "delta": 0.17049999999999965
+    },
+    "frame.p95_ms": {
+      "control": 8.445,
+      "candidate": 8.937000000000001,
+      "delta": 0.4920000000000009
+    },
+    "frame.p99_ms": {
+      "control": 18.195999999999998,
+      "candidate": 18.134,
+      "delta": -0.06199999999999761
+    },
+    "frame.worst_ms": {
+      "control": 19.4585,
+      "candidate": 23.644,
+      "delta": 4.1854999999999976
+    },
+    "loading.playable_ms": {
+      "control": 3185.3125,
+      "candidate": 3361.0395,
+      "delta": 175.72699999999986
+    },
+    "loading.full_base_ms": {
+      "control": 13969.126,
+      "candidate": 13703.825499999999,
+      "delta": -265.3005000000012
+    },
+    "query.median_ms": null,
+    "query.p95_ms": null,
+    "query.p99_ms": null,
+    "query.worst_ms": null
+  },
+  "limits": "The FPS JSONL alone has no per-preview quantiles. Final acceptance requires source-pinned per-call samples and profiled indexed candidate counts."
+}

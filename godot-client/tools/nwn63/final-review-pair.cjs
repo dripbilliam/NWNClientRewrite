@@ -49,8 +49,8 @@ for (const [file, hash] of selections.control.files) {
 }
 check(selections.control.files.size === selections.candidate.files.size, 'selection source file counts differ');
 check(JSON.stringify([...sourceSet].sort()) === JSON.stringify([...pair.differentSources].map(norm).sort()), 'pair differs beyond declared sources');
-function describe(leg, index) {
-  const label = `${index + 1}:${leg.leg}`;
+function describe(leg, ordinal) {
+  const label = `${ordinal + 1}:${leg.leg}`;
   const expected = leg.leg === 'control' ? controlHash : candidateHash;
   check(leg.exit === 0 && leg.success === true, `${label}: leg failed`);
   check(sha(leg.report) === leg.reportSha256, `${label}: wrapper report SHA mismatch`);
@@ -75,6 +75,8 @@ function describe(leg, index) {
   check(windows.some(x => x.ready && x.areaId === world.area_id), `${label}: no ready area window`);
   const profile = windows.filter(x => x.frame_profile?.frames > 0);
   const metrics = profile.map(x => x.frame_profile.metrics || {});
+  check(profile.length > 0 && metrics.some(x => Object.keys(x).some(k => /process_ms|render_cpu_ms|root_world|frame_wall_ms/.test(k))), `${label}: CPU profile windows missing`);
+  check(profile.length > 0 && windows.some(x => x.protocol_host?.rss > 0 || x.state?.pool), `${label}: memory observation windows missing`);
   const inputs = metrics.map(x => x.count_drive_model_group_inputs).filter(Boolean);
   const matches = metrics.map(x => x.count_drive_group_index_candidates).filter(Boolean);
   const staticQueries = metrics.map(x => x.drive_static_query_ms).filter(Boolean);
@@ -92,16 +94,17 @@ function describe(leg, index) {
   const frame = native.frame_intervals || {};
   for (const key of ['median_ms', 'p95_ms', 'p99_ms', 'worst_ms']) check(good(frame[key]), `${label}: missing ${key}`);
   const base = world.base_scenery || {};
-  check(world.ready === true && world.generation === pair.scene.generation && world.area_id === pair.scene.areaId, `${label}: world readiness/area`);
+  check(world.ready === true && world.generation === pair.scene.generation && world.area_id === summary.summaries[0].areaId, `${label}: world readiness/area`);
   const view = native.performance_window?.view_begin || {};
-  const settings = { viewport: view.viewport, screen: view.screen, vsync: view.vsync, msaa_3d: view.msaa_3d, fov_degrees: view.camera?.fov_degrees, gamma: view.settings?.gamma, particles: view.settings?.particles_enabled, compact: view.settings?.compact_scenery_enabled, camera_position: view.camera?.position, camera_target: view.camera?.target };
+  const settings = { viewport: view.viewport, screen: view.screen, vsync: view.vsync, msaa_3d: view.msaa_3d, fov_degrees: view.camera?.fov_degrees, gamma: view.settings?.gamma, particles: view.settings?.particles_enabled, compact: view.settings?.compact_scenery_enabled, camera_follow: view.camera?.follow };
   return { label, mode: leg.leg, report: leg.report, source: expected, runtimeSources, wrapper, native, settings, scene: { area: world.area_id, generation: world.generation, entities: world.entities, desired: world.desired, expected: base.expected, resolved: base.resolved, pending: base.pending, failed: base.failed }, movement: { inputs: replay.inputs, accepted: replay.accepted, dispatches: replay.dispatches, packets: replay.packets, samples: replay.samples, distance: native.controlled_distance }, frame, loading: { playable_ms: world.playable_ms, full_base_ms: world.base_scenery_first_known_complete_ms }, index, query: { profile_windows: staticQueries.length, sample_count: sorted.length, median_ms: q(0.5), p95_ms: q(0.95), p99_ms: q(0.99), worst_ms: sorted.at(-1) || null }, cpu: { profile_windows: profile.length }, memory: { profile_windows: profile.length }, diagnosticKinds: Object.fromEntries(Object.entries(wrapper.nativeDiagnostics || {}).map(([k, v]) => [k, v.kinds])) };
 }
 const rows = summary.summaries.map(describe);
 const ref = rows[0];
 for (const row of rows.slice(1)) {
   for (const [name, value] of ref.runtimeSources) if (!sourceSet.has(name)) check(row.runtimeSources.get(name) === value, `${row.label}: unrelated runtime source changed: ${name}`);
-  for (const key of ['runtimeSha256', 'recordingSha256', 'capture']) check(JSON.stringify(row.wrapper[key]) === JSON.stringify(ref.wrapper[key]), `${row.label}: ${key} differs`);
+  for (const key of ['recordingSha256', 'capture']) check(JSON.stringify(row.wrapper[key]) === JSON.stringify(ref.wrapper[key]), `${row.label}: ${key} differs`);
+  for (const key of ['engine', 'kernel', 'kernelManifest', 'resourceIndex', 'resourceIndexManifest']) check(row.wrapper.runtimeSha256?.[key] === ref.wrapper.runtimeSha256?.[key], `${row.label}: runtime ${key} differs`);
   check(JSON.stringify(row.settings) === JSON.stringify(ref.settings), `${row.label}: settings/camera differ`);
   check(JSON.stringify(row.scene) === JSON.stringify(ref.scene), `${row.label}: area/scene differs`);
   for (const key of ['inputs', 'accepted', 'dispatches', 'packets', 'samples']) check(row.movement[key] === ref.movement[key], `${row.label}: movement ${key} differs`);
