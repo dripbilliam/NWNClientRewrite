@@ -173,7 +173,11 @@ func _plan_object(object: Dictionary) -> void:
 			var piece: Dictionary=part.duplicate(); piece.anchor=part.get("node","") if part.get("node")!=null else ""; piece.follow=int(part.get("partIndex",-1))==18
 			pieces.append(piece)
 		for part in plan.attachments:
-			var piece: Dictionary=part.duplicate(); piece.anchor=part.node; piece.follow=true; pieces.append(piece)
+			var piece: Dictionary=part.duplicate(); piece.anchor=part.node; piece.follow=true
+			if int(piece.get("nativeVisualScope",-1))==243 and not catalog.has_resource(str(piece.model),2002) and not catalog.has_resource(str(piece.get("fallbackModel","")),2002):
+				stats.warnings.append({"id":object.id,"reason":"Original worn-cloak model is unavailable: "+str(piece.model)})
+				continue
+			pieces.append(piece)
 		pieces.append_array(equipment(object,row("appearance",int(object.appearance.appearance)),planner))
 		if stats.object_failures.has(int(object.id)): return
 		var lookup:=Lookup.new(); var context:=lookup.context(object,tables)

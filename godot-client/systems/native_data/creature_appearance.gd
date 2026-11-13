@@ -74,6 +74,15 @@ func plan(object: Dictionary, tables: Dictionary) -> Dictionary:
 		result.parts.append(part)
 	var a: Dictionary=object.appearance; var cloak: Dictionary=equipped(object,64).get("item",{})
 	var cloak_parts: Array=cloak.get("parts",[]); var cloak_row:=row(tables,"cloakmodel",int(cloak_parts[0])) if not cloak_parts.is_empty() else {}
+	var cloak_model:=int(cloak_row.get("MODEL",0))
+	if cloak_model>0:
+		var cloak_suffix:="_cloak_"+str(cloak_model).pad_zeros(3)
+		var cloak_texture:=int(cloak_row.get("TEXTURE",0))
+		var cloak_palette:=colors.duplicate()
+		var item_colors: Array=cloak.get("colors",[])
+		if item_colors.size()==6:
+			for channel in MATERIALS.size(): cloak_palette[CHANNELS[channel]]=int(item_colors[channel])
+		result.attachments.append({"model":(str(result.model)+cloak_suffix).left(16),"fallbackModel":(str(result.fallbackModel)+cloak_suffix).left(16),"node":"","nativeVisualScope":243,"paletteColors":cloak_palette,"pltCandidates":["cloak_"+str(cloak_texture).pad_zeros(3)] if cloak_texture>0 else []})
 	for pair in [["fieldAA4","tailmodel","tail",253,"HIDETAIL"],["fieldAA8","wingmodel","wings",252,"HIDEWING"]]:
 		var id:=int(a.get(pair[0],0))
 		if id==0 or number(cloak_row.get(pair[4],"0"),0)!=0: continue
