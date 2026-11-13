@@ -4,6 +4,7 @@ extends Control
 signal multiplayer_requested
 signal client_settings_requested
 signal exit_requested
+signal button_sound_requested
 signal source_ready(painter,text,catalog,cache_path: String)
 const Loader=preload("res://systems/native_data/session_catalog.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
@@ -30,6 +31,8 @@ var external_child:=false
 var revision:=0
 var failure:=""
 var closed:=false
+var button_audio_ready:=true
+var button_audio_failure:=""
 var catalog_stats: Dictionary={}
 var started_at:=0
 var layout_ready_ms:=-1.0
@@ -66,6 +69,9 @@ func scope() -> Array: return ["pregame",revision]
 func open() -> void:
 	if closed: return
 	revision+=1; wanted=true; page="main"; external_child=false; show(); refresh(); move_to_front()
+func set_button_audio_status(ready: bool,reason: String="") -> void:
+	if closed:return
+	button_audio_ready=ready;button_audio_failure=reason;refresh()
 func dismiss() -> void:
 	wanted=false; external_child=false; revision+=1
 	for view in [main,options]:
@@ -75,7 +81,9 @@ func dismiss() -> void:
 	hide()
 func refresh() -> void:
 	if closed: return
-	if not failure.is_empty(): status.text="Menu resources unavailable: "+failure
+	if not button_audio_failure.is_empty():status.text="Menu sound unavailable: "+button_audio_failure
+	elif not failure.is_empty(): status.text="Menu resources unavailable: "+failure
+	elif not button_audio_ready:status.text="Preparing menu sound…"
 	elif page=="main":
 		var active=main
 		if is_instance_valid(active):
@@ -92,25 +100,27 @@ func refresh() -> void:
 		main.set_context(scope(),state.enabled,state.colors)
 		for tag in main.buttons:
 			if tag not in ["multibutton","optionsbutton","exitbutton"]: main.buttons[tag].tooltip_text="Unavailable in this client build."
-		main.visible=wanted and page=="main" and main.art_ready()
+		main.visible=wanted and page=="main" and main.art_ready() and (button_audio_ready or not button_audio_failure.is_empty())
 	if is_instance_valid(options):
 		options.set_context(scope(),{"gamebutton":true,"videooptsbutton":is_instance_valid(video) and video.layout_ready and video.failure.is_empty(),"controlbutton":is_instance_valid(keys) and keys.layout_ready and keys.failure.is_empty() and bindings.bindings_ready,"nwsyncbutton":false,"closebutton":true,"xbutton":true})
 		if options.buttons.has("nwsyncbutton"): options.buttons.nwsyncbutton.tooltip_text="Storage management is not available in this client build."
-		options.visible=wanted and page=="options" and options.art_ready()
-	status.visible=wanted and (not failure.is_empty() or not is_instance_valid(main) or not main.art_ready() or page=="options" and not options.art_ready())
+		options.visible=wanted and page=="options" and options.art_ready() and (button_audio_ready or not button_audio_failure.is_empty())
+	status.visible=wanted and (not failure.is_empty() or not button_audio_failure.is_empty() or not button_audio_ready or not is_instance_valid(main) or not main.art_ready() or page=="options" and not options.art_ready())
 	if layout_ready_ms<0 and is_instance_valid(main) and main.layout_ready and is_instance_valid(options) and options.layout_ready: layout_ready_ms=(Time.get_ticks_usec()-started_at)/1000.0
 	place()
 func place() -> void:
 	for view in [main,options]:
 		if is_instance_valid(view) and view.layout_ready: view.position=((get_viewport_rect().size-view.size)*0.5).max(Vector2.ZERO)
 func main_action(tag: String) -> void:
-	if closed or not wanted or page!="main": return
+	if closed or not wanted or page!="main" or not button_audio_ready and button_audio_failure.is_empty(): return
+	if tag in ["optionsbutton","multibutton","exitbutton"]: button_sound_requested.emit()
 	match tag:
 		"optionsbutton": revision+=1; page="options"; main.dismiss(); refresh()
 		"multibutton": dismiss(); multiplayer_requested.emit()
 		"exitbutton": dismiss(); exit_requested.emit()
-func options_action(tag: String) -> void:
-	if closed or not wanted or page!="options": return
+func options_action(tag: String,from_button: bool=true) -> void:
+	if closed or not wanted or page!="options" or not button_audio_ready and button_audio_failure.is_empty(): return
+	if from_button and tag in ["closebutton","xbutton","gamebutton","videooptsbutton","controlbutton"]: button_sound_requested.emit()
 	match tag:
 		"closebutton","xbutton": revision+=1; page="main"; options.dismiss(); refresh()
 		"gamebutton": external_child=true; page="client-settings"; options.dismiss(); refresh(); client_settings_requested.emit()
@@ -126,7 +136,7 @@ func escape() -> bool:
 	if closed or not wanted: return false
 	if page=="keys": keys.finish_page(false)
 	elif page=="video": video.finish_page()
-	elif page=="options": options_action("closebutton")
+	elif page=="options": options_action("closebutton",false)
 	elif page=="client-settings": return false
 	else: dismiss()
 	return true

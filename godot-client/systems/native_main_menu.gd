@@ -5,6 +5,7 @@ signal exit_requested
 signal disconnect_requested
 signal export_requested
 signal client_theme_changed(value: Theme)
+const MenuAssets=preload("res://systems/native_data/asset_service.gd")
 var panel: PanelContainer
 var disconnect_button: Button
 var client_style
@@ -30,6 +31,10 @@ var drag_offset:=Vector2.ZERO
 var child_return_scope: Array=[]
 var pregame
 var pregame_cleanup: Dictionary={}
+var menu_audio_assets
+var menu_click_player: AudioStreamPlayer
+var menu_click_job:=-1
+var menu_audio_profile:=""
 var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
 var modal_order
 var modal_surfaces
@@ -82,11 +87,58 @@ func open(playing: bool) -> void:
 	if playing:modal_lease.activate(native_scope)
 func configure_pregame(sources: Dictionary,cache_path: String) -> void:
 	close_pregame()
+	menu_audio_profile=str(sources.get("profileDirectory",""))
 	pregame=preload("res://systems/native_pregame_menu.gd").new(); get_child(0).add_child(pregame); pregame.configure(sources,cache_path,layout_path,window_settings)
+	pregame.set_button_audio_status(false)
+	pregame.button_sound_requested.connect(play_menu_click)
 	pregame.multiplayer_requested.connect(func():choose("multiplayer"))
 	pregame.exit_requested.connect(func():choose("exit"))
 	pregame.client_settings_requested.connect(func():options_requested.emit())
-	pregame.source_ready.connect(func(painter,_text,_catalog,_cache):configure_client_style(painter))
+	pregame.source_ready.connect(func(painter,_text,catalog,cache):
+		configure_client_style(painter)
+		configure_menu_audio(catalog,cache))
+func configure_menu_audio(catalog,cache_path: String) -> void:
+	if is_instance_valid(menu_audio_assets):menu_audio_assets.close();menu_audio_assets.queue_free()
+	menu_audio_assets=MenuAssets.new();add_child(menu_audio_assets);menu_audio_assets.configure(catalog);menu_audio_assets.cache_directory=cache_path
+	menu_audio_assets.completed.connect(menu_audio_ready.bind(menu_audio_assets))
+	if not is_instance_valid(menu_click_player):menu_click_player=AudioStreamPlayer.new();menu_click_player.max_polyphony=4;add_child(menu_click_player)
+	menu_click_player.stop();menu_click_player.stream=null
+	menu_click_job=menu_audio_assets.request("gui_button",4,"wave-native-v1")
+	if menu_click_job<0 and is_instance_valid(pregame):pregame.set_button_audio_status(false,menu_audio_assets.failure)
+func menu_audio_ready(id: int,result: Dictionary,owner) -> void:
+	if owner!=menu_audio_assets or id!=menu_click_job or not is_instance_valid(menu_click_player):return
+	menu_click_job=-1
+	if not str(result.get("error","")).is_empty():
+		if is_instance_valid(pregame):pregame.set_button_audio_status(false,str(result.error))
+		return
+	var data: Dictionary=result.get("value",{});var bytes: PackedByteArray=result.get("bytes",PackedByteArray())
+	var stream: AudioStream
+	if data.get("codec","")=="pcm16":
+		var wave:=AudioStreamWAV.new();wave.format=AudioStreamWAV.FORMAT_16_BITS;wave.stereo=int(data.channels)==2;wave.mix_rate=int(data.sampleRate);wave.data=data.pcm;stream=wave
+	elif data.get("codec","")=="wav":stream=AudioStreamWAV.load_from_buffer(bytes)
+	if stream!=null and stream.get_length()>0:
+		menu_click_player.stream=stream
+		if is_instance_valid(pregame):pregame.set_button_audio_status(true)
+	elif is_instance_valid(pregame):pregame.set_button_audio_status(false,"Original gui_button could not be decoded")
+func menu_effect_volume() -> float:
+	if menu_audio_profile.is_empty():return 1.0
+	var path:=menu_audio_profile.path_join("settings.tml")
+	if not FileAccess.file_exists(path):return 1.0
+	var file:=FileAccess.open(path,FileAccess.READ)
+	if file==null:return 1.0
+	var effects:=false
+	while not file.eof_reached():
+		var line:=file.get_line().strip_edges()
+		if line.begins_with("["):effects=line=="[sound.effects]";continue
+		if effects and line.begins_with("volume"):
+			var parts:=line.split("=",true,1)
+			if parts.size()==2 and parts[1].strip_edges().is_valid_float():return clampf(float(parts[1].strip_edges()),0.0,1.0)
+	return 1.0
+func play_menu_click() -> void:
+	if not is_instance_valid(menu_click_player) or menu_click_player.stream==null:return
+	var gain:=menu_effect_volume()
+	if gain<=0.0:return
+	menu_click_player.volume_linear=gain;menu_click_player.play()
 func configure_client_style(painter,entry_staged: bool=false) -> void:
 	if is_instance_valid(client_style): client_style.close(); client_style.queue_free()
 	client_style=preload("res://systems/native_client_menu_style.gd").new(); get_child(0).add_child(client_style)
@@ -267,6 +319,7 @@ func update_native() -> void:
 		fallback.hide(); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.custom_minimum_size=native_frame.definition.size; panel.size=native_frame.definition.size; native_frame.show()
 		modal_lease.bind_input(native_frame.stage)
 func native_action(tag: String) -> void:
+	if tag in ["resumegamebutton","xbutton","gamebutton","videooptionsbutton","controlsbutton","savecharbutton","exitbutton","exit-confirmed"]:play_menu_click()
 	match tag:
 		"resumegamebutton","xbutton": dismiss()
 		"gamebutton":
@@ -362,5 +415,7 @@ func _notification(what: int) -> void:
 func _exit_tree() -> void:
 	cancel_native_configuration()
 	modal_lease.close()
+	if is_instance_valid(menu_audio_assets):menu_audio_assets.close()
+	if is_instance_valid(menu_click_player):menu_click_player.stop()
 	if is_instance_valid(client_style): client_style.close()
 	close_pregame()
