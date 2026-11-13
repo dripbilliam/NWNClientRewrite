@@ -69,7 +69,8 @@ func consider_tile(tile: int,model: Node3D) -> void:
 	for source in model.get("meshes"):
 		stats.source_surfaces+=1
 		if not source is MeshInstance3D:_reject("mesh-type-unavailable");continue
-		if members.has(source.get_instance_id()):continue
+		var source_id: int=source.get_instance_id()
+		if members.has(source_id):continue
 		var reason:=eligibility(model,source)
 		if not reason.is_empty():_reject(reason);continue
 		if members.size()>=MAX_MEMBERS:_reject("member-budget");continue
@@ -81,7 +82,7 @@ func consider_tile(tile: int,model: Node3D) -> void:
 		var tail:=int(tails.get(signature,0));var key:=signature+":"+str(tail)
 		if groups.has(key) and groups[key].rows.size()>=MAX_GROUP_MEMBERS:tail+=1;tails[signature]=tail;key=signature+":"+str(tail)
 		if not groups.has(key):groups[key]={"mesh":source.mesh,"material":source.material_override,"properties":properties,"rows":[],"geometry":null,"queued":false,"epoch":_epoch}
-		var row:={"source":weakref(source),"source_id":source.get_instance_id(),"model_id":model_id,"tile":tile,"pose":pose,"bounds":source.mesh.get_aabb() if source.custom_aabb==AABB() else source.custom_aabb,"layers":source.layers,"group":key,"active":true,"batched":false,"slot":-1}
+		var row:={"source":weakref(source),"source_id":source_id,"model_id":model_id,"tile":tile,"pose":pose,"bounds":source.mesh.get_aabb() if source.custom_aabb==AABB() else source.custom_aabb,"layers":source.layers,"group":key,"active":true,"batched":false,"slot":-1}
 		groups[key].rows.append(row);members[row.source_id]=row;model_members[model_id].rows.append(row.source_id)
 		var source_visibility:=_source_visibility_changed.bind(row.source_id);var source_removed:=_source_removed.bind(row.source_id)
 		if not source.visibility_changed.is_connected(source_visibility):source.visibility_changed.connect(source_visibility)
