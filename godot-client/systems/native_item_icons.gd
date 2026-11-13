@@ -38,6 +38,7 @@ var cached_models: Dictionary={}
 var cache_directory:=""
 var prework_records: Dictionary={}
 var stats:={"requested":0,"reused":0,"rendered":0,"errors":[],"native_only":true,"slow_cleanup":[],"model_reuses":0,"model_cache_full":0}
+func _ready() -> void:set_process(false)
 static func raster_extent(units: float,pixels_per_unit: float) -> int:
 	var pixels:=units*pixels_per_unit; var nearest:=roundf(pixels)
 	if absf(pixels-nearest)<0.001: pixels=nearest
@@ -89,6 +90,9 @@ func pump_models() -> void:
 			pending.erase(job.key); stats.errors.append(assets.failure); completed.emit(job.key,null,assets.failure)
 		else:
 			job.erase("name"); job.erase("overrides"); requests[id]=job
+	_refresh_processing()
+func _refresh_processing() -> void:
+	set_process(not closed and (not deferred_models.is_empty() or not queue.is_empty()))
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not requests.has(id): return
 	var request_value: Variant=requests[id]; requests.erase(id)
@@ -99,6 +103,7 @@ func prepared(id: int,result: Dictionary) -> void:
 		prework_records[key]={"key":result.prework_icon_key,"inputs":result.prework_inputs}
 		if restore_prework(key,result.prework_icon): return
 	queue.append({"key":key,"bundle":result,"clip":clip,"turn":int(request_value.get("turn",0)) if request_value is Dictionary else 0,"texture_layer":str(request_value.get("texture_layer","")) if request_value is Dictionary else "","poses":request_value.get("poses",[]) if request_value is Dictionary else [],"render_region":request_value.get("render_region",Rect2()) if request_value is Dictionary else Rect2()})
+	_refresh_processing()
 func restore_prework(key: String,data: Dictionary) -> bool:
 	var width:=int(data.get("width",0)); var height:=int(data.get("height",0)); var pixels: Variant=data.get("pixels")
 	if width<=0 or height<=0 or width>4096 or height>4096 or not pixels is PackedByteArray or pixels.size()!=width*height*4 or not data.get("bounds") is Dictionary: return false
@@ -119,6 +124,7 @@ func _process(_delta: float) -> void:
 func _profile_process(_delta: float) -> void:
 	pump_models()
 	if not closed and not active and not queue.is_empty(): draw_icon(queue.pop_front())
+	_refresh_processing()
 func draw_icon(job: Dictionary) -> void:
 	active=true
 	# A single GUI state can animate mesh UVs as well as transform hooks.
@@ -270,7 +276,7 @@ func snapshot() -> Dictionary:
 	var state:=stats.duplicate(true); state.merge({"pending":pending.size(),"deferred_models":deferred_models.size(),"textures":textures.size(),"active":active,"model_reuse_enabled":reuse_models_enabled,"cached_models":cached_models.size(),"maximum_cached_models":maximum_cached_models}); return state
 func close() -> void:
 	if closed: return
-	closed=true
+	closed=true;set_process(false)
 	if is_instance_valid(camera): camera.compositor = null
 	render_fence = null
 	render_fence_compositor = null
