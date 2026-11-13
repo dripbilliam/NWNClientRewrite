@@ -169,10 +169,13 @@ func step(delta: float) -> void:
 	visibility_dirty=false
 	for id in pending_removals: native.call("dispatch",3,{"id":int(id)})
 	pending_removals.clear()
-	var registering: Dictionary=pending_registrations.duplicate(); pending_registrations.clear()
-	for reference: WeakRef in registering.values():
-		var emitter: Object=reference.get_ref()
-		if is_instance_valid(emitter): register(emitter)
+	# Nested emitters arrive here on the following frame. Most frames have no
+	# registrations, so avoid copying an empty Dictionary and its values Array.
+	if not pending_registrations.is_empty():
+		var registering: Dictionary=pending_registrations.duplicate(); pending_registrations.clear()
+		for reference: WeakRef in registering.values():
+			var emitter: Object=reference.get_ref()
+			if is_instance_valid(emitter): register(emitter)
 	for command in pending_controls.values(): native.call("dispatch",4,command)
 	pending_controls.clear()
 	Profile.finish("particle_frame_queues_ms",phase)
