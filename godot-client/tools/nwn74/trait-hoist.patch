@@ -1,0 +1,21 @@
+diff --git a/servers/rendering/rendering_device.cpp b/servers/rendering/rendering_device.cpp
+index 7574038..78219d7 100644
+--- a/servers/rendering/rendering_device.cpp
++++ b/servers/rendering/rendering_device.cpp
+@@ -6048,6 +6048,7 @@ void RenderingDevice::draw_list_draw(DrawListID p_list, bool p_use_indices, uint
+ 	uint32_t first_set_index = 0;
+ 	uint32_t last_set_index = 0;
+ 	bool found_first_set = false;
++	const bool driver_honors_pipeline_barriers = driver->api_trait_get(RDD::API_TRAIT_HONORS_PIPELINE_BARRIERS);
+ 
+ 	for (uint32_t i = 0; i < draw_list.state.set_count; i++) {
+ 		if (draw_list.state.sets[i].pipeline_expected_format == 0) {
+@@ -6059,7 +6060,7 @@ void RenderingDevice::draw_list_draw(DrawListID p_list, bool p_use_indices, uint
+ 			found_first_set = true;
+ 		}
+ 		// Prepare descriptor sets if the API doesn't use pipeline barriers.
+-		if (!driver->api_trait_get(RDD::API_TRAIT_HONORS_PIPELINE_BARRIERS)) {
++		if (!driver_honors_pipeline_barriers) {
+ 			draw_graph.add_draw_list_uniform_set_prepare_for_use(draw_list.state.pipeline_shader_driver_id, draw_list.state.sets[i].uniform_set_driver_id, i);
+ 		}
+ 	}
