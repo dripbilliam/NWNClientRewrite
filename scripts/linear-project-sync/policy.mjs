@@ -98,7 +98,9 @@ export function makeStatusResolver(states, field, config, logger = console) {
   }
   for (const [source, target] of Object.entries(config.statusMapping)) {
     const key = normalize(source), optionId = options.get(normalize(target));
-    if (mappings.has(key) || !optionId) throw Error('STATUS_MAPPING_JSON has an ambiguous key or missing target option.');
+    if (mappings.has(key)) throw Error('STATUS_MAPPING_JSON has an ambiguous key.');
+    if (!optionId) throw Error('STATUS_MAPPING_JSON has a missing target option. Existing GitHub options: '
+      + field.options.map(option => option.name).join(', '));
     mappings.set(key, optionId);
   }
   if (config.unknownStatusPolicy === 'fallback' && !options.has(normalize(config.fallbackStatus))) {

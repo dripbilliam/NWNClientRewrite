@@ -4,6 +4,8 @@ Mirrors approved Linear tickets into **Projects V2 draft cards**. Linear remains
 
 The configured destination for NWNClientRewrite is [dripbilliam's project 3](https://github.com/users/dripbilliam/projects/3). Runtime code is isolated here and has no npm dependencies. It requires Node.js 22 or later.
 
+The owner-approved NWNClientRewrite deployment uses `PUBLICATION_MODE=all` and `DESCRIPTION_MODE=full` for the NWNAnalog project. Treat its issue titles and descriptions as public. Comments, attachments, credentials and execution logs remain excluded. The utility's defaults below stay label-only/title-only for new deployments.
+
 ## How it works
 
 1. Verify the configured Linear scope and discover its actual workflow statuses.
