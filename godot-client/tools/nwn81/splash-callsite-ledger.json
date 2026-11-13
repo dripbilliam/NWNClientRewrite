@@ -1,0 +1,20 @@
+{
+  "ticket": "NWN-81",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Bounded startup splash sound source audit; no claimed sound callsite",
+  "intro_owner": {
+    "constructor": "0x140719c70",
+    "constructor_end_exclusive": "0x140719d9e",
+    "update": "0x14071a4b0",
+    "update_end_exclusive": "0x14071b08c",
+    "source": "tools/nwn75/sdl-main-teardown.md and legacy-gui-attachment-callback-producers.md; .pdata confirmed locally"
+  },
+  "candidate_audio_entries": [
+    {"address": "0x140a60d30", "role": "GUI input sound-kind helper", "direct_rel32_fields_in_intro_owner": 0},
+    {"address": "0x1401d9d00", "role": "exported CExoSound::PlayOneShotSound", "direct_rel32_fields_in_intro_owner": 0},
+    {"address": "0x1401df9e0", "role": "exported CExoSoundInternal::PlayOneShotSound", "direct_rel32_fields_in_intro_owner": 0}
+  ],
+  "raw_executable_rel32_matches_all_three_targets": 31,
+  "unresolved": ["splash presentation branch", "intermediate or indirect sound/movie target", "specific sound resource", "first playback condition and timing"],
+  "limitations": "Raw rel32 scan is not an instruction reference census. REA analysis and instruction query did not finish in a bounded wait."
+}

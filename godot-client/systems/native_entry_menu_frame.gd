@@ -154,8 +154,8 @@ func confirm_result(accepted: bool) -> void:
 	cancel_confirmation()
 	if accepted and valid: action_requested.emit("exit-confirmed")
 func cohort_snapshot() -> Dictionary:
-	# This is the complete constructed pre_main + okcancelpanel page cohort,
-	# including the hidden confirmation. Other menu pages have separate gates.
+	# This is the constructed page plus okcancelpanel cohort, including the
+	# hidden confirmation. Dynamic child pages have separate gates.
 	var result:={"scope":kind+"+okcancelpanel","sealed":layout_ready,"ready":false,"models_expected":requested.size(),"models_ready":models.size(),"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0,"pending":[],"failures":[]}
 	if not failure.is_empty(): result.failures.append(failure)
 	if closed: result.failures.append("Page owner is closed")
@@ -200,9 +200,9 @@ func art_failure(key: String) -> String:
 		if not reason.is_empty(): return reason
 	return "Original UI image could not be prepared"
 func art_ready() -> bool:
-	if kind in ["pre_main","pre_multiplayer"]: return bool(cohort_snapshot().ready)
-	# The options page retains its existing admission rule until its own
-	# installed-content cohort has a separate readiness gate.
+	if kind in ["pre_main","pre_multiplayer","options_pregame"]: return bool(cohort_snapshot().ready)
+	# Other pages retain their existing admission rule until their own
+	# installed-content cohorts have separate readiness gates.
 	if not layout_ready or closed or not is_instance_valid(frame) or not failure.is_empty(): return false
 	for owner in [stage,confirmation]:
 		for node in owner.find_children("*","TextureRect",true,false):
@@ -217,7 +217,7 @@ func art_ready() -> bool:
 	return true
 func _process(_delta: float) -> void:
 	if art_announced: return
-	if kind not in ["pre_main","pre_multiplayer"]:
+	if kind not in ["pre_main","pre_multiplayer","options_pregame"]:
 		if art_ready(): art_announced=true; set_process(false); artwork_ready.emit()
 		return
 	var cohort: Dictionary=cohort_snapshot()
