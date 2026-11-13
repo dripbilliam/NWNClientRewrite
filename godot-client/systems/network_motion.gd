@@ -525,10 +525,11 @@ func gait_speed(id: int, clip_seconds: float) -> float:
 	if not state.active or not state.has("gait") or clip_seconds <= 0:
 		return 1.0
 	var gait: Dictionary = state.gait
-	var creep: bool = (int(state.animation) & 65535) in [78, 79]
+	var animation:=int(state.animation)
+	var creep: bool = (animation & 65535) in [78, 79]
 	var rate := f(1600.0001220703125) if creep else f(float(gait.rate))
 	var scales := f(f(float(state.get("scale", 1))) * f(float(state.get("scale2", 1))))
-	var stride := f(0.8) if creep else f(scales * f(float(state.walkDistance if int(state.animation) in [2, 3, 84, 85] else state.runDistance)))
+	var stride := f(0.8) if creep else f(scales * f(float(state.walkDistance if animation in [2, 3, 84, 85] else state.runDistance)))
 	if stride <= 0:
 		return 1.0
 	var length_ms := f(f(clip_seconds) * 1000)
