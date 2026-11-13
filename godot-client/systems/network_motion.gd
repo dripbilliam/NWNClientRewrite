@@ -512,7 +512,9 @@ func pose(id: int) -> Dictionary:
 	if not objects.has(id):
 		return {}
 	var state: Dictionary = objects[id]
-	return {"position": Vector3(state.render.x, state.render.z, -state.render.y), "rotation": -atan2(state.orientation.x, state.orientation.y)}
+	var render_position: Vector3 = state.render
+	var orientation: Vector3 = state.orientation
+	return {"position": Vector3(render_position.x, render_position.z, -render_position.y), "rotation": -atan2(orientation.x, orientation.y)}
 
 func finish_frame(id: int) -> void:
 	var state: Dictionary = objects[id]
