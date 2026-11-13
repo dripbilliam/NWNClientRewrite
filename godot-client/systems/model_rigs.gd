@@ -95,7 +95,9 @@ func _animation_started(_animation: StringName,player: AnimationPlayer) -> void:
 			if model.get("player")==player:
 				model.dormant_finished=false
 				found=true
-	if found:_refresh_processing()
+	# An already active owner is processing. Only an idle owner needs the
+	# full eligibility walk to wake for an externally started player.
+	if found and idle_suspended:_refresh_processing()
 
 func _bind_animation_lifecycle(player: AnimationPlayer,source: Node=null) -> void:
 	if source!=null and source!=self:
