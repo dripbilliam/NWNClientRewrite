@@ -1,0 +1,14 @@
+{
+  "schema":"nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256":"3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope":"Changed tile reveal state to BSP TileData fade clock and static Part fog draw state",
+  "document":"tile-reveal-to-static-fog-draw.md",
+  "edges":[
+    {"from":"0x140850120","to":"0x1400a5070","callsite":"0x1408502c4","kind":"direct_call","condition":"Tile+0x30 changes; area+8 & 3; fogged argument is requested_state==0","status":"tile_reveal_fog_request","evidence_id":"ev_032b1638998ac2c434a0a02c984a449a22b24be39ce96cbe292f8935fd00608a"},
+    {"from":"0x1400a5070","to":"TileData+0xc4/+0xc8","kind":"bsp_data_mutation","condition":"mainscene BSP search at Tile position; fogged flag stored, true resets fade float to zero","status":"tile_fog_and_fade_source","evidence_id":"ev_5f27f3de3a02971ab4909632a29b313f6b9d04e13bfa9c2b6c15150b2f0cc3c3"},
+    {"from":"TileData+0xc4/+0xc8","to":"0x1400dc140","kind":"visible_bsp_callback","condition":"TileData exists, fogged byte false, fade float below 1; advance by DeltaT*4, clamp to 1","status":"tile_fog_reveal_clock","evidence_id":"ev_45e32deb3c08e2049d65115dfbffa713fea199a454c49b479334e1e1653ddc01"},
+    {"from":"TileData","to":"PartTriMesh+0xa0","kind":"part_ownership_publication","condition":"ProcessStaticParts admits static Part","status":"tile_fade_part_binding","evidence_id":"ev_37fb30c927647447004135ecdb127d880eb9d31c04a25f9f871c9c9dc4792731"},
+    {"from":"PartTriMesh+0xa0","to":"0x1400cd210","kind":"draw_state_consumption","condition":"nonnull TileData and fade t<1; fog color=t^2*Scene color, start=t*Scene start, end=t*Scene end+0.1","status":"tile_fade_static_fog_draw","evidence_id":"ev_05f4c923f9a05e41527720e54b2d50e38af2d28edb36f74e2d5a5e42af1c5b19"}
+  ],
+  "runtime_selectors_open":["which Tile reveal caller executes","area flags","BSP search/node visibility","static Part and bucket admission","actual fade t at draw"]
+}

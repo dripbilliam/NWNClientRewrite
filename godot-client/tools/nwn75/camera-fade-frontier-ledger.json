@@ -1,0 +1,12 @@
+{
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "edge": "FUN_1400d88b0 to Camera::SetFadePlanes and geomFadeEnabled producer",
+  "known": [
+    {"from":"0x1400db320","site":"0x1400db560","to":"0x1400d88b0","condition":"Scene BSP frame","evidence":"tools/nwn75/scene-bsp-frame-maintenance.md"},
+    {"from":"0x1400d88b0","site":"0x1400d8c82","to":"0x14005b4a0","condition":"CameraFollow and horizontal magnitude >= 0.4","evidence":"ev_1c825c8f55c31a94226bfa2a7e0fc64e0b1632389b48047f57855d2d5e336c53"},
+    {"from":"Scene::SetGeomFadeProperties","address":"0x1400d3380","to":"Scene::geomFadeEnabled","accepted_values":[1,2,4],"evidence":"tools/native_parity/visibility/evidence/native-presentation-procedures-v2.json:sceneFadeProperties"}
+  ],
+  "unknown": ["two fade-plane coefficients and coordinate convention", "producer/caller of SetGeomFadeProperties", "active original-client geomFadeEnabled value"],
+  "rea_attempts": ["analyze_function 0x1400d88b0 stalled and canceled", "incoming procedure_references 0x1400d3380 stalled and canceled", "address_to_file_offset 0x1400d88b0 stalled and canceled"],
+  "status":"open; do not infer client cap trigger"
+}
