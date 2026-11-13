@@ -4,7 +4,7 @@ Mirrors approved Linear tickets into **Projects V2 draft cards**. Linear remains
 
 The configured destination for NWNClientRewrite is [dripbilliam's project 3](https://github.com/users/dripbilliam/projects/3). Runtime code is isolated here and has no npm dependencies. It requires Node.js 22 or later.
 
-The owner-approved NWNClientRewrite deployment uses `PUBLICATION_MODE=all` and `DESCRIPTION_MODE=full` for the NWNAnalog project. Treat its issue titles and descriptions as public. Comments, attachments, credentials and execution logs remain excluded. The utility's defaults below stay label-only/title-only for new deployments.
+The owner-approved NWNClientRewrite deployment uses `PUBLICATION_MODE=all`, `DESCRIPTION_MODE=full` and `PUBLISH_ARCHIVED_ISSUES=true` for the NWNAnalog project, including canceled archived tickets. Treat its issue titles and descriptions as public. Comments, attachments, credentials and execution logs remain excluded. The utility's defaults below stay label-only/title-only for new deployments.
 
 ## How it works
 
@@ -29,7 +29,7 @@ For a new destination, create a user- or organization-owned **Projects V2** proj
 
 Create these Status options, or configure mappings to your existing options:
 
-`Backlog`, `Todo`, `In Progress`, `Testing`, `Done`, `Cancelled`.
+`Backlog`, `Todo`, `In Progress`, `Testing`, `Done`, `Canceled`. Board 3 also has an `In review` option.
 
 Disable competing project automations that overwrite statuses or archive managed cards. Eligible cards manually archived in GitHub are unarchived on the next successful sync.
 
@@ -69,10 +69,12 @@ Use UUIDs, not Linear names or issue identifiers. Get them from Linear or its re
 For the current workflow, set `STATUS_MAPPING_JSON` to:
 
 ```json
-{"In Review":"Testing","Canceled":"Cancelled","Duplicate":"Cancelled"}
+{"Canceled":"Canceled","Duplicate":"Canceled"}
 ```
 
 Mapping keys can be actual Linear status UUIDs or names. UUID keys take precedence. Names are matched case-insensitively to existing GitHub option names. Otherwise, an actual Linear status name matching a GitHub option is used directly. Statuses are discovered at runtime; their names are not hardcoded into source.
+
+On board 3, Linear's `In Review` matches the existing `In review` column directly. Its cancellation option is spelled `Canceled`, and `ARCHIVE_STATUS` is configured to that same name. Keep any separate `Testing` option for a future corresponding workflow stage; it is not substituted for review.
 
 Unknown statuses log a warning and skip the issue by default, preserving any existing card. Set `UNKNOWN_STATUS_POLICY=fallback` and `STATUS_FALLBACK=Backlog` for an explicit fallback, or `UNKNOWN_STATUS_POLICY=error` to abort planning. Missing target options or an absent/ambiguous Status field abort before writes. For a renamed field, set `GH_STATUS_FIELD` to its new name.
 
