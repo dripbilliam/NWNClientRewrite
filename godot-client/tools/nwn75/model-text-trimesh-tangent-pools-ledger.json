@@ -1,0 +1,196 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text TriMesh tangent-basis gate, conditional .mtr demand, vertex-split math and all static Request/Lock/Resize/Unlock pool sites.",
+  "edges": [
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a6130",
+      "callsite": "0x1400a9b51",
+      "kind": "direct_static",
+      "condition": "text TriMesh vertex count initially zero and positive face count, after vertex-data construction",
+      "status": "conditional_tangent_postprocess",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "MdlNodeTriMesh::CalculateTangentSpaceBasis"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "TANGENT_ALREADY_PRESENT_LEAF",
+      "kind": "conditional_return",
+      "condition": "node+0x2ac != 0xffffffff",
+      "status": "terminal_cpu",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "0x14008e970",
+      "callsite": "0x1400a61ab",
+      "kind": "direct_static",
+      "condition": "hint+0x120 zero and one-shot flag+0x2c4 false",
+      "status": "cpu_material_name",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043",
+      "target_label": "MdlNodeTriMesh::GetMaterialName"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "0x140083340",
+      "callsite": "0x1400a61b3",
+      "kind": "direct_static",
+      "condition": "same zero-hint/one-shot gate; shared hint+0x14 or fallback 1",
+      "status": "conditional_material_resource",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043",
+      "target_label": "SharedMaterial::GetSharedMaterial"
+    },
+    {
+      "from": "0x140083340",
+      "to": "0x14005dbc0",
+      "callsite": "0x1400833cd",
+      "kind": "direct_static",
+      "condition": "nonempty material name and shared-material table miss; .mtr resource",
+      "status": "conditional_resource_demand",
+      "evidence_id": "ev_3312dbef7fe0318db10e061df5d78fd92db41fdae304074e036c412c18f977a7",
+      "target_label": "AurResGet"
+    },
+    {
+      "from": "0x140083340",
+      "to": "0x14005dff0",
+      "callsites": [
+        "0x1400833f9",
+        "0x140083420"
+      ],
+      "kind": "direct_static",
+      "condition": "successful .mtr read; per-line parse",
+      "status": "cpu_material_parse",
+      "evidence_id": "ev_3312dbef7fe0318db10e061df5d78fd92db41fdae304074e036c412c18f977a7",
+      "target_label": "AurResGetNextLine"
+    },
+    {
+      "from": "0x140083340",
+      "to": "0x1400849a0",
+      "callsite": "0x14008341b",
+      "kind": "direct_static",
+      "condition": "each .mtr line",
+      "status": "cpu_material_parse",
+      "evidence_id": "ev_3312dbef7fe0318db10e061df5d78fd92db41fdae304074e036c412c18f977a7",
+      "target_label": "SharedMaterial::ParseField"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "tangent/sign pools +0x2ac/+0x2b4",
+      "kind": "conditional_pool_request",
+      "condition": "hint 2 or 3, required pool handles valid, primitive mode 3, positive first index count and vertex count",
+      "status": "conditional_gl_pool_publication",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "CPU tangent/handedness scratch",
+      "kind": "cpu_triangle_math",
+      "condition": "admitted indexed triangles; zero UV determinant takes normal fallback; conflicting handedness can split vertices",
+      "status": "cpu_tangent_geometry",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "base/optional/Skin pools and Dangly/Skin arrays",
+      "kind": "conditional_vertex_split_copy",
+      "condition": "positive split count; subtype and pool-presence gates",
+      "status": "conditional_gl_pool_publication",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "0x1400beee0",
+      "callsites": [
+        "0x1400a6277",
+        "0x1400a62b1"
+      ],
+      "kind": "direct_static",
+      "condition": "initial tangent and sign pools",
+      "status": "conditional_gl_pool_publication",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043",
+      "target_label": "RenderInterface::RequestPool"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "0x1400bee30",
+      "callsites": [
+        "0x1400a6240",
+        "0x1400a6289",
+        "0x1400a62c3",
+        "0x1400a62e2",
+        "0x1400a62fc",
+        "0x1400a6316",
+        "0x1400a6b3c",
+        "0x1400a6b6d",
+        "0x1400a6ba1",
+        "0x1400a6bdd",
+        "0x1400a6c16",
+        "0x1400a6d17",
+        "0x1400a6da1",
+        "0x1400a6e2c",
+        "0x1400a6eac",
+        "0x1400a7203",
+        "0x1400a7232"
+      ],
+      "kind": "direct_static",
+      "condition": "initial indexed/base pools or split-dependent relock including optional/Skin streams",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043",
+      "target_label": "RenderInterface::LockPool"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "0x1400bef00",
+      "callsites": [
+        "0x1400a6b25",
+        "0x1400a6b56",
+        "0x1400a6b8a",
+        "0x1400a6bc6",
+        "0x1400a6bff",
+        "0x1400a6d00",
+        "0x1400a6d8a",
+        "0x1400a6e15",
+        "0x1400a6e95",
+        "0x1400a71ed",
+        "0x1400a721c"
+      ],
+      "kind": "direct_static",
+      "condition": "positive split count; base and optional/Skin stream gates",
+      "status": "conditional_gl_pool_publication",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043",
+      "target_label": "RenderInterface::ResizePool"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "0x1400bf3d0",
+      "callsites": [
+        "0x1400a6d69",
+        "0x1400a6df9",
+        "0x1400a6e79",
+        "0x1400a6ef6",
+        "0x1400a72a2",
+        "0x1400a72b5",
+        "0x1400a73dc",
+        "0x1400a73f0",
+        "0x1400a7404",
+        "0x1400a7418",
+        "0x1400a742c",
+        "0x1400a7442"
+      ],
+      "kind": "direct_static",
+      "condition": "admitted pools after tangent/duplicate writes; optional/Skin gates",
+      "status": "conditional_gl_pool_publication",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043",
+      "target_label": "RenderInterface::UnlockPool"
+    },
+    {
+      "from": "0x1400a6130",
+      "to": "DYNAMIC:TANGENT_MATERIAL_SPLITS_AND_POOL_STATE",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored hint/material, cache state, pool handles, UV handedness, subtype and later draw",
+      "status": "unresolved_target",
+      "evidence_id": "ev_87247071bebad3fd75fd90786ee5d63457a8792ff09c56e65f74c19edcc93043"
+    }
+  ]
+}

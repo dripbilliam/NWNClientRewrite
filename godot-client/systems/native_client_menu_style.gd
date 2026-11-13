@@ -16,6 +16,68 @@ var images: Dictionary={}
 var presentation_ready:=false
 var closed:=false
 var current: Theme
+var entry_publication_active:=false
+var entry_publication_dirty:=false
+var entry_publication_building:=false
+var entry_publication_windows: Array=[]
+var entry_publication_index:=0
+var entry_publication_touched: Array=[]
+var entry_publication_visible_count:=0
+var entry_publication_deferred_count:=0
+var entry_publication_restarts:=0
+static var _refresh_base_template: Theme
+static func refresh_base_theme() -> Theme:
+	# Entry and artwork callbacks compose the same large base Theme repeatedly.
+	# Keep one private, bounded blueprint and deep-copy its mutable StyleBoxes;
+	# base_theme() remains the public fresh-construction API.
+	if _refresh_base_template==null:_refresh_base_template=base_theme()
+	return _refresh_base_template.duplicate(true)
+func begin_entry_publication() -> void:
+	_discard_pending_entry_themes()
+	entry_publication_active=true;entry_publication_dirty=true
+	entry_publication_windows.clear();entry_publication_index=0
+	entry_publication_visible_count=0;entry_publication_deferred_count=0;entry_publication_restarts=0
+func _discard_pending_entry_themes() -> void:
+	for window in entry_publication_touched:
+		if is_instance_valid(window) and window.has_method("discard_pending_native_theme"):window.discard_pending_native_theme(get_instance_id())
+	entry_publication_touched.clear()
+func entry_publication_receipt() -> Dictionary:
+	return {"visible_applies":entry_publication_visible_count,"hidden_deferrals":entry_publication_deferred_count,"restarts":entry_publication_restarts,"pending_hidden":entry_publication_touched.filter(func(window):return is_instance_valid(window) and window.pending_native_theme_source==get_instance_id()).size()}
+func entry_publication_step() -> Dictionary:
+	if closed or not entry_publication_active or not is_inside_tree():return {"done":true,"accepted":false}
+	if entry_publication_dirty:
+		if current!=null:entry_publication_restarts+=1
+		entry_publication_dirty=false;entry_publication_building=true
+		refresh()
+		entry_publication_building=false
+		entry_publication_windows=get_tree().get_nodes_in_group("native_client_windows")
+		entry_publication_index=0
+		return {"done":false}
+	if entry_publication_index<entry_publication_windows.size():
+		var window=entry_publication_windows[entry_publication_index]
+		entry_publication_index+=1
+		if is_instance_valid(window) and not window.is_queued_for_deletion():
+			if window.has_method("stage_native_theme"):
+				if window.stage_native_theme(current,get_instance_id()):
+					entry_publication_deferred_count+=1
+					if not entry_publication_touched.has(window):entry_publication_touched.append(window)
+				else:entry_publication_visible_count+=1
+			else:window.apply_native_theme(current);entry_publication_visible_count+=1
+		return {"done":false}
+	# A window can join or leave during a yielded entry. Reapply the final
+	# theme in tree order if that changes the publication set.
+	var actual: Array=get_tree().get_nodes_in_group("native_client_windows")
+	if actual.size()!=entry_publication_windows.size():
+		entry_publication_windows=actual;entry_publication_index=0
+		return {"done":false}
+	for index in actual.size():
+		if actual[index]!=entry_publication_windows[index]:
+			entry_publication_windows=actual;entry_publication_index=0
+			return {"done":false}
+	get_tree().set_meta("native_client_menu_theme",current)
+	entry_publication_active=false;entry_publication_windows.clear()
+	changed.emit(current)
+	return {"done":true,"accepted":true}
 static func for_tree(tree: SceneTree) -> Theme:
 	return tree.get_meta("native_client_menu_theme") if tree!=null and tree.has_meta("native_client_menu_theme") else base_theme()
 static func flat(fill: Color,border: Color=Color.TRANSPARENT,padding: float=0) -> StyleBoxFlat:
@@ -79,7 +141,10 @@ func picture(name: String) -> Texture2D: return images.get(name)
 func button_style(name: String) -> StyleBoxTexture:
 	var result:=StyleBoxTexture.new(); result.texture=picture(name); result.set_texture_margin_all(4); result.set_content_margin_all(8); return result
 func refresh() -> void:
-	current=base_theme()
+	if entry_publication_active and not entry_publication_building:
+		entry_publication_dirty=true
+		return
+	current=refresh_base_theme()
 	if frame.fonts.fonts.has(FONT):
 		current.default_font=frame.fonts.fonts[FONT]; current.default_font_size=roundi(float(frame.fonts.metrics[FONT].height))
 		for kind in ["Label","Button","CheckBox","OptionButton","LineEdit","Tree","PopupMenu","TabContainer","TabBar","TextEdit","ProgressBar","TooltipLabel"]:
@@ -102,14 +167,16 @@ func refresh() -> void:
 			if picture(pair[1])!=null:
 				for suffix in ["","_highlight","_pressed"]: current.set_icon(str(pair[0])+suffix,kind,picture(pair[1]))
 	presentation_ready=images.size()==11 and frame.fonts.fonts.has(FONT)
-	if is_inside_tree():
+	if is_inside_tree() and not entry_publication_active:
 		get_tree().set_meta("native_client_menu_theme",current)
 		get_tree().call_group("native_client_windows","apply_native_theme",current)
-	changed.emit(current)
+	if not entry_publication_active:changed.emit(current)
 func close() -> void:
 	if closed: return
 	closed=true
-	if is_inside_tree() and get_tree().get_meta("native_client_menu_theme",null)==current: get_tree().remove_meta("native_client_menu_theme")
+	_discard_pending_entry_themes()
+	entry_publication_active=false;entry_publication_windows.clear()
+	if is_inside_tree() and current!=null and get_tree().has_meta("native_client_menu_theme") and get_tree().get_meta("native_client_menu_theme")==current: get_tree().remove_meta("native_client_menu_theme")
 	if is_instance_valid(frame) and is_instance_valid(frame.art) and frame.art.loaded.is_connected(art_loaded): frame.art.loaded.disconnect(art_loaded)
 	if is_instance_valid(frame) and is_instance_valid(frame.fonts) and frame.fonts.loaded.is_connected(font_loaded): frame.fonts.loaded.disconnect(font_loaded)
 	frame=null; keys.clear(); images.clear()

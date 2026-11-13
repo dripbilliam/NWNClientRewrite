@@ -1,0 +1,19 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Three disconnected exported Scene setter roots: vtable and export-address metadata versus distinct constructor/console field writers",
+  "document": "scene-exported-setter-root-audit.md",
+  "edges": [
+    {"from":"0x140d8deb0","to":"0x1400d3570","kind":"scene_vtable_slot","condition":"Scene primary table 0x140d8dd30 +0x180, exact qword 70350d4001000000; virtual caller unresolved","status":"aabb_setter_virtual_root","evidence_id":"ev_c98ee4d82bc611771a94326bb2057aefc43d606c8dee64fbedac845fbf7ac2d3"},
+    {"from":"0x1410de654","to":"0x1400d3570","kind":"pe_export_address_table","condition":"ordinal 13284, ?SetRenderAABB@Scene@@UEAAX_N@Z; RVA 000d3570, no direct code caller in incoming-reference set","status":"aabb_setter_external_root","evidence_id":"ev_fe54c2df3caa85cb1900e5c9b0a66808818b2b971f4520c735730e8eb371e393"},
+    {"from":"0x1400d3570","to":"Scene+0x1e0","kind":"scene_state_write","condition":"SetRenderAABB(bool) CPU byte store; constructor default zero; virtual/external invocation unresolved","status":"aabb_setter_field_alias","evidence_id":"ev_f2a98d2c695c718414754027f9d83a9b800c0bdf96388cdc9563ef8f75e0242f"},
+    {"from":"0x140d8ddd0","to":"0x1400d3340","kind":"scene_vtable_slot","condition":"Scene primary table 0x140d8dd30 +0xa0, exact qword 40330d4001000000; virtual caller unresolved","status":"fogcolor_setter_virtual_root","evidence_id":"ev_12c687597087ea6e089dfa974679549b2191461e4de2a4228f86b20ff2883e0b"},
+    {"from":"0x1410de108","to":"0x1400d3340","kind":"pe_export_address_table","condition":"ordinal 12945, ?SetFogColor@Scene@@UEAAXAEAVVector@@@Z; RVA 000d3340, no direct code caller in incoming-reference set","status":"fogcolor_setter_external_root","evidence_id":"ev_93ea6b896c47e7b328eaede9ae17c8bfca290b9111904f51b6919c8942bc319a"},
+    {"from":"0x1400d3340","to":"Scene+0x14c..+0x154","kind":"scene_state_write","condition":"SetFogColor(Vector&) copies three floats; invocation unresolved","status":"fogcolor_setter_field_alias","evidence_id":"ev_30ffe268bab55d8154447dc5f77cd4238d7b274b5ef7ff9752427a49fc6c1435"},
+    {"from":"<scene>.fogcolor console Vector* holder","to":"Scene+0x14c..+0x154","kind":"independent_console_field_write","condition":"registered vector pointer parses directly into Scene field; no call to SetFogColor","status":"fogcolor_direct_writer_not_setter_caller","evidence_source":"scene-fog-console-vector.md"},
+    {"from":"0x140d8ddd8","to":"0x1400d3580","kind":"scene_vtable_slot","condition":"Scene primary table 0x140d8dd30 +0xa8, exact qword 80350d4001000000; virtual caller unresolved","status":"focus_setter_virtual_root","evidence_id":"ev_6d721a988a5faea11b4ec55d7bd4b4eeedfec5089e3a86d8148f7519d2859e57"},
+    {"from":"0x1410de71c","to":"0x1400d3580","kind":"pe_export_address_table","condition":"ordinal 13334, ?SetSceneFocus@Scene@@UEAAXAEBVVector@@@Z; RVA 000d3580, no direct code caller in incoming-reference set","status":"focus_setter_external_root","evidence_id":"ev_952d9ca12cc58e7cd4f89ad47ae5d01730d6728dcb87c4a49aa31b42a1329fd2"},
+    {"from":"0x1400d3580","to":"Scene+0x190..+0x198","kind":"scene_state_write","condition":"SetSceneFocus(Vector const&) copies three floats; invocation unresolved","status":"focus_setter_field_alias","evidence_id":"ev_1a93390304a60d3a1a2bc172a2a995d550f16baee1a8d3af538545c9279e988c"},
+    {"from":"<scene>.focus console Vector* holder","to":"Scene+0x190..+0x198","kind":"independent_console_field_write","condition":"registered vector pointer parses directly into Scene field; no call to SetSceneFocus","status":"focus_direct_writer_not_setter_caller","evidence_source":"scene-focus-shadow-plane-source.md"}
+  ]
+}

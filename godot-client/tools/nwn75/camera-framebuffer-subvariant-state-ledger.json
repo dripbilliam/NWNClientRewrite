@@ -1,0 +1,16 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Connected seven camera SSAO/bloom subvariant setter callsites through GLRender integer shader-constant generation",
+  "document": "camera-framebuffer-subvariant-state.md",
+  "edges": [
+    {"from":"0x140057b20","to":"0x1400bf270","callsite":"0x14005814e","kind":"direct_call","condition":"phase 0; enableFBeffects and SSAO effect bit 0; subvariant 0","status":"ssao_subvariant_zero","evidence_id":"ev_163cc5bea652b5e84a84cd6d20c6e69ab96381cbb9ab227c2e0bb81ba3eb6c33"},
+    {"from":"0x140057b20","to":"0x1400bf270","callsite":"0x14005831b","kind":"direct_call","condition":"same admitted SSAO branch; subvariant 1 before second quad","status":"ssao_subvariant_one","evidence_id":"ev_07f29bf558f30917daad7c6d4161295108fb8b5f19a8dce1786e589fa846bfbe"},
+    {"from":"0x140057b20","to":"0x1400bf270","callsite":"0x140058519","kind":"direct_call","condition":"same admitted SSAO branch; subvariant 2 before final blend quad","status":"ssao_subvariant_two","evidence_id":"ev_7934dbdba24c1b0d060a326dac0c00e44c035e5b6b277d6977f759f8034ae0ac"},
+    {"from":"0x140057b20","to":"0x1400bf270","callsite":"0x14005866a","kind":"direct_call","condition":"nonzero phase; enableFBeffects and bloom effect bit 1; subvariant 0","status":"bloom_subvariant_zero","evidence_id":"ev_24424636b588ac59a89cd3df544718371cdc762340820c7456a201b73baf6008"},
+    {"from":"0x140057b20","to":"0x1400bf270","callsite":"0x1400586f5","kind":"direct_call","condition":"admitted bloom downscale loop; subvariant 1 per loop iteration","status":"bloom_subvariant_one","evidence_id":"ev_e128770ca5970564eb82c409db7c81ce54a8f931190940725b981516eb442539"},
+    {"from":"0x140057b20","to":"0x1400bf270","callsite":"0x140058806","kind":"direct_call","condition":"admitted bloom downscale loop; subvariant 2 per loop iteration","status":"bloom_subvariant_two","evidence_id":"ev_63fe54dff943486d54f98a5c4f4d2dd2ebeacbca9514286c083d103e79024565"},
+    {"from":"0x140057b20","to":"0x1400bf270","callsite":"0x1400588b4","kind":"direct_call","condition":"admitted bloom branch final blend; subvariant 3","status":"bloom_subvariant_three","evidence_id":"ev_08e39716a68f55fbfe3265764f570b948aef937d8c910aa58d6b7da73927daf9"},
+    {"from":"0x1400bf270","to":"0x1400b7c90","callsite":"0x1400bf270","kind":"tail_jump","condition":"RenderInterface five-byte E9 thunk to GLRender integer shader-parameter implementation","status":"effect_subvariant_generation_producer","evidence_id":"ev_0b4d62ae83eca005b57629b3d19cfdc02f22a2502f44541eae89c32a4426587f"}
+  ]
+}

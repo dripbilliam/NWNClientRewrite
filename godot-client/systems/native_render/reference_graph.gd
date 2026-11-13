@@ -6,21 +6,37 @@ var owner: Node3D
 var rows: Array=[]
 var root_part: Dictionary={}
 var failure:=""
+var _construction: Dictionary={}
 func configure(source: Node3D,original: Array,parts: Array) -> bool:
-	owner=source; rows.clear(); root_part={}; failure=""
+	if not begin_configure(source,original,parts):return false
+	while not _construction.is_empty():
+		var progress:=configure_step(65536,0)
+		if progress.status=="failed":return false
+	return not root_part.is_empty()
+func begin_configure(source: Node3D,original: Array,parts: Array,helper_overrides: Dictionary={}) -> bool:
+	_construction={};owner=source;rows.clear();root_part={};failure=""
 	if original.size()!=parts.size(): failure="Native reference physical graph count mismatch"; return false
-	for index in original.size():
-		var reference=parts[index].get_node_or_null("native_reference")
+	_construction={"original":original,"parts":parts,"helpers":helper_overrides,"index":0};return true
+func configure_step(maximum_nodes: int=8,budget_us: int=1500)->Dictionary:
+	if _construction.is_empty():return {"status":"ready" if not root_part.is_empty() else "failed","reason":failure,"units":0}
+	var began:=Time.get_ticks_usec();var units:=0;var original: Array=_construction.original;var parts: Array=_construction.parts
+	while int(_construction.index)<original.size() and units<maxi(1,maximum_nodes):
+		if units>0 and budget_us>0 and Time.get_ticks_usec()-began>=budget_us:break
+		var index:=int(_construction.index);_construction.index=index+1;units+=1
+		var reference=_construction.helpers.get(parts[index].get_instance_id()) if _construction.helpers.has(parts[index].get_instance_id()) else parts[index].get_node_or_null("native_reference")
 		var row:={"object":parts[index],"name":str(original[index].name),"helper":reference,"model68":null,"header8":null,"children38":[]}
 		if reference!=null: row.header8={"flags98":0x11,"reattachableE0":int(reference.original_header.get("reattachable",0))}
 		rows.append(row)
 		var parent:=int(original[index].parent)
-		if parent>=index or parent< -1: failure="Native reference physical parent mismatch"; return false
+		if parent>=index or parent< -1:failure="Native reference physical parent mismatch";_construction={};return {"status":"failed","reason":failure,"units":units}
 		if parent<0:
-			if not root_part.is_empty(): failure="Native reference model has multiple physical roots"; return false
+			if not root_part.is_empty():failure="Native reference model has multiple physical roots";_construction={};return {"status":"failed","reason":failure,"units":units}
 			root_part=row
 		else: rows[parent].children38.append(row)
-	return not root_part.is_empty()
+	if int(_construction.index)<original.size():return {"status":"pending","units":units}
+	_construction={};return {"status":"ready" if not root_part.is_empty() else "failed","reason":failure,"units":units}
+func cancel_configure()->void:
+	_construction={};owner=null;rows.clear();root_part={}
 static func position(node: Node3D) -> Array:
 	var p:=node.global_position; return [p.x,-p.z,p.y]
 static func orientation(node: Node3D) -> Array:

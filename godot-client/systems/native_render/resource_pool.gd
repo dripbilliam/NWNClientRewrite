@@ -6,23 +6,116 @@ const PickGeometry=preload("res://systems/native_render/pick_geometry.gd")
 const SceneGeometry=preload("res://systems/native_render/scene_geometry.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const MeshPreparation=preload("res://systems/native_data/mesh_preparation.gd")
+const RasterUpload=preload("res://systems/native_data/raster_upload_preparation.gd")
 const NativeDrawCache=preload("res://systems/native_render/native_draw_cache_runtime.gd")
 const NativeDrawCodec=preload("res://systems/native_render/native_mesh_resource_cache.gd")
 var native_draw_captures: Array=[]
 var use_prepared_geometry:=MeshPreparation.configured_enabled()
+var use_raster_upload_preparation:=RasterUpload.configured_enabled()
+var use_worker_texture_creation:=RasterUpload.configured_worker_texture_creation() and RenderingServer.get_rendering_device()!=null
+var ready_raster_uploads: Dictionary={}
+var ready_worker_textures: Dictionary={}
+var ready_raster_order: Array[String]=[]
+var ready_raster_bytes:=0
+var raster_upload_counts:={"worker_jobs":0,"worker_rows":0,"worker_declined":0,"accepted":0,"consumed":0,"fallbacks":0,"cached_skips":0,"evictions":0,"invalid_sidecars":0,"invalid_packets":0,"peak_ready_bytes":0}
+var raster_upload_threads: Array[int]=[]
+const MAX_READY_RASTER_BYTES:=16*1024*1024
 var publication_budget_us:=3000
+static func configured_scenery_publication_budget() -> int:
+	# Private loading-only experiment. The normal shared budget stays at 3 ms.
+	var value: Variant=ProjectSettings.get_setting("nwn/private/publication_scenery_budget_us",0)
+	return clampi(int(value),3000,8000) if value is int and int(value)>3000 else 0
+var scenery_publication_budget_us:=configured_scenery_publication_budget()
+static func configured_entry_publication_budget() -> int:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--publication-entry-budget-us="):
+			var value:=argument.trim_prefix("--publication-entry-budget-us=")
+			return clampi(int(value),3000,12000) if value.is_valid_int() else 0
+	return 0
+var entry_publication_budget_us:=configured_entry_publication_budget()
+var publication_world: WeakRef
+var _scenery_budget_active:=false
+var _scenery_budget_activations:=0
+var _scenery_budget_clears:=0
+func _observe_scenery_budget(active: bool) -> void:
+	if active==_scenery_budget_active:return
+	_scenery_budget_active=active
+	if active:_scenery_budget_activations+=1
+	else:_scenery_budget_clears+=1
+func bind_publication_world(world: Node) -> void:publication_world=weakref(world) if is_instance_valid(world) else null
+func publication_budget_limit_us() -> int:
+	# The ordinary policy has no world-dependent allowance to resolve.
+	if entry_publication_budget_us<=publication_budget_us and scenery_publication_budget_us<=publication_budget_us:return publication_budget_us
+	if publication_world==null:
+		if scenery_publication_budget_us>publication_budget_us:_observe_scenery_budget(false)
+		return publication_budget_us
+	var world: Node=publication_world.get_ref()
+	if not is_instance_valid(world) or world.is_queued_for_deletion() or world.get("closed")==true or world.get("retiring")==true:
+		if scenery_publication_budget_us>publication_budget_us:_observe_scenery_budget(false)
+		return publication_budget_us
+	var effective:=publication_budget_us
+	if entry_publication_budget_us>effective and world.get_meta("native_entry_loading",false):effective=entry_publication_budget_us
+	if scenery_publication_budget_us>publication_budget_us:
+		var scenery_active: bool=world.get_meta("native_publication_loading",false)
+		_observe_scenery_budget(scenery_active)
+		if scenery_active:effective=maxi(effective,scenery_publication_budget_us)
+	return effective
+func publication_callback_budget_us(ordinary_limit: int=3000) -> int:
+	var effective:=publication_budget_limit_us()
+	return maxi(ordinary_limit,effective) if effective>publication_budget_us else ordinary_limit
 var maximum_publications_per_frame:=16
 var publication_frame:=-1
 var publication_us:=0
 var publications:=0
+var construction_steps:=0
 var priority_publications:=0
-func can_publish(priority: bool=false) -> bool:
+var completion_units:=0
+var maximum_completion_units_per_frame:=64
+var completion_us:=0
+var _completion_depth:=0
+var _completion_began:=0
+var _completion_priority:=false
+var cooperative_templates:=false
+func _publication_frame() -> void:
 	var frame:=int(Engine.get_process_frames())
 	if publication_frame!=frame:
-		publication_frame=frame; publication_us=0; publications=0; priority_publications=0
-	return (priority and priority_publications==0) or publications==0 or publication_us<publication_budget_us and publications<maximum_publications_per_frame
+		publication_frame=frame;publication_us=0;publications=0;construction_steps=0;priority_publications=0;completion_units=0;completion_us=0
+func cooperative_publication() -> bool:return cooperative_templates
+func remaining_publication_us() -> int:
+	_publication_frame()
+	return maxi(1,publication_budget_limit_us()-publication_us-(Time.get_ticks_usec()-_completion_began if _completion_depth>0 else 0))
+func can_consume_completion(priority: bool=false) -> bool:
+	_publication_frame()
+	var elapsed:=publication_us+(Time.get_ticks_usec()-_completion_began if _completion_depth>0 else 0)
+	return completion_units+_completion_depth<maximum_completion_units_per_frame and ((priority and priority_publications==0 and not _completion_priority) or _completion_depth==0 and completion_units==0 and publications==0 and construction_steps==0 or elapsed<publication_budget_limit_us())
+func begin_completion_scope() -> void:
+	_publication_frame()
+	if _completion_depth==0:_completion_began=Time.get_ticks_usec();_completion_priority=false
+	_completion_depth+=1
+func begin_prioritized_completion_scope(priority: bool) -> void:
+	begin_completion_scope();_completion_priority=_completion_priority or priority
+func end_completion_scope() -> void:
+	if _completion_depth<1:return
+	_completion_depth-=1
+	if _completion_depth==0:
+		var elapsed:=Time.get_ticks_usec()-_completion_began;publication_us+=elapsed;completion_us+=elapsed;_completion_began=0
+		if _completion_priority:priority_publications+=1
+		_completion_priority=false
+	completion_units+=1
+func can_publish(priority: bool=false) -> bool:
+	_publication_frame()
+	var elapsed:=publication_us+(Time.get_ticks_usec()-_completion_began if _completion_depth>0 else 0)
+	return (priority and priority_publications==0) or publications==0 and construction_steps==0 and completion_units==0 or elapsed<publication_budget_limit_us() and publications<maximum_publications_per_frame
+func construction_finished(began: int) -> void:
+	_publication_frame()
+	if _completion_depth==0:publication_us+=Time.get_ticks_usec()-began
+	construction_steps+=1
 func publication_finished(began: int,priority: bool=false) -> void:
-	publication_us+=Time.get_ticks_usec()-began; publications+=1
+	_publication_frame()
+	# A nested scene operation is included in its completion callback's outer
+	# wall-clock scope. Count the unit once without charging that CPU time twice.
+	if _completion_depth==0:publication_us+=Time.get_ticks_usec()-began
+	publications+=1
 	if priority: priority_publications+=1
 var failure := ""
 var meshes: Dictionary = {}
@@ -40,15 +133,55 @@ var hidden_hit_geometry: Dictionary={}
 var hidden_hit_order: Array=[]
 var templates: Dictionary = {}
 var template_preparation_peaks: Array=[]
+var template_diagnostic_peaks: Variant=null
+var completion_diagnose:=OS.get_cmdline_user_args().has("--publication-completion-diagnose")
+var completion_template_peaks: Array=[]
+var completion_template_max_us:=0
+var completion_template_logged:=0
 var template_order: Array=[]
 var maximum_templates:=512
 var maximum_meshes:=4096
 var maximum_textures:=512
 var maximum_materials:=2048
-var resource_order:={"mesh":[],"texture":[],"material":[]}
+class Recency:
+	extends RefCounted
+	# Cache hits used Array.erase(), which scanned and shifted every retained
+	# binding. Material hits are frequent while publishing repeated models.
+	var links: Dictionary={}
+	var first: Variant=null
+	var last: Variant=null
+	func is_empty() -> bool:return links.is_empty()
+	func size() -> int:return links.size()
+	func clear() -> void:links.clear();first=null;last=null
+	func touch(key: String) -> void:
+		if links.has(key):
+			var old: Dictionary=links[key]
+			var previous: Variant=old.prev;var following: Variant=old.next
+			if previous==null:first=following
+			else:
+				var prior: Dictionary=links[previous];prior.next=following
+			if following==null:last=previous
+			else:
+				var next_row: Dictionary=links[following];next_row.prev=previous
+		var row: Dictionary={"prev":last,"next":null}
+		links[key]=row
+		if last==null:first=key
+		else:
+			var previous_last: Dictionary=links[last];previous_last.next=key
+		last=key
+	func pop_front() -> String:
+		if first==null:return ""
+		var key: String=first
+		var following: Variant=links[key].next
+		links.erase(key);first=following
+		if following==null:last=null
+		else:
+			var row: Dictionary=links[following];row.prev=null
+		return key
+var resource_order:={"mesh":Recency.new(),"texture":Recency.new(),"material":Recency.new()}
 var stats := {"meshes_created":0,"textures_created":0,"materials_created":0,"mesh_hits":0,"texture_hits":0,"material_hits":0,"native_decompressions":0,"templates_created":0,"template_hits":0,"template_evictions":0,"mesh_evictions":0,"texture_evictions":0,"material_evictions":0,"prepared_mesh_uses":0,"main_mesh_preparations":0,"prepared_hidden_uses":0}
 func touch(kind: String,key: String) -> void:
-	resource_order[kind].erase(key); resource_order[kind].append(key)
+	resource_order[kind].touch(key)
 func retain(kind: String,entries: Dictionary,key: String,value: Resource,limit: int) -> void:
 	# These bounds cover cache bindings, not resources still referenced by live
 	# models/templates. Dropping a binding never changes an admitted instance.
@@ -77,8 +210,20 @@ func resume_native_model(context: Dictionary) -> void:
 func capture_native_geometry(source_sha: String,index: int,rigid_skin: bool,mesh: ArrayMesh) -> void:
 	for context in native_draw_captures:NativeDrawCache.capture(context,source_sha,index,rigid_skin,mesh)
 func model_template(bundle: Dictionary):
-	var began:=Timing.begin(); var result=prepare_model_template(bundle)
+	var began:=Time.get_ticks_usec() if completion_diagnose else Timing.begin()
+	var prior_hits:=int(stats.template_hits) if completion_diagnose else 0
+	var result=prepare_model_template(bundle)
+	if completion_diagnose:_record_completion_template(bundle,result,Time.get_ticks_usec()-began,int(stats.template_hits)>prior_hits)
 	Timing.finish("publication_template_cpu_ms",began); return result
+func _record_completion_template(bundle: Dictionary,template,elapsed_us: int,cache_hit: bool) -> void:
+	if elapsed_us<5000:return
+	var row: Dictionary={"model":str(bundle.get("resource_name",bundle.value.name)).get_file().substr(0,96),"sha256":str(bundle.get("sha256","")),"callback_us":elapsed_us,"cache_hit":cache_hit,"phase_ms":template.preparation_timings.duplicate(true) if template!=null and not cache_hit else {},"failure":template==null}
+	completion_template_peaks.append(row)
+	completion_template_peaks.sort_custom(func(a,b):return int(a.callback_us)>int(b.callback_us))
+	if completion_template_peaks.size()>8:completion_template_peaks.resize(8)
+	if elapsed_us>completion_template_max_us and completion_template_logged<16:
+		completion_template_max_us=elapsed_us;completion_template_logged+=1
+		print("NWN62_TEMPLATE_TAIL ",JSON.stringify(row))
 func prepare_model_template(bundle: Dictionary):
 	if not main_thread(): return null
 	failure=""
@@ -95,6 +240,13 @@ func _remember_template(key: String,bundle: Dictionary,template):
 	if templates.has(key):
 		stats.template_hits+=1;template_order.erase(key);template_order.append(key);return templates[key]
 	if int(template.get("recipe_capture_successes"))>0:stats.recipe_templates_created=int(stats.get("recipe_templates_created",0))+1
+	if template.diagnose_staged:
+		# Private opt-in receipt, retained only for the eight largest completed
+		# staged invocations. No extra clocks, scans or containers in normal play.
+		if template_diagnostic_peaks==null:template_diagnostic_peaks=[]
+		template_diagnostic_peaks.append({"model":str(bundle.get("resource_name",bundle.value.name)),"sha256":str(bundle.sha256),"step":template.staged_diagnostic_peak_step.duplicate(true),"phase_max_us":template.staged_diagnostic_phase_max_us.duplicate(),"staged_steps":int(template.staged_steps)})
+		template_diagnostic_peaks.sort_custom(func(a,b):return int(a.step.get("step_us",0))>int(b.step.get("step_us",0)))
+		if template_diagnostic_peaks.size()>8:template_diagnostic_peaks.resize(8)
 	if not template.preparation_timings.is_empty():
 		var measured: Dictionary=template.preparation_timings.duplicate(); measured.model=str(bundle.get("resource_name",bundle.value.name)); measured.sha256=str(bundle.sha256)
 		if bool(measured.get("staged",false)):
@@ -113,7 +265,7 @@ static func point(values: PackedFloat32Array, index: int) -> Vector3:
 	return Vector3(values[index*3], values[index*3+2], -values[index*3+1])
 func model_template_step(bundle: Dictionary,pending: Dictionary,maximum_units: int=8,budget_us: int=1500) -> Dictionary:
 	if not main_thread():return {"status":"failed","reason":failure}
-	if not Template.configured_recipe():
+	if not Template.cooperative(self):
 		var synchronous=model_template(bundle)
 		return {"status":"ready" if synchronous!=null else "failed","template":synchronous,"reason":failure}
 	var key:=Template.identity(bundle,self)
@@ -121,7 +273,11 @@ func model_template_step(bundle: Dictionary,pending: Dictionary,maximum_units: i
 	# for another key must not receive this job's success or failure as its own.
 	if not pending.is_empty():
 		if int(pending.pool)!=get_instance_id():cancel_template_step(pending);return {"status":"failed","reason":"Staged template pool changed"}
-		if Template.identity(pending.bundle,self)!=str(pending.key):cancel_template_step(pending);return {"status":"pending","phase":"policy-invalidated","units":0}
+		# The current source identity already includes any mutation to this exact
+		# Dictionary and current pool policy. A distinct request still needs its
+		# own pinned-source validation before it can resume or replace this job.
+		var pending_key: String=key if is_same(pending.bundle,bundle) else Template.identity(pending.bundle,self)
+		if pending_key!=str(pending.key):cancel_template_step(pending);return {"status":"pending","phase":"policy-invalidated","units":0}
 		if str(pending.key)!=key:return {"status":"pending","phase":"resume-original-source","active_key":str(pending.key),"requested_key":key,"units":0}
 		if templates.has(key):
 			cancel_template_step(pending);stats.template_hits+=1;template_order.erase(key);template_order.append(key)
@@ -142,28 +298,88 @@ func model_template_step(bundle: Dictionary,pending: Dictionary,maximum_units: i
 func cancel_template_step(pending: Dictionary) -> void:
 	if pending.has("template"):pending.template.cancel_staged_build()
 	pending.clear()
+func raster_upload_preparation_active() -> bool:return use_raster_upload_preparation or use_worker_texture_creation
+func accept_raster_upload_sidecar(sidecar: Dictionary) -> int:
+	if not (use_raster_upload_preparation or use_worker_texture_creation) or not main_thread():return 0
+	if sidecar.get("revision")!=RasterUpload.REVISION or not sidecar.get("rows") is Dictionary or not sidecar.get("stats") is Dictionary or not sidecar.get("thread") is int or int(sidecar.thread)<=0 or int(sidecar.thread)==OS.get_main_thread_id():raster_upload_counts.invalid_sidecars+=1;return 0
+	var rows: Dictionary=sidecar.rows
+	var gpu_rows: Dictionary={}
+	if use_worker_texture_creation:
+		if sidecar.get("gpu_revision")!=RasterUpload.WORKER_TEXTURE_REVISION or not sidecar.get("gpu_rows") is Dictionary:raster_upload_counts.invalid_sidecars+=1;return 0
+		gpu_rows=sidecar.gpu_rows
+		if gpu_rows.size()>rows.size():raster_upload_counts.invalid_sidecars+=1;return 0
+	if rows.size()>RasterUpload.MAX_RETAINED_ENTRIES:raster_upload_counts.invalid_sidecars+=1;return 0
+	raster_upload_counts.worker_jobs+=1;raster_upload_counts.worker_rows+=rows.size();raster_upload_counts.worker_declined+=int(sidecar.stats.get("declined",0))
+	if not raster_upload_threads.has(int(sidecar.thread)) and raster_upload_threads.size()<64:raster_upload_threads.append(int(sidecar.thread))
+	var accepted:=0
+	for key in rows:
+		if not key is String or not rows[key] is Dictionary:raster_upload_counts.invalid_packets+=1;continue
+		if textures.has(key):raster_upload_counts.cached_skips+=1;continue
+		if ready_raster_uploads.has(key):continue
+		var packet: Dictionary=rows[key]
+		if packet.get("source_sha256")!=key or not RasterUpload.packet_supported(packet) or RasterUpload.retained_size(packet)>MAX_READY_RASTER_BYTES:raster_upload_counts.invalid_packets+=1;continue
+		var worker_texture: ImageTexture=null
+		if use_worker_texture_creation and gpu_rows.has(key) and gpu_rows[key] is ImageTexture:
+			var candidate: ImageTexture=gpu_rows[key]
+			if candidate.get_rid().is_valid() and candidate.get_width()==int(packet.width) and candidate.get_height()==int(packet.height) and candidate.get_format()==int(packet.format) and candidate.has_mipmaps()==bool(packet.mipmaps):worker_texture=candidate
+		var bytes: int=RasterUpload.retained_size(packet)+(packet.bytes.size() if worker_texture!=null else 0)
+		if bytes>MAX_READY_RASTER_BYTES:raster_upload_counts.invalid_packets+=1;continue
+		while not ready_raster_order.is_empty() and (ready_raster_order.size()>=RasterUpload.MAX_RETAINED_ENTRIES or ready_raster_bytes+bytes>MAX_READY_RASTER_BYTES):_take_ready_raster(ready_raster_order[0]);raster_upload_counts.evictions+=1
+		ready_raster_uploads[key]=packet;ready_raster_order.append(key);ready_raster_bytes+=bytes;accepted+=1
+		if worker_texture!=null:ready_worker_textures[key]=worker_texture;raster_upload_counts["worker_created_accepted"]=int(raster_upload_counts.get("worker_created_accepted",0))+1
+	raster_upload_counts.accepted+=accepted;raster_upload_counts.peak_ready_bytes=maxi(int(raster_upload_counts.peak_ready_bytes),ready_raster_bytes)
+	return accepted
+func _take_ready_raster(key: String) -> Dictionary:
+	var had_worker_texture:=ready_worker_textures.has(key)
+	if had_worker_texture:ready_worker_textures.erase(key)
+	if not ready_raster_uploads.has(key):return {}
+	var packet: Dictionary=ready_raster_uploads[key];ready_raster_bytes-=RasterUpload.retained_size(packet)+(packet.bytes.size() if had_worker_texture else 0);ready_raster_uploads.erase(key);ready_raster_order.erase(key);return packet
 func texture(record: Dictionary) -> Texture2D:
 	var began:=Timing.begin(); var result:=prepare_texture(record)
 	Timing.finish("publication_texture_cpu_ms",began); return result
 func prepare_texture(record: Dictionary) -> Texture2D:
 	if not main_thread(): return null
 	var key := str(record.sha256)
-	if textures.has(key): stats.texture_hits += 1; touch("texture",key); return textures[key]
+	if textures.has(key):
+		stats.texture_hits += 1; touch("texture",key)
+		if use_raster_upload_preparation or use_worker_texture_creation:_take_ready_raster(key)
+		return textures[key]
+	if use_worker_texture_creation and ready_worker_textures.has(key):
+		var prepared: Dictionary=ready_raster_uploads.get(key,{})
+		var precreated: ImageTexture=ready_worker_textures[key]
+		var valid_worker:=RasterUpload.valid(record,prepared) and precreated.get_rid().is_valid() and precreated.get_width()==int(prepared.width) and precreated.get_height()==int(prepared.height) and precreated.get_format()==int(prepared.format) and precreated.has_mipmaps()==bool(prepared.mipmaps)
+		_take_ready_raster(key)
+		if valid_worker:
+			retain("texture",textures,key,precreated,maximum_textures);stats.textures_created+=1
+			stats["worker_textures_used"]=int(stats.get("worker_textures_used",0))+1
+			if str(record.value.get("format",""))=="etc1":stats.native_decompressions+=1
+			return precreated
+		raster_upload_counts["worker_invalid_fallbacks"]=int(raster_upload_counts.get("worker_invalid_fallbacks",0))+1
 	var data: Dictionary = record.value; var mips: Array = data.mips
 	if mips.is_empty(): failure = "Native raster has no image levels"; return null
 	var width := int(data.width); var height := int(data.height)
 	var image_format: int = {"rgba8":Image.FORMAT_RGBA8,"dxt1_rgb":Image.FORMAT_DXT1,"dxt1_rgba":Image.FORMAT_DXT1,"dxt3":Image.FORMAT_DXT3,"dxt5":Image.FORMAT_DXT5,"etc1":Image.FORMAT_ETC,"bc6h_signed":Image.FORMAT_BPTC_RGBF,"bc6h_unsigned":Image.FORMAT_BPTC_RGBFU}.get(data.format,-1)
 	if image_format < 0: failure = "Native upload format is unavailable"; return null
 	if mips.size() > 1 and (int(mips.back().width) != 1 or int(mips.back().height) != 1): failure = "Partial native mip chain needs completion before upload"; return null
-	var bytes := PackedByteArray()
-	for mip in mips: bytes.append_array(mip.data)
-	var image := Image.create_from_data(width,height,mips.size()>1,image_format,bytes)
-	if image == null or image.is_empty(): failure = "Native image construction failed"; return null
-	# Native desktop fallback avoids an unsupported compressed-format readback.
-	if image_format == Image.FORMAT_ETC:
-		if image.decompress() != OK: failure = "Native ETC decompression failed"; return null
-		stats.native_decompressions += 1
-	if bool(data.get("generate_mips",false)) and image.generate_mipmaps() != OK: failure = "Native mip generation failed"; return null
+	var image: Image=null
+	if use_raster_upload_preparation or use_worker_texture_creation:
+		var packet:=_take_ready_raster(key)
+		if not packet.is_empty():image=RasterUpload.image(record,packet)
+	if image==null:
+		if use_raster_upload_preparation or use_worker_texture_creation:raster_upload_counts.fallbacks+=1
+		var bytes := PackedByteArray()
+		for mip in mips: bytes.append_array(mip.data)
+		image = Image.create_from_data(width,height,mips.size()>1,image_format,bytes)
+		if image == null or image.is_empty(): failure = "Native image construction failed"; return null
+		# Native desktop fallback avoids an unsupported compressed-format readback.
+		if image_format == Image.FORMAT_ETC:
+			if image.decompress() != OK: failure = "Native ETC decompression failed"; return null
+			stats.native_decompressions += 1
+		if bool(data.get("generate_mips",false)) and image.generate_mipmaps() != OK: failure = "Native mip generation failed"; return null
+	else:
+		raster_upload_counts.consumed+=1
+		stats["prepared_raster_uses"]=int(stats.get("prepared_raster_uses",0))+1
+		if image_format==Image.FORMAT_ETC:stats.native_decompressions+=1
 	var result := ImageTexture.create_from_image(image)
 	retain("texture",textures,key,result,maximum_textures); stats.textures_created += 1
 	return result
@@ -276,6 +492,26 @@ func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 	var ambient: Array=data.get("ambient",diffuse)
 	var key := JSON.stringify([raster.get("sha256",""),diffuse,emission,opacity,hint,unshaded,texture_filter,native_lighting,ambient if native_lighting else [],native_standard,native_surface_output])
 	if materials.has(key): stats.material_hits += 1; touch("material",key); return materials[key]
+	if native_lighting and not unshaded and texture_filter>=0 and texture_filter<BaseMaterial3D.TEXTURE_FILTER_MAX:
+		# Publish only the final ShaderMaterial. Avoid the unused StandardMaterial
+		# CPU property bag; backend material resources are allocated lazily.
+		# A native texture getter returns OBJECT-null. NIL would clear the shader
+		# override instead; preserve the original Variant representation as well.
+		var original_texture: Texture2D=type_convert(null,TYPE_OBJECT)
+		if not raster.is_empty():
+			original_texture=texture(raster)
+			if original_texture==null:return null
+		var alpha_mode:=BaseMaterial3D.TRANSPARENCY_DISABLED
+		if hint or opacity<1:alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA
+		elif not raster.is_empty() and raster.value.format!="dxt1_rgb":alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		var configure_began:=Timing.begin()
+		var corrected:=preload("res://systems/native_render/native_model_material.gd").new()
+		corrected.configure_values(Color(diffuse[0],diffuse[1],diffuse[2],opacity),original_texture,texture_filter,alpha_mode,ambient,emission,native_standard,2,native_surface_output)
+		corrected.native_world_fog=native_surface_output
+		Timing.finish("publication_material_native_configure_ms",configure_began)
+		retain("material",materials,key,corrected,maximum_materials);stats.materials_created+=1
+		stats["direct_native_materials"]=int(stats.get("direct_native_materials",0))+1
+		return corrected
 	var result := StandardMaterial3D.new()
 	result.albedo_color = Color(diffuse[0],diffuse[1],diffuse[2],opacity)
 	result.roughness = 1; result.metallic = 0; result.cull_mode = BaseMaterial3D.CULL_BACK
@@ -306,15 +542,26 @@ func snapshot() -> Dictionary:
 	state.retained={"templates":templates.size(),"meshes":meshes.size(),"textures":textures.size(),"materials":materials.size(),"pick_shapes":pick_shapes.size(),"hidden_hit_geometry":hidden_hit_geometry.size()}
 	state.limits={"templates":maximum_templates,"meshes":maximum_meshes,"textures":maximum_textures,"materials":maximum_materials}
 	state.mesh_preparation={"enabled":use_prepared_geometry,"revision":MeshPreparation.REVISION,"policy":"Immutable worker upload data; main-thread ArrayMesh/scene publication with legacy fallback"}
-	state.publication_budget={"frame":publication_frame,"used_us":publication_us,"units":publications,"budget_us":publication_budget_us,"maximum_units":maximum_publications_per_frame,"scope":"Shared scene/GPU API submission budget; asynchronous GPU work measured separately; a single indivisible model may exceed budget"}
+	var publication_owner: Node=publication_world.get_ref() if publication_world!=null else null
+	state.publication_budget={"frame":publication_frame,"used_us":publication_us,"units":publications,"completion_units":completion_units,"completion_us":completion_us,"budget_us":publication_budget_us,"effective_budget_us":publication_budget_limit_us(),"entry_budget_configured_us":entry_publication_budget_us,"scenery_budget_configured_us":scenery_publication_budget_us,"scenery_loading_active":is_instance_valid(publication_owner) and publication_owner.get_meta("native_publication_loading",false),"maximum_units":maximum_publications_per_frame,"cooperative_templates":cooperative_templates,"scope":"Shared completion callback and scene/GPU submission CPU budget with nested accounting; asynchronous GPU work and indivisible API calls remain separate"}
+	state.publication_budget.scenery_transitions={"activations":_scenery_budget_activations,"clears":_scenery_budget_clears,"active":_scenery_budget_active}
+	state.raster_upload_preparation={"enabled":use_raster_upload_preparation,"counts":raster_upload_counts.duplicate(),"threads":raster_upload_threads.duplicate(),"ready_entries":ready_raster_uploads.size(),"ready_bytes":ready_raster_bytes,"maximum_ready_bytes":MAX_READY_RASTER_BYTES,"memo":RasterUpload.snapshot()}
+	if use_worker_texture_creation:state.worker_texture_creation={"enabled":true,"ready_entries":ready_worker_textures.size(),"memo":RasterUpload.worker_texture_snapshot()}
 	state.scope="Cumulative immutable GPU/template cache bindings; not live draw counts or a hard VRAM budget"
 	state.template_preparation_peaks=template_preparation_peaks.duplicate(true)
+	if Template.configured_staged_diagnostics():state.template_diagnostic_peaks=template_diagnostic_peaks.duplicate(true) if template_diagnostic_peaks!=null else []
+	if completion_diagnose:state.completion_template_peaks=completion_template_peaks.duplicate(true)
 	state.template_construction=Template.construction_totals()
 	if NativeDrawCache.enabled():state.native_draw_cache=NativeDrawCache.snapshot()
 	return state
 func clear() -> void:
+	if completion_diagnose and not completion_template_peaks.is_empty():
+		print("NWN62_TEMPLATE_SUMMARY ",JSON.stringify({"top":completion_template_peaks}))
+		completion_template_peaks.clear();completion_template_max_us=0;completion_template_logged=0
+	ready_worker_textures.clear();ready_raster_uploads.clear();ready_raster_order.clear();ready_raster_bytes=0
 	for context in native_draw_captures:NativeDrawCache.end_model(context)
 	native_draw_captures.clear()
 	templates.clear(); template_order.clear(); meshes.clear(); textures.clear(); materials.clear(); pick_shapes.clear()
 	hidden_hit_geometry.clear(); hidden_hit_order.clear()
 	for order in resource_order.values(): order.clear()
+	if template_diagnostic_peaks!=null:template_diagnostic_peaks.clear();template_diagnostic_peaks=null

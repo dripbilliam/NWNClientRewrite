@@ -1,0 +1,14 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Scene focus vector default, named console binding, virtual setter and shadow-plane Z/fog reads",
+  "document": "scene-focus-shadow-plane-source.md",
+  "edges": [
+    {"from":"0x1400c0ca0","to":"Scene+0x190..+0x198","kind":"data_initialization","condition":"Scene focus Vector defaults to zero","status":"scene_focus_default","evidence_id":"ev_9bd85911eebb0eb0c68866794c5c484152b6059e0e8e29e18ffda6e3851cf60b"},
+    {"from":"0x1400c0ca0","to":"0x14005d3c0","callsite":"0x1400c135a","kind":"direct_call","condition":"nonempty Scene name and successful ConsoleFunc allocation; <scene>.focus passes Scene+0x190 Vector*","status":"focus_console_registration","evidence_id":"ev_9bd85911eebb0eb0c68866794c5c484152b6059e0e8e29e18ffda6e3851cf60b"},
+    {"from":"0x140d8ddd8","to":"0x1400d3580","kind":"scene_vtable_slot","condition":"Scene vtable +0xa8 SetSceneFocus","status":"focus_setter_target","evidence_id":"ev_f32775fe600df87a02ca8728e19bc11f699239cecf20ef601abeed9a0d2d37a0"},
+    {"from":"0x1400d3580","to":"Scene+0x190..+0x198","kind":"scene_data_publication","condition":"copy supplied Vector XYZ; indirect caller not established","status":"focus_vector_store","evidence_id":"ev_4a72ce7cbe83f2cdbfaeccdb310a9a2fe7deac07462d92920a063a444dae6c54"},
+    {"from":"Scene+0x198","to":"0x1400d0350","kind":"scene_data_consumption","condition":"local and directional shadow-plane branches clamp plane Z by focus Z","status":"focus_shadow_plane_height","evidence_id":"ev_f521b02b49aa40df1ea8ff3e9e4ea4030d8bb3cdf05ad4f54ec71c4b3d96f70b"},
+    {"from":"Scene+0x140/+0x148","to":"0x1400d0350","kind":"scene_data_consumption","condition":"directional plane uses fog enable and, if enabled, fog end as extent","status":"fog_shadow_plane_extent","evidence_id":"ev_f521b02b49aa40df1ea8ff3e9e4ea4030d8bb3cdf05ad4f54ec71c4b3d96f70b"}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "checks": 12,
+  "failures": [],
+  "network": false,
+  "original_samples": [],
+  "scope": "Native original-resource parser plus authored floor/door/static/creature/wall collision and slide behavior; conservative polygons, not full original collision oracle",
+  "success": true
+}

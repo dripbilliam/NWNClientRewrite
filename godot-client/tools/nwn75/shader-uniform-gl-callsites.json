@@ -1,0 +1,935 @@
+{
+  "schema": "nwn75-original-set-uniforms-gl-callsites-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "function_address": "0x1400b8380",
+  "function_name": "GLRender::SetUniforms",
+  "function_evidence_id": "ev_1a4116233c92836c24653152acff91f84c48e7899cc3e2c69a0d2729deec3431",
+  "loader_catalog": "gl-extension-pointers.json",
+  "rip_scan": ".cache/nwn75/gl-pointer-rip-refs-a.json",
+  "method": "Every 129 REA unresolved callsites in this function was joined to an exact original PE RIP-relative pointer reference. The original assembly verifies 123 direct pointer CALLs and six register-loaded CALLs; no intervening destination-register write occurs for the latter. Pointer identities are from original wglGetProcAddress assignments.",
+  "coverage": {
+    "unresolved_calls": 129,
+    "mapped_calls": 129,
+    "direct_pointer_calls": 123,
+    "loaded_register_calls": 6,
+    "unmapped_calls": 0,
+    "api_counts": {
+      "glUniformMatrix4fv": 11,
+      "glUniformMatrix3fv": 1,
+      "glUniform1i": 41,
+      "glUniform1f": 39,
+      "glUniform3f": 6,
+      "glUniform2i": 1,
+      "glUniform3fv": 8,
+      "glUniform1fv": 5,
+      "glUniform4f": 2,
+      "glUniform4fv": 14,
+      "glUniform2fv": 1
+    }
+  },
+  "callsites": [
+    {
+      "call_site": "0x1400b8406",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b8406",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8434",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b8434",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8462",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b8462",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b84bd",
+      "gl_pointer": "0x141442670",
+      "api": "glUniformMatrix3fv",
+      "load_site": "0x1400b84bd",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b84d5",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b84d5",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8507",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b8507",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b85a5",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b85a5",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8635",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b8635",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8670",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b8670",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b86a5",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b86a5",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b86ce",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b86ce",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8717",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8717",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b872d",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b872d",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8743",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8743",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8759",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8759",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b876f",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b876f",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8785",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8785",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b879b",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b879b",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b87b3",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b87b3",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b87cb",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b87cb",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8801",
+      "gl_pointer": "0x141442628",
+      "api": "glUniform3f",
+      "load_site": "0x1400b8801",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8817",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8817",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b882f",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b882f",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8845",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8845",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8870",
+      "gl_pointer": "0x141442618",
+      "api": "glUniform2i",
+      "load_site": "0x1400b8870",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8886",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8886",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b88bc",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b88bc",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b88d2",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b88d2",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8902",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8902",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b892a",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b892a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8942",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8942",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8c2a",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8c2a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8c47",
+      "gl_pointer": "0x141442630",
+      "api": "glUniform3fv",
+      "load_site": "0x1400b8c47",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8c60",
+      "gl_pointer": "0x1414425f0",
+      "api": "glUniform1fv",
+      "load_site": "0x1400b8c60",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8c79",
+      "gl_pointer": "0x1414425f0",
+      "api": "glUniform1fv",
+      "load_site": "0x1400b8c79",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8c92",
+      "gl_pointer": "0x1414425f0",
+      "api": "glUniform1fv",
+      "load_site": "0x1400b8c92",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8cab",
+      "gl_pointer": "0x1414425f0",
+      "api": "glUniform1fv",
+      "load_site": "0x1400b8cab",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8cd1",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8cd1",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8ce7",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8ce7",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8d4d",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8d4d",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8db6",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8db6",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8dd6",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8dd6",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8dee",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8dee",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8e06",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8e06",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8e1e",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8e1e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8e36",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8e36",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8e4e",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8e4e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8e66",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8e66",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8e7e",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8e7e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8e96",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8e96",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8eae",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8eae",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8ec6",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8ec6",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8edc",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8edc",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8ef2",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8ef2",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8f0a",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8f0a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8f22",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8f22",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8f3a",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8f3a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8f52",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8f52",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8f6a",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8f6a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8f82",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8f82",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8f9a",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b8f9a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8fb0",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8fb0",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b8fc6",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b8fc6",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9001",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b9001",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9015",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9015",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b903b",
+      "gl_pointer": "0x141442648",
+      "api": "glUniform4f",
+      "load_site": "0x1400b903b",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9065",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9065",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b907b",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b907b",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9091",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9091",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b90a7",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b90a7",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b90bd",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b90bd",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b90d3",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b90d3",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b90eb",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b90eb",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9103",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b9103",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9119",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9119",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b912f",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b912f",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9147",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b9147",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b917d",
+      "gl_pointer": "0x141442648",
+      "api": "glUniform4f",
+      "load_site": "0x1400b917d",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9193",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9193",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b91bb",
+      "gl_pointer": "0x141442628",
+      "api": "glUniform3f",
+      "load_site": "0x1400b91bb",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9314",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9314",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b932e",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b932e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9348",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9348",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9362",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9362",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b937c",
+      "gl_pointer": "0x1414425f0",
+      "api": "glUniform1fv",
+      "load_site": "0x1400b937c",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9392",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9392",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b93ae",
+      "gl_pointer": "0x141442630",
+      "api": "glUniform3fv",
+      "load_site": "0x1400b93ae",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b93ca",
+      "gl_pointer": "0x141442630",
+      "api": "glUniform3fv",
+      "load_site": "0x1400b93ca",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9405",
+      "gl_pointer": "0x141442630",
+      "api": "glUniform3fv",
+      "load_site": "0x1400b9405",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9440",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9415",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400b946f",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b946f",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b94b8",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b94b8",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9cd2",
+      "gl_pointer": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "load_site": "0x1400b9cd2",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9ce0",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9ce0",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9d2d",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9d02",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400b9d64",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9d39",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400b9d9b",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9d70",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400b9dd2",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9da7",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400b9e07",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b9e07",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9e52",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9e52",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9e9b",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9e70",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400b9ee0",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400b9ee0",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9f21",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400b9f21",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9f86",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9f86",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400b9fa2",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400b9fa2",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba00e",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400ba00e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba044",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400ba044",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba07e",
+      "gl_pointer": "0x141442628",
+      "api": "glUniform3f",
+      "load_site": "0x1400ba07e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba096",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400ba096",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba0ae",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400ba0ae",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba0c6",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400ba0c6",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba0dd",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400ba0dd",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba105",
+      "gl_pointer": "0x141442628",
+      "api": "glUniform3f",
+      "load_site": "0x1400ba105",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba11d",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400ba11d",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba153",
+      "gl_pointer": "0x141442628",
+      "api": "glUniform3f",
+      "load_site": "0x1400ba153",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba17b",
+      "gl_pointer": "0x141442628",
+      "api": "glUniform3f",
+      "load_site": "0x1400ba17b",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba191",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400ba191",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba1d8",
+      "gl_pointer": "0x141442610",
+      "api": "glUniform2fv",
+      "load_site": "0x1400ba1d8",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba214",
+      "gl_pointer": "0x141442630",
+      "api": "glUniform3fv",
+      "load_site": "0x1400ba214",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba264",
+      "gl_pointer": "0x141442630",
+      "api": "glUniform3fv",
+      "load_site": "0x1400ba264",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba2a2",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400ba2a2",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba327",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400ba327",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba361",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400ba361",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba396",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400ba396",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba40f",
+      "gl_pointer": "0x141442630",
+      "api": "glUniform3fv",
+      "load_site": "0x1400ba40f",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba498",
+      "gl_pointer": "0x141442630",
+      "api": "glUniform3fv",
+      "load_site": "0x1400ba498",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba53e",
+      "gl_pointer": "0x1414425e8",
+      "api": "glUniform1f",
+      "load_site": "0x1400ba53e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba552",
+      "gl_pointer": "0x141442650",
+      "api": "glUniform4fv",
+      "load_site": "0x1400ba552",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ba630",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400ba630",
+      "dispatch": "direct-pointer"
+    }
+  ]
+}

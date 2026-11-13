@@ -60,7 +60,37 @@ test('missing proof, missing provider, malformed result and asynchronous provide
 test('comparison callback receives detached digests and cannot mutate retained source-ready proof',async()=>{
  const api=await source();let observed;
  const t=await roundtrip({chain:input=>{const result=api.compareHandoffCharacterChain(input);observed=input;input.downloadA.character.canonical.abilities.Int.value=-1;input.initial.character.canonical.identity.FirstName.value.entries[0].text='mutated callback';return result;}});
- assert.equal(t.driver.rows[0].character.character.canonical.abilities.Int.value,19);assert.equal(t.driver.capture.data.characterReads[0].character.canonical.identity.FirstName.value.entries[0].text,'Spectorial');assert.equal(t.driver.evaluate({beforeShutdown:true}).checks.canonicalCharacterContinuity,true);observed.finalExport.character.coverage.missingCore.push('mutated');assert.deepEqual(t.driver.capture.data.finalCharacter.character.coverage.missingCore,[]);t.driver.close();
+ assert.equal(t.driver.rows[0].character.character.canonical.abilities.Int.value,19);assert.equal(t.driver.capture.data.characterReads[0].character.semanticSha256,api.readHandoffCharacter(api.bytes).character.semanticSha256);assert.equal('canonical'in t.driver.capture.data.characterReads[0].character,false);assert.equal(t.driver.evaluate({beforeShutdown:true}).checks.canonicalCharacterContinuity,true);observed.finalExport.character.coverage.missingCore.push('mutated');assert.deepEqual(t.driver.capture.data.finalCharacter.character.coverage.missingCore,[]);t.driver.close();
+});
+
+test('complete large parsed characters compare without storing canonical payloads in bounded diagnostic rows',async()=>{
+ const api=await source(),large=api.variant(r=>{r.fields.Description.value.entries[0].text='Character history. '.repeat(10000);}),digest=api.readHandoffCharacter(large);
+ assert.equal(digest.character.complete,true);assert.ok(Buffer.byteLength(JSON.stringify(digest.character))>32768);
+ const t=await roundtrip({initial:large,downloadA:large,downloadB:large,finalExport:large}),report=t.driver.snapshot();
+ assert.equal(canonicalChainAccepted(report),true);assert.equal(report.characterContinuity.status,'compared');
+ for(const row of [...report.characterReads,...report.transfers,report.finalCharacter,report.characterContinuity])assert.ok(Buffer.byteLength(JSON.stringify(row))<=32768);
+ for(const proof of [...report.characterReads.map(row=>row.character),...report.transfers.map(row=>row.character.character),report.finalCharacter.character]){
+  assert.equal('canonical'in proof,false);assert.equal(proof.canonicalStorage,'comparison-only');assert.equal(proof.canonicalBytes,Buffer.byteLength(JSON.stringify(digest.character.canonical)));assert.deepEqual(proof.coverage,digest.character.coverage);assert.deepEqual(proof.omitted,digest.character.omitted);
+ }
+ assert.equal(JSON.stringify(report).includes('Character history.'),false);assert.ok(Buffer.byteLength(JSON.stringify(report))<32768);
+ t.driver.close();assert.equal('character'in t.driver.rows[0].character,false,'closing releases the full retained comparison projection');
+});
+
+test('composed capture still detects actual known spell, prepared readiness and daily-use changes',async()=>{
+ const api=await source();
+ for(const [edit,fragment] of [
+  [r=>r.fields.ClassList.value[0].fields.KnownList0.value[0].fields.Spell.value++,'/spellbook/known/'],
+  [r=>r.fields.ClassList.value[0].fields.MemorizedList0.value[0].fields.Ready.value^=1,'/spellbook/memorized/'],
+  [r=>r.fields.ClassList.value[0].fields.SpellsPerDayList=api.gffField(15,[{type:0,fields:{NumSpellsLeft:api.gffField(0,2)}}]),'/spellbook/dailyUses/'],
+ ]){
+  const t=await roundtrip({downloadB:api.variant(edit)}),report=t.driver.snapshot();
+  assert.equal(report.characterContinuity.status,'compared');assert.equal(report.characterContinuity.result.success,false);assert.equal(canonicalChainAccepted(report),false);assert.ok(report.characterContinuity.result.comparisons[0].differences.some(d=>d.path.includes(fragment)));t.driver.close();
+ }
+});
+
+test('compact diagnostics cannot substitute for a full proof supplied to the comparator',async()=>{
+ const api=await source(),t=await roundtrip({digest:bytes=>{const digest=api.readHandoffCharacter(bytes);delete digest.character.canonical;return digest;}});
+ assert.equal(t.driver.snapshot().characterContinuity.status,'unavailable');assert.equal(t.driver.evaluate({beforeShutdown:true}).checks.canonicalCharacterContinuity,false);t.driver.close();
 });
 test('recovery compares only fresh retry read to final A export and labels abandoned source separately',async()=>{
  const api=await source(),abandoned=api.readHandoffCharacter(api.variant(r=>r.fields.Gold.value++)),finalBytes=api.variant(r=>r.fields.Int.value--),calls=[];

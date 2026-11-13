@@ -1,0 +1,33 @@
+{
+  "schema": "nwn75-dynamic-projection-eligibility-and-helpers-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original Scene dynamic mesh projection: shadow eligibility virtuals and alpha gate, small CPU helpers, CPU pool pointers, and conditional shared-stream/GPU publication connectors.",
+  "document": "dynamic-projection-eligibility-and-helpers.md",
+  "edges": [
+    {"from":"0x1400c7910","to":"0x1400a4940","callsite":"0x1400c7a01","kind":"part_trimesh_slot_0x108","condition":"selected dynamic projection light and mesh-shadow bucket candidate","status":"target_identified_cpu_culling"},
+    {"from":"0x1400c7910","to":"0x1400a3770","callsite":"0x1400c7a7f","kind":"part_trimesh_slot_0xb8","condition":"WithinRange accepted and projected light direction transformed","status":"target_identified_descendants_mapped"},
+    {"from":"0x1400a3770","to":"0x14008f5f0","callsite":"0x1400a37da","kind":"direct_call","condition":"source geometry at model node +0x110 or +0x114","status":"target_identified_cpu_gate","evidence_id":"ev_96f7c8a1c7a9b9b2f795a7d4fc47f3e5f131ddefb9a258bb78f04d23f775826d"},
+    {"from":"0x14008f5f0","to":"0x140054a60","callsite":"0x14008f62c","kind":"behavior_slot_0x30","condition":"owner Gob +0x450 behavior exists; base AsBehaviorAttach returns null","status":"target_identified_cpu_gate","evidence_id":"ev_7725f75a3b8e20d59ababedca6a9f1170db2d0920a34b461eebd9fbd157bfe6a"},
+    {"from":"0x14008f5f0","to":"0x140054a70","callsite":"0x14008f62c","kind":"behavior_slot_0x30","condition":"owner Gob +0x450 is CAurBehaviorAttach; returns attachment","status":"target_identified_cpu_gate","evidence_id":"ev_7725f75a3b8e20d59ababedca6a9f1170db2d0920a34b461eebd9fbd157bfe6a"},
+    {"from":"0x14008f5f0","to":"0x140061af0","callsite":"0x14008f63b","kind":"part_slot_0x30","condition":"attachment and referenced Part +0x30 exist; GetAurObject returns owning Gob","status":"target_identified_cpu_gate","evidence_id":"ev_7725f75a3b8e20d59ababedca6a9f1170db2d0920a34b461eebd9fbd157bfe6a"},
+    {"from":"0x14008f5f0","to":"0x14128ec04","callsite":"0x14008f614","kind":"data_gate","condition":"global noncharacter shadow control; pinned initial dword 1; zero admits projection before alpha test","status":"runtime_value_open","original_pe_bytes":"01 00 00 00"},
+    {"from":"0x14008f5f0","to":"0x14128e640","callsite":"0x14008f661","kind":"data_gate","condition":"fallback mesh alpha, multiplied by owner +0x108 when owner +0xf6 flag set, compared against initial 0.6667 cutoff","status":"runtime_value_open","original_pe_bytes":"da ac 2a 3f"},
+    {"from":"0x1400a3770","to":"0x14022d640","callsite":"0x1400a3e1e","kind":"direct_call","condition":"nonnull PartProjection; missing precomputed source matrix","status":"cpu_leaf","evidence_id":"ev_d79728d3a7d51ae67874817ff51b4995ca954c996799581894e488091696ac03"},
+    {"from":"0x1400a3770","to":"0x14022ad60","callsites":["0x1400a3e63","0x1400a3ed1"],"kind":"direct_call","condition":"nonnull PartProjection; projected vector transforms","status":"cpu_leaf","evidence_id":"ev_f306bbb3ce3393982abdf70f66463442e833d031d46997dada77160da64beb21"},
+    {"from":"0x1400a3770","to":"0x1400bd7e0","callsite":"0x1400a3d95","kind":"direct_call","condition":"nonnull PartProjection and VDO item reserved","status":"target_identified_cpu_pool_pointer","evidence_id":"ev_96f7c8a1c7a9b9b2f795a7d4fc47f3e5f131ddefb9a258bb78f04d23f775826d"},
+    {"from":"0x1400a3770","to":"0x1400bd830","callsite":"0x1400a3da7","kind":"direct_call","condition":"nonnull PartProjection and VDO item reserved","status":"target_identified_cpu_pool_pointer","evidence_id":"ev_96f7c8a1c7a9b9b2f795a7d4fc47f3e5f131ddefb9a258bb78f04d23f775826d"},
+    {"from":"0x1400bd7e0","to":"0x1400bee30","callsite":"0x1400bd7ff","kind":"direct_call","condition":"element handle +0x1c and 2 times item element start","status":"cpu_pool_lock_leaf","evidence_id":"ev_e1b3b68d052855ad654883b37c6115fdfba796ebf18806a07baaa2cd6617c4c7"},
+    {"from":"0x1400bd830","to":"0x1400bee30","callsite":"0x1400bd856","kind":"direct_call","condition":"static handle +0x28 and stride times item static start","status":"cpu_pool_lock_leaf","evidence_id":"ev_4e2e722cbedd43cbfeb279e076227b971d6dd83b56d35eeea985de84d3f2c72a"},
+    {"from":"0x1400a3770","to":"0x1400bd770","callsite":"0x1400a3f6d","kind":"direct_call","condition":"null PartProjection; test shared element-stream space","status":"target_identified_capacity_gate","evidence_id":"ev_96f7c8a1c7a9b9b2f795a7d4fc47f3e5f131ddefb9a258bb78f04d23f775826d"},
+    {"from":"0x1400bd770","to":"0x1400bedb0","callsites":["0x1400bd774","0x1400bd781"],"kind":"direct_call","condition":"query maximum index capacity before subtracting current count; GL getter glGetIntegerv only on cached -1 path","status":"conditional_external_query","evidence_id":"ev_08473aba34fe485cc04e90b25222f72d09c4d8697091e2fe7b7bb3e7c0782e7a"},
+    {"from":"0x1400a3770","to":"0x1400ce3a0","callsite":"0x1400a3f7d","kind":"direct_call","condition":"null PartProjection and insufficient element-stream space; flush prior shadow indices","status":"conditional_draw_boundary_mapped","evidence_id":"ev_96f7c8a1c7a9b9b2f795a7d4fc47f3e5f131ddefb9a258bb78f04d23f775826d"},
+    {"from":"0x1400a3770","to":"0x1400acc90","callsite":"0x1400a3f52","kind":"primitive_slot_0x38","condition":"null PartProjection and primitive VDO absent; four concrete primitive subtypes share target","status":"conditional_preparation_mapped","evidence_id":"ev_466711929489fc7e2ab85a2f09c053e359f9876fb091b4572062f648f428f225"},
+    {"from":"0x1400a3770","to":"0x1400bd5a0","callsite":"0x1400a3f30","kind":"direct_call","condition":"nonnull PartProjection and projected static bytes prepared","status":"conditional_gpu_publication_mapped","evidence_id":"ev_96f7c8a1c7a9b9b2f795a7d4fc47f3e5f131ddefb9a258bb78f04d23f775826d"},
+    {"from":"0x1400a3770","to":"0x1400bd570","callsite":"0x1400a40a4","kind":"direct_call","condition":"nonnull PartProjection and element bytes prepared","status":"conditional_gpu_publication_mapped","evidence_id":"ev_96f7c8a1c7a9b9b2f795a7d4fc47f3e5f131ddefb9a258bb78f04d23f775826d"}
+  ],
+  "open_edges": [
+    "Authored mesh/model shadow flags, active behavior subtype and referenced Part/Gob, and live global shadow settings",
+    "Per-light and per-mesh face classification, emitted-face count, stream occupancy and VDO token reuse in a particular frame",
+    "Pool dirty/capacity/cache state, shader availability and selected shadow buckets deciding conditional GL query, upload, and draw frequency"
+  ]
+}

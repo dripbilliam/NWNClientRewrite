@@ -1,9 +1,9 @@
 export default {
   title: 'EntireDecomp research wiki',
   // Only documentation is published. Runtime captures, game assets and code stay local.
-  roots: ['evidence', 'godot-client', 'scripts', 'references'],
-  rootFiles: ['README.md', 'RESEARCH_TRACKER.md', 'REPLACEMENT_CLIENT_ROADMAP.md', 'CASTING_RESUME_NOTE.md', 'wiki/README.md'],
-  excludedDirectories: ['.git', '.github', '.codex', '.agents', '.cache', '.godot', '.tools', 'node_modules', 'backups', 'dist', 'runtime-logs', 'reports', 'captures', '_site'],
+  roots: ['docs', 'evidence', 'godot-client', 'scripts', 'references'],
+  rootFiles: ['README.md', 'wiki/README.md'],
+  excludedDirectories: ['.git', '.github', '.codex', '.agents', '.cache', '.godot', '.tools', 'node_modules', 'backups', 'archive', 'dist', 'runtime-logs', 'reports', 'captures', '_site'],
   topics: [
     { id: 'native-client', title: 'Native client and migration', description: 'Godot ownership, launch paths, migration milestones and local playability.', pattern: /native|migration|local-playability|local-multiplayer|base-gameplay|systems/i },
     { id: 'rendering', title: 'Rendering and performance', description: 'Models, animation, lighting, particles, cameras and measured frame costs.', pattern: /render|model|animat|light|particle|shadow|camera|skin|terrain|sky|weather|visual|performance|hotpath|dense|frame-schedul|material|geometry|horizon|ground-height|chunk|point-wind/i },
@@ -19,10 +19,10 @@ export default {
   ],
   entryPoints: [
     { path: 'godot-client/README.md', label: 'Native client entry', description: 'Start with launch paths and the overview of the Godot client.' },
-    { path: 'godot-client/NATIVE-OWNERSHIP.md', label: 'Architecture and ownership', description: 'Read the intended native architecture and remaining service boundaries.' },
-    { path: 'godot-client/LOCAL-PLAYABILITY.md', label: 'Local campaign acceptance', description: 'Find the scoped campaign checks and remaining playability work.' },
-    { path: 'evidence/binary-inventory.md', label: 'Target binary and evidence', description: 'Identify the executable build and the original investigation inputs.' },
-    { path: 'RESEARCH_TRACKER.md', label: 'Research tracker', description: 'Browse the retained research checkpoints; their dates describe each checkpoint.' },
+    { path: 'docs/architecture.md', label: 'Architecture and ownership', description: 'Read the native architecture and remaining service boundaries.' },
+    { path: 'docs/parity.md', label: 'Playable parity backlog', description: 'Find the prioritized Linear issues and completion criteria.' },
+    { path: 'docs/research.md', label: 'Target binary and evidence', description: 'Identify the original executable and evidence standards.' },
+    { path: 'docs/README.md', label: 'Documentation index', description: 'Find concise topic guides and archived research.' },
     { path: 'wiki/README.md', label: 'Maintain this wiki', description: 'Build, preview, publish and add cross-references.' }
   ]
 };

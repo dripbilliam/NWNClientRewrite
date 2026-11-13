@@ -1,0 +1,18 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Three disconnected Scene source entries: virtual/export roots, metadata data references, and already mapped draw/projection consumers",
+  "document": "scene-lines-static-projection-root-audit.md",
+  "edges": [
+    {"from":"0x140d8de68","to":"0x1400c3410","kind":"scene_vtable_slot","condition":"Scene primary table +0x138; virtual caller unresolved; qword 10340c4001000000","status":"line_add_virtual_root","evidence_id":"ev_e39befe6ec00500125133c42fbc121b81dec9ffa4eefe72865af445b2849304a"},
+    {"from":"0x1410d6614","to":"0x1400c3410","kind":"pe_export_address_table","condition":"ordinal 5076; nonforwarded export RVA 000c3410, not a callsite","status":"line_add_external_root","evidence_id":"ev_45d022f9624b22247f9ff7e515bd6f1defb1d9dd281e972262700c3e4aa78ebd"},
+    {"from":"0x140f3f918","to":"0x1400c3410 interior code","kind":"rdata_code_rva_metadata","condition":"five DATA references at 0x140f3f918/920/928/930/938; no external code caller","status":"line_add_metadata_not_calls","evidence_id":"ev_569a0a8ce46fba069d4283b39b745d837990c1ec149a7556c4156526d17189c7"},
+    {"from":"0x1415e155c","to":"0x1400c3410","kind":"pe_pdata_function_range","condition":"begin/end/unwind RVA record 10340c00 d8380c00 74f8f300; not a callsite","status":"line_add_pdata_not_caller","evidence_id":"ev_cd6af2de0a66c4ec3cfdb8a7d7208e1595a9558b9d0e8d32924272de572c911e"},
+    {"from":"0x140d8de70","to":"0x1400c5a70","kind":"scene_vtable_slot","condition":"Scene primary table +0x140; virtual caller unresolved; qword 705a0c4001000000","status":"line_clear_virtual_root","evidence_id":"ev_421b367819960ca5df57caa57856d1fce1de6dcac56536e7269528f45c96eba4"},
+    {"from":"0x1410d76dc","to":"0x1400c5a70","kind":"pe_export_address_table","condition":"ordinal 6150; nonforwarded export RVA 000c5a70, not a callsite","status":"line_clear_external_root","evidence_id":"ev_3f2f7c902468878ceac8e3971680e46a211209c2420c00b27a11e48e0850a44b"},
+    {"from":"0x140d8df70","to":"0x1400cbb20","kind":"scene_vtable_slot","condition":"Scene primary table +0x240; virtual caller unresolved; qword 20bb0c4001000000","status":"static_projection_recompute_virtual_root","evidence_id":"ev_1f9b6afe10648d4f9e12ad9cc1936134a8bfaf0d1b8389c06fdad65cd04a8696"},
+    {"from":"0x1410dcd18","to":"0x1400cbb20","kind":"pe_export_address_table","condition":"ordinal 11669; nonforwarded export RVA 000cbb20, not a callsite","status":"static_projection_recompute_external_root","evidence_id":"ev_8c82a33b2bbd9d8bd9fc203206bc3c1bceeaccc4d386b8aa0b704562d6a8b2c1"},
+    {"from":"0x140f3f0c8","to":"0x1400cbb20 interior code","kind":"rdata_code_rva_metadata","condition":"four DATA references at 0x140f3f0c8/d0/d8/e0; no external code caller","status":"static_projection_recompute_metadata_not_calls","evidence_id":"ev_8a4f9c9574ce9e7980776bd26862c58b871e364e92138d14e86ec97263a41ace"},
+    {"from":"0x1415e19dc","to":"0x1400cbb20","kind":"pe_pdata_function_range","condition":"begin/end/unwind RVA record 20bb0c00 a9bc0c00 98f0f300; not a callsite","status":"static_projection_recompute_pdata_not_caller","evidence_id":"ev_54bb91dc7bd9ec31bfe42de64b6706f95284f463aed126fad2ffe66d000447ba"}
+  ]
+}

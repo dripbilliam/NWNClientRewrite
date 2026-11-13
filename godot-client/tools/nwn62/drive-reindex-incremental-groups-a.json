@@ -1,0 +1,80 @@
+{
+	"checks": 8,
+	"failures": [],
+	"legs": [
+		{
+			"completion_us": 44681,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "control",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 54717,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "incremental-groups",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 50286,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "incremental-groups",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 42127,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "control",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 31966,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "control",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 51549,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "incremental-groups",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 52430,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "incremental-groups",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 31462,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "control",
+			"ready": true,
+			"sources": 1919
+		}
+	],
+	"passed": true,
+	"scope": "Private new-group incremental-tree hypothesis on authored 1918/1919-source SceneTree; no original asset or FPS result"
+}

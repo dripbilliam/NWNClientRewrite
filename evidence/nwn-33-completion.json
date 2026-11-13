@@ -1,0 +1,76 @@
+{
+  "issue": "NWN-33",
+  "status": "Core implementation verified offline; remaining coverage boundaries require review before Done.",
+  "implemented": [
+    "Native GetTokenValue actions 0..24 have source-backed branches and explicit unavailable-provider handling.",
+    "Stored FullName/FirstName/LastName use certified actor-name state or literal actor P fields; U roster labels cannot certify actor getters.",
+    "Received race/class/subrace/deity/alignment fields map to original getters; first class order, gender0 lower fetch and enclosing gender restoration are preserved.",
+    "Module year/month/hour/daylight and player roster are captured at Host dispatch with detached context fields and native actor-name provenance.",
+    "Selected player names require explicit native C0; known empty, certified absent and unavailable are distinct.",
+    "Byte-preserving receipt/custom/override paths and native font-command compilation handle strict CP1252, CP1250, CP949, CP950, CP936 and CP932 for TLK languages 0..5 and 128..131.",
+    "Original parse order, append-once replacements, suppression, nested references, female fallback/aliases and reload behavior remain covered."
+  ],
+  "validation": {
+    "proof": ".cache/nwn-33/nwn33-release-v1/completion.json",
+    "nativeChecks": 11244,
+    "nodeChecks": 61,
+    "runs": 12,
+    "sourceFilesAudited": 923,
+    "changed": [],
+    "originalCorpora": {
+      "providerDispatchCases": 1648,
+      "alignmentLeafCases": 162,
+      "strictParserDefinedCases": 856,
+      "hashCases": 261,
+      "method": "Comparison against retained unchanged-code execution outputs; no new original executable execution. Captured lowers remain distinct from actual getter/TLK integration tests."
+    },
+    "window": {
+      "screen": 1,
+      "primary": 2,
+      "focused": false,
+      "unfocusable": true
+    },
+    "preview": "godot-client/.cache/nwn33/nwn33-release-v1-providers/preview.png",
+    "codepageReproduction": ".cache/nwn-33/codepage-reproduction-proof.json",
+    "serverConnections": 0,
+    "nativeBuilds": 0,
+    "commitCreated": false
+  },
+  "sourceEvidence": [
+    "evidence/nwn-33-original-providers.json",
+    "evidence/nwn-33-received-stats.json",
+    "evidence/nwn-33-world-providers.json",
+    "godot-client/reports/native-ordinary-speech-header-source-v1.json",
+    "godot-client/reports/native-talk-context-gender-source-v1.json"
+  ],
+  "remaining": [
+    "Call sites lacking certified retained context/gender/B8/BC/C0 still stay pending. No new retained-global history publisher was fabricated; selected player C0 is not inferred from the login, speaker or controlled actor.",
+    "Best-fit / DBCS extension glyph decoding beyond strict Windows mappings remains explicitly unavailable, with raw parsed bytes retained. For example CP932 EE F9 is rejected by the strict Windows decoder even though a best-fit decoder can display it.",
+    "Legacy rich TalkText.resolve callers retain their existing behavior. This change does not claim a global language selector, all-UI migration or original font/glyph/pixel equivalence."
+  ],
+  "rejectedEvidence": [
+    "Initial JSON numeric-type equality in the original-corpus test was normalized before acceptance.",
+    "Old Host-fragment fixtures omitted newly existing visibility dependencies; fixtures now supply explicit no-op owners.",
+    "Old first-name fixtures used U roster fields; source-backed fixtures now supply actor P fields and test U-only pending behavior.",
+    "A transport context witness was initially admitted as retained parser state; event_frame now admits only captured module/roster providers, and original copy-order tests pass.",
+    "Strict Windows codec best-fit rejection is retained as an explicit boundary rather than claimed as accepted glyph decoding.",
+    "Unordered PowerShell hashtable key ordering initially changed raw export hashes despite identical mappings; ordered output now reproduces byte-for-byte.",
+    "Initial expanded test runner used the actor-state fixture for unrelated integration tests; final suite selects each actual protocol fixture."
+  ],
+  "ownedProductionFiles": [
+    "godot-client/data/native_text_codepages.json",
+    "godot-client/systems/native_data/native_text_encoding.gd",
+    "godot-client/systems/native_data/native_token_context.gd",
+    "godot-client/systems/native_data/native_talk_parser.gd",
+    "godot-client/systems/native_data/talk_text.gd",
+    "godot-client/systems/native_data/talk_table.gd",
+    "godot-client/systems/native_data/actor_name_state.gd",
+    "godot-client/systems/native_data/ordinary_speech_header_receipt.gd",
+    "godot-client/systems/native_data/ordinary_speech_text_receipt.gd",
+    "godot-client/systems/native_data/script_floating_markup.gd",
+    "godot-client/systems/native_data/script_floating_text_receipt.gd",
+    "godot-client/systems/native_gameplay_ui.gd",
+    "godot-client/systems/native_script_floating.gd",
+    "godot-client/tools/native-text-event-scope.cjs"
+  ]
+}

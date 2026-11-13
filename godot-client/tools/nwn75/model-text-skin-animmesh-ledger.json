@@ -1,0 +1,507 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text MDL AnimMesh/Skin subtype fields, list inputs, postprocess and typed Part/render-pool publication.",
+  "edges": [
+    {
+      "from": "0x1400a0d90",
+      "to": "0x1400873d0",
+      "callsite": "0x1400a0f45",
+      "callsite_evidence_id": "ev_647d124234a6e811ac3c5483215b31b5eaf3642338c6ff4e29f6042f8e6fbdd0",
+      "kind": "direct_static",
+      "condition": "node type animmesh; allocate 0x318 and construct TriMesh-derived node",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140087790",
+      "callsite": "0x1400a102e",
+      "callsite_evidence_id": "ev_de529d750f198d0e033e7801631129eb452721533a9c068a43a46f202f049647",
+      "kind": "direct_static",
+      "condition": "node type skin; allocate 0x3a0 and construct TriMesh-derived node",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    },
+    {
+      "from": "0x1400873d0",
+      "to": "0x140087900",
+      "callsite": "0x1400873e2",
+      "callsite_evidence_id": "ev_f73cfcdb3db84d6cc88f513d0ca04c87ac9e380fd6d537254f8bc568b1c7f9aa",
+      "kind": "direct_static",
+      "condition": "AnimMesh constructor initializes TriMesh base",
+      "status": "cpu_constructor_leaf",
+      "evidence_id": "ev_72ea921cfa31e3fc009f65ad37d149034f99be637eb5522e9656c765d14d3d46"
+    },
+    {
+      "from": "0x140087790",
+      "to": "0x140087900",
+      "callsite": "0x1400877a7",
+      "callsite_evidence_id": "ev_4458abde0821d4ef02381d32ea128e759d20ab59f1d749402b67f22d6064980e",
+      "kind": "direct_static",
+      "condition": "Skin constructor initializes TriMesh base",
+      "status": "cpu_constructor_leaf",
+      "evidence_id": "ev_1bed512798f0381baa4924e37f0ff27db7bc252fd5353785759cff9a263fd6dd"
+    },
+    {
+      "from": "0x140092500",
+      "to": "0x140099c80",
+      "callsite": "0x140092500",
+      "callsite_evidence_id": "ev_17fdd6e3bedd99fa63f6397f7f27f2c7373bf98562f09793b5783372fb9ab707",
+      "kind": "direct_static",
+      "condition": "AnimMesh parse-field wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_f217130e05bec12976ee05248512e259e5d5c1cf2a48d673713ff50033132c87"
+    },
+    {
+      "from": "0x140092510",
+      "to": "0x1400a9220",
+      "callsite": "0x140092510",
+      "callsite_evidence_id": "ev_c58734a5e8052cb34f788472bff8194a77d37d77a565bb4d66b971742a5275c8",
+      "kind": "direct_static",
+      "condition": "AnimMesh postprocess wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_e8377689a31a756bd9a5a71f094951121894cc2c4aa23e92dc2eb7cc60f66c48"
+    },
+    {
+      "from": "0x140093060",
+      "to": "0x14009e760",
+      "callsite": "0x140093060",
+      "callsite_evidence_id": "ev_447b998296e7b4b4876f6d21616601e90d14384060ad40369818ddd7ccf3929b",
+      "kind": "direct_static",
+      "condition": "Skin parse-field wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_2b35c86fcf283db8b4f2609b63f598be3ab5a6dabd70c9f0027c1358e1165aee"
+    },
+    {
+      "from": "0x140093070",
+      "to": "0x1400a99e0",
+      "callsite": "0x140093070",
+      "callsite_evidence_id": "ev_6b20e2ac3620d983d5a2e145c6cc752e0194dec07c7ac946df69ce60391e2f30",
+      "kind": "direct_static",
+      "condition": "Skin postprocess wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_9ddb762456f72378a5e7dc04905d0cef9ca05d6589334f24ac78249bc7595aa4"
+    },
+    {
+      "from": "0x140099c80",
+      "to": "0x140097c90",
+      "callsite": "0x140099d82",
+      "callsite_evidence_id": "ev_b2b9b5fbadd5aaa5b1d1b92da28c3780905bdce2956925ec971277b1bd3a956d",
+      "kind": "direct_static",
+      "condition": "animverts field: Vector list at node +0x2d0",
+      "status": "cpu_list_parse_leaf",
+      "evidence_id": "ev_53d73172d034898e9949ef0a64f83d147f8ab782340c39c912895a85cca211c9"
+    },
+    {
+      "from": "0x140099c80",
+      "to": "0x140097c90",
+      "callsite": "0x140099de0",
+      "callsite_evidence_id": "ev_0168602f25fcaec2c812e45d7c0339c6eeea68576fea194c9b8ab5d8fbedda4f",
+      "kind": "direct_static",
+      "condition": "animtverts field: Vector list at node +0x2e0",
+      "status": "cpu_list_parse_leaf",
+      "evidence_id": "ev_53d73172d034898e9949ef0a64f83d147f8ab782340c39c912895a85cca211c9"
+    },
+    {
+      "from": "0x140099c80",
+      "to": "0x14009e950",
+      "callsite": "0x140099e05",
+      "callsite_evidence_id": "ev_1fc2620ba6c70f0fe1804db90a2e17dac4162152c70d6c0f44ccb9afe9f06e81",
+      "kind": "direct_static",
+      "condition": "after subtype fields; shared TriMesh field parser",
+      "status": "target_identified",
+      "evidence_id": "ev_53d73172d034898e9949ef0a64f83d147f8ab782340c39c912895a85cca211c9"
+    },
+    {
+      "from": "0x14009e760",
+      "to": "0x140097730",
+      "callsite": "0x14009e7f4",
+      "callsite_evidence_id": "ev_127e3ada268f9883de7683a698b05f59d2f57881a8171c06b03cf5c06c0652a5",
+      "kind": "direct_static",
+      "condition": "weights field: 72-byte SkinVertexWeight list at node +0x2c8",
+      "status": "cpu_list_parse_leaf",
+      "evidence_id": "ev_3c51aea3718946a3e1b32cf7c870c68507c1ea59cd57292105db5fadeaf82b71"
+    },
+    {
+      "from": "0x14009e760",
+      "to": "0x1400974d0",
+      "callsite": "0x14009e859",
+      "callsite_evidence_id": "ev_47deb1b76fb251bb7bf1785754769964a9705a1d8c500ca0d003a5d961862f15",
+      "kind": "direct_static",
+      "condition": "qbone_ref_inv field: Quaternion list at node +0x2f0",
+      "status": "cpu_list_parse_leaf",
+      "evidence_id": "ev_3c51aea3718946a3e1b32cf7c870c68507c1ea59cd57292105db5fadeaf82b71"
+    },
+    {
+      "from": "0x14009e760",
+      "to": "0x140097c90",
+      "callsite": "0x14009e8c2",
+      "callsite_evidence_id": "ev_7af384ee23148f81efdd7543b6b0eae882cb78c941f33b7703f92cad0cf64262",
+      "kind": "direct_static",
+      "condition": "tbone_ref_inv field: Vector list at node +0x300",
+      "status": "cpu_list_parse_leaf",
+      "evidence_id": "ev_3c51aea3718946a3e1b32cf7c870c68507c1ea59cd57292105db5fadeaf82b71"
+    },
+    {
+      "from": "0x14009e760",
+      "to": "0x140096530",
+      "callsite": "0x14009e920",
+      "callsite_evidence_id": "ev_41bd682ed7b0b5f3f853e72889510cdb87477c41ef31cf1a0fae5d07e6a19282",
+      "kind": "direct_static",
+      "condition": "boneconstantindices field: int list at node +0x310",
+      "status": "cpu_list_parse_leaf",
+      "evidence_id": "ev_3c51aea3718946a3e1b32cf7c870c68507c1ea59cd57292105db5fadeaf82b71"
+    },
+    {
+      "from": "0x14009e760",
+      "to": "0x14009e950",
+      "callsite": "0x14009e945",
+      "callsite_evidence_id": "ev_002228a7150fca0938e9f9f413bde373cd9d19c76c0bccc5a1bd91e152e1942a",
+      "kind": "direct_static",
+      "condition": "after subtype fields; shared TriMesh field parser",
+      "status": "target_identified",
+      "evidence_id": "ev_3c51aea3718946a3e1b32cf7c870c68507c1ea59cd57292105db5fadeaf82b71"
+    },
+    {
+      "from": "0x140097c90",
+      "to": "0x14005dff0",
+      "callsite": "0x140097d0e",
+      "callsite_evidence_id": "ev_627d2fe3ccca800653acb4d9447515c21ed2409d1f757270155a24918b055254",
+      "kind": "direct_static",
+      "condition": "Vector list: count absent or count-only line mode, read next resource line",
+      "status": "resource_boundary",
+      "evidence_id": "ev_0eb5b020b1b727f268dda65348c08c916d99c2c498e58879c28bd7dceec3e769"
+    },
+    {
+      "from": "0x140097c90",
+      "to": "0x14005de20",
+      "callsite": "0x140097d98",
+      "callsite_evidence_id": "ev_6413075a9b6ae4e28a616bd580f8c1d024ff86c41a4ec7681763be0516f3d499",
+      "kind": "direct_static",
+      "condition": "Vector list: count plus second marker, read count × 12 bytes",
+      "status": "resource_boundary",
+      "evidence_id": "ev_0eb5b020b1b727f268dda65348c08c916d99c2c498e58879c28bd7dceec3e769"
+    },
+    {
+      "from": "0x140097c90",
+      "to": "0x140c417f0",
+      "callsite": "0x140097da6",
+      "callsite_evidence_id": "ev_5bf3c1220d9b1ba4e78defb4fecab3605fd8af9a142e221ef31e628b12962e98",
+      "kind": "direct_static",
+      "condition": "copy 12-byte Vector entries from resource to CPU array",
+      "status": "cpu_copy_leaf",
+      "evidence_id": "ev_0eb5b020b1b727f268dda65348c08c916d99c2c498e58879c28bd7dceec3e769"
+    },
+    {
+      "from": "0x140097730",
+      "to": "0x14005dff0",
+      "callsite": "0x1400977ae",
+      "callsite_evidence_id": "ev_346b97a99836fbbc80bbd028b19346bac5136ba2b9c95c3790b37fc61f50863e",
+      "kind": "direct_static",
+      "condition": "SkinVertexWeight list: line mode, read next resource line",
+      "status": "resource_boundary",
+      "evidence_id": "ev_540ed0e257c57d5977eb58dccbdbe2529f75c763003d94415d7a8a340dc62117"
+    },
+    {
+      "from": "0x140097730",
+      "to": "0x14005de20",
+      "callsite": "0x14009781e",
+      "callsite_evidence_id": "ev_a67acef5382d92641d64d9827ff76b26319a3e83733e54a92a4a771072c7320b",
+      "kind": "direct_static",
+      "condition": "SkinVertexWeight list: count plus second marker, read count × 72 bytes",
+      "status": "resource_boundary",
+      "evidence_id": "ev_540ed0e257c57d5977eb58dccbdbe2529f75c763003d94415d7a8a340dc62117"
+    },
+    {
+      "from": "0x140097730",
+      "to": "0x140c417f0",
+      "callsite": "0x14009782c",
+      "callsite_evidence_id": "ev_2e3b19750088be8b1079d93bcc925b3cd17b2a74e26dca19fed187cffdae2289",
+      "kind": "direct_static",
+      "condition": "copy weight entries to CPU array",
+      "status": "cpu_copy_leaf",
+      "evidence_id": "ev_540ed0e257c57d5977eb58dccbdbe2529f75c763003d94415d7a8a340dc62117"
+    },
+    {
+      "from": "0x1400a9220",
+      "to": "0x1400aa1e0",
+      "callsite": "0x1400a9252",
+      "callsite_evidence_id": "ev_ba13566459207b057aa31ff00372daf25d9a14d4eb1bc6032ea8f9f672770fcf",
+      "kind": "direct_static",
+      "condition": "AnimMesh vertex count +0x284 zero; ProcessVerts",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_1811cf3eb9dc1ad020c421f383a9e4b7744b28989650347e60fb64e46775bc3a"
+    },
+    {
+      "from": "0x1400a9220",
+      "to": "0x1400a7790",
+      "callsite": "0x1400a967f",
+      "callsite_evidence_id": "ev_04c72623b0bf106b71cb136193c8477d7bef2cb2e5c835dcbad38e9eec680a3d",
+      "kind": "direct_static",
+      "condition": "after generated vertices, neighbors and indices; publish base mesh streams",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_1811cf3eb9dc1ad020c421f383a9e4b7744b28989650347e60fb64e46775bc3a"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a7836",
+      "callsite_evidence_id": "ev_8d0b7136c238aa8cea0f478f02b69f12724cd48699aafeed9de5686018d626ca",
+      "kind": "direct_static",
+      "condition": "faces present: request base vertex pool",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_9434dc82a35594870257e9730e8636356579089067342be3a4dda50f60c19a4c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a7848",
+      "callsite_evidence_id": "ev_6df81aa777afe560d3e942b19066bce3ec06f3878ef4947512662f5f17f3f000",
+      "kind": "direct_static",
+      "condition": "lock base vertex pool for CPU writes",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_9434dc82a35594870257e9730e8636356579089067342be3a4dda50f60c19a4c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7c69",
+      "callsite_evidence_id": "ev_f91f940df8115996e43796d1ae13f981866ac83c579126c870c1c24d4e041c95",
+      "kind": "direct_static",
+      "condition": "unlock base vertex pool after publication",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_9434dc82a35594870257e9730e8636356579089067342be3a4dda50f60c19a4c"
+    },
+    {
+      "from": "0x1400a99e0",
+      "to": "0x140c4f038",
+      "callsite": "0x1400a9a76",
+      "callsite_evidence_id": "ev_f3afad049ff362fe7c3f5e1ed8d3e20f66238fc71acdb7522e111facb95cc2b2",
+      "kind": "direct_static",
+      "condition": "Skin vertex count +0x284 zero and mirror-list append needs growth",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_f6a4b08f28967d5da50a71bff8b87928c0dc0e77e203b21e143f0f1da4975f2c"
+    },
+    {
+      "from": "0x1400a99e0",
+      "to": "0x1400aa1e0",
+      "callsite": "0x1400a9ac1",
+      "callsite_evidence_id": "ev_77274701bbd6a1a8122041fe8f3887020af1ad876e4abc56e232666ea9a8aff6",
+      "kind": "direct_static",
+      "condition": "Skin vertex count +0x284 zero; ProcessVerts after mirror-list copy",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_f6a4b08f28967d5da50a71bff8b87928c0dc0e77e203b21e143f0f1da4975f2c"
+    },
+    {
+      "from": "0x140093000",
+      "to": "0x1400df1a0",
+      "callsite": "0x140093000",
+      "callsite_evidence_id": "ev_3c73ad935f047754022f1d94f2132b769d1315eebe840c976dace5f18778e8cd",
+      "kind": "direct_static",
+      "condition": "Skin CreateInstance wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_525f0d858bc73d3ced865e97c99c24152b14a79ce82746d02b8c89f86e6d9e9e"
+    },
+    {
+      "from": "0x1400df1a0",
+      "to": "0x140c10324",
+      "callsite": "0x1400df1bc",
+      "callsite_evidence_id": "ev_7a00ca1061b4a97e1db8d284e8b71da9fb55192f3e762375659e9aa12bc5630e",
+      "kind": "direct_static",
+      "condition": "Skin instance: allocate 0xc0 Part",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_f77022cb6729c8a1db610ea915cf8084c28ce01942fc99830c35197e16cb36c6"
+    },
+    {
+      "from": "0x1400df1a0",
+      "to": "0x140087fd0",
+      "callsite": "0x1400df1d4",
+      "callsite_evidence_id": "ev_5fa141b68866dd28070706b38a6c556202627a8fbf1988e47d2c23d032004dc4",
+      "kind": "direct_static",
+      "condition": "Skin instance: construct PartTriMesh then install PartSkin vtable",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_f77022cb6729c8a1db610ea915cf8084c28ce01942fc99830c35197e16cb36c6"
+    },
+    {
+      "from": "0x1400917f0",
+      "to": "0x140087fd0",
+      "callsite": "0x140091824",
+      "callsite_evidence_id": "ev_35b12005ac30670ca61ad4f015649bfa608bee8b55cba66951e863c3f30633c3",
+      "kind": "direct_static",
+      "condition": "AnimMesh instance: construct PartTriMesh then install PartAnimMesh vtable",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_8ea415d9773fa78f6c9f32307e377c838c38cb191047d86c871e044fd864b0c0"
+    },
+    {
+      "from": "0x140093050",
+      "to": "0x1400df200",
+      "callsite": "0x140093050",
+      "callsite_evidence_id": "ev_c034748a8750910b0b620ae2423185792a104e58c766229341166dbf8cee2bcc",
+      "kind": "direct_static",
+      "condition": "Skin GenVertices wrapper tail jump",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_44dbec2ac4e75c76a8c1942f3b6c197e03a3999945cb31c448271a09fcd6ff7f"
+    },
+    {
+      "from": "0x1400924f0",
+      "to": "0x1400a8300",
+      "callsite": "0x1400924f0",
+      "callsite_evidence_id": "ev_17bbe5d9fd105d4cedc69ab84368c97b2c354f7f6fe18999746b086b1d104610",
+      "kind": "direct_static",
+      "condition": "AnimMesh GenVertices wrapper tail jump",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_05e2fd77da1dabeaacc01f5f26e9357b63575c6cd3f3c0322c95b4c4f823809e"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400beee0",
+      "callsite": "0x1400dff06",
+      "callsite_evidence_id": "ev_7960064ac433a0a3ea4b162e25e238c452c7d075593abc543df827d6973d45c9",
+      "kind": "direct_static",
+      "condition": "PartSkin has geometry: request bone-index pool after bone resolution",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400bee30",
+      "callsite": "0x1400dff18",
+      "callsite_evidence_id": "ev_7d6c17b30f3827b3fef6f1dc41943054a1bfdb464f00e3cd85b5f6a02bb9326b",
+      "kind": "direct_static",
+      "condition": "PartSkin bone-index pool lock",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400beee0",
+      "callsite": "0x1400dff43",
+      "callsite_evidence_id": "ev_f9bc08f87e4e07598d5eaefe846ad6d1715779f18e82b992e3b240b32fb8f8e8",
+      "kind": "direct_static",
+      "condition": "PartSkin has geometry: request bone-weight pool",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400bee30",
+      "callsite": "0x1400dff55",
+      "callsite_evidence_id": "ev_3736abcdf345e049545a5511f4d74477882823b9601a7153fd3309fecb98564b",
+      "kind": "direct_static",
+      "condition": "PartSkin bone-weight pool lock",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400e031c",
+      "callsite_evidence_id": "ev_3ff8f2c45594c0be6ba901a62af8d10b3d9e58347804ddc619e43f469336d40e",
+      "kind": "direct_static",
+      "condition": "PartSkin unlock first skin pool after CPU fill",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400e032b",
+      "callsite_evidence_id": "ev_563a3ffb930886b0daace828eedd87365241367db4f78aad6cb7a34f2035b696",
+      "kind": "direct_static",
+      "condition": "PartSkin unlock second skin pool after CPU fill",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140092500",
+      "callsite": "0x1400a109f",
+      "callsite_evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text node type animmesh; constructor installed +0x8 parse field",
+      "status": "target_identified",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140093060",
+      "callsite": "0x1400a109f",
+      "callsite_evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text node type skin; constructor installed +0x8 parse field",
+      "status": "target_identified",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140092510",
+      "callsite": "0x1400a10b3",
+      "callsite_evidence_id": "ev_b78f18efe9eeb50a5253b0b49f8586ea54528d9ae467a1584814f0e24be92f4c",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text node type animmesh; endnode reached and constructor installed +0x10 postprocess",
+      "status": "target_identified",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140093070",
+      "callsite": "0x1400a10b3",
+      "callsite_evidence_id": "ev_b78f18efe9eeb50a5253b0b49f8586ea54528d9ae467a1584814f0e24be92f4c",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text node type skin; endnode reached and constructor installed +0x10 postprocess",
+      "status": "target_identified",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    },
+    {
+      "from": "0x1400a9220",
+      "to": "0x1400924f0",
+      "callsite": "0x1400a964f",
+      "callsite_evidence_id": "ev_7f4ed4a183e9493684fd35fafd2acff0178b204899f9866ac39a9d59b2c19dfd",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "AnimMesh vertex-count-zero branch; constructor-installed +0xa0 GenVertices",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_1811cf3eb9dc1ad020c421f383a9e4b7744b28989650347e60fb64e46775bc3a"
+    },
+    {
+      "from": "0x1400a9220",
+      "to": "0x140092520",
+      "callsite": "0x1400a983c",
+      "callsite_evidence_id": "ev_b38368da5da3e0a358e6b8187ec88b3e1bace282a177452b4800fae378ac29d7",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "AnimMesh vertex-count-zero branch after generated arrays and tangent basis; constructor-installed +0xa8 cleanup",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_1811cf3eb9dc1ad020c421f383a9e4b7744b28989650347e60fb64e46775bc3a"
+    },
+    {
+      "from": "0x14008dab0",
+      "to": "0x140092440",
+      "callsite": "0x14008dae0",
+      "callsite_evidence_id": "ev_7e5acc37beb34bb2353141aeb878a5831acc5b1d4b65e66f1e76b8ba5959edfb",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "node kind animmesh; constructor-installed +0x28 CreateInstance",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_f7ea47f287ca07427ec0581de89cebf1200911646a4768b59bef961b587c89cc"
+    },
+    {
+      "from": "0x14008dab0",
+      "to": "0x140093000",
+      "callsite": "0x14008dae0",
+      "callsite_evidence_id": "ev_7e5acc37beb34bb2353141aeb878a5831acc5b1d4b65e66f1e76b8ba5959edfb",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "node kind skin; constructor-installed +0x28 CreateInstance",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_f7ea47f287ca07427ec0581de89cebf1200911646a4768b59bef961b587c89cc"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x140093050",
+      "callsite": "0x1400dfdff",
+      "callsite_evidence_id": "ev_d5946068d9662064d00dda9743ed37825caab0f92cf14d9dbae59ffc1ea9fb24",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "PartSkin has geometry and resolved bones; Skin node +0xa0 GenVertices",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    }
+  ]
+}

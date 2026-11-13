@@ -1,0 +1,123 @@
+{
+  "schema": "nwn75-nuklear-gl-callsites-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "procedure": "0x140a71760",
+  "procedure_evidence_id": "ev_6b5e1be5df3d0ec1c19e05d9f5114d2a9453a5c0bd89c9f09f1a3012d4826278",
+  "loader_catalog": "gl-extension-pointers.json",
+  "scope": "All 16 REA/Ghidra unresolved computed CALL instructions in this original UI draw function. Each register load was matched to pinned PE indirection bytes and a wglGetProcAddress loader assignment. Command conversion descendants remain open.",
+  "count": 16,
+  "callsites": [
+    {
+      "callsite": "0x140a71944",
+      "pointer_global": "0x1414422c8",
+      "indirection_address": "0x140ee47b0",
+      "api": "glBlendEquation",
+      "generator_evidence_id": "ev_c18aad92a0f613039ebe0d13d31bf3b2e4dbc0eb96cff57738e417956b3bef64"
+    },
+    {
+      "callsite": "0x140a71999",
+      "pointer_global": "0x141443f48",
+      "indirection_address": "0x140ee4868",
+      "api": "glBindVertexArray",
+      "generator_evidence_id": "ev_aa30226120c76026cd7d29886045cda4b436bdd2159c888247dfea14ba379ec7"
+    },
+    {
+      "callsite": "0x140a719ad",
+      "pointer_global": "0x1414425f8",
+      "indirection_address": "0x140ee4850",
+      "api": "glUniform1i",
+      "generator_evidence_id": "ev_41355913073fd0f153b1924e2b16fcf39c91fccfa40a555b4ebf00ccb6a106f9"
+    },
+    {
+      "callsite": "0x140a719cd",
+      "pointer_global": "0x141442678",
+      "indirection_address": "0x140ee4858",
+      "api": "glUniformMatrix4fv",
+      "generator_evidence_id": "ev_15b2654e5fb18bb54b649bb2c66215ff84e537a959ab3700c36b451d29126069"
+    },
+    {
+      "callsite": "0x140a71a02",
+      "pointer_global": "0x141442528",
+      "indirection_address": "0x140ee4810",
+      "api": "glEnableVertexAttribArray",
+      "generator_evidence_id": "ev_491f33ebd3338f864c9577ee1f1386c2c5044e9df8d3cc9eb360e13de2b3ba33"
+    },
+    {
+      "callsite": "0x140a71a14",
+      "pointer_global": "0x141442528",
+      "indirection_address": "0x140ee4810",
+      "api": "glEnableVertexAttribArray",
+      "generator_evidence_id": "ev_491f33ebd3338f864c9577ee1f1386c2c5044e9df8d3cc9eb360e13de2b3ba33"
+    },
+    {
+      "callsite": "0x140a71a26",
+      "pointer_global": "0x141442528",
+      "indirection_address": "0x140ee4810",
+      "api": "glEnableVertexAttribArray",
+      "generator_evidence_id": "ev_491f33ebd3338f864c9577ee1f1386c2c5044e9df8d3cc9eb360e13de2b3ba33"
+    },
+    {
+      "callsite": "0x140a71a5b",
+      "pointer_global": "0x1414427b0",
+      "indirection_address": "0x140ee4860",
+      "api": "glVertexAttribPointer",
+      "generator_evidence_id": "ev_bb2f57eeb37201c265d3b389f3eaa139830ae52b1eb25efe60cc2ac3135db4d9"
+    },
+    {
+      "callsite": "0x140a71a90",
+      "pointer_global": "0x1414427b0",
+      "indirection_address": "0x140ee4860",
+      "api": "glVertexAttribPointer",
+      "generator_evidence_id": "ev_bb2f57eeb37201c265d3b389f3eaa139830ae52b1eb25efe60cc2ac3135db4d9"
+    },
+    {
+      "callsite": "0x140a71ac6",
+      "pointer_global": "0x1414427b0",
+      "indirection_address": "0x140ee4860",
+      "api": "glVertexAttribPointer",
+      "generator_evidence_id": "ev_bb2f57eeb37201c265d3b389f3eaa139830ae52b1eb25efe60cc2ac3135db4d9"
+    },
+    {
+      "callsite": "0x140a71ae4",
+      "pointer_global": "0x141442448",
+      "indirection_address": "0x140ee47b8",
+      "api": "glBufferData",
+      "generator_evidence_id": "ev_b4b4817ea83a913c24e1ba0051e49f965d179b48dbe471540d1c8d5c3e7d4d37"
+    },
+    {
+      "callsite": "0x140a71b02",
+      "pointer_global": "0x141442448",
+      "indirection_address": "0x140ee47b8",
+      "api": "glBufferData",
+      "generator_evidence_id": "ev_b4b4817ea83a913c24e1ba0051e49f965d179b48dbe471540d1c8d5c3e7d4d37"
+    },
+    {
+      "callsite": "0x140a71b16",
+      "pointer_global": "0x1414424c0",
+      "indirection_address": "0x140ee47c8",
+      "api": "glMapBuffer",
+      "generator_evidence_id": "ev_a0f3b8589c71662435c8c9d26de7c7b73dc8352fc9a5ee05dc91638ce34953bc"
+    },
+    {
+      "callsite": "0x140a71b2d",
+      "pointer_global": "0x1414424c0",
+      "indirection_address": "0x140ee47c8",
+      "api": "glMapBuffer",
+      "generator_evidence_id": "ev_a0f3b8589c71662435c8c9d26de7c7b73dc8352fc9a5ee05dc91638ce34953bc"
+    },
+    {
+      "callsite": "0x140a71cd8",
+      "pointer_global": "0x1414424c8",
+      "indirection_address": "0x140ee47d0",
+      "api": "glUnmapBuffer",
+      "generator_evidence_id": "ev_27d8f17bc3e0c6a59acd65725530f70e7833a7198306184b0d4df67e333e5cf0"
+    },
+    {
+      "callsite": "0x140a71ce9",
+      "pointer_global": "0x1414424c8",
+      "indirection_address": "0x140ee47d0",
+      "api": "glUnmapBuffer",
+      "generator_evidence_id": "ev_27d8f17bc3e0c6a59acd65725530f70e7833a7198306184b0d4df67e333e5cf0"
+    }
+  ]
+}

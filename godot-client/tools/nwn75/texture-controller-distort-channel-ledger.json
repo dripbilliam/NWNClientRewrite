@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Controller Distort global scratch and mode, sine/cosine LUT CRT boundary, and Height2Channel CPU expansion.",
+  "edges": [
+    {"from":"0x1400e2c00","to":"global scratch 0x14140b248 and capacity 0x14128edc4","kind":"conditional_branch","condition":"grow only when width*height*BPP exceeds recorded capacity","status":"cpu_distort_scratch_ownership","evidence_id":"ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"},
+    {"from":"0x1400e2c00","to":"linear byte displacement or angular LUT displacement","kind":"conditional_branch","condition":"controller mode +0x18 zero vs nonzero","status":"cpu_distort_mode","evidence_id":"ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"},
+    {"from":"0x1400e2c00","to":"BPP-sized wrapped source sample copy into global scratch","kind":"terminal_cpu_leaf","condition":"positive image dimensions; controller mode chooses coordinate displacement","status":"cpu_distort_output","evidence_id":"ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"},
+    {"from":"0x14022fb10","to":"0x140c8f800","callsite":"0x14022fb3c","kind":"direct_static","condition":"cosine input outside ±2π","status":"crt_angle_remainder","evidence_id":"ev_0bad006a2a268b1d60f724527245f618b5c07ede15278455a7c409c90c898888"},
+    {"from":"0x140231c20","to":"0x140c8f800","callsite":"0x140231c4c","kind":"direct_static","condition":"sine input outside ±2π","status":"crt_angle_remainder","evidence_id":"ev_0f96a08def76cdfb318ef3f0e879acaea2759e7e33ddffb0377c1fad0bbbaa2c"},
+    {"from":"0x14022fb10","to":"32-entry cosine float table 0x14128f950","kind":"terminal_cpu_leaf","condition":"angle optionally reduced to ±2π","status":"cpu_cosine_lut","evidence_id":"ev_0bad006a2a268b1d60f724527245f618b5c07ede15278455a7c409c90c898888"},
+    {"from":"0x140231c20","to":"32-entry sine float table 0x14128f9d0","kind":"terminal_cpu_leaf","condition":"angle optionally reduced to ±2π","status":"cpu_sine_lut","evidence_id":"ev_0f96a08def76cdfb318ef3f0e879acaea2759e7e33ddffb0377c1fad0bbbaa2c"},
+    {"from":"0x140c8f800","to":"0x140caea38","callsite":"0x140c8fa8b","kind":"direct_static","condition":"exceptional CRT remainder input/error handling","status":"crt_math_error_boundary","evidence_id":"ev_d206528108cc9dcd519153687969bb90083206d25ec430f84e9aa5fbb0b7d82a"},
+    {"from":"0x1400e3000","to":"4-channel coefficients or packed-nibble conversion","kind":"terminal_cpu_leaf","condition":"Basic BPP equals four vs other positive format; controller multiplier/offset arrays","status":"cpu_channel_expansion","evidence_id":"ev_466af851c99bf8863f0ad4ac32367f4cde29ca5671a4fe17bcb2bf17258a5a01"},
+    {"from":"0x1400e2c00","to":"DYNAMIC:CONTROLLER_IMAGE_TRANSFORM_STATE","kind":"unresolved_runtime_selector","condition":"authored mode/coefficients, Basic dimensions/BPP, shared scratch capacity and live update frequency","status":"unresolved_target","evidence_id":"ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"}
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Creature animation-model shadow Gob setter through Scene borrowed pointer and DoGobShadows consumer",
+  "document": "scene-shadow-gob-source-lifetime.md",
+  "edges": [
+    {"from":"0x1400c0ca0","to":"Scene+0x58","kind":"data_initialization","condition":"Scene constructor initializes shadow Gob pointer to null","status":"shadow_gob_scene_initial","evidence_id":"ev_9bd85911eebb0eb0c68866794c5c484152b6059e0e8e29e18ffda6e3851cf60b"},
+    {"from":"0x1406bd310","to":"0x1406f5030","callsite":"0x1406bd333","kind":"direct_call","condition":"setting callback forwards low byte of incoming value","status":"shadow_mode_callback","evidence_id":"ev_5b2023d38ce26cd36501baec86c66987e910be2bcdd79260b03915d6f8f1f455"},
+    {"from":"0x1406f5030","to":"0x1400d35a0","callsite":"0x1406f50bd","kind":"scene_virtual_slot","condition":"changed setting value 2, active client area Scene; vslot +0xe0 receives null","status":"shadow_gob_scene_clear","evidence_id":"ev_c5de2c64d26e8e88db6eb38088c292553ba459d8b63ad17f5385e80c582316f6"},
+    {"from":"0x1406f5030","to":"0x1406ac1a0","callsite":"0x1406f512f","kind":"direct_call","condition":"changed setting value 1, active client area Scene; resolve selected player creature","status":"shadow_player_lookup","evidence_id":"ev_c5de2c64d26e8e88db6eb38088c292553ba459d8b63ad17f5385e80c582316f6"},
+    {"from":"0x1406ac1a0","to":"0x1406d8100","kind":"wrapper_chain","condition":"client selected object ID; require game object type 5","status":"shadow_creature_lookup","evidence_id":"ev_a68f3744c60256fd950353443ca181550e3dc6318daa35615155e5d6c46ffca6"},
+    {"from":"0x1406f5030","to":"0x140800ee0","callsites":["0x1406f5151","0x1406f5171"],"kind":"creature_virtual_slot","condition":"nonnull selected creature; vslot +0x140, selector 0xff; first result must be nonnull","status":"shadow_creature_model_access","evidence_id":"ev_c5de2c64d26e8e88db6eb38088c292553ba459d8b63ad17f5385e80c582316f6"},
+    {"from":"0x140800ee0","to":"CNWCAnimBase+0x10","kind":"animation_base_virtual_slot","condition":"creature +0x78 animation base nonnull; six constructor-backed subtype candidate tables","status":"shadow_animation_model_access","evidence_id":"ev_3d17427407b1c1c0e4354174c049ae54cd8361837380023525dfa48a67d58aa4"},
+    {"from":"0x140964690","to":"CNWCAnimBase+0xc8","kind":"model_gob_borrow","condition":"base animation type; selector 0xff returns model Gob pointer","status":"shadow_base_model_gob","evidence_id":"ev_0fb8a3232d3340805374167e0c92c3e1c874488a0d62e175fd4fe90e10aca961"},
+    {"from":"0x1406f5030","to":"0x1400d35a0","callsite":"0x1406f517d","kind":"scene_virtual_slot","condition":"changed setting value 1; nonnull creature model object; vslot +0xe0 receives borrowed pointer","status":"shadow_gob_scene_set","evidence_id":"ev_c5de2c64d26e8e88db6eb38088c292553ba459d8b63ad17f5385e80c582316f6"},
+    {"from":"0x1400d35a0","to":"Scene+0x58","kind":"scene_data_publication","condition":"setter stores incoming pointer without allocating or deleting it","status":"shadow_gob_scene_pointer","evidence_id":"ev_e583698ab1be8dd09c3134cbc944850daa248374774430cf563a4db7af106b12"},
+    {"from":"Scene+0x58","to":"0x1400c9b80","kind":"scene_data_read","condition":"GetShadowGob returns stored pointer","status":"shadow_gob_scene_get","evidence_id":"ev_f16f7a5bdbc65a5ca56c0c4412a7a5cfba1ccabb415968de27d1bd3d6788d3a3"},
+    {"from":"0x1400c7f90","to":"0x1400c9b80","callsite":"0x1400c7fc0","kind":"scene_virtual_slot","condition":"RenderShadows dynamic-light shadowdynamicgeom gate; getter vslot +0x2a8","status":"shadow_gob_pass_consumer","evidence_id":"ev_f16f7a5bdbc65a5ca56c0c4412a7a5cfba1ccabb415968de27d1bd3d6788d3a3"}
+  ]
+}

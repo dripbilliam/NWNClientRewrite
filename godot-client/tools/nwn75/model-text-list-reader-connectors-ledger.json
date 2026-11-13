@@ -1,0 +1,11 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Three previously disconnected TriMesh text list and face element parser sources, with exact source callsites and authored-mode gates.",
+  "edges": [
+    {"from":"0x14009e950","to":"0x140096790","callsite":"0x14009fb1b","callsite_evidence_id":"ev_fcffa39244c8a7303421179470e57176a26c68bb8f429e2c3eac06a939ebe818","kind":"direct_static","condition":"authored TriMesh leftoverfaces field; Parse<unsigned_int> for node +0x238 list","status":"trimesh_unsigned_list_parse","evidence_id":"ev_54b3571d0047f460d3728d64f5d19ee4acd9b1ce2de2fee77bc2c94f638925d9"},
+    {"from":"0x14009e950","to":"0x140097250","callsite":"0x14009eeff","callsite_evidence_id":"ev_adefe1afa2bc3a2b010356d711fcfb7b47f1166c2be4d21266d7cc52d52264fb","kind":"direct_static","condition":"authored faces field and postprocess face count still zero; Parse<MaxFace_PostProcess> list","status":"trimesh_face_list_parse","evidence_id":"ev_fc045200fe11fce6442f96e7a1ba91fbfc180faa4d5aac81608d233c6263ac51"},
+    {"from":"0x140097250","to":"0x1400a0810","callsite":"0x140097302","callsite_evidence_id":"ev_4565eac20df3378c24a6625d34359c88dcda122c0416d3ae270ecb227c8c1cbc","kind":"direct_static","condition":"uncounted text face-list mode; parse each nonblank line until endlist","status":"face_element_text_parse","evidence_id":"ev_fc045200fe11fce6442f96e7a1ba91fbfc180faa4d5aac81608d233c6263ac51"},
+    {"from":"0x140097250","to":"0x1400a0810","callsite":"0x140097473","callsite_evidence_id":"ev_558aea3e65febbae2a0f022d40bf87efe7eeb107a97adb74d463d154509e5930","kind":"direct_static","condition":"counted text face-list mode; parse each nonblank line up to count; counted raw byte mode bypasses this call","status":"face_element_text_parse","evidence_id":"ev_fc045200fe11fce6442f96e7a1ba91fbfc180faa4d5aac81608d233c6263ac51"}
+  ]
+}

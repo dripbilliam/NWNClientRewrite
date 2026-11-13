@@ -8,9 +8,11 @@
 #include <atomic>
 #include <cmath>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <exception>
 #include <mutex>
 #include <thread>
 #include <optional>
@@ -139,11 +141,13 @@ GDExtensionInterfaceClassdbConstructObject3 construct_object;
 GDExtensionInterfaceObjectSetInstance set_instance;
 #include "scene_wind.hpp"
 #include "particle_resident.hpp"
+#include "particle_clock_binding.hpp"
 #include "particle_upload.hpp"
 #include "particle_counters.hpp"
 #include "particle_frame_group.hpp"
 #include "particle_native_sort.hpp"
 #include "emitter_lighting.hpp"
+#include "particle_geometry_worker.hpp"
 #include "particle_presentation.hpp"
 #include "particle_stream_render.hpp"
 #include "scene_geometry.hpp"
@@ -163,7 +167,7 @@ bool bind_pose_api(){ {Name node("Node3D"),global("get_global_transform"),ortho(
 void initialize(void*,GDExtensionInitializationLevel level){
  if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;
  if(!bind_pose_api()||!bind_scene_model_api()||!scene_index::bind())return;
- particle_scene_boundary::bind();resident::hot_parameters::bind();resident::resident_text::bind();resident::empty_clips::bind();
+ particle_scene_boundary::bind();particle_clock_binding::bind(particle_scene_boundary::direct_address);resident::hot_parameters::bind();resident::resident_text::bind();resident::empty_clips::bind();
  Name name("NwnParticleKernel"),base("RefCounted"),method("vertices"),empty(""),arg0("emitter"),arg1("input"),arg2("atlas_prepared");
  alignas(8) uint8_t hint[8];string_new(hint,"");
  GDExtensionClassCreationInfo6 info{};info.is_abstract=true;info.is_exposed=true;info.is_runtime=true;info.free_instance_func=free_instance;register_class(library,name.data,base.data,&info);

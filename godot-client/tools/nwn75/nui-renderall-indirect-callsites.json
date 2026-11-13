@@ -1,0 +1,128 @@
+{
+  "schema": "nwn75-original-nui-renderall-computed-callsites-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "procedure": "0x1406c4b20",
+  "scope": "All 15 REA targetless call instructions in original Nui::Window::RenderAll; concrete callback/destructor targets are not inferred from the call opcode alone.",
+  "records": [
+    {
+      "callsite": "0x1406c4cdf",
+      "instruction": "0x1406c4cdf: CALL qword ptr [RAX + 0x10]",
+      "classification": "registry_teardown_callback",
+      "reason": "Registered entry is being removed from the identifier table; callback object at entry+0x78 receives virtual +0x10 before removal.",
+      "status": "concrete_callback_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c4f54",
+      "instruction": "0x1406c4f54: CALL qword ptr [RAX]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c4f6b",
+      "instruction": "0x1406c4f6b: CALL qword ptr [RAX + 0x8]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c4f87",
+      "instruction": "0x1406c4f87: CALL qword ptr [RAX + 0x8]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c5013",
+      "instruction": "0x1406c5013: CALL qword ptr [RAX]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c502a",
+      "instruction": "0x1406c502a: CALL qword ptr [RAX + 0x8]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c5046",
+      "instruction": "0x1406c5046: CALL qword ptr [RAX + 0x8]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c50e6",
+      "instruction": "0x1406c50e6: CALL qword ptr [RAX]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c50fe",
+      "instruction": "0x1406c50fe: CALL qword ptr [RAX + 0x8]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c511a",
+      "instruction": "0x1406c511a: CALL qword ptr [RAX + 0x40]",
+      "classification": "window_initialize",
+      "reason": "One-time virtual +0x40 call gated by window initialized byte +0xb8; known original class targets are in nui-window-vtable-census.json.",
+      "status": "known_vtable_candidates_other_classes_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c5173",
+      "instruction": "0x1406c5173: CALL qword ptr [RAX]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c518a",
+      "instruction": "0x1406c518a: CALL qword ptr [RAX + 0x8]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c51a6",
+      "instruction": "0x1406c51a6: CALL qword ptr [RAX + 0x8]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c5231",
+      "instruction": "0x1406c5231: CALL qword ptr [RAX]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    },
+    {
+      "callsite": "0x1406c5245",
+      "instruction": "0x1406c5245: CALL qword ptr [RAX + 0x8]",
+      "classification": "refcount_release",
+      "reason": "Nearby XADD.LOCK on reference counts gates vtable +0/+0x8 destruction/deallocation; no draw call at this site.",
+      "status": "concrete_destructor_target_open",
+      "evidence_id": "ev_74d8d73453f582b8c256a0045e8858e65c2aa3a509fd2f4eefec94eae3f35817"
+    }
+  ]
+}

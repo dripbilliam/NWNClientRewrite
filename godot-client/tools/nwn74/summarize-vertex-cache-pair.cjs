@@ -1,0 +1,67 @@
+'use strict';
+// Analyze only the four completed coordinator-run NWN-74 ABBA legs.
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const assert = require('node:assert/strict');
+const root = path.resolve(__dirname, '../..');
+const scope = path.join(root, '.cache/nwn74/vertex-cache-pair');
+const planFile = path.join(scope, 'plan.json');
+const plan = JSON.parse(fs.readFileSync(planFile));
+const sha = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+assert.deepEqual(plan.sequence.map(entry => entry.mode), ['off', 'on', 'on', 'off']);
+assert.equal(plan.engineSha, '3d0e9e6ed669c0c936405332b6e576031a3b65adfaec10494308edc71c05fca7');
+const rows = [];
+const identities = [];
+for (const entry of plan.sequence) {
+  const reportFile = path.join(root, 'reports', entry.run + '.json');
+  const receiptFile = path.join(scope, entry.run + '.receipt.json');
+  const report = JSON.parse(fs.readFileSync(reportFile));
+  const receipt = JSON.parse(fs.readFileSync(receiptFile));
+  assert.equal(receipt.run, entry.run);
+  assert.equal(receipt.mode, entry.mode);
+  assert.equal(receipt.reportSha, sha(reportFile));
+  assert.equal(receipt.engineSha, plan.engineSha);
+  assert.equal(receipt.selectionSha, plan.selectionSha);
+  assert.equal(receipt.captureSha, plan.captureSha);
+  assert.equal(receipt.haltReason, null);
+  assert.equal(receipt.sourceUnchanged, true);
+  assert.equal(receipt.runtimeUnchanged, true);
+  const native = report.native ?? {};
+  const frame = native.frame_intervals ?? {};
+  const window = native.performance_window ?? {};
+  const view = window.view_begin ?? {};
+  assert.equal(window.steady, true);
+  assert(window.elapsed_ms >= 15000);
+  assert(frame.count >= 1000);
+  assert.equal(window.areaId, 2147618622);
+  assert.equal(view.detailed_profiling, false);
+  assert.equal(view.maximum_fps, 0);
+  assert.equal(view.vsync, 0);
+  assert.deepEqual(view.viewport, [3440, 1369]);
+  assert.equal(view.settings?.compact_scenery_enabled, true);
+  assert.equal(view.settings?.particles_enabled, true);
+  assert.equal(view.settings?.particle_collision_enabled, false);
+  for (const key of ['average_ms', 'median_ms', 'p95_ms', 'p99_ms', 'worst_ms']) assert(Number.isFinite(frame[key]) && frame[key] > 0);
+  const ready = report.milestones?.find(item => item.kind === 'area-ready');
+  assert(ready && ready.areaId === window.areaId && Number.isFinite(ready.elapsedMs));
+  const fpsFile = receipt.fpsObservations?.file;
+  assert(fpsFile && sha(fpsFile) === receipt.fpsObservations.sha256);
+  const fpsRows = fs.readFileSync(fpsFile, 'utf8').trim().split(/\r?\n/).map(JSON.parse).filter(item => item.elapsedMs >= window.started_at_ms && item.elapsedMs <= window.started_at_ms + window.elapsed_ms && item.ready === true && Number.isFinite(item.fps));
+  const viewKey = { camera: view.camera, gamma: { enabled: view.gamma?.enabled, gamma: view.gamma?.gamma, retail_surface_output: view.gamma?.retail_surface_output }, particleVisibility: view.particle_visibility, screen: view.screen, primaryScreen: view.primary_screen, viewport: view.viewport, msaa3d: view.msaa_3d, vsync: view.vsync, maximumFps: view.maximum_fps, detailedProfiling: view.detailed_profiling, settings: { compactScenery: view.settings?.compact_scenery_enabled, particles: view.settings?.particles_enabled, collision: view.settings?.particle_collision_enabled, fov: view.settings?.fov_degrees, gamma: view.settings?.gamma } };
+  identities.push({ source: JSON.stringify(report.sourceSha256), runtime: JSON.stringify(report.runtimeSha256), view: JSON.stringify(viewKey), recording: report.recordingSha256 });
+  rows.push({ run: entry.run, mode: entry.mode, rawSuccess: report.success, rawFailure: report.failure ?? null, reportSha: receipt.reportSha, engineSha: receipt.engineSha, sourceUnchanged: receipt.sourceUnchanged, runtimeUnchanged: receipt.runtimeUnchanged, areaId: window.areaId, areaReadyMs: ready.elapsedMs, steadyMs: window.elapsed_ms, intervals: frame.count, meanFrameMs: frame.average_ms, medianFrameMs: frame.median_ms, p95FrameMs: frame.p95_ms, p99FrameMs: frame.p99_ms, worstFrameMs: frame.worst_ms, derivedMeanFps: 1000 / frame.average_ms, rollingFpsSamples: fpsRows.length, rollingFpsMean: fpsRows.length ? fpsRows.reduce((sum, item) => sum + item.fps, 0) / fpsRows.length : null, view: viewKey });
+}
+for (const identity of identities.slice(1)) assert.deepEqual(identity, identities[0], 'Replay source/runtime/view differed');
+const byMode = {};
+for (const mode of ['off', 'on']) {
+  const modeRows = rows.filter(row => row.mode === mode);
+  const average = key => modeRows.reduce((sum, row) => sum + row[key], 0) / modeRows.length;
+  byMode[mode] = { runs: modeRows.map(row => row.run), meanFrameMs: average('meanFrameMs'), medianFrameMs: average('medianFrameMs'), p95FrameMs: average('p95FrameMs'), p99FrameMs: average('p99FrameMs'), worstFrameMs: average('worstFrameMs'), derivedMeanFps: average('derivedMeanFps'), rollingFpsMean: average('rollingFpsMean'), areaReadyMs: average('areaReadyMs') };
+}
+const differences = { onMinusOffMeanFrameMs: byMode.on.meanFrameMs - byMode.off.meanFrameMs, onMinusOffMedianMs: byMode.on.medianFrameMs - byMode.off.medianFrameMs, onMinusOffP95Ms: byMode.on.p95FrameMs - byMode.off.p95FrameMs, onMinusOffP99Ms: byMode.on.p99FrameMs - byMode.off.p99FrameMs, onMinusOffDerivedFps: byMode.on.derivedMeanFps - byMode.off.derivedMeanFps, onOverOffFpsRatio: byMode.on.derivedMeanFps / byMode.off.derivedMeanFps, adjacentBMinusAFrameMs: rows[1].meanFrameMs - rows[0].meanFrameMs, adjacentCMinusDFrameMs: rows[2].meanFrameMs - rows[3].meanFrameMs, onMinusOffAreaReadyMs: byMode.on.areaReadyMs - byMode.off.areaReadyMs };
+const output = { issue: 'NWN-74', scope: 'Private same-engine ABBA replay, cache off/on; original dense scene, 15-second steady window, profiling off', plan: planFile, planSha: sha(planFile), sourceRuntimeViewMatched: true, rows, byMode, differences, strictAllPassed: rows.every(row => row.rawSuccess === true), conclusion: 'No repeatable FPS gain: the first on leg was faster than its neighboring off leg, while the second on leg was slower. Retain the cache private and opt-in.' };
+const file = path.join(root, 'reports/nwn74-vertex-cache-pair-summary.json');
+assert(!fs.existsSync(file), 'Preserve prior summary');
+fs.writeFileSync(file, JSON.stringify(output, null, 2) + '\n', { flag: 'wx' });
+console.log(JSON.stringify({ file, sha: sha(file), byMode, differences, strictAllPassed: output.strictAllPassed }, null, 2));

@@ -1,0 +1,27 @@
+{
+  "schema": "nwn75-original-part-hitcheck-rtti-census-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "document": "original-hitcheck-rtti-census.md",
+  "method": "audit-part-hitcheck-vtables.cjs reads +0x38/+0x40 from all 18 pinned Part RTTI-backed primary vtables; candidate target does not establish runtime admission",
+  "dispatch_site": "0x14008ff5c",
+  "edges": [
+    {"class":"PartEmitter","from":"0x140d84400","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"PartEmitter admitted; empty base test","status":"cpu_empty_hitcheck"},
+    {"class":"FountainEmitter","from":"0x140d84518","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"FountainEmitter admitted; empty base test","status":"cpu_empty_hitcheck"},
+    {"class":"ExplosionEmitter","from":"0x140d84630","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"ExplosionEmitter admitted; empty base test","status":"cpu_empty_hitcheck"},
+    {"class":"SingleEmitter","from":"0x140d84748","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"SingleEmitter admitted; empty base test","status":"cpu_empty_hitcheck"},
+    {"class":"LightningEmitter","from":"0x140d84860","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"LightningEmitter admitted; empty base test","status":"cpu_empty_hitcheck"},
+    {"class":"Part","from":"0x140d87f08","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"base Part admitted; empty geometry test","status":"cpu_empty_hitcheck"},
+    {"class":"PartLight","from":"0x140d88008","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"PartLight admitted; empty geometry test","status":"cpu_empty_hitcheck"},
+    {"class":"PartCamera","from":"0x140d88108","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"PartCamera admitted; empty geometry test","status":"cpu_empty_hitcheck"},
+    {"class":"PartReference","from":"0x140d88208","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"PartReference admitted; empty geometry test","status":"cpu_empty_hitcheck"},
+    {"class":"PartTriMesh","from":"0x140d88308","to":"0x1400905b0","kind":"rtti_part_hitcheck_geom_slot","condition":"TriMesh face/bounds test","status":"mapped_cpu_geometry"},
+    {"class":"PartSkin","from":"0x140d88438","to":"0x1400905b0","kind":"rtti_part_hitcheck_geom_slot","condition":"Skin inherits TriMesh geometry test","status":"mapped_cpu_geometry"},
+    {"class":"PartAnimMesh","from":"0x140d88568","to":"0x140090540","kind":"rtti_part_hitcheck_geom_slot","condition":"animated dynamic VDO face test","status":"mapped_cpu_geometry"},
+    {"class":"PartDanglyMesh","from":"0x140d88698","to":"0x1400905b0","kind":"rtti_part_hitcheck_geom_slot","condition":"DanglyMesh inherits TriMesh geometry test","status":"mapped_cpu_geometry"},
+    {"class":"PartProjection","from":"0x140d887c8","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"PartProjection admitted; empty base geometry test","status":"cpu_empty_hitcheck"},
+    {"class":"PartAABB","from":"0x140d888d0","to":"0x140090450","kind":"rtti_part_hitcheck_geom_slot","condition":"recursive AABB node/face test","status":"mapped_cpu_geometry"},
+    {"class":"PartShadow","from":"0x140d8fe88","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"PartShadow admitted; empty base geometry test","status":"cpu_empty_hitcheck"},
+    {"class":"PartBeam","from":"0x140d8ff90","to":"0x140090440","kind":"rtti_part_hitcheck_geom_slot","condition":"PartBeam admitted; empty base geometry test","status":"cpu_empty_hitcheck"},
+    {"class":"PartTrigger","from":"0x140d91840","to":"0x1400f06d0","kind":"rtti_part_hitcheck_geom_slot","condition":"hit-info flag admits trigger geometry","status":"mapped_cpu_geometry"}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "connected PartSkin draw bone-list count reset and conditional growth in recursive GatherBones",
+  "document": "scene-skin-bone-list-lifetime.md",
+  "edges": [
+    {"from":"0x1400e0410","to":"MdlNodeSkin+0x284","site":"0x1400e0455","kind":"state_read","condition":"bone count zero skips gather and Skin draw","status":"skin_bone_count_gate","evidence_id":"ev_e0d4f3593dd288856dff70c987903c4d01630fafdb39e634b4484e9c49c3b509"},
+    {"from":"0x1400e0410","to":"global+0x14140b1e0","site":"0x1400e04af","kind":"state_write","condition":"positive bone count; zero retained quaternion-list logical count","status":"skin_quaternion_list_count_reset","evidence_id":"ev_b27cce6c101f4986223a2717d9acde19e1c640ed8ea8121931aa6332adb4b8a1"},
+    {"from":"0x1400e0410","to":"global+0x14140b1f8","site":"0x1400e04b5","kind":"state_write","condition":"positive bone count; zero third process-global list logical count","status":"skin_third_list_count_reset","evidence_id":"ev_28760e576d6dbde3d0d0eb970fc4ad0ee2c3380ba9f75c8e739606d3569f0600"},
+    {"from":"0x1400e0410","to":"global+0x14140b210","site":"0x1400e04bb","kind":"state_write","condition":"positive bone count; zero retained vector-list logical count","status":"skin_vector_list_count_reset","evidence_id":"ev_f8713a275cae60fbd1bb7932de7c4e227303a2a8fdae0a37eba015fce8337703"},
+    {"from":"0x1400df000","to":"0x14004bfe0","callsite":"0x1400df0ab","kind":"direct_call","condition":"vector list logical count equals capacity while appending a visited Part","status":"conditional_vector_list_growth","evidence_id":"ev_1a33c0daa3a8420f7190e10a5385650c4eda15a5bf4c0439c172cbb1d52e66c8"},
+    {"from":"0x1400df000","to":"0x140076a50","callsite":"0x1400df0e7","kind":"direct_call","condition":"quaternion list logical count equals capacity while appending a visited Part","status":"conditional_quaternion_list_growth","evidence_id":"ev_72e4fd19903d9cb2a9c85d54802034ce993ffbb9b183d7df44584e358eb54a12"}
+  ]
+}

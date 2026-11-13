@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Binary base MdlNode hierarchy Part and empty Draw, plus Trigger node null CreateInstance terminal distinct from message-created PartTrigger.",
+  "edges": [
+    {"from":"0x14007abe0","to":"0x14007b6c0","callsite":"0x14007ae99","kind":"direct_static","condition":"serialized node kind 1; common children/controllers","status":"cpu_base_node_tree","evidence_id":"ev_84972c82b2b72d9d3febb9c48d59aea19eff280be68bdbc6c1b6f8ef0d1c9147"},
+    {"from":"0x14007abe0","to":"0x1400926d0","site":"0x14007aedb","kind":"callback_field_install","condition":"serialized node kind 1; node +0x28 CreateInstance callback","status":"cpu_base_part_factory","evidence_id":"ev_84972c82b2b72d9d3febb9c48d59aea19eff280be68bdbc6c1b6f8ef0d1c9147"},
+    {"from":"0x14008dab0","to":"0x1400926d0","kind":"conditional_indirect_callback","condition":"node +0x28 target selected for kind 1; nonnull root","status":"cpu_base_part_factory","evidence_id":"ev_f7ea47f287ca07427ec0581de89cebf1200911646a4768b59bef961b587c89cc"},
+    {"from":"0x1400926d0","to":"Part vtable 0x140d87f08","kind":"cpu_instance_publication","condition":"0x68-byte allocation succeeds; source node retained at Part +0x8","status":"cpu_base_part","evidence_id":"ev_f0fd516b6600e0a78dc1da67e6ca884de6e87e95d5bdd6351243cd99a6662be5"},
+    {"from":"Part vtable 0x140d87f08 +0xc8","to":"0x1400a1c60","kind":"resolved_vtable_slot","condition":"base Part reaches a Part Draw dispatch; body returns immediately","status":"no_gl_leaf","evidence_id":"ev_367a76f1331743305a73e378fe7d3b534cd3d662064b7baf0ee30aee8ed343dc"},
+    {"from":"0x14007abe0","to":"0x14007b6c0","callsite":"0x14007b592","kind":"direct_static","condition":"serialized node kind 0x421; common children/controllers","status":"cpu_trigger_node_tree","evidence_id":"ev_84972c82b2b72d9d3febb9c48d59aea19eff280be68bdbc6c1b6f8ef0d1c9147"},
+    {"from":"0x14007abe0","to":"0x1400f08f0","site":"0x14007b5d4","kind":"callback_field_install","condition":"serialized node kind 0x421; node +0x28 CreateInstance callback","status":"cpu_trigger_factory_target","evidence_id":"ev_84972c82b2b72d9d3febb9c48d59aea19eff280be68bdbc6c1b6f8ef0d1c9147"},
+    {"from":"0x14008dab0","to":"0x1400f08f0","kind":"conditional_indirect_callback","condition":"node +0x28 target selected for kind 0x421","status":"null_part_result","evidence_id":"ev_f7ea47f287ca07427ec0581de89cebf1200911646a4768b59bef961b587c89cc"},
+    {"from":"0x1400f08f0","to":"NULL Part","kind":"cpu_return_leaf","condition":"Trigger CreateInstance always returns null; ordinary caller has no observed null guard before +0x50 store","status":"no_render_part_leaf","evidence_id":"ev_767994ef4144e90249ed4276e485f6845b67fc44b3d1fa8ec025bcffd74fb830"},
+    {"from":"0x14008dab0","to":"DYNAMIC:LOADED_BINARY_TRIGGER_NODE","kind":"unresolved_runtime_selector","condition":"no proof kind 0x421 enters ordinary instance builder in live model","status":"unresolved_target","evidence_id":"ev_f7ea47f287ca07427ec0581de89cebf1200911646a4768b59bef961b587c89cc"}
+  ]
+}

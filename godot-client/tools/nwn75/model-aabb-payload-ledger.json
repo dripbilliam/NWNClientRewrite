@@ -1,0 +1,517 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "AABB text/binary payload, recursive tree ownership, typed Part and conditional CPU/GL consumers.",
+  "edges": [
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140087360",
+      "callsite": "0x1400a0ff6",
+      "callsite_evidence_id": "ev_0f2ae71072dad7ac448dad75d80e54f1cbbc529b2a219d0539922c0ac54964d5",
+      "kind": "direct_static",
+      "condition": "text node token aabb selects AABB constructor",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_0f2ae71072dad7ac448dad75d80e54f1cbbc529b2a219d0539922c0ac54964d5"
+    },
+    {
+      "from": "0x140087360",
+      "to": "0x140087900",
+      "callsite": "0x140087369",
+      "callsite_evidence_id": "ev_c7506e28727f5a72edf4df093cd6b3018fedbbe3cbe3800c5338e88a35ac8c73",
+      "kind": "direct_static",
+      "condition": "AABB constructor builds TriMesh base",
+      "status": "cpu_constructor_leaf",
+      "evidence_id": "ev_c7506e28727f5a72edf4df093cd6b3018fedbbe3cbe3800c5338e88a35ac8c73"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140092300",
+      "callsite": "0x1400a109f",
+      "callsite_evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text node aabb per-line +0x8 parse field",
+      "status": "target_identified",
+      "evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d"
+    },
+    {
+      "from": "0x140092300",
+      "to": "0x140099be0",
+      "callsite": "0x140092300",
+      "callsite_evidence_id": "ev_70178e12981f550dbef7eb329ba8170430a708c275a5a408e2c4a74d9c7218cb",
+      "kind": "direct_static",
+      "condition": "AABB parse wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_70178e12981f550dbef7eb329ba8170430a708c275a5a408e2c4a74d9c7218cb"
+    },
+    {
+      "from": "0x140099be0",
+      "to": "0x1400a03f0",
+      "callsite": "0x140099c59",
+      "callsite_evidence_id": "ev_0772b88b5cdd88da52ba6f39ead53f7adb384bbf2ffa179636a5394c88075adf",
+      "kind": "direct_static",
+      "condition": "case-insensitive aabb token; parse authored AABB tree into node +0x2c8",
+      "status": "cpu_tree_leaf",
+      "evidence_id": "ev_0772b88b5cdd88da52ba6f39ead53f7adb384bbf2ffa179636a5394c88075adf"
+    },
+    {
+      "from": "0x140099be0",
+      "to": "0x14009e950",
+      "callsite": "0x140099c6e",
+      "callsite_evidence_id": "ev_98d1a5ec20577c3c4ee03334e790439cbbc179785c80c830731367cac558dfe6",
+      "kind": "direct_static",
+      "condition": "normal AABB token handling continues into shared TriMesh field parser",
+      "status": "shared_parser_boundary",
+      "evidence_id": "ev_98d1a5ec20577c3c4ee03334e790439cbbc179785c80c830731367cac558dfe6"
+    },
+    {
+      "from": "0x1400a03f0",
+      "to": "0x140047060",
+      "callsite": "0x1400a046f",
+      "callsite_evidence_id": "ev_329d3905734f59ce831a975498c12ee298987a960d18d3052c18d52d313942ae",
+      "kind": "direct_static",
+      "condition": "scan six bounds floats and up to two integers from text line",
+      "status": "cpu_parse_leaf",
+      "evidence_id": "ev_329d3905734f59ce831a975498c12ee298987a960d18d3052c18d52d313942ae"
+    },
+    {
+      "from": "0x1400a03f0",
+      "to": "0x140c10324",
+      "callsite": "0x1400a047b",
+      "callsite_evidence_id": "ev_73150701adccc6c1fe0d3fa6f7b9074e496f9ed2c044aa671153dbff7cfabc52",
+      "kind": "direct_static",
+      "condition": "allocate 0x30 CPU AABB record",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_73150701adccc6c1fe0d3fa6f7b9074e496f9ed2c044aa671153dbff7cfabc52"
+    },
+    {
+      "from": "0x1400a03f0",
+      "to": "0x14005dff0",
+      "callsite": "0x1400a056b",
+      "callsite_evidence_id": "ev_9ce4963970e10675b99f02f0aa0f47a77ef4188c20a6cacd08408fbc08ca0ab9",
+      "kind": "direct_static",
+      "condition": "internal node face index -1; fetch first child line",
+      "status": "resource_line_boundary",
+      "evidence_id": "ev_9ce4963970e10675b99f02f0aa0f47a77ef4188c20a6cacd08408fbc08ca0ab9"
+    },
+    {
+      "from": "0x1400a03f0",
+      "to": "0x1400a03f0",
+      "callsite": "0x1400a057a",
+      "callsite_evidence_id": "ev_38f6e93ebe9d5fb2baac14ed18ae8483807b0fe3a64add397690a127a39ec6ce",
+      "kind": "direct_static",
+      "condition": "internal node face index -1; recursively parse first child",
+      "status": "cpu_tree_leaf",
+      "evidence_id": "ev_38f6e93ebe9d5fb2baac14ed18ae8483807b0fe3a64add397690a127a39ec6ce"
+    },
+    {
+      "from": "0x1400a03f0",
+      "to": "0x14005dff0",
+      "callsite": "0x1400a057f",
+      "callsite_evidence_id": "ev_0bd46db3568ba030aaeb70d0f6f55593c4dbe21c3565c7508b290dcda03d53e1",
+      "kind": "direct_static",
+      "condition": "internal node face index -1; fetch second child line",
+      "status": "resource_line_boundary",
+      "evidence_id": "ev_0bd46db3568ba030aaeb70d0f6f55593c4dbe21c3565c7508b290dcda03d53e1"
+    },
+    {
+      "from": "0x1400a03f0",
+      "to": "0x1400a03f0",
+      "callsite": "0x1400a058e",
+      "callsite_evidence_id": "ev_595d5fad224021977a072f080fd166a7b19677da7a5091c0637726afb239d724",
+      "kind": "direct_static",
+      "condition": "internal node face index -1; recursively parse second child",
+      "status": "cpu_tree_leaf",
+      "evidence_id": "ev_595d5fad224021977a072f080fd166a7b19677da7a5091c0637726afb239d724"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x1400931b0",
+      "callsite": "0x1400a10b3",
+      "callsite_evidence_id": "ev_b78f18efe9eeb50a5253b0b49f8586ea54528d9ae467a1584814f0e24be92f4c",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text AABB endnode +0x10 inherited TriMesh postprocess",
+      "status": "target_identified",
+      "evidence_id": "ev_b78f18efe9eeb50a5253b0b49f8586ea54528d9ae467a1584814f0e24be92f4c"
+    },
+    {
+      "from": "0x1400931b0",
+      "to": "0x1400a9ae0",
+      "callsite": "0x1400931b0",
+      "callsite_evidence_id": "ev_27535005212bdcd237f777ce547473bd328ac86a2d1a06aa8bd95212562d6247",
+      "kind": "direct_static",
+      "condition": "shared TriMesh postprocess wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_27535005212bdcd237f777ce547473bd328ac86a2d1a06aa8bd95212562d6247"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400aa1e0",
+      "callsite": "0x1400a9b0a",
+      "callsite_evidence_id": "ev_906f084cef79d392e5506de6bd59d4f3d159c5604b04e357420d97a125b44efa",
+      "kind": "direct_static",
+      "condition": "vertex count +0x284 zero; process vertices",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_906f084cef79d392e5506de6bd59d4f3d159c5604b04e357420d97a125b44efa"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400922f0",
+      "callsite": "0x1400a9b1b",
+      "callsite_evidence_id": "ev_717b84e5ca9a6f15086de856be02d0fadd14f02df34c091dff6cab300c41e0f3",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "vertex count zero and face count positive; AABB node +0xa0 GenVertices",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_717b84e5ca9a6f15086de856be02d0fadd14f02df34c091dff6cab300c41e0f3"
+    },
+    {
+      "from": "0x1400922f0",
+      "to": "0x1400a7d40",
+      "callsite": "0x1400922f0",
+      "callsite_evidence_id": "ev_3a7fa7c4f85de5f80c24cec344497f4999a0697977d049722553d9e15b074850",
+      "kind": "direct_static",
+      "condition": "AABB vertex generator wrapper tail jump",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_3a7fa7c4f85de5f80c24cec344497f4999a0697977d049722553d9e15b074850"
+    },
+    {
+      "from": "0x1400a7d40",
+      "to": "0x140c10324",
+      "callsite": "0x1400a7ede",
+      "callsite_evidence_id": "ev_0247507393fde136d2f465c2f526e20eba400af770be992987438cb918794722",
+      "kind": "direct_static",
+      "condition": "allocate NodeVertex record per face corner",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_0247507393fde136d2f465c2f526e20eba400af770be992987438cb918794722"
+    },
+    {
+      "from": "0x1400a7d40",
+      "to": "0x1400aaa90",
+      "callsite": "0x1400a7f24",
+      "callsite_evidence_id": "ev_37ca3e3b88e7d8b7511d5ea7c6bc213c95d28703ad74f20a39ad84e869be707e",
+      "kind": "direct_static",
+      "condition": "construct NodeVertex from mesh face attributes",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_37ca3e3b88e7d8b7511d5ea7c6bc213c95d28703ad74f20a39ad84e869be707e"
+    },
+    {
+      "from": "0x1400a7d40",
+      "to": "0x1400ab270",
+      "callsite": "0x1400a7fc1",
+      "callsite_evidence_id": "ev_f6262700be2cc2b10bc892bdae9014df385f50b810697cf9f4ccb75938c6765d",
+      "kind": "direct_static",
+      "condition": "compare NodeVertex for face-local reuse",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_f6262700be2cc2b10bc892bdae9014df385f50b810697cf9f4ccb75938c6765d"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a5a10",
+      "callsite": "0x1400a9b39",
+      "callsite_evidence_id": "ev_229b0b1fa7ffa5a982f54d5c9c07bbf80033756765748eb563e111089cd18ddd",
+      "kind": "direct_static",
+      "condition": "positive faces; build neighbor lists",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_229b0b1fa7ffa5a982f54d5c9c07bbf80033756765748eb563e111089cd18ddd"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a5e20",
+      "callsite": "0x1400a9b41",
+      "callsite_evidence_id": "ev_87375f0516a306017b1e834c5a91c324932288825c753b384617e296f979e29d",
+      "kind": "direct_static",
+      "condition": "positive faces; build vertex indices",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_87375f0516a306017b1e834c5a91c324932288825c753b384617e296f979e29d"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a7790",
+      "callsite": "0x1400a9b49",
+      "callsite_evidence_id": "ev_163452d777698f832b6d138631fb83476aafbd2bb24c6103a37064d2af5f29de",
+      "kind": "direct_static",
+      "condition": "positive faces; generate shared render-pool vertex data",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_163452d777698f832b6d138631fb83476aafbd2bb24c6103a37064d2af5f29de"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a6130",
+      "callsite": "0x1400a9b51",
+      "callsite_evidence_id": "ev_e8f485a4dc3117644a85426d5b6b3ec4e91006dff5409b80431752f040c08cff",
+      "kind": "direct_static",
+      "condition": "positive faces; calculate tangent basis",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_e8f485a4dc3117644a85426d5b6b3ec4e91006dff5409b80431752f040c08cff"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a9b6d",
+      "callsite_evidence_id": "ev_d141e54c6586c697d2522ab9ee288abcd3906dfa43b4eb53adb3e2ec51cb6c0e",
+      "kind": "direct_static",
+      "condition": "vertex count zero; read position pool for face area accumulation",
+      "status": "render_pool_read_boundary",
+      "evidence_id": "ev_d141e54c6586c697d2522ab9ee288abcd3906dfa43b4eb53adb3e2ec51cb6c0e"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a9c90",
+      "callsite_evidence_id": "ev_5f9154f1d451ece4e3469d3eb9762a3fb406b121ddc12769194107a26b0ee23b",
+      "kind": "direct_static",
+      "condition": "release position pool after face area calculation",
+      "status": "render_pool_read_boundary",
+      "evidence_id": "ev_5f9154f1d451ece4e3469d3eb9762a3fb406b121ddc12769194107a26b0ee23b"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400931c0",
+      "callsite": "0x1400a9cb1",
+      "callsite_evidence_id": "ev_e44960420010336ff4780df60346903d21aa5cb7f2e75313f99c184a8a24c152",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "vertex count zero; inherited +0xa8 TriMesh temporary-array cleanup",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_e44960420010336ff4780df60346903d21aa5cb7f2e75313f99c184a8a24c152"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140c10324",
+      "callsite": "0x14007ac23",
+      "callsite_evidence_id": "ev_5040405dda6c3f32e7df3f5e11b12d83289cfbd8b1ad68320d0e0074ac43a004",
+      "kind": "direct_static",
+      "condition": "binary kind 0x221 allocates 0x2d0 TriMesh-derived node",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_5040405dda6c3f32e7df3f5e11b12d83289cfbd8b1ad68320d0e0074ac43a004"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140075a50",
+      "callsite": "0x14007ac3a",
+      "callsite_evidence_id": "ev_c59ea5f9fa60a67317f784155041b1f4f8de04c6dcabddce5fdfc501a5b9b1fd",
+      "kind": "direct_static",
+      "condition": "binary kind 0x221 initializes TriMesh base after allocation",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_c59ea5f9fa60a67317f784155041b1f4f8de04c6dcabddce5fdfc501a5b9b1fd"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140078ab0",
+      "callsite": "0x14007ac4a",
+      "callsite_evidence_id": "ev_984c13df31ed289d8f0179fc8b45d7c779c62b78a53d8d09e8169551819f63d9",
+      "kind": "direct_static",
+      "condition": "binary kind 0x221 reads common node data",
+      "status": "shared_node_boundary",
+      "evidence_id": "ev_984c13df31ed289d8f0179fc8b45d7c779c62b78a53d8d09e8169551819f63d9"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x14007be10",
+      "callsite": "0x14007ac6a",
+      "callsite_evidence_id": "ev_9fb8d7b8844e38aae8050450e8192eb0800ec752b35ef76c41d29e79a97e5504",
+      "kind": "direct_static",
+      "condition": "binary kind 0x221 reads shared mesh data",
+      "status": "shared_mesh_boundary",
+      "evidence_id": "ev_9fb8d7b8844e38aae8050450e8192eb0800ec752b35ef76c41d29e79a97e5504"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140c10324",
+      "callsite": "0x14007ac87",
+      "callsite_evidence_id": "ev_98194257d9d609ff6e1daee7bced99da19d4b54e22ed2a60cbb6e046e771f4b9",
+      "kind": "direct_static",
+      "condition": "binary root offset +0x270 nonzero; allocate 0x30 AABB root",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_98194257d9d609ff6e1daee7bced99da19d4b54e22ed2a60cbb6e046e771f4b9"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x14007a3d0",
+      "callsite": "0x14007ad01",
+      "callsite_evidence_id": "ev_ef09b3094b34fce914804647fa637728c551feaaf36d50f9d7dbbe3763270206",
+      "kind": "direct_static",
+      "condition": "binary root present; descend child offsets +0x18/+0x1c",
+      "status": "cpu_tree_leaf",
+      "evidence_id": "ev_ef09b3094b34fce914804647fa637728c551feaaf36d50f9d7dbbe3763270206"
+    },
+    {
+      "from": "0x14007a3d0",
+      "to": "0x140c10324",
+      "callsite": "0x14007a415",
+      "callsite_evidence_id": "ev_3400029e9bcd48e4ea1c740ce69f1c6abfc57afb0ca949d4bf1d6fc88b8b3542",
+      "kind": "direct_static",
+      "condition": "first nonzero child offset; allocate 0x30 AABB child",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_3400029e9bcd48e4ea1c740ce69f1c6abfc57afb0ca949d4bf1d6fc88b8b3542"
+    },
+    {
+      "from": "0x14007a3d0",
+      "to": "0x14007a3d0",
+      "callsite": "0x14007a48a",
+      "callsite_evidence_id": "ev_e6dc4ffa73af613a01d8ed1a2ab22614728d58504941ad1ddad51254bf017aaf",
+      "kind": "direct_static",
+      "condition": "first child relative offset +0x18 nonzero; recurse",
+      "status": "cpu_tree_leaf",
+      "evidence_id": "ev_e6dc4ffa73af613a01d8ed1a2ab22614728d58504941ad1ddad51254bf017aaf"
+    },
+    {
+      "from": "0x14007a3d0",
+      "to": "0x140c10324",
+      "callsite": "0x14007a4a0",
+      "callsite_evidence_id": "ev_e39597b323883436511c708197f9c3fbdcded451dd77ce58de675bef68e86a35",
+      "kind": "direct_static",
+      "condition": "second nonzero child offset; allocate 0x30 AABB sibling",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_e39597b323883436511c708197f9c3fbdcded451dd77ce58de675bef68e86a35"
+    },
+    {
+      "from": "0x140089230",
+      "to": "0x14008a740",
+      "callsite": "0x140089261",
+      "callsite_evidence_id": "ev_de82e84b9a91a408f46984e0eb1daaabd4df6539bb694ca4dd1725c52520b981",
+      "kind": "direct_static",
+      "condition": "AABB owner destructor; recursively free first child branch",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_de82e84b9a91a408f46984e0eb1daaabd4df6539bb694ca4dd1725c52520b981"
+    },
+    {
+      "from": "0x140089230",
+      "to": "0x14008a740",
+      "callsite": "0x140089275",
+      "callsite_evidence_id": "ev_07ee24128ff4de52fd4ba4b266103d0ff1a88a8b0c53c4297e0f5f585b45a354",
+      "kind": "direct_static",
+      "condition": "AABB owner destructor; recursively free second child branch",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_07ee24128ff4de52fd4ba4b266103d0ff1a88a8b0c53c4297e0f5f585b45a354"
+    },
+    {
+      "from": "0x14008a740",
+      "to": "0x14008a740",
+      "callsite": "0x14008a75d",
+      "callsite_evidence_id": "ev_a7438f174e2ce26cae0e0aa1a1ffd5fd8cde6eba93605735eafaca15fe7f71d9",
+      "kind": "direct_static",
+      "condition": "recursive free descends first AABB child",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_a7438f174e2ce26cae0e0aa1a1ffd5fd8cde6eba93605735eafaca15fe7f71d9"
+    },
+    {
+      "from": "0x14008a740",
+      "to": "0x14008a740",
+      "callsite": "0x14008a770",
+      "callsite_evidence_id": "ev_e2174a580157c0c4b33416486275587e87d04f41b3a0efbc1a8e8979573b55d3",
+      "kind": "direct_static",
+      "condition": "recursive free descends second AABB child",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_e2174a580157c0c4b33416486275587e87d04f41b3a0efbc1a8e8979573b55d3"
+    },
+    {
+      "from": "0x14008a740",
+      "to": "0x140c10360",
+      "callsite": "0x14008a783",
+      "callsite_evidence_id": "ev_9ac74fcede36ea3c75b0a5f6dfa7426a683cf6f7bddd81e4c7995bed94eabc6f",
+      "kind": "direct_static",
+      "condition": "recursive free releases 0x30 AABB node",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_9ac74fcede36ea3c75b0a5f6dfa7426a683cf6f7bddd81e4c7995bed94eabc6f"
+    },
+    {
+      "from": "0x14008dab0",
+      "to": "0x140092250",
+      "callsite": "0x14008dae0",
+      "callsite_evidence_id": "ev_7e5acc37beb34bb2353141aeb878a5831acc5b1d4b65e66f1e76b8ba5959edfb",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "AABB node +0x28 CreateInstance from text or binary producer",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_7e5acc37beb34bb2353141aeb878a5831acc5b1d4b65e66f1e76b8ba5959edfb"
+    },
+    {
+      "from": "0x140092250",
+      "to": "0x140c10324",
+      "callsite": "0x14009226c",
+      "callsite_evidence_id": "ev_b1aa8a0f540c561ee61bdf7b60e6a3686dc60934a74faa74e36ea1441aba63e1",
+      "kind": "direct_static",
+      "condition": "allocate 0xc0 PartTriMesh for AABB Part",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_b1aa8a0f540c561ee61bdf7b60e6a3686dc60934a74faa74e36ea1441aba63e1"
+    },
+    {
+      "from": "0x140092250",
+      "to": "0x140087fd0",
+      "callsite": "0x140092284",
+      "callsite_evidence_id": "ev_aeba19deb6122cdfa4c1761e9b02bd44c93b9670bcadd2baec5426e7cb14093e",
+      "kind": "direct_static",
+      "condition": "construct PartTriMesh base before PartAABB vtable install",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_aeba19deb6122cdfa4c1761e9b02bd44c93b9670bcadd2baec5426e7cb14093e"
+    },
+    {
+      "from": "0x140093850",
+      "to": "0x14008c3c0",
+      "callsite": "0x14009395e",
+      "callsite_evidence_id": "ev_d5d19b0df09905af288ba96569bf346747152f962eaf8d383bccad443f01ccfb",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "Part TriMesh material setup; +0x90 AsPartAABB subtype test",
+      "status": "typed_primitive_tree",
+      "evidence_id": "ev_d5d19b0df09905af288ba96569bf346747152f962eaf8d383bccad443f01ccfb"
+    },
+    {
+      "from": "0x140093850",
+      "to": "0x1400ab030",
+      "callsite": "0x14009398c",
+      "callsite_evidence_id": "ev_3f09068c2bab03160afdccf756809322ff847306573c64734eda68ff498e10ed",
+      "kind": "direct_static",
+      "condition": "positive AsPartAABB; construct Flat primitive and assign AABB vtable",
+      "status": "typed_primitive_tree",
+      "evidence_id": "ev_3f09068c2bab03160afdccf756809322ff847306573c64734eda68ff498e10ed"
+    },
+    {
+      "from": "0x140090450",
+      "to": "0x140090170",
+      "callsite": "0x14009050b",
+      "callsite_evidence_id": "ev_1dd4a247b50c84b3063304ce631f5020011cd928222a59c07c71bf20108d4a11",
+      "kind": "direct_static",
+      "condition": "AABB node type bit check; CPU recursive hit check from +0x2c8",
+      "status": "cpu_collision_boundary",
+      "evidence_id": "ev_1dd4a247b50c84b3063304ce631f5020011cd928222a59c07c71bf20108d4a11"
+    },
+    {
+      "from": "0x1400c2f80",
+      "to": "0x14008c3c0",
+      "callsite": "0x1400c2fe5",
+      "callsite_evidence_id": "ev_a8fbc240b216a355c8b454d6c714460533201c7c565f19dfd58d73f1f4c14511",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "Scene grass bin pass; +0x90 AsPartAABB subtype test",
+      "status": "cpu_scene_bin_boundary",
+      "evidence_id": "ev_a8fbc240b216a355c8b454d6c714460533201c7c565f19dfd58d73f1f4c14511"
+    },
+    {
+      "from": "0x1400a1c70",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a1d69",
+      "callsite_evidence_id": "ev_46b50acbe164a45c9b509ea5c4dc67dd995cc3fdfb5124ba456a3ed69b53b765",
+      "kind": "direct_static",
+      "condition": "scene debug flag and valid geometry; lock source position pool",
+      "status": "render_pool_read_boundary",
+      "evidence_id": "ev_46b50acbe164a45c9b509ea5c4dc67dd995cc3fdfb5124ba456a3ed69b53b765"
+    },
+    {
+      "from": "0x1400a1c70",
+      "to": "0x1400beed0",
+      "callsite": "0x1400a1e8b",
+      "callsite_evidence_id": "ev_97de868c92c7a9b8596948dcb13344581624f5ce73f773c015ba210b71336d54",
+      "kind": "direct_static",
+      "condition": "scene debug flag and valid mesh; first paired vertex-stream draw",
+      "status": "gl_render_boundary",
+      "evidence_id": "ev_97de868c92c7a9b8596948dcb13344581624f5ce73f773c015ba210b71336d54"
+    },
+    {
+      "from": "0x1400a1c70",
+      "to": "0x1400beed0",
+      "callsite": "0x1400a1ef4",
+      "callsite_evidence_id": "ev_8277c16c38024dcd2077e2d918eb6747bae8e59fffbe079d282e0455530197ca",
+      "kind": "direct_static",
+      "condition": "scene debug flag and valid mesh; second paired vertex-stream draw",
+      "status": "gl_render_boundary",
+      "evidence_id": "ev_8277c16c38024dcd2077e2d918eb6747bae8e59fffbe079d282e0455530197ca"
+    }
+  ]
+}

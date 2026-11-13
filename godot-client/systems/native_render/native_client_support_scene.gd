@@ -14,6 +14,7 @@ var _scene_ready: Callable
 var _configured:=false
 var _retired:=false
 var _busy:=false
+var _reuse_tile_witness:=false
 var _query_revision:=-1
 var _current_revision:=-1
 var _reason:="Unconfigured client support scene"
@@ -28,6 +29,7 @@ func configure(owner: Node,scope_guard: Callable,scene_ready: Callable) -> bool:
 	if not owner.get("generation") is int or not owner.get("area_id") is int: return false
 	_world=weakref(owner); _world_id=owner.get_instance_id()
 	_generation=int(owner.get("generation")); _area_id=int(owner.get("area_id"))
+	_reuse_tile_witness=OS.get_cmdline_user_args().has("--client-support-reuse-tile-witness")
 	_scope_guard=scope_guard; _scene_ready=scene_ready; _configured=true; _reason=""
 	return true
 
@@ -57,7 +59,20 @@ func _unavailable() -> Dictionary:
 	return {"available":false,"reason":_reason}
 
 func _tile(point: Vector3) -> Variant:
-	var owner:=_checked_world(_query_revision)
+	var owner: Node
+	if _reuse_tile_witness and _busy and _query_revision>=0:
+		# The query validated the published scene before entering project().
+		# Tile lookup only reads its definition. The next ray validates the
+		# revision before touching geometry, and query() validates it again
+		# before returning even when the tile branch has no ray.
+		if _world!=null: owner=_world.get_ref() as Node
+		if not _same_world(owner) or not _scope_guard.is_valid() or not _scene_ready.is_valid():
+			_reason="Client support binding retired/changed during tile lookup"; return _unavailable()
+		var current: Variant=_scope_guard.call()
+		if not current is bool or not current or not _same_world(owner):
+			_reason="Client support connection/scope changed during tile lookup"; return _unavailable()
+	else:
+		owner=_checked_world(_query_revision)
 	if owner==null: return _unavailable()
 	_stats.tile_queries+=1
 	var surface: Variant=owner.get("surface")

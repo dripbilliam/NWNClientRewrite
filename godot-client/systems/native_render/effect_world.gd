@@ -7,6 +7,10 @@ const NativeModel=preload("res://systems/native_render/effect_model.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const Routing=preload("res://systems/native_data/object_visual_route.gd")
 const AreaDefinition=preload("res://systems/native_data/area_visual_definition.gd")
+const PresentationLifetime=preload("res://systems/native_data/entity_presentation_lifetime.gd")
+var reuse_selection_inputs:=not OS.get_cmdline_user_args().has("--effect-inputs=reference")
+var selection_owner_projections:=0
+var selection_presentation_projections:=0
 var world
 var assets
 var tables: Dictionary={}
@@ -94,6 +98,12 @@ func host(id: int,_token: int=0) -> Node3D:
 	return world.instances.get(id) if world.desired.has(id) else null
 func observe_perception(objects: Array,controlled: int) -> void:
 	if not closed and perception_visuals!=null:perception_visuals.receive(objects,controlled)
+func begin_received_perception(objects: Array,controlled: int) -> void:
+	if not closed and perception_visuals!=null:perception_visuals.begin_received(objects,controlled)
+func received_perception_step() -> bool:
+	return true if closed or perception_visuals==null else perception_visuals.received_step()
+func cancel_received_perception() -> void:
+	if perception_visuals!=null:perception_visuals.cancel_received()
 func _apply_perception_visual(id: int,lifetime: int,visual: int) -> int:
 	var before:=next_effect
 	reserve(id,lifetime,{"visualId":visual,"sourceId":0x7f000000,"bodyPart":0,"delivery":{"instant":0,"sourcePart":0,"targetPart":0,"point":[0,0,0]}},false)
@@ -130,6 +140,44 @@ func _bound(entry: Dictionary) -> bool:
 	var source: Dictionary=world.desired[int(entry.actor)].object;var record: Dictionary=records[int(entry.id)]
 	if int(source.get("nativeLifetime",0))!=int(record.lifetime):return false
 	return not record.has("presentation_lifetime") or record.presentation_lifetime==preload("res://systems/native_data/entity_presentation_lifetime.gd").token(source)
+func _selection_entries(actor: int,token: int) -> Array:
+	# The canonical filter has no authored hooks. Project the shared owner's
+	# current lifetime once for this invocation, before any runtime state getter
+	# or selector callback. Nothing survives a phase, selection or nested call.
+	# Custom owners keep their imperative _bound calls and observable ordering.
+	if not reuse_selection_inputs or get_script().resource_path!="res://systems/native_render/effect_world.gd":return super._selection_entries(actor,token)
+	if token!=0 and is_instance_valid(client_dummies) and (not client_dummies.get_script() is GDScript or client_dummies.get_script().resource_path!="res://systems/native_render/client_dummies.gd"):return super._selection_entries(actor,token)
+	var members:=_member_entries(actor,token)
+	var selected: Array=[]
+	if members.is_empty():return selected
+	selection_owner_projections+=1
+	var source: Dictionary={}
+	var lifetime:=0
+	if token!=0:
+		if not is_instance_valid(client_dummies) or not client_dummies.has(actor,token):return selected
+	else:
+		if not world.desired.has(actor):return selected
+		source=world.desired[actor].object;lifetime=int(source.get("nativeLifetime",0))
+	var presentation: Array=[]
+	var presentation_ready:=false
+	for entry in members:
+		if entry.areaVisual or entry.actor!=actor or entry.privateToken!=token or entry.runtime==null:continue
+		if token==0:
+			if not records.has(int(entry.id)):continue
+			var record: Dictionary=records[int(entry.id)]
+			if int(record.lifetime)!=lifetime:continue
+			if record.has("presentation_lifetime"):
+				if not presentation_ready:
+					presentation=PresentationLifetime.token(source);presentation_ready=true;selection_presentation_projections+=1
+				if record.presentation_lifetime!=presentation:continue
+		selected.append(entry)
+	return selected
+func _competing_entries(current: Dictionary) -> Array:
+	if not reuse_selection_inputs or get_script().resource_path!="res://systems/native_render/effect_world.gd":return super._competing_entries(current)
+	if int(current.privateToken)!=0 and is_instance_valid(client_dummies) and (not client_dummies.get_script() is GDScript or client_dummies.get_script().resource_path!="res://systems/native_render/client_dummies.gd"):return super._competing_entries(current)
+	# No bound callbacks occur in the canonical projection. The same ordered
+	# fresh input walk is valid for competing removal as for normal selection.
+	return _selection_entries(int(current.actor),int(current.privateToken))
 func _selection_snapshot(actor: int,token: int) -> Dictionary:
 	# This private schema has no custom bound/property providers. Subclasses
 	# keep the general path so overridden lifetime hooks cannot be bypassed.

@@ -7,7 +7,8 @@ const streamed=Object.freeze([
  '--base-scenery-stream=continuous',
  '--model-template=recipe'
 ]);
-const merged=Object.freeze(['--static-scenery=merged','--base-scenery-draw=merged']);
+const staticMerged='--static-scenery=merged';
+const baseMerged='--base-scenery-draw=merged';
 const names=new Set(['loading-pipeline','shared-animation-preparation','native-draw-cache','native-draw-cache-gib']);
 
 function resolveNativeLoadingPipeline(argv=[]){
@@ -21,7 +22,7 @@ function resolveNativeLoadingPipeline(argv=[]){
   options.set(name,split<0?null:argument.slice(split+1));
  }
  const pipeline=options.has('loading-pipeline')?options.get('loading-pipeline'):'ordinary';
- if(!['ordinary','streamed','merged'].includes(pipeline))throw Error('Invalid native loading pipeline');
+ if(!['ordinary','packed','streamed','static-merged','base-merged','merged'].includes(pipeline))throw Error('Invalid native loading pipeline');
  const animation=options.has('shared-animation-preparation')?options.get('shared-animation-preparation'):'false';
  if(animation!==null&&!['true','false'].includes(animation))throw Error('Invalid shared animation preparation switch');
  const sharedAnimation=animation===null||animation==='true';
@@ -32,8 +33,9 @@ function resolveNativeLoadingPipeline(argv=[]){
  if(options.has('native-draw-cache-gib')&&!nativeDrawCache)throw Error('Native cache budget requires the native draw cache');
  const budget=options.has('native-draw-cache-gib')?Number(rawBudget):25;
  if((options.has('native-draw-cache-gib')&&(typeof rawBudget!=='string'||!/^[1-9][0-9]*$/.test(rawBudget)))||!Number.isSafeInteger(budget)||budget<25||budget>1024)throw Error('Native cache budget must be an integer from 25 to 1024 GiB');
- const args=pipeline==='ordinary'?[]:[...streamed];
- if(pipeline==='merged')args.push(...merged);
+ const args=pipeline==='ordinary'?[]:pipeline==='packed'?['--model-template=packed']:[...streamed];
+ if(pipeline==='static-merged'||pipeline==='merged')args.push(staticMerged);
+ if(pipeline==='base-merged'||pipeline==='merged')args.push(baseMerged);
  if(sharedAnimation)args.push('--shared-animation-preparation=true');
  if(nativeDrawCache)args.push('--native-draw-cache=prepared','--native-draw-cache-gib='+budget);
  return {

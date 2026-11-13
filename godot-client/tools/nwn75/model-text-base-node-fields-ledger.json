@@ -1,0 +1,159 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Shared text MdlNode position/orientation/scale controllers, inherit/wire color and recursive parent-tree attachment to CPU leaves.",
+  "edges": [
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x10",
+      "site": "0x1400996ef",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "position token; single builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x10",
+      "site": "0x140099730",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "positionkey token; generic builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x10",
+      "site": "0x14009976b",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "positionbezierkey token; Bezier builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x1c",
+      "site": "0x1400997eb",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "orientation token; single builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x1c",
+      "site": "0x140099829",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "orientationkey token; generic builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x1c",
+      "site": "0x140099867",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "orientationbezierkey token; Bezier builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x2c",
+      "site": "0x1400999d9",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "scale token; single builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x2c",
+      "site": "0x140099a17",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "scalekey token; generic builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node controller lists +0x78/+0x88 destination 0x2c",
+      "site": "0x140099a55",
+      "kind": "conditional_cpu_controller_parse",
+      "condition": "scalebezierkey token; Bezier builder",
+      "status": "cpu_pose_controller",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "node+0x30 inheritcolor",
+      "site": "0x140099977",
+      "kind": "conditional_cpu_field",
+      "condition": "inheritcolor token",
+      "status": "cpu_node_state",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "local RGB temporary",
+      "site": "0x1400998f7",
+      "kind": "conditional_cpu_parse",
+      "condition": "wirecolor token; no observed persistent store in this body",
+      "status": "cpu_local_leaf",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "MaxTree+0x50 root and node+0x60 parent",
+      "site": "0x140099a92",
+      "kind": "conditional_tree_root",
+      "condition": "parent NULL",
+      "status": "cpu_tree_ownership",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098c30",
+      "site": "0x140099a92",
+      "kind": "conditional_tree_search",
+      "condition": "named parent not root; recurse descendants",
+      "status": "cpu_tree_search",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606",
+      "target_label": "FindMdlNode"
+    },
+    {
+      "from": "0x140098c30",
+      "to": "0x140098c30",
+      "kind": "conditional_recursion",
+      "condition": "name mismatch and child count positive",
+      "status": "cpu_tree_search",
+      "evidence_id": "ev_a00e9dd57f2b38e9b7d934e3ec556c1545c2514110a4cf92f8c61df13d1ecc68"
+    },
+    {
+      "from": "0x140099650",
+      "to": "parent child array +0x68/+0x70",
+      "site": "0x140099a92",
+      "kind": "conditional_cpu_reallocation_and_append",
+      "condition": "named parent resolved; grow eight-byte pointer array when count==capacity",
+      "status": "cpu_tree_ownership",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140c11104",
+      "kind": "error_exit",
+      "condition": "firstword length >=0x400",
+      "status": "terminal_error",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606",
+      "target_label": "__report_rangecheckfailure"
+    },
+    {
+      "from": "0x140099650",
+      "to": "DYNAMIC:BASE_NODE_AUTHORING_AND_PARENT_RESOLUTION",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored controllers, parent name/validity, model tree and later instance use",
+      "status": "unresolved_target",
+      "evidence_id": "ev_2b4f1308fcbcb36387fa374334c9e4bb942e8f471c20d33b171c3fda14487606"
+    }
+  ]
+}

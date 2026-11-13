@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "document": "original-hitcheck-geometry.md",
+  "scope": "Conditional TriMesh hit-test CPU geometry and pool release after shared Scene/Gob/Part admission; no live frequency or GL upload inferred.",
+  "edges": [
+    {"from":"0x1400905b0","to":"0x14022b7e0","callsite":"0x140090764","kind":"conditional_direct","condition":"CHitInfo +0x20 nonzero; expanded/scaled bounds mode","status":"cpu_geometry_leaf","evidence_id":"ev_90abc7c5927074437873c13688a68c095f93bed76fd5db0f0555d9323e499b94"},
+    {"from":"0x1400905b0","to":"0x14022b400","callsite":"0x14009086b","kind":"conditional_direct","condition":"CHitInfo +0x20 zero; face mode first bounds gate","status":"cpu_geometry_leaf","evidence_id":"ev_90abc7c5927074437873c13688a68c095f93bed76fd5db0f0555d9323e499b94"},
+    {"from":"0x1400905b0","to":"0x1400bee30","callsite":"0x14009089a","kind":"conditional_direct","condition":"face mode bounds hit; lock CPU vertex pool with mode 0x18","status":"cpu_pool_pointer","evidence_id":"ev_4a01758ab90417dc1f49f0eed1c48441168eb99a7a58edb6d8b6b0799219b9f9"},
+    {"from":"0x1400bee30","to":"0x1400b4aa0","callsite":"0x1400bee30","kind":"tail_jump","condition":"pool wrapper forwards to CPU pool pointer lookup","status":"cpu_pool_pointer","evidence_id":"ev_9d3dfd5e38819745ff67c37a956252bd78cdc6d78e218c6fa899b86c4652d6f1"},
+    {"from":"0x1400905b0","to":"0x140231810","callsites":["0x1400909ad","0x140090ad8"],"kind":"conditional_direct","condition":"face loop, scale one or unity; segment-plane and polygon-edge intersection","status":"cpu_geometry_leaf","evidence_id":"ev_90abc7c5927074437873c13688a68c095f93bed76fd5db0f0555d9323e499b94"},
+    {"from":"0x1400905b0","to":"0x1400bf3d0","callsite":"0x140090b67","kind":"conditional_direct","condition":"face path releases read-mode pool with size -1 and offset zero","status":"cpu_no_upload","evidence_id":"ev_4a01758ab90417dc1f49f0eed1c48441168eb99a7a58edb6d8b6b0799219b9f9"},
+    {"from":"0x1400bf3d0","to":"0x1400bbad0","callsite":"0x1400bf3d0","kind":"tail_jump","condition":"wrapper forwards pool release","status":"cpu_no_upload","evidence_id":"ev_0110ad9e697bc548e2fd77c2502ee813805e14ed5475ec17d1057e9f387ccbd1"},
+    {"from":"0x1400bbad0","to":"0x1400bbaf0","callsite":"0x1400bbadf","kind":"tail_jump","condition":"manager pointer prepended; helper receives pool ID, size -1 and offset zero","status":"cpu_no_upload","evidence_id":"ev_2bfe9d4aaf6e1752de5f7ec3e6a2982167327b34d9793c4fdb882dfbfbe59e75"},
+    {"from":"0x1400bbaf0","to":"NO_GL:HITCHECK_POOL_RELEASE","kind":"no_gl_terminal","condition":"preceding LockPool mode 0x18 writes descriptor +0x11; helper's mode mask 0x18 suppresses GL despite nonzero size -1","status":"cpu_no_upload","evidence_id":"ev_1f419d8f1c259c3e858798205ae5140de9198499fa4f2e2577aebc524ab8df12"}
+  ]
+}

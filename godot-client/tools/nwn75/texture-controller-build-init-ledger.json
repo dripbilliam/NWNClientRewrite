@@ -1,0 +1,515 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "BuildAndStoreTexture controller Init dispatch through six constructor-backed vtables, first-use CPU image/state allocation and helpers.",
+  "edges": [
+    {
+      "from": "0x1400ea5e0",
+      "to": "Basic built flag +0xe8, image mode +0x70 and controller +0x38",
+      "kind": "conditional_branch",
+      "condition": "built flag clear; image mode zero and controller pointer nonnull at 0x1400eab1d–0x1400eab2f",
+      "status": "build_time_controller_admission",
+      "evidence_id": "ev_3da65d17a98f227ececaf4b457322e76a4829c312b383a4a4d88ed612c3cda32"
+    },
+    {
+      "from": "0x140d90bf8",
+      "to": "0x1400e3630",
+      "kind": "vtable_slot_data",
+      "condition": "Life controller +0x10 Init",
+      "status": "controller_build_init_target",
+      "evidence_id": "ev_81bb689804d1ab90a82954127796aa56db10a7a456a15584c509d624c4a54c72"
+    },
+    {
+      "from": "0x1400ea5e0",
+      "to": "0x1400e3630",
+      "site": "0x1400eab2f",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Life controller; built flag clear and image mode zero",
+      "status": "controller_build_init",
+      "evidence_id": "ev_3da65d17a98f227ececaf4b457322e76a4829c312b383a4a4d88ed612c3cda32"
+    },
+    {
+      "from": "0x140d90c30",
+      "to": "0x1400e37e0",
+      "kind": "vtable_slot_data",
+      "condition": "Perlin controller +0x10 Init",
+      "status": "controller_build_init_target",
+      "evidence_id": "ev_f09c1bed457fc98a2c33f33146ecc074f58f44a7a797250ae0602065d93ca1f5"
+    },
+    {
+      "from": "0x1400ea5e0",
+      "to": "0x1400e37e0",
+      "site": "0x1400eab2f",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Perlin controller; built flag clear and image mode zero",
+      "status": "controller_build_init",
+      "evidence_id": "ev_3da65d17a98f227ececaf4b457322e76a4829c312b383a4a4d88ed612c3cda32"
+    },
+    {
+      "from": "0x140d90580",
+      "to": "0x1400e3420",
+      "kind": "vtable_slot_data",
+      "condition": "Arturo controller +0x10 Init",
+      "status": "controller_build_init_target",
+      "evidence_id": "ev_56557fbeacd61dac2082c3c3ac2a2fb2b82ed8de4bdb30c2f575df542ffe5020"
+    },
+    {
+      "from": "0x1400ea5e0",
+      "to": "0x1400e3420",
+      "site": "0x1400eab2f",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Arturo controller; built flag clear and image mode zero",
+      "status": "controller_build_init",
+      "evidence_id": "ev_3da65d17a98f227ececaf4b457322e76a4829c312b383a4a4d88ed612c3cda32"
+    },
+    {
+      "from": "0x140d90548",
+      "to": "0x1400e3a80",
+      "kind": "vtable_slot_data",
+      "condition": "Wave controller +0x10 Init",
+      "status": "controller_build_init_target",
+      "evidence_id": "ev_c2f0f7ae49339bcfeeba94b8030869d570b47a03ff5b8e536fc70414166dc423"
+    },
+    {
+      "from": "0x1400ea5e0",
+      "to": "0x1400e3a80",
+      "site": "0x1400eab2f",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Wave controller; built flag clear and image mode zero",
+      "status": "controller_build_init",
+      "evidence_id": "ev_3da65d17a98f227ececaf4b457322e76a4829c312b383a4a4d88ed612c3cda32"
+    },
+    {
+      "from": "0x140d905c0",
+      "to": "0x1400e3620",
+      "kind": "vtable_slot_data",
+      "condition": "CycleTID controller +0x10 Init",
+      "status": "controller_build_init_target",
+      "evidence_id": "ev_13f1bff76fb8de17f7afd6c65f4b513d90e976a4fea71c7a4bf7615ca05fa141"
+    },
+    {
+      "from": "0x1400ea5e0",
+      "to": "0x1400e3620",
+      "site": "0x1400eab2f",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed CycleTID controller; built flag clear and image mode zero",
+      "status": "controller_build_init",
+      "evidence_id": "ev_3da65d17a98f227ececaf4b457322e76a4829c312b383a4a4d88ed612c3cda32"
+    },
+    {
+      "from": "0x140d90510",
+      "to": "0x1400e38a0",
+      "kind": "vtable_slot_data",
+      "condition": "Water controller +0x10 Init",
+      "status": "controller_build_init_target",
+      "evidence_id": "ev_f118db45bee10f96f1f2481a06185eacf19c718b493dbe42e238602d5f7b071d"
+    },
+    {
+      "from": "0x1400ea5e0",
+      "to": "0x1400e38a0",
+      "site": "0x1400eab2f",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Water controller; built flag clear and image mode zero",
+      "status": "controller_build_init",
+      "evidence_id": "ev_3da65d17a98f227ececaf4b457322e76a4829c312b383a4a4d88ed612c3cda32"
+    },
+    {
+      "from": "0x1400e3630",
+      "to": "0x1400ebba0",
+      "site": "0x1400e3664",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x70 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_948fd10c2f7fb9096c0625958fd2ffd4547e6727bdfd9528f657eb64b7e35452"
+    },
+    {
+      "from": "0x1400e3630",
+      "to": "0x1400eb880",
+      "site": "0x1400e3678",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x78 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_948fd10c2f7fb9096c0625958fd2ffd4547e6727bdfd9528f657eb64b7e35452"
+    },
+    {
+      "from": "0x1400e3630",
+      "to": "0x1400eb6d0",
+      "site": "0x1400e3684",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x80 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_948fd10c2f7fb9096c0625958fd2ffd4547e6727bdfd9528f657eb64b7e35452"
+    },
+    {
+      "from": "0x1400e3630",
+      "to": "0x1400eb8b0",
+      "site": "0x1400e369b",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x60 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_948fd10c2f7fb9096c0625958fd2ffd4547e6727bdfd9528f657eb64b7e35452"
+    },
+    {
+      "from": "0x1400e37e0",
+      "to": "0x1400ebba0",
+      "site": "0x1400e381e",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x70 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_8ef498c6b9a1934aeb8aaaeb1c31eca05581ddd2051d3abd09eda18ebdd4990d"
+    },
+    {
+      "from": "0x1400e37e0",
+      "to": "0x1400ebba0",
+      "site": "0x1400e3858",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x70 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_8ef498c6b9a1934aeb8aaaeb1c31eca05581ddd2051d3abd09eda18ebdd4990d"
+    },
+    {
+      "from": "0x1400e37e0",
+      "to": "0x1400ebba0",
+      "site": "0x1400e3875",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x70 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_8ef498c6b9a1934aeb8aaaeb1c31eca05581ddd2051d3abd09eda18ebdd4990d"
+    },
+    {
+      "from": "0x1400e37e0",
+      "to": "0x1400eb880",
+      "site": "0x1400e3829",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x78 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_8ef498c6b9a1934aeb8aaaeb1c31eca05581ddd2051d3abd09eda18ebdd4990d"
+    },
+    {
+      "from": "0x1400e3420",
+      "to": "0x1400ebba0",
+      "site": "0x1400e343e",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x70 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_9c41b4e7a2ab8a47842956866a48d37258096e46440d2f6d6a74e40e8c66b686"
+    },
+    {
+      "from": "0x1400e3420",
+      "to": "0x1400eb880",
+      "site": "0x1400e344a",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x78 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_9c41b4e7a2ab8a47842956866a48d37258096e46440d2f6d6a74e40e8c66b686"
+    },
+    {
+      "from": "0x1400e3a80",
+      "to": "0x1400ebba0",
+      "site": "0x1400e3a93",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x70 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_c837e6e08010f389cecd14aadeb03bf69c9a97fc77c4c0c6ad692a5517a6a809"
+    },
+    {
+      "from": "0x1400e3a80",
+      "to": "0x1400eb880",
+      "site": "0x1400e3aa3",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x78 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_c837e6e08010f389cecd14aadeb03bf69c9a97fc77c4c0c6ad692a5517a6a809"
+    },
+    {
+      "from": "0x1400e3a80",
+      "to": "0x1400eb8b0",
+      "site": "0x1400e3b15",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x60 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_c837e6e08010f389cecd14aadeb03bf69c9a97fc77c4c0c6ad692a5517a6a809"
+    },
+    {
+      "from": "0x1400e3a80",
+      "to": "0x1400eb6d0",
+      "site": "0x1400e3b72",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x80 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_c837e6e08010f389cecd14aadeb03bf69c9a97fc77c4c0c6ad692a5517a6a809"
+    },
+    {
+      "from": "0x1400e38a0",
+      "to": "0x1400ebba0",
+      "site": "0x1400e3a3a",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x70 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_e989fcf5934be3b2ccbe7065d2d4fefb6d735ad5bfa6d0f90ef4639033f8d5b9"
+    },
+    {
+      "from": "0x1400e38a0",
+      "to": "0x1400eb880",
+      "site": "0x1400e3a46",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x78 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_e989fcf5934be3b2ccbe7065d2d4fefb6d735ad5bfa6d0f90ef4639033f8d5b9"
+    },
+    {
+      "from": "0x1400e4480",
+      "to": "0x1400eb6d0",
+      "site": "0x1400e449c",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x80 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_612dff3a81b0e85c07d3ef40b7ee02302e57538ae5a6ba65f28ac1e3490feaaa"
+    },
+    {
+      "from": "0x1400e4480",
+      "to": "0x1400eb880",
+      "site": "0x1400e44aa",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x78 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_612dff3a81b0e85c07d3ef40b7ee02302e57538ae5a6ba65f28ac1e3490feaaa"
+    },
+    {
+      "from": "0x1400e4480",
+      "to": "0x1400ebba0",
+      "site": "0x1400e44b6",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x70 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_612dff3a81b0e85c07d3ef40b7ee02302e57538ae5a6ba65f28ac1e3490feaaa"
+    },
+    {
+      "from": "0x1400e4480",
+      "to": "0x1400eb8b0",
+      "site": "0x1400e44d2",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic texture vtable +0x60 getter",
+      "status": "basic_image_getter",
+      "evidence_id": "ev_612dff3a81b0e85c07d3ef40b7ee02302e57538ae5a6ba65f28ac1e3490feaaa"
+    },
+    {
+      "from": "0x1400e37e0",
+      "to": "0x1400e4480",
+      "site": "0x1400e380a",
+      "kind": "computed_callback_dispatch",
+      "condition": "controller+0x14 nonzero and first-use flag +0x50!=1; controller vtable +0x20",
+      "status": "controller_source_image_copy",
+      "evidence_id": "ev_8ef498c6b9a1934aeb8aaaeb1c31eca05581ddd2051d3abd09eda18ebdd4990d"
+    },
+    {
+      "from": "0x1400e3420",
+      "to": "0x1400e4480",
+      "site": "0x1400e347f",
+      "kind": "computed_callback_dispatch",
+      "condition": "controller+0x14 nonzero and first-use flag +0x50!=1; controller vtable +0x20",
+      "status": "controller_source_image_copy",
+      "evidence_id": "ev_9c41b4e7a2ab8a47842956866a48d37258096e46440d2f6d6a74e40e8c66b686"
+    },
+    {
+      "from": "0x1400e3a80",
+      "to": "0x1400e4480",
+      "site": "0x1400e3ad1",
+      "kind": "computed_callback_dispatch",
+      "condition": "controller+0x14 nonzero and first-use flag +0x50!=1; controller vtable +0x20",
+      "status": "controller_source_image_copy",
+      "evidence_id": "ev_c837e6e08010f389cecd14aadeb03bf69c9a97fc77c4c0c6ad692a5517a6a809"
+    },
+    {
+      "from": "0x1400e38a0",
+      "to": "0x1400e4480",
+      "site": "0x1400e38ef",
+      "kind": "computed_callback_dispatch",
+      "condition": "controller+0x14 nonzero and first-use flag +0x50!=1; controller vtable +0x20",
+      "status": "controller_source_image_copy",
+      "evidence_id": "ev_e989fcf5934be3b2ccbe7065d2d4fefb6d735ad5bfa6d0f90ef4639033f8d5b9"
+    },
+    {
+      "from": "0x1400e37e0",
+      "to": "0x1400e0fa0",
+      "site": "0x1400e3865",
+      "kind": "computed_callback_dispatch",
+      "condition": "Perlin vtable +0x30, first output buffer",
+      "status": "controller_perlin_image_seed",
+      "evidence_id": "ev_8ef498c6b9a1934aeb8aaaeb1c31eca05581ddd2051d3abd09eda18ebdd4990d"
+    },
+    {
+      "from": "0x1400e37e0",
+      "to": "0x1400e0fa0",
+      "site": "0x1400e3882",
+      "kind": "computed_callback_dispatch",
+      "condition": "Perlin vtable +0x30, second output buffer",
+      "status": "controller_perlin_image_seed",
+      "evidence_id": "ev_8ef498c6b9a1934aeb8aaaeb1c31eca05581ddd2051d3abd09eda18ebdd4990d"
+    },
+    {
+      "from": "0x1400e3420",
+      "to": "0x1400e0ce0",
+      "site": "0x1400e35f7",
+      "kind": "computed_callback_dispatch",
+      "condition": "Arturo vtable +0x30; first-use seed",
+      "status": "controller_arturo_image_seed",
+      "evidence_id": "ev_9c41b4e7a2ab8a47842956866a48d37258096e46440d2f6d6a74e40e8c66b686"
+    },
+    {
+      "from": "0x1400e3420",
+      "to": "0x1400e0ce0",
+      "site": "0x1400e3600",
+      "kind": "computed_callback_dispatch",
+      "condition": "Arturo vtable +0x30; first-use seed",
+      "status": "controller_arturo_image_seed",
+      "evidence_id": "ev_9c41b4e7a2ab8a47842956866a48d37258096e46440d2f6d6a74e40e8c66b686"
+    },
+    {
+      "from": "0x1400e3630",
+      "to": "0x140c10368",
+      "callsite": "0x1400e36b3",
+      "kind": "direct_static",
+      "condition": "first-use state/image buffer allocation",
+      "status": "cpu_image_alloc",
+      "evidence_id": "ev_948fd10c2f7fb9096c0625958fd2ffd4547e6727bdfd9528f657eb64b7e35452"
+    },
+    {
+      "from": "0x1400e37e0",
+      "to": "0x140c10368",
+      "callsites": [
+        "0x1400e3835",
+        "0x1400e3841"
+      ],
+      "kind": "direct_static",
+      "condition": "first-use state/image buffer allocation",
+      "status": "cpu_image_alloc",
+      "evidence_id": "ev_8ef498c6b9a1934aeb8aaaeb1c31eca05581ddd2051d3abd09eda18ebdd4990d"
+    },
+    {
+      "from": "0x1400e3420",
+      "to": "0x140c10368",
+      "callsites": [
+        "0x1400e349b",
+        "0x1400e34b3",
+        "0x1400e34cb",
+        "0x1400e34d7"
+      ],
+      "kind": "direct_static",
+      "condition": "first-use state/image buffer allocation",
+      "status": "cpu_image_alloc",
+      "evidence_id": "ev_9c41b4e7a2ab8a47842956866a48d37258096e46440d2f6d6a74e40e8c66b686"
+    },
+    {
+      "from": "0x1400e3a80",
+      "to": "0x140c10368",
+      "callsites": [
+        "0x1400e3aed",
+        "0x1400e3b05"
+      ],
+      "kind": "direct_static",
+      "condition": "first-use state/image buffer allocation",
+      "status": "cpu_image_alloc",
+      "evidence_id": "ev_c837e6e08010f389cecd14aadeb03bf69c9a97fc77c4c0c6ad692a5517a6a809"
+    },
+    {
+      "from": "0x1400e38a0",
+      "to": "0x140c10368",
+      "callsites": [
+        "0x1400e390b",
+        "0x1400e3923",
+        "0x1400e393b",
+        "0x1400e3a4f"
+      ],
+      "kind": "direct_static",
+      "condition": "first-use state/image buffer allocation",
+      "status": "cpu_image_alloc",
+      "evidence_id": "ev_e989fcf5934be3b2ccbe7065d2d4fefb6d735ad5bfa6d0f90ef4639033f8d5b9"
+    },
+    {
+      "from": "0x1400e4480",
+      "to": "0x140c10368",
+      "callsite": "0x1400e44c2",
+      "kind": "direct_static",
+      "condition": "first-use state/image buffer allocation",
+      "status": "cpu_image_alloc",
+      "evidence_id": "ev_612dff3a81b0e85c07d3ef40b7ee02302e57538ae5a6ba65f28ac1e3490feaaa"
+    },
+    {
+      "from": "0x1400e3630",
+      "to": "0x140c7ed00",
+      "callsite": "0x1400e3722",
+      "kind": "direct_static",
+      "condition": "first-use random image/state seeding",
+      "status": "cpu_random_state",
+      "evidence_id": "ev_948fd10c2f7fb9096c0625958fd2ffd4547e6727bdfd9528f657eb64b7e35452"
+    },
+    {
+      "from": "0x1400e3a80",
+      "to": "0x140c7ed00",
+      "callsites": [
+        "0x1400e3b94",
+        "0x1400e3bf6"
+      ],
+      "kind": "direct_static",
+      "condition": "first-use random image/state seeding",
+      "status": "cpu_random_state",
+      "evidence_id": "ev_c837e6e08010f389cecd14aadeb03bf69c9a97fc77c4c0c6ad692a5517a6a809"
+    },
+    {
+      "from": "0x1400e3630",
+      "to": "0x140c417f0",
+      "callsites": [
+        "0x1400e3765",
+        "0x1400e377c"
+      ],
+      "kind": "direct_static",
+      "condition": "copy generated pixel to Basic image and controller state",
+      "status": "cpu_image_copy",
+      "evidence_id": "ev_948fd10c2f7fb9096c0625958fd2ffd4547e6727bdfd9528f657eb64b7e35452"
+    },
+    {
+      "from": "0x1400e4480",
+      "to": "0x140c417f0",
+      "callsite": "0x1400e44ee",
+      "kind": "direct_static",
+      "condition": "tail jump copies Basic image to controller +0x48",
+      "status": "cpu_image_copy",
+      "evidence_id": "ev_612dff3a81b0e85c07d3ef40b7ee02302e57538ae5a6ba65f28ac1e3490feaaa"
+    },
+    {
+      "from": "0x1400e3420",
+      "to": "0x140c7d6d8",
+      "callsite": "0x1400e3593",
+      "kind": "direct_static",
+      "condition": "per-pixel radial-field math",
+      "status": "cpu_image_math",
+      "evidence_id": "ev_9c41b4e7a2ab8a47842956866a48d37258096e46440d2f6d6a74e40e8c66b686"
+    },
+    {
+      "from": "0x1400e3420",
+      "to": "0x140c7a2b0",
+      "callsite": "0x1400e35a7",
+      "kind": "direct_static",
+      "condition": "per-pixel scalar conversion",
+      "status": "cpu_image_math",
+      "evidence_id": "ev_9c41b4e7a2ab8a47842956866a48d37258096e46440d2f6d6a74e40e8c66b686"
+    },
+    {
+      "from": "0x1400e3620",
+      "to": "RET",
+      "kind": "terminal_cpu_leaf",
+      "condition": "CycleTID Init body empty",
+      "status": "no_build_time_controller_work",
+      "evidence_id": "ev_0cfeda38814abac57a131f7246137fbe679acd86627efabede4a6bcba3b8c3cb"
+    },
+    {
+      "from": "0x1400ea5e0",
+      "to": "DYNAMIC:TEXTURE_CONTROLLER_BUILD_STATE",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored proceduretype, Basic image mode/dimensions, first-use state, source image, build frequency and caller",
+      "status": "unresolved_target",
+      "evidence_id": "ev_3da65d17a98f227ececaf4b457322e76a4829c312b383a4a4d88ed612c3cda32"
+    }
+  ]
+}

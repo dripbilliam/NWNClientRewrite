@@ -15,6 +15,26 @@ import protocol from './local-protocol.cjs';
 const local={host:'127.0.0.1',port:5121},other={host:'unapproved.invalid',port:5121};
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 
+test('Internet game types filter by native ordinal, retain all cached rows and do not filter History or Favorites',async t=>{
+ const f=await fixture(t);f.service.internetRows=[{...local,serverName:'Action',gameType:0},{...local,port:5122,serverName:'Story',gameType:1},{...local,port:5123,serverName:'Unknown'}].map(browserRow);
+ await f.store.favorite({...local,serverName:'Saved action',gameType:0},true);await f.command('open');await f.command('tab',{tab:'Internet',sourcePage:true});
+ const old=f.view().viewId;await f.command('game-type',{gameType:1});assert.equal(f.view().gameType,1);assert.deepEqual(f.view().rows.map(v=>v.serverName),['Story']);assert.equal(f.service.internetRows.length,3);
+ await assert.rejects(f.command('select',{viewId:old,entryId:0}),/stale/);
+ await f.command('tab',{tab:'Favorites'});assert.equal(f.view().rows.length,1);await assert.rejects(f.command('game-type',{gameType:0}),/game type/);
+ await f.command('tab',{tab:'Internet'});assert.deepEqual(f.view().rows.map(v=>v.serverName),['Story']);
+ await f.command('game-type',{gameType:null});assert.equal(f.view().gameType,null);assert.equal(f.view().rows.length,3);assert.equal(f.calls.length,0);
+});
+
+test('game-type input validates integer ordinals and cannot act through stale views',async t=>{
+ const f=await fixture(t);await f.command('tab',{tab:'Internet'});const owner={connection:f.lobby.connection};
+ for(const gameType of [null,0,12,32767])assert.doesNotThrow(()=>protocol.validateCommand({kind:'browser-input',operation:'game-type',viewId:f.view().viewId,connection:owner.connection,gameType},owner));
+ for(const gameType of [undefined,-1,1.5,'1',true,32768]){
+  assert.throws(()=>protocol.validateCommand({kind:'browser-input',operation:'game-type',viewId:f.view().viewId,connection:owner.connection,gameType},owner));
+  await assert.rejects(f.command('game-type',{gameType}),/game type/);
+ }
+ const before=f.view().viewId;await f.command('game-type',{gameType:0});await assert.rejects(f.command('game-type',{viewId:before,gameType:1}),/stale/);assert.equal(f.view().gameType,0);
+});
+
 test('240 unchanged original list-key instruction observations match one-row selection and nonwrapping boundaries',async()=>{
  const oracle=JSON.parse(await fs.readFile(new URL('../../backups/animations/native-server-list-key-observations-v1.json',import.meta.url),'utf8'));assert.equal(oracle.binarySha256,'3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a');assert.equal(oracle.rows.length,240);
  for(const row of oracle.rows){

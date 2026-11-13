@@ -22,9 +22,10 @@ class TracingTalk extends Talk:
 	func fetch_native_reference_snapshot(ref: Variant,gender: Variant,selected: Dictionary) -> Dictionary:
 		selected_fetches.append({"ref":ref,"gender":gender,"selected":selected.duplicate(true)})
 		return super.fetch_native_reference_snapshot(ref,gender,selected)
-	func parse_native(input: String,state: Dictionary={}) -> Dictionary:
+	func parse_native_bytes(raw_bytes: PackedByteArray,state: Dictionary={}) -> Dictionary:
+		var input: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(state.get("language",base.language)),true).get("text","")
 		parses.append({"input":input,"state":state.duplicate(true)})
-		return super.parse_native(input,state)
+		return super.parse_native_bytes(raw_bytes,state)
 var checks:=0
 var failures: Array=[]
 var fixture: Dictionary={}

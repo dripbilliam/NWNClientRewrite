@@ -8,6 +8,7 @@ if (process.type === 'browser' && process.env.NWN_PRIVATE_TRACY_CONFIG) {
  function install() {
   assert.equal(sha(fs.readFileSync(config.bootstrap)), config.bootstrapSha256);
   const { app } = require('electron'); app.setName('nwn-model-viewer-research');
+  if (process.env.NWN_TRACY_ELECTRON_GPU_OFF === '1') { app.disableHardwareAcceleration(); app.commandLine.appendSwitch('in-process-gpu'); }
   const original = app.getPath('userData'), copies = [];
   fs.mkdirSync(config.userdata, { recursive: true });
   function copy(source, destination) { if (fs.existsSync(source)) { fs.copyFileSync(source, destination, fs.constants.COPYFILE_EXCL); copies.push({ source, destination, sha256: sha(fs.readFileSync(source)), bytes: fs.statSync(source).size }); } }

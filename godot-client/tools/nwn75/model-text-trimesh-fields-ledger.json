@@ -1,0 +1,430 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text TriMesh shared field parser, authored geometry/material/controller values, nested vertexindices resource reader, base-field delegation and conditional later publication.",
+  "edges": [
+    {
+      "from": "ParseNode",
+      "to": "0x14009e950",
+      "site": "0x1400a109f",
+      "kind": "typed_virtual_dispatch",
+      "condition": "text node type TriMesh or subtype delegating to shared parser",
+      "status": "cpu_model_field_parse",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "0x140087b40",
+      "kind": "conditional_cpu_allocation",
+      "condition": "node+0x278 postprocess pointer null; allocate 0xb0 bytes and construct",
+      "status": "cpu_postprocess_state",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "PostProcess+0x00 Vector list",
+      "site": "0x14009ea5d",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword verts",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "PostProcess+0x10 Vector list",
+      "site": "0x14009ead0",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword tverts",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "PostProcess+0x20 Vector list",
+      "site": "0x14009eb38",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword tverts1",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "PostProcess+0x30 Vector list",
+      "site": "0x14009eba8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword tverts2",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "PostProcess+0x40 Vector list",
+      "site": "0x14009ec18",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword tverts3",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "PostProcess+0x50 Vector list",
+      "site": "0x14009ec88",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword colors",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "MaxFace postprocess texindices1",
+      "site": "0x14009ecf8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword texindices1",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "MaxFace postprocess texindices2",
+      "site": "0x14009ed6b",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword texindices2",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "MaxFace postprocess texindices3",
+      "site": "0x14009edda",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword texindices3",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "PostProcess+0x80 Vector list",
+      "site": "0x14009ee49",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword normals",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "PostProcess+0x60 Vector4 list",
+      "site": "0x14009eeb8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword tangents",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "MaxFace postprocess list then node+0xb0 face copy",
+      "site": "0x14009eee8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword faces",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "MaxFace postprocess mirror list",
+      "site": "0x14009ef9f",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword mirrorlist",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x124 texture name",
+      "site": "0x14009f00f",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword texture0",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x164 texture name",
+      "site": "0x14009f098",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword texture1",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x1a4 texture name",
+      "site": "0x14009f11a",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword texture2",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0xe8 RGB",
+      "site": "0x14009f19c",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword diffuse",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0xf4 RGB",
+      "site": "0x14009f220",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword ambient",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x110 int",
+      "site": "0x14009f2a8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword shadow",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x100 RGB",
+      "site": "0x14009f318",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword specular",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x10c float",
+      "site": "0x14009f39c",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword shininess",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x11c int",
+      "site": "0x14009f418",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword transparencyhint",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x114 int",
+      "site": "0x14009f488",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword beaming",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x118 int",
+      "site": "0x14009f4f8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword render",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x2b9 bool",
+      "site": "0x14009f568",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword rotatetexture",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x224 int",
+      "site": "0x14009f5d8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword tilefade",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "controller+0x80 single",
+      "site": "0x14009f648",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword selfillumcolor",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "controller+0x80 generic keys",
+      "site": "0x14009f718",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword selfillumcolorkey",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "controller+0x80 Bezier keys",
+      "site": "0x14009f759",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword selfillumcolorbezierkey",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "controller+0xa8 single",
+      "site": "0x14009f7e8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword alpha",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "controller+0xa8 generic keys",
+      "site": "0x14009f8b8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword alphakey",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "controller+0xa8 Bezier keys",
+      "site": "0x14009f8f9",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword alphabezierkey",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0xc0 three-float minimum bound",
+      "site": "0x14009f988",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword bmin",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0xcc three-float maximum bound",
+      "site": "0x14009fa0c",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword bmax",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x248 int list",
+      "site": "0x14009fa90",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword vertexindicescount",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x238 unsigned-int list",
+      "site": "0x14009fb00",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword leftoverfaces",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x228 nested pointer/int lists",
+      "site": "0x14009fb70",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword vertexindices",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x1e4 material name",
+      "site": "0x14009fcc7",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword materialname",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x124 texture0 alias",
+      "site": "0x14009fd59",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword bitmap",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "node+0x120 extracted render hint",
+      "site": "0x14009fdd8",
+      "kind": "case_insensitive_token_field",
+      "condition": "firstword renderhint",
+      "status": "cpu_authored_field",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "0x14005dff0",
+      "site": "0x14009fb70",
+      "kind": "conditional_resource_line_reader",
+      "condition": "vertexindices outer and inner counts; one header line per outer entry and one integer line per inner entry",
+      "status": "cpu_nested_index_data",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107",
+      "target_label": "AurResGetNextLine"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "0x1400830c0",
+      "site": "0x14009fdd8",
+      "kind": "conditional_cpu_hint_parse",
+      "condition": "renderhint token and nonempty value",
+      "status": "cpu_material_hint",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107",
+      "target_label": "SharedMaterial::ExtractRenderHint"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "0x140099650",
+      "kind": "base_field_delegation",
+      "condition": "after shared TriMesh field checks, including unrecognized line",
+      "status": "cpu_base_node_fields",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107",
+      "target_label": "MdlNode::InternalParseField"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "0x140c11104",
+      "kind": "error_exit",
+      "condition": "firstword exceeds 0x3ff",
+      "status": "terminal_error",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107",
+      "target_label": "__report_rangecheckfailure"
+    },
+    {
+      "from": "0x14009e950",
+      "to": "DYNAMIC:TEXT_TRIMESH_AUTHORING_AND_LATER_POOL_ADMISSION",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored tokens/counts, active subtype, parser thread, later postprocess and scene draw are runtime-dependent",
+      "status": "unresolved_target",
+      "evidence_id": "ev_8409ed5d3e208577f1c622c827df419f71f703212b27394a18f66bd37ed40107"
+    }
+  ]
+}

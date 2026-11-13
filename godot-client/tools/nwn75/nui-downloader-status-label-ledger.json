@@ -1,0 +1,37 @@
+{
+  "schema": "nwn75-nui-downloader-status-label-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "original-binary-static; conditional registered NWSync downloader status text to Nui GL draw",
+  "edges": [
+    {"from":"0x1407167a3","to":"0x1408ac060","meaning":"server path constructs downloader when service, modal panel and advertised-data state allow","status":"candidate_target_conditional","evidence_id":"ev_61695d4da06d6c3a1d2b813843deedc338005904d83a7fb47bd5c755f4450e1a"},
+    {"from":"0x140716dcf","to":"0x140700210","meaning":"server path enters identifier-keyed weak registry publication","status":"candidate_target_conditional","evidence_id":"ev_61695d4da06d6c3a1d2b813843deedc338005904d83a7fb47bd5c755f4450e1a"},
+    {"from":"0x140716ec0","to":"0x140701690","meaning":"server path retains constructed window in strong participation list","status":"candidate_target_conditional","evidence_id":"ev_61695d4da06d6c3a1d2b813843deedc338005904d83a7fb47bd5c755f4450e1a"},
+    {"from":"0x1409dc91d","to":"0x1409db670","meaning":"remote-repository RTTI-success branch invokes downloader delegate constructor","status":"candidate_target_conditional","evidence_id":"ev_755941c51c3b421cfcbf9f247f0b029581f5d419d0249fb37b64ad318e73abfc"},
+    {"from":"0x1409dc953","to":"0x140700210","meaning":"remote-repository path publishes downloader weak owner by identifier","status":"candidate_target_conditional","evidence_id":"ev_755941c51c3b421cfcbf9f247f0b029581f5d419d0249fb37b64ad318e73abfc"},
+    {"from":"0x1409dca69","to":"0x140701690","meaning":"remote-repository path retains downloader in strong participation list","status":"candidate_target_conditional","evidence_id":"ev_755941c51c3b421cfcbf9f247f0b029581f5d419d0249fb37b64ad318e73abfc"},
+    {"from":"0x1408ad002","to":"0x1408ad8e0","meaning":"constructor builds dynamic status string from bound function table","status":"target_identified","evidence_id":"ev_fea427597852a404669ca3ffd577d787c8c7b1efe49de622c4e9908ebbde453e"},
+    {"from":"0x140e5dcd8","to":"0x1408b7490","meaning":"dynamic status callback table +0x10 resolves NWSync GetStatus string copier","status":"vtable_target_identified","evidence_id":"ev_d77cb972c909c78ccdd0a5b022805e6a6c5ebd15984bf870f8c22ab9bfd04438"},
+    {"from":"0x1408ad025","to":"0x1409602f0","meaning":"constructor makes programmatic label widget from dynamic string","status":"target_identified","evidence_id":"ev_fea427597852a404669ca3ffd577d787c8c7b1efe49de622c4e9908ebbde453e"},
+    {"from":"0x1408ad044","to":"0x1408b3090","meaning":"constructor wraps status widget in SingleGroup child","status":"target_identified","evidence_id":"ev_fea427597852a404669ca3ffd577d787c8c7b1efe49de622c4e9908ebbde453e"},
+    {"from":"0x1408ad81f","to":"0x1408b2620","meaning":"constructor assembles child vector into Span layout","status":"target_identified","evidence_id":"ev_fea427597852a404669ca3ffd577d787c8c7b1efe49de622c4e9908ebbde453e"},
+    {"from":"0x1408ad84c","to":"0x14074c0b0","meaning":"constructor installs retained content root at window +0x108/+0x110","status":"target_identified","evidence_id":"ev_fea427597852a404669ca3ffd577d787c8c7b1efe49de622c4e9908ebbde453e"},
+    {"from":"0x1406c5137","to":"0x1406c5350","meaning":"surviving selected registry window with +0x8 zero enters RenderWindow","status":"candidate_target_conditional","evidence_id":"ev_fdd4a2429d1f0bc34d80bd3dadc79ae2cbe7531002b9758ca8a00086277d1cbe"},
+    {"from":"0x1406c65a9","to":"0x1408b4e50","meaning":"RenderWindow virtual +0x60 resolves downloader override for this type","status":"candidate_target_conditional","evidence_id":"ev_59341b959bcde9f34a6a015834e349b585f8f060957b238529170292994b7eda"},
+    {"from":"0x1408b4ffa","to":"0x1406c44e0","meaning":"downloader override tail-calls base Nui window render after status-dependent dialog branch","status":"target_identified","evidence_id":"ev_607f65baaa18353e87f708b0292de8aa0e9ea3db516692c3e8e17ba2d7500dfe"},
+    {"from":"0x1406c4a88","to":"0x140950d90/0x140951260/0x1409528e0","meaning":"nonnull content virtual +0x20 descends SingleGroup, Span and Widget target family","status":"candidate_target_conditional","evidence_id":"ev_2f28694d29789d72db7d1c593570250dcb5a3d78b7908452ea8256ebe0f4801a"},
+    {"from":"0x140e6e4a0","to":"0x14095c7c0","meaning":"constructed label callback vtable +0x10 resolves render thunk","status":"vtable_target_identified","evidence_id":"ev_b4fedbd1450e875f6536fbc354e1d6e2ffc895f858854869d73699515ca977e2"},
+    {"from":"0x14095c7c0","to":"0x1409584c0","meaning":"label callback forwards to dynamic text rendering helper","status":"target_identified","evidence_id":"ev_294941fb5032d5c63948d74ff691859b5948287e277268787fccaab77e0aa88b"},
+    {"from":"0x140958509/0x140958515","to":"0x14074f5b0","meaning":"label renderer resolves dynamic status value under representation/cache gates","status":"candidate_target_conditional","evidence_id":"ev_9f362853357aa503d33b93eee5a83b8967e38ea53dc9d037c4c0a8b57e2ac594"},
+    {"from":"0x14074f604","to":"0x1408b7490","meaning":"stored function object virtual +0x10 reaches downloader GetStatus callback for this binding","status":"candidate_target_conditional","evidence_id":"ev_7bc5665abc827eb4054c2f34180a22227b5ef1a6972c55631305ff24b0c1b0c3"},
+    {"from":"0x140958972/0x1409589d1","to":"0x140a8ff00/0x140a8fee0","meaning":"label render forwards measured text by direct or wrapper path","status":"candidate_target_conditional","evidence_id":"ev_9f362853357aa503d33b93eee5a83b8967e38ea53dc9d037c4c0a8b57e2ac594"},
+    {"from":"0x140a8ffbb","to":"0x140a75460","meaning":"context and command-buffer text helper forwards to clipped label command builder","status":"candidate_target_conditional","evidence_id":"ev_167b1d04545a9f9d48f5968d397c5d95f8672394c3882beae3a0574388d8b1d0"},
+    {"from":"0x140a7574d","to":"0x140a619c0","meaning":"visible clipped nonempty status text allocates numeric kind-16 command","status":"candidate_target_conditional","evidence_id":"ev_4fd0e7b30c6ff3dee2500ef2303c1e807025bccfad930037d7b4dda89fbf18a6"},
+    {"from":"0x140a71cc4","to":"0x140a7c340","meaning":"Nui draw pass converts numeric commands to geometry","status":"candidate_target_conditional","evidence_id":"ev_2b357f519fe7a5348b5a800538846f94df8cbad2a079187e676cc861758872c2"},
+    {"from":"0x140a71da4","to":"OPENGL32.DLL::glDrawElements","meaning":"nonempty converted geometry reaches imported indexed GL draw","status":"candidate_target_conditional","evidence_id":"ev_2b357f519fe7a5348b5a800538846f94df8cbad2a079187e676cc861758872c2"}
+  ],
+  "open_edges": [
+    "which publisher fires and whether a downloader is active, registered and mask-visible in a specific frame",
+    "dynamic text cache branch, status content, clipping, glyph count and resulting GL draw count",
+    "other service-state gates and asynchronous NWSync internals outside this GUI path"
+  ]
+}

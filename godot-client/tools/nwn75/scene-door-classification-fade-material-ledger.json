@@ -1,0 +1,19 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text-MDL door classification to active Gob Model, per-visible-door fade math and TriMesh material alpha consumer beyond FadeDoors immediate census",
+  "document": "scene-door-classification-fade-material.md",
+  "edges": [
+    {"from":"0x1400a11b0","to":"Model+0x92","kind":"authored_field_parse","condition":"classification door writes 0x8; other classifications write distinct values","status":"door_model_classification","evidence_id":"ev_25b00a3e2f814f4da2ac7bb01a0b0589b0028af62c93e5dc22aa8cfd7913b778"},
+    {"from":"0x1400931f0","to":"Gob+0x68","kind":"model_instance_publication","condition":"primary Model active; alternate LOD Models separately stored at +0x70/+0x78","status":"door_active_model_pointer","evidence_id":"ev_8e0b947d4d92de1b3222644deb68df1e15d569e05500363ea10323cd930e956b"},
+    {"from":"0x140094b90","to":"Gob+0x68/+0x90","kind":"lod_pair_mutation","condition":"LOD threshold crossing swaps active Model and matched Part root","status":"door_active_lod_classification","evidence_id":"ev_24af28138424bd3c640690c296bec89d3a06a97eb6fc1b6be5bb3e24ad658edb"},
+    {"from":"0x1400869d0","to":"Gob+0x10c","kind":"data_initialization","condition":"Gob fade alpha defaults to 1.0","status":"door_fade_initial_alpha","evidence_id":"ev_4b850bfe919c55ffc18fcba39695646d75a74f85c353b99fed06eabb2a785b5b"},
+    {"from":"0x1400d0f10","to":"0x1400c9320","kind":"scene_virtual_slot","condition":"RenderSinglePass early stage Scene +0x258 FadeDoors","status":"door_fade_pass_entry","evidence_id":"ev_02ace6727b08cd03cb9bd9a012c7c646766c92f3bd0cd79bb2b383726b80c4a0"},
+    {"from":"Gob+0x68/Model+0x92","to":"0x1400c9320","kind":"data_gate","condition":"visible _gobbucket Gob with nonnull active Model and classification bit 3","status":"door_fade_gob_admission","evidence_id":"ev_65b14b6b7ce72308524124fafa548a317adc1b06f84f3fa415bbcb4afa769f92"},
+    {"from":"0x1400c9320","to":"0x14022b400","callsite":"0x1400c95f8","kind":"direct_call","condition":"camera/door transformed segment against Gob bounds +0x160..+0x174","status":"door_box_intersection","evidence_id":"ev_65b14b6b7ce72308524124fafa548a317adc1b06f84f3fa415bbcb4afa769f92"},
+    {"from":"0x1400c9320","to":"Gob+0x10c","kind":"data_mutation","condition":"face/view gate selects ±DeltaT/0.3; clamp to mindooralpha..1","status":"door_fade_alpha_update","evidence_id":"ev_65b14b6b7ce72308524124fafa548a317adc1b06f84f3fa415bbcb4afa769f92"},
+    {"from":"0x1400a24c0","to":"0x1400a2f50","kind":"trimesh_virtual_slot","condition":"admitted dynamic PartTriMesh with owner Gob +0x50; Mat before ordinary geometry draw","status":"door_material_entry","evidence_id":"ev_c71ed73886caf625dd53c91057d40e26fa6a18417d916a54db3aba9ee05d19ee"},
+    {"from":"Gob+0x10c/Model+0x92","to":"0x1400a2f50","kind":"data_consumption","condition":"door classification bit 3 multiplies local material alpha by owner Gob fade","status":"door_fade_material_alpha","evidence_id":"ev_8eb1896642e5fc302f6f9e49cbc5701f76698dfa8a9865b563a32bfb9397920b"},
+    {"from":"0x1400a2f50","to":"RenderInterface::SetColor4f/SetMaterialv","kind":"conditional_material_publication","condition":"render/material branch publishes combined alpha to color or material state before shared TriMesh GL draw","status":"door_alpha_render_state","evidence_id":"ev_8eb1896642e5fc302f6f9e49cbc5701f76698dfa8a9865b563a32bfb9397920b"}
+  ]
+}

@@ -15,7 +15,7 @@ DLL stay in ignored `.tools`/`.cache` directories. The build manifest records
 source, header, API, compiler, engine and DLL hashes. Checkpoints include authored
 C++/GDExtension/build sources, not proprietary game content or generated binaries.
 
-The [compiled simulation follow-up](../NATIVE-COMPILED-PARTICLES.md) makes this
+The [compiled simulation follow-up](../../docs/rendering.md) makes this
 the Windows default after original-output, moving-emitter, GPU and local checks.
 Normal and captured launchers validate/reuse the build before opening Godot.
 `-GdParticles` selects the previous GD path. Explicit native arguments also allow

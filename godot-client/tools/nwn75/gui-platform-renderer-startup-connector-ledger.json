@@ -1,0 +1,27 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Main startup to platform UI renderer context and GPU shader/buffer setup; not a per-frame compilation claim.",
+  "edges": [
+    {
+      "from": "0x140046340",
+      "to": "0x140a70a50",
+      "callsite": "0x140046da5",
+      "target_name": "platform UI renderer startup helper",
+      "kind": "direct_static",
+      "condition": "main startup after window setup and startup.txt, before Update loop",
+      "status": "startup_ui_renderer_connector",
+      "evidence_id": "ev_08ca770715a8398825b6d47d7f3bbd08216227b9e98da4c25e1ed49839321b04"
+    },
+    {
+      "from": "0x140a70a50",
+      "to": "0x140a6f9d0",
+      "callsite": "0x140a70aee",
+      "target_name": "UI draw-context and OpenGL renderer setup",
+      "kind": "direct_static",
+      "condition": "platform UI renderer startup helper",
+      "status": "startup_ui_gpu_program_connector",
+      "evidence_id": "ev_f078b0887b46c752d9aa031ca71c2454b41c5d8cd649c2ced1748287f0facedb"
+    }
+  ]
+}

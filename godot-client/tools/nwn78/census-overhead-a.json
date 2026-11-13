@@ -1,0 +1,13 @@
+{
+	"linear_60000_node_extrapolation_ms": 54.3391743391743,
+	"mesh_instances": 2500,
+	"node_count": 10101,
+	"passed": true,
+	"samples_ms": [
+		9.403,
+		9.148,
+		9.728
+	],
+	"scope": "Bounded synthetic 10,101-Node headless census overhead only; actual world cost may differ. No FPS or client benchmark.",
+	"unique_mesh_resources": 5
+}

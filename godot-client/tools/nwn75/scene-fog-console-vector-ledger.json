@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Named Scene fogcolor ConsoleFunc registration, exact vector-holder dispatch, direct color stores and DoFog consumption",
+  "document": "scene-fog-console-vector.md",
+  "edges": [
+    {"from":"0x1400c0ca0","to":"0x14005d3c0","callsite":"0x1400c116e","kind":"direct_call","condition":"nonempty Scene name and successful ConsoleFunc allocation; argument points to Scene+0x14c","status":"fogcolor_console_registration","evidence_id":"ev_9bd85911eebb0eb0c68866794c5c484152b6059e0e8e29e18ffda6e3851cf60b"},
+    {"from":"0x14005d3c0","to":"0x14005e2e0","callsite":"0x14005d418","kind":"direct_call","condition":"Vector* holder allocated and stored at ConsoleFunc+0x50","status":"fogcolor_registry_insert","evidence_id":"ev_9c0f9898ef6834938ef293f7b23637e32c6d8d07f721044737a4b88fbd61264c"},
+    {"from":"0x14005ebf0","to":"0x14005eb10","callsite":"0x14005f589","kind":"direct_call","condition":"parsed command name accepted by optional whitelist","status":"console_name_lookup","evidence_id":"ev_4c8c9ea5dfefb1eb4e86efb8909542d085de1ed7f1f7dbb589eaef8f3bfecc3a"},
+    {"from":"0x14005eb10","to":"ConsoleFunc+0x50","kind":"data_lookup","condition":"exact registered name match; cached index or list scan","status":"console_holder_lookup","evidence_id":"ev_e68621f446c5da69ccc0c66aedbbdb0bf03b790cbb8a3485886539e96c748151"},
+    {"from":"0x14005ebf0","to":"0x14005ea80","callsite":"0x14005f68c","kind":"console_holder_virtual_slot","condition":"matching constructor-backed Vector* holder; vtable 0x140d83e98, slot +8; command argument trimmed","status":"fogcolor_engage_dispatch","evidence_id":"ev_4c8c9ea5dfefb1eb4e86efb8909542d085de1ed7f1f7dbb589eaef8f3bfecc3a"},
+    {"from":"0x14005ea80","to":"0x140047060","callsite":"0x14005eaae","kind":"direct_call","condition":"sscanf %f %f %f; successful conversions directly write Scene+0x14c..+0x154","status":"fogcolor_parse_and_store","evidence_id":"ev_f459dc19999caf23c8d9c3134bbf2bc8b401958a980144ae4a18e7b64547c0a9"},
+    {"from":"0x14005ea80","to":"0x140047000","callsite":"0x14005eaec","kind":"direct_call","condition":"format current three vector floats to return buffer after parse","status":"fogcolor_command_result","evidence_id":"ev_f459dc19999caf23c8d9c3134bbf2bc8b401958a980144ae4a18e7b64547c0a9"},
+    {"from":"Scene+0x14c..+0x154","to":"0x1400c7f10","kind":"scene_data_consumption","condition":"fog enabled and no LightManager only-Gob override","status":"fogcolor_pass_consumption","evidence_id":"ev_afa6d6d91d704cbe6e5053d04c4408e0323fc599f289ef86b4557d7521ce93b9"},
+    {"from":"0x1400c7f10","to":"0x1400bf110","callsite":"0x1400c7f5a","kind":"direct_call","condition":"fog enabled; Scene color or zero override; SetFogModev mode 2","status":"fogcolor_render_state","evidence_id":"ev_afa6d6d91d704cbe6e5053d04c4408e0323fc599f289ef86b4557d7521ce93b9"}
+  ]
+}

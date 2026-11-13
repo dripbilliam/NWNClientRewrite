@@ -1,0 +1,40 @@
+{
+  "schema": "nwn75-nui-selector-label-source-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "original-binary-static; constructor-backed registered selector label to conditional GL draw",
+  "edges": [
+    {"from":"0x1406ae45f","to":"0x140e2acf8","meaning":"settings binder installs bool callback function table","status":"target_identified","evidence_id":"ev_6550eb621a14d236eb45ba0b8dadefc3043627e4e620278c4eaf150bf65d4bd3"},
+    {"from":"0x140e2ad08","to":"0x1406bdc30","meaning":"bound bool callback table +0x10 invokes Selector forwarding thunk","status":"vtable_target_identified","evidence_id":"ev_9b043df77871ae03a6932b9aaf6a5a188bab057ae1e4152221cc936a7d77b891"},
+    {"from":"0x1406ae49c","to":"0x140e28a48","meaning":"binder loads debug.panel.visible configuration key","status":"target_identified","evidence_id":"ev_b35020150810d5544516ead3ec2215c3e1da53f224991b065c408aac03680947"},
+    {"from":"0x1406ae4c5","to":"0x1401186a0","meaning":"binder installs default-false debug.panel.visible bool setting and callback","status":"target_identified","evidence_id":"ev_226edf49f98372b9aafd880cbda93fa4e107b47a6942f934052eb4bd8fb8a7ac"},
+    {"from":"0x1406bdc33","to":"0x140700620","meaning":"callback forwards supplied bool to Selector create/close owner","status":"target_identified","evidence_id":"ev_806bd1ffb6b8ef1b4e64ad1056177c586e491c0e703114c99c8f084392bd883c"},
+    {"from":"0x140700711","to":"0x140700210","meaning":"conditional Selector construction publishes weak owner into identifier-keyed Nui registry","status":"candidate_target_conditional","evidence_id":"ev_92a599f0c9c0e20fef71d1625bbc50bfec6ec21562395ac4f6189d097207f22c"},
+    {"from":"0x1407006c8","to":"0x1406feb90","meaning":"create branch constructs selector before weak registry publication","status":"candidate_target_conditional","evidence_id":"ev_92a599f0c9c0e20fef71d1625bbc50bfec6ec21562395ac4f6189d097207f22c"},
+    {"from":"0x1406ff61e/0x1406ff646","to":"0x1406ff676/0x1406ff685","meaning":"constructor sets type-2 Shadow volumes label and appends 0x1b0-byte record through capacity branch","status":"candidate_target_conditional","evidence_id":"ev_1ee75b677cb29d61a212c5b93bda4e8e3db8886fd8493e9a15b3ba33e0c786c1"},
+    {"from":"0x1406ff685","to":"0x1406fdc60","meaning":"capacity branch copies label record including type and string","status":"candidate_target_conditional","evidence_id":"ev_95020c2dba70929914604936c26f16a3ba49c1dd3d4cd62b2afc9989ffc1d6b9"},
+    {"from":"0x1406c5137","to":"0x1406c5350","meaning":"RenderAll surviving/renderable registry entry enters RenderWindow","status":"candidate_target_conditional","evidence_id":"ev_fdd4a2429d1f0bc34d80bd3dadc79ae2cbe7531002b9758ca8a00086277d1cbe"},
+    {"from":"0x1401f76e1","to":"0x1406c39e0","meaning":"active GUI manager invokes per-frame Nui pass","status":"candidate_target_conditional","evidence_id":"ev_23749da72e627303304bc56d249eb3a16daa219ea2a956142bf6ea9559f77a89"},
+    {"from":"0x1406c39e0","to":"0x1406c4b20","meaning":"Nui RenderAll thunk enters global UI mask and registry gates","status":"target_identified","evidence_id":"ev_7a805126d166bcc73e65d7d32de6f2f6b82dfabaf748bbbc57f3974df926e540"},
+    {"from":"0x1406c5128","to":"0x1406c79a0","meaning":"surviving mask-selected window updates before render; +0x8 must remain zero for render","status":"candidate_target_conditional","evidence_id":"ev_fdd4a2429d1f0bc34d80bd3dadc79ae2cbe7531002b9758ca8a00086277d1cbe"},
+    {"from":"0x140e31388","to":"0x140701050","meaning":"constructed enable_make Selector vtable +0x60 render target","status":"vtable_target_identified","evidence_id":"ev_970309c3bce6ea8275ed8b5611dc7718361564e42ad2d33fe7be747682a40fba"},
+    {"from":"0x1406c65a9","to":"0x140701050","meaning":"RenderWindow close/context gated virtual +0x60 dispatch of Selector","status":"candidate_target_conditional","evidence_id":"ev_75101c46db8fe527f673a2bc4ee7f55f305ad291320da94ce352c6dd2c02fb47"},
+    {"from":"0x14070120a","to":"0x140a86280","meaning":"Selector type-2 stored label enters zero-terminated text helper","status":"candidate_target_conditional","evidence_id":"ev_4a2f4cc7eb98ee465f85bdf680b6e9c99142010777d80a8b6d5613ac654f48cf"},
+    {"from":"0x1407010d5/0x1407012da","to":"0x140a77ae0","meaning":"Selector selection list and type-0 control labels enter selectable helper","status":"candidate_target_conditional","evidence_id":"ev_4a2f4cc7eb98ee465f85bdf680b6e9c99142010777d80a8b6d5613ac654f48cf"},
+    {"from":"0x140a77b07","to":"0x140a77b10","meaning":"selectable wrapper measures label and tail-jumps to context/row handler","status":"target_identified","evidence_id":"ev_fa056c0151c1f8063ed2b18b0421a994cc27b31dc10827a5d22668e6c8d40884"},
+    {"from":"0x140a77bdb","to":"0x140a67050","meaning":"valid UI context/window/row enters checkbox/control helper","status":"candidate_target_conditional","evidence_id":"ev_0b3b1a8325fb1c44e4cfdcc1ab22a8941331b7462feee10e45ca6748928ba9a1"},
+    {"from":"0x140a673cf","to":"0x140a67db0","meaning":"selectable param_7 zero takes style-specific checkbox draw branch","status":"candidate_target_conditional","evidence_id":"ev_b6adf0df70d8e0a171541423cb410ae8c4720c6836b1bda5c4e5b00075776bbb"},
+    {"from":"0x140a67e52/0x140a67ec9/0x140a67f31","to":"0x140a82050","meaning":"style-dependent filled-rectangle commands allocate numeric kind 5","status":"candidate_target_conditional","evidence_id":"ev_28167d235637b6464db314ec1f394fc4a688424c1117185f55ae933419367ec8"},
+    {"from":"0x140a67ee6/0x140a67f23","to":"0x140a7db90","meaning":"style-dependent image commands allocate numeric kind 17","status":"candidate_target_conditional","evidence_id":"ev_28167d235637b6464db314ec1f394fc4a688424c1117185f55ae933419367ec8"},
+    {"from":"0x140a67f7b","to":"0x140a75460","meaning":"selectable label text enters clipped kind-16 producer","status":"candidate_target_conditional","evidence_id":"ev_28167d235637b6464db314ec1f394fc4a688424c1117185f55ae933419367ec8"},
+    {"from":"0x140a86280","to":"0x140a8ff00","meaning":"nonnull UI context forwards measured label bytes","status":"candidate_target_conditional","evidence_id":"ev_0f34926643cc1ebead96d3accbee5c217b53fbdc5bc9749a9e353a651377f982"},
+    {"from":"0x140a8ff00","to":"0x140a75460","meaning":"present window command buffer forwards text to clipping/alignment helper","status":"candidate_target_conditional","evidence_id":"ev_3e5d6f58c8d42cb4d593ee300fa5e83843798e9be7fae451db958d4346807b44"},
+    {"from":"0x140a75460","to":"0x140a619c0","meaning":"visible clipped nonempty label allocates numeric kind-16 command","status":"candidate_target_conditional","evidence_id":"ev_43ddd37b463a1e8fa65f5ce5bfa85670e39c83362a2fa65ef8c715db9ea48172"},
+    {"from":"0x140a71cc4","to":"0x140a7c340","meaning":"Nui draw pass converts numeric commands into geometry","status":"candidate_target_conditional","evidence_id":"ev_2b357f519fe7a5348b5a800538846f94df8cbad2a079187e676cc861758872c2"},
+    {"from":"0x140a71da4","to":"OPENGL32.DLL::glDrawElements","meaning":"nonempty converted draw command reaches imported GL indexed draw","status":"candidate_target_conditional","evidence_id":"ev_2b357f519fe7a5348b5a800538846f94df8cbad2a079187e676cc861758872c2"}
+  ],
+  "open_edges": [
+    "actual configured debug.panel.visible value, callback firing time, runtime Selector registration/open/visible state",
+    "other type-2 record sources and any later record mutations",
+    "alternate font-view substitutions and frame-specific glyph or draw count"
+  ]
+}

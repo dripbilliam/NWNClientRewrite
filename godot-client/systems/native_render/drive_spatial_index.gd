@@ -281,8 +281,12 @@ func query(ticket: Dictionary,from: Vector3,to: Vector3,radius: float,exclude_id
 		result.reason="invalid-query";return result
 	if vertical!=null and (not vertical is Vector2 or not _finite2(vertical) or vertical.x>vertical.y):
 		result.reason="invalid-vertical-range";return result
-	var segment:={"min_x":minf(from.x,to.x),"min_y":minf(from.y,to.y),"max_x":maxf(from.x,to.x),"max_y":maxf(from.y,to.y)}
-	var sweep:={"min_x":float(segment.min_x)-radius,"min_y":float(segment.min_y)-radius,"max_x":float(segment.max_x)+radius,"max_y":float(segment.max_y)+radius}
+	# Query-local scalars preserve the original double folds and positive-AND
+	# overlap comparisons. No derived data survives this synchronous query.
+	var segment_min_x:=minf(from.x,to.x);var segment_min_y:=minf(from.y,to.y)
+	var segment_max_x:=maxf(from.x,to.x);var segment_max_y:=maxf(from.y,to.y)
+	var sweep_min_x:=segment_min_x-radius;var sweep_min_y:=segment_min_y-radius
+	var sweep_max_x:=segment_max_x+radius;var sweep_max_y:=segment_max_y+radius
 	var stack: Array[int]=[]
 	if _root>=0:stack.append(_root)
 	var found: Array=[]
@@ -290,13 +294,15 @@ func query(ticket: Dictionary,from: Vector3,to: Vector3,radius: float,exclude_id
 		var at: int=stack.pop_back()
 		var node: Dictionary=_nodes[at]
 		result.visited_nodes+=1
-		if not _overlap(node,sweep):continue
+		if not (node.min_x<=sweep_max_x and node.max_x>=sweep_min_x and node.min_y<=sweep_max_y and node.max_y>=sweep_min_y):continue
 		if int(node.left)>=0:
 			stack.append(int(node.left));stack.append(int(node.right));continue
 		result.tested_leaves+=1
 		var row: Dictionary=_rows[node.id]
 		if int(row.id)==exclude_id or row.kind=="creature" and not include_creatures:continue
-		if row.kind=="pending" and not _overlap(row.bounds,segment):continue
+		if row.kind=="pending":
+			var pending_bounds: Dictionary=row.bounds
+			if not (pending_bounds.min_x<=segment_max_x and pending_bounds.max_x>=segment_min_x and pending_bounds.min_y<=segment_max_y and pending_bounds.max_y>=segment_min_y):continue
 		if vertical!=null and row.kind in SHAPES and (float(row.bounds.max_z)<vertical.x or float(row.bounds.min_z)>vertical.y):continue
 		found.append(_public_row(row))
 	found.sort_custom(func(a: Dictionary,b: Dictionary)->bool:

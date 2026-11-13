@@ -1,0 +1,467 @@
+{
+  "schema": "nwn75-original-shader-uniform-location-map-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "procedure": "GLRender::ConnectShaderData",
+  "address": "0x1400add20",
+  "evidence_id": "ev_bb08e2053006c0ce392c4712375821ca95e52b0686cd416bf4bc93574eab0517",
+  "coverage": "113 fixed location names and program offsets recovered from Ghidra pseudocode. Bone/light arrays, formatted names, custom parameters and any assignments outside this literal pattern remain separate. Names at literal addresses 0x140d8b870, 0x140d8b878 and 0x140d8b8ac were decoded from pinned PE bytes.",
+  "literal_name_evidence_ids": [
+    "ev_f3e824a597cf302ba97529cb46f1f1b052f28f77b8ccd4a0ab3d2bf459a0681e",
+    "ev_a5bc1e929d0e7a163f227a0447043ec7d4b70a3fe40544085d3e60eaf0a53a72",
+    "ev_7b31a9a9f30dbe4877b36a74992d0d35a492db7353e48ab07637f77c1fd5b4dd"
+  ],
+  "locations": [
+    {
+      "name": "sceneCurrentFrame",
+      "offset": "0xaec"
+    },
+    {
+      "name": "worldtimerTimeOfDay",
+      "offset": "0xb3c"
+    },
+    {
+      "name": "windPointSourcesCount",
+      "offset": "0xb24"
+    },
+    {
+      "name": "windPointSourcesPosition",
+      "offset": "0xb28"
+    },
+    {
+      "name": "windPointSourcesRadius",
+      "offset": "0xb2c"
+    },
+    {
+      "name": "windPointSourcesDuration",
+      "offset": "0xb30"
+    },
+    {
+      "name": "windPointSourcesIntensity",
+      "offset": "0xb34"
+    },
+    {
+      "name": "windPointSourcesTimeRemaining",
+      "offset": "0xb38"
+    },
+    {
+      "name": "moduleDawnHour",
+      "offset": "0xaf0"
+    },
+    {
+      "name": "moduleDuskHour",
+      "offset": "0xaf4"
+    },
+    {
+      "name": "moduleMinutesPerHour",
+      "offset": "0xaf8"
+    },
+    {
+      "name": "moduleYear",
+      "offset": "0xafc"
+    },
+    {
+      "name": "moduleMonth",
+      "offset": "0xb00"
+    },
+    {
+      "name": "moduleDay",
+      "offset": "0xb04"
+    },
+    {
+      "name": "moduleHour",
+      "offset": "0xb08"
+    },
+    {
+      "name": "moduleTimeIntoTransition",
+      "offset": "0xb0c"
+    },
+    {
+      "name": "moduleTransitionTime",
+      "offset": "0xb10"
+    },
+    {
+      "name": "areaGlobalWind",
+      "offset": "0xb14"
+    },
+    {
+      "name": "areaWeatherType",
+      "offset": "0xb18"
+    },
+    {
+      "name": "areaWeatherDensity",
+      "offset": "0xb1c"
+    },
+    {
+      "name": "areaFlags",
+      "offset": "0xb20"
+    },
+    {
+      "name": "userinputMousePosition",
+      "offset": "0xb40"
+    },
+    {
+      "name": "userinputMouseButtons",
+      "offset": "0xb44"
+    },
+    {
+      "name": "m_mvp",
+      "offset": "0x68"
+    },
+    {
+      "name": "m_mv",
+      "offset": "0x6c"
+    },
+    {
+      "name": "m_m",
+      "offset": "0x70"
+    },
+    {
+      "name": "m_normal",
+      "offset": "0x74"
+    },
+    {
+      "name": "m_texture",
+      "offset": "0x78"
+    },
+    {
+      "name": "m_view",
+      "offset": "0x7c"
+    },
+    {
+      "name": "m_proj",
+      "offset": "0x80"
+    },
+    {
+      "name": "m_vp",
+      "offset": "0x84"
+    },
+    {
+      "name": "m_view_inv",
+      "offset": "0x88"
+    },
+    {
+      "name": "m_proj_inv",
+      "offset": "0x8c"
+    },
+    {
+      "name": "m_vp_inv",
+      "offset": "0x90"
+    },
+    {
+      "name": "subvariant",
+      "offset": "0x94"
+    },
+    {
+      "name": "skinmesh",
+      "offset": "0xb80"
+    },
+    {
+      "name": "lightAreaAmbient",
+      "offset": "0xaa8"
+    },
+    {
+      "name": "lightAreaDiffuse",
+      "offset": "0xaa0"
+    },
+    {
+      "name": "lightAreaDiffuseDirection",
+      "offset": "0xaa4"
+    },
+    {
+      "name": "numLights",
+      "offset": "0xad0"
+    },
+    {
+      "name": "FragmentLighting",
+      "offset": "0xad8"
+    },
+    {
+      "name": "GammaCorrection",
+      "offset": "0xadc"
+    },
+    {
+      "name": "staticLighting",
+      "offset": "0xad4"
+    },
+    {
+      "name": "lightCutoffRangeMultiplier",
+      "offset": "0xae8"
+    },
+    {
+      "name": "lightFalloffFactor",
+      "offset": "0xae0"
+    },
+    {
+      "name": "lightMaxIntensityInv",
+      "offset": "0xae4"
+    },
+    {
+      "name": "materialFrontAmbient",
+      "offset": "0xab0"
+    },
+    {
+      "name": "materialFrontDiffuse",
+      "offset": "0xab4"
+    },
+    {
+      "name": "materialFrontSpecular",
+      "offset": "0xab8"
+    },
+    {
+      "name": "materialFrontEmissive",
+      "offset": "0xac0"
+    },
+    {
+      "name": "materialFrontShininess",
+      "offset": "0xabc"
+    },
+    {
+      "name": "fAlphaDiscardValue",
+      "offset": "0xac4"
+    },
+    {
+      "name": "frontLightModelProductSceneColor",
+      "offset": "0xac8"
+    },
+    {
+      "name": "globalColor",
+      "offset": "0xacc"
+    },
+    {
+      "name": "blendMode",
+      "offset": "0x9c"
+    },
+    {
+      "name": "envMapCube",
+      "offset": "0x1d04"
+    },
+    {
+      "name": "bboxMin",
+      "offset": "0x1d0c"
+    },
+    {
+      "name": "fogParams",
+      "offset": "0x1d54"
+    },
+    {
+      "name": "fogColor",
+      "offset": "0x1d50"
+    },
+    {
+      "name": "cameraPitch",
+      "offset": "0xb50"
+    },
+    {
+      "name": "cameraYaw",
+      "offset": "0xb54"
+    },
+    {
+      "name": "cameraPosition",
+      "offset": "0xb48"
+    },
+    {
+      "name": "cameraFocus",
+      "offset": "0xb4c"
+    },
+    {
+      "name": "cameraViewAngle",
+      "offset": "0xb58"
+    },
+    {
+      "name": "cameraDialogState",
+      "offset": "0xb5c"
+    },
+    {
+      "name": "playerCameraDist",
+      "offset": "0xb60"
+    },
+    {
+      "name": "keyholeCanDissolve",
+      "offset": "0xb70"
+    },
+    {
+      "name": "keyholeDiameterMin",
+      "offset": "0xb74"
+    },
+    {
+      "name": "keyholeDiameterMax",
+      "offset": "0xb78"
+    },
+    {
+      "name": "keyholeMinZOffset",
+      "offset": "0xb7c"
+    },
+    {
+      "name": "clipParams",
+      "offset": "0x1d58"
+    },
+    {
+      "name": "screenParams",
+      "offset": "0x1d5c"
+    },
+    {
+      "name": "pixelParams",
+      "offset": "0x1d60"
+    },
+    {
+      "name": "AORadius",
+      "offset": "0x1da8"
+    },
+    {
+      "name": "AOIntensity",
+      "offset": "0x1dac"
+    },
+    {
+      "name": "AOColor",
+      "offset": "0x1db0"
+    },
+    {
+      "name": "DynamicContrastIntensity",
+      "offset": "0x1da0"
+    },
+    {
+      "name": "DynamicContrastMidpoint",
+      "offset": "0x1da4"
+    },
+    {
+      "name": "Vibrance",
+      "offset": "0x1db4"
+    },
+    {
+      "name": "DOFAmount",
+      "offset": "0x1db8"
+    },
+    {
+      "name": "DOFDeadZone",
+      "offset": "0x1dbc"
+    },
+    {
+      "name": "DOFVignette",
+      "offset": "0x1dc0"
+    },
+    {
+      "name": "DOFNeverBlurPC",
+      "offset": "0x1dc4"
+    },
+    {
+      "name": "DOFFocusType",
+      "offset": "0x1dc8"
+    },
+    {
+      "name": "Gamma",
+      "offset": "0x1dcc"
+    },
+    {
+      "name": "ToonDepthEdgeThreshold",
+      "offset": "0x1dd0"
+    },
+    {
+      "name": "ToonColorEdgeThreshold",
+      "offset": "0x1dd4"
+    },
+    {
+      "name": "ToonEdgeHardness",
+      "offset": "0x1dd8"
+    },
+    {
+      "name": "BloomThreshold",
+      "offset": "0x1ddc"
+    },
+    {
+      "name": "BloomSoftness",
+      "offset": "0x1de0"
+    },
+    {
+      "name": "BloomMultiplier",
+      "offset": "0x1de4"
+    },
+    {
+      "name": "BloomDownscaleOffset",
+      "offset": "0x1de8"
+    },
+    {
+      "name": "BloomDownscaleSteps",
+      "offset": "0x1dec"
+    },
+    {
+      "name": "playerPosition",
+      "offset": "0xb64"
+    },
+    {
+      "name": "playerOrientation",
+      "offset": "0xb68"
+    },
+    {
+      "name": "playerInCutscene",
+      "offset": "0xb6c"
+    },
+    {
+      "name": "particleSoftness",
+      "offset": "0x1d2c"
+    },
+    {
+      "name": "projectionSource",
+      "offset": "0x1d34"
+    },
+    {
+      "name": "projectionWorldZClip",
+      "offset": "0x1d38"
+    },
+    {
+      "name": "targetShape",
+      "offset": "0x1eb0"
+    },
+    {
+      "name": "targetShapeHarmsEnemies",
+      "offset": "0x1eb4"
+    },
+    {
+      "name": "targetShapeHarmsAllies",
+      "offset": "0x1eb8"
+    },
+    {
+      "name": "targetShapeHelpsAllies",
+      "offset": "0x1ebc"
+    },
+    {
+      "name": "targetShapeIgnoresSelf",
+      "offset": "0x1ec0"
+    },
+    {
+      "name": "targetShapeOriginOnSelf",
+      "offset": "0x1ec4"
+    },
+    {
+      "name": "targetShapeSizeX",
+      "offset": "0x1ec8"
+    },
+    {
+      "name": "targetShapeSizeY",
+      "offset": "0x1ecc"
+    },
+    {
+      "name": "targetShapeSpellId",
+      "offset": "0x1ed0"
+    },
+    {
+      "name": "targetShapeFeatId",
+      "offset": "0x1ed4"
+    },
+    {
+      "name": "targetShapeSpellRange",
+      "offset": "0x1ed8"
+    },
+    {
+      "name": "targetShapeColour",
+      "offset": "0x1edc"
+    },
+    {
+      "name": "targetObjectType",
+      "offset": "0x1ee0"
+    },
+    {
+      "name": "targetWorldCoords",
+      "offset": "0x1ee4"
+    }
+  ]
+}

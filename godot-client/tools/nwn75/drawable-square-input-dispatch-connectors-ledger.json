@@ -1,0 +1,12 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Two formerly disconnected drawable-square input source handlers, linked to client event dispatch and input/loadscreen cleanup by exact original E8 callsites",
+  "document": "drawable-square-input-dispatch-connectors.md",
+  "edges": [
+    {"from":"0x1406ed720","to":"0x1406f02c0","callsite":"0x1406eda82","kind":"direct_call","condition":"dispatcher table case 0, param_3 nonzero; mouse-down handler receives param_3==0xffffffff, then applies GUI/scene/hit gates before optional square add","status":"square_mouse_down_input_connector","evidence_id":"ev_40bfe4728132cc3a999927a06be5186784d0e5adc1352793b8e70248340b55f2"},
+    {"from":"0x1406ed720","to":"0x1406f0d80","callsite":"0x1406edaa1","kind":"direct_call","condition":"dispatcher table case 0, param_3 zero; mouse-up/cleanup handler removes only an active retained square","status":"square_mouse_up_input_connector","evidence_id":"ev_b1a8abc111fbb95e65da9259be4758706568668e46a3005d633917066df24f78"},
+    {"from":"0x1406e1d70","to":"0x1406f0d80","callsite":"0x1406e1dbc","kind":"direct_call","condition":"client input deactivation helper param_2==0 after GUI mouse release and adjacent input resets","status":"square_input_deactivation_cleanup","evidence_id":"ev_37f61cd440d25e48186b3067b14ecbbb6ef045ee2ca266d8204280e1cfba30d2"},
+    {"from":"0x1406e37f0","to":"0x1406f0d80","callsite":"0x1406e3852","kind":"direct_call","condition":"area loadscreen owner input cleanup before panel selection/creation","status":"square_loadscreen_cleanup","evidence_id":"ev_c265985ccff2a57f58ba484428a8251e923838c90539995191352e8c68c42c08"}
+  ]
+}

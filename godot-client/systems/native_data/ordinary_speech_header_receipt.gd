@@ -38,31 +38,9 @@ static func name_projection(value: Variant,depth: int=0)->Variant:
 			if value.has(key):copy[key]=name_projection(value[key],1)
 	return copy
 static func thin_context(value: Dictionary)->Dictionary:
-	var copy: Dictionary={}
-	for key in ["id","objectType","areaId","nativeLifetime","clientKnownLifetime"]:
-		if value.has(key) and scalar(value[key]):copy[key]=value[key]
-	for section in ["replicated","appearance"]:
-		if not value.get(section) is Dictionary:continue
-		var source: Dictionary=value[section];var selected: Dictionary={}
-		if source.has("name"):selected.name=name_projection(source.name)
-		if section=="replicated" and source.get("stats") is Dictionary:
-			var stats: Dictionary={}
-			if source.stats.has("race") and scalar(source.stats.race):stats.race=source.stats.race
-			if source.stats.get("classes") is Array and not source.stats.classes.is_empty():
-				var first: Variant=source.stats.classes[0];var record: Dictionary={}
-				if first is Dictionary:
-					for key in ["id","level"]:
-						if first.has(key) and scalar(first[key]):record[key]=first[key]
-				stats.classes=[record]
-			selected.stats=stats
-		copy[section]=selected
-	return copy
+	return preload("res://systems/native_data/native_token_context.gd").project(value)
 static func call_snapshot(value: Dictionary)->Dictionary:
-	var copy: Dictionary={}
-	for key in ["gender","nativeB8","nativeBC"]:
-		if value.has(key) and scalar(value[key]):copy[key]=value[key]
-	if value.get("context") is Dictionary:copy.context=thin_context(value.context)
-	return copy
+	return preload("res://systems/native_data/native_token_context.gd").frame(value)
 static func table_ref(table: String,index: Variant,column: String)->Dictionary:
 	return {"kind":"table","table":table,"index":int(index),"column":column} if Scope.integer(index,0,Scope.MAX_ID) else {"kind":"unavailable","reason":"Native name table index is unavailable."}
 static func table_reference(descriptor: Dictionary,text)->Dictionary:
@@ -80,6 +58,8 @@ static func capture_reference(receipt: Dictionary,ref: int,text)->void:
 	if receipt.overrides.has(ref) or not is_instance_valid(text):return
 	if text.overrides.has(ref) and not text.overrides[ref] is String:return
 	receipt.overrides[ref]={"present":text.overrides.has(ref),"value":text.overrides[ref] if text.overrides.has(ref) else ""}
+	var bytes: Variant=text.native_override_bytes.get(ref)
+	if bytes is Dictionary and bytes.get("text")==receipt.overrides[ref].value:receipt.overrides[ref].bytes=Array(bytes.bytes)
 static func capture_references(receipt: Dictionary,descriptor: Dictionary,text)->void:
 	match str(descriptor.get("kind","")):
 		"reference":capture_reference(receipt,int(descriptor.ref),text)
@@ -122,6 +102,12 @@ static func capture(message: Dictionary,text,current: Dictionary,retained_call_s
 	if not Scope.integer(receipt.channel,0,255) or not int(receipt.channel) in CHANNELS:receipt.invalid="Native header channel is unsupported.";return receipt
 	var channel:=int(receipt.channel);receipt.system=channel in [5,15]
 	var envelope: Variant=message.get("nativeTextEvent")
+	var admitted_frame:=Scope.context(current.get("connection"),current.get("generation"),current.get("areaId"))
+	if envelope is Dictionary and Scope.event(message,admitted_frame).get("ready",false):
+		var captured_frame:=preload("res://systems/native_data/native_token_context.gd").event_frame(envelope)
+		for key in captured_frame:
+			if not receipt.retained.has(key):receipt.retained[key]=captured_frame[key]
+		if envelope.get("nativeByteProjection")=="windows-1252":receipt.tokens=preload("res://systems/native_data/native_token_context.gd").tokens(receipt.tokens,true)
 	if envelope is Dictionary and envelope.has("actorName"):
 		receipt.actorPacket=envelope.actorName.duplicate(true) if envelope.actorName is Dictionary else envelope.actorName
 		receipt.actorEnvelope={}
@@ -190,6 +176,7 @@ static func fetch(receipt: Dictionary,slot: String,ref: int,gender: int,text,sta
 		if not receipt.overrideOwnerKnown or not receipt.overrides.has(ref):return pending("Native header receipt-time override lookup is unavailable.")
 		var snapshot:={"known":true,"present":receipt.overrides[ref].present}
 		if snapshot.present:snapshot.text=str(receipt.overrides[ref].value)
+		if receipt.overrides[ref].has("bytes"):snapshot.bytes=receipt.overrides[ref].bytes.duplicate()
 		selected=text.fetch_native_reference_snapshot(ref,gender,snapshot).duplicate(true)
 		if not selected.get("found",false):
 			if not selected.get("lookupComplete",false):return pending(str(selected.get("reason","Native header TLK reference is unavailable.")))
@@ -202,8 +189,10 @@ static func fetch(receipt: Dictionary,slot: String,ref: int,gender: int,text,sta
 		for key in receipt.overrides:
 			var captured: Dictionary=receipt.overrides[key];var choice:={"known":true,"present":captured.present}
 			if choice.present:choice.text=str(captured.value)
+			if captured.has("bytes"):choice.bytes=captured.bytes.duplicate()
 			call.nativeOverrideSelections[key]=choice
-		var parsed: Dictionary=text.parse_native(body,call)
+		call.language=int(selected.get("language",text.base.language))
+		var parsed: Dictionary=text.parse_native_bytes(selected.bytes,call) if selected.get("bytes") is PackedByteArray else text.parse_native(body,call)
 		if not parsed.get("ready",false):return parsed
 		body=str(parsed.body)
 	var result:={"ready":true,"text":body};receipt.fetches[slot].result=result.duplicate(true);return result

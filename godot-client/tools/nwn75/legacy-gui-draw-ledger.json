@@ -1,0 +1,28 @@
+{
+  "schema": "nwn75-legacy-gui-draw-ownership-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "original-binary-static",
+  "edges": [
+    {"from":"0x1400451c0","to":"0x1401f70e0","meaning":"UpdateScreen GUI call under GUI argument","status":"target_identified","evidence_id":"ev_c6dab2e3d95fa827df1d17ab1acf4b8224cdb3b130d46260a0bf8be8ba728609"},
+    {"from":"0x1401fbe70","to":"0x1401feba0","meaning":"panel activation loads layout when required","status":"target_identified","evidence_id":"ev_52ba1f7c007232b0c1e8620369f2a4339d8189a989eab7aa770a414367b2c78c"},
+    {"from":"0x1401ff120","to":"0x1401feea0","meaning":"recursive GFF tag creates or attaches model","status":"target_identified","evidence_id":"ev_cfadd799ba8b5317029cf2576850e22dd5763472829c3515e56b8a2df215bb29"},
+    {"from":"0x1401fbe70","to":"0x1400c5780","meaning":"panel root Gob virtual +0x90 attaches to GUI Scene","status":"vtable_target_identified","evidence_id":"ev_a9ddbff2d0c4ec6244fdaa5e8d7d2424dfd7c2a4a7da2b2b512d36c395c3a6f5"},
+    {"from":"0x140095250","to":"0x1400c5990","meaning":"Gob SetScene invokes Scene ChildAdd, which appends to render array","status":"vtable_target_identified","evidence_id":"ev_6b28523eef3201dc9117e17337c6a83ac7dea5eed4ce7f940c48e8c8b8ef8851"},
+    {"from":"0x1401f70e0","to":"0x14005a5d0","meaning":"registered GUI view camera virtual +0x10","status":"vtable_target_identified","evidence_id":"ev_8bf4c4a7b7e2e548382ae2a128096910a143012caa964a5e52184f593d3aa945"},
+    {"from":"0x14005a5d0","to":"0x1400cc730","meaning":"camera Scene virtual +0x18","status":"vtable_target_identified","evidence_id":"ev_cb7cf4fd2ea02bc0a972057750745b05fd56f2c424ab6688817f97e067b83bbd"},
+    {"from":"0x1400cc730","to":"0x1400cf9b0","meaning":"no BSP selects RenderOnlyGobs","status":"vtable_target_identified","evidence_id":"ev_17ec38a8462fe63e54833099ba8a0936b20e0b67c55d26a0bda6bf049d07a6a8"},
+    {"from":"0x1400cf9b0","to":"0x1400a4280","meaning":"Gob render array virtual +0x20, Gob candidate","status":"candidate_target_conditional","evidence_id":"ev_f3e7cf7fddcff3c8512ddc4780431d9a2ba68276d39707b244896ef25392c3f5"},
+    {"from":"0x1400cf9b0","to":"0x1400498a0","meaning":"Gob render array virtual +0x20, StringGob candidate","status":"candidate_target_conditional","evidence_id":"ev_713a5dfe21f7b97e8d12be5511b847c5c5bf805509704f2fba80c801e8005b23"},
+    {"from":"0x1400a4280","to":"0x1400a3440","meaning":"model Gob traverses Part hierarchy","status":"target_identified","evidence_id":"ev_741ec2c22c70e83928460f5256726e1bd890e80768e5a0a745f7ef9a6eb3f878"},
+    {"from":"0x1400a3440","to":"0x1400a24c0","meaning":"Part virtual +0xc8 for TriMesh candidate","status":"candidate_target_conditional","evidence_id":"ev_e40c09d9efee4cc610521c9a471cdfb77c9da875dfd01c697265c4be6b268e1d"},
+    {"from":"0x1400498a0","to":"0x14004c870","meaning":"StringGob text line to CAurFont TextOut","status":"target_identified","evidence_id":"ev_d48d788ea591d6f4c257237674ad87a57f1a635a3748ccc946cb8771653b9b15"},
+    {"from":"0x14004c870","to":"0x1400beed0","meaning":"font commits vertex stream for GL draw arrays/elements","status":"target_identified","evidence_id":"ev_4002cd98130ddf0c2c5ba4642e30ad1a396d8a557df33c3d1074c2ad66cf4fb0"}
+  ],
+  "open_edges": [
+    "runtime active panel and widget population",
+    "panel subclass activation virtual targets and later model mutations",
+    "layout resref model/Part dynamic subtype per visible panel",
+    "alternate GUI scene BSP branch and runtime frequency",
+    "OS thread ownership"
+  ]
+}

@@ -1,0 +1,327 @@
+{
+  "schema": "nwn75-nui-registered-publisher-types-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "All 31 direct calls in nui-registry-operator-calls.json to map operator[] 0x140700210. Each containing function's REA pseudocode links the constructed enable_make window object and its refcount owner to the mapped weak_ptr writes after operator[]. Runtime execution and active population are not inferred; indirect publisher calls remain outside this census.",
+  "source_operator_ledger": "nui-registry-operator-calls.json",
+  "source_vtable_ledger": "nui-window-vtable-census.json",
+  "counts": {
+    "direct_callers": 31,
+    "distinct_constructed_types": 21,
+    "base_render": 20,
+    "override_render": 11
+  },
+  "rows": [
+    {
+      "callsite": "0x140700711",
+      "containing_function": "0x140700620",
+      "window_type": "Nui::Debug::Selector",
+      "rea_evidence_id": "ev_92a599f0c9c0e20fef71d1625bbc50bfec6ec21562395ac4f6189d097207f22c",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x140701050",
+      "render_vtable_evidence_id": "ev_970309c3bce6ea8275ed8b5611dc7718361564e42ad2d33fe7be747682a40fba"
+    },
+    {
+      "callsite": "0x1407058c9",
+      "containing_function": "0x140705820",
+      "window_type": "ContentIndex::Browser",
+      "rea_evidence_id": "ev_c6d3b18d5c2e7be0cd42f5753bb9f15be7d50cf8445fdfea5bf682d2bd37404f",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_34314613c86a9f4d26590a66a829012d433e6e52360c6b812c999024060e0cba"
+    },
+    {
+      "callsite": "0x140712311",
+      "containing_function": "0x140712200",
+      "window_type": "News::Browser",
+      "rea_evidence_id": "ev_1584d91e0c20b53da950f396219a2ecb1669c8f0bbfc1d10f92790e0be954e7a",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_b2c6a63723cf8c06d44e23c40b4cd4fbfd787f0a2951d76e1e2d55dfa90ffd8d"
+    },
+    {
+      "callsite": "0x140716dcf",
+      "containing_function": "0x140715dd0",
+      "window_type": "Nui::NWSync::Downloader",
+      "rea_evidence_id": "ev_61695d4da06d6c3a1d2b813843deedc338005904d83a7fb47bd5c755f4450e1a",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1408b4e50",
+      "render_vtable_evidence_id": "ev_59341b959bcde9f34a6a015834e349b585f8f060957b238529170292994b7eda"
+    },
+    {
+      "callsite": "0x1407a668c",
+      "containing_function": "0x1407a5f20",
+      "window_type": "Nui::JSON::JsonWindow",
+      "rea_evidence_id": "ev_d96ed60bc049efb1204b83b7785855cee6c337a789e5160cde4026bdf3158577",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x14074b810",
+      "render_vtable_evidence_id": "ev_d9f5d54e0bab3802fd13cf1f98e74602b0c8f6cc1d84427d93ae7a5bbacae50b"
+    },
+    {
+      "callsite": "0x14081b9ea",
+      "containing_function": "0x14081b920",
+      "window_type": "Nui::ConfigDescriptionWindow",
+      "rea_evidence_id": "ev_5d97733d5238c881428d246394d0694cbaf46fb0542faa5c3f87fd7999a1a25d",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_e5b5b29e5e9fb2f6cf49bb422f03753be0775951ed1e42bcfc59c51c93b37824"
+    },
+    {
+      "callsite": "0x14081bcaa",
+      "containing_function": "0x14081bbe0",
+      "window_type": "Nui::ConfigDescriptionWindow",
+      "rea_evidence_id": "ev_5c4b46fee25ecfc2a3159eac848abd5d7b0e60e161c637b5e0522435947b7dc2",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_e5b5b29e5e9fb2f6cf49bb422f03753be0775951ed1e42bcfc59c51c93b37824"
+    },
+    {
+      "callsite": "0x14081bf6a",
+      "containing_function": "0x14081bea0",
+      "window_type": "Nui::ConfigDescriptionWindow",
+      "rea_evidence_id": "ev_831770dc241ddb1eff77497b2f4d899eedfa04d01d9443e9d5865ad55b69d172",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_e5b5b29e5e9fb2f6cf49bb422f03753be0775951ed1e42bcfc59c51c93b37824"
+    },
+    {
+      "callsite": "0x14081c22a",
+      "containing_function": "0x14081c160",
+      "window_type": "Nui::ConfigDescriptionWindow",
+      "rea_evidence_id": "ev_a200b8e70819f8debe125ccab41a53a57235288db999496b384de3a837d2ff2a",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_e5b5b29e5e9fb2f6cf49bb422f03753be0775951ed1e42bcfc59c51c93b37824"
+    },
+    {
+      "callsite": "0x14081c4e4",
+      "containing_function": "0x14081c420",
+      "window_type": "Nui::LicenceViewer",
+      "rea_evidence_id": "ev_b55b109902f255c86c05fe5ddc88ab62ab620517d82257d9acb68362ff4a0e2b",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_51a155afe727c5d7ce729b400f5251ede1f64fe0b7bfacc83735e22bbf702ec3"
+    },
+    {
+      "callsite": "0x14082f569",
+      "containing_function": "0x14082f4b0",
+      "window_type": "Nui::ConfigWindow",
+      "rea_evidence_id": "ev_76bf6b675c4fc7522830b9460ab328c9fdd1e87e469330096af69a6788cd8e32",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_162c20e06eada06aa4bbc83cbd5287fe07cadbbeebe214c5d2b20fc63f4d5bb2"
+    },
+    {
+      "callsite": "0x14089a7a1",
+      "containing_function": "0x14089a670",
+      "window_type": "Nui::Debug::NetworkTree",
+      "rea_evidence_id": "ev_a8b872a4982502a950dc1e9b7cda892c090108c205b19422a8ca923febd119ab",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x14089b4a0",
+      "render_vtable_evidence_id": "ev_9e338b17afce856ad1fa27383f11025a6cc5277aa412f849ae9b3e3f3fc88192"
+    },
+    {
+      "callsite": "0x14089bec1",
+      "containing_function": "0x14089bd90",
+      "window_type": "Nui::Debug::ResManTree",
+      "rea_evidence_id": "ev_7725b91f6e5526d239e324c3651f76d23de0d0438ec55cb0c03e0dad5409bd11",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x14089c120",
+      "render_vtable_evidence_id": "ev_7f77949775f8ab59e433194ab3da1453512d916437c2771856988ceb82e49a67"
+    },
+    {
+      "callsite": "0x14089d431",
+      "containing_function": "0x14089d300",
+      "window_type": "Nui::Debug::GUITree",
+      "rea_evidence_id": "ev_81aba19d45987a9f5e4da840fd822e4eb8cdd8bc18954d4b38d3fdbd0b1dc186",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x14089d790",
+      "render_vtable_evidence_id": "ev_d280ccbaaa51364b9dcb97bf2e8baa743240e0b8c81dd1df5b5bfaf61923eb36"
+    },
+    {
+      "callsite": "0x14089f021",
+      "containing_function": "0x14089eef0",
+      "window_type": "Nui::Debug::Steam",
+      "rea_evidence_id": "ev_4e1b9c94d5b3dc7a936c3881bb7c97d495e6b563b82bd9879c16678c6f21cf81",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x14089f280",
+      "render_vtable_evidence_id": "ev_abe0a72565c93b48169260b0f0e66421919158dde47b4f20ccf62e26638137b1"
+    },
+    {
+      "callsite": "0x14089fab9",
+      "containing_function": "0x14089f940",
+      "window_type": "Nui::GameObjectPicker",
+      "rea_evidence_id": "ev_9c344639a6e85e6bd2eeac7f84c1724f2102282173a4effdadb4beba1e67f0dd",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1408a3b90",
+      "render_vtable_evidence_id": "ev_6c95e6cf1812e29ebece4e3389ef659b8b35654d7f07745a82373408a16b1094"
+    },
+    {
+      "callsite": "0x1408a3809",
+      "containing_function": "0x1408a3760",
+      "window_type": "_anon_B4CCDE18::NWScript",
+      "rea_evidence_id": "ev_e546d9950a753f53fd01ed52ee8bfd93c7ead314e4dde7313397c985adfac53a",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_9a12f09bd175b9de39a12243e0e486daa2bd0f3ea150db5d155f0c9b3fc80098"
+    },
+    {
+      "callsite": "0x1408a6298",
+      "containing_function": "0x1408a6160",
+      "window_type": "Nui::Debug::DM",
+      "rea_evidence_id": "ev_d7ab2f793e203ba692fc6abc6b8804acd389627cb7181e8b2ec84044d5eefd8f",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1408a6500",
+      "render_vtable_evidence_id": "ev_99de153cab7b76902a639536952e3b107803eb67fce0090f23485b64605fbe5a"
+    },
+    {
+      "callsite": "0x1408a6881",
+      "containing_function": "0x1408a6750",
+      "window_type": "Nui::Debug::Sound",
+      "rea_evidence_id": "ev_458236eb50e9f190f42cec357aca63c857083ae8ae687c4e0a04d93f23ab8008",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1408a6ae0",
+      "render_vtable_evidence_id": "ev_710cfdb308d6cca746bcc24e343650b936d6d5ea58ebb165527cd807423dbfd2"
+    },
+    {
+      "callsite": "0x1408a79bd",
+      "containing_function": "0x1408a78c0",
+      "window_type": "Nui::QueryDialog",
+      "rea_evidence_id": "ev_4a9fa8f9378ef64371c87780fee378509feab90a12b70b78ea084a7eb715d6f8",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_fd829ef53c38897bdc5cdefa1134ac7adaf50fb92e7599c57c4bc191086907d8"
+    },
+    {
+      "callsite": "0x1408a7b3a",
+      "containing_function": "0x1408a7a70",
+      "window_type": "Nui::NWSync::Housekeeping",
+      "rea_evidence_id": "ev_5f128c1174dcbf8f1784e0e19cb0349b1c1abafe9b56aaee33b12d7d82088879",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_44fe0f9e6be88d6ff617d478acd95a8e9ac30b514a0c216bfea7a4a89cd3b7c8"
+    },
+    {
+      "callsite": "0x1408a7e12",
+      "containing_function": "0x1408a7d30",
+      "window_type": "Nui::QueryDialog",
+      "rea_evidence_id": "ev_c130248ef19e5899a5185cb1b3f171b7c3d5f7d88c1d638644494be4b017d216",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_fd829ef53c38897bdc5cdefa1134ac7adaf50fb92e7599c57c4bc191086907d8"
+    },
+    {
+      "callsite": "0x1408bc7c9",
+      "containing_function": "0x1408bc710",
+      "window_type": "Nui::ConfigWindow",
+      "rea_evidence_id": "ev_7e97f227d6ad6bbad31ad52cbfdc1780685afea01b457aa2a489414b050155b6",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_162c20e06eada06aa4bbc83cbd5287fe07cadbbeebe214c5d2b20fc63f4d5bb2"
+    },
+    {
+      "callsite": "0x1408bcb14",
+      "containing_function": "0x1408bca70",
+      "window_type": "Nui::NWSync::StorageManager",
+      "rea_evidence_id": "ev_3e75f8fd0719279df98076e94fa781befffc143acc37ed8d7d5ba9d5bf8bd3fe",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_284ca66b56bd0834f92db7c2b68ceeae7b9191e558a09cfdd9b0a23fa85fcfc9"
+    },
+    {
+      "callsite": "0x14091ac6b",
+      "containing_function": "0x14091ab50",
+      "window_type": "ContentIndex::RepositoryManager",
+      "rea_evidence_id": "ev_3a4d096dd5fbdb4f9830ce0f8c96b2ea02fbb00606a87b45024d1e3f60a3875a",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_532b3d6aa3197b8398fee95e53772f7724300038d1f6499412481d86529e0523"
+    },
+    {
+      "callsite": "0x14091adfb",
+      "containing_function": "0x14091ad20",
+      "window_type": "Nui::ConfigWindow",
+      "rea_evidence_id": "ev_fa1f3922e3f78691ef32aed125b9648dbdcd750ed28deb2f5ffc8f96f889c281",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_162c20e06eada06aa4bbc83cbd5287fe07cadbbeebe214c5d2b20fc63f4d5bb2"
+    },
+    {
+      "callsite": "0x14091b0a8",
+      "containing_function": "0x14091aff0",
+      "window_type": "ContentIndex::RepositoryManager",
+      "rea_evidence_id": "ev_5db6946fadc9c0283ebbb0d0f96f58b624b71b450a32652264470f8ee6ecba05",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_532b3d6aa3197b8398fee95e53772f7724300038d1f6499412481d86529e0523"
+    },
+    {
+      "callsite": "0x14091b2d2",
+      "containing_function": "0x14091b220",
+      "window_type": "Nui::NWSync::StorageManager",
+      "rea_evidence_id": "ev_229713f9e483ce4f2f88c2cf43bd4376a91fd3eb338be6b30b4225c19bc4c44a",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_284ca66b56bd0834f92db7c2b68ceeae7b9191e558a09cfdd9b0a23fa85fcfc9"
+    },
+    {
+      "callsite": "0x14093be38",
+      "containing_function": "0x14093bd40",
+      "window_type": "Nui::Window",
+      "rea_evidence_id": "ev_360f22cf3b0625f455b68d38e25b38aeff571de250e5e59a68806f23157deced",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_0f6c33368dce17a32640e147c68f60d18991ee9d71c5174de524ec5695a42c45"
+    },
+    {
+      "callsite": "0x1409dc4f4",
+      "containing_function": "0x1409dc400",
+      "window_type": "ContentIndex::Browser",
+      "rea_evidence_id": "ev_2fae2aeaf5a34f43dffce28eaa83f383fff3cca72eadafb99703fa090c07e9c1",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1406c44e0",
+      "render_vtable_evidence_id": "ev_34314613c86a9f4d26590a66a829012d433e6e52360c6b812c999024060e0cba"
+    },
+    {
+      "callsite": "0x1409dc953",
+      "containing_function": "0x1409dc730",
+      "window_type": "Nui::NWSync::Downloader",
+      "rea_evidence_id": "ev_755941c51c3b421cfcbf9f247f0b029581f5d419d0249fb37b64ad318e73abfc",
+      "constructor_delegate": "0x1409db670",
+      "constructor_delegate_evidence_id": "ev_f49a84a5e6c62151b9b85fd5e1f220c50210be8b25a3e2aa35bd5a865ea19fa2",
+      "constructor_before_operator": true,
+      "weak_pair_store_after_operator": true,
+      "render_target": "0x1408b4e50",
+      "render_vtable_evidence_id": "ev_59341b959bcde9f34a6a015834e349b585f8f060957b238529170292994b7eda"
+    }
+  ]
+}

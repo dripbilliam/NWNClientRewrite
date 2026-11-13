@@ -34,6 +34,8 @@ function verifyNativeObservation(manifest,observation,{requireObservedThread=fal
   if(manifest.renderCore.enabled&&manifest.runtime.executableSha256!==manifest.renderCore.engineSha256)errors.push("Accepted render-core engine differs from selected executable");
  }
  for(const name of ['drive-collision','light-input-registry'])if(observation.parsed_native_options?.[name]?.value!==requested[name].value)errors.push('Native option was not applied: '+name);
+ if(requested['drive-height-plan']?.explicit&&observation.parsed_native_options?.['drive-height-plan']?.value!==requested['drive-height-plan'].value)errors.push('Native option was not applied: drive-height-plan');
+ if(requested['drive-preview-height-index']?.explicit&&observation.parsed_native_options?.['drive-preview-height-index']?.value!==requested['drive-preview-height-index'].value)errors.push('Native option was not applied: drive-preview-height-index');
  const snapshotPolicy=requested['world-snapshot-preparation'];
  if(snapshotPolicy){
   if(observation.parsed_native_options?.['world-snapshot-preparation']?.value!==snapshotPolicy.value)errors.push('Native option was not applied: world-snapshot-preparation');

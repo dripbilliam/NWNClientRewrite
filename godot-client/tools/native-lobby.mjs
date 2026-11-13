@@ -22,14 +22,14 @@ export class NativeLobby {
   this.connection=0;this.session=null;this.phase='menu';this.locals=new Map();this.servers=new Map();this.selected=null;this.preview=null;this.busy=false;this.error='';this.previewVersion=0;this.vaultId=null;this.transferring=false;this.portalDestinationConnection=null;
   this.players=new Map();this.pageIndex=0;this.pageVersion=0;this.pageError='';this.serverStatus=null;
  }
- snapshot(){return{localRefreshAck:this.localRefreshAck??null,previewAccountScope:this.previewAccountScope??'',phase:this.phase,busy:this.busy,creating:Boolean(this.creating),error:this.error,...(this.clientFailure?{clientFailure:structuredClone(this.clientFailure)}:{}),resourceProgress:this.resourceProgress??null,endpoint:this.endpoint??null,canCancelJoin:Boolean(this.joinWork||canCancelResources(this.session)||this.portalPending())&&!this.cancelling,connected:Boolean(this.session&&!this.session.closed),localAllowed:this.session?.localVaultAllowed===true,canJoin:!this.busy&&!this.transferring&&(!this.session||this.session.closed),canSelect:!this.creating&&!this.busy&&this.selectable(),canCreate:!this.creating&&!this.busy&&this.selectable()&&Boolean(this.session.resourceResult?.ready&&this.session.resolver),selected:this.selected,selectionAck:this.selectionAck??null,preview:this.preview,lobbyPage:this.pageIndex,canLobbyPages:Boolean(this.selectable()&&!this.creating&&!this.busy),players:[...this.players.values()],serverInfo:{...lobbyServerInfo(this.session?.serverInfo),...this.serverDetails,...(this.session&&!this.session.closed&&this.serverStatus!==null?{serverStatus:this.serverStatus}:{})},serverInfoPending:Boolean(this.infoController),pageError:this.pageError,choices:[...(this.session?.localVaultAllowed===true?this.locals.values():[]),...this.servers.values()].map(lobbyChoice)};}
+ snapshot(){return{localRefreshAck:this.localRefreshAck??null,previewAccountScope:this.previewAccountScope??'',phase:this.phase,busy:this.busy,creating:Boolean(this.creating),error:this.error,...(this.clientFailure?{clientFailure:structuredClone(this.clientFailure)}:{}),characterRejection:this.characterRejection??null,resourceProgress:this.resourceProgress??null,endpoint:this.endpoint??null,canCancelJoin:Boolean(this.joinWork||canCancelResources(this.session)||this.portalPending())&&!this.cancelling,connected:Boolean(this.session&&!this.session.closed),localAllowed:this.session?.localVaultAllowed===true,canJoin:!this.busy&&!this.transferring&&(!this.session||this.session.closed),canSelect:!this.creating&&!this.busy&&this.selectable(),canCreate:!this.creating&&!this.busy&&this.selectable()&&Boolean(this.session.resourceResult?.ready&&this.session.resolver),selected:this.selected,selectionAck:this.selectionAck??null,preview:this.preview,lobbyPage:this.pageIndex,canLobbyPages:Boolean(this.selectable()&&!this.creating&&!this.busy),players:[...this.players.values()],serverInfo:{...lobbyServerInfo(this.session?.serverInfo),...this.serverDetails,...(this.session&&!this.session.closed&&this.serverStatus!==null?{serverStatus:this.serverStatus}:{})},serverInfoPending:Boolean(this.infoController),pageError:this.pageError,choices:[...(this.session?.localVaultAllowed===true?this.locals.values():[]),...this.servers.values()].map(lobbyChoice)};}
  emit(){if(this.selectionAck&&(this.selectionAck.connection!==this.connection||this.selectionAck.key!==this.selected))this.selectionAck=null;const message={kind:'lobby',connection:this.connection,state:this.snapshot()},key=JSON.stringify(message);if(key!==this.lastPublished){this.lastPublished=key;this.publish(message);}}
  selectable(){return !this.transferring&&this.session&&!this.session.closed&&['character-selection','character-rejected'].includes(this.session.phase)&&!this.session.characterSubmitted&&!this.session.characterUploaded&&!this.session.serverCharacterListPending;}
  portalPending(){return Boolean(this.transferring||this.session&&!this.session.closed&&this.session.phase==='transferring'&&this.session.portalTransfer?.pending);}
  advancePortal(previous,endpoint){
   if(this.session!==previous||!previous.portalHandoffReady||!previous.closed)throw Error('Portal handoff no longer owns the native lobby');
   this.resetPages();
-  this.connection++;this.portalDestinationConnection=this.connection;this.phase='transferring';this.transferring=true;this.busy=true;this.session=null;this.endpoint=endpoint;this.selected=this.preview=null;this.previewVersion++;this.servers.clear();this.vaultId=null;this.resourceProgress=null;this.error='';this.clientFailure=null;this.creating=false;this.emit();return this.connection;
+  this.connection++;this.portalDestinationConnection=this.connection;this.phase='transferring';this.transferring=true;this.busy=true;this.session=null;this.endpoint=endpoint;this.selected=this.preview=null;this.previewVersion++;this.servers.clear();this.vaultId=null;this.resourceProgress=null;this.error='';this.characterRejection=null;this.clientFailure=null;this.creating=false;this.emit();return this.connection;
  }
  portalConnected(session,connection){if(this.session!==session||this.connection!==connection)return;this.portalDestinationConnection=null;this.emit();}
  failPortal(connection,reason){if(this.connection!==connection)return;this.resetPages();this.portalDestinationConnection=null;this.transferring=false;this.busy=false;this.error=reason;this.phase='menu';this.session=null;this.resourceProgress=null;this.emit();}
@@ -57,7 +57,7 @@ export class NativeLobby {
  async join(message){
   this.requireOwner(message);if(this.busy||this.transferring||this.session&&!this.session.closed)throw Error('Disconnect the current session before joining');
   this.resetPages();
-  this.connection++;const connection=this.connection;this.previewAccountScope='';this.localRefreshAck=null;this.hiddenLocalRows=new Set();this.creating=false;this.busy=true;this.error='';this.clientFailure=null;this.resourceProgress=null;this.phase='connecting';this.servers.clear();this.selected=this.preview=null;this.previewVersion++;this.vaultId=null;this.emit();
+  this.connection++;const connection=this.connection;this.previewAccountScope='';this.localRefreshAck=null;this.hiddenLocalRows=new Set();this.creating=false;this.busy=true;this.error='';this.characterRejection=null;this.clientFailure=null;this.resourceProgress=null;this.phase='connecting';this.servers.clear();this.selected=this.preview=null;this.previewVersion++;this.vaultId=null;this.emit();
   const controller=new AbortController();this.joinController=controller;
   const pending=Promise.resolve().then(async()=>{const locals=await this.listLocal();controller.signal.throwIfAborted();if(connection!==this.connection)return;this.locals=new Map(locals.map(row=>[row.key,row]));await this.connect(connection,message.details,{signal:controller.signal});});
   const aborted=new Promise((_,reject)=>controller.signal.addEventListener('abort',()=>reject(controller.signal.reason),{once:true}));
@@ -104,6 +104,10 @@ export class NativeLobby {
     else this.players.delete(value.id);this.emit();return;
    }
    if(message.kind==='server-character-list')void this.serverList(message,session,connection).catch(e=>{if(active()){this.error=e.message;this.emit();}});
+   if(message.kind==='character-rejected'){
+    this.characterRejection=Number.isInteger(message.reason)&&message.reason>=0&&message.reason<=0xffffffff?{strRef:message.reason}:null;
+    this.error='The server rejected the selected character'+(this.characterRejection?` (message ${message.reason})`:'')+'.';this.emit();return;
+   }
    if(message.kind==='server-character-preview'){
     const row=this.servers.get(this.selected);if(!row||row.resref!==message.resref||row.serverSource!==message.source||row.generation!==message.generation)return;
     this.preview=message.preview;this.emit();
@@ -120,18 +124,18 @@ export class NativeLobby {
   if(message.requestId!==undefined&&(!Number.isSafeInteger(message.requestId)||message.requestId<1))throw Error('Invalid character selection request identity');
   if(this.pageIndex!==0)await this.setPage({connection:message.connection,page:0});
   const row=this.row(message),session=this.session,connection=this.connection,version=++this.previewVersion;
-  this.selected=row.key;this.selectionAck=message.requestId===undefined?null:{connection,requestId:message.requestId,key:row.key};this.preview=null;this.error='';this.emit();
+  this.selected=row.key;this.selectionAck=message.requestId===undefined?null:{connection,requestId:message.requestId,key:row.key};this.preview=null;this.error='';this.characterRejection=null;this.emit();
   if(row.source==='server'){await session.previewServerCharacter({source:row.serverSource,resref:row.resref,generation:row.generation});return;}
-  const bytes=await this.readLocal(row.key);
+  const bytes=await this.readLocal(row.key,row.nativeFile);
   try{if(session!==this.session||connection!==this.connection||version!==this.previewVersion||!this.selectable())return;const preview=await session.previewLocalCharacter(bytes);if(session===this.session&&connection===this.connection&&version===this.previewVersion&&!session.characterSubmitted){this.preview=preview;this.emit();}}finally{bytes.fill(0);}
  }
  async play(message){
   if(this.pageIndex!==0)await this.setPage({connection:message.connection,page:0});
   const row=this.row(message);if(this.selected!==row.key)throw Error('Select this character before playing');
-  const session=this.session,connection=this.connection;this.busy=true;this.error='';this.emit();
+  const session=this.session,connection=this.connection;this.busy=true;this.error='';this.characterRejection=null;this.emit();
   try{
    if(row.source==='server')await session.playServerCharacter({source:row.serverSource,resref:row.resref,generation:row.generation});
-   else{const bytes=await this.readLocal(row.key);try{if(session!==this.session||connection!==this.connection||!this.selectable())throw Error('Character upload was cancelled');this.vaultId=row.vaultId??null;await session.selectCharacter(bytes);}finally{bytes.fill(0);}}
+   else{const bytes=await this.readLocal(row.key,row.nativeFile);try{if(session!==this.session||connection!==this.connection||!this.selectable())throw Error('Character upload was cancelled');this.vaultId=row.vaultId??null;await session.selectCharacter(bytes);}finally{bytes.fill(0);}}
   }finally{if(session===this.session&&connection===this.connection){this.busy=false;this.emit();}}
  }
  async refreshLocal(message){
@@ -149,7 +153,7 @@ export class NativeLobby {
  async leave(message){
   this.requireOwner(message);if(this.cancelling||typeof message.saveCharacter!=='boolean')throw Error('Invalid disconnect request');
   this.resetPages();
-  const targetSession=this.session;this.cancelling=true;this.connection++;this.busy=true;this.phase='disconnecting';this.error='';this.clientFailure=null;this.resourceProgress=null;
+  const targetSession=this.session;this.cancelling=true;this.connection++;this.busy=true;this.phase='disconnecting';this.error='';this.characterRejection=null;this.clientFailure=null;this.resourceProgress=null;
   this.joinController?.abort(new Error('Connection cancelled'));this.joinController=null;this.joinWork=null;
   this.creating=false;this.previewVersion++;this.selected=this.preview=null;this.servers.clear();this.emit();
   try{await this.disconnect({saveCharacter:message.saveCharacter,targetSession});}

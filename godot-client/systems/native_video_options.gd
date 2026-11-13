@@ -34,6 +34,7 @@ var retained_position:=Vector2.INF
 var dragging:=false
 var drag_offset:=Vector2.ZERO
 var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
+var _entry_configuration: Dictionary={}
 func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
 	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
 	if not modal_lease.admission_changed.is_connected(modal_admission_changed):modal_lease.admission_changed.connect(modal_admission_changed)
@@ -52,6 +53,45 @@ func configure(painter,text,catalog,cache_path: String,service,placement_path: S
 	for name in ["scrollbar_simple","pb_scrl_up","pb_scrl_down"]: request_model(name)
 	settings.changed.connect(settings_changed)
 	get_viewport().size_changed.connect(place)
+func begin_entry_configuration(painter,text,catalog,cache_path: String,service,placement_path: String="user://native-menu-layout.cfg") -> Dictionary:
+	if closed or not _entry_configuration.is_empty():return {}
+	_entry_configuration={"phase":0,"painter":painter,"text":text,"catalog":catalog,"cache_path":cache_path,"service":service,"placement_path":placement_path}
+	return _entry_configuration
+func entry_configuration_phase(state: Dictionary) -> String:
+	const PHASES=["initialize","asset_service","layout_request","scrollbar_request","scroll_up_request","scroll_down_request","signals","complete"]
+	return PHASES[clampi(int(state.get("phase",0)),0,PHASES.size()-1)]
+func entry_configuration_step(state: Dictionary) -> Dictionary:
+	if state.is_empty() or not is_same(_entry_configuration,state) or closed or is_queued_for_deletion():return {"done":true,"accepted":false}
+	match int(state.phase):
+		0:
+			frame=state.painter; text_owner=state.text; settings=state.service; mouse_filter=Control.MOUSE_FILTER_STOP; hide()
+			layout_path=str(state.placement_path)
+			var saved:=ConfigFile.new()
+			if not layout_path.is_empty() and saved.load(layout_path)==OK:
+				var value: Variant=saved.get_value("positions","video-options",Vector2.INF)
+				if value is Vector2 and value.is_finite():retained_position=value
+		1:
+			assets=Assets.new(); add_child(assets); assets.configure(state.catalog); assets.cache_directory=str(state.cache_path); assets.maximum_workers=2; assets.completed.connect(received)
+		2:jobs[assets.request("options_vidmodes",2047,"gff")]="@layout"
+		3:request_model("scrollbar_simple")
+		4:request_model("pb_scrl_up")
+		5:request_model("pb_scrl_down")
+		6:
+			settings.changed.connect(settings_changed)
+			get_viewport().size_changed.connect(place)
+		7:
+			_entry_configuration={}
+			return {"done":true,"accepted":true}
+	if not is_same(_entry_configuration,state) or closed or is_queued_for_deletion():return {"done":true,"accepted":false}
+	state.phase=int(state.phase)+1
+	return {"done":false,"accepted":false}
+func finish_entry_configuration() -> void:
+	# A worker may finish before the last request is queued. Publish only after
+	# the menu has installed its modal and prepared/finished connections.
+	if closed or not _entry_configuration.is_empty() or not jobs.is_empty() or source.is_empty() or not failure.is_empty() or layout_ready:return
+	definition=Plan.parse(source,models)
+	if not str(definition.error).is_empty():failure=str(definition.error)
+	else:build()
 func request_model(name: String) -> void:
 	if name.is_empty() or requested.has(name): return
 	requested[name]=true; jobs[assets.request(name,2002,"actor-model")]=name
@@ -64,7 +104,7 @@ func received(id: int,result: Dictionary) -> void:
 	if not str(result.get("error","")).is_empty(): failure=name+": "+str(result.error); return
 	if name=="@layout": source=result.value.root; request_tree(source)
 	else: models[name]=result.value
-	if not jobs.is_empty() or source.is_empty() or not failure.is_empty(): return
+	if not _entry_configuration.is_empty() or not jobs.is_empty() or source.is_empty() or not failure.is_empty(): return
 	definition=Plan.parse(source,models)
 	if not str(definition.error).is_empty(): failure=str(definition.error); return
 	build()
@@ -179,6 +219,7 @@ func _notification(what: int) -> void:
 		if dragging: dragging=false; save_position()
 func close() -> void:
 	if closed: return
+	_entry_configuration={}
 	retire_scope(); closed=true
 	modal_lease.close()
 	if is_instance_valid(settings) and settings.changed.is_connected(settings_changed): settings.changed.disconnect(settings_changed)

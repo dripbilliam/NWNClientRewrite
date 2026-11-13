@@ -1,0 +1,447 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "DanglyMesh text/binary payload through subtype Part, render pool and conditional draw handoff.",
+  "edges": [
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140087510",
+      "callsite": "0x1400a0f80",
+      "callsite_evidence_id": "ev_61469ad4615778c007047f191527086bcedc3431641155ff2cf3a1815449493c",
+      "kind": "direct_static",
+      "condition": "text node token danglymesh selects subtype constructor",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_61469ad4615778c007047f191527086bcedc3431641155ff2cf3a1815449493c"
+    },
+    {
+      "from": "0x140087510",
+      "to": "0x140087900",
+      "callsite": "0x140087522",
+      "callsite_evidence_id": "ev_6cf750b817070b1ce0d103ba34416067b6ba197906ece0944d334eb8292a7935",
+      "kind": "direct_static",
+      "condition": "Dangly constructor builds TriMesh base",
+      "status": "cpu_constructor_leaf",
+      "evidence_id": "ev_6cf750b817070b1ce0d103ba34416067b6ba197906ece0944d334eb8292a7935"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140092840",
+      "callsite": "0x1400a109f",
+      "callsite_evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text node danglymesh per-line +0x8 parse field",
+      "status": "target_identified",
+      "evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d"
+    },
+    {
+      "from": "0x140092840",
+      "to": "0x140099e20",
+      "callsite": "0x140092840",
+      "callsite_evidence_id": "ev_ac71c0daf0df4b3985403be9e455339f84b325e0bc4712d5ea493d7d681afb12",
+      "kind": "direct_static",
+      "condition": "subtype parse wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_ac71c0daf0df4b3985403be9e455339f84b325e0bc4712d5ea493d7d681afb12"
+    },
+    {
+      "from": "0x140099e20",
+      "to": "0x140047060",
+      "callsite": "0x140099ebb",
+      "callsite_evidence_id": "ev_0683caec72130266fbea4ce91a518ff0d6774b690e58aed5442e05956fa73b6a",
+      "kind": "direct_static",
+      "condition": "displacement token parses float into +0x2d8",
+      "status": "cpu_parse_leaf",
+      "evidence_id": "ev_0683caec72130266fbea4ce91a518ff0d6774b690e58aed5442e05956fa73b6a"
+    },
+    {
+      "from": "0x140099e20",
+      "to": "0x140047060",
+      "callsite": "0x140099f29",
+      "callsite_evidence_id": "ev_dfc492c2d315cea77e3b93ccfe4f9290baf29e2d5ea897db5a2560801523d83b",
+      "kind": "direct_static",
+      "condition": "period token parses float into +0x2e0",
+      "status": "cpu_parse_leaf",
+      "evidence_id": "ev_dfc492c2d315cea77e3b93ccfe4f9290baf29e2d5ea897db5a2560801523d83b"
+    },
+    {
+      "from": "0x140099e20",
+      "to": "0x140047060",
+      "callsite": "0x140099f99",
+      "callsite_evidence_id": "ev_9b9abfaad7ac21d5ca950462e1fffcd8e1171cb57dee51ed5a1e2b5937c7b763",
+      "kind": "direct_static",
+      "condition": "tightness token parses float into +0x2dc",
+      "status": "cpu_parse_leaf",
+      "evidence_id": "ev_9b9abfaad7ac21d5ca950462e1fffcd8e1171cb57dee51ed5a1e2b5937c7b763"
+    },
+    {
+      "from": "0x140099e20",
+      "to": "0x1400969f0",
+      "callsite": "0x140099ffe",
+      "callsite_evidence_id": "ev_d1246fd56ac8215266372f7dbf06b97595293cb32a7f9f925ddddfc435a86920",
+      "kind": "direct_static",
+      "condition": "constraints token parses float list at +0x2c8",
+      "status": "cpu_list_leaf",
+      "evidence_id": "ev_d1246fd56ac8215266372f7dbf06b97595293cb32a7f9f925ddddfc435a86920"
+    },
+    {
+      "from": "0x1400969f0",
+      "to": "0x14005de20",
+      "callsite": "0x140096ad3",
+      "callsite_evidence_id": "ev_ff16c1bacfbf3d0b8ef32a649cf34f7b9f0e70971bad989edc1364a0e1a9b1da",
+      "kind": "direct_static",
+      "condition": "count-plus-marker list form reads count times four bytes from resource",
+      "status": "resource_read_boundary",
+      "evidence_id": "ev_ff16c1bacfbf3d0b8ef32a649cf34f7b9f0e70971bad989edc1364a0e1a9b1da"
+    },
+    {
+      "from": "0x1400969f0",
+      "to": "0x140c417f0",
+      "callsite": "0x140096ae1",
+      "callsite_evidence_id": "ev_713736b87d0d730fa35312825587275763961bd38e416c56bf08eaf0175a647f",
+      "kind": "direct_static",
+      "condition": "count-plus-marker list form copies float bytes to CPU array",
+      "status": "cpu_copy_leaf",
+      "evidence_id": "ev_713736b87d0d730fa35312825587275763961bd38e416c56bf08eaf0175a647f"
+    },
+    {
+      "from": "0x140099e20",
+      "to": "0x14009e950",
+      "callsite": "0x14009a023",
+      "callsite_evidence_id": "ev_55fc094e25116b76b38d0b5b2c41ed27388b9163e5d92adb206cfa54601fb8a3",
+      "kind": "direct_static",
+      "condition": "normal subtype checks continue into shared TriMesh field parser",
+      "status": "shared_parser_boundary",
+      "evidence_id": "ev_55fc094e25116b76b38d0b5b2c41ed27388b9163e5d92adb206cfa54601fb8a3"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140092850",
+      "callsite": "0x1400a10b3",
+      "callsite_evidence_id": "ev_b78f18efe9eeb50a5253b0b49f8586ea54528d9ae467a1584814f0e24be92f4c",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text node danglymesh endnode +0x10 postprocess",
+      "status": "target_identified",
+      "evidence_id": "ev_b78f18efe9eeb50a5253b0b49f8586ea54528d9ae467a1584814f0e24be92f4c"
+    },
+    {
+      "from": "0x140092850",
+      "to": "0x1400a9880",
+      "callsite": "0x140092850",
+      "callsite_evidence_id": "ev_222dbd94b8a55f0a8b24a9d350f78a02566d6f5e573ffc827b3b137b5892b947",
+      "kind": "direct_static",
+      "condition": "subtype postprocess wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_222dbd94b8a55f0a8b24a9d350f78a02566d6f5e573ffc827b3b137b5892b947"
+    },
+    {
+      "from": "0x1400a9880",
+      "to": "0x1400aa1e0",
+      "callsite": "0x1400a9893",
+      "callsite_evidence_id": "ev_4f763dba63cafea3552d6360741c19be4be5bad23a419d8563d1e1eed1fe46a5",
+      "kind": "direct_static",
+      "condition": "node +0x284 vertex count zero; process TriMesh vertices",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_4f763dba63cafea3552d6360741c19be4be5bad23a419d8563d1e1eed1fe46a5"
+    },
+    {
+      "from": "0x1400a9880",
+      "to": "0x140092830",
+      "callsite": "0x1400a98a4",
+      "callsite_evidence_id": "ev_4b4d7326cec2a52201764a3b95c7c178152782ed560f01f4231b45aae7887c0c",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "vertex count zero and face count +0xb8 positive; constructor-installed +0xa0 GenVertices",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_4b4d7326cec2a52201764a3b95c7c178152782ed560f01f4231b45aae7887c0c"
+    },
+    {
+      "from": "0x140092830",
+      "to": "0x1400a89b0",
+      "callsite": "0x140092830",
+      "callsite_evidence_id": "ev_db39a3974fe60defd98ea29121ca8d64179f79a8f7b8c6d9db038113364b1ff7",
+      "kind": "direct_static",
+      "condition": "Dangly GenVertices wrapper tail jump",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_db39a3974fe60defd98ea29121ca8d64179f79a8f7b8c6d9db038113364b1ff7"
+    },
+    {
+      "from": "0x1400a89b0",
+      "to": "0x140c10324",
+      "callsite": "0x1400a8b2f",
+      "callsite_evidence_id": "ev_d37f54558f0b2815be4e7fbb056284e197c528505bb257dde2d1caf676f66dd5",
+      "kind": "direct_static",
+      "condition": "allocate NodeVertexDangly for face-corner remap",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_d37f54558f0b2815be4e7fbb056284e197c528505bb257dde2d1caf676f66dd5"
+    },
+    {
+      "from": "0x1400a89b0",
+      "to": "0x1400aad90",
+      "callsite": "0x1400a8b92",
+      "callsite_evidence_id": "ev_524476bbd21990086e49e0e678b962e779f245b1ec7101e25ce102faaabe476f",
+      "kind": "direct_static",
+      "condition": "construct CPU NodeVertexDangly",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_524476bbd21990086e49e0e678b962e779f245b1ec7101e25ce102faaabe476f"
+    },
+    {
+      "from": "0x1400a89b0",
+      "to": "0x1400ab9e0",
+      "callsite": "0x1400a8bbe",
+      "callsite_evidence_id": "ev_ffd9ececcbbee62e9aecf0c8391f31d91aeab92eadb025c7c24320905f036220",
+      "kind": "direct_static",
+      "condition": "test prior candidate as NodeVertexDangly",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_ffd9ececcbbee62e9aecf0c8391f31d91aeab92eadb025c7c24320905f036220"
+    },
+    {
+      "from": "0x1400a89b0",
+      "to": "0x1400ab660",
+      "callsite": "0x1400a8bc9",
+      "callsite_evidence_id": "ev_a4ff9806c3404e57ed0126c493f6a24b2111bf770a71ac4ee5f8cb41a65c32c2",
+      "kind": "direct_static",
+      "condition": "compare candidate for vertex reuse",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_a4ff9806c3404e57ed0126c493f6a24b2111bf770a71ac4ee5f8cb41a65c32c2"
+    },
+    {
+      "from": "0x1400a89b0",
+      "to": "0x140c417f0",
+      "callsite": "0x1400a8dc2",
+      "callsite_evidence_id": "ev_a65b6ddc2d55ebf37aa06da587ae9d0c70c3ed81b78f802748ae9d0c21c02622",
+      "kind": "direct_static",
+      "condition": "copy remapped constraint floats into replacement CPU list",
+      "status": "cpu_copy_leaf",
+      "evidence_id": "ev_a65b6ddc2d55ebf37aa06da587ae9d0c70c3ed81b78f802748ae9d0c21c02622"
+    },
+    {
+      "from": "0x1400a9880",
+      "to": "0x1400a5a10",
+      "callsite": "0x1400a98c2",
+      "callsite_evidence_id": "ev_1a7978700135e968e1167d3dfc052339851f629c4fcacc52be5b4474aba9ace8",
+      "kind": "direct_static",
+      "condition": "positive face count after GenVertices; build neighbor lists",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_1a7978700135e968e1167d3dfc052339851f629c4fcacc52be5b4474aba9ace8"
+    },
+    {
+      "from": "0x1400a9880",
+      "to": "0x1400a5e20",
+      "callsite": "0x1400a98ca",
+      "callsite_evidence_id": "ev_1c7484c91a2f7413a7d022bb831ce39a3aed6fd7b4aad575eb74b6aa0fd71622",
+      "kind": "direct_static",
+      "condition": "positive face count after GenVertices; build vertex indices",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_1c7484c91a2f7413a7d022bb831ce39a3aed6fd7b4aad575eb74b6aa0fd71622"
+    },
+    {
+      "from": "0x1400a9880",
+      "to": "0x1400a7790",
+      "callsite": "0x1400a98d2",
+      "callsite_evidence_id": "ev_17299ffa8513890f9caef58acfd8e7023cad90433b4ad68a2b6cf7be4c75d1d6",
+      "kind": "direct_static",
+      "condition": "vertex count zero; publish generated base and conditional attribute data",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_17299ffa8513890f9caef58acfd8e7023cad90433b4ad68a2b6cf7be4c75d1d6"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a7836",
+      "callsite_evidence_id": "ev_8d0b7136c238aa8cea0f478f02b69f12724cd48699aafeed9de5686018d626ca",
+      "kind": "direct_static",
+      "condition": "face count positive; request base position render pool",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_8d0b7136c238aa8cea0f478f02b69f12724cd48699aafeed9de5686018d626ca"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a7848",
+      "callsite_evidence_id": "ev_6df81aa777afe560d3e942b19066bce3ec06f3878ef4947512662f5f17f3f000",
+      "kind": "direct_static",
+      "condition": "face count positive; lock base position render pool",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_6df81aa777afe560d3e942b19066bce3ec06f3878ef4947512662f5f17f3f000"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7c69",
+      "callsite_evidence_id": "ev_f91f940df8115996e43796d1ae13f981866ac83c579126c870c1c24d4e041c95",
+      "kind": "direct_static",
+      "condition": "base vertex data publication; unlock pool",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_f91f940df8115996e43796d1ae13f981866ac83c579126c870c1c24d4e041c95"
+    },
+    {
+      "from": "0x1400a9880",
+      "to": "0x1400a6130",
+      "callsite": "0x1400a98da",
+      "callsite_evidence_id": "ev_a834b5a8c22eee2654a1e6137b534cf98f497ff88388b8631e5596f0cfa3054f",
+      "kind": "direct_static",
+      "condition": "vertex count zero; calculate tangent basis",
+      "status": "cpu_mesh_leaf",
+      "evidence_id": "ev_a834b5a8c22eee2654a1e6137b534cf98f497ff88388b8631e5596f0cfa3054f"
+    },
+    {
+      "from": "0x1400a9880",
+      "to": "0x140092860",
+      "callsite": "0x1400a98ee",
+      "callsite_evidence_id": "ev_8d2fbf36c22872241fc3fd2bcb5b69e3c62c8fbc4364a5bb2a22c4d22b00e824",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "vertex count zero; constructor-installed +0xa8 temporary-array cleanup",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_8d2fbf36c22872241fc3fd2bcb5b69e3c62c8fbc4364a5bb2a22c4d22b00e824"
+    },
+    {
+      "from": "0x140092860",
+      "to": "0x1400a9e90",
+      "callsite": "0x140092860",
+      "callsite_evidence_id": "ev_e115bdf13dca3170876e7c1396bb1ddb3263ec456fa17f049fe96efdce5eecf6",
+      "kind": "direct_static",
+      "condition": "Dangly cleanup wrapper tail jump",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_e115bdf13dca3170876e7c1396bb1ddb3263ec456fa17f049fe96efdce5eecf6"
+    },
+    {
+      "from": "0x1400a9e90",
+      "to": "0x1400a9f40",
+      "callsite": "0x1400a9f23",
+      "callsite_evidence_id": "ev_4cb0942162a5bbbee65ed4e3d22614625007255ca463c67ac4f62a99d080da00",
+      "kind": "direct_static",
+      "condition": "release subtype temporary vertices then shared TriMesh cleanup",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_4cb0942162a5bbbee65ed4e3d22614625007255ca463c67ac4f62a99d080da00"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140c10324",
+      "callsite": "0x14007afd4",
+      "callsite_evidence_id": "ev_e2a50ad1e7a1353992a5fc14a5cfe89833ae4ac883f0cd2a343b07c3b8b5d4e7",
+      "kind": "direct_static",
+      "condition": "binary source kind 0x121 allocates 0x2e8 subtype node",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_e2a50ad1e7a1353992a5fc14a5cfe89833ae4ac883f0cd2a343b07c3b8b5d4e7"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140075a50",
+      "callsite": "0x14007afe9",
+      "callsite_evidence_id": "ev_ab961c1ca332cb717d936841146ab63219f3490aa43ddcb617c10b27920dc976",
+      "kind": "direct_static",
+      "condition": "binary source kind 0x121 initializes TriMesh base when allocation succeeds",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_ab961c1ca332cb717d936841146ab63219f3490aa43ddcb617c10b27920dc976"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140078ab0",
+      "callsite": "0x14007b02f",
+      "callsite_evidence_id": "ev_9e3bd0570b4863f83532834b5f12735710fe57b5929983eaf0abc27ce8cbda8a",
+      "kind": "direct_static",
+      "condition": "binary source kind 0x121 copies common node data after subtype float copy",
+      "status": "cpu_parse_leaf",
+      "evidence_id": "ev_9e3bd0570b4863f83532834b5f12735710fe57b5929983eaf0abc27ce8cbda8a"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x14007be10",
+      "callsite": "0x14007b04f",
+      "callsite_evidence_id": "ev_91178dd1e8d5d61107fff146372634d26683bc403da1ed893f1cf4097fa5a626",
+      "kind": "direct_static",
+      "condition": "binary source kind 0x121 reads shared mesh data",
+      "status": "shared_mesh_boundary",
+      "evidence_id": "ev_91178dd1e8d5d61107fff146372634d26683bc403da1ed893f1cf4097fa5a626"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x14006dc60",
+      "callsite": "0x14007b0c6",
+      "callsite_evidence_id": "ev_57207ee2e959af9382c0e01a32e262a944326688d1b1eb883d35b92b37950429",
+      "kind": "direct_static",
+      "condition": "binary constraint count +0x274 nonzero; resize float list",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_57207ee2e959af9382c0e01a32e262a944326688d1b1eb883d35b92b37950429"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140c417f0",
+      "callsite": "0x14007b0e7",
+      "callsite_evidence_id": "ev_54fe90408da7e519863a64ca98594275ea62e7d3fb01d7f2668bab0a234aead2",
+      "kind": "direct_static",
+      "condition": "binary constraint count nonzero; copy count times four bytes from offset +0x270",
+      "status": "cpu_copy_leaf",
+      "evidence_id": "ev_54fe90408da7e519863a64ca98594275ea62e7d3fb01d7f2668bab0a234aead2"
+    },
+    {
+      "from": "0x14008dab0",
+      "to": "0x140092760",
+      "callsite": "0x14008dae0",
+      "callsite_evidence_id": "ev_7e5acc37beb34bb2353141aeb878a5831acc5b1d4b65e66f1e76b8ba5959edfb",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "Dangly node constructor or binary reader installed +0x28 CreateInstance",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_7e5acc37beb34bb2353141aeb878a5831acc5b1d4b65e66f1e76b8ba5959edfb"
+    },
+    {
+      "from": "0x140092760",
+      "to": "0x140087fd0",
+      "callsite": "0x140092794",
+      "callsite_evidence_id": "ev_462997eb5a16fd04f65f7186f5aee617591352f175ea187b82a10d63b57fab6d",
+      "kind": "direct_static",
+      "condition": "allocate 0xe0 Part and construct PartTriMesh base before Dangly vtable install",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_462997eb5a16fd04f65f7186f5aee617591352f175ea187b82a10d63b57fab6d"
+    },
+    {
+      "from": "0x140093850",
+      "to": "0x1400aaf80",
+      "callsite": "0x14009394c",
+      "callsite_evidence_id": "ev_63ee4285c90d17cf8af4b0284583234fbac5e99b07d84e1bc7b9c40b44556401",
+      "kind": "direct_static",
+      "condition": "positive AsPartDanglyMesh after Skin/AnimMesh tests; construct VertexPrimitiveDangly",
+      "status": "typed_primitive_tree",
+      "evidence_id": "ev_63ee4285c90d17cf8af4b0284583234fbac5e99b07d84e1bc7b9c40b44556401"
+    },
+    {
+      "from": "0x1400d76e0",
+      "to": "0x14004ef50",
+      "callsite": "0x1400d7709",
+      "callsite_evidence_id": "ev_4ce537f06cd8aefa9241ddb351204c672659fd53bb49ff579d31fba1b09f9c97",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "visible bucket positive Dangly type test; +0xd0 Animate",
+      "status": "dynamic_pool_boundary",
+      "evidence_id": "ev_4ce537f06cd8aefa9241ddb351204c672659fd53bb49ff579d31fba1b09f9c97"
+    },
+    {
+      "from": "0x1400a22d0",
+      "to": "0x1400a4560",
+      "callsite": "0x1400a23e4",
+      "callsite_evidence_id": "ev_46e6119dbbadde32a82d078c1e7fc0e227aae37d4e7717924b059b57216e542c",
+      "kind": "direct_static",
+      "condition": "active draw with geometry; bumpy shiny map and bumpy water enabled",
+      "status": "draw_boundary",
+      "evidence_id": "ev_46e6119dbbadde32a82d078c1e7fc0e227aae37d4e7717924b059b57216e542c"
+    },
+    {
+      "from": "0x1400a22d0",
+      "to": "0x1400a45c0",
+      "callsite": "0x1400a2430",
+      "callsite_evidence_id": "ev_af3805d7b943b5c29ac5e4b72a10f90e58e7f4ca5d677af611842bcd8f8b816c",
+      "kind": "direct_static",
+      "condition": "active draw with geometry; environment-mapped branch",
+      "status": "draw_boundary",
+      "evidence_id": "ev_af3805d7b943b5c29ac5e4b72a10f90e58e7f4ca5d677af611842bcd8f8b816c"
+    },
+    {
+      "from": "0x1400a22d0",
+      "to": "0x1400a4710",
+      "callsite": "0x1400a2457",
+      "callsite_evidence_id": "ev_9b6df4f5752132992a1ed6a98c2c24d9430a589c58a24787fe5b395892a2efed",
+      "kind": "direct_static",
+      "condition": "active draw with geometry; non-environment flat branch",
+      "status": "draw_boundary",
+      "evidence_id": "ev_9b6df4f5752132992a1ed6a98c2c24d9430a589c58a24787fe5b395892a2efed"
+    }
+  ]
+}

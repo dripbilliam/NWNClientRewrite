@@ -1,0 +1,20 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "connected authored ignorefog Model flag copied to TriMesh and conditionally consumed by dynamic material fog state, including Gob overrides",
+  "document": "model-ignorefog-trimesh-consumer.md",
+  "edges": [
+    {"from":"0x140087bc0","to":"Model+0x93","site":"0x140087c96","kind":"state_write","condition":"Model constructor qword 0x01000000 at +0x90 makes little-endian byte +0x93 equal 1","status":"model_fog_default_on","evidence_id":"ev_7b8022a40ccabfed722e903aa3c2f92946feecd1c6694765e4ae292f688ba58e"},
+    {"from":"0x1400a1630","to":"Model+0x93","site":"0x1400a1653","kind":"state_write","condition":"admitted ignorefog command parses integer exactly 1; writes currentmodel flag 0","status":"authored_model_ignorefog","evidence_id":"ev_6f749c4a13123cfcd327c35fcd8c16a812b80a4e1ca87f05ca8ff2a9eb5e1555"},
+    {"from":"Model+0x93","to":"0x140087fd0","site":"0x1400880f9","kind":"state_read","condition":"PartTriMesh constructor source node +0x58 has Model kind 2; compare flag with 1","status":"model_fog_to_part_constructor","evidence_id":"ev_1d89826eee6c1ea6bc9a6b871143948a4a0f16dde2362529e28ffe8f317ca309"},
+    {"from":"0x140087fd0","to":"PartTriMesh+0x9d","site":"0x140088103","kind":"state_write","condition":"Model-kind source accepted; copy equality result, otherwise constructor retains initial true flag","status":"trimesh_fog_initialization","evidence_id":"ev_e997e137546fb47ee8b3e42c4bae2470ce580824446d1aea5d3c9ed76db6038e"},
+    {"from":"0x14008ddb0","to":"0x140093a20","callsite":"0x14008ddb9","kind":"direct_tail_jump","condition":"Gob DisableFog passes false and its Part root +0x90","status":"runtime_fog_override_off","evidence_id":"ev_a1ac8dfdbb0bb519f0abf66685ebf4643b843e3aa549e55039fd838b9b469369","callsite_bytes":"e9625c0000"},
+    {"from":"0x14008ddf0","to":"0x140093a20","callsite":"0x14008ddf9","kind":"direct_tail_jump","condition":"Gob EnableFog passes true and its Part root +0x90","status":"runtime_fog_override_on","evidence_id":"ev_5aec3a2597c212ebf98a04ac43635475441fb8286e1fa11ba565322296279755","callsite_bytes":"e9225c0000"},
+    {"from":"0x140093a20","to":"PartTriMesh+0x9d","site":"0x140093a40","kind":"state_write","condition":"Part +0x58 AsPartTriMesh returns nonnull; write requested bool","status":"runtime_trimesh_fog_override","evidence_id":"ev_8cb2b4b23e7cfd32f10e10767f3014f00d732dfddb184c327367e1ab203b6b9f"},
+    {"from":"0x140093a20","to":"0x140093a20","callsite":"0x140093a6c","kind":"direct_call","condition":"each child Part under positive count, preserving requested bool","status":"recursive_part_fog_override","evidence_id":"ev_00c618b4a160b1c74cfa9a3aadf4ce8b2af2f180ef5688ba3089c2c644fa81d8","callsite_bytes":"e8afffffff"},
+    {"from":"PartTriMesh+0x9d","to":"0x1400a2f50","site":"0x1400a31b2","kind":"state_read","condition":"dynamic Mat; owner +0x18 zero, current Scene nonnull and Scene fog +0x140 nonzero","status":"dynamic_material_fog_flag_first_read","evidence_id":"ev_e4e4c8efbacb2f1cc193927fa9096c79514a2a2bfff6ea689055e9adb145d054"},
+    {"from":"PartTriMesh+0x9d","to":"0x1400a2f50","site":"0x1400a31c7","kind":"state_read","condition":"dynamic Mat true branch rereads flag before zero test","status":"dynamic_material_fog_flag_second_read","evidence_id":"ev_a1fdf3880da34c4079178e1ef1f6279aa85cf2a5521546ae14c8f7375dd510d6"},
+    {"from":"0x1400a2f50","to":"0x1400bea90","callsite":"0x1400a31c2","kind":"direct_call","condition":"admitted dynamic Mat and PartTriMesh+0x9d equals 1; RenderInterface::Enable(2)","status":"dynamic_material_fog_enable","evidence_id":"ev_bfd2e8eda46449146af907e6d174e07230d110d7451bd8a223a27d2364cc1196","callsite_bytes":"e8c9b80100"},
+    {"from":"0x1400a2f50","to":"0x1400be9e0","callsite":"0x1400a31d7","kind":"direct_call","condition":"admitted dynamic Mat and PartTriMesh+0x9d equals 0; RenderInterface::Disable(2)","status":"dynamic_material_fog_disable","evidence_id":"ev_43155fe6cb25fbc5047ba305f94984f84b17bdebbab7ddc11085ed1be1957824","callsite_bytes":"e804b80100"}
+  ]
+}

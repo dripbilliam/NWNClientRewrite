@@ -27,6 +27,9 @@ test('matrix staging preserves exact current source and current DLL',async()=>{
  const created=await helper.stageProductionSelection({project,label:'production-unit-v2-'+Date.now(),argv:[...base,'--performance-runtime=verified-native','--render-thread=safe'],preferenceSeeds});
  const r=await helper.readProductionSelection(created.file,created.sha256);assert.equal(r.production,true);assert.equal(r.runtime.kind,'verified-native');assert.equal(r.renderThread,'safe');assert.equal(r.evidence.particleSha256,currentParticleSha);
  assert.deepEqual(fs.readFileSync(path.join(r.sourceProject,'.cache/native-kernel/nwn-particle-kernel.dll')),currentParticle);
+ const codepages=fs.readFileSync(path.join(project,'data/native_text_codepages.json'));
+ assert.deepEqual(fs.readFileSync(path.join(r.sourceProject,'data/native_text_codepages.json')),codepages);
+ assert.equal(r.pins.find(p=>p.relative==='data/native_text_codepages.json')?.sha256,crypto.createHash('sha256').update(codepages).digest('hex'));
  assert.ok(r.pins.some(p=>p.relative.startsWith('tests/')&&p.relative.endsWith('.gd')));assert.ok(r.pins.some(p=>p.relative==='.godot/global_script_class_cache.cfg'));
  const manifest=require('../tools/native-feature-manifest.cjs');assert.equal(manifest.sourceIdentity(r.sourceProject).sha256,r.mainSourceIdentity.sha256);assert.ok(!r.flags.some(v=>v.startsWith('--profile=')));assert.ok(!r.options.some(v=>/particle-clocks|particle-pose-leases/.test(v)));
  const arg=n=>n==='profiling'?'true':undefined;helper.validateProductionReplayOptions(r,arg);

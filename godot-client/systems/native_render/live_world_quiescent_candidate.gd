@@ -10,6 +10,7 @@ var _quiet_controlled:=-1
 var _quiet_desired:=-1
 var _quiet_installed:=-1
 var _quiet_failed:=-1
+var _received_quiet_finished:=false
 
 func invalidate_planning() -> void:
 	_planning_revision+=1
@@ -30,6 +31,23 @@ func receive(objects: Array,controlled: int) -> void:
 	# Public signals during receive may re-enter another state update/planner.
 	# Only a subsequent completed-boundary plan can establish quiescence again.
 	invalidate_planning()
+
+func received_snapshot_scope_begin(objects: Array,controlled: int) -> void:
+	invalidate_planning()
+	_received_quiet_finished=false
+	super.received_snapshot_scope_begin(objects,controlled)
+
+func received_snapshot_scope_step() -> bool:
+	if not super.received_snapshot_scope_step():return false
+	# Original quiet.receive invalidates before returning to support.receive's
+	# perception observer, which may synchronously invoke another planner.
+	if not _received_quiet_finished:_received_quiet_finished=true;invalidate_planning()
+	return true
+
+func received_snapshot_scope_end(objects: Array,controlled: int,completed: bool) -> void:
+	super.received_snapshot_scope_end(objects,controlled,completed)
+	if not _received_quiet_finished:invalidate_planning()
+	_received_quiet_finished=false
 
 func receive_delta(objects: Array,removed: Array,controlled: int) -> void:
 	var was_quiet:=_planning_quiet and _quiet_scope_matches()

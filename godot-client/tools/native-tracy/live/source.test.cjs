@@ -15,6 +15,14 @@ async function main() {
  const descriptor = { engineSha256: sha(binary), engineBytes: binary.length, nativeKernelSha256: sha(native), originalGameAssetsPacked: false, fullFunctionalFlags: accepted.fullFunctionalFlags, tracing: { onDemand: true }, acceptedReference: { production: false }, engineBuildProof: { fixtureOnly: true } };
  const descriptorData = Buffer.from(JSON.stringify(descriptor)), descriptorHash = sha(descriptorData);
  const helperSource = runtimeSource(fs.readFileSync(path.join(project, 'tools/native-performance-runtime.cjs'), 'utf8'), descriptor, descriptorHash, config);
+ const normalSource=fs.readFileSync(path.join(project,'tools/native-performance-runtime.cjs'),'utf8');
+ // The diagnostic engine remains D even when the normal selector advances to E.
+ for(const revision of ['d','e']){
+  const alternate=normalSource.replace(/native_core_[de]_win64/g,'native_core_'+revision+'_win64').replace(/accepted-core-[de]\.json/g,'accepted-core-'+revision+'.json').replace(/accepted-normal-combined-[de]/g,'accepted-normal-combined-'+revision).replace(/verified-native-normal-bundle-[de]/g,'verified-native-normal-bundle-'+revision);
+  ok(()=>assert.equal(runtimeSource(alternate,descriptor,descriptorHash,config),helperSource));
+ }
+ rejected(()=>runtimeSource(normalSource.replace(/Godot_native_core_[de]_win64/,'unexpected-engine'),descriptor,descriptorHash,config));
+ rejected(()=>runtimeSource(normalSource+normalSource,descriptor,descriptorHash,config));
  const hostOriginal = fs.readFileSync(path.join(project, 'tools/native-session-host.cjs'), 'utf8'); const host = hostSource(hostOriginal, config);
  ok(() => new vm.Script(helperSource)); ok(() => new vm.Script(host));
  rejected(() => one('none', 'missing', 'new')); rejected(() => one('xx', 'x', 'new'));

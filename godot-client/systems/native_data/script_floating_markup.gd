@@ -57,6 +57,33 @@ static func compile(raw: String) -> Dictionary:
 	if at>start:
 		var text:=visible.substr(start,at-start);commands.append({"op":"text","text":text});pieces.append(text)
 	return {"ready":true,"commands":commands,"plain":"".join(pieces),"rendered":visible,"nativeBytes":byte_count,"renderedBytes":end}
+static func compile_native(bytes: PackedByteArray,language: int) -> Dictionary:
+	# Parse font commands in original byte order before decoding text spans.
+	# RGB bytes are not DBCS characters, and byte counts are not glyph counts.
+	var codec=preload("res://systems/native_data/native_text_encoding.gd")
+	var end:=bytes.find(0)
+	if end<0:end=bytes.size()
+	var visible:=bytes.slice(0,end);var commands: Array=[];var pieces: Array[String]=[];var start:=0;var at:=0
+	while at<end:
+		var closing: bool=at+2<end and bytes[at]==60 and bytes[at+1]==47 and bytes[at+2]==99
+		var opening: bool=at+5<end and bytes[at]==60 and bytes[at+1]==99 and bytes[at+5]==62 and bytes[at+2]!=0 and bytes[at+3]!=0 and bytes[at+4]!=0
+		if closing or opening:
+			if at>start:
+				var decoded:=codec.decode(visible.slice(start,at),language)
+				if not decoded.get("ready",false):return decoded
+				commands.append({"op":"text","text":decoded.text});pieces.append(str(decoded.text))
+			if closing:commands.append({"op":"close"});at+=4
+			else:
+				commands.append({"op":"open","rgb":Color(F.f(float(bytes[at+2])/255.0),F.f(float(bytes[at+3])/255.0),F.f(float(bytes[at+4])/255.0),1.0)});at+=6
+			start=at
+		else:at+=1
+	if at>start:
+		var decoded:=codec.decode(visible.slice(start,at),language)
+		if not decoded.get("ready",false):return decoded
+		commands.append({"op":"text","text":decoded.text});pieces.append(str(decoded.text))
+	var rendered:=codec.decode(visible,language,true)
+	if not rendered.get("ready",false):return rendered
+	return {"ready":true,"commands":commands,"plain":"".join(pieces),"rendered":str(rendered.text),"nativeBytes":bytes.size(),"renderedBytes":end}
 static func colors(program: Dictionary,ring: Ring,base: Color) -> Dictionary:
 	var output: Dictionary={};var current:=base
 	for index in program.get("commands",[]).size():

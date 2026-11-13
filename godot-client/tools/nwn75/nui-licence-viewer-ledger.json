@@ -1,0 +1,36 @@
+{
+  "schema": "nwn75-nui-licence-viewer-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "original-binary-static; Config button to conditional Licence Viewer file/title text route",
+  "edges": [
+    {"from":"0x14082e7ff","to":"0x140e4b770","meaning":"Config content builder installs bound Licence Viewer action table on button callback object","status":"target_identified","evidence_id":"ev_f8ef3a87c7ae533d4a5e4f41e4632b2c246b6b06fc5eb350102ea288c45bec26"},
+    {"from":"0x140e4b780","to":"0x140834260","meaning":"bound button action table +0x10 resolves Licence Viewer publisher wrapper","status":"vtable_target_identified","evidence_id":"ev_95e2db4d51b48a2001380a6d77c498120b82c914ce09ec9b1d4ed118298e92f2"},
+    {"from":"0x140834283","to":"0x14081c420","meaning":"button action wrapper invokes Licence Viewer publisher when dispatched","status":"candidate_target_conditional","evidence_id":"ev_b1c1d64982583f0660436eeeb353bdecefd983b0237992031db6dfe46ae3c40d"},
+    {"from":"0x14081c4e4","to":"0x140700210","meaning":"publisher stores new shared Licence Viewer weak pair in identifier registry","status":"candidate_target_conditional","evidence_id":"ev_b55b109902f255c86c05fe5ddc88ab62ab620517d82257d9acb68362ff4a0e2b"},
+    {"from":"0x14081c420","to":"0x1408290c0","meaning":"publisher constructs shared enable_make Licence Viewer before registry write","status":"target_identified","evidence_id":"ev_b55b109902f255c86c05fe5ddc88ab62ab620517d82257d9acb68362ff4a0e2b"},
+    {"from":"0x1408293f8","to":"0x1401153e0","meaning":"constructor lists DOCINSTALL:licences directory through CExoBase","status":"target_identified","evidence_id":"ev_0dd3ed5687b8881ec7e2cf73efceeca186163e5dcf35e90cda56af2b7d38f9a1"},
+    {"from":"0x14082951d","to":"0x1401668b0","meaning":"entry loop opens licence path through CExoFile constructor","status":"candidate_target_conditional","evidence_id":"ev_0dd3ed5687b8881ec7e2cf73efceeca186163e5dcf35e90cda56af2b7d38f9a1"},
+    {"from":"0x1408295b4","to":"0x140166c90","meaning":"opened nonempty licence file is read into content string","status":"candidate_target_conditional","evidence_id":"ev_0dd3ed5687b8881ec7e2cf73efceeca186163e5dcf35e90cda56af2b7d38f9a1"},
+    {"from":"0x1408292f6","to":"0x140832810","meaning":"constructor binds selected-index callback member for content label change","status":"target_identified","evidence_id":"ev_0dd3ed5687b8881ec7e2cf73efceeca186163e5dcf35e90cda56af2b7d38f9a1"},
+    {"from":"0x140829332","to":"0x1408226d0","meaning":"constructor installs selected-index DynamicValue callback","status":"target_identified","evidence_id":"ev_0dd3ed5687b8881ec7e2cf73efceeca186163e5dcf35e90cda56af2b7d38f9a1"},
+    {"from":"0x140829b08","to":"0x140960260","meaning":"constructor builds SelectList from licence title vector in mode 1","status":"target_identified","evidence_id":"ev_0dd3ed5687b8881ec7e2cf73efceeca186163e5dcf35e90cda56af2b7d38f9a1"},
+    {"from":"0x14082a049","to":"0x14074c0b0","meaning":"constructor retains assembled layout root in window content","status":"target_identified","evidence_id":"ev_0dd3ed5687b8881ec7e2cf73efceeca186163e5dcf35e90cda56af2b7d38f9a1"},
+    {"from":"0x1406c5137","to":"0x1406c5350","meaning":"surviving registered and mask-selected Licence Viewer enters RenderWindow","status":"candidate_target_conditional","evidence_id":"ev_fdd4a2429d1f0bc34d80bd3dadc79ae2cbe7531002b9758ca8a00086277d1cbe"},
+    {"from":"0x1406c65a9","to":"0x1406c44e0","meaning":"Licence Viewer render slot resolves base Nui Window Render","status":"candidate_target_conditional","evidence_id":"ev_51a155afe727c5d7ce729b400f5251ede1f64fe0b7bfacc83735e22bbf702ec3"},
+    {"from":"0x14095ade8","to":"0x140e6e340","meaning":"mode-1 SelectList option builder installs selectable title Widget callback table","status":"candidate_target_conditional","evidence_id":"ev_bd502a0e0b79b85c876981e532babe5cc055ee211a29db7d96ddb63bf8d081f2"},
+    {"from":"0x140e6e350","to":"0x14095cbb0","meaning":"SelectList title callback table +0x10 resolves UTF-8 selectable render helper","status":"vtable_target_identified","evidence_id":"ev_f79e519abc106d796b7f854ba51abd8fd361a34b08b0a912652bd3317f1e0aa1"},
+    {"from":"0x14095cc42","to":"0x140a881a0","meaning":"stored title is converted to UTF-8 and passed to selectable text wrapper","status":"candidate_target_conditional","evidence_id":"ev_b6ca65777baa171e61278bc6b62265f90dbb05be0ef4a9475f3c6fba705906a8"},
+    {"from":"0x140a881a0","to":"0x140a881d0","meaning":"selectable wrapper measures zero-terminated title and forwards with selection state","status":"target_identified","evidence_id":"ev_d4f1fa9ae4ae5980993d5a6ef83cfbb431b6c985c9e5d6990e26a20fcc0541db"},
+    {"from":"0x140a881d0","to":"0x140a67050","meaning":"valid Nui context/window/row enters selectable command helper","status":"candidate_target_conditional","evidence_id":"ev_e62e41fad7464edc8826d673223e51d484568320103184d06a2c9545432dd35a"},
+    {"from":"0x140a67f7b","to":"0x140a75460","meaning":"selectable label branch enters clipped kind-16 text command helper","status":"candidate_target_conditional","evidence_id":"ev_28167d235637b6464db314ec1f394fc4a688424c1117185f55ae933419367ec8"},
+    {"from":"0x1408329ca","to":"0x1409602f0","meaning":"valid selected index constructs licence body label from content vector","status":"candidate_target_conditional","evidence_id":"ev_f589e5dbbfa5c99e8fc38360c6c0ed5f17abd1b2f0adc0768b781ff5cfeb9ff2"},
+    {"from":"0x1408329d6","to":"0x140952a10","meaning":"selection callback appends body label child to retained layout","status":"candidate_target_conditional","evidence_id":"ev_f589e5dbbfa5c99e8fc38360c6c0ed5f17abd1b2f0adc0768b781ff5cfeb9ff2"},
+    {"from":"0x140a71cc4","to":"0x140a7c340","meaning":"Nui draw pass converts numeric text command to geometry","status":"candidate_target_conditional","evidence_id":"ev_2b357f519fe7a5348b5a800538846f94df8cbad2a079187e676cc861758872c2"},
+    {"from":"0x140a71da4","to":"OPENGL32.DLL::glDrawElements","meaning":"nonempty converted title/body geometry reaches indexed GL draw","status":"candidate_target_conditional","evidence_id":"ev_2b357f519fe7a5348b5a800538846f94df8cbad2a079187e676cc861758872c2"}
+  ],
+  "open_edges": [
+    "actual Config window/button action, Licence Viewer registry survival and visibility",
+    "installed licence directory contents, file backend and selected index",
+    "remaining optional constructor buttons/style commands and frame-specific glyph/draw counts"
+  ]
+}

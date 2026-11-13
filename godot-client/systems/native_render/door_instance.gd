@@ -10,6 +10,15 @@ var remaining:=0.0
 var _transition_hover_active:=false
 var transition_hover_unavailable:=""
 var door_stats:={"updates":0,"transitions":0,"missing_clips":[]}
+func begin_install_door(bundle: Dictionary,shared_pool,id: int,state: Dictionary) -> bool:
+	actor_alpha_enabled=true
+	var map: Dictionary={}
+	for code in [0,14,22,50,51,72,77,99,100,213,214,215,216,300,301,302,303,304]:map[str(code)]=Names.name(10,code,int(state.get("destroyedModel",0)))
+	var initial:=int(state.get("animation",{0:22,1:50,2:51,3:72}.get(Names.door_state(state),22)))
+	return begin_install([{"bundle":bundle,"anchor":"","follow":true}],shared_pool,id,{"0":map},initial)
+func finish_install_door(bundle: Dictionary,state: Dictionary) -> void:
+	_door_regions.configure(self,bundle,rigs,object_id)
+	observe_door(state)
 func install_door(bundle: Dictionary,shared_pool,id: int,state: Dictionary) -> bool:
 	actor_alpha_enabled=true
 	var map: Dictionary={}

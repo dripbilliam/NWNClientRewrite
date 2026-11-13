@@ -1,0 +1,80 @@
+{
+	"checks": 8,
+	"failures": [],
+	"legs": [
+		{
+			"completion_us": 43753,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "control",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 40177,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "descriptor-cache",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 41831,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "descriptor-cache",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 41115,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "control",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 29191,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "control",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 36689,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "descriptor-cache",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 30736,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "descriptor-cache",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 31617,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "control",
+			"ready": true,
+			"sources": 1919
+		}
+	],
+	"passed": true,
+	"scope": "Private within-reindex model name reuse; authored 1918/1919-source SceneTree, no original asset or FPS result"
+}

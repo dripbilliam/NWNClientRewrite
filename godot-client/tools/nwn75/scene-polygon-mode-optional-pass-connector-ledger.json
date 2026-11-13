@@ -1,0 +1,15 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Two shadow-volume and two wireframe Scene callsites through RenderInterface polygon-mode thunk to previously disconnected GLRender implementation",
+  "document": "scene-polygon-mode-optional-pass-connector.md",
+  "edges": [
+    {"from":"0x1400d0ab0","to":"0x1400bf220","callsite":"0x1400d0d7e","kind":"direct_call","condition":"RenderShadows param_1 != 0, g_nRenderShadowVolumes 1 or 3; enum 1 before shadow-volume sequence","status":"shadow_polygon_mode_enable","evidence_id":"ev_eb4ebd7bf0f16421015632fab4afbccf63219dbddd61a784b9fe1eae2d729448"},
+    {"from":"0x1400d0ab0","to":"0x1400bf220","callsite":"0x1400d0e57","kind":"direct_call","condition":"same admitted shadow-volume branch; enum 2 after sequence","status":"shadow_polygon_mode_restore","evidence_id":"ev_be5f39e3e05e84fa97f0f5cea6afca3114617a76606da44f456fc771799089bc"},
+    {"from":"0x1400d0f10","to":"0x1400bf220","callsite":"0x1400d24ce","kind":"direct_call","condition":"g_nRenderWireframe != 0; enum 1 before masked replay of eight draw buckets","status":"wireframe_polygon_mode_enable","evidence_id":"ev_c240d60d8e6d1dc3db03124be7861ba859d2a95d765b3982765b7d99694c812a"},
+    {"from":"0x1400d0f10","to":"0x1400bf220","callsite":"0x1400d25c4","kind":"direct_call","condition":"same wireframe replay; enum 2 after bucket draws and before saved state restoration","status":"wireframe_polygon_mode_restore","evidence_id":"ev_deb17f539074ef61736bc15fbbe1b5c2915c6bf82672ad779a6a847efd2b4111"},
+    {"from":"0x1400bf220","to":"0x1400b7a20","callsite":"0x1400bf220","kind":"tail_jump","condition":"RenderInterface E9 thunk to GLRender; no separate work","status":"polygon_mode_gl_implementation","evidence_id":"ev_f2578d761bc65af0e63eb00a0d630445fd1b8fe9a4e52065277e330266496f2b"},
+    {"from":"0x1400b7a20","to":"0x140d8ad04","site":"0x1400b7a23","kind":"indexed_constant_lookup","condition":"enum 1 selects table+4 numeric 0x1b01; enum 2 selects table+8 numeric 0x1b02","status":"polygon_mode_table_selection","evidence_id":"ev_8256a7dd51ab9db3c00a7a7586f2b86b11abff4b7793699e484e0a0978446ad0"},
+    {"from":"0x140d8ad04","to":"glPolygonMode argument 0x1b01/0x1b02","kind":"enum_to_gl_value","condition":"mode 1/2 constant entries at 0x140d8ad04/08; GLRender uses 0x408 as first argument","status":"polygon_mode_constants","evidence_id":"ev_73bde821f43f5d3dc15631339151f3960e333cba721d47f5eefbdb6f52c13689"}
+  ]
+}

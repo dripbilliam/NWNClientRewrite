@@ -14,13 +14,14 @@ class ContextText extends "res://systems/native_data/talk_text.gd":
 	func fetch_reference(ref: int,gender: int=0)->Dictionary:
 		if ref==available_reference:return {"found":true,"text":"Authored <<FirstName> token provider","duration":0.0}
 		return super.fetch_reference(ref,gender)
-	func parse_native(input: String,call_state: Dictionary={}) -> Dictionary:
+	func parse_native_bytes(raw_bytes: PackedByteArray,call_state: Dictionary={}) -> Dictionary:
+		var input: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(call_state.get("language",base.language)),true).get("text","")
 		# Provider boundary only: strict algorithm and append-only bytes have
 		# their separate unchanged-original comparison. No ID-based lookup here.
 		if input=="Authored <FirstName> token provider" and call_state.has("context"):
 			var current: Dictionary=call_state.context;var object_id:=int(current.id);context_reads.append({"id":object_id,"knownLifetime":current.get("clientKnownLifetime"),"nativeBC":call_state.get("nativeBC"),"nativeB8":call_state.get("nativeB8")})
 			return {"ready":true,"body":"Resolved context "+str(object_id)+" lifetime "+str(current.get("clientKnownLifetime"))}
-		return super.parse_native(input,call_state)
+		return super.parse_native_bytes(raw_bytes,call_state)
 class EmptyPool extends RefCounted:
 	var compact_static_parts:=false
 class PassiveBubble extends Control:

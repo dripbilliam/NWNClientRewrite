@@ -61,6 +61,152 @@ var label: Label
 var authenticated:=false
 var closing:=false
 var finish_acknowledged:=false
+var _native_entry_snapshot: Dictionary={}
+
+func native_entry_snapshot_allowed(_message: Dictionary) -> bool:return true
+func complete_native_entry_loading(load_errors: Array) -> void:
+	if not is_instance_valid(world) or world.closed or world.retiring or not world.get_meta("native_entry_loading",false) or world.generation!=epoch or not is_instance_valid(loading_screen) or loading_screen.epoch!=epoch or loading_screen.active or not load_errors.is_empty():return
+	var milestones: Dictionary=loading_screen.milestones
+	if not milestones.get("terrain",false) or not milestones.get("player",false) or not milestones.get("camera",false):return
+	world.set_meta("native_entry_loading",false)
+	for entry in report.get("entry_commit_entries",[]):
+		if int(entry.generation)==epoch and int(entry.area_id)==world.area_id:entry.first_playable_ms=(Time.get_ticks_usec()-int(entry.started_us))/1000.0
+func complete_native_publication_loading(load_errors: Array) -> void:
+	if not is_instance_valid(world) or not world.get_meta("native_publication_loading",false):return
+	if world.closed or world.retiring or world.generation!=epoch or not load_errors.is_empty():
+		world.set_meta("native_publication_loading",false);return
+	# The loading screen clears at first playable, while known scenery may
+	# continue publishing for several seconds. End the private allowance only
+	# when the current known static population is fully resolved. Later server
+	# population changes use the ordinary budget; no mark is reactivated.
+	if world.base_scenery_population_known and not world.base_scenery_progress_dirty and world.base_scenery_known_complete_since_ms!=null:
+		world.set_meta("native_publication_loading",false)
+func native_entry_snapshot_current(state: Dictionary) -> bool:
+	return not closing and initialized and is_same(_native_entry_snapshot,state) and native_entry_snapshot_allowed(state.message)
+func begin_native_entry_snapshot(message: Dictionary) -> bool:
+	if not initialized or not _native_entry_snapshot.is_empty() or int(message.generation)==epoch or int(message.generation)<epoch or str(message.data.get("bridgeMode","full"))!="full":return false
+	_native_entry_snapshot={"message":message,"phase":"capture","new_world":null,"previous_mode":Node.PROCESS_MODE_INHERIT,"renderer_done":false,"phase_us":{},"maximum_unit_us":0,"overruns":{}}
+	creation_trace("snapshot:received");creation_trace("snapshot:transition-begin")
+	return true
+func cancel_native_entry_snapshot() -> void:
+	var state: Dictionary=_native_entry_snapshot;_native_entry_snapshot={}
+	if not state.is_empty() and is_instance_valid(state.get("new_world")):
+		state.new_world.set_meta("native_publication_loading",false)
+		state.new_world.cancel_received_snapshot()
+		# Lifecycle reset/replacement retires this unpublished owner. Never
+		# activate a cancelled partial entry scene.
+		state.new_world.process_mode=Node.PROCESS_MODE_DISABLED
+func _native_entry_next(state: Dictionary,phase: String) -> void:
+	if native_entry_snapshot_current(state):state.phase=phase
+func advance_native_entry_snapshot(deadline_usec: int) -> Dictionary:
+	var began:=Time.get_ticks_usec();var units:=0;var maximum:=0;var overruns: Dictionary={}
+	while not _native_entry_snapshot.is_empty() and Time.get_ticks_usec()<deadline_usec:
+		var state: Dictionary=_native_entry_snapshot
+		if not native_entry_snapshot_current(state):cancel_native_entry_snapshot();return {"done":true,"cancelled":true}
+		var phase: String=state.phase;var unit_began:=Time.get_ticks_usec()
+		_native_entry_snapshot_unit(state,deadline_usec);units+=1
+		var elapsed:=Time.get_ticks_usec()-unit_began
+		maximum=maxi(maximum,elapsed);state.maximum_unit_us=maxi(int(state.maximum_unit_us),elapsed)
+		state.phase_us[phase]=int(state.phase_us.get(phase,0))+elapsed
+		if Time.get_ticks_usec()>deadline_usec:
+			overruns[phase]=Time.get_ticks_usec()-deadline_usec
+			state.overruns[phase]=maxi(int(state.overruns.get(phase,0)),Time.get_ticks_usec()-deadline_usec)
+	return {"done":_native_entry_snapshot.is_empty(),"cancelled":false,"units":units,"elapsed_us":Time.get_ticks_usec()-began,"maximum_unit_us":maximum,"overruns":overruns}
+func _native_entry_snapshot_unit(state: Dictionary,deadline_usec: int) -> void:
+	var message: Dictionary=state.message;var data: Dictionary=message.data
+	match str(state.phase):
+		"capture":
+			gameplay_ui.set_gameplay_visible(false)
+			if not native_entry_snapshot_current(state):return
+			if is_instance_valid(world):
+				report.retired_areas=report.get("retired_areas",[]);report.retired_areas.append(world.snapshot());camera_memory=controller.remembered_pose()
+			_native_entry_next(state,"retire")
+		"retire":
+			if is_instance_valid(keyboard):keyboard.stop(false);keyboard.queue_free()
+			for owned in [world_input,hud,registry]:
+				if is_instance_valid(owned):owned.process_mode=Node.PROCESS_MODE_DISABLED;owned.queue_free()
+			if is_instance_valid(world):world_retirement.retire(world)
+			if is_instance_valid(environment):environment.queue_free()
+			_native_entry_next(state,"open")
+		"open":
+			epoch=int(message.generation);acknowledged=-1;initial_controlled=null;entry_camera=preload("res://systems/native_render/entry_camera.gd").new();walkmesh_registered=false;presentation_stats={};stats_at=0
+			loading_screen.begin(epoch,str(data.area.get("resRef",module_name)),data.get("entry",{}))
+			if not native_entry_snapshot_current(state):return
+			world=World.new();state.new_world=world;state.previous_mode=world.process_mode;world.process_mode=Node.PROCESS_MODE_DISABLED
+			world.set_meta("native_entry_loading",true);world.set_meta("native_entry_commit_pending",true)
+			if render_pool.scenery_publication_budget_us>render_pool.publication_budget_us:world.set_meta("native_publication_loading",true)
+			world.tile_borders_enabled=native_tile_borders_enabled();world.set_meta("native_enhanced_lighting",render_pool.native_lighting)
+			if render_pool.native_surface_output:world.set_meta("native_surface_output",true)
+			world.entry_prefetch_enabled=args.get("entry-prefetch","")!="false";world.minutes_per_hour=int(data.get("module",{}).get("minutesPerHour",5));world.use_skeleton=args.get("skeleton","")=="true"
+			host.add_child(world)
+			world.open(catalog,data.area,epoch,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),render_pool,data.get("entry",{}))
+			if not native_entry_snapshot_current(state):return
+			native_material_policy_ready();_native_entry_next(state,"camera")
+		"camera":
+			if camera==null:
+				camera=Camera3D.new();host.add_child(camera);camera.near=0.1;camera.far=150;camera.current=true;camera.position=Vector3(0,15,15)
+				gamma_controller.attach(camera);controller=CameraController.new();host.add_child(controller);controller.configure(camera,Vector3.ZERO)
+			controller.keyboard_pan=false;_native_entry_next(state,"registry")
+		"registry":
+			registry=Registry.new();host.add_child(registry);gameplay_ui.world_camera=camera;gameplay_ui.world_registry=registry
+			registry.configure_highlight_assets(world.references.assets,catalog,world.pool)
+			gameplay_ui.world_camera_yaw=func():return controller.follow_state.quaternion_yaw(controller.follow_state.state.quaternion) if controller.follow_state!=null else NAN
+			transition_targets=preload("res://systems/native_render/transition_targets.gd").new();world.add_child(transition_targets);transition_targets.configure(registry,world.area_id)
+			hud=Hud.new();host.add_child(hud);hud.configure(registry,camera);hud.enable_live_mode();hud.metrics.hide();hud.bind_gameplay(gameplay_ui)
+			hud.instructions.text="Middle drag: orbit · wheel: zoom\nW/S: forward/back · A/D: turn · Q/E: strafe\nShift: walk · left click: move, talk, use or pick up\nHold Tab: highlights · right click: examine\nFull gameplay menus and effects pending."
+			hud.examine_requested.connect(func(id):send({"kind":"examine","generation":epoch,"areaId":world.area_id,"targetId":id}))
+			_native_entry_next(state,"input")
+		"input":
+			world_input=InputOwner.new();host.add_child(world_input);world_input.configure(registry,camera,hud);world_input.camera_controller=controller;world_input.action=world_action
+			var hover=preload("res://systems/native_render/world_hover_presentation.gd").new();world.add_child(hover);hover.configure(world,registry);world_input.hover_presentation=hover.select
+			world_input.extra_pointer_block=func(point):return native_snapshot_transition_waiting() or gameplay_ui.blocks_pointer(point)
+			world_input.context_action=gameplay_ui.desktop.open_radial;world_input.cursor_action=gameplay_ui.mouse_cursor.world_pointer
+			world.instance_ready.connect(instance_ready)
+			world.instance_state_changed.connect(func(id,source):instance_ready(id,source,world.instances[id]))
+			world.instance_removed.connect(func(id):
+				if registry.forget_entity(id):hud.queue_refresh_entities())
+			keyboard=Keyboard.new();host.add_child(keyboard);keyboard.context_query=keyboard_context;keyboard.transmit=player_command;keyboard.predict=world.preview_drive;keyboard.end_prediction=world.end_drive
+			keyboard.set_key_bindings(gameplay_ui.key_bindings);world_input.set_key_bindings(gameplay_ui.key_bindings);controller.set_key_bindings(gameplay_ui.key_bindings)
+			keyboard.set_frame_input_admission(bool(ProjectSettings.get_setting("nwn/private/keyboard_frame_admission",true)))
+			var budget:=Lights.new();world.add_child(budget);budget.camera=camera;budget.maximum=int(args.get("native-shadow-lights",1));budget.focus_query=world.shadow_focus;world.set_meta("native_point_shadow_budget",weakref(budget))
+			_native_entry_next(state,"environment")
+		"environment":
+			environment=AreaEnvironment.new();host.add_child(environment);environment.configure({},world);environment.camera=camera;environment.controller=controller
+			if is_instance_valid(native_output):native_output.bind(world,environment,gamma_controller,native_output_settings)
+			_native_entry_next(state,"header")
+		"header":
+			report.environment_accepted=publish_area_environment(data,int(message.generation))
+			if not native_entry_snapshot_current(state):return
+			if is_instance_valid(world.placeable_lights):world.placeable_lights.receive_area(data.area.get("placeableLights",[]))
+			_native_entry_next(state,"renderer_begin")
+		"renderer_begin":
+			var metadata: Dictionary=snapshot_metadata if not snapshot_metadata.is_empty() and is_same(snapshot_metadata_objects,data.objects) else {}
+			if not world.begin_received_snapshot(data.objects,int(data.controlledId),metadata):
+				# Fresh-entry admission is deliberately narrow. Never silently
+				# resume a rejected partial world through a different algorithm.
+				fail("Native entry world rejected cooperative full boundary");return
+			_native_entry_next(state,"renderer")
+		"renderer":
+			var result: Dictionary=world.advance_received_snapshot(deadline_usec)
+			state.renderer_receipt=result
+			if result.get("cancelled",false):cancel_native_entry_snapshot();return
+			if result.get("done",false):state.renderer_done=true;_native_entry_next(state,"ui")
+		"ui":
+			gameplay_ui.set_world(epoch,world.area_id,int(data.controlledId),data.objects,data.get("inventory",{}),data)
+			_native_entry_next(state,"wind_voice")
+		"wind_voice":
+			if is_instance_valid(world.point_wind):world.point_wind.set_area(data.area.get("fields",{}))
+			if data.get("ui",{}).has("players"):world.effects.creature_voices.set_players(data.ui.players)
+			_native_entry_next(state,"targets")
+		"targets":
+			if transition_targets.receive(data.objects,data.get("removedObjectIds",[]),false):hud.queue_refresh_entities()
+			_native_entry_next(state,"combat")
+		"combat":
+			flush_combat();_native_entry_next(state,"finish")
+		"finish":
+			received+=1;_native_entry_snapshot={}
+			# Session keeps the coherent scene disabled through visibility/API/
+			# ACK publication, then restores this original process mode.
 var initialized:=false
 var epoch:=-1
 var acknowledged:=-1
@@ -291,6 +437,8 @@ func receive(message: Dictionary) -> void:
 				epoch=int(message.generation); acknowledged=-1; initial_controlled=null; entry_camera=preload("res://systems/native_render/entry_camera.gd").new(); walkmesh_registered=false; presentation_stats={}; stats_at=0
 				loading_screen.begin(epoch,str(data.area.get("resRef",module_name)),data.get("entry",{}))
 				world=World.new();world.tile_borders_enabled=native_tile_borders_enabled(); world.set_meta("native_enhanced_lighting",render_pool.native_lighting)
+				world.set_meta("native_entry_loading",true)
+				if render_pool.scenery_publication_budget_us>render_pool.publication_budget_us:world.set_meta("native_publication_loading",true)
 				# Absence is the established ordinary-world contract. In particular,
 				# emitter ancestor lookup must not acquire a new scope on rollback.
 				if render_pool.native_surface_output: world.set_meta("native_surface_output",true)
@@ -329,6 +477,7 @@ func receive(message: Dictionary) -> void:
 				creation_trace("snapshot:input-after-keyboard-before")
 				keyboard=Keyboard.new(); host.add_child(keyboard); keyboard.context_query=keyboard_context; keyboard.transmit=player_command; keyboard.predict=world.preview_drive; keyboard.end_prediction=world.end_drive
 				keyboard.set_key_bindings(gameplay_ui.key_bindings); world_input.set_key_bindings(gameplay_ui.key_bindings); controller.set_key_bindings(gameplay_ui.key_bindings)
+				keyboard.set_frame_input_admission(bool(ProjectSettings.get_setting("nwn/private/keyboard_frame_admission",true)))
 				var budget:=Lights.new(); world.add_child(budget); budget.camera=camera; budget.maximum=int(args.get("native-shadow-lights",1))
 				budget.focus_query=world.shadow_focus
 				world.set_meta("native_point_shadow_budget",weakref(budget))
@@ -504,6 +653,8 @@ func _profile_tick() -> void:
 		report.protocol_disconnect={"poll_error":poll_error,"status":peer.get_status(),"ticks_ms":Time.get_ticks_msec()}
 		creation_runtime.event("protocol:disconnect",report.protocol_disconnect)
 		fail("Local protocol session disconnected"); return
+	# Complete one admitted OS-key burst after protocol changes and before output.
+	if is_instance_valid(keyboard) and keyboard.frame_input_admission and keyboard.can_process():keyboard.flush_input_frame()
 	flush_protocol_output()
 	creation_runtime_phase("frame:protocol-after")
 	FrameProfile.finish("root_protocol",phase_began)
@@ -545,6 +696,8 @@ func _profile_tick() -> void:
 	for failure in world.terrain.diagnostics.get("errors",[]): load_errors.append(str(failure))
 	var anchored: bool=initial_controlled!=null and world.instances.has(world.controlled_id) and controller.follow_valid(world.instances[world.controlled_id].position)
 	loading_screen.advance(epoch,{"terrain":world.ready_for_admission(),"player":world.ready_for_control(),"camera":anchored,"tiles":world.terrain.completed_tiles,"total_tiles":world.terrain.definition.get("tiles",[]).size(),"errors":load_errors})
+	complete_native_entry_loading(load_errors)
+	if render_pool.scenery_publication_budget_us>render_pool.publication_budget_us:complete_native_publication_loading(load_errors)
 	gameplay_ui.set_gameplay_visible(gameplay_presentation_allowed())
 	creation_runtime_phase("frame:loading-after")
 	if not load_errors.is_empty(): report.area_loading_error=load_errors
@@ -930,7 +1083,8 @@ func shutdown() -> void:
 		for value in samples:
 			sum+=value
 			if value>50: hitches+=1
-		report.frame_intervals={"count":samples.size(),"average_ms":sum/samples.size(),"p95_ms":sorted[mini(sorted.size()-1,int(ceil(sorted.size()*0.95))-1)],"p99_ms":sorted[mini(sorted.size()-1,int(ceil(sorted.size()*0.99))-1)],"worst_ms":sorted[-1],"over_50ms":hitches,"scope":"Retained active-world tick samples (up to4096), may include loading unless performance_window.steady is true; functional run, not clean performance acceptance"}
+		var median_ms: float=(float(sorted[int((sorted.size()-1)/2.0)])+float(sorted[int(sorted.size()/2.0)]))*0.5
+		report.frame_intervals={"count":samples.size(),"average_ms":sum/samples.size(),"median_ms":median_ms,"p95_ms":sorted[mini(sorted.size()-1,int(ceil(sorted.size()*0.95))-1)],"p99_ms":sorted[mini(sorted.size()-1,int(ceil(sorted.size()*0.99))-1)],"worst_ms":sorted[-1],"over_50ms":hitches,"scope":"Retained active-world tick samples (up to4096), may include loading unless performance_window.steady is true; functional run, not clean performance acceptance"}
 	if creation_runtime.enabled:creation_runtime.event("finish:finished-enqueue-before",creation_runtime_values())
 	send({"kind":"finished","success":report.success})
 	if creation_runtime.enabled:creation_runtime.event("finish:finished-enqueue-after",creation_runtime_values())

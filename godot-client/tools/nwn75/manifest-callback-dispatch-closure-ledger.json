@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "document": "manifest-callback-dispatch-closure.md",
+  "scope": "Conditional invocation sites and stack ownership for four constructor-backed class-5 manifest and shard SQLite callbacks",
+  "edges": [
+    {"from":"0x1401c3560","to":"0x140dacb68","site":"0x1401c366e","kind":"vtable_install","condition":"requested manifest SHA1/resref/type stack callback before Checked","status":"manifest_lookup_callback_install","evidence_id":"ev_53c6040e9250a47168ed96307489483de87a8ed55fd68de19b33a87d83b513f6"},
+    {"from":"0x1401b4fb0","to":"0x1401b5060","callsite":"0x1401b501a","kind":"direct_static","condition":"nonnull checked shared DataBlock function object","status":"checked_shared_block_delegate","evidence_id":"ev_cac18ea2607113ce00c92866f4e172011974c8029d5e8c59a686059b417dc886"},
+    {"from":"0x1401b5060","to":"0x1401c8a60","site":"0x1401b509b","kind":"resolved_original_function_pointer_candidate","condition":"nonnull function object installed by 0x1401c3560; generic Checked helper otherwise polymorphic","status":"manifest_lookup_callback_dispatch","evidence_id":"ev_991dab9cd934665901ecd81f874f52a81ab587ba1b93313704c2412f3a9d4015"},
+    {"from":"0x1401be0e0","to":"0x140dacf00","site":"0x1401be1cd","kind":"vtable_install","condition":"manifest_resrefs SQL row stack callback before _extract","status":"manifest_row_callback_install","evidence_id":"ev_5233fab3aed7fc26a462eddacd5d653a3d67464361580c4af719a7e3026bcdd1"},
+    {"from":"0x1401cade0","to":"0x1401c8cf0","site":"0x1401cb110","kind":"resolved_original_function_pointer_candidate","condition":"admitted manifest row and nonnull callback installed by 0x1401be0e0; generic binder otherwise polymorphic","status":"manifest_row_callback_dispatch","evidence_id":"ev_87e8bec27bd7e16c489938fb41bdb50072f34c50331ce9b4e7aa8212e659376f"},
+    {"from":"0x1401c1c90","to":"0x140daca50","site":"0x1401c1ce4","kind":"vtable_install","condition":"matching shard in resident hash set; stack Fetch callback before Checked","status":"shard_fetch_callback_install","evidence_id":"ev_8cffab3f8bebea7481b135cde6ecc9c42d304449d6078c22005d0b16e6d663cd"},
+    {"from":"0x1401b5060","to":"0x1401c87b0","site":"0x1401b509b","kind":"resolved_original_function_pointer_candidate","condition":"nonnull function object installed by 0x1401c1c90; generic Checked helper otherwise polymorphic","status":"shard_fetch_callback_dispatch","evidence_id":"ev_991dab9cd934665901ecd81f874f52a81ab587ba1b93313704c2412f3a9d4015"},
+    {"from":"0x1401bdbe0","to":"0x140dacd50","site":"0x1401bdcc5","kind":"vtable_install","condition":"single size/data SQL row stack callback before _extract_single_value","status":"shard_blob_callback_install","evidence_id":"ev_991130e632b10faa1ca24e9760bceef1f6f4c96c032b03355fdcb2e817c015e6"},
+    {"from":"0x1401cb1f0","to":"0x1401c81f0","site":"0x1401cb51c","kind":"resolved_original_function_pointer_candidate","condition":"exactly one size/data row and nonnull callback installed by 0x1401bdbe0; generic binder otherwise polymorphic","status":"shard_blob_callback_dispatch","evidence_id":"ev_d6d8ae65991516793c6c862c2803520c190a3afedc505a8dcd6edeaf063ec833"}
+  ]
+}

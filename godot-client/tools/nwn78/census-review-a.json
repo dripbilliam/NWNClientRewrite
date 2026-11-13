@@ -1,0 +1,140 @@
+{
+  "ticket": "NWN-78",
+  "diagnostic": true,
+  "strictDriverSuccess": false,
+  "nativeWorldSuccess": true,
+  "knownEnvironmentErrors": [
+    "ERROR: Can't create shader cache folder, no shader caching will happen: user://",
+    "ERROR: Failed to read the root certificate store."
+  ],
+  "stageSelectionSha256": "bf8bd230cc8e9751afacefe5b0ce1cda49c18a325dfe6783cc481bb682c74fe4",
+  "sourceSignature": "0faf18778280a414b7ee483883557cbb49fb74fe0333e61887e8bb0528c1e0d6",
+  "engineSha256": "753b3e188068efaf865bda3abd6322ebe44e3a98ef2f5d199c8af1a78624c98b",
+  "world": {
+    "generation": 2,
+    "entities": 1918,
+    "knownBaseResolved": 1784,
+    "knownBaseExpected": 1784
+  },
+  "samples": [
+    {
+      "phase": "streaming",
+      "desired": 1936,
+      "installed": 305,
+      "subtreeNodes": 26548,
+      "globalNodes": 28964,
+      "globalResources": 755,
+      "meshInstances": 10009,
+      "uniqueMeshResources": 1934,
+      "authoredParts": 13307,
+      "namedEmitters": 394,
+      "motionRows": 7,
+      "motionActive": 1,
+      "controlledActive": false,
+      "queryMemberships": {
+        "drive_static_entries": 1929,
+        "drive_static_groups": 418,
+        "scene_static_roots": 245,
+        "terrain_query_roots": 225,
+        "terrain_tiles": 225
+      },
+      "censusMs": 47.308
+    },
+    {
+      "phase": "quiet",
+      "desired": 1982,
+      "installed": 1982,
+      "subtreeNodes": 57600,
+      "globalNodes": 60024,
+      "globalResources": 755,
+      "meshInstances": 18332,
+      "uniqueMeshResources": 3905,
+      "authoredParts": 29201,
+      "namedEmitters": 2087,
+      "motionRows": 7,
+      "motionActive": 1,
+      "controlledActive": false,
+      "queryMemberships": {
+        "drive_static_entries": 1975,
+        "drive_static_groups": 445,
+        "scene_static_roots": 1784,
+        "terrain_query_roots": 225,
+        "terrain_tiles": 225
+      },
+      "censusMs": 59.583
+    },
+    {
+      "phase": "moving",
+      "desired": 1982,
+      "installed": 1982,
+      "subtreeNodes": 57600,
+      "globalNodes": 60024,
+      "globalResources": 755,
+      "meshInstances": 18332,
+      "uniqueMeshResources": 3905,
+      "authoredParts": 29201,
+      "namedEmitters": 2087,
+      "motionRows": 7,
+      "motionActive": 2,
+      "controlledActive": true,
+      "queryMemberships": {
+        "drive_static_entries": 1975,
+        "drive_static_groups": 445,
+        "scene_static_roots": 1784,
+        "terrain_query_roots": 225,
+        "terrain_tiles": 225
+      },
+      "censusMs": 59.409
+    }
+  ],
+  "profileWindows": {
+    "settledCount": 24,
+    "controlledActiveCount": 0,
+    "lastSettled": [
+      {
+        "elapsedMs": 109393.5381,
+        "entities": 1918,
+        "count_motion_rows": 10,
+        "count_motion_stationary_settled": 6,
+        "count_motion_active": 2,
+        "count_pose_evaluations": 10,
+        "count_pose_unchanged_transforms": 8,
+        "count_controlled_motion_active": 0,
+        "world_motion_update_ms": 0.852758333333333,
+        "world_pose_inputs_ms": 0.603116666666667,
+        "world_motion_finish_ms": 0.00862499999999999,
+        "callback_world": 1.59544166666667
+      },
+      {
+        "elapsedMs": 111409.4117,
+        "entities": 1918,
+        "count_motion_rows": 10,
+        "count_motion_stationary_settled": 6,
+        "count_motion_active": 2,
+        "count_pose_evaluations": 10,
+        "count_pose_unchanged_transforms": 8,
+        "count_controlled_motion_active": 0,
+        "world_motion_update_ms": 0.833533333333334,
+        "world_pose_inputs_ms": 0.585420833333333,
+        "world_motion_finish_ms": 0.00811666666666666,
+        "callback_world": 1.55460833333333
+      },
+      {
+        "elapsedMs": 113437.0061,
+        "entities": 1918,
+        "count_motion_rows": 10,
+        "count_motion_stationary_settled": 6,
+        "count_motion_active": 2,
+        "count_pose_evaluations": 10,
+        "count_pose_unchanged_transforms": 8,
+        "count_controlled_motion_active": 0,
+        "world_motion_update_ms": 0.84705,
+        "world_pose_inputs_ms": 0.584333333333333,
+        "world_motion_finish_ms": 0.00804999999999999,
+        "callback_world": 1.567275
+      }
+    ],
+    "lastMoving": []
+  },
+  "scope": "One-shot class/resource census and source-pinned profile counters. The census perturbs individual frames; no FPS comparison or safe ownership deletion is inferred."
+}

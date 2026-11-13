@@ -1,0 +1,40 @@
+{
+  "schema": "nwn75-original-propagaterender-attachment-reentry-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original normal-Gob propagaterender production, constructor-backed Attach registration and render reentry; runtime callback population and actual draw remain open.",
+  "document": "original-propagaterender-attachment-reentry.md",
+  "edges": [
+    {"from":"0x1400a4280","to":"0x1400a3440","callsites":["0x1400a44af","0x1400a4521"],"kind":"conditional_direct","condition":"root Part, ProcessGob, visibility and positive alpha; normal or fading fog path","status":"normal_gob_part_draw","evidence_id":"ev_d98db872a4486fbaa28cf927d2f19580b49a45a978006606b83a5bb398210770"},
+    {"from":"0x1400a4280","to":"0x140050d50","callsite":"0x1400a4545","kind":"constructor_bounded_virtual","condition":"Render(bool true) after PartDraw/matrix pop; Gob +0x298 slot","status":"gob_propagaterender_event","evidence_id":"ev_d98db872a4486fbaa28cf927d2f19580b49a45a978006606b83a5bb398210770"},
+    {"from":"0x1400498a0","to":"0x140050d50","callsite":"0x140049f1d","kind":"constructor_bounded_virtual","condition":"StringGob Render(bool true) after text/model presentation; inherited Gob +0x298 slot","status":"stringgob_propagaterender_event","evidence_id":"ev_d48d788ea591d6f4c257237674ad87a57f1a635a3748ccc946cb8771653b9b15"},
+    {"from":"0x14005a5b0","to":"0x1400a4280","site":"0x14005a5c3","kind":"conditional_tail_jump","condition":"CurrentCamera nonnull and receiver differs from CurrentCamera; Camera Render slot","status":"camera_gob_render_entry","evidence_id":"ev_55674a71a8077e1cb93b0b5e1a7f8bba14a5b1dbd0e8bf07cc2691dfb17198a7"},
+    {"from":"0x140050d50","to":"CallBack+0x20","callsite":"0x140050e38","kind":"computed_record_function","condition":"reverse callback scan; case-insensitive exact, empty-name, or leading-* match; event data or stored context +0x28","status":"dynamic_event_handler_dispatch","evidence_id":"ev_eafb0352983224fdb871c213d645c9e30395f426927b4fb15925ac8f970eb336"},
+    {"from":"0x14008c540","to":"0x140053b30","callsite":"0x14008c69e","kind":"conditional_direct","condition":"AttachToObject target Part exists and mode 0","status":"base_attach_creation","evidence_id":"ev_309e3ad46f012c8e02c143d8afbf93c0fa8f7891969bce193879e456ed72b5a7"},
+    {"from":"0x14008c540","to":"0x140053d70","callsite":"0x14008c674","kind":"conditional_direct","condition":"target Part exists and mode 1","status":"translate_attach_creation","evidence_id":"ev_309e3ad46f012c8e02c143d8afbf93c0fa8f7891969bce193879e456ed72b5a7"},
+    {"from":"0x14008c540","to":"0x140053d40","callsite":"0x14008c64a","kind":"conditional_direct","condition":"target Part exists and mode 2","status":"rotate_attach_creation","evidence_id":"ev_309e3ad46f012c8e02c143d8afbf93c0fa8f7891969bce193879e456ed72b5a7"},
+    {"from":"0x14008c540","to":"0x140053d10","callsite":"0x14008c620","kind":"conditional_direct","condition":"target Part exists and mode 3","status":"no_orientation_attach_creation","evidence_id":"ev_309e3ad46f012c8e02c143d8afbf93c0fa8f7891969bce193879e456ed72b5a7"},
+    {"from":"0x14008c540","to":"0x140053ce0","callsite":"0x14008c5f3","kind":"conditional_direct","condition":"target Part exists and mode 4","status":"gui_scale_attach_creation","evidence_id":"ev_309e3ad46f012c8e02c143d8afbf93c0fa8f7891969bce193879e456ed72b5a7"},
+    {"from":"0x140053d70","to":"0x140053b30","callsite":"0x140053d79","kind":"direct","condition":"derived Translate construction before vtable override","status":"shared_attach_registration","evidence_id":"ev_d2bdee5033803fe0024869321ae19bd86c1879d79d5602e6fac77e2be7f4752a"},
+    {"from":"0x140053d40","to":"0x140053b30","callsite":"0x140053d49","kind":"direct","condition":"derived Rotate construction before vtable override","status":"shared_attach_registration","evidence_id":"ev_95b70f08b8daac4e1ed23fad713985ce8b6bc998f63a16bcd8fa5cd242a247ea"},
+    {"from":"0x140053d10","to":"0x140053b30","callsite":"0x140053d19","kind":"direct","condition":"derived NoOrientation construction before vtable override","status":"shared_attach_registration","evidence_id":"ev_2f5089f397ad06a47b3b1b8c76d561f7ca728343906abed5303fe3914284552b"},
+    {"from":"0x140053ce0","to":"0x140053b30","callsite":"0x140053ce9","kind":"direct","condition":"derived GUIScale construction before vtable override","status":"shared_attach_registration","evidence_id":"ev_11b56d323dcb6cf7a82e1b6b83669ac19472263d4d03ac65d2993fe84426b3bf"},
+    {"from":"0x140053b30","to":"0x140052a30","callsite":"0x140053c9a","kind":"constructor_bounded_virtual","condition":"target Gob +0x50; register PropagateRender pointer, propagaterender string, attached Gob context","status":"render_callback_registration","evidence_id":"ev_3e86204b80571fea5c2b558a93cf65063b2cb61fa024e41b4c764ef6d6917351"},
+    {"from":"0x140053b30","to":"0x140056d80","site":"0x140053c93","kind":"stored_function_pointer","condition":"PropagateRender supplied to target Gob RegisterCallBack; handle saved at behavior+0x60","status":"known_render_handler","evidence_id":"ev_3e86204b80571fea5c2b558a93cf65063b2cb61fa024e41b4c764ef6d6917351"},
+    {"from":"0x140053b30","to":"0x140056fd0","site":"0x140053c1b","kind":"wildcard_registration","condition":"target Gob callback name *; UpdateScenesAttach filters out propagaterender internally","status":"matched_but_nonrender_handler","evidence_id":"ev_3e86204b80571fea5c2b558a93cf65063b2cb61fa024e41b4c764ef6d6917351"},
+    {"from":"0x140056d80","to":"0x140054cb0/0x140055010/0x140054f40/0x140054ed0/0x140054e30","callsite":"0x140056dae","kind":"constructor_bounded_virtual","condition":"callback name matches; attached Gob behavior +0x450 nonnull; mode-specific +0x18 Control(0)","status":"attachment_pose_control","evidence_id":"ev_2dcad3c9c9b9af049d4ce0fb51293c9eb1036b4fd97233235c0e7c04c635b816"},
+    {"from":"0x140056d80","to":"0x1400a4280/0x1400498a0/0x14005a5b0","site":"0x140056dbe","kind":"constructor_bounded_virtual_tail_jump","condition":"callback name matches; attached Gob +0x20 Render(true), regardless of behavior presence","status":"render_reentry","evidence_id":"ev_8a01b9f883365cf903e260fac004b1bd8eee93291c271e22e604f15048152b6f"},
+    {"from":"0x140054390","to":"0x140050cb0","callsite":"0x140054452","kind":"constructor_bounded_virtual","condition":"Attach destructor target Gob +0x290; saved render handle at behavior+0x60","status":"render_callback_teardown","evidence_id":"ev_443f4efb081563b290e6df71e0d8be3676c63d787e069530185fd35de577b4ae"}
+  ],
+  "bounded_targets": {
+    "registered_literal_propagaterender": ["0x140056d80"],
+    "known_matching_wildcard_no_render": ["0x140056fd0"],
+    "attach_control_by_mode": {"0":"0x140054cb0","1":"0x140055010","2":"0x140054f40","3":"0x140054ed0","4":"0x140054e30"},
+    "observed_gob_render_slots": {"Gob":"0x1400a4280","StringGob":"0x1400498a0","Camera":"0x14005a5b0"}
+  },
+  "open_dynamic_frontiers": [
+    {"site":"0x140050e38","dispatch":"CallBack+0x20","reason":"runtime callback array may contain dynamically supplied event names/functions or other registration encodings; only the bounded literal census is classified"},
+    {"site":"0x140056dae","dispatch":"attached Gob active behavior +0x450 virtual Control","reason":"five Attach constructor targets are known; active behavior can change before event time"},
+    {"site":"0x140056dbe","dispatch":"attached CAurObject virtual +0x20 Render(true)","reason":"observed Gob/StringGob/Camera constructor slots are bounded; other derived runtime receivers and attachment depth remain unknown"},
+    {"site":"0x1400a4545","dispatch":"Gob virtual +0x298 DoEvent","reason":"requires caller Render(true), successful normal-Gob admission and actual registered attachment"}
+  ]
+}

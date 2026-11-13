@@ -1,0 +1,11 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Exact alternate server-service constructor chain for one disconnected NWSync source; two area-list helper sources remain caller-open and are classified in the companion note.",
+  "edges": [
+    {"from":"0x1408176e0","to":"0x14003d580","callsite":"0x140817821","kind":"direct_static","condition":"first UI path passes its modal/selection gate and requests local server creation","status":"alternate_server_ui_source","evidence_id":"ev_bb73c881855dd6b4949a396c3cef9da42c6c95f3e66946a6f07ee806f70e5e47"},
+    {"from":"0x1409dbe60","to":"0x14003d580","callsite":"0x1409dbeef","kind":"direct_static","condition":"second UI path requests local server creation","status":"alternate_server_ui_source","evidence_id":"ev_8d4861f60f57c2ace0d9cd0a4935ddbd60eef8770bd83f765033ec2718bda39b"},
+    {"from":"0x14003d580","to":"0x14055c240","callsite":"0x14003d5f4","kind":"direct_static","condition":"CreateServer attempts wrapper-object allocation, stores its result and starts services","status":"alternate_server_startup_owner","evidence_id":"ev_273ac692646e7425b02095c3c91736b4c4dac75ed0893a686cd45f8f6fb1a0cc"},
+    {"from":"0x14055c240","to":"0x14056c950","callsite":"0x14055c244","kind":"direct_tail_jump","condition":"CServerExoApp wrapper forwards its internal pointer","status":"alternate_server_startup_owner","evidence_id":"ev_501f0b84f73a7247524b4b285f99fb253bb030737917d1f10f3f931bcf419b93"}
+  ]
+}

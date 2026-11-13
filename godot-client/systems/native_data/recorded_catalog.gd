@@ -68,6 +68,28 @@ func _init() -> void:
 	prepared_store.maximum_bytes=Residency.prepared_budget(); prepared_store.maximum_entries=2048
 	decoder_store.maximum_bytes=1024*1024*1024; decoder_store.maximum_entries=4096
 var stats:={"reads":0,"payload_bytes":0}
+static func _prepare_packed_source(source_path: String,expected_bytes: int) -> Dictionary:
+	var began:=Time.get_ticks_usec()
+	var source:=FileAccess.open(source_path,FileAccess.READ)
+	if source==null or source.get_length()!=expected_bytes:return {"error":"Benchmark clone archive length differs"}
+	source.close()
+	var catalog:=Catalog.new()
+	if not catalog.mount_erf(source_path):return {"error":catalog.failure}
+	var mount_us:=Time.get_ticks_usec()-began
+	var index:=catalog.build_resource_index()
+	# A helper owns the temporary Catalog, including its stores and mutexes.
+	# Transfer only its sealed index data, then construct the published Catalog
+	# on the caller after join. No worker-created Catalog survives that join.
+	return {"layers":catalog.layers,"resolved":catalog.resolved,"resolved_ready":catalog.resolved_ready,"stats":catalog.stats,"mount_us":mount_us,"bindings_us":Time.get_ticks_usec()-began-mount_us,"entries":index.get("resolved_entries",0)}
+static func _valid_identity_fast(key: String,storage: Variant) -> bool:
+	# JSON object keys are Strings. Avoid a split Array and two short Strings for
+	# every recorded identity; retain the exact one-colon/name/type policy.
+	var colon:=key.find(":")
+	if colon<=0 or colon>32 or key.find(":",colon+1)>=0 or "/" in key or "\\" in key:return false
+	var type_text:=key.substr(colon+1)
+	if not type_text.is_valid_int():return false
+	var type_id:=int(type_text)
+	return type_id>=0 and type_id<=65535 and int(storage) in [1,2,3,5]
 func mount(path: String) -> bool:
 	_detach_mount()
 	if not path.is_absolute_path(): failure="Recorded catalog needs an absolute directory"; return false
@@ -81,23 +103,80 @@ func mount(path: String) -> bool:
 	if not portraits is Array or portraits.size()>1000000: failure="Recorded portrait file list is invalid"; return false
 	for name in portraits:
 		if not name is String or name.length()>260 or "/" in name or "\\" in name or ":" in name or name.get_extension().to_lower() not in ["tga","dds"]: failure="Invalid recorded portrait filename"; return false
-	for key in value.availability:
-		var split:=str(key).rsplit(":",true,1)
-		if split.size()!=2 or not str(split[1]).is_valid_int() or int(split[1])<0 or int(split[1])>65535 or str(split[0]).is_empty() or str(split[0]).length()>32 or "/" in key or "\\" in key or str(key).count(":")!=1 or int(value.availability[key]) not in [1,2,3,5]: failure="Invalid recorded resource identity"; return false
+	# Explicit opt-in: the packed ERF index uses independent file handles and
+	# immutable metadata. Let it build while this worker validates 348k+ manifest
+	# identities; always join before publishing even if validation fails.
+	var overlap_mode:="packed" if OS.get_cmdline_user_args().has("--recorded-catalog-overlap=packed") else ("inline" if OS.get_cmdline_user_args().has("--recorded-catalog-overlap=inline") else "")
+	var overlap: bool=not overlap_mode.is_empty() and value.has("packedSource")
+	var packed_metadata_valid:=false
+	var source_path:=""
+	var packed_bytes:=0
+	var packed_thread: Thread
+	var packed_start_error:=OK
+	if overlap:
+		var selected: Variant=value.packedSource
+		packed_metadata_valid=selected is Dictionary and selected.get("version") == 1 and selected.get("file") == "resources.erf" and int(selected.get("namespaceEntries",-1)) == value.availability.size()
+		if packed_metadata_valid:
+			source_path=path.simplify_path().path_join("resources.erf")
+			packed_bytes=int(selected.get("bytes",-1))
+			if overlap_mode=="inline":packed_start_error=ERR_CANT_CREATE
+			else:
+				packed_thread=Thread.new()
+				packed_start_error=packed_thread.start(_prepare_packed_source.bind(source_path,packed_bytes),Thread.PRIORITY_NORMAL)
+				if packed_start_error!=OK:packed_thread=null
+		stats["overlap_thread_started"]=packed_thread!=null
+	var validate_began:=Time.get_ticks_usec()
+	if OS.get_cmdline_user_args().has("--recorded-catalog-fast-identities"):
+		stats["identity_fast"]=true
+		for key in value.availability:
+			if not _valid_identity_fast(key,value.availability[key]):
+				if packed_thread!=null:packed_thread.wait_to_finish()
+				failure="Invalid recorded resource identity"; return false
+	else:
+		for key in value.availability:
+			var split:=str(key).rsplit(":",true,1)
+			if split.size()!=2 or not str(split[1]).is_valid_int() or int(split[1])<0 or int(split[1])>65535 or str(split[0]).is_empty() or str(split[0]).length()>32 or "/" in key or "\\" in key or str(key).count(":")!=1 or int(value.availability[key]) not in [1,2,3,5]:
+				if packed_thread!=null:packed_thread.wait_to_finish()
+				failure="Invalid recorded resource identity"; return false
+	if overlap:stats["overlap_validation_us"]=Time.get_ticks_usec()-validate_began
 	var next_directory:=path.simplify_path();var next_packed
+	var sealed:=0
+	var seal_began:=0
+	var seal_elapsed:=0
+	var next_layers: Array=[]
+	if overlap and packed_metadata_valid:
+		next_layers=[{"kind":"recorded","entries":value.availability}]
+		seal_began=Time.get_ticks_usec();sealed=_seal_graph([value,next_layers])
+		seal_elapsed=Time.get_ticks_usec()-seal_began
+		stats["overlap_seal_us"]=seal_elapsed
 	if value.has("packedSource"):
 		var packed: Variant=value.packedSource
 		if not packed is Dictionary or packed.get("version")!=1 or packed.get("file")!="resources.erf" or int(packed.get("namespaceEntries",-1))!=value.availability.size(): failure="Invalid benchmark clone source"; return false
-		var source_path:=next_directory.path_join("resources.erf"); var source:=FileAccess.open(source_path,FileAccess.READ)
-		if source==null or source.get_length()!=int(packed.get("bytes",-1)): failure="Benchmark clone archive length differs"; return false
-		source.close(); next_packed=Catalog.new()
-		if not next_packed.mount_erf(source_path): failure=next_packed.failure; return false
-		next_packed.build_resource_index()
+		if overlap:
+			var join_began:=Time.get_ticks_usec()
+			var prepared: Dictionary=packed_thread.wait_to_finish() if packed_thread!=null else _prepare_packed_source(source_path,packed_bytes)
+			stats["overlap_join_us"]=Time.get_ticks_usec()-join_began
+			stats["overlap_start_error"]=packed_start_error
+			if prepared.has("error"):failure=str(prepared.error);return false
+			stats["overlap_packed_mount_us"]=int(prepared.mount_us)
+			stats["overlap_packed_bindings_us"]=int(prepared.bindings_us)
+			next_packed=Catalog.new()
+			next_packed.layers=prepared.layers
+			next_packed.resolved=prepared.resolved
+			next_packed.resolved_ready=bool(prepared.resolved_ready)
+			next_packed.stats=prepared.stats
+		else:
+			var original_path:=next_directory.path_join("resources.erf"); var source:=FileAccess.open(original_path,FileAccess.READ)
+			if source==null or source.get_length()!=int(packed.get("bytes",-1)): failure="Benchmark clone archive length differs"; return false
+			source.close(); next_packed=Catalog.new()
+			if not next_packed.mount_erf(original_path): failure=next_packed.failure; return false
+			next_packed.build_resource_index()
 	# Publish the complete validated snapshot once; failed mounts publish nothing.
-	directory=next_directory;manifest=value;layers=[{"kind":"recorded","entries":value.availability}];packed_catalog=next_packed
+	directory=next_directory;manifest=value;layers=next_layers if overlap and packed_metadata_valid else [{"kind":"recorded","entries":value.availability}];packed_catalog=next_packed
 	if packed_catalog!=null:decoder_store=Residency.decoded
-	var seal_began:=Time.get_ticks_usec();var sealed:=_seal_graph([manifest,layers])
-	stats["scope_seal_us"]=int(stats.get("scope_seal_us",0))+Time.get_ticks_usec()-seal_began
+	if not overlap or not packed_metadata_valid:
+		seal_began=Time.get_ticks_usec();sealed=_seal_graph([manifest,layers]);seal_elapsed=Time.get_ticks_usec()-seal_began
+	stats["scope_seal_us"]=int(stats.get("scope_seal_us",0))+seal_elapsed
 	stats["scope_sealed_containers"]=int(stats.get("scope_sealed_containers",0))+sealed
 	_capture_scope_witness();_source_scope=SealedSourceScope.new()
 	return true

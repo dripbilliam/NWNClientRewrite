@@ -1,0 +1,378 @@
+{
+  "method": "Read-only REA original module pointer and module-time receiver",
+  "dossiers": [
+    {
+      "evidence_id": "ev_323360be531cbfc6cce55729d0debf88fb3fb97645f22fd91f5b3613f7458630",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x1407a58e0",
+        "name": "FUN_1407a58e0",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1407a58e0",
+              "end": "0x1407a5bf8"
+            }
+          ],
+          "total_bytes": 793,
+          "span_bytes": 793,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_1407a58e0()",
+        "locals": [
+          {
+            "description": "undefined8 local_48 @ Stack[-0x48]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined1 local_50 @ Stack[-0x50]:1",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_58 @ Stack[-0x58]:8",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_60 @ Stack[-0x60]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_64 @ Stack[-0x64]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_68 @ Stack[-0x68]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_res10 @ Stack[0x10]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined1 local_res18 @ Stack[0x18]:1",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined4 local_res20 @ Stack[0x20]:4",
+            "provenance": "ghidra-function-database"
+          },
+          {
+            "description": "undefined8 local_res8 @ Stack[0x8]:8",
+            "provenance": "ghidra-function-database"
+          }
+        ]
+      },
+      "pseudocode": "\r\nundefined8 FUN_1407a58e0(CNWMessage *param_1)\r\n\r\n{\r\n  ulonglong uVar1;\r\n  ulonglong uVar2;\r\n  bool bVar3;\r\n  byte bVar4;\r\n  uchar uVar5;\r\n  byte bVar6;\r\n  uint uVar7;\r\n  uint uVar8;\r\n  int iVar9;\r\n  longlong lVar10;\r\n  ExplicitProducer *pEVar11;\r\n  ExplicitProducer *extraout_RAX;\r\n  ExplicitProducer *extraout_RAX_00;\r\n  ExplicitProducer *pEVar12;\r\n  undefined8 uVar13;\r\n  undefined1 *puVar14;\r\n  uint local_res10;\r\n  uint local_res20;\r\n  uint local_68;\r\n  uint local_64;\r\n  longlong local_48;\r\n  \r\n  uVar13 = 0;\r\n  if ((((g_bTracyEnabled) && (g_bTracyProfilerConnected)) && (g_bTracyScopeDisableCounter == 0)) &&\r\n     (lVar10 = FUN_140b9f050(), *(char *)(lVar10 + 0x288) != '\\0')) {\r\n    lVar10 = FUN_140b9f050();\r\n    local_48 = *(longlong *)(lVar10 + 0x290);\r\n    pEVar11 = (ExplicitProducer *)FUN_140b9f300();\r\n    uVar1 = *(ulonglong *)(pEVar11 + 0x28);\r\n    pEVar12 = pEVar11;\r\n    if ((uVar1 & 0xffff) == 0) {\r\n      tracy::moodycamel::\r\n      ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n      ExplicitProducer::enqueue_begin_alloc(pEVar11,uVar1);\r\n      pEVar12 = extraout_RAX;\r\n    }\r\n    puVar14 = (undefined1 *)((uVar1 & 0xffff) * 0x20 + *(longlong *)(pEVar11 + 0x48));\r\n    *puVar14 = 0xf;\r\n    uVar2 = rdtsc();\r\n    *(ulonglong *)(puVar14 + 1) =\r\n         CONCAT44((int)((ulonglong)pEVar12 >> 0x20),(int)uVar2) | uVar2 & 0xffffffff00000000;\r\n    *(undefined **)(puVar14 + 9) = &DAT_140e41ad0;\r\n    *(ulonglong *)(pEVar11 + 0x28) = uVar1 + 1;\r\n    bVar3 = true;\r\n  }\r\n  else {\r\n    bVar3 = false;\r\n    local_48 = 0;\r\n  }\r\n  bVar4 = CNWMessage::ReadBYTE(param_1,8,1);\r\n  if ((bVar4 & 1) == 0) {\r\n    uVar5 = (uchar)local_res10;\r\n    local_res20 = local_res10;\r\n  }\r\n  else {\r\n    uVar5 = CNWMessage::ReadBYTE(param_1,8,1);\r\n    if ((byte)(uVar5 - 3) < 2) {\r\n      local_res20 = CNWMessage::ReadDWORD(param_1,0x20);\r\n    }\r\n    else {\r\n      local_res20 = 0;\r\n    }\r\n  }\r\n  if ((bVar4 & 2) == 0) {\r\n    local_68 = local_res10;\r\n  }\r\n  else {\r\n    bVar6 = CNWMessage::ReadBYTE(param_1,8,1);\r\n    local_68 = (uint)bVar6;\r\n  }\r\n  local_res10 = CONCAT31(local_res10._1_3_,bVar4) & 0xffffff04;\r\n  if ((bVar4 & 4) == 0) {\r\n    local_64 = local_res10;\r\n  }\r\n  else {\r\n    bVar6 = CNWMessage::ReadBYTE(param_1,8,1);\r\n    local_64 = (uint)bVar6;\r\n  }\r\n  uVar7 = local_res10;\r\n  if ((bVar4 & 8) != 0) {\r\n    bVar6 = CNWMessage::ReadBYTE(param_1,8,1);\r\n    uVar7 = (uint)bVar6;\r\n  }\r\n  uVar8 = local_res10;\r\n  if ((bVar4 & 0x10) != 0) {\r\n    uVar8 = CNWMessage::ReadDWORD(param_1,0x20);\r\n  }\r\n  iVar9 = CNWMessage::MessageReadOverflow(param_1);\r\n  if (iVar9 != 0) goto LAB_1407a5b88;\r\n  lVar10 = FUN_1406abea0(*(undefined8 *)g_pAppManager);\r\n  if (lVar10 != 0) {\r\n    if ((bVar4 & 1) != 0) {\r\n      if (((byte)(*(char *)(lVar10 + 0x170) - 3U) < 2) && (*(longlong *)(lVar10 + 0xf8) != 0)) {\r\n        if (uVar5 == '\\x01') {\r\n          uVar13 = 1;\r\n        }\r\n        else {\r\n          if (uVar5 != '\\x02') goto LAB_1407a5b29;\r\n          uVar13 = 3;\r\n        }\r\n        FUN_1407e57f0(*(longlong *)(lVar10 + 0xf8),uVar13);\r\n      }\r\nLAB_1407a5b29:\r\n      FUN_1407cfbb0(lVar10,uVar5,local_res20,0);\r\n    }\r\n    if ((bVar4 & 2) != 0) {\r\n      *(uint *)(lVar10 + 0x16c) = local_68;\r\n    }\r\n    if ((uchar)local_res10 != '\\0') {\r\n      *(uint *)(lVar10 + 0x168) = local_64;\r\n    }\r\n    if ((bVar4 & 8) != 0) {\r\n      *(uint *)(lVar10 + 0x164) = uVar7;\r\n    }\r\n    if ((bVar4 & 0x10) != 0) {\r\n      *(uint *)(lVar10 + 0x160) = uVar8;\r\n    }\r\n  }\r\n  uVar13 = 1;\r\nLAB_1407a5b88:\r\n  if ((bVar3) && (lVar10 = FUN_140b9f050(), *(longlong *)(lVar10 + 0x290) == local_48)) {\r\n    pEVar11 = (ExplicitProducer *)FUN_140b9f300();\r\n    uVar1 = *(ulonglong *)(pEVar11 + 0x28);\r\n    pEVar12 = pEVar11;\r\n    if ((uVar1 & 0xffff) == 0) {\r\n      tracy::moodycamel::\r\n      ConcurrentQueue<tracy::QueueItem,tracy::moodycamel::ConcurrentQueueDefaultTraits>::\r\n      ExplicitProducer::enqueue_begin_alloc(pEVar11,uVar1);\r\n      pEVar12 = extraout_RAX_00;\r\n    }\r\n    puVar14 = (undefined1 *)((uVar1 & 0xffff) * 0x20 + *(longlong *)(pEVar11 + 0x48));\r\n    *puVar14 = 0x11;\r\n    uVar2 = rdtsc();\r\n    *(ulonglong *)(puVar14 + 1) =\r\n         CONCAT44((int)((ulonglong)pEVar12 >> 0x20),(int)uVar2) | uVar2 & 0xffffffff00000000;\r\n    *(ulonglong *)(pEVar11 + 0x28) = uVar1 + 1;\r\n  }\r\n  return uVar13;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1407a58e0: PUSH RBP",
+        "0x1407a58e2: PUSH RSI",
+        "0x1407a58e3: PUSH RDI",
+        "0x1407a58e4: PUSH R12",
+        "0x1407a58e6: PUSH R13",
+        "0x1407a58e8: PUSH R14",
+        "0x1407a58ea: PUSH R15",
+        "0x1407a58ec: SUB RSP, 0x50",
+        "0x1407a58f0: MOV qword ptr [RSP + 0x30], -0x2",
+        "0x1407a58f9: MOV qword ptr [RSP + 0x90], RBX",
+        "0x1407a5901: MOV RSI, RCX",
+        "0x1407a5904: XOR EBX, EBX",
+        "0x1407a5906: CMP byte ptr [0x14141e310], BL",
+        "0x1407a590c: JZ 0x1407a599f",
+        "0x1407a5912: CMP byte ptr [0x14141e311], BL",
+        "0x1407a5918: JZ 0x1407a599f",
+        "0x1407a591e: CMP dword ptr [0x14141e314], EBX",
+        "0x1407a5924: JNZ 0x1407a599f",
+        "0x1407a5926: CALL 0x140b9f050",
+        "0x1407a592b: MOVZX ECX, byte ptr [RAX + 0x288]",
+        "0x1407a5932: TEST CL, CL",
+        "0x1407a5934: JZ 0x1407a599f",
+        "0x1407a5936: MOV byte ptr [RSP + 0x38], 0x1",
+        "0x1407a593b: CALL 0x140b9f050",
+        "0x1407a5940: MOV RCX, qword ptr [RAX + 0x290]",
+        "0x1407a5947: MOV qword ptr [RSP + 0x40], RCX",
+        "0x1407a594c: CALL 0x140b9f300",
+        "0x1407a5951: MOV RBP, RAX",
+        "0x1407a5954: MOV R14, qword ptr [RAX + 0x28]",
+        "0x1407a5958: MOVZX EDI, R14W",
+        "0x1407a595c: TEST RDI, RDI",
+        "0x1407a595f: JNZ 0x1407a596c",
+        "0x1407a5961: MOV RDX, R14",
+        "0x1407a5964: MOV RCX, RAX",
+        "0x1407a5967: CALL 0x140045f10",
+        "0x1407a596c: SHL RDI, 0x5",
+        "0x1407a5970: ADD RDI, qword ptr [RBP + 0x48]",
+        "0x1407a5974: MOV byte ptr [RDI], 0xf",
+        "0x1407a5977: RDTSC",
+        "0x1407a5979: SHL RDX, 0x20",
+        "0x1407a597d: OR RAX, RDX",
+        "0x1407a5980: MOV qword ptr [RDI + 0x1], RAX",
+        "0x1407a5984: LEA RAX, [0x140e41ad0]",
+        "0x1407a598b: MOV qword ptr [RDI + 0x9], RAX",
+        "0x1407a598f: LEA RAX, [R14 + 0x1]",
+        "0x1407a5993: MOV qword ptr [RBP + 0x28], RAX",
+        "0x1407a5997: MOVZX R14D, byte ptr [RSP + 0x38]",
+        "0x1407a599d: JMP 0x1407a59ac",
+        "0x1407a599f: XOR R14B, R14B",
+        "0x1407a59a2: MOV byte ptr [RSP + 0x38], R14B",
+        "0x1407a59a7: MOV qword ptr [RSP + 0x40], RBX",
+        "0x1407a59ac: MOV EDX, 0x8",
+        "0x1407a59b1: LEA R8D, [RDX + -0x7]",
+        "0x1407a59b5: MOV RCX, RSI",
+        "0x1407a59b8: CALL 0x1402d9630",
+        "0x1407a59bd: MOVZX EDI, AL",
+        "0x1407a59c0: MOVZX R15D, AL",
+        "0x1407a59c4: AND R15B, 0x1",
+        "0x1407a59c8: JZ 0x1407a59fe",
+        "0x1407a59ca: MOV EDX, 0x8",
+        "0x1407a59cf: LEA R8D, [RDX + -0x7]",
+        "0x1407a59d3: MOV RCX, RSI",
+        "0x1407a59d6: CALL 0x1402d9630",
+        "0x1407a59db: MOVZX EBP, AL",
+        "0x1407a59de: LEA ECX, [RBP + -0x3]",
+        "0x1407a59e1: CMP CL, 0x1",
+        "0x1407a59e4: JBE 0x1407a59ef",
+        "0x1407a59e6: MOV dword ptr [RSP + 0xa8], EBX",
+        "0x1407a59ed: JMP 0x1407a5a14",
+        "0x1407a59ef: MOV EDX, 0x20",
+        "0x1407a59f4: MOV RCX, RSI",
+        "0x1407a59f7: CALL 0x1402d9bc0",
+        "0x1407a59fc: JMP 0x1407a5a0d",
+        "0x1407a59fe: MOVZX EBP, byte ptr [RSP + 0x98]",
+        "0x1407a5a06: MOV EAX, dword ptr [RSP + 0x98]",
+        "0x1407a5a0d: MOV dword ptr [RSP + 0xa8], EAX",
+        "0x1407a5a14: MOVZX R12D, DIL",
+        "0x1407a5a18: AND R12B, 0x2",
+        "0x1407a5a1c: JZ 0x1407a5a38",
+        "0x1407a5a1e: MOV EDX, 0x8",
+        "0x1407a5a23: LEA R8D, [RDX + -0x7]",
+        "0x1407a5a27: MOV RCX, RSI",
+        "0x1407a5a2a: CALL 0x1402d9630",
+        "0x1407a5a2f: MOVZX ECX, AL",
+        "0x1407a5a32: MOV dword ptr [RSP + 0x20], ECX",
+        "0x1407a5a36: JMP 0x1407a5a43",
+        "0x1407a5a38: MOV EAX, dword ptr [RSP + 0x98]",
+        "0x1407a5a3f: MOV dword ptr [RSP + 0x20], EAX",
+        "0x1407a5a43: MOVZX EAX, DIL",
+        "0x1407a5a47: AND AL, 0x4",
+        "0x1407a5a49: MOV byte ptr [RSP + 0x98], AL",
+        "0x1407a5a50: JZ 0x1407a5a6c",
+        "0x1407a5a52: MOV EDX, 0x8",
+        "0x1407a5a57: LEA R8D, [RDX + -0x7]",
+        "0x1407a5a5b: MOV RCX, RSI",
+        "0x1407a5a5e: CALL 0x1402d9630",
+        "0x1407a5a63: MOVZX ECX, AL",
+        "0x1407a5a66: MOV dword ptr [RSP + 0x24], ECX",
+        "0x1407a5a6a: JMP 0x1407a5a77",
+        "0x1407a5a6c: MOV EAX, dword ptr [RSP + 0x98]",
+        "0x1407a5a73: MOV dword ptr [RSP + 0x24], EAX",
+        "0x1407a5a77: MOVZX EAX, DIL",
+        "0x1407a5a7b: AND AL, 0x8",
+        "0x1407a5a7d: MOV byte ptr [RSP + 0xa0], AL",
+        "0x1407a5a84: JZ 0x1407a5a9c",
+        "0x1407a5a86: MOV EDX, 0x8",
+        "0x1407a5a8b: LEA R8D, [RDX + -0x7]",
+        "0x1407a5a8f: MOV RCX, RSI",
+        "0x1407a5a92: CALL 0x1402d9630",
+        "0x1407a5a97: MOVZX EAX, AL",
+        "0x1407a5a9a: JMP 0x1407a5aa3",
+        "0x1407a5a9c: MOV EAX, dword ptr [RSP + 0x98]",
+        "0x1407a5aa3: MOV dword ptr [RSP + 0x28], EAX",
+        "0x1407a5aa7: AND DIL, 0x10",
+        "0x1407a5aab: JZ 0x1407a5abf",
+        "0x1407a5aad: MOV EDX, 0x20",
+        "0x1407a5ab2: MOV RCX, RSI",
+        "0x1407a5ab5: CALL 0x1402d9bc0",
+        "0x1407a5aba: MOV R13D, EAX",
+        "0x1407a5abd: JMP 0x1407a5ac7",
+        "0x1407a5abf: MOV R13D, dword ptr [RSP + 0x98]",
+        "0x1407a5ac7: MOV RCX, RSI",
+        "0x1407a5aca: CALL 0x1402d9460",
+        "0x1407a5acf: TEST EAX, EAX",
+        "0x1407a5ad1: JNZ 0x1407a5b88",
+        "0x1407a5ad7: MOV RAX, qword ptr [0x1412df970]",
+        "0x1407a5ade: MOV RCX, qword ptr [RAX]",
+        "0x1407a5ae1: CALL 0x1406abea0",
+        "0x1407a5ae6: MOV RBX, RAX",
+        "0x1407a5ae9: TEST RAX, RAX",
+        "0x1407a5aec: JZ 0x1407a5b83",
+        "0x1407a5af2: TEST R15B, R15B",
+        "0x1407a5af5: JZ 0x1407a5b40",
+        "0x1407a5af7: MOVZX EAX, byte ptr [RAX + 0x170]",
+        "0x1407a5afe: SUB AL, 0x3",
+        "0x1407a5b00: CMP AL, 0x1",
+        "0x1407a5b02: JA 0x1407a5b29",
+        "0x1407a5b04: MOV RCX, qword ptr [RBX + 0xf8]",
+        "0x1407a5b0b: TEST RCX, RCX",
+        "0x1407a5b0e: JZ 0x1407a5b29",
+        "0x1407a5b10: CMP BPL, 0x1",
+        "0x1407a5b14: JNZ 0x1407a5b1c",
+        "0x1407a5b16: MOVZX EDX, BPL",
+        "0x1407a5b1a: JMP 0x1407a5b24",
+        "0x1407a5b1c: CMP BPL, 0x2",
+        "0x1407a5b20: JNZ 0x1407a5b29",
+        "0x1407a5b22: MOV DL, 0x3",
+        "0x1407a5b24: CALL 0x1407e57f0",
+        "0x1407a5b29: XOR R9D, R9D",
+        "0x1407a5b2c: MOV R8D, dword ptr [RSP + 0xa8]",
+        "0x1407a5b34: MOVZX EDX, BPL",
+        "0x1407a5b38: MOV RCX, RBX",
+        "0x1407a5b3b: CALL 0x1407cfbb0",
+        "0x1407a5b40: TEST R12B, R12B",
+        "0x1407a5b43: JZ 0x1407a5b4f",
+        "0x1407a5b45: MOV EAX, dword ptr [RSP + 0x20]",
+        "0x1407a5b49: MOV dword ptr [RBX + 0x16c], EAX",
+        "0x1407a5b4f: CMP byte ptr [RSP + 0x98], 0x0",
+        "0x1407a5b57: JZ 0x1407a5b63",
+        "0x1407a5b59: MOV EAX, dword ptr [RSP + 0x24]",
+        "0x1407a5b5d: MOV dword ptr [RBX + 0x168], EAX",
+        "0x1407a5b63: CMP byte ptr [RSP + 0xa0], 0x0",
+        "0x1407a5b6b: JZ 0x1407a5b77",
+        "0x1407a5b6d: MOV EAX, dword ptr [RSP + 0x28]",
+        "0x1407a5b71: MOV dword ptr [RBX + 0x164], EAX",
+        "0x1407a5b77: TEST DIL, DIL",
+        "0x1407a5b7a: JZ 0x1407a5b83",
+        "0x1407a5b7c: MOV dword ptr [RBX + 0x160], R13D",
+        "0x1407a5b83: MOV EBX, 0x1",
+        "0x1407a5b88: TEST R14B, R14B",
+        "0x1407a5b8b: JZ 0x1407a5bdf",
+        "0x1407a5b8d: CALL 0x140b9f050",
+        "0x1407a5b92: MOV RCX, qword ptr [RAX + 0x290]",
+        "0x1407a5b99: CMP RCX, qword ptr [RSP + 0x40]",
+        "0x1407a5b9e: JNZ 0x1407a5bdf",
+        "0x1407a5ba0: CALL 0x140b9f300",
+        "0x1407a5ba5: MOV RSI, RAX",
+        "0x1407a5ba8: MOV RBP, qword ptr [RAX + 0x28]",
+        "0x1407a5bac: MOVZX EDI, BP",
+        "0x1407a5baf: TEST RDI, RDI",
+        "0x1407a5bb2: JNZ 0x1407a5bbf",
+        "0x1407a5bb4: MOV RDX, RBP",
+        "0x1407a5bb7: MOV RCX, RAX",
+        "0x1407a5bba: CALL 0x140045f10",
+        "0x1407a5bbf: SHL RDI, 0x5",
+        "0x1407a5bc3: ADD RDI, qword ptr [RSI + 0x48]",
+        "0x1407a5bc7: MOV byte ptr [RDI], 0x11",
+        "0x1407a5bca: RDTSC",
+        "0x1407a5bcc: SHL RDX, 0x20",
+        "0x1407a5bd0: OR RAX, RDX",
+        "0x1407a5bd3: MOV qword ptr [RDI + 0x1], RAX",
+        "0x1407a5bd7: LEA RCX, [RBP + 0x1]",
+        "0x1407a5bdb: MOV qword ptr [RSI + 0x28], RCX",
+        "0x1407a5bdf: MOV EAX, EBX",
+        "0x1407a5be1: MOV RBX, qword ptr [RSP + 0x90]",
+        "0x1407a5be9: ADD RSP, 0x50",
+        "0x1407a5bed: POP R15",
+        "0x1407a5bef: POP R14",
+        "0x1407a5bf1: POP R13",
+        "0x1407a5bf3: POP R12",
+        "0x1407a5bf5: POP RDI",
+        "0x1407a5bf6: POP RSI",
+        "0x1407a5bf7: POP RBP",
+        "0x1407a5bf8: RET"
+      ]
+    },
+    {
+      "evidence_id": "ev_f166c6a2c736b656027e53e84ccef0b68f44ed2ff608a0b65330b22a1e57654e",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x1406abea0",
+        "name": "FUN_1406abea0",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1406abea0",
+              "end": "0x1406abea8"
+            }
+          ],
+          "total_bytes": 9,
+          "span_bytes": 9,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_1406abea0()",
+        "locals": []
+      },
+      "pseudocode": "\r\nvoid FUN_1406abea0(longlong param_1)\r\n\r\n{\r\n  FUN_1406d8300(*(undefined8 *)(param_1 + 8));\r\n  return;\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1406abea0: MOV RCX, qword ptr [RCX + 0x8]",
+        "0x1406abea4: JMP 0x1406d8300"
+      ]
+    },
+    {
+      "evidence_id": "ev_aed23ae3f0c10291b9c022edb0c11ff57849a878492d5aaec46ee47a231cd788",
+      "subject": {
+        "name": "nwmain.exe",
+        "digest": {
+          "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a"
+        },
+        "local_path": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\FullDecomp\\NwnRootInstall\\bin\\win32\\nwmain.exe",
+        "format": "pe",
+        "architecture": "x86_64"
+      },
+      "procedure": {
+        "address": "0x1406d8300",
+        "name": "FUN_1406d8300",
+        "classification": {
+          "external": false,
+          "thunk": false,
+          "thunk_target": null,
+          "provenance": "ghidra-function-manager"
+        },
+        "body": {
+          "available": true,
+          "provenance": "ghidra-function-body-address-set",
+          "ranges": [
+            {
+              "start": "0x1406d8300",
+              "end": "0x1406d8304"
+            }
+          ],
+          "total_bytes": 5,
+          "span_bytes": 5,
+          "non_contiguous": false,
+          "contains_entry": true
+        },
+        "signature": "undefined FUN_1406d8300()",
+        "locals": []
+      },
+      "pseudocode": "\r\nundefined8 FUN_1406d8300(longlong param_1)\r\n\r\n{\r\n  return *(undefined8 *)(param_1 + 0x30);\r\n}\r\n\r\n",
+      "assembly": [
+        "0x1406d8300: MOV RAX, qword ptr [RCX + 0x30]",
+        "0x1406d8304: RET"
+      ]
+    }
+  ],
+  "areaSource": "backups/animations/native-client-area-load-message-asm.txt:1407dc434..1407dc4aa and1407de521..1407de555"
+}

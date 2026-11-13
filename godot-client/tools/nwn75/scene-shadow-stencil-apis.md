@@ -1,0 +1,14 @@
+# NWN-75: original shadow stencil/depth API leaves
+
+Pinned original `nwmain.exe` SHA-256 `3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a`. The optional `Scene::RenderShadows` and `Scene::RenderShadowPlanes` branches call these state wrappers after their shadow/light gates. Their wrapper-to-implementation and implementation-to-import sites are in `branch-ledger.json`. The driver is outside this binary.
+
+| Scene-facing wrapper → GLRender body | Native state gate | Imported GL site | Evidence |
+| --- | --- | --- | --- |
+| `SetStencilFunc` `0x1400bf2d0` → `0x1400b7dd0` | Translates Aurora comparison enum through `0x140d8acc0`; no cache gate in this body. | `glStencilFunc` tail at `0x1400b7ddd` | wrapper `ev_e768a15bcaffff6b5b3ddcb44d14f4940bdfc76d68cad641fc177f1959e8abe6`; body `ev_3e557ad264528e3c41c87c3e4a2c134d72dfa169f092bda2960e06fac9c10c92` |
+| `SetStencilOp` `0x1400bf2f0` → `0x1400b7e20` | Compares cached front/back operation triples; translates changed enums through `0x140d8ace8`. | `glStencilOp` at `0x1400b7e79` only when changed | wrapper `ev_8331ce802633b84acec9631c2d93174661fa700b5dab76311de084a85e271d40`; body `ev_0f2f670380278175bf4e4482a11572e50f566abafd93433084f36c2a6c74de2f` |
+| `SetStencilMask` `0x1400bf2e0` → `0x1400b7df0` | Compares the cached stencil write mask. | `glStencilMask` at `0x1400b7e00` only when changed | wrapper `ev_cc72f14a78971c419eeb6f2304c83fb1935bb1da4eeb24ff58eb29a38b23e048`; body `ev_2d0ae39c844e1d720e1ba628978a3d830df704b8018f8bed14d86eac88ab5fb1` |
+| `ClearStencilValue` `0x1400be900` → `0x1400adc10` | No cache gate in the analyzed body. | `glClearStencil` tail at `0x1400adc10` | wrapper `ev_75e033a7f4d634bd8bb2996f0cd4ce238da1bfe53b865b5e5a9a70ee03b98976`; body `ev_4479b0ba95661bf0ae5e856cfb878bf7530cf6137fd46916848540012dae380d` |
+| `Clear` `0x1400be8f0` → `0x1400adbe0` | Translates the Aurora color/depth/stencil bits into a GL clear mask. | `glClear` tail at `0x1400adc02` | body `ev_b77e34b174cc9a1c568b82e9852512c0663ee34fee9e8e69bdbf9324088e5676`; prior site-backed ledger evidence `ev_653c64265a16bf9e369bf02112a4807fc414b224c8581d06b4cf730060601185` |
+| `SetDepthMask` `0x1400bf0e0` → `0x1400b6f80` | Compares cached depth-write byte. | `glDepthMask` at `0x1400b6f91` only when changed | wrapper `ev_3ad8bfbef0a5d24b8d4a0bc2dadb65e5eba180c4160cc5dea71fb5e2e3d7ee6a`; body `ev_6b151facf83337b60b6d4080830219389f305d3856bad9f415239f267443978e` |
+
+The shadow pass also uses `SetStencilOpSeparate`, `SetColorMask`, `SetBlendFunc`, `Enable`/`Disable`, and polygon mode; their cache gates and GL leaves are in [render-state boundaries](render-state-boundaries.md). Shadow volume geometry and draws are mapped in [shadows and dynamic geometry](shadows-and-dynamic.md). A state call at the Scene level does not prove a driver call when its cache gate rejects the change.

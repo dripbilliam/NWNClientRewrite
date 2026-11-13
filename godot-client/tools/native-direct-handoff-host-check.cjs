@@ -24,7 +24,7 @@ function projectHostTransportProgress(value){
  return output;
 }
 class NativeDirectHandoffHostCheck{
- #initialReadDigest=null;#retryReadDigest=null;
+ #initialReadDigest=null;#retryReadDigest=null;#finalExportDigest=null;
  constructor({fixture,scenario,send,finish,getScope,characterDigest,rawCombat,compareCharacterChain=null,compareRetryCharacter=null,canonicalCharacterContinuity=false,progressDiagnostics=false,diagnosticClock=()=>performance.now(),diagnosticFs=fs}){
   if(!['roundtrip','cancel','failure'].includes(scenario))throw Error('Unknown direct handoff scenario');
   for(const f of[send,finish,getScope,characterDigest])if(typeof f!=='function')throw Error('Direct handoff driver callback unavailable');
@@ -72,7 +72,7 @@ class NativeDirectHandoffHostCheck{
   if(!ArrayBuffer.isView(bytes)||bytes.byteLength<1000)throw Error('Actual original BIC bytes unavailable');
   const view=new Uint8Array(bytes.buffer,bytes.byteOffset,bytes.byteLength),value=this.characterDigest(view);
   if(!value||typeof value.then==='function'||value.kind!=='bic'||value.bytes!==view.byteLength||value.sha256!==hash(view)||value.parsedOriginal!==true)throw Error('Synchronous original BIC digest/parse proof differs');
-  return{kind:'bic',bytes:value.bytes,sha256:value.sha256,parsedOriginal:true,...(value.character!==undefined?{character:this.capture.bounded(value.character)}:{})};
+  return this.capture.copyCharacterDigest({kind:'bic',bytes:value.bytes,sha256:value.sha256,parsedOriginal:true,...(value.character!==undefined?{character:value.character}:{})});
  }
  current(current,connection){const state=this.getScope();return!this.closed&&!this.failed&&state.session===current&&state.lobby?.session===current&&state.lobby.connection===connection&&!current?.closed;}
  async boot(){
@@ -85,11 +85,11 @@ class NativeDirectHandoffHostCheck{
  readCharacter(current,connection,key,bytes){
   if(!this.current(current,connection)||connection!==(this.firstConnection??connection)&&!this.recovery?.mayRead(connection)||key!=='installed:wizard.bic')throw Error('Direct route attempted stale or destination character selection');
   this.firstConnection??=connection;const digest=this.digest(bytes);this.capture.readCharacter({connection,key,sha256:digest.sha256,...(digest.character!==undefined?{character:digest.character}:{})});
-  if(connection===this.firstConnection)this.#initialReadDigest??=this.capture.bounded(digest);else this.#retryReadDigest??=this.capture.bounded(digest);
+  if(connection===this.firstConnection)this.#initialReadDigest??=digest;else this.#retryReadDigest??=digest;
  }
  semanticSummary(value){return value?{sha256:value.sha256,semanticSha256:value.character?.semanticSha256??null,complete:value.character?.complete??null}:null;}
  completeCharacterContinuity(){
-  const capture=this.capture,final=capture.data.finalCharacter,copy=value=>value?capture.bounded(value):null;
+  const capture=this.capture,final=this.#finalExportDigest,copy=value=>value?capture.copyCharacterDigest(value):null;
   if(!this.recovery){
    const required=this.canonicalCharacterContinuity;
    if(!this.compareCharacterChain){capture.continuity({required,status:'not-configured',result:null});return;}
@@ -198,7 +198,7 @@ class NativeDirectHandoffHostCheck{
  }
  exported(current,connection,bytes){
   if(!this.exportOwner||this.exportOwner.ref.deref()!==current||this.exportOwner.connection!==connection)return false;
-  if(!this.current(current,connection))throw Error('Retired final direct export');const digest=this.digest(bytes);this.capture.finalExport({...digest,connection});this.completeCharacterContinuity();this.exportOwner=null;return true;
+  if(!this.current(current,connection))throw Error('Retired final direct export');const digest=this.digest(bytes);this.capture.finalExport({...digest,connection});this.#finalExportDigest=digest;this.completeCharacterContinuity();this.exportOwner=null;return true;
  }
  tick(){
   this.diagnostic();
@@ -221,6 +221,6 @@ class NativeDirectHandoffHostCheck{
  terminal(value){this.capture.terminal(value);}
  snapshot(){return{...this.capture.snapshot(),driver:{booted:this.booted,commands:this.commands.slice(),commandAcks:this.commandAcks.slice(),catalogObservations:structuredClone(this.catalogObservations),progress:this.progressSummary(),recovery:this.recovery?.snapshot()??null,finishSent:this.finishSent,failed:this.failed}};}
  evaluate(options){return this.capture.evaluate(options);}
- close(){this.closed=true;this.progress.pending=null;this.recovery?.close();for(const entry of this.uploads){const current=entry.ref.deref();if(current?.uploadCharacter===entry.wrapper)current.uploadCharacter=entry.original;}this.uploads=[];this.exportOwner=null;this.#initialReadDigest=null;this.#retryReadDigest=null;}
+ close(){this.closed=true;this.progress.pending=null;this.recovery?.close();for(const entry of this.uploads){const current=entry.ref.deref();if(current?.uploadCharacter===entry.wrapper)current.uploadCharacter=entry.original;}this.uploads=[];this.exportOwner=null;this.#initialReadDigest=null;this.#retryReadDigest=null;this.#finalExportDigest=null;for(const row of this.rows)if(row.character?.character)delete row.character.character;}
 }
 module.exports={NativeDirectHandoffHostCheck,projectNativeProgress,projectHostTransportProgress};

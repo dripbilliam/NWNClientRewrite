@@ -1,0 +1,352 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Basic texture controller deletion through six subtype destructors, shared state release, and separate Reset GL/image release.",
+  "edges": [
+    {
+      "from": "0x1400e5210",
+      "to": "Basic+0x38 controller pointer",
+      "kind": "conditional_branch",
+      "condition": "nonnull controller; destructor calls slot zero with delete flag 1",
+      "status": "controller_teardown_admission",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    },
+    {
+      "from": "0x140d90bf8",
+      "to": "0x1400e56b0",
+      "kind": "vtable_slot_data",
+      "condition": "Life controller slot zero deleting destructor",
+      "status": "controller_destructor_target",
+      "evidence_id": "ev_81bb689804d1ab90a82954127796aa56db10a7a456a15584c509d624c4a54c72"
+    },
+    {
+      "from": "0x1400e5210",
+      "to": "0x1400e56b0",
+      "site": "0x1400e5261",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Life controller",
+      "status": "controller_destructor_dispatch",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    },
+    {
+      "from": "0x1400e56b0",
+      "to": "0x140c10370",
+      "callsite": "0x1400e56cd",
+      "kind": "direct_static",
+      "condition": "release Life state/image buffers",
+      "status": "controller_state_free",
+      "evidence_id": "ev_639bf9af960ec4a14ad6ba7f42606b21f20a92560e48e03b573fb35324ae2b9a"
+    },
+    {
+      "from": "0x1400e56b0",
+      "to": "0x1400e0a00",
+      "callsite": "0x1400e56d5",
+      "kind": "direct_static",
+      "condition": "after Life subtype buffer release",
+      "status": "controller_base_destructor",
+      "evidence_id": "ev_639bf9af960ec4a14ad6ba7f42606b21f20a92560e48e03b573fb35324ae2b9a"
+    },
+    {
+      "from": "0x1400e56b0",
+      "to": "0x140c10360",
+      "callsite": "0x1400e56e7",
+      "kind": "direct_static",
+      "condition": "delete flag bit 0 set",
+      "status": "controller_object_free",
+      "evidence_id": "ev_639bf9af960ec4a14ad6ba7f42606b21f20a92560e48e03b573fb35324ae2b9a"
+    },
+    {
+      "from": "0x140d90c30",
+      "to": "0x1400e5700",
+      "kind": "vtable_slot_data",
+      "condition": "Perlin controller slot zero deleting destructor",
+      "status": "controller_destructor_target",
+      "evidence_id": "ev_f09c1bed457fc98a2c33f33146ecc074f58f44a7a797250ae0602065d93ca1f5"
+    },
+    {
+      "from": "0x1400e5210",
+      "to": "0x1400e5700",
+      "site": "0x1400e5261",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Perlin controller",
+      "status": "controller_destructor_dispatch",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    },
+    {
+      "from": "0x1400e5700",
+      "to": "0x140c10370",
+      "callsites": [
+        "0x1400e571d",
+        "0x1400e5726"
+      ],
+      "kind": "direct_static",
+      "condition": "release Perlin state/image buffers",
+      "status": "controller_state_free",
+      "evidence_id": "ev_ddccdfcb214190560c622970812c2f4ec19ed889b744831cfc6b596b024ef0d6"
+    },
+    {
+      "from": "0x1400e5700",
+      "to": "0x1400e0a00",
+      "callsite": "0x1400e572e",
+      "kind": "direct_static",
+      "condition": "after Perlin subtype buffer release",
+      "status": "controller_base_destructor",
+      "evidence_id": "ev_ddccdfcb214190560c622970812c2f4ec19ed889b744831cfc6b596b024ef0d6"
+    },
+    {
+      "from": "0x1400e5700",
+      "to": "0x140c10360",
+      "callsite": "0x1400e5740",
+      "kind": "direct_static",
+      "condition": "delete flag bit 0 set",
+      "status": "controller_object_free",
+      "evidence_id": "ev_ddccdfcb214190560c622970812c2f4ec19ed889b744831cfc6b596b024ef0d6"
+    },
+    {
+      "from": "0x140d90580",
+      "to": "0x1400e0b20",
+      "kind": "vtable_slot_data",
+      "condition": "Arturo controller slot zero deleting destructor",
+      "status": "controller_destructor_target",
+      "evidence_id": "ev_56557fbeacd61dac2082c3c3ac2a2fb2b82ed8de4bdb30c2f575df542ffe5020"
+    },
+    {
+      "from": "0x1400e5210",
+      "to": "0x1400e0b20",
+      "site": "0x1400e5261",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Arturo controller",
+      "status": "controller_destructor_dispatch",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    },
+    {
+      "from": "0x1400e0b20",
+      "to": "0x140c10370",
+      "callsites": [
+        "0x1400e0b3d",
+        "0x1400e0b46",
+        "0x1400e0b4f",
+        "0x1400e0b5b"
+      ],
+      "kind": "direct_static",
+      "condition": "release Arturo state/image buffers",
+      "status": "controller_state_free",
+      "evidence_id": "ev_e2aa128e91002e1510128ae7547b8436f2776ae27fbb955f1b6b77bee30a8598"
+    },
+    {
+      "from": "0x1400e0b20",
+      "to": "0x1400e0a00",
+      "callsite": "0x1400e0b63",
+      "kind": "direct_static",
+      "condition": "after Arturo subtype buffer release",
+      "status": "controller_base_destructor",
+      "evidence_id": "ev_e2aa128e91002e1510128ae7547b8436f2776ae27fbb955f1b6b77bee30a8598"
+    },
+    {
+      "from": "0x1400e0b20",
+      "to": "0x140c10360",
+      "callsite": "0x1400e0b75",
+      "kind": "direct_static",
+      "condition": "delete flag bit 0 set",
+      "status": "controller_object_free",
+      "evidence_id": "ev_e2aa128e91002e1510128ae7547b8436f2776ae27fbb955f1b6b77bee30a8598"
+    },
+    {
+      "from": "0x140d90548",
+      "to": "0x1400e0c80",
+      "kind": "vtable_slot_data",
+      "condition": "Wave controller slot zero deleting destructor",
+      "status": "controller_destructor_target",
+      "evidence_id": "ev_c2f0f7ae49339bcfeeba94b8030869d570b47a03ff5b8e536fc70414166dc423"
+    },
+    {
+      "from": "0x1400e5210",
+      "to": "0x1400e0c80",
+      "site": "0x1400e5261",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Wave controller",
+      "status": "controller_destructor_dispatch",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    },
+    {
+      "from": "0x1400e0c80",
+      "to": "0x140c10370",
+      "callsites": [
+        "0x1400e0c9d",
+        "0x1400e0ca6"
+      ],
+      "kind": "direct_static",
+      "condition": "release Wave state/image buffers",
+      "status": "controller_state_free",
+      "evidence_id": "ev_b3ad466f15e42cc42d60d193e16b7efbdce1a2b87ae99c453fd8580a65e035f6"
+    },
+    {
+      "from": "0x1400e0c80",
+      "to": "0x1400e0a00",
+      "callsite": "0x1400e0cae",
+      "kind": "direct_static",
+      "condition": "after Wave subtype buffer release",
+      "status": "controller_base_destructor",
+      "evidence_id": "ev_b3ad466f15e42cc42d60d193e16b7efbdce1a2b87ae99c453fd8580a65e035f6"
+    },
+    {
+      "from": "0x1400e0c80",
+      "to": "0x140c10360",
+      "callsite": "0x1400e0cc0",
+      "kind": "direct_static",
+      "condition": "delete flag bit 0 set",
+      "status": "controller_object_free",
+      "evidence_id": "ev_b3ad466f15e42cc42d60d193e16b7efbdce1a2b87ae99c453fd8580a65e035f6"
+    },
+    {
+      "from": "0x140d905c0",
+      "to": "0x1400e0b90",
+      "kind": "vtable_slot_data",
+      "condition": "CycleTID controller slot zero deleting destructor",
+      "status": "controller_destructor_target",
+      "evidence_id": "ev_13f1bff76fb8de17f7afd6c65f4b513d90e976a4fea71c7a4bf7615ca05fa141"
+    },
+    {
+      "from": "0x1400e5210",
+      "to": "0x1400e0b90",
+      "site": "0x1400e5261",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed CycleTID controller",
+      "status": "controller_destructor_dispatch",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    },
+    {
+      "from": "0x1400e0b90",
+      "to": "0x1400e0a00",
+      "callsite": "0x1400e0ba9",
+      "kind": "direct_static",
+      "condition": "after CycleTID subtype buffer release",
+      "status": "controller_base_destructor",
+      "evidence_id": "ev_4d60f00bec167dbe391a90798e103b3e2aa6ac40687eec121750e14190128d9c"
+    },
+    {
+      "from": "0x1400e0b90",
+      "to": "0x140c10360",
+      "callsite": "0x1400e0bbb",
+      "kind": "direct_static",
+      "condition": "delete flag bit 0 set",
+      "status": "controller_object_free",
+      "evidence_id": "ev_4d60f00bec167dbe391a90798e103b3e2aa6ac40687eec121750e14190128d9c"
+    },
+    {
+      "from": "0x140d90510",
+      "to": "0x1400e0c10",
+      "kind": "vtable_slot_data",
+      "condition": "Water controller slot zero deleting destructor",
+      "status": "controller_destructor_target",
+      "evidence_id": "ev_f118db45bee10f96f1f2481a06185eacf19c718b493dbe42e238602d5f7b071d"
+    },
+    {
+      "from": "0x1400e5210",
+      "to": "0x1400e0c10",
+      "site": "0x1400e5261",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic+0x38 points to constructor-backed Water controller",
+      "status": "controller_destructor_dispatch",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    },
+    {
+      "from": "0x1400e0c10",
+      "to": "0x140c10370",
+      "callsites": [
+        "0x1400e0c2d",
+        "0x1400e0c36",
+        "0x1400e0c3f",
+        "0x1400e0c4b"
+      ],
+      "kind": "direct_static",
+      "condition": "release Water state/image buffers",
+      "status": "controller_state_free",
+      "evidence_id": "ev_91febf6fc25115785ffca39f403c61c91e50c32d64205c53b90d95b5cc9b1bac"
+    },
+    {
+      "from": "0x1400e0c10",
+      "to": "0x1400e0a00",
+      "callsite": "0x1400e0c53",
+      "kind": "direct_static",
+      "condition": "after Water subtype buffer release",
+      "status": "controller_base_destructor",
+      "evidence_id": "ev_91febf6fc25115785ffca39f403c61c91e50c32d64205c53b90d95b5cc9b1bac"
+    },
+    {
+      "from": "0x1400e0c10",
+      "to": "0x140c10360",
+      "callsite": "0x1400e0c65",
+      "kind": "direct_static",
+      "condition": "delete flag bit 0 set",
+      "status": "controller_object_free",
+      "evidence_id": "ev_91febf6fc25115785ffca39f403c61c91e50c32d64205c53b90d95b5cc9b1bac"
+    },
+    {
+      "from": "0x1400e0a00",
+      "to": "0x140c10370",
+      "callsite": "0x1400e0a2a",
+      "kind": "direct_static",
+      "condition": "shared source image +0x48 nonnull",
+      "status": "controller_source_image_free",
+      "evidence_id": "ev_ad32b8ff174ce556ee323b8a30c1d6f1d45e15c1bf9d1c9e8bd5be36e6b4310c"
+    },
+    {
+      "from": "0x1400e0a00",
+      "to": "0x140c4f024",
+      "callsites": [
+        "0x1400e0a34",
+        "0x1400e0a46",
+        "0x1400e0a58",
+        "0x1400e0a68"
+      ],
+      "kind": "direct_static",
+      "condition": "shared coefficient-array ownership cleanup; includes null inputs",
+      "status": "controller_coefficients_free",
+      "evidence_id": "ev_ad32b8ff174ce556ee323b8a30c1d6f1d45e15c1bf9d1c9e8bd5be36e6b4310c"
+    },
+    {
+      "from": "0x1400e5210",
+      "to": "0x1400be9b0",
+      "callsite": "0x1400e527e",
+      "kind": "direct_static",
+      "condition": "Basic GL ID array +0x50 nonnull",
+      "status": "gpu_texture_delete",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    },
+    {
+      "from": "0x1400ed8d0",
+      "to": "0x1400eb640",
+      "site": "0x1400ed8dc",
+      "kind": "computed_callback_dispatch",
+      "condition": "Basic virtual +0xf0 FreeImage",
+      "status": "basic_reset_cpu_image_release",
+      "evidence_id": "ev_3b2f7919d1c5ffb6a5cd1c62d60fd78b1c113074c7bbb1a574c2c022ac91b917"
+    },
+    {
+      "from": "0x1400ed8d0",
+      "to": "0x1400be9b0",
+      "callsite": "0x1400ed90c",
+      "kind": "direct_static",
+      "condition": "Basic GL ID array +0x50 nonnull",
+      "status": "basic_reset_gpu_texture_delete",
+      "evidence_id": "ev_3b2f7919d1c5ffb6a5cd1c62d60fd78b1c113074c7bbb1a574c2c022ac91b917"
+    },
+    {
+      "from": "0x1400ed8d0",
+      "to": "controller pointer/first-use state preserved",
+      "kind": "terminal_cpu_leaf",
+      "condition": "Reset body contains no controller delete or Init flag write",
+      "status": "basic_reset_controller_lifetime",
+      "evidence_id": "ev_3b2f7919d1c5ffb6a5cd1c62d60fd78b1c113074c7bbb1a574c2c022ac91b917"
+    },
+    {
+      "from": "0x1400e5210",
+      "to": "DYNAMIC:TEXTURE_CONTROLLER_OBJECT_LIFETIME",
+      "kind": "unresolved_runtime_selector",
+      "condition": "Basic destruction, controller subtype/ownership, active GL IDs/raster and actual live texture count",
+      "status": "unresolved_target",
+      "evidence_id": "ev_c71427cdf42d535587fc7f79836b5d824d03d1a66a2506023a6d5b1c30403157"
+    }
+  ]
+}

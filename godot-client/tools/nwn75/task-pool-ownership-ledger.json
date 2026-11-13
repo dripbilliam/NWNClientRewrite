@@ -1,0 +1,25 @@
+{
+  "schema": "nwn75-original-task-pool-ownership-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "document": "task-pool-ownership.md",
+  "edges": [
+    {"from":"0x14066fa60","to":"0x140672260","kind":"worker_start","condition":"GeneralWork task pool startup through CExoTaskThread Start","status":"target_identified","evidence_id":"ev_5a6f40b33c3026442b500d26607bab34eb722c9cc954f735ded6442dbe024e33"},
+    {"from":"0x140672260","to":"0x14066ec90","callsites":["0x140672328","0x140672358"],"callsite_evidence_ids":["ev_abce8f2897815ce494760c3e52c4c2a1fd342adff919c5eba6cbbf381cc563df","ev_248df6e76d6c6a6fe1f9f0b9ec745ba4a2a90bf4e3099764b6c9fad77dbeefb1"],"kind":"direct","condition":"worker scans initial priority-equal groups then remaining groups until Pump yields work; otherwise BlockForWork","status":"target_identified","evidence_id":"ev_6c416e7c08a182f90bab3d6af31335966fbc4e3ddc1b3612bde2b83c5c2a4f80"},
+    {"from":"0x14066ec90","to":"CExoBaseTask+0x8","kind":"task_vtable","condition":"dequeued live task after AttemptStart","status":"bounded_target_family","evidence_id":"ev_9fdf53e3475eb21e016ea77a2cf350269fa7b0b977fbe2e94878bfd507b054b2"},
+    {"from":"0x14066ec90","to":"0x140176ca0","kind":"task_vtable","condition":"CExoTask array<unsigned int> Run","status":"target_identified","evidence_id":"ev_c90cd8ee95f06d9d8cd3062bee789366f45dce14ff215d769552bbb8093de537"},
+    {"from":"0x14066ec90","to":"0x1401c4720","kind":"task_vtable","condition":"CExoTask string Run","status":"target_identified","evidence_id":"ev_93961b9b8e882e5977bb21a0e9edf5a8b152eb607aee8377bd0849c769031056"},
+    {"from":"0x14066ec90","to":"0x1401c4a70","kind":"task_vtable","condition":"CExoTask void Run","status":"target_identified","evidence_id":"ev_2bd90c6fa7533292e893a70d3be823dc2bf495eabd792d949b6e830c062995ad"},
+    {"from":"0x140178cc0","to":"0x140171d80","callsite":"0x1401791db","kind":"direct_call","condition":"StartAddressTranslation queues array task","status":"target_identified","evidence_id":"ev_77491571adfb1126958f5c37994a0be1c1a5039e02a24932542d5105ff93c45c"},
+    {"from":"0x140d9fae8","to":"0x14017c940","kind":"function_vtable","condition":"DNS std::function slot +0x10","status":"target_identified","evidence_id":"ev_d73a8e3003e16a7f8aa2cd88dfa738a9e2d97b953b114d3a9307b471b2c85cbc"},
+    {"from":"0x14017c940","to":"0x140174230","callsite":"0x14017c94d","kind":"direct_call","condition":"DNS callable body","status":"external_network_descendant","evidence_id":"ev_77fd7f54ce12be0ea1cf40ea2ca9b403a7faf5a5ab4762a33690413dc68b5126"},
+    {"from":"0x1401bf620","to":"0x140171ec0","callsite":"0x1401c0032","kind":"direct_call","condition":"NWSync housekeeping queues void task","status":"target_identified","evidence_id":"ev_461f6c668c5c21c6d9b15fac01c7c7b6aa7a4e052eac9091c7a52c4721c0612b"},
+    {"from":"0x140daca88","to":"0x1401c8490","kind":"function_vtable","condition":"housekeeping std::function slot +0x10","status":"target_identified","evidence_id":"ev_9db18d8c163c17de45bd3363a3a083d743b8d2f35b4d6b81e3db4813313afb07"},
+    {"from":"0x1401c8490","to":"0x1401bccf0","callsite":"0x1401c8494","kind":"tail_jump","condition":"housekeeping function-object wrapper adds 8 to this, then jumps to SHA1 cleanup lambda","status":"storage_descendant","evidence_id":"ev_085073853d59d4f21e71e7303608690099ce588946f7f2b5ed25f2565ab35981","evidence_note":"pinned PE bytes 48 83 c1 08 e9 57 48 ff ff"},
+    {"from":"0x1401c0900","to":"0x140171ec0","callsite":"0x1401c0b51","kind":"direct_call","condition":"BatchInsertResRefDataAsync queues string task","status":"target_identified","evidence_id":"ev_7064d9d5d88c834a09f5457df90e5fd43885eeef6919158c4af93548dd4ae0ea"},
+    {"from":"0x140dacba0","to":"0x1401c8790","kind":"function_vtable","condition":"batch insert std::function slot +0x10","status":"target_identified","evidence_id":"ev_fe6e111a8b9f2ed4d6979822fe4f2f0cd9c6e364e93eb039c7ea47c6a918cfeb"},
+    {"from":"0x1401c8790","to":"0x1401bdb50","callsite":"0x1401c879d","kind":"direct_call","condition":"batch insert callable","status":"target_identified","evidence_id":"ev_34a4ded038e11baabfd03d2b40112a39c558932736bcfe50b150dd677d0bf49b"},
+    {"from":"0x1401bdb50","to":"0x1401c6240","kind":"provider_vtable","condition":"CNWSyncInternal+0x20 SQLiteStorageProvider slot +0x20 Store","status":"storage_descendant","evidence_id":"ev_98ec9f7d3542a3267144c12307b10a1a22412d8bce51be66672d60d66f27379d"},
+    {"from":"0x1401c6240","to":"0x1401c67c0","callsite":"0x1401c6628","kind":"direct_call","condition":"SQLiteStorageProvider groups entries then StorageShard Store","status":"storage_descendant","evidence_id":"ev_9301a58fd43aa215f55e5bd96193e40b95eeba32edbe29fcc1ba9bc2620804a2"},
+    {"from":"0x14066fcf0","to":"Task::Queue wrappers","kind":"caller_census","condition":"direct incoming references only; virtual and inlined producers open","status":"partial_producer_census","evidence_id":"ev_1c41e58d2f41a382a0354201f47535ef3997775149d3e955625dd95c2fdfa863"}
+  ]
+}

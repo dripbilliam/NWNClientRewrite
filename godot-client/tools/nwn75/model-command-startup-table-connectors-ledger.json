@@ -1,0 +1,10 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Three nonnull CRT initializer slots that register model text commands: newmodel, beginmodelgeom and setsupermodel. The command holders and subsequent model lookup are mapped in prior ledgers.",
+  "edges": [
+    {"from":"0x140ca3400","to":"0x140d7da90","site":"0x140ca3435","site_evidence_id":"ev_bd63eeb29844b19d2010e822c79bf4d020b191a3076f91b05c21cfcd530216e4","kind":"initializer_table_visit","condition":"CRT _initterm receives range 0x140d7d790..0x140d7fea8; nonnull slot 0x140d7da90 points to newmodel registration stub 0x1400152d0","status":"newmodel_registration_admitted","evidence_id":"ev_2e4bf0cbf57601193c292ca4e9963276d115145bf950a1f42bb6827239210fd0"},
+    {"from":"0x140ca3400","to":"0x140d7daa0","site":"0x140ca3435","site_evidence_id":"ev_bd63eeb29844b19d2010e822c79bf4d020b191a3076f91b05c21cfcd530216e4","kind":"initializer_table_visit","condition":"same CRT range; nonnull slot 0x140d7daa0 points to beginmodelgeom registration stub 0x140015150","status":"beginmodelgeom_registration_admitted","evidence_id":"ev_37b107281eba6c2e67c24177b8eca64d8669a6c533b0aa2335a03e009c5ce0ba"},
+    {"from":"0x140ca3400","to":"0x140d7dab8","site":"0x140ca3435","site_evidence_id":"ev_bd63eeb29844b19d2010e822c79bf4d020b191a3076f91b05c21cfcd530216e4","kind":"initializer_table_visit","condition":"same CRT range; nonnull slot 0x140d7dab8 points to setsupermodel registration stub 0x140015330","status":"supermodel_registration_admitted","evidence_id":"ev_6f8ef3d73a1c805a4afc73036ed8f3d2bfb079520ee1a1d2740fd64623f512e9"}
+  ]
+}

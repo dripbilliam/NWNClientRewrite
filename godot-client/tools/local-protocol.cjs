@@ -27,7 +27,7 @@ function validateCommand(message,current){
  }
  if(message.kind==='browser-input'){
   const serial=v=>Number.isSafeInteger(v)&&v>=0,op=message.operation;
-  if(!current||message.connection!==current.connection||!['open','close','return-menu','advanced-filter','sort-column','cancel-inspect','details-step','selection-step','tab','filter','page','select','favorite','refresh','inspect','join','profile'].includes(op))throw Error('Invalid native server browser operation');
+  if(!current||message.connection!==current.connection||!['open','close','return-menu','game-type','advanced-filter','sort-column','cancel-inspect','details-step','selection-step','tab','filter','page','select','favorite','refresh','inspect','join','profile'].includes(op))throw Error('Invalid native server browser operation');
   if(!['open','close'].includes(op)&&!serial(message.viewId))throw Error('Invalid native browser view');
   if(message.leaveMultiplayer!==undefined&&(op!=='close'||typeof message.leaveMultiplayer!=='boolean'))throw Error('Invalid native multiplayer dismissal');
   if(message.listTab!==undefined&&(op!=='open'||!['Internet','History','Favorites'].includes(message.listTab)))throw Error('Invalid native browser return page');
@@ -36,6 +36,7 @@ function validateCommand(message,current){
   if(op==='filter'&&(typeof message.filter!=='string'||message.filter.length>128||!['Name','Module','Players','Latency'].includes(message.sort)||!message.filters||['local','server','password'].some(k=>typeof message.filters[k]!=='boolean')))throw Error('Invalid native server browser filters');
   if((op==='select'||op==='favorite'&&!message.direct)&&!serial(message.entryId))throw Error('Invalid native server choice');
   if(['details-step','selection-step'].includes(op)&&![-1,1].includes(message.direction))throw Error('Invalid native server selection direction');
+  if(op==='game-type'&&(message.gameType!==null&&(!Number.isInteger(message.gameType)||message.gameType<0||message.gameType>32767)))throw Error('Invalid native server game type');
   if(op==='advanced-filter'){const v=message.values;if(!v||Array.isArray(v)||typeof v!=='object'||Object.keys(v).length!==3||Object.keys(v).some(k=>!['hideEmpty','hideFull','module'].includes(k))||typeof v.hideEmpty!=='boolean'||typeof v.hideFull!=='boolean'||typeof v.module!=='string'||v.module.length>1024||/[\x00-\x1f]/.test(v.module))throw Error('Invalid native advanced server filters');}
   if(op==='profile'){const v=message.values;if(!v||Array.isArray(v)||typeof v!=='object'||Object.keys(v).some(k=>!['name','saveDefault'].includes(k))||typeof v.name!=='string'||!v.name||v.name.length>32||/[\x00-\x1f]/.test(v.name)||typeof v.saveDefault!=='boolean')throw Error('Invalid native player profile');}
   if(['join','inspect'].includes(op)||op==='favorite'&&message.direct){

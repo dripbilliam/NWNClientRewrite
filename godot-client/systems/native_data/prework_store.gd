@@ -184,12 +184,24 @@ class Inputs:
 	func fork(): return source.fork()
 	func preparation_cache(): return source.preparation_cache() if source.has_method("preparation_cache") else null
 	func decoded_cache(): return source.decoded_cache() if source.has_method("decoded_cache") else preparation_cache()
-	func remember(name: String,type: int,bytes: PackedByteArray) -> void:
-		rows["bytes:"+name.to_lower()+":"+str(type)]={"operation":"bytes","name":name.to_lower(),"type":type,"sha256":Digest.digest(bytes)}
+	func remember(name: String,type: int,bytes: PackedByteArray,known_sha: String="") -> void:
+		# Optional only for the trusted digest of these same job-owned immutable
+		# bytes. Other callers still hash normally; disk/load validation is separate.
+		var sha:=known_sha if known_sha.length()==64 and known_sha==known_sha.to_lower() and known_sha.is_valid_hex_number(false) else Digest.digest(bytes)
+		rows["bytes:"+name.to_lower()+":"+str(type)]={"operation":"bytes","name":name.to_lower(),"type":type,"sha256":sha}
 	func get_resource(name: String,type: int) -> PackedByteArray:
 		var bytes: PackedByteArray=source.get_resource(name,type); failure=source.failure
 		if failure.is_empty(): remember(name,type,bytes)
 		return bytes
+	func get_resource_with_digest(name: String,type: int) -> Dictionary:
+		var bytes: PackedByteArray=source.get_resource(name,type);failure=source.failure
+		if not failure.is_empty():return {"bytes":bytes,"sha256":""}
+		# The immediate decoder owns this pair. A later source read/mutation must
+		# not change the bytes behind its already calculated identity. No raw
+		# buffer is retained in the dependency registry or a persistent cache.
+		bytes=bytes.duplicate()
+		var sha:=Digest.digest(bytes);remember(name,type,bytes,sha)
+		return {"bytes":bytes,"sha256":sha}
 	func has_resource(name: String,type: int) -> bool:
 		var present: bool=source.has_resource(name,type)
 		rows["exists:"+name.to_lower()+":"+str(type)]={"operation":"exists","name":name.to_lower(),"type":type,"present":present}; return present

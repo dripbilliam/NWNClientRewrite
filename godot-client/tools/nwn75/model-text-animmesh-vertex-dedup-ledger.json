@@ -1,0 +1,99 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text AnimMesh generated-vertex sample construction, linear deduplication and CPU ownership before shared pool publication.",
+  "edges": [
+    {
+      "from": "0x1400a9220",
+      "to": "0x1400a8300",
+      "site": "0x1400a964f",
+      "kind": "computed_callback_dispatch",
+      "condition": "AnimMesh node+0xa0 installed generator; zero vertex-count text rebuild",
+      "status": "cpu_anim_vertex_generation",
+      "evidence_id": "ev_3824c818678a0a1d2173737ce243e6bfa15465b56bd73707fa01457b7a702066"
+    },
+    {
+      "from": "0x1400a8300",
+      "to": "MdlNodeAnimMesh+0x310/+0x314",
+      "kind": "cpu_sample_count",
+      "condition": "authored animverts/animtverts lengths divided by base vertex/texture-vertex counts",
+      "status": "cpu_anim_samples",
+      "evidence_id": "ev_8139649e36515ae85d7e01790a67aabec2ced8f72f019cb020f7a4191e2147ce"
+    },
+    {
+      "from": "0x1400a8300",
+      "to": "temporary per-corner position/normal/UV Vector lists",
+      "kind": "cpu_array_construction",
+      "condition": "each face and three corners; positive sample counts",
+      "status": "cpu_anim_samples",
+      "evidence_id": "ev_8139649e36515ae85d7e01790a67aabec2ced8f72f019cb020f7a4191e2147ce"
+    },
+    {
+      "from": "0x1400a8300",
+      "to": "0x1400aac30",
+      "callsite": "0x1400a86d3",
+      "kind": "direct_static",
+      "condition": "allocate 0xa0-byte NodeVertexAnim candidate for each corner",
+      "status": "cpu_vertex_object",
+      "evidence_id": "ev_8139649e36515ae85d7e01790a67aabec2ced8f72f019cb020f7a4191e2147ce"
+    },
+    {
+      "from": "0x1400aac30",
+      "to": "NodeVertexAnim+0x70/+0x80/+0x90",
+      "kind": "cpu_deep_copy",
+      "condition": "copy three sample Vector lists after base NodeVertex construction",
+      "status": "cpu_vertex_object",
+      "evidence_id": "ev_2e3b1e1cfcb9ccc0de373e1dcbb1e7bc1dde424bf9db46deadd14c225df620ee"
+    },
+    {
+      "from": "0x1400a8300",
+      "to": "0x1400ab410",
+      "callsite": "0x1400a8719",
+      "kind": "direct_static",
+      "condition": "for each prior generated candidate in postprocess+0x90/+0x98",
+      "status": "cpu_linear_vertex_search",
+      "evidence_id": "ev_8139649e36515ae85d7e01790a67aabec2ced8f72f019cb020f7a4191e2147ce"
+    },
+    {
+      "from": "0x1400ab410",
+      "to": "0x1400ab270",
+      "callsite": "0x1400ab4bf",
+      "kind": "direct_static",
+      "condition": "base NodeVertex equality before sample arrays",
+      "status": "cpu_vertex_equality",
+      "evidence_id": "ev_0f33e1cbdad509d0d5b84a56e3a1fdeceb39e6ea86e971222e48b22df21681ab"
+    },
+    {
+      "from": "0x1400ab410",
+      "to": "three sampled Vector arrays",
+      "kind": "cpu_exact_float_compare",
+      "condition": "equal counts then component-by-component equality of all three lists",
+      "status": "cpu_anim_sample_equality",
+      "evidence_id": "ev_0f33e1cbdad509d0d5b84a56e3a1fdeceb39e6ea86e971222e48b22df21681ab"
+    },
+    {
+      "from": "0x1400ab270",
+      "to": "base position/normal/optional UV/color/tangent fields",
+      "kind": "cpu_exact_float_compare",
+      "condition": "equal format bits and present fields",
+      "status": "cpu_vertex_equality",
+      "evidence_id": "ev_44c76004558ff07dea1e4705530f6b4a03d5bfb661897019aca9a49e78c4cee5"
+    },
+    {
+      "from": "0x1400a8300",
+      "to": "postprocess generated list +0x90/+0x98 and face 16-bit indices",
+      "kind": "cpu_dedup_or_append",
+      "condition": "existing equal vertex: free candidate/reuse index; otherwise append new vertex and index",
+      "status": "cpu_vertex_ownership",
+      "evidence_id": "ev_8139649e36515ae85d7e01790a67aabec2ced8f72f019cb020f7a4191e2147ce"
+    },
+    {
+      "from": "0x1400a8300",
+      "to": "DYNAMIC:ANIMMESH_SAMPLES_AND_DEDUP",
+      "kind": "unresolved_runtime_selector",
+      "condition": "face/vertex/sample counts, list validity, dedup outcome and later pool/draw",
+      "status": "unresolved_target",
+      "evidence_id": "ev_8139649e36515ae85d7e01790a67aabec2ced8f72f019cb020f7a4191e2147ce"
+    }
+  ]
+}

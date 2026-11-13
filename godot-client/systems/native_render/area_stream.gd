@@ -99,7 +99,7 @@ func open_source(catalog, area_name: String, shared_pool, cache_path: String, ne
 	if not is_instance_valid(batcher): batcher=TerrainBatches.new(); add_child(batcher)
 	if static_scenery_mode!="individual" and not is_instance_valid(static_scenery_batches):
 		static_scenery_batches=StaticSceneryMerge.new() if static_scenery_mode=="merged" else StaticSceneryBatches.new();add_child(static_scenery_batches)
-	assets.configure(catalog); assets.cache_directory=cache_path
+	assets.configure(catalog);assets.completion_pool=pool; assets.cache_directory=cache_path
 	definition_wait={"catalog":catalog.fork(),"name":area_name,"generation":generation,"network_area":network_area}
 	diagnostics={"generation":generation,"name":area_name,"unique_models":0,"model_jobs":0,"worker_ms":0.0,"publish_ms":0.0,"publish_frames":0,"max_publish_ms":0.0,"max_tile_publish_ms":0.0,"template_ms":0.0,"clone_ms":0.0,"attach_ms":0.0,"batch_prepare_ms":0.0,"batches_published":0,"batched":use_terrain_batches,"templates_built":0,"templates_reused":0,"cache_hits":0,"limitations":[],"errors":[],"definition_thread":0}
 	diagnostics.tile_lights=[]
@@ -184,7 +184,7 @@ func _profile_process(_delta: float) -> void:
 	var shared_budget: bool=pool.has_method("can_publish") and pool.has_method("publication_finished")
 	while not publish_queue.is_empty() and (maximum_tiles_per_frame==0 or published<maximum_tiles_per_frame):
 		if attempted>=16 and not shared_budget:break
-		if attempted>0 and (Time.get_ticks_usec()-begin)/1000.0>=publication_budget_ms: break
+		if attempted>0 and Time.get_ticks_usec()-begin>=Template.callback_budget(pool,int(publication_budget_ms*1000)): break
 		if pool.has_method("can_publish") and not pool.can_publish(): break
 		attempted+=1
 		var row: Dictionary = publish_queue.pop_front(); var tile: Dictionary = definition.tiles[int(row.index)]
@@ -194,21 +194,22 @@ func _profile_process(_delta: float) -> void:
 			var count_before:=int(pool.stats.templates_created)
 			var template
 			var staged_created:=false
-			if Template.configured_recipe() and pool.has_method("model_template_step"):
-				var preparation: Dictionary=pool.model_template_step(bundles[row.model],_template_pending)
+			if Template.cooperative(pool) and pool.has_method("model_template_step"):
+				var preparation: Dictionary=pool.model_template_step(bundles[row.model],_template_pending,32,Template.step_budget(pool)) if pool.has_method("remaining_publication_us") else pool.model_template_step(bundles[row.model],_template_pending)
 				var created:=int(pool.stats.templates_created)-count_before
 				if created>0:diagnostics.templates_built+=created
 				if preparation.status=="pending":
 					_template_entry=row;publish_queue.push_front(row);diagnostics.staged_template_steps=int(diagnostics.get("staged_template_steps",0))+1
 					diagnostics.template_ms+=(Time.get_ticks_usec()-template_begin)/1000.0
-					if pool.has_method("publication_finished"):pool.publication_finished(tile_begin)
+					if pool.has_method("construction_finished"):pool.construction_finished(tile_begin)
+					elif pool.has_method("publication_finished"):pool.publication_finished(tile_begin)
 					continue
 				_template_entry={};template=preparation.get("template")
 				staged_created=bool(preparation.get("created",false))
 			else:template=pool.model_template(bundles[row.model])
 			if template!=null:
 				templates[key]=template
-				if not Template.configured_recipe():
+				if not Template.cooperative(pool):
 					if int(pool.stats.templates_created)>count_before:diagnostics.templates_built+=1
 					else:diagnostics.templates_reused+=1
 				elif not staged_created:diagnostics.templates_reused+=1
@@ -217,12 +218,13 @@ func _profile_process(_delta: float) -> void:
 		else: diagnostics.templates_reused+=1
 		var clone_begin:=Time.get_ticks_usec()
 		var model
-		if templates.has(key) and Template.configured_recipe() and templates[key].has_method("create_step"):
-			var creation: Dictionary=templates[key].create_step(_clone_pending)
+		if templates.has(key) and Template.cooperative(pool) and templates[key].has_method("create_step"):
+			var creation: Dictionary=templates[key].create_step(_clone_pending,32,Template.step_budget(pool))
 			if creation.status=="pending":
 				_clone_entry=row;publish_queue.push_front(row);diagnostics.staged_clone_steps=int(diagnostics.get("staged_clone_steps",0))+1
 				diagnostics.clone_ms+=(Time.get_ticks_usec()-clone_begin)/1000.0
-				if pool.has_method("publication_finished"):pool.publication_finished(tile_begin)
+				if pool.has_method("construction_finished"):pool.construction_finished(tile_begin)
+				elif pool.has_method("publication_finished"):pool.publication_finished(tile_begin)
 				continue
 			_clone_entry={};model=creation.get("instance")
 		else:model=templates[key].create() if templates.has(key) else null
@@ -253,7 +255,7 @@ func _profile_process(_delta: float) -> void:
 func publish_batches() -> void:
 	var begin:=Time.get_ticks_usec(); var published:=0
 	while not batch_queue.is_empty() and published<maximum_batches_per_frame:
-		if published>0 and (Time.get_ticks_usec()-begin)/1000.0>=publication_budget_ms: break
+		if published>0 and Time.get_ticks_usec()-begin>=Template.callback_budget(pool,int(publication_budget_ms*1000)): break
 		if pool.has_method("can_publish") and not pool.can_publish(): break
 		var unit_began:=Time.get_ticks_usec()
 		var group: Dictionary=batch_queue.pop_front(); batcher.publish(group); published+=1

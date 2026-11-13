@@ -36,17 +36,19 @@ var _configuring_shader:=false
 @export var scissor:=false:
 	set(value): scissor=value; refresh_shader()
 func configure(source: StandardMaterial3D,ambient_value: Array,raw_emission: Array,standard: bool=false,quality: int=2,surface_policy: Variant=null) -> void:
+	configure_values(source.albedo_color,source.albedo_texture,source.texture_filter,source.transparency,ambient_value,raw_emission,standard,quality,surface_policy)
+func configure_values(diffuse_value: Color,texture_value: Texture2D,filter_value: int,transparency_value: int,ambient_value: Array,raw_emission: Array,standard: bool=false,quality: int=2,surface_policy: Variant=null) -> void:
 	# Configure one final shader variant. Intermediate setter combinations are
 	# never rendered, but compiling/binding them can drain unrelated render work.
 	_configuring_shader=true
 	standard_specular=standard; standard_quality=quality
-	Palette.ensure(); filter_mode=source.texture_filter; scissor=source.transparency==BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	transparency=source.transparency
+	Palette.ensure(); filter_mode=filter_value; scissor=transparency_value==BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	transparency=transparency_value
 	# Omitted policy preserves legacy reconfiguration of an existing material.
 	if surface_policy is bool:native_surface_output=surface_policy
 	_configuring_shader=false; refresh_shader()
-	albedo_color=source.albedo_color; ambient_color=Policy.linear_rgb(ambient_value); set_shader_parameter("native_ambient",ambient_color)
-	albedo_texture=source.albedo_texture; set_shader_parameter("native_texture",albedo_texture); set_shader_parameter("native_has_texture",albedo_texture!=null)
+	albedo_color=diffuse_value; ambient_color=Policy.linear_rgb(ambient_value)
+	albedo_texture=texture_value
 	emission=Color(raw_emission[0],raw_emission[1],raw_emission[2]).srgb_to_linear(); emission_enabled=raw_emission.any(func(value):return value!=0)
 static func filtering_name(value: int) -> String:
 	return {BaseMaterial3D.TEXTURE_FILTER_NEAREST:"filter_nearest",BaseMaterial3D.TEXTURE_FILTER_LINEAR:"filter_linear",BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS:"filter_nearest_mipmap",BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS:"filter_linear_mipmap",BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS_ANISOTROPIC:"filter_nearest_mipmap_anisotropic",BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC:"filter_linear_mipmap_anisotropic"}.get(value,"filter_linear_mipmap")

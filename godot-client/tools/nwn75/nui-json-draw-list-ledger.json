@@ -1,0 +1,29 @@
+{
+  "schema":"nwn75-nui-json-draw-list-callback-v1",
+  "binary_sha256":"3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope":"Original static JSON draw-list callback and command producer edges; active window and data choices unknown",
+  "upstream_edges":[
+    {"from":"0x140741070","site":"0x140745697","to":"0x140748b80","gate":"draw_list_scissor configuration branch","evidence_id":"ev_22c002c865997b52b6d2cdaa9b9b1462dd7d9fff367c19b2df563ac41a6bc4b0"},
+    {"from":"0x140741070","site":"0x1407456fa","to":"0x140748b80","gate":"second draw-list configuration branch","evidence_id":"ev_22c002c865997b52b6d2cdaa9b9b1462dd7d9fff367c19b2df563ac41a6bc4b0"},
+    {"from":"0x140748b80","site":"0x14074a3c2","to":"0x140e3b6e0","gate":"callback vtable LEA/install","evidence_id":"ev_8d3044f66f3e4744d2d9ea53f2537cddf8c10f28e2187b83b8bd8e4f659c9ff7"},
+    {"from":"0x140e3b6e0","slot":"+0x10","to":"0x140754b70","gate":"Layoutable WidgetRenderState callback invoked","evidence_id":"ev_7443ed323a2f22a1ac027e131f9014870d143cdb6c7632f9708f715463106120"},
+    {"from":"0x140754b70","site":"0x140754b94","to":"0x14073b700","gate":"wrapper delegates with copied render state","evidence_id":"ev_6eaea072f2d1dbdb365b41fc693a161c468254505a6357c683228bcac70722f4"}
+  ],
+  "command_sites":[
+    {"kind":2,"site":"0x14073c42d","producer":"0x140a8be00","evidence_id":"ev_7a06f69a2d4c1668a151455ce6c03ba20a858d8b2bbffcc584e50d974a107d74"},
+    {"kind":3,"site":"0x14073c866","producer":"0x140a8bd10","evidence_id":"ev_ea3d7b7187d84c99e73d4787ca46669d02bf9654f3d78a113b6fb60586b115cc"},
+    {"kind":4,"site":"0x14073ca5f","producer":"0x140a8c120","evidence_id":"ev_33ab50af8818232381744aa6b5d7d9a54b281176973fa225061a3ac7bd7caa0a"},
+    {"kind":5,"site":"0x14073c9a6","producer":"0x140a82050","evidence_id":"ev_f740b11307f843be2745ae3d9f0c45afab03527bf160e6c43973474d8b302184"},
+    {"kind":7,"site":"0x14073cc62","producer":"0x140a8bbf0","evidence_id":"ev_903242eb9e035f69edf3122b2931027d99087266fd2db1342c89293cd3d15a69"},
+    {"kind":8,"site":"0x14073cb93","producer":"0x140a81e20","evidence_id":"ev_6a0549721f9c7dad047af52095e30b48c77dfe1193b001977932040938564b59"},
+    {"kind":8,"site":"0x14073cbae","producer":"0x140a81e20","evidence_id":"ev_6a0549721f9c7dad047af52095e30b48c77dfe1193b001977932040938564b59"},
+    {"kind":9,"site":"0x14073d10c","producer":"0x140a8bb30","evidence_id":"ev_4d74f83c98c3886a70f324923fca1ea9885500dc6724c124e0b9b7712fde5218"},
+    {"kind":10,"site":"0x14073ceaf","producer":"0x140a81d80","evidence_id":"ev_341434833ca4e60be71f2c1399dc14c424309015fc8757ef99403bfca0fc93a9"},
+    {"kind":14,"site":"0x14073c0b3","producer":"0x140a81f20","evidence_id":"ev_eaa16d679bbee945e01966f5d1bac5547ec254e1d848690ea66199b069596eb1"},
+    {"kind":15,"site":"0x14073c147","producer":"0x140a8bfe0","evidence_id":"ev_ab9ed8821185d41af2889fbaee9ccb7718932eafa15712412511893c97f83e77"},
+    {"kind":16,"site":"0x14073d305","producer":"0x140a81600","evidence_id":"ev_003ef7a3852046c1f3737677618378ee3910c2cb7a239d3610f4b8554479c6fd"},
+    {"kind":17,"site":"0x14073d6df","producer":"0x140a7db90","evidence_id":"ev_074cfeab6068886bce8eb57ab6ef202bdad73aea6699c55624a92d804168dc86"}
+  ],
+  "shared_converter":{"function":"0x140a7c340","evidence_id":"ev_ad209304a0b1e3d9ce73250523f0be0b533a57ffa37433b89d53a3d9236ce940"},
+  "conditional_gl_leaf":{"function":"0x140a71760","api":"glDrawElements","evidence_id":"ev_6b5e1be5df3d0ec1c19e05d9f5114d2a9453a5c0bd89c9f09f1a3012d4826278"}
+}

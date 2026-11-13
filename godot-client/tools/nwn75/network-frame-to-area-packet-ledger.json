@@ -1,0 +1,190 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Client receive pumps through fetched frame, window reassembly, optional zlib decode and CClientExoApp +0x20 packet dispatch before area admission.",
+  "edges": [
+    {
+      "from": "0x1406db800",
+      "to": "0x140237a80",
+      "callsites": [
+        "0x1406db957",
+        "0x1406dbad3"
+      ],
+      "kind": "direct_static",
+      "condition": "client loop receive pump branches",
+      "status": "client_frame_pump",
+      "evidence_id": "ev_2e931412d2ae69c7b39b9600a44900264b14dc6a922eedbb6d1b8d43d39bc844"
+    },
+    {
+      "from": "0x1400451c0",
+      "to": "0x140237a80",
+      "callsites": [
+        "0x14004539f",
+        "0x1400453be"
+      ],
+      "kind": "direct_static",
+      "condition": "UpdateScreen network gates; reentrant receive pump",
+      "status": "screen_frame_pump",
+      "evidence_id": "ev_2e931412d2ae69c7b39b9600a44900264b14dc6a922eedbb6d1b8d43d39bc844"
+    },
+    {
+      "from": "0x140237a80",
+      "to": "0x14024f250",
+      "callsite": "0x140237a84",
+      "kind": "tail_jump",
+      "condition": "CNetLayer wrapper passes internal pointer +8",
+      "status": "internal_receive_pump",
+      "evidence_id": "ev_a45181b2975c239f0c650b2f2334fe6249fbadf71032b7148c2f2eb54bb21a50"
+    },
+    {
+      "from": "0x14024f250",
+      "to": "0x1401709c0",
+      "callsite": "0x14024f38c",
+      "kind": "direct_static",
+      "condition": "internal initialized flag +0x60 nonzero",
+      "status": "incoming_processing_begin",
+      "evidence_id": "ev_6e7e967378a02683ef3343e887de11f1025d76430890d0198ec0c7aae71f8225"
+    },
+    {
+      "from": "0x14024f250",
+      "to": "0x140170740",
+      "callsites": [
+        "0x14024f3a4",
+        "0x14024f7cd"
+      ],
+      "kind": "direct_static",
+      "condition": "fetch first and following incoming frames",
+      "status": "incoming_frame_fetch",
+      "evidence_id": "ev_6e7e967378a02683ef3343e887de11f1025d76430890d0198ec0c7aae71f8225"
+    },
+    {
+      "from": "0x14024f250",
+      "to": "0x14023c5d0",
+      "callsite": "0x14024f78b",
+      "kind": "direct_static",
+      "condition": "framed data header/CRC and window admission",
+      "status": "frame_window_receive",
+      "evidence_id": "ev_6e7e967378a02683ef3343e887de11f1025d76430890d0198ec0c7aae71f8225"
+    },
+    {
+      "from": "0x14024f250",
+      "to": "0x140170730",
+      "callsite": "0x14024f802",
+      "kind": "direct_static",
+      "condition": "after incoming fetch loop",
+      "status": "incoming_processing_end",
+      "evidence_id": "ev_6e7e967378a02683ef3343e887de11f1025d76430890d0198ec0c7aae71f8225"
+    },
+    {
+      "from": "0x14024f250",
+      "to": "0x1402566d0",
+      "callsites": [
+        "0x14024f83a",
+        "0x14024f84a"
+      ],
+      "kind": "direct_static",
+      "condition": "initialized window with pending full message; two packet modes",
+      "status": "full_message_reassembly",
+      "evidence_id": "ev_6e7e967378a02683ef3343e887de11f1025d76430890d0198ec0c7aae71f8225"
+    },
+    {
+      "from": "0x1402566d0",
+      "to": "0x140255c80",
+      "callsites": [
+        "0x1402571c1",
+        "0x1402572b1"
+      ],
+      "kind": "direct_static",
+      "condition": "single packet or fully assembled multi-packet buffer",
+      "status": "message_decode_entry",
+      "evidence_id": "ev_f29da6a969b577a9c4ebd6fa666baa7f7ce633de5a48f032aad964ff999b1ea9"
+    },
+    {
+      "from": "0x1402566d0",
+      "to": "temporary full-message buffer",
+      "kind": "conditional_data_source",
+      "condition": "multi-fragment path allocates and copies payloads before synchronous decoder call",
+      "status": "reassembled_message_ownership",
+      "evidence_id": "ev_f29da6a969b577a9c4ebd6fa666baa7f7ce633de5a48f032aad964ff999b1ea9"
+    },
+    {
+      "from": "0x140255c80",
+      "to": "DYNAMIC:APP_VIRTUAL_PLUS_0x20",
+      "site": "0x14025647e",
+      "kind": "computed_callback_dispatch",
+      "condition": "valid header/player, frame flag bit 4 clear; pass frame+0xc and length-0xc",
+      "status": "raw_message_dispatch",
+      "evidence_id": "ev_f0b9827f91a37ef26cbba5123119958950ce91f2a08bfcc359bb8cd308374d52"
+    },
+    {
+      "from": "0x140255c80",
+      "to": "0x1405a3f70",
+      "callsite": "0x140256530",
+      "kind": "direct_static",
+      "condition": "compressed flag set, advertised size under 0x1400001, bit 1 clear",
+      "status": "zlib_message_decode",
+      "evidence_id": "ev_f0b9827f91a37ef26cbba5123119958950ce91f2a08bfcc359bb8cd308374d52"
+    },
+    {
+      "from": "0x140255c80",
+      "to": "0x14059e390",
+      "callsite": "0x140256668",
+      "kind": "direct_static",
+      "condition": "compressed flag set, advertised size under 0x1400001, deflate window selected",
+      "status": "zlib_message_decode",
+      "evidence_id": "ev_f0b9827f91a37ef26cbba5123119958950ce91f2a08bfcc359bb8cd308374d52"
+    },
+    {
+      "from": "0x140255c80",
+      "to": "DYNAMIC:APP_VIRTUAL_PLUS_0x20",
+      "site": "0x1402566bc",
+      "kind": "computed_callback_dispatch",
+      "condition": "compressed message decoded successfully; pass shared decoded buffer and length",
+      "status": "decoded_message_dispatch",
+      "evidence_id": "ev_f0b9827f91a37ef26cbba5123119958950ce91f2a08bfcc359bb8cd308374d52"
+    },
+    {
+      "from": "0x1406e3c80",
+      "to": "0x1402379b0",
+      "callsite": "0x1406e43ad",
+      "kind": "direct_static",
+      "condition": "client setup passes app-manager first object to network initializer",
+      "status": "client_net_callback_owner",
+      "evidence_id": "ev_2077c327f0ba1d2bd5fb8fb7aead9506ad5d79409ab6a2e8aba3381261d45b3a"
+    },
+    {
+      "from": "0x1402379b0",
+      "to": "0x140245610",
+      "callsite": "0x1402379b4",
+      "kind": "tail_jump",
+      "condition": "CNetLayer forwards internal pointer +8 and app object",
+      "status": "internal_net_callback_owner",
+      "evidence_id": "ev_64d8b8aebbc2ee1b3bed5ce8f7b9c24f5f47e1ef2b6c1c17ccb3a9c8c54ef80e"
+    },
+    {
+      "from": "0x140245610",
+      "to": "CNetLayerInternal+0x50 app callback pointer",
+      "kind": "conditional_data_source",
+      "condition": "uninitialized +0x60; store CBaseExoApp argument then initialize network state",
+      "status": "app_callback_owner_publication",
+      "evidence_id": "ev_52168f09dd91787a96989e089c7d4383439ba54e8911c264c089651416d54e82"
+    },
+    {
+      "from": "CNetLayerInternal+0x50 app callback pointer",
+      "to": "0x140e282c8",
+      "kind": "constructor_backed_identity",
+      "condition": "client initialization passes app-manager first CClientExoApp object; server initializer is separate",
+      "status": "client_packet_vtable",
+      "evidence_id": "ev_2077c327f0ba1d2bd5fb8fb7aead9506ad5d79409ab6a2e8aba3381261d45b3a"
+    },
+    {
+      "from": "0x140e282c8",
+      "to": "0x1406ac340",
+      "site": "0x140e282e8",
+      "kind": "vtable_slot_data",
+      "condition": "client +0x20 from both raw and decoded dispatch sites",
+      "status": "client_packet_handler_wrapper",
+      "evidence_id": "ev_e147f1e66b5754a5bcfe971db0e9e1ebafd37924ad3866fd0f361acfc0717000"
+    }
+  ]
+}

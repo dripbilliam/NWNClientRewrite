@@ -1,0 +1,407 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Camera model text/binary payload, Part controller and conditional attachment to active Camera view/Scene.",
+  "edges": [
+    {
+      "from": "0x1400a0d90",
+      "to": "0x1400874c0",
+      "callsite": "0x1400a0e59",
+      "callsite_evidence_id": "ev_8af5c9ba9165f80318822048332eefa1d0153a84e9083ff96e27fb548b2540cd",
+      "kind": "direct_static",
+      "condition": "text node token camera selects Camera model-node constructor",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_8af5c9ba9165f80318822048332eefa1d0153a84e9083ff96e27fb548b2540cd"
+    },
+    {
+      "from": "0x1400874c0",
+      "to": "0x140087290",
+      "callsite": "0x1400874c9",
+      "callsite_evidence_id": "ev_d84bbb00ff3fc73f8aa3501f9c8ecc1fe6243d6bbe73f7dda91bc098f5c06355",
+      "kind": "direct_static",
+      "condition": "Camera model-node constructor builds base MdlNode",
+      "status": "cpu_constructor_leaf",
+      "evidence_id": "ev_d84bbb00ff3fc73f8aa3501f9c8ecc1fe6243d6bbe73f7dda91bc098f5c06355"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x140092660",
+      "callsite": "0x1400a109f",
+      "callsite_evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "text Camera node per-line +0x8 parse callback",
+      "status": "target_identified",
+      "evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d"
+    },
+    {
+      "from": "0x140092660",
+      "to": "0x140099e10",
+      "callsite": "0x140092660",
+      "callsite_evidence_id": "ev_0f92eaf17e82543d440149ead8415a55c8b928fb79d5faffaf0782ef90981ea0",
+      "kind": "direct_static",
+      "condition": "Camera parse wrapper tail jump",
+      "status": "target_identified",
+      "evidence_id": "ev_0f92eaf17e82543d440149ead8415a55c8b928fb79d5faffaf0782ef90981ea0"
+    },
+    {
+      "from": "0x140099e10",
+      "to": "0x140099650",
+      "callsite": "0x140099e10",
+      "callsite_evidence_id": "ev_8fe0068a4709e4b4fffd016b3c799f00624210284b37bf1968a7aba6787b6626",
+      "kind": "direct_static",
+      "condition": "Camera subtype parser tail-transfers to base MdlNode field parser",
+      "status": "shared_parser_boundary",
+      "evidence_id": "ev_8fe0068a4709e4b4fffd016b3c799f00624210284b37bf1968a7aba6787b6626"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098790",
+      "callsite": "0x140099726",
+      "callsite_evidence_id": "ev_afa122d8111591d6e38e545408e7456f254012a82eb9d3bff509195c120882e2",
+      "kind": "direct_static",
+      "condition": "position single controller token; destination offset 0x10",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_afa122d8111591d6e38e545408e7456f254012a82eb9d3bff509195c120882e2"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098570",
+      "callsite": "0x140099761",
+      "callsite_evidence_id": "ev_c11a23f30aa2421a2d098bf4987f1d3ee7b4b89df8a2d532c9140caeb930c3b7",
+      "kind": "direct_static",
+      "condition": "positionkey token; destination offset 0x10",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_c11a23f30aa2421a2d098bf4987f1d3ee7b4b89df8a2d532c9140caeb930c3b7"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098340",
+      "callsite": "0x14009979a",
+      "callsite_evidence_id": "ev_42935693432368c8bff38a0b3dc870fc4e08952cf8a76c72a19f6a9c7b9797a0",
+      "kind": "direct_static",
+      "condition": "positionbezierkey token; destination offset 0x10",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_42935693432368c8bff38a0b3dc870fc4e08952cf8a76c72a19f6a9c7b9797a0"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098790",
+      "callsite": "0x14009981f",
+      "callsite_evidence_id": "ev_9de8fcce44175f84e4344413ae6fa0462b4327e3ccc02e63aab41c5df4f533fd",
+      "kind": "direct_static",
+      "condition": "orientation single controller token; destination offset 0x1c",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_9de8fcce44175f84e4344413ae6fa0462b4327e3ccc02e63aab41c5df4f533fd"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098570",
+      "callsite": "0x14009985d",
+      "callsite_evidence_id": "ev_57e82c07d57b60d6892caef81a57fa2503a57800c3d41d5b49cec50156438583",
+      "kind": "direct_static",
+      "condition": "orientationkey token; destination offset 0x1c",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_57e82c07d57b60d6892caef81a57fa2503a57800c3d41d5b49cec50156438583"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098340",
+      "callsite": "0x140099899",
+      "callsite_evidence_id": "ev_95ee829293aecafa427cb91a5abb59d47a38f9c29e486ee7ede193aaf198e9d3",
+      "kind": "direct_static",
+      "condition": "orientationbezierkey token; destination offset 0x1c",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_95ee829293aecafa427cb91a5abb59d47a38f9c29e486ee7ede193aaf198e9d3"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140047060",
+      "callsite": "0x140099926",
+      "callsite_evidence_id": "ev_5b109c34cd03934de2ec3e10e76276b03364f87c4cd8e3ae074d91212ff8382a",
+      "kind": "direct_static",
+      "condition": "wirecolor token scanned into temporary local only in this body",
+      "status": "cpu_parse_leaf",
+      "evidence_id": "ev_5b109c34cd03934de2ec3e10e76276b03364f87c4cd8e3ae074d91212ff8382a"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x1400a0280",
+      "callsite": "0x14009998f",
+      "callsite_evidence_id": "ev_c7d8003776f0faf1e6ed12aba4ac3c5f625a2f81369adfbdec395d8e44cbbc0b",
+      "kind": "direct_static",
+      "condition": "inheritcolor token parsed to node +0x30",
+      "status": "cpu_parse_leaf",
+      "evidence_id": "ev_c7d8003776f0faf1e6ed12aba4ac3c5f625a2f81369adfbdec395d8e44cbbc0b"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098790",
+      "callsite": "0x140099a0d",
+      "callsite_evidence_id": "ev_844b7bdc1934916a5b4a05d1140da6a55ead19a6280b7dea362a56d3cee5420f",
+      "kind": "direct_static",
+      "condition": "scale single controller token; destination offset 0x2c",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_844b7bdc1934916a5b4a05d1140da6a55ead19a6280b7dea362a56d3cee5420f"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098570",
+      "callsite": "0x140099a4b",
+      "callsite_evidence_id": "ev_c124702049d2bf58ac81f30b5f5672c36e86f6355d7cdb76e8335855de083969",
+      "kind": "direct_static",
+      "condition": "scalekey token; destination offset 0x2c",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_c124702049d2bf58ac81f30b5f5672c36e86f6355d7cdb76e8335855de083969"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098340",
+      "callsite": "0x140099a87",
+      "callsite_evidence_id": "ev_94aeac5226424734c44bcb620822cf4eb7cd968519771f29f845fa5b54690bb5",
+      "kind": "direct_static",
+      "condition": "scalebezierkey token; destination offset 0x2c",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_94aeac5226424734c44bcb620822cf4eb7cd968519771f29f845fa5b54690bb5"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140047060",
+      "callsite": "0x140099ab5",
+      "callsite_evidence_id": "ev_1d37b0d024644b56f40534e104eebc88448c04dc4dc9d71acdaac84625376066",
+      "kind": "direct_static",
+      "condition": "parent token scans a node name before linkage",
+      "status": "cpu_parse_leaf",
+      "evidence_id": "ev_1d37b0d024644b56f40534e104eebc88448c04dc4dc9d71acdaac84625376066"
+    },
+    {
+      "from": "0x140099650",
+      "to": "0x140098c30",
+      "callsite": "0x140099b5d",
+      "callsite_evidence_id": "ev_4a30ed2ed0140880f46f727dc36c95fdd62d438b7e268b38496e7cc813ff6783",
+      "kind": "direct_static",
+      "condition": "non-null parent name; search model-node child tree",
+      "status": "cpu_node_link_boundary",
+      "evidence_id": "ev_4a30ed2ed0140880f46f727dc36c95fdd62d438b7e268b38496e7cc813ff6783"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x140c10324",
+      "callsite": "0x14007aef8",
+      "callsite_evidence_id": "ev_1816df387aec639858fdb06e923e5029c85e64e825b62e7af2e88097b0f3d245",
+      "kind": "direct_static",
+      "condition": "binary source kind 9 allocates 0xa0 Camera model node",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_1816df387aec639858fdb06e923e5029c85e64e825b62e7af2e88097b0f3d245"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x14007b6c0",
+      "callsite": "0x14007af75",
+      "callsite_evidence_id": "ev_cc99f0c6efb1d578e5a2ccf5e352231bc0acdf2c3e58bbde3786ecfbdc176d02",
+      "kind": "direct_static",
+      "condition": "binary Camera fields copied; shared node children/controllers reader",
+      "status": "shared_binary_node_boundary",
+      "evidence_id": "ev_cc99f0c6efb1d578e5a2ccf5e352231bc0acdf2c3e58bbde3786ecfbdc176d02"
+    },
+    {
+      "from": "0x14007b6c0",
+      "to": "0x14007abe0",
+      "callsite": "0x14007b7b6",
+      "callsite_evidence_id": "ev_dcc945f4dc94a90452145c136b801ed85ba19e85961d2e0d5cb2397ed02f63e1",
+      "kind": "direct_static",
+      "condition": "positive binary child count +0x4c; recursively construct child nodes",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_dcc945f4dc94a90452145c136b801ed85ba19e85961d2e0d5cb2397ed02f63e1"
+    },
+    {
+      "from": "0x14007b6c0",
+      "to": "0x140c417f0",
+      "callsite": "0x14007b859",
+      "callsite_evidence_id": "ev_5bd269b464a68fc86c840990c0cff60ac600d4aeea7a66fe6c935f9e9b3bcf7a",
+      "kind": "direct_static",
+      "condition": "binary controller count +0x58; copy records from relative offset +0x54",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_5bd269b464a68fc86c840990c0cff60ac600d4aeea7a66fe6c935f9e9b3bcf7a"
+    },
+    {
+      "from": "0x14007b6c0",
+      "to": "0x140c417f0",
+      "callsite": "0x14007b9a7",
+      "callsite_evidence_id": "ev_1c206ae65f3211ee59a184031f7aa937d321b82a5f220dd511370d5e3333fab2",
+      "kind": "direct_static",
+      "condition": "binary controller float count +0x64; copy values from relative offset +0x60",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_1c206ae65f3211ee59a184031f7aa937d321b82a5f220dd511370d5e3333fab2"
+    },
+    {
+      "from": "0x14008dab0",
+      "to": "0x1400925d0",
+      "callsite": "0x14008dae0",
+      "callsite_evidence_id": "ev_7e5acc37beb34bb2353141aeb878a5831acc5b1d4b65e66f1e76b8ba5959edfb",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "Camera model node +0x28 CreateInstance from text/binary producer",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_7e5acc37beb34bb2353141aeb878a5831acc5b1d4b65e66f1e76b8ba5959edfb"
+    },
+    {
+      "from": "0x1400925d0",
+      "to": "0x140c10324",
+      "callsite": "0x1400925e7",
+      "callsite_evidence_id": "ev_0256f2c03af54c70822ec95d0f6b1e8ab52caee6ab9173e1e236cf06f128ad37",
+      "kind": "direct_static",
+      "condition": "allocate 0x68 Part and install PartCamera vtable",
+      "status": "typed_part_tree",
+      "evidence_id": "ev_0256f2c03af54c70822ec95d0f6b1e8ab52caee6ab9173e1e236cf06f128ad37"
+    },
+    {
+      "from": "0x1400925c0",
+      "to": "0x1400523b0",
+      "callsite": "0x1400925c0",
+      "callsite_evidence_id": "ev_44617d0c1942de86cd571c9aa3aeb4705e38877b47beb5eceb54daefa2d5932d",
+      "kind": "direct_static",
+      "condition": "Camera model-node control wrapper tail jump",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_44617d0c1942de86cd571c9aa3aeb4705e38877b47beb5eceb54daefa2d5932d"
+    },
+    {
+      "from": "0x1400523b0",
+      "to": "0x14008c3e0",
+      "callsite": "0x1400523d6",
+      "callsite_evidence_id": "ev_549e408b89c345fb90115546f004dd4fa82753fa19240ba5a6fab37c819ffd1c",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "constructed PartCamera virtual +0x50 AsPartCamera returns self; result unused",
+      "status": "cpu_type_gate_leaf",
+      "evidence_id": "ev_549e408b89c345fb90115546f004dd4fa82753fa19240ba5a6fab37c819ffd1c"
+    },
+    {
+      "from": "0x1400523b0",
+      "to": "0x140051c50",
+      "callsite": "0x1400523f9",
+      "callsite_evidence_id": "ev_92d119457683f3dc7fe7bab1375cf388844c099618cbc8b228afe7bea4dccef9",
+      "kind": "direct_static",
+      "condition": "Camera control continues into base MdlNode controller interpolation",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_92d119457683f3dc7fe7bab1375cf388844c099618cbc8b228afe7bea4dccef9"
+    },
+    {
+      "from": "0x140051c50",
+      "to": "0x1400512c0",
+      "callsite": "0x140051cd5",
+      "callsite_evidence_id": "ev_42b5ba2c20d791b85442f0edd96aa534f182ab5c9cab1a26588207a0eee53611",
+      "kind": "direct_static",
+      "condition": "float controller reads value and blends to Part offset",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_42b5ba2c20d791b85442f0edd96aa534f182ab5c9cab1a26588207a0eee53611"
+    },
+    {
+      "from": "0x140051c50",
+      "to": "0x140051750",
+      "callsite": "0x140051d2c",
+      "callsite_evidence_id": "ev_4bef991e1fadfe8f657645cd1e89db72af16028e5e095a5a86fa61856c48f4dc",
+      "kind": "direct_static",
+      "condition": "vector controller reads value and blends to Part offset",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_4bef991e1fadfe8f657645cd1e89db72af16028e5e095a5a86fa61856c48f4dc"
+    },
+    {
+      "from": "0x140051c50",
+      "to": "0x140051530",
+      "callsite": "0x140051dae",
+      "callsite_evidence_id": "ev_eeda77e7bb6db593dd4e448567d15b198fd632b8d215dd00c8f8897d796db73c",
+      "kind": "direct_static",
+      "condition": "quaternion controller reads value and slerps to Part offset",
+      "status": "cpu_controller_leaf",
+      "evidence_id": "ev_eeda77e7bb6db593dd4e448567d15b198fd632b8d215dd00c8f8897d796db73c"
+    },
+    {
+      "from": "0x140057820",
+      "to": "0x14008c6f0",
+      "callsite": "0x140057824",
+      "callsite_evidence_id": "ev_bc8ac880d67a3bc475cb297e50e0a0886668fe1ca2d7fb0ff392bb9611a6c0b5",
+      "kind": "direct_static",
+      "condition": "conditional Camera attachment to caller-selected Part forwards to Gob",
+      "status": "cpu_attachment_boundary",
+      "evidence_id": "ev_bc8ac880d67a3bc475cb297e50e0a0886668fe1ca2d7fb0ff392bb9611a6c0b5"
+    },
+    {
+      "from": "0x140057800",
+      "to": "0x14008c540",
+      "callsite": "0x140057804",
+      "callsite_evidence_id": "ev_a4d38d033e344a00abf89972f4f89ab78dd2483afb7f7a5123efdf0493d3438e",
+      "kind": "direct_static",
+      "condition": "conditional Camera attachment by object/name forwards to Gob",
+      "status": "cpu_attachment_boundary",
+      "evidence_id": "ev_a4d38d033e344a00abf89972f4f89ab78dd2483afb7f7a5123efdf0493d3438e"
+    },
+    {
+      "from": "0x14008c6f0",
+      "to": "0x14008f870",
+      "callsite": "0x14008c72e",
+      "callsite_evidence_id": "ev_6e617a147df6238bd8940d918d116ae4055cf9b731e3742d65fbe671e75ee8b4",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "caller-selected Part virtual +0x18 GetWorld initializes Camera Gob pose",
+      "status": "cpu_attachment_boundary",
+      "evidence_id": "ev_6e617a147df6238bd8940d918d116ae4055cf9b731e3742d65fbe671e75ee8b4"
+    },
+    {
+      "from": "0x14008c6f0",
+      "to": "0x140053b30",
+      "callsite": "0x14008c7fc",
+      "callsite_evidence_id": "ev_900d72a9c2af87ad582c635545de793c54e2d8b4628034b35d117d166faa0e83",
+      "kind": "direct_static",
+      "condition": "attachment mode zero creates base attachment behavior",
+      "status": "cpu_attachment_boundary",
+      "evidence_id": "ev_900d72a9c2af87ad582c635545de793c54e2d8b4628034b35d117d166faa0e83"
+    },
+    {
+      "from": "0x14008c6f0",
+      "to": "0x140095250",
+      "callsite": "0x14008c822",
+      "callsite_evidence_id": "ev_e7c6e098b99d6a2dda168cd126cc4ecb07780d4b4b1c481278d603a6e743c8c0",
+      "kind": "direct_static",
+      "condition": "attached Camera Gob inherits target Scene",
+      "status": "cpu_scene_handoff",
+      "evidence_id": "ev_e7c6e098b99d6a2dda168cd126cc4ecb07780d4b4b1c481278d603a6e743c8c0"
+    },
+    {
+      "from": "0x140054cb0",
+      "to": "0x140054ad0",
+      "callsite": "0x140054d46",
+      "callsite_evidence_id": "ev_7d66441ed25916ccb8852e40ccf4ceb02a4c9a84957caf856c6eaffae7e28434",
+      "kind": "direct_static",
+      "condition": "active attachment behavior first updates dependencies",
+      "status": "cpu_attachment_boundary",
+      "evidence_id": "ev_7d66441ed25916ccb8852e40ccf4ceb02a4c9a84957caf856c6eaffae7e28434"
+    },
+    {
+      "from": "0x140054cb0",
+      "to": "0x14008f870",
+      "callsite": "0x140054db4",
+      "callsite_evidence_id": "ev_53bee230d301b5c0573b2c82c9b765f2cb546813213f250ddef4e4d5cd24e597",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "live target/Part and active behavior; Part +0x18 GetWorld writes owner Gob pose",
+      "status": "cpu_view_pose_boundary",
+      "evidence_id": "ev_53bee230d301b5c0573b2c82c9b765f2cb546813213f250ddef4e4d5cd24e597"
+    },
+    {
+      "from": "0x14005a5d0",
+      "to": "0x1400bf370",
+      "callsite": "0x14005ae0a",
+      "callsite_evidence_id": "ev_978758173bb2ce5014cce9a04549eb70d8a811c95bea0f66e5dfec6e9ed92279",
+      "kind": "direct_static",
+      "condition": "Camera has Scene and visible viewport; apply Camera +0xb0/+0xbc view pose",
+      "status": "view_transform_boundary",
+      "evidence_id": "ev_978758173bb2ce5014cce9a04549eb70d8a811c95bea0f66e5dfec6e9ed92279"
+    },
+    {
+      "from": "0x14005a5d0",
+      "to": "0x1400cc730",
+      "callsite": "0x14005b208",
+      "callsite_evidence_id": "ev_020dd83b4725471f04d8e7bbbdc52ce47adeb6eb683f1d24f157df7bd78fb6a1",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "Camera has Scene; Scene virtual +0x18 Render after view setup",
+      "status": "scene_render_boundary",
+      "evidence_id": "ev_020dd83b4725471f04d8e7bbbdc52ce47adeb6eb683f1d24f157df7bd78fb6a1"
+    }
+  ]
+}

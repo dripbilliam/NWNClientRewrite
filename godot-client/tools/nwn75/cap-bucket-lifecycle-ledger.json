@@ -1,0 +1,28 @@
+{
+  "schema": "nwn75-cap-bucket-lifecycle-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original PE export metadata for AddPartToCapBuckets, inline BSP fade-handler cap-list production, and bucket-7 Scene draw consumer.",
+  "document": "cap-bucket-lifecycle.md",
+  "edges": [
+    {"from":"0x1410d6688","to":"0x1400d75c0","kind":"pe_export_address_table_entry","condition":"export ordinal 5105, name ?AddPartToCapBuckets@@YAXPEAVPartTriMesh@@@Z; index 5104 in AddressOfFunctions","status":"metadata_only_not_runtime_call","original_pe_bytes":"c0 75 0d 00"},
+    {"from":"0x1400d75c0","to":"0x14006bc30","callsite":"0x1400d75ca","kind":"tail_jump","condition":"exported helper loads cap-list global 0x14140afe0; no internal caller established","status":"target_identified_external_caller_open","original_pe_bytes":"e9 61 46 f9 ff"},
+    {"from":"0x1400db320","to":"0x1400d9670","callsite":"0x1400dbb7e","kind":"direct_call","condition":"BSP present; fading-in node bucket handled","status":"target_identified_cpu_producer","evidence_id":"ev_3e8c979129e4069878975c423d7b4b3a20b360b7445a01bb16bd51221532027d"},
+    {"from":"0x1400db320","to":"0x1400d9ab0","callsite":"0x1400dbb83","kind":"direct_call","condition":"BSP present; fading-out node bucket handled","status":"target_identified_cpu_producer","evidence_id":"ev_3e8c979129e4069878975c423d7b4b3a20b360b7445a01bb16bd51221532027d"},
+    {"from":"0x1400d9670","to":"0x14140afe0","callsite":"0x1400d97a2","kind":"inline_cap_pointer_append","condition":"node fade <=1 and !=1; Part from node +0x90 array/count +0x98","status":"target_identified_cpu_producer","original_pe_bytes":"48 89 34 c2","evidence_id":"ev_b8fb738a5f3237aefa4128acc800c835138d74db9230298384ca058a9eba7529"},
+    {"from":"0x1400d9670","to":"0x14140afe0","callsite":"0x1400d99ea","kind":"inline_cap_pointer_append","condition":"node fade <=1 and !=1; Part from node +0xa0 array/count +0xa8 passes owner fade gate","status":"target_identified_cpu_producer","original_pe_bytes":"48 89 34 c2","evidence_id":"ev_b8fb738a5f3237aefa4128acc800c835138d74db9230298384ca058a9eba7529"},
+    {"from":"0x1400d9ab0","to":"0x14140afe0","callsite":"0x1400d9be2","kind":"inline_cap_pointer_append","condition":"node fade <=1 and !=1; Part from node +0x90 array/count +0x98","status":"target_identified_cpu_producer","original_pe_bytes":"48 89 34 c2","evidence_id":"ev_338be287e5d9c8d219c5dd3742ee786aa389303ef1bc945a994ef48d03f9d177"},
+    {"from":"0x1400d9ab0","to":"0x14140afe0","callsite":"0x1400d9e2a","kind":"inline_cap_pointer_append","condition":"node fade <=1 and !=1; Part from node +0xa0 array/count +0xa8 passes owner fade gate","status":"target_identified_cpu_producer","original_pe_bytes":"48 89 34 c2","evidence_id":"ev_338be287e5d9c8d219c5dd3742ee786aa389303ef1bc945a994ef48d03f9d177"},
+    {"from":"0x1400c38f0","to":"0x14140afe8","callsite":"0x1400c3e41","kind":"cap_count_read","condition":"nonempty cap list before traversal","status":"target_identified_cpu_consumer","evidence_id":"ev_9b2776e75e9df7689deec134df0f62a5416d96a73218bc317ec5a36294648eb3"},
+    {"from":"0x1400c38f0","to":"0x14140afe0","callsite":"0x1400c3e50","kind":"cap_pointer_read","condition":"iterate cap Part pointers","status":"target_identified_cpu_consumer","evidence_id":"ev_9b2776e75e9df7689deec134df0f62a5416d96a73218bc317ec5a36294648eb3"},
+    {"from":"0x1400c38f0","to":"0x1400a2eb0","callsite":"0x1400c3e67","kind":"direct_call","condition":"nonnull cap Part; debug override can admit failed renderability","status":"target_identified_draw_gate","evidence_id":"ev_9b2776e75e9df7689deec134df0f62a5416d96a73218bc317ec5a36294648eb3"},
+    {"from":"0x1400c38f0","to":"0x1400d75a0","callsite":"0x1400c3e82","kind":"direct_call","condition":"admitted cap Part; bucket type 7, item flag 0","status":"target_identified_draw_bucket","evidence_id":"ev_9b2776e75e9df7689deec134df0f62a5416d96a73218bc317ec5a36294648eb3"},
+    {"from":"0x1400d0f10","to":"0x1400cd210","callsite":"0x1400d178d","kind":"direct_call","condition":"normal RenderSinglePass stage; bucket type 7","status":"target_identified_draw_dispatch","evidence_id":"ev_02ace6727b08cd03cb9bd9a012c7c646766c92f3bd0cd79bb2b383726b80c4a0"},
+    {"from":"0x1400d0f10","to":"0x1400cd210","callsite":"0x1400d253f","kind":"direct_call","condition":"g_nRenderWireframe !=0; bucket type 7 replay","status":"target_identified_draw_dispatch","evidence_id":"ev_02ace6727b08cd03cb9bd9a012c7c646766c92f3bd0cd79bb2b383726b80c4a0"},
+    {"from":"0x1400cd210","to":"Part+0xc8","callsite":"0x1400cd8d1","kind":"part_virtual_draw","condition":"nonempty bucket 7 and admitted Part subtype; candidate targets in part-draw-rtti-census-ledger.json","status":"subtype_runtime_selection_open"}
+  ],
+  "open_edges": [
+    "No internal code caller of exported AddPartToCapBuckets found; external caller of export remains possible",
+    "Live BSP fade-node populations and fade gate outcomes are unmeasured",
+    "Runtime cap Part subtype and Draw/material/GL gates remain selected by authored data and current state"
+  ]
+}

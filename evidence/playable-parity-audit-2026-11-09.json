@@ -1,0 +1,1927 @@
+{
+  "auditDate": "2026-11-09",
+  "project": "NWNAnalog",
+  "repository": "https://github.com/dripbilliam/NWNClientRewrite",
+  "head": "b19f1545f6d328662fd2190fc58e89bc4caecce5",
+  "sourceScope": "Current working tree, including pre-existing staged changes; no application source edits made for this audit.",
+  "native": {
+    "build": "89.8193.37-17",
+    "architecture": "x86_64",
+    "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+    "verification": "Independent Get-FileHash and read-only REA open_binary. No game process started."
+  },
+  "parent": {
+    "id": "NWN-13",
+    "url": "https://linear.app/nwnanalog/issue/NWN-13/complete-playable-parity-with-the-base-native-client"
+  },
+  "existingParticleIssues": [
+    "NWN-5",
+    "NWN-6",
+    "NWN-7",
+    "NWN-8",
+    "NWN-9",
+    "NWN-10",
+    "NWN-11",
+    "NWN-12"
+  ],
+  "testResults": {
+    "focused": {
+      "tests": 90,
+      "passed": 82,
+      "failed": 8,
+      "log": ".cache/parity-audit-2026-11-09/focused-node-tests.log",
+      "command": "node --test --test-concurrency=1 --test-reporter=dot test/network-alternate-inventory.test.js test/network-quickbar-native.test.js test/network-quickbar-associate-input.test.js test/native-npc-combat-proof.test.js godot-client/tools/native-direct-portal.test.mjs godot-client/tools/native-direct-handoff-recovery.test.cjs godot-client/tools/native-direct-handoff-semantic-chain.test.cjs"
+    },
+    "reproduction": {
+      "tests": 8,
+      "passed": 0,
+      "failed": 8,
+      "log": ".cache/parity-audit-2026-11-09/handoff-semantic-reproduction.tap",
+      "command": "node --test --test-reporter=tap godot-client/tools/native-direct-handoff-semantic-chain.test.cjs"
+    },
+    "limits": "Socket-free Node tests only. No fresh original-server, native graphical/GPU, hardware input or mixed-client acceptance. Existing accepted/rejected receipts inspected with their scoped limits.",
+    "handoffProofBoundary": {
+      "complete": true,
+      "serializedCharacters": 70321,
+      "captureLimit": 32768,
+      "forbiddenFieldPresent": false,
+      "coverageScope": "selected-character-fields-and-spells-v2"
+    }
+  },
+  "linearExportPolicy": "Automatic review rejected detailed internal evidence export. Reduced player-facing issue text is used; source paths, hashes, commands, logs and detailed findings stay in this local ledger.",
+  "findings": [
+    {
+      "key": "ipc-stability",
+      "title": "Resolve intermittent gameplay disconnects and stalled world entry",
+      "priority": 2,
+      "stage": "confirmed-defect",
+      "gap": "Some admission and reconnect paths terminate or stall before gameplay is ready. Later successful attempts have not established the cause.",
+      "acceptance": [
+        "Identify the actual close or stalled boundary and correct it without masking failures with retries.",
+        "Complete repeated character selection, world entry and reconnect with responsive controls and clean disconnect.",
+        "Preserve evidence for failed runs and distinguish transport failure from intentional shutdown."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-COMBAT-NPC.md",
+        "godot-client/NATIVE-CREATION-AUTHORITATIVE-ACCEPTANCE.md",
+        "godot-client/NATIVE-DIRECT-HANDOFF-GOAL.md",
+        "godot-client/native_session_world.gd",
+        "godot-client/tools/native-session-host.cjs"
+      ],
+      "details": "Retained NPC encounter fails at 30501ms with StreamPeerTCP.STATUS_NONE/poll0 before any combat stimulus; Cleric reconnect resets around30s; Wizard first-world ACK and direct-handoff framing stalls are distinct retained symptoms. No timeout owner or common cause is proven. Do not label all symptoms one diagnosed bug.",
+      "depends": [],
+      "deferred": false,
+      "label": "Bug",
+      "linear": {
+        "key": "ipc-stability",
+        "id": "NWN-14",
+        "url": "https://linear.app/nwnanalog/issue/NWN-14/resolve-intermittent-gameplay-disconnects-and-stalled-world-entry"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "handoff-proof-size",
+      "title": "Restore complete character-continuity validation for handoffs",
+      "priority": 2,
+      "stage": "confirmed-defect",
+      "gap": "The expanded character proof no longer fits the validation capture boundary. This blocks the current continuity check before it can compare the transferred character.",
+      "acceptance": [
+        "Accept representative complete characters while keeping diagnostic storage bounded.",
+        "Retain spellbooks, coverage and completeness checks; detect meaningful character changes.",
+        "Pass the composed continuity and recovery validation before original-server acceptance."
+      ],
+      "evidence": [
+        "godot-client/tools/native-direct-handoff-semantic-chain.test.cjs",
+        "godot-client/tools/native-direct-handoff-capture.cjs",
+        "godot-client/tools/native-direct-handoff-host-check.cjs",
+        "godot-client/tools/native-handoff-character-proof.mjs",
+        "godot-client/NATIVE-DIRECT-HANDOFF-SEMANTIC-CHAIN.md"
+      ],
+      "details": "Fresh 2026-11-09 run: all8 semantic-chain tests fail at DirectHandoffCapture.bounded via HostCheck.digest. Public installed Wizard proof serializes to70321 JS characters against32768; forbidden-field regex is false, complete=true, scope selected-character-fields-and-spells-v2. Existing37-pass documentation used earlier helper; expanded helper was never composed. Harness-only failure, not proof production transfers corrupt characters.",
+      "depends": [],
+      "deferred": false,
+      "label": "Bug",
+      "linear": {
+        "key": "handoff-proof-size",
+        "id": "NWN-15",
+        "url": "https://linear.app/nwnanalog/issue/NWN-15/restore-complete-character-continuity-validation-for-handoffs"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "handoff-recovery",
+      "title": "Complete cross-server cancellation, failure recovery and character continuity",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Basic cross-server round trips work. Cancellation, unavailable destinations, retry and broader character continuity still need complete acceptance on the current direct route.",
+      "acceptance": [
+        "Cancel during preparation, source release, connection and content loading; recover to a usable browser.",
+        "Fail an unavailable destination, then successfully rejoin without stale menus or resources.",
+        "Compare transferred and saved character fields, arrival location and new server content using actual server outcomes."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-DIRECT-HANDOFF-GOAL.md",
+        "godot-client/NATIVE-DIRECT-HANDOFF-RETIRE-RECOVERY.md",
+        "godot-client/NATIVE-DIRECT-HANDOFF-SEMANTIC-CHAIN.md",
+        "godot-client/tools/native-direct-portal.mjs"
+      ],
+      "details": "Current direct-route v8 accepts21 checks/three worlds A-B-A, raw download/upload hashes, arrival waypoints, catalogs, cleanup. Retire-boundary cancel/failure prepared29 mocked checks; real recovery unrun; browser-return concern remains. Earlier bridge-based recovery/NWSync passes do not accept this direct route.",
+      "depends": [
+        "ipc-stability",
+        "handoff-proof-size"
+      ],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "handoff-recovery",
+        "id": "NWN-16",
+        "url": "https://linear.app/nwnanalog/issue/NWN-16/complete-cross-server-cancellation-failure-recovery-and-character"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "lifetime-stability",
+      "title": "Close remaining crash and shutdown-lifetime failures",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Scoped cleanup improvements exist, but retained shutdown stalls and native faults still need an explained resolution or a clearly bounded remaining defect.",
+      "acceptance": [
+        "Capture useful fault and ownership evidence for retained failure scenarios.",
+        "Retire pending assets, animation, effects, audio, UI and workers across quit, reconnect and area replacement.",
+        "Complete repeatable normal-heap runs without forced exits or leaked owners."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-SHUTDOWN.md",
+        "godot-client/NATIVE-WORLD-AUDIO.md",
+        "godot-client/NATIVE-WEATHER-RENDER.md",
+        "godot-client/NATIVE-SPECIAL-ATTACKS.md",
+        "godot-client/NATIVE-VISUAL-ADMISSION-FAILURES.md"
+      ],
+      "details": "Do not refile already-fixed audio survivor, peer cancellation queue, coroutine or force_draw fence defects as untouched. Retained weather shader-cache heap corruption and earlier audio/shutdown AVs lack demonstrated original fault cause. Treat independent signatures separately during investigation.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "lifetime-stability",
+        "id": "NWN-17",
+        "url": "https://linear.app/nwnanalog/issue/NWN-17/close-remaining-crash-and-shutdown-lifetime-failures"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "creation-coverage",
+      "title": "Complete character creation across base and active-server rules",
+      "priority": 2,
+      "stage": "acceptance-gap",
+      "gap": "Character creation is implemented and has successful original-server cases. Remaining class, recommendation, companion, content and rejection paths need systematic acceptance.",
+      "acceptance": [
+        "Exercise base caster types, domains, schools, companions and custom server classes/packages.",
+        "Use the active server's rules and text; compare submitted and independently saved character data.",
+        "Cover recommendation, cancellation, rejection, save, vault selection and reconnect with correct visible state."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-CREATION.md",
+        "godot-client/NATIVE-CREATION-AUTHORITATIVE-ACCEPTANCE.md",
+        "godot-client/NATIVE-CREATION-TAIL-BIC.md",
+        "godot-client/NATIVE-CREATION-FLOW-INTEGRATION.md"
+      ],
+      "details": "Fighter/Wizard manual create/reconnect accepted; Cleric create112 accepted but saved-row reconnect rejected by IPC, not field mismatch. Cached Warlock package310 and four other packages control/BIC checks pass; not custom mode1 authority. Do not claim Domain/School/Feats source chain wholly absent.",
+      "depends": [
+        "ipc-stability"
+      ],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "creation-coverage",
+        "id": "NWN-18",
+        "url": "https://linear.app/nwnanalog/issue/NWN-18/complete-character-creation-across-base-and-active-server-rules"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "saved-customize",
+      "title": "Enable the existing-character Customize workflow",
+      "priority": 3,
+      "stage": "missing",
+      "gap": "Editing support for an existing character is partially prepared, but the player-facing Customize workflow is unavailable.",
+      "acceptance": [
+        "Open eligible saved characters in the correct customization mode.",
+        "Support portrait, appearance and information edits with preview, cancel and back behavior.",
+        "Save atomically without losing unrelated character data; refresh the chooser and verify original-server admission of the saved copy."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-CHARACTER-CUSTOMIZATION.md",
+        "godot-client/NATIVE-LOCAL-CHARACTER-DELETION.md",
+        "godot-client/NATIVE-PORTRAIT-PANE.md"
+      ],
+      "details": "Existing-BIC preservation foundation190 native/25 GFF/61 catalog checks does not enable Customize. Distinguish saved-character editor from implemented first-level creator Customize/tail panels.",
+      "depends": [],
+      "deferred": false,
+      "label": "Feature",
+      "linear": {
+        "key": "saved-customize",
+        "id": "NWN-19",
+        "url": "https://linear.app/nwnanalog/issue/NWN-19/enable-the-existing-character-customize-workflow"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "level-up-coverage",
+      "title": "Complete class-specific and custom-server level-up parity",
+      "priority": 2,
+      "stage": "acceptance-gap",
+      "gap": "Level-up has working recommendations and accepted base-class progression. The complete class-dependent path and server-rule matrix remains unfinished.",
+      "acceptance": [
+        "Cover multiclassing, divine and spontaneous casters, no-scroll casters, schools, domains and associates at their legal levels.",
+        "Verify recommendation, reset, cancel, rejection and delayed replies without committing draft state early.",
+        "Compare class, HP, abilities, skills, feats and spellbooks against received and independently saved server results."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-LEVEL-UP-PARITY-GOAL.md",
+        "godot-client/NATIVE-LEVEL-UP-NEXT-AUDIT-2026-11-04.md",
+        "godot-client/NATIVE-LEVEL-UP-PATH-MATRIX.md",
+        "godot-client/NATIVE-PLAYABILITY-PARITY-GOAL.md"
+      ],
+      "details": "Later goal records accepted Cleric new class, Sorcerer progression, Wizard/Fighter multiclass. Domain/School Recommended502 and pending Cancel43+10 supersede audit's proposed defects. Broader active-server/custom mode1 authority, memorizing/no-scroll configurations, companions, pixels remain. Do not reopen solved four recommendations/correlation/class prep.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "level-up-coverage",
+        "id": "NWN-20",
+        "url": "https://linear.app/nwnanalog/issue/NWN-20/complete-class-specific-and-custom-server-level-up-parity"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "ui-responsiveness",
+      "title": "Remove remaining character-menu and progression stalls",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Character selection, feat preparation and creation or level-up callbacks have scoped improvements. Cold and broad-content interaction latency still needs acceptance.",
+      "acceptance": [
+        "Measure actual cold and warm input on the normal client using representative large class and feat lists.",
+        "Move avoidable preparation out of blocking input while preserving validation and draft ownership.",
+        "Keep menus cancellable during pending work and verify no new stale-result or save regressions."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-CREATION-AUTHORITATIVE-ACCEPTANCE.md",
+        "godot-client/NATIVE-CHARACTER-PICKER-RESPONSIVENESS.md",
+        "godot-client/NATIVE-LEVEL-UP-PARITY-GOAL.md",
+        "godot-client/NATIVE-UI-RESPONSIVENESS-REGRESSION.md"
+      ],
+      "details": "Historical creation Feats Recommended1424ms/Play318ms superseded partly by107ms/16.8ms Wizard samples; different class/run not causal benchmark. Levelup cold feat names/sorting/first models remain; component timings not full responsiveness.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "ui-responsiveness",
+        "id": "NWN-21",
+        "url": "https://linear.app/nwnanalog/issue/NWN-21/remove-remaining-character-menu-and-progression-stalls"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "associate-inventory",
+      "title": "Enable permitted item actions in associate inventory",
+      "priority": 2,
+      "stage": "missing",
+      "gap": "Associate inventory can open and display received content, but item, currency, context and container operations are restricted to the primary inventory.",
+      "acceptance": [
+        "Enable the actions the original client permits for the displayed associate and control role.",
+        "Send requests for the correct owner and wait for server-confirmed changes.",
+        "Cover equipment, transfers, gold and nested containers; reject stale or forbidden actions after possession, window or area changes."
+      ],
+      "evidence": [
+        "godot-client/systems/native_inventory.gd",
+        "godot-client/systems/server_inventory.gd",
+        "godot-client/NATIVE-INVENTORY-PUBLICATION.md",
+        "godot-client/NATIVE-INVENTORY-WINDOW-OWNERS.md",
+        "godot-client/NATIVE-QUICKBAR-ASSOCIATE.md"
+      ],
+      "details": "Confirmed current source: configure ui.item_commands_enabled=role==primary; alternate gold_owner=null; command/input guards permit only inventory-open/close/page. Command19/open/current rows accepted; other alternate operations deliberately disabled.",
+      "depends": [],
+      "deferred": false,
+      "label": "Feature",
+      "linear": {
+        "key": "associate-inventory",
+        "id": "NWN-22",
+        "url": "https://linear.app/nwnanalog/issue/NWN-22/enable-permitted-item-actions-in-associate-inventory"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "inventory-edge-cases",
+      "title": "Finish inventory, equipment and nested-container behavior",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Core inventory actions work. Complete equipment pairing, nested containers, item activation and pending-result behavior remain to be accepted.",
+      "acceptance": [
+        "Cover paired equipment, stack split and merge, quantities, drops, pickup and nested-container transfers.",
+        "Keep item identity, count and ownership consistent with authoritative results, including refusals.",
+        "Verify drag, cancel, keyboard, stale results and reconnect across original and custom resources."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-INVENTORY.md",
+        "godot-client/NATIVE-INVENTORY-EQUIPMENT.md",
+        "godot-client/NATIVE-ITEM-CONTEXT.md",
+        "godot-client/NATIVE-ITEM-POWERS.md"
+      ],
+      "details": "Successful scroll learning/refusal follows older item-context list; do not treat all learning missing. Remaining exact multi-item paired equip, nested order/timing and full targeting/roles documented.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "inventory-edge-cases",
+        "id": "NWN-23",
+        "url": "https://linear.app/nwnanalog/issue/NWN-23/finish-inventory-equipment-and-nested-container-behavior"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "merchant-parity",
+      "title": "Complete merchant transactions and failure-state parity",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Buying, selling and identification have working paths. Quantity variants, refusals, context changes and complete merchant interaction still need coverage.",
+      "acceptance": [
+        "Match original buy, sell, identify and confirmation behavior for stack and quantity variants.",
+        "Show authoritative price, currency and refusal results without optimistic inventory changes.",
+        "Handle out-of-range, area/control changes and stale confirmations; verify original layout and gestures."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-STORES.md",
+        "godot-client/NATIVE-STORE-FRAME.md",
+        "godot-client/NATIVE-EXAMINE.md",
+        "godot-client/NATIVE-ITEM-CONTEXT.md"
+      ],
+      "details": "Later Examine owns Identify and shared scrollbar replaces generic control; do not file these historical omissions as absent. User stretched-art report remains visual followup beyond measured rectangles.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "merchant-parity",
+        "id": "NWN-24",
+        "url": "https://linear.app/nwnanalog/issue/NWN-24/complete-merchant-transactions-and-failure-state-parity"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "barter-parity",
+      "title": "Finish mixed-client barter and trade interruption cases",
+      "priority": 3,
+      "stage": "acceptance-gap",
+      "gap": "Two-player trading and cancellation refunds work in scoped tests. Full trade behavior with an original client and changing context remains open.",
+      "acceptance": [
+        "Trade with an unmodified native client and compare both inventories and currency.",
+        "Cover stack merging, offer changes, accept/retract, rejection and cancellation feedback.",
+        "Interrupt trades by range, area, disconnect and control changes without loss, duplication or stale acceptance."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-BARTER.md",
+        "godot-client/NATIVE-BARTER-BUTTON-STATES.md"
+      ],
+      "details": "Offer/Accept checked artwork corrected in later followup; not a fresh missing feature. Source full_barter_acceptance=false retains wider scopes.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "barter-parity",
+        "id": "NWN-25",
+        "url": "https://linear.app/nwnanalog/issue/NWN-25/finish-mixed-client-barter-and-trade-interruption-cases"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "quickbar-radial",
+      "title": "Complete quickbar bindings and context-specific radial menus",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Many shortcut and radial actions work. Full binding types, nested choices and target or role-specific menus remain incomplete.",
+      "acceptance": [
+        "Inventory all original binding types and world, portrait, item, player and associate contexts.",
+        "Preserve active-mode artwork, targets, cancellation and saved bindings across reconnect and shape changes.",
+        "Verify every available action and disabled state against original rules and actual server outcomes."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-QUICKBAR-CONTEXT.md",
+        "godot-client/NATIVE-QUICKBAR-POLYMORPH.md",
+        "godot-client/NATIVE-WORLD-RADIAL.md",
+        "godot-client/NATIVE-OTHER-CREATURE-RADIAL.md",
+        "godot-client/NATIVE-ASSOCIATE-RADIAL.md"
+      ],
+      "details": "Quickbar type43 Cancel Polymorph accepted49/13/29; macro persistence and item clear/equip accepted; role4 normal-party/familiar shape paths integrated. Do not claim these absent. Wheel Disengage predicate false in actual fixture, leaving authoritative outcome unexercised.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "quickbar-radial",
+        "id": "NWN-26",
+        "url": "https://linear.app/nwnanalog/issue/NWN-26/complete-quickbar-bindings-and-context-specific-radial-menus"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "skill-actions",
+      "title": "Complete skill, tool, trap and crafting action coverage",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Skill shortcuts are implemented. Healing tools, trap submodes, skill radials and wider action outcomes still need complete coverage.",
+      "acceptance": [
+        "Verify targeting, permissions, range and feedback for heal, trap, lock, crafting and applicable creature skills.",
+        "Use actual item consumption and server outcomes for success and refusal.",
+        "Bind original admission rules without inferring permissions from skill rank; cover persistence and control changes."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-SKILLS.md",
+        "godot-client/NATIVE-SKILL-ADMISSION.md",
+        "godot-client/NATIVE-DM-PERMISSION.md",
+        "godot-client/NATIVE-OTHER-CREATURE-RADIAL.md"
+      ],
+      "details": "Older Character Record note saying type3 activation unimplemented is superseded by NATIVE-SKILLS. Current compact skill query facade exists but menu admission remains unbound. Known set bits and unknown override must preserve explicit uncertainty.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "skill-actions",
+        "id": "NWN-27",
+        "url": "https://linear.app/nwnanalog/issue/NWN-27/complete-skill-tool-trap-and-crafting-action-coverage"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "spellbook-gestures",
+      "title": "Complete original spellbook pickup, cancel and drop gestures",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Prepared-slot move and exchange behavior works. The full original pickup, sticky cursor, cancellation and drop workflow is not yet accepted.",
+      "acceptance": [
+        "Research and reproduce click pickup, drag threshold, sticky release, focus loss and keyboard cancellation.",
+        "Complete shortcut and world-drop routing according to the original action contract.",
+        "Preserve preparation counts, used-slot state and server authority across caster types and roles."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-SPELL-PREPARATION.md",
+        "godot-client/NATIVE-SPELLBOOK-FRAME.md"
+      ],
+      "details": "Prepared transfers58 input/106 local accepted; original native source squared-distance threshold16, flags0x44 and key0x12 retained, complete caller contract pending. Do not assume spellbook world drop means casting.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "spellbook-gestures",
+        "id": "NWN-28",
+        "url": "https://linear.app/nwnanalog/issue/NWN-28/complete-original-spellbook-pickup-cancel-and-drop-gestures"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "character-record",
+      "title": "Complete character-record details, disclosure and Examine fidelity",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Original character and Examine frames exist. Complete combat details, disclosure, content formatting, resizing and input-state parity remain open.",
+      "acceptance": [
+        "Complete attack, damage and qualifier details using active rules and only disclosed state.",
+        "Verify targeted records, feats, skills and item properties across actors and roles.",
+        "Match original page geometry, scrolling, ordering, colors and unavailable states across supported scales and locales."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-CHARACTER-FRAME.md",
+        "godot-client/NATIVE-RECORD-ENTRIES.md",
+        "godot-client/NATIVE-RECORD-VALUES.md",
+        "godot-client/NATIVE-ASSOCIATE-RADIAL.md",
+        "godot-client/NATIVE-EXAMINE-CONTENT.md"
+      ],
+      "details": "Original frame implemented; record values/feat ordering and item continuous text supersede generic-fact historical gaps. Target NPC AC expertise-mode owner remains unproven; never borrow controlled AC.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "character-record",
+        "id": "NWN-29",
+        "url": "https://linear.app/nwnanalog/issue/NWN-29/complete-character-record-details-disclosure-and-examine-fidelity"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "party-controls",
+      "title": "Finish party, associate and possession state parity",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Party controls and owned-associate menus have working paths. Full roles, possession transitions, ordering, indicators and mixed-client behavior remain open.",
+      "acceptance": [
+        "Exercise invitations, leave, leader/attitude changes, associate commands and possession with an original client.",
+        "Verify health, afflictions, direction and cross-area information from received state.",
+        "Retire old actor, portrait and command ownership correctly when control or membership changes."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-PLAYERS-FRAME.md",
+        "godot-client/NATIVE-PARTY-FRAME.md",
+        "godot-client/NATIVE-PARTY-LOCATOR.md",
+        "godot-client/NATIVE-PARTY-HEALTH.md",
+        "godot-client/NATIVE-ASSOCIATE-RADIAL.md"
+      ],
+      "details": "Leave singleton guard fixed; local party/chat108+ later tooltip127 coverage exists. Direction locator lacks actual member movement/area cached-bearing acceptance; full DM/possession roles not established.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "party-controls",
+        "id": "NWN-30",
+        "url": "https://linear.app/nwnanalog/issue/NWN-30/finish-party-associate-and-possession-state-parity"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "hud-states",
+      "title": "Complete HUD queue, effects, tooltips and health-state acceptance",
+      "priority": 3,
+      "stage": "acceptance-gap",
+      "gap": "The HUD has implemented queue, effect, tooltip and health surfaces. Overflow, special states, modal input and complete original-client acceptance remain open.",
+      "acceptance": [
+        "Cover queue overflow and cancellation, effect clicks/expiry, temporary HP and affliction transitions.",
+        "Verify tooltip ownership during hover, drag, camera, modal windows and control replacement.",
+        "Compare complete states and input with the original client across supported scales."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-HUD-TOOLTIPS.md",
+        "godot-client/NATIVE-HUD-LOCAL-ACCEPTANCE.md",
+        "godot-client/NATIVE-ACTION-QUEUE.md",
+        "godot-client/NATIVE-EFFECT-BAR.md"
+      ],
+      "details": "Many queue/effect and live affliction outcomes accepted by later HUD receipt; not all earlier headless-only claims current. Full composition/flag policy, special queues, graphics/OS input remain.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "hud-states",
+        "id": "NWN-31",
+        "url": "https://linear.app/nwnanalog/issue/NWN-31/complete-hud-queue-effects-tooltips-and-health-state-acceptance"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "chat-policy",
+      "title": "Complete chat history, input, formatting and session retention",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Authoritative chat and replies work. Console/global history, formatting, sound and retention across disconnect or transfer remain incomplete.",
+      "acceptance": [
+        "Compare channel, command, reply, history and filtering behavior with the original client.",
+        "Cover clipboard and physical input, localized formatting and tooltips.",
+        "Verify disconnect, reconnect, cross-server, possession and role changes without leaking or losing the wrong history."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-CHAT-LOCAL-ACCEPTANCE.md",
+        "godot-client/NATIVE-CHAT-DISPATCH.md",
+        "godot-client/NATIVE-CHAT-TOOLTIPS.md",
+        "godot-client/NATIVE-CHAT-REPLIES.md"
+      ],
+      "details": "Real server55 plus later HUD/player/chat receipts cover channel deliveries/reply. Later portrait/tooltips partial milestones supersede older entire-missing notes; console/global policy still explicitly open.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "chat-policy",
+        "id": "NWN-32",
+        "url": "https://linear.app/nwnanalog/issue/NWN-32/complete-chat-history-input-formatting-and-session-retention"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "text-providers",
+      "title": "Complete native text-token providers and localization coverage",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "The native text parser has explicit supported providers. Other matched providers, encodings and retained context can remain unavailable.",
+      "acceptance": [
+        "Implement only source-backed name, class, race, player and world providers with certified context.",
+        "Preserve receipt-time tokens, gender fallback, suppression, byte encoding and original parse order.",
+        "Cover missing providers, nested references, reload and localized content without fabricated character data."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-TALK-PARSER.md",
+        "godot-client/systems/native_data/talk_text.gd",
+        "godot-client/systems/native_data/native_talk_parser.gd"
+      ],
+      "details": "FullName/race/class/world/player getters remain uncertified/pending; 12 unterminated native corpus cases uncertified and recursion bound32 explicit. Retained legacy resolve placeholder code alone not proof native parser callers use it.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "text-providers",
+        "id": "NWN-33",
+        "url": "https://linear.app/nwnanalog/issue/NWN-33/complete-native-text-token-providers-and-localization-coverage"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "overhead-typography",
+      "title": "Finish overhead speech and nameplate visual acceptance",
+      "priority": 3,
+      "stage": "acceptance-gap",
+      "gap": "Speech and labels have working receipt, lifetime and layout paths. Original font appearance, overlap and broader camera or caption behavior remain unaccepted.",
+      "acceptance": [
+        "Compare actual speech and hover/Tab labels against the original client at matching scale and camera.",
+        "Cover long text, overlap, actor movement, replacement, expiry and caption restoration.",
+        "Preserve current text ownership and usable readability while keeping optional timing experiments separate."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-OVERHEAD-CURRENT-STATUS.md",
+        "godot-client/NATIVE-POPUP-TYPOGRAPHY.md",
+        "godot-client/NATIVE-ORDINARY-SPEECH-CURRENT-ACCEPTANCE.md",
+        "godot-client/NATIVE-NAMEPLATE-TEXT.md"
+      ],
+      "details": "Ordinary current server15 packet9 plus Script16/10/9 accepted; source typography correction not original STB vs FreeType glyph raster equivalence. Optional exact clocks parked, not prerequisite.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "overhead-typography",
+        "id": "NWN-34",
+        "url": "https://linear.app/nwnanalog/issue/NWN-34/finish-overhead-speech-and-nameplate-visual-acceptance"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "dialogue-parity",
+      "title": "Complete conversation input, cinematic and presentation parity",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Long-dialogue clipping has a scoped fix. Complete conversation gestures, styles, voice/cinematic behavior and original comparison remain open.",
+      "acceptance": [
+        "Cover portraits, large fonts, long and colored replies, multi-digit choices and navigation beyond the first number keys.",
+        "Verify owner/listener/party states, disabled replies, skip and voice or cinematic behavior.",
+        "Compare placement, spacing, scrolling and focus/camera coexistence with the original client."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-CONVERSATION-FRAME.md",
+        "godot-client/NATIVE-WORLD-PRESENTATION-PARITY-GOAL.md",
+        "godot-client/tools/native_parity/visibility/SEVEN-ITEM-ACCEPTANCE-REVIEW.md"
+      ],
+      "details": "363 graphical dialogue checks/24 PNGs in separate-thread corrected engine preserve all reference ink; don't call lost-middle-words clipping wholly unresolved. Fixture text not exact server sentence; original input/cinematic/pixels remain.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "dialogue-parity",
+        "id": "NWN-35",
+        "url": "https://linear.app/nwnanalog/issue/NWN-35/complete-conversation-input-cinematic-and-presentation-parity"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "map-journal",
+      "title": "Finish map, journal and populated world-message workflows",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Map pins and journal basics work. Populated notes or world messages, large content, special roles and repeated lifecycle behavior remain open.",
+      "acceptance": [
+        "Exercise populated world messages, notes, quest states and all sorting/date/priority variants.",
+        "Verify map zoom, pins and edits on large or nonstandard areas.",
+        "Cover pending work across transitions and reconnect, keyboard/camera coexistence and original visual/input comparison."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-MAP-JOURNAL.md",
+        "godot-client/NATIVE-AREA-MAP-FRAME.md",
+        "godot-client/NATIVE-JOURNAL-FRAME.md"
+      ],
+      "details": "Later original map frame/pin editor and journal frame/notes persistence supersede older missing note-edit bullets. Actual live Notes/Messages formerly empty; populated and huge cases unaccepted.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "map-journal",
+        "id": "NWN-36",
+        "url": "https://linear.app/nwnanalog/issue/NWN-36/finish-map-journal-and-populated-world-message-workflows"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "nui-completion",
+      "title": "Complete server NUI behavior and classic-window input integration",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Server-authored NUI has substantial working controls. Full widget states, popups, modal interactions and resource-lifecycle coverage remain open.",
+      "acceptance": [
+        "Cover styles, charts/draw edge cases, large text, popup input and actual server callbacks/refusals.",
+        "Establish original membership and capture behavior when NUI overlaps classic windows.",
+        "Verify cancellation, disconnect and server transfer with pending images/text and correctly retired old bindings."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-NUI.md",
+        "godot-client/NATIVE-NUI-MODAL-AUDIT.md",
+        "godot-client/NATIVE-NUI-HANDOFF.md"
+      ],
+      "details": "Complete-membership53/2 remains disabled; ServerNui windows sit outside desktop coverage registry, no justified classic membership. Historical bridge transfer disabled note superseded by direct route, but current NUI integration not automatically accepted.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "nui-completion",
+        "id": "NWN-37",
+        "url": "https://linear.app/nwnanalog/issue/NWN-37/complete-server-nui-behavior-and-classic-window-input-integration"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "settings-parity",
+      "title": "Finish effective options, video modes and pregame settings",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Settings and resize handling have working paths. Complete native option actions, actual mode selection and cross-session behavior remain unfinished.",
+      "acceptance": [
+        "Map every supported original option to an effective behavior or an explicit unavailable state.",
+        "Complete resolution/fullscreen selection, pregame integration and monitor/scaling behavior.",
+        "Verify key bindings, defaults, persistence, sound and input across resizing, restart and session replacement."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-VIDEO-OPTIONS.md",
+        "godot-client/NATIVE-INGAME-OPTIONS.md",
+        "godot-client/NATIVE-KEY-SETTINGS.md",
+        "godot-client/NATIVE-GAMMA-SETTINGS.md"
+      ],
+      "details": "Deferred resize correction72 and regression37 cover maximize/fullscreen event handling, not complete video-mode controls. Manual Windows attachment symptom remains separate; do not file reentrant viewport bug as untouched.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "settings-parity",
+        "id": "NWN-38",
+        "url": "https://linear.app/nwnanalog/issue/NWN-38/finish-effective-options-video-modes-and-pregame-settings"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "cursor-targeting",
+      "title": "Complete native cursors and target eligibility across contexts",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Original cursor resources and common world targeting are connected. Full role, modal, range/LOS and hardware-pointer behavior remains open.",
+      "acceptance": [
+        "Cover world, inventory, map, menu and script-targeting cursors with original press and hotspot behavior.",
+        "Verify associate/dead/DM cases, spell range/LOS, cancellation and auxiliary widgets.",
+        "Handle missing images and supported scaling, including a correct large software cursor where required."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-MOUSE-CURSORS.md",
+        "godot-client/systems/native_mouse_cursor.gd",
+        "godot-client/systems/world_input.gd"
+      ],
+      "details": "Current native cursors supersede NATIVE-KEY-SETTINGS historical generic-pointer claim. cursor0/293 semantics, scales>8 hardware cap256 and actual OS pointer acceptance open.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "cursor-targeting",
+        "id": "NWN-39",
+        "url": "https://linear.app/nwnanalog/issue/NWN-39/complete-native-cursors-and-target-eligibility-across-contexts"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "browser-vault",
+      "title": "Finish connection browser and character-vault edge cases",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Internet, history, favorites and character selection work. Full filters, role policies, unusual vault entries and connection-state presentation remain open.",
+      "acceptance": [
+        "Match game-type filters, details, password/key/status states and keyboard or row activation.",
+        "Cover local/server/Workshop vault policy, unusual filenames and duplicate aliases without wrong selection.",
+        "Verify rejection, cancellation, resource loading, permitted deletion and reconnect on the normal route."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-SERVER-PAGES.md",
+        "godot-client/NATIVE-SERVER-DETAILS.md",
+        "godot-client/NATIVE-LOCAL-VAULT-DISCOVERY.md",
+        "godot-client/NATIVE-LOCAL-CHARACTER-DELETION.md"
+      ],
+      "details": "Native original pages/password/details/filter and live Delete already implemented. Older generic-browser or Delete missing lists superseded. Whole-file ticket read before bound remains; DM vault separate later issue.",
+      "depends": [
+        "ipc-stability"
+      ],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "browser-vault",
+        "id": "NWN-40",
+        "url": "https://linear.app/nwnanalog/issue/NWN-40/finish-connection-browser-and-character-vault-edge-cases"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "movement-parity",
+      "title": "Complete movement, collision and latency-correction parity",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Prediction and collision work, with scoped strafe and path fixes. Broader movement categories, latency, transformed surfaces and mixed-client behavior remain open.",
+      "acceptance": [
+        "Compare click and keyboard drive, gait, stop, turn, strafe and authoritative correction under latency.",
+        "Use active movement rates and original collision/path semantics for shapes, doors and overlapping surfaces.",
+        "Verify stable remote motion and picking without stationary-frame or stale-path regressions."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-DRIVE-PREDICTION.md",
+        "godot-client/NATIVE-MOVEMENT.md",
+        "godot-client/NATIVE-BASE-SPEED.md",
+        "godot-client/NATIVE-PAUSE-FIXES-GOAL.md"
+      ],
+      "details": "Indexed collision is now normal default per later production parity doc, not missing/unpromoted. Contact-adjacent3Q/1E stationary samples retained, not universally zero stutter. Do not hardcode4m/s as universal maximum.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "movement-parity",
+        "id": "NWN-41",
+        "url": "https://linear.app/nwnanalog/issue/NWN-41/complete-movement-collision-and-latency-correction-parity"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "area-travel",
+      "title": "Complete portal, trigger and zone-edge travel acceptance",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Door-based return trips work. Complete interactable, scripted, trigger and zone-edge travel with pending content remains open.",
+      "acceptance": [
+        "Traverse doors, portals, trigger polygons, teleportation and zone edges in both directions.",
+        "Verify original target/action semantics, server position, camera, loading gates and control recovery.",
+        "Stress return visits, rapid replacement, failed travel and pending assets without stale-world effects."
+      ],
+      "evidence": [
+        "godot-client/BASE-GAMEPLAY-GOAL.md",
+        "godot-client/NATIVE-WORLD-TRANSITION-CHECKS.md",
+        "godot-client/NATIVE-PLAYABILITY-BUGFIXES.md",
+        "godot-client/NATIVE-AREA-TRANSITIONS.md"
+      ],
+      "details": "Three Prelude door legs accepted. Open-door target34 real server/pixels accepted later; not proof linked-trigger/dense fixture transitions. Latest bugfix notes actual linked-trigger travel pending.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "area-travel",
+        "id": "NWN-42",
+        "url": "https://linear.app/nwnanalog/issue/NWN-42/complete-portal-trigger-and-zone-edge-travel-acceptance"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "combat-acceptance",
+      "title": "Complete combat animation, timing and mixed encounter parity",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Player cast, attack and motion handoffs have accepted cases. Broad NPC, shape, interruption, blend and extended encounter behavior remains unaccepted.",
+      "acceptance": [
+        "Exercise melee, ranged, multi-attack and cast sequences with moving players and NPCs.",
+        "Compare animation selection, blends, event ordering, facing and consumed actions against original/server outcomes.",
+        "Cover queued interruption, model/equipment replacement, latency and missing clips without stuck or stale actions."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-COMBAT-HANDOFF.md",
+        "godot-client/NATIVE-COMBAT-LOCOMOTION.md",
+        "godot-client/NATIVE-COMBAT-CLASS-STATE.md",
+        "godot-client/NATIVE-COMBAT-NPC.md",
+        "godot-client/NATIVE-COMBAT.md"
+      ],
+      "details": "Current cast-base and resting-path fixes38 authoritative checks, private class constructor130/broad5292 checks. NPC encounter zero actual combat checks due IPC; no NPC class or animation outcome inferred.",
+      "depends": [
+        "ipc-stability"
+      ],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "combat-acceptance",
+        "id": "NWN-43",
+        "url": "https://linear.app/nwnanalog/issue/NWN-43/complete-combat-animation-timing-and-mixed-encounter-parity"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "attack-effects",
+      "title": "Resolve chained special attacks and complete hit or weapon effects",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Blood, parry, shield and selected special attacks have working cases. Intermittent effects, chained attacks and full weapon or shape coverage remain incomplete.",
+      "acceptance": [
+        "Resolve intermittent missing special-attack output and chained-action failure.",
+        "Verify equipped and unequipped weapon/shield effects, body attachments, colors and expiry.",
+        "Compare visible event counts and server outcomes across repeated combat, shapes and model replacement."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-SPECIAL-ATTACKS.md",
+        "godot-client/NATIVE-EQUIPPED-ATTACK-VISUALS.md",
+        "godot-client/NATIVE-SPECIAL-INITIALIZATION.md",
+        "godot-client/NATIVE-BLOOD-VISUALS.md",
+        "godot-client/NATIVE-SHIELD-IMPACTS.md"
+      ],
+      "details": "Stun->cancel->Quivering Palm still fails, target mortality change not fix; first-action Quivering14/Stunning14 pass not resolution. Weapon slotFB/level20 eye effect actual server visual gate pending. Historical intermittent blood pixels remain; particles backend belongs NWN5.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "attack-effects",
+        "id": "NWN-44",
+        "url": "https://linear.app/nwnanalog/issue/NWN-44/resolve-chained-special-attacks-and-complete-hit-or-weapon-effects"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "death-recovery",
+      "title": "Complete death, respawn and rest or recovery workflows",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Death/reaction and recovery remain explicit gaps in the base-gameplay contract. Rest requests alone do not establish the complete player recovery route.",
+      "acceptance": [
+        "Exercise death reactions, corpse state and original death-options or respawn behavior.",
+        "Verify rest, interruption, resurrection and resource recovery as supplied by the unchanged server.",
+        "Compare both players' state, menus and regained control; preserve server authority."
+      ],
+      "evidence": [
+        "godot-client/BASE-GAMEPLAY-GOAL.md",
+        "godot-client/NATIVE-COMBAT.md",
+        "godot-client/NATIVE-UI-RESOURCE-INVENTORY.md",
+        "godot-client/systems/native_game_desktop.gd",
+        "electron/network_game_session.mjs"
+      ],
+      "details": "Rest request sender is implemented. No respawn/deathopts route found in active native UI/session search; GUI inventory dth_deathopts7 controls unverified. Source absence search not proof every death animation absent; ticket requires workflow implementation/acceptance.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "death-recovery",
+        "id": "NWN-45",
+        "url": "https://linear.app/nwnanalog/issue/NWN-45/complete-death-respawn-and-rest-or-recovery-workflows"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "procedural-effects",
+      "title": "Implement remaining procedural visual programs and camera shake",
+      "priority": 2,
+      "stage": "missing",
+      "gap": "Some native procedural effect branches still stop at diagnostics. Supported model and alpha effects do not cover every original visual program.",
+      "acceptance": [
+        "Complete missing attachment, start, update and stop behavior for required program families.",
+        "Connect selected-view effects and camera shake using original timing and ownership.",
+        "Verify actual spell or effect output, cleanup and stale-target rejection with original resources."
+      ],
+      "evidence": [
+        "godot-client/systems/visual_runtime.gd",
+        "godot-client/systems/visual_world.gd",
+        "godot-client/systems/native_render/effect_world.gd"
+      ],
+      "details": "Confirmed reachable direct effect_world extends visual_world; _start instantiates visual_runtime. attach types1/2/3/6 and update6 diagnose unimplemented; start/stop fallback1..13; camera-shake providers diagnostics at54/55; selected-view GUI diagnostic278. Types4/5/7 supported; alpha5 current integration must not be refiled missing. Base visual_world view gate override fixed in direct effect_world, so don't cite base false gate as production defect.",
+      "depends": [],
+      "deferred": false,
+      "label": "Feature",
+      "linear": {
+        "key": "procedural-effects",
+        "id": "NWN-46",
+        "url": "https://linear.app/nwnanalog/issue/NWN-46/implement-remaining-procedural-visual-programs-and-camera-shake"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "audio-parity",
+      "title": "Complete gameplay audio sources, mixer policy and device acceptance",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Voice samples, combat voices and script-sound paths exist. Music, ambient or placed sources, animation sounds and complete mixer behavior remain unfinished.",
+      "acceptance": [
+        "Complete weapon, footstep, death, quick-chat, ambient, placed and music ownership as required by the original client.",
+        "Verify source position, delay, volume, priority/voice stealing, formats and device preferences.",
+        "Exercise real server/device playback and cleanup through travel, reconnect and shutdown."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-AUDIO.md",
+        "godot-client/NATIVE-WORLD-AUDIO.md",
+        "godot-client/NATIVE-CREATURE-VOICES.md",
+        "godot-client/NATIVE-SCRIPT-SOUNDS.md"
+      ],
+      "details": "Direct script9/7 and voice26/1 implemented, headless-only latest scopes; bridge-stage successful playback not automatically same default route. Audio survivor ownership fixed; AV unexplained separate lifecycle issue.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "audio-parity",
+        "id": "NWN-47",
+        "url": "https://linear.app/nwnanalog/issue/NWN-47/complete-gameplay-audio-sources-mixer-policy-and-device-acceptance"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "weather-parity",
+      "title": "Complete weather lightning, audio and timer behavior",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Rain and snow render through original resources. Complete lightning, sounds, timing and wider transition behavior remain open.",
+      "acceptance": [
+        "Implement original weather transitions, lightning and audio timing.",
+        "Verify clear, rain and snow across area/time changes, cancellation and reconnect.",
+        "Retain correct assets and visibility with clean shader/resource lifetime under cold preparation."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-WEATHER.md",
+        "godot-client/NATIVE-WEATHER-RENDER.md"
+      ],
+      "details": "Rain/snow v6 visibility checks8084/1527/8181 pixels not missing precipitation. Unexplained heap fault belongs lifetime issue; complete weather acceptance not inferred from later clean runs.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "weather-parity",
+        "id": "NWN-48",
+        "url": "https://linear.app/nwnanalog/issue/NWN-48/complete-weather-lightning-audio-and-timer-behavior"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "visibility-fog",
+      "title": "Connect and accept native visibility, LOS and tile-fog collection",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Primary reveal and local player lifecycle are connected in reviewed configurations. The original draw-collected tile/fog boundary and full concealment or LOS behavior remain incomplete.",
+      "acceptance": [
+        "Connect physical tile and part ownership at the actual native collection boundary.",
+        "Verify reveal, LOS, fades, invisibility and vision effects for creatures and scenery.",
+        "Exercise re-entry, removals, reused IDs, areas and unavailable disclosure without guessed room hiding or invented server data."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-WORLD-PRESENTATION-PARITY-GOAL.md",
+        "godot-client/tools/native_parity/visibility/SEVEN-ITEM-ACCEPTANCE-REVIEW.md",
+        "godot-client/systems/native_render/effect_world.gd"
+      ],
+      "details": "Seven-item review: peer v4b49/9 PNGs covers real two-account deletion/reused ID/active reveal. BSP/fog collector unconnected normal V6; production keeps factor1. Later isolated physical association/reducer not automatically activation. Optional exact-clock scope parked; default/flag route must be explicit.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "visibility-fog",
+        "id": "NWN-49",
+        "url": "https://linear.app/nwnanalog/issue/NWN-49/connect-and-accept-native-visibility-los-and-tile-fog-collection"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "lighting-materials",
+      "title": "Finish gameplay lighting, vision, shadows and material coverage",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "Same-room lighting has useful comparisons and working native owners. Full content, vision, shadow and material behavior still needs acceptance.",
+      "acceptance": [
+        "Compare representative indoor/outdoor and time-of-day scenes with matching resources and settings.",
+        "Verify darkness/vision, animated lights, shadows, transparency, material controllers and final output ordering.",
+        "Preserve gameplay visibility and information while respecting allowed engine-lighting differences."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-LIGHTING-CORRECTION.md",
+        "godot-client/NATIVE-FLAME-LIGHTING.md",
+        "godot-client/NATIVE-LIGHT-LIMIT-CORRECTION.md",
+        "godot-client/NATIVE-RENDER-LAUNCH-PROFILE.md",
+        "godot-client/systems/visual_runtime.gd"
+      ],
+      "details": "Normal gameplay profile now restores enhanced lighting; old opt-in/default remarks historical. fx_placeable01 owner and32 finite light limit corrected. Runtime still diagnostic ASCII/inherited light controllers, native light admission/fades depth/blend specialized finalization pending.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "lighting-materials",
+        "id": "NWN-50",
+        "url": "https://linear.app/nwnanalog/issue/NWN-50/finish-gameplay-lighting-vision-shadows-and-material-coverage"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "highlight-live",
+      "title": "Accept whole-character highlighting and large-scene surface fixes",
+      "priority": 3,
+      "stage": "acceptance-gap",
+      "gap": "A whole-character highlight and large-scene surface correction have scoped visual evidence. The combined live scene and normal configuration still need confirmation.",
+      "acceptance": [
+        "Verify stable whole-character glow for opaque and translucent animated actors during hover and held/released highlighting.",
+        "Confirm scenery stays correctly rendered in large areas with highlighting both on and off.",
+        "Preserve base materials, targeting, alpha and lifetime while measuring representative frame cost."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-WORLD-PRESENTATION-PARITY-GOAL.md"
+      ],
+      "details": "User whole-body glow preference supersedes exact per-Part fans. Candidate53 CPU/10 Registry/19 assets/88 graphics passes, four actor median1.785ms not whole-room win. Black surface105/4200 reproduced/fixed via inactive fog instance uniform; candidate4200 pixel pass; manual actual large live confirmation pending. Don't refile patch as absent.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "highlight-live",
+        "id": "NWN-51",
+        "url": "https://linear.app/nwnanalog/issue/NWN-51/accept-whole-character-highlighting-and-large-scene-surface-fixes"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "bridge-support",
+      "title": "Finish elevated and overlapping-surface movement acceptance",
+      "priority": 2,
+      "stage": "acceptance-gap",
+      "gap": "Bridge support has original-asset fixture evidence. Actual placements, overlapping surfaces and server movement still need full acceptance.",
+      "acceptance": [
+        "Compare received, predicted and displayed height through bridge entry, deck, exit and idle.",
+        "Cover transformed assets, overlapping surfaces and original support tie ordering.",
+        "Verify authoritative movement and collision on representative original-server bridge placements."
+      ],
+      "evidence": [
+        "godot-client/tools/native_parity/visibility/SEVEN-ITEM-ACCEPTANCE-REVIEW.md",
+        "godot-client/systems/native_render/live_world_support.gd",
+        "godot-client/NATIVE-WORLD-PRESENTATION-PARITY-GOAL.md"
+      ],
+      "details": "Bridge638 checks/four PNG exact twh_udbridge models, foot vertices~0.00104, fixture ports and fallback ttu01_trim. No live actual placement/server outcome/BSP tie/idleZ parity. No claim support entirely absent.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "bridge-support",
+        "id": "NWN-52",
+        "url": "https://linear.app/nwnanalog/issue/NWN-52/finish-elevated-and-overlapping-surface-movement-acceptance"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "resource-compatibility",
+      "title": "Complete active-content precedence and native resource compatibility",
+      "priority": 2,
+      "stage": "acceptance-gap",
+      "gap": "Original archives, overrides and synchronized content are supported. Broad mod content, failure isolation and all resource consumers still need systematic acceptance.",
+      "acceptance": [
+        "Verify module, server, HAK, Workshop, loose and synchronized-resource precedence through actual consumers.",
+        "Exercise custom rules, text, models, walkmeshes, icons, audio and malformed or missing resources.",
+        "Keep stale catalogs and asynchronous results out of a new server or area; bound input and memory behavior."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-RESOURCE-MANAGER.md",
+        "godot-client/NATIVE-NWSYNC.md",
+        "godot-client/NATIVE-VISUAL-ADMISSION-FAILURES.md",
+        "godot-client/NATIVE-RESOURCE-RESIDENCY-GOAL.md"
+      ],
+      "details": "Original C2DA fixed token/default handling not fully interface-equivalent; native storage/syntax parity open. Audio/TLK/direct consumers/GPU residency coverage open. NWSync old localhost-only launcher claim superseded normal browser; no public login automated.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "resource-compatibility",
+        "id": "NWN-53",
+        "url": "https://linear.app/nwnanalog/issue/NWN-53/complete-active-content-precedence-and-native-resource-compatibility"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "dense-performance",
+      "title": "Finish normal-client dense-scene loading and frame-time acceptance",
+      "priority": 2,
+      "stage": "partial",
+      "gap": "Measured optimizations exist. Normal-configuration performance, dense movement hitches, synchronous world work and complete loading behavior remain unfinished.",
+      "acceptance": [
+        "Measure matched normal-entry cold/warm loading, streaming, movement and quiet periods with intended effects enabled.",
+        "Reduce remaining path, world-commit, publication and unexplained pause tails while preserving scene completeness.",
+        "Repeat meaningful results with matching camera, input, settings and lifecycle; distinguish component gains from whole-client acceptance."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-FPS-MAX-GOAL.md",
+        "godot-client/NATIVE-PAUSE-FIXES-GOAL.md",
+        "godot-client/NATIVE-PRODUCTION-PARITY-GOAL.md",
+        "godot-client/NATIVE-140FPS-PERFORMANCE-GOAL.md"
+      ],
+      "details": "Latest accepted source5ec54eec particle bookkeeping two matched private pairs4.56-5.03% shorter final steady intervals and50176 focused assertions; no default/Arelith FPS. Indexed collision promoted. Earlier handoff pending V2 matrix superseded corrected seven GPU cases and24/24 authority gates. Remaining dense narrow phase, synchronous application, packed40-48ms calls, soft3ms publication and outside-callback pauses. Existing NWN8 particle-backend performance separate; link rather than duplicate backend integration.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "dense-performance",
+        "id": "NWN-54",
+        "url": "https://linear.app/nwnanalog/issue/NWN-54/finish-normal-client-dense-scene-loading-and-frame-time-acceptance"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "packet-coverage",
+      "title": "Audit and close unsupported gameplay-message coverage",
+      "priority": 3,
+      "stage": "partial",
+      "gap": "The session explicitly reports unsupported game messages. Complete playable parity needs a receiver coverage matrix tied to actual player scenarios.",
+      "acceptance": [
+        "Map relevant original message families to decode, state ownership and native presentation.",
+        "Classify deliberately irrelevant messages separately from missing gameplay handlers.",
+        "Exercise required messages on unchanged servers, including failure and ordering cases, without fabricating acknowledgments."
+      ],
+      "evidence": [
+        "src/network_game_messages.js",
+        "electron/network_game_session.mjs",
+        "godot-client/BASE-GAMEPLAY-GOAL.md"
+      ],
+      "details": "NetworkGameSession on unsupported diagnoses network.game-message-unhandled; decoder fallback unsupported. Do not treat every protocol number as required/missing. Audit specific observed messages and original receiver provenance; current masks/read overflow guards remain.",
+      "depends": [],
+      "deferred": false,
+      "label": "Improvement",
+      "linear": {
+        "key": "packet-coverage",
+        "id": "NWN-55",
+        "url": "https://linear.app/nwnanalog/issue/NWN-55/audit-and-close-unsupported-gameplay-message-coverage"
+      },
+      "linearState": "Todo"
+    },
+    {
+      "key": "offline-campaign",
+      "title": "Implement and accept native single-player campaign play and saves",
+      "priority": 4,
+      "stage": "missing",
+      "gap": "Native offline campaign simulation and complete save/load remain a later phase after multiplayer presentation and behavior acceptance.",
+      "acceptance": [
+        "Migrate the required offline rules, script VM, scheduler and authoritative simulation.",
+        "Support campaign/module entry, persistence and save/load with actual original-campaign progression.",
+        "Keep this later scope separate from multiplayer release blockers."
+      ],
+      "evidence": [
+        "README.md",
+        "godot-client/MIGRATION-GOAL.md",
+        "godot-client/NATIVE-PLAYABILITY-PARITY-GOAL.md",
+        "src/nwscript_vm.js",
+        "src/combat_runtime.js"
+      ],
+      "details": "README explicitly no complete native singleplayer VM/scheduler/save-load. JS offline unsupported instructions/effects/rules are later migration evidence, not proof multiplayer server needs client simulation.",
+      "depends": [],
+      "deferred": true,
+      "label": "Feature",
+      "linear": {
+        "key": "offline-campaign",
+        "id": "NWN-56",
+        "url": "https://linear.app/nwnanalog/issue/NWN-56/implement-and-accept-native-single-player-campaign-play-and-saves"
+      },
+      "linearState": "Backlog"
+    },
+    {
+      "key": "native-services",
+      "title": "Complete remaining native services and standalone client delivery",
+      "priority": 4,
+      "stage": "partial",
+      "gap": "Protocol, authentication and content services still rely on the transitional runtime. Removing that dependency is a later migration scope.",
+      "acceptance": [
+        "Migrate remaining protocol/authentication/download ownership while preserving the original wire contract and credential handling.",
+        "Provide repeatable runtime setup, content discovery and standalone launch with clear failures.",
+        "Verify normal-entry interoperability and cleanup before retiring the transitional services."
+      ],
+      "evidence": [
+        "README.md",
+        "godot-client/MIGRATION-GOAL.md",
+        "godot-client/NATIVE-PLAYABILITY-PARITY-GOAL.md",
+        "godot-client/tools/native-session-host.cjs",
+        "electron/network_game_session.mjs"
+      ],
+      "details": "Godot owns rendering/UI/model preparation; Node host NetworkGameSession/peer still active. Don't label entire app Electron-rendered. Broader migration ordered after multiplayer; source-format preparation/cache distinction still open but not forced here.",
+      "depends": [],
+      "deferred": true,
+      "label": "Improvement",
+      "linear": {
+        "key": "native-services",
+        "id": "NWN-57",
+        "url": "https://linear.app/nwnanalog/issue/NWN-57/complete-remaining-native-services-and-standalone-client-delivery"
+      },
+      "linearState": "Backlog"
+    },
+    {
+      "key": "lan-hosting",
+      "title": "Restore LAN discovery and new or saved game hosting",
+      "priority": 4,
+      "stage": "missing",
+      "gap": "LAN discovery and native hosting entry points are not implemented. Track them as later full-binary parity work.",
+      "acceptance": [
+        "Discover and join LAN sessions with correct browser and error states.",
+        "Support new and saved game hosting with original settings and lifecycle.",
+        "Verify original-client joins and clean host shutdown without changing ordinary multiplayer admission."
+      ],
+      "evidence": [
+        "godot-client/systems/server_browser.gd",
+        "godot-client/NATIVE-MULTIPLAYER-ENTRY.md",
+        "godot-client/NATIVE-UI-RESOURCE-INVENTORY.md"
+      ],
+      "details": "server_browser refresh entry has literal LAN discovery not implemented and Hosting new/saved not implemented tooltip266; disabled controls actual missing, not original role behavior.",
+      "depends": [],
+      "deferred": true,
+      "label": "Feature",
+      "linear": {
+        "key": "lan-hosting",
+        "id": "NWN-58",
+        "url": "https://linear.app/nwnanalog/issue/NWN-58/restore-lan-discovery-and-new-or-saved-game-hosting"
+      },
+      "linearState": "Backlog"
+    },
+    {
+      "key": "dm-tools",
+      "title": "Complete DM and administrator role-specific workflows",
+      "priority": 4,
+      "stage": "partial",
+      "gap": "Full DM and administrator tools are outside the currently accepted normal-player paths and remain part of full native-client parity.",
+      "acceptance": [
+        "Audit chooser, creator, tag search, DM vault, permissions and administrator confirmations.",
+        "Implement only actions available to the authenticated role and use actual server outcomes.",
+        "Verify possession/control, targeting, modal behavior and ordinary-player exclusion with the original client."
+      ],
+      "evidence": [
+        "godot-client/NATIVE-UI-RESOURCE-INVENTORY.md",
+        "godot-client/NATIVE-DM-PERMISSION.md",
+        "godot-client/NATIVE-PLAYERS-FRAME.md",
+        "godot-client/NATIVE-OTHER-CREATURE-RADIAL.md"
+      ],
+      "details": "DM chooser18 controls/creator5/search15 unverified GUI inventory. permission31/22 received but DM update7fbd10 producer and normal target selector unbound. Boot/Ban confirmations admin role not accepted. Avoid assuming DM UI absent solely because metadata unverified.",
+      "depends": [],
+      "deferred": true,
+      "label": "Improvement",
+      "linear": {
+        "key": "dm-tools",
+        "id": "NWN-59",
+        "url": "https://linear.app/nwnanalog/issue/NWN-59/complete-dm-and-administrator-role-specific-workflows"
+      },
+      "linearState": "Backlog"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "godot-client/NATIVE-COMBAT-NPC.md",
+      "sha256": "3bab3ed687312e447e6a8ded76becf3f203aae2d5bc513e1bdb5bd15a813b6fd"
+    },
+    {
+      "path": "godot-client/NATIVE-CREATION-AUTHORITATIVE-ACCEPTANCE.md",
+      "sha256": "9a356aed2407e421257b7d08ddc986da7b64302bf1a22a8cec9980638fa6cc08"
+    },
+    {
+      "path": "godot-client/NATIVE-DIRECT-HANDOFF-GOAL.md",
+      "sha256": "2c11b6b0d64e3d3af6acb912876d92ad3af211cf46f15241693e32192c312e37"
+    },
+    {
+      "path": "godot-client/native_session_world.gd",
+      "sha256": "76aab5c0bc24311d2fa256373cbde4c8cc96136422613ca381764e9597910efe"
+    },
+    {
+      "path": "godot-client/tools/native-session-host.cjs",
+      "sha256": "77d2acf726e71d14acc02a06ede138dcd44cb058660b91a40037556e7be848ac"
+    },
+    {
+      "path": "godot-client/tools/native-direct-handoff-semantic-chain.test.cjs",
+      "sha256": "41fc8c436ffee8ec5f7c6ba07c62ddc44a0c572180a8e4143fd1f31557a7686e"
+    },
+    {
+      "path": "godot-client/tools/native-direct-handoff-capture.cjs",
+      "sha256": "32aa28b6467c49963cd0ed64e6030cd3146e02d13749cf5c7545c5c81bfaa0e1"
+    },
+    {
+      "path": "godot-client/tools/native-direct-handoff-host-check.cjs",
+      "sha256": "0b6d57d68c642d06ebc428328bb6f2d17f1009baf83670c93e2a86c1dc5d4354"
+    },
+    {
+      "path": "godot-client/tools/native-handoff-character-proof.mjs",
+      "sha256": "44d2ba610067d9c4f124dd7042469037482a6c61f4933064c747230453fb9d31"
+    },
+    {
+      "path": "godot-client/NATIVE-DIRECT-HANDOFF-SEMANTIC-CHAIN.md",
+      "sha256": "efd219bdef61c920d9e41f7c2e9980857e629297b4f3ca09c306683ef6ba3acc"
+    },
+    {
+      "path": "godot-client/NATIVE-DIRECT-HANDOFF-RETIRE-RECOVERY.md",
+      "sha256": "ff49e7beece1cc45fa36203701ae4a6dd68458af7331b9cb2cc1782c57b96d6a"
+    },
+    {
+      "path": "godot-client/tools/native-direct-portal.mjs",
+      "sha256": "b4f55951f14ff10913b5321ddb74912b0ff323938dda6a84dc2ab67949622aea"
+    },
+    {
+      "path": "godot-client/NATIVE-SHUTDOWN.md",
+      "sha256": "e42ebe49ce5e717508837f386d032bfe8bab44cd76e4afa88f562e3841ff9f28"
+    },
+    {
+      "path": "godot-client/NATIVE-WORLD-AUDIO.md",
+      "sha256": "5336d07b2e6ebcbb4484437917fbfc3d585fe7bdd2988066dd1aa91fff011692"
+    },
+    {
+      "path": "godot-client/NATIVE-WEATHER-RENDER.md",
+      "sha256": "6d419633a01ce5751a505c2e62f1c5514c3d28cf292fdc21d9485eb3e31f11a4"
+    },
+    {
+      "path": "godot-client/NATIVE-SPECIAL-ATTACKS.md",
+      "sha256": "2f5c343afce75439f6c6ba9baaa4b39e3e44f2d346f81824797c35ce2ef62572"
+    },
+    {
+      "path": "godot-client/NATIVE-VISUAL-ADMISSION-FAILURES.md",
+      "sha256": "2da79cd7a132e8a12a3658504670dee11d3fb7bc4027b3344c749dd98739fd31"
+    },
+    {
+      "path": "godot-client/NATIVE-CREATION.md",
+      "sha256": "d92b5a5d83fd8ec528998b655ac602cd37c779320550c3f11982fc0191ffbcf4"
+    },
+    {
+      "path": "godot-client/NATIVE-CREATION-TAIL-BIC.md",
+      "sha256": "98fd976259702c443ba7d9dd75c3fa1fcecd3fd8a50488600b38fe852d1b109c"
+    },
+    {
+      "path": "godot-client/NATIVE-CREATION-FLOW-INTEGRATION.md",
+      "sha256": "003535fb47b9ee30b785c93717902ed0cb64345bd6ce14a260c6c000afbff39d"
+    },
+    {
+      "path": "godot-client/NATIVE-CHARACTER-CUSTOMIZATION.md",
+      "sha256": "72a26a94aeb24af1d7d088b943c464dd4d92fa9ae903ac83753f80563f9ad2db"
+    },
+    {
+      "path": "godot-client/NATIVE-LOCAL-CHARACTER-DELETION.md",
+      "sha256": "a39be95f1e4546964c5442a0ad798d5c36d14991c6b94e1bf0637b5e912b8c84"
+    },
+    {
+      "path": "godot-client/NATIVE-PORTRAIT-PANE.md",
+      "sha256": "16e55957768742208ca2716cc57da8aefe71996951e73c1263e1ffe9b5b6f4b7"
+    },
+    {
+      "path": "godot-client/NATIVE-LEVEL-UP-PARITY-GOAL.md",
+      "sha256": "c54c9974f2d0da5deedb1149ff2b6f526ed5da4081a271d4e0a06aef9d4f1451"
+    },
+    {
+      "path": "godot-client/NATIVE-LEVEL-UP-NEXT-AUDIT-2026-11-04.md",
+      "sha256": "b695ab531857ec15ff7aba6eb410198f6c3bad8de1ae8c7433eb8b4ab950af6e"
+    },
+    {
+      "path": "godot-client/NATIVE-LEVEL-UP-PATH-MATRIX.md",
+      "sha256": "eef3401320a7bef366e3d0e19d917c2604a1262123af5693230e572d3dbeefc8"
+    },
+    {
+      "path": "godot-client/NATIVE-PLAYABILITY-PARITY-GOAL.md",
+      "sha256": "283ffb2c5d3d2ccedc4232492d26bb194c8345c9ccfd936aa352f79cf2b2ba85"
+    },
+    {
+      "path": "godot-client/NATIVE-CHARACTER-PICKER-RESPONSIVENESS.md",
+      "sha256": "ec20cf708491c9fcb37865714eca6e60b7b80afc6546383f13ff6c5521bc7762"
+    },
+    {
+      "path": "godot-client/NATIVE-UI-RESPONSIVENESS-REGRESSION.md",
+      "sha256": "402c314cb4d450e11b07f90d31cb961ede4ca095978deafa0de862a0d5201ff1"
+    },
+    {
+      "path": "godot-client/systems/native_inventory.gd",
+      "sha256": "cf22500a8ea967c403f6685586042903110740ea9e6667ff7df1cf7cdabd2dca"
+    },
+    {
+      "path": "godot-client/systems/server_inventory.gd",
+      "sha256": "fd52a1c60593d8d844b2af5831627cfbca95f88cceb22d89577e35b1b901d290"
+    },
+    {
+      "path": "godot-client/NATIVE-INVENTORY-PUBLICATION.md",
+      "sha256": "98348e70d4d7b154681baa5b9a83887c4a2d5be4945a56fb903e172b975a9179"
+    },
+    {
+      "path": "godot-client/NATIVE-INVENTORY-WINDOW-OWNERS.md",
+      "sha256": "4e3b51c1ab940bfd24d8fd362d909e5902e8501c8a824480f44a4fcd241873d0"
+    },
+    {
+      "path": "godot-client/NATIVE-QUICKBAR-ASSOCIATE.md",
+      "sha256": "eb84d504c8c0186e420fa7acee74624a2c765c84037c6ce198b19cd8a270be9e"
+    },
+    {
+      "path": "godot-client/NATIVE-INVENTORY.md",
+      "sha256": "f104bb2b9cf05fdcfbbe8020063669727c2e9948086b91f685b803119fb90b12"
+    },
+    {
+      "path": "godot-client/NATIVE-INVENTORY-EQUIPMENT.md",
+      "sha256": "f367053bfd2989ca75004fc584965fc7368f6c423bff230941ba1929d561f5dd"
+    },
+    {
+      "path": "godot-client/NATIVE-ITEM-CONTEXT.md",
+      "sha256": "9f194e9157f2d0ed7ba7587ff4a644035966d81403d5125410bc38bfaee3ab56"
+    },
+    {
+      "path": "godot-client/NATIVE-ITEM-POWERS.md",
+      "sha256": "e34d22fb19f466fdadaff5f83883d34ef58a6d8fa10ffea54422f56a0aafa556"
+    },
+    {
+      "path": "godot-client/NATIVE-STORES.md",
+      "sha256": "804975a18c5a8dedc92c64868c1fa07c638dfb8963c99d143886bde6aa572a92"
+    },
+    {
+      "path": "godot-client/NATIVE-STORE-FRAME.md",
+      "sha256": "de610324b3c1ff55f6197fa17a83cd7ff548f8bfab4548896dd16b568431a1b5"
+    },
+    {
+      "path": "godot-client/NATIVE-EXAMINE.md",
+      "sha256": "eb1c8a5ff5a9c980e725623f18cf4ed0c5a95ba6c02eb052d3f00b6b99332b4b"
+    },
+    {
+      "path": "godot-client/NATIVE-BARTER.md",
+      "sha256": "f8a44463a69e6e20fb71dad6d74374508fcc65912351fa3e704665c267a10c4f"
+    },
+    {
+      "path": "godot-client/NATIVE-BARTER-BUTTON-STATES.md",
+      "sha256": "4a3a9152c6e62dde5aa44841892297646955751088c8e92c9fec3fa61ad7d93e"
+    },
+    {
+      "path": "godot-client/NATIVE-QUICKBAR-CONTEXT.md",
+      "sha256": "e2e316b52eaee0d27023c2244c8b3733d3bfb1639b0906a3914c5072e1906b9b"
+    },
+    {
+      "path": "godot-client/NATIVE-QUICKBAR-POLYMORPH.md",
+      "sha256": "d9109b750e5535d47a6e9bfc0d080fe11d304931084c3999c9a881836ac3e880"
+    },
+    {
+      "path": "godot-client/NATIVE-WORLD-RADIAL.md",
+      "sha256": "bfb95d5e8a752d9770a84b30779b0787e2819754432f61d2595e96717040183e"
+    },
+    {
+      "path": "godot-client/NATIVE-OTHER-CREATURE-RADIAL.md",
+      "sha256": "6ee05eb65ef103d0a6654a42f43a081498c6a14baf13eea349cb24e554daa2ac"
+    },
+    {
+      "path": "godot-client/NATIVE-ASSOCIATE-RADIAL.md",
+      "sha256": "01989efbc5ab6803ddaf0629a5dfda90fcbfb51c0eeb96d2fa88d43e9cefed08"
+    },
+    {
+      "path": "godot-client/NATIVE-SKILLS.md",
+      "sha256": "a8b776edc2d2105798c1b10aba1a4b55813dcbfe34c13c8b294c94b4673f04a0"
+    },
+    {
+      "path": "godot-client/NATIVE-SKILL-ADMISSION.md",
+      "sha256": "fff11755d8a4e5a1bd6a64531775ead9a077a9727eac48c26529a2849000b5ed"
+    },
+    {
+      "path": "godot-client/NATIVE-DM-PERMISSION.md",
+      "sha256": "b164ed1c18799d7ffd00becfb58bb8ba3926c8a851e2b69aee985ad4e6e4dc2a"
+    },
+    {
+      "path": "godot-client/NATIVE-SPELL-PREPARATION.md",
+      "sha256": "7928fa6486959578fd5e3c86f279ec898fa65e4dcaad444bd36222cb7df7ef69"
+    },
+    {
+      "path": "godot-client/NATIVE-SPELLBOOK-FRAME.md",
+      "sha256": "fe2528ed2368275549eeb07893b5039526c602cfc0d28439687a928aead7f2c8"
+    },
+    {
+      "path": "godot-client/NATIVE-CHARACTER-FRAME.md",
+      "sha256": "39b2dcfe1eb1d041918f129f6e37f8cb7e12ef6e051f9f98376e5ceea07d783d"
+    },
+    {
+      "path": "godot-client/NATIVE-RECORD-ENTRIES.md",
+      "sha256": "a5025c561a5da14206acd22fba5fc4e27a3efb7e306a352145c0cae6082d2c66"
+    },
+    {
+      "path": "godot-client/NATIVE-RECORD-VALUES.md",
+      "sha256": "e8b09f529d30cf9b3888f497d49fbb28d87e12ea286ee732082d2f2a4867c88b"
+    },
+    {
+      "path": "godot-client/NATIVE-EXAMINE-CONTENT.md",
+      "sha256": "c7a14774034a658f151f8d8255bc7435e9b1ae08ea6284c611ca815d365b47a1"
+    },
+    {
+      "path": "godot-client/NATIVE-PLAYERS-FRAME.md",
+      "sha256": "07efac53c7b122a1c3274cc3269d0aeeb6c1c7b364c64ad8cb672a38db46fa5a"
+    },
+    {
+      "path": "godot-client/NATIVE-PARTY-FRAME.md",
+      "sha256": "afbb7dde1a28487b5816d34275ed5e6b3b9b6457f719dd06692b1477a7276fb5"
+    },
+    {
+      "path": "godot-client/NATIVE-PARTY-LOCATOR.md",
+      "sha256": "a885d5f2d7d7be9a16cbaf07e41f9f3ff767bc037144437f205756553489a7ab"
+    },
+    {
+      "path": "godot-client/NATIVE-PARTY-HEALTH.md",
+      "sha256": "e67fecf9509bc1738989009cf55eef33496cdc0580b011c5f77543fc97fa2424"
+    },
+    {
+      "path": "godot-client/NATIVE-HUD-TOOLTIPS.md",
+      "sha256": "811465b2471e8c65119a2f820fbf30297f8d0c17b425e727758925ae89b52193"
+    },
+    {
+      "path": "godot-client/NATIVE-HUD-LOCAL-ACCEPTANCE.md",
+      "sha256": "5a548aae94e01ca273b459ab75762309bc1830298c95a4dd6f566978dee47a1b"
+    },
+    {
+      "path": "godot-client/NATIVE-ACTION-QUEUE.md",
+      "sha256": "cc1a81425ea9de0f0c428b0c843762f31fca0c7812ccfca7e5412530c855ab55"
+    },
+    {
+      "path": "godot-client/NATIVE-EFFECT-BAR.md",
+      "sha256": "6981331fbacc44be3896da12062adb3504856d7c62589481def3a119bf9e0e54"
+    },
+    {
+      "path": "godot-client/NATIVE-CHAT-LOCAL-ACCEPTANCE.md",
+      "sha256": "5db55566c21272966e86d45aa05bfba007a4755e2d6da7282d3e6376d75389a4"
+    },
+    {
+      "path": "godot-client/NATIVE-CHAT-DISPATCH.md",
+      "sha256": "202fdfe11c9c3e81b84914afa90bef0d6a1283d30c5ee1826b0ee7a7582ab33b"
+    },
+    {
+      "path": "godot-client/NATIVE-CHAT-TOOLTIPS.md",
+      "sha256": "7eac6391fc8773ca3ef57967aecb4e000932fc0f9ac1076f3624f0863b054172"
+    },
+    {
+      "path": "godot-client/NATIVE-CHAT-REPLIES.md",
+      "sha256": "89e808ce7f8d868491f06871a4ff7c5a7ce0ae952130daaa12c1236dd45a4d33"
+    },
+    {
+      "path": "godot-client/NATIVE-TALK-PARSER.md",
+      "sha256": "314883fccc90608120bb126b2d2b3aeaf0c0f1a59e6e097d5136f787346757de"
+    },
+    {
+      "path": "godot-client/systems/native_data/talk_text.gd",
+      "sha256": "51c19d360ca573beead85cb310c03efea7e83469e17928bcb734d0d5c7be3342"
+    },
+    {
+      "path": "godot-client/systems/native_data/native_talk_parser.gd",
+      "sha256": "8b1594d6aa14fe998debcf09195e67f3f8c04cd1ff0b7bdfafc95606c7e9c90b"
+    },
+    {
+      "path": "godot-client/NATIVE-OVERHEAD-CURRENT-STATUS.md",
+      "sha256": "7fbb93aec7e116ba5eadb25c624d00e753b23f1094d2f84dbe8f202af71e5cfa"
+    },
+    {
+      "path": "godot-client/NATIVE-POPUP-TYPOGRAPHY.md",
+      "sha256": "b7cd4970ae18537d2cade9876d6ce72e3bef2afae2a328973a7f28b6dc49b3a3"
+    },
+    {
+      "path": "godot-client/NATIVE-ORDINARY-SPEECH-CURRENT-ACCEPTANCE.md",
+      "sha256": "9bc075e4d5bb968ff7b1d553ccd6eb51f095bd863410bef5c1144f672a8be9f2"
+    },
+    {
+      "path": "godot-client/NATIVE-NAMEPLATE-TEXT.md",
+      "sha256": "28991adfb3e786db5683ddf0edff70d7294a95875ab21c8d9eb72f609ac74731"
+    },
+    {
+      "path": "godot-client/NATIVE-CONVERSATION-FRAME.md",
+      "sha256": "f95f38761cae79a36d3cbf9249a698150d3ec2885fc6ff7ff786b9747c638e92"
+    },
+    {
+      "path": "godot-client/NATIVE-WORLD-PRESENTATION-PARITY-GOAL.md",
+      "sha256": "5d5bd8d77fb865f910a32e9b726b2c9eee261d89c8c6e02b09de79221ef2e047"
+    },
+    {
+      "path": "godot-client/tools/native_parity/visibility/SEVEN-ITEM-ACCEPTANCE-REVIEW.md",
+      "sha256": "c807f13450b39a45a289c244f0535cb1d54bf5540106b7d4806bb309b45106f1"
+    },
+    {
+      "path": "godot-client/NATIVE-MAP-JOURNAL.md",
+      "sha256": "a757c635203292aa67752945998a6228e784b7ee517bec48b36a1fff9d7ce05d"
+    },
+    {
+      "path": "godot-client/NATIVE-AREA-MAP-FRAME.md",
+      "sha256": "b6340a30f3ed21333599ee2bb27af9009ad10a8c60542040fd1a353144affb44"
+    },
+    {
+      "path": "godot-client/NATIVE-JOURNAL-FRAME.md",
+      "sha256": "9814d16b0ab1e0c4318bc768822877d9608221e995c072bffa95abb7cb6a6465"
+    },
+    {
+      "path": "godot-client/NATIVE-NUI.md",
+      "sha256": "3747593ff5d97be00f24bbafbcdea07be09b154871442cfb33aea0c5e4af266b"
+    },
+    {
+      "path": "godot-client/NATIVE-NUI-MODAL-AUDIT.md",
+      "sha256": "8231e8e99f08110840c119e7365bcff6cfd966bc4aeb79371feb1d0b1b944dc3"
+    },
+    {
+      "path": "godot-client/NATIVE-NUI-HANDOFF.md",
+      "sha256": "bf3ad640ea003a99037cb0779b02c238888dd3c1ccb0a7d9f6f101d4a60d0784"
+    },
+    {
+      "path": "godot-client/NATIVE-VIDEO-OPTIONS.md",
+      "sha256": "1c9fbfa4ee072297593d6b63ac4df1c90d96f0493f9b0d24be2c640687cf934c"
+    },
+    {
+      "path": "godot-client/NATIVE-INGAME-OPTIONS.md",
+      "sha256": "848735f387cbb72369bfd13bb939847e806b915c056c0ae4be221610e9aa5faa"
+    },
+    {
+      "path": "godot-client/NATIVE-KEY-SETTINGS.md",
+      "sha256": "3a886f035c971cb16dafa4dd9ed1e3937ace49637febffa2977db854464c8b32"
+    },
+    {
+      "path": "godot-client/NATIVE-GAMMA-SETTINGS.md",
+      "sha256": "22189ef02e9e5f7d61d6364593b5a2add1ce93cd399d3b9746251bfa1870e434"
+    },
+    {
+      "path": "godot-client/NATIVE-MOUSE-CURSORS.md",
+      "sha256": "34b91fffa8e07a74bca0ded27ec9378c8bc3e01cbfe401111fe491f283ca4cd5"
+    },
+    {
+      "path": "godot-client/systems/native_mouse_cursor.gd",
+      "sha256": "341ffdf125fff954e91e84308a50fa9a0d098cca6366b47f7ff87ea6fd302fda"
+    },
+    {
+      "path": "godot-client/systems/world_input.gd",
+      "sha256": "7fb1d26e034368e7bb39ad4d4c2f08e0edf6ee90cf0f60e3f3330be2372f5da4"
+    },
+    {
+      "path": "godot-client/NATIVE-SERVER-PAGES.md",
+      "sha256": "ca1673dc7cc303875f997463ca14e456a742a2a1322e880aa9143865e27cd178"
+    },
+    {
+      "path": "godot-client/NATIVE-SERVER-DETAILS.md",
+      "sha256": "f191039b396271702b05b1969a8379f3edc2fd4a55eaf4153a7e5867cb343129"
+    },
+    {
+      "path": "godot-client/NATIVE-LOCAL-VAULT-DISCOVERY.md",
+      "sha256": "22184c7a1290b6670fd43dfd8b3c50baaeb225981c02f8b9054f58b8b60bcfd7"
+    },
+    {
+      "path": "godot-client/NATIVE-DRIVE-PREDICTION.md",
+      "sha256": "6a1f876a53e1540d333f936bd6554a4f498b79841f5ee150af8b99bd22b9a923"
+    },
+    {
+      "path": "godot-client/NATIVE-MOVEMENT.md",
+      "sha256": "c87b3ff79a76c5f77d7f424c409f92d20ac6ea7ddc0d921ff3668c5fb890ece3"
+    },
+    {
+      "path": "godot-client/NATIVE-BASE-SPEED.md",
+      "sha256": "8f410ebce58bb3133d891ed4a87405bd1ab59eb7b158acdb4a2c3abcac834deb"
+    },
+    {
+      "path": "godot-client/NATIVE-PAUSE-FIXES-GOAL.md",
+      "sha256": "3a9a48615a2dd85de4d7b3dc9235fb9308c402916f74beb9f4f36141df4e86c0"
+    },
+    {
+      "path": "godot-client/BASE-GAMEPLAY-GOAL.md",
+      "sha256": "a8aca48b5a9a8dcd26607a84b10bc7d8d3f77d0e778bd5015d71f5921eb5b8e3"
+    },
+    {
+      "path": "godot-client/NATIVE-WORLD-TRANSITION-CHECKS.md",
+      "sha256": "4711428186f50f2c324b644d097efc4ab13154790ee7338ffc3d42354f4154d4"
+    },
+    {
+      "path": "godot-client/NATIVE-PLAYABILITY-BUGFIXES.md",
+      "sha256": "72783440f4a6b9ee22326f20145219a77285ae2c962adcc1f6c8b3fb55439917"
+    },
+    {
+      "path": "godot-client/NATIVE-AREA-TRANSITIONS.md",
+      "sha256": "0e4f9948003f0c877165f36bde564e171a0352ba74c20ef6ace7a008928751fe"
+    },
+    {
+      "path": "godot-client/NATIVE-COMBAT-HANDOFF.md",
+      "sha256": "598aea8867d86eadd1b5c7c944645a9d0f70337a5320f0672eeb30a4ef412da4"
+    },
+    {
+      "path": "godot-client/NATIVE-COMBAT-LOCOMOTION.md",
+      "sha256": "a8000d0c62dc15579583e99771292eff52447ee7698c4f69f8901bbdb47546cc"
+    },
+    {
+      "path": "godot-client/NATIVE-COMBAT-CLASS-STATE.md",
+      "sha256": "f1e3ee7e76932130609fc73d1260cc828d04029b4111ff4af98f98c776116196"
+    },
+    {
+      "path": "godot-client/NATIVE-COMBAT.md",
+      "sha256": "655cef858408c8f11d6653463df8cddcaf87af315e6f92a427e876cb963db967"
+    },
+    {
+      "path": "godot-client/NATIVE-EQUIPPED-ATTACK-VISUALS.md",
+      "sha256": "8177108310e96a23d7fc6ad3b95bf591e599ed698762f25458d1118bcc85ae30"
+    },
+    {
+      "path": "godot-client/NATIVE-SPECIAL-INITIALIZATION.md",
+      "sha256": "fac19653759d1a026cf051b82a6945816023368f8f555ea749180eef27dd7ee9"
+    },
+    {
+      "path": "godot-client/NATIVE-BLOOD-VISUALS.md",
+      "sha256": "7d7b67ba3e772a50d94ba3b97aa86b2987c9fb1a555c25032fdb6fd46a3caad9"
+    },
+    {
+      "path": "godot-client/NATIVE-SHIELD-IMPACTS.md",
+      "sha256": "b0196c344068f11f01c5eb4d19e937129037ca59f2cd8636841d4abcc07938b1"
+    },
+    {
+      "path": "godot-client/NATIVE-UI-RESOURCE-INVENTORY.md",
+      "sha256": "c9f5d2d7d9d27815447129c018cac4e115ce133f2a3d6eac8234259d568e42f2"
+    },
+    {
+      "path": "godot-client/systems/native_game_desktop.gd",
+      "sha256": "2cbdb232568cf435cdf699abfb5184194ada6cdef8130c6359cf8ddabae91038"
+    },
+    {
+      "path": "electron/network_game_session.mjs",
+      "sha256": "b58c630e6cf2d13b3467a184421eef763a3f2f0eb794e6467559cf7199c64e34"
+    },
+    {
+      "path": "godot-client/systems/visual_runtime.gd",
+      "sha256": "c1ef8cef8214c074c811f1e5471e667318ce5563626f0f1012cfa7cef895b6b5"
+    },
+    {
+      "path": "godot-client/systems/visual_world.gd",
+      "sha256": "65acbf767f6499fd614eb08c496bd528df0c5a8d19aaf1ef8aa8ccce92605ad0"
+    },
+    {
+      "path": "godot-client/systems/native_render/effect_world.gd",
+      "sha256": "22a0227ede6e8897cec1b1d95a53c6a5c34da932871f52e359536a6690b5ae41"
+    },
+    {
+      "path": "godot-client/NATIVE-AUDIO.md",
+      "sha256": "b46bb54c4078b55da4b6a2bfbbe34bd9019a61abddfe8e2393d5c77c93dd2570"
+    },
+    {
+      "path": "godot-client/NATIVE-CREATURE-VOICES.md",
+      "sha256": "4e3022e6a1969129351f725b24e06acaafd7c36c312dcd91136e377f13f1f06b"
+    },
+    {
+      "path": "godot-client/NATIVE-SCRIPT-SOUNDS.md",
+      "sha256": "228b015bbc36d8f1bc014d69639ab6fc63cb50e27cfb3fd9680734a974862269"
+    },
+    {
+      "path": "godot-client/NATIVE-WEATHER.md",
+      "sha256": "df415185bbce483f312370437999e2e34b259cb67a58d18591de4005dc4ea801"
+    },
+    {
+      "path": "godot-client/NATIVE-LIGHTING-CORRECTION.md",
+      "sha256": "a5c681addfbb162b91961e2e669f8fe1d54e95a2c22b31d45835a8c86312980f"
+    },
+    {
+      "path": "godot-client/NATIVE-FLAME-LIGHTING.md",
+      "sha256": "70e48c1d3487ae8d7d872a2edff14baee784ff94fb448ce28743ff67e8589d56"
+    },
+    {
+      "path": "godot-client/NATIVE-LIGHT-LIMIT-CORRECTION.md",
+      "sha256": "ef318baa38468c2d4443e66ccd95a2f63f3fd027faab489070d9f229cfea616e"
+    },
+    {
+      "path": "godot-client/NATIVE-RENDER-LAUNCH-PROFILE.md",
+      "sha256": "efe76ddd93510452cd169d211a7734dd9c08ae9ef6bee7a07b7ca3aaad46263d"
+    },
+    {
+      "path": "godot-client/systems/native_render/live_world_support.gd",
+      "sha256": "5d08b43cb9a74110d37f2409aedd000dc5557f6293f8e91071f06d34ad2689f6"
+    },
+    {
+      "path": "godot-client/NATIVE-RESOURCE-MANAGER.md",
+      "sha256": "35902ad16ca428f6eee063c2b5074301f46e16306aeb683331d7a33e3822507d"
+    },
+    {
+      "path": "godot-client/NATIVE-NWSYNC.md",
+      "sha256": "31f1551ed122ab64e1be2d717f185e9c4b607457081795540c722fd4d46b2ee9"
+    },
+    {
+      "path": "godot-client/NATIVE-RESOURCE-RESIDENCY-GOAL.md",
+      "sha256": "df2924d1be9f3b863bed55dadbd34bf25b025241582bff6c2af545d8d2c5decc"
+    },
+    {
+      "path": "godot-client/NATIVE-FPS-MAX-GOAL.md",
+      "sha256": "11396d1c535006b4cf58f3cbb18cc1f26a9453459ea6d73ca0cde5ac788c263b"
+    },
+    {
+      "path": "godot-client/NATIVE-PRODUCTION-PARITY-GOAL.md",
+      "sha256": "aaa3b95fbbdb05596c503fb0719a350617655a317ba8a57a2c6a9af87f313699"
+    },
+    {
+      "path": "godot-client/NATIVE-140FPS-PERFORMANCE-GOAL.md",
+      "sha256": "185f3c99462114336900c4ce7601aac4074394b9f9226838869d56e4a455f104"
+    },
+    {
+      "path": "src/network_game_messages.js",
+      "sha256": "e96b9b0a3404ebd8c874fc387c3280991f7dd132391129cd212a1e8c0c61695a"
+    },
+    {
+      "path": "README.md",
+      "sha256": "c150c831d54586a535a0d2d0b395e4d8cdac7367d3637451637654f52bf7850f"
+    },
+    {
+      "path": "godot-client/MIGRATION-GOAL.md",
+      "sha256": "6868782b4ad49aaa315711c827de0a2e4137e70785ea33f4eea17df5d9f8ed40"
+    },
+    {
+      "path": "src/nwscript_vm.js",
+      "sha256": "75aa59d5d8839c5fe0d1bec6f7a36db59518c6397de684de5b0ca12cc5be871f"
+    },
+    {
+      "path": "src/combat_runtime.js",
+      "sha256": "5ff90ec66ce4bad927761068c8ba98b7b28667d117202ce09ae02887c6b20632"
+    },
+    {
+      "path": "godot-client/systems/server_browser.gd",
+      "sha256": "328311cadcbb9a0a8e464342f3ce6257bf2dc0cb5997875c6cac247bca1a55ba"
+    },
+    {
+      "path": "godot-client/NATIVE-MULTIPLAYER-ENTRY.md",
+      "sha256": "0e493bbf73305c2f2cab41cc0136ce33aebf52c44c15ab69e6bef918a51ec27d"
+    }
+  ],
+  "acceptanceContract": [
+    "Normal join-native.ps1 route",
+    "Original resource precedence and active base/server rules",
+    "Unchanged original server authority",
+    "Paired replacement/original-client validation per feature",
+    "Actual controls and authoritative outcomes, including independent exports where applicable",
+    "All104 GUI resources/1243 metadata controls plus programmatic surfaces; metadata parsing is not behavioral acceptance",
+    "Cold/warm, rejection/cancel, pending work, disconnect/reconnect and repeated travel",
+    "Complete scene/effects and matched camera/input/settings for frame-time acceptance"
+  ],
+  "scopeNotes": [
+    "42 current parity items and4 deferred later scopes; all46 are children of NWN-13. Parent and existing8 particle issues are not counted as new child findings.",
+    "Existing optional exact clock/DLL experiments remain parked, not prerequisites to ordinary readability or multiplayer.",
+    "Allowed lighting differences do not permit altered gameplay visibility, targeting or information. User-requested whole-character highlight supersedes older exact per-Part fans.",
+    "Do not interpret this inventory as an exhaustive fresh binary execution, every campaign/server test or measured percentage complete.",
+    "No application fixes, native rebuilds, public-server automation or graphical tests performed. Detailed evidence was kept local after automatic approval rejected its external export."
+  ],
+  "finalVerification": {
+    "sourceEvidenceFiles": 139,
+    "evidenceHashesUnchanged": true,
+    "changedEvidenceFiles": [],
+    "createdChildren": 46,
+    "allChildrenMapped": true,
+    "uniqueIssueIds": 46
+  }
+}

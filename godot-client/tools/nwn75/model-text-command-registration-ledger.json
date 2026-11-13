@@ -1,0 +1,187 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Startup registration and exact name lookup of text-MDL newmodel/beginmodelgeom ConsoleFunc holders through FuncInterp computed dispatch.",
+  "edges": [
+    {
+      "from": "0x140c11a00",
+      "to": "0x140ca3400",
+      "callsite": "0x140c11a77",
+      "callsite_evidence_id": "ev_3e450f3f5d12b671f7292d17a6c5a521a52473344c1e99be868842c4cd4eb682",
+      "kind": "direct_static",
+      "condition": "CRT startup lock acquired and constructor pointer range [0x140d7d790,0x140d7fea8) selected",
+      "status": "startup_registration",
+      "evidence_id": "ev_d0673e5224e81134a275a826cbb5fafec89e0307a7fc77568cfb859646d91cc8"
+    },
+    {
+      "from": "0x140d7da90",
+      "to": "0x1400152d0",
+      "kind": "resolved_original_function_pointer_assignment",
+      "condition": "nonnull pointer entry inside startup _initterm range; original bytes d052014001000000",
+      "status": "startup_registration",
+      "evidence_id": "ev_b266f15a2cb8ca5b482bce10b3a2fa8a2be32042ab8a284715b984ce790d8b2b"
+    },
+    {
+      "from": "0x140d7daa0",
+      "to": "0x140015150",
+      "kind": "resolved_original_function_pointer_assignment",
+      "condition": "nonnull pointer entry inside startup _initterm range; original bytes 5051014001000000",
+      "status": "startup_registration",
+      "evidence_id": "ev_f0ca02dfa405694c8a928cd76647cf0364452cea9c87026b1c739af370d61a72"
+    },
+    {
+      "from": "0x1400152d0",
+      "to": "0x1400a1920",
+      "kind": "resolved_original_function_pointer_assignment",
+      "condition": "newmodel name at 0x140d890f0 and static ConFnewmodel 0x141301c90; R8 target loaded at 0x1400152d4",
+      "status": "target_identified",
+      "evidence_id": "ev_7e97f77ca3a731a71d958c1b98654501c506d828c4a204ab30b0c3ab2207533c"
+    },
+    {
+      "from": "0x140015150",
+      "to": "0x1400a1160",
+      "kind": "resolved_original_function_pointer_assignment",
+      "condition": "beginmodelgeom name at 0x140d89110 and static ConFbeginmodelgeom 0x141301e10; R8 target loaded at 0x140015154",
+      "status": "target_identified",
+      "evidence_id": "ev_9beea30b13a63b2e083927d34339257af4f6bbae0b3f530f52630a5082451501"
+    },
+    {
+      "from": "0x1400152d0",
+      "to": "0x14005d040",
+      "callsite": "0x1400152e9",
+      "callsite_evidence_id": "ev_fc19d6861e22871b2f1eb87d9be7719594be8bc8922ead8a54544c9461977e2e",
+      "kind": "direct_static",
+      "condition": "startup registration of newmodel",
+      "status": "target_identified",
+      "evidence_id": "ev_6083d17530d55ce43a3274aed8a5915ea2e01977de60a4dfc4f66d5138a50191"
+    },
+    {
+      "from": "0x140015150",
+      "to": "0x14005d040",
+      "callsite": "0x140015169",
+      "callsite_evidence_id": "ev_bc099ec239f254aafe2cbb45c4c92b0aaf06534602e14f6d7c55281f8b7e593a",
+      "kind": "direct_static",
+      "condition": "startup registration of beginmodelgeom",
+      "status": "target_identified",
+      "evidence_id": "ev_9652ad9aba879eed63a11a3183a58a4d5e7d38df9a4544d4fa18969f8745ce40"
+    },
+    {
+      "from": "0x14005d040",
+      "to": "0x140c10324",
+      "callsite": "0x14005d074",
+      "callsite_evidence_id": "ev_2681e9686849a07e7fc8d9c63d537ea1986de99a6917598a06055a90a3924173",
+      "kind": "direct_static",
+      "condition": "allocate 16-byte command holder",
+      "status": "cpu_allocation_leaf",
+      "evidence_id": "ev_51b62a3c143ba33f1cf6847e60c5254d7f364bcb04bcde467100d758716e35fd"
+    },
+    {
+      "from": "0x14005d040",
+      "to": "0x14005e2e0",
+      "callsite": "0x14005d098",
+      "callsite_evidence_id": "ev_c4251ed93cc6316b9fbd80aecee093d208fa479855f20b9466b575eb54d11205",
+      "kind": "direct_static",
+      "condition": "after name copy, holder function pointer and vtable assignment; insert ConsoleFunc",
+      "status": "registry_publication_leaf",
+      "evidence_id": "ev_51b62a3c143ba33f1cf6847e60c5254d7f364bcb04bcde467100d758716e35fd"
+    },
+    {
+      "from": "0x14005d040",
+      "to": "0x140d83d48",
+      "kind": "resolved_original_function_pointer_assignment",
+      "condition": "holder vtable assigned at 0x14005d08e; original vtable +8 is 0x14005e670",
+      "status": "target_identified",
+      "evidence_id": "ev_9dedc5e42a4af24db22cb603be57d94199a7e2a9b0eeb04335dbc9dae5aaedff"
+    },
+    {
+      "from": "0x14005d040",
+      "to": "0x1400a1920",
+      "kind": "resolved_original_function_pointer_assignment",
+      "condition": "ConFnewmodel producer supplies callback in R8; constructor writes RDI to holder +8 at 0x14005d08a",
+      "status": "target_identified",
+      "evidence_id": "ev_43a54232bc192ad8ecb1bda61d8219fa09d461abed61c7b84e180eb053e54761"
+    },
+    {
+      "from": "0x14005d040",
+      "to": "0x1400a1160",
+      "kind": "resolved_original_function_pointer_assignment",
+      "condition": "ConFbeginmodelgeom producer supplies callback in R8; constructor writes RDI to holder +8 at 0x14005d08a",
+      "status": "target_identified",
+      "evidence_id": "ev_43a54232bc192ad8ecb1bda61d8219fa09d461abed61c7b84e180eb053e54761"
+    },
+    {
+      "from": "0x1400a16e0",
+      "to": "0x1400a1920",
+      "kind": "selector_gate",
+      "condition": "case-insensitive prefix whitelist accepts newmodel command; exact registry lookup still required",
+      "status": "cpu_gate_leaf",
+      "evidence_id": "ev_4bda6811daa4c8fa4b190ca4ea50a6d954b5ab20116f04d726a2be89f262df8f"
+    },
+    {
+      "from": "0x1400a16e0",
+      "to": "0x1400a1160",
+      "kind": "selector_gate",
+      "condition": "case-insensitive prefix whitelist accepts beginmodelgeom command; exact registry lookup still required",
+      "status": "cpu_gate_leaf",
+      "evidence_id": "ev_4bda6811daa4c8fa4b190ca4ea50a6d954b5ab20116f04d726a2be89f262df8f"
+    },
+    {
+      "from": "0x14005ebf0",
+      "to": "0x1400a16e0",
+      "callsite": "0x14005f4c3",
+      "callsite_evidence_id": "ev_089f7236d139af72962bbbeaef4c7239e0d01b97b6ec057b11b0baa6905e94af",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "nonempty command token and whitelist installed by FindModel; rejection prevents lookup",
+      "status": "cpu_gate_leaf",
+      "evidence_id": "ev_e100938d387d59a65dba062b29362d993dc22c1f2c4d828a99ad7d46bd2d0431"
+    },
+    {
+      "from": "0x14005ebf0",
+      "to": "0x14005eb10",
+      "callsite": "0x14005f589",
+      "callsite_evidence_id": "ev_c3aeb366ebf9ef473348a1f53c9836d72b75dea0d12d817acbfbe26e03369e51",
+      "kind": "direct_static",
+      "condition": "whitelist null, empty token, or whitelist return nonzero",
+      "status": "target_identified",
+      "evidence_id": "ev_e100938d387d59a65dba062b29362d993dc22c1f2c4d828a99ad7d46bd2d0431"
+    },
+    {
+      "from": "0x14005eb10",
+      "to": "0x1412e1030",
+      "kind": "registry_lookup",
+      "condition": "test remembered index then exact byte comparison; on miss linear scan of ConsoleFuncs pointer array, returning entry +0x50",
+      "status": "cpu_gate_leaf",
+      "evidence_id": "ev_dcfb84ee04190268d5ae4e821e424f9e9ac6e588d2954935da42b935102ae55b"
+    },
+    {
+      "from": "0x14005ebf0",
+      "to": "0x14005e670",
+      "callsite": "0x14005f68c",
+      "callsite_evidence_id": "ev_b5f660522613c5f4509258676752902363a698d1714ca6ffdbb9085086aa16d3",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "FindConCallBack returns ConFnewmodel or ConFbeginmodelgeom holder; vtable +8 resolved by 0x140d83d48 bytes",
+      "status": "target_identified",
+      "evidence_id": "ev_e100938d387d59a65dba062b29362d993dc22c1f2c4d828a99ad7d46bd2d0431"
+    },
+    {
+      "from": "0x14005e670",
+      "to": "0x1400a1920",
+      "callsite": "0x14005e67a",
+      "callsite_evidence_id": "ev_b303a75dce3d628ce953e5e4f734b5eb877cab2fed8b62a637debd79ae804eac",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "holder came from exact name newmodel registration; callback stored at holder +8",
+      "status": "typed_model_tree",
+      "evidence_id": "ev_0a52c6533ee10c3a97fd1e9120c6655263665110bec20ae1d114373d66d640fe"
+    },
+    {
+      "from": "0x14005e670",
+      "to": "0x1400a1160",
+      "callsite": "0x14005e67a",
+      "callsite_evidence_id": "ev_b303a75dce3d628ce953e5e4f734b5eb877cab2fed8b62a637debd79ae804eac",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "holder came from exact name beginmodelgeom registration; callback stored at holder +8",
+      "status": "typed_model_tree",
+      "evidence_id": "ev_0a52c6533ee10c3a97fd1e9120c6655263665110bec20ae1d114373d66d640fe"
+    }
+  ]
+}

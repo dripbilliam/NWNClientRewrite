@@ -18,9 +18,10 @@ class TracingTalk extends Talk:
 	func fetch_native_reference_snapshot(ref: Variant,gender: Variant,selection: Dictionary) -> Dictionary:
 		if int(ref) in [10300,10301,10302,10299,10303,66756]:return {"found":true,"text":"","duration":0.0,"gender":int(gender),"override":false,"lookupComplete":true}
 		return super.fetch_native_reference_snapshot(ref,gender,selection)
-	func parse_native(input: String,call_state: Dictionary={}) -> Dictionary:
+	func parse_native_bytes(raw_bytes: PackedByteArray,call_state: Dictionary={}) -> Dictionary:
+		var input: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(call_state.get("language",base.language)),true).get("text","")
 		parses.append({"input":input,"state":call_state.duplicate(true)})
-		return super.parse_native(input,call_state)
+		return super.parse_native_bytes(raw_bytes,call_state)
 var checks:=0
 var failures: Array=[]
 func check(value: bool,label: String) -> void:
@@ -40,7 +41,7 @@ static func tlk(values: Array) -> PackedByteArray:
 		relative+=bytes.size()
 	return data
 static func actor(id: int,native_lifetime: int,known: int,first: String) -> Dictionary:
-	return {"id":id,"areaId":91,"objectType":5,"nativeLifetime":native_lifetime,"clientKnownLifetime":known,"replicated":{"name":{"firstName":{"text":first},"lastName":{"text":""}},"stats":{"race":0}}}
+	return {"id":id,"areaId":91,"objectType":5,"nativeLifetime":native_lifetime,"clientKnownLifetime":known,"appearance":{"name":{"firstName":{"text":first},"lastName":{"text":""}}},"replicated":{"stats":{"race":0}}}
 static func message(channel: int,value: Variant) -> Dictionary:
 	return {"kind":"server-speech","channel":channel,"objectId":42,"contextId":99,"text":value,"nativeTextEvent":{"version":1,"serial":1,"connection":3,"generation":7,"areaId":91,"source":{"id":42,"areaId":91,"objectType":5,"nativeLifetime":2,"knownLifetime":3},"context":{"id":99,"areaId":91,"objectType":5,"nativeLifetime":8,"knownLifetime":13}}}
 func _initialize() -> void:run.call_deferred()

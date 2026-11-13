@@ -1,0 +1,16 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Client area setup fxpa_dot02 constant to Scene highlight texture setter and fixed highlight controls",
+  "document": "scene-highlight-texture-caller.md",
+  "edges": [
+    {"from":"0x1407dba70","to":"0x1400d3420","callsite":"0x1407de7d4","kind":"scene_virtual_slot","condition":"area Scene at +0x248, original Scene vslot +0x128, literal fxpa_dot02","status":"highlight_texture_area_source","evidence_id":"ev_f95eaa0a0bafbeb7b15f37558791794c8c2a1933dffefee3b9c58131537cf941"},
+    {"from":"0x140e45e90","to":"0x1400d3420","kind":"constant_string_argument","condition":"defined ASCII fxpa_dot02 passed by area setup at 0x1407de7d4","status":"highlight_texture_name","evidence_id":"ev_f95eaa0a0bafbeb7b15f37558791794c8c2a1933dffefee3b9c58131537cf941"},
+    {"from":"0x1407dba70","to":"0x1400c5940","callsite":"0x1407de7e2","kind":"direct_call","condition":"area setup initializes amplitude to 0.5","status":"highlight_amplitude_initial","evidence_id":"ev_f95eaa0a0bafbeb7b15f37558791794c8c2a1933dffefee3b9c58131537cf941"},
+    {"from":"0x1407dba70","to":"0x1400c5950","callsite":"0x1407de7eb","kind":"direct_call","condition":"area setup initializes frequency to 1.0","status":"highlight_frequency_initial","evidence_id":"ev_f95eaa0a0bafbeb7b15f37558791794c8c2a1933dffefee3b9c58131537cf941"},
+    {"from":"0x1407dba70","to":"0x1400c5970","callsite":"0x1407de7f8","kind":"direct_call","condition":"area setup initializes size to 2.5","status":"highlight_size_initial","evidence_id":"ev_f95eaa0a0bafbeb7b15f37558791794c8c2a1933dffefee3b9c58131537cf941"},
+    {"from":"0x1407dba70","to":"0x1400c5960","callsite":"0x1407de805","kind":"direct_call","condition":"area setup initializes intensity to 0.3","status":"highlight_intensity_initial","evidence_id":"ev_f95eaa0a0bafbeb7b15f37558791794c8c2a1933dffefee3b9c58131537cf941"},
+    {"from":"0x1400d3420","to":"Scene+0xa0","kind":"safe_pointer_publication","condition":"old observer deregistration, null-argument AurTextureRelease call, new reference and observer assignment","status":"highlight_scene_texture_pointer","evidence_id":"ev_4f6d163576f0808117f29597fe6dd79365d7d7d67ae8158c98737c71ded9285c"},
+    {"from":"Scene+0xa0","to":"0x1400c8260","kind":"scene_data_consumer","condition":"positive highlight count Scene+0x88 and nonnull texture pointer","status":"highlight_texture_draw_gate","evidence_id":"ev_4b3f5f7c91ac25cd3d4a04937f20eb41a1bacd8412d489062083ef814f4fba49"}
+  ]
+}

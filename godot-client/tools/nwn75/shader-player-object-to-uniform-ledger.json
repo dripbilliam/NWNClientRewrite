@@ -1,0 +1,25 @@
+{
+  "schema": "nwn75-original-shader-player-object-to-uniform-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Constructor-backed type-5 creature lookup to change-gated player shader uniform GL leaves; static normal render caller only.",
+  "document": "shader-player-object-to-uniform.md",
+  "edges": [
+    {"from":"0x1407fb140","to":"0x140761760","callsite":"0x1407fb164","kind":"direct_static","condition":"CNWCCreature constructor passes type 5","status":"type_source","evidence_id":"ev_67243d17b88d3d1585d8aa194b9b24d62b223970846aa3a9371d62a29207cc44"},
+    {"from":"0x140761760","to":"0x1402956e0","callsite":"0x140761781","kind":"direct_static","condition":"CNWCObject base forwards type byte; CGameObject writes +0xc","status":"type_source","evidence_id":"ev_b5d4426a10f3057f5118de9bbbe0835aca7a39083af89db4e1e94a481718df36"},
+    {"from":"0x1407fb140","to":"0x140e474e8","site":"0x1407fb16a","kind":"vtable_store","condition":"CNWCCreature construction","status":"object_identity","evidence_id":"ev_67243d17b88d3d1585d8aa194b9b24d62b223970846aa3a9371d62a29207cc44"},
+    {"from":"0x140e47540","to":"0x1407fd690","kind":"vtable_slot_0x58","condition":"constructor-backed CNWCCreature table; return-this leaf","status":"cpu_leaf","evidence_id":"ev_661586fbbeb335cdc70a098996521b115c0df3c95654982c586a26a70594109d"},
+    {"from":"0x1400cc730","to":"0x1400be8d0","callsite":"0x1400ccdb6","kind":"direct_static","condition":"Scene render frame preparation","status":"frame_producer","evidence_id":"ev_17ec38a8462fe63e54833099ba8a0936b20e0b67c55d26a0bda6bf049d07a6a8"},
+    {"from":"0x1400be8d0","to":"0x1400bbe80","callsite":"0x1400be8d0","kind":"tail_jump","condition":"RenderInterface wrapper","status":"frame_producer","evidence_id":"ev_a5f70eaa83b417e5d7b3a48a61ff20839a92c351c6a2c30371219de2bf6ef810"},
+    {"from":"0x1400bbe80","to":"0x1406ac1a0","callsite":"0x1400bbfe1","kind":"conditional_direct","condition":"app manager, world timer, client and area/runtime pointer present","status":"player_lookup","evidence_id":"ev_7b869aaa5250832159935112c0849631946ee4d43dd082bac02054526a88c403"},
+    {"from":"0x1406ac1a0","to":"0x1406d8ad0","callsite":"0x1406ac1a4","kind":"tail_jump","condition":"forward client pointer","status":"player_lookup","evidence_id":"ev_5a3fcc5b4ec6f94823abfc260c794124d1b82cc26b82b278606d1bb7c9368575"},
+    {"from":"0x1406d8ad0","to":"0x1406ab9e0","callsite":"0x1406d8add","kind":"tail_jump","condition":"client +0x48 supplies selected object ID","status":"player_lookup","evidence_id":"ev_3026f013c88f34199985d57a6bdbbda6afc3058b1be2fc219e2d4576e3071879"},
+    {"from":"0x1406ab9e0","to":"0x1406d8100","callsite":"0x1406ab9e4","kind":"tail_jump","condition":"forward client +8 object","status":"player_lookup","evidence_id":"ev_8116924b933956c7686b3d6a9692b9e5bb36064c51daab0d72e2fc95ac3bdb36"},
+    {"from":"0x1406d8100","to":"0x140296470","callsite":"0x1406d8116","kind":"direct_static","condition":"look up ID in client +0x28 CGameObjectArray","status":"bounded_hash_chain_leaf","evidence_id":"ev_a68f3744c60256fd950353443ca181550e3dc6318daa35615155e5d6c46ffca6"},
+    {"from":"0x1406d8100","to":"0x1407fd690","callsite":"0x1406d813c","kind":"resolved_virtual_candidate","condition":"lookup status 0, nonnull object, type byte +0xc == 5, CNWCCreature vtable +0x58","status":"cpu_leaf","evidence_id":"ev_a68f3744c60256fd950353443ca181550e3dc6318daa35615155e5d6c46ffca6"},
+    {"from":"CNWCCreature +0x38..+0x4c and client +0x630","to":"0x1413d2724","kind":"conditional_data_publication","condition":"nonnull returned creature; six object values or client cutscene integer differs from prior globals","status":"player_generation","evidence_id":"ev_7b869aaa5250832159935112c0849631946ee4d43dd082bac02054526a88c403"},
+    {"from":"0x1400b7a40","to":"0x1400b8380","callsites":["0x1400b7a85","0x1400b7aff"],"kind":"tail_jump","condition":"selected program; SetUniforms runs even when already bound","status":"conditional_uniform_consumer","evidence_id":"ev_c2fa9ed1743a63b47c3b92d6a2cd636bdebff3734eddc2913bdeac583cee5a97"},
+    {"from":"0x1400b8380","to":"glUniform3f","callsites":["0x1400ba153","0x1400ba17b"],"kind":"conditional_external_pointer","condition":"program +0x34 generation differs from 0x1413d2724 and each +0xb64/+0xb68 location is nonnegative","status":"external_gl_leaf","evidence_id":"ev_1a4116233c92836c24653152acff91f84c48e7899cc3e2c69a0d2729deec3431"},
+    {"from":"0x1400b8380","to":"glUniform1i","callsite":"0x1400ba191","kind":"conditional_external_pointer","condition":"same generation gate and +0xb6c location nonnegative","status":"external_gl_leaf","evidence_id":"ev_1a4116233c92836c24653152acff91f84c48e7899cc3e2c69a0d2729deec3431"}
+  ],
+  "open_frontiers": ["Writers of client +0x48 selected object ID and creature +0x38..+0x4c gameplay state", "Runtime type-5 derived vtable set, active object and shader population", "OpenGL driver implementation and OS thread ID"]
+}

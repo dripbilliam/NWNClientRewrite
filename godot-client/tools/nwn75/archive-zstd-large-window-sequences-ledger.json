@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Conditional Zstd compressed-block large-window/batched FSE sequence execution to bounded CPU output",
+  "edges": [
+    {"from":"0x1409e9120","to":"0x1409e9c60","callsite":"0x1409e921f","kind":"direct_static","condition":"literal and sequence parses succeeded, positive sequence count, executor flag zero or context window >0x1000000; installed frame passes flag one","status":"target_identified","evidence_id":"ev_76b15184a59d6a7f43cd63b3c0a57e6815b906d2c9da59f4c0db1f39a81b7b0b"},
+    {"from":"0x1409e9c60","to":"0x1409e7bf0","callsite":"0x1409e9d62","kind":"direct_static","condition":"positive sequence count; initialize reverse bitstream","status":"target_identified","evidence_id":"ev_7ce70245b54365b6f26afaa923a87799fb8656926f7e592e47f6b21dd9a761b5"},
+    {"from":"0x1409e9c60","to":"0x1409e7d40","callsites":["0x1409ea0fe","0x1409ea468"],"kind":"direct_static","condition":"reverse bitstream needs reload while decoding staged FSE records","status":"target_identified","evidence_id":"ev_7ce70245b54365b6f26afaa923a87799fb8656926f7e592e47f6b21dd9a761b5"},
+    {"from":"0x1409e9c60","to":"CPU:ZSTD_LARGE_WINDOW_MATCH_OUTPUT","callsites":["0x1409ea6b4","0x1409ea6d5","0x1409ea9e5","0x1409eaa05"],"kind":"cpu_write_leaf","condition":"staged sequence interior-output arm; bounded literal/history eight-byte stores","status":"cpu_output_reached","evidence_id":"ev_7ce70245b54365b6f26afaa923a87799fb8656926f7e592e47f6b21dd9a761b5"},
+    {"from":"0x1409e9c60","to":"0x140c417f0","callsites":["0x1409ea729","0x1409ea745","0x1409eaa56","0x1409eaa74"],"kind":"cpu_copy_leaf","condition":"external-history or split-history sequence arm; input history bounds and output capacity accepted","status":"cpu_copy_leaf","evidence_id":"ev_7ce70245b54365b6f26afaa923a87799fb8656926f7e592e47f6b21dd9a761b5"},
+    {"from":"0x1409e9c60","to":"0x1409ebf30","callsites":["0x1409ea69b","0x1409ea9d1"],"kind":"direct_static","condition":"staged sequence approaches output end; bounded Last7 helper","status":"target_identified","evidence_id":"ev_7ce70245b54365b6f26afaa923a87799fb8656926f7e592e47f6b21dd9a761b5"},
+    {"from":"0x1409ebf30","to":"CPU:ZSTD_LAST7_OUTPUT","callsites":["0x1409ebfb7","0x1409ebff9","0x1409ec088"],"kind":"cpu_write_leaf","condition":"near-end output and literal/history bounds accepted; direct word/byte stores","status":"cpu_output_reached","evidence_id":"ev_491d9f4326f1ad8a4e5b44fc627b4a643d52c4b77bd116e6b5d2aeca26ba19cd"},
+    {"from":"0x1409ebf30","to":"0x140c417f0","callsites":["0x1409ec047","0x1409ec057"],"kind":"cpu_copy_leaf","condition":"near-end external-history match source in permitted previous range","status":"cpu_copy_leaf","evidence_id":"ev_491d9f4326f1ad8a4e5b44fc627b4a643d52c4b77bd116e6b5d2aeca26ba19cd"},
+    {"from":"0x1409e9c60","to":"CPU:ZSTD_REPEAT_OFFSET_STATE","callsite":"0x1409eac1a","kind":"cpu_write_leaf","condition":"successful sequence loop writes updated repeat offsets back to context +0x703c/+0x7040/+0x7044","status":"cpu_output_reached","evidence_id":"ev_7ce70245b54365b6f26afaa923a87799fb8656926f7e592e47f6b21dd9a761b5"},
+    {"from":"0x1409e9c60","to":"0x140c417f0","callsite":"0x1409eac42","kind":"cpu_copy_leaf","condition":"all sequences consumed; remaining literal bytes fit output; copy to caller output","status":"cpu_copy_leaf","evidence_id":"ev_7ce70245b54365b6f26afaa923a87799fb8656926f7e592e47f6b21dd9a761b5"}
+  ]
+}

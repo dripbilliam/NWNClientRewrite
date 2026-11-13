@@ -1,8 +1,8 @@
 // Exact accepted engine/native bundle selection; no scene/assets/credentials or subprocesses.
 const fs=require('node:fs/promises'),{createReadStream}=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const relative=".tools/native-core/Godot_native_core_d_win64.exe";
-const sha256="10b24711d277f745ad72cc504b6a3e573c12bb1ce1be7fd8545faabab82b9f13",bytes=90973184;
-const proofRelative=".tools/native-core/accepted-core-d.json",proofSha256="5b76f260b5c65f18fcaa332ce806f2843325e08ec218f751652dd545689c579e";
+const relative=".tools/native-core/Godot_native_core_e_win64.exe";
+const sha256="753b3e188068efaf865bda3abd6322ebe44e3a98ef2f5d199c8af1a78624c98b",bytes=90976256;
+const proofRelative=".tools/native-core/accepted-core-e.json",proofSha256="29b1c6adcdecb11eebc859730c770e879a108279dfaaf60792e4c11c00add78a";
 const nativeSha256="485741af15f0581a3c60c0f9a8ae738888eba08716c7a5c2c2d1bd550828963d";
 function resolveRenderThread(requested='default'){
  if(!['default','safe','separate'].includes(requested))throw Error('Invalid native render thread selection');
@@ -11,7 +11,7 @@ function resolveRenderThread(requested='default'){
 function acceptedRenderCore(lightInput="builtin",enabled=true){
  const typed=enabled&&lightInput==="builtin",typedFlags=new Set(["--light-input-read=typed","--light-input-proof=segments","--light-dictionary-read=single","--light-input-lifetime=guarded","--light-member-read=indices"]);
  const flags=enabled?["--particle-scene-boundary=native","--particle-scene-direct=pod","--particle-setup-boundary=bound","--particle-hot-parameters=bound","--visibility-chain-cache=epochs","--light-input-read=typed","--light-input-proof=segments","--light-pair-layer-repair=exact","--light-pair-filter=consumers","--pair-record-reuse=exact","--rig-skin-publisher=native","--skeleton-force-pass=once","--particle-resident-text=borrow","--particle-empty-clips=skip","--light-dictionary-read=single","--light-input-lifetime=guarded"].filter(flag=>typed||!typedFlags.has(flag)):[];
- return {version:3,enabled,typed,flags,engineSha256:enabled?sha256:null,nativeKernelSha256:nativeSha256,policy:enabled?"accepted-normal-combined-d":"conservative-or-isolated",diagnosticTimers:false,scope:"Exact selected component bundle. Diagnostic timers OFF; explicit conservative and script-light choices retain their existing branches."};
+ return {version:3,enabled,typed,flags,engineSha256:enabled?sha256:null,nativeKernelSha256:nativeSha256,policy:enabled?"accepted-normal-combined-e":"conservative-or-isolated",diagnosticTimers:false,scope:"Exact selected component bundle. Diagnostic timers OFF; explicit conservative and script-light choices retain their existing branches."};
 }
 async function selectPerformanceRuntime(project,requested='standard'){
  if(!['standard','verified-native'].includes(requested))throw Error('Invalid native performance runtime');
@@ -40,7 +40,7 @@ async function selectPerformanceRuntime(project,requested='standard'){
    {class:'NwnFrameProbe',parent:'RefCounted',methods:[{name:'feature_totals',arguments:0,static:true,returns:'Dictionary'}]},
    {class:'NwnFramePacing',parent:'RefCounted',methods:[{name:'snapshot',arguments:1,static:true,returns:'Dictionary'}]}
   ],
-  selectionEvidence:{sourceClosure:artifact.engineBuildProof,revision:'verified-native-normal-bundle-d',verification:'Exact engine/native SHA256, engine byte count and accepted component proof',executableBytes:bytes,sourceCommit:'ed1daf0bf001b61586d9930840f2f1394092c079',engineVersion:{major:4,minor:7,patch:2,status:'stable',build:'custom_build',hash:'unknown'},pathOverridesEnabled:true,sourcePolicy:'Caller current project supplied with --path and --script; normal-preset validation remains distinct from installed promotion',particleExtensionPolicy:'Exact accepted combined-b DLL plus corresponding native sources; conservative flag-absent branches retained',referenceEngineDescriptor:{relative:proofRelative,sha256:proofSha256}}
+  selectionEvidence:{sourceClosure:artifact.engineBuildProof,revision:'verified-native-normal-bundle-e',verification:'Exact engine/native SHA256, engine byte count and accepted component proof',executableBytes:bytes,sourceCommit:'ed1daf0bf001b61586d9930840f2f1394092c079',engineVersion:{major:4,minor:7,patch:2,status:'stable',build:'custom_build',hash:'unknown'},pathOverridesEnabled:true,sourcePolicy:'Caller current project supplied with --path and --script; normal-preset validation remains distinct from installed promotion',particleExtensionPolicy:'Exact accepted combined-b DLL plus corresponding native sources; conservative flag-absent branches retained',referenceEngineDescriptor:{relative:proofRelative,sha256:proofSha256}}
  };
 }
 module.exports={selectPerformanceRuntime,resolveRenderThread,acceptedRenderCore};

@@ -1,0 +1,209 @@
+diff --git a/.cache/nwn61/core-entry-split-a/candidate-input/systems/native_main_menu.gd b/systems/native_main_menu.gd
+index 4de9e60..1c4a983 100644
+--- a/.cache/nwn61/core-entry-split-a/candidate-input/systems/native_main_menu.gd
++++ b/systems/native_main_menu.gd
+@@ -131,7 +131,10 @@ func native_configuration_current(state: Dictionary) -> bool:
+ 	return not state.is_empty() and is_same(native_configuration,state) and int(state.serial)==native_configuration_serial and not is_queued_for_deletion()
+ func native_configuration_phase(state: Dictionary) -> String:
+ 	const PHASES=["pregame_dismiss","retire_modal","retire_keys","retire_video","retire_frame","clear_scope","pregame_style","fallback","frame_create","frame_bind","frame_start","client_style_begin","client_style_publish","video","key_binding","keys","layout","complete"]
+-	return PHASES[clampi(int(state.get("phase",0)),0,PHASES.size()-1)]
++	var phase:=clampi(int(state.get("phase",0)),0,PHASES.size()-1)
++	if phase==13 and state.has("video_entry") and is_instance_valid(video_owner):return "video:"+video_owner.entry_configuration_phase(state.video_entry)
++	if phase==15 and state.has("keys_entry") and is_instance_valid(key_owner):return "keys:"+key_owner.entry_configuration_phase(state.keys_entry)
++	return PHASES[phase]
+ func entry_style_publication_receipt() -> Dictionary:
+ 	return client_style.entry_publication_receipt() if is_instance_valid(client_style) and client_style.has_method("entry_publication_receipt") else {}
+ func native_configuration_retire_owner(state: Dictionary,property: String) -> bool:
+@@ -192,27 +195,39 @@ func native_configuration_step(state: Dictionary) -> Dictionary:
+ 			if not style_result.get("accepted",false):
+ 				cancel_native_configuration(state);return {"done":true,"accepted":false}
+ 		13:
+-			if is_instance_valid(window_settings):
++			if not state.has("video_entry") and is_instance_valid(window_settings):
+ 				video_owner=preload("res://systems/native_video_options.gd").new();get_child(0).add_child(video_owner)
+ 				if not native_configuration_current(state):return {"done":true,"accepted":false}
+-				video_owner.configure(state.frame,state.text,state.catalog,str(state.cache),window_settings,layout_path)
++				state.video_entry=video_owner.begin_entry_configuration(state.frame,state.text,state.catalog,str(state.cache),window_settings,layout_path)
++			if state.has("video_entry"):
++				if not is_instance_valid(video_owner):cancel_native_configuration(state);return {"done":true,"accepted":false}
++				var video_result: Dictionary=video_owner.entry_configuration_step(state.video_entry)
+ 				if not native_configuration_current(state):return {"done":true,"accepted":false}
++				if not video_result.get("done",false):return {"done":false,"blocked":false}
++				if not video_result.get("accepted",false):cancel_native_configuration(state);return {"done":true,"accepted":false}
+ 				video_owner.set_modal_order(modal_order,modal_surfaces,self)
+ 				if not native_configuration_current(state):return {"done":true,"accepted":false}
+ 				video_owner.prepared.connect(update_native);video_owner.finished.connect(child_closed)
++				video_owner.finish_entry_configuration()
+ 		14:
+ 			if is_instance_valid(key_bindings):
+ 				observed_bindings=key_bindings
+ 				if not observed_bindings.changed.is_connected(update_native):observed_bindings.changed.connect(update_native)
+ 		15:
+-			if is_instance_valid(key_bindings):
++			if not state.has("keys_entry") and is_instance_valid(key_bindings):
+ 				key_owner=preload("res://systems/native_key_settings.gd").new();get_child(0).add_child(key_owner)
+ 				if not native_configuration_current(state):return {"done":true,"accepted":false}
+-				key_owner.configure(state.frame,state.text,state.catalog,str(state.cache),key_bindings,layout_path)
++				state.keys_entry=key_owner.begin_entry_configuration(state.frame,state.text,state.catalog,str(state.cache),key_bindings,layout_path)
++			if state.has("keys_entry"):
++				if not is_instance_valid(key_owner):cancel_native_configuration(state);return {"done":true,"accepted":false}
++				var keys_result: Dictionary=key_owner.entry_configuration_step(state.keys_entry)
+ 				if not native_configuration_current(state):return {"done":true,"accepted":false}
++				if not keys_result.get("done",false):return {"done":false,"blocked":false}
++				if not keys_result.get("accepted",false):cancel_native_configuration(state);return {"done":true,"accepted":false}
+ 				key_owner.set_modal_order(modal_order,modal_surfaces,self)
+ 				if not native_configuration_current(state):return {"done":true,"accepted":false}
+ 				key_owner.prepared.connect(update_native);key_owner.finished.connect(child_closed)
++				key_owner.finish_entry_configuration()
+ 		16:
+ 			var saved:=ConfigFile.new()
+ 			if not layout_path.is_empty() and saved.load(layout_path)==OK:
+diff --git a/.cache/nwn61/tail-entry-d/candidate-input/systems/native_video_options.gd b/systems/native_video_options.gd
+index 5e21f9d..fa0e4da 100644
+--- a/.cache/nwn61/tail-entry-d/candidate-input/systems/native_video_options.gd
++++ b/systems/native_video_options.gd
+@@ -34,6 +34,7 @@ var retained_position:=Vector2.INF
+ var dragging:=false
+ var drag_offset:=Vector2.ZERO
+ var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
++var _entry_configuration: Dictionary={}
+ func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
+ 	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
+ 	if not modal_lease.admission_changed.is_connected(modal_admission_changed):modal_lease.admission_changed.connect(modal_admission_changed)
+@@ -52,6 +53,45 @@ func configure(painter,text,catalog,cache_path: String,service,placement_path: S
+ 	for name in ["scrollbar_simple","pb_scrl_up","pb_scrl_down"]: request_model(name)
+ 	settings.changed.connect(settings_changed)
+ 	get_viewport().size_changed.connect(place)
++func begin_entry_configuration(painter,text,catalog,cache_path: String,service,placement_path: String="user://native-menu-layout.cfg") -> Dictionary:
++	if closed or not _entry_configuration.is_empty():return {}
++	_entry_configuration={"phase":0,"painter":painter,"text":text,"catalog":catalog,"cache_path":cache_path,"service":service,"placement_path":placement_path}
++	return _entry_configuration
++func entry_configuration_phase(state: Dictionary) -> String:
++	const PHASES=["initialize","asset_service","layout_request","scrollbar_request","scroll_up_request","scroll_down_request","signals","complete"]
++	return PHASES[clampi(int(state.get("phase",0)),0,PHASES.size()-1)]
++func entry_configuration_step(state: Dictionary) -> Dictionary:
++	if state.is_empty() or not is_same(_entry_configuration,state) or closed or is_queued_for_deletion():return {"done":true,"accepted":false}
++	match int(state.phase):
++		0:
++			frame=state.painter; text_owner=state.text; settings=state.service; mouse_filter=Control.MOUSE_FILTER_STOP; hide()
++			layout_path=str(state.placement_path)
++			var saved:=ConfigFile.new()
++			if not layout_path.is_empty() and saved.load(layout_path)==OK:
++				var value: Variant=saved.get_value("positions","video-options",Vector2.INF)
++				if value is Vector2 and value.is_finite():retained_position=value
++		1:
++			assets=Assets.new(); add_child(assets); assets.configure(state.catalog); assets.cache_directory=str(state.cache_path); assets.maximum_workers=2; assets.completed.connect(received)
++		2:jobs[assets.request("options_vidmodes",2047,"gff")]="@layout"
++		3:request_model("scrollbar_simple")
++		4:request_model("pb_scrl_up")
++		5:request_model("pb_scrl_down")
++		6:
++			settings.changed.connect(settings_changed)
++			get_viewport().size_changed.connect(place)
++		7:
++			_entry_configuration={}
++			return {"done":true,"accepted":true}
++	if not is_same(_entry_configuration,state) or closed or is_queued_for_deletion():return {"done":true,"accepted":false}
++	state.phase=int(state.phase)+1
++	return {"done":false,"accepted":false}
++func finish_entry_configuration() -> void:
++	# A worker may finish before the last request is queued. Publish only after
++	# the menu has installed its modal and prepared/finished connections.
++	if closed or not _entry_configuration.is_empty() or not jobs.is_empty() or source.is_empty() or not failure.is_empty() or layout_ready:return
++	definition=Plan.parse(source,models)
++	if not str(definition.error).is_empty():failure=str(definition.error)
++	else:build()
+ func request_model(name: String) -> void:
+ 	if name.is_empty() or requested.has(name): return
+ 	requested[name]=true; jobs[assets.request(name,2002,"actor-model")]=name
+@@ -64,7 +104,7 @@ func received(id: int,result: Dictionary) -> void:
+ 	if not str(result.get("error","")).is_empty(): failure=name+": "+str(result.error); return
+ 	if name=="@layout": source=result.value.root; request_tree(source)
+ 	else: models[name]=result.value
+-	if not jobs.is_empty() or source.is_empty() or not failure.is_empty(): return
++	if not _entry_configuration.is_empty() or not jobs.is_empty() or source.is_empty() or not failure.is_empty(): return
+ 	definition=Plan.parse(source,models)
+ 	if not str(definition.error).is_empty(): failure=str(definition.error); return
+ 	build()
+@@ -179,6 +219,7 @@ func _notification(what: int) -> void:
+ 		if dragging: dragging=false; save_position()
+ func close() -> void:
+ 	if closed: return
++	_entry_configuration={}
+ 	retire_scope(); closed=true
+ 	modal_lease.close()
+ 	if is_instance_valid(settings) and settings.changed.is_connected(settings_changed): settings.changed.disconnect(settings_changed)
+diff --git a/.cache/nwn61/tail-entry-d/candidate-input/systems/native_key_settings.gd b/systems/native_key_settings.gd
+index 8c01a6d..a33352f 100644
+--- a/.cache/nwn61/tail-entry-d/candidate-input/systems/native_key_settings.gd
++++ b/systems/native_key_settings.gd
+@@ -38,6 +38,7 @@ var retained_position:=Vector2.INF
+ var dragging:=false
+ var drag_offset:=Vector2.ZERO
+ var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
++var _entry_configuration: Dictionary={}
+ func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
+ 	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
+ 	if not modal_lease.admission_changed.is_connected(modal_admission_changed):modal_lease.admission_changed.connect(modal_admission_changed)
+@@ -56,6 +57,44 @@ func configure(painter,text,catalog,cache_path: String,service,placement: String
+ 	for name in ["options_key_pnl","options_key_page"]: jobs[assets.request(name,2047,"gff")]="@"+name
+ 	for name in ["ctl_opt_btn_key","scrollbar_simple","pb_scrl_up","pb_scrl_down"]: request_model(name)
+ 	bindings.edited.connect(refresh_bindings); bindings.cancel_requested.connect(discard); get_viewport().size_changed.connect(place)
++func begin_entry_configuration(painter,text,catalog,cache_path: String,service,placement: String) -> Dictionary:
++	if closed or not _entry_configuration.is_empty():return {}
++	_entry_configuration={"phase":0,"painter":painter,"text":text,"catalog":catalog,"cache_path":cache_path,"service":service,"placement":placement}
++	return _entry_configuration
++func entry_configuration_phase(state: Dictionary) -> String:
++	const PHASES=["initialize","asset_service","panel_request","page_request","button_request","scrollbar_request","scroll_up_request","scroll_down_request","signals","complete"]
++	return PHASES[clampi(int(state.get("phase",0)),0,PHASES.size()-1)]
++func entry_configuration_step(state: Dictionary) -> Dictionary:
++	if state.is_empty() or not is_same(_entry_configuration,state) or closed or is_queued_for_deletion():return {"done":true,"accepted":false}
++	match int(state.phase):
++		0:
++			frame=state.painter; text_owner=state.text; bindings=state.service; storage=str(state.placement); mouse_filter=Control.MOUSE_FILTER_STOP; hide()
++			var saved:=ConfigFile.new()
++			if not storage.is_empty() and saved.load(storage)==OK:
++				var value: Variant=saved.get_value("positions","key-settings",Vector2.INF)
++				if value is Vector2 and value.is_finite():retained_position=value
++		1:
++			assets=Assets.new(); add_child(assets); assets.maximum_workers=2; assets.configure(state.catalog); assets.cache_directory=str(state.cache_path); assets.completed.connect(received)
++		2:jobs[assets.request("options_key_pnl",2047,"gff")]="@options_key_pnl"
++		3:jobs[assets.request("options_key_page",2047,"gff")]="@options_key_page"
++		4:request_model("ctl_opt_btn_key")
++		5:request_model("scrollbar_simple")
++		6:request_model("pb_scrl_up")
++		7:request_model("pb_scrl_down")
++		8:
++			bindings.edited.connect(refresh_bindings); bindings.cancel_requested.connect(discard); get_viewport().size_changed.connect(place)
++		9:
++			_entry_configuration={}
++			return {"done":true,"accepted":true}
++	if not is_same(_entry_configuration,state) or closed or is_queued_for_deletion():return {"done":true,"accepted":false}
++	state.phase=int(state.phase)+1
++	return {"done":false,"accepted":false}
++func finish_entry_configuration() -> void:
++	# Keep the first publication behind the menu's modal and callback binds.
++	if closed or not _entry_configuration.is_empty() or sources.size()!=2 or not jobs.is_empty() or not failure.is_empty() or layout_ready:return
++	definition=Plan.parse(sources,models)
++	if not str(definition.error).is_empty():failure=str(definition.error)
++	else:build()
+ func request_model(name: String) -> void:
+ 	if name.is_empty() or requested.has(name): return
+ 	requested[name]=true; jobs[assets.request(name,2002,"actor-model")]=name
+@@ -69,7 +108,7 @@ func received(id: int,result: Dictionary) -> void:
+ 	if name.begins_with("@"):
+ 		sources[name.substr(1)]=result.value.root; request_tree(result.value.root)
+ 	else: models[name]=result.value
+-	if sources.size()!=2 or not jobs.is_empty() or not failure.is_empty(): return
++	if not _entry_configuration.is_empty() or sources.size()!=2 or not jobs.is_empty() or not failure.is_empty(): return
+ 	definition=Plan.parse(sources,models)
+ 	if not str(definition.error).is_empty(): failure=str(definition.error); return
+ 	build()
+@@ -203,6 +242,7 @@ func _notification(what: int) -> void:
+ 		if dragging: dragging=false; save_position()
+ func close() -> void:
+ 	if closed: return
++	_entry_configuration={}
+ 	retire_scope(); closed=true
+ 	modal_lease.close()
+ 	if is_instance_valid(bindings):

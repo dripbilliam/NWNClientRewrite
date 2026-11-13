@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Static mesh/fade texture TID key through constructor-backed reference and Basic type virtual targets to bucket-array indexing.",
+  "edges": [
+    {"from":"0x1400d76e0","to":"0x1400834b0","callsite":"0x1400d7713","kind":"conditional_direct","condition":"mesh Part admitted to texture-keyed producer","status":"mesh_texture_tid_lookup","evidence_id":"ev_a9e95c5bf991dd2bbea789458430ec33050e3525817223aefffd53c2022f5bce"},
+    {"from":"0x1400d75d0","to":"0x1400834b0","callsite":"0x1400d75f6","kind":"conditional_direct","condition":"fade Part has positive tile fade","status":"fade_texture_tid_lookup","evidence_id":"ev_cde47e93ae2ce6007d25714ab91118dcfd4425f456db62803e8415afea973a51"},
+    {"from":"0x1400834b0","to":"0x1400e8ba0","callsite":"0x1400834b3","kind":"direct_tail_jump","condition":"material first texture pointer, possibly null","status":"texture_tid_accessor","evidence_id":"ev_c489e0bdd0b6dd2fe2f41ddcadc7cb0c002bee248245ec806225823600870afe"},
+    {"from":"0x1400e8ba0","to":"0x1400ebb00","callsite":"0x1400e8bae","kind":"resolved_texture_vtable_candidate","condition":"nonnull texture, base or Basic primary table +0x10; both qwords target GetReferencedTexture","status":"reference_resolution","evidence_id":"ev_28f070ce097c7d56923fde3953f1ec0db0de07b5d8b10671c7c5f102ca91d201"},
+    {"from":"0x1400e8ba0","to":"0x1400e8a20","callsite":"0x1400e8bb4","kind":"direct_static","condition":"nonnull texture; compare returned reference with null singleton","status":"null_texture_gate","evidence_id":"ev_3b44f0bf13da84f06b79a4391abd047a2f08fd8357fd83232f49d6cd7625657d"},
+    {"from":"0x1400e8ba0","to":"0x1400e5a00","callsite":"0x1400e8bc4","kind":"resolved_texture_vtable_candidate","condition":"nonnull non-singleton reference is base CAurTexture; AsBasic returns null, with no subsequent null guard","status":"base_type_candidate","evidence_id":"ev_28f070ce097c7d56923fde3953f1ec0db0de07b5d8b10671c7c5f102ca91d201"},
+    {"from":"0x1400e8ba0","to":"0x1400e5a10","callsite":"0x1400e8bc4","kind":"resolved_texture_vtable_candidate","condition":"nonnull non-singleton reference is CAurTextureBasic; AsBasic returns self","status":"basic_type_candidate","evidence_id":"ev_28f070ce097c7d56923fde3953f1ec0db0de07b5d8b10671c7c5f102ca91d201"},
+    {"from":"0x1400e5a10","to":"CAurTextureBasic+0x6c","kind":"cpu_texture_id_read","condition":"returned Basic pointer; AurTextureGetTID reads unsigned TID at +0x6c","status":"basic_tid_source","evidence_id":"ev_28f070ce097c7d56923fde3953f1ec0db0de07b5d8b10671c7c5f102ca91d201"},
+    {"from":"CAurTextureBasic+0x6c","to":"_meshbuckets/_fadebuckets[TID]","kind":"cpu_bucket_key","condition":"returned TID selects producer list; array grows only if TID+1 exceeds capacity floor 5000","status":"texture_keyed_part_append","evidence_id":"ev_ec8551f3642f9e5fbbbb270937191abd6492e31acb4a055b9f77fdb1a2d16e32"},
+    {"from":"0x1400e8ba0","to":"DYNAMIC:TEXTURE_REFERENCE_CLASS_TID_AND_BUCKET_OCCUPANCY","kind":"unresolved_runtime_selector","condition":"object class, null identity, TID, Part admission and active ordered texture list remain runtime choices","status":"unresolved_target","evidence_id":"ev_28f070ce097c7d56923fde3953f1ec0db0de07b5d8b10671c7c5f102ca91d201"}
+  ]
+}

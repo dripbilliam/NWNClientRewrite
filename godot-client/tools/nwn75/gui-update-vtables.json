@@ -1,0 +1,1275 @@
+{
+  "schema": "nwn75-gui-update-vtable-census-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Named GUI Update slot +0x58 targets found by REA incoming DATA references; this does not prove complete registration reachability or exclude unnamed overrides.",
+  "evidence": {
+    "base": "ev_160fec6082e355d804022c29623f8d60080296276d8491962c526d2da0e4beee",
+    "overrides": [
+      {
+        "target": "0x1401ec2b0",
+        "evidence_id": "ev_f97615b277cfaa6f984fdfbdcb311b2e59168bd58fc93b0b71e756cbc959ab24"
+      },
+      {
+        "target": "0x1401f0600",
+        "evidence_id": "ev_d09d87948c53347bc94e2b996542a797973d251e8a1729cf40a624811ceec2fb"
+      },
+      {
+        "target": "0x1401fd210",
+        "evidence_id": "ev_2b1f35496b0b56c297163619d4c19e3cd85bee0ca2730f42600ea3188ebef8c7"
+      },
+      {
+        "target": "0x140202450",
+        "evidence_id": "ev_7155a90dd6a50524f6bae289d740709439fece62d753718192418c8f3d61cbd7"
+      }
+    ]
+  },
+  "counts": {
+    "base": 193,
+    "overrides": 14,
+    "total": 207
+  },
+  "vtables": [
+    {
+      "vtable": "0x140daf958",
+      "slot": "0x140daf9b0",
+      "name": "CGuiButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140dafa60",
+      "slot": "0x140dafab8",
+      "name": "CGuiTimerButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140dafb68",
+      "slot": "0x140dafbc0",
+      "name": "CGuiCheckbox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140dafd50",
+      "slot": "0x140dafda8",
+      "name": "CGuiSlider::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140dafe58",
+      "slot": "0x140dafeb0",
+      "name": "CGuiScrollbar::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140daff60",
+      "slot": "0x140daffb8",
+      "name": "CGuiDragBar::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db05e8",
+      "slot": "0x140db0640",
+      "name": "CGuiLabel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db0708",
+      "slot": "0x140db0760",
+      "name": "CGuiTextButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db0828",
+      "slot": "0x140db0880",
+      "name": "CGuiTextCheckbox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db0948",
+      "slot": "0x140db09a0",
+      "name": "CGuiEdit::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db0a68",
+      "slot": "0x140db0ac0",
+      "name": "CGuiEditScroll::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140db0b98",
+      "slot": "0x140db0bf0",
+      "name": "CGuiListBox::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140db0cd0",
+      "slot": "0x140db0d28",
+      "name": "CGuiStatusBar::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db1388",
+      "slot": "0x140db13e0",
+      "name": "CGuiPageControl::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db14d8",
+      "slot": "0x140db1530",
+      "name": "CGuiViewport::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db15e0",
+      "slot": "0x140db1638",
+      "name": "CGuiDragSource::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db1850",
+      "slot": "0x140db18a8",
+      "name": "CGuiButtonListbox::vftable",
+      "target": "0x1401f0600"
+    },
+    {
+      "vtable": "0x140db1aa0",
+      "slot": "0x140db1af8",
+      "name": "CPanelExample::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db1e60",
+      "slot": "0x140db1eb8",
+      "name": "CGuiTreeview::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140db2cd0",
+      "slot": "0x140db2d28",
+      "name": "CGuiModalPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db2e20",
+      "slot": "0x140db2e78",
+      "name": "CRadialMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db3360",
+      "slot": "0x140db33b8",
+      "name": "CGuiObject::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db3650",
+      "slot": "0x140db36a8",
+      "name": "CGuiPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db37a0",
+      "slot": "0x140db37f8",
+      "name": "CenteredPanel<CGuiPanel>::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db38f0",
+      "slot": "0x140db3948",
+      "name": "CGuiFadePanel::vftable",
+      "target": "0x1401fd210"
+    },
+    {
+      "vtable": "0x140db3c90",
+      "slot": "0x140db3ce8",
+      "name": "CGuiTextBubble::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db47b8",
+      "slot": "0x140db4810",
+      "name": "CGuiSingleLineEdit::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db48d8",
+      "slot": "0x140db4930",
+      "name": "CenteredPanel<CGuiModalPanel>::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db4a28",
+      "slot": "0x140db4a80",
+      "name": "CPanelOk::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db4b80",
+      "slot": "0x140db4bd8",
+      "name": "CPanelOkScroll::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db4cd0",
+      "slot": "0x140db4d28",
+      "name": "CPanelGenericEditBoxEdit::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db4df0",
+      "slot": "0x140db4e48",
+      "name": "CPanelGenericEditBox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db4f48",
+      "slot": "0x140db4fa0",
+      "name": "CPanelOkCancel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db5098",
+      "slot": "0x140db50f0",
+      "name": "CPanelYesNoCancel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db51e8",
+      "slot": "0x140db5240",
+      "name": "CPanelStatus::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db5338",
+      "slot": "0x140db5390",
+      "name": "CPanelScreenFade::vftable",
+      "target": "0x140202450"
+    },
+    {
+      "vtable": "0x140db5488",
+      "slot": "0x140db54e0",
+      "name": "CPopupModalPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140db55d8",
+      "slot": "0x140db5630",
+      "name": "CGuiDropdownList::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140e2e0c0",
+      "slot": "0x140e2e118",
+      "name": "CPanelOkNoEsc::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e2e230",
+      "slot": "0x140e2e288",
+      "name": "COptionsSplashPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e308e8",
+      "slot": "0x140e30940",
+      "name": "CPanelPartyInvitation::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e32a08",
+      "slot": "0x140e32a60",
+      "name": "CGuiRadioButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e32b10",
+      "slot": "0x140e32b68",
+      "name": "CGuiTabButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e32c18",
+      "slot": "0x140e32c70",
+      "name": "CGuiCharGenButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e32d38",
+      "slot": "0x140e32d90",
+      "name": "CGuiPregameButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e32e58",
+      "slot": "0x140e32eb0",
+      "name": "CGuiPregameLabel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e32f78",
+      "slot": "0x140e32fd0",
+      "name": "CGuiPlaymodCharacterButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e33390",
+      "slot": "0x140e333e8",
+      "name": "CConfirmationCheckboxPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e334e0",
+      "slot": "0x140e33538",
+      "name": "CCDKeyEditBox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e33600",
+      "slot": "0x140e33658",
+      "name": "CCDKeyPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e339f8",
+      "slot": "0x140e33a50",
+      "name": "CMoviePanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e33b48",
+      "slot": "0x140e33ba0",
+      "name": "CMultiplayerPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e33e20",
+      "slot": "0x140e33e78",
+      "name": "CPlayModuleUpDownKeyHackControl::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e340a0",
+      "slot": "0x140e340f8",
+      "name": "CCampaignMoviesPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e341f0",
+      "slot": "0x140e34248",
+      "name": "CPanelCreditsScreenFadeClickable::vftable",
+      "target": "0x140202450"
+    },
+    {
+      "vtable": "0x140e344a0",
+      "slot": "0x140e344f8",
+      "name": "CMainMenuBackgroundPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e345f0",
+      "slot": "0x140e34648",
+      "name": "CConnectionMessagesPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e356c8",
+      "slot": "0x140e35720",
+      "name": "CGuiPressAnyKeyControl::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e357d0",
+      "slot": "0x140e35828",
+      "name": "CGuiPressAnyKeyControlEscSupport::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e358d8",
+      "slot": "0x140e35930",
+      "name": "CPanelScreenFadeClickable::vftable",
+      "target": "0x140202450"
+    },
+    {
+      "vtable": "0x140e3dfe8",
+      "slot": "0x140e3e040",
+      "name": "CGuiExamineGeneric::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e48bc0",
+      "slot": "0x140e48c18",
+      "name": "CGuiSaveGameNameEdit::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e48ce0",
+      "slot": "0x140e48d38",
+      "name": "CGuiSaveGameButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e48de8",
+      "slot": "0x140e48e40",
+      "name": "CPanelLoadSave::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e490a8",
+      "slot": "0x140e49100",
+      "name": "CPanelSaveGame::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e49208",
+      "slot": "0x140e49260",
+      "name": "CPanelSaveNamePopup::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e49358",
+      "slot": "0x140e493b0",
+      "name": "CPanelCharVersionPopup::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4a968",
+      "slot": "0x140e4a9c0",
+      "name": "CGuiCharGenLabel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4abe8",
+      "slot": "0x140e4ac40",
+      "name": "COptionsPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4bcf8",
+      "slot": "0x140e4bd50",
+      "name": "CQuickChat_Gui::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4dcf8",
+      "slot": "0x140e4dd50",
+      "name": "CGuiDraggableTreeview::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140e4de30",
+      "slot": "0x140e4de88",
+      "name": "CGuiDraggableTreeview::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4df48",
+      "slot": "0x140e4dfa0",
+      "name": "CGuiResizeBar::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4e050",
+      "slot": "0x140e4e0a8",
+      "name": "CGuiDMDifficultySlider::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4e158",
+      "slot": "0x140e4e1b0",
+      "name": "CGuiDMButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4e278",
+      "slot": "0x140e4e2d0",
+      "name": "CPanelDMCreator::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4e3c8",
+      "slot": "0x140e4e420",
+      "name": "CPanelDMChooser::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4e518",
+      "slot": "0x140e4e570",
+      "name": "CPanelSearchByTag::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4f510",
+      "slot": "0x140e4f568",
+      "name": "CGuiPartyBarButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4f618",
+      "slot": "0x140e4f670",
+      "name": "CCustomCreaturePortrait::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4f720",
+      "slot": "0x140e4f778",
+      "name": "CPanelPartyMember::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4f978",
+      "slot": "0x140e4f9d0",
+      "name": "CGuiMapPin::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e4fa88",
+      "slot": "0x140e4fae0",
+      "name": "CGuiCreatureMapPin::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e50650",
+      "slot": "0x140e506a8",
+      "name": "CGuiDragdropclickableButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e50758",
+      "slot": "0x140e507b0",
+      "name": "CGuiGoldButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e50860",
+      "slot": "0x140e508b8",
+      "name": "CGuiMultiPageMultiInvbox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e50980",
+      "slot": "0x140e509d8",
+      "name": "CGuiInvRepository::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e50aa0",
+      "slot": "0x140e50af8",
+      "name": "CPanelInvEquip::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e50bf0",
+      "slot": "0x140e50c48",
+      "name": "CGuiContainer::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e50d10",
+      "slot": "0x140e50d68",
+      "name": "CPanelInventory::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e50e60",
+      "slot": "0x140e50eb8",
+      "name": "CGuiPlayerGoldSource::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e527d8",
+      "slot": "0x140e52830",
+      "name": "CGuiQuickButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e52900",
+      "slot": "0x140e52958",
+      "name": "CPanelQuickBar::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e54390",
+      "slot": "0x140e543e8",
+      "name": "CPanelActionQueueButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e54498",
+      "slot": "0x140e544f0",
+      "name": "CPanelActionQueue::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e54c70",
+      "slot": "0x140e54cc8",
+      "name": "CReplyButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e54d78",
+      "slot": "0x140e54dd0",
+      "name": "CGuiInGameChatWindow::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e54ff0",
+      "slot": "0x140e55048",
+      "name": "CGuiInGameChatPrompt::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e552d0",
+      "slot": "0x140e55328",
+      "name": "CGuiIngamePortalPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e55550",
+      "slot": "0x140e555a8",
+      "name": "CGuiInGameChatDialog_CustomPicklist::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140e55680",
+      "slot": "0x140e556d8",
+      "name": "CGuiInGameChatDialog::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e559d0",
+      "slot": "0x140e55a28",
+      "name": "CGuiInvbox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e55ad8",
+      "slot": "0x140e55b30",
+      "name": "CGuiMultiInvbox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e56168",
+      "slot": "0x140e561c0",
+      "name": "CJournalPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e562b8",
+      "slot": "0x140e56310",
+      "name": "CGuiCharGenRadioButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e56430",
+      "slot": "0x140e56488",
+      "name": "CGuiQuestButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e56820",
+      "slot": "0x140e56878",
+      "name": "CNotesPage::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e56ae0",
+      "slot": "0x140e56b38",
+      "name": "CPanelAddNewWorldEntry::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e571b0",
+      "slot": "0x140e57208",
+      "name": "CGuiIngamePVPReactionCheckbox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e572d8",
+      "slot": "0x140e57330",
+      "name": "CGuiIngameRadioButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e57448",
+      "slot": "0x140e574a0",
+      "name": "CGuiIngamePVPButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e575d0",
+      "slot": "0x140e57628",
+      "name": "CGuiInGamePVPIconButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e57b58",
+      "slot": "0x140e57bb0",
+      "name": "CCharPage::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e57cc0",
+      "slot": "0x140e57d18",
+      "name": "CPanelCharSheet::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e57e10",
+      "slot": "0x140e57e68",
+      "name": "CClientLocalCharSheet::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e58378",
+      "slot": "0x140e583d0",
+      "name": "CSpellTreeRootButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e58508",
+      "slot": "0x140e58560",
+      "name": "CSpellButtonDragSource::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e58610",
+      "slot": "0x140e58668",
+      "name": "CSpellButtonDragSource::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e58e90",
+      "slot": "0x140e58ee8",
+      "name": "CGuiMapPinSource::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e58f98",
+      "slot": "0x140e58ff0",
+      "name": "CPanelPinText::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e59108",
+      "slot": "0x140e59160",
+      "name": "CGuiMapSurface::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e59590",
+      "slot": "0x140e595e8",
+      "name": "CPanelPlayerStateBar::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e59888",
+      "slot": "0x140e598e0",
+      "name": "CGuiExaminePanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e599e8",
+      "slot": "0x140e59a40",
+      "name": "CGuiExamineItem::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e5e710",
+      "slot": "0x140e5e768",
+      "name": "CGuiNumberEdit::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e5e830",
+      "slot": "0x140e5e888",
+      "name": "CPregameOptionsPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e5e980",
+      "slot": "0x140e5e9d8",
+      "name": "CServerOptionsPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e5ead0",
+      "slot": "0x140e5eb28",
+      "name": "CAdvancedServerOptionsPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e5ec20",
+      "slot": "0x140e5ec78",
+      "name": "CGuiKeyRadioButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e5eee8",
+      "slot": "0x140e5ef40",
+      "name": "CKeyMappingPage::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e607c8",
+      "slot": "0x140e60820",
+      "name": "CMessageOfTheDayPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e60918",
+      "slot": "0x140e60970",
+      "name": "CBuddyAddConfirmation::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e60a68",
+      "slot": "0x140e60ac0",
+      "name": "CGuiConnectionTabButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e60bd8",
+      "slot": "0x140e60c30",
+      "name": "CServerIPPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e60d28",
+      "slot": "0x140e60d80",
+      "name": "CPlayerPasswordPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e60e78",
+      "slot": "0x140e60ed0",
+      "name": "CPlayerProfilePanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e61118",
+      "slot": "0x140e61170",
+      "name": "CBaseServerPage::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e612e8",
+      "slot": "0x140e61340",
+      "name": "CServerPage::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e61518",
+      "slot": "0x140e61570",
+      "name": "CenteredPanel<CServerPage>::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e61978",
+      "slot": "0x140e619d0",
+      "name": "CenteredPanel<CGuiPageControl>::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e61c18",
+      "slot": "0x140e61c70",
+      "name": "CPageInternet::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e61e48",
+      "slot": "0x140e61ea0",
+      "name": "CPageHistory::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e62078",
+      "slot": "0x140e620d0",
+      "name": "CPageFavorites::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e622a8",
+      "slot": "0x140e62300",
+      "name": "CFilterPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e623f8",
+      "slot": "0x140e62450",
+      "name": "CBuddyListPage::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e63a98",
+      "slot": "0x140e63af0",
+      "name": "CGuiCharGenCompleteableButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e63bb8",
+      "slot": "0x140e63c10",
+      "name": "CGuiCharGenEdit::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e63cd8",
+      "slot": "0x140e63d30",
+      "name": "CGuiCharGenSingleLineEdit::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e63df8",
+      "slot": "0x140e63e50",
+      "name": "CGuiCGColSelect::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64018",
+      "slot": "0x140e64070",
+      "name": "CCharacterAlignmentPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64168",
+      "slot": "0x140e641c0",
+      "name": "CCharacterAppearancePanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e642b8",
+      "slot": "0x140e64310",
+      "name": "CCharacterAbilitiesPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64408",
+      "slot": "0x140e64460",
+      "name": "CGuiClassButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64528",
+      "slot": "0x140e64580",
+      "name": "CCharacterClassPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64678",
+      "slot": "0x140e646d0",
+      "name": "CCharacterGenerationPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e647c8",
+      "slot": "0x140e64820",
+      "name": "CCharacterInfoPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64918",
+      "slot": "0x140e64970",
+      "name": "CCharacterPackagesPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64a68",
+      "slot": "0x140e64ac0",
+      "name": "CCharacterPortraitPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64bb8",
+      "slot": "0x140e64c10",
+      "name": "CCharacterRacePanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64d08",
+      "slot": "0x140e64d60",
+      "name": "CCharacterSubRaceCustomPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64e60",
+      "slot": "0x140e64eb8",
+      "name": "CCharacterSexPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e64fb0",
+      "slot": "0x140e65008",
+      "name": "CCreateCharacterPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e65100",
+      "slot": "0x140e65158",
+      "name": "CCharacterLevelUpAbilitiesPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e65250",
+      "slot": "0x140e652a8",
+      "name": "CCharacterLevelUpSummaryPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e71658",
+      "slot": "0x140e716b0",
+      "name": "CGuiStoreInvBox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e71778",
+      "slot": "0x140e717d0",
+      "name": "CPanelStore::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e71aa0",
+      "slot": "0x140e71af8",
+      "name": "CGuiBarterInvBox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e71bc0",
+      "slot": "0x140e71c18",
+      "name": "CGuiBarterCheckbox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e71ce0",
+      "slot": "0x140e71d38",
+      "name": "CGuiBarterPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e74340",
+      "slot": "0x140e74398",
+      "name": "CGuiCreatureMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e75bd8",
+      "slot": "0x140e75c30",
+      "name": "CClientSpellMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e761d8",
+      "slot": "0x140e76230",
+      "name": "CGuiItemMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e76810",
+      "slot": "0x140e76868",
+      "name": "CPanelBuySellConfirm::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e76960",
+      "slot": "0x140e769b8",
+      "name": "CGuiItemStackSplitPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e76af8",
+      "slot": "0x140e76b50",
+      "name": "CRadialSpellMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e77340",
+      "slot": "0x140e77398",
+      "name": "CGuiQuickbarMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e77670",
+      "slot": "0x140e776c8",
+      "name": "CGuiDoorMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e77b90",
+      "slot": "0x140e77be8",
+      "name": "CClientTrapMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e78030",
+      "slot": "0x140e78088",
+      "name": "CGuiPlaceableMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e78838",
+      "slot": "0x140e78890",
+      "name": "CGuiChatWindowMenu::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e78b20",
+      "slot": "0x140e78b78",
+      "name": "CCharPageChar::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e79208",
+      "slot": "0x140e79260",
+      "name": "CGuiCharSheetRadioButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e79378",
+      "slot": "0x140e793d0",
+      "name": "CGuiSkillSheetRadioButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e79498",
+      "slot": "0x140e794f0",
+      "name": "CCharPageSkills::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e79780",
+      "slot": "0x140e797d8",
+      "name": "CCharPageFeats::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e79ac0",
+      "slot": "0x140e79b18",
+      "name": "CCharPageSpells::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e79cf0",
+      "slot": "0x140e79d48",
+      "name": "CSpellBox::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7a740",
+      "slot": "0x140e7a798",
+      "name": "CGuiCharGenSpellLevelButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7a848",
+      "slot": "0x140e7a8a0",
+      "name": "CGuiCharGenSkillButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7a968",
+      "slot": "0x140e7a9c0",
+      "name": "CGuiMouseoverChildButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7aa70",
+      "slot": "0x140e7aac8",
+      "name": "CGuiCharGenFeatButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7ab90",
+      "slot": "0x140e7abe8",
+      "name": "CGuiCharGenFamiliarButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7acb0",
+      "slot": "0x140e7ad08",
+      "name": "CGuiCharGenDomainButton::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7add0",
+      "slot": "0x140e7ae28",
+      "name": "CGuiLevelupTitle::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7aef0",
+      "slot": "0x140e7af48",
+      "name": "CCharacterDomainPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7b040",
+      "slot": "0x140e7b098",
+      "name": "CCharacterFeatsPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7b190",
+      "slot": "0x140e7b1e8",
+      "name": "CCharacterFeatsPopup::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7b2e0",
+      "slot": "0x140e7b338",
+      "name": "CCharacterSchoolsPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7b430",
+      "slot": "0x140e7b488",
+      "name": "CCharacterSkillsPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7b580",
+      "slot": "0x140e7b5d8",
+      "name": "CCharacterSpellsPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7b6d8",
+      "slot": "0x140e7b730",
+      "name": "CFeatInfoPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7b828",
+      "slot": "0x140e7b880",
+      "name": "CSpellInfoPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7b978",
+      "slot": "0x140e7b9d0",
+      "name": "CCharacterFamiliarPanel::vftable",
+      "target": "0x1401e5de0"
+    },
+    {
+      "vtable": "0x140e7c500",
+      "slot": "0x140e7c558",
+      "name": "CGuiCGListBox::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140e7c638",
+      "slot": "0x140e7c690",
+      "name": "CGuiCGItemListBox::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140e7c778",
+      "slot": "0x140e7c7d0",
+      "name": "CGuiCGHelpBox::vftable",
+      "target": "0x1401ec2b0"
+    },
+    {
+      "vtable": "0x140e7c8a8",
+      "slot": "0x140e7c900",
+      "name": "CGuiPortraitSelect::vftable",
+      "target": "0x1401e5de0"
+    }
+  ]
+}

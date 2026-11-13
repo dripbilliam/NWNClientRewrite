@@ -1,0 +1,27 @@
+{
+  "schema": "nwn75-original-texture-cube-indirect-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "GLRender::CreateCubeTexture 0x1400aeff0 with original CAurTextureBasic vtable candidate; getter slot definitions are in texture-create-indirect-callsites.json",
+  "function_evidence_id": "ev_1f9ddbaf37d8d5b350a93d0e301578f18f700a525062108567526dd3e25174a8",
+  "basic_vtable_evidence_id": "ev_415a39c7888ea158f3663a009ea232b0793392faed302f0fa6561729e23664fb",
+  "extension_loader_evidence_ids": ["ev_0ec0d02649720ff8357c1a7dd092dd1bda7965750695017a20905b95b4434eb7", "ev_b0e2f5fe199ff3addc6e9bbc0a583df8fb45f4fe8ba47664aaec41cdb4524c4b"],
+  "callsites": [
+    {"address":"0x1400af033","extension":"glActiveTexture","cell":"0x141442150"},
+    {"address":"0x1400af049","slot":"0xb8"},
+    {"address":"0x1400af058","slot":"0xc0"},
+    {"address":"0x1400af086","slot":"0x70"},
+    {"address":"0x1400af091","slot":"0x78"},
+    {"address":"0x1400af09c","slot":"0x80"},
+    {"address":"0x1400af0db","slot":"0x60"},
+    {"address":"0x1400af0f8","slot":"0x88"},
+    {"address":"0x1400af10e","slot":"0x90"},
+    {"address":"0x1400af124","slot":"0x88"},
+    {"address":"0x1400af143","slot":"0x88"},
+    {"address":"0x1400af161","slot":"0x88"},
+    {"address":"0x1400af173","slot":"0x90"},
+    {"address":"0x1400af1d5","slot":"0x80"},
+    {"address":"0x1400af200","slot":"0x80"},
+    {"address":"0x1400af2ae","slot":"0xb8"},
+    {"address":"0x1400af2bd","extension":"glGenerateMipmap","cell":"0x1414432b0"}
+  ]
+}

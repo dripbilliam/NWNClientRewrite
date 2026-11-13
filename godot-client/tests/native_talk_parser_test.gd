@@ -157,7 +157,7 @@ func api_checks() -> void:
 	result=talk.parse_native("<Start>",{"nativeBC":0});check(result.get("pending",false),"Unsuppressed colour provider requires its real B8 state")
 	result=talk.parse_native("<Start>green<Stop>",{"nativeBC":0,"nativeB8":0})
 	check(result.get("ready",false) and result.body=="<c"+String.chr(1)+String.chr(254)+String.chr(1)+">green</c>","Named colour providers append renderer tags without recursively parsing them")
-	var actor:={"objectType":5,"replicated":{"name":{"firstName":{"text":"Exact first"},"lastName":{"text":""}}}}
+	var actor:={"objectType":5,"appearance":{"name":{"firstName":{"text":"Exact first"},"lastName":{"text":""}}},"replicated":{"name":{"firstName":{"text":"Roster name"},"lastName":{"text":""}}}}
 	result=talk.parse_native("<FirstName>",{"context":actor})
 	check(result.get("ready",false) and result.body=="Exact first","Certified literal current-name provider uses only explicit received context")
 	result=talk.parse_native("<FirstName>",{"context":{"objectType":5}});check(result.get("pending",false),"Missing received provider fields are not fabricated native NO STATS/default data")

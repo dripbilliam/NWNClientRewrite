@@ -12,6 +12,31 @@ var _pending_generation:=-1
 var _pending_area:=-1
 var _pending_desired_size:=-1
 var _pending_installed_size:=-1
+var _received_pending_keys: Array=[]
+var _received_pending_index:=-1
+
+func received_snapshot_scope_begin(objects: Array,controlled: int) -> void:
+	_pending_writer_depth+=1;_pending_full_dirty=true
+	_received_pending_keys=[];_received_pending_index=-1
+	super.received_snapshot_scope_begin(objects,controlled)
+
+func received_snapshot_scope_step() -> bool:
+	if not super.received_snapshot_scope_step():return false
+	if _received_pending_index<0:
+		_pending_model_ids.clear();_received_pending_keys=desired.keys();_received_pending_index=0
+	if _received_pending_index<_received_pending_keys.size():
+		pending_schedule_counts.rebuild_rows+=1
+		_pending_refresh_id(int(_received_pending_keys[_received_pending_index]));_received_pending_index+=1
+		return false
+	_pending_touched.clear();_pending_full_dirty=false;_pending_capture_ready=true
+	pending_schedule_counts.rebuilds+=1;_pending_stamp()
+	return true
+
+func received_snapshot_scope_end(objects: Array,controlled: int,completed: bool) -> void:
+	super.received_snapshot_scope_end(objects,controlled,completed)
+	_pending_writer_depth-=1
+	_received_pending_keys=[];_received_pending_index=-1
+	if not completed:_pending_full_dirty=true;_pending_capture_ready=false
 var pending_schedule_counts:={"rebuilds":0,"rebuild_rows":0,"touched":0,"enumerations":0,"enumerated_ids":0,"writer_fallbacks":0,"scope_fallbacks":0,"pruned":0,"external_invalidations":0}
 
 func invalidate_planning() -> void:

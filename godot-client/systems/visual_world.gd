@@ -21,7 +21,9 @@ var compiled_selection_failures:=0
 # Callback objects are immutable plumbing. Only their invocation-local member
 # snapshot lives on this stack; nested selection/removal gets its own context.
 # Never cache a runtime, host, lifetime decision or mutable state by effect ID.
-var reused_selection_setup:=OS.get_cmdline_user_args().has("--visual-setup=reused") or OS.get_environment("NWN_VISUAL_SETUP")=="reused"
+# Reuse immutable callback plumbing by default. Each invocation still builds
+# its own current member/state snapshot; nested callbacks keep separate stacks.
+var reused_selection_setup:=OS.get_cmdline_user_args().has("--visual-setup=reused") or (not OS.get_cmdline_user_args().has("--visual-setup=allocating") and OS.get_environment("NWN_VISUAL_SETUP")!="allocating")
 var reused_selection_calls:=0
 var selection_context_peak:=0
 var selection_contexts: Array=[]

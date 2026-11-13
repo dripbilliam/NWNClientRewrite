@@ -90,10 +90,22 @@ EngineVar publish_particle(const Particle& part){auto out=EngineVar::dictionary(
 }
 struct Bridge final:Services {
  Var providers,hit;Var* state;Context* ctx;const Var* resource;bool chunk;
+ std::optional<Name> random_call_name;
  struct Extra {Var child;bool native_chunk=false;};
  std::unordered_map<Particle*,Extra>* extras;
  Bridge(Var& value,std::unordered_map<Particle*,Extra>& metadata):hit(get(value,particle_field::hit1f0)),state(&value),ctx(context),resource(&get(value,particle_field::chunkName)),chunk(nonempty_text(*resource)),extras(&metadata){if(!ctx)throw std::runtime_error("Compact particle frame context absent");}
- int64_t random()override{return invoke(providers,"random").integer();}
+ int64_t random()override{
+  // Keep the provider lookup and Callable invocation at every RNG boundary:
+  // a prior callback may replace the provider before the next draw. Only the
+  // generic service-name dispatch and repeated StringName construction go.
+  if(!context||!context->state||!context->providers)throw std::runtime_error("Native owner callback outside frame");
+  auto callable=::get(*context->providers,"random");if(!random_call_name)random_call_name.emplace("call");
+  EngineVar out;destroy(out.data);GDExtensionCallError error{};
+  if(external_call_counts)++external_call_counts->random;
+  variant_call(callable.data,random_call_name->data,nullptr,0,out.data,&error);
+  if(error.error!=GDEXTENSION_CALL_OK)throw std::runtime_error("Native owner external service failed: random");
+  return Var(out).integer();
+ }
  V3 camera()override{return ctx->camera?*ctx->camera:values<3>(invoke(providers,"cameraPosition"));}
  double cosine(double angle)override{return invoke(providers,"cosineDouble",{Var::number(angle)}).number();}
  V3 wind(const V3& position,float delta)override{return scene_wind::owner(ctx->wind_token).sample(position,delta);}

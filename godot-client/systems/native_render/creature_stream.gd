@@ -6,6 +6,65 @@ const Items=preload("res://systems/native_data/item_appearance.gd")
 const Lookup=preload("res://systems/native_data/animation_lookup.gd")
 const Actor=preload("res://systems/native_render/actor_instance.gd")
 const Priority=preload("res://systems/native_render/stream_priority.gd")
+const Template=preload("res://systems/native_render/model_template.gd")
+var _planning_active:=false
+var _planning_cursor:=0
+var _actor_pending: Dictionary={}
+var publication_keys: Dictionary={}
+func publication_current(id: int) -> bool:
+	if publication_keys.is_empty():return true
+	return is_instance_valid(admission_parent) and not admission_parent.closed and not admission_parent.retiring and admission_parent.desired.has(id) and str(admission_parent.desired[id].key)==str(publication_keys.get(id,""))
+func cancel_actor_publication() -> void:
+	if _actor_pending.is_empty():return
+	var actor=_actor_pending.actor;_actor_pending={}
+	if is_instance_valid(actor):actor.cancel_install();actor.retire()
+func resume_actor_publication() -> void:
+	var began:=Time.get_ticks_usec();var attempts:=0;var callback_budget:=Template.callback_budget(pool)
+	while not _actor_pending.is_empty():
+		var state: Dictionary=_actor_pending;var plan: Dictionary=state.plan;var priority:=int(plan.id)==controlled_priority
+		if not publication_current(int(plan.id)):cancel_actor_publication();stats.stale_publications=int(stats.get("stale_publications",0))+1;return
+		if attempts>0 and Time.get_ticks_usec()-began>=callback_budget:return
+		if pool.has_method("can_publish") and not pool.can_publish(priority):return
+		var unit_began:=Time.get_ticks_usec();var actor=state.actor;var budget_owner=pool
+		var progress: Dictionary=actor.install_step(32,Template.step_budget(budget_owner));attempts+=1
+		# A helper's _ready() can retire this scope, cancel it, or replace it.
+		# Charge that work to its original ledger without publishing stale state.
+		if closed or not is_same(_actor_pending,state) or not publication_current(int(plan.id)):
+			if is_same(_actor_pending,state):cancel_actor_publication()
+			if budget_owner.has_method("construction_finished"):budget_owner.construction_finished(unit_began)
+			elif budget_owner.has_method("publication_finished"):budget_owner.publication_finished(unit_began,priority)
+			return
+		if progress.status=="pending":
+			var elapsed:=(Time.get_ticks_usec()-unit_began)/1000.0;stats.publication_ms+=elapsed;stats.max_publication_ms=maxf(stats.max_publication_ms,elapsed);state.cpu_ms+=elapsed;state.max_step_ms=maxf(state.max_step_ms,elapsed)
+			if pool.has_method("construction_finished"):pool.construction_finished(unit_began)
+			elif pool.has_method("publication_finished"):pool.publication_finished(unit_began,priority)
+			continue
+		if progress.status=="failed":object_failed(int(plan.id),actor.failure);actor.retire()
+		else:_finish_actor(plan,actor)
+		var elapsed:=(Time.get_ticks_usec()-unit_began)/1000.0;stats.publication_ms+=elapsed;stats.max_publication_ms=maxf(stats.max_publication_ms,elapsed);state.cpu_ms+=elapsed;state.max_step_ms=maxf(state.max_step_ms,elapsed)
+		stats.publications.append({"id":plan.id,"ms":state.cpu_ms,"latency_ms":(Time.get_ticks_usec()-int(state.began))/1000.0,"max_step_ms":state.max_step_ms,"meshes":actor.meshes.size(),"success":progress.status=="ready","staged":true})
+		_actor_pending={}
+		if pool.has_method("publication_finished"):pool.publication_finished(unit_began,priority)
+func _finish_actor(plan: Dictionary,actor) -> void:
+	if plan.has("combat_actor"):actor.set_meta("native_combat_actor",plan.combat_actor)
+	actor.position=plan.position;actor.rotation.y=plan.rotation;actor.set_meta("world_object_id",plan.id);actors[plan.id]=actor
+	for diagnostic in actor.unattached_equipment:
+		var warning: Dictionary=diagnostic.duplicate(true);warning.id=plan.id;stats.warnings.append(warning)
+	actor.set_meta("native_movement",plan.get("movement",{}))
+	stats["rendered_creatures" if int(plan.kind)==5 else "rendered_items"]+=1;stats.skin_meshes+=int(actor.rigs.stats.skin_meshes);stats.meshes+=actor.meshes.size()
+	stats.skin_prepared_meshes+=int(actor.rigs.stats.skin_prepared_meshes);stats.skin_main_meshes+=int(actor.rigs.stats.skin_main_meshes)
+func begin_planning() -> void:
+	_planning_active=true;_planning_cursor=0
+func planning_step() -> bool:
+	if not _planning_active:return true
+	var began:=Time.get_ticks_usec();var units:=0
+	while _planning_cursor<objects.size() and units<32:
+		if units>0 and Time.get_ticks_usec()-began>=1500:break
+		if pool!=null and pool.has_method("can_publish") and not pool.can_publish(_planning_cursor==0 and int(objects[_planning_cursor].id)==controlled_priority):break
+		var unit_began:=Time.get_ticks_usec();_plan_object(objects[_planning_cursor]);_planning_cursor+=1;units+=1
+		if pool!=null and pool.has_method("construction_finished"):pool.construction_finished(unit_began)
+	if _planning_cursor<objects.size():return false
+	_planning_active=false;_planning_cursor=0;objects.clear();priority_dirty=true;stats.plans_built_ms=Time.get_ticks_usec()/1000.0;return true
 var priority_origin:=Vector3.ZERO
 var has_priority_origin:=false
 var priority_dirty:=false
@@ -56,7 +115,7 @@ func configure(source,shared_pool,snapshot: Array,area_id: int,cache_path: Strin
 		if int(object.get("areaId",-1))==area_id and not object.get("replicationRemoved",false) and int(object.get("objectType",0)) in [5,6]:
 			if int(object.id)==priority_id: objects.push_front(object)
 			else: objects.append(object)
-	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
+	assets=Assets.new(); add_child(assets);assets.configure(catalog);assets.completion_pool=pool; assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	assets.high_priority=objects.any(func(object):return int(object.id)==controlled_priority)
 	for name in ["appearance","racialtypes","gender","phenotype","capart","parts_robe","tailmodel","wingmodel","cloakmodel","baseitems","parts_chest"]: table_jobs[assets.request(name,2017,"2da",{"immutable_source":true})]=name
 static func pose(object: Dictionary) -> Dictionary:
@@ -98,49 +157,49 @@ func equipment(object: Dictionary,appearance_row: Dictionary,planner) -> Array:
 		output.append_array(item_descriptors(helmet.item,"head_g",planner.number(appearance_row.get(field,"1")),0,int(object.id)))
 	return output
 func build_plans() -> void:
-	for object in objects:
-		var placement:=pose(object)
-		if placement.is_empty(): continue # Equipped/non-world item registry rows.
-		var pieces: Array=[]; var maps: Dictionary={}; var kind:=int(object.objectType)
-		if kind==5:
-			stats.planned_creatures+=1
-			var planner:=Appearance.new(); var plan:=planner.plan(object,tables)
-			if plan.is_empty(): object_failed(int(object.id),planner.failure); continue
-			for warning in planner.warnings: stats.warnings.append({"id":object.id,"reason":warning})
-			pieces.append({"model":plan.model,"fallbackModel":plan.get("fallbackModel",""),"anchor":"","follow":true})
-			for part in plan.parts:
-				var piece: Dictionary=part.duplicate(); piece.anchor=part.get("node","") if part.get("node")!=null else ""; piece.follow=int(part.get("partIndex",-1))==18
-				pieces.append(piece)
-			for part in plan.attachments:
-				var piece: Dictionary=part.duplicate(); piece.anchor=part.node; piece.follow=true; pieces.append(piece)
-			pieces.append_array(equipment(object,row("appearance",int(object.appearance.appearance)),planner))
-			if stats.object_failures.has(int(object.id)): continue
-			var lookup:=Lookup.new(); var context:=lookup.context(object,tables)
-			if context.is_empty(): object_failed(int(object.id),lookup.failure); continue
-			maps=lookup.maps(context)
-			placement.animation_context=context
-			placement.combat_actor=preload("res://systems/native_data/combat_actor.gd").project(object,tables)
-			var original: Dictionary=row("appearance",int(object.appearance.appearance))
-			placement.movement={"modelType":int(context.fieldDE),"walkDistance":Vector3(planner.number(original.get("WALKDIST","0"),0),0,0).x,"runDistance":Vector3(planner.number(original.get("RUNDIST","0"),0),0,0).x}
-		else:
-			stats.planned_items+=1; pieces=item_descriptors(object.get("item",object.get("replicated",{}).get("item",{})),"",1.0,0,int(object.id))
-		if pieces.is_empty(): continue
-		var valid:=true
+	for object in objects:_plan_object(object)
+	objects.clear();priority_dirty=true
+func _plan_object(object: Dictionary) -> void:
+	var placement:=pose(object)
+	if placement.is_empty(): return # Equipped/non-world item registry rows.
+	var pieces: Array=[]; var maps: Dictionary={}; var kind:=int(object.objectType)
+	if kind==5:
+		stats.planned_creatures+=1
+		var planner:=Appearance.new(); var plan:=planner.plan(object,tables)
+		if plan.is_empty(): object_failed(int(object.id),planner.failure); return
+		for warning in planner.warnings: stats.warnings.append({"id":object.id,"reason":warning})
+		pieces.append({"model":plan.model,"fallbackModel":plan.get("fallbackModel",""),"anchor":"","follow":true})
+		for part in plan.parts:
+			var piece: Dictionary=part.duplicate(); piece.anchor=part.get("node","") if part.get("node")!=null else ""; piece.follow=int(part.get("partIndex",-1))==18
+			pieces.append(piece)
+		for part in plan.attachments:
+			var piece: Dictionary=part.duplicate(); piece.anchor=part.node; piece.follow=true; pieces.append(piece)
+		pieces.append_array(equipment(object,row("appearance",int(object.appearance.appearance)),planner))
+		if stats.object_failures.has(int(object.id)): return
+		var lookup:=Lookup.new(); var context:=lookup.context(object,tables)
+		if context.is_empty(): object_failed(int(object.id),lookup.failure); return
+		maps=lookup.maps(context)
+		placement.animation_context=context
+		placement.combat_actor=preload("res://systems/native_data/combat_actor.gd").project(object,tables)
+		var original: Dictionary=row("appearance",int(object.appearance.appearance))
+		placement.movement={"modelType":int(context.fieldDE),"walkDistance":Vector3(planner.number(original.get("WALKDIST","0"),0),0,0).x,"runDistance":Vector3(planner.number(original.get("RUNDIST","0"),0),0,0).x}
+	else:
+		stats.planned_items+=1; pieces=item_descriptors(object.get("item",object.get("replicated",{}).get("item",{})),"",1.0,0,int(object.id))
+	if pieces.is_empty(): return
+	var valid:=true
+	for piece in pieces:
+		var name:=str(piece.model)
+		if not catalog.has_resource(name,2002): name=str(piece.get("fallbackModel",""))
+		if name.is_empty() or not catalog.has_resource(name,2002): object_failed(int(object.id),"Original actor model and fallback are absent",str(piece.model)); valid=false; break
+		var options:={"plt_candidates":piece.get("pltCandidates",[]),"relevant_tracks":true}
+		if piece.has("paletteColors"): options.palette_colors=piece.paletteColors
+		var key:=JSON.stringify([name,options]); piece.key=key
+		piece.source_model=name; piece.source_options=options
+	if valid:
 		for piece in pieces:
-			var name:=str(piece.model)
-			if not catalog.has_resource(name,2002): name=str(piece.get("fallbackModel",""))
-			if name.is_empty() or not catalog.has_resource(name,2002): object_failed(int(object.id),"Original actor model and fallback are absent",str(piece.model)); valid=false; break
-			var options:={"plt_candidates":piece.get("pltCandidates",[]),"relevant_tracks":true}
-			if piece.has("paletteColors"): options.palette_colors=piece.paletteColors
-			var key:=JSON.stringify([name,options]); piece.key=key
-			piece.source_model=name; piece.source_options=options
-		if valid:
-			for piece in pieces:
-				if not model_specs.has(piece.key): model_specs[piece.key]={"name":piece.source_model,"options":piece.source_options}; waiting.append(piece.key)
-				piece.erase("source_model"); piece.erase("source_options")
-			placement.merge({"id":int(object.id),"kind":kind,"pieces":pieces,"maps":maps,"animation":int(object.get("replicated",{}).get("animation",0))}); plans.append(placement)
-	objects.clear()
-	priority_dirty=true
+			if not model_specs.has(piece.key): model_specs[piece.key]={"name":piece.source_model,"options":piece.source_options}; waiting.append(piece.key)
+			piece.erase("source_model"); piece.erase("source_options")
+		placement.merge({"id":int(object.id),"kind":kind,"pieces":pieces,"maps":maps,"animation":int(object.get("replicated",{}).get("animation",0))}); plans.append(placement)
 func prepared(id: int,result: Dictionary) -> void:
 	if closed: return
 	if table_jobs.has(id):
@@ -150,7 +209,9 @@ func prepared(id: int,result: Dictionary) -> void:
 			var diagnostic:={"table":name,"reason":result.error}; stats.errors.append(diagnostic); stats.scope_errors.append(diagnostic)
 		else: tables[name]=result.value
 		if table_jobs.is_empty():
-			if stats.scope_errors.is_empty(): build_plans()
+			if stats.scope_errors.is_empty():
+				if Template.cooperative(pool):begin_planning()
+				else:build_plans()
 			else: objects.clear()
 			stats.plans_built_ms=Time.get_ticks_usec()/1000.0
 		return
@@ -167,11 +228,16 @@ func _process(_delta: float) -> void:
 	Timing.finish("callback_creatures",began)
 func _profile_process(_delta: float) -> void:
 	if closed or done or not is_instance_valid(assets) or not table_jobs.is_empty(): return
+	if not planning_step():return
 	refresh_priority()
 	while not waiting.is_empty() and assets.pending.size()+assets.running.size()<mini(assets.maximum_pending,assets.maximum_workers*2):
 		var key:=str(waiting.pop_front()); var spec: Dictionary=model_specs[key]; var id: int=assets.request(spec.name,2002,"actor-model",spec.options)
 		if id<0: bundles[key]={"error":assets.failure}
 		else: model_jobs[id]=key; stats.model_jobs+=1
+	if not _actor_pending.is_empty():
+		resume_actor_publication()
+		if waiting.is_empty() and model_jobs.is_empty() and plans.is_empty() and _actor_pending.is_empty():done=true
+		return
 	# Each actor owns a complete hierarchy, including robe and equipment roots.
 	# Publish one ready actor per frame; never attach a half-prepared skeleton.
 	for index in plans.size():
@@ -191,6 +257,15 @@ func _profile_process(_delta: float) -> void:
 		var actor:=Actor.new();actor.actor_alpha_enabled=int(plan.kind)==5; actor.use_skeleton=use_skeleton; actor.position=plan.position; actor.rotation.y=plan.rotation
 		if is_instance_valid(admission_parent): actor.hide(); admission_parent.add_child(actor)
 		else: add_child(actor)
+		if Template.cooperative(pool):
+			if not actor.begin_install(pieces,pool,int(plan.id),plan.maps,int(plan.animation),plan.get("animation_context",{})):object_failed(int(plan.id),actor.failure);actor.retire()
+			else:
+				var initial_ms:=(Time.get_ticks_usec()-began)/1000.0
+				stats.publication_ms+=initial_ms;stats.max_publication_ms=maxf(stats.max_publication_ms,initial_ms)
+				_actor_pending={"actor":actor,"plan":plan,"began":began,"cpu_ms":initial_ms,"max_step_ms":initial_ms}
+				if pool.has_method("construction_finished"):pool.construction_finished(began)
+				resume_actor_publication()
+			break
 		if not actor.install(pieces,pool,int(plan.id),plan.maps,int(plan.animation),plan.get("animation_context",{})): object_failed(int(plan.id),actor.failure); actor.retire()
 		else:
 			if plan.has("combat_actor"): actor.set_meta("native_combat_actor",plan.combat_actor)
@@ -204,15 +279,19 @@ func _profile_process(_delta: float) -> void:
 		if pool.has_method("publication_finished"): pool.publication_finished(began,int(plan.id)==controlled_priority)
 		stats.publication_ms+=elapsed; stats.max_publication_ms=maxf(stats.max_publication_ms,elapsed); stats.publications.append({"id":plan.id,"ms":elapsed,"meshes":actor.meshes.size(),"success":actor.failure.is_empty()})
 		break
-	if waiting.is_empty() and model_jobs.is_empty() and plans.is_empty(): done=true
+	if waiting.is_empty() and model_jobs.is_empty() and plans.is_empty() and _actor_pending.is_empty(): done=true
 func snapshot() -> Dictionary:
 	return stats.duplicate(true)
 func detach_prepared_data() -> Dictionary:
+	_planning_active=false;_planning_cursor=0
+	cancel_actor_publication()
 	var payload:={"bundles":bundles,"model_specs":model_specs,"plans":plans,"objects":objects,"tables":tables}
 	bundles={}; model_specs={}; plans=[]; objects=[]; tables={}
 	return payload
 func close() -> void:
 	if closed: return
+	_planning_active=false;_planning_cursor=0
+	cancel_actor_publication();publication_keys.clear()
 	closed=true
 	if is_instance_valid(assets): assets.close()
 	for actor in actors.values():

@@ -1,0 +1,36 @@
+{
+  "schema": "nwn75-nuklear-kind18-callback-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "original-binary-static",
+  "edges": [
+    {
+      "from": "0x140a89050",
+      "at": "0x140a890e7",
+      "to": "0x140a619c0",
+      "meaning": "allocate kind 18 command of size 0x28",
+      "status": "target_identified",
+      "evidence_id": "ev_f191c354a97fe9feb877731d369aedaa7bf8d1a0f809bcb0e2ab8c258839c4f6"
+    },
+    {
+      "from": "0x140a89050",
+      "at": "0x140a890fc",
+      "to": "command+0x20",
+      "meaning": "copy caller-supplied R8 callback pointer",
+      "status": "source_identified_target_value_open",
+      "evidence_id": "ev_4f3634fc47640659b0d9bc418ce46420bb7f83ed47a249f65542f4cbe8c48e0d"
+    },
+    {
+      "from": "0x140a7c340",
+      "at": "0x140a7d163",
+      "to": "command+0x20",
+      "meaning": "kind-18 indirect callback with converter context, rectangle, and command+0x18 user value",
+      "status": "unresolved_callback_target",
+      "evidence_id": "ev_45a726b8fe183a92d0a78726c57c87fbcfd31f3e2b1f49e4f267bedd66069fd7"
+    }
+  ],
+  "producer_incoming_evidence_id": "ev_97ae78aa22ca72290476c810b39cd930b80239404e158b4f43f47818b40662f2",
+  "full_va_search_evidence_id": "ev_8cfc0c4c6ffc3ce10b771d8e3ee7ee02f52910d2096b3a64b6396bd1e73d5425",
+  "rva_search_evidence_id": "ev_4ee488d41a048d8e66c9d2793094ac4d0c906cd018c76d0eb82915e64525d917",
+  "runtime_reachability": "unproven",
+  "callback_target_family": "unresolved"
+}

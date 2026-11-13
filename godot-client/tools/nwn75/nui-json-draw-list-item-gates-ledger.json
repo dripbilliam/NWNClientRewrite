@@ -1,0 +1,19 @@
+{
+  "schema": "nwn75-nui-json-draw-list-item-gates-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original static JSON item parse, callback gates and conditional GL leaf; active instances and dynamic values unknown",
+  "edges": [
+    {"from":"0x140741070","to":"0x14071ca60","gate":"optional draw_list JSON array","evidence_id":"ev_22c002c865997b52b6d2cdaa9b9b1462dd7d9fff367c19b2df563ac41a6bc4b0"},
+    {"from":"0x14071ca60","to":"0x140729810","gate":"present array; iterate elements","evidence_id":"ev_4acbafc7de20beb41894219f17984e2488489bf7428ffc896cb2e12ebb113fc6"},
+    {"from":"0x140729810","to":"0x14075dda0","gate":"each 0x3d8-byte item","evidence_id":"ev_673694150c2382ff81cc7e4e3d3c71f4b5a90175632d1dbcad3f581eb2cacf0f"},
+    {"from":"0x140741070","to":"0x140748b80","gate":"order == -1 partition; optional callback output +0x688","evidence_id":"ev_22c002c865997b52b6d2cdaa9b9b1462dd7d9fff367c19b2df563ac41a6bc4b0"},
+    {"from":"0x140741070","to":"0x140748b80","gate":"order != -1 partition; optional callback output +0x6a0","evidence_id":"ev_22c002c865997b52b6d2cdaa9b9b1462dd7d9fff367c19b2df563ac41a6bc4b0"},
+    {"from":"0x140748b80","to":"0x140e3b6e0","gate":"callback vtable installation","evidence_id":"ev_8d3044f66f3e4744d2d9ea53f2537cddf8c10f28e2187b83b8bd8e4f659c9ff7"},
+    {"from":"0x140e3b6e0","to":"0x140754b70","gate":"callback slot +0x10","evidence_id":"ev_7443ed323a2f22a1ac027e131f9014870d143cdb6c7632f9708f715463106120"},
+    {"from":"0x140754b70","to":"0x14073b700","gate":"wrapper delegation","evidence_id":"ev_6eaea072f2d1dbdb365b41fc693a161c468254505a6357c683228bcac70722f4"},
+    {"from":"0x14073b700","to":"0x140a93db0","gate":"enabled image item type 5 with render mode gate; image descriptor update","evidence_id":"ev_f78bc91354619d845d659aecea8d68ce1b9cec938826e419dc9cc9aee55cefb8"},
+    {"from":"0x140a71760","to":"0x140a7c340","gate":"UI draw converts queued numeric commands to CPU geometry","evidence_id":"ev_6b5e1be5df3d0ec1c19e05d9f5114d2a9453a5c0bd89c9f09f1a3012d4826278"},
+    {"from":"0x140a71760","to":"glDrawElements","gate":"nonempty indexed UI command geometry","evidence_id":"ev_6b5e1be5df3d0ec1c19e05d9f5114d2a9453a5c0bd89c9f09f1a3012d4826278"}
+  ],
+  "runtime_unknowns": ["active window and JSON asset", "item count and dynamic enabled/render values", "dynamic color/geometry/image contents", "per-frame command and GL draw frequency"]
+}

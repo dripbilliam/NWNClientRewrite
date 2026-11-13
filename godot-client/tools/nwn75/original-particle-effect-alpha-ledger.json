@@ -1,0 +1,33 @@
+{
+  "schema": "nwn75-original-particle-effect-alpha-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "document": "original-particle-effect-alpha-publication.md",
+  "scope": "Original emitter alpha source, render stream and API handoff; static gates only.",
+  "edges": [
+    {"from":"0x1400c7ae0","to":"0x140061210","callsite":"0x1400c7c94","kind":"conditional_direct","condition":"Scene animating or owner Gob force animated","status":"particle_update","evidence_id":"ev_b4881207528882fb849869474dcd3a31c18cf9f00dad89280e126d85fcdd7ed3"},
+    {"from":"0x1400c7ae0","to":"PartEmitter+0x1b0","kind":"instance_function_field","condition":"0x1400c7dae positive live count after camera-distance sort","status":"particle_render_dispatch","evidence_id":"ev_b4881207528882fb849869474dcd3a31c18cf9f00dad89280e126d85fcdd7ed3"},
+    {"from":"0x1400643b0","to":"0x140062900","kind":"tail_jump","condition":"standard emitter render mode","status":"shared_quad_render","evidence_id":"ev_34f8fbdda88642e9a5fcc853ff16fcb539af3e4923e97fbbca235e05c24b6605"},
+    {"from":"0x140064180","to":"0x140062900","kind":"tail_jump","condition":"motion-blurred emitter render mode","status":"shared_quad_render","evidence_id":"ev_34f8fbdda88642e9a5fcc853ff16fcb539af3e4923e97fbbca235e05c24b6605"},
+    {"from":"0x140064170","to":"0x140062900","kind":"tail_jump","condition":"linked emitter render mode","status":"shared_quad_render","evidence_id":"ev_34f8fbdda88642e9a5fcc853ff16fcb539af3e4923e97fbbca235e05c24b6605"},
+    {"from":"0x1400d41a0","to":"TileData+0x50","kind":"state_write","condition":"SpawnTile publishes tile position Z for fade distance","status":"tile_alpha_source","evidence_id":"ev_e1b9f92f230f3dfc4034d8391188b638886b0126e26307dc7e3f1566c24c7468"},
+    {"from":"0x140088130","to":"TileData+0x70","kind":"state_write","condition":"TileData constructor initializes fade to 1.0","status":"tile_alpha_source","evidence_id":"ev_7fd702284efcfde8e10283411a63f0e66e5319491d99c7c58049f67a5880470e"},
+    {"from":"0x1400cb520","to":"PartEmitter+0x100","kind":"conditional_state_write","condition":"0x1400cb828 ProcessStaticParts stores TileData* after AsPartEmitter and ProcessTilePart gates","status":"tile_alpha_source","evidence_id":"ev_37fb30c927647447004135ecdb127d880eb9d31c04a25f9f871c9c9dc4792731"},
+    {"from":"0x1400cb4c0","to":"Gob+0x1a8","kind":"state_write","condition":"0x1400cb4ec ProcessStaticObject stores TileData* on static Gob before SetScene and AnimateStaticLight registration","status":"tile_alpha_source","evidence_id":"ev_fcbbada577e29b6d856516e8adc9dd02badafe746d5eb7370ad128c7611a909a"},
+    {"from":"0x1400db320","to":"TileData+0x70","kind":"conditional_state_write","condition":"Scene +0x1a8 TileData list; 0x1400db450 copies next fade +0x74 to current fade +0x70 before visibility traversal","status":"tile_alpha_source","evidence_id":"ev_3e8c979129e4069878975c423d7b4b3a20b360b7445a01bb16bd51221532027d"},
+    {"from":"0x1400db320","to":"0x1400d9670","callsite":"0x1400dbb7e","kind":"direct","condition":"HandleFadingInBucket after BSP traversal","status":"tile_fade_update","evidence_id":"ev_3e8c979129e4069878975c423d7b4b3a20b360b7445a01bb16bd51221532027d"},
+    {"from":"0x1400db320","to":"0x1400d9ab0","callsite":"0x1400dbb83","kind":"direct","condition":"HandleFadingOutBucket after BSP traversal","status":"tile_fade_update","evidence_id":"ev_3e8c979129e4069878975c423d7b4b3a20b360b7445a01bb16bd51221532027d"},
+    {"from":"0x1400d9670","to":"TileData+0x74","kind":"conditional_state_write","condition":"selected fade-in TileData; next fade becomes min(1.0,current + DeltaT*4.0) after +0x78 timer gate","status":"tile_fade_update","evidence_id":"ev_ef3fdc23679aeb93c75a57aee0d18fd9de224f9b4085b9b26eff54aa60f2b2b8"},
+    {"from":"0x1400d9ab0","to":"TileData+0x74","kind":"conditional_state_write","condition":"selected fade-out TileData; next fade becomes max(0.0,current - DeltaT*4.0) after +0x78 timer gate","status":"tile_fade_update","evidence_id":"ev_1214a78eed1c5d86aa7fa459802fdf1d3baf78d884bdd25f811166d3ff17d10d"},
+    {"from":"0x1400948d0","to":"Gob+0x108","kind":"state_write","condition":"Gob::SetColorShifting publishes owner alpha consumed by emitter render when owner exists","status":"alpha_source","evidence_id":"ev_97a3aa5e161e3861b18559ef87c10385042039ffa678062b4026a4b5a609f9ae"},
+    {"from":"TileData* at PartEmitter+0x100 or owner Gob+0x1a8","to":"0x140062900","kind":"conditional_field_read","condition":"selected TileData +0x70 fade only when 5.0 < emitter +0x1e8 minus selected TileData +0x50; else factor 1.0","status":"tile_alpha_source","evidence_id":"ev_34f8fbdda88642e9a5fcc853ff16fcb539af3e4923e97fbbca235e05c24b6605"},
+    {"from":"Gob+0x108","to":"0x140062900","kind":"conditional_field_read","condition":"nonnull owner Gob supplies alpha; absent owner gives 1.0","status":"alpha_source","evidence_id":"ev_34f8fbdda88642e9a5fcc853ff16fcb539af3e4923e97fbbca235e05c24b6605"},
+    {"from":"0x140062900","to":"0x14007ee50","callsite":"0x140063092","kind":"conditional_direct","condition":"authored emitter lighting flag before packed vertex output","status":"cpu_lighting","evidence_id":"ev_34f8fbdda88642e9a5fcc853ff16fcb539af3e4923e97fbbca235e05c24b6605"},
+    {"from":"0x140062900","to":"0x1400beed0","callsite":"0x140064109","kind":"direct","condition":"after alpha clamp/interpolation and 0x18-byte packed vertex writes","status":"gl_draw_handoff","evidence_id":"ev_34f8fbdda88642e9a5fcc853ff16fcb539af3e4923e97fbbca235e05c24b6605"}
+  ],
+  "open_frontiers": [
+    "Exhaustive TileData fade writer census and runtime Scene tile/fade list population",
+    "Runtime emitter mode, owner Gob, alpha controller and positive live-particle selection",
+    "Out-of-line GetTileAlpha/GetGobAlpha have no analyzed direct incoming references; alternate indirect or inlined uses remain possible",
+    "Original PE export name breadth includes server and non-render entries; it is not active runtime coverage"
+  ]
+}

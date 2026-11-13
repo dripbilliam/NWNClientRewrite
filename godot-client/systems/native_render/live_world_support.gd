@@ -8,6 +8,30 @@ var client_support_revision:=0
 var _support_terrain_id:=0
 var _support_terrain_revision:=-1
 var _support_writer_depth:=0
+var _received_perception_started:=false
+var _received_perception_objects: Array=[]
+var _received_perception_controlled:=-1
+
+func received_snapshot_scope_begin(objects: Array,controlled: int) -> void:
+	_support_writer_depth+=1;client_support_revision+=1
+	_received_perception_started=false
+	_received_perception_objects=objects;_received_perception_controlled=controlled
+	super.received_snapshot_scope_begin(objects,controlled)
+
+func received_snapshot_scope_step() -> bool:
+	if not super.received_snapshot_scope_step():return false
+	if not is_instance_valid(effects):return true
+	if not _received_perception_started:
+		_received_perception_started=true
+		effects.begin_received_perception(_received_perception_objects,_received_perception_controlled)
+	return effects.received_perception_step()
+
+func received_snapshot_scope_end(objects: Array,controlled: int,completed: bool) -> void:
+	if not completed and is_instance_valid(effects):effects.cancel_received_perception()
+	super.received_snapshot_scope_end(objects,controlled,completed)
+	client_support_revision+=1;_support_writer_depth-=1
+	_received_perception_started=false
+	_received_perception_objects=[];_received_perception_controlled=-1
 
 func open(source,area: Dictionary,epoch: int,cache_directory: String,shared_pool=null,entry: Dictionary={}) -> void:
 	super.open(source,area,epoch,cache_directory,shared_pool,entry)

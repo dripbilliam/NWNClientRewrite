@@ -1,0 +1,38 @@
+{
+  "schema": "nwn75-sdl-window-context-lifecycle-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Conditional built-in SDL dynamic API, Win32 video presentation, window teardown, SDL quit, and GL context deletion ownership in pinned nwmain.exe; runtime backend selection remains open.",
+  "document": "sdl-window-context-lifecycle.md",
+  "edges": [
+    {"from":"0x1400bb640","to":"0x140ab16b0","callsite":"0x1400bb79a","kind":"direct_call","condition":"GLRender::SwapBuffers","status":"target_identified_descendants_open","evidence_id":"ev_c11c50fe4c140466818d71bad2a1971fa61ffcdf3463d879a4fb5cb25d3058ec"},
+    {"from":"0x140ab16b0","to":"0x14129a890","kind":"dynamic_api_cell","condition":"SDL_GL_SwapWindow; cell may be supplied by external SDL_DYNAMIC_API entry","status":"runtime_selection_open"},
+    {"from":"0x140aaf150","to":"0x140ad0ed0","callsite":"0x140ab0e38","kind":"builtin_dynamic_api_assignment","condition":"no usable external SDL_DYNAMIC_API entry","status":"target_identified_descendants_open"},
+    {"from":"0x140ad0ed0","to":"0x140af3a60","kind":"video_device_slot_0x190","condition":"valid current OpenGL window, selected Windows video device","status":"target_identified_descendants_open","evidence_id":"ev_330c9eaff97186a2c8618ec9ed78ae82809acb2beffd450b6b3e8c27cea50be3"},
+    {"from":"0x140af3a60","to":"GDI32.DLL::SwapBuffers","callsite":"0x140af3a6f","kind":"import_call","condition":"Win32 HDC present; driver call may fail","status":"external_boundary_reached","evidence_id":"ev_8224800f981f8940068e7415e2f1f5d35c68f3d08231015d15bd8a59b82a1dfb"},
+    {"from":"0x140074d40","to":"0x140ab1470","callsite":"0x140074d98","kind":"direct_call","condition":"CAurInternalGL deleting destructor has nonnull window at +0xc0","status":"target_identified_descendants_open","evidence_id":"ev_ec50ca65101030810e46c87f2197a0a8639fc2cb3904175be066696e3dde35a4"},
+    {"from":"0x140ab1470","to":"0x14129a808","kind":"dynamic_api_cell","condition":"SDL_DestroyWindow; initial cell points to 0x140aabf40; external SDL_DYNAMIC_API may replace it","status":"runtime_selection_open","evidence_id":"ev_0f9ae26c8562e0892edba4ea88a7b45eafe5405b0d06c21f1784ade937fdcba0"},
+    {"from":"0x140aaf150","to":"0x140acfaa0","callsite":"0x140ab0d4a","kind":"builtin_dynamic_api_assignment","condition":"built-in entry fills SDL_DestroyWindow cell 0x14129a808","status":"target_identified_descendants_open","original_pe_bytes":"48 8d 0d 56 ed 01 00 48 89 0d b7 9a 7e 00"},
+    {"from":"0x140acfaa0","to":"0x140af3d50","callsite":"0x140acfb67","kind":"video_device_slot_0x120","condition":"window teardown's backend-specific memory-DC branch on selected Windows device","status":"target_identified_descendants_open"},
+    {"from":"0x140acfaa0","to":"0x140af0040","callsite":"0x140acfb7f","kind":"video_device_slot_0x108","condition":"window teardown's backend-specific window branch on selected Windows device","status":"target_identified_descendants_open"},
+    {"from":"0x140acfaa0","to":"0x140af40e0","callsite":"0x140acfbd9","kind":"video_device_slot_0x1b0","condition":"window teardown's backend-specific device-module branch on selected Windows device","status":"target_identified_descendants_open"},
+    {"from":"0x140046340","to":"0x140ab2aa0","callsite":"0x140046e86","kind":"direct_call","condition":"SDL_main exit and SDL_WasInit returns nonzero","status":"target_identified_descendants_open","evidence_id":"ev_833c7aa9adb229ef33dd413c495d7c0f61fbec645c741d6268e78b62f252dd65"},
+    {"from":"0x140ab2aa0","to":"0x1412998c8","kind":"dynamic_api_cell","condition":"SDL_Quit; external SDL_DYNAMIC_API may replace built-in implementation","status":"runtime_selection_open"},
+    {"from":"0x140abdf10","to":"0x140abdd70","callsite":"0x140abdf28","kind":"direct_call","condition":"built-in SDL_Quit passes subsystem mask 0x7231","status":"target_identified_descendants_open","evidence_id":"ev_1c73c65d5b459948c2107eda09b4295206205b78f93bb596c06e45bc1c96e815","original_pe_bytes":"b9 31 72 00 00 e8 43 fe ff ff"},
+    {"from":"0x140abdd70","to":"0x140ad50c0","kind":"conditional_direct_call","condition":"VIDEO bit 0x20 present and subsystem final-reference/quit gate succeeds","status":"target_identified_descendants_open"},
+    {"from":"0x140ad50c0","to":"0x140acfaa0","kind":"conditional_direct_call","condition":"remaining SDL windows in built-in video-device teardown","status":"target_identified_descendants_open","evidence_id":"ev_0235366165d1f4c23caa2ba0b1b2b79b46e28f0ffe27c3823ca1578e0e806230"},
+    {"from":"0x140ad50c0","to":"0x140aba5f0","kind":"video_device_slot_0x548","condition":"selected Windows backend during final video-device free","status":"target_identified_descendants_open","evidence_id":"ev_41b8abda437ef295572522adfef949654215416c80c6e9bcf3d26fcd0c0d0d19"},
+    {"from":"0x140ab15e0","to":"0x14129a898","kind":"dynamic_api_cell","condition":"SDL_GL_DeleteContext exported wrapper; no Ghidra code caller to this wrapper","status":"owner_unresolved","evidence_id":"ev_76f12625ba77aba9449aca1a9c45d52bd3b2541f1948fcb074b4292bc41ebc94"},
+    {"from":"0x140aaf150","to":"0x140ad00a0","callsite":"0x140ab0e46","kind":"builtin_dynamic_api_assignment","condition":"built-in entry fills SDL_GL_DeleteContext cell 0x14129a898","status":"target_identified_descendants_open","original_pe_bytes":"48 8d 0d 5a f2 01 00 48 89 0d 4b 9a 7e 00"},
+    {"from":"0x140ad00a0","to":"0x140af2f80","callsite":"0x140ad00e5","kind":"video_device_slot_0x198","condition":"nonnull video device and context; selected Windows device","status":"target_identified_descendants_open","evidence_id":"ev_5e1b5a2271ca31d3f881221ee3fbb107802500b519527dbf9cda2ec1d361fbec"},
+    {"from":"0x140af2f80","to":"GL_table+0x30","callsite":"0x140af2f8f","kind":"computed_tail_jump","condition":"device +0x530 GL table is nonnull","status":"target_identified_descendants_open","evidence_id":"ev_a6dafecbe43c931a205e947f29e96cb914301b9603f04fd405115150d9138aba"},
+    {"from":"0x140af3390","to":"wglDeleteContext","callsite":"0x140af3460","kind":"dynamic_symbol_resolution","condition":"SDL_OPENGL_LIBRARY override or OPENGL32.DLL loads and required GL entries resolve; stored at GL table +0x30","status":"external_boundary_reached","evidence_id":"ev_97e6bb0c478694c1a0bb76e41c5dc49ccea5b39102139030b34cf12a86b15e7f"},
+    {"from":"0x140b06ab0","to":"0x140ad00a0","callsite":"0x140b06dbb","kind":"direct_call","condition":"SDL GL renderer-owned context pointer nonnull; not established as SDL_main global context","status":"separate_owner_branch","evidence_id":"ev_3cd608dc3a761603332d65d3b16849865101e6a257e53d091240a8bda1e84fc5"},
+    {"from":"0x140b0c110","to":"0x140ad00a0","callsite":"0x140b0c2c7","kind":"direct_call","condition":"SDL GLES2 renderer-owned context pointer nonnull; not established as SDL_main global context","status":"separate_owner_branch","evidence_id":"ev_416dd9de7a82883f54986a90e02408bea97fb02e35977d0dd0f03d06b6de9f2c"}
+  ],
+  "open_edges": [
+    "Runtime SDL_DYNAMIC_API and SDL_VIDEODRIVER selections for the observed client run",
+    "Runtime SDL_OPENGL_LIBRARY choice and exact loaded wglDeleteContext implementation",
+    "Owner and explicit deletion, if any, of the global SDL_main-created GL context after SDL_DestroyWindow and SDL_Quit; no shutdown-to-DeleteContext path established",
+    "Deeper platform/driver behavior beneath GDI32.DLL::SwapBuffers and native window destruction"
+  ]
+}

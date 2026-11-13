@@ -1,0 +1,15 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "JSON sliderf stored callback through four float sources, common slider control, changed float assignment and listener publication. Shared numeric draw is referenced in the integer-slider continuation.",
+  "edges": [
+    {"from":"0x14095fc30","to":"0x1409561a0","callsite":"0x14095fe47","kind":"direct_static","condition":"four DynamicValue<float> values captured by refcounted Widget","status":"float_slider_callback_allocation","evidence_id":"ev_40686dd1d36a9cf721f6ef310930cf7da150e26342010b22e9d3776a4f679ccc"},
+    {"from":"0x1409561a0","to":"0x140e6e618","callsite":"0x1409561cb","kind":"vtable_store","condition":"0x68-byte stored callback object","status":"float_slider_callback_identity","evidence_id":"ev_73cee4fdfb88fb569ca927b8641faccf742daa32ed7a8f130102f63ceab26ff1"},
+    {"from":"0x1409528e0","to":"0x14095cba0","kind":"resolved_original_vtable_candidate","condition":"Widget stored function table 0x140e6e618, virtual slot +0x10","status":"float_slider_render_callback","evidence_id":"ev_7ae50e76dd878b14610fb5220d1a9cb7f8573caebf084364253e41a8831630f4"},
+    {"from":"0x14095cba0","to":"0x140959e00","callsite":"0x14095cbaa","kind":"tail_jump","condition":"forwards callback capture and Widget/context","status":"float_slider_values","evidence_id":"ev_7ae50e76dd878b14610fb5220d1a9cb7f8573caebf084364253e41a8831630f4"},
+    {"from":"0x140959e00","to":"0x140a8a1d0","callsite":"0x140959f15","kind":"direct_static","condition":"resolve four direct/generated/fallback float values","status":"float_slider_ui_gate","evidence_id":"ev_df0ddbbbcd452b6a1cf7c6799657cf8476dbcd6dc03c92601c1c8208e2384646"},
+    {"from":"0x140a8a1d0","to":"0x140a8a250","callsite":"0x140a8a1eb","kind":"direct_static","condition":"pass current value by float pointer; retain float result; common slider UI/draw path","status":"float_slider_common_control","evidence_id":"ev_e4a7528fa93aa27907ea1fb42f5272fc1bbd7e681a0585a51c5a558555fc794b"},
+    {"from":"0x140959e00","to":"DynamicValue<float> generators","callsites":["0x140959e3b","0x140959e74","0x140959eae","0x140959ee7"],"kind":"unresolved_dynamic_callback","condition":"corresponding direct float pointer absent and generator installed","status":"float_source_frontier","evidence_id":"ev_df0ddbbbcd452b6a1cf7c6799657cf8476dbcd6dc03c92601c1c8208e2384646"},
+    {"from":"0x140959e00","to":"DynamicValue<float> listeners","callsites":["0x140959faf","0x140959fea"],"kind":"unresolved_dynamic_callback","condition":"returned float compares unequal to old value; singular or vector listener installed","status":"changed_float_listener_frontier","evidence_id":"ev_df0ddbbbcd452b6a1cf7c6799657cf8476dbcd6dc03c92601c1c8208e2384646"}
+  ]
+}

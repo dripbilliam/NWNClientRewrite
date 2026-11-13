@@ -1,0 +1,407 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Name-based IODispatcher text/binary MDL parser into typed Model/MdlNode tree and representative mesh render-pool publication. Other resource storage, subtype payloads and GL draw are cross-referenced.",
+  "edges": [
+    {
+      "from": "0x140098cd0",
+      "to": "0x140079f70",
+      "callsite": "0x140098ecf",
+      "callsite_evidence_id": "ev_2ac23a94e2089bbb55947af4d2f32a3293891e54ca7e1d7facb9f78b3a69f35c",
+      "kind": "direct_static",
+      "condition": "cache miss after nonnull/non-NULL name; top-level whitelist installed",
+      "status": "target_identified",
+      "evidence_id": "ev_9ae09257d719c310ffd346cdc294613a7b976f33e15771bb2567a2327729f794"
+    },
+    {
+      "from": "0x140079f70",
+      "to": "0x140079a80",
+      "callsite": "0x140079f82",
+      "callsite_evidence_id": "ev_1f52104ae3e6cdd0cb6030c95eac5fec5c9f79ee53e4658a029a76d1362c655b",
+      "kind": "direct_static",
+      "condition": "name-based ReadSync wrapper",
+      "status": "target_identified",
+      "evidence_id": "ev_e6d14006e75717f7f181a4eab20ec044a3a2e500b3869336453f7fabb5e9b438"
+    },
+    {
+      "from": "0x140079a80",
+      "to": "0x14005dbc0",
+      "callsite": "0x140079ad1",
+      "callsite_evidence_id": "ev_1a17f491f9c5adfc2f791a911ae87e647e3a15df42bafa8a2981217cba3b0031",
+      "kind": "direct_static",
+      "condition": "demand named .mdl, local fallback allowed",
+      "status": "resource_boundary",
+      "evidence_id": "ev_2efb3964d431d5dfa49e085705873434a4e574062e66f92b15493034daa00a04"
+    },
+    {
+      "from": "0x140079a80",
+      "to": "0x14005dee0",
+      "callsite": "0x140079aed",
+      "callsite_evidence_id": "ev_4b2e60588845360f81d311d73605bf5d4f7ba18b992e48968bde24e29f612a4b",
+      "kind": "direct_static",
+      "condition": "resource present; first four bytes for text/binary gate",
+      "status": "resource_boundary",
+      "evidence_id": "ev_2efb3964d431d5dfa49e085705873434a4e574062e66f92b15493034daa00a04"
+    },
+    {
+      "from": "0x140079a80",
+      "to": "0x140079d50",
+      "callsite": "0x140079b02",
+      "callsite_evidence_id": "ev_6c88afeb65be6f4c244841d3aa2610e94f0fd0cae82edc4d3dd66b4815dd4984",
+      "kind": "direct_static",
+      "condition": "first resource byte is zero: binary MDL",
+      "status": "target_identified",
+      "evidence_id": "ev_2efb3964d431d5dfa49e085705873434a4e574062e66f92b15493034daa00a04"
+    },
+    {
+      "from": "0x140079a80",
+      "to": "0x14008c3a0",
+      "callsite": "0x140079b0a",
+      "callsite_evidence_id": "ev_6e5facac21bb7ab7fd5b468baf188db09f29f7de36407c1d4badef02284562c8",
+      "kind": "direct_static",
+      "condition": "binary parse returns MaxTree; accept only kind 2 Model",
+      "status": "cpu_gate_leaf",
+      "evidence_id": "ev_2efb3964d431d5dfa49e085705873434a4e574062e66f92b15493034daa00a04"
+    },
+    {
+      "from": "0x140079a80",
+      "to": "0x14005d920",
+      "callsite": "0x140079c7d",
+      "callsite_evidence_id": "ev_e4314e88154284736a829ac1cbfd12f8aaf7069c83f0626483b56b3a913d0de0",
+      "kind": "direct_static",
+      "condition": "first resource byte nonzero: free probe resource before text reopen",
+      "status": "resource_lifetime_leaf",
+      "evidence_id": "ev_2efb3964d431d5dfa49e085705873434a4e574062e66f92b15493034daa00a04"
+    },
+    {
+      "from": "0x140079a80",
+      "to": "0x14005ff30",
+      "callsite": "0x140079ca9",
+      "callsite_evidence_id": "ev_7520b5fed6c0124878f74909cedbfcb5e84300afc7abef4d6d6589d624b66151",
+      "kind": "direct_static",
+      "condition": "first resource byte nonzero: compose name.mdl then text parse",
+      "status": "target_identified",
+      "evidence_id": "ev_2efb3964d431d5dfa49e085705873434a4e574062e66f92b15493034daa00a04"
+    },
+    {
+      "from": "0x140079d50",
+      "to": "0x14005dee0",
+      "callsite": "0x140079d65",
+      "callsite_evidence_id": "ev_966345ee4f42d6538c9a16830e6dec6754745df17d9359c3d9aac6be9cff3a3f",
+      "kind": "direct_static",
+      "condition": "read first binary block length",
+      "status": "resource_boundary",
+      "evidence_id": "ev_7c2123d9b27fb15797c3dedd63af21c5b8a7bb5117932689b2b02dbf5aab89bb"
+    },
+    {
+      "from": "0x140079d50",
+      "to": "0x14005dee0",
+      "callsite": "0x140079d95",
+      "callsite_evidence_id": "ev_700956df06b251305f706846a69be639ae29c37c84ff53cb9581fe389e1fb6e5",
+      "kind": "direct_static",
+      "condition": "read second binary block length",
+      "status": "resource_boundary",
+      "evidence_id": "ev_7c2123d9b27fb15797c3dedd63af21c5b8a7bb5117932689b2b02dbf5aab89bb"
+    },
+    {
+      "from": "0x140079d50",
+      "to": "0x14005dee0",
+      "callsite": "0x140079da4",
+      "callsite_evidence_id": "ev_a2d20bbfdc42c3e37b47cb42f9e01b12523bb390561c8ea5c500399a070a7bfe",
+      "kind": "direct_static",
+      "condition": "read principal model block by first authored length",
+      "status": "resource_boundary",
+      "evidence_id": "ev_7c2123d9b27fb15797c3dedd63af21c5b8a7bb5117932689b2b02dbf5aab89bb"
+    },
+    {
+      "from": "0x140079d50",
+      "to": "0x14005dee0",
+      "callsite": "0x140079dca",
+      "callsite_evidence_id": "ev_eeee9378ae20072d3b6d04cf79fc9b5820388ba83ca963d696b6ac71b60af670",
+      "kind": "direct_static",
+      "condition": "read optional geometry block by second authored length",
+      "status": "resource_boundary",
+      "evidence_id": "ev_7c2123d9b27fb15797c3dedd63af21c5b8a7bb5117932689b2b02dbf5aab89bb"
+    },
+    {
+      "from": "0x140079d50",
+      "to": "0x140079f90",
+      "callsite": "0x140079dfe",
+      "callsite_evidence_id": "ev_540dafc528f86324b01fd451347d718611fbc2cad267990dcd62a524c5a17e64",
+      "kind": "direct_static",
+      "condition": "after temporary block copies",
+      "status": "target_identified",
+      "evidence_id": "ev_7c2123d9b27fb15797c3dedd63af21c5b8a7bb5117932689b2b02dbf5aab89bb"
+    },
+    {
+      "from": "0x140079f90",
+      "to": "0x140098cd0",
+      "callsite": "0x14007a105",
+      "callsite_evidence_id": "ev_ac9971a3b296cb60100eeae77f198d79dcc70010b1bd9cbc35c12c04e31b237a",
+      "kind": "direct_static",
+      "condition": "resolve optional supermodel name; may re-enter parser",
+      "status": "target_identified",
+      "evidence_id": "ev_f4158e56d8ee33d90ecaac2dbc4b1dc0bc42b4716fcd02b81ec0b6b224ca2ade"
+    },
+    {
+      "from": "0x140079f90",
+      "to": "0x14007abe0",
+      "callsite": "0x14007a301",
+      "callsite_evidence_id": "ev_d069ed9204b17ce6bc4131febab2d3926a4047f063379b0eca480753752764fc",
+      "kind": "direct_static",
+      "condition": "each nonzero-count animation root from copied offset table",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_f4158e56d8ee33d90ecaac2dbc4b1dc0bc42b4716fcd02b81ec0b6b224ca2ade"
+    },
+    {
+      "from": "0x140079f90",
+      "to": "0x14007abe0",
+      "callsite": "0x14007a36f",
+      "callsite_evidence_id": "ev_0845eb14f9dc4327799d313759d7d95f33a01c40689d673fa8bcb324dae77cf0",
+      "kind": "direct_static",
+      "condition": "model geometry root at binary offset +0x48",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_f4158e56d8ee33d90ecaac2dbc4b1dc0bc42b4716fcd02b81ec0b6b224ca2ade"
+    },
+    {
+      "from": "0x140079f90",
+      "to": "0x140079500",
+      "callsite": "0x14007a37b",
+      "callsite_evidence_id": "ev_23a076c4ded2fbe29a59fa6c59c54d7cc01d91106a2e5b2327ed207b42a6a2d5",
+      "kind": "direct_static",
+      "condition": "root constructed; recursively normalize optional mesh normals",
+      "status": "cpu_pool_leaf",
+      "evidence_id": "ev_f4158e56d8ee33d90ecaac2dbc4b1dc0bc42b4716fcd02b81ec0b6b224ca2ade"
+    },
+    {
+      "from": "0x140079f90",
+      "to": "0x140099240",
+      "callsite": "0x14007a398",
+      "callsite_evidence_id": "ev_53e6d735cbb4ec264712bb7ab99a8c57ad5a45eb2adbf65b1feeedff594ff269",
+      "kind": "direct_static",
+      "condition": "typed Model constructed; insert global table",
+      "status": "cpu_publication_leaf",
+      "evidence_id": "ev_f4158e56d8ee33d90ecaac2dbc4b1dc0bc42b4716fcd02b81ec0b6b224ca2ade"
+    },
+    {
+      "from": "0x14007b6c0",
+      "to": "0x14007abe0",
+      "callsite": "0x14007b7b6",
+      "callsite_evidence_id": "ev_dcc945f4dc94a90452145c136b801ed85ba19e85961d2e0d5cb2397ed02f63e1",
+      "kind": "direct_static",
+      "condition": "for each binary child offset, build typed child and link parent",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_aa629682949918870b714967a2d3d6648a824790efde8d2db416b5525390b0b9"
+    },
+    {
+      "from": "0x14007be10",
+      "to": "0x14007b6c0",
+      "callsite": "0x14007be52",
+      "callsite_evidence_id": "ev_eb7952fbc91eef301e5e319bf7258ad6afbd42f3822f40b73e2dddfebd53be5a",
+      "kind": "direct_static",
+      "condition": "binary mesh first builds common child/controller node",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "0x14007be10",
+      "to": "0x1400beee0",
+      "callsite": "0x14007c082",
+      "callsite_evidence_id": "ev_cc7b1cd3ae9f58617b5bea8d134cec22941a95694f7edc0870bfe1658b5a817e",
+      "kind": "direct_static",
+      "condition": "binary mesh base vertex pool",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "0x14007be10",
+      "to": "0x1400bee30",
+      "callsite": "0x14007c094",
+      "callsite_evidence_id": "ev_5e1b7f8e0c18de1ccd4834bfde1052d0328ccdf181311d63f0af8fd2a5bf19b5",
+      "kind": "direct_static",
+      "condition": "binary mesh base pool lock",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "0x14007be10",
+      "to": "0x140c417f0",
+      "callsite": "0x14007c0af",
+      "callsite_evidence_id": "ev_cc737c4bb1ef8f488437e069b8e3fccf168ee44400bfae6becb3773a80259e93",
+      "kind": "direct_static",
+      "condition": "copy binary vertex stream to locked pool",
+      "status": "cpu_copy_leaf",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "0x14007be10",
+      "to": "0x1400bf3d0",
+      "callsite": "0x14007c0be",
+      "callsite_evidence_id": "ev_9e934cd1ead67f1bdbb8e76d58f90fb3957603dcc5f34f41fdd2a91c741fd36f",
+      "kind": "direct_static",
+      "condition": "release binary base pool lock",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "0x14005ff30",
+      "to": "0x14005ebf0",
+      "callsite": "0x140060157",
+      "callsite_evidence_id": "ev_037a31892dbae47ee71b43d79772c75fe82f5d8d2c22d443706b8ebd3408c47b",
+      "kind": "direct_static",
+      "condition": "nonblank, noncomment text line after trim",
+      "status": "target_identified",
+      "evidence_id": "ev_b7ceeb48717444020c544740a79c24000dc28560dded571af8241c098654e808"
+    },
+    {
+      "from": "0x14005ebf0",
+      "to": "0x14005eb10",
+      "callsite": "0x14005f589",
+      "callsite_evidence_id": "ev_c3aeb366ebf9ef473348a1f53c9836d72b75dea0d12d817acbfbe26e03369e51",
+      "kind": "direct_static",
+      "condition": "accepted command: find registered callback holder",
+      "status": "target_identified",
+      "evidence_id": "ev_e100938d387d59a65dba062b29362d993dc22c1f2c4d828a99ad7d46bd2d0431"
+    },
+    {
+      "from": "0x1400a1920",
+      "to": "0x140087bc0",
+      "callsite": "0x1400a194c",
+      "callsite_evidence_id": "ev_80bae8aaf68086aa831ea834f0b5b2c3eced5d6c366de3c7af5a6036a8f3039a",
+      "kind": "direct_static",
+      "condition": "newmodel command selected; initialize typed Model and install parse field",
+      "status": "typed_model_tree",
+      "evidence_id": "ev_78e5ee01a9fa37a9933c81acd8f25c660e656feaca20d55ce3bfb6fa49a3f6cb"
+    },
+    {
+      "from": "0x1400a1160",
+      "to": "0x140099010",
+      "callsite": "0x1400a1186",
+      "callsite_evidence_id": "ev_87b8ed7e30f8c199747795264b8287d8380662da472b84fa0cadb58f4be8c329",
+      "kind": "direct_static",
+      "condition": "beginmodelgeom command selected",
+      "status": "target_identified",
+      "evidence_id": "ev_c7ce3917083e414322808ffeeccd7d02f85cd54213297eeed227349aff1bc04c"
+    },
+    {
+      "from": "0x1400a1160",
+      "to": "0x1400aaa70",
+      "callsite": "0x1400a119d",
+      "callsite_evidence_id": "ev_12fe3efc6dcf0e7af85cd942aae0a1c1c1a303791136f5e2bb2ce1b9cb2be892",
+      "kind": "direct_static",
+      "condition": "geometry import complete; synchronize nonnull supermodel",
+      "status": "cpu_tree_leaf",
+      "evidence_id": "ev_c7ce3917083e414322808ffeeccd7d02f85cd54213297eeed227349aff1bc04c"
+    },
+    {
+      "from": "0x140099010",
+      "to": "0x1400aa870",
+      "callsite": "0x14009908e",
+      "callsite_evidence_id": "ev_5ce207cdd379b7a72137061b44fc86e137e026b67afae804e1c062bba31d0cb1",
+      "kind": "direct_static",
+      "condition": "import stops at done/end and AsModel succeeds",
+      "status": "cpu_tree_leaf",
+      "evidence_id": "ev_811807c39a42c0efa7995eec2dba699fa1f25c59f9cbb4e7cc502fd167ebb62f"
+    },
+    {
+      "from": "0x14009ff50",
+      "to": "0x1400a0d90",
+      "callsite": "0x1400a00ff",
+      "callsite_evidence_id": "ev_dbfa544b760729f90b78ddb0aaa157bc8d9053535b60d4ec8ccd8f1fbc4e2f77",
+      "kind": "direct_static",
+      "condition": "Model parse field begins node token",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_28c8f541819f6b887bc16d4a7656dd08ec00defac586ab049534413041add44a"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "0x1400874c0",
+      "callsite": "0x1400a0e59",
+      "callsite_evidence_id": "ev_8af5c9ba9165f80318822048332eefa1d0153a84e9083ff96e27fb548b2540cd",
+      "kind": "direct_static",
+      "condition": "text node type camera; initialize typed node",
+      "status": "typed_node_tree",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a7790",
+      "callsite": "0x1400a9b49",
+      "callsite_evidence_id": "ev_163452d777698f832b6d138631fb83476aafbd2bb24c6103a37064d2af5f29de",
+      "kind": "direct_static",
+      "condition": "text TriMesh with zero vertex count and faces; generate vertex data",
+      "status": "target_identified",
+      "evidence_id": "ev_02dfee84b52d81306ddd35e07721e1cc152e3394d05c25bf9aa024178e51ea0c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a7836",
+      "callsite_evidence_id": "ev_8d0b7136c238aa8cea0f478f02b69f12724cd48699aafeed9de5686018d626ca",
+      "kind": "direct_static",
+      "condition": "text mesh with faces: position vertex pool",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_9434dc82a35594870257e9730e8636356579089067342be3a4dda50f60c19a4c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a7848",
+      "callsite_evidence_id": "ev_6df81aa777afe560d3e942b19066bce3ec06f3878ef4947512662f5f17f3f000",
+      "kind": "direct_static",
+      "condition": "text mesh position pool lock",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_9434dc82a35594870257e9730e8636356579089067342be3a4dda50f60c19a4c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7c69",
+      "callsite_evidence_id": "ev_f91f940df8115996e43796d1ae13f981866ac83c579126c870c1c24d4e041c95",
+      "kind": "direct_static",
+      "condition": "text mesh position pool unlock after CPU publication",
+      "status": "render_pool_boundary",
+      "evidence_id": "ev_9434dc82a35594870257e9730e8636356579089067342be3a4dda50f60c19a4c"
+    },
+    {
+      "from": "0x14005ebf0",
+      "to": "DYNAMIC:REGISTERED_TEXT_COMMAND_HOLDER",
+      "callsite": "0x14005f68c",
+      "callsite_evidence_id": "ev_b5f660522613c5f4509258676752902363a698d1714ca6ffdbb9085086aa16d3",
+      "kind": "unresolved_runtime_selector",
+      "condition": "whitelist admits command, FindConCallBack finds holder; exact holder target depends on registration",
+      "status": "unresolved_target",
+      "evidence_id": "ev_e100938d387d59a65dba062b29362d993dc22c1f2c4d828a99ad7d46bd2d0431"
+    },
+    {
+      "from": "0x140099010",
+      "to": "DYNAMIC:MAXTREE_PARSE_FIELD",
+      "callsite": "0x140099078",
+      "callsite_evidence_id": "ev_4b669ae3bda11a7e8fdf5cd27e818712305295a656478d13e99ed1f66a29d7ba",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "current tree is Model from newmodel; target ModelParseField 0x1400931e0, tail jump to InternalParseField 0x14009ff50; other MaxTree kinds remain possible",
+      "status": "target_identified",
+      "evidence_id": "ev_811807c39a42c0efa7995eec2dba699fa1f25c59f9cbb4e7cc502fd167ebb62f"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "DYNAMIC:MDLNODE_PARSE_FIELD",
+      "callsite": "0x1400a109f",
+      "callsite_evidence_id": "ev_7a73360a58916738992040ced08c5a2fc247f33f1d24b0e1ce9b295bd596fe3d",
+      "kind": "unresolved_runtime_selector",
+      "condition": "typed node constructor writes subtype parse field at +0x8; base target 0x140092d80, subtype families differ",
+      "status": "unresolved_target",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    },
+    {
+      "from": "0x1400a0d90",
+      "to": "DYNAMIC:MDLNODE_POSTPROCESS",
+      "callsite": "0x1400a10b3",
+      "callsite_evidence_id": "ev_b78f18efe9eeb50a5253b0b49f8586ea54528d9ae467a1584814f0e24be92f4c",
+      "kind": "resolved_original_function_pointer_candidate",
+      "condition": "after endnode, subtype +0x10 postprocess; TriMesh target 0x1400931b0 tail jump 0x1400a9ae0",
+      "status": "target_identified",
+      "evidence_id": "ev_e612dbcbe33dbab4b3f1321362195ecd6bba4086a41e37b3cdbfff2996608998"
+    }
+  ]
+}

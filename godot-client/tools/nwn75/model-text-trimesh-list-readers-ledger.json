@@ -1,0 +1,161 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Shared text TriMesh Vector, Vector4, int, unsigned int and face list readers through resource-line/raw-data and CPU storage leaves.",
+  "edges": [
+    {
+      "from": "0x140097c90",
+      "to": "0x14005dff0",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "no-count endlist or counted text lines",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_4d29859479236afaa5a0bf23907ee1305f9ee3d12c7c9d7c61355b09499c8ced",
+      "target_label": "AurResGetNextLine"
+    },
+    {
+      "from": "0x140097c90",
+      "to": "0x14005de20",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "count plus marker raw-data read",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_4d29859479236afaa5a0bf23907ee1305f9ee3d12c7c9d7c61355b09499c8ced",
+      "target_label": "AurResGetData"
+    },
+    {
+      "from": "0x140097c90",
+      "to": "CPU list storage",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "allocate/resize, scan or copy 12-byte elements",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_4d29859479236afaa5a0bf23907ee1305f9ee3d12c7c9d7c61355b09499c8ced"
+    },
+    {
+      "from": "0x140097a00",
+      "to": "0x14005dff0",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "no-count endlist or counted text lines",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_2b41acf6328284826ef2c12631572b0fbc1370c8e426c4a0163b280067b5040e",
+      "target_label": "AurResGetNextLine"
+    },
+    {
+      "from": "0x140097a00",
+      "to": "0x14005de20",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "count plus marker raw-data read",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_2b41acf6328284826ef2c12631572b0fbc1370c8e426c4a0163b280067b5040e",
+      "target_label": "AurResGetData"
+    },
+    {
+      "from": "0x140097a00",
+      "to": "CPU list storage",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "allocate/resize, scan or copy 16-byte elements",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_2b41acf6328284826ef2c12631572b0fbc1370c8e426c4a0163b280067b5040e"
+    },
+    {
+      "from": "0x140096530",
+      "to": "0x14005dff0",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "no-count endlist or counted text lines",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_5db7523996b7dcf806b575d279b195109edbce18d8bec6b2afbf0a006e23a216",
+      "target_label": "AurResGetNextLine"
+    },
+    {
+      "from": "0x140096530",
+      "to": "0x14005de20",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "count plus marker raw-data read",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_5db7523996b7dcf806b575d279b195109edbce18d8bec6b2afbf0a006e23a216",
+      "target_label": "AurResGetData"
+    },
+    {
+      "from": "0x140096530",
+      "to": "CPU list storage",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "allocate/resize, scan or copy 4-byte elements",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_5db7523996b7dcf806b575d279b195109edbce18d8bec6b2afbf0a006e23a216"
+    },
+    {
+      "from": "0x140096790",
+      "to": "0x14005dff0",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "no-count endlist or counted text lines",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_54b3571d0047f460d3728d64f5d19ee4acd9b1ce2de2fee77bc2c94f638925d9",
+      "target_label": "AurResGetNextLine"
+    },
+    {
+      "from": "0x140096790",
+      "to": "0x14005de20",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "count plus marker raw-data read",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_54b3571d0047f460d3728d64f5d19ee4acd9b1ce2de2fee77bc2c94f638925d9",
+      "target_label": "AurResGetData"
+    },
+    {
+      "from": "0x140096790",
+      "to": "CPU list storage",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "allocate/resize, scan or copy 4-byte elements",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_54b3571d0047f460d3728d64f5d19ee4acd9b1ce2de2fee77bc2c94f638925d9"
+    },
+    {
+      "from": "0x140097250",
+      "to": "0x14005dff0",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "no-count endlist or counted text lines",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_fc045200fe11fce6442f96e7a1ba91fbfc180faa4d5aac81608d233c6263ac51",
+      "target_label": "AurResGetNextLine"
+    },
+    {
+      "from": "0x140097250",
+      "to": "0x14005de20",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "count plus marker raw-data read",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_fc045200fe11fce6442f96e7a1ba91fbfc180faa4d5aac81608d233c6263ac51",
+      "target_label": "AurResGetData"
+    },
+    {
+      "from": "0x140097250",
+      "to": "CPU list storage",
+      "kind": "conditional_cpu_list_mode",
+      "condition": "allocate/resize, scan or copy 32-byte elements",
+      "status": "cpu_resource_or_list_leaf",
+      "evidence_id": "ev_fc045200fe11fce6442f96e7a1ba91fbfc180faa4d5aac81608d233c6263ac51"
+    },
+    {
+      "from": "0x140097250",
+      "to": "0x1400a0810",
+      "kind": "conditional_element_parse",
+      "condition": "no-count or counted text face line; raw-data form bypasses",
+      "status": "cpu_face_element",
+      "evidence_id": "ev_fc045200fe11fce6442f96e7a1ba91fbfc180faa4d5aac81608d233c6263ac51"
+    },
+    {
+      "from": "0x1400a0810",
+      "to": "CPU face+0x00/+0x08/+0x18 allocated blocks",
+      "kind": "cpu_element_allocation",
+      "condition": "text face line, free prior pointers if present, allocate 0x0c/0x30/0x0c bytes and scan eight ints",
+      "status": "cpu_face_element",
+      "evidence_id": "ev_e44dca0a4b068d7a2d4f751eebfb3de4f0440145ddef83add79679a9aaff348c"
+    },
+    {
+      "from": "0x140097250",
+      "to": "DYNAMIC:FACE_ELEMENT_AUTHORED_MODE",
+      "kind": "unresolved_runtime_selector",
+      "condition": "text versus raw mode, count validity, downstream pointer interpretation and later pool admission",
+      "status": "unresolved_target",
+      "evidence_id": "ev_fc045200fe11fce6442f96e7a1ba91fbfc180faa4d5aac81608d233c6263ac51"
+    }
+  ]
+}

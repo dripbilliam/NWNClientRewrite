@@ -16,6 +16,8 @@ var window_column: VBoxContainer
 var close_button: Button
 var title_bar: HBoxContainer
 var visual_extent := Vector2.ZERO
+var pending_native_theme: Theme
+var pending_native_theme_source:=0
 
 func set_caption(caption: String) -> void:
 	title = caption
@@ -66,6 +68,8 @@ func _ready() -> void:
 	call_deferred("_clamp")
 
 func apply_native_theme(value: Theme) -> void:
+	pending_native_theme=null;pending_native_theme_source=0
+	if visibility_changed.is_connected(_apply_pending_native_theme):visibility_changed.disconnect(_apply_pending_native_theme)
 	# Authored source skins may replace the prototype panel/close controls.
 	# Keep those exact overrides; flexible windows inherit the shared theme.
 	var authored:=has_theme_stylebox_override("panel") and get_theme_stylebox("panel") is StyleBoxEmpty
@@ -73,6 +77,21 @@ func apply_native_theme(value: Theme) -> void:
 		theme=value
 	else:
 		MenuBuilder.apply_window(self,value,close_button if is_instance_valid(close_button) and close_button.get_parent()==title_bar else null)
+
+func stage_native_theme(value: Theme,source_id: int) -> bool:
+	if is_visible_in_tree():apply_native_theme(value);return false
+	pending_native_theme=value;pending_native_theme_source=source_id
+	if not visibility_changed.is_connected(_apply_pending_native_theme):visibility_changed.connect(_apply_pending_native_theme)
+	return true
+
+func discard_pending_native_theme(source_id: int) -> void:
+	if pending_native_theme_source!=source_id:return
+	pending_native_theme=null;pending_native_theme_source=0
+	if visibility_changed.is_connected(_apply_pending_native_theme):visibility_changed.disconnect(_apply_pending_native_theme)
+
+func _apply_pending_native_theme() -> void:
+	if pending_native_theme==null or not is_visible_in_tree():return
+	apply_native_theme(pending_native_theme)
 
 func _title_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:

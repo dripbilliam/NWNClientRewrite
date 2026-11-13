@@ -1,0 +1,164 @@
+{
+  "schema": "nwn75-original-gl-extension-pointer-catalog-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original nwmain.exe GL pointer globals observed in GUI, shader connection, and uniform callsites. The loader assignments identify intended API names; runtime pointer availability is gated by extension loading.",
+  "method": "REA/Ghidra decompilation of four wglGetProcAddress loader functions; local pinned-PE RIP-relative reference scan in .cache/nwn75/gl-pointer-rip-refs-a.json.",
+  "pointers": [
+    {
+      "address": "0x1414422c8",
+      "api": "glBlendEquation",
+      "loader": "0x140b6f270",
+      "evidence_id": "ev_2202611aa7cdff646e79ddfc24e937e57864307ac57e3b3c5c16ca5113b64ee1"
+    },
+    {
+      "address": "0x141442448",
+      "api": "glBufferData",
+      "loader": "0x140b7a0f0",
+      "evidence_id": "ev_d89e70c97265d5aeab50c9736c08a35139eade158c9c861b608a8b94ce86fd93"
+    },
+    {
+      "address": "0x1414424c0",
+      "api": "glMapBuffer",
+      "loader": "0x140b7a0f0",
+      "evidence_id": "ev_d89e70c97265d5aeab50c9736c08a35139eade158c9c861b608a8b94ce86fd93"
+    },
+    {
+      "address": "0x1414424c8",
+      "api": "glUnmapBuffer",
+      "loader": "0x140b7a0f0",
+      "evidence_id": "ev_d89e70c97265d5aeab50c9736c08a35139eade158c9c861b608a8b94ce86fd93"
+    },
+    {
+      "address": "0x1414424d0",
+      "api": "glAttachShader",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x1414424f0",
+      "api": "glCreateProgram",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442528",
+      "api": "glEnableVertexAttribArray",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442550",
+      "api": "glGetProgramInfoLog",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442558",
+      "api": "glGetProgramiv",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442578",
+      "api": "glGetUniformLocation",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x1414425c0",
+      "api": "glLinkProgram",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x1414425e8",
+      "api": "glUniform1f",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x1414425f0",
+      "api": "glUniform1fv",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x1414425f8",
+      "api": "glUniform1i",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442610",
+      "api": "glUniform2fv",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442618",
+      "api": "glUniform2i",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442628",
+      "api": "glUniform3f",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442630",
+      "api": "glUniform3fv",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442648",
+      "api": "glUniform4f",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442650",
+      "api": "glUniform4fv",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442670",
+      "api": "glUniformMatrix3fv",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442678",
+      "api": "glUniformMatrix4fv",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141442680",
+      "api": "glUseProgram",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x1414427b0",
+      "api": "glVertexAttribPointer",
+      "loader": "0x140b7a350",
+      "evidence_id": "ev_34f0426e6ddccc2d5835824caea17d347c8be1b00ffbc169322aa1e7cc808463"
+    },
+    {
+      "address": "0x141443f48",
+      "api": "glBindVertexArray",
+      "loader": "0x140b70e00",
+      "evidence_id": "ev_725805f963a4cbd59b668c137be2c2a624ce413af95fba83fbb05b42a53d3748"
+    }
+  ]
+}

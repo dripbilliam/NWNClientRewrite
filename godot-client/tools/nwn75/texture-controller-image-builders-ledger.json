@@ -1,0 +1,20 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Perlin and Arturo controller image builders through CPU arithmetic and CRT allocation/RNG/copy/free boundaries, plus Arturo FloatInterpolate leaf.",
+  "edges": [
+    {"from":"0x1400e0fa0","to":"0x140c10368","callsite":"0x1400e1017","kind":"direct_static","condition":"allocate octave-pointer array","status":"cpu_perlin_octave_alloc","evidence_id":"ev_96964193b9d6eacfae8994b6c447b214624e0393f2745d4c665b55407698e896"},
+    {"from":"0x1400e0fa0","to":"0x140071020","callsite":"0x1400e103a","kind":"direct_static","condition":"each octave, doubled side and halved amplitude","status":"cpu_perlin_octave_build","evidence_id":"ev_96964193b9d6eacfae8994b6c447b214624e0393f2745d4c665b55407698e896"},
+    {"from":"0x1400e0fa0","to":"0x140071dc0","callsite":"0x1400e1087","kind":"direct_static","condition":"each destination pixel","status":"cpu_perlin_pixel_sample","evidence_id":"ev_96964193b9d6eacfae8994b6c447b214624e0393f2745d4c665b55407698e896"},
+    {"from":"0x1400e0fa0","to":"0x140c10370","callsites":["0x1400e10d5","0x1400e10ee"],"kind":"direct_static","condition":"free octave buffers then octave-pointer array; second site is tail jump","status":"cpu_perlin_octave_free","evidence_id":"ev_96964193b9d6eacfae8994b6c447b214624e0393f2745d4c665b55407698e896"},
+    {"from":"0x140071020","to":"0x140c10368","callsite":"0x14007103b","kind":"direct_static","condition":"allocate side-squared octave byte image","status":"cpu_perlin_image_alloc","evidence_id":"ev_db291f880432a2ea3d354f9e80a26179290774ffe5b40e715036c554e2d4d153"},
+    {"from":"0x140071020","to":"0x140c7ed00","callsite":"0x140071060","kind":"direct_static","condition":"per-byte CRT random seed scaled by amplitude","status":"cpu_perlin_rng","evidence_id":"ev_db291f880432a2ea3d354f9e80a26179290774ffe5b40e715036c554e2d4d153"},
+    {"from":"0x140071dc0","to":"0x140c7ed44","callsites":["0x140071e5c","0x140071e68"],"kind":"direct_static","condition":"each octave's two sample axes","status":"cpu_perlin_floor","evidence_id":"ev_273b14b16a79d7012168c9d9203522f3485086a049e6cc56cd77cb2b28d242b9"},
+    {"from":"0x140071dc0","to":"bilinear octave accumulation and byte return","kind":"terminal_cpu_leaf","condition":"positive octave count and side length","status":"cpu_perlin_interpolation","evidence_id":"ev_273b14b16a79d7012168c9d9203522f3485086a049e6cc56cd77cb2b28d242b9"},
+    {"from":"0x1400e0ce0","to":"0x140c7ed00","callsites":["0x1400e0d07","0x1400e0d16","0x1400e0e7c"],"kind":"direct_static","condition":"choose cell and perturb selected cell","status":"cpu_arturo_rng","evidence_id":"ev_911ab2ab62b7c1e6cbac69666bd3488e3d6a8d45eedc40b1e928e05599a553a5"},
+    {"from":"0x1400e0ce0","to":"wrapped neighbor update and clamp","kind":"terminal_cpu_leaf","condition":"positive controller field dimensions","status":"cpu_arturo_field_step","evidence_id":"ev_911ab2ab62b7c1e6cbac69666bd3488e3d6a8d45eedc40b1e928e05599a553a5"},
+    {"from":"0x1400e0ce0","to":"0x140c417f0","callsites":["0x1400e0f78","0x1400e0f95"],"kind":"direct_static","condition":"rotate controller float image buffers; second site is tail jump","status":"cpu_arturo_image_copy","evidence_id":"ev_911ab2ab62b7c1e6cbac69666bd3488e3d6a8d45eedc40b1e928e05599a553a5"},
+    {"from":"0x1400e2f30","to":"wrapped float-image bilinear interpolation","kind":"terminal_cpu_leaf","condition":"Arturo draw-time interpolation selected","status":"cpu_arturo_interpolation","evidence_id":"ev_1c90e74d3caa5fa9d514889aeb46c29fe44f5e73182c8afda40c1e57c908eb64"},
+    {"from":"0x1400e0fa0","to":"DYNAMIC:PERLIN_OUTPUT_SIZE_AND_OCTAVES","kind":"unresolved_runtime_selector","condition":"authored dimensions, controller state and active call frequency","status":"unresolved_target","evidence_id":"ev_96964193b9d6eacfae8994b6c447b214624e0393f2745d4c665b55407698e896"}
+  ]
+}

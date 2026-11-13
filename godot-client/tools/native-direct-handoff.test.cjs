@@ -49,6 +49,9 @@ test('mock recovery keeps cancellation distinct from an actually attempted unava
 test('capture is detached, bounded and never accepts private key/BIC payload objects',()=>{
  const c=mock(),r=c.snapshot();r.admissions[0].source.id=999;assert.equal(c.snapshot().admissions[0].source.id,42);
  assert.throws(()=>c.bounded({password:'not-a-real-password'}));assert.throws(()=>c.bounded({bicBytes:[1,2,3]}));assert.throws(()=>c.bounded({text:'x'.repeat(32769)}));
+ assert.throws(()=>c.bounded({text:'\u00e9'.repeat(20000)}),'scalar limit counts UTF-8 bytes, not UTF-16 code units');
+ assert.throws(()=>c.copyCharacterDigest({character:{canonical:{privateKey:'not-a-real-key'}}}));
+ assert.throws(()=>c.copyCharacterDigest({text:'x'.repeat(64*1024*1024)}),'full comparison projections have a separate finite budget');
  assert.throws(()=>c.terminal({nativeExit:0}));
 });
 test('actual authored baseline builds distinct original-API A/B modules without touching AREs',async()=>{

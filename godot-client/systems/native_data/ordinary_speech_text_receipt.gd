@@ -6,8 +6,16 @@ const OBJECT_INVALID=0x7f000000
 const CHANNELS=[8,9,10,11,12,15]
 const LOCALIZED=[11,12]
 static func capture(message: Dictionary,text,current: Dictionary) -> Dictionary:
-	var receipt:={"message":message.duplicate(true),"tokens":text.custom_tokens.duplicate(true) if is_instance_valid(text) else {},"tokensReady":is_instance_valid(text)}
+	var receipt:={"message":message.duplicate(true),"tokens":text.custom_tokens.duplicate(true) if is_instance_valid(text) else {},"tokensReady":is_instance_valid(text),"language":text.base.language if is_instance_valid(text) else 0}
+	var admitted:=Scope.context(current.get("connection"),current.get("generation"),current.get("areaId"))
+	if Scope.event(message,admitted).get("ready",false):
+		receipt.frame=preload("res://systems/native_data/native_token_context.gd").event_frame(message.nativeTextEvent)
+		receipt.wire=message.nativeTextEvent.get("nativeByteProjection")=="windows-1252"
+		if receipt.wire:receipt.tokens=preload("res://systems/native_data/native_token_context.gd").tokens(receipt.tokens,true)
 	snapshot_raw(receipt,text)
+	if receipt.get("wire",false) and receipt.has("raw") and not receipt.has("rawBytes") and not receipt.override:
+		var encoded:=preload("res://systems/native_data/native_talk_parser.gd").encode(str(receipt.raw),0)
+		if encoded.get("ready",false):receipt.rawBytes=encoded.bytes
 	snapshot_context(receipt,text,current)
 	return receipt
 static func pending(reason: String) -> Dictionary:return {"ready":false,"pending":true,"reason":reason}
@@ -31,6 +39,8 @@ static func snapshot_raw(receipt: Dictionary,text) -> Dictionary:
 	var duration: Variant=fetched.get("duration",0.0)
 	if not (duration is int or duration is float) or not is_finite(float(duration)):return {"ready":false,"reason":"Native speech TLK duration is malformed."}
 	receipt.raw=str(fetched.get("text",""));receipt.override=fetched.get("override",false);receipt.gender=int(fetched.gender);receipt.forced=float(duration) if int(message.channel) in LOCALIZED else 0.0
+	if fetched.get("bytes") is PackedByteArray:receipt.rawBytes=fetched.bytes.duplicate()
+	receipt.language=int(fetched.get("language",text.base.language))
 	return {"ready":true}
 static func snapshot_context(receipt: Dictionary,text,current: Dictionary) -> Dictionary:
 	if receipt.has("context"):return {"ready":true}
@@ -46,6 +56,12 @@ static func snapshot_context(receipt: Dictionary,text,current: Dictionary) -> Di
 	var witness:=Scope.localized_context(message,admitted)
 	if not witness.get("ready",false):return witness
 	var row: Dictionary=text.objects.get(int(message.contextId),{})
+	var envelope: Variant=message.get("nativeTextEvent")
+	# New dispatches carry the exact token fields, not a later coalesced row.
+	# Legacy captures still require their canonical lifetime match below.
+	if envelope is Dictionary and envelope.has("contextData"):
+		if not envelope.contextData is Dictionary:return pending("Native receipt token fields are unavailable.")
+		row=envelope.contextData
 	var matched:=Scope.received_source(witness,row,admitted)
 	if not matched.get("ready",false):
 		if matched.get("mismatch",false):matched.pending=true
@@ -53,28 +69,16 @@ static func snapshot_context(receipt: Dictionary,text,current: Dictionary) -> Di
 	# The matched lifetime is copied once; later removal/reuse cannot change a
 	# deferred named-token provider into the next object's identity.
 	receipt.context=context_view(row)
+	if envelope is Dictionary and envelope.has("contextActorName"):
+		var packet: Variant=envelope.contextActorName
+		if packet is Dictionary and packet.get("version")==1 and packet.get("historyComplete")==true:
+			var owner:=preload("res://systems/native_data/actor_name_state.gd").new()
+			var captured_current:=current.duplicate();captured_current.actorNameHistoryComplete=true
+			receipt.contextNameOwner=owner
+			receipt.contextName=owner.capture_received(row,packet.get("state"),text,captured_current)
 	return {"ready":true}
 static func context_view(row: Dictionary) -> Dictionary:
-	# Only currently certified providers need names/first-class level. Copying
-	# an actor's entire inventory/effects graph for each line is unnecessary.
-	var view: Dictionary={}
-	for key in ["id","objectType","areaId","nativeLifetime","clientKnownLifetime"]:
-		if row.has(key):view[key]=row[key]
-	for section in ["replicated","appearance"]:
-		if not row.get(section) is Dictionary:continue
-		var data: Dictionary=row[section];var selected: Dictionary={}
-		if data.has("name"):selected.name=data.name.duplicate(true) if data.name is Dictionary or data.name is Array else data.name
-		if section=="replicated" and data.get("stats") is Dictionary:
-			var stats: Dictionary={}
-			if data.stats.has("classes"):
-				var classes: Variant=data.stats.classes
-				stats.classes=classes.slice(0,1).duplicate(true) if classes is Array else (classes.duplicate(true) if classes is Dictionary else classes)
-			# Historical decoder name: this BYTE maps Stats+68, the native
-			# token-context gender getter. Actual racialType is another WORD.
-			if data.stats.has("race"):stats.race=data.stats.race
-			selected.stats=stats
-		view[section]=selected
-	return view
+	return preload("res://systems/native_data/native_token_context.gd").project(row)
 static func prepare(receipt: Dictionary,text,current: Dictionary,for_log: bool=false) -> Dictionary:
 	var key:="log" if for_log else "overhead"
 	if receipt.has(key):return receipt[key].duplicate(true)
@@ -88,17 +92,28 @@ static func prepare(receipt: Dictionary,text,current: Dictionary,for_log: bool=f
 	if not fetched.get("ready",false):return fetched
 	if not receipt.has("fetchedBody"):
 		var initial:={"ready":true,"body":str(receipt.raw)}
+		if receipt.get("rawBytes") is PackedByteArray:initial.bytes=receipt.rawBytes.duplicate()
 		if receipt.override:
 			# parseFlag0 still parses an override, before message context is set.
 			# Retained context/B8/BC are unknown. Pure escapes/CUSTOM and exact
 			# no-match tokens may complete without those values.
-			initial=text.parse_native(str(receipt.raw),{"gender":int(receipt.gender),"localCustomTokens":receipt.tokens,"localCustomTokensComplete":receipt.tokensReady})
+			var initial_state: Dictionary=receipt.get("frame",{}).duplicate(true)
+			initial_state.merge({"gender":int(receipt.gender),"localCustomTokens":receipt.tokens,"localCustomTokensComplete":receipt.tokensReady},true)
+			initial_state.language=int(receipt.get("language",text.base.language))
+			initial=text.parse_native_bytes(receipt.rawBytes,initial_state) if receipt.get("rawBytes") is PackedByteArray else text.parse_native(str(receipt.raw),initial_state)
 		if not initial.get("ready",false):return initial
 		receipt.fetchedBody=str(initial.body)
+		if initial.get("bytes") is PackedByteArray:receipt.fetchedBytes=initial.bytes.duplicate()
 	var body:=str(receipt.fetchedBody)
 	if int(receipt.message.channel) in LOCALIZED:
 		snapshot_context(receipt,text,current)
-		var call_state:={"nativeB8":0,"nativeBC":0 if for_log else 1,"localCustomTokens":receipt.tokens,"localCustomTokensComplete":receipt.tokensReady}
+		if receipt.has("contextNameOwner") and receipt.has("context"):
+			var captured_current:=current.duplicate();captured_current.actorNameHistoryComplete=true
+			var name_result: Dictionary=receipt.contextNameOwner.resolve_received(receipt.contextName,text,captured_current)
+			if name_result.get("ready",false):receipt.context.nativeStoredName=name_result
+		var call_state: Dictionary=receipt.get("frame",{}).duplicate(true)
+		call_state.merge({"nativeB8":0,"nativeBC":0 if for_log else 1,"localCustomTokens":receipt.tokens,"localCustomTokensComplete":receipt.tokensReady},true)
+		call_state.language=int(receipt.get("language",text.base.language))
 		if receipt.has("context"):
 			call_state.context=receipt.context
 			if receipt.context.is_empty() or Scope.integer(receipt.context.get("objectType"),1,4294967295) and int(receipt.context.objectType)!=5:call_state.gender=0
@@ -107,7 +122,7 @@ static func prepare(receipt: Dictionary,text,current: Dictionary,for_log: bool=f
 		# each explicit copy. Initial wire/fetch gender is not that value. The
 		# mapped Stats+68 BYTE is optional; absent data stays unknown, so only
 		# providers that actually need it wait. See context-gender source dossier.
-		var parsed: Dictionary=text.parse_native(body,call_state)
+		var parsed: Dictionary=text.parse_native_bytes(receipt.fetchedBytes,call_state) if receipt.get("fetchedBytes") is PackedByteArray else text.parse_native(body,call_state)
 		if not parsed.get("ready",false):return parsed
 		body=str(parsed.body)
 	var result:={"ready":true,"body":body,"forced":float(receipt.forced)}

@@ -1,0 +1,80 @@
+{
+	"checks": 8,
+	"failures": [],
+	"legs": [
+		{
+			"completion_us": 43356,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "control",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 39995,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "lazy-model",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 39404,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "lazy-model",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 41087,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "control",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 30784,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "control",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 29434,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "lazy-model",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 29795,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "lazy-model",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 29528,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "control",
+			"ready": true,
+			"sources": 1919
+		}
+	],
+	"passed": true,
+	"scope": "Private lazy fallback model lookup; authored 1918/1919-source SceneTree, no original asset or FPS result"
+}

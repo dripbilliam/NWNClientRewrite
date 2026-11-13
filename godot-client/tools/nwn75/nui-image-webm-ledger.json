@@ -1,0 +1,27 @@
+{
+  "schema": "nwn75-nui-image-webm-updater-edges-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original static image descriptor caller families and conditional WebM updater; active resource/window unknown",
+  "incoming_reference_counts": {"direct_calls":8,"internal_conditional_jumps":28,"internal_unconditional_jumps":2,"data_references":5},
+  "edges": [
+    {"from":"0x14073b700","site":"0x14073d5ed","to":"0x140a93db0","family":"Layoutable WidgetRenderState callback","evidence_id":"ev_b263c45a765b078b2459b7591fa69335617ba3798f9d2b9b8deb72b197753c5d"},
+    {"from":"0x1409438e0","site":"0x14094399e","to":"0x140a93db0","family":"Nui Widget callback","evidence_id":"ev_6403cb6a418d5530ef505b33d99f25439f9de4d9c130c7f1989c71a3dfd5ba35"},
+    {"from":"0x140925de0","site":"0x1409298b6","to":"0x140e6bb88","family":"ContentIndex::Browser callback vtable installation","evidence_id":"ev_e461ba3afef8cf4db0b2c688896a15576ffc4c9516f060e5052a0dc8cde4b2e0"},
+    {"from":"0x140705820","to":"0x140925de0","family":"ContentIndex::Browser shared construction and weak registry publication","evidence_id":"ev_c6d3b18d5c2e7be0cd42f5753bb9f15be7d50cf8445fdfea5bf682d2bd37404f"},
+    {"from":"0x1409dc400","to":"0x140925de0","gate":"event code 2 creates/publishes ContentIndex::Browser","evidence_id":"ev_2fae2aeaf5a34f43dffce28eaa83f383fff3cca72eadafb99703fa090c07e9c1"},
+    {"from":"0x140958cb0","site":"0x1409592dd","to":"0x140a93db0","family":"JSON image widget","evidence_id":"ev_1ab0c291bf17e18f78c6433d7e5bed537fbefec6562815064170847c3b592884"},
+    {"from":"0x14095c800","site":"0x14095c82e","to":"0x140a93db0","family":"JSON image button widget","evidence_id":"ev_a66ccfd61925f9d98cc8e148b80d0553f7e4788dfbdec9c278890cb4ae1beb1d"},
+    {"from":"0x140cc2980","site":"0x140cc2cf9","to":"0x140a93db0","family":"resource-map image conversion","evidence_id":"ev_8520764e64743e6c3fca9638e1f572840020f8b182611728b486ed27ebb3aa66"},
+    {"from":"0x140cc8150","site":"0x140cc825c","to":"0x140a93db0","family":"resource-map bounded state loop","evidence_id":"ev_71e1cad9e9c911ddcd6cb02b1bde67d1cd25e9e57d066ec9e252c47dfdf5d9b0"},
+    {"from":"0x140cc8150","site":"0x140cc8333","to":"0x140a93db0","family":"resource-map image-region conversion","evidence_id":"ev_71e1cad9e9c911ddcd6cb02b1bde67d1cd25e9e57d066ec9e252c47dfdf5d9b0"},
+    {"from":"0x140cc8440","site":"0x140cc8521","to":"0x140a93db0","family":"resource-map image conversion","evidence_id":"ev_2d43cb113747c1c112eb8ae2a4d3bb11e91a2b263b6dac0de521ee26a0dd353c"},
+    {"from":"0x140a93db0","to":"0x140a94350","gate":"descriptor requested","evidence_id":"ev_5fec165647d49f5bcc27530854e440a12aee98ce0f33a64131a00d96d0687673"},
+    {"from":"0x140a94350","to":"0x140231fb0","gate":"stream length greater than four and WebM EBML magic 1a45dfa3","evidence_id":"ev_35f7701d91c3e56ec92c348816d7f44764547efbbe4804084efac5a1b1747150"},
+    {"from":"0x140231fb0","to":"0x140232d00","gate":"shared stream movie constructor, false direct-quad flag","evidence_id":"ev_bdd938704a264b2db2cebd3001633010e9fafe4f122ab59d9a7e4fedcee5d9da"},
+    {"from":"0x140232d00","to":"0x140233100","gate":"stream accepted; initialize internal movie with false flag","evidence_id":"ev_00a209fd19c56946dfc5633474921e6bfa8163e33dd218690c4861ccc6ca3b6e"},
+    {"from":"0x140a93db0","site":"0x140a93dda","to":"0x140232250","gate":"resource+0x48 holds a movie player","evidence_id":"ev_5fec165647d49f5bcc27530854e440a12aee98ce0f33a64131a00d96d0687673"},
+    {"from":"0x140232250","to":"0x140234210","gate":"unconditional wrapper delegation","evidence_id":"ev_1871ed95ede910a77cf87f5c791e70dc66927ae76da8b47c38278b2836c17bfc"},
+    {"from":"0x140234210","to":"0x140233b20","gate":"internal+0 nonzero; false from mapped WebM constructor","evidence_id":"ev_f8c4b2066951eb65fc05a0a66a5e5adedc4f54fc6fa08fd96f9d3ac62f9f0f2c","edge_status":"disabled_by_constructor_flag"},
+    {"from":"0x140a93db0","to":"gui_loading/gui_notfound/gui_error","gate":"resource state and descriptor availability","evidence_id":"ev_5fec165647d49f5bcc27530854e440a12aee98ce0f33a64131a00d96d0687673"}
+  ]
+}

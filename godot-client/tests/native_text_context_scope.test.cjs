@@ -18,7 +18,7 @@ test('channel11 captures distinct current context with shared snapshot owners; s
  const row=f.world.entityDisclosures.transportRow(f.context,f.identities.object(f.context));
  assert.deepEqual(event.context,{id:row.id,objectType:row.objectType,areaId:row.areaId,nativeLifetime:row.nativeLifetime,knownLifetime:row.clientKnownLifetime});assert.deepEqual(packet,before);
  const same=f.scope.capture(f.world,{...packet,contextId:f.speaker.id},2,3);assert.deepEqual(same.context,same.source);assert.notEqual(same.context,same.source);same.context.id=17;assert.equal(same.source.id,f.speaker.id);
- for(const channel of [1,8,9,10,12,15])assert.equal(Object.hasOwn(f.scope.capture(f.world,{...packet,channel},2,3),'context'),false);
+ for(const channel of [1,8,9,10,15])assert.equal(Object.hasOwn(f.scope.capture(f.world,{...packet,channel},2,3),'context'),false);
 });
 
 test('delayed context lookup cannot match a retained-proxy redisclosure or replacement; unavailable never borrows speaker',async()=>{
@@ -36,7 +36,7 @@ test('actual retained channel11 packet gains context in bounded current Host dis
  const original=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../../backups/animations/native-network-speech-observations.json'))),native=original.cases.find(row=>row.case.format===1&&!row.case.oneLiner);
  const packet=decodeServerGameMessage(Buffer.from(native.packet,'hex'),{clientBuild:{number:8193,revision:37,postfix:17}});assert.equal(packet.channel,11);assert.equal(packet.contextId,f.context.id);const before=structuredClone(packet);
  const source=fs.readFileSync(path.resolve(__dirname,'../tools/native-session-host.cjs'),'utf8'),first='if(current!==session||connection!==lobby.connection||ending)return;',last="if(message.kind==='object-updates'){const frame=rawCombat.frame",start=source.indexOf(first),end=source.indexOf(last,start);assert.ok(start>=0&&end>start);
- const dispatch=new Function('current','session','connection','lobby','ending','message','areaGeneration','nativeTextEvents','rawVoice','rawScriptSounds','rawVisual','guiPanelEventForHost','send','report',source.slice(start,end)),session={world:f.world},empty={frame(){return null;}},sent=[],report={};
- dispatch(session,session,3,{connection:3},false,packet,2,f.scope,empty,empty,empty,()=>null,row=>sent.push(row),report);
+ const dispatch=new Function('current','session','connection','lobby','ending','message','areaGeneration','nativeTextEvents','rawTileVisibility','rawCreatureVisibilityPermission','rawVoice','rawScriptSounds','rawVisual','guiPanelEventForHost','send','report',source.slice(start,end)),session={world:f.world},empty={frame(){return null;}},sent=[],report={};
+ dispatch(session,session,3,{connection:3},false,packet,2,f.scope,{frames:()=>[]},{frames:()=>[]},empty,empty,empty,()=>null,row=>sent.push(row),report);
  assert.equal(sent.length,1);assert.equal(sent[0].message.nativeTextEvent.context.id,f.context.id);const wire=JSON.parse(JSON.stringify(sent[0].message));delete wire.nativeTextEvent;assert.deepEqual(wire,before);assert.deepEqual(packet,before);assert.deepEqual(report,{});
 });

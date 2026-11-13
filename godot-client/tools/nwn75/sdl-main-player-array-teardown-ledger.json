@@ -1,0 +1,38 @@
+{
+  "schema": "nwn75-sdl-main-player-array-teardown-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Inner runtime +0x38 pointer array/+0x40 count: observed message producer, player subtypes, deleting virtual slot zero and bounded CPU cleanup.",
+  "document": "sdl-main-player-array-teardown.md",
+  "edges": [
+    {"from":"0x1407a8c60","to":"0x140768ac0","callsite":"0x1407a9b21","kind":"direct_call","condition":"new player ID; ordinary player flag; 0x68-byte allocation nonnull","status":"constructor_backed","evidence_id":"ev_45e26e6e6771ffada8fa4069e56613fb1f5dee5b7ffcc59e48fda3b261a95f92"},
+    {"from":"0x1407a8c60","to":"0x140768ac0","callsite":"0x1407a9b52","kind":"direct_call","condition":"new player ID; dungeon-master flag; 0x70-byte allocation nonnull; derived vtable stored at 0x1407a9b5e","status":"constructor_backed","evidence_id":"ev_45e26e6e6771ffada8fa4069e56613fb1f5dee5b7ffcc59e48fda3b261a95f92"},
+    {"from":"0x1407a8c60","to":"0x1406ac5d0","callsite":"0x1407a9cdd","kind":"direct_call","condition":"newly created player, nonnull after message overflow check","status":"producer_identified","evidence_id":"ev_45e26e6e6771ffada8fa4069e56613fb1f5dee5b7ffcc59e48fda3b261a95f92"},
+    {"from":"0x1406ac5d0","to":"0x1406de160","callsite":"0x1406ac5d4","kind":"tail_jump","condition":"wrapper loads inner runtime from +0x8","status":"producer_identified","evidence_id":"ev_c0b0ff8b831c6e6c17f514f9a1ab0d45ab8d0697cdd3b72f2fc8852ceefd4754"},
+    {"from":"0x1406de160","to":"0x140c4f038","callsite":"0x1406de1ff","kind":"direct_call","condition":"count +0x40 equals capacity +0x44; grow pointer buffer through realloc","status":"cpu_allocator_leaf","evidence_id":"ev_20662cfec8bee82f600f5a1d6888c43fd75bd2d5a24b50960a18b9757ef21ff1"},
+    {"from":"0x1406de160","to":"0x140c417f0","callsite":"0x1406de242","kind":"direct_call","condition":"nonnull player pointer; shift entries for insertion index","status":"cpu_copy_leaf","evidence_id":"ev_20662cfec8bee82f600f5a1d6888c43fd75bd2d5a24b50960a18b9757ef21ff1"},
+    {"from":"0x1407a8c60","to":"0x1406ac5b0","callsite":"0x1407a9836","kind":"direct_call","condition":"player-list message subtype 1 with no initial message overflow; clear old list","status":"alternate_pre_teardown_clear","evidence_id":"ev_ebfe56b4114c4a98b2cc075b96352a17fb7f5f2a7ff71e0d797e26c47d1c6221"},
+    {"from":"0x1406ac5b0","to":"0x1406de030","callsite":"0x1406ac5b4","kind":"tail_jump","condition":"wrapper loads inner runtime from +0x8","status":"alternate_pre_teardown_clear","evidence_id":"ev_4d401326d66388f7e6e831fbde14e8b6494182895c2a726f8f594b8bb64a3f53"},
+    {"from":"0x1406de030","to":"indirect:player+vtable[0]","callsite":"0x1406de087","kind":"computed_call","condition":"old list count positive and element nonnull; EDX=1","status":"candidate_player_subtypes","evidence_id":"ev_13903ca56c1d458200e9366e8da096de2f34ea637926ec66603b584c38efc552"},
+    {"from":"0x1406e4c80","to":"0x140768ee0","callsite":"0x1406e4f47","kind":"computed_call","condition":"count +0x40 admits iteration; element nonnull; EDX=1; CNWCPlayer vtable 0x140e3dfb8 slot zero","status":"constructor_backed_candidate","evidence_id":"ev_a8729c684b142883faad488cb438cbafe66ef82066fa8d4d9153d4e6abcfa5de"},
+    {"from":"0x1406e4c80","to":"0x140768e60","callsite":"0x1406e4f47","kind":"computed_call","condition":"count +0x40 admits iteration; element nonnull; EDX=1; CNWCDungeonMaster vtable 0x140e3dfd0 slot zero","status":"constructor_backed_candidate","evidence_id":"ev_17317132932b3458baa67937a9fe0e7778203cb6cd23ddbbcd289c76f4317d7b"},
+    {"from":"0x140768ee0","to":"0x140768cc0","callsite":"0x140768eef","kind":"direct_call","condition":"CNWCPlayer deleting destructor","status":"cpu_member_cleanup","evidence_id":"ev_47394454e93e5a5dcc2c6ed0b6d750f9ab6479dcc3cdef9889276580fcb17284"},
+    {"from":"0x140768e60","to":"0x140768cc0","callsite":"0x140768e6f","kind":"direct_call","condition":"CNWCDungeonMaster deleting destructor","status":"cpu_member_cleanup","evidence_id":"ev_10c159217b687d490c5755fd382c4d7a6b4474133e5eb7512bea5a740f013795"},
+    {"from":"0x140768cc0","to":"0x140c10370","callsite":"0x140768cdb","kind":"direct_call","condition":"release player string buffer +0x58; null accepted by free thunk","status":"cpu_free_thunk","evidence_id":"ev_193391c26a3da784ea37cbaa05c576116ae17ee677b89f70b9beae12a52550a0"},
+    {"from":"0x140768cc0","to":"0x140c10370","callsite":"0x140768cee","kind":"direct_call","condition":"release player string buffer +0x40; null accepted by free thunk","status":"cpu_free_thunk","evidence_id":"ev_193391c26a3da784ea37cbaa05c576116ae17ee677b89f70b9beae12a52550a0"},
+    {"from":"0x140768cc0","to":"0x14084c1a0","callsite":"0x140768cff","kind":"direct_call","condition":"embedded +0x20 destructor; return-only body","status":"cpu_noop_leaf","evidence_id":"ev_9b24eb2f07183c4025b9e6a050e0a5d72e8ddd4df57220e5b281e15d2665f376"},
+    {"from":"0x140768cc0","to":"0x140c10370","callsite":"0x140768d08","kind":"direct_call","condition":"release player string buffer +0x10; null accepted by free thunk","status":"cpu_free_thunk","evidence_id":"ev_193391c26a3da784ea37cbaa05c576116ae17ee677b89f70b9beae12a52550a0"},
+    {"from":"0x140768ee0","to":"0x140c10360","callsite":"0x140768f01","kind":"direct_call","condition":"deleting flag bit zero set; free 0x68-byte CNWCPlayer","status":"cpu_free_thunk","evidence_id":"ev_47394454e93e5a5dcc2c6ed0b6d750f9ab6479dcc3cdef9889276580fcb17284"},
+    {"from":"0x140768e60","to":"0x140c10360","callsite":"0x140768e81","kind":"direct_call","condition":"deleting flag bit zero set; free 0x70-byte CNWCDungeonMaster","status":"cpu_free_thunk","evidence_id":"ev_10c159217b687d490c5755fd382c4d7a6b4474133e5eb7512bea5a740f013795"},
+    {"from":"0x1406e4c80","to":"0x140c4f024","callsite":"0x1406e4f5c","kind":"direct_call","condition":"after player-element loop; free +0x38 backing pointer buffer, then zero +0x38/+0x40","status":"cpu_free_frontier","evidence_id":"ev_e38be38386c23a1eb290d98c477fa36ade1fdda0b1bb1295f55fc8ffc187fb4d"}
+  ],
+  "observed_subtypes": [
+    {"name":"CNWCPlayer","vtable":"0x140e3dfb8","vtable_install":"0x140768ae9","slot_zero":"0x140768ee0","object_bytes":104},
+    {"name":"CNWCDungeonMaster","vtable":"0x140e3dfd0","vtable_install":"0x1407a9b5e","slot_zero":"0x140768e60","object_bytes":112}
+  ],
+  "render_boundary": "No direct GL, SDL window/context, or draw call in the two deleting destructors, common player member cleanup, embedded return-only destructor, array clear, or SDL-main array loop. CPU strings and backing storage are released through CRT free frontiers.",
+  "open_edges": [
+    "No exhaustive proof that an unknown indirect insertion caller could not supply another vtable type.",
+    "The deeper CRT free body at 0x140c4f024 exceeds REA response budget; no particular OS heap API leaf is asserted.",
+    "Static analysis does not establish list occupancy or player subtype mix at actual SDL-main exit."
+  ]
+}

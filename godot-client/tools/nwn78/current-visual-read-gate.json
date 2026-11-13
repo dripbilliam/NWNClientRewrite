@@ -1,0 +1,43 @@
+{
+  "issue": "NWN-78",
+  "scope": "Current-source second visual read and creature pose conversion gate; saved replay is historical timing bound",
+  "pins": {
+    "systems/native_render/live_world.gd": "ec5c12122567a3824650dedbc0b212b3a0e2651d20825493ece161ea6bd4f422",
+    "systems/network_motion.gd": "7b943610ba9765c8052e22fccdeaf2ca0e33f27eb86917db8ac44be5ab1d0762",
+    "systems/native_render/combat_presentation.gd": "462c7446f8fd817b95db8b548f5f7788baede7f7368658a6890b5d601fda7bbc",
+    "systems/combat_animation.gd": "d80611b55704feba5aab282fe4dd4d8b4082228c86ad0c2b889b1587e97f980a",
+    "reports/nwn74-forward-census-d.performance.jsonl": "77884899f548d24b237611f08ebb639b25731fe007994ef88ce869babe0fd9c4"
+  },
+  "metrics": [
+    {
+      "elapsedMs": 27167.075100000002,
+      "motionRows": 10,
+      "poseEvaluations": 10,
+      "unchangedTransforms": 8,
+      "motionFinishMeanMs": 0.00860416666666665,
+      "combatUpdateMeanMs": 0.0402666666666666,
+      "poseInputsMeanMs": 0.545354166666667
+    },
+    {
+      "elapsedMs": 29187.644800000002,
+      "motionRows": 10,
+      "poseEvaluations": 10,
+      "unchangedTransforms": 8,
+      "motionFinishMeanMs": 0.00855833333333331,
+      "combatUpdateMeanMs": 0.0406333333333333,
+      "poseInputsMeanMs": 0.543329166666667
+    },
+    {
+      "elapsedMs": 31202.4409,
+      "motionRows": 10,
+      "poseEvaluations": 10,
+      "unchangedTransforms": 8,
+      "motionFinishMeanMs": 0.00853749999999998,
+      "combatUpdateMeanMs": 0.0401041666666666,
+      "poseInputsMeanMs": 0.541004166666667
+    }
+  ],
+  "conclusion": "The second visual read follows combat.update, which can play a queued cue and change visual. Creature apply_pose already uses current motion scalars directly, not a temporary NetworkMotion.pose dictionary. The entire finish loop was 0.0085-0.0086 ms mean in the saved scene, so even a hypothetical removal is too small to justify semantic risk.",
+  "productionEdited": false,
+  "fpsMeasured": false
+}

@@ -1,0 +1,1059 @@
+{
+  "schema": "nwn75-original-particle-effect-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original emitter branch only. Source-dependent paths; no runtime frequency inferred. Shared GL and Scene descendants cross-reference other NWN-75 branches.",
+  "document": "original-particle-effect-render.md",
+  "supplemental_documents": [
+    "original-particle-effect-lifecycle.md",
+    "original-particle-effect-texture-controllers.md",
+    "original-particle-render-callbacks-fountain.md",
+    "original-particle-explosion-single.md",
+    "original-particle-lightning-update.md",
+    "original-particle-lightning-source-publication.md",
+    "original-particle-material-state-source.md"
+  ],
+  "edges": [
+    {
+      "from": "0x1400c7ae0",
+      "to": "0x140061210",
+      "callsite": "0x1400c7c94",
+      "kind": "conditional_direct",
+      "condition": "Scene animating or owner force-animated",
+      "status": "target_identified",
+      "evidence_id": "ev_a6bfdd377081f8ddc99385863fdd0608e54dafff7e58ee35926199eb87a2b3e9"
+    },
+    {
+      "from": "0x1400c7ae0",
+      "to": "0x1400643b0",
+      "kind": "instance_callback",
+      "condition": "PartEmitter+0x1b0 standard mode",
+      "status": "target_identified",
+      "evidence_id": "ev_a6bfdd377081f8ddc99385863fdd0608e54dafff7e58ee35926199eb87a2b3e9"
+    },
+    {
+      "from": "0x1400c7ae0",
+      "to": "0x140064180",
+      "kind": "instance_callback",
+      "condition": "PartEmitter+0x1b0 motion blur mode",
+      "status": "target_identified",
+      "evidence_id": "ev_a6bfdd377081f8ddc99385863fdd0608e54dafff7e58ee35926199eb87a2b3e9"
+    },
+    {
+      "from": "0x1400c7ae0",
+      "to": "0x140064170",
+      "kind": "instance_callback",
+      "condition": "PartEmitter+0x1b0 linked mode",
+      "status": "target_identified",
+      "evidence_id": "ev_a6bfdd377081f8ddc99385863fdd0608e54dafff7e58ee35926199eb87a2b3e9"
+    },
+    {
+      "from": "0x1400c7ae0",
+      "to": "0x140064190",
+      "kind": "instance_callback",
+      "condition": "PartEmitter+0x1b0 no normal quad mode",
+      "status": "target_identified",
+      "evidence_id": "ev_a6bfdd377081f8ddc99385863fdd0608e54dafff7e58ee35926199eb87a2b3e9"
+    },
+    {
+      "from": "0x1400643b0",
+      "to": "0x140062900",
+      "kind": "jump_thunk",
+      "condition": "shared normal renderer",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x140064180",
+      "to": "0x140062900",
+      "kind": "jump_thunk",
+      "condition": "shared normal renderer",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x140064170",
+      "to": "0x140062900",
+      "kind": "jump_thunk",
+      "condition": "shared normal renderer",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x140061210",
+      "to": "0x140064b30",
+      "kind": "virtual_dispatch",
+      "condition": "PartEmitter+0x100 Fountain vtable",
+      "status": "target_identified",
+      "evidence_id": "ev_94298fdbef50a777edca20b8e740cf4bb6069376493f19ec2c974abe89f3eb53"
+    },
+    {
+      "from": "0x140061210",
+      "to": "0x1400647c0",
+      "kind": "virtual_dispatch",
+      "condition": "PartEmitter+0x100 Explosion vtable",
+      "status": "target_identified",
+      "evidence_id": "ev_94298fdbef50a777edca20b8e740cf4bb6069376493f19ec2c974abe89f3eb53"
+    },
+    {
+      "from": "0x140061210",
+      "to": "0x140065cd0",
+      "kind": "virtual_dispatch",
+      "condition": "PartEmitter+0x100 Single vtable",
+      "status": "target_identified",
+      "evidence_id": "ev_94298fdbef50a777edca20b8e740cf4bb6069376493f19ec2c974abe89f3eb53"
+    },
+    {
+      "from": "0x140061210",
+      "to": "0x140065290",
+      "kind": "virtual_dispatch",
+      "condition": "PartEmitter+0x100 Lightning vtable",
+      "status": "target_identified",
+      "evidence_id": "ev_94298fdbef50a777edca20b8e740cf4bb6069376493f19ec2c974abe89f3eb53"
+    },
+    {
+      "from": "0x140064b30",
+      "to": "0x140065f10",
+      "callsite": "0x140064bd9",
+      "kind": "conditional_direct",
+      "condition": "age and recycle particles",
+      "status": "target_identified",
+      "evidence_id": "ev_61718e1078bbf6475e8e847949992ba71db9a33e1011b8935b97e397022f9286"
+    },
+    {
+      "from": "0x1400647c0",
+      "to": "0x140065f10",
+      "callsite": "0x14006482e",
+      "kind": "conditional_direct",
+      "condition": "age and recycle particles",
+      "status": "target_identified",
+      "evidence_id": "ev_03636177ada4f8c1fadb060f39e2f123fc13ac3ea56976d89888adfc41516546"
+    },
+    {
+      "from": "0x140064b30",
+      "to": "0x1400660c0",
+      "callsites": ["0x140064f56", "0x14006520a"],
+      "kind": "conditional_direct",
+      "condition": "authored random frame after particle append; callsites 0x140064f56 traveled-distance and 0x14006520a time-rate emission",
+      "status": "target_identified",
+      "evidence_id": "ev_61718e1078bbf6475e8e847949992ba71db9a33e1011b8935b97e397022f9286"
+    },
+    {
+      "from": "0x1400647c0",
+      "to": "0x1400660c0",
+      "callsite": "0x140064ac6",
+      "kind": "conditional_direct",
+      "condition": "authored random frame",
+      "status": "target_identified",
+      "evidence_id": "ev_03636177ada4f8c1fadb060f39e2f123fc13ac3ea56976d89888adfc41516546"
+    },
+    {
+      "from": "0x140065cd0",
+      "to": "0x1400660c0",
+      "callsite": "0x140065d88",
+      "kind": "conditional_direct",
+      "condition": "authored random frame",
+      "status": "target_identified",
+      "evidence_id": "ev_336e39ceee365e07dbeb75727bc070f9d0a2e015883420d2c95728f5bbfd0fac"
+    },
+    {
+      "from": "0x140065290",
+      "to": "0x140062460",
+      "callsite": "0x1400658dc",
+      "kind": "conditional_direct",
+      "condition": "lightning fractal",
+      "status": "target_identified",
+      "evidence_id": "ev_5658b85d9569397b683aeb2e762ee8398582fe5cc5ddee7f660a69e58dc81566"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x140082630",
+      "callsite": "0x140062adc",
+      "kind": "direct",
+      "condition": "source material textures",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x1400bdaf0",
+      "callsite": "0x140062fd5",
+      "kind": "conditional_direct",
+      "condition": "grow shared stream",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x1400bdaf0",
+      "to": "0x1400bd390",
+      "callsite": "0x1400bdb9a",
+      "kind": "conditional_direct",
+      "condition": "new stream shape",
+      "status": "target_identified",
+      "evidence_id": "ev_3bdf3c95c2e4ea7932e5980e53d1350bc3d3d4fba5cc622e33a427b37e1dfe73"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x1400bd890",
+      "callsite": "0x140062fe7",
+      "kind": "direct",
+      "condition": "get CPU vertex pointer",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x1400bd890",
+      "to": "0x1400bee30",
+      "callsite": "0x1400bd89e",
+      "kind": "direct",
+      "condition": "CPU pool lock",
+      "status": "target_identified",
+      "evidence_id": "ev_0e0081224d718d8f2cf059862381ea182b3641380a3a840e358cbd337072c505"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x1400bd5d0",
+      "callsite": "0x140063ff5",
+      "kind": "direct",
+      "condition": "commit six vertices per particle",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x1400bd5d0",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400bd5db",
+      "kind": "direct",
+      "condition": "pool unlock",
+      "status": "target_identified",
+      "evidence_id": "ev_71e930d1efbf7426cd7d3969222610941cc416b18acb16119d2f7887e428c1e6"
+    },
+    {
+      "from": "0x1400bf3d0",
+      "to": "0x1400bbad0",
+      "callsite": "0x1400bf3d0",
+      "kind": "jump_thunk",
+      "condition": "RenderInterface::UnlockPool forwarding jump to GLRender::UnlockPool",
+      "status": "target_identified",
+      "evidence_id": "ev_0110ad9e697bc548e2fd77c2502ee813805e14ed5475ec17d1057e9f387ccbd1"
+    },
+    {
+      "from": "0x1400bbad0",
+      "to": "0x1400bbaf0",
+      "callsite": "0x1400bbadf",
+      "kind": "jump_thunk",
+      "condition": "GLRender::UnlockPool forwards to pool implementation",
+      "status": "target_identified",
+      "evidence_id": "ev_242ce51b05f6c67a3ef79b6b4ea40cbe834161f216d49d6c1b10c5ab2fa4ea00"
+    },
+    {
+      "from": "0x1400bbaf0",
+      "to": "OpenGL::glBufferData",
+      "kind": "conditional_extension_pointer",
+      "condition": "allocate or orphan buffer",
+      "status": "external_boundary",
+      "evidence_id": "ev_e83d601a6cdb6ddff4c4c13c508896de862ad8a24d41171019061c15c2a086e8"
+    },
+    {
+      "from": "0x1400bbaf0",
+      "to": "OpenGL::glBufferSubData",
+      "kind": "conditional_extension_pointer",
+      "condition": "update existing range",
+      "status": "external_boundary",
+      "evidence_id": "ev_e83d601a6cdb6ddff4c4c13c508896de862ad8a24d41171019061c15c2a086e8"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x140082b80",
+      "callsite": "0x1400640f3",
+      "kind": "direct",
+      "condition": "optional authored custom shader override",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x1400beed0",
+      "callsite": "0x140064109",
+      "kind": "conditional_direct",
+      "condition": "shader available and effective particles positive",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x1400beed0",
+      "to": "0x1400b5c20",
+      "kind": "jump_thunk",
+      "condition": "GLRender stream draw",
+      "status": "target_identified",
+      "evidence_id": "ev_9682f759461cac1698e530425c68a1f6f64f7873fe4f153285f9011c35724cfb"
+    },
+    {
+      "from": "0x1400b5c20",
+      "to": "0x1400bacc0",
+      "callsite": "0x1400b5c7e",
+      "kind": "direct",
+      "condition": "VAO and attributes",
+      "status": "shared_gl_branch",
+      "evidence_id": "ev_faed7a96ea930f48e2170d7800f7dc1d4110c2b5267b35fe6813a21dee29899a"
+    },
+    {
+      "from": "0x1400b5c20",
+      "to": "0x1400b7a40",
+      "callsite": "0x1400b5d36",
+      "kind": "direct",
+      "condition": "program and uniforms",
+      "status": "shared_gl_branch",
+      "evidence_id": "ev_faed7a96ea930f48e2170d7800f7dc1d4110c2b5267b35fe6813a21dee29899a"
+    },
+    {
+      "from": "0x1400b5c20",
+      "to": "OpenGL::glDrawArrays",
+      "kind": "external_import",
+      "condition": "nonindexed emitter stream",
+      "status": "external_boundary",
+      "evidence_id": "ev_faed7a96ea930f48e2170d7800f7dc1d4110c2b5267b35fe6813a21dee29899a"
+    },
+    {
+      "from": "0x140082630",
+      "to": "0x1400ea490",
+      "kind": "virtual_dispatch",
+      "condition": "present texture slot",
+      "status": "target_identified",
+      "evidence_id": "ev_fca11e3327aa6187e830cb35def91d9b57a82138e90556a86b6b733730a72d62"
+    },
+    {
+      "from": "0x1400ea490",
+      "to": "0x1400e6870",
+      "callsite": "0x1400ea508",
+      "kind": "direct",
+      "condition": "texture ID binding",
+      "status": "target_identified",
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1"
+    },
+    {
+      "from": "0x1400e6870",
+      "to": "0x1400befc0",
+      "callsites": ["0x1400e68a6","0x1400e68e8"],
+      "kind": "direct",
+      "condition": "cached active unit and binding",
+      "status": "target_identified",
+      "evidence_id": "ev_6606a9c23f5c35ef20562cf01355c8f00547b92f79d7c5479bec1645c5f9cd5e"
+    },
+    {
+      "from": "0x1400befc0",
+      "to": "OpenGL::glBindTexture",
+      "kind": "conditional_import",
+      "condition": "changed texture binding",
+      "status": "external_boundary",
+      "evidence_id": "ev_af59e6d94b2acc227cfe2c12ba746c89504fb4131d1a73355e2c69f34d5f095e"
+    },
+    {
+      "from": "0x140064190",
+      "to": "0x140095210",
+      "kind": "virtual_dispatch",
+      "condition": "attached Chunky Gob position",
+      "status": "target_identified",
+      "evidence_id": "ev_01aaf24b7152fc88809d7b7a5c2af64528b42a22d382eea40b92e22eb22f2364"
+    },
+    {
+      "from": "0x140064190",
+      "to": "0x140094f80",
+      "kind": "virtual_dispatch",
+      "condition": "attached Chunky Gob orientation",
+      "status": "target_identified",
+      "evidence_id": "ev_01aaf24b7152fc88809d7b7a5c2af64528b42a22d382eea40b92e22eb22f2364"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x14007ee50",
+      "callsite": "0x140063092",
+      "kind": "conditional_direct",
+      "condition": "source emitter lighting flag",
+      "status": "target_identified",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x1400bebf0",
+      "callsite": "0x14006405c",
+      "kind": "conditional_direct",
+      "condition": "blend mode +0x68==1, cached program missing; request particle shader with boolean argument false",
+      "status": "shared_gl_branch",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x140062900",
+      "to": "0x1400bebf0",
+      "callsite": "0x14006408e",
+      "kind": "conditional_direct",
+      "condition": "blend mode +0x68!=1, cached program missing; request particle shader with boolean argument true",
+      "status": "shared_gl_branch",
+      "evidence_id": "ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"
+    },
+    {
+      "from": "0x1400bebf0",
+      "to": "0x1400b3750",
+      "callsite": "0x1400bebf0",
+      "kind": "jump_thunk",
+      "condition": "RenderInterface::GetCustomShaderProgram forwarding jump",
+      "status": "shared_gl_branch",
+      "evidence_id": "ev_ee08f7b0b4dbb583beb14a41cf711469582cec3e9113c6c3de61d4f768d33850"
+    },
+    {
+      "from": "0x1400b3750",
+      "to": "0x1400b45b0",
+      "callsite": "0x1400b3890",
+      "kind": "conditional_direct",
+      "condition": "loaded-program cache miss calls GLRender::LoadShader",
+      "status": "shared_gl_branch",
+      "evidence_id": "ev_8bf9ad046b70e33c7cb9e19b2897cef599ab2141ba4fec7823532f9093180102"
+    },
+    {
+      "from": "0x140061d80",
+      "to": "0x140068010",
+      "kind": "instance_callback",
+      "condition": "default movement callback",
+      "status": "target_identified",
+      "evidence_id": "ev_3905f9c842ca12afc35eb75262ef0cd7f3c3c00c111e7fe9567cdee463bb828d"
+    },
+    {
+      "from": "0x140061d80",
+      "to": "0x140067340",
+      "kind": "instance_callback",
+      "condition": "point-to-point gravity flag",
+      "status": "target_identified",
+      "evidence_id": "ev_3905f9c842ca12afc35eb75262ef0cd7f3c3c00c111e7fe9567cdee463bb828d"
+    },
+    {
+      "from": "0x140061d80",
+      "to": "0x140066940",
+      "kind": "instance_callback",
+      "condition": "point-to-point Bezier flag",
+      "status": "target_identified",
+      "evidence_id": "ev_3905f9c842ca12afc35eb75262ef0cd7f3c3c00c111e7fe9567cdee463bb828d"
+    },
+    {
+      "from": "0x140061d80",
+      "to": "0x1400643c0",
+      "kind": "callback_registration",
+      "condition": "authored target flag",
+      "status": "target_identified",
+      "evidence_id": "ev_3905f9c842ca12afc35eb75262ef0cd7f3c3c00c111e7fe9567cdee463bb828d"
+    },
+    {
+      "from": "0x140061d30",
+      "to": "0x140061d80",
+      "callsite": "0x140061d39",
+      "kind": "direct",
+      "condition": "Lightning base initialize",
+      "status": "target_identified",
+      "evidence_id": "ev_e8af235aa56fb1af75fae151f4c35397d3a2da9daacd9726d65058b60332b1ce"
+    },
+    {
+      "from": "0x140061d30",
+      "to": "0x1400643c0",
+      "kind": "callback_registration",
+      "condition": "Lightning target registration",
+      "status": "target_identified",
+      "evidence_id": "ev_e8af235aa56fb1af75fae151f4c35397d3a2da9daacd9726d65058b60332b1ce"
+    },
+    {
+      "from": "0x1400643c0",
+      "to": "0x1400616c0",
+      "kind": "virtual_dispatch",
+      "condition": "child base Part AsPartReference null",
+      "status": "target_identified",
+      "evidence_id": "ev_1e1fd58dab597943b3885b95431c700892f4fcb761dd583b1a146433418a4005"
+    },
+    {
+      "from": "0x1400643c0",
+      "to": "0x14008c4c0",
+      "kind": "virtual_dispatch",
+      "condition": "child PartReference AsPartReference self",
+      "status": "target_identified",
+      "evidence_id": "ev_1e1fd58dab597943b3885b95431c700892f4fcb761dd583b1a146433418a4005"
+    },
+    {
+      "from": "0x1400643c0",
+      "to": "0x140050cb0",
+      "kind": "virtual_dispatch",
+      "condition": "no child reference: owner deregisters callback",
+      "status": "target_identified",
+      "evidence_id": "ev_1e1fd58dab597943b3885b95431c700892f4fcb761dd583b1a146433418a4005"
+    },
+    {
+      "from": "0x1400643c0",
+      "to": "0x140061620",
+      "kind": "virtual_dispatch",
+      "condition": "base emitter AsLightningEmitter null",
+      "status": "target_identified",
+      "evidence_id": "ev_1e1fd58dab597943b3885b95431c700892f4fcb761dd583b1a146433418a4005"
+    },
+    {
+      "from": "0x1400643c0",
+      "to": "0x140061610",
+      "kind": "virtual_dispatch",
+      "condition": "Lightning emitter AsLightningEmitter self",
+      "status": "target_identified",
+      "evidence_id": "ev_1e1fd58dab597943b3885b95431c700892f4fcb761dd583b1a146433418a4005"
+    },
+    {
+      "from": "0x1400608e0",
+      "to": "0x140060e50",
+      "kind": "virtual_dispatch",
+      "condition": "live/reuse ordinary Particle teardown",
+      "status": "target_identified",
+      "evidence_id": "ev_685f8a55b2bd1907918b8f68f9eec2d05218f6950e81a981bef1650e4338e920"
+    },
+    {
+      "from": "0x1400608e0",
+      "to": "0x140060cf0",
+      "kind": "virtual_dispatch",
+      "condition": "live/reuse ChunkyParticle teardown",
+      "status": "target_identified",
+      "evidence_id": "ev_685f8a55b2bd1907918b8f68f9eec2d05218f6950e81a981bef1650e4338e920"
+    },
+    {
+      "from": "0x1400608e0",
+      "to": "0x1400f1450",
+      "callsite": "0x140060ad2",
+      "kind": "conditional_direct",
+      "condition": "registered windy emitter",
+      "status": "target_identified",
+      "evidence_id": "ev_685f8a55b2bd1907918b8f68f9eec2d05218f6950e81a981bef1650e4338e920"
+    },
+    {
+      "from": "0x1400608e0",
+      "to": "0x1400cc4d0",
+      "callsite": "0x140060ae2",
+      "kind": "conditional_direct",
+      "condition": "emitter has owner Gob",
+      "status": "target_identified",
+      "evidence_id": "ev_685f8a55b2bd1907918b8f68f9eec2d05218f6950e81a981bef1650e4338e920"
+    },
+    {
+      "from": "0x1400608e0",
+      "to": "0x140081ac0",
+      "callsite": "0x140060af7",
+      "kind": "conditional_direct",
+      "condition": "material present",
+      "status": "target_identified",
+      "evidence_id": "ev_685f8a55b2bd1907918b8f68f9eec2d05218f6950e81a981bef1650e4338e920"
+    },
+    {
+      "from": "0x1400602b0",
+      "to": "0x1400c5780",
+      "kind": "virtual_dispatch",
+      "condition": "new attached Gob",
+      "status": "target_identified",
+      "evidence_id": "ev_813d762b4648ac8a2f38e9a61fc1dc0447cf5db0f6a0bc5cac960c029b6f76d2"
+    },
+    {
+      "from": "0x140d88a00",
+      "to": "0x1400c5780",
+      "kind": "constructor_backed_vtable_slot",
+      "condition": "Gob::Gob installs vtable; original PE slot +0x90 at 0x140d88a90 contains Gob::AttachToScene",
+      "status": "target_identified",
+      "evidence_id": "ev_4b850bfe919c55ffc18fcba39695646d75a74f85c353b99fed06eabb2a785b5b"
+    },
+    {
+      "from": "0x1400663d0",
+      "to": "0x1400c5780",
+      "kind": "virtual_dispatch",
+      "condition": "reused attached Gob",
+      "status": "target_identified",
+      "evidence_id": "ev_65645e3fdedf1bc0e299e49d0f38911da109e38bf8004db95233c840fd213747"
+    },
+    {
+      "from": "0x140065f10",
+      "to": "0x1400c5780",
+      "kind": "virtual_dispatch",
+      "condition": "expired Chunky Gob detach",
+      "status": "target_identified",
+      "evidence_id": "ev_c28d619fc7cca31615ed3b62a1836ad0c34598e9086dc8545fd21a2d92e35a3a"
+    },
+    {
+      "from": "0x1400c5780",
+      "to": "0x140095250",
+      "callsite": "0x1400c5784",
+      "kind": "direct",
+      "condition": "scene membership change",
+      "status": "target_identified",
+      "evidence_id": "ev_59a27eca9979c6ac9a91a8016fd807444610412e3af0c3f721d631d0baa4a8cb"
+    },
+    {
+      "from": "0x140062870",
+      "to": "0x1400bea80",
+      "callsite": "0x1400628c9",
+      "kind": "direct",
+      "condition": "debug sphere",
+      "status": "target_identified",
+      "evidence_id": "ev_009250097dea15eb193db9cb6296f14bc3b5bd497048498e7d0b95971b6cbc27"
+    },
+    {
+      "from": "0x140062870",
+      "to": "0x1400bea40",
+      "callsite": "0x1400628f4",
+      "kind": "direct",
+      "condition": "debug crosshair",
+      "status": "target_identified",
+      "evidence_id": "ev_009250097dea15eb193db9cb6296f14bc3b5bd497048498e7d0b95971b6cbc27"
+    },
+    {
+      "from": "0x1400bea80",
+      "to": "0x1400b1f80",
+      "kind": "jump_thunk",
+      "condition": "GL bound sphere",
+      "status": "target_identified",
+      "evidence_id": "ev_18e27ce486217df869ba9be0cd55f68f2748c3da6bb627f9fb472571bf640f23"
+    },
+    {
+      "from": "0x1400bea40",
+      "to": "0x1400b18b0",
+      "kind": "jump_thunk",
+      "condition": "GL crosshair",
+      "status": "target_identified",
+      "evidence_id": "ev_1bf6bb0154bf2c6cbddf4b437e82eb4112f8217b0884f3e08915f1465593758d"
+    },
+    {
+      "from": "0x1400b1f80",
+      "to": "0x1400b59b0",
+      "callsites": ["0x1400b2f7c","0x1400b2f9f"],
+      "kind": "conditional_direct",
+      "condition": "static sphere geometry draw",
+      "status": "target_identified",
+      "evidence_id": "ev_92b0e82c546f21d2bba8085a91a37c82cf91e91c5ef9601ac95f1e251ae0f216"
+    },
+    {
+      "from": "0x1400b18b0",
+      "to": "0x1400b1d70",
+      "callsite": "0x1400b1b6c",
+      "kind": "direct",
+      "condition": "debug lines",
+      "status": "target_identified",
+      "evidence_id": "ev_6217a1b6fb54b23cba044ba25983f762b10f42da398e76f813732e0784093104"
+    },
+    {
+      "from": "0x1400b1d70",
+      "to": "0x1400b5c20",
+      "callsite": "0x1400b1ecd",
+      "kind": "direct",
+      "condition": "dynamic line stream draw",
+      "status": "target_identified",
+      "evidence_id": "ev_424c484aed98f344f61c3334876d27d164a6d1de566bc2785de8b248bc4d4188"
+    },
+    {
+      "from": "0x1400c7ae0",
+      "to": "0x140064720",
+      "callsite": "0x1400c7bf0",
+      "kind": "direct",
+      "condition": "start emitter layer state",
+      "status": "target_identified",
+      "evidence_id": "ev_a6bfdd377081f8ddc99385863fdd0608e54dafff7e58ee35926199eb87a2b3e9"
+    },
+    {
+      "from": "0x1400c7ae0",
+      "to": "0x140064760",
+      "callsite": "0x1400c7dc2",
+      "kind": "direct",
+      "condition": "restore emitter layer state",
+      "status": "target_identified",
+      "evidence_id": "ev_a6bfdd377081f8ddc99385863fdd0608e54dafff7e58ee35926199eb87a2b3e9"
+    },
+    {
+      "from": "0x140082630",
+      "to": "0x1400ec0d0",
+      "kind": "virtual_dispatch",
+      "condition": "texture cubemap type check at three sites",
+      "status": "target_identified",
+      "evidence_id": "ev_fca11e3327aa6187e830cb35def91d9b57a82138e90556a86b6b733730a72d62"
+    },
+    {
+      "from": "0x140082630",
+      "to": "0x1400ec160",
+      "kind": "virtual_dispatch",
+      "condition": "texture invalidity check",
+      "status": "target_identified",
+      "evidence_id": "ev_fca11e3327aa6187e830cb35def91d9b57a82138e90556a86b6b733730a72d62"
+    },
+    {
+      "from": "0x1400ec0d0",
+      "to": "0x1400ebb00",
+      "kind": "virtual_dispatch",
+      "condition": "referenced texture metadata",
+      "status": "target_identified",
+      "evidence_id": "ev_03d8458543f654ee1a652c011d0e36c107ff9ffb55e3c455232e1bea6ea48b85"
+    },
+    {
+      "from": "0x1400ec160",
+      "to": "0x1400ebb00",
+      "kind": "virtual_dispatch",
+      "condition": "referenced texture validity",
+      "status": "target_identified",
+      "evidence_id": "ev_3e296945c5167da8038a065f967f00ff7bdc8b9536103df10e3c035554ce3745"
+    },
+    {
+      "from": "0x1400ec0d0",
+      "to": "0x1400e5a10",
+      "kind": "virtual_dispatch",
+      "condition": "referenced Basic texture type test",
+      "status": "target_identified",
+      "evidence_id": "ev_03d8458543f654ee1a652c011d0e36c107ff9ffb55e3c455232e1bea6ea48b85"
+    },
+    {
+      "from": "0x1400ec160",
+      "to": "0x1400e5a10",
+      "kind": "virtual_dispatch",
+      "condition": "referenced Basic texture type test",
+      "status": "target_identified",
+      "evidence_id": "ev_3e296945c5167da8038a065f967f00ff7bdc8b9536103df10e3c035554ce3745"
+    },
+    {
+      "from": "0x1400ec0d0",
+      "to": "0x1400e5a00",
+      "kind": "virtual_dispatch",
+      "condition": "referenced base texture type test returns null",
+      "status": "target_identified",
+      "evidence_id": "ev_03d8458543f654ee1a652c011d0e36c107ff9ffb55e3c455232e1bea6ea48b85"
+    },
+    {
+      "from": "0x1400ec160",
+      "to": "0x1400e5a00",
+      "kind": "virtual_dispatch",
+      "condition": "referenced base texture type test returns null",
+      "status": "target_identified",
+      "evidence_id": "ev_3e296945c5167da8038a065f967f00ff7bdc8b9536103df10e3c035554ce3745"
+    },
+    {
+      "from": "0x1400ea490",
+      "to": "0x1400ebd90",
+      "kind": "virtual_dispatch",
+      "condition": "authored TID frame index",
+      "status": "target_identified",
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1"
+    },
+    {
+      "from": "0x1400ea490",
+      "to": "0x1400e1100",
+      "kind": "virtual_dispatch",
+      "condition": "enabled Arturo texture controller",
+      "status": "target_identified",
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1"
+    },
+    {
+      "from": "0x1400ea490",
+      "to": "0x1400e1470",
+      "kind": "virtual_dispatch",
+      "condition": "enabled CycleTID texture controller",
+      "status": "target_identified",
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1"
+    },
+    {
+      "from": "0x1400ea490",
+      "to": "0x1400e1520",
+      "kind": "virtual_dispatch",
+      "condition": "enabled Life texture controller",
+      "status": "target_identified",
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1"
+    },
+    {
+      "from": "0x1400ea490",
+      "to": "0x1400e1890",
+      "kind": "virtual_dispatch",
+      "condition": "enabled Perlin texture controller",
+      "status": "target_identified",
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1"
+    },
+    {
+      "from": "0x1400ea490",
+      "to": "0x1400e1b40",
+      "kind": "virtual_dispatch",
+      "condition": "enabled Water texture controller",
+      "status": "target_identified",
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1"
+    },
+    {
+      "from": "0x1400ea490",
+      "to": "0x1400e2720",
+      "kind": "virtual_dispatch",
+      "condition": "enabled Wave texture controller",
+      "status": "target_identified",
+      "evidence_id": "ev_32be466fe00c5e24fa39c88ce497ce10aa63942498b141d0f7d65e9121ac81f1"
+    },
+    {
+      "from": "0x1400e1100",
+      "to": "0x1400ee130",
+      "kind": "virtual_dispatch",
+      "condition": "updated Arturo image",
+      "status": "target_identified",
+      "evidence_id": "ev_6160db4e9b02127b59ef275da4a5cf10c951ed388fb4452b7b85f520ce953ff0"
+    },
+    {
+      "from": "0x1400e1520",
+      "to": "0x1400ee130",
+      "kind": "virtual_dispatch",
+      "condition": "updated Life image",
+      "status": "target_identified",
+      "evidence_id": "ev_8b379a46ec1a2b13496ee0f9b838b8fbeff35fd780795902b54242e45a870274"
+    },
+    {
+      "from": "0x1400e1890",
+      "to": "0x1400ee130",
+      "kind": "virtual_dispatch",
+      "condition": "updated Perlin image",
+      "status": "target_identified",
+      "evidence_id": "ev_a6d2ab6691e19215925e9cd11488c0703d84f9f62d95b5473bc18e0ae71ee612"
+    },
+    {
+      "from": "0x1400e1b40",
+      "to": "0x1400ee130",
+      "kind": "virtual_dispatch",
+      "condition": "updated Water image",
+      "status": "target_identified",
+      "evidence_id": "ev_725da3a7d1f19be6579f489b8c02a8f8b0782619e4f5c71807798bfbb8c46bad"
+    },
+    {
+      "from": "0x1400e2720",
+      "to": "0x1400ee130",
+      "kind": "virtual_dispatch",
+      "condition": "updated Wave image",
+      "status": "target_identified",
+      "evidence_id": "ev_25fb5c6be253c08d3d05aafd8cc7655b435c0f816c72e50101e2bff2f68af1f3"
+    },
+    {
+      "from": "0x1400ee130",
+      "to": "0x1400ee1b0",
+      "callsites": ["0x1400ee16d","0x1400ee199"],
+      "kind": "direct",
+      "condition": "Basic raster publication",
+      "status": "target_identified",
+      "evidence_id": "ev_b2e85194d6b4aa14cefdd0f1e6976bc998fd394dd10df86b3e26f3215c2b706f"
+    },
+    {
+      "from": "0x1400ee1b0",
+      "to": "0x1400be960",
+      "callsite": "0x1400eecdd",
+      "kind": "conditional_direct",
+      "condition": "create/update texture",
+      "status": "target_identified",
+      "evidence_id": "ev_6777a01a4f84262d4ab2615740bedc94f4ada8b876baf70f51518525885ebfb1"
+    },
+    {
+      "from": "0x1400ee1b0",
+      "to": "0x1400be9d0",
+      "callsites": ["0x1400ee8cf","0x1400ee946"],
+      "kind": "conditional_direct",
+      "condition": "direct texture creation",
+      "status": "target_identified",
+      "evidence_id": "ev_6777a01a4f84262d4ab2615740bedc94f4ada8b876baf70f51518525885ebfb1"
+    },
+    {
+      "from": "0x1400be960",
+      "to": "0x1400af440",
+      "kind": "jump_thunk",
+      "condition": "GL texture creation",
+      "status": "target_identified",
+      "evidence_id": "ev_04d1f6fd237a993a5ed94fe19b75bfe50284e97c28882260e2fecceb7366a403"
+    },
+    {
+      "from": "0x1400be9d0",
+      "to": "0x1400b0150",
+      "callsite": "0x1400be9d9",
+      "kind": "direct",
+      "condition": "GL direct texture creation",
+      "status": "target_identified",
+      "evidence_id": "ev_01fe5e85fa31c00da7f0879d16971be710cb1075c2efe31b9bfed824af7c4680"
+    },
+    {
+      "from": "0x1400af440",
+      "to": "OpenGL::glTexImage2D",
+      "kind": "external_import",
+      "condition": "new texture storage",
+      "status": "external_boundary",
+      "evidence_id": "ev_e1457697c281f0b9e795822e361fb5ff23463a3aee7d7f612d5a10add1480310"
+    },
+    {
+      "from": "0x1400af440",
+      "to": "OpenGL::glTexSubImage2D",
+      "kind": "external_import",
+      "condition": "replaceable existing image",
+      "status": "external_boundary",
+      "evidence_id": "ev_e1457697c281f0b9e795822e361fb5ff23463a3aee7d7f612d5a10add1480310"
+    },
+    {
+      "from": "0x1400b0150",
+      "to": "OpenGL::glTexImage2D",
+      "kind": "external_import",
+      "condition": "direct texture storage",
+      "status": "external_boundary",
+      "evidence_id": "ev_3ebec5fb5b7ea67d757507906ef7b2b59a9479c1b10a838750fcc406dcadf529"
+    },
+    {
+      "from": "0x1400e1100", "to": "0x1400e0ce0", "kind": "virtual_dispatch", "condition": "Arturo image rebuild", "status": "cpu_only_descendant", "evidence_id": "ev_6160db4e9b02127b59ef275da4a5cf10c951ed388fb4452b7b85f520ce953ff0"
+    },
+    {
+      "from": "0x1400e1100", "to": "0x1400e2f30", "callsites":["0x1400e1339","0x1400e1359"], "kind": "direct", "condition": "Arturo float interpolation", "status": "cpu_only_descendant", "evidence_id": "ev_6160db4e9b02127b59ef275da4a5cf10c951ed388fb4452b7b85f520ce953ff0"
+    },
+    {
+      "from": "0x1400e1100", "to": "0x1400e3000", "callsite":"0x1400e141b", "kind": "direct", "condition": "Arturo channel conversion", "status": "cpu_only_descendant", "evidence_id": "ev_6160db4e9b02127b59ef275da4a5cf10c951ed388fb4452b7b85f520ce953ff0"
+    },
+    {
+      "from": "0x1400e1100", "to": "0x1400e2c00", "kind": "virtual_dispatch", "condition": "Arturo distortion mode", "status": "cpu_only_descendant", "evidence_id": "ev_6160db4e9b02127b59ef275da4a5cf10c951ed388fb4452b7b85f520ce953ff0"
+    },
+    {
+      "from": "0x1400e1470", "to": "0x1400ebd90", "kind": "virtual_dispatch", "condition": "CycleTID index advance; no raster upload", "status": "target_identified", "evidence_id": "ev_b69cdaa8d5a9a192345e2e2ae4262ee20fe585207ef691f444516922dc1f12c0"
+    },
+    {
+      "from": "0x1400e1470", "to": "0x1400ebaa0", "kind": "virtual_dispatch", "condition": "CycleTID Basic X grid getter", "status": "cpu_only_descendant", "evidence_id": "ev_b69cdaa8d5a9a192345e2e2ae4262ee20fe585207ef691f444516922dc1f12c0"
+    },
+    {
+      "from": "0x1400e1470", "to": "0x1400ebad0", "kind": "virtual_dispatch", "condition": "CycleTID Basic Y grid getter", "status": "cpu_only_descendant", "evidence_id": "ev_b69cdaa8d5a9a192345e2e2ae4262ee20fe585207ef691f444516922dc1f12c0"
+    },
+    {
+      "from": "0x1400e1520", "to": "0x1400eb8b0", "kind": "virtual_dispatch", "condition": "Life source image read", "status": "cpu_only_descendant", "evidence_id": "ev_8b379a46ec1a2b13496ee0f9b838b8fbeff35fd780795902b54242e45a870274"
+    },
+    {
+      "from": "0x1400e1520", "to": "0x1400eb640", "kind": "virtual_dispatch", "condition": "Life Basic image free", "status": "cpu_only_descendant", "evidence_id": "ev_8b379a46ec1a2b13496ee0f9b838b8fbeff35fd780795902b54242e45a870274"
+    },
+    {
+      "from": "0x1400e1890", "to": "0x1400e0fa0", "kind": "virtual_dispatch", "condition": "Perlin phase rollover", "status": "cpu_only_descendant", "evidence_id": "ev_a6d2ab6691e19215925e9cd11488c0703d84f9f62d95b5473bc18e0ae71ee612"
+    },
+    {
+      "from": "0x1400e0fa0", "to": "0x140071020", "callsite":"0x1400e103a", "kind": "direct", "condition": "Perlin octave allocation and random fill", "status": "cpu_only_descendant", "evidence_id": "ev_96964193b9d6eacfae8994b6c447b214624e0393f2745d4c665b55407698e896"
+    },
+    {
+      "from": "0x1400e0fa0", "to": "0x140071dc0", "callsite":"0x1400e1087", "kind": "direct", "condition": "Perlin output pixel sampling", "status": "cpu_only_descendant", "evidence_id": "ev_96964193b9d6eacfae8994b6c447b214624e0393f2745d4c665b55407698e896"
+    },
+    {
+      "from": "0x140071020", "to": "0x140c7ed00", "callsite":"0x140071060", "kind": "direct", "condition": "Perlin octave CRT random values", "status": "cpu_runtime_boundary", "evidence_id": "ev_db291f880432a2ea3d354f9e80a26179290774ffe5b40e715036c554e2d4d153"
+    },
+    {
+      "from": "0x1400e1890", "to": "0x1400e3000", "callsite":"0x1400e1aee", "kind": "direct", "condition": "Perlin channel conversion", "status": "cpu_only_descendant", "evidence_id": "ev_a6d2ab6691e19215925e9cd11488c0703d84f9f62d95b5473bc18e0ae71ee612"
+    },
+    {
+      "from": "0x1400e1890", "to": "0x1400e2c00", "kind": "virtual_dispatch", "condition": "Perlin distortion mode", "status": "cpu_only_descendant", "evidence_id": "ev_a6d2ab6691e19215925e9cd11488c0703d84f9f62d95b5473bc18e0ae71ee612"
+    },
+    {
+      "from": "0x1400e1b40", "to": "0x140072510", "callsite":"0x1400e2636", "kind": "direct", "condition": "Water 3x3 blur", "status": "cpu_only_descendant", "evidence_id": "ev_725da3a7d1f19be6579f489b8c02a8f8b0782619e4f5c71807798bfbb8c46bad"
+    },
+    {
+      "from": "0x1400e1b40", "to": "0x1400e3000", "callsite":"0x1400e26c3", "kind": "direct", "condition": "Water channel conversion", "status": "cpu_only_descendant", "evidence_id": "ev_725da3a7d1f19be6579f489b8c02a8f8b0782619e4f5c71807798bfbb8c46bad"
+    },
+    {
+      "from": "0x1400e1b40", "to": "0x1400e2c00", "kind": "virtual_dispatch", "condition": "Water distortion mode", "status": "cpu_only_descendant", "evidence_id": "ev_725da3a7d1f19be6579f489b8c02a8f8b0782619e4f5c71807798bfbb8c46bad"
+    },
+    {
+      "from": "0x1400e2720", "to": "0x1400e3000", "callsite":"0x1400e2ba3", "kind": "direct", "condition": "Wave channel conversion", "status": "cpu_only_descendant", "evidence_id": "ev_25fb5c6be253c08d3d05aafd8cc7655b435c0f816c72e50101e2bff2f68af1f3"
+    },
+    {
+      "from": "0x1400e2720", "to": "0x1400e2c00", "kind": "virtual_dispatch", "condition": "Wave distortion mode", "status": "cpu_only_descendant", "evidence_id": "ev_25fb5c6be253c08d3d05aafd8cc7655b435c0f816c72e50101e2bff2f68af1f3"
+    },
+    {
+      "from": "0x1400e2c00", "to": "0x1400ebba0", "kind": "virtual_dispatch", "condition": "Distort Basic width getter", "status": "cpu_only_descendant", "evidence_id": "ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"
+    },
+    {
+      "from": "0x1400e2c00", "to": "0x1400eb880", "kind": "virtual_dispatch", "condition": "Distort Basic height getter", "status": "cpu_only_descendant", "evidence_id": "ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"
+    },
+    {
+      "from": "0x1400e2c00", "to": "0x1400eb6d0", "kind": "virtual_dispatch", "condition": "Distort Basic BPP getter", "status": "cpu_only_descendant", "evidence_id": "ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"
+    },
+    {
+      "from": "0x1400e2c00", "to": "0x14022fb10", "callsite":"0x1400e2d3a", "kind": "direct", "condition": "Distort cosine lookup mode", "status": "cpu_only_descendant", "evidence_id": "ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"
+    },
+    {
+      "from": "0x1400e2c00", "to": "0x140231c20", "callsite":"0x1400e2d50", "kind": "direct", "condition": "Distort sine lookup mode", "status": "cpu_only_descendant", "evidence_id": "ev_9db7d34123e02b9613531663feb99da97cc66c010a7dd45f2a4e4193a2f855e2"
+    },
+    {
+      "from": "0x1400e3000", "to": "0x1400ebba0", "kind": "virtual_dispatch", "condition": "Height2Channel Basic width getter", "status": "cpu_only_descendant", "evidence_id": "ev_466af851c99bf8863f0ad4ac32367f4cde29ca5671a4fe17bcb2bf17258a5a01"
+    },
+    {
+      "from": "0x1400e3000", "to": "0x1400eb880", "kind": "virtual_dispatch", "condition": "Height2Channel Basic height getter", "status": "cpu_only_descendant", "evidence_id": "ev_466af851c99bf8863f0ad4ac32367f4cde29ca5671a4fe17bcb2bf17258a5a01"
+    },
+    {
+      "from": "0x1400e3000", "to": "0x1400eb6d0", "kind": "virtual_dispatch", "condition": "Height2Channel Basic BPP getter", "status": "cpu_only_descendant", "evidence_id": "ev_466af851c99bf8863f0ad4ac32367f4cde29ca5671a4fe17bcb2bf17258a5a01"
+    },
+    {"from":"0x1400621f0","to":"0x140052a30","kind":"gob_vtable","condition":"Explosion registers Detonate callback on owner Gob","status":"target_identified","evidence_id":"ev_998902b79cef334c3d66324a468103d08a8d17b6dfb0674c26a2e1d24b464582"},
+    {"from":"0x140061d80","to":"0x140052a30","kind":"gob_vtable","condition":"point-to-point source registers _EmitterTarget on owner Gob","status":"target_identified","evidence_id":"ev_8196177995dbdc99839bcacb411d86473a8f877c6bf8291aea000762832be32d"},
+    {"from":"0x140061d30","to":"0x140052a30","kind":"gob_vtable","condition":"Lightning registers _EmitterTarget on owner Gob","status":"target_identified","evidence_id":"ev_32c154425f1ffedf227096ba7da18069f58e6b2e96e53a8a790e61f6f4175f34"},
+    {"from":"0x1400931f0","to":"0x140050d50","kind":"gob_vtable","condition":"after model instance tree creation, raise _EmitterTarget","status":"target_identified","evidence_id":"ev_8e0b947d4d92de1b3222644deb68df1e15d569e05500363ea10323cd930e956b"},
+    {"from":"0x140050d50","to":"0x1400643c0","kind":"registered_callback","condition":"matching _EmitterTarget event","status":"bounded_target_family","evidence_id":"ev_eafb0352983224fdb871c213d645c9e30395f426927b4fb15925ac8f970eb336"},
+    {"from":"0x140050d50","to":"0x140061a30","kind":"registered_callback","condition":"matching Detonate event","status":"bounded_target_family","evidence_id":"ev_eafb0352983224fdb871c213d645c9e30395f426927b4fb15925ac8f970eb336"},
+    {"from":"0x1400643c0","to":"0x140050cb0","kind":"gob_vtable","condition":"no reference Part admitted; deregister stored callback handle","status":"target_identified","evidence_id":"ev_a20a60bfc6fbdf7caa78b86fccd0c5b2bbd0ba8a8d85cf115b24a4fa3eeb2bd3"},
+    {"from":"0x140060cf0","to":"0x1400889c0","kind":"gob_virtual_destructor","condition":"ChunkyParticle has attached Gob","status":"target_identified","evidence_id":"ev_a263862a0470e20022159c8daf8dfe8fae70b9d2d9f1d14267cc920fe20b91b9"},
+    {"from":"0x1400889c0","to":"0x140050d50","callsite":"0x1400889f5","kind":"direct","condition":"Dying event precedes teardown","status":"registered_callback_frontier","evidence_id":"ev_8be076b23fb4a47b58187e2fe02d0b07551d54ff748762b8e92e61dcee9bc01a"},
+    {"from":"0x140052a30","to":"CallBack+0x20/+0x28","kind":"state_write","condition":"Gob::RegisterCallBack stores caller-supplied function and context in a 0x30-byte record, then appends it to Gob+0x460/+0x468","status":"dynamic_registration_boundary","evidence_id":"ev_96b7c3e3c0874383ecc02b30dcf1875f2eb4bb1d81583a3d58f5b72dedf9923e"},
+    {"from":"0x140050d50","to":"CallBack+0x20","callsite":"0x140050e38","kind":"registered_function_pointer","condition":"Gob::DoEvent matched empty/wildcard/case-insensitive event name; call registered function with supplied or stored context","status":"dynamic_registration_boundary","evidence_id":"ev_cf0861cb88a08df86b58fc54e3a6e4480ef37a39a0c39d893fd61a8efe31fbef"},
+    {"from":"0x1400889c0","to":"0x140089d20","kind":"root_part_virtual_destructor","condition":"destroy root Part after Scene removal and behavior teardown","status":"bounded_target_family","evidence_id":"ev_8be076b23fb4a47b58187e2fe02d0b07551d54ff748762b8e92e61dcee9bc01a"},
+    {"from":"0x140089d20","to":"0x1400608e0","kind":"child_part_virtual_destructor","condition":"root Part tree contains emitter subtype","status":"bounded_target_family","evidence_id":"ev_69ca0b06070b147a269ca42a20aee71fd673cf9434c72c8362d0fee960716b69"},
+    {"from":"0x1400889c0","to":"0x140054390","kind":"behavior_virtual_destructor","condition":"installed Attach behavior subtype","status":"bounded_target_family","evidence_id":"ev_8be076b23fb4a47b58187e2fe02d0b07551d54ff748762b8e92e61dcee9bc01a"},
+    {"from":"0x140054390","to":"0x140050cb0","kind":"gob_vtable","condition":"six registered attachment callbacks on target Gob","status":"target_identified","evidence_id":"ev_77b350dee89a2079e8422c5a65d54ed7708abeab1460d1782652caa127aa9184"},
+    {"from":"0x140054390","to":"0x140054290","callsite":"0x1400544cc","kind":"direct","condition":"base behavior dependency cleanup","status":"target_identified","evidence_id":"ev_77b350dee89a2079e8422c5a65d54ed7708abeab1460d1782652caa127aa9184"},
+    {"from":"0x1400602b0","to":"0x1400931f0","callsite":"0x140060340","kind":"direct","condition":"authored Chunky model name at emitter source +0x158","status":"model_creation_handoff","evidence_id":"ev_a835c7c30c035c6d53c1f634d31e77e7825f252efc92bccc6a08a310d2e47917"},
+    {"from":"0x1400931f0","to":"0x140098cd0","callsites":["0x1400933e4","0x140093548","0x140093554","0x140093560","0x14009357f"],"kind":"conditional_direct","condition":"Chunky passes null stream; named model lookup for original name or up to three LOD composite names","status":"bounded_model_source","evidence_id":"ev_f456a590b87bf33093742cf8df2e8e3f9803908ba96690c150afdc9f60a001f5"},
+    {"from":"0x1400931f0","to":"0x1400869d0","callsite":"0x140093606","kind":"conditional_direct","condition":"model lookup succeeded; create attached Gob","status":"bounded_model_source","evidence_id":"ev_f456a590b87bf33093742cf8df2e8e3f9803908ba96690c150afdc9f60a001f5"},
+    {"from":"0x1400931f0","to":"0x14008dab0","callsites":["0x140093645","0x140093677","0x1400936a9"],"kind":"conditional_direct","condition":"instantiate base and optional second/third LOD model root Part trees","status":"bounded_model_source","evidence_id":"ev_f456a590b87bf33093742cf8df2e8e3f9803908ba96690c150afdc9f60a001f5"},
+    {"from":"0x1400931f0","to":"0x14008db90","callsites":["0x1400936d9","0x1400936ed","0x140093701"],"kind":"conditional_direct","condition":"expand reference objects for base and optional LOD Part roots","status":"bounded_model_source","evidence_id":"ev_f456a590b87bf33093742cf8df2e8e3f9803908ba96690c150afdc9f60a001f5"},
+    {"from":"0x1400931f0","to":"0x140093850","callsites":["0x14009372d","0x140093748","0x140093763"],"kind":"conditional_direct","condition":"initialize materials recursively for base and optional LOD Part roots","status":"bounded_model_source","evidence_id":"ev_f456a590b87bf33093742cf8df2e8e3f9803908ba96690c150afdc9f60a001f5"},
+    {"from":"0x140095250","to":"0x1400c5990","kind":"scene_vtable","condition":"new attached Gob Scene","status":"scene_membership_handoff","evidence_id":"ev_28a6db585ee861d0a06c10a6679b3853b3f0825f3eb664abb1d2adca950b1781"},
+    {"from":"0x1400c5990","to":"0x1400dcf70","callsite":"0x1400c59a7","kind":"conditional_direct","condition":"model-backed Gob enters BSP","status":"scene_membership_handoff","evidence_id":"ev_6b28523eef3201dc9117e17337c6a83ac7dea5eed4ce7f940c48e8c8b8ef8851"},
+    {"from":"0x1400db320","to":"0x1400c38f0","kind":"bucket_producer_consumer","condition":"visible Scene Gob copied into _gobbucket, then sorted/consumed","status":"shared_geometry_handoff","evidence_id":"ev_09d80d9119302b831669f89420d3bae5e7a0578e74b2e20ff5ac6f593308b6a1"},
+    {"from":"0x1400c38f0","to":"0x1400c4620","callsite":"0x1400c44ff","kind":"direct","condition":"visible Gob root Part tree at +0x90","status":"shared_geometry_handoff","evidence_id":"ev_9b2776e75e9df7689deec134df0f62a5416d96a73218bc317ec5a36294648eb3"},
+    {"from":"0x1400c4620","to":"0x1400d75a0","callsites":["0x1400c47a6","0x1400c4801","0x1400c4879"],"kind":"conditional_direct","condition":"renderable model Part classified into a draw bucket","status":"shared_geometry_handoff","evidence_id":"ev_9e24461701831c9aebc02a0ef6ef07bce145ed378527c97ae94477cf3ad247bb"},
+    {"from":"0x1400cd210","to":"Part+0xc8 Draw","kind":"part_vtable","condition":"DrawBucketManager item subtype selected by authored model","status":"shared_geometry_handoff","evidence_id":"ev_a79e3b9d48678d00e937d48b7cfd390f667167b1d9917eb2e79df5ae2eeeb450"},
+    {"from":"0x1400647c0","to":"0x1400602b0","callsite":"0x140064a57","kind":"conditional_direct","condition":"Explosion emission needs new particle rather than reuse, authored source +0x158 selects Chunky and allocation succeeds","status":"chunky_model_owner_creation","evidence_id":"ev_41eacbf2486adc815c8e71b810e83f721043f80bb0bcd7dc6a346066af290416"},
+    {"from":"0x140064b30","to":"0x1400602b0","callsites":["0x140064e90","0x14006519b"],"kind":"conditional_direct","condition":"0x140064e90 or 0x14006519b Fountain rate/distance emission needs new particle, authored source +0x158 selects Chunky and allocation succeeds","status":"chunky_model_owner_creation","evidence_id":"ev_8d49308bf3baade8551d571633fd403d485118bc9ddd9dc8cfd63cefb1b6e0cd"},
+    {"from":"0x140065cd0","to":"0x1400602b0","callsite":"0x140065d3a","kind":"conditional_direct","condition":"Single enabled with zero live particles, authored source +0x158 selects Chunky and allocation succeeds","status":"chunky_model_owner_creation","evidence_id":"ev_362f7e8de70e775c790f65836a41761a209d7e748570b00ceabf8b4027943e70"},
+    {"from":"0x140061d80","to":"0x1400643b0","kind":"instance_callback_install","condition":"0x140061dc2 default RenderStandard into PartEmitter+0x1b0","status":"render_callback_installed","evidence_id":"ev_8196177995dbdc99839bcacb411d86473a8f877c6bf8291aea000762832be32d"},
+    {"from":"0x140061d80","to":"0x140064170","kind":"instance_callback_install","condition":"0x140061ed8 Linked mode 3 into PartEmitter+0x1b0","status":"render_callback_installed","evidence_id":"ev_8196177995dbdc99839bcacb411d86473a8f877c6bf8291aea000762832be32d"},
+    {"from":"0x140061d80","to":"0x140064180","kind":"instance_callback_install","condition":"0x140061ed8 Motion_Blur mode 6 into PartEmitter+0x1b0","status":"render_callback_installed","evidence_id":"ev_8196177995dbdc99839bcacb411d86473a8f877c6bf8291aea000762832be32d"},
+    {"from":"0x140061d80","to":"0x140064190","kind":"instance_callback_override","condition":"0x140061ef8 nonempty authored source+0x158 name overrides prior callback; no quad stream","status":"render_callback_installed","evidence_id":"ev_8196177995dbdc99839bcacb411d86473a8f877c6bf8291aea000762832be32d"},
+    {"from":"0x140064b30","to":"PartEmitter+0x170","kind":"instance_callback","condition":"0x140064cfa movement update before rate/distance spawn; standard/P2P gravity/P2P Bezier installed at Initialize","status":"cpu_particle_update","evidence_id":"ev_8d49308bf3baade8551d571633fd403d485118bc9ddd9dc8cfd63cefb1b6e0cd"},
+    {"from":"0x140064b30","to":"0x140060680","callsites":["0x140064ebb","0x1400651c9"],"kind":"conditional_direct","condition":"0x140064ebb or 0x1400651c9 no reuse and empty authored model name; allocation succeeds","status":"cpu_particle_creation","evidence_id":"ev_8d49308bf3baade8551d571633fd403d485118bc9ddd9dc8cfd63cefb1b6e0cd"},
+    {"from":"0x140064b30","to":"0x140066450","kind":"particle_vtable","condition":"0x140064ed4 or 0x1400651e2; base Particle+0x10 reinitialize new or reused particle","status":"cpu_particle_creation","evidence_id":"ev_a3c053cb861ec7f9899ded886084e4ee1c600427ee02902776ebde83727637d4"},
+    {"from":"0x140064b30","to":"0x1400663d0","kind":"particle_vtable","condition":"0x140064ed4 or 0x1400651e2; ChunkyParticle+0x10 reinitialize new or reused particle","status":"cpu_particle_creation","evidence_id":"ev_f903d3a8193a42303801924f58f209a188b9db72fc0addf7e123ea1251eed2c3"},
+    {"from":"0x140064b30","to":"0x140061010","callsite":"0x1400651ef","kind":"conditional_direct","condition":"distance emission appends initialized particle to live list; time branch appends equivalent inline","status":"cpu_particle_publication","evidence_id":"ev_8d49308bf3baade8551d571633fd403d485118bc9ddd9dc8cfd63cefb1b6e0cd"},
+    {"from":"0x140060680","to":"0x140066450","callsite":"0x1400606d1","kind":"direct","condition":"Particle constructor initializes before Fountain virtual reinitialization","status":"cpu_particle_creation","evidence_id":"ev_f4f36fcb70d25790540d91bfa65ddaa2576429752eca6b2df001b3d7b1f06b41"},
+    {"from":"0x1400602b0","to":"0x140066450","callsite":"0x140060316","kind":"direct","condition":"Chunky constructor invokes base initialize before model Gob construction and Fountain virtual reinitialization","status":"cpu_particle_creation","evidence_id":"ev_a835c7c30c035c6d53c1f634d31e77e7825f252efc92bccc6a08a310d2e47917"},
+    {"from":"0x140061a30","to":"PartEmitter+0x108","kind":"state_write","condition":"registered Detonate callback sets Explosion trigger byte to 1","status":"explosion_trigger","evidence_id":"ev_62e63adcf051547b4dbecb64e768ec13383a69feb8df80fd7c24d7d012330b73"},
+    {"from":"0x1400647c0","to":"PartEmitter+0x170","kind":"instance_callback","condition":"0x140064949 movement callback before detonation gate","status":"cpu_particle_update","evidence_id":"ev_41eacbf2486adc815c8e71b810e83f721043f80bb0bcd7dc6a346066af290416"},
+    {"from":"0x1400647c0","to":"0x1400f1250","callsite":"0x1400649bc","kind":"conditional_direct","condition":"first admitted Detonate and nonzero authored wind magnitude at source+0xa4","status":"cpu_wind_publication","evidence_id":"ev_41eacbf2486adc815c8e71b810e83f721043f80bb0bcd7dc6a346066af290416"},
+    {"from":"0x1400647c0","to":"0x140060680","callsite":"0x140064a85","kind":"conditional_direct","condition":"positive burst and no reusable particle, empty authored model name, allocation succeeds","status":"cpu_particle_creation","evidence_id":"ev_41eacbf2486adc815c8e71b810e83f721043f80bb0bcd7dc6a346066af290416"},
+    {"from":"0x1400647c0","to":"Particle+0x10 initialize","kind":"particle_vtable","condition":"0x140064a9e new or reused Particle/Chunky gets initialized before live-list append","status":"cpu_particle_creation","evidence_id":"ev_41eacbf2486adc815c8e71b810e83f721043f80bb0bcd7dc6a346066af290416"},
+    {"from":"0x1400647c0","to":"0x140061010","callsite":"0x140064aab","kind":"direct","condition":"append admitted burst particle to live list","status":"cpu_particle_publication","evidence_id":"ev_41eacbf2486adc815c8e71b810e83f721043f80bb0bcd7dc6a346066af290416"},
+    {"from":"0x140065f10","to":"PartEmitter+0x130/+0x138 reuse list","kind":"conditional_state_write","condition":"expired live particle removed and recycled; attached Chunky Gob detached through virtual +0x90","status":"cpu_particle_recycle","evidence_id":"ev_6a316aab67a349f9829d86167385cb7733aaa9958720676629d2dc0a8e8cf9ce"},
+    {"from":"0x140065cd0","to":"0x140060680","callsite":"0x140065d5f","kind":"conditional_direct","condition":"enabled with zero live, empty authored model name, allocation succeeds","status":"single_first_use","evidence_id":"ev_362f7e8de70e775c790f65836a41761a209d7e748570b00ceabf8b4027943e70"},
+    {"from":"0x140065cd0","to":"0x140061010","callsite":"0x140065d6b","kind":"conditional_direct","condition":"first-use append; no second virtual initialize call","status":"single_first_use","evidence_id":"ev_362f7e8de70e775c790f65836a41761a209d7e748570b00ceabf8b4027943e70"},
+    {"from":"0x140065cd0","to":"0x1400660c0","callsite":"0x140065d88","kind":"tail_jump","condition":"first-use random-atlas check after append","status":"single_first_use","evidence_id":"ev_362f7e8de70e775c790f65836a41761a209d7e748570b00ceabf8b4027943e70"},
+    {"from":"0x140065cd0","to":"PartEmitter+0x170","kind":"instance_callback_tail_jump","condition":"0x140065ea4 only enabled and already-live branch; after clock/rotation/motion-blur update","status":"cpu_particle_update","evidence_id":"ev_362f7e8de70e775c790f65836a41761a209d7e748570b00ceabf8b4027943e70"},
+    {"from":"0x140065cd0","to":"0x140060e50","kind":"particle_vtable_destructor","condition":"0x140065ef3 disabled with ordinary live Particle; remove from live array then destroy, no reuse","status":"single_teardown","evidence_id":"ev_42c21cedd4acbbabfc56add2f7ba4b9ab74df527d042102cb2ff432a265d7ddd"},
+    {"from":"0x140065cd0","to":"0x140060cf0","kind":"particle_vtable_destructor","condition":"0x140065ef3 disabled with Chunky live Particle; destroy attached Gob and particle, no reuse","status":"single_teardown","evidence_id":"ev_e7e6095ca9907cf047dd59ec8a0e4fc4fb7a3616dd185a0e2914a3fba6bfcf6a"},
+    {"from":"0x1400643c0","to":"PartEmitter+0x1c0","kind":"conditional_state_write","condition":"_EmitterTarget callback admits a child PartReference and stores its referenced Gob at +0x68","status":"lightning_target_publication","evidence_id":"ev_a20a60bfc6fbdf7caa78b86fccd0c5b2bbd0ba8a8d85cf115b24a4fa3eeb2bd3"},
+    {"from":"0x140065290","to":"PartEmitter+0x130/+0x138 reuse list","kind":"conditional_state_write","condition":"zero integer segment count, absent target, or reduced count moves live ordinary Particles to reuse without destruction","status":"lightning_segment_recycle","evidence_id":"ev_3f42edbd7257e3953b1080f297e157e959056e33766cc0c1ccc286a5904d08ce"},
+    {"from":"0x140065290","to":"0x140066450","callsite":"0x140065470","kind":"conditional_direct","condition":"only new ordinary Particle allocation during segment-count growth; reused entries skip initialize","status":"lightning_segment_creation","evidence_id":"ev_3f42edbd7257e3953b1080f297e157e959056e33766cc0c1ccc286a5904d08ce"},
+    {"from":"0x140065290","to":"0x140c7ed00","callsite":"0x1400654b3","kind":"conditional_direct","condition":"random atlas frame when source +0x174 bit 5; later interior jitter RNG under distance gate","status":"cpu_rng","evidence_id":"ev_3f42edbd7257e3953b1080f297e157e959056e33766cc0c1ccc286a5904d08ce"},
+    {"from":"0x140065290","to":"0x140048530","kind":"target_gob_virtual","condition":"0x1400657a8 and 0x140065a4c target Gob +0xc0 GetPosition; current-target and refresh branches","status":"lightning_target_read","evidence_id":"ev_3f42edbd7257e3953b1080f297e157e959056e33766cc0c1ccc286a5904d08ce"},
+    {"from":"0x140d88ac0","to":"0x140048530","kind":"constructor_backed_vtable_slot","condition":"Gob base vtable +0xc0 GetPosition; derived target Gob override population not proven","status":"bounded_target_family","evidence_id":"ev_15dd5e10911047e0f9099bb67a11928c97ae578a55fa4549a0802d3cab696213"},
+    {"from":"0x140065290","to":"0x140068d80","callsite":"0x140065782","kind":"conditional_direct","condition":"refresh branch with nonzero emitter +0xe0/+0xe4 randomizes first endpoint","status":"cpu_particle_geometry","evidence_id":"ev_3f42edbd7257e3953b1080f297e157e959056e33766cc0c1ccc286a5904d08ce"},
+    {"from":"0x140062460","to":"0x140c7ed00","callsites":["0x1400624b3","0x140062590","0x14006260d","0x14006267a"],"kind":"conditional_direct","condition":"recursive midpoint displacement sign and optional offset when emitter +0xf0 >=0.01","status":"cpu_rng","evidence_id":"ev_1ff832019830188ce5ae5831700c712b21c7d452907115921e2b16481be83bd5"},
+    {"from":"0x140062460","to":"Particle+0x10/+0x18","kind":"state_write","condition":"recursive midpoint segment position publication until half-span is zero","status":"cpu_particle_geometry","evidence_id":"ev_1ff832019830188ce5ae5831700c712b21c7d452907115921e2b16481be83bd5"},
+    {"from":"0x140062460","to":"0x140062460","kind":"conditional_recursive","condition":"two child spans when param_2 !=0, half-offset truncated to zero terminates; depth argument is not a guard","status":"cpu_particle_geometry","evidence_id":"ev_1ff832019830188ce5ae5831700c712b21c7d452907115921e2b16481be83bd5"},
+    {"from":"0x140062900","to":"0x140062b02","callsite":"0x140062afc","kind":"internal_mode_branch","condition":"mode +0x1a8==0 Normal; camera quaternion basis","status":"geometry_variant_identified","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x140062c01","callsite":"0x140062bfb","kind":"internal_mode_branch","condition":"mode +0x1a8==1 local-Z billboard; emitter quaternion basis","status":"geometry_variant_identified","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x140062b91","callsite":"0x140062b8f","kind":"internal_mode_branch","condition":"mode +0x1a8==2 world-Z billboard seed","status":"geometry_variant_identified","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x140063848","callsite":"0x140063842","kind":"internal_mode_branch","condition":"mode +0x1a8==3 Linked; next-particle segment geometry, live count minus one","status":"geometry_variant_identified","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x140063bc3","callsite":"0x140063bc1","kind":"internal_mode_branch","condition":"mode +0x1a8==4 world-Z alignment skips additional cross helper","status":"geometry_variant_identified","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x1400639d6","callsite":"0x1400639d0","kind":"internal_mode_branch","condition":"mode +0x1a8==5 direction alignment; particle quaternion axes","status":"geometry_variant_identified","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x14006368b","callsite":"0x140063685","kind":"internal_mode_branch","condition":"mode +0x1a8==6 Motion_Blur; current and previous particle positions","status":"geometry_variant_identified","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x14022db30","callsite":"0x140062bac","kind":"conditional_direct","condition":"world-Z billboard seed normalization, mode 2","status":"cpu_geometry_helper","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x14022b150","callsite":"0x140062bcb","kind":"conditional_direct","condition":"world-Z billboard seed scale, mode 2","status":"cpu_geometry_helper","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x14022ab00","callsite":"0x140063b3e","kind":"conditional_direct","condition":"generic per-particle rotation path outside Linked, Motion_Blur and direction-aligned mode 5","status":"cpu_geometry_helper","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"},
+    {"from":"0x140062900","to":"0x14022fba0","callsite":"0x140063bfa","kind":"conditional_direct","condition":"additional per-particle cross product outside world-Z aligned mode 4","status":"cpu_geometry_helper","evidence_id":"ev_03c94ab09a5b369db37c9ac35170fa07ce8eeb85ca5d48ade2c233992d604f88"}
+  ],
+  "open_shared_descendants": [
+    "Shared GLRender::SetUniforms 0x1400b8380 is mapped in shader-uniform-dirty-gates.md and shader-uniform-gl-callsites.json; this ledger ends at the particle shader handoff",
+    "Shared shader compile/link is mapped in shader-program-branch.md; this ledger ends at shader selection",
+    "Conditional glImageBasic cube path 0x1400be930 -> 0x1400aeff0 and palette path 0x1400beec0 are covered by shared NWN-75 texture and geometry docs; controller-specific traversal ends at the publication call",
+    "Attached Chunky Gob uses NewCAurObject named FindModel and a bounded model-node Part factory; exact authored asset name, Part/Draw mix and behavior attachment are content-dependent. See original-particle-effect-lifecycle.md, model-instance-branch.md and geometry-and-draw-boundary.md",
+    "Gob::DoEvent dispatches Dying through CallBack+0x20 at 0x140050e38; known particle registrations are named, and other callback callees are selected by runtime Gob+0x460 records. See original-particle-effect-lifecycle.md"
+  ]
+}

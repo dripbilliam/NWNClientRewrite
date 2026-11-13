@@ -15,9 +15,10 @@ class TracedTalk extends Talk:
 		if not overrides.has(ref) and base_rows.has(ref):
 			var fetched:=fetch_reference(int(ref),int(gender));fetched.gender=int(gender);fetched.override=false;return fetched
 		return super.fetch_native_reference(ref,gender)
-	func parse_native(input: String,call_state: Dictionary={}) -> Dictionary:
+	func parse_native_bytes(raw_bytes: PackedByteArray,call_state: Dictionary={}) -> Dictionary:
+		var input: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(call_state.get("language",base.language)),true).get("text","")
 		parses.append({"input":input,"state":call_state.duplicate(true)})
-		return super.parse_native(input,call_state)
+		return super.parse_native_bytes(raw_bytes,call_state)
 class Chat extends Node:
 	var rows: Array=[]
 	func append_message(row: Dictionary) -> void:rows.append(row.duplicate(true))
@@ -27,7 +28,7 @@ var failures: Array=[]
 func check(value: bool,label: String) -> void:
 	checks+=1
 	if not value:failures.append(label)
-func row() -> Dictionary:return {"id":99,"areaId":91,"objectType":5,"nativeLifetime":8,"clientKnownLifetime":13,"replicated":{"name":{"firstName":{"text":"Before"},"lastName":{"text":"After"}}}}
+func row() -> Dictionary:return {"id":99,"areaId":91,"objectType":5,"nativeLifetime":8,"clientKnownLifetime":13,"appearance":{"name":{"firstName":{"text":"Before"},"lastName":{"text":"After"}}},"replicated":{}}
 func message(value: Variant,channel: int=11) -> Dictionary:
 	return {"kind":"server-speech","channel":channel,"objectId":42,"contextId":99,"text":value,"nativeTextEvent":{"version":1,"serial":1,"connection":3,"generation":7,"areaId":91,"source":{"id":42,"objectType":5,"areaId":91,"nativeLifetime":2,"knownLifetime":3},"context":{"id":99,"objectType":5,"areaId":91,"nativeLifetime":8,"knownLifetime":13}}}
 func _initialize() -> void:run.call_deferred()
@@ -38,7 +39,7 @@ func run() -> void:
 	talk.objects[99]=row();talk.custom_tokens[12]="Receipt token"
 	var original:=message({"text":"<CUSTOM12>"});var original_copy:=original.duplicate(true)
 	var receipt:=Receipt.capture(original,talk,current)
-	talk.custom_tokens[12]="Future token";talk.objects[99].replicated.name.firstName.text="Future name"
+	talk.custom_tokens[12]="Future token";talk.objects[99].appearance.name.firstName.text="Future name"
 	check(Receipt.prepare(receipt,talk,current).body=="Receipt token","Complete custom-token snapshot never borrows a future value")
 	check(original==original_copy,"Receipt leaves received packet and provenance unchanged")
 	receipt=Receipt.capture(message({"text":"<FirstName>"}),talk,current);talk.objects[99]=row()
@@ -75,10 +76,10 @@ func run() -> void:
 	unknown=message({"text":"<FirstName>"});talk.objects[99].clientKnownLifetime=14
 	check(Receipt.prepare(Receipt.capture(unknown,talk,current),talk,current).get("pending",false),"Wrong lifetime cannot be captured as message context")
 	talk.objects[99]=row();talk.base_rows.erase(106);receipt=Receipt.capture(message({"strRef":106,"gender":0}),talk,current)
-	talk.objects[99].clientKnownLifetime=14;talk.objects[99].replicated.name.firstName.text="Reused";talk.base_rows[106]="<FirstName>"
+	talk.objects[99].clientKnownLifetime=14;talk.objects[99].appearance.name.firstName.text="Reused";talk.base_rows[106]="<FirstName>"
 	check(Receipt.prepare(receipt,talk,current).body=="Before","Late resource completion uses already captured exact context, not reused object")
 	check(not Receipt.prepare(Receipt.capture(message({"strRef":100}),talk,current),talk,current).get("ready",false),"Missing localized wire gender is unavailable rather than silently defaulted")
-	talk.objects[99]=row();talk.objects[99].appearance={"gender":0};talk.objects[99].replicated.stats={"race":1,"classes":[{"level":6},{"level":99}]};talk.parses.clear()
+	talk.objects[99]=row();talk.objects[99].appearance.gender=0;talk.objects[99].replicated.stats={"race":1,"classes":[{"level":6},{"level":99}]};talk.parses.clear()
 	receipt=Receipt.capture(message({"text":"<FirstName>"}),talk,current);talk.objects[99].replicated.stats.race=0;Receipt.prepare(receipt,talk,current)
 	check(talk.parses.size()==1 and talk.parses[0].state.gender==1,"Explicit copy uses receipt Stats+68 BYTE rather than wire/appearance gender or a future update")
 	check(receipt.context.replicated.stats.classes.size()==1 and receipt.context.replicated.stats.classes[0].level==6,"Token context copies only certified first-class data, not an entire actor graph")

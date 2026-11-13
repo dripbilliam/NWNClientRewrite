@@ -1,7 +1,7 @@
 extends Node
 # Experimental world owner, selected only by --particle-presentation=shared
-# or NWN_PARTICLE_PRESENTATION=shared. Unsupported owners keep their existing
-# synchronous tick and surface; native owners publish counters without GD rows.
+# or NWN_PARTICLE_PRESENTATION=shared. The geometry worker opt-in suppresses
+# unsupported owners; the normal mode retains their existing fallback.
 const Bounds=preload("res://systems/native_render/particle_bounds.gd")
 const Profile=preload("res://systems/native_render/frame_profile.gd")
 const Effect=preload("res://systems/native_render/particle_stream_effect.gd")
@@ -9,6 +9,8 @@ const Fog=preload("res://systems/native_render/particle_stream_fog.gd")
 const SceneBatches=preload("res://systems/native_render/particle_scene_batches.gd")
 const CameraEffects=preload("res://systems/native_render/camera_effects.gd")
 var pooled_lighting:=OS.get_cmdline_user_args().has("--particle-lighting=pooled") or OS.get_environment("NWN_PARTICLE_LIGHTING")=="pooled"
+var geometry_worker:=OS.get_cmdline_user_args().has("--particle-geometry-worker=on")
+var animation_snapshot:=OS.get_cmdline_user_args().has("--particle-animation-snapshot=on")
 var native_surface_output:=false
 var scene_batches: Node
 var native: RefCounted
@@ -29,6 +31,7 @@ var failure:=""
 var last: Dictionary={}
 var fast_members:=0
 var fallback_reasons: Dictionary={}
+func suppressed_fallback_tick(_delta: float) -> void: pass
 var visibility_dirty:=false
 var visibility_publications:=0
 func _enter_tree() -> void: process_priority=20
@@ -95,17 +98,20 @@ func register(emitter: Node3D) -> bool:
 		if is_instance_valid(emitter.chunk_models) and not emitter.chunk_models.ready(): config.ready=Callable(emitter,"shared_chunk_ready")
 		if emitter.original_texture!=null: config.merge({"texture":emitter.original_texture,"additive":int(emitter._state.get("blendMode68",0))!=0,"two_sided":bool(emitter._state.get("twoSided",false)),"lighting":(emitter.effective_flags()&8)!=0})
 		if is_instance_valid(emitter.native_wind_owner): config.wind_token=emitter.native_wind_owner.token
-	else: config.fallback=Callable(emitter,"grouped_fallback_tick")
+	else: config.fallback=Callable(self,"suppressed_fallback_tick") if geometry_worker else Callable(emitter,"grouped_fallback_tick")
 	var result: Dictionary=native.call("dispatch",0,config)
 	if result.has("error"):
 		failure=str(result.error)
-		if emitter.native_stream_group==self: emitter.native_stream_group=null; emitter.set_process(emitter.particles_enabled)
+		if emitter.native_stream_group==self: emitter.native_stream_group=null; emitter.set_process(emitter.particles_enabled and not geometry_worker)
+		if geometry_worker and is_instance_valid(emitter.surface): emitter.surface.retire()
 		return false
 	members[id]={"emitter":weakref(emitter),"fast":fast,"reason":fallback}; emitter.native_stream_group=self; emitter.set_process(false)
 	if not emitter.visibility_changed.is_connected(visibility_changed): emitter.visibility_changed.connect(visibility_changed)
 	if fast:
 		fast_members+=1; emitter.native_compact_records=true; emitter.native_typed_frame=true; emitter.surface.retire()
-	else: fallback_reasons[fallback]=int(fallback_reasons.get(fallback,0))+1
+	else:
+		fallback_reasons[fallback]=int(fallback_reasons.get(fallback,0))+1
+		if geometry_worker and is_instance_valid(emitter.surface): emitter.surface.retire()
 	if emitter.queued_detonate: control(emitter,{"detonate":true})
 	if emitter.collision_flags_pending: control(emitter,{"flags":emitter.effective_flags()})
 	return true
@@ -116,21 +122,23 @@ func unregister(emitter: Node3D) -> void:
 	visibility_dirty=true
 	pending_registrations.erase(id)
 	if not members.has(id):
-		if emitter.native_stream_group==self: emitter.native_stream_group=null; emitter.set_process(emitter.particles_enabled and not emitter.retired and emitter.failure.is_empty())
+		if emitter.native_stream_group==self: emitter.native_stream_group=null; emitter.set_process(emitter.particles_enabled and not geometry_worker and not emitter.retired and emitter.failure.is_empty())
 		return
 	var member: Dictionary=members[id]
 	if member.fast:
 		if not running and pending_controls.has(id): native.call("dispatch",4,pending_controls[id])
 		emitter.sync_stream_diagnostics(); fast_members-=1
-		emitter.surface.configure(emitter.original_texture,1,int(emitter._state.get("blendMode68",0))!=0,bool(emitter._state.get("twoSided",false)),(emitter.effective_flags()&8)!=0)
+		if not geometry_worker: emitter.surface.configure(emitter.original_texture,1,int(emitter._state.get("blendMode68",0))!=0,bool(emitter._state.get("twoSided",false)),(emitter.effective_flags()&8)!=0)
+		elif is_instance_valid(emitter.surface): emitter.surface.retire()
 	else:
 		fallback_reasons[member.reason]=int(fallback_reasons[member.reason])-1
 		if int(fallback_reasons[member.reason])==0: fallback_reasons.erase(member.reason)
+		if geometry_worker and is_instance_valid(emitter.surface): emitter.surface.retire()
 	if running: pending_removals[id]=true
 	elif native!=null: native.call("dispatch",3,{"id":id})
 	members.erase(id); pending_controls.erase(id)
 	if emitter.native_stream_group==self: emitter.native_stream_group=null
-	emitter.set_process(emitter.particles_enabled and not emitter.retired and emitter.failure.is_empty())
+	emitter.set_process(emitter.particles_enabled and not geometry_worker and not emitter.retired and emitter.failure.is_empty())
 func control(emitter: Node3D,patch: Dictionary) -> void:
 	var id:=emitter.get_instance_id()
 	if closed or native==null or not members.has(id): return
@@ -148,6 +156,13 @@ func attach_camera(next: Camera3D) -> void:
 	if camera==next: return
 	detach_camera(); camera=next
 	CameraEffects.install(camera,effect)
+static func frame_fog(current: Camera3D,owner: Node,native_output: bool) -> Array:
+	if not native_output:return Fog.sample(current,false,owner)
+	var state=preload("res://systems/native_render/native_surface_state.gd")
+	# An area-owned packet is already authoritative. The camera fallback sample
+	# would be discarded by publish_camera, so leave that Environment unread.
+	if not state.authoritative(owner):state.publish_camera(owner,Fog.sample(current,true))
+	return Fog.sample(current,true,owner)
 func step(delta: float) -> void:
 	if closed or native==null: return
 	var phase:=Profile.begin()
@@ -167,8 +182,11 @@ func step(delta: float) -> void:
 	var fog_reason:=Fog.unsupported(current)
 	if fast_members>0 and not fog_reason.is_empty(): Profile.finish("particle_frame_inputs_ms",phase); failure="Shared raster unsupported "+fog_reason+"; established particles restored"; close(); return
 	attach_camera(current)
-	if native_surface_output: preload("res://systems/native_render/native_surface_state.gd").publish_camera(scope_root,Fog.sample(current,true))
-	var input:={"delta":delta,"view":Bounds.native_view(current,false),"profile":Profile.enabled,"fog":Fog.sample(current,native_surface_output,scope_root),"scene_instances":pooled_lighting,"native_surface_output":native_surface_output}
+	var input:={"delta":delta,"view":Bounds.native_view(current,false),"profile":Profile.enabled,"fog":frame_fog(current,scope_root,native_surface_output),"scene_instances":pooled_lighting,"native_surface_output":native_surface_output}
+	if geometry_worker: input.geometry_worker=true
+	# This dictionary is local to this synchronous dispatch; callbacks cannot
+	# obtain it through the group while the native frame is running.
+	if animation_snapshot: input.animation_snapshot=true
 	Profile.finish("particle_frame_inputs_ms",phase)
 	if native_surface_output:
 		phase=Profile.begin()
@@ -206,7 +224,7 @@ func step(delta: float) -> void:
 func _process(delta: float) -> void:
 	var began:=Profile.begin(); step(delta); Profile.finish("callback_particles",began)
 func snapshot() -> Dictionary:
-	return {"closed":closed,"failure":failure,"members":members.size(),"fast_members":fast_members,"pending_registrations":pending_registrations.size(),"fallback_reasons":fallback_reasons.duplicate(),"native":native.call("dispatch",7,{}) if native!=null else {},"renderer":renderer.call("dispatch",2,{}) if renderer!=null else {},"scene_batches":scene_batches.snapshot() if scene_batches!=null else {}}
+	return {"closed":closed,"failure":failure,"members":members.size(),"fast_members":fast_members,"pending_registrations":pending_registrations.size(),"fallback_reasons":fallback_reasons.duplicate(),"geometry_worker":geometry_worker,"animation_snapshot":animation_snapshot,"suppressed_fallbacks":members.size()-fast_members if geometry_worker else 0,"native":native.call("dispatch",7,{}) if native!=null else {},"renderer":renderer.call("dispatch",2,{}) if renderer!=null else {},"scene_batches":scene_batches.snapshot() if scene_batches!=null else {}}
 func close() -> void:
 	if closed: return
 	if running: close_requested=true; return

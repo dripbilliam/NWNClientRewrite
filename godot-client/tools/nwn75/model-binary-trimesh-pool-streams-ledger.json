@@ -1,0 +1,258 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Binary TriMesh/AABB/Dangly shared metadata, CPU lists and all fifteen geometry-pool transfer triplets to conditional GL buffer publication.",
+  "edges": [
+    {
+      "from": "0x14007abe0",
+      "to": "0x140078ab0",
+      "callsites": [
+        "0x14007ac4a",
+        "0x14007b02f",
+        "0x14007b615"
+      ],
+      "kind": "direct_static",
+      "condition": "binary AABB, Dangly or ordinary TriMesh typed branch",
+      "status": "cpu_mesh_metadata_copy",
+      "evidence_id": "ev_84972c82b2b72d9d3febb9c48d59aea19eff280be68bdbc6c1b6f8ef0d1c9147"
+    },
+    {
+      "from": "0x14007abe0",
+      "to": "0x14007be10",
+      "callsites": [
+        "0x14007ac6a",
+        "0x14007b04f",
+        "0x14007b692"
+      ],
+      "kind": "direct_static",
+      "condition": "same three typed binary branches",
+      "status": "cpu_mesh_stream_builder",
+      "evidence_id": "ev_84972c82b2b72d9d3febb9c48d59aea19eff280be68bdbc6c1b6f8ef0d1c9147"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x280..+0x2b4",
+      "kind": "compiled_field_copy",
+      "condition": "serialized mesh fields +0x22c..+0x260 into raw stream offset words and vertex count/format",
+      "status": "cpu_raw_offset_source",
+      "evidence_id": "ev_bd514b1556eeab27e7f2d0a66cb156975f7a77ef9b7b4216f2ecee2347c00de5"
+    },
+    {
+      "from": "0x14007be10",
+      "to": "0x14007b6c0",
+      "callsite": "0x14007be52",
+      "kind": "direct_static",
+      "condition": "common node child/controller reconstruction",
+      "status": "cpu_node_tree",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x280",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c082",
+        "0x14007c094",
+        "0x14007c0be"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "always; serialized +0x22c; 12*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x294",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c10b",
+        "0x14007c11d",
+        "0x14007c144"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "format 4; serialized +0x240; 8*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x290",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c16a",
+        "0x14007c17c",
+        "0x14007c1a3"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "format 3 or 4; serialized +0x23c; 8*vertex_count, kind 0; Lock mode 1",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x28c",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c1c9",
+        "0x14007c1db",
+        "0x14007c202"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "format 2/3/4; serialized +0x238; 8*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x288",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c228",
+        "0x14007c23a",
+        "0x14007c261"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "format 1/2/3/4; serialized +0x234; 8*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x298",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c28a",
+        "0x14007c29c",
+        "0x14007c2c6"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "always; serialized +0x244; 12*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x29c",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c2f1",
+        "0x14007c303",
+        "0x14007c32a"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "offset != 0xffffffff; serialized +0x248; 4*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x258 indexed list",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c3dd",
+        "0x14007c3f7",
+        "0x14007c428"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "each positive list entry; serialized +0x210/+0x214; 2*corresponding index count, kind 1",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x268",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c467",
+        "0x14007c479",
+        "0x14007c49e"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "offset != 0xffffffff; serialized +0x21c; 2*node+0x26c, kind 1",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x2a0",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c4cc",
+        "0x14007c4de",
+        "0x14007c508"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "offset != 0xffffffff; serialized +0x24c; 12*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x2a4",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c536",
+        "0x14007c548",
+        "0x14007c572"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "offset != 0xffffffff; serialized +0x250; 12*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x2a8",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c5a0",
+        "0x14007c5b2",
+        "0x14007c5dc"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "offset != 0xffffffff; serialized +0x254; 12*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x2ac",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c60a",
+        "0x14007c61c",
+        "0x14007c646"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "offset != 0xffffffff; serialized +0x258; 12*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x2b0",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c674",
+        "0x14007c686",
+        "0x14007c6b0"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "offset != 0xffffffff; serialized +0x25c; 12*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "MdlNodeTriMesh+0x2b4",
+      "to": "RenderInterface::RequestPool/LockPool/UnlockPool",
+      "sites": [
+        "0x14007c6db",
+        "0x14007c6ed",
+        "0x14007c714"
+      ],
+      "kind": "conditional_pool_triplet",
+      "condition": "offset != 0xffffffff; serialized +0x260; 4*vertex_count, kind 0",
+      "status": "cpu_to_conditional_gl_buffer_publication",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    },
+    {
+      "from": "0x1400bf3d0",
+      "to": "0x1400bbaf0",
+      "kind": "conditional_pool_dispatch",
+      "condition": "UnlockPool buffer implementation; state/dirty gates may reach imported GL buffer APIs",
+      "status": "conditional_gl_buffer_leaf",
+      "evidence_id": "ev_e83d601a6cdb6ddff4c4c13c508896de862ad8a24d41171019061c15c2a086e8"
+    },
+    {"from":"0x140079f90","to":"0x140079500","callsite":"0x14007a37b","kind":"direct_static","condition":"binary model geometry root reconstructed; recursive normal walk","status":"cpu_normal_postprocess","evidence_id":"ev_3846e53e9c039b1b34c24f9ed245f188647adfbbb3f0b9ff504a36a486d77357"},
+    {"from":"0x140079500","to":"0x1400bee30","callsites":["0x14007954c","0x1400795a6"],"kind":"direct_static","condition":"typed TriMesh and valid +0x298 normal or +0x2ac secondary-vector pool","status":"cpu_vector_pool_read_write","evidence_id":"ev_3846e53e9c039b1b34c24f9ed245f188647adfbbb3f0b9ff504a36a486d77357"},
+    {"from":"0x140079500","to":"0x14022db30","callsites":["0x14007956b","0x1400795cb"],"kind":"direct_static","condition":"per vertex in admitted pool; CPU Vector::Normalize","status":"cpu_normalization_leaf","evidence_id":"ev_3846e53e9c039b1b34c24f9ed245f188647adfbbb3f0b9ff504a36a486d77357"},
+    {"from":"0x140079500","to":"0x1400bf3d0","callsites":["0x14007958b","0x1400795eb"],"kind":"direct_static","condition":"after normalization; shared conditional GL-buffer publication","status":"conditional_gl_buffer_publication","evidence_id":"ev_3846e53e9c039b1b34c24f9ed245f188647adfbbb3f0b9ff504a36a486d77357"},
+    {"from":"0x140079500","to":"0x140079500","callsite":"0x14007960a","kind":"direct_recursive","condition":"each child node in model tree","status":"cpu_normalization_tree","evidence_id":"ev_3846e53e9c039b1b34c24f9ed245f188647adfbbb3f0b9ff504a36a486d77357"}
+  ]
+}

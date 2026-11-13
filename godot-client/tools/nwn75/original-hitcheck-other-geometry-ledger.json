@@ -1,0 +1,21 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "document": "original-hitcheck-other-geometry.md",
+  "scope": "Conditional AABB, animated mesh and trigger Part hit-test geometry CPU descendants.",
+  "edges": [
+    {"from":"0x140090450","to":"0x140090170","callsite":"0x14009050b","kind":"conditional_direct","condition":"AABB Part geometry and model flags","status":"cpu_geometry","evidence_id":"ev_53093ccfc48bd7d8119791436569f1e59958e9b3822c44ed06c07244edf7b4a6"},
+    {"from":"0x140090170","to":"0x14022b400","callsites":["0x1400901c3","0x140090255"],"kind":"conditional_direct","condition":"unity or scaled AABB node bounds","status":"cpu_geometry_leaf","evidence_id":"ev_d9b3f922d7199eec6e1b12fe51c5449a922d0ea2ccd50da501bd5a0cfc8d1bd0"},
+    {"from":"0x140090170","to":"0x140090170","callsites":["0x140090419","0x14009042d"],"kind":"conditional_direct","condition":"internal AABB node visits both children","status":"cpu_recursive_geometry","evidence_id":"ev_d9b3f922d7199eec6e1b12fe51c5449a922d0ea2ccd50da501bd5a0cfc8d1bd0"},
+    {"from":"0x140090170","to":"0x1400bee30","callsite":"0x1400902dd","kind":"conditional_direct","condition":"admitted AABB leaf face; fetch CPU pool vertex bytes","status":"cpu_pool_pointer","evidence_id":"ev_d9b3f922d7199eec6e1b12fe51c5449a922d0ea2ccd50da501bd5a0cfc8d1bd0"},
+    {"from":"0x140090170","to":"0x1400bf3d0","callsite":"0x140090379","kind":"conditional_direct","condition":"AABB face pool was locked in mode 8; release uses size -1, offset zero, and mode mask suppresses GL","status":"cpu_no_upload","evidence_id":"ev_541ed45c998a45e12f3c593685700e991d5777b6db85a6d370ec288cfd606385"},
+    {"from":"0x140090170","to":"0x140231810","callsite":"0x14009039b","kind":"conditional_direct","condition":"admitted leaf face segment-polygon intersection","status":"cpu_geometry_leaf","evidence_id":"ev_d9b3f922d7199eec6e1b12fe51c5449a922d0ea2ccd50da501bd5a0cfc8d1bd0"},
+    {"from":"0x140090540","to":"0x14008bd40","callsite":"0x14009059e","kind":"conditional_direct","condition":"animated mesh Part flags include 0xa1","status":"cpu_geometry","evidence_id":"ev_0398ea02655dd2534e003f4c9351dd6561ffce3914e9dc0d2c7ab4865db072d2"},
+    {"from":"0x14008bd40","to":"0x1400bd7a0","callsite":"0x14008bdc3","kind":"conditional_direct","condition":"model, Part mesh and dynamic VDO available","status":"cpu_pool_pointer","evidence_id":"ev_9c038ca50590f6992ca56855a0d5153b428dea442caa72b4c8cff626ed525298"},
+    {"from":"0x1400bd7a0","to":"0x1400bee30","callsite":"0x1400bd7c6","kind":"direct_static","condition":"get dynamic item CPU pointer","status":"cpu_pool_pointer","evidence_id":"ev_71c87fbf3a919482f3aae69c03e205a67868da27aead1485163c29fb0a0a1e2e"},
+    {"from":"0x14008bd40","to":"0x140231070","callsites":["0x14008becc","0x14008bfe7"],"kind":"conditional_direct","condition":"unity or non-unity scale animated face loop","status":"cpu_geometry","evidence_id":"ev_9c038ca50590f6992ca56855a0d5153b428dea442caa72b4c8cff626ed525298"},
+    {"from":"0x1400f06d0","to":"0x14022b400","callsite":"0x1400f071a","kind":"conditional_direct","condition":"hit-info flag bit 30 selects trigger geometry","status":"cpu_geometry_leaf","evidence_id":"ev_4362f503b947e47b210da4d3c36e248d0fb5deb47b8f280216cb483b08b43d16"},
+    {"from":"0x1400f06d0","to":"0x140231070","callsite":"0x1400f0758","kind":"conditional_direct","condition":"trigger bounds hit and triangle loop","status":"cpu_geometry","evidence_id":"ev_4362f503b947e47b210da4d3c36e248d0fb5deb47b8f280216cb483b08b43d16"},
+    {"from":"0x140231070","to":"0x140c7d6d8","callsite":"0x140231543","kind":"conditional_direct","condition":"positive non-unit normal squared length","status":"cpu_math_helper","evidence_id":"ev_d56bbba976ba6ec07fe803807f56e10fe29f601e0aef36fcb8bd5964f17d8535"}
+  ]
+}

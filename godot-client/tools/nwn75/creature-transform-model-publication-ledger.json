@@ -1,0 +1,247 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Creature model-kind source through six constructor-backed animation-base transform slots and conditional model Gob pose leaves.",
+  "edges": [
+    {
+      "from": "0x140802cc0",
+      "to": "creature+0x78 animation base",
+      "kind": "conditional_data_source",
+      "condition": "existing base retained, pending +0x3e0 transferred, or model-kind constructor result; null on allocation failure",
+      "status": "animation_base_owner",
+      "evidence_id": "ev_df6912aa3e1fb8c7c19af979bb363679f6057091fc7310067f2aa6d6019d3ab4"
+    },
+    {
+      "from": "0x140802cc0",
+      "to": "0x140960b40",
+      "callsite": "0x140802f16",
+      "kind": "direct_static",
+      "condition": "model-kind 0, no existing base, successful allocation",
+      "status": "animation_base_constructor",
+      "evidence_id": "ev_df6912aa3e1fb8c7c19af979bb363679f6057091fc7310067f2aa6d6019d3ab4"
+    },
+    {
+      "from": "0x140e6e978",
+      "to": "0x1409672a0",
+      "site": "0x140e6ea10",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 0; animation-base slot +0x98",
+      "status": "orientation_forward",
+      "evidence_id": "ev_f0371c3347261d46d2fdaa3938047d7f5015e5b6698dc83d1e5d3881cd76b6b7"
+    },
+    {
+      "from": "0x140e6e978",
+      "to": "0x1409680a0",
+      "site": "0x140e6ea18",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 0; animation-base slot +0xa0",
+      "status": "position_forward",
+      "evidence_id": "ev_f0371c3347261d46d2fdaa3938047d7f5015e5b6698dc83d1e5d3881cd76b6b7"
+    },
+    {
+      "from": "0x140802cc0",
+      "to": "0x14099ae30",
+      "callsite": "0x140802f68",
+      "kind": "direct_static",
+      "condition": "model-kind 1, no existing base, successful allocation",
+      "status": "animation_base_constructor",
+      "evidence_id": "ev_df6912aa3e1fb8c7c19af979bb363679f6057091fc7310067f2aa6d6019d3ab4"
+    },
+    {
+      "from": "0x140e74c88",
+      "to": "0x1409672a0",
+      "site": "0x140e74d20",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 1; animation-base slot +0x98",
+      "status": "orientation_forward",
+      "evidence_id": "ev_be542b9cdea4d99ed7ac605e7ca9d3f0b1c31d2606113133dd5f9caad35ef2f4"
+    },
+    {
+      "from": "0x140e74c88",
+      "to": "0x1409680a0",
+      "site": "0x140e74d28",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 1; animation-base slot +0xa0",
+      "status": "position_forward",
+      "evidence_id": "ev_be542b9cdea4d99ed7ac605e7ca9d3f0b1c31d2606113133dd5f9caad35ef2f4"
+    },
+    {
+      "from": "0x140802cc0",
+      "to": "0x14099c190",
+      "callsite": "0x140802fa6",
+      "kind": "direct_static",
+      "condition": "model-kind 2, no existing base, successful allocation",
+      "status": "animation_base_constructor",
+      "evidence_id": "ev_df6912aa3e1fb8c7c19af979bb363679f6057091fc7310067f2aa6d6019d3ab4"
+    },
+    {
+      "from": "0x140e74fe8",
+      "to": "0x1409672a0",
+      "site": "0x140e75080",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 2; animation-base slot +0x98",
+      "status": "orientation_forward",
+      "evidence_id": "ev_3e33f9048c6e652d526295c2219660a060bbbb39402eba22c702a4135bda913c"
+    },
+    {
+      "from": "0x140e74fe8",
+      "to": "0x1409680a0",
+      "site": "0x140e75088",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 2; animation-base slot +0xa0",
+      "status": "position_forward",
+      "evidence_id": "ev_3e33f9048c6e652d526295c2219660a060bbbb39402eba22c702a4135bda913c"
+    },
+    {
+      "from": "0x140802cc0",
+      "to": "0x14099d7c0",
+      "callsite": "0x140802fd5",
+      "kind": "direct_static",
+      "condition": "model-kind 3, no existing base, successful allocation",
+      "status": "animation_base_constructor",
+      "evidence_id": "ev_df6912aa3e1fb8c7c19af979bb363679f6057091fc7310067f2aa6d6019d3ab4"
+    },
+    {
+      "from": "0x140e75280",
+      "to": "0x1409672a0",
+      "site": "0x140e75318",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 3; animation-base slot +0x98",
+      "status": "orientation_forward",
+      "evidence_id": "ev_e96596613d65e3759d19042227d27c9cb0b1f318d84da8b9e919130f75483b52"
+    },
+    {
+      "from": "0x140e75280",
+      "to": "0x1409680a0",
+      "site": "0x140e75320",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 3; animation-base slot +0xa0",
+      "status": "position_forward",
+      "evidence_id": "ev_e96596613d65e3759d19042227d27c9cb0b1f318d84da8b9e919130f75483b52"
+    },
+    {
+      "from": "0x140802cc0",
+      "to": "0x14099e2a0",
+      "callsite": "0x140803004",
+      "kind": "direct_static",
+      "condition": "model-kind 4, no existing base, successful allocation",
+      "status": "animation_base_constructor",
+      "evidence_id": "ev_df6912aa3e1fb8c7c19af979bb363679f6057091fc7310067f2aa6d6019d3ab4"
+    },
+    {
+      "from": "0x140e755e8",
+      "to": "0x1409672a0",
+      "site": "0x140e75680",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 4; animation-base slot +0x98",
+      "status": "orientation_forward",
+      "evidence_id": "ev_10252c0cb1c9dc85ab473efee3b3af836de8fe1a679a047951dfab69227b83ac"
+    },
+    {
+      "from": "0x140e755e8",
+      "to": "0x1409680a0",
+      "site": "0x140e75688",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 4; animation-base slot +0xa0",
+      "status": "position_forward",
+      "evidence_id": "ev_10252c0cb1c9dc85ab473efee3b3af836de8fe1a679a047951dfab69227b83ac"
+    },
+    {
+      "from": "0x140802cc0",
+      "to": "0x140998ad0",
+      "callsite": "0x140802f41",
+      "kind": "direct_static",
+      "condition": "model-kind 11, no existing base, successful allocation",
+      "status": "animation_base_constructor",
+      "evidence_id": "ev_df6912aa3e1fb8c7c19af979bb363679f6057091fc7310067f2aa6d6019d3ab4"
+    },
+    {
+      "from": "0x140e74980",
+      "to": "0x1409672a0",
+      "site": "0x140e74a18",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 11; animation-base slot +0x98",
+      "status": "orientation_forward",
+      "evidence_id": "ev_1df233dd0564aca9db7fffc8fcc6348c8eeeba02a3bab3320b607c0afd89f062"
+    },
+    {
+      "from": "0x140e74980",
+      "to": "0x1409680a0",
+      "site": "0x140e74a20",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed model-kind 11; animation-base slot +0xa0",
+      "status": "position_forward",
+      "evidence_id": "ev_1df233dd0564aca9db7fffc8fcc6348c8eeeba02a3bab3320b607c0afd89f062"
+    },
+    {
+      "from": "0x1409672a0",
+      "to": "0x14022f690",
+      "callsite": "0x1409672cc",
+      "kind": "direct_static",
+      "condition": "model Gob +0xc8 nonnull; yaw from incoming Vector",
+      "status": "orientation_math",
+      "evidence_id": "ev_af7fe593541d6351ffb78463139b468e6d9213157b4279d36c8a6afd7d461f69"
+    },
+    {
+      "from": "0x1409672a0",
+      "to": "0x14022f6d0",
+      "callsite": "0x1409672df",
+      "kind": "direct_static",
+      "condition": "model Gob +0xc8 nonnull; quaternion from yaw",
+      "status": "orientation_math",
+      "evidence_id": "ev_af7fe593541d6351ffb78463139b468e6d9213157b4279d36c8a6afd7d461f69"
+    },
+    {
+      "from": "0x1409672a0",
+      "to": "DYNAMIC:MODEL_OBJECT_PLUS_0xb8",
+      "site": "0x1409672f9",
+      "kind": "computed_callback_dispatch",
+      "condition": "model object at animation-base +0xc8 nonnull; constructor-backed Gob candidate below",
+      "status": "model_orientation_dispatch",
+      "evidence_id": "ev_af7fe593541d6351ffb78463139b468e6d9213157b4279d36c8a6afd7d461f69"
+    },
+    {
+      "from": "0x1409680a0",
+      "to": "DYNAMIC:MODEL_OBJECT_PLUS_0xb0",
+      "site": "0x1409680d5",
+      "kind": "computed_callback_dispatch",
+      "condition": "model object at animation-base +0xc8 nonnull; constructor-backed Gob candidate below",
+      "status": "model_position_dispatch",
+      "evidence_id": "ev_3b5b0ba0c9a62015edfed1afddfaf4909c1914824305480bed4d0350205c1157"
+    },
+    {
+      "from": "0x140d88a00",
+      "to": "0x140094f80",
+      "site": "0x140d88ab8",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed Gob +0xb8; SetOrientation CPU pose leaf",
+      "status": "model_orientation_leaf",
+      "evidence_id": "ev_8266b94b7ff78469450ee1128d55a482ddc179345e3e5220d16acb36146c2581"
+    },
+    {
+      "from": "0x140d88a00",
+      "to": "0x140095210",
+      "site": "0x140d88ab0",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed Gob +0xb0; SetPosition CPU pose leaf",
+      "status": "model_position_leaf",
+      "evidence_id": "ev_8266b94b7ff78469450ee1128d55a482ddc179345e3e5220d16acb36146c2581"
+    },
+    {
+      "from": "0x140094f80",
+      "to": "Gob+0xb4/+0xbc orientation",
+      "kind": "terminal_cpu_leaf",
+      "condition": "constructor-backed Gob receiver; no further calls",
+      "status": "model_orientation_state",
+      "evidence_id": "ev_1829d7fab1e07d3bc4d36954999841675f4e0bde4138c21d827f9591167e5665"
+    },
+    {
+      "from": "0x140095210",
+      "to": "Gob+0xa8/+0xb0 position",
+      "kind": "terminal_cpu_leaf",
+      "condition": "constructor-backed Gob receiver; no further calls",
+      "status": "model_position_state",
+      "evidence_id": "ev_dbbe391fc7d5fed18b0aabad8cae0c0b2ba5f4f71292fa52c78faf90e9fbb19c"
+    }
+  ]
+}

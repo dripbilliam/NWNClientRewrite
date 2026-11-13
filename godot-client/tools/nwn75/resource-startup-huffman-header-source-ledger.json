@@ -1,0 +1,9 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Exact client startup AuroraInterface constructor and JPEG Huffman start-callback installation; separate header wrapper inherits an exported caller boundary in companion note.",
+  "edges": [
+    {"from":"0x1406e3c80","to":"0x1400f4cf0","callsite":"0x1406e4215","callsite_evidence_id":"ev_b00d5361e31851a50cc1f22f4e6c6e33b070bada115582990959dcd6d106d804","kind":"direct_static","condition":"client inner-runtime AuroraInterface allocation returns nonnull","status":"client_texture_callback_registration_owner","evidence_id":"ev_2077c327f0ba1d2bd5fb8fb7aead9506ad5d79409ab6a2e8aba3381261d45b3a"},
+    {"from":"0x14021b110","to":"0x14021b6f0","site":"0x14021b131","site_evidence_id":"ev_eb873d593621717283da85370bda1979d7cd170007489658fbd43fe03b15a812","kind":"resolved_original_function_pointer_assignment","condition":"nonarithmetic, nonprogressive baseline Huffman decoder selected; jinit_huff_decoder allocates entropy object and writes start-pass callback at object+0","status":"jpeg_huffman_start_callback_registered","evidence_id":"ev_7d0e84bb756d93272247e080d2853bf86536d0f3cb8b1857c6eadb732b5863ca"}
+  ]
+}

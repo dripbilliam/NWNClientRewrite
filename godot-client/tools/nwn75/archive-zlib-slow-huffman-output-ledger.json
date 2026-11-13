@@ -1,0 +1,15 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Conditional zlib Huffman slow symbol loop, literal/back-reference output and resumable/error states beneath compressed archive resource demand.",
+  "edges": [
+    {"from":"0x1405a3f70","to":"0x14059e390","callsite":"0x1405a4033","kind":"conditional_direct","condition":"z_uncompress active stream; loop calls inflater until nonzero return","status":"zlib_inflate_entry","evidence_id":"ev_0d031adb76bfc836fd299c42b5ee236e5d4ada8c962efa9ca75da29488dcf3e2"},
+    {"from":"0x14059e390","to":"z_inflate:slow_huffman@0x14059f3e5","kind":"cpu_state_branch","condition":"Huffman tables selected and available input <=5 or free output <=0x101 at 0x14059f36c..0x14059f378","status":"slow_symbol_gate","evidence_id":"ev_578e682548bfaa6225ce37bd8b46b6345a304c947ae083ccef21eaa73c7b62d1"},
+    {"from":"z_inflate:slow_huffman@0x14059f3e5","to":"z_inflate:literal_write@0x14059f869","kind":"cpu_symbol_output","condition":"decoded literal symbol and at least one output byte; state 0x3f4d then return to 0x3f48","status":"slow_literal_byte","evidence_id":"ev_578e682548bfaa6225ce37bd8b46b6345a304c947ae083ccef21eaa73c7b62d1"},
+    {"from":"z_inflate:slow_huffman@0x14059f3e5","to":"z_inflate:length_extra_state_0x3f49","kind":"cpu_symbol_state","condition":"valid length symbol requires optional extra bits","status":"slow_length_decode","evidence_id":"ev_578e682548bfaa6225ce37bd8b46b6345a304c947ae083ccef21eaa73c7b62d1"},
+    {"from":"z_inflate:length_extra_state_0x3f49","to":"z_inflate:distance_states_0x3f4a_0x3f4b","kind":"cpu_symbol_state","condition":"distance Huffman table and optional extra bits; invalid code enters state 0x3f51","status":"slow_distance_decode","evidence_id":"ev_578e682548bfaa6225ce37bd8b46b6345a304c947ae083ccef21eaa73c7b62d1"},
+    {"from":"z_inflate:distance_states_0x3f4a_0x3f4b","to":"z_inflate:match_copy@0x14059f830_0x14059f835","kind":"cpu_backreference_output","condition":"valid distance and available output; state 0x3f4c copies from prior output/window, clamped by space","status":"slow_match_bytes","evidence_id":"ev_578e682548bfaa6225ce37bd8b46b6345a304c947ae083ccef21eaa73c7b62d1"},
+    {"from":"z_inflate:match_copy@0x14059f830_0x14059f835","to":"z_inflate:slow_huffman@0x14059f3e5","kind":"cpu_state_resume","condition":"match exhausted; otherwise remaining length retained for later call; return to state 0x3f48","status":"slow_symbol_resume","evidence_id":"ev_578e682548bfaa6225ce37bd8b46b6345a304c947ae083ccef21eaa73c7b62d1"},
+    {"from":"0x14059e390","to":"DYNAMIC:ZLIB_BLOCK_TABLE_INPUT_OUTPUT_AND_TRAILER","kind":"unresolved_runtime_selector","condition":"archive/XRES choice, DEFLATE block, available bytes, symbols, stream end and checksum remain runtime inputs","status":"unresolved_target","evidence_id":"ev_578e682548bfaa6225ce37bd8b46b6345a304c947ae083ccef21eaa73c7b62d1"}
+  ]
+}

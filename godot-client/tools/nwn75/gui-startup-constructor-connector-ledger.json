@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "CRT-connected client inner-runtime startup to GUI manager construction; conditional allocation, not an unconditional draw claim.",
+  "edges": [
+    {
+      "from": "0x1406e3c80",
+      "to": "0x1401f5cd0",
+      "callsite": "0x1406e46d9",
+      "target_name": "CGuiMan::CGuiMan",
+      "kind": "direct_static",
+      "condition": "GUI manager allocation succeeds during client inner-runtime startup",
+      "status": "startup_gui_manager_constructor_connector",
+      "evidence_id": "ev_6092eb8945bc5b5867dd7d935f401bea975d541fc20a2e1db6c3b32dfc255450"
+    }
+  ]
+}

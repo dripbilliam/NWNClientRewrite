@@ -1,0 +1,30 @@
+{
+  "schema": "nwn75-original-numeric-ui-command-producers-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "allocator": "0x140a619c0",
+  "incoming_reference_evidence_id": "ev_d5ff3259fb576944c4c5aefc7d7d0998afcfe3c972e8e3810196bbb32614608c",
+  "scope": "All direct caller procedures observed through Ghidra incoming call references to the central numeric command allocator. A producer address may be called from multiple UI paths. This is not proof of runtime reachability or exhaustive callback/inline production.",
+  "producers": [
+    {"address":"0x140a84760","numeric_kinds":[1],"evidence_id":"ev_bb823c277e255485f3bf875eb044caa0e295a54ce3012e16a50eb1dea254b6d3"},
+    {"address":"0x140a89150","numeric_kinds":[1],"evidence_id":"ev_30be6609e278cce0037d7af2ed92b3a8cd334bb2e0c3dc6ac0f614811cc827e9"},
+    {"address":"0x140a67fa0","numeric_kinds":[2],"evidence_id":"ev_f11ddb92008ffe4f984c7cceb7f2045a6678372f692862554c587820db247c10"},
+    {"address":"0x140a8be00","numeric_kinds":[2],"evidence_id":"ev_42a6f411619974caec1e1cdbed94ee5ce19baffea6c6264c1aacdf5a039115eb"},
+    {"address":"0x140a8bd10","numeric_kinds":[3],"evidence_id":"ev_b155e8b9df058f8b9968dc9d36d769f7899ed8b023abcab77276d4a0ae87a78c"},
+    {"address":"0x140a8c120","numeric_kinds":[4],"evidence_id":"ev_c7705e01dd3408f075b006a4878c36980bc4d8f155113576cebfddd200ed64a6"},
+    {"address":"0x140a82050","numeric_kinds":[5],"evidence_id":"ev_95d52e0ee4146b13c402fc37737fc5e4187cc328be23f50a0f988581859338d3"},
+    {"address":"0x140a82170","numeric_kinds":[6],"evidence_id":"ev_2588794ac1d455b3b3b029049784565d5b1c00a7dad402f321938844025b7b41"},
+    {"address":"0x140a8bbf0","numeric_kinds":[7],"evidence_id":"ev_3c0e8f6072f752e2a767b0e38a9ce7a805226248b596911584e123e461cfb3f8"},
+    {"address":"0x140a81e20","numeric_kinds":[8],"evidence_id":"ev_fd7d50b63f072c1015aea825f34a23a3073ba3e8415183da3f438fd0eb91a8c4"},
+    {"address":"0x140a8bb30","numeric_kinds":[9],"evidence_id":"ev_1ba61e28b5dc233e60056178a77d174afc31504baeee2e401cdcb0f1e5784b1e"},
+    {"address":"0x140a81d80","numeric_kinds":[10],"evidence_id":"ev_e0a0b9d75a6ab28a52233db7cd1bb089f31a549eced41282283f15f4c12088db"},
+    {"address":"0x140a8c270","numeric_kinds":[11],"evidence_id":"ev_cb7fdbd7b9a5793056dcfec533e9e96618e5d838c76ab0f7044dfbfb73fd7307"},
+    {"address":"0x140a82290","numeric_kinds":[12],"evidence_id":"ev_b87fef362cac5ff538f1237676335032920de5262d9433fa42c33a2b6f26fbe9"},
+    {"address":"0x140a8bea0","numeric_kinds":[13],"evidence_id":"ev_4638aa6ca8415eaeac940355ef62700b2c5acb28ce713dddf8928b298ddb0f56"},
+    {"address":"0x140a81f20","numeric_kinds":[14],"evidence_id":"ev_fce5695f1d12252b6589dcb6a0e3d145f8c47394082b6c7d79a420bcb320e959"},
+    {"address":"0x140a8bfe0","numeric_kinds":[15],"evidence_id":"ev_9e056956f236537744a1393951eea0f96e3a4f40f91b1c0f050fe14f3debc7b6"},
+    {"address":"0x140a75460","numeric_kinds":[16],"evidence_id":"ev_43ddd37b463a1e8fa65f5ce5bfa85670e39c83362a2fa65ef8c715db9ea48172"},
+    {"address":"0x140a81600","numeric_kinds":[16],"evidence_id":"ev_6ccef3e0659630bfa32fbcaacbd0e9c9327092d21f058f526bb206756b40d40e"},
+    {"address":"0x140a7db90","numeric_kinds":[17],"evidence_id":"ev_c9e9195d6623b9fec87c8e1acb0dcff99c3a3d1985d715c4adffbcb2d9b0249f"},
+    {"address":"0x140a89050","numeric_kinds":[18],"evidence_id":"ev_0fb5a63becc8c7d1b9f03df363a00f6679f4e2561961d0ab3cf74be9c8ac3b0d"}
+  ]
+}

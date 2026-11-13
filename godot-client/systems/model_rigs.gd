@@ -15,8 +15,100 @@ var registry
 static func configured_native_skin_publisher() -> bool:
 	return ClassDB.class_exists("NwnRigSkinPublisher") and OS.get_cmdline_user_args().has("--rig-skin-publisher=native")
 var use_native_skin_publisher: bool=configured_native_skin_publisher()
+var use_combined_skin_setter: bool=not OS.get_cmdline_user_args().has("--rig-script-skin-combined=off")
+var use_identity_skin_setter: bool=OS.get_cmdline_user_args().has("--rig-script-skin-identity=on")
+var use_skip_identity_skin_setter: bool=not OS.get_cmdline_user_args().has("--rig-script-skin-sparse-skip=off")
+var use_skip_unchanged_skin_setter: bool=not OS.get_cmdline_user_args().has("--rig-script-skin-unchanged-skip=off")
+var skin_unchanged_setter_skips: int=0
 var native_skin_publishers: Dictionary={}
 var native_skin_reentrant_fallbacks: int=0
+var idle_suspended: bool=true
+var _event_batches: Array=[]
+var event_batch_counts:={"allocated":0,"reused":0}
+var event_batch_rows:=0
+var event_empty_models:=0
+var event_interval_models:=0
+
+func _event_batch() -> Array:
+	if not _event_batches.is_empty():event_batch_counts.reused+=1;return _event_batches.pop_back()
+	event_batch_counts.allocated+=1
+	return []
+func _release_event_batch(batch: Array) -> void:
+	batch.clear()
+	# Nested synchronous callbacks borrow independent batches. Cleared scratch
+	# contains no models/entities and has a fixed retained high-water bound.
+	if _event_batches.size()<4:_event_batches.append(batch)
+func event_batch_snapshot() -> Dictionary:
+	var result:=event_batch_counts.duplicate()
+	result.merge({"rows":event_batch_rows,"empty_models":event_empty_models,"interval_models":event_interval_models,"retained_batches":_event_batches.size()})
+	return result
+
+func _init() -> void:
+	set_process(false)
+
+func _ready() -> void:
+	_refresh_processing()
+
+func _refresh_processing() -> void:
+	# A rigid, unanimated model has no per-frame rig work. Its Node3D parts
+	# still follow their parent normally. A completed one-shot with no skin,
+	# attachment or manual pose work is likewise dormant until its next play.
+	for entry in entities.values():
+		if not entry.get("manual_poses",{}).is_empty() or not entry.get("attachments",[]).is_empty() or not entry.get("skins",[]).is_empty():
+			if idle_suspended:set_process(true);idle_suspended=false
+			return
+		# Legacy/ad-hoc entries without the construction index retain their
+		# original scheduling. The normal construction contract always supplies
+		# animated_models, including an empty list for a fully rigid owner.
+		if not entry.has("animated_models"):
+			if not entry.get("models",[]).is_empty():
+				if idle_suspended:set_process(true);idle_suspended=false
+				return
+			continue
+		for model_index in entry.animated_models:
+			if int(model_index)<0 or int(model_index)>=entry.models.size():continue
+			var model: Dictionary=entry.models[int(model_index)]
+			if model.has("native_owner") or not model.get("dormant_finished",false) or model.get("player")!=null and model.player.is_playing():
+				if idle_suspended:set_process(true);idle_suspended=false
+				return
+	# Node automatically enables scripted _process before _ready; always
+	# suspend an empty owner here, even if _init already set its idle marker.
+	set_process(false);idle_suspended=true
+
+func _animation_finished(_animation: StringName,player: AnimationPlayer) -> void:
+	# Resolve the *current* model only at completion. Capturing its Dictionary
+	# in a persistent signal would retain retired/replaced model resources.
+	var found:=false
+	for entry in entities.values():
+		for model in entry.get("models",[]):
+			if model.get("player")==player:
+				model.dormant_finished=true
+				found=true
+	if found:_refresh_processing()
+
+func _animation_started(_animation: StringName,player: AnimationPlayer) -> void:
+	# External callers can hold a part's AnimationPlayer and call play()
+	# without entering ModelRigs._play. Wake the current owner immediately.
+	var found:=false
+	for entry in entities.values():
+		for model in entry.get("models",[]):
+			if model.get("player")==player:
+				model.dormant_finished=false
+				found=true
+	if found:_refresh_processing()
+
+func _bind_animation_lifecycle(player: AnimationPlayer,source: Node=null) -> void:
+	if source!=null and source!=self:
+		if source.has_method("_animation_finished"):
+			var old_finished: Callable=Callable(source,"_animation_finished").bind(player)
+			if player.animation_finished.is_connected(old_finished):player.animation_finished.disconnect(old_finished)
+		if source.has_method("_animation_started"):
+			var old_started: Callable=Callable(source,"_animation_started").bind(player)
+			if player.animation_started.is_connected(old_started):player.animation_started.disconnect(old_started)
+	var finished: Callable=_animation_finished.bind(player)
+	if not player.animation_finished.is_connected(finished):player.animation_finished.connect(finished)
+	var started: Callable=_animation_started.bind(player)
+	if not player.animation_started.is_connected(started):player.animation_started.connect(started)
 
 func _publish_skin_native(id: int,entry: Dictionary) -> Variant:
 	if not use_native_skin_publisher:return 1
@@ -58,84 +150,32 @@ static func configured_prepared_clips() -> bool: return not OS.get_cmdline_user_
 var use_prepared_clips:=configured_prepared_clips()
 var stats := {"entities": 0, "nodes": 0, "players": 0, "clips": 0, "indexed_clip_models":0,"indexed_clip_metadata":0,"skin_meshes": 0, "skin_prepared_meshes":0,"skin_main_meshes":0,"rigid_meshes": 0, "skin_vertices": 0, "unsupported_channels": [], "pose_frames": 0, "missing_requested_clips": [], "failures": []}
 
-func configure(value, pivots: Dictionary, metadata: Dictionary) -> void:
-	registry = value
-	var data: Dictionary = metadata.get("rigs", {})
-	if data.get("version", 0) != 1:
-		return
-	for source in data.get("entities", []):
-		var before := stats.duplicate(true)
-		var id := int(source.id)
-		if not pivots.has(id):
-			continue
-		var rig := Node3D.new()
-		rig.name = "ModelRig"
-		pivots[id].add_child(rig)
-		var nodes: Array[Node3D] = []
-		for index in source.nodes.size():
-			var row: Dictionary = source.nodes[index]
-			var node := Node3D.new()
-			node.name = "part_%s" % index
-			var parent := int(row.parent)
-			if parent >= index or parent < -1:
-				_fail("Model hierarchy contains an invalid parent")
-				return
-			(rig if parent == -1 else nodes[parent]).add_child(node)
-			node.position = _vec(row.position)
-			node.quaternion = _quat(row.quaternion)
-			node.scale = _vec(row.scale)
-			node.visible = row.get("visible", true)
-			nodes.append(node)
-		var entry := {"root": rig, "nodes": nodes, "parents": source.nodes.map(func(row): return int(row.parent)), "models": [], "animated_models":[], "skins": [], "attachments": source.get("attachments", []), "clip_map": source.get("clipMap", {}), "side_maps": source.get("sideMaps", {}), "context": source.get("context", {}).duplicate(true), "body_type": int(source.get("bodyType", 0)), "side": 0, "loop_map": source.get("loopMap", {}), "animation": -1}
-		native_skin_publishers.erase(id)
-		entities[id] = entry
-		entry["authored_names"] = source.nodes.map(func(row): return str(row.name))
-		entry["model_parts"] = source.models.map(func(model): return model.parts.duplicate())
-		entry["manual_poses"] = {}
-		entry["model18"] = bool(source.get("model18", false))
-		entry["model18_unavailable"] = bool(source.get("model18Unavailable", false))
-		for model in source.models:
-			var asset: Dictionary = data.assets[int(model.asset)]
-			var model_began:=FrameProfile.begin()
-			var prepared: Dictionary = _model(rig, nodes, model, asset)
-			FrameProfile.finish("actor_install_animation_ms",model_began)
-			prepared["asset_source"] = asset
-			prepared["part_source"] = model
-			prepared["event_source"] = entry.models.size() == int(source.get("animationSource", 0))
-			if prepared.player!=null: entry.animated_models.append(entry.models.size())
-			entry.models.append(prepared)
-		for row in metadata.get("meshes", []):
-			if int(row.get("objectId", -1) if row.get("objectId") != null else -1) != id or not row.has("rigNode") or row.get("particle", false):
-				continue
-			var mesh: MeshInstance3D = registry.meshes_by_name.get(str(row.name))
-			if mesh == null:
-				_fail("An animated source mesh binding is missing")
-				continue
-			var target: Node3D = nodes[int(row.rigNode)]
-			mesh.reparent(target, false)
-			mesh.position = _vec(row.rigLocal.position)
-			mesh.quaternion = _quat(row.rigLocal.quaternion)
-			mesh.scale = _vec(row.rigLocal.scale)
-			if row.has("skin"):
-				var skin: Dictionary = row.skin
-				var model: Dictionary = source.models[int(skin.model)]
-				var skin_began:=FrameProfile.begin()
-				var runtime := _skin(mesh, skin, model.parts)
-				FrameProfile.finish("actor_install_skin_runtime_ms",skin_began)
-				if not runtime.is_empty():
-					entry.skins.append(runtime)
-			else:
-				stats.rigid_meshes += 1
-				var body = mesh.get_meta("collision_body") if mesh.has_meta("collision_body") else null
-				if is_instance_valid(body):
-					body.reparent(target, true)
-		stats.entities += 1
-		stats.nodes += nodes.size()
-		entry["counts"] = {}
-		for key in ["entities", "nodes", "players", "clips", "indexed_clip_models", "indexed_clip_metadata", "skin_meshes", "skin_prepared_meshes", "skin_main_meshes", "rigid_meshes", "skin_vertices"]:
-			entry.counts[key] = stats[key] - before[key]
-		for model in entry.models: model["entity_counts"] = entry.counts
-	_update(0.0)
+var _configuration
+var configuration_steps:=0
+var configuration_max_step_us:=0
+func construction_skeletal() -> bool:return false
+func begin_configure(value,pivots: Dictionary,metadata: Dictionary) -> bool:
+	if _configuration!=null or OS.get_thread_caller_id()!=OS.get_main_thread_id():return false
+	registry=value
+	if not construction_skeletal() and metadata.get("rigs",{}).get("version",0)!=1:return false
+	_configuration=preload("res://systems/native_render/rig_construction.gd").new();_configuration.configure(self,pivots,metadata,construction_skeletal());return true
+func configure_step(maximum_units: int=8,budget_us: int=1500) -> Dictionary:
+	if OS.get_thread_caller_id()!=OS.get_main_thread_id():return {"status":"failed","reason":"Rig construction requires main thread","units":0}
+	if _configuration==null:return {"status":"failed","reason":"No pending rig construction","units":0}
+	var result: Dictionary=_configuration.step(maximum_units,budget_us);configuration_steps+=1;configuration_max_step_us=maxi(configuration_max_step_us,int(result.get("step_us",0)))
+	if result.status!="pending":_configuration=null
+	return result
+func cancel_configure() -> void:
+	if _configuration!=null:_configuration.cancel();_configuration=null
+func _notification(what: int) -> void:
+	# An off-tree preview can be freed without receiving _exit_tree(). Return
+	# borrowed meshes before Node releases the private construction children.
+	if what==NOTIFICATION_PREDELETE and _configuration!=null:_configuration.cancel();_configuration=null
+func configure(value,pivots: Dictionary,metadata: Dictionary) -> void:
+	if not begin_configure(value,pivots,metadata):return
+	while _configuration!=null:
+		var result:=configure_step(65536,0)
+		if result.status=="failed":_fail(str(result.reason));return
 
 func forget_entity(id: int) -> void:
 	if not entities.has(id):
@@ -146,6 +186,7 @@ func forget_entity(id: int) -> void:
 	for key in entities[id].get("counts", {}):
 		stats[key] -= entities[id].counts[key]
 	entities.erase(id)
+	_refresh_processing()
 
 func sync_attachments(id: int) -> void:
 	if not entities.has(id):return
@@ -159,7 +200,11 @@ func sync_attachments(id: int) -> void:
 			continue
 		if external:held.visible = bool(attachment.get("reference_visible",true))
 		var rotation: Quaternion = (held.global_basis if int(attachment.get("flags",0)) == 3 else anchor.global_basis).orthonormalized().get_rotation_quaternion()
-		held.global_transform = Transform3D(Basis(rotation).scaled(_vec(attachment.scale)),anchor.global_position)
+		var target:=Transform3D(Basis(rotation).scaled(_vec(attachment.scale)),anchor.global_position)
+		# Idle held objects often keep the exact same world transform. Avoid
+		# re-dirtying their subtree; still read the live transform so an external
+		# pose edit is corrected on the next rig update.
+		if held.global_transform!=target:held.global_transform=target
 
 func node_for(id: int, model_index: int, part_name: String = "root") -> Node3D:
 	if not entities.has(id) or model_index < 0 or model_index >= entities[id].model_parts.size():
@@ -189,6 +234,7 @@ func set_manual_pose(id: int, node: Node3D, position: Vector3, quaternion: Quate
 	if index < 0:
 		return false
 	entry.manual_poses[index] = {"position": position, "quaternion": quaternion, "scale": node.scale}
+	_refresh_processing()
 	for model in entry.models:
 		if model.has("native_owner"): model.native_owner.pose.set_manual(index, position, quaternion)
 	node.position = position
@@ -205,6 +251,7 @@ func play_native(id: int, model_index: int, clip: Variant, speed: float, flags: 
 		native_owner.configure(model.asset_source, model.part_source, entry)
 		model["native_owner"] = native_owner
 		if entry.has("animated_models") and not entry.animated_models.has(model_index): entry.animated_models.append(model_index)
+		_refresh_processing()
 		if model.player != null: model.player.stop()
 	var result: bool = model.native_owner.play(clip, speed, flags, time)
 	if result:
@@ -230,6 +277,7 @@ func set_model_colour_scope(id: int,model_index: int,scope: int,rgb: Variant) ->
 		model.native_owner=owner
 		if model.player!=null: model.player.stop()
 		if not entry.animated_models.has(model_index): entry.animated_models.append(model_index)
+		_refresh_processing()
 		_native_clock(model)
 	return model.native_owner.pose.set_colour_scope(scope,rgb,entry.manual_poses)
 
@@ -254,11 +302,15 @@ func adopt_entities(source, ids: Array) -> void:
 			continue
 		native_skin_publishers.erase(id)
 		entities[id] = source.entities[id]
+		for model in entities[id].models:
+			var player: AnimationPlayer=model.get("player")
+			if is_instance_valid(player):_bind_animation_lifecycle(player,source)
 		for key in entities[id].counts:
 			stats[key] += entities[id].counts[key]
 	for channel in source.stats.unsupported_channels:
 		if not stats.unsupported_channels.has(channel):
 			stats.unsupported_channels.append(channel)
+	_refresh_processing()
 
 func _model(root: Node3D, nodes: Array[Node3D], source: Dictionary, asset: Dictionary) -> Dictionary:
 	if asset.clips.is_empty():
@@ -297,6 +349,10 @@ func _model(root: Node3D, nodes: Array[Node3D], source: Dictionary, asset: Dicti
 		event_map[str(clip.name)] = clip.get("events", []).duplicate(true)
 		transitions[str(clip.name)] = float(clip.get("transition", 0.0))
 	var model := {"player": player, "names": names, "clip": "", "loop": false, "follow": source.get("follow", true), "speed": float(source.get("speed", 1.0)), "events": event_map, "transitions": transitions, "play_serial": 0, "last_time": float(source.get("time", 0.0))}
+	# Only a completion observed by this owner may suspend a formerly active
+	# AnimationPlayer. Externally stopped or never-started players retain the
+	# old callback policy, so their queued work is not silently reclassified.
+	_bind_animation_lifecycle(player)
 	if indexed_lazy: model["indexed_asset"]=asset; stats.indexed_clip_models+=1
 	if indexed_lazy or not deferred.is_empty():
 		if not indexed_lazy: model["deferred"] = deferred
@@ -382,6 +438,11 @@ func _play(model: Dictionary, name: String, loop: bool, speed: float, time: floa
 	model.clip = name
 	model.loop = loop
 	model.speed = speed
+	model.dormant_finished=false
+	# _play is also called directly by effects, icons and chunk models. Wake a
+	# dormant owner after a new playback request, without rescanning on every
+	# ordinary active playback or during staged construction.
+	if idle_suspended and not entities.is_empty():_refresh_processing()
 
 func set_animation(id: int, animation: int, speed: float = 1.0) -> void:
 	set_playback(id, animation, speed)
@@ -515,6 +576,9 @@ func _skin(mesh: MeshInstance3D, source: Dictionary, parts: Array) -> Dictionary
 	return {"mesh": mesh, "skeleton": skeleton, "bones": bones, "inverse": inverses, "part": int(parts[int(source.part)]), "source": source}
 
 func _process(delta: float) -> void:
+	if not FrameProfile.enabled:
+		_profile_process(delta)
+		return
 	var began:=FrameProfile.begin()
 	_profile_process(delta)
 	FrameProfile.finish("callback_rigs",began)
@@ -522,6 +586,8 @@ func _profile_process(delta: float) -> void:
 	_update(delta)
 
 func _exit_tree() -> void:
+	cancel_configure()
+	_event_batches.clear()
 	native_skin_publishers.clear()
 	var began:=FrameProfile.begin()
 	for entry in entities.values():
@@ -558,16 +624,20 @@ static func model_events(events: Array, from: float, to: float, flags: int = 0) 
 func _update(delta: float) -> void:
 	for id in entities.keys():
 		var entry: Dictionary = entities[id]
-		var phase_began:=FrameProfile.begin()
-		var emitted: Array = []
+		var phase_began:=FrameProfile.begin() if FrameProfile.enabled else 0
+		var emitted: Variant=null
 		for model_index in entry.animated_models if entry.has("animated_models") else range(entry.models.size()):
 			var model: Dictionary = entry.models[model_index]
 			if model.has("native_owner"):
 				model.native_owner.advance(delta)
 				_native_clock(model)
-				for event in model.native_owner.events:
-					emitted.append({"name": event, "serial": int(model.get("play_serial", 0)), "model": model, "index": model_index})
-				model.native_owner.events.clear()
+				var native_events: Array=model.native_owner.events
+				if not native_events.is_empty():
+					for event in native_events:
+						if emitted==null:emitted=_event_batch()
+						emitted.append(event);emitted.append(int(model.get("play_serial",0)));emitted.append(model);emitted.append(model_index)
+						event_batch_rows+=1
+					native_events.clear()
 				continue
 			if model.player != null:
 				var player: AnimationPlayer = model.player
@@ -580,30 +650,48 @@ func _update(delta: float) -> void:
 				player.advance(delta)
 				var after: float = player.current_animation_position if player.is_playing() and not player.current_animation.is_empty() else (length if model.speed >= 0 else 0.0)
 				model.last_time = after
-				for event in model_events(model.get("events", {}).get(model.clip, []), before, after, 1 if model.speed < 0 else 0):
-					emitted.append({"name": event, "serial": serial, "model": model, "index": model_index})
+				# Read AFTER advance exactly as before: property callbacks can
+				# replace clip/event metadata while the player advances.
+				var source_events: Array=model.get("events",{}).get(model.clip,[])
+				if source_events.is_empty():event_empty_models+=1
+				else:
+					event_interval_models+=1
+					for event in model_events(source_events,before,after,1 if model.speed<0 else 0):
+						if emitted==null:emitted=_event_batch()
+						emitted.append(event);emitted.append(serial);emitted.append(model);emitted.append(model_index)
+						event_batch_rows+=1
 		# Native Part60 gates the entire part's control while its children still
 		# animate. Apply saved manual fields before events/attachments/skin work.
 		for index in entry.manual_poses:
 			var manual: Dictionary = entry.manual_poses[index]
-			entry.nodes[index].position = manual.position
-			entry.nodes[index].quaternion = manual.quaternion
-			entry.nodes[index].scale = manual.scale
-		for event in emitted:
-			if int(event.model.get("play_serial", -1)) == int(event.serial):
-				model_event.emit(int(id), int(event.index), str(event.name), int(event.serial))
-				if event.model.get("event_source", false):
-					animation_event.emit(int(id), str(event.name), int(event.serial))
-		FrameProfile.finish("actor_animation",phase_began)
-		phase_began=FrameProfile.begin()
-		sync_attachments(int(id))
-		FrameProfile.finish("actor_attachments",phase_began)
+			var node: Node3D=entry.nodes[index]
+			# These setters always propagate Node3D dirtiness, even for an exact
+			# repeat. Keep checking the live node so an animation or external edit
+			# still receives the saved manual override in the same frame.
+			if node.position!=manual.position:node.position=manual.position
+			if node.quaternion!=manual.quaternion:node.quaternion=manual.quaternion
+			if node.scale!=manual.scale:node.scale=manual.scale
+		if emitted!=null:
+			var event_index:=0
+			while event_index<emitted.size():
+				var event_model: Dictionary=emitted[event_index+2]
+				if int(event_model.get("play_serial",-1))==int(emitted[event_index+1]):
+					model_event.emit(int(id),int(emitted[event_index+3]),str(emitted[event_index]),int(emitted[event_index+1]))
+					if event_model.get("event_source",false):animation_event.emit(int(id),str(emitted[event_index]),int(emitted[event_index+1]))
+				event_index+=4
+		if phase_began>0:FrameProfile.finish("actor_animation",phase_began)
+		if not entry.attachments.is_empty():
+			phase_began=FrameProfile.begin() if FrameProfile.enabled else 0
+			sync_attachments(int(id))
+			if phase_began>0:FrameProfile.finish("actor_attachments",phase_began)
 		if entry.skins.is_empty():
+			if emitted!=null:_release_event_batch(emitted)
 			continue
-		phase_began=FrameProfile.begin()
+		phase_began=FrameProfile.begin() if FrameProfile.enabled else 0
 		var native_skin_result: Variant=_publish_skin_native(int(id),entry)
 		if native_skin_result is int and int(native_skin_result)!=1:
-			FrameProfile.finish("actor_skin",phase_began)
+			if phase_began>0:FrameProfile.finish("actor_skin",phase_began)
+			if emitted!=null:_release_event_batch(emitted)
 			if int(native_skin_result)>1:return
 			continue
 		var rigid: Array[Transform3D] = []
@@ -626,12 +714,38 @@ func _update(delta: float) -> void:
 			var skeleton: Skeleton3D = skin.skeleton
 			for slot in skin.bones.size():
 				var index := int(skin.bones[slot])
+				if use_skip_identity_skin_setter and index<0:
+					# Read the stored components, not the composed transform: a
+					# negative identity quaternion can compose to an identity basis.
+					if skeleton.get_bone_pose_position(slot)==Vector3.ZERO and skeleton.get_bone_pose_rotation(slot)==Quaternion.IDENTITY and skeleton.get_bone_pose_scale(slot)==Vector3.ONE:
+						continue
+					skeleton.set_bone_pose(slot,Transform3D.IDENTITY)
+					continue
+				if use_identity_skin_setter and index<0:
+					# Empty authored slots still need a pose write each frame to
+					# overwrite external edits. One setter restores all components.
+					skeleton.set_bone_pose(slot,Transform3D.IDENTITY)
+					continue
 				var transform: Transform3D = Transform3D.IDENTITY if index < 0 else inverse * rigid[index]
-				skeleton.set_bone_pose_position(slot, transform.origin)
-				skeleton.set_bone_pose_rotation(slot, transform.basis.get_rotation_quaternion())
+				# Retain the actual Skeleton3D state as authority. Static bones in an
+				# otherwise active rig need no repeated setter/dirty propagation, but
+				# an external pose edit is restored on this same frame.
+				if use_skip_unchanged_skin_setter:
+					var expected_rotation:=transform.basis.get_rotation_quaternion()
+					if skeleton.get_bone_pose_position(slot)==transform.origin and skeleton.get_bone_pose_rotation(slot)==expected_rotation and skeleton.get_bone_pose_scale(slot)==Vector3.ONE:
+						skin_unchanged_setter_skips+=1
+						continue
+				if use_combined_skin_setter:
+					# The combined setter writes the same origin and basis-derived
+					# quaternion. Authored skin publication still forces unit scale.
+					skeleton.set_bone_pose(slot, transform)
+				else:
+					skeleton.set_bone_pose_position(slot, transform.origin)
+					skeleton.set_bone_pose_rotation(slot, transform.basis.get_rotation_quaternion())
 				skeleton.set_bone_pose_scale(slot, Vector3.ONE)
 			skeleton.force_update_all_bone_transforms()
-		FrameProfile.finish("actor_skin",phase_began)
+		if phase_began>0:FrameProfile.finish("actor_skin",phase_began)
+		if emitted!=null:_release_event_batch(emitted)
 	stats.pose_frames += 1
 
 func _vec(value: Array) -> Vector3:

@@ -1,0 +1,24 @@
+diff --git a/.cache/nwn74/accepted-forward-before-guard.cpp b/.cache/native-tracy/engine-msvc-a/source/servers/rendering/renderer_rd/forward_clustered/render_forward_clustered.cpp
+index 85809dd..5be9c79 100644
+--- a/.cache/nwn74/accepted-forward-before-guard.cpp
++++ b/.cache/native-tracy/engine-msvc-a/source/servers/rendering/renderer_rd/forward_clustered/render_forward_clustered.cpp
+@@ -315,6 +315,7 @@ void RenderForwardClustered::_render_list_template(RenderingDevice::DrawListID p
+ 	RD::get_singleton()->draw_list_bind_uniform_set(draw_list, scene_shader.default_vec4_xform_uniform_set, TRANSFORMS_UNIFORM_SET);
+ 
+ 	RID prev_material_uniform_set;
++	SceneShaderForwardClustered::MaterialData *prev_used_material = nullptr;
+ 
+ 	RID prev_vertex_array_rd;
+ 	RID prev_index_array_rd;
+@@ -378,7 +379,10 @@ void RenderForwardClustered::_render_list_template(RenderingDevice::DrawListID p
+ #endif
+ 				material_uniform_set = surf->material_uniform_set;
+ 				shader = surf->shader;
+-				surf->material->set_as_used();
++				if (surf->material != prev_used_material) {
++					surf->material->set_as_used();
++					prev_used_material = surf->material;
++				}
+ #ifdef DEBUG_ENABLED
+ 			}
+ #endif

@@ -11,6 +11,7 @@ var tables: Dictionary={}
 var objects: Dictionary={}
 var custom_tokens: Dictionary={}
 var overrides: Dictionary={}
+var native_override_bytes: Dictionary={}
 var named: Array=[]
 var named_ready:=false
 var diagnostics: Array=[]
@@ -224,29 +225,46 @@ func native_reference_lookup(ref: Variant,gender: Variant,selection: Variant) ->
 	else:fetched=selected_table.entry(selected_index)
 	if selection!=null:result.lookupComplete=true
 	result.found=fetched.get("found",false)==true;result.text=str(fetched.get("text",""));result.override=overridden
+	if fetched.get("bytes") is PackedByteArray:result.bytes=fetched.bytes.duplicate()
+	if overridden:
+		if selection!=null and selection.get("bytes") is Array:
+			var encoded:=NativeParser.value_bytes({"bytes":selection.bytes})
+			if not encoded.get("ready",false):result.found=false;result.reason=encoded.reason;return result
+			result.bytes=encoded.bytes
+		elif selection==null and native_override_bytes.get(id) is Dictionary and native_override_bytes[id].get("text")==result.text:result.bytes=native_override_bytes[id].bytes.duplicate()
+	if fetched.has("language"):result.language=fetched.language
 	if not overridden and (int(fetched.get("flags",0))&4)!=0:result.duration=float(fetched.get("duration",0.0))
 	if not result.found:result.reason="Native selected TLK record is unavailable."
 	return result
 func parse_native(input: String,call_state: Dictionary={}) -> Dictionary:
-	var encoded:=NativeParser.encode(input)
+	var language: Variant=call_state.get("language",base.language)
+	if not native_integer(language,0,4294967295):return NativeParser.pending("Native text language is malformed.")
+	var encoded:=NativeParser.encode(input,int(language))
 	if not encoded.get("ready",false):return encoded
+	return parse_native_bytes(encoded.bytes,call_state)
+func parse_native_bytes(input: PackedByteArray,call_state: Dictionary={}) -> Dictionary:
+	var language: Variant=call_state.get("language",base.language)
+	if not native_integer(language,0,4294967295):return NativeParser.pending("Native text language is malformed.")
+	call_state=call_state.duplicate(true);call_state.language=int(language)
 	# This is a private call frame, not the retained global context of other UI.
 	var state:={"suppression":0}
-	for key in ["gender","nativeB8","nativeBC"]:
+	for key in ["gender","nativeB8","nativeBC","nativeC0"]:
 		if call_state.has(key):
 			if not native_integer(call_state[key],0 if key=="gender" else -2147483648,255 if key=="gender" else 4294967295):return {"ready":false,"reason":"Native talk call state is malformed: "+key}
 			state[key]=int(call_state[key])
 	if call_state.has("context"):
 		if not call_state.context is Dictionary:return NativeParser.pending("Native talk context is not certified.")
 		state.context=call_state.context.duplicate(true)
-	var providers:={"custom":call_state.get("localCustomTokens"),"customReady":call_state.get("localCustomTokensComplete")==true,"named":named,"namedReady":named_ready,"resolve":func(token,frame):return native_token_value(token,frame,call_state,0)}
-	var parsed:=NativeParser.parse(encoded.bytes,state,providers)
+	var providers:={"language":int(language),"custom":call_state.get("localCustomTokens"),"customReady":call_state.get("localCustomTokensComplete")==true,"named":named,"namedReady":named_ready,"resolve":func(token,frame):return native_token_value(token,frame,call_state,0)}
+	var parsed:=NativeParser.parse(input,state,providers)
 	if not parsed.get("ready",false):return parsed
 	# Received native strings are terminated. Keep exact bytes for diagnostics;
 	# avoid feeding embedded NUL to Godot's Unicode string conversion.
 	var visible: PackedByteArray=parsed.bytes;var zero:=visible.find(0)
 	if zero>=0:visible=visible.slice(0,zero)
-	parsed.body=preload("res://systems/native_data/binary_data.gd").new(visible).text(0,visible.size())
+	var decoded:=NativeParser.Encoding.decode(visible,int(language),true)
+	if not decoded.get("ready",false):decoded.bytes=parsed.bytes.duplicate();return decoded
+	parsed.body=str(decoded.text);parsed.language=int(language)
 	parsed.state={"suppression":int(state.suppression)}
 	if state.has("gender"):parsed.state.gender=state.gender
 	return parsed
@@ -266,17 +284,109 @@ func native_fetch(ref: Variant,state: Dictionary,call_state: Dictionary,depth: i
 	else:fetched=fetch_native_reference(id,int(state.gender))
 	state.gender=fetched.gender
 	if not fetched.get("found",false):return NativeParser.pending("Native named-token TLK reference is unavailable.")
-	var encoded:=NativeParser.encode(str(fetched.get("text","")))
+	var encoded: Dictionary={"ready":true,"bytes":fetched.bytes.duplicate()} if fetched.get("bytes") is PackedByteArray else NativeParser.encode(str(fetched.get("text","")),int(call_state.get("language",base.language)))
 	if not encoded.get("ready",false):return encoded
 	if not fetched.override:return encoded
 	# Native GetTokenValue fetches with parseFlag0, but runtime overrides still
 	# execute their own ParseStr. Returned replacement is not re-parsed by caller.
-	var providers:={"custom":call_state.get("localCustomTokens"),"customReady":call_state.get("localCustomTokensComplete")==true,"named":named,"namedReady":named_ready,"resolve":func(token,frame):return native_token_value(token,frame,call_state,depth+1)}
+	var providers:={"language":int(call_state.get("language",base.language)),"custom":call_state.get("localCustomTokens"),"customReady":call_state.get("localCustomTokensComplete")==true,"named":named,"namedReady":named_ready,"resolve":func(token,frame):return native_token_value(token,frame,call_state,depth+1)}
 	return NativeParser.parse(encoded.bytes,state,providers)
-func native_literal_name(value: Variant) -> Dictionary:
-	if value is String:return NativeParser.value_bytes(value)
-	if value is Dictionary and value.get("text") is String:return NativeParser.value_bytes(value.text)
+func native_literal_name(value: Variant,language: int=0) -> Dictionary:
+	if value is Dictionary and value.has("bytes"):return NativeParser.value_bytes(value,language)
+	if value is String:return NativeParser.value_bytes(value,language)
+	if value is Dictionary and value.get("text") is String:return NativeParser.value_bytes(value.text,language)
 	return NativeParser.pending("Native literal name provider is unavailable.")
+func native_rule_reference(table_name: String,index: Variant,column: String) -> Dictionary:
+	if not native_integer(index,0,65535):return NativeParser.pending("Native token rule index is unavailable.")
+	var rows: Variant=tables.get(table_name,{}).get("orderedRows")
+	if not rows is Array or int(index)>=rows.size() or not rows[int(index)] is Dictionary:return NativeParser.pending("Native token rule row is unavailable.")
+	for key in rows[int(index)]:
+		if str(key).to_lower()!=column.to_lower():continue
+		var cell: Variant=rows[int(index)][key]
+		if cell is String and cell.is_valid_int():cell=int(cell)
+		if native_integer(cell,-2147483648,4294967295):return {"ready":true,"ref":int(cell)&4294967295}
+	return NativeParser.pending("Native token rule STRREF is unavailable.")
+func native_getter_fetch(ref: Variant,state: Dictionary,call_state: Dictionary,depth: int) -> Dictionary:
+	# Race/class/alignment lower getters set gender0, then GetTokenValue
+	# restores the saved BYTE even if an override/female fallback changed it.
+	var known:=state.has("gender");var saved: Variant=state.get("gender")
+	state.gender=0
+	var result:=native_fetch(ref,state,call_state,depth)
+	if known:state.gender=saved
+	else:state.erase("gender")
+	return result
+func native_stored_name(value: Dictionary,action: int,language: int=0) -> Dictionary:
+	if action==2:
+		var override: Variant=value.get("override")
+		if not override is Dictionary or override.get("known")!=true or not override.get("text") is String:return NativeParser.pending("Native stored-name override is unavailable.")
+		var encoded:=NativeParser.value_bytes(override.text,language)
+		if not encoded.get("ready",false) or not encoded.bytes.is_empty():return encoded
+	var first: Variant=value.get("first");var last: Variant=value.get("last")
+	var selected: Variant=last if action==4 else first
+	if not selected is Dictionary or selected.get("known")!=true or not selected.get("text") is String:return NativeParser.pending("Native stored-name component is unavailable.")
+	var initial:=NativeParser.value_bytes(selected.text,language)
+	if not initial.get("ready",false):return initial
+	if action in [3,4] and not initial.bytes.is_empty():return initial
+	var other: Variant=first if action==4 else last
+	if not other is Dictionary or other.get("known")!=true or not other.get("text") is String:return NativeParser.pending("Native stored-name fallback is unavailable.")
+	var fallback:=NativeParser.value_bytes(other.text,language)
+	if not fallback.get("ready",false):return fallback
+	if action in [3,4] or initial.bytes.is_empty():return fallback
+	if not fallback.bytes.is_empty():initial.bytes.append(32);initial.bytes.append_array(fallback.bytes)
+	return initial
+static func native_alignment_bucket(value: int) -> int:return 2 if value<31 else (0 if value>69 else 1)
+func native_creature_token(action: int,token: Dictionary,context: Dictionary,state: Dictionary,call_state: Dictionary,depth: int) -> Dictionary:
+	var data: Variant=context.get("replicated",{})
+	var language:=int(call_state.get("language",base.language))
+	if not data is Dictionary:return NativeParser.pending("Native received creature provider is unavailable.")
+	if action in [2,3,4]:
+		if context.has("nativeStoredName"):
+			return native_stored_name(context.nativeStoredName,action,language) if context.nativeStoredName is Dictionary else NativeParser.pending("Native stored-name receipt is malformed.")
+		if action==2:return NativeParser.pending("Native full-name stored getter is unavailable.")
+		# P writes the actor's stored first/last; U/replicated.name writes a
+		# separate roster label. A roster label cannot certify either getter.
+		var names: Variant=context.appearance.get("name") if context.get("appearance") is Dictionary else null
+		if not names is Dictionary:return NativeParser.pending("Native received name provider is unavailable.")
+		if names.get("text") is String:names={"firstName":{"text":names.text},"lastName":{"text":""}}
+		elif names.has("bytes"):names={"firstName":names,"lastName":{"bytes":[]}}
+		var first:=native_literal_name(names.get("lastName" if action==4 else "firstName"),language)
+		if not first.get("ready",false) or not first.bytes.is_empty():return first
+		return native_literal_name(names.get("firstName" if action==4 else "lastName"),language)
+	var stats: Variant=data.get("stats")
+	if not stats is Dictionary:return NativeParser.pending("Native received token stats are unavailable.")
+	if action==24:return native_literal_name(stats.get("fieldE58"),language)
+	if action==7:
+		var subrace:=native_literal_name(stats.get("fieldD28"),language)
+		if not subrace.get("ready",false) or not subrace.bytes.is_empty():return subrace
+	var reference: Dictionary
+	if action in [5,6,7]:
+		var race: Variant=stats.get("racialType",stats.get("fieldD20"))
+		if stats.has("racialType") and stats.has("fieldD20") and stats.racialType!=stats.fieldD20:return NativeParser.pending("Native race aliases disagree.")
+		reference=native_rule_reference("racialtypes",race,"Name" if action==7 else ("ConverNameLower" if action==6 else "ConverName"))
+	elif action in [8,9,10]:
+		var classes: Variant=stats.get("classes")
+		if not classes is Array or classes.is_empty() or not classes[0] is Dictionary:return NativeParser.pending("Native first-class storage is unavailable.")
+		if action==10:
+			return NativeParser.value_bytes(str(int(classes[0].level))) if native_integer(classes[0].get("level"),0,255) else NativeParser.pending("Native first-class BYTE level is unavailable.")
+		if not native_integer(classes[0].get("id"),0,255):return NativeParser.pending("Native first-class BYTE index is unavailable.")
+		reference=native_rule_reference("classes",classes[0].id,"Lower" if action==9 else "Name")
+	else:
+		var scores: Dictionary={}
+		for key in (["fieldDE6"] if action==13 else (["fieldDE4"] if action==14 else ["fieldDE6","fieldDE4"])):
+			if not native_integer(stats.get(key),-32768,32767):return NativeParser.pending("Native received alignment SHORT is unavailable.")
+			# Receiver781e80 clamps these wire SHORTs before writing Stats+c6/c8.
+			scores[key]=clampi(int(stats[key]),0,100)
+		if action in [13,14]:
+			var refs: Variant=token.get("refs")
+			if not refs is Array or refs.size()!=4:return NativeParser.pending("Native alignment-token references are unavailable.")
+			var had_gender:=state.has("gender");var gender: Variant=state.get("gender")
+			var result:=native_fetch(refs[native_alignment_bucket(scores["fieldDE6" if action==13 else "fieldDE4"])],state,call_state,depth)
+			if had_gender:state.gender=gender
+			else:state.erase("gender")
+			return result
+		reference={"ready":true,"ref":(0x1351 if action==12 else 0x70)+native_alignment_bucket(scores.fieldDE6)*3+native_alignment_bucket(scores.fieldDE4)}
+	if not reference.get("ready",false):return reference
+	return native_getter_fetch(reference.ref,state,call_state,depth)
 func native_token_value(token: Dictionary,state: Dictionary,call_state: Dictionary,depth: int) -> Dictionary:
 	if not native_integer(token.get("action"),-2147483648,2147483647):return NativeParser.pending("Native named-token action is unavailable.")
 	var action:=int(token.action);var refs: Variant=token.get("refs")
@@ -292,26 +402,23 @@ func native_token_value(token: Dictionary,state: Dictionary,call_state: Dictiona
 		if context.is_empty():return native_fetch(token.get("default"),state,call_state,depth)
 		if not native_integer(context.get("objectType"),1,4294967295):return NativeParser.pending("Native named-token object type is unavailable.")
 		if int(context.objectType)!=5:return native_fetch(token.get("default"),state,call_state,depth)
-		var data: Variant=context.get("replicated",{})
-		if not data is Dictionary:return NativeParser.pending("Native received creature provider is unavailable.")
-		if action in [2,3,4]:
-			var names: Variant=data.get("name")
-			if names==null and context.get("appearance") is Dictionary:names=context.appearance.get("name")
-			if not names is Dictionary:return NativeParser.pending("Native received name provider is unavailable.")
-			var first:=native_literal_name(names.get("firstName"));var last:=native_literal_name(names.get("lastName"))
-			if action==3 and first.get("ready",false) and not first.bytes.is_empty():return first
-			if action==4 and last.get("ready",false) and not last.bytes.is_empty():return last
-			if not first.get("ready",false):return first
-			if not last.get("ready",false):return last
-			if action==3:return last
-			if action==4:return first
-			# FullName uses the native getter; concatenating received parts would
-			# infer its spacing/override semantics. Wait for that exact provider.
-			return NativeParser.pending("Native full-name getter is not certified.")
-		if action==10:
-			var stats: Variant=data.get("stats");var classes: Variant=stats.get("classes") if stats is Dictionary else null
-			if classes is Array and not classes.is_empty() and classes[0] is Dictionary and native_integer(classes[0].get("level"),0,255):return {"ready":true,"bytes":str(int(classes[0].level)&255).to_ascii_buffer()}
-		return NativeParser.pending("Native named-token creature provider is unavailable: "+str(action))
+		return native_creature_token(action,token,context,state,call_state,depth)
+	if action in [15,16,17,18]:
+		# Exact client-module fields, supplied by a certified caller. Do not
+		# substitute wall clock time or run a local calendar simulation.
+		var world: Variant=call_state.get("nativeWorld")
+		if not world is Dictionary:return NativeParser.pending("Native module token snapshot is unavailable.")
+		var field: String="native160" if action==15 else ("native164" if action==17 else "native16c")
+		if not native_integer(world.get(field),-2147483648,4294967295):return NativeParser.pending("Native module token field is unavailable: "+field)
+		var value: int=int(world[field])&4294967295
+		if action in [15,17]:return NativeParser.value_bytes(str(value-4294967296 if value>=2147483648 else value))
+		if action==16:return NativeParser.value_bytes(str((((value+11)&4294967295)%12)+1))
+		for key in ["native17c","native17d"]:
+			if not native_integer(world.get(key),0,255):return NativeParser.pending("Native module daylight BYTE is unavailable.")
+		var first:=int(world.native17c);var last:=int(world.native17d);var index:=0
+		if value>=first and value<=last:index=int((value-first)*3/(last-first+1))+1
+		if not refs is Array or refs.size()!=4:return NativeParser.pending("Native daylight-token references are unavailable.")
+		return native_fetch(refs[index],state,call_state,depth)
 	if action in [19,20]:
 		if not state.has("nativeBC"):return NativeParser.pending("Native talk BC flag is unavailable.")
 		state.suppression=int(state.nativeBC)
@@ -326,10 +433,27 @@ func native_token_value(token: Dictionary,state: Dictionary,call_state: Dictiona
 		if suppressed:return {"ready":true,"bytes":PackedByteArray()}
 		if not state.has("nativeB8"):return NativeParser.pending("Native talk B8 flag is unavailable.")
 		return {"ready":true,"bytes":"</c>".to_ascii_buffer() if int(state.nativeB8)==0 else PackedByteArray()}
+	if action==23:
+		if not state.has("nativeC0"):return NativeParser.pending("Native player-token C0 selection is unavailable.")
+		var players: Variant=call_state.get("nativePlayers")
+		if not players is Dictionary:return NativeParser.pending("Native receipt player lookup is unavailable.")
+		var id:=int(state.nativeC0)&4294967295
+		var selected: Variant=players.get(id,players.get(str(id)))
+		if selected==null and not players.has(id) and not players.has(str(id)) and call_state.get("nativePlayersComplete")==true:return native_fetch(token.get("default"),state,call_state,depth)
+		if not selected is Dictionary or selected.get("known")!=true or not selected.get("present") is bool:return NativeParser.pending("Native selected player lookup is unavailable.")
+		if not selected.present:return native_fetch(token.get("default"),state,call_state,depth)
+		return native_literal_name(selected.get("name"),int(call_state.get("language",base.language)))
 	if action<0 or action>24:warn("Native GetTokenValue unknown action at line0x175: "+str(action));return {"ready":true}
 	return NativeParser.pending("Native named-token provider is unavailable: "+str(action))
 func rich(value: Variant,id: int) -> Dictionary: return Rich.parse(resolve(value,id))
+func set_native_override(ref: int,value: String) -> void:
+	if value.is_empty():overrides.erase(ref);native_override_bytes.erase(ref);return
+	overrides[ref]=value
+	var encoded:=NativeParser.encode(value,0) # Existing wire byte projection.
+	if encoded.get("ready",false):native_override_bytes[ref]={"text":value,"bytes":encoded.bytes}
+	else:native_override_bytes.erase(ref)
 func close() -> void:
+	native_override_bytes.clear()
 	named_ready=false
 	native_families.clear()
 	ruleset_owner.retire()

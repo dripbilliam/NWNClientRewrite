@@ -33,6 +33,8 @@ var pregame_cleanup: Dictionary={}
 var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
 var modal_order
 var modal_surfaces
+var native_configuration: Dictionary={}
+var native_configuration_serial:=0
 func set_modal_order(order,surfaces=null) -> void:
 	modal_order=order;modal_surfaces=surfaces;modal_lease.configure(self,order,surfaces,self)
 	if not modal_lease.admission_changed.is_connected(modal_admission_changed):modal_lease.admission_changed.connect(modal_admission_changed)
@@ -85,15 +87,17 @@ func configure_pregame(sources: Dictionary,cache_path: String) -> void:
 	pregame.exit_requested.connect(func():choose("exit"))
 	pregame.client_settings_requested.connect(func():options_requested.emit())
 	pregame.source_ready.connect(func(painter,_text,_catalog,_cache):configure_client_style(painter))
-func configure_client_style(painter) -> void:
+func configure_client_style(painter,entry_staged: bool=false) -> void:
 	if is_instance_valid(client_style): client_style.close(); client_style.queue_free()
 	client_style=preload("res://systems/native_client_menu_style.gd").new(); get_child(0).add_child(client_style)
 	client_style.changed.connect(func(value):panel.theme=value; client_theme_changed.emit(value))
+	if entry_staged:client_style.begin_entry_publication()
 	client_style.configure(painter)
 func close_pregame() -> void:
 	if is_instance_valid(pregame): pregame.close(); pregame_cleanup=pregame.snapshot(); pregame.queue_free()
 	pregame=null
 func configure_native(shared_frame,text,catalog,cache_path: String,value: Array) -> void:
+	cancel_native_configuration()
 	if is_instance_valid(pregame): pregame.dismiss()
 	detach_native()
 	native_scope=value.duplicate(); native_frame=preload("res://systems/native_entry_menu_frame.gd").new(); panel.add_child(native_frame); native_frame.configure(shared_frame,text,catalog,cache_path)
@@ -117,6 +121,136 @@ func configure_native(shared_frame,text,catalog,cache_path: String,value: Array)
 	if not layout_path.is_empty() and saved.load(layout_path)==OK:
 		var position: Variant=saved.get_value("positions","ingame_options",Vector2.INF)
 		if position is Vector2 and position.is_finite(): retained_position=position
+func begin_native_configuration(shared_frame,text,catalog,cache_path: String,value: Array) -> Dictionary:
+	# Entry-only continuation. The public synchronous configure_native keeps its
+	# original body and callback ordering for all existing callers.
+	cancel_native_configuration();native_configuration_serial+=1
+	native_configuration={"serial":native_configuration_serial,"phase":0,"frame":shared_frame,"text":text,"catalog":catalog,"cache":cache_path,"scope":value.duplicate(),"retiring":{},"entry_style":null,"cancelled":false}
+	return native_configuration
+func native_configuration_current(state: Dictionary) -> bool:
+	return not state.is_empty() and is_same(native_configuration,state) and int(state.serial)==native_configuration_serial and not is_queued_for_deletion()
+func native_configuration_phase(state: Dictionary) -> String:
+	const PHASES=["pregame_dismiss","retire_modal","retire_keys","retire_video","retire_frame","clear_scope","pregame_style","fallback","frame_create","frame_bind","frame_start","client_style_begin","client_style_publish","video","key_binding","keys","layout","complete"]
+	var phase:=clampi(int(state.get("phase",0)),0,PHASES.size()-1)
+	if phase==13 and state.has("video_entry") and is_instance_valid(video_owner):return "video:"+video_owner.entry_configuration_phase(state.video_entry)
+	if phase==15 and state.has("keys_entry") and is_instance_valid(key_owner):return "keys:"+key_owner.entry_configuration_phase(state.keys_entry)
+	return PHASES[phase]
+func entry_style_publication_receipt() -> Dictionary:
+	return client_style.entry_publication_receipt() if is_instance_valid(client_style) and client_style.has_method("entry_publication_receipt") else {}
+func native_configuration_retire_owner(state: Dictionary,property: String) -> bool:
+	var owner=get(property)
+	if not is_instance_valid(owner):return true
+	var assets=preload("res://systems/native_data/modal_lease.gd").property(owner,"assets")
+	if is_instance_valid(assets):
+		var id: int=owner.get_instance_id()
+		if not state.retiring.has(id):state.retiring[id]=true;assets.retire_scope()
+		# Never turn a pending decoder into a blocking close/join inside entry.
+		# The SESSION must yield until another engine frame when this is false.
+		for task in assets.running.values():
+			if not WorkerThreadPool.is_task_completed(int(task)):return false
+	owner.close()
+	if not native_configuration_current(state):return true
+	if get(property)!=owner:
+		cancel_native_configuration(state);return true
+	owner.queue_free();set(property,null)
+	return true
+func native_configuration_step(state: Dictionary) -> Dictionary:
+	if not native_configuration_current(state):return {"done":true,"accepted":false}
+	var phase:=int(state.phase)
+	match phase:
+		0:
+			if is_instance_valid(pregame):pregame.dismiss()
+		1:
+			modal_lease.retire();child_return_scope.clear()
+			if not native_configuration_current(state):return {"done":true,"accepted":false}
+			if is_instance_valid(observed_bindings) and observed_bindings.changed.is_connected(update_native):observed_bindings.changed.disconnect(update_native)
+			observed_bindings=null
+		2,3,4:
+			if not native_configuration_retire_owner(state,["key_owner","video_owner","native_frame"][phase-2]):return {"done":false,"blocked":true}
+		5:native_scope.clear();native_playing=false
+		6:
+			# Preserve the original detach→pregame-theme notification, even when
+			# the shared gameplay theme is configured later in this continuation.
+			if is_instance_valid(pregame) and is_instance_valid(pregame.painter):configure_client_style(pregame.painter)
+		7:
+			if is_instance_valid(fallback):show_fallback()
+		8:
+			native_scope=state.scope.duplicate();native_frame=preload("res://systems/native_entry_menu_frame.gd").new();panel.add_child(native_frame)
+			if not native_configuration_current(state):return {"done":true,"accepted":false}
+			native_frame.configure(state.frame,state.text,state.catalog,str(state.cache))
+		9:
+			native_frame.set_modal_order(modal_order,modal_surfaces,self,modal_lease.admits)
+			if not native_configuration_current(state):return {"done":true,"accepted":false}
+			native_frame.prepared.connect(func():update_native();place());native_frame.artwork_ready.connect(func():update_native();place())
+			native_frame.action_requested.connect(native_action);native_frame.title_input.connect(drag_title)
+		10:native_frame.start()
+		11:
+			configure_client_style(state.frame,true)
+			state.entry_style=client_style
+		12:
+			if client_style!=state.entry_style or not is_instance_valid(client_style):
+				cancel_native_configuration(state);return {"done":true,"accepted":false}
+			var style_result: Dictionary=client_style.entry_publication_step()
+			if not style_result.get("done",false):return {"done":false,"blocked":false}
+			if not style_result.get("accepted",false):
+				cancel_native_configuration(state);return {"done":true,"accepted":false}
+		13:
+			if not state.has("video_entry") and is_instance_valid(window_settings):
+				video_owner=preload("res://systems/native_video_options.gd").new();get_child(0).add_child(video_owner)
+				if not native_configuration_current(state):return {"done":true,"accepted":false}
+				state.video_entry=video_owner.begin_entry_configuration(state.frame,state.text,state.catalog,str(state.cache),window_settings,layout_path)
+			if state.has("video_entry"):
+				if not is_instance_valid(video_owner):cancel_native_configuration(state);return {"done":true,"accepted":false}
+				var video_result: Dictionary=video_owner.entry_configuration_step(state.video_entry)
+				if not native_configuration_current(state):return {"done":true,"accepted":false}
+				if not video_result.get("done",false):return {"done":false,"blocked":false}
+				if not video_result.get("accepted",false):cancel_native_configuration(state);return {"done":true,"accepted":false}
+				video_owner.set_modal_order(modal_order,modal_surfaces,self)
+				if not native_configuration_current(state):return {"done":true,"accepted":false}
+				video_owner.prepared.connect(update_native);video_owner.finished.connect(child_closed)
+				video_owner.finish_entry_configuration()
+		14:
+			if is_instance_valid(key_bindings):
+				observed_bindings=key_bindings
+				if not observed_bindings.changed.is_connected(update_native):observed_bindings.changed.connect(update_native)
+		15:
+			if not state.has("keys_entry") and is_instance_valid(key_bindings):
+				key_owner=preload("res://systems/native_key_settings.gd").new();get_child(0).add_child(key_owner)
+				if not native_configuration_current(state):return {"done":true,"accepted":false}
+				state.keys_entry=key_owner.begin_entry_configuration(state.frame,state.text,state.catalog,str(state.cache),key_bindings,layout_path)
+			if state.has("keys_entry"):
+				if not is_instance_valid(key_owner):cancel_native_configuration(state);return {"done":true,"accepted":false}
+				var keys_result: Dictionary=key_owner.entry_configuration_step(state.keys_entry)
+				if not native_configuration_current(state):return {"done":true,"accepted":false}
+				if not keys_result.get("done",false):return {"done":false,"blocked":false}
+				if not keys_result.get("accepted",false):cancel_native_configuration(state);return {"done":true,"accepted":false}
+				key_owner.set_modal_order(modal_order,modal_surfaces,self)
+				if not native_configuration_current(state):return {"done":true,"accepted":false}
+				key_owner.prepared.connect(update_native);key_owner.finished.connect(child_closed)
+				key_owner.finish_entry_configuration()
+		16:
+			var saved:=ConfigFile.new()
+			if not layout_path.is_empty() and saved.load(layout_path)==OK:
+				var position: Variant=saved.get_value("positions","ingame_options",Vector2.INF)
+				if position is Vector2 and position.is_finite():retained_position=position
+		17:
+			native_configuration={};return {"done":true,"accepted":true}
+	if not native_configuration_current(state):return {"done":true,"accepted":false}
+	state.phase=phase+1
+	return {"done":false,"blocked":false}
+func cancel_native_configuration(state: Dictionary={}) -> void:
+	if native_configuration.is_empty() or not state.is_empty() and not is_same(native_configuration,state):return
+	var previous: Dictionary=native_configuration;native_configuration={};native_configuration_serial+=1;previous.cancelled=true
+	var unpublished_style=previous.get("entry_style")
+	if is_instance_valid(unpublished_style) and unpublished_style==client_style and unpublished_style.entry_publication_active:
+		unpublished_style.close();unpublished_style.queue_free();client_style=null
+	# Leave owned nodes reachable for the existing detach/shutdown path. Retire
+	# their request epochs now so a cancelled menu cannot deliver stale artwork.
+	for owner in [native_frame,video_owner,key_owner]:
+		if not is_instance_valid(owner):continue
+		var assets=preload("res://systems/native_data/modal_lease.gd").property(owner,"assets")
+		if is_instance_valid(assets):assets.retire_scope()
+	dismiss()
 func set_native_scope(value: Array) -> void:
 	if value!=native_scope: dismiss()
 	native_scope=value.duplicate(); update_native()
@@ -162,6 +296,7 @@ func child_closed() -> void:
 	child_return_scope.clear()
 	if restore: open(true)
 func detach_native() -> void:
+	cancel_native_configuration()
 	modal_lease.retire()
 	child_return_scope.clear()
 	if is_instance_valid(observed_bindings) and observed_bindings.changed.is_connected(update_native): observed_bindings.changed.disconnect(update_native)
@@ -225,6 +360,7 @@ func _input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT: dragging=false
 func _exit_tree() -> void:
+	cancel_native_configuration()
 	modal_lease.close()
 	if is_instance_valid(client_style): client_style.close()
 	close_pregame()

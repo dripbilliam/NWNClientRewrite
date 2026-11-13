@@ -1,0 +1,87 @@
+{
+	"checks": 8455,
+	"failures": [],
+	"legs": [
+		{
+			"completion_us": 44402,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "control",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 40595,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "lazy-model",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 42846,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "lazy-model",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 40954,
+			"count": 1918,
+			"entries": 10,
+			"groups": 463,
+			"mode": "control",
+			"ready": true,
+			"sources": 1918
+		},
+		{
+			"completion_us": 30833,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "control",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 30252,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "lazy-model",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 33330,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "lazy-model",
+			"ready": true,
+			"sources": 1919
+		},
+		{
+			"completion_us": 30943,
+			"count": 1919,
+			"entries": 1439,
+			"groups": 1,
+			"mode": "control",
+			"ready": true,
+			"sources": 1919
+		}
+	],
+	"passed": true,
+	"scope": "Production lazy fallback model lookup versus frozen pre-edit source; authored 1918/1919-source SceneTree plus installed base table metadata, no FPS or live asset result",
+	"semantics": {
+		"edge_rows": 10,
+		"installed_doortypes": 5200,
+		"installed_genericdoors": 3200,
+		"installed_placeables": 17,
+		"matched": 8447
+	}
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Ordinary Scene::Render direct depth-state wrapper call and exact tail jump to previously disconnected GLRender::SetDepthFunc leaf",
+  "document": "scene-depth-function-dispatch-connector.md",
+  "edges": [
+    {"from":"0x1400cc730","to":"0x1400bf0d0","callsite":"0x1400ccba0","kind":"direct_call","condition":"after ManageSceneBSP/SetLightModel and Enable(1), before Scene BSP/no-BSP branch; enum argument 3","status":"scene_depth_state_request","evidence_id":"ev_0dadc71cdc67cee74bfb7898e3215f8c40c7c702442ffa996dbf29e326e5086b"},
+    {"from":"0x1400bf0d0","to":"0x1400b6f60","callsite":"0x1400bf0d0","kind":"tail_jump","condition":"RenderInterface five-byte E9 thunk to GLRender implementation","status":"scene_depth_state_gl_implementation","evidence_id":"ev_de5af8238e2f4daf315d9be74db517715cdb78737cd0ef924598947868734267"},
+    {"from":"0x1400b6f60","to":"0x140d8accc","site":"0x1400b6f63","kind":"indexed_constant_lookup","condition":"GLRender indexes table base 0x140d8acc0 by Scene argument 3, selecting +0xc entry; no changed-state guard","status":"scene_depth_state_table_selection","evidence_id":"ev_bc510ea5cbc07e685b6f0db29393f435efbb539c765e52fe637e2d8a1a7f9260"},
+    {"from":"0x140d8accc","to":"glDepthFunc argument 0x203","kind":"enum_to_gl_value","condition":"Scene enum 3 indexes comparison-function table; numeric glDepthFunc argument 0x203","status":"scene_depth_state_constant","evidence_id":"ev_6d6cbd711ece70eefe02b69eb05b9f362dd1fec5f122bb0058c8e4a32b47a23a"}
+  ]
+}

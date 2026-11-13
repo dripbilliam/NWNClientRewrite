@@ -1,0 +1,10 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Connected static-shadow per-PartShadow shader vector and float state producers to previously mapped GLRender generation/consumer path",
+  "document": "scene-static-shadow-shader-params.md",
+  "edges": [
+    {"from":"0x1400d2ca0","to":"0x1400bf280","callsite":"0x1400d2f8e","kind":"direct_call","condition":"selected first static light matches LightManager active static light; cached shader available; bucket 9/10 item resolves to PartShadow with nonnull VDO; vector parameter 0","status":"static_shadow_projection_source_stage","evidence_id":"ev_376728c2240944986c9c66406594fa8facafb0f549b8274675de4bc2c14abc93"},
+    {"from":"0x1400d2ca0","to":"0x1400bf260","callsite":"0x1400d2fc2","kind":"direct_call","condition":"same admitted item; float parameter 1 from absent projection or clamped projection+0x60","status":"static_shadow_projection_z_clip_stage","evidence_id":"ev_97d3482ddb3b6d4125439a9bc5763fb7539c6c787451898d0a4ad202e5daafb5"}
+  ]
+}

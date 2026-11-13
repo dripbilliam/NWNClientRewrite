@@ -284,7 +284,7 @@ func sync() -> void:
 		record_tabs[index].disabled=index==3 and not spell_projection.get("ready",false) or index==1 and not skill_projection.get("ready",false) or not owner_ui.can_select() or not owner_ui.native_selection.is_empty()
 		record_tabs[index].tooltip_text=text_owner.raw({"strRef":[0x2940,0x147,0x146,0x145f][index]})
 	sync_record_page()
-	notice.text=str(state.get("error",""))
+	notice.text=owner_ui.failure_text(text_owner)
 	if notice.text.is_empty() and owner_ui.native_frontend and owner_ui.native_base_only: notice.text="Preparing character details…"
 	if notice.text.is_empty() and is_instance_valid(owner_ui.native_preview): notice.text=owner_ui.native_preview.error
 	if notice.text.is_empty(): notice.text=owner_ui.preferences.failure

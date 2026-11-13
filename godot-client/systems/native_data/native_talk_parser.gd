@@ -2,14 +2,9 @@ extends RefCounted
 # Strict CTlkTable::ParseStr199e20 over terminated native bytes. Presentation
 # colour commands have no special bypass here. Provider results append once.
 const Rich=preload("res://systems/native_data/rich_text.gd")
+const Encoding=preload("res://systems/native_data/native_text_encoding.gd")
 static func pending(reason: String) -> Dictionary:return {"ready":false,"pending":true,"reason":reason}
-static func encode(value: String) -> Dictionary:
-	var bytes:=PackedByteArray();bytes.resize(value.length())
-	for at in value.length():
-		var code:=Rich.byte_value(value.unicode_at(at))
-		if code<0:return {"ready":false,"reason":"Native talk byte encoding is unavailable."}
-		bytes[at]=code
-	return {"ready":true,"bytes":bytes}
+static func encode(value: String,language: int=0) -> Dictionary:return Encoding.encode(value,language)
 static func hash_bytes(bytes: PackedByteArray,limit: int=2147483647) -> int:
 	var value:=0
 	for at in mini(bytes.size(),limit):
@@ -20,10 +15,16 @@ static func hash_bytes(bytes: PackedByteArray,limit: int=2147483647) -> int:
 	return value
 static func assigned(bytes: PackedByteArray) -> PackedByteArray:
 	return PackedByteArray() if not bytes.is_empty() and bytes[0]==0 else bytes.duplicate()
-static func value_bytes(value: Variant) -> Dictionary:
+static func value_bytes(value: Variant,language: int=0) -> Dictionary:
 	if value is PackedByteArray:return {"ready":true,"bytes":assigned(value)}
+	if value is Dictionary and value.get("bytes") is Array:
+		var bytes:=PackedByteArray()
+		for byte in value.bytes:
+			if not (byte is int or byte is float) or not is_finite(float(byte)) or floorf(float(byte))!=float(byte) or byte<0 or byte>255:return pending("Native talk byte projection is malformed.")
+			bytes.append(int(byte))
+		return {"ready":true,"bytes":assigned(bytes)}
 	if value is String:
-		var encoded:=encode(value)
+		var encoded:=encode(value,language)
 		if encoded.get("ready",false):encoded.bytes=assigned(encoded.bytes)
 		return encoded
 	return pending("Native talk replacement bytes are unavailable.")
@@ -66,7 +67,7 @@ static func parse(input: PackedByteArray,state: Dictionary,providers: Dictionary
 				elif custom is Array:selected=find_record(custom,key,"id");found=not selected.is_empty();value=selected.get("bytes")
 				else:return pending("Native receipt custom-token records are unavailable.")
 				if found:
-					var encoded:=value_bytes(value)
+					var encoded:=value_bytes(value,int(providers.get("language",0)))
 					if not encoded.get("ready",false):return encoded
 					replacement=encoded.bytes
 		elif not name.is_empty():

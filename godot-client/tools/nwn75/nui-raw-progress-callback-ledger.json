@@ -1,0 +1,18 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Programmatic NWSync value/max progress Widget stored callback through conditional numeric Nui background/fill commands. DynamicValue sources, style choices and live window gates remain open.",
+  "edges": [
+    {"from":"0x1408ac060","to":"0x14095f360","callsite":"0x1408ad4d5","kind":"direct_static","condition":"Downloader programmatic content construction","status":"downloader_progress_widget","evidence_id":"ev_bacda11dfca5d965f6625b075c8957f5911c3a1eda7cb9d313f27011959fd95d"},
+    {"from":"0x1408adcf0","to":"0x14095f360","callsite":"0x1408ae04b","kind":"direct_static","condition":"Housekeeping programmatic content construction; one DynamicValue initialized to 100","status":"housekeeping_progress_widget","evidence_id":"ev_55c39b7c77d45317220fdea0a1349d6a92fac818ef5ea45505f6a2ad88bc6907"},
+    {"from":"0x14095f360","to":"0x140e6e500","callsite":"0x14095f48d","kind":"vtable_store","condition":"refcounted Widget allocated; two unsigned 64-bit DynamicValues retained; table address loaded at 0x14095f486","status":"value_max_callback_identity","evidence_id":"ev_0311cfb4637237080df1b198c7722e09af9f3ef5b053423bf941329ad51ce347"},
+    {"from":"0x1409528e0","to":"0x14095cab0","kind":"resolved_original_vtable_candidate","condition":"programmatic progress Widget stores table 0x140e6e500; virtual slot +0x10","status":"value_max_progress_callback","evidence_id":"ev_4599d729ae3bcbd580def9bc5516cf84c0223df9ec923931d89a325b08bcf0f1"},
+    {"from":"0x14095cab0","to":"0x140a88a80","callsite":"0x14095cb92","kind":"tail_jump","condition":"reads value and maximum DynamicValues, caps value at maximum, forwards mode zero","status":"progress_context_gate","evidence_id":"ev_4599d729ae3bcbd580def9bc5516cf84c0223df9ec923931d89a325b08bcf0f1"},
+    {"from":"0x140a88a80","to":"0x140a64610","callsite":"0x140a88b2d","kind":"direct_static","condition":"nonnull Nui context, active window and valid layout row","status":"progress_background_and_fill","evidence_id":"ev_cd006aa92be8361ecbf7e76ad3ad28acee77712a8b954ade203df78e8530d966"},
+    {"from":"0x140a64610","to":"0x140a82050","callsites":["0x140a64822","0x140a64900"],"kind":"direct_static","condition":"background or fill style code zero; clipped command","status":"numeric_kind_5_fill","evidence_id":"ev_c4e21794555b6fa4105bb75694771fa805a5e90b8db2e363c19133a12ab0365c"},
+    {"from":"0x140a64610","to":"0x140a8c120","callsites":["0x140a64850","0x140a6493c"],"kind":"direct_static","condition":"background or fill style code zero; clipped outline","status":"numeric_kind_4_outline","evidence_id":"ev_c4e21794555b6fa4105bb75694771fa805a5e90b8db2e363c19133a12ab0365c"},
+    {"from":"0x140a64610","to":"0x140a7db90","callsites":["0x140a64800","0x140a648cf"],"kind":"direct_static","condition":"background or fill style code one; image/clip gate","status":"numeric_kind_17_image","evidence_id":"ev_c4e21794555b6fa4105bb75694771fa805a5e90b8db2e363c19133a12ab0365c"},
+    {"from":"0x140a64610","to":"0x140a7d2e0","callsites":["0x140a647df","0x140a6489a"],"kind":"direct_static","condition":"background or fill style code two; nine-slice image helper","status":"nine_slice_helper","evidence_id":"ev_c4e21794555b6fa4105bb75694771fa805a5e90b8db2e363c19133a12ab0365c"},
+    {"from":"0x14095cab0","to":"DynamicValue<unsigned __int64> generators","kind":"unresolved_dynamic_callback","condition":"direct value absent and generator present for either value or maximum","status":"value_source_frontier","evidence_id":"ev_4599d729ae3bcbd580def9bc5516cf84c0223df9ec923931d89a325b08bcf0f1"}
+  ]
+}

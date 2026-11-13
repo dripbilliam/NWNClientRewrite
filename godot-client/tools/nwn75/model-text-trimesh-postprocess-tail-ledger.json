@@ -1,0 +1,109 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text TriMesh InternalPostProcess scalar accumulation, conditional pool lock/unlock and ordinary temporary-array cleanup callback.",
+  "edges": [
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a9b6d",
+      "kind": "direct_static",
+      "condition": "initial node vertex count zero; position handle +0x280 after preceding optional face work",
+      "status": "cpu_pool_read",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "RenderInterface::LockPool"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "node+0x2bc summed triangle area",
+      "kind": "cpu_face_iteration",
+      "condition": "each node face; three 16-bit position indices, two edges from first position, cross magnitude divided by two",
+      "status": "cpu_scalar_geometry",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x14022fba0",
+      "callsite": "0x1400a9c43",
+      "kind": "direct_static",
+      "condition": "RDX/R8 point to two face-position differences, assembled at 0x1400a9ba0..0x1400a9c3d",
+      "status": "cpu_triangle_cross_product",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1402303d0",
+      "callsite": "0x1400a9c4d",
+      "kind": "direct_static",
+      "condition": "cross-product magnitude, scaled by 0.5 into node +0x2bc",
+      "status": "cpu_triangle_area",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a9c90",
+      "kind": "direct_static",
+      "condition": "after scalar accumulation; shared pool may publish to GL",
+      "status": "conditional_gl_pool_publication",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "RenderInterface::UnlockPool"
+    },
+    {
+      "from": "0x140087900",
+      "to": "0x1400931c0",
+      "site": "0x1400879f5",
+      "site_evidence_id": "ev_16c52889612d405ef0a30ef88bdef93a82210cf6facc9116547f700ec5779b08",
+      "kind": "callback_field_install",
+      "condition": "ordinary TriMesh node +0xa8",
+      "status": "cpu_cleanup_callback",
+      "evidence_id": "ev_411440c52f1670df564d1122ec98e51a2471f5fffb95418d43b516267fa16ee9",
+      "target_label": "MdlNodeTriMeshRemoveTemporaryArrays"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "MdlNode+0xa8",
+      "site": "0x1400a9cb1",
+      "kind": "computed_callback_dispatch",
+      "condition": "initial node vertex count zero; subtype-installed cleanup target",
+      "status": "cpu_cleanup_callback",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19"
+    },
+    {
+      "from": "0x1400931c0",
+      "to": "0x1400a9f40",
+      "callsite": "0x1400931c0",
+      "kind": "tail_static",
+      "condition": "ordinary TriMesh cleanup callback",
+      "status": "cpu_cleanup",
+      "evidence_id": "ev_28d3f76ac71c729c3881a1595d76b83bb4f981a7e0ec6f5ad2cf863e6981e7dd",
+      "target_label": "MdlNodeTriMesh::InternalRemoveTemporaryArrays"
+    },
+    {
+      "from": "0x1400a9f40",
+      "to": "postprocess+0x90/+0x98 and node+0x278",
+      "kind": "cpu_nested_free_and_clear",
+      "condition": "postprocess pointer nonnull; free generated lists, destroy/free 0xb0-byte object, clear node pointer",
+      "status": "cpu_lifetime_leaf",
+      "evidence_id": "ev_f8639874bf80b5c2fa13fbc32710855c1dd2fa757bbd91177e3783edcfe0303e"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a6130",
+      "callsite": "0x1400a9af8",
+      "kind": "tail_static",
+      "condition": "initial vertex count already nonzero; return afterward, without scalar scan/cleanup",
+      "status": "conditional_tangent_postprocess",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "MdlNodeTriMesh::CalculateTangentSpaceBasis"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "DYNAMIC:POSTPROCESS_SUBTYPE_AND_POOL_STATE",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored node, pool handle/state, subtype cleanup callback and later Scene draw",
+      "status": "unresolved_target",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19"
+    }
+  ]
+}

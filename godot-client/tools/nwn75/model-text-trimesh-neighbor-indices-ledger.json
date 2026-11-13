@@ -1,0 +1,99 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text TriMesh postprocess neighbor face scans and index pool publication through conditional shared GL upload.",
+  "edges": [
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a5a10",
+      "callsite": "0x1400a9b39",
+      "kind": "direct_static",
+      "condition": "vertex count +0x284 zero and face count +0xb8 positive",
+      "status": "cpu_mesh_adjacency",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "MdlNodeTriMesh::BuildNeighborLists"
+    },
+    {
+      "from": "0x1400a5a10",
+      "to": "0x14022d960",
+      "callsite": "0x1400a5a9a",
+      "kind": "direct_static",
+      "condition": "each postprocess face plane",
+      "status": "cpu_face_plane",
+      "evidence_id": "ev_dc6fc9c1211018dce4dc61475a27ac8b903bad30efea407d0789788492a2b4e6",
+      "target_label": "NormalOf"
+    },
+    {
+      "from": "0x1400a5a10",
+      "to": "node face neighbor slots",
+      "kind": "cpu_nested_face_scan",
+      "condition": "three edges per face; scan other faces for matching edge, else 0xffff",
+      "status": "cpu_mesh_adjacency",
+      "evidence_id": "ev_dc6fc9c1211018dce4dc61475a27ac8b903bad30efea407d0789788492a2b4e6"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a5e20",
+      "callsite": "0x1400a9b41",
+      "kind": "direct_static",
+      "condition": "same positive-face text postprocess branch after neighbors",
+      "status": "conditional_index_pool",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "MdlNodeTriMesh::BuildVertexIndices"
+    },
+    {
+      "from": "0x1400a5e20",
+      "to": "node+0x228/+0x248 source index lists",
+      "kind": "cpu_array_append",
+      "condition": "append temporary face_count×3 32-bit indices and count to any authored lists",
+      "status": "cpu_index_data",
+      "evidence_id": "ev_531084ce51347df271618035ffa1af04c899ac851d360df7c073a1edb107715f"
+    },
+    {
+      "from": "0x1400a5e20",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a5fe2",
+      "kind": "direct_static",
+      "condition": "each index list; kind 1, byte count 2×index_count",
+      "status": "conditional_index_pool",
+      "evidence_id": "ev_531084ce51347df271618035ffa1af04c899ac851d360df7c073a1edb107715f",
+      "target_label": "RenderInterface::RequestPool"
+    },
+    {
+      "from": "0x1400a5e20",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a6064",
+      "kind": "direct_static",
+      "condition": "after request; copy low 16 bits of each 32-bit source index",
+      "status": "cpu_index_pool_copy",
+      "evidence_id": "ev_531084ce51347df271618035ffa1af04c899ac851d360df7c073a1edb107715f",
+      "target_label": "RenderInterface::LockPool"
+    },
+    {
+      "from": "0x1400a5e20",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a60ba",
+      "kind": "direct_static",
+      "condition": "after index conversion; shared pool may publish to GL",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_531084ce51347df271618035ffa1af04c899ac851d360df7c073a1edb107715f",
+      "target_label": "RenderInterface::UnlockPool"
+    },
+    {
+      "from": "0x1400a5e20",
+      "to": "node+0x258/+0x260 index pool handles",
+      "kind": "cpu_handle_publication",
+      "condition": "each requested pool; source index arrays freed and pointer list cleared afterward",
+      "status": "cpu_index_ownership",
+      "evidence_id": "ev_531084ce51347df271618035ffa1af04c899ac851d360df7c073a1edb107715f"
+    },
+    {
+      "from": "0x1400a5e20",
+      "to": "DYNAMIC:TEXT_MESH_INDEX_LISTS",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored lists, face count, index widths/validity, pool state and later draw",
+      "status": "unresolved_target",
+      "evidence_id": "ev_531084ce51347df271618035ffa1af04c899ac851d360df7c073a1edb107715f"
+    }
+  ]
+}

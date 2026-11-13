@@ -41,7 +41,7 @@ struct Step {
   emitter.source.position=source.position;emitter.source.quaternion=source.quaternion;emitter.source.adjustedScale=source.scale;owner->typed_source_pose=true;
   if(std::abs(emitter.birthRate)>32768||owner->allocations>32768)throw std::runtime_error("Native particle instance exceeds explicit allocation limit");finish(pose_ms);
   resident::Context ctx;context(ctx);resident::ContextScope scope(ctx);
-  if(emitter.flags&4){if(!controls.wind_token)throw std::runtime_error("Native scene wind token is absent");scene_wind::owner(controls.wind_token);}
+  if((emitter.flags&4)&&!controls.wind_token)throw std::runtime_error("Native scene wind token is absent");
   const auto* wind=ctx.wind_token?&scene_wind::owner(ctx.wind_token):nullptr;
   const bool known_wind=!wind||wind->points.empty();
   if(controls.childless_chunk_admission&&emitter.chunk&&known_wind&&camera&&controls.culling&&controls.source_flags>=0)chunk_proof=owner->childless_chunk_proof();
@@ -82,10 +82,20 @@ struct Step {
 };
 struct Entry {
  int64_t id=0;EngineVar retained,providers,clock,fallback,readiness;uint8_t clock_route=0;NativeOwner* owner=nullptr;Controls controls;Step step;
+ std::unique_ptr<particle_clock_binding::Binding> clock_binding;
  std::shared_ptr<const Material> material;
  bool enabled=true,source_animating=false;double elapsed=0,clip_length=0;std::string static_clip;uint64_t source_key=0;int16_t node_order=0;float distance=0;
  int64_t frames=0,culling_checks=0,culled_frames=0,culling_fallbacks=0,peak_active=0,published_vertices=0,direct_queries=0,direct_hits=0;
 };
+struct GeometryJob {
+ Entry* entry=nullptr;::ParticleStreams::DirectRange target{};V3 tint{1,1,1};
+ int64_t scene=-1,range=-1;
+};
+struct GeometryTask {std::vector<GeometryJob>* jobs=nullptr;size_t first=0,last=0;};
+void run_geometry_task(void* input){
+ auto& task=*static_cast<GeometryTask*>(input);
+ for(size_t index=task.first;index<task.last;++index){auto& job=(*task.jobs)[index];job.entry->step.geometry(job.target,job.tint);}
+}
 struct Range {int64_t id=0,first=0,count=0;float distance=0;V3 minimum{},maximum{};bool chunk=false;std::shared_ptr<const Material> material;};
 struct SceneSpan {int64_t id=0,first=0,count=0;};
 struct SceneBytes {
@@ -104,7 +114,9 @@ bool animation_enabled(const EngineVar& common,const EngineVar* bound_key=nullpt
  EngineVar value;destroy(value.data);GDExtensionBool present=false;get_keyed(common.data,bound_key ? bound_key->data : ::key("animating").data,value.data,&present);return !present||value.boolean();
 }
 struct Owner {
- FrameSampler sampler;FrameSampler::Invocation* sampling_context=nullptr;bool setup_boundary=false;uint64_t animating_key_binds=0,clock_validity_dispatches=0,static_noncallable_uses=0,static_null_callable_uses=0;
+ std::unique_ptr<particle_geometry_worker::Worker> geometry_worker;
+ uint64_t geometry_worker_frames=0,geometry_worker_vertices=0;
+ FrameSampler sampler;FrameSampler::Invocation* sampling_context=nullptr;bool setup_boundary=false;uint64_t animating_key_binds=0,clock_validity_dispatches=0,static_noncallable_uses=0,static_null_callable_uses=0,clock_native_reads=0,clock_native_fallbacks=0;
  GDExtensionObjectPtr identity=nullptr;
  std::unordered_map<int64_t,std::unique_ptr<Entry>> entries;std::vector<int64_t> order;
  std::vector<Entry*> frame_entries;bool order_dirty=true;
@@ -141,7 +153,7 @@ struct Owner {
   if(::has(config,"source_flags"))c.source_flags=::get(config,"source_flags").integer();if(::has(config,"wind_token"))c.wind_token=static_cast<uint64_t>(::get(config,"wind_token").integer());
   if(::has(config,"patch")){auto patch=::get(config,"patch");c.patch=::method(patch,"duplicate",{EngineVar::boolean(true)});}if(::has(config,"detonate")&&::get(config,"detonate").boolean())c.detonate=true;
   if(::has(config,"original_admission"))c.original_admission=::get(config,"original_admission").boolean();if(::has(config,"admission_radius"))c.explicit_radius=::f(config,"admission_radius");
-  if(::has(config,"clock")){entry.clock=::get(config,"clock");entry.clock_route=setup_clock_route::classify(entry.clock);}
+  if(::has(config,"clock")){entry.clock=::get(config,"clock");entry.clock_route=setup_clock_route::classify(entry.clock);entry.clock_binding=particle_clock_binding::prepare(entry.clock);}
   if(::has(config,"source_animating"))entry.source_animating=::get(config,"source_animating").boolean();
   if(::has(config,"texture")){
    auto material=std::make_shared<Material>();material->texture=::get(config,"texture");
@@ -172,6 +184,10 @@ struct Owner {
   sparse_phase(0);
   std::array<double,3> boundary_ms{};
   std::array<double,7> phases{};const auto loop_begin=profile?Clock::now():Clock::time_point{};
+  // The caller may promise that its frame-local dictionary cannot be changed
+  // by an emitter callback. Keep the live per-entry read for all other callers.
+  const bool animation_snapshot=::has(common,"animation_snapshot")&&::get(common,"animation_snapshot").boolean();
+  bool frame_animation=false,frame_animation_read=false;
   const EngineVar* animating_key=nullptr;
   refresh_order();std::vector<Entry*> drawing;drawing.reserve(entries.size());
   for(auto* current:frame_entries){auto& entry=*current;const auto id=entry.id;
@@ -189,10 +205,10 @@ struct Owner {
    // return (no time/RNG/physics advance), then discard this cold probe once
    // ready. Ready effects have no per-emitter script readiness callback.
    if(!entry.readiness.nil()){if(sampler.coarse_phases&&sampling_context)++sampling_context->readiness;if(!::method(entry.readiness,"call").boolean())continue;entry.readiness=EngineVar();}
-   entry.elapsed+=delta;auto& next=entry.step.controls;next=entry.controls;next.delta=static_cast<float>(delta);next.profile=profile;next.clip=entry.static_clip;if(setup_boundary&&!animating_key){animating_key=&::key("animating");++animating_key_binds;}next.animate=animation_enabled(common,animating_key)||(entry.source_key&&entry.source_animating);double time=entry.elapsed;
+   entry.elapsed+=delta;auto& next=entry.step.controls;next=entry.controls;next.delta=static_cast<float>(delta);next.profile=profile;next.clip=entry.static_clip;if(animation_snapshot&&!frame_animation_read){frame_animation=animation_enabled(common);frame_animation_read=true;}if(setup_boundary&&!animation_snapshot&&!animating_key){animating_key=&::key("animating");++animating_key_binds;}next.animate=(animation_snapshot?frame_animation:animation_enabled(common,animating_key))||(entry.source_key&&entry.source_animating);double time=entry.elapsed;
    const auto clock_begin=profile?Clock::now():Clock::time_point{};
    bool actor_clock=false;if(!setup_boundary||entry.clock_route==2){++clock_validity_dispatches;actor_clock=particle_frame_group::valid_callable(entry.clock);}else if(entry.clock_route==1)++static_null_callable_uses;else ++static_noncallable_uses;
-   if(actor_clock){if(sampler.coarse_phases&&sampling_context)++sampling_context->clocks;auto sampled=::method(entry.clock,"call");if(sampled.type()!=GDEXTENSION_VARIANT_TYPE_DICTIONARY)throw std::runtime_error("Native presentation clock must return a dictionary");next.clip=::has(sampled,"clip")?engine_string(::get(sampled,"clip")):"";time=::has(sampled,"time")?::get(sampled,"time").number():0;}
+   if(actor_clock){if(sampler.coarse_phases&&sampling_context)++sampling_context->clocks;if(entry.clock_binding&&particle_clock_binding::read(*entry.clock_binding,next.clip,time))++clock_native_reads;else{if(entry.clock_binding)++clock_native_fallbacks;auto sampled=::method(entry.clock,"call");if(sampled.type()!=GDEXTENSION_VARIANT_TYPE_DICTIONARY)throw std::runtime_error("Native presentation clock must return a dictionary");next.clip=::has(sampled,"clip")?engine_string(::get(sampled,"clip")):"";time=::has(sampled,"time")?::get(sampled,"time").number():0;}}
    else if(entry.clip_length>0){time=std::fmod(time,entry.clip_length);if(time<0)time+=entry.clip_length;}
    if(profile)boundary_ms[2]+=std::chrono::duration<double,std::milli>(Clock::now()-clock_begin).count();
    next.time=static_cast<float>(time);next.direct_scene=direct_scene;next.terrain_index=terrain;next.static_index=statics;
@@ -222,7 +238,46 @@ struct Owner {
    if(current_scene<0||!equal(next->scene_batches[static_cast<size_t>(current_scene)])){current_scene=static_cast<int64_t>(next->scene_batches.size());SceneBatch batch;batch.material=material;next->scene_batches.push_back(std::move(batch));}scene_for_entry[n]=current_scene;next->scene_batches[static_cast<size_t>(current_scene)].count+=count;next->scene_vertices+=count;
   }
   std::vector<std::unique_ptr<WritableBytes>> scene_bytes;std::vector<int64_t> scene_offsets(next->scene_batches.size(),0);for(const auto& batch:next->scene_batches)scene_bytes.push_back(std::make_unique<WritableBytes>(static_cast<size_t>(batch.count/6)*80));
-  for(size_t n=0;n<drawing.size();++n){auto* entry=drawing[n];const auto count=entry->step.vertices();if(!entry->owner->compact_state.chunk&&!entry->controls.draw_enabled)continue;
+  // An explicit worker selection owns the entire geometry pass. Chunk model
+  // callbacks must stay on the scene thread; no emitter enters the serial
+  // geometry branch merely because the frame is small or contains chunks.
+  const bool parallel_geometry=::has(common,"geometry_worker")&&::get(common,"geometry_worker").boolean();
+  double geometry_worker_wall_ms=0,geometry_worker_cpu_ms=0,chunk_geometry_ms=0;bool geometry_worker_used=false;
+  if(parallel_geometry){
+   std::vector<GeometryJob> jobs;jobs.reserve(drawing.size());
+   for(size_t n=0;n<drawing.size();++n){auto* entry=drawing[n];const auto count=entry->step.vertices();if(!entry->owner->compact_state.chunk&&!entry->controls.draw_enabled)continue;
+    V3 tint{1,1,1};if(native_surface_output&&count&&((entry->owner->compact_state.flags&8)!=0)){if(!sampled_lighting)throw std::runtime_error("Original lit particles require a CPU lighting snapshot");tint=lighting.sample(entry->owner->compact_state.position1e0);}
+    if(entry->owner->compact_state.chunk){
+     ::ParticleStreams::DirectRange target{nullptr,0};entry->step.geometry(target,tint);if(profile){phases[5]+=entry->step.geometry_ms;chunk_geometry_ms+=entry->step.geometry_ms;}
+     next->ranges.push_back(Range{entry->id,offset,count,entry->distance,entry->owner->staging.minimum,entry->owner->staging.maximum,true,entry->material});continue;
+    }
+    GeometryJob job;job.entry=entry;job.tint=tint;
+    if(scene_for_entry[n]>=0){const auto index=static_cast<size_t>(scene_for_entry[n]);auto& batch=next->scene_batches[index];auto& written=scene_offsets[index];job.scene=static_cast<int64_t>(index);job.target={scene_bytes[index]->data+static_cast<size_t>(written/6)*80,count,0,true};batch.spans.push_back({entry->id,written,count});written+=count;}
+    else{job.target={count?bytes.data+static_cast<size_t>(offset)*24:nullptr,count};job.range=static_cast<int64_t>(next->ranges.size());next->ranges.push_back(Range{entry->id,offset,count,entry->distance,{},{},false,entry->material});offset+=count;}
+    jobs.push_back(std::move(job));
+   }
+   int64_t job_vertices=0;for(const auto& job:jobs)job_vertices+=job.target.vertices;
+   int64_t accumulated=0;size_t split=0;while(split<jobs.size()&&accumulated<job_vertices/2){accumulated+=jobs[split].target.vertices;++split;}
+   if(!jobs.empty()){
+    if(!geometry_worker)geometry_worker=std::make_unique<particle_geometry_worker::Worker>();
+    const auto geometry_begin=profile?Clock::now():Clock::time_point{};
+    const bool balanced=split>0&&split<jobs.size()&&accumulated>0&&job_vertices>accumulated;
+    GeometryTask worker_task{&jobs,balanced?split:0,jobs.size()},main_task{&jobs,0,balanced?split:0};geometry_worker->submit(run_geometry_task,&worker_task);
+    std::exception_ptr failure;try{run_geometry_task(&main_task);}catch(...){failure=std::current_exception();}
+    try{geometry_worker->wait();}catch(...){if(!failure)failure=std::current_exception();}
+    if(failure)std::rethrow_exception(failure);
+    if(profile)geometry_worker_wall_ms=std::chrono::duration<double,std::milli>(Clock::now()-geometry_begin).count();geometry_worker_used=true;
+    ++geometry_worker_frames;geometry_worker_vertices+=static_cast<uint64_t>(job_vertices);
+   }
+   std::vector<bool> scene_bounds(next->scene_batches.size(),false);
+   for(auto& job:jobs){const auto count=job.target.vertices;if(job.target.written!=count)throw std::runtime_error("Native parallel particle range is incomplete");
+    const auto& a=job.entry->owner->staging.minimum;const auto& b=job.entry->owner->staging.maximum;
+    if(job.scene>=0){const auto index=static_cast<size_t>(job.scene);auto& batch=next->scene_batches[index];if(!scene_bounds[index]){batch.minimum=a;batch.maximum=b;scene_bounds[index]=true;}else for(size_t axis=0;axis<3;++axis){batch.minimum[axis]=std::min(batch.minimum[axis],a[axis]);batch.maximum[axis]=std::max(batch.maximum[axis],b[axis]);}}
+    else{auto& range=next->ranges[static_cast<size_t>(job.range)];range.minimum=a;range.maximum=b;}
+    if(profile)phases[5]+=job.entry->step.geometry_ms;
+   }
+   if(profile&&geometry_worker_used){geometry_worker_cpu_ms=phases[5];phases[5]=chunk_geometry_ms+geometry_worker_wall_ms;}
+  }else for(size_t n=0;n<drawing.size();++n){auto* entry=drawing[n];const auto count=entry->step.vertices();if(!entry->owner->compact_state.chunk&&!entry->controls.draw_enabled)continue;
    V3 tint{1,1,1};if(native_surface_output&&count&&((entry->owner->compact_state.flags&8)!=0)){if(!sampled_lighting)throw std::runtime_error("Original lit particles require a CPU lighting snapshot");tint=lighting.sample(entry->owner->compact_state.position1e0);}
    if(scene_for_entry[n]>=0){const auto index=static_cast<size_t>(scene_for_entry[n]);auto& batch=next->scene_batches[index];auto& written=scene_offsets[index];::ParticleStreams::DirectRange target{scene_bytes[index]->data+static_cast<size_t>(written/6)*80,count,0,true};entry->step.geometry(target);if(profile)phases[5]+=entry->step.geometry_ms;if(target.written!=count)throw std::runtime_error("Native scene instance range is incomplete");
     const auto& a=entry->owner->staging.minimum;const auto& b=entry->owner->staging.maximum;if(!written){batch.minimum=a;batch.maximum=b;}else for(size_t axis=0;axis<3;++axis){batch.minimum[axis]=std::min(batch.minimum[axis],a[axis]);batch.maximum[axis]=std::max(batch.maximum[axis],b[axis]);}batch.spans.push_back({entry->id,written,count});written+=count;continue;
@@ -237,13 +292,13 @@ struct Owner {
   if(counters)for(const auto* current:frame_entries){const auto& entry=*current;const auto id=entry.id;if(!entry.owner)continue;
    // A chunk callback may retire a scene node during this frame. Membership
    // removal is deferred, while its fixed counter record is removed now.
-   if(counters->entries.find(id)==counters->entries.end())continue;
-   const auto simulated=static_cast<int64_t>(entry.frames>0);const std::array<int64_t,particle_counters::fields> values{simulated,static_cast<int64_t>(entry.owner->compact_pool.active.size()),entry.published_vertices,0,simulated,0,simulated,0,entry.owner->constant_hits,entry.owner->sampled_channels,entry.culling_checks,entry.culled_frames,static_cast<int64_t>(entry.culled_frames>0),static_cast<int64_t>(entry.step.culled),entry.culling_fallbacks};if(!counters->store(id,values.data()))throw std::runtime_error("Native presentation counters are closed");}
+   if(!counters->store_if_present(id,[&entry]{const auto simulated=static_cast<int64_t>(entry.frames>0);return std::array<int64_t,particle_counters::fields>{simulated,static_cast<int64_t>(entry.owner->compact_pool.active.size()),entry.published_vertices,0,simulated,0,simulated,0,entry.owner->constant_hits,entry.owner->sampled_channels,entry.culling_checks,entry.culled_frames,static_cast<int64_t>(entry.culled_frames>0),static_cast<int64_t>(entry.step.culled),entry.culling_fallbacks};}))throw std::runtime_error("Native presentation counters are closed");}
   sparse_phase(3);
-  auto result=summary();if(profile){auto measured=EngineVar::dictionary();
+  auto result=summary();if(animation_snapshot){::set(result,"animation_snapshot_reads",EngineVar::integer(frame_animation_read?1:0));::set(result,"animation_snapshot_prepared",EngineVar::integer(prepared));}if(profile){auto measured=EngineVar::dictionary();
    const std::array<const char*,7> names{"particle_native_eligibility_clock_ms","particle_native_controls_ms","particle_native_pose_ms","particle_native_admission_ms","particle_native_simulation_ms","particle_native_geometry_ms","particle_native_pack_sort_ms"};
    phases[6]=std::chrono::duration<double,std::milli>(counters_begin-packing_begin).count()-phases[5];
    for(size_t n=0;n<phases.size();++n)::set(measured,names[n],EngineVar::number(phases[n]));
+   if(geometry_worker_used)::set(measured,"particle_native_geometry_cpu_ms",EngineVar::number(geometry_worker_cpu_ms));
    ::set(measured,"particle_native_eligibility_checks_ms",EngineVar::number(boundary_ms[0]));
    ::set(measured,"particle_native_source_checks_ms",EngineVar::number(boundary_ms[1]));
    ::set(measured,"particle_native_clock_boundary_ms",EngineVar::number(boundary_ms[2]));
@@ -251,7 +306,7 @@ struct Owner {
    ::set(measured,"particle_native_counters_summary_ms",EngineVar::number(std::chrono::duration<double,std::milli>(Clock::now()-counters_begin).count()));::set(result,"phases",measured);
   }return result;
  }
- EngineVar summary()const{auto out=EngineVar::dictionary();::set(out,"registered",EngineVar::integer(static_cast<int64_t>(entries.size())));::set(out,"prepared",EngineVar::integer(prepared));::set(out,"fallbacks",EngineVar::integer(fallbacks));::set(out,"culled",EngineVar::integer(culled));::set(out,"active",EngineVar::integer(active));::set(out,"vertices",EngineVar::integer(packet?packet->visible_vertices+packet->scene_vertices:0));::set(out,"scene_vertices",EngineVar::integer(packet?packet->scene_vertices:0));::set(out,"scene_batches",EngineVar::integer(packet?static_cast<int64_t>(packet->scene_batches.size()):0));::set(out,"bytes",EngineVar::integer(packet?packet->count*24+packet->scene_vertices/6*80:0));::set(out,"draws",EngineVar::integer(packet?static_cast<int64_t>(packet->ranges.size()+packet->scene_batches.size()):0));::set(out,"generation",EngineVar::integer(generation));::set(out,"closed",EngineVar::boolean(closed));return out;}
+ EngineVar summary()const{auto out=EngineVar::dictionary();::set(out,"registered",EngineVar::integer(static_cast<int64_t>(entries.size())));::set(out,"prepared",EngineVar::integer(prepared));::set(out,"fallbacks",EngineVar::integer(fallbacks));::set(out,"culled",EngineVar::integer(culled));::set(out,"active",EngineVar::integer(active));::set(out,"vertices",EngineVar::integer(packet?packet->visible_vertices+packet->scene_vertices:0));::set(out,"scene_vertices",EngineVar::integer(packet?packet->scene_vertices:0));::set(out,"scene_batches",EngineVar::integer(packet?static_cast<int64_t>(packet->scene_batches.size()):0));::set(out,"bytes",EngineVar::integer(packet?packet->count*24+packet->scene_vertices/6*80:0));::set(out,"draws",EngineVar::integer(packet?static_cast<int64_t>(packet->ranges.size()+packet->scene_batches.size()):0));::set(out,"geometry_worker_frames",EngineVar::integer(static_cast<int64_t>(geometry_worker_frames)));::set(out,"geometry_worker_vertices",EngineVar::integer(static_cast<int64_t>(geometry_worker_vertices)));::set(out,"generation",EngineVar::integer(generation));::set(out,"closed",EngineVar::boolean(closed));return out;}
  EngineVar refresh_visibility(){
   if(closed||running)throw std::runtime_error("Native visibility publication requires an open main-thread frame boundary");
   if(!canonical_packet)return summary();
@@ -294,7 +349,7 @@ struct Owner {
   const bool reset=::has(input,"reset")&&::get(input,"reset").boolean();sampler.configure(input);setup_boundary=next_setup;if(reset)animating_key_binds=clock_validity_dispatches=static_noncallable_uses=static_null_callable_uses=0;
  }
  EngineVar sampler_info()const{
-  auto out=sampler.inspect();::set(out,"setup_boundary",EngineVar::boolean(setup_boundary));::set(out,"animating_key_binds",EngineVar::integer(static_cast<int64_t>(animating_key_binds)));::set(out,"clock_validity_dispatches",EngineVar::integer(static_cast<int64_t>(clock_validity_dispatches)));::set(out,"static_noncallable_uses",EngineVar::integer(static_cast<int64_t>(static_noncallable_uses)));::set(out,"static_null_callable_uses",EngineVar::integer(static_cast<int64_t>(static_null_callable_uses)));int64_t routes[3]{};for(const auto& pair:entries)if(pair.second->owner)++routes[pair.second->clock_route];::set(out,"compiled_noncallable_entries",EngineVar::integer(routes[0]));::set(out,"compiled_null_callable_entries",EngineVar::integer(routes[1]));::set(out,"live_callable_entries",EngineVar::integer(routes[2]));return out;
+  auto out=sampler.inspect();::set(out,"setup_boundary",EngineVar::boolean(setup_boundary));::set(out,"animating_key_binds",EngineVar::integer(static_cast<int64_t>(animating_key_binds)));::set(out,"clock_validity_dispatches",EngineVar::integer(static_cast<int64_t>(clock_validity_dispatches)));::set(out,"static_noncallable_uses",EngineVar::integer(static_cast<int64_t>(static_noncallable_uses)));::set(out,"static_null_callable_uses",EngineVar::integer(static_cast<int64_t>(static_null_callable_uses)));int64_t routes[3]{},bindings=0;for(const auto& pair:entries)if(pair.second->owner){++routes[pair.second->clock_route];if(pair.second->clock_binding)++bindings;}::set(out,"compiled_noncallable_entries",EngineVar::integer(routes[0]));::set(out,"compiled_null_callable_entries",EngineVar::integer(routes[1]));::set(out,"live_callable_entries",EngineVar::integer(routes[2]));::set(out,"native_clock_enabled",EngineVar::boolean(particle_clock_binding::enabled));::set(out,"native_clock_available",EngineVar::boolean(particle_clock_binding::available));::set(out,"native_clock_bindings",EngineVar::integer(bindings));::set(out,"native_clock_reads",EngineVar::integer(static_cast<int64_t>(clock_native_reads)));::set(out,"native_clock_fallbacks",EngineVar::integer(static_cast<int64_t>(clock_native_fallbacks)));return out;
  }
  EngineVar timed_frame(const EngineVar& input){
   if(!sampler.enabled||!sampler.select(entries.size()))return frame(input);

@@ -1,0 +1,58 @@
+diff --git a/systems/network_motion.gd b/systems/network_motion.gd
+index b698ba8..b35375e 100644
+--- a/systems/network_motion.gd
++++ b/systems/network_motion.gd
+@@ -209,9 +209,15 @@ static func distance(state: Dictionary, dt: int) -> Dictionary:
+ 		return {"distance": f(f(f(float(dt)) * f(rate * f(float(state.factor)))) / f(1e6)), "acceleration": 1.0, "rate": rate}
+ 	var remaining := 0.0
+ 	var last: Vector3 = state.position
+-	for point in state.path.slice(int(state.cursor)):
++	var path: Array=state.path
++	var path_count:=path.size()
++	var cursor:=int(state.cursor)
++	if cursor<0:cursor=maxi(0,path_count+cursor)
++	while cursor<path_count:
++		var point: Vector3=path[cursor]
+ 		remaining = f(remaining + length32(Vector3(f(point.x - last.x), f(point.y - last.y), 0)))
+ 		last = point
++		cursor+=1
+ 	var half_second := f(f(rate * f(1000)) / f(2e6))
+ 	var limit := 1.0
+ 	if not half_second < remaining:
+@@ -231,8 +237,10 @@ func step_path(state: Dictionary, amount: float) -> Dictionary:
+ 	var position: Vector3 = state.position
+ 	var direction: Vector3 = state.orientation
+ 	var done := false
+-	while int(state.cursor) < state.path.size():
+-		var point: Vector3 = state.path[int(state.cursor)]
++	var path: Array=state.path
++	var path_count:=path.size()
++	while int(state.cursor) < path_count:
++		var point: Vector3 = path[int(state.cursor)]
+ 		var delta := Vector3(f(point.x - position.x), f(point.y - position.y), 0)
+ 		var size := length32(delta)
+ 		if amount <= size:
+@@ -241,19 +249,19 @@ func step_path(state: Dictionary, amount: float) -> Dictionary:
+ 			else:
+ 				direction = normalized32(delta)
+ 				position += direction * amount
+-			if int(state.cursor) == state.path.size() - 1:
++			if int(state.cursor) == path_count - 1:
+ 				done = length32(position - point) <= f(0.01)
+ 			break
+ 		amount = f(amount - size)
+ 		position = point
+ 		if size > f(0.01):
+ 			direction = normalized32(delta)
+-		if int(state.cursor) == state.path.size() - 1:
++		if int(state.cursor) == path_count - 1:
+ 			done = true
+ 			break
+ 		state.cursor += 1
+-	if int(state.cursor) == state.path.size() - 1 and state.script == 0:
+-		var end: Vector3 = state.path[-1]
++	if int(state.cursor) == path_count - 1 and state.script == 0:
++		var end: Vector3 = path[-1]
+ 		var remaining := length32(Vector3(f(end.x - state.position.x), f(end.y - state.position.y), 0))
+ 		if remaining <= 1 and f(f(direction.x * state.orientation.x) + f(direction.y * state.orientation.y)) < f(-0.707):
+ 			direction = -direction

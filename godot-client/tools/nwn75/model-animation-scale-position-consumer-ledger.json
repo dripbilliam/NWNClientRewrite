@@ -1,0 +1,19 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Authored setanimationscale field through inherited-animation lookup, AnimRun scale and ID-0x10 vector controller Part position.",
+  "edges": [
+    {"from":"0x140087bc0","to":"Model+0xcc","kind":"cpu_field_default","condition":"Model constructor stores float 1.0 at 0x140087cab","status":"model_scale_default","evidence_id":"ev_487d22f518fd1fdc568161117ccde18e7565eb1ad86d8c70ad352245f1492ea2"},
+    {"from":"0x1400a1970","to":"Model+0xcc","kind":"cpu_authored_field_parse","condition":"registered setanimationscale command parsed on current Model; initial parse value 1.0","status":"model_scale_authored_source","evidence_id":"ev_dfdb51cec1d4a054e14093e111633de0b6ecf1b2937f2ad1c438e5a687b6db0a"},
+    {"from":"0x140052580","to":"0x140050ed0","callsite":"0x140052895","kind":"conditional_direct","condition":"named animation found on selected or fallback Model and run admitted","status":"inherited_animation_scale_lookup","evidence_id":"ev_dc91e43a8e601ca76bbc9947a04af8144897c821681e1d09d7ec5f7710b1974d"},
+    {"from":"Model+0xcc","to":"0x140050ed0","kind":"cpu_supermodel_scale_read","condition":"current Model does not own selected Animation; multiply then follow Model+0xa8","status":"inherited_scale_factor","evidence_id":"ev_5cd16a5a634e29811a24bfef6ec50c1c036d597f647e3e50f959575bd65788d6"},
+    {"from":"0x140052580","to":"AnimRun+0x20","kind":"cpu_run_state_write","condition":"FindAnimScale result stored in selected/created run","status":"run_position_scale","evidence_id":"ev_225949b5bdbee8bf34c101b1ae97e2fffca1c9a239e3ed372e17764bfa5384b7"},
+    {"from":"AnimRun+0x20","to":"0x14004dbd0","kind":"cpu_run_state_consumer","condition":"Gob Animate admits active run and reads its stored scale","status":"active_position_scale","evidence_id":"ev_1d0ad03770965d01dc064786265ef9bf22b58f61a325f0704ece9253b8d609a5"},
+    {"from":"0x14004dbd0","to":"position_scale_factor@0x14128e218","kind":"cpu_global_state_write","condition":"active run copied at 0x14004e804 before AnimateHierarchy","status":"controller_scale_source","evidence_id":"ev_1d0ad03770965d01dc064786265ef9bf22b58f61a325f0704ece9253b8d609a5"},
+    {"from":"0x140051c50","to":"0x140051750","callsite":"0x140051d2c","kind":"conditional_direct","condition":"vector controller type 3 in common MdlNode control","status":"animated_vector_sample","evidence_id":"ev_4bef991e1fadfe8f657645cd1e89db72af16028e5e095a5a86fa61856c48f4dc"},
+    {"from":"position_scale_factor@0x14128e218","to":"0x140051750","kind":"cpu_global_state_read","condition":"controller ID 0x10; other vector IDs use factor 1.0","status":"position_key_scale","evidence_id":"ev_310bb1c87a5d4caf8d1c28129c4e67ad98c87e5e8301b01d7207e0b0b1df057e"},
+    {"from":"0x140051c50","to":"Part+0x10..+0x18","kind":"cpu_part_transform_blend","condition":"ID-0x10 vector sample and positive control weight blend scaled XYZ into Part","status":"animated_part_position","evidence_id":"ev_a387359e5ed2f6c6155e330a6558f9101d3a60651342a29418dab4db236ee372"},
+    {"from":"0x140053110","to":"0x140050ed0","callsite":"0x140053167","kind":"conditional_direct","condition":"Gob Reset recalculates existing run factor then applies zero-time hierarchy with global factor 1.0","status":"reset_run_scale_refresh","evidence_id":"ev_d71f5d7c5ac359f4cf650ca8ae94773894765c2b868027a2642ce2059cb2944f"},
+    {"from":"0x1400a1970","to":"DYNAMIC:AUTHORED_MODEL_ANIMATION_SUPERMODEL_AND_CONTROLLER_ID","kind":"unresolved_runtime_selector","condition":"active text token, selected animation, Model inheritance, Gob run, controller ID and blend weight remain runtime choices","status":"unresolved_target","evidence_id":"ev_dfdb51cec1d4a054e14093e111633de0b6ecf1b2937f2ad1c438e5a687b6db0a"}
+  ]
+}

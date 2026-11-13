@@ -56,8 +56,9 @@ export async function readRecording(root){
 }
 if(process.argv.includes('--verify-only')){const result=await readRecording(directory);console.log(JSON.stringify({complete:true,events:result.records.length,catalogs:result.manifest.catalogs.length,networkConnections:0}));process.exit(0);}
 const opened=await readRecording(directory),manifest=opened.manifest,records=arg('generation')?selectGeneration(opened.records,Number(arg('generation'))):opened.records;
-const movementTiming=process.argv.includes('--movement-timing'),movementClock=new MovementReplayClock();
+const movementTiming=process.argv.includes('--movement-timing'),movementWindow=process.argv.includes('--movement-window'),movementClock=new MovementReplayClock();
 if(movementTiming&&manifest.metadata?.movementTiming!==true)throw Error('Movement timing replay requires a movement capture');
+if(movementWindow&&(!movementTiming||!productionSelection||!process.argv.includes('--paced')))throw Error('Bounded movement window requires the paced original-input production replay');
 const cameraExpectation=productionSelection&&movementTiming?deriveReplayCameraExpectation(records,productionSelection.cameraPolicy.fovDegrees):null;
 if(cameraExpectation?.status==='unavailable')throw Error('Production camera/motion expectation unavailable: '+cameraExpectation.errors.join('; '));
 const sourceSha256={};async function pinSources(folder){for(const entry of await fs.readdir(folder,{withFileTypes:true})){const file=path.join(folder,entry.name);if(entry.isDirectory())await pinSources(file);else if(/\.(gd|cpp|hpp|gdextension)$/.test(entry.name))sourceSha256[path.relative(sourceProject,file)]=sha(await fs.readFile(file));}}
@@ -92,6 +93,28 @@ if(engineMode==='release'){
  engineFile=releasePackage.engine;runtimeRoot=releasePackage.runtime;
  if(sha(await fs.readFile(engineFile))!=='d34d36f3be1a6c49c56525ae86469b92e4f417ddf0b43cf00dd80c385c4b0562')throw Error('Verified release engine differs');
 }
+const classdbProbe=process.argv.includes('--nwn62-classdb-probe'),packPhaseProbe=process.argv.includes('--nwn62-pack-phase-probe'),packPreludeProbe=process.argv.includes('--nwn62-pack-prelude-probe'),classdbLockProbe=process.argv.includes('--nwn62-classdb-lock-probe'),shaderListFastProbe=process.argv.includes('--nwn62-shader-list-fast-probe'),cleanShaderListProbe=process.argv.includes('--nwn62-shader-list-clean-probe');
+if(Number(classdbProbe)+Number(packPhaseProbe)+Number(packPreludeProbe)+Number(classdbLockProbe)+Number(shaderListFastProbe)+Number(cleanShaderListProbe)>1)throw Error('Select only one NWN-62 private engine probe');
+const privateEngineProbe=classdbProbe||packPhaseProbe||packPreludeProbe||classdbLockProbe||shaderListFastProbe||cleanShaderListProbe;
+let privateEngineProbeReceipt=null;
+if(privateEngineProbe){
+ if(!productionSelection||engineMode!=='production-selection'||profiling!=='false'||(!cleanShaderListProbe&&!process.argv.includes('--publication-completion-diagnose')))throw Error('NWN-62 private probe requires pinned production source and profiling OFF; timing probes require completion attribution');
+ const base=classdbProbe?'engine-miss-probe-a':packPhaseProbe?'engine-pack-probe-a':packPreludeProbe?'engine-pack-probe-b':classdbLockProbe?'engine-lock-probe-c':shaderListFastProbe?'engine-shader-list-fast-d':'engine-shader-list-clean-e';
+ const file=path.join(project,'.cache/nwn62',base,'candidate-receipt.json'),proof=JSON.parse(await fs.readFile(file,'utf8'));
+ const expected=path.join(project,'.cache/nwn62',base,'candidate-probe/godot.windows.template_release.x86_64.exe');
+ const candidateSha256=classdbProbe?'440c2a4b74724446d0fb1ea51a84b028a36c990b2c43e46992535c05ec55ab98':packPhaseProbe?'b281d744c1eb5f6412f9754b01aefe8e41e39ba8336379091ac7d96fd5a57e89':packPreludeProbe?'ee432c7342f4d23d8dabd8bf12c9f545fa6531962f37e2af79ee2f3ceeca1807':classdbLockProbe?'91d2a0f6b638d29cb3bbfeb854ade5d29f042491b4dd9e20a59d75391b0d9464':shaderListFastProbe?'ead5490ba5ffc1117e975b63dc71611fb579083e08d11f402e2bbd7367e14861':'f8503d26e5f49fb2af1272dda13b2fbd0fdcd556ede28c36376521fddbb13e96';
+ const sourceSha256=classdbProbe?proof.patchedSource?.sha256:proof.sourcePins?.private;
+ const sourceFile=classdbProbe?proof.patchedSource?.file:path.join(project,'.cache/nwn62',base,classdbLockProbe?'class_db.cpp':'packed_scene.cpp');
+ const expectedSourceSha256=classdbProbe?'c552417615b5dce79279d7412d7e45aeb9691a3968f763ab450dfb5c37a84f5f':packPhaseProbe?'7a116c737365725aad2b70df448415ab94e9ec3e975216d725f4d1f9a19575a9':packPreludeProbe?'9a3b4c0a18d78c2bea721eb0cb26bef4a21bbc01c2698612eb9d21afed48f19a':classdbLockProbe?'433a6c075740d66723348e2cbacee04b3bded97600ae55801a1679b9ee3a1941':shaderListFastProbe?'26951e9eb4475f93f36e0985ef9ab9b4844d860c8f098c2bf9452633a1d4f7bb':'edb81b33a20ff5e222496adabd5ead6d57ed491165e8b5a99e9db39524409f1f';
+ const visualSource=path.join(project,'.cache/nwn62',base,'visual_instance_3d.cpp');
+ const visualSha256=shaderListFastProbe?'5f9c85b85f99824079f2933fb5126fefd7f09bfe60949f3eb490c37b95b3a068':'385168d58ccf0d6bc01c57e19dc4c85234e281ef87cb552ee451210e35336cfb';
+ if(proof.success!==true||path.resolve(proof.candidate?.file??'')!==expected||proof.candidate?.sha256!==candidateSha256||proof.control?.sha256!==productionSelection.runtime.executableSha256||sourceSha256!==expectedSourceSha256||sha(await fs.readFile(sourceFile))!==expectedSourceSha256||(shaderListFastProbe||cleanShaderListProbe)&&(proof.sourcePins?.privateVisual!==visualSha256||sha(await fs.readFile(visualSource))!==visualSha256)||sha(await fs.readFile(expected))!==candidateSha256)throw Error('NWN-62 private engine proof differs');
+ engineFile=expected;privateEngineProbeReceipt={kind:classdbProbe?'classdb-default-miss':packPhaseProbe?'packed-scene-phases':packPreludeProbe?'packed-scene-prelude':classdbLockProbe?'classdb-property-list-lock':shaderListFastProbe?'pack-scoped-shader-list-fast':'pack-scoped-shader-list-clean',file,sha256:sha(await fs.readFile(file)),candidateSha256,acceptedControlSha256:proof.control.sha256,acceptance:false};
+}
+// This exception is only for the pinned original NWN-62 graphical comparison.
+// It never changes ordinary replay diagnostics or private-engine acceptance.
+const knownEnvironmentDiagnostics=process.argv.includes('--nwn62-known-environment-diagnostics');
+if(knownEnvironmentDiagnostics&&(!productionSelection||engineMode!=='production-selection'||(privateEngineProbe&&!cleanShaderListProbe)||arg('production-selection-sha256')!=='522506865b61b04ff4e810f805488135d5ba65099adf9f7acdd4b9660d138079'||productionSelection.runtime.executableSha256!=='753b3e188068efaf865bda3abd6322ebe44e3a98ef2f5d199c8af1a78624c98b'||manifest.timelineSha256!=='d955e6fef37015dc189ab480a76bb03b0cc2f44482bdee5a55b45561a23715ee'||arg('generation')!=='4'||profiling!=='false'||arg('steady-ms')!=='30000'||!process.argv.includes('--preview')||process.argv.includes('--publication-completion-diagnose')))throw Error('NWN-62 environment diagnostic exception requires the exact pinned graphical comparison');
 const runtimeFiles={engine:engineFile,kernel:path.join(runtimeRoot,'.cache/native-kernel/nwn-particle-kernel.dll'),kernelManifest:path.join(sourceProject,'.cache/native-kernel/build-manifest.json'),resourceIndex:path.join(runtimeRoot,'.cache/native-resource-index/nwn-resource-index.dll'),resourceIndexManifest:path.join(sourceProject,'.cache/native-resource-index/build-manifest.json')};
 if(clientCapsule)runtimeFiles.clientCapsuleManifest=path.resolve(arg(productionSelection?'production-selection':'client-capsule'));
 Object.assign(runtimeFiles,sceneEngineFiles);
@@ -110,6 +133,7 @@ const cacheInitiallyEmpty=(await fs.readdir(preparedCache).catch(error=>{if(erro
 const report={success:false,timelineDelivered:false,offline:true,gameNetworkConnections:0,renderingPrepared:false,capture:directory,recordingSha256:manifest.timelineSha256,mode:process.argv.includes('--paced')?'original-timing':'acknowledgement-paced',events:records.length,milestones:[],rejectedActions:0,preparedCache,cacheInitiallyEmpty,preparedCacheExternallyManaged:Boolean(externalCache)};
 if(clientCapsule)report.clientCapsule=clientCapsule.evidence;
 if(productionSelection)report.productionSelection=productionSelection.evidence;
+if(privateEngineProbe)report.privateEngineProbe=privateEngineProbeReceipt;
 if(productionPreferenceWorking)report.productionPreferences=productionPreferenceWorking;
 let startupFeatures=null;
 function observeProductionFeatures(value,final=false){
@@ -125,6 +149,8 @@ function observeProductionWorld(state,scope){
 }
 report.movementReplay={enabled:movementTiming,inputs:0,accepted:0,rejected:0,samples:0,packets:0,dispatches:0,failures:[],scope:'Offline input decisions through ordinary native prediction, with original host delivery gaps. Reliable packet bytes are retained as evidence, not sent to a game server. No UDP retransmission or full NetworkPeer emulation.'};
 const productionMovementExpected=new Map(productionSelection&&movementTiming?records.filter(row=>row.kind==='movement-input').map(row=>[row.sequence,row.value.operation]):[]),productionMovementSeen=new Set();
+if(movementWindow&&(productionMovementExpected.size<1||productionMovementExpected.size>512))throw Error('Movement window requires 1..512 recorded original inputs');
+if(movementWindow)report.movementWindow={enabled:true,serial:1,readinessWaitingAt:null,readinessObservedAt:null,readinessDelayMs:null,beginAckDelayMs:null,requestedAt:null,startedAt:null,closingAt:null,endedAt:null,scope:null,probes:[],nativeAck:null,verified:false};
 if(productionSelection&&movementTiming){
  const operations={};for(const operation of productionMovementExpected.values())operations[operation]=(operations[operation]??0)+1;
  report.movementReplay.prediction={expected:productionMovementExpected.size,expectedOperations:operations,acceptedOperations:{},firstInputMs:null,lastInputMs:null,lastResultMs:null,scope:'Actual current native ordinary-prediction decisions; input section is distinct from the later steady quiet window'};
@@ -134,6 +160,13 @@ function productionMovementResult(value){
  const expected=productionMovementExpected.get(value.inputSequence);
  if(expected===undefined||productionMovementSeen.has(value.inputSequence)||value.outcome?.accepted!==true||value.outcome.operation!==expected)throw Error('Production movement prediction receipt missing, repeated, rejected or operation differs');
  productionMovementSeen.add(value.inputSequence);const p=report.movementReplay.prediction;p.acceptedOperations[expected]=(p.acceptedOperations[expected]??0)+1;p.lastResultMs=performance.now()-started;
+ if(movementWindow){
+  const window=report.movementWindow,probe=value.probe,vector=v=>Array.isArray(v)&&v.length===3&&v.every(Number.isFinite);
+  if(!window.startedAt||window.closingAt||!probe||!probe.before||!probe.after||!vector(probe.before.position)||!vector(probe.before.render)||!vector(probe.after.position)||!vector(probe.after.render)||![probe.probe_delta,probe.initial_delta,probe.reused_delta,probe.fallback_delta,probe.collection_delta,probe.height_query_delta].every(v=>Number.isSafeInteger(v)&&v>=0)||probe.probe_delta!==probe.initial_delta+probe.reused_delta+probe.fallback_delta)throw Error('Bounded movement probe receipt missing or inconsistent');
+  window.probes.push({inputSequence:value.inputSequence,operation:expected,...probe});
+  if(window.probes.length>512)throw Error('Movement probe receipt bound exceeded');
+  if(productionMovementSeen.size===productionMovementExpected.size){window.closingAt=performance.now()-started;send({kind:'end-performance-window',phase:'movement',serial:window.serial,connection:window.scope.connection,generation:window.scope.generation,areaId:window.scope.areaId});}
+ }
 }
 function productionInputPhase(){return !productionSelection||!movementTiming?null:report.movementReplay.prediction.firstInputMs===null?'before-input':productionMovementSeen.size===productionMovementExpected.size?'post-input-quiet':'recorded-input-section';}
 if(movementTiming)report.mode='original-timing-with-loading-gates';
@@ -153,7 +186,8 @@ report.measurementDurationMs=arg('duration-ms')?Number(arg('duration-ms')):null;
 if(report.measurementDurationMs!==null&&(!Number.isFinite(report.measurementDurationMs)||report.measurementDurationMs<1000||report.measurementDurationMs>3600000))throw Error('Invalid offline measurement duration');
 report.steadyDurationMs=arg('steady-ms')?Number(arg('steady-ms')):null;
 if(report.steadyDurationMs!==null&&(!Number.isFinite(report.steadyDurationMs)||report.steadyDurationMs<1000||report.steadyDurationMs>60000||report.measurementDurationMs!==null||process.argv.includes('--interactive')))throw Error('Invalid steady measurement window');
-let socket,child,childClosed,started=0,cursor=0,ready=false,ending=false,timer,profileAt=0,lastObservation;
+if(movementWindow&&report.steadyDurationMs===null)throw Error('Movement window requires a separate bounded steady quiet window');
+let socket,child,childClosed,started=0,cursor=0,ready=false,ending=false,timer,profileAt=0,lastObservation,lastObservationAt=null;
 const nativeStdoutDiagnostics=new NativeReplayDiagnostics(),nativeStderrDiagnostics=new NativeReplayDiagnostics();
 const acks=new Set();const send=value=>{if(['finish','finish-ack'].includes(value.kind)){report.protocolControl??=[];report.protocolControl.push({boundary:'send',kind:value.kind,connection:value.connection,writable:!!socket&&!socket.destroyed&&!socket.writableEnded,queuedBytes:socket?.writableLength??null});}if(socket&&!socket.destroyed)socket.write(JSON.stringify(value)+'\n');};
 function pump(){
@@ -162,6 +196,24 @@ function pump(){
   if(movementTiming&&!movementClock.ready(row,performance.now()-started))return;
   if(row.kind==='acknowledgement'){if(!acks.has(ackKey(row.value)))return;if(movementTiming)movementClock.consume(row,performance.now()-started);cursor++;continue;}
   if(process.argv.includes('--paced')&&performance.now()-started<row.at)return;
+  if(movementWindow&&row.kind==='movement-input'&&!report.movementWindow.startedAt){
+   const window=report.movementWindow;
+   if(!window.requestedAt){
+    const now=performance.now()-started;
+    window.readinessWaitingAt??=now;
+    const scope={connection:row.value.connection,generation:row.value.generation,areaId:row.value.areaId};
+    if(lastObservation?.connection!==scope.connection||lastObservation?.generation!==scope.generation||lastObservation?.areaId!==scope.areaId||lastObservation?.state?.ready!==true||lastObservation?.state?.object_visuals_complete!==true)return;
+    // A cold replay can finish visual publication after the original first input.
+    // Shift the remaining recorded schedule once, preserving every later gap.
+    const delay=Math.max(0,now-movementClock.due(row));
+    movementClock.shift+=delay;if(delay>0)movementClock.gates++;
+    window.readinessObservedAt=lastObservationAt;window.readinessDelayMs=delay;
+    window.firstInputRecordedAtMs=row.at;window.firstInputScheduledAtMs=movementClock.due(row);
+    window.requestedAt=now;window.scope=scope;window.firstInputSequence=row.sequence;
+    send({kind:'begin-performance-window',phase:'movement',serial:window.serial,...scope});
+   }
+   return; // The native reset must acknowledge before this input is consumed.
+  }
   if(movementTiming)movementClock.consume(row,performance.now()-started);
   cursor++;
   if(row.kind==='baseline')continue;
@@ -175,6 +227,7 @@ function pump(){
   send(value);
  }
  report.timelineDelivered=true;
+ if(movementWindow&&!report.movementWindow.endedAt)return;
  if(lastObservation?.state?.object_visuals_complete&&!report.settledAt)report.settledAt=performance.now();
  if(report.settledAt&&performance.now()-report.settledAt>Number(arg('settle-ms')??5000)&&!process.argv.includes('--interactive')){
   if(report.steadyDurationMs===null)void finish();
@@ -208,7 +261,12 @@ async function finish(reason,nativeFinished=false){
  report.sourceSha256=sourceSha256;report.sourceUnchanged=true;for(const[name,digest]of Object.entries(sourceSha256))if(sha(await fs.readFile(path.join(sourceProject,name)))!==digest)report.sourceUnchanged=false;
  report.driverSources=driverSources;report.driverUnchanged=sha(await fs.readFile(fileURLToPath(import.meta.url)))===report.driverSha256;for(const[name,digest]of Object.entries(driverSources))if(sha(await fs.readFile(path.join(project,'tools',name)))!==digest)report.driverUnchanged=false;report.sourceUnchanged&&=report.driverUnchanged;
  report.nativeDiagnostics={stdout:nativeStdoutDiagnostics.snapshot(),stderr:nativeStderrDiagnostics.snapshot()};
- report.engineOrLifetimeError=report.nativeDiagnostics.stdout.detected||report.nativeDiagnostics.stderr.detected||/SCRIPT ERROR|^ERROR:|ObjectDB.*leak|resources still in use/m.test(report.errors??'');
+ const rawEngineDiagnostic=report.nativeDiagnostics.stdout.detected||report.nativeDiagnostics.stderr.detected||/SCRIPT ERROR|^ERROR:|ObjectDB.*leak|resources still in use/m.test(report.errors??'');
+ const expectedEnvironmentErrors=['ERROR: Can\'t create shader cache folder, no shader caching will happen: user://','ERROR: Failed to read the root certificate store.'];
+ const errorLines=(report.errors??'').split(/\r?\n/).filter(line=>line.startsWith('ERROR:')||line.startsWith('SCRIPT ERROR'));
+ const environmentDiagnosticAccepted=knownEnvironmentDiagnostics&&report.nativeDiagnostics.stdout.detected===false&&report.nativeDiagnostics.stderr.bytes<=12000&&report.nativeDiagnostics.stderr.bytes===Buffer.byteLength(report.errors??'')&&JSON.stringify(report.nativeDiagnostics.stderr.kinds)===JSON.stringify(['engine-error'])&&JSON.stringify(errorLines)===JSON.stringify(expectedEnvironmentErrors);
+ if(knownEnvironmentDiagnostics)report.knownEnvironmentDiagnostics={accepted:environmentDiagnosticAccepted,rawDetected:rawEngineDiagnostic,errorLines,scope:'Only the two exact shader-cache/root-certificate environment errors in the complete bounded stderr stream; any other engine/lifetime marker remains fatal. Private engine remains unaccepted.'};
+ report.engineOrLifetimeError=rawEngineDiagnostic&&!environmentDiagnosticAccepted;
  if(report.engineOrLifetimeError){report.failure??='Native engine/lifetime diagnostics observed';report.success=false;}
  if(process.argv.includes('--debugger')){const text=await fs.readFile(path.join(project,'reports',run+'.cdb.log'),'utf8').catch(()=>'');report.debuggerArmed=/^LOADING_REPLAY_ARMED\r?$/m.test(text);report.nativeException=/^LOADING_REPLAY_EXCEPTION\r?$/m.test(text);if(!report.debuggerArmed||report.nativeException)report.success=false;}
  report.runtimeUnchanged=true;for(const [name,file]of Object.entries(runtimeFiles))if(await hashRuntime(file)!==runtimeSha256[name])report.runtimeUnchanged=false;
@@ -244,6 +302,11 @@ async function finish(reason,nativeFinished=false){
  if(!report.terrainHeight.verified){report.success=false;report.failure??='Explicit terrain height route was not verified';}
  report.success=report.success&&report.sourceUnchanged&&report.runtimeUnchanged&&!report.engineOrLifetimeError&&report.exit===0;
  if(movementTiming)report.success=report.success&&report.movementReplay.inputs>0&&report.movementReplay.accepted===report.movementReplay.inputs&&report.movementReplay.rejected===0;
+ if(movementWindow){
+  const observed=report.native?.movement_window,quiet=report.native?.performance_window,window=report.movementWindow,intervals=observed?.frame_intervals,quietIntervals=report.native?.frame_intervals;
+  window.verified=Number.isFinite(window.readinessDelayMs)&&Number.isFinite(window.beginAckDelayMs)&&window.probes.length===productionMovementExpected.size&&window.startedAt<=window.closingAt&&window.closingAt<=window.endedAt&&window.nativeAck?.samples===intervals?.count&&observed?.active===false&&observed?.generation===report.selectedGeneration&&observed?.areaId===quiet?.areaId&&observed?.elapsed_ms<=60000&&intervals?.count>=120&&intervals?.count<=20000&&['median_ms','p95_ms','p99_ms'].every(name=>Number.isFinite(intervals?.[name]))&&quiet?.steady===true&&quiet?.started_at_ms>=observed?.started_at_ms+observed?.elapsed_ms&&quietIntervals?.count>=120&&['median_ms','p95_ms','p99_ms'].every(name=>Number.isFinite(quietIntervals?.[name]));
+  if(!window.verified){report.failure??='Bounded movement window evidence incomplete or overlapped quiet window';report.success=false;}
+ }
  if(report.steadyDurationMs!==null)report.success=report.success&&report.steadyCompleted===true&&report.native?.performance_window?.steady===true;
  if(report.steadyDurationMs!==null&&report.native?.presentation_state?.headless===false){
   if(productionSelection){
@@ -259,6 +322,7 @@ async function finish(reason,nativeFinished=false){
   const world=report.native?.world??{},objectErrors=Object.values(world.failed_objects??{}).map(row=>row.error??row),errors=[...(world.errors??[]),...objectErrors];
   report.measurement={completed:report.measurementCompleted===true,requestedMs:report.measurementDurationMs,playableAtMs:world.playable_ms??null,readyAtEnd:world.ready??false,completeWorld:world.object_visuals_complete??false,captureGaps:errors.filter(row=>String(row.reason??'').startsWith('Unrecorded native resource:')),otherWorldErrors:errors.filter(row=>!String(row.reason??'').startsWith('Unrecorded native resource:')),scope:'Bounded loading observation; partial timeline/missing capture bytes do not constitute complete-world or full-replay acceptance'};
  }
+ if(privateEngineProbe){report.privateEngineProbe.diagnosticComplete=report.timelineDelivered===true&&report.sourceUnchanged===true&&report.runtimeUnchanged===true&&report.native?.object_visuals_complete===true;report.success=false;report.failure??='Private engine probe is not a production acceptance run';}
  if(child?.exitCode!==null){if(report.preparedCacheExternallyManaged)report.preparedCachePreserved=true;else try{const owned=await fs.realpath(temporary),cache=await fs.realpath(report.preparedCache);if(path.dirname(cache)!==owned||path.basename(cache)!=='prepared'||!path.basename(owned).startsWith('nwn-native-loading-replay-'))throw Error('Replay cache ownership differs');await fs.rm(cache,{recursive:true});report.preparedCacheRemoved=true;}catch(error){if(error.code!=='ENOENT')report.cacheCleanup=error.message;}}
  await fs.writeFile(reportPath,JSON.stringify(report,null,2)+'\n',{flag:'wx'});await fs.unlink(path.join(temporary,'ticket.json')).catch(()=>{});await fs.rmdir(temporary).catch(()=>{});
  console.log(JSON.stringify({success:report.success,failure:report.failure,report:reportPath,gameNetworkConnections:0}));process.exit(report.success?0:1);
@@ -274,10 +338,29 @@ const server=net.createServer(client=>{
  client.on('data',data=>{peer.receivedBytes+=data.length;buffered+=data.toString('utf8');if(buffered.length>1024*1024){void finish('Replay client frame exceeds bound');return;}let at;while((at=buffered.indexOf('\n'))>=0){const line=buffered.slice(0,at);buffered=buffered.slice(at+1);try{const value=JSON.parse(line);
   if(!ready){if(value.kind!=='hello'||value.token!==token)throw Error('Replay handshake differs');if(productionSelection)observeProductionFeatures(value.runtimeFeatures);peer.handshake=true;ready=true;started=performance.now();send({kind:'browser-closed',connection:0});pump();continue;}
   if(productionSelection&&value.runtimeFeatures)observeProductionFeatures(value.runtimeFeatures);
-  if(value.kind==='performance-window-ready'){if(!report.steadyRequestedAt||value.success!==true){void finish('Native steady window rejected or unsolicited');return;}report.steadyStartedAt=performance.now();report.steadyNative=value;}
+  if(value.kind==='performance-window-ready'){
+   if(value.phase==='movement'){
+    const window=report.movementWindow;
+    if(!movementWindow||!window.requestedAt||window.startedAt||value.success!==true||value.serial!==window.serial||value.generation!==window.scope.generation||value.areaId!==window.scope.areaId){void finish('Native movement window rejected or unsolicited');return;}
+    window.startedAt=performance.now()-started;window.nativeStart=value;
+    // Preserve the remaining recorded gaps after the begin ACK as well.
+    const firstInput=records[cursor],ackDelay=firstInput?.kind==='movement-input'?Math.max(0,window.startedAt-movementClock.due(firstInput)):NaN;
+    if(!Number.isFinite(ackDelay)){void finish('Movement begin ACK lost its first-input cursor');return;}
+    movementClock.shift+=ackDelay;if(ackDelay>0)movementClock.gates++;
+    window.beginAckDelayMs=ackDelay;window.totalScheduleDelayMs=window.readinessDelayMs+ackDelay;
+   }else if(value.phase==='steady'||value.phase===undefined){
+    if(!report.steadyRequestedAt||report.steadyStartedAt||movementWindow&&!report.movementWindow.endedAt||value.success!==true){void finish('Native steady window rejected or unsolicited');return;}
+    report.steadyStartedAt=performance.now();report.steadyNative=value;
+   }else{void finish('Unknown native performance window phase');return;}
+  }
+  else if(value.kind==='performance-window-ended'){
+   const window=report.movementWindow;
+   if(!movementWindow||!window.closingAt||window.endedAt||value.success!==true||value.phase!=='movement'||value.serial!==window.serial||value.generation!==window.scope.generation||value.areaId!==window.scope.areaId||!Number.isSafeInteger(value.samples)||value.samples<120||value.samples>20000||!Number.isFinite(value.elapsed_ms)||value.elapsed_ms>60000){void finish('Native movement window end rejected or unsolicited');return;}
+   window.endedAt=performance.now()-started;window.nativeAck=value;
+  }
   else if(ackKinds.has(value.kind)){acks.add(ackKey(value));report.milestones.push({...value,elapsedMs:performance.now()-started});}
   else if(value.kind==='observed'){
-   lastObservation=value;
+   lastObservation=value;lastObservationAt=performance.now()-started;
    if(productionSelection&&Number.isFinite(value.fps)&&performance.now()-fpsObservationAt>=2000&&fpsObservations.length<1000){
     fpsObservationAt=performance.now();fpsObservations.push({elapsedMs:fpsObservationAt-started,generation:value.generation,areaId:value.areaId,fps:value.fps,ready:value.state?.ready,pending_batches:value.state?.pending_batches,entities:value.state?.entities,inputWindowPhase:productionInputPhase(),predictionInputs:report.movementReplay.inputs,predictionResults:productionMovementSeen.size});
    }
@@ -300,6 +383,7 @@ const server=net.createServer(client=>{
 await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
 const ticket=path.join(temporary,'ticket.json');await fs.writeFile(ticket,JSON.stringify({host:'127.0.0.1',port:server.address().port,token,...(productionSelection?{featureSelection:productionSelection.featureSelection}:{})}),{flag:'wx'});
 const args=[...(engineMode==='release'?[]:['--path',sourceProject]),'--rendering-method',renderingMethod,'--rendering-driver','vulkan',...(process.argv.includes('--headless')?['--headless']:[]),...(arg('screen')?['--screen',arg('screen')]:[]),'--log-file',path.join(project,'reports',run+'.engine.log'),'--script','res://native_session_world.gd','--','--ticket='+ticket,'--report='+nativeReport,'--prepared-cache='+report.preparedCache,'--profile='+profiling,'--profile-control='+path.join(project,'reports',run+'.profile-control.json'),'--offline-replay=true'];
+if(process.argv.includes('--publication-completion-diagnose'))args.push('--publication-completion-diagnose');
 if(productionPreferenceWorking)args.push('--render-preferences='+productionPreferenceWorking.render.file,'--menu-layout='+productionPreferenceWorking.layout.file);
 // A private opt-in probe may also disable small-packet buffering in the native
 // loopback peer. The native project must explicitly implement/read it back.
@@ -457,7 +541,12 @@ if(productionSelection){
  report.replayCameraPolicy=productionSelection.cameraPolicy;report.recordedTerminalCameraExpectation=cameraExpectation;
  report.nativeLightingRequested=productionSelection.renderConfiguration.lighting;report.nativeLightHistoryRequested=productionSelection.renderConfiguration.light_history;report.nativeSurfaceOutputRequested=productionSelection.renderConfiguration.surface_output;report.renderThreadRequested=productionSelection.renderThread;
  report.lightInputRegistryRequested=productionSelection.featureSelection['light-input-registry'].value;report.driveCollisionRequested=productionSelection.featureSelection['drive-collision'].value;
- startupFeatures=featureManifest.createStartupManifest({run,project:sourceProject,runtime:productionSelection.runtime,options:productionSelection.performanceOptions,renderConfiguration:productionSelection.renderConfiguration,engineAndNativeArguments:args});
+ // This diagnostic is deliberately outside the accepted selection.  The
+ // observed executable must match the verified private binary, while ordinary
+ // production replays keep the exact selected runtime and render-core proof.
+ const featureRuntime=privateEngineProbe?{...productionSelection.runtime,executable:engineFile,executableSha256:privateEngineProbeReceipt.candidateSha256}:productionSelection.runtime;
+ const featureOptions=privateEngineProbe?{...productionSelection.performanceOptions,renderCore:{...productionSelection.performanceOptions.renderCore,engineSha256:privateEngineProbeReceipt.candidateSha256,policy:'private-nwn62-classdb-diagnostic-unaccepted'}}:productionSelection.performanceOptions;
+ startupFeatures=featureManifest.createStartupManifest({run,project:sourceProject,runtime:featureRuntime,options:featureOptions,renderConfiguration:productionSelection.renderConfiguration,engineAndNativeArguments:args});
  startupFeatures.replayCameraPolicy=productionSelection.cameraPolicy;
 }else if(clientCapsule){
  if(!arg('render-thread'))args.unshift('--render-thread','separate');
@@ -483,9 +572,18 @@ if(process.argv.includes('--debugger')){
 }
 // Explicit child policy prevents a previously selected private experiment from
 // leaking into a later ordinary/off comparison through the caller environment.
-child=spawn(executable,launchArgs,{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,...(clientCapsule?.environment??{}),NWN_PARTICLE_READS:particleEngineReads},...(engineMode==='release'?{cwd:path.dirname(engineFile)}:{})});
+child=spawn(executable,launchArgs,{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,...(clientCapsule?.environment??{}),NWN_PARTICLE_READS:particleEngineReads,NWN62_CLASSDB_MISS:privateEngineProbe&&!cleanShaderListProbe?'1':''},...(engineMode==='release'?{cwd:path.dirname(engineFile)}:{})});
 childClosed=new Promise(resolve=>child.once('close',resolve));
 child.stdout.once('end',()=>nativeStdoutDiagnostics.end());child.stderr.once('end',()=>nativeStderrDiagnostics.end());
 const launchStarted=performance.now();
 child.stdout.on('data',data=>{nativeStdoutDiagnostics.write(data);report.output=((report.output??'')+data).slice(-5000);});child.stderr.on('data',data=>{nativeStderrDiagnostics.write(data);report.errors=((report.errors??'')+data).slice(-12000);});child.once('error',error=>void finish(error.message));child.once('exit',code=>{report.exit=code;if(!ending)void finish(code===0?null:'Replay child failed');});
-timer=setInterval(()=>{if(!ready&&performance.now()-launchStarted>90000)void finish('Owned replay startup handshake exceeded 90-second deadline');else if(ready&&report.measurementDurationMs!==null&&performance.now()-started>=report.measurementDurationMs){report.measurementCompleted=true;void finish();}else if(ready&&performance.now()-started>Math.max(300000,(records.at(-1)?.at??0)+120000)&&!(report.timelineDelivered&&process.argv.includes('--interactive')))void finish('Offline replay exceeded deadline');else pump();},10);
+function movementWindowTimeout(now){
+ if(!movementWindow)return null;
+ const window=report.movementWindow;
+ if(window.readinessWaitingAt&&!window.requestedAt&&now-window.readinessWaitingAt>60000)return 'Original movement input waited over 60 seconds for complete area visuals';
+ if(window.requestedAt&&!window.startedAt&&now-window.requestedAt>5000)return 'Native movement window start did not acknowledge';
+ if(window.closingAt&&!window.endedAt&&now-window.closingAt>5000)return 'Native movement window end did not acknowledge';
+ if(window.startedAt&&!window.endedAt&&now-window.startedAt>60000)return 'Bounded movement window exceeded 60 seconds';
+ return null;
+}
+timer=setInterval(()=>{const now=performance.now(),windowTimeout=ready?movementWindowTimeout(now-started):null;if(!ready&&now-launchStarted>90000)void finish('Owned replay startup handshake exceeded 90-second deadline');else if(windowTimeout)void finish(windowTimeout);else if(ready&&report.measurementDurationMs!==null&&now-started>=report.measurementDurationMs){report.measurementCompleted=true;void finish();}else if(ready&&now-started>Math.max(300000,(records.at(-1)?.at??0)+120000)&&!(report.timelineDelivered&&process.argv.includes('--interactive')))void finish('Offline replay exceeded deadline');else pump();},10);

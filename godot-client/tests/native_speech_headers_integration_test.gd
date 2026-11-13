@@ -14,8 +14,9 @@ class TracingTalk extends Talk:
 		events.append({"kind":"fetch","ref":int(ref),"gender":int(gender)});return super.fetch_native_reference(ref,gender)
 	func fetch_native_reference_snapshot(ref: Variant,gender: Variant,selected: Dictionary)->Dictionary:
 		events.append({"kind":"fetch","ref":int(ref),"gender":int(gender)});return super.fetch_native_reference_snapshot(ref,gender,selected)
-	func parse_native(input: String,state: Dictionary={})->Dictionary:
-		events.append({"kind":"parse","raw":input.to_utf8_buffer()});native_parses.append({"raw":input,"state":state.duplicate(true)});return super.parse_native(input,state)
+	func parse_native_bytes(raw_bytes: PackedByteArray,state: Dictionary={}) -> Dictionary:
+		var input: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(state.get("language",base.language)),true).get("text","")
+		events.append({"kind":"parse","raw":input.to_utf8_buffer()});native_parses.append({"raw":input,"state":state.duplicate(true)});return super.parse_native_bytes(raw_bytes,state)
 	func resolve(_value: Variant,_id: int,_options: Dictionary={})->String:legacy_parses+=1;return "FORBIDDEN LEGACY"
 var checks:=0
 var failures: Array=[]
@@ -35,7 +36,7 @@ static func tlk(rows: Dictionary)->PackedByteArray:
 		var raw:=str(rows[key]).to_ascii_buffer();var at:=20+int(key)*40;bytes.encode_u32(at,1);bytes.encode_u32(at+28,offset);bytes.encode_u32(at+32,raw.size());bytes.append_array(raw);offset+=raw.size()
 	return bytes
 static func actor(id: int,first: String,native_lifetime: int,known: int)->Dictionary:
-	return {"id":id,"objectType":5,"areaId":91,"nativeLifetime":native_lifetime,"clientKnownLifetime":known,"replicated":{"name":{"firstName":{"text":first},"lastName":{"text":""}},"stats":{"race":0}}}
+	return {"id":id,"objectType":5,"areaId":91,"nativeLifetime":native_lifetime,"clientKnownLifetime":known,"appearance":{"name":{"firstName":{"text":first},"lastName":{"text":""}}},"replicated":{"name":{"firstName":{"text":first},"lastName":{"text":""}},"stats":{"race":0}}}
 func packet(channel: int=2,body: Variant={"text":"Body"})->Dictionary:
 	serial+=1
 	return {"kind":"server-speech","channel":channel,"objectId":42,"contextId":99,"text":body.duplicate(true) if body is Dictionary else body,"speakerName":{"text":"Remote Name"},"nativeTextEvent":{"version":1,"serial":serial,"connection":3,"generation":7,"areaId":91,"source":{"id":42,"objectType":5,"areaId":91,"nativeLifetime":2,"knownLifetime":3},"context":{"id":99,"objectType":5,"areaId":91,"nativeLifetime":8,"knownLifetime":13}}}

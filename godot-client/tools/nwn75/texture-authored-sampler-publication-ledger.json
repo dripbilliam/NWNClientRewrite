@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Basic TXI sampler fields through 2D/cube GL wrap, filter and anisotropy parameter publication with distinct refresh gate.",
+  "edges": [
+    {"from":"0x1400ebe40","to":"0x1400ecf20","callsite":"0x1400ebfdc","kind":"conditional_direct","condition":"named .txi resource supplies a line","status":"cpu_authored_texture_fields","evidence_id":"ev_1ff7e2b7ad40c35c714050e7cefe9fe9f1133d141ccd73be27dee14ef4b00bea"},
+    {"from":"0x1400ecf20","to":"Basic+0xe4/+0xe5/+0xc8","kind":"cpu_field_parse","condition":"mipmap, filter or clamp text field; constructor defaults mipmap/filter one and clamp zero","status":"cpu_sampler_source","evidence_id":"ev_924661ecc6d7b28be1b098044f9e71e1c2b158997e4fd196a17c46d0c7a7ba28"},
+    {"from":"0x1400af440","to":"0x1400b8100","callsite":"0x1400af5a7","kind":"direct_static","condition":"admitted ordinary 2D texture upload; Basic getters supply flags","status":"two_d_sampler_publication","evidence_id":"ev_e1457697c281f0b9e795822e361fb5ff23463a3aee7d7f612d5a10add1480310"},
+    {"from":"0x1400aeff0","to":"0x1400b8100","callsite":"0x1400af06f","kind":"direct_static","condition":"admitted cube texture upload; target one enables R wrap call","status":"cube_sampler_publication","evidence_id":"ev_7bdb766b9546fae47a5860acf2d70ca4c77defb967fb7ad429a2256499ae09c8"},
+    {"from":"0x1400b8100","to":"OPENGL32.DLL::glTexParameteri","callsites":["0x1400b8152","0x1400b816c","0x1400b818b","0x1400b81ac","0x1400b81d3"],"kind":"import_iat","condition":"wrap S/T, cube-only R, magnification and minification; authored clamp/filter/mipmap flags select values","status":"gl_sampler_parameters","evidence_id":"ev_ebf0c51e4d1e334a56cb43d3b8a060374dc9846251ab313acb8f07ddbabbc144"},
+    {"from":"0x1400b8100","to":"OPENGL32.DLL::glGetFloatv","callsite":"0x1400b8202","kind":"import_iat","condition":"mipmap and filter both enabled and cached anisotropy maximum equals -1.0","status":"conditional_gl_anisotropy_query","evidence_id":"ev_1585df414c342507f014ee7cdc5e8ddeaabb9f9aaaf1e0f88cc1e712d4a4cc96"},
+    {"from":"0x1400b8100","to":"OPENGL32.DLL::glTexParameterf","callsite":"0x1400b8252","kind":"import_iat_tail_jump","condition":"anisotropy 1.0 unless mipmap and filter both enabled, then min(configured level, cached GL maximum)","status":"gl_anisotropy_parameter","evidence_id":"ev_3a3ea7336b47c85f8eb47b19eb1c1111d18da8406328c5898f8fc9ed7e32ea31"},
+    {"from":"0x1400e8be0","to":"0x1400e8eb0","callsite":"0x1400e8ccf","kind":"conditional_direct","condition":"not suspended and configured anisotropy differs from prior value","status":"conditional_global_texture_refresh","evidence_id":"ev_7710c198e332b386a70fa12ca95cdef641f7a310f8160ac8e8b6899f5d354733"},
+    {"from":"0x1400e8be0","to":"0x1400e6910","callsite":"0x1400e8cdf","kind":"conditional_direct","condition":"not suspended, anisotropy unchanged and pending texture queue nonempty","status":"conditional_pending_texture_build","evidence_id":"ev_7710c198e332b386a70fa12ca95cdef641f7a310f8160ac8e8b6899f5d354733"},
+    {"from":"0x1400b8100","to":"DYNAMIC:TEXTURE_FLAGS_ANISOTROPY_AND_UPLOAD_ADMISSION","kind":"unresolved_runtime_selector","condition":"actual TXI text, Basic/derived object, target, GL maximum and active upload determine calls and values","status":"unresolved_target","evidence_id":"ev_ebf0c51e4d1e334a56cb43d3b8a060374dc9846251ab313acb8f07ddbabbc144"}
+  ]
+}

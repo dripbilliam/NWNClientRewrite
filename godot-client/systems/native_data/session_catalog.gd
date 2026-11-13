@@ -35,7 +35,12 @@ static func prepare(sources: Dictionary,guard: Callable=Callable()) -> Dictionar
 		var recorded:=preload("res://systems/native_data/recorded_catalog.gd").new()
 		var accepted:=recorded.mount(str(sources.recordedCatalog))
 		stop=stopped(guard,recorded,began,"recorded catalog"); if not stop.is_empty(): return stop
-		return {"catalog":recorded,"error":"" if accepted else recorded.failure,"stats":{"recorded":true,"benchmark_clone":recorded.packed_catalog!=null,"metadata_backend":"compiled" if Backend.available() else "gd","mount_ms":(Time.get_ticks_usec()-began)/1000.0,"rendering_prepared":false,"layers":recorded.layers.size()}}
+		var recorded_stats:={"recorded":true,"benchmark_clone":recorded.packed_catalog!=null,"metadata_backend":"compiled" if Backend.available() else "gd","mount_ms":(Time.get_ticks_usec()-began)/1000.0,"rendering_prepared":false,"layers":recorded.layers.size()}
+		if recorded.stats.has("overlap_thread_started"):
+			# Runtime proof of the optional worker and its wait, without exposing
+			# archive paths or copying the large manifest into the receipt.
+			recorded_stats.overlap={"thread_started":bool(recorded.stats.overlap_thread_started),"validation_us":int(recorded.stats.get("overlap_validation_us",0)),"seal_us":int(recorded.stats.get("overlap_seal_us",0)),"join_us":int(recorded.stats.get("overlap_join_us",0)),"packed_mount_us":int(recorded.stats.get("overlap_packed_mount_us",0)),"bindings_us":int(recorded.stats.get("overlap_packed_bindings_us",0)),"start_error":int(recorded.stats.get("overlap_start_error",0))}
+		return {"catalog":recorded,"error":"" if accepted else recorded.failure,"stats":recorded_stats}
 	var install:=str(sources.get("install",""))
 	if not install.is_absolute_path() or not catalog.mount_install(install,str(sources.get("language","en"))): return {"catalog":catalog,"error":catalog.failure if not catalog.failure.is_empty() else "Native install path is unavailable"}
 	phases.installed_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()

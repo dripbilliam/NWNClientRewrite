@@ -1,0 +1,18 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Client-loop resource update through one-second gated directory-table stat, cache-content drop and conditional key-table rebuild; later resource publication remains conditional.",
+  "edges": [
+    {"from":"0x1406db800","to":"0x1401957f0","callsite":"0x1406db9e6","kind":"direct_static","condition":"client loop state branch after snapshot delta; before AurMakeCurrent","status":"client_resource_storage_update","evidence_id":"ev_ec43bf615505b8c21840e725f6854333bb847914a42c13b8b3356abdf496c201"},
+    {"from":"0x14018e330","to":"0x14018d0a0","callsite":"0x14018e678","kind":"direct_static","condition":"successful key-table build; registration's dynamic-reload argument","status":"storage_watch_table_registration","evidence_id":"ev_3aa084f07f9f316620eb7f440c3a29c5b9f16d2cd71216f8a979e0b42ab170c6"},
+    {"from":"0x14018d0a0","to":"key-table+0x68 dynamic reload flag and CRes+0x48 clear","kind":"terminal_cpu_leaf","condition":"nonzero flag clears existing resource field; all calls set +0x68","status":"storage_watch_eligibility_publication","evidence_id":"ev_6dc3f2d2a5ee01f3cce8a2e77799628d33ec7df9c57217e9d26432ca559034a7"},
+    {"from":"0x1401957f0","to":"one-second elapsed timer and eligible key-table array","kind":"terminal_cpu_leaf","condition":"elapsed microsecond timer >1000000; key table +0x68 nonzero and +4 zero","status":"storage_watch_gate","evidence_id":"ev_0faa95f7705157f8ac194aa6bdc34ed829b5174886b0592f9e37f9c356297b2a"},
+    {"from":"0x1401957f0","to":"0x14018a7f0","callsite":"0x140195977","kind":"direct_static","condition":"elapsed timer and eligible table","status":"storage_timestamp_probe","evidence_id":"ev_46488a1654548e98ba059a5e7916b644c0b5b0547b3c8c3ebfa0755f9c7a87d0"},
+    {"from":"0x14018a7f0","to":"0x140c8ec54","callsite":"0x14018a82b","kind":"direct_static","condition":"table kind 2 and stored directory path +0x78 nonzero","status":"directory_stat_boundary","evidence_id":"ev_1aeec9d33a5c0dffb5770ff5e2ee7ca0dbae0559416cab940d46cb977e0a59bd"},
+    {"from":"0x14018a7f0","to":"key-table+0x80 timestamp comparison","kind":"terminal_cpu_leaf","condition":"successful stat; first stamp seeds, changed later stamp returns 1","status":"directory_change_decision","evidence_id":"ev_70a357366475d8b37fafa5defd8697468984adabb2b9347f5f57c2e15a9e8626"},
+    {"from":"0x1401957f0","to":"0x14018ad30","callsite":"0x140195983","kind":"direct_static","condition":"CheckForModificationsInStorage returns nonzero","status":"old_table_cache_drop","evidence_id":"ev_46488a1654548e98ba059a5e7916b644c0b5b0547b3c8c3ebfa0755f9c7a87d0"},
+    {"from":"0x14018ad30","to":"attached CRes+0x48 clear","kind":"terminal_cpu_leaf","condition":"each old key-table entry with nonnull CRes","status":"old_resource_storage_cache_clear","evidence_id":"ev_8e6a007401ec2ef4316ea6a8502450693df56be6782fd865f99ae8114113318c"},
+    {"from":"0x1401957f0","to":"0x14018ccf0","callsite":"0x14019598b","kind":"direct_static","condition":"changed directory stamp after cache drop","status":"modified_key_table_rebuild","evidence_id":"ev_46488a1654548e98ba059a5e7916b644c0b5b0547b3c8c3ebfa0755f9c7a87d0"},
+    {"from":"0x14018ccf0","to":"new key-table entries and conditional CRes transfer/dump/flags","kind":"terminal_cpu_leaf","condition":"old/new entries, demand count and alternative source priority","status":"future_resource_source_revision","evidence_id":"ev_1bcbc5e8e56e16a0ed41b2195650d99514f8f38b9b7ab4ed084eed7e41030931"}
+  ]
+}

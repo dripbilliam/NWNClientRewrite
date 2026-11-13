@@ -34,32 +34,11 @@ static func name_projection(value: Variant,depth: int=0)->Variant:
 			if value.has(key):result[key]=name_projection(value[key],1)
 	return result
 static func parser_state(value: Variant)->Dictionary:
-	var result: Dictionary={}
-	if not value is Dictionary:return result
-	for key in ["gender","nativeB8","nativeBC"]:
-		if value.has(key) and scalar(value[key]):result[key]=value[key]
-	if value.has("context") and value.context==null:result.context={} # Explicit certified native NULL only.
-	if value.get("context") is Dictionary:
-		var source: Dictionary=value.context;var projected: Dictionary={}
-		for key in ["id","objectType","areaId","nativeLifetime","clientKnownLifetime"]:
-			if source.has(key) and scalar(source[key]):projected[key]=source[key]
-		for section in ["replicated","appearance"]:
-			if not source.get(section) is Dictionary:continue
-			var raw: Dictionary=source[section];var body: Dictionary={}
-			if raw.has("name"):body.name=name_projection(raw.name)
-			if section=="replicated" and raw.get("stats") is Dictionary:
-				var stats: Dictionary={}
-				if raw.stats.has("race") and scalar(raw.stats.race):stats.race=raw.stats.race
-				if raw.stats.get("classes") is Array and not raw.stats.classes.is_empty():
-					var entry: Dictionary={};var first: Variant=raw.stats.classes[0]
-					if first is Dictionary:
-						for key in ["id","level"]:
-							if first.has(key) and scalar(first[key]):entry[key]=first[key]
-					stats.classes=[entry]
-				body.stats=stats
-			projected[section]=body
-		if not projected.is_empty():result.context=projected # Empty proxy is not a native NULL fact.
-	return result
+	if not value is Dictionary:return {}
+	var copy:=preload("res://systems/native_data/native_token_context.gd").frame(value)
+	if value.has("context") and value.context==null:copy.context={}
+	elif copy.get("context") is Dictionary and copy.context.is_empty():copy.erase("context")
+	return copy
 static func custom_state(value: Variant)->Dictionary:
 	var result:={"ready":false,"tokens":{}}
 	if not value is Dictionary or value.get("known")!=true:return result
@@ -71,14 +50,16 @@ static func custom_state(value: Variant)->Dictionary:
 		for byte in entry.bytes:
 			if not Scope.integer(byte,0,255):return result
 			bytes.append(int(byte))
-		last=int(entry.id);result.tokens[last]=Binary.new(bytes).text(0,bytes.size())
+		last=int(entry.id);result.tokens[last]={"bytes":Array(bytes)}
 	result.ready=true;return result
 static func selection(value: Variant)->Dictionary:
 	if not value is Dictionary or not value.get("known") is bool:return {}
 	if not value.known:return {"known":false}
 	if not value.get("present") is bool:return {}
 	if value.present and not value.get("text") is String:return {}
-	return {"known":true,"present":value.present,"text":value.text} if value.present else {"known":true,"present":false}
+	if not value.present:return {"known":true,"present":false}
+	var encoded:=NativeParser.encode(value.text,0) # Protocol's byte projection.
+	return {"known":true,"present":true,"text":value.text,"bytes":Array(encoded.bytes)} if encoded.get("ready",false) else {}
 static func descriptor(value: Variant)->Dictionary:
 	if not value is Dictionary:return {}
 	if value.get("kind")=="literal" and value.get("text") is String:return {"kind":"literal","text":value.text}
@@ -173,7 +154,8 @@ func resolve_slot(record: Dictionary,key: String,text)->Dictionary:
 	for component in [publication.first,publication.last]:
 		if component.kind=="reference":selections[int(component.strRef)]=component.override.duplicate(true)
 	call.nativeOverrideSelections=selections
-	var parsed: Dictionary=text.parse_native(raw,call)
+	call.language=int(selected.get("language",text.base.language))
+	var parsed: Dictionary=text.parse_native_bytes(selected.bytes,call) if selected.get("bytes") is PackedByteArray else text.parse_native(raw,call)
 	if not parsed.get("ready",false):return parsed
 	return {"ready":true,"text":str(parsed.body),"source":"override-reference","gender":selected.gender}
 func resolve_record(id: int,text,current: Dictionary)->void:

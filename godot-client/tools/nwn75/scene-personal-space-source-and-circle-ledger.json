@@ -1,0 +1,22 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Scene RenderPersonalSpace Gob radius and 2DA source, per-Gob admission, cached static circle and GL line-loop boundary beyond immediate census",
+  "document": "scene-personal-space-source-and-circle.md",
+  "edges": [
+    {"from":"0x1400869d0","to":"Gob+0x144/+0x198","kind":"data_initialization","condition":"Gob constructor zeros radius and per-Gob render flag","status":"personal_space_default_state","evidence_id":"ev_4b850bfe919c55ffc18fcba39695646d75a74f85c353b99fed06eabb2a785b5b"},
+    {"from":"0x14004a980","to":"Gob+0x198","kind":"data_mutation","condition":"SetRenderPersonalSpace(bool); dynamic caller unresolved","status":"personal_space_per_gob_flag","evidence_id":"ev_59006ec4d332849dbf07f9f83644b0dc02ec11554652a4b50a18ce50f8998b58"},
+    {"from":"0x140802cc0","to":"0x140800f70","callsite":"0x14080330f","kind":"callback_registration","condition":"successful creature model branch param_3==0xff; GetPersonalRadius","status":"personal_radius_callback_installation","evidence_id":"ev_1bb742ac9bd24daecb7b0000517a69c84fec3a16020317c52be7beacaff2a226"},
+    {"from":"0x1400c38f0","to":"0x140050d50","callsite":"0x1400c42b4","kind":"gob_virtual_slot","condition":"draw-bucket Gob admitted with +0x1a4 and positive alpha; renderpaths OR renderpersonalspace; output Gob+0x144","status":"personal_radius_event_request","evidence_id":"ev_5e4853cf3f2ac16eddc2f1629d9693800f30c4b546f4b44f70b00fc074bdfbb0"},
+    {"from":"0x140050d50","to":"0x140800f70","kind":"registered_callback","condition":"matching GetPersonalRadius callback on creature model Gob","status":"personal_radius_event_dispatch","evidence_id":"ev_cf0861cb88a08df86b58fc54e3a6e4480ef37a39a0c39d893fd61a8efe31fbef"},
+    {"from":"0x140800f70","to":"0x140058d00","callsite":"0x140800f98","kind":"gob_virtual_slot","condition":"Gob +0xf0 GetExternalData; nonnull creature required","status":"personal_radius_creature_lookup","evidence_id":"ev_380894b9c38e5fb7d4454f0873ca19657be0bd24d376838781aad04479416d55"},
+    {"from":"0x140800f70","to":"0x1401a6c70","callsite":"0x14080102f","kind":"direct_call","condition":"creature row +0x300 -> +0xcc; rules C2DA +0x130 -> +0x100; PERSPACE column; parsed float stored to Gob+0x144","status":"personal_radius_2da_source","evidence_id":"ev_380894b9c38e5fb7d4454f0873ca19657be0bd24d376838781aad04479416d55"},
+    {"from":"0x1400d0f10","to":"0x1400d0080","callsite":"0x1400d19d5","kind":"direct_call","condition":"Scene RenderSinglePass combined global renderpaths OR renderpersonalspace gate","status":"personal_space_pass_entry","evidence_id":"ev_6a0330ea2a55aa860128b692f7b68a5d0d8f842a7d7da5f2dc5d707ef288a69c"},
+    {"from":"Gob+0x144/+0x198","to":"0x1400d0080","kind":"data_gate","condition":"full Scene Gob list; (global renderpersonalspace or per-Gob flag==1) and radius>0","status":"personal_space_gob_admission","evidence_id":"ev_38ddb8deb96e6e243ae10dd0731f287296819d21c9d48026585c5db55412faa0"},
+    {"from":"0x1400d0080","to":"0x1400bea20","callsite":"0x1400d025b","kind":"direct_call","condition":"admitted Gob; stored position transform, fixed color, radius, billboard=false","status":"personal_space_circle_draw","evidence_id":"ev_38ddb8deb96e6e243ae10dd0731f287296819d21c9d48026585c5db55412faa0"},
+    {"from":"0x1400bea20","to":"0x1400b08f0","kind":"jump_thunk","condition":"RenderInterface DrawCircleBound forwards to GLRender implementation","status":"personal_circle_gl_implementation","evidence_id":"ev_ba3e569a8a387b53546195f8388f17a1bc17f37525d7b778b5a26baf6326514e"},
+    {"from":"0x1400b08f0","to":"0x14140aaa8","kind":"lazy_static_geometry_cache","condition":"first call only; 64-vertex VDO circle, commit and set global initialized byte","status":"personal_circle_geometry_cache","evidence_id":"ev_5ea51bf57ea6a8e6303d1d5f1784a8d6309c914cb586886810a292877434bacf"},
+    {"from":"0x1400b08f0","to":"0x1400b59b0","callsite":"0x1400b142e","kind":"direct_call","condition":"each admitted Gob; primitive 6 maps to GL_LINE_LOOP enum 2, cached VDO item","status":"personal_circle_vertex_draw","evidence_id":"ev_5ea51bf57ea6a8e6303d1d5f1784a8d6309c914cb586886810a292877434bacf"},
+    {"from":"0x1400b59b0","to":"glDrawArrays","callsite":"0x1400b5bcb","kind":"external_gl_call","condition":"cached VDO nonindexed item path","status":"personal_circle_gl_boundary","evidence_id":"ev_92ec860f2153094c715563ed7b4bf1cc4a39769b65d311e9eb23bfaeafef69ae"}
+  ]
+}

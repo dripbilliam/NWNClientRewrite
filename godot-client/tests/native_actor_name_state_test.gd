@@ -7,8 +7,9 @@ class TracingTalk extends Talk:
 	var legacy:=0
 	func fetch_native_reference_snapshot(ref: Variant,gender: Variant,selected: Dictionary)->Dictionary:
 		fetches.append({"ref":ref,"gender":gender,"selection":selected.duplicate(true)});return super.fetch_native_reference_snapshot(ref,gender,selected)
-	func parse_native(input: String,state: Dictionary={})->Dictionary:
-		parses.append({"input":input,"state":state.duplicate(true)});return super.parse_native(input,state)
+	func parse_native_bytes(raw_bytes: PackedByteArray,state: Dictionary={}) -> Dictionary:
+		var input: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(state.get("language",base.language)),true).get("text","")
+		parses.append({"input":input,"state":state.duplicate(true)});return super.parse_native_bytes(raw_bytes,state)
 	func resolve(_value: Variant,_id: int,_state: Dictionary={})->String:legacy+=1;return "FORBIDDEN LEGACY"
 class LastPendingTalk extends TracingTalk:
 	var hold_last:=true

@@ -1,0 +1,358 @@
+{
+  "schema": "nwn75-original-nui-window-vtable-census-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original vtables discovered from incoming data references to base Nui initializer plus two known JSON initializer tables. Runtime registration and any other override families remain open.",
+  "render_all": "0x1406c4b20",
+  "initialize_callsite": "0x1406c511a",
+  "slots": {
+    "initialize": "0x40",
+    "update": "0x58",
+    "render": "0x60"
+  },
+  "records": [
+    {
+      "base": "0x140e2cfa0",
+      "name": "Nui::Window::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_44e2958260698ba849f2760dad49c262fe178ab8666352b99012090a1e9b3c09"
+    },
+    {
+      "base": "0x140e30f48",
+      "name": "Nui::Debug::WindowBase::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_fb9bb825aac011137bab5f9e662d1a54e75856c3906ebbed1b02e812609a11f1"
+    },
+    {
+      "base": "0x140e30fc0",
+      "name": "Nui::Debug::Selector::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x140701890",
+      "render": "0x140701050",
+      "evidence_id": "ev_0cee4579a41815de9a1b60c3b9b1ee19f1649c4f465f5916daf2af4d5c52a9ce"
+    },
+    {
+      "base": "0x140e31328",
+      "name": "enable_make<Nui::Debug::Selector>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x140701890",
+      "render": "0x140701050",
+      "evidence_id": "ev_970309c3bce6ea8275ed8b5611dc7718361564e42ad2d33fe7be747682a40fba"
+    },
+    {
+      "base": "0x140e351a8",
+      "name": "enable_make<Nui::NWSync::Downloader>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1408b5500",
+      "render": "0x1408b4e50",
+      "evidence_id": "ev_59341b959bcde9f34a6a015834e349b585f8f060957b238529170292994b7eda"
+    },
+    {
+      "base": "0x140e35220",
+      "name": "enable_make<News::Browser>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_b2c6a63723cf8c06d44e23c40b4cd4fbfd787f0a2951d76e1e2d55dfa90ffd8d"
+    },
+    {
+      "base": "0x140e35298",
+      "name": "enable_make<ContentIndex::Browser>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x140940150",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_34314613c86a9f4d26590a66a829012d433e6e52360c6b812c999024060e0cba"
+    },
+    {
+      "base": "0x140e4ae88",
+      "name": "Nui::LicenceViewer::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_36e8ca15fd8240c4df7a76b567b4b2c31517e5889a0f5eeee093f6abd4ebe976"
+    },
+    {
+      "base": "0x140e4af18",
+      "name": "Nui::ConfigDescriptionWindow::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_9e480c7610e27470806049670808b4e622707f4dd05cc80008f2167d3d36419b"
+    },
+    {
+      "base": "0x140e4af90",
+      "name": "Nui::ConfigWindow::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_e68b5823cc8c09bd8d70abb54a1e55d82c6b55d2ca588b3b2822fd3c22643f2c"
+    },
+    {
+      "base": "0x140e4b3a8",
+      "name": "enable_make<Nui::ConfigWindow>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_162c20e06eada06aa4bbc83cbd5287fe07cadbbeebe214c5d2b20fc63f4d5bb2"
+    },
+    {
+      "base": "0x140e4b6c0",
+      "name": "enable_make<Nui::LicenceViewer>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_51a155afe727c5d7ce729b400f5251ede1f64fe0b7bfacc83735e22bbf702ec3"
+    },
+    {
+      "base": "0x140e4b948",
+      "name": "enable_make<Nui::ConfigDescriptionWindow>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_e5b5b29e5e9fb2f6cf49bb422f03753be0775951ed1e42bcfc59c51c93b37824"
+    },
+    {
+      "base": "0x140e59e10",
+      "name": "Nui::Debug::NetworkTree::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x14089b4a0",
+      "evidence_id": "ev_ee8df2a322028478da638c8134f2bc1f780c65898d78a6807fdb1fddfd920ff5"
+    },
+    {
+      "base": "0x140e5a110",
+      "name": "enable_make<Nui::Debug::NetworkTree>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x14089b4a0",
+      "evidence_id": "ev_9e338b17afce856ad1fa27383f11025a6cc5277aa412f849ae9b3e3f3fc88192"
+    },
+    {
+      "base": "0x140e5a308",
+      "name": "Nui::Debug::ResManTree::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x14089c120",
+      "evidence_id": "ev_f9c2bd899d3dffd3210004abc8110b944793f0229320488326c4cd260e53efe7"
+    },
+    {
+      "base": "0x140e5a710",
+      "name": "enable_make<Nui::Debug::ResManTree>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x14089c120",
+      "evidence_id": "ev_7f77949775f8ab59e433194ab3da1453512d916437c2771856988ceb82e49a67"
+    },
+    {
+      "base": "0x140e5a920",
+      "name": "Nui::Debug::GUITree::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x14089d790",
+      "evidence_id": "ev_f3d3a6fbd6da5b797a49fb781feeaa5ff429ce992716e53844d5fc3720641565"
+    },
+    {
+      "base": "0x140e5adb0",
+      "name": "enable_make<Nui::Debug::GUITree>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x14089d790",
+      "evidence_id": "ev_d280ccbaaa51364b9dcb97bf2e8baa743240e0b8c81dd1df5b5bfaf61923eb36"
+    },
+    {
+      "base": "0x140e5aff0",
+      "name": "Nui::Debug::Steam::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x14089f280",
+      "evidence_id": "ev_d938333c8b4e4097780634a34ce83a6fbb4a393d52afc2f0e044fdc4ecddd079"
+    },
+    {
+      "base": "0x140e5b230",
+      "name": "enable_make<Nui::Debug::Steam>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x14089f280",
+      "evidence_id": "ev_abe0a72565c93b48169260b0f0e66421919158dde47b4f20ccf62e26638137b1"
+    },
+    {
+      "base": "0x140e5b970",
+      "name": "Nui::GameObjectPicker::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1408a3b90",
+      "evidence_id": "ev_da46fb0573bce1899529d6bc08a208ebd990fd700a8f7378a89f25052cd4e170"
+    },
+    {
+      "base": "0x140e5ba58",
+      "name": "_anon_B4CCDE18::NWScript::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_12c0b63b85ad29e14e0f48aec33afc63512fcfdfdf1af8c209b3d09953460fd4"
+    },
+    {
+      "base": "0x140e5bbd8",
+      "name": "enable_make<_anon_B4CCDE18::NWScript>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_9a12f09bd175b9de39a12243e0e486daa2bd0f3ea150db5d155f0c9b3fc80098"
+    },
+    {
+      "base": "0x140e5be48",
+      "name": "enable_make<Nui::GameObjectPicker>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1408a3b90",
+      "evidence_id": "ev_6c95e6cf1812e29ebece4e3389ef659b8b35654d7f07745a82373408a16b1094"
+    },
+    {
+      "base": "0x140e5c0b0",
+      "name": "Nui::Debug::DM::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1408a6500",
+      "evidence_id": "ev_3f1b8806cc84aa324cc8504942e8fc21eb19202c8565f9a894e1aa7db21dba1a"
+    },
+    {
+      "base": "0x140e5c148",
+      "name": "enable_make<Nui::Debug::DM>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1408a6500",
+      "evidence_id": "ev_99de153cab7b76902a639536952e3b107803eb67fce0090f23485b64605fbe5a"
+    },
+    {
+      "base": "0x140e5c240",
+      "name": "Nui::Debug::Sound::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1408a6ae0",
+      "evidence_id": "ev_fa5836a6b2df70d69a52e3d6edce70d8476e3d0c7742e41ddc91e994c9d28ae9"
+    },
+    {
+      "base": "0x140e5c440",
+      "name": "enable_make<Nui::Debug::Sound>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1408a6ae0",
+      "evidence_id": "ev_710cfdb308d6cca746bcc24e343650b936d6d5ea58ebb165527cd807423dbfd2"
+    },
+    {
+      "base": "0x140e5d310",
+      "name": "Nui::QueryDialog::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_330f87f60b38bb5d4cacc7a24df280218a2db96f25c5feb84a8804ca54020518"
+    },
+    {
+      "base": "0x140e5d470",
+      "name": "Nui::NWSync::StorageManager::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_8dcf45cef8fb9d88734a05ec2a1a69bfcfcf185f9ae6c7627d8be800dc43a1f8"
+    },
+    {
+      "base": "0x140e5d4e8",
+      "name": "Nui::NWSync::Housekeeping::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1408b5bd0",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_7137fd5a7762602e10cb991293a9663d015891feb98c00794eb306b605894f91"
+    },
+    {
+      "base": "0x140e5d560",
+      "name": "Nui::NWSync::Downloader::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1408b5500",
+      "render": "0x1408b4e50",
+      "evidence_id": "ev_c9f978fbc5569804e7fed5c976daf2a119bf87ba3914d448969d22f35154644b"
+    },
+    {
+      "base": "0x140e5d970",
+      "name": "enable_make<Nui::QueryDialog>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_fd829ef53c38897bdc5cdefa1134ac7adaf50fb92e7599c57c4bc191086907d8"
+    },
+    {
+      "base": "0x140e5da58",
+      "name": "enable_make<Nui::NWSync::Housekeeping>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1408b5bd0",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_44fe0f9e6be88d6ff617d478acd95a8e9ac30b514a0c216bfea7a4a89cd3b7c8"
+    },
+    {
+      "base": "0x140e5f2e0",
+      "name": "enable_make<Nui::NWSync::StorageManager>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_284ca66b56bd0834f92db7c2b68ceeae7b9191e558a09cfdd9b0a23fa85fcfc9"
+    },
+    {
+      "base": "0x140e68220",
+      "name": "News::Browser::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_f7bfd0b6511e71e3c8ae23400a595f1bc5566be93d32d05335b7a04182ab0251"
+    },
+    {
+      "base": "0x140e6aac8",
+      "name": "ContentIndex::Browser::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x140940150",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_84aed612c8f5a1ad48676a286369fbc9eb6727cbf506da9491448f9331cfa3dc"
+    },
+    {
+      "base": "0x140e6ab40",
+      "name": "ContentIndex::RepositoryManager::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_1b410c817482cd2ff5b3da56fd370c8d59ec2c00d59a403a0d374f511adb0bfb"
+    },
+    {
+      "base": "0x140e6ae80",
+      "name": "enable_make<Nui::Window>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_0f6c33368dce17a32640e147c68f60d18991ee9d71c5174de524ec5695a42c45"
+    },
+    {
+      "base": "0x140e6bcd8",
+      "name": "enable_make<ContentIndex::RepositoryManager>::vftable",
+      "initialize": "0x1406c34a0",
+      "update": "0x1406c7610",
+      "render": "0x1406c44e0",
+      "evidence_id": "ev_532b3d6aa3197b8398fee95e53772f7724300038d1f6499412481d86529e0523"
+    },
+    {
+      "base": "0x140e39970",
+      "name": "Nui::JSON::JsonWindow::vftable",
+      "initialize": "0x140746f00",
+      "update": "0x14074d750",
+      "render": "0x14074b810",
+      "evidence_id": "ev_e7b73d11fc318048c9a7b6ec58ec538743c3f6e8cd44f242a49f5afaf7c133cf"
+    },
+    {
+      "base": "0x140e43828",
+      "name": "enable_make<Nui::JSON::JsonWindow>::vftable",
+      "initialize": "0x140746f00",
+      "update": "0x14074d750",
+      "render": "0x14074b810",
+      "evidence_id": "ev_d9f5d54e0bab3802fd13cf1f98e74602b0c8f6cc1d84427d93ae7a5bbacae50b"
+    }
+  ]
+}

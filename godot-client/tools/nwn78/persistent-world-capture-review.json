@@ -1,0 +1,864 @@
+{
+  "ticket": "NWN-78",
+  "scope": "Existing normal-client profiles only; current source hash comparison is read-only, no new FPS measurement or claim that divergent source is identical",
+  "captures": [
+    {
+      "name": "nwn74-forward-census-d",
+      "success": false,
+      "source_unchanged_in_capture": true,
+      "rows": 15,
+      "selected": [
+        {
+          "index": 0,
+          "elapsed_ms": 2107.551699999998,
+          "ready": false,
+          "pending_batches": 0,
+          "entities": 0,
+          "values": {}
+        },
+        {
+          "index": 2,
+          "elapsed_ms": 6588.423499999999,
+          "ready": true,
+          "pending_batches": 2,
+          "entities": 113,
+          "values": {
+            "nodes": {
+              "mean": 10097.1208333333,
+              "p95": 11654,
+              "max": 11956
+            },
+            "orphan_nodes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "resources": {
+              "mean": 752,
+              "p95": 752,
+              "max": 752
+            },
+            "count_world_instances": {
+              "mean": 33.6375,
+              "p95": 72,
+              "max": 84
+            },
+            "count_world_desired": {
+              "mean": 1930.175,
+              "p95": 1938,
+              "max": 1939
+            },
+            "count_motion_rows": {
+              "mean": 4.2375,
+              "p95": 7,
+              "max": 7
+            },
+            "count_motion_stationary_settled": {
+              "mean": 1.98333333333333,
+              "p95": 5,
+              "max": 5
+            },
+            "count_motion_active": {
+              "mean": 0.25,
+              "p95": 2,
+              "max": 2
+            },
+            "count_pose_evaluations": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "count_pose_unchanged_transforms": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "count_pose_transform_updates": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "count_pose_animation_changes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "world_motion_update_ms": {
+              "mean": 0.188758333333333,
+              "p95": 1.21,
+              "max": 2.138
+            },
+            "world_pose_inputs_ms": {
+              "mean": 0.00873333333333332,
+              "p95": 0.013,
+              "max": 0.032
+            },
+            "world_motion_finish_ms": {
+              "mean": 0.00539999999999999,
+              "p95": 0.008,
+              "max": 0.012
+            },
+            "world_pending_plan_ms": {
+              "mean": 0.0591541666666666,
+              "p95": 0.009,
+              "max": 12.49
+            },
+            "world_adoption": {
+              "mean": 0.110491666666667,
+              "p95": 0.619,
+              "max": 1.594
+            }
+          }
+        },
+        {
+          "index": 8,
+          "elapsed_ms": 18822.905100000004,
+          "ready": true,
+          "pending_batches": 1,
+          "entities": 1390,
+          "values": {
+            "nodes": {
+              "mean": 44600.7666666667,
+              "p95": 48502,
+              "max": 49114
+            },
+            "orphan_nodes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "resources": {
+              "mean": 752,
+              "p95": 752,
+              "max": 752
+            },
+            "count_world_instances": {
+              "mean": 1074.64166666667,
+              "p95": 1286,
+              "max": 1321
+            },
+            "count_world_desired": {
+              "mean": 1917.425,
+              "p95": 1918,
+              "max": 1924
+            },
+            "count_motion_rows": {
+              "mean": 9.36666666666667,
+              "p95": 10,
+              "max": 12
+            },
+            "count_motion_stationary_settled": {
+              "mean": 4.92916666666667,
+              "p95": 5,
+              "max": 7
+            },
+            "count_motion_active": {
+              "mean": 2.02083333333333,
+              "p95": 2,
+              "max": 3
+            },
+            "count_pose_evaluations": {
+              "mean": 8.12916666666667,
+              "p95": 10,
+              "max": 10
+            },
+            "count_pose_unchanged_transforms": {
+              "mean": 6.1875,
+              "p95": 8,
+              "max": 8
+            },
+            "count_pose_transform_updates": {
+              "mean": 1.94166666666667,
+              "p95": 3,
+              "max": 3
+            },
+            "count_pose_animation_changes": {
+              "mean": 0.15,
+              "p95": 1,
+              "max": 2
+            },
+            "world_motion_update_ms": {
+              "mean": 0.770866666666666,
+              "p95": 1.162,
+              "max": 1.457
+            },
+            "world_pose_inputs_ms": {
+              "mean": 0.541258333333334,
+              "p95": 0.65,
+              "max": 2.635
+            },
+            "world_motion_finish_ms": {
+              "mean": 0.00862916666666664,
+              "p95": 0.01,
+              "max": 0.021
+            },
+            "world_pending_plan_ms": {
+              "mean": 0.266208333333333,
+              "p95": 1.078,
+              "max": 6.873
+            },
+            "world_adoption": {
+              "mean": 0.4287875,
+              "p95": 1.141,
+              "max": 3.561
+            }
+          }
+        },
+        {
+          "index": 11,
+          "elapsed_ms": 25153.457300000002,
+          "ready": true,
+          "pending_batches": 0,
+          "entities": 1918,
+          "values": {
+            "nodes": {
+              "mean": 56785.8125,
+              "p95": 59716,
+              "max": 59718
+            },
+            "orphan_nodes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "resources": {
+              "mean": 752,
+              "p95": 752,
+              "max": 752
+            },
+            "count_world_instances": {
+              "mean": 1752.73333333333,
+              "p95": 1918,
+              "max": 1918
+            },
+            "count_world_desired": {
+              "mean": 1918,
+              "p95": 1918,
+              "max": 1918
+            },
+            "count_motion_rows": {
+              "mean": 10,
+              "p95": 10,
+              "max": 10
+            },
+            "count_motion_stationary_settled": {
+              "mean": 4.85833333333333,
+              "p95": 6,
+              "max": 6
+            },
+            "count_motion_active": {
+              "mean": 2.05416666666667,
+              "p95": 3,
+              "max": 3
+            },
+            "count_pose_evaluations": {
+              "mean": 10,
+              "p95": 10,
+              "max": 10
+            },
+            "count_pose_unchanged_transforms": {
+              "mean": 7.7125,
+              "p95": 8,
+              "max": 8
+            },
+            "count_pose_transform_updates": {
+              "mean": 2.2875,
+              "p95": 3,
+              "max": 3
+            },
+            "count_pose_animation_changes": {
+              "mean": 0.0541666666666667,
+              "p95": 0,
+              "max": 2
+            },
+            "world_motion_update_ms": {
+              "mean": 0.8477875,
+              "p95": 1.133,
+              "max": 1.346
+            },
+            "world_pose_inputs_ms": {
+              "mean": 0.580099999999999,
+              "p95": 0.65,
+              "max": 2.244
+            },
+            "world_motion_finish_ms": {
+              "mean": 0.00876249999999998,
+              "p95": 0.009,
+              "max": 0.017
+            },
+            "world_pending_plan_ms": {
+              "mean": 0.0823624999999999,
+              "p95": 0.44,
+              "max": 2.469
+            },
+            "world_adoption": {
+              "mean": 0.348554166666667,
+              "p95": 1.176,
+              "max": 2.527
+            }
+          }
+        },
+        {
+          "index": 14,
+          "elapsed_ms": 31202.4409,
+          "ready": true,
+          "pending_batches": 0,
+          "entities": 1918,
+          "values": {
+            "nodes": {
+              "mean": 59620,
+              "p95": 59620,
+              "max": 59620
+            },
+            "orphan_nodes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "resources": {
+              "mean": 752,
+              "p95": 752,
+              "max": 752
+            },
+            "count_world_instances": {
+              "mean": 1918,
+              "p95": 1918,
+              "max": 1918
+            },
+            "count_world_desired": {
+              "mean": 1918,
+              "p95": 1918,
+              "max": 1918
+            },
+            "count_motion_rows": {
+              "mean": 10,
+              "p95": 10,
+              "max": 10
+            },
+            "count_motion_stationary_settled": {
+              "mean": 5,
+              "p95": 5,
+              "max": 5
+            },
+            "count_motion_active": {
+              "mean": 2,
+              "p95": 2,
+              "max": 2
+            },
+            "count_pose_evaluations": {
+              "mean": 10,
+              "p95": 10,
+              "max": 10
+            },
+            "count_pose_unchanged_transforms": {
+              "mean": 8,
+              "p95": 8,
+              "max": 8
+            },
+            "count_pose_transform_updates": {
+              "mean": 2,
+              "p95": 2,
+              "max": 2
+            },
+            "count_pose_animation_changes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "world_motion_update_ms": {
+              "mean": 0.807383333333333,
+              "p95": 0.906,
+              "max": 1.051
+            },
+            "world_pose_inputs_ms": {
+              "mean": 0.541004166666667,
+              "p95": 0.604,
+              "max": 0.642
+            },
+            "world_motion_finish_ms": {
+              "mean": 0.00853749999999998,
+              "p95": 0.009,
+              "max": 0.021
+            },
+            "world_pending_plan_ms": {
+              "mean": 0.00505416666666666,
+              "p95": 0.006,
+              "max": 0.01
+            },
+            "world_adoption": {
+              "mean": 0.00325416666666667,
+              "p95": 0.004,
+              "max": 0.008
+            }
+          }
+        }
+      ],
+      "pins": {
+        "native_live_world.gd": {
+          "captured": "81d399e2bbcebba2aaf62eae48ffe06e53ff956f0bca9a2748326256b09d4264",
+          "current": "81d399e2bbcebba2aaf62eae48ffe06e53ff956f0bca9a2748326256b09d4264",
+          "matches_current": true
+        },
+        "systems/native_render/live_world.gd": {
+          "captured": "b4258d1267627d3f9ba8cdf3115e2489b5ea3d4979da03e296a1b79bf8f9051c",
+          "current": "ec5c12122567a3824650dedbc0b212b3a0e2651d20825493ece161ea6bd4f422",
+          "matches_current": false
+        },
+        "systems/native_render/live_world_pending_appearances.gd": {
+          "captured": "14a33a83933fd7ad62686fa94c9aae12458a40560ce79e7ee513e465585b3bf5",
+          "current": "14a33a83933fd7ad62686fa94c9aae12458a40560ce79e7ee513e465585b3bf5",
+          "matches_current": true
+        },
+        "systems/native_render/live_world_quiescent_candidate.gd": {
+          "captured": "40534ad042fa492c58567d8b6a6974cfc552e60ff661b987ebfcd7543bd32f32",
+          "current": "40534ad042fa492c58567d8b6a6974cfc552e60ff661b987ebfcd7543bd32f32",
+          "matches_current": true
+        },
+        "systems/native_render/live_world_support.gd": {
+          "captured": "50b8fe33f892451cc1813133ed64f7b77009c628e625c87c169a2498468db465",
+          "current": "50b8fe33f892451cc1813133ed64f7b77009c628e625c87c169a2498468db465",
+          "matches_current": true
+        },
+        "systems/network_motion.gd": {
+          "captured": "717f9d432b74d3eb7d018c765705df3f63f605bb66b52d197374acea663f5310",
+          "current": "9818d4bf7f7aab474c21609ffa802115bbe2d576026dafd7380255d148bae18d",
+          "matches_current": false
+        },
+        "systems/native_render/creature_stream.gd": {
+          "captured": "bb1dd226c410c8bc654a68923773610fd8204b259d6d570998eb2b85818d092a",
+          "current": "bb1dd226c410c8bc654a68923773610fd8204b259d6d570998eb2b85818d092a",
+          "matches_current": true
+        }
+      }
+    },
+    {
+      "name": "nwn74-material-dedup-e",
+      "success": false,
+      "source_unchanged_in_capture": true,
+      "rows": 14,
+      "selected": [
+        {
+          "index": 0,
+          "elapsed_ms": 2312.66,
+          "ready": false,
+          "pending_batches": 0,
+          "entities": 0,
+          "values": {}
+        },
+        {
+          "index": 2,
+          "elapsed_ms": 6537.507599999999,
+          "ready": true,
+          "pending_batches": 2,
+          "entities": 147,
+          "values": {
+            "nodes": {
+              "mean": 10825.3791666667,
+              "p95": 12545,
+              "max": 14248
+            },
+            "orphan_nodes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "resources": {
+              "mean": 752,
+              "p95": 752,
+              "max": 752
+            },
+            "count_world_instances": {
+              "mean": 47.4833333333333,
+              "p95": 103,
+              "max": 110
+            },
+            "count_world_desired": {
+              "mean": 1934.6375,
+              "p95": 1965,
+              "max": 1991
+            },
+            "count_motion_rows": {
+              "mean": 4.83333333333333,
+              "p95": 7,
+              "max": 8
+            },
+            "count_motion_stationary_settled": {
+              "mean": 2.29166666666667,
+              "p95": 5,
+              "max": 5
+            },
+            "count_motion_active": {
+              "mean": 0.525,
+              "p95": 2,
+              "max": 2
+            },
+            "count_pose_evaluations": {
+              "mean": 0.0791666666666667,
+              "p95": 1,
+              "max": 1
+            },
+            "count_pose_unchanged_transforms": {
+              "mean": 0.00416666666666667,
+              "p95": 0,
+              "max": 1
+            },
+            "count_pose_transform_updates": {
+              "mean": 0.075,
+              "p95": 1,
+              "max": 1
+            },
+            "count_pose_animation_changes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "world_motion_update_ms": {
+              "mean": 0.2464125,
+              "p95": 1.19,
+              "max": 1.364
+            },
+            "world_pose_inputs_ms": {
+              "mean": 0.0214375,
+              "p95": 0.161,
+              "max": 0.255
+            },
+            "world_motion_finish_ms": {
+              "mean": 0.00596666666666666,
+              "p95": 0.009,
+              "max": 0.018
+            },
+            "world_pending_plan_ms": {
+              "mean": 0.0737333333333333,
+              "p95": 0.011,
+              "max": 12.88
+            },
+            "world_adoption": {
+              "mean": 0.152220833333333,
+              "p95": 0.685,
+              "max": 4.16
+            }
+          }
+        },
+        {
+          "index": 7,
+          "elapsed_ms": 16738.0945,
+          "ready": true,
+          "pending_batches": 2,
+          "entities": 1245,
+          "values": {
+            "nodes": {
+              "mean": 42410.2208333333,
+              "p95": 46253,
+              "max": 46770
+            },
+            "orphan_nodes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "resources": {
+              "mean": 752,
+              "p95": 752,
+              "max": 752
+            },
+            "count_world_instances": {
+              "mean": 967.291666666667,
+              "p95": 1157,
+              "max": 1189
+            },
+            "count_world_desired": {
+              "mean": 1921.85416666667,
+              "p95": 1935,
+              "max": 1941
+            },
+            "count_motion_rows": {
+              "mean": 9.3875,
+              "p95": 12,
+              "max": 12
+            },
+            "count_motion_stationary_settled": {
+              "mean": 5.24583333333333,
+              "p95": 8,
+              "max": 8
+            },
+            "count_motion_active": {
+              "mean": 2.40833333333333,
+              "p95": 3,
+              "max": 3
+            },
+            "count_pose_evaluations": {
+              "mean": 7.54166666666667,
+              "p95": 9,
+              "max": 9
+            },
+            "count_pose_unchanged_transforms": {
+              "mean": 5.3,
+              "p95": 7,
+              "max": 7
+            },
+            "count_pose_transform_updates": {
+              "mean": 2.24166666666667,
+              "p95": 3,
+              "max": 4
+            },
+            "count_pose_animation_changes": {
+              "mean": 0.0333333333333333,
+              "p95": 0,
+              "max": 1
+            },
+            "world_motion_update_ms": {
+              "mean": 0.843091666666667,
+              "p95": 1.079,
+              "max": 1.407
+            },
+            "world_pose_inputs_ms": {
+              "mean": 0.5121875,
+              "p95": 0.625,
+              "max": 2.732
+            },
+            "world_motion_finish_ms": {
+              "mean": 0.00902499999999998,
+              "p95": 0.012,
+              "max": 0.017
+            },
+            "world_pending_plan_ms": {
+              "mean": 0.266870833333334,
+              "p95": 0.995,
+              "max": 7.96
+            },
+            "world_adoption": {
+              "mean": 0.4468,
+              "p95": 1.214,
+              "max": 7.701
+            }
+          }
+        },
+        {
+          "index": 10,
+          "elapsed_ms": 23643.067000000003,
+          "ready": true,
+          "pending_batches": 0,
+          "entities": 1918,
+          "values": {
+            "nodes": {
+              "mean": 55836.7208333333,
+              "p95": 59723,
+              "max": 59741
+            },
+            "orphan_nodes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "resources": {
+              "mean": 752,
+              "p95": 752,
+              "max": 752
+            },
+            "count_world_instances": {
+              "mean": 1703.41666666667,
+              "p95": 1918,
+              "max": 1918
+            },
+            "count_world_desired": {
+              "mean": 1918,
+              "p95": 1918,
+              "max": 1918
+            },
+            "count_motion_rows": {
+              "mean": 10,
+              "p95": 10,
+              "max": 10
+            },
+            "count_motion_stationary_settled": {
+              "mean": 4.89583333333333,
+              "p95": 6,
+              "max": 7
+            },
+            "count_motion_active": {
+              "mean": 2.09583333333333,
+              "p95": 3,
+              "max": 3
+            },
+            "count_pose_evaluations": {
+              "mean": 10,
+              "p95": 10,
+              "max": 10
+            },
+            "count_pose_unchanged_transforms": {
+              "mean": 7.50833333333333,
+              "p95": 8,
+              "max": 8
+            },
+            "count_pose_transform_updates": {
+              "mean": 2.49166666666667,
+              "p95": 3,
+              "max": 4
+            },
+            "count_pose_animation_changes": {
+              "mean": 0.0708333333333333,
+              "p95": 1,
+              "max": 2
+            },
+            "world_motion_update_ms": {
+              "mean": 0.885329166666667,
+              "p95": 1.314,
+              "max": 1.93
+            },
+            "world_pose_inputs_ms": {
+              "mean": 0.591841666666666,
+              "p95": 0.7,
+              "max": 2.237
+            },
+            "world_motion_finish_ms": {
+              "mean": 0.00906249999999998,
+              "p95": 0.01,
+              "max": 0.079
+            },
+            "world_pending_plan_ms": {
+              "mean": 0.103179166666667,
+              "p95": 0.487,
+              "max": 2.965
+            },
+            "world_adoption": {
+              "mean": 0.4088,
+              "p95": 1.177,
+              "max": 2.92
+            }
+          }
+        },
+        {
+          "index": 13,
+          "elapsed_ms": 29694.519,
+          "ready": true,
+          "pending_batches": 0,
+          "entities": 1918,
+          "values": {
+            "nodes": {
+              "mean": 59611,
+              "p95": 59611,
+              "max": 59611
+            },
+            "orphan_nodes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "resources": {
+              "mean": 752,
+              "p95": 752,
+              "max": 752
+            },
+            "count_world_instances": {
+              "mean": 1918,
+              "p95": 1918,
+              "max": 1918
+            },
+            "count_world_desired": {
+              "mean": 1918,
+              "p95": 1918,
+              "max": 1918
+            },
+            "count_motion_rows": {
+              "mean": 10,
+              "p95": 10,
+              "max": 10
+            },
+            "count_motion_stationary_settled": {
+              "mean": 5,
+              "p95": 5,
+              "max": 5
+            },
+            "count_motion_active": {
+              "mean": 2,
+              "p95": 2,
+              "max": 2
+            },
+            "count_pose_evaluations": {
+              "mean": 10,
+              "p95": 10,
+              "max": 10
+            },
+            "count_pose_unchanged_transforms": {
+              "mean": 8,
+              "p95": 8,
+              "max": 8
+            },
+            "count_pose_transform_updates": {
+              "mean": 2,
+              "p95": 2,
+              "max": 2
+            },
+            "count_pose_animation_changes": {
+              "mean": 0,
+              "p95": 0,
+              "max": 0
+            },
+            "world_motion_update_ms": {
+              "mean": 0.807216666666667,
+              "p95": 0.929,
+              "max": 1.102
+            },
+            "world_pose_inputs_ms": {
+              "mean": 0.543870833333334,
+              "p95": 0.629,
+              "max": 0.779
+            },
+            "world_motion_finish_ms": {
+              "mean": 0.00852916666666665,
+              "p95": 0.009,
+              "max": 0.012
+            },
+            "world_pending_plan_ms": {
+              "mean": 0.00493333333333332,
+              "p95": 0.006,
+              "max": 0.006
+            },
+            "world_adoption": {
+              "mean": 0.00308333333333334,
+              "p95": 0.004,
+              "max": 0.005
+            }
+          }
+        }
+      ],
+      "pins": {
+        "native_live_world.gd": {
+          "captured": "81d399e2bbcebba2aaf62eae48ffe06e53ff956f0bca9a2748326256b09d4264",
+          "current": "81d399e2bbcebba2aaf62eae48ffe06e53ff956f0bca9a2748326256b09d4264",
+          "matches_current": true
+        },
+        "systems/native_render/live_world.gd": {
+          "captured": "b4258d1267627d3f9ba8cdf3115e2489b5ea3d4979da03e296a1b79bf8f9051c",
+          "current": "ec5c12122567a3824650dedbc0b212b3a0e2651d20825493ece161ea6bd4f422",
+          "matches_current": false
+        },
+        "systems/native_render/live_world_pending_appearances.gd": {
+          "captured": "14a33a83933fd7ad62686fa94c9aae12458a40560ce79e7ee513e465585b3bf5",
+          "current": "14a33a83933fd7ad62686fa94c9aae12458a40560ce79e7ee513e465585b3bf5",
+          "matches_current": true
+        },
+        "systems/native_render/live_world_quiescent_candidate.gd": {
+          "captured": "40534ad042fa492c58567d8b6a6974cfc552e60ff661b987ebfcd7543bd32f32",
+          "current": "40534ad042fa492c58567d8b6a6974cfc552e60ff661b987ebfcd7543bd32f32",
+          "matches_current": true
+        },
+        "systems/native_render/live_world_support.gd": {
+          "captured": "50b8fe33f892451cc1813133ed64f7b77009c628e625c87c169a2498468db465",
+          "current": "50b8fe33f892451cc1813133ed64f7b77009c628e625c87c169a2498468db465",
+          "matches_current": true
+        },
+        "systems/network_motion.gd": {
+          "captured": "717f9d432b74d3eb7d018c765705df3f63f605bb66b52d197374acea663f5310",
+          "current": "9818d4bf7f7aab474c21609ffa802115bbe2d576026dafd7380255d148bae18d",
+          "matches_current": false
+        },
+        "systems/native_render/creature_stream.gd": {
+          "captured": "bb1dd226c410c8bc654a68923773610fd8204b259d6d570998eb2b85818d092a",
+          "current": "bb1dd226c410c8bc654a68923773610fd8204b259d6d570998eb2b85818d092a",
+          "matches_current": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "DanglyMesh per-corner NodeVertex construction, constraint-sensitive linear deduplication and generated-vertex constraint array.",
+  "edges": [
+    {"from":"0x1400a9880","to":"0x1400a89b0","site":"0x1400a98a4","kind":"computed_callback_dispatch","condition":"installed DanglyMesh node +0xa0 generator in zero-vertex-count text postprocess with faces","status":"cpu_dangly_vertex_generation","evidence_id":"ev_f280c8d9a199fe2c98afda529127f91809a2f4f5702a8234c9ab21c0f4526c39"},
+    {"from":"0x1400a89b0","to":"postprocess face attributes and node+0x2c8 constraint list","kind":"cpu_indexed_read","condition":"each face corner uses original position index to select constraint","status":"cpu_dangly_candidate_input","evidence_id":"ev_bfbe9afc0421e74683c87f72d3e5df23950f2e1f767a9a93a7fcc46657f4d0c5"},
+    {"from":"0x1400a89b0","to":"0x1400aad90","callsite":"0x1400a8b92","kind":"direct_static","condition":"allocate and construct 0x70-byte NodeVertexDangly candidate per face corner","status":"cpu_dangly_candidate","evidence_id":"ev_bfbe9afc0421e74683c87f72d3e5df23950f2e1f767a9a93a7fcc46657f4d0c5"},
+    {"from":"0x1400aad90","to":"0x1400aaa90","callsite":"0x1400aade6","kind":"direct_static","condition":"base NodeVertex attributes before storing +0x6c constraint and subtype 2","status":"cpu_dangly_candidate","evidence_id":"ev_49d273e9b486f172598edcaecfb212b19e013dd3e965c13737006e78fc83dcca"},
+    {"from":"0x1400a89b0","to":"0x1400ab9e0","callsite":"0x1400a8bbe","kind":"direct_static","condition":"scan each earlier generated vertex at postprocess +0x90/+0x98; require subtype 2","status":"cpu_dangly_linear_search","evidence_id":"ev_bfbe9afc0421e74683c87f72d3e5df23950f2e1f767a9a93a7fcc46657f4d0c5"},
+    {"from":"0x1400a89b0","to":"0x1400ab660","callsite":"0x1400a8bc9","kind":"direct_static","condition":"compare prior Dangly vertex with candidate","status":"cpu_dangly_vertex_equality","evidence_id":"ev_bfbe9afc0421e74683c87f72d3e5df23950f2e1f767a9a93a7fcc46657f4d0c5"},
+    {"from":"0x1400ab660","to":"0x1400ab270","callsite":"0x1400ab70f","kind":"direct_static","condition":"base NodeVertex equality before exact +0x6c float constraint equality","status":"cpu_dangly_vertex_equality","evidence_id":"ev_499e75aab740e28461cd9e5ac115da9afe30aeb924b9e9c9e38740e40d90cb9f"},
+    {"from":"0x1400a89b0","to":"postprocess generated list +0x90/+0x98 and face 16-bit indices","kind":"cpu_dedup_or_append","condition":"equal vertex and constraint: free candidate/reuse index; otherwise append candidate/new index","status":"cpu_dangly_vertex_ownership","evidence_id":"ev_bfbe9afc0421e74683c87f72d3e5df23950f2e1f767a9a93a7fcc46657f4d0c5"},
+    {"from":"0x1400a89b0","to":"node+0x2c8/+0x2d0 generated constraint list","kind":"cpu_array_replace","condition":"after all face corners, replace original-index constraints with one float per unique generated vertex","status":"cpu_dangly_constraint_ownership","evidence_id":"ev_bfbe9afc0421e74683c87f72d3e5df23950f2e1f767a9a93a7fcc46657f4d0c5"},
+    {"from":"0x1400a89b0","to":"DYNAMIC:DANGLY_FACES_ATTRIBUTES_AND_DEDUP","kind":"unresolved_runtime_selector","condition":"authored face/attribute/constraint data, prior vertex count, dedup outcome and later pool/animation admission","status":"unresolved_target","evidence_id":"ev_bfbe9afc0421e74683c87f72d3e5df23950f2e1f767a9a93a7fcc46657f4d0c5"}
+  ]
+}

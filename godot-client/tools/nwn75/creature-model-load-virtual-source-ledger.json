@@ -1,0 +1,10 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "One disconnected Scene/Gob outgoing source: constructor-backed CNWCCreature model-load virtual target and unresolved incoming callsite",
+  "document": "creature-model-load-virtual-source.md",
+  "edges": [
+    {"from":"0x140e475d8","to":"0x140802cc0","kind":"creature_vtable_slot","condition":"CNWCCreature primary table 0x140e474e8 +0xf0, constructed at 0x1407fb16a; qword c02c804001000000; virtual caller unresolved","status":"creature_model_load_virtual_root","evidence_id":"ev_036aee8dad06425736041ddcebc39dae0e062564b1ccdf97b11fb34c9fc5f5e7"},
+    {"from":"0x141624b70","to":"0x140802cc0","kind":"pe_pdata_function_range","condition":"begin/end/unwind RVA c02c8000 b4338000 88ba0301; metadata, not a callsite","status":"creature_model_load_pdata_not_caller","evidence_id":"ev_fcfef7b448ae7a99d2b9dd754016b387c5bf786028067eb307df7a76d99135bc"}
+  ]
+}

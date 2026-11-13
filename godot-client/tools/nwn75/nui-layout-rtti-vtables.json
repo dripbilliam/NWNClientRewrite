@@ -1,0 +1,64 @@
+{
+  "schema": "nwn75-nui-layout-rtti-vtable-census-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "method": "Scan pinned PE .rdata at 8-byte alignment. Treat vtable base-8 as MSVC x64 Complete Object Locator pointer only when signature=1, object offset=0 and self-RVA matches. Resolve TypeDescriptor name and include concrete class names beginning .?AV with namespace @Layout@Nui@@; exclude std template instantiations whose type arguments merely contain that namespace. Read original vtable +0x20 and +0x28 qwords. This exhausts this RTTI naming pattern in shipped .rdata, not missing RTTI/unnamed runtime classes or active instances.",
+  "count": 8,
+  "records": [
+    {
+      "name": "Nui::Layout::Layoutable",
+      "vtable": "0x140e39630",
+      "render_slot": "0x140951260",
+      "child_slot": "0x140950d10",
+      "evidence_id": "ev_3e7c99181833d4518cfadc16d8cd824cd489f1c4b8a741eacf4012bb20425bb1"
+    },
+    {
+      "name": "Nui::Layout::Span",
+      "vtable": "0x140e39670",
+      "render_slot": "0x140951260",
+      "child_slot": "0x140950d10",
+      "evidence_id": "ev_d6110cae11bddef9ba02f72879b4f47a927534f520293085c85290144d4d9b0c"
+    },
+    {
+      "name": "Nui::Layout::Widget",
+      "vtable": "0x140e39700",
+      "render_slot": "0x1409528e0",
+      "child_slot": "0x140950d10",
+      "evidence_id": "ev_81bcc4a0a6090497f292be0583608157e7d47fd4fc927708167b37eeb34ffa19"
+    },
+    {
+      "name": "Nui::Layout::LayoutGroup",
+      "vtable": "0x140e6ce10",
+      "render_slot": "0x140950d90",
+      "child_slot": "0x140950580",
+      "evidence_id": "ev_47ba238d4f2e3e567997467af3f2de5a3db4ac9c17f2303cf407fd9a28752fe9"
+    },
+    {
+      "name": "Nui::Layout::SingleGroup",
+      "vtable": "0x140e6ce58",
+      "render_slot": "0x140950d90",
+      "child_slot": "0x140950580",
+      "evidence_id": "ev_c9e9c60b26a80f3a04f030047d8ad02289210844c3d21ffb63a738bcf7305e98"
+    },
+    {
+      "name": "Nui::Layout::StatefulWidget",
+      "vtable": "0x140e6dff0",
+      "render_slot": "0x1409528e0",
+      "child_slot": "0x140950d10",
+      "evidence_id": "ev_881585e242b8ab348177707fa67938f6abb55f4c8f41fee3fd534e8d95db59b6"
+    },
+    {
+      "name": "Nui::Layout::Widgets::SelectList",
+      "vtable": "0x140e6e030",
+      "render_slot": "0x140951260",
+      "child_slot": "0x140950d10",
+      "evidence_id": "ev_981d96956b11708940660f7ce00d1c142a9c37f1dd7961a510f39647742588cb"
+    },
+    {
+      "name": "Nui::Layout::Widgets::MoviePlayer",
+      "vtable": "0x140e6e070",
+      "render_slot": "0x14095b1a0",
+      "child_slot": "0x140950d10",
+      "evidence_id": "ev_afef1f660592bf8565758fef0bcf67a26391b5897e0e512a290235ac8f2275ef"
+    }
+  ]
+}

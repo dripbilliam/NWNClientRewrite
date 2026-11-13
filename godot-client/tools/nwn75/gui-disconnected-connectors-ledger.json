@@ -1,0 +1,19 @@
+{
+  "schema": "nwn75-gui-disconnected-direct-connectors-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "original-binary-static; eight instruction-verified GUI owner connectors",
+  "edges": [
+    {"from":"0x1401fc00a","to":"0x1400cb1c0","meaning":"panel activation creates missing scene view when mode +0xb0 is not 1","status":"candidate_target_conditional","evidence_id":"ev_49e23dbea8c4760a97be0996f8dff4366a1cca119e9e820fadee0d9aa0634586"},
+    {"from":"0x1401fc180","to":"0x1401fb540","meaning":"successful panel activation registers update object; callee deduplicates by flag 0x40","status":"candidate_target_conditional","evidence_id":"ev_49e23dbea8c4760a97be0996f8dff4366a1cca119e9e820fadee0d9aa0634586"},
+    {"from":"0x1401fecdc","to":"0x1401ff120","meaning":"GFF-loaded layout branch recursively builds model/tag tree rather than GUI_EMPTY","status":"candidate_target_conditional","evidence_id":"ev_8ac1d4666706e7ee3b4b0a1adfcf2810fa46c2ba06dd4918970c95132ab8fb89"},
+    {"from":"0x1406e374f","to":"0x1401fb890","meaning":"non-complete area-load branch sets TipLabel localized text for app subtype 1 or 3","status":"candidate_target_conditional","evidence_id":"ev_91bcff48541555d2a5da308e4225d8fe0d0ea63119a5dae9698db2b6a4b822f9"},
+    {"from":"0x140837035","to":"0x1401fe0b0","meaning":"loadscreen factory imports LoadBar widget layout at panel +0x120","status":"target_identified","evidence_id":"ev_7857f863aa2e610142292f805b7df428b8813baa572e579c0aeb61478c0dbbdf"},
+    {"from":"0x140837057","to":"0x1401fe0b0","meaning":"loadscreen factory imports TitleLabel widget layout at panel +0x1b0","status":"target_identified","evidence_id":"ev_7857f863aa2e610142292f805b7df428b8813baa572e579c0aeb61478c0dbbdf"},
+    {"from":"0x14083706d","to":"0x1401fe0b0","meaning":"loadscreen factory imports DescLabel widget layout at panel +0x248","status":"target_identified","evidence_id":"ev_7857f863aa2e610142292f805b7df428b8813baa572e579c0aeb61478c0dbbdf"},
+    {"from":"0x14083708b","to":"0x1401fe0b0","meaning":"loadscreen factory imports TipLabel widget layout at panel +0x2e8 after flag-4 state write","status":"target_identified","evidence_id":"ev_7857f863aa2e610142292f805b7df428b8813baa572e579c0aeb61478c0dbbdf"}
+  ],
+  "open_edges": [
+    "runtime panel creation and activation population",
+    "GFF tag presence, imported widget text/model data and frame-specific visibility"
+  ]
+}

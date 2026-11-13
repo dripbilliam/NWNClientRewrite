@@ -9,8 +9,9 @@ class TracingTalk extends Talk:
 		fetches.append([int(ref),int(gender)]);return super.fetch_native_reference(ref,gender)
 	func fetch_native_reference_snapshot(ref: Variant,gender: Variant,selected: Dictionary)->Dictionary:
 		fetches.append([int(ref),int(gender)]);return super.fetch_native_reference_snapshot(ref,gender,selected)
-	func parse_native(input: String,state: Dictionary={})->Dictionary:
-		parses.append({"raw":input.to_utf8_buffer(),"state":state.duplicate(true)});return super.parse_native(input,state)
+	func parse_native_bytes(raw_bytes: PackedByteArray,state: Dictionary={}) -> Dictionary:
+		var input: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(state.get("language",base.language)),true).get("text","")
+		parses.append({"raw":input.to_utf8_buffer(),"state":state.duplicate(true)});return super.parse_native_bytes(raw_bytes,state)
 	func resolve(_value: Variant,_id: int,_options: Dictionary={})->String:legacy+=1;return "FORBIDDEN LEGACY"
 var checks:=0
 var failures: Array=[]
@@ -75,8 +76,8 @@ func run()->void:
 	receipt=Header.capture(message,talk,current);message.speakerName.text="After";talk.custom_tokens[12]="LATER";talk.overrides[10300]="CHANGED"
 	result=Header.prepare(receipt,talk,current)
 	check(result.ready and result.name=="Wire before" and result.prefix=="RECEIVED","Header freezes packet literal, receipt-time override and CUSTOM even if active owners change")
-	talk.overrides[10300]="<FirstName>";talk.custom_tokens[12]="RECEIVED";var provider_context:={"id":77,"objectType":5,"areaId":91,"nativeLifetime":20,"clientKnownLifetime":30,"replicated":{"name":{"firstName":{"text":"Context before"},"lastName":{"text":""}}}}
-	receipt=Header.capture(packet(2),talk,current,{"context":provider_context,"nativeB8":0,"nativeBC":0});provider_context.replicated.name.firstName.text="Reused after";result=Header.prepare(receipt,talk,current)
+	talk.overrides[10300]="<FirstName>";talk.custom_tokens[12]="RECEIVED";var provider_context:={"id":77,"objectType":5,"areaId":91,"nativeLifetime":20,"clientKnownLifetime":30,"appearance":{"name":{"firstName":{"text":"Context before"},"lastName":{"text":""}}}}
+	receipt=Header.capture(packet(2),talk,current,{"context":provider_context,"nativeB8":0,"nativeBC":0});provider_context.appearance.name.firstName.text="Reused after";result=Header.prepare(receipt,talk,current)
 	check(result.ready and result.prefix=="Context before","Override-only ParseStr receives a detached explicit current context, never the controlled actor or later row")
 	talk.overrides[10300]="<FirstName>";receipt=Header.capture(packet(2),talk,current);result=Header.prepare(receipt,talk,current)
 	check(result.get("pending",false),"Unknown retained native context remains explicit instead of controlled-actor fallback")

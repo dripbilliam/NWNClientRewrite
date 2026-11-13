@@ -1,0 +1,47 @@
+{
+  "issue": "NWN-74",
+  "scope": "Current Forward+ source and saved 3,054-draw count audit; no engine/client launch",
+  "pins": {
+    ".cache/native-tracy/engine-msvc-a/source/servers/rendering/renderer_rd/forward_clustered/render_forward_clustered.cpp": "fe8b102c6742d12f8a51a7312bfa8b72596277ee7d2f429fce5c97d6e03846dd",
+    ".cache/native-tracy/engine-msvc-a/source/servers/rendering/renderer_rd/forward_clustered/scene_shader_forward_clustered.cpp": "d3cf861a3b184c42e9f7aa6bc331b9ef9267eab69701af8f8dd059de8b02a31a",
+    "reports/nwn74-forward-census-d.performance.jsonl": "77884899f548d24b237611f08ebb639b25731fe007994ef88ce869babe0fd9c4"
+  },
+  "counts": [
+    {
+      "rt_forward_draw_calls": 3053.9875,
+      "rt_forward_vertex_lookups": 3053.9875,
+      "rt_forward_vertex_binds": 2594.9875,
+      "rt_forward_pipeline_hashes": 3053.9875,
+      "rt_forward_pipeline_lookups": 188.541666666667,
+      "rt_forward_pipeline_reuses": 2865.44583333333,
+      "rt_forward_material_binds": 747.191666666667,
+      "rt_forward_xform_binds": 10.9875,
+      "rt_forward_ubershader_fallbacks": 0
+    },
+    {
+      "rt_forward_draw_calls": 3053.99166666667,
+      "rt_forward_vertex_lookups": 3053.99166666667,
+      "rt_forward_vertex_binds": 2594.99166666667,
+      "rt_forward_pipeline_hashes": 3053.99166666667,
+      "rt_forward_pipeline_lookups": 188.7,
+      "rt_forward_pipeline_reuses": 2865.29166666667,
+      "rt_forward_material_binds": 747.204166666667,
+      "rt_forward_xform_binds": 10.9916666666667,
+      "rt_forward_ubershader_fallbacks": 0
+    },
+    {
+      "rt_forward_draw_calls": 3054,
+      "rt_forward_vertex_lookups": 3054,
+      "rt_forward_vertex_binds": 2595,
+      "rt_forward_pipeline_hashes": 3054,
+      "rt_forward_pipeline_lookups": 188.675,
+      "rt_forward_pipeline_reuses": 2865.325,
+      "rt_forward_material_binds": 747.204166666667,
+      "rt_forward_xform_binds": 11,
+      "rt_forward_ubershader_fallbacks": 0
+    }
+  ],
+  "conclusion": "Vertex input masks are requested once per drawn element in this no-fallback scene, but ShaderData already caches each shader-version mask in an atomic slot; warm draws do not repeat the expensive RenderingDevice shader mask query. Pipeline lookup/bind and transforms/material uniform binds are already guarded by previous state. The remaining 3,054 push-constant and draw commands encode varying base indices and required passes. No new substantial exact duplicate is proven; no private candidate justified.",
+  "productionEdited": false,
+  "fpsMeasured": false
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Scene fog defaults, one client range update and per-pass DoFog consumption",
+  "document": "scene-fog-state-source.md",
+  "edges": [
+    {"from":"0x1400c0ca0","to":"Scene+0x140/+0x144/+0x148/+0x14c","kind":"data_initialization","condition":"fog disabled, range 5/40, color white; console fields registered","status":"scene_fog_initial_state","evidence_id":"ev_9bd85911eebb0eb0c68866794c5c484152b6059e0e8e29e18ffda6e3851cf60b"},
+    {"from":"0x1407d44a0","to":"0x140047060","callsite":"0x1407d44b0","kind":"direct_call","condition":"parse one requested float using %f","status":"fog_range_command_parse","evidence_id":"ev_0ffff77eca58f6bf5dffe16268c121bbbc040fe1e42fdb0ccb50715932cc5891"},
+    {"from":"0x1407d44a0","to":"0x1400c9960","callsite":"0x1407d45bb","kind":"scene_virtual_slot","condition":"positive parsed float, client environment, active area Scene; vslot +0x80","status":"fog_scene_prior_range","evidence_id":"ev_0ffff77eca58f6bf5dffe16268c121bbbc040fe1e42fdb0ccb50715932cc5891"},
+    {"from":"0x1407d44a0","to":"0x1400d3360","callsite":"0x1407d45e2","kind":"scene_virtual_slot","condition":"same gates; vslot +0x88, preserve first range float and shift second by requested delta","status":"fog_scene_range_update","evidence_id":"ev_0ffff77eca58f6bf5dffe16268c121bbbc040fe1e42fdb0ccb50715932cc5891"},
+    {"from":"0x1400d3360","to":"Scene+0x144/+0x148","kind":"scene_data_publication","condition":"copy start/end range floats, no GL call","status":"fog_range_stores","evidence_id":"ev_195313f96dd7c049d9654a89f73cfe78b16e49e8b7cb51a34fafb0e115d47a9a"},
+    {"from":"0x1400d3340","to":"Scene+0x14c..0x154","kind":"scene_data_publication","condition":"copy three color floats, caller not established","status":"fog_color_stores","evidence_id":"ev_defe6261716c3b003b8a8a04fbea47998cbfab6b1f05bb19288107b70b4ae776"},
+    {"from":"Scene+0x140/+0x144/+0x148/+0x14c","to":"0x1400c7f10","kind":"scene_data_consumption","condition":"enable flag; optional black color under LightManager only-Gob; range modes 0/1","status":"fog_pass_state_consumer","evidence_id":"ev_75304e5dfc6610bfa385a9cdb3a31a13f2b04d8248f0268accc067739183ddf9"}
+  ]
+}

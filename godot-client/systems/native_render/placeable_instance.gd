@@ -15,6 +15,18 @@ static func requires_animation(state: Dictionary) -> bool:
 	if not (value is int or value is float) or not is_finite(float(value)) or float(value) != floor(float(value)) or value < 0 or value > 65535: return false
 	return Names.name(9, int(value)) != "default"
 
+func begin_install_placeable(bundle: Dictionary,shared_pool,id: int,state: Dictionary) -> bool:
+	actor_alpha_enabled=true
+	identified_blocker=preload("res://systems/native_data/blocker_helper.gd").identified(bundle)
+	var source_animation: Variant=state.get("animation")
+	if not (source_animation is int or source_animation is float) or not is_finite(float(source_animation)) or float(source_animation)!=floor(float(source_animation)) or source_animation<0 or source_animation>65535:
+		failure="Received native placeable animation WORD is unavailable";return false
+	var map: Dictionary={}
+	for code in CODES:map[str(code)]=Names.name(9,code)
+	var initial:=int(source_animation);map[str(initial)]=Names.name(9,initial)
+	return begin_install([{"bundle":bundle,"anchor":"","follow":true}],shared_pool,id,{"0":map},initial)
+func finish_install_placeable(state: Dictionary) -> void:observe_placeable(state)
+
 func install_placeable(bundle: Dictionary, shared_pool, id: int, state: Dictionary) -> bool:
 	actor_alpha_enabled=true
 	identified_blocker=preload("res://systems/native_data/blocker_helper.gd").identified(bundle)

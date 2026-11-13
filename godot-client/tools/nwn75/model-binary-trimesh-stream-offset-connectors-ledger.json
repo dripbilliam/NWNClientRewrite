@@ -1,0 +1,157 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Binary TriMesh/AABB/Dangly metadata copy to fourteen concrete stream-offset fields, plus indexed-list construction in the common stream builder; existing gated pool triplets reach conditional render publication.",
+  "edges": [
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x268",
+      "site": "0x140078c9e",
+      "site_evidence_id": "ev_419277ce76bf8f6ee7ef30e7de5465915e1bfeb0af853d81bf0136ae4e1868e8",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x21c copied to node 0x268; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x280",
+      "site": "0x140078cc2",
+      "site_evidence_id": "ev_67fc5e92d1e58082c898cc125bd24f791e3c50c97ef098a609bbb78fbaf59bd2",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x22c copied to node 0x280; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x288",
+      "site": "0x140078cea",
+      "site_evidence_id": "ev_e9f2aa421d6bb83198b9af4d711d2b693f6a3e16fcc4a93b27c24b171b86ab6e",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x234 copied to node 0x288; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x28c",
+      "site": "0x140078cf6",
+      "site_evidence_id": "ev_ecae5c45824cd6a2232081fa6710703d1a509b464374c0b1f9ba8e15c8b671d5",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x238 copied to node 0x28c; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x290",
+      "site": "0x140078d02",
+      "site_evidence_id": "ev_8d0cad2ff28d3327354ec93fbfacae7a28190e64d0689923567e6eec2bbe1d4e",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x23c copied to node 0x290; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x294",
+      "site": "0x140078d0e",
+      "site_evidence_id": "ev_ba2b6b90e8e7c92dc753857d4754f94cf90729e9651870d51a0c854ef456d2e1",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x240 copied to node 0x294; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x298",
+      "site": "0x140078d1a",
+      "site_evidence_id": "ev_ea5f12aa9fe3ca6e5444a17e1b6fc8eea60ca875e846926fdf2fe6f114c0dbd5",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x244 copied to node 0x298; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x29c",
+      "site": "0x140078d26",
+      "site_evidence_id": "ev_d67b2341132aead667666ad1f0b98ed7b07ac6d44c6895f0e1143378bd71f670",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x248 copied to node 0x29c; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x2a0",
+      "site": "0x140078d32",
+      "site_evidence_id": "ev_d2b7f02d78c9239674cf3afda1ca8c628206976c27a2a6ffe2b6cac2cf874608",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x24c copied to node 0x2a0; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x2a4",
+      "site": "0x140078d3e",
+      "site_evidence_id": "ev_e69fc7dec70d0a8522e72cf63f76c5c13c7d02de7a57bf422ad28e6fd01ec518",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x250 copied to node 0x2a4; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x2a8",
+      "site": "0x140078d4a",
+      "site_evidence_id": "ev_8746d12a62a3d927392ed40b2b8b32d95d0f80403ef4f92eba352135298ac81e",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x254 copied to node 0x2a8; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x2ac",
+      "site": "0x140078d56",
+      "site_evidence_id": "ev_8178a65b1de0ca99fb2bdafa8d7a785e689890ef8f3e06cc115b5013bc32d948",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x258 copied to node 0x2ac; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x2b0",
+      "site": "0x140078d62",
+      "site_evidence_id": "ev_b85cb42c9ca48d1c4e4a6a6e1dfa25467e276034bb7e7408290d33c97cb324e1",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x25c copied to node 0x2b0; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x140078ab0",
+      "to": "MdlNodeTriMesh+0x2b4",
+      "site": "0x140078d6e",
+      "site_evidence_id": "ev_2078aaf89bd0731eb0c1ef9c8d0954e1ac16435c71e3e9329b2bfa4d42f976c5",
+      "kind": "serialized_field_copy",
+      "condition": "typed binary TriMesh/AABB/Dangly metadata; serialized dword +0x260 copied to node 0x2b4; later format/offset gates remain in pool ledger",
+      "status": "binary_mesh_stream_offset_producer",
+      "evidence_id": "ev_369f96f7ff970800e58d8518842e706e51223d2fc07fe461547b388fb21a1bee"
+    },
+    {
+      "from": "0x14007be10",
+      "to": "MdlNodeTriMesh+0x258 indexed list",
+      "site": "0x14007c397",
+      "site_evidence_id": "ev_bc3d6ab5f2733cfb1eb729e78b367229283da46b3b673550cbe90f6c2af85959",
+      "kind": "cpu_index_list_copy",
+      "condition": "serialized +0x214 count positive; grow/reuse node+0x258 list, then copy 4*count bytes from serialized +0x210 offset before per-entry kind-1 pool triplets",
+      "status": "binary_mesh_index_list_producer",
+      "evidence_id": "ev_cd7a346be5fac28cb87f67c9d2318a843d6f37e6be2685ad0bfaccfbbd45fad8"
+    }
+  ]
+}

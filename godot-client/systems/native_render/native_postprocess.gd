@@ -102,3 +102,33 @@ void main(){
  tone=vec4(midpoint,data[4].z,data[4].w,params.values.z);
 }
 """
+
+# Private NWN-71 opt-in: the original 1x1 midpoint shader's arithmetic over the
+# already captured light packet. The normal GPU midpoint path remains default.
+static func midpoint_tone_cpu(frame: PackedFloat32Array,mask: int) -> PackedFloat32Array:
+	var midpoint:=0.0
+	if (mask&4)!=0:
+		var direction:=Vector3(frame[8],frame[9],frame[10])
+		var sky_factor:=1.0-direction.x*direction.x-direction.y*direction.y if direction.z<0.0 else 0.0
+		var ambient:=Vector3(frame[0],frame[1],frame[2])
+		var diffuse:=Vector3(frame[4],frame[5],frame[6])
+		var color:=0.5*ambient+0.5*diffuse*(0.5+sky_factor)
+		for n in int(frame[3]):
+			var offset:=36+n*8
+			var point:=Vector4(frame[offset],frame[offset+1],frame[offset+2],frame[offset+3])
+			var light:=Vector4(frame[offset+4],frame[offset+5],frame[offset+6],frame[offset+7])
+			var clip_x:=frame[20]*point.x+frame[24]*point.y+frame[28]*point.z+frame[32]*point.w
+			var clip_y:=frame[21]*point.x+frame[25]*point.y+frame[29]*point.z+frame[33]*point.w
+			var clip_w:=frame[23]*point.x+frame[27]*point.y+frame[31]*point.z+frame[35]*point.w
+			clip_x/=clip_w;clip_y/=clip_w
+			var factor:=0.15
+			if light.w>0.0:factor/=0.25*(1.0+0.5*clip_x*clip_x+0.5*clip_y*clip_y)
+			factor*=factor
+			var falloff:=1.0/sqrt(absf(light.w))
+			factor/=falloff*point.z*point.z*(1.0 if point.z<0.0 else 100.0)+1.0
+			color+=factor*Vector3(light.x,light.y,light.z)
+		color=frame[17]*color.sign()*Vector3(pow(absf(color.x),0.45454545),pow(absf(color.y),0.45454545),pow(absf(color.z),0.45454545))
+		var fog:=Vector3(frame[12],frame[13],frame[14])
+		color=color.lerp(fog,1.0/(1.0+0.05*maxf(2.0*frame[15]+frame[16],0.0)))
+		midpoint=clampf(color.dot(Vector3(0.299,0.587,0.114)),0.0,1.0)
+	return PackedFloat32Array([midpoint,frame[18],frame[19],float(mask)])

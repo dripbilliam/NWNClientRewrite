@@ -1,0 +1,4 @@
+sxd e06d7363
+r @$t0 = 0
+bp nwmain+0x931f0 ".printf \"NWN_NEWCAUROBJECT_ENTER %I64u name=\", @$t0; da @rcx; r @$t1 = @$dbgtime; gu; .printf \"NWN_NEWCAUROBJECT_RETURN %I64u elapsed_100ns=%I64u result=%p\\n\", @$t0, @$dbgtime-@$t1, @rax; r @$t0 = @$t0+1; .if (@$t0 >= 8) {.echo NWN_NEWCAUROBJECT_PROBE_COMPLETE; q} .else {g}"
+g

@@ -1,0 +1,27 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {analyze,childCoverage,intersection,unionNs}=require('../tools/nwn71/analyze-rd-stall.cjs');
+const row=(name,thread,start_ns,end_ns,value='')=>({name,thread,start_ns,end_ns,value});
+const outer=row('NWN71/RD/render_scene','render',90,210);
+const body=row('NWN71/RD/scene_body','render',100,190);
+const draw=row('NWN71/RD/draw_list','render',120,160);
+const environment=row('NWN71/RD/environment','render',170,180);
+const sync=row('NWNCapture/Render/sync_scope','main',100,200);
+assert.equal(unionNs([[0,10],[5,15],[20,25]]),20);
+assert.equal(intersection(sync,outer),100);
+assert.deepEqual(childCoverage(body,[outer,body,draw,environment]),{labeled_child_union_ms:0.00005,unlabeled_inside_ms:0.00004});
+const groups={sync:[row('short','main',0,5),sync],scene:[row('NWN71/SceneCull/render_scene_rd','render',90,210)],rd:[outer,body,draw,environment],
+  worker:[row('NWNCapture/Worker/task_scope','worker',50,250,'asset')],groupWait:[],pipeline:[row('NWN71/Pipeline/vkCreateGraphicsPipelines','render',170,175)],fence:[row('driver->fence_wait','render',140,145)]};
+const result=analyze(groups,1)[0];
+assert.equal(result.sync.duration_ms,0.0001);
+assert.equal(result.rd[0].overlap_with_sync_ms,0.0001);
+assert.equal(result.rd[0].labeled_child_union_ms,0.00009);
+assert.equal(result.rd[0].unlabeled_inside_ms,0.00003);
+assert.equal(result.worker_overlap.count,1);
+assert.equal(result.pipeline_creates.length,1);
+assert.equal(result.driver_fence_waits.length,1);
+assert.equal(result.group_waits.length,0);
+const noRd=analyze({...groups,rd:[]},1)[0];
+assert.deepEqual(noRd.rd,[]);
+assert.equal(noRd.worker_overlap.count,1);
+console.log('nwn71 rd stall analysis: 12 assertions passed');

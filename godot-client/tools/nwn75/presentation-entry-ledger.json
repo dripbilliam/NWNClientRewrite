@@ -1,0 +1,22 @@
+{
+  "schema": "nwn75-presentation-entry-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Static original executable direct references to known window presentation. Computed/runtime routes remain open.",
+  "document": "presentation-entry-census.md",
+  "edges": [
+    {"from":"0x1400448b0","to":"0x1400bf390","callsite":"0x1400450a6","kind":"direct_call","condition":"outer Update permits ordinary swap when helper 0x1406abc60 reports client+0x520 movie pointer absent","status":"target_identified_descendants_open","evidence_id":"ev_3957e705c146df933c995e572aaf92eb3c23c4e0496ad434efca96649e1b9376","gate_evidence_id":"ev_79b23dec8f9c7e52019015b13fa3de89c27706bd266e080c5ee9c0ebd22d3248"},
+    {"from":"0x1400451c0","to":"0x1400bf390","callsite":"0x140045361","kind":"direct_call","condition":"UpdateScreen presentation gate","status":"target_identified_descendants_open","evidence_id":"ev_c6dab2e3d95fa827df1d17ab1acf4b8224cdb3b130d46260a0bf8be8ba728609"},
+    {"from":"0x140233980","to":"0x1400bf390","callsite":"0x140233a81","kind":"direct_call","condition":"movie RenderFrame presentation gate","status":"target_identified_descendants_open","evidence_id":"ev_38fcfc901015460d4ce6c6a208e53e484c76c1709e098a17b9d73defb8ce26d7"},
+    {"from":"0x1400bf390","to":"0x1400bb640","callsite":"0x1400bf390","kind":"tail_jump","condition":"unconditional thunk","status":"target_identified_descendants_open","evidence_id":"ev_97be9829d6d4669e97876fa78afebb805ec5b1feb715de73f8f21c50e474e360"},
+    {"from":"0x1400bef10","to":"0x1400b6540","callsite":"0x1400bef10","kind":"tail_jump","condition":"exported RenderInterface::RestoreFrontBuffer thunk to exported GLRender::RestoreFrontBuffer; internal caller not found","status":"target_identified_descendants_open","original_pe_bytes":"e9 rel32 target 0x1400b6540","export_ordinals":[12126,12125]},
+    {"from":"0x1400b6540","to":"0x1400bb640","callsite":"0x1400b6547","kind":"conditional_tail_jump","condition":"exported RestoreFrontBuffer tests GLRender::cm_bFrontBufferActive 0x14128e990 equals zero; pinned data initializes to one and known swap entry toggles it; no proven internal caller","status":"target_identified_descendants_open","original_pe_bytes":"83 3d 49 84 1d 01 00 0f 84 f3 50 00 00 c3"},
+    {"from":"0x1400bb640","to":"0x140ab16b0","callsite":"0x1400bb79a","kind":"direct_call","condition":"within GLRender::SwapBuffers","status":"target_identified_descendants_open","evidence_id":"ev_c11c50fe4c140466818d71bad2a1971fa61ffcdf3463d879a4fb5cb25d3058ec"},
+    {"from":"0x140ab16b0","to":"0x140aac1b0","kind":"initial_dynamic_api_cell","condition":"before SDL dynamic API cell 0x14129a890 is initialized","status":"target_identified_descendants_open","evidence_id":"ev_4430f4587adc5c5be4bd0689e0e7d358940fd8f5d1b119f18b3c6110ae365078"},
+    {"from":"0x140aac1b0","to":"0x140ab2270","kind":"initialization_call","condition":"SDL dynamic API initialization","status":"target_identified_descendants_open","evidence_id":"ev_08221a02cfc9986b4f8ec29e5634ad7f7a9139ed419a88145aaa3bc08ed2d4ef"},
+    {"from":"0x140ab2270","to":"0x140aaf150","kind":"conditional_builtin_dispatch","condition":"no usable external SDL_DYNAMIC_API entry selected","status":"target_identified_descendants_open","evidence_id":"ev_dfc02afdcc221d4daf912c03d5b235fe6d0e95a25e8d4dba09f8fd7744fb78a9"},
+    {"from":"0x140aaf150","to":"0x140ad0ed0","kind":"dynamic_api_pointer_publication","condition":"built-in SDL dynamic API fills cell 0x14129a890","status":"target_identified_descendants_open","evidence_id":"ev_7ca0f829e27993a48086e75684ba424789a9c184e1a3ba98aca609a013470245"},
+    {"from":"0x140ad0ed0","to":"0x140af3a60","kind":"video_device_virtual","condition":"valid current GL window and Windows video device +0x190 target","status":"target_identified_descendants_open","evidence_id":"ev_330c9eaff97186a2c8618ec9ed78ae82809acb2beffd450b6b3e8c27cea50be3"},
+    {"from":"0x140af3a60","to":"GDI32.DLL::SwapBuffers","callsite":"0x140af3a6f","kind":"import_call","condition":"built-in Windows backend with HDC from window","status":"external_boundary_reached","evidence_id":"ev_8224800f981f8940068e7415e2f1f5d35c68f3d08231015d15bd8a59b82a1dfb"}
+  ],
+  "open_edges": ["computed or external caller of exported RestoreFrontBuffer 0x1400bef10/0x1400b6540", "external SDL_DYNAMIC_API entry or alternate SDL_VIDEODRIVER selection", "runtime active presentation route and calling thread", "OS/driver wait beneath imported GDI32.DLL::SwapBuffers"]
+}

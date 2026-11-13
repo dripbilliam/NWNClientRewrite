@@ -381,6 +381,12 @@ func _auto() -> void:
 
 func configure_preview(directory: String) -> void: native_preview.configure(directory)
 func needs_local_metadata() -> bool: return state.get("choices",[]).any(func(row):return row.get("source")!="server" and row.get("nativeFile") is Dictionary)
+func failure_text(text_owner=null) -> String:
+	var rejection: Variant=state.get("characterRejection")
+	if text_owner!=null and rejection is Dictionary and (rejection.get("strRef") is float or rejection.get("strRef") is int):
+		var resolved: String=text_owner.raw(rejection)
+		if not resolved.is_empty(): return resolved
+	return str(state.get("error",""))
 func can_select() -> bool:
 	if not delete_lease.is_empty(): return false
 	if not state.get("canSelect",false) or not local_catalog.ready(): return false

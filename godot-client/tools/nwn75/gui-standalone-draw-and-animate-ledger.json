@@ -1,0 +1,29 @@
+{
+  "schema": "nwn75-gui-standalone-draw-and-animate-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "original-binary-static; named standalone GUI draw/animate targets, not active frame population",
+  "edges": [
+    {"from":"0x140070330","to":"0x140d85360","meaning":"NewCAurGUIImage allocates CAurGUIImageInternal and installs vtable; optional texture safe pointer","status":"target_identified","evidence_id":"ev_a7468b70f8d912af338117ab3eb5ce858ecb82ddeb88dfce66e719f8a522f629"},
+    {"from":"0x140d85368","to":"0x14006f170","meaning":"image vtable +0x8 zero-argument Draw","status":"vtable_target_identified","evidence_id":"ev_a5de98d67d23707a57fae59317e532aaf63e1953ddf33732fbb2b0ecc12750d4"},
+    {"from":"0x14006f170","to":"0x14006ecd0","meaning":"Draw() obtains texture dimensions then dispatches image vtable +0x30","status":"vtable_target_identified","evidence_id":"ev_cf8c857df40d8b2a64694d917d61f39185f632ea438959ba86e698781864741e"},
+    {"from":"0x140d85390","to":"0x14006ecd0","meaning":"image vtable +0x30 integer Draw","status":"vtable_target_identified","evidence_id":"ev_a5de98d67d23707a57fae59317e532aaf63e1953ddf33732fbb2b0ecc12750d4"},
+    {"from":"0x14006ecd0","to":"0x14006ed80","meaning":"integer Draw normalizes to current viewport then dispatches image vtable +0x28","status":"vtable_target_identified","evidence_id":"ev_4dba78750897f3b23b50703f89aa2bf9c0dbca81801e3714d78ace20a31eae76"},
+    {"from":"0x140d85388","to":"0x14006ed80","meaning":"image vtable +0x28 float Draw","status":"vtable_target_identified","evidence_id":"ev_a5de98d67d23707a57fae59317e532aaf63e1953ddf33732fbb2b0ecc12750d4"},
+    {"from":"0x14006ed80","to":"0x1400ea370","meaning":"image float Draw binds texture through texture vtable +0x100 candidate","status":"candidate_target_conditional","evidence_id":"ev_3e75a74e1779062d5a72a3e1d7a3dc2775ea47b216274d6bcc9fc81708120e76"},
+    {"from":"0x14006ed80","to":"0x1400beed0","meaning":"image float Draw commits four streamed vertices then submits","status":"target_identified","evidence_id":"ev_d1301e0a94afc5ef7ecd031913105ead499901cc66845b79eef379d1e7f0b3d6"},
+    {"from":"0x1400703f0","to":"0x14006e410","meaning":"NewCAurGUIString allocates 0x68-byte string/font-owned object","status":"target_identified","evidence_id":"ev_0557a2435a658c972ba17ccbcc2cd97b1b29a12ad14cbd8eb237f99e3a148fad"},
+    {"from":"0x140d85268","to":"0x14006f200","meaning":"string vtable +0x8 Draw target; direct code caller unproven","status":"vtable_target_identified","evidence_id":"ev_2f93f093b10644607dcf33b723801911e7a911c060faa530348fb575c8af344f"},
+    {"from":"0x14006f200","to":"0x1400beed0","meaning":"string with nonzero +8/+0x10 condition and font builds glyph stream and submits","status":"candidate_target_conditional","evidence_id":"ev_d34d5d9f2150ab5f517214fbf286720cae0124c893dd2283c3a50db2b6a61dc5"},
+    {"from":"0x140d85350","to":"0x14006fc20","meaning":"string vtable +0xf0 DrawBoundingRect target; direct code caller unproven","status":"vtable_target_identified","evidence_id":"ev_1e0187ba056bd90a6d5909b617c4706d0b81ed5175923b8ada611010ce668972"},
+    {"from":"0x14006fc20","to":"0x1400beed0","meaning":"bounding rectangle writes four colored vertices and submits","status":"target_identified","evidence_id":"ev_71b75d2a3cf1d3bb8ad55ce93156468ddc73c9bda3eb9279ab00022b8855d3e8"},
+    {"from":"0x1400beed0","to":"glDrawArrays/glDrawElements","meaning":"stream index-state branch reaches imported GL draw API","status":"candidate_target_conditional","evidence_id":"ev_9682f759461cac1698e530425c68a1f6f64f7873fe4f153285f9011c35724cfb"},
+    {"from":"0x1406f8891","to":"0x1401fc210","meaning":"client owner +0x374 and +0x68 gated panel AnimateScene call","status":"target_identified","evidence_id":"ev_f721d0b9a0b3207a5b50c44bc8c5a9945200fbd484ea8e8f9b25e7cfe7e71d7e"},
+    {"from":"0x1406fc96c","to":"0x1401fc210","meaning":"second client owner +0x374 and +0x68 gated panel AnimateScene call","status":"target_identified","evidence_id":"ev_36dbeb867a21b9bdadccea3623c0da70471f3a86658285b94382e17b0361eac7"},
+    {"from":"0x1401fc210","to":"0x1400c5210","meaning":"panel-owned scene virtual +0x20 resolves Scene::Animate","status":"vtable_target_identified","evidence_id":"ev_fc0ab5630949513f826c874edd6dbdc44432da42e070d34a3cd380f71a914800"}
+  ],
+  "open_edges": [
+    "active indirect factory/Draw consumers of standalone CAurGUIImage and CAurGUIString objects",
+    "texture subtype and per-frame font/image/stream index-state choices",
+    "active panel owner and Scene/Gob population for AnimateScene direct callers"
+  ]
+}

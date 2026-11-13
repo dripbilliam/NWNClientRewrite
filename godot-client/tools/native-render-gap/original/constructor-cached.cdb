@@ -1,0 +1,4 @@
+sxd e06d7363
+r @$t0 = 0
+bp nwmain+0x931f0 ".if (@$t0 == 5) {bd 0; eza @rcx \"tcn01_a01_01\"; .echo NWN_TILE_FIRST_INPUT; da @rcx; r @$t1 = @$dbgtime; gu; .printf \"NWN_TILE_FIRST elapsed_100ns=%I64u result=%p model=%p\\n\", @$dbgtime-@$t1, @rax, poi(@rax+0x68); r @$t0 = 6; be 0; g} .else {.if (@$t0 == 6) {bc 0; eza @rcx \"tcn01_a01_01\"; .echo NWN_TILE_SECOND_INPUT; da @rcx; r @$t1 = @$dbgtime; gu; .printf \"NWN_TILE_SECOND elapsed_100ns=%I64u result=%p model=%p\\n\", @$dbgtime-@$t1, @rax, poi(@rax+0x68); q} .else {r @$t0 = @$t0+1; g}}"
+g

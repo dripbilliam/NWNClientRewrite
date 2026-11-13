@@ -111,7 +111,7 @@ func receive(message: Dictionary,transport_connection: Variant=null,transport_ge
 	else:widget_allowed=false
 	# One receipt serves the connection-owned echo and the separately scoped
 	# widget. A missing native event serial never acquires a synthetic one.
-	var receipt:=TextReceipt.capture(type,payload,int(target),show==1,str(message.get("color","")),text)
+	var receipt:=TextReceipt.capture(type,payload,int(target),show==1,str(message.get("color","")),text,metadata if metadata is Dictionary else {})
 	receipt_sequence+=1;receipt.receipt_id=receipt_sequence;receipt.echo_independent=accepted_transport;receipt.echo_connection=int(connection) if accepted_transport else -1
 	if widget_allowed:
 		receipt.merge({"event":event,"status":"pending","duration":1.5,"remaining":1.5,"sourceBound":false,"orphan":false},true)

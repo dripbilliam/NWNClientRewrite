@@ -19,6 +19,7 @@ const SceneHit=preload("res://systems/native_render/projectile_scene.gd")
 const Priority=preload("res://systems/native_render/stream_priority.gd")
 const BaseScenery=preload("res://systems/native_render/base_world_scenery.gd")
 const EntityLifetime=preload("res://systems/native_data/entity_presentation_lifetime.gd")
+const VerifiedSnapshot=preload("res://systems/native_data/world_snapshot_verified_packet.gd")
 signal instance_ready(id: int,source: Dictionary,instance)
 signal instance_removed(id: int)
 signal instance_state_changed(id: int,source: Dictionary)
@@ -42,7 +43,13 @@ var desired: Dictionary={}
 var _staged_received_objects: Array=[]
 var _staged_received_metadata: Dictionary={}
 var _boundary_received_metadata: Dictionary={}
-var received_metadata_stats:={"prepared_boundaries":0,"prepared_rows":0,"rejected":0}
+const ReceivedSnapshotCommit=preload("res://systems/native_render/received_snapshot_commit.gd")
+var _received_snapshot_commit: RefCounted
+static var _verified_packet_choice: int=-1
+static func configured_verified_packet() -> bool:
+	if _verified_packet_choice<0:_verified_packet_choice=0 if OS.get_cmdline_user_args().has("--world-snapshot-verified-packet=off") else 1
+	return _verified_packet_choice==1
+var received_metadata_stats:={"prepared_boundaries":0,"prepared_rows":0,"verified_staged":0,"full_staged":0,"rejected":0}
 var installed: Dictionary={}
 var instances: Dictionary={}
 var static_collision_index=preload("res://systems/native_render/scene_query_index.gd").new()
@@ -258,6 +265,8 @@ func adoption_timing(name: String,began: int) -> void:
 	var entry: Dictionary=stats.adoption_timings[name]; entry.count+=1; entry.total_ms+=elapsed; entry.max_ms=maxf(entry.max_ms,elapsed)
 	FrameProfile.record("adoption_"+name,elapsed)
 func _enter_tree() -> void:
+	pool.bind_publication_world(self)
+	set_meta("native_publication_pool",pool)
 	if get_meta("native_surface_output",false): preload("res://systems/native_render/native_surface_state.gd").bind(self)
 	focus_lighting=preload("res://systems/native_render/focus_lighting.gd").new(); add_child(focus_lighting); focus_lighting.configure(self)
 	var ancestor:=get_parent()
@@ -295,6 +304,9 @@ func open(source,area: Dictionary,epoch: int,cache_directory: String,shared_pool
 		stats.errors.append("Rejected --drive-collision: "+str(drive_collision_configuration.reason)+" (expected legacy or indexed)")
 		return
 	if shared_pool!=null: pool=shared_pool; owns_pool=false
+	pool.cooperative_templates=not OS.get_cmdline_user_args().has("--model-template=packed")
+	pool.bind_publication_world(self)
+	set_meta("native_publication_pool",pool)
 	catalog=source; area_id=int(area.id); generation=epoch; cache_path=cache_directory
 	if base_draw_merge_enabled:
 		base_draw_merge=preload("res://systems/native_render/base_static_draw_merge.gd").new();add_child(base_draw_merge)
@@ -406,18 +418,52 @@ func stage_received_metadata(objects: Array,metadata: Dictionary) -> bool:
 	for coordinate in token:
 		if not coordinate is int:received_metadata_stats.rejected+=1;return false
 	if token[1]!=generation or token[3]!=area_id:received_metadata_stats.rejected+=1;return false
-	for index in objects.size():
-		var source: Variant=objects[index];var row: Variant=metadata.rows[index]
-		if not source is Dictionary or not source.has("id") or not row is Dictionary or not row.get("index") is int or row.index!=index or not row.get("id") is int or row.id!=int(source.id) or not row.get("accepted") is bool or not row.get("pose") is Dictionary or not row.get("classification") is Dictionary or not row.get("key") is String or not row.get("omission") is String:
-			received_metadata_stats.rejected+=1;return false
-		if row.accepted and (not row.pose.get("position") is Vector3 or not (row.pose.get("rotation") is float or row.pose.get("rotation") is int) or row.key.length()!=64 or not row.classification.get("available") is bool or not row.classification.get("base") is bool or not row.classification.get("reason") is String):
-			received_metadata_stats.rejected+=1;return false
-		if not row.accepted and (not row.pose.is_empty() or not row.classification.is_empty() or not row.key.is_empty()):received_metadata_stats.rejected+=1;return false
+	var proof: Variant=metadata.get("proof")
+	if proof is VerifiedSnapshot and configured_verified_packet():
+		# The worker already checked every output shape. The main owner retains
+		# the exact source-row and generation check before ordered publication.
+		if not proof.valid_for(metadata,objects,generation,area_id):received_metadata_stats.rejected+=1;return false
+		received_metadata_stats.verified_staged+=1
+	else:
+		# Authored, unsealed or older packets retain the complete original gate.
+		for index in objects.size():
+			var source: Variant=objects[index];var row: Variant=metadata.rows[index]
+			if not source is Dictionary or not source.has("id") or not row is Dictionary or not row.get("index") is int or row.index!=index or not row.get("id") is int or row.id!=int(source.id) or not row.get("accepted") is bool or not row.get("pose") is Dictionary or not row.get("classification") is Dictionary or not row.get("key") is String or not row.get("omission") is String:
+				received_metadata_stats.rejected+=1;return false
+			if row.accepted and (not row.pose.get("position") is Vector3 or not (row.pose.get("rotation") is float or row.pose.get("rotation") is int) or row.key.length()!=64 or not row.classification.get("available") is bool or not row.classification.get("base") is bool or not row.classification.get("reason") is String):
+				received_metadata_stats.rejected+=1;return false
+			if not row.accepted and (not row.pose.is_empty() or not row.classification.is_empty() or not row.key.is_empty()):received_metadata_stats.rejected+=1;return false
+		received_metadata_stats.full_staged+=1
 	_staged_received_objects=objects;_staged_received_metadata=metadata
 	return true
 func _received_row_metadata(object: Dictionary) -> Dictionary:
 	var entry: Dictionary=_boundary_received_metadata.get(int(object.get("id",-1)),{})
 	return entry.value if not entry.is_empty() and is_same(entry.source,object) else {}
+func begin_received_snapshot(objects: Array,controlled: int,metadata: Dictionary={}) -> bool:
+	if _received_snapshot_commit!=null or closed or retiring:return false
+	var prepared: Dictionary={}
+	if not metadata.is_empty() and stage_received_metadata(objects,metadata):prepared=_staged_received_metadata
+	_staged_received_objects=[];_staged_received_metadata={}
+	var candidate:=ReceivedSnapshotCommit.new()
+	_received_snapshot_commit=candidate
+	if not candidate.begin(self,objects,controlled,prepared):
+		_received_snapshot_commit=null;return false
+	return true
+func advance_received_snapshot(deadline_usec: int) -> Dictionary:
+	if _received_snapshot_commit==null:return {"done":true,"cancelled":false,"units":0}
+	var current: RefCounted=_received_snapshot_commit
+	var result: Dictionary=current.advance(deadline_usec)
+	if result.done and is_same(_received_snapshot_commit,current):_received_snapshot_commit=null
+	return result
+func cancel_received_snapshot() -> void:
+	var current: RefCounted=_received_snapshot_commit
+	_received_snapshot_commit=null
+	if current!=null:current.cancel()
+func received_snapshot_active() -> bool:
+	return _received_snapshot_commit!=null and _received_snapshot_commit.active
+func received_snapshot_scope_begin(_objects: Array,_controlled: int) -> void:pass
+func received_snapshot_scope_step() -> bool:return true
+func received_snapshot_scope_end(_objects: Array,_controlled: int,_completed: bool) -> void:pass
 func receive(objects: Array,controlled: int) -> void:
 	var metadata: Dictionary=_staged_received_metadata if is_same(_staged_received_objects,objects) else {}
 	_staged_received_objects=[];_staged_received_metadata={}
@@ -584,31 +630,47 @@ func apply_poses(include_statics: bool=false) -> void:
 func apply_pose(id: int) -> void:
 	if not instances.has(id) or not desired.has(id): return
 	var object: Dictionary=desired[id].object; var state: Dictionary=object.get("replicated",{}); var creature: bool=int(object.objectType)==5
-	var pose: Dictionary=motion.pose(id) if creature else object_pose(object); var instance: Node3D=instances[id]
-	if pose.is_empty(): return
+	var movement: Dictionary={}
+	var position: Vector3
+	var rotation: float
+	if creature:
+		movement=motion.objects.get(id,{})
+		if movement.is_empty():return
+		# NetworkMotion.pose is a pure coordinate conversion. Read its current
+		# state directly here, avoiding a temporary pose Dictionary per creature.
+		position=Vector3(movement.render.x,movement.render.z,-movement.render.y)
+		rotation=-atan2(movement.orientation.x,movement.orientation.y)
+	else:
+		var pose: Dictionary=object_pose(object)
+		if pose.is_empty():return
+		position=pose.position;rotation=float(pose.rotation)
+	var instance: Node3D=instances[id]
 	stats.pose_evaluations+=1
 	if not creature: stats.static_pose_evaluations+=1
-	if not instance.position.is_equal_approx(pose.position) or not is_equal_approx(instance.rotation.y,float(pose.rotation)):
+	if not instance.position.is_equal_approx(position) or not is_equal_approx(instance.rotation.y,rotation):
 		invalidate_static_draw(id,"world-pose-change")
-		instance.position=pose.position; instance.rotation.y=float(pose.rotation); stats.pose_updates+=1
+		instance.position=position; instance.rotation.y=rotation; stats.pose_updates+=1
 	var node_id:=instance.get_instance_id()
 	if object.has("staticState"):
 		if not static_collision_index.entries.has(node_id) or static_collision_index.entries[node_id].pose!=instance.global_transform: static_collision_index.put(instance)
-	else: static_collision_index.erase(node_id)
+	elif static_collision_index.entries.has(node_id): static_collision_index.erase(node_id)
 	if creature:
-		var movement: Dictionary=motion.objects[id]
 		var code:=int(movement.animation)
-		var animation:=[code,motion.gait_speed(id,instance.rigs.clip_length(id,code))*float(state.get("animationSpeed",1.0))]
-		if animations.get(id)!=animation:
-			animations[id]=animation; stats.animation_changes+=1
+		var playback_speed:=1.0
+		if movement.active and movement.has("gait"):
+			playback_speed=motion.gait_speed(id,instance.rigs.clip_length(id,code))
+		var speed: float=playback_speed*float(state.get("animationSpeed",1.0))
+		var previous: Variant=animations.get(id)
+		if not (previous is Array and previous.size()==2 and previous[0]==code and previous[1]==speed):
+			animations[id]=[code,speed]; stats.animation_changes+=1
 		if is_instance_valid(combat):
-			combat.base_frame(id,animation[0],animation[1],CombatMotion.remaining_path(movement))
+			combat.base_frame(id,code,speed,CombatMotion.remaining_path(movement))
 			# Original movement/turn requests enter private playback; they must not
 			# replace the replicated base state or reset a running combat cue.
 			if movement.get("correctionCue") is Dictionary: combat.movement_cue(id,movement.correctionCue)
 			elif movement.get("facingTurn")!=null and not movement.active: combat.movement_cue(id,{"animation":int(movement.facingTurn)})
 			movement.visualAnimation=combat.visual_animation(id,code)
-		else: instance.set_animation(animation[0],animation[1])
+		else: instance.set_animation(code,speed)
 		if is_instance_valid(effects) and effects.casts!=null: effects.casts.observe(object,code)
 		if is_instance_valid(effects) and effects.special_attacks!=null: effects.special_attacks.observe(object)
 		if is_instance_valid(effects) and effects.equipped_attacks!=null: effects.equipped_attacks.observe(object)
@@ -630,9 +692,15 @@ func _profile_process(delta: float) -> void:
 	FrameProfile.count("count_world_instances",instances.size()); FrameProfile.count("count_world_desired",desired.size()); FrameProfile.count("count_pending_batches",batches.size())
 	if closed or retiring: return
 	var phase_began:=FrameProfile.begin()
+	motion.collect_diagnostics=FrameProfile.enabled
 	motion.update(delta); stats.simulated_motion_frames+=1
 	FrameProfile.finish("world_motion_update_ms",phase_began)
 	if FrameProfile.enabled:
+		FrameProfile.count("count_motion_rows",int(motion.evaluation_stats.last_rows))
+		FrameProfile.count("count_motion_stationary_settled",int(motion.evaluation_stats.last_stationary_settled))
+		FrameProfile.count("count_motion_active",int(motion.evaluation_stats.last_active))
+		FrameProfile.count("count_motion_facing_steps",int(motion.evaluation_stats.last_facing_steps))
+		FrameProfile.count("count_motion_targeted",int(motion.evaluation_stats.last_targeted))
 		var controlled_motion: Dictionary=motion.objects.get(controlled_id,{})
 		FrameProfile.count("count_controlled_motion_active",int(controlled_motion.get("active",false)))
 		FrameProfile.count("count_controlled_drive_held",int(controlled_motion.get("driveHeld",false)))
@@ -645,7 +713,7 @@ func _profile_process(delta: float) -> void:
 	FrameProfile.finish("world_stream_priority_ms",priority_began)
 	FrameProfile.finish("world_motion",phase_began)
 	phase_began=FrameProfile.begin()
-	var adoption_began:=Time.get_ticks_usec(); var adopted:=0;var base_adopted:=0
+	var adoption_began:=Time.get_ticks_usec();var adoption_attempts:=0;var adopted:=0;var base_adopted:=0
 	var candidates: Array=[]
 	for batch in batches:
 		var owner=batch.owner; var actors: bool=batch.actors
@@ -670,15 +738,19 @@ func _profile_process(delta: float) -> void:
 	for index in candidates.size():
 		if int(candidates[index].id)==controlled_id: candidates.push_front(candidates.pop_at(index)); break
 	for candidate in candidates:
-		if adopted>0 and (Time.get_ticks_usec()-adoption_began)/1000.0>=adoption_budget_ms:break
+		if adoption_attempts>0 and Time.get_ticks_usec()-adoption_began>=pool.publication_callback_budget_us(int(adoption_budget_ms*1000)):break
+		if pool.has_method("can_publish") and not pool.can_publish(int(candidate.id)==controlled_id):break
 		var current_base_admission:=base_admission_allowance and extra_base_admission_allowed(candidate,base_adopted)
 		if adopted>=maximum_adoptions_per_frame and not current_base_admission:break
 		var batch: Dictionary=candidate.batch; var id:=int(candidate.id); var owner=batch.owner
 		var prepared: Dictionary=owner.actors if batch.actors else owner.instances
 		var install_began:=Time.get_ticks_usec()
+		adoption_attempts+=1
 		var instance: Node3D=prepared[id]
 		if not desired.has(id) or str(desired[id].key)!=str(batch.keys.get(id,"")):
-			stats.stale_results+=1; prepared.erase(id); instance.retire();release_base_reservation(batch,id);continue
+			stats.stale_results+=1;prepared.erase(id);instance.retire();release_base_reservation(batch,id)
+			if pool.has_method("publication_finished"):pool.publication_finished(install_began)
+			continue
 		remove_instance(id)
 		# Live streams attach directly to the final parent. Reparenting an
 		# already-active model invokes _exit_tree and retires its effects.
@@ -706,6 +778,7 @@ func _profile_process(delta: float) -> void:
 		admit_static_draw(id)
 		if stats.admissions.size()<512: stats.admissions.append({"id":id,"kind":int(desired[id].object.objectType),"elapsed_ms":(Time.get_ticks_usec()-opened_at)/1000.0})
 		release_base_reservation(batch,id)
+		if pool.has_method("publication_finished"):pool.publication_finished(install_began,id==controlled_id)
 	for batch in batches.duplicate():
 		var owner=batch.owner; var actors: bool=batch.actors
 		var prepared: Dictionary=owner.actors if actors else owner.instances
@@ -727,11 +800,26 @@ func _profile_process(delta: float) -> void:
 		var draw_began:=Time.get_ticks_usec();base_draw_merge.flush(0.5,1);pool.publication_finished(draw_began)
 	FrameProfile.finish("world_base_draw_flush_ms",base_draw_began)
 	phase_began=FrameProfile.begin()
+	var pose_evaluations_before:=int(stats.pose_evaluations) if FrameProfile.enabled else 0
+	var pose_updates_before:=int(stats.pose_updates) if FrameProfile.enabled else 0
+	var animation_changes_before:=int(stats.animation_changes) if FrameProfile.enabled else 0
+	var pose_input_began:=FrameProfile.begin()
 	apply_poses()
+	FrameProfile.finish("world_pose_inputs_ms",pose_input_began)
+	if FrameProfile.enabled:
+		var pose_evaluations_this_frame:=int(stats.pose_evaluations)-pose_evaluations_before
+		FrameProfile.count("count_pose_evaluations",pose_evaluations_this_frame)
+		FrameProfile.count("count_pose_transform_updates",int(stats.pose_updates)-pose_updates_before)
+		FrameProfile.count("count_pose_unchanged_transforms",pose_evaluations_this_frame-(int(stats.pose_updates)-pose_updates_before))
+		FrameProfile.count("count_pose_animation_changes",int(stats.animation_changes)-animation_changes_before)
+	var combat_began:=FrameProfile.begin()
 	combat.update(delta,desired)
+	FrameProfile.finish("world_combat_update_ms",combat_began)
+	var motion_finish_began:=FrameProfile.begin()
 	for id in motion.objects:
 		motion.objects[id].visualAnimation=combat.visual_animation(int(id),int(motion.objects[id].animation))
 		motion.finish_frame(id)
+	FrameProfile.finish("world_motion_finish_ms",motion_finish_began)
 	FrameProfile.finish("world_poses",phase_began)
 	var readiness_began:=FrameProfile.begin()
 	if ready_for_admission() and not stats.has("terrain_admission_ms"): stats.terrain_admission_ms=(Time.get_ticks_usec()-opened_at)/1000.0
@@ -762,7 +850,7 @@ func _profile_process(delta: float) -> void:
 	for object in base_objects: base_keys[int(object.id)]=desired[int(object.id)].key
 	if not actor_objects.is_empty():
 		var owner_began:=FrameProfile.begin()
-		var owner:=Creatures.new(); owner.use_skeleton=use_skeleton; owner.admission_parent=self; add_child(owner); owner.configure(catalog,pool,actor_objects,area_id,cache_path,controlled_id); batches.append({"owner":owner,"actors":true,"keys":actor_keys})
+		var owner:=Creatures.new();owner.publication_keys=actor_keys;owner.use_skeleton=use_skeleton;owner.admission_parent=self;add_child(owner);owner.configure(catalog,pool,actor_objects,area_id,cache_path,controlled_id);batches.append({"owner":owner,"actors":true,"keys":actor_keys})
 		if has_priority_origin: owner.set_priority_origin(priority_origin)
 		FrameProfile.finish("world_actor_owner_setup_ms",owner_began)
 	if not base_objects.is_empty():
@@ -786,6 +874,7 @@ func _profile_process(delta: float) -> void:
 			if owner==null:
 				FrameProfile.finish("world_base_owner_setup_ms",base_owner_began)
 				return
+			owner.publication_keys=base_keys
 			batches.append({"owner":owner,"actors":false,"keys":base_keys,"base_scenery":true})
 			if continuous_base_stream:base_stream_schedule.reserved(base_objects,desired)
 			if has_priority_origin:owner.set_priority_origin(priority_origin)
@@ -795,7 +884,7 @@ func _profile_process(delta: float) -> void:
 		if not ready_for_control():
 			stats.entry_prefetch_batches=int(stats.get("entry_prefetch_batches",0))+1
 			stats.entry_prefetch_objects=int(stats.get("entry_prefetch_objects",0))+static_objects.size()
-		var owner:=Objects.new(); owner.admission_parent=self; add_child(owner); owner.configure(catalog,pool,static_objects,area_id,cache_path); batches.append({"owner":owner,"actors":false,"keys":static_keys})
+		var owner:=Objects.new();owner.publication_keys=static_keys; owner.admission_parent=self; add_child(owner); owner.configure(catalog,pool,static_objects,area_id,cache_path); batches.append({"owner":owner,"actors":false,"keys":static_keys})
 		if has_priority_origin: owner.set_priority_origin(priority_origin)
 		FrameProfile.finish("world_static_owner_setup_ms",static_owner_began)
 func consume_stream_failure(batch: Dictionary,id: int,error: Dictionary) -> void:
@@ -889,15 +978,25 @@ func pending_plan(inflight: Dictionary) -> Dictionary:
 		var wanted: Dictionary=desired[id]
 		if str(installed.get(id,""))==str(wanted.key) or inflight.has(id):continue
 		if failed_objects.has(id) and str(failed_objects[id].key)==str(wanted.key):continue
-		var classification: Dictionary=BaseScenery.classify(wanted.object,area_id)
+		# Desired rows are stamped on every full/delta replacement. Reuse that
+		# classification during repeated pending scans; direct fixture rows still
+		# take the original classifier when no stamp is present.
+		var base: bool
+		if wanted.has("base_progress_flags"):
+			var flags:=int(wanted.base_progress_flags)
+			base=bool(flags&1) and not bool(flags&64)
+		else:base=bool(BaseScenery.classify(wanted.object,area_id).base)
+		# A running base owner cannot admit another base wave. Its unresolved
+		# rows do not need pose extraction or sorting during this frame.
+		if base and base_owner_active:continue
 		var placement:=object_pose(wanted.object)
 		if placement.is_empty():continue
 		var entry:={"object":wanted.object,"distance":origin.distance_squared_to(placement.position)}
-		if classification.base:base_candidates.append(entry)
+		if base:base_candidates.append(entry)
 		elif not before_control:live_candidates.append(entry)
 	if not before_control and live_candidates.is_empty():base_live_idle_revision=base_live_revision
 	var nearer:=func(a,b):return a.distance<b.distance or (a.distance==b.distance and int(a.object.id)<int(b.object.id))
-	base_candidates.sort_custom(nearer)
+	if not base_owner_active:base_candidates.sort_custom(nearer)
 	# One continuing base owner prevents bursty worker/owner growth. This lane
 	# is not capped to one initial wave and has no permanent distance cutoff.
 	if not base_owner_active and not base_candidates.is_empty():
@@ -1114,6 +1213,7 @@ func worker_tasks() -> Array:
 			if not tasks.has(task):tasks.append(task)
 	return tasks
 func begin_retirement() -> void:
+	cancel_received_snapshot()
 	preload("res://systems/native_render/native_surface_state.gd").retire(self)
 	if is_instance_valid(model_environment): model_environment.close()
 	if is_instance_valid(native_sky): native_sky.stop()
@@ -1185,7 +1285,10 @@ func snapshot(details: bool=true) -> Dictionary:
 	state.placeable_lights=placeable_lights.snapshot() if is_instance_valid(placeable_lights) else {}
 	FrameProfile.finish("snapshot_combat_effects",snapshot_began); snapshot_began=FrameProfile.begin()
 	state.native_particles=particle_metrics.snapshot()
-	if is_instance_valid(particle_stream_group): state.native_particle_stream=particle_stream_group.snapshot()
+	if is_instance_valid(particle_stream_group):
+		state.native_particle_stream=particle_stream_group.snapshot()
+		if bool(state.native_particle_stream.get("geometry_worker",false)):
+			state.native_particle_stream.suppressed_unregistered=maxi(0,int(state.native_particles.emitters)-int(state.native_particle_stream.members))
 	state.static_collision_index=static_collision_index.snapshot()
 	state.data_retirement=data_retirement.snapshot() if is_instance_valid(data_retirement) else {}
 	state.ancestor_preparation=Assets.Ancestors.snapshot()
@@ -1215,6 +1318,7 @@ func snapshot(details: bool=true) -> Dictionary:
 	state.area_border=borders.snapshot() if is_instance_valid(borders) else {"started":false,"enabled":tile_borders_enabled,"area_disabled":border_disabled}
 	return state
 func close() -> void:
+	cancel_received_snapshot()
 	if is_instance_valid(base_draw_merge):base_draw_merge.close()
 	preload("res://systems/native_render/native_surface_state.gd").retire(self)
 	if is_instance_valid(model_environment): model_environment.close()

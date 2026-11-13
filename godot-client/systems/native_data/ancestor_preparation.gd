@@ -9,6 +9,8 @@ static var active:=0
 static var peak:=0
 static func configured_enabled() -> bool: return not OS.get_cmdline_user_args().has("--ancestor-preparation=false")
 static func configured_share() -> int: return 2 if OS.get_cmdline_user_args().has("--ancestor-share=2") else 1
+static func configured_deeper_prefetch() -> bool: return OS.get_cmdline_user_args().has("--ancestor-prefetch=deeper") or configured_early_prefetch()
+static func configured_early_prefetch() -> bool: return OS.get_cmdline_user_args().has("--ancestor-prefetch=early")
 static func claim() -> int:
 	budget_mutex.lock(); var count:=mini(configured_share(),maxi(0,2-active)); active+=count; peak=maxi(peak,active); budget_mutex.unlock(); return count
 static func release(count: int=1) -> void:
@@ -37,7 +39,7 @@ static func decode_source(decoder: Callable,bytes: PackedByteArray,cache_path: S
 	release(); return result
 static func start(reader,name: String,bytes: PackedByteArray,cache_path: String,decoder: Callable) -> Dictionary:
 	var began:=Time.get_ticks_usec(); var candidate:=parent_hint(bytes)
-	var state:={"jobs":[],"metrics":{"enabled":true,"startup_ms":0.0,"join_ms":0.0,"sources":[],"reads":[],"held_source_bytes":0,"deferred":false,"hint_only":true}}
+	var state:={"jobs":[],"metrics":{"enabled":true,"startup_ms":0.0,"join_ms":0.0,"sources":[],"reads":[],"held_source_bytes":0,"deferred":false,"hint_only":true,"scan_capped":false}}
 	if candidate in ["","null","****"]: state.metrics.startup_ms=(Time.get_ticks_usec()-began)/1000.0; return state
 	var count:=claim()
 	if count==0: state.metrics.deferred=true; state.metrics.startup_ms=(Time.get_ticks_usec()-began)/1000.0; return state
@@ -50,7 +52,27 @@ static func start(reader,name: String,bytes: PackedByteArray,cache_path: String,
 		if not fork.failure.is_empty() or held_bytes+raw.size()>32*1024*1024: break
 		held_bytes+=raw.size(); sources.append({"bytes":raw,"name":candidate})
 		candidate=parent_hint(raw)
-	sources.sort_custom(func(a,b):return a.bytes.size()>b.bytes.size())
+		# The separate early experiment gives the authoritative worker its
+		# immediate parent sooner. Only speculative tail discovery is capped;
+		# the normal parser still reads the full chain and owns every error.
+		if configured_early_prefetch() and sources.size()>count:
+			state.metrics.scan_capped=not candidate in ["","null","****"]
+			break
+	if configured_deeper_prefetch() and sources.size()>1:
+		# The authoritative worker needs the immediate parent first. Prefetch a
+		# deeper independent source so its decode can overlap that serial step,
+		# instead of making the worker wait on the same source it just dispatched.
+		var immediate_name: String=str(sources[0].name)
+		var depth: Dictionary={}
+		for index in sources.size():depth[str(sources[index].name)]=index
+		sources.sort_custom(func(a,b):
+			var a_immediate: bool=str(a.name)==immediate_name
+			var b_immediate: bool=str(b.name)==immediate_name
+			if a_immediate!=b_immediate:return not a_immediate
+			if a.bytes.size()!=b.bytes.size():return a.bytes.size()>b.bytes.size()
+			return int(depth[str(a.name)])<int(depth[str(b.name)])
+		)
+	else:sources.sort_custom(func(a,b):return a.bytes.size()>b.bytes.size())
 	var store=reader.decoded_cache() if reader.has_method("decoded_cache") else (reader.preparation_cache() if reader.has_method("preparation_cache") else null)
 	for source in sources.slice(0,count):
 		var thread:=Thread.new(); var err:=thread.start(decode_source.bind(decoder,source.bytes,cache_path,store))

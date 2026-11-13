@@ -1,0 +1,10 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Disconnected SceneBSPUpdateGob source classified as nonforwarded exported alternate root with no proved in-image direct caller",
+  "document": "scene-bsp-update-gob-export-root.md",
+  "edges": [
+    {"from":"0x1410dd794","to":"0x1400ddd60","kind":"pe_export_address_table","condition":"ordinal 12340, ?SceneBSPUpdateGob@@YAXPEAVScene@@PEAVGob@@@Z, RVA 60dd0d00; external callable boundary, not an observed call","status":"bsp_update_gob_external_root","evidence_id":"ev_9192cbb57131952c9f948cd92ddc4d83a46f2a5656cf57d0a38fb55576278117"},
+    {"from":"0x1415e2408","to":"0x1400ddd60","kind":"pe_pdata_function_range","condition":"three contiguous begin/end/unwind records at 0x1415e2408/2414/2420; metadata, not callers","status":"bsp_update_gob_pdata_not_callers","evidence_id":"ev_0f9a6efe449819881f57af361d32e1ab172a39729198a6a76a142c116de9bcd0"}
+  ]
+}

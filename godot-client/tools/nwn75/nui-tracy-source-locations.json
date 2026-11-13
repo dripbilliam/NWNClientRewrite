@@ -1,0 +1,18 @@
+{
+  "schema": "nwn75-original-nui-tracy-source-location-map-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "method": "The pinned PE contains Nui::Window and Nui::JSON Tracy source-location records. Each record names its function; a RIP-relative LEA in .text references the record and is contained in the listed Ghidra procedure. This labels recovered functions but does not by itself identify dynamic vtable implementations.",
+  "source_text_evidence_id": "ev_a0c0f0add27c4fe28b33ef08708dfb2aac7d697231177d384e070376db234550",
+  "entries": [
+    {"name":"Nui::Window::RenderAll","source_location":"0x140e2d0d0","string":"0x140e2d0f0","rip_displacement":"0x1406c4be4","procedure":"0x1406c4b20","procedure_evidence_id":"ev_e5bf136f72e37f8ebaca0336a575fb1864fde4f049e29348c3c4c31ba8c925cc"},
+    {"name":"Nui::Window::HandleOpenIntrinsics","source_location":"0x140e2d130","string":"0x140e2d150","rip_displacement":"0x1406c2fe9","procedure":"0x1406c2f40","procedure_evidence_id":"ev_e033a57eb098cc636a00cb756057f7ebaff2002056ca7165f4352222d1427fb1"},
+    {"name":"Nui::Window::HandleCloseIntrinsics","source_location":"0x140e2d198","string":"0x140e2d1b8","rip_displacement":"0x1406c296b","procedure":"0x1406c28c0","procedure_evidence_id":"ev_d245113ffa6d64d36a86ce05a89f17aabf457ad04804470d37e889999afa365f"},
+    {"name":"Nui::Window::UpdateWindow","source_location":"0x140e2d1f0","string":"0x140e2d210","rip_displacement":"0x1406c7a45","procedure":"0x1406c79a0","procedure_evidence_id":"ev_c5730112dad5dcba873fd09dfdf48a0dd4191b3f21ef4a3ce0dcb817cf73695e"},
+    {"name":"Nui::Window::RenderWindow","source_location":"0x140e2d240","string":"0x140e2d260","rip_displacement":"0x1406c543b","procedure":"0x1406c5350","procedure_evidence_id":"ev_9ef2ea5e750b381ada696eaf4892d5cc5f29a142f2cb37efdc942eb0e5196624"},
+    {"name":"Nui::Window::Render","source_location":"0x140e2d298","string":"0x140e2d2b8","rip_displacement":"0x1406c459c","procedure":"0x1406c44e0","procedure_evidence_id":"ev_6d4df6602e8d0d9466b2e953f240f5d82826a84225793c8d45c007ddb3c60af8"},
+    {"name":"Nui::JSON::LayoutableJ::Construct","source_location":"0x140e39a20","string":"0x140e39a40","rip_displacement":"0x140741165","procedure":"0x140741070","procedure_evidence_id":"ev_7911da07a978381b2dab6ea434124952427c766f0a5e87c2057ed6053c08b52f"},
+    {"name":"Nui::JSON::JsonWindow::Initialize","source_location":"0x140e3a068","string":"0x140e3a088","rip_displacement":"0x140746fda","procedure":"0x140746f00","procedure_evidence_id":"ev_cca695a1dfc4588794da87f3210ebed1ffecbe50940f2dddc910c5f8a1218f14"},
+    {"name":"Nui::JSON::JsonWindow::Render","source_location":"0x140e3a118","string":"0x140e3a138","rip_displacement":"0x14074b8ce","procedure":"0x14074b810","procedure_evidence_id":"ev_4eddee85cd3041686bb27722441e5cf170cfa440c10544ee3d0b3788a16b3eff"},
+    {"name":"Nui::JSON::JsonWindow::Update","source_location":"0x140e3a180","string":"0x140e3a1a0","rip_displacement":"0x14074d82b","procedure":"0x14074d750","procedure_evidence_id":"ev_5483c2e7364e8f89a7defd5feb3c4070e6bb2c47673849806601209a1a6c32d0"}
+  ]
+}

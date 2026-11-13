@@ -1,0 +1,311 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "All nine base/optional text TriMesh vertex streams with exact request/lock/unlock callsites and format-bit conditions.",
+  "edges": [
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a7790",
+      "callsite": "0x1400a9b49",
+      "kind": "direct_static",
+      "condition": "text postprocess vertex count initially zero and face count positive",
+      "status": "conditional_vertex_pool_publication",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "MdlNodeTriMesh::GenerateVertexData"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "NO_VERTEX_STREAM_LEAF",
+      "kind": "conditional_return",
+      "condition": "node face count +0xb8 zero",
+      "status": "terminal_cpu",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a7836",
+      "kind": "direct_static",
+      "condition": "face count positive; base stream; 12 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool position +0x280"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a7848",
+      "kind": "direct_static",
+      "condition": "face count positive; base stream; 12 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool position +0x280"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7c69",
+      "kind": "direct_static",
+      "condition": "face count positive; base stream; 12 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool position +0x280"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a7872",
+      "kind": "direct_static",
+      "condition": "face count positive; base stream; 12 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool normal +0x298"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a7884",
+      "kind": "direct_static",
+      "condition": "face count positive; base stream; 12 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool normal +0x298"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7c7c",
+      "kind": "direct_static",
+      "condition": "face count positive; base stream; 12 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool normal +0x298"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a78b3",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x10 set; 4 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool color +0x29c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a78c5",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x10 set; 4 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool color +0x29c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7c8f",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x10 set; 4 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool color +0x29c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a78fd",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x20 set; 12 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool tangent +0x2ac"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a790f",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x20 set; 12 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool tangent +0x2ac"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7cee",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x20 set; 12 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool tangent +0x2ac"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a793b",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x20 set; 4 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool tangent sign +0x2b4"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a794d",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x20 set; 4 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool tangent sign +0x2b4"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7d01",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x20 set; 4 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool tangent sign +0x2b4"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a7988",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x01 set; 8 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool UV0 +0x288"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a799a",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x01 set; 8 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool UV0 +0x288"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7ca2",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x01 set; 8 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool UV0 +0x288"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a79d5",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x02 set; 8 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool UV1 +0x28c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a79e7",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x02 set; 8 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool UV1 +0x28c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7cb5",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x02 set; 8 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool UV1 +0x28c"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a7a1d",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x04 set; 8 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool UV2 +0x290"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a7a2f",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x04 set; 8 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool UV2 +0x290"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7cc8",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x04 set; 8 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool UV2 +0x290"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400beee0",
+      "callsite": "0x1400a7a6a",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x08 set; 8 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "RequestPool UV3 +0x294"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bee30",
+      "callsite": "0x1400a7a7c",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x08 set; 8 bytes/vertex",
+      "status": "cpu_pool_access",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "LockPool UV3 +0x294"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "0x1400bf3d0",
+      "callsite": "0x1400a7cdb",
+      "kind": "direct_static",
+      "condition": "face count positive; NodeVertex format bit 0x08 set; 8 bytes/vertex or sentinel handle on absent optional stream",
+      "status": "conditional_gl_buffer_publication",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563",
+      "target_label": "UnlockPool UV3 +0x294"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "NodeVertex to position/normal/optional pool bytes",
+      "kind": "cpu_vertex_copy",
+      "condition": "each generated vertex; color quantized RGB plus opaque alpha",
+      "status": "cpu_vertex_data",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563"
+    },
+    {
+      "from": "0x1400a7790",
+      "to": "DYNAMIC:TEXT_VERTEX_FORMAT_AND_POOL_STATE",
+      "kind": "unresolved_runtime_selector",
+      "condition": "generated vertex count/format, subtype, pool state and later draw",
+      "status": "unresolved_target",
+      "evidence_id": "ev_fbbde492b84718657bf3e4217fa5472b885e06e9295223ba02066a56340ba563"
+    }
+  ]
+}

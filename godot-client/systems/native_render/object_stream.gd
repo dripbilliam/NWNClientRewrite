@@ -7,29 +7,79 @@ const Assets=preload("res://systems/native_data/asset_service.gd")
 const Template=preload("res://systems/native_render/model_template.gd")
 const Priority=preload("res://systems/native_render/stream_priority.gd")
 const Placeable=preload("res://systems/native_render/placeable_instance.gd")
+var publication_keys: Dictionary={}
+var _animated_instance
+var _animated_entry: Dictionary={}
+var _animated_state: Dictionary={}
+func publication_current(id: int) -> bool:
+	if publication_keys.is_empty():return true
+	return is_instance_valid(admission_parent) and not admission_parent.closed and not admission_parent.retiring and admission_parent.desired.has(id) and str(admission_parent.desired[id].key)==str(publication_keys.get(id,""))
+func publication_state(placement: Dictionary) -> Dictionary:
+	return admission_parent.desired[int(placement.id)].object.get("replicated",{}) if not publication_keys.is_empty() and publication_current(int(placement.id)) else placement.object.get("replicated",{})
+func _cancel_animated_publication() -> void:
+	var instance=_animated_instance;_animated_instance=null;_animated_entry={};_animated_state={}
+	if is_instance_valid(instance):instance.cancel_install();instance.retire()
+func _animated_publication(entry: Dictionary,door: bool) -> Dictionary:
+	var placement: Dictionary=entry.placement
+	var current: Dictionary=publication_state(placement);var selected: Dictionary={}
+	for key in ["animation","animationSpeed","doorOpenState","destroyedModel"]:
+		if current.has(key):selected[key]=current[key]
+	if is_instance_valid(_animated_instance) and _animated_state!=selected:
+		_cancel_animated_publication();stats.superseded_animated_states=int(stats.get("superseded_animated_states",0))+1
+	if not is_instance_valid(_animated_instance):
+		var instance=preload("res://systems/native_render/door_instance.gd").new() if door else Placeable.new()
+		var accepted: bool=instance.begin_install_door(entry.bundle,pool,int(placement.id),publication_state(placement)) if door else instance.begin_install_placeable(entry.bundle,pool,int(placement.id),publication_state(placement))
+		if not accepted:
+			var reason: String=instance.failure;instance.retire();return {"status":"failed","reason":reason}
+		_animated_instance=instance;_animated_entry=entry;_animated_state=selected
+	var progress: Dictionary=_animated_instance.install_step(32,Template.step_budget(pool))
+	if progress.status=="pending":return progress
+	var instance=_animated_instance;_animated_instance=null;_animated_entry={};_animated_state={}
+	if progress.status=="failed":instance.retire();return progress
+	if door:instance.finish_install_door(entry.bundle,publication_state(placement))
+	else:instance.finish_install_placeable(publication_state(placement))
+	progress.instance=instance;return progress
 var _template_pending: Dictionary={}
 var _template_entry: Dictionary={}
 var _clone_pending: Dictionary={}
 var _clone_entry: Dictionary={}
+var _planning_active:=false
+var _planning_cursor:=0
+func begin_planning() -> void:
+	_planning_active=true;_planning_cursor=0
+func planning_step() -> bool:
+	if not _planning_active:return true
+	var began:=Time.get_ticks_usec();var units:=0
+	while _planning_cursor<snapshot_objects.size() and units<32:
+		if units>0 and Time.get_ticks_usec()-began>=1500:break
+		if pool!=null and pool.has_method("can_publish") and not pool.can_publish():break
+		var unit_began:=Time.get_ticks_usec()
+		plan_object_rows([snapshot_objects[_planning_cursor]]);_planning_cursor+=1;units+=1
+		if pool!=null and pool.has_method("construction_finished"):pool.construction_finished(unit_began)
+	if _planning_cursor<snapshot_objects.size():return false
+	_planning_active=false;_planning_cursor=0;waiting=groups.keys();priority_dirty=true;return true
 func _cancel_staged_publication() -> void:
+	_cancel_animated_publication()
 	if pool!=null and pool.has_method("cancel_template_step"):pool.cancel_template_step(_template_pending)
 	else:
 		if _template_pending.has("template"):_template_pending.template.cancel_staged_build()
 		_template_pending.clear()
 	Template.cancel_creation(_clone_pending);_clone_entry={};_template_entry={}
 func _resume_clone_head() -> void:
-	var entry: Dictionary=_clone_entry if not _clone_entry.is_empty() else _template_entry
+	var entry: Dictionary=_animated_entry if not _animated_entry.is_empty() else _clone_entry if not _clone_entry.is_empty() else _template_entry
 	if entry.is_empty():return
 	for index in queue.size():
 		if is_same(queue[index],entry):
 			if index>0:queue.push_front(queue.pop_at(index))
 			return
 	# The exact queued row retired; cancel only its private publication work.
+	if not _animated_entry.is_empty():_cancel_animated_publication()
 	if not _clone_entry.is_empty():Template.cancel_creation(_clone_pending);_clone_entry={}
 	if not _template_entry.is_empty():
 		if pool!=null and pool.has_method("cancel_template_step"):pool.cancel_template_step(_template_pending)
 		_template_entry={}
 func _cancel_publication_row(entry: Dictionary) -> void:
+	if not _animated_entry.is_empty() and is_same(entry,_animated_entry):_cancel_animated_publication()
 	if not _clone_entry.is_empty() and is_same(entry,_clone_entry):
 		Template.cancel_creation(_clone_pending);_clone_entry={}
 	if not _template_entry.is_empty() and is_same(entry,_template_entry):
@@ -96,7 +146,7 @@ func model_failed(name: String,reason: String) -> void:
 	for placement in groups.get(name,[]): object_failed(int(placement.id),reason,name)
 func configure(catalog, shared_pool, objects: Array, target_area: int, cache_path: String) -> void:
 	pool=shared_pool; snapshot_objects=objects; area_id=target_area
-	assets=Assets.new(); add_child(assets); assets.maximum_workers=maxi(1,maximum_asset_workers); assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
+	assets=Assets.new(); add_child(assets); assets.maximum_workers=maxi(1,maximum_asset_workers); assets.configure(catalog);assets.completion_pool=pool; assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	reusable_table_scope=_table_scope(catalog);reusable_asset_epoch=assets.epoch;wave_parked=false
 	initial_static_tables_only=base_static_snapshot()
 	if continuous_base_stream and initial_static_tables_only:
@@ -153,7 +203,9 @@ func resume_wave(source,shared_pool,objects: Array,target_area: int,cache_path: 
 	if base_templates!=null:base_templates.begin_wave(assets,pool,area_id)
 	for table_name in (["placeables"] if initial_static_tables_only else ["placeables","genericdoors","doortypes"]):
 		if not tables.has(table_name):table_requests[assets.request(table_name,2017,"2da")]=table_name
-	if table_requests.is_empty():plan_objects()
+	if table_requests.is_empty():
+		if Template.cooperative(pool):begin_planning()
+		else:plan_objects()
 	return true
 static func pose(object: Dictionary) -> Dictionary:
 	var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{}))
@@ -238,6 +290,7 @@ func prepared(id: int, result: Dictionary) -> void:
 			if initial_static_tables_only and not base_static_snapshot():
 				initial_static_tables_only=false
 				for name in ["genericdoors","doortypes"]:table_requests[assets.request(name,2017,"2da")]=name
+			elif Template.cooperative(pool):begin_planning()
 			else:plan_objects()
 		return
 	if not model_requests.has(id): return
@@ -303,6 +356,7 @@ func _process(_delta: float) -> void:
 	Timing.finish("callback_objects",began)
 func _profile_process(_delta: float) -> void:
 	if closed or done or not is_instance_valid(assets) or not table_requests.is_empty(): return
+	if not planning_step():return
 	var phase_began:=Timing.begin()
 	refresh_priority()
 	Timing.finish("object_stream_priority_ms",phase_began); phase_began=Timing.begin()
@@ -322,33 +376,40 @@ func _profile_process(_delta: float) -> void:
 	if probe_base_templates:
 		var ready_priority_began:=Timing.begin();refresh_priority();Timing.finish("object_stream_ready_priority_ms",ready_priority_began)
 	_resume_clone_head()
-	var began:=Time.get_ticks_usec(); var published:=0; var attempted:=0
+	var began:=Time.get_ticks_usec(); var published:=0; var attempted:=0;var callback_budget:=Template.callback_budget(pool)
 	var shared_budget: bool=pool.has_method("can_publish") and pool.has_method("publication_finished")
 	while not queue.is_empty() and (maximum_objects_per_frame==0 or published<maximum_objects_per_frame):
 		if attempted>=16 and not shared_budget:break
-		if attempted>0 and Time.get_ticks_usec()-began>=3000: break
+		if attempted>0 and Time.get_ticks_usec()-began>=callback_budget: break
 		if pool.has_method("can_publish") and not pool.can_publish(): break
 		var unit_began:=Time.get_ticks_usec()
 		var entry: Dictionary=queue.pop_front(); var name: String=entry.model
 		attempted+=1
 		var placement: Dictionary=entry.placement; var door: bool=int(placement.object.objectType)==10
 		var placeable: bool=int(placement.object.objectType)==9 and Placeable.requires_animation(placement.object.get("replicated",{}))
+		if not publication_current(int(placement.id)):
+			_cancel_publication_row(entry);stats.stale_publications=int(stats.get("stale_publications",0))+1
+			if pool.has_method("construction_finished"):pool.construction_finished(unit_began)
+			elif pool.has_method("publication_finished"):pool.publication_finished(unit_began)
+			continue
 		if entry.get("base_template_hit",false) and (door or placeable or base_templates==null or not base_templates.still_bound(name,templates.get(name))):
 			_cancel_publication_row(entry)
 			if not door and not placeable:templates.erase(name)
 			phase_began=Timing.begin();request_base_retry(name,placement,door or placeable)
 			Timing.finish("object_stream_retry_requests_ms",phase_began)
-			if pool.has_method("publication_finished"):pool.publication_finished(unit_began)
+			if pool.has_method("construction_finished"):pool.construction_finished(unit_began)
+			elif pool.has_method("publication_finished"):pool.publication_finished(unit_began)
 			continue
 		if not door and not placeable and (not templates.has(name) or entry.get("base_template_retry",false)):
 			phase_began=Timing.begin()
 			var template
-			if Template.configured_recipe() and pool.has_method("model_template_step"):
-				var preparation: Dictionary=pool.model_template_step(entry.bundle,_template_pending)
+			if Template.cooperative(pool) and pool.has_method("model_template_step"):
+				var preparation: Dictionary=pool.model_template_step(entry.bundle,_template_pending,32,Template.step_budget(pool)) if pool.has_method("remaining_publication_us") else pool.model_template_step(entry.bundle,_template_pending)
 				if preparation.status=="pending":
 					_template_entry=entry;queue.push_front(entry);stats.staged_template_steps=int(stats.get("staged_template_steps",0))+1
 					Timing.finish("object_stream_template_ms",phase_began)
-					if pool.has_method("publication_finished"):pool.publication_finished(unit_began)
+					if pool.has_method("construction_finished"):pool.construction_finished(unit_began)
+					elif pool.has_method("publication_finished"):pool.publication_finished(unit_began)
 					continue
 				_template_entry={};template=preparation.get("template")
 			else:template=pool.model_template(entry.bundle)
@@ -365,7 +426,17 @@ func _profile_process(_delta: float) -> void:
 				if not stats.limitations.has(feature): stats.limitations.append(feature)
 		var instance
 		phase_began=Timing.begin()
-		if door:
+		if (door or placeable) and Template.cooperative(pool):
+			var creation: Dictionary=_animated_publication(entry,door)
+			if creation.status=="pending":
+				queue.push_front(entry);stats.staged_animated_steps=int(stats.get("staged_animated_steps",0))+1
+				Timing.finish("object_stream_animated_step_ms",phase_began)
+				if pool.has_method("construction_finished"):pool.construction_finished(unit_began)
+				elif pool.has_method("publication_finished"):pool.publication_finished(unit_began)
+				continue
+			if creation.status=="failed":object_failed(int(placement.id),str(creation.reason),name)
+			instance=creation.get("instance")
+		elif door:
 			instance=preload("res://systems/native_render/door_instance.gd").new()
 			if not instance.install_door(entry.bundle,pool,int(placement.id),placement.object.get("replicated",{})):
 				object_failed(int(placement.id),instance.failure,name); instance.retire(); instance=null
@@ -373,12 +444,13 @@ func _profile_process(_delta: float) -> void:
 			instance=Placeable.new()
 			if not instance.install_placeable(entry.bundle,pool,int(placement.id),placement.object.get("replicated",{})):
 				object_failed(int(placement.id),instance.failure,name);instance.retire();instance=null
-		elif Template.configured_recipe() and templates[name].has_method("create_step"):
-			var creation: Dictionary=templates[name].create_step(_clone_pending)
+		elif Template.cooperative(pool) and templates[name].has_method("create_step"):
+			var creation: Dictionary=templates[name].create_step(_clone_pending,32,Template.step_budget(pool))
 			if creation.status=="pending":
 				_clone_entry=entry;queue.push_front(entry);stats.staged_clone_steps=int(stats.get("staged_clone_steps",0))+1
 				Timing.finish("object_stream_clone_ms",phase_began)
-				if pool.has_method("publication_finished"):pool.publication_finished(unit_began)
+				if pool.has_method("construction_finished"):pool.construction_finished(unit_began)
+				elif pool.has_method("publication_finished"):pool.publication_finished(unit_began)
 				continue
 			_clone_entry={};instance=creation.get("instance")
 		else: instance=templates[name].create()
@@ -390,7 +462,8 @@ func _profile_process(_delta: float) -> void:
 			if is_instance_valid(admission_parent): instance.hide(); admission_parent.add_child(instance)
 			else: add_child(instance)
 			Timing.finish("object_stream_attach_ms",phase_began)
-			instances[placement.id]=instance; stats.rendered+=1
+			if closed or not publication_current(int(placement.id)):instance.retire()
+			else:instances[placement.id]=instance; stats.rendered+=1
 		published+=1
 		phase_began=Timing.begin()
 		if pool.has_method("publication_finished"): pool.publication_finished(unit_began)
@@ -404,6 +477,7 @@ func _profile_process(_delta: float) -> void:
 			"present":base_templates!=null,"snapshot":base_templates.snapshot() if base_templates!=null else {}}
 		finished.emit(stats.duplicate(true))
 func detach_prepared_data() -> Dictionary:
+	_planning_active=false;_planning_cursor=0
 	_cancel_staged_publication()
 	var payload:={"queue":queue,"groups":groups,"objects":snapshot_objects,"tables":tables,"base_retry_requests":base_retry_requests,"base_template_probes":base_template_probes,"group_bundles":group_bundles}
 	queue=[]; groups={}; snapshot_objects=[]; tables={};base_retry_requests={};base_template_probes={}
@@ -411,7 +485,9 @@ func detach_prepared_data() -> Dictionary:
 	return payload
 func close() -> void:
 	if closed: return
+	_planning_active=false;_planning_cursor=0
 	_cancel_staged_publication()
+	publication_keys={}
 	closed=true;wave_parked=false;reusable_table_scope={};reusable_asset_epoch=-1
 	if base_templates!=null:base_templates.clear();base_templates=null
 	if is_instance_valid(assets): assets.close()

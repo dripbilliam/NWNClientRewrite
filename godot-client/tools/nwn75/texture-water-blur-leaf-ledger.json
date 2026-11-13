@@ -1,0 +1,16 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Water controller conditional CPU blur to full-image allocation, zero, convolution, copy and free boundaries.",
+  "edges": [
+    {"from":"0x1400e1b40","to":"0x140072510","callsite":"0x1400e2636","kind":"direct_static","condition":"Water image blur selected within gated Control update","status":"cpu_water_blur","evidence_id":"ev_d8e4558acce13a266e4780132537cfc8421956442f316189aab733788e785b6b"},
+    {"from":"0x140072510","to":"0x140c10368","callsite":"0x140072578","kind":"direct_static","condition":"allocate width*height*BPP temporary CPU image","status":"cpu_temp_alloc","evidence_id":"ev_06ac2a72152fef3a055e5c119de11617b0734492ec9cad9a8ce0b0a30643e06e"},
+    {"from":"0x140072510","to":"0x140c42060","callsite":"0x14007258d","kind":"direct_static","condition":"zero temporary image before convolution","status":"cpu_temp_zero","evidence_id":"ev_06ac2a72152fef3a055e5c119de11617b0734492ec9cad9a8ce0b0a30643e06e"},
+    {"from":"0x140072510","to":"wrapped 3x3 weighted byte convolution","kind":"terminal_cpu_leaf","condition":"positive width and height; all BPP channels","status":"cpu_water_blur_arithmetic","evidence_id":"ev_06ac2a72152fef3a055e5c119de11617b0734492ec9cad9a8ce0b0a30643e06e"},
+    {"from":"0x140072510","to":"0x140c417f0","callsite":"0x1400727dd","kind":"direct_static","condition":"copy blurred image back to caller buffer","status":"cpu_image_copy","evidence_id":"ev_06ac2a72152fef3a055e5c119de11617b0734492ec9cad9a8ce0b0a30643e06e"},
+    {"from":"0x140072510","to":"0x140c10370","callsite":"0x1400727e5","kind":"direct_static","condition":"release temporary CPU image","status":"cpu_temp_free","evidence_id":"ev_06ac2a72152fef3a055e5c119de11617b0734492ec9cad9a8ce0b0a30643e06e"},
+    {"from":"0x140072510","to":"0x140c10410","callsite":"0x1400727f5","kind":"direct_static","condition":"compiler-inserted stack-cookie check","status":"crt_stack_check","evidence_id":"ev_06ac2a72152fef3a055e5c119de11617b0734492ec9cad9a8ce0b0a30643e06e"},
+    {"from":"0x140c42060","to":"CPU span fill","kind":"terminal_cpu_leaf","condition":"requested zero-fill length","status":"crt_memset_boundary","evidence_id":"ev_5274015a3873f341153bd9c8ab6afa941edf9c5a4e3b4a3e52cdf0f56ed012f2"},
+    {"from":"0x140072510","to":"DYNAMIC:WATER_BLUR_IMAGE_AND_FREQUENCY","kind":"unresolved_runtime_selector","condition":"Water Control admission, authored image dimensions/BPP and active frame use","status":"unresolved_target","evidence_id":"ev_06ac2a72152fef3a055e5c119de11617b0734492ec9cad9a8ce0b0a30643e06e"}
+  ]
+}

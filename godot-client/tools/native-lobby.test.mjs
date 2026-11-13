@@ -105,3 +105,11 @@ test('server rejection remains visible after the character list is cleared',asyn
  assert.equal(f.lobby.snapshot().error,'Test rejection');assert.equal(f.lobby.snapshot().choices.length,0);
  s.emit('state',{phase:'closed',closed:true,disconnectReason:{strRef:10452,text:''}});assert.match(f.lobby.error,/10452/);
 });
+
+test('character rejection carries its localized reason, permits another selection and rejects retired callbacks',async()=>{
+ const f=fixture();await f.join();await f.choose('installed:wizard.bic');
+ f.sessions[0].emit('message',{message:{kind:'character-rejected',reason:10500}});f.sessions[0].state('character-rejected');
+ assert.deepEqual(f.lobby.snapshot().characterRejection,{strRef:10500});assert.match(f.lobby.error,/10500/);assert.equal(f.lobby.snapshot().canSelect,true);
+ await f.choose('vault:owned');assert.equal(f.lobby.snapshot().characterRejection,null);assert.equal(f.lobby.error,'');
+ const old=f.sessions[0];await f.lobby.leave({connection:1,saveCharacter:false});await f.join();old.emit('message',{message:{kind:'character-rejected',reason:123}});assert.equal(f.lobby.snapshot().characterRejection,null);assert.equal(f.lobby.error,'');
+});

@@ -57,7 +57,28 @@ var snapshot_backlog=preload("res://systems/native_data/snapshot_protocol_backlo
 var pending_prepared_snapshot: Dictionary={}
 var snapshot_wire_depth:=0
 var snapshot_commit_running:=false
+var entry_snapshot_commit: Dictionary={}
+var entry_snapshot_budget_us:=4000
+var entry_snapshot_frame:=-1
+var entry_snapshot_deadline:=0
 var snapshot_preparation_enabled:=false
+var movement_window: Dictionary={}
+static func movement_window_intervals(values: PackedFloat64Array) -> Dictionary:
+	if values.size()<120 or values.size()>20000:return {}
+	var sorted:=values.duplicate();sorted.sort();var sum:=0.0;var hitches:=0
+	for value in values:
+		if not is_finite(value) or value<0:return {}
+		sum+=value
+		if value>50:hitches+=1
+	var median_ms: float=(float(sorted[int((sorted.size()-1)/2.0)])+float(sorted[int(sorted.size()/2.0)]))*0.5
+	return {"count":values.size(),"average_ms":sum/values.size(),"median_ms":median_ms,"p95_ms":sorted[mini(sorted.size()-1,int(ceil(sorted.size()*0.95))-1)],"p99_ms":sorted[mini(sorted.size()-1,int(ceil(sorted.size()*0.99))-1)],"worst_ms":sorted[-1],"over_50ms":hitches,"scope":"Original offline movement input section only; retained native tick intervals, distinct from post-input steady quiet window"}
+func movement_window_probe_snapshot() -> Dictionary:
+	if not is_instance_valid(world) or not is_instance_valid(world.drive_collision) or not world.drive_collision.has_method("query_preview"):return {}
+	var current: Dictionary=keyboard_context();var state: Dictionary=current.get("state",{})
+	var collision=world.drive_collision;var counters: Dictionary=collision.preview_stats
+	var position: Vector3=state.get("position",Vector3.ZERO);var render: Vector3=state.get("render",Vector3.ZERO)
+	var orientation: Vector3=state.get("orientation",Vector3.ZERO)
+	return {"position":[position.x,position.y,position.z],"render":[render.x,render.y,render.z],"orientation":[orientation.x,orientation.y,orientation.z],"probes":int(counters.probes),"initial_clears":int(counters.initial_clears),"reused_clears":int(counters.reused_clears),"fallback_clears":int(counters.fallback_clears),"collections":int(counters.collections),"height_queries":int(world.surface.stats.queries) if is_instance_valid(world.surface) else -1}
 func runtime_features_snapshot() -> Dictionary:
 	var value: Dictionary=super.runtime_features_snapshot()
 	# Report saved-setting owners separately from replay/command-line overrides.
@@ -82,8 +103,9 @@ func snapshot_preparation_scope(snapshot: Dictionary) -> Array:
 func snapshot_preparation_choice() -> String:
 	return str(runtime_feature_report.resolved.get("world-snapshot-preparation",{}).get("value","script"))
 func snapshot_preparation_diagnostic() -> Dictionary:
-	return {"worker":snapshot_preparation.snapshot(),"backlog":snapshot_backlog.snapshot(),"waiting_for_metadata":not pending_prepared_snapshot.is_empty(),"commit_running":snapshot_commit_running}
+	return {"worker":snapshot_preparation.snapshot(),"backlog":snapshot_backlog.snapshot(),"waiting_for_metadata":not pending_prepared_snapshot.is_empty(),"commit_running":snapshot_commit_running,"entry_continuation":not entry_snapshot_commit.is_empty(),"entry_budget_us":entry_snapshot_budget_us}
 func snapshot_transition_waiting() -> bool:
+	if not entry_snapshot_commit.is_empty():return true
 	var incoming: Dictionary=pending_prepared_snapshot if not pending_prepared_snapshot.is_empty() else raw_world if snapshot_preparation.active else {}
 	return not incoming.is_empty() and int(incoming.generation)!=epoch
 func native_snapshot_transition_waiting() -> bool:return snapshot_transition_waiting()
@@ -114,17 +136,18 @@ func dispatch_protocol_messages(messages: Array,wire_sizes: PackedInt32Array) ->
 	for index in messages.size():
 		if closing and messages[index].get("kind")!="finish-ack":return
 		var message: Dictionary=messages[index]
-		if not pending_prepared_snapshot.is_empty() and snapshot_interrupt(message):
+		if (not pending_prepared_snapshot.is_empty() or not entry_snapshot_commit.is_empty()) and snapshot_interrupt(message):
 			cancel_snapshot_preparation()
 			deliver_snapshot_wire_message(message)
-		elif not pending_prepared_snapshot.is_empty() or snapshot_backlog.size()>0:
+		elif not pending_prepared_snapshot.is_empty() or not entry_snapshot_commit.is_empty() or snapshot_backlog.size()>0:
 			if not snapshot_backlog.push(message,int(wire_sizes[index])):
 				fail("Native snapshot preparation exceeded its bounded protocol backlog");return
 		else:deliver_snapshot_wire_message(message)
 func poll_snapshot_preparation() -> void:
-	if not snapshot_preparation.active and snapshot_preparation.running.is_empty() and snapshot_preparation.retired.is_empty() and pending_prepared_snapshot.is_empty() and snapshot_backlog.size()==0:return
+	if not snapshot_preparation.active and snapshot_preparation.running.is_empty() and snapshot_preparation.retired.is_empty() and pending_prepared_snapshot.is_empty() and snapshot_backlog.size()==0 and entry_snapshot_commit.is_empty():return
 	var began:=FrameProfile.begin()
 	snapshot_preparation.poll()
+	if not entry_snapshot_commit.is_empty():advance_entry_snapshot_commit()
 	if not closing and not snapshot_commit_running and not pending_prepared_snapshot.is_empty():
 		var snapshot: Dictionary=pending_prepared_snapshot
 		var scope:=snapshot_preparation_scope(snapshot)
@@ -135,17 +158,24 @@ func poll_snapshot_preparation() -> void:
 			if not metadata.is_empty():
 				pending_prepared_snapshot={}
 				commit_raw_snapshot(snapshot,metadata)
-	while not closing and pending_prepared_snapshot.is_empty() and snapshot_backlog.size()>0:
+	while not closing and pending_prepared_snapshot.is_empty() and entry_snapshot_commit.is_empty() and snapshot_backlog.size()>0:
 		var entry: Dictionary=snapshot_backlog.pop()
 		deliver_snapshot_wire_message(entry.message)
 	FrameProfile.finish("snapshot_metadata_poll_ms",began)
 func cancel_snapshot_preparation(discard_messages: bool=true) -> void:
 	var borrowed_raw: Dictionary=raw_world if snapshot_preparation.active else {}
-	var discarded:={"snapshot":pending_prepared_snapshot,"raw":borrowed_raw,"messages":snapshot_backlog.detach() if discard_messages else []}
+	var discarded:={"snapshot":pending_prepared_snapshot,"raw":borrowed_raw,"entry":entry_snapshot_commit,"messages":snapshot_backlog.detach() if discard_messages else []}
+	entry_snapshot_commit={};cancel_native_entry_snapshot()
+	var tail: Dictionary=discarded.entry.get("tail",{})
+	var tail_menu=tail.get("menu")
+	var tail_configuration: Dictionary=tail.get("menu_configuration",{})
+	if not tail_configuration.is_empty() and is_instance_valid(tail_menu) and tail_menu.has_method("cancel_native_configuration"):tail_menu.cancel_native_configuration(tail_configuration)
+	if entity_api_binding!=null and entity_api_binding.has_method("cancel_entry_commit"):entity_api_binding.cancel_entry_commit()
+	snapshot_commit_running=false
 	snapshot_preparation.cancel()
 	pending_prepared_snapshot={};snapshot_metadata={};snapshot_metadata_objects=[]
 	if not borrowed_raw.is_empty():raw_world={}
-	if is_instance_valid(data_retirement) and (not discarded.snapshot.is_empty() or not discarded.raw.is_empty() or not discarded.messages.is_empty()):data_retirement.defer_release(discarded)
+	if is_instance_valid(data_retirement) and (not discarded.snapshot.is_empty() or not discarded.raw.is_empty() or not discarded.entry.is_empty() or not discarded.messages.is_empty()):data_retirement.defer_release(discarded)
 func fail(reason: String) -> void:
 	cancel_snapshot_preparation()
 	super.fail(reason)
@@ -541,12 +571,34 @@ func receive_profiled(message: Dictionary) -> void:
 				send({"kind":"test-barter-peer-observed","serial":int(message.get("serial",0)),"invitation":bool(test_barter_peer.get("partyState",{}).get("field7DC",false))})
 		"begin-performance-window":
 			if args.get("offline-replay","")!="true": return
+			var phase:=str(message.get("phase","steady"));var serial:=int(message.get("serial",0))
+			if phase not in ["movement","steady"] or phase=="movement" and (args.get("movement-timing","")!="true" or serial!=1 or not movement_window.is_empty()) or phase=="steady" and bool(movement_window.get("active",false)):
+				send({"kind":"performance-window-ready","success":false,"phase":phase,"serial":serial});return
 			if not is_instance_valid(world) or int(message.get("generation",-1))!=epoch or int(message.get("areaId",-1))!=world.area_id or not world.ready_for_control() or not world.snapshot(false).get("object_visuals_complete",false):
-				send({"kind":"performance-window-ready","success":false}); return
+				send({"kind":"performance-window-ready","success":false,"phase":phase,"serial":serial});return
 			samples.clear(); previous=0
-			report.performance_window={"steady":true,"started_at_ms":Time.get_ticks_msec(),"generation":epoch,"areaId":world.area_id,"entities":world.instances.size(),"scope":"Offline post-completion measurement; numeric frame interval window reset only, scene and server inputs unchanged"}
-			report.performance_window.view_begin=runtime_features_snapshot().presentation
-			send({"kind":"performance-window-ready","success":true,"generation":epoch,"areaId":world.area_id})
+			if phase=="movement":
+				movement_window={"active":true,"serial":serial,"started_at_ms":Time.get_ticks_msec(),"generation":epoch,"areaId":world.area_id,"entities":world.instances.size(),"view_begin":runtime_features_snapshot().presentation}
+				report.movement_window=movement_window
+			else:
+				report.performance_window={"steady":true,"started_at_ms":Time.get_ticks_msec(),"generation":epoch,"areaId":world.area_id,"entities":world.instances.size(),"scope":"Offline post-completion measurement; numeric frame interval window reset only, scene and server inputs unchanged"}
+				report.performance_window.view_begin=runtime_features_snapshot().presentation
+			send({"kind":"performance-window-ready","success":true,"phase":phase,"serial":serial,"generation":epoch,"areaId":world.area_id})
+		"end-performance-window":
+			if args.get("offline-replay","")!="true" or args.get("movement-timing","")!="true":return
+			var ending_phase:=str(message.get("phase",""));var ending_serial:=int(message.get("serial",0))
+			if ending_phase!="movement" or not bool(movement_window.get("active",false)) or int(movement_window.get("serial",0))!=ending_serial or not is_instance_valid(world) or int(message.get("generation",-1))!=epoch or int(message.get("areaId",-1))!=world.area_id or int(movement_window.get("generation",-1))!=epoch or int(movement_window.get("areaId",-1))!=world.area_id:
+				send({"kind":"performance-window-ended","success":false,"phase":ending_phase,"serial":ending_serial});return
+			var elapsed:=Time.get_ticks_msec()-int(movement_window.started_at_ms)
+			var interval_summary:=movement_window_intervals(samples)
+			if elapsed>60000 or interval_summary.is_empty():
+				send({"kind":"performance-window-ended","success":false,"phase":ending_phase,"serial":ending_serial,"elapsed_ms":elapsed,"samples":samples.size()});return
+			movement_window.active=false;movement_window.elapsed_ms=elapsed;movement_window.frame_intervals=interval_summary
+			movement_window.view_end=runtime_features_snapshot().presentation
+			movement_window.scope="Bounded original offline movement-input section; distinct from the later steady quiet window"
+			report.movement_window=movement_window
+			samples.clear();previous=0
+			send({"kind":"performance-window-ended","success":true,"phase":ending_phase,"serial":ending_serial,"generation":epoch,"areaId":world.area_id,"elapsed_ms":elapsed,"samples":int(interval_summary.count)})
 		"replay-view":
 			if args.get("offline-replay","")!="true": return
 			var view: Dictionary=message.get("value",{})
@@ -567,10 +619,16 @@ func receive_profiled(message: Dictionary) -> void:
 				else: fail("Unsupported offline replay FOV policy"); return
 		"replay-movement-input":
 			if args.get("offline-replay","")!="true" or args.get("movement-timing","")!="true":return
+			var probe_before: Dictionary=movement_window_probe_snapshot() if bool(movement_window.get("active",false)) else {}
 			var outcome: Dictionary={"accepted":false,"reason":"retired world scope"}
 			if is_instance_valid(world) and int(message.get("generation",-1))==epoch and int(message.get("areaId",-1))==world.area_id:
 				outcome=preload("res://systems/native_data/movement_timing.gd").replay(message.get("value",{}),keyboard_context(),keyboard,Callable(world,"preview_drive"),Callable(world,"end_drive"))
-			send({"kind":"movement-replay-result","inputSequence":message.get("inputSequence"),"outcome":outcome})
+			var receipt:={"kind":"movement-replay-result","inputSequence":message.get("inputSequence"),"outcome":outcome}
+			if bool(movement_window.get("active",false)):
+				var probe_after: Dictionary=movement_window_probe_snapshot()
+				if not probe_before.is_empty() and not probe_after.is_empty():
+					receipt.probe={"before":probe_before,"after":probe_after,"probe_delta":int(probe_after.probes)-int(probe_before.probes),"initial_delta":int(probe_after.initial_clears)-int(probe_before.initial_clears),"reused_delta":int(probe_after.reused_clears)-int(probe_before.reused_clears),"fallback_delta":int(probe_after.fallback_clears)-int(probe_before.fallback_clears),"collection_delta":int(probe_after.collections)-int(probe_before.collections),"height_query_delta":int(probe_after.height_queries)-int(probe_before.height_queries)}
+			send(receipt)
 		"probe-native-creation":
 			if args.get("settings-check","")!="true": return
 			var probe=preload("res://tests/native_creation_live_probe.gd").new(); host.add_child(probe); probe.run(self)
@@ -596,18 +654,20 @@ func receive_profiled(message: Dictionary) -> void:
 			var mode:=str(message.data.get("bridgeMode","full"))
 			if mode not in ["full","delta"] or mode=="delta" and (accepted_raw_serial<0 or epoch<0 or int(message.data.get("bridgeBaseSerial",-2))!=accepted_raw_serial or int(message.generation)!=epoch): fail("Native raw-world delta has no accepted base"); return
 			cancel_snapshot_preparation(false)
-			raw_serial=serial; raw_world={"serial":serial,"connection":session_connection,"generation":int(message.generation),"count":count,"data":message.data}; raw_world.data.objects=[]
+			raw_serial=serial; raw_world={"serial":serial,"connection":session_connection,"generation":int(message.generation),"count":count,"data":message.data,"trusted_entry_wire":snapshot_wire_depth>0}; raw_world.data.objects=[]
 			if snapshot_preparation_enabled and snapshot_wire_depth>0 and initialized and mode=="full" and int(message.generation)>=epoch:
 				if not snapshot_preparation.begin(snapshot_preparation_scope(raw_world),int(message.data.get("area",{}).get("id",-1)),count):fail("Native snapshot metadata scope unavailable");return
 		"raw-world-chunk":
 			if snapshot_preparation.active and snapshot_wire_depth==0:fail("Native snapshot preparation cannot mix direct and wire messages");return
 			if raw_world.is_empty() or int(message.get("serial",-1))!=raw_serial or int(message.get("generation",-1))!=int(raw_world.generation) or not message.get("objects") is Array or message.objects.size()>64 or raw_world.data.objects.size()+message.objects.size()>int(raw_world.count): fail("Invalid native raw-world chunk"); return
+			raw_world.trusted_entry_wire=bool(raw_world.get("trusted_entry_wire",false)) and snapshot_wire_depth>0
 			raw_world.data.objects.append_array(message.objects)
 			if snapshot_preparation.active and not snapshot_preparation.submit(message.objects):fail("Native snapshot metadata chunk rejected");return
 		"raw-world-end":
 			if snapshot_preparation.active and snapshot_wire_depth==0:fail("Native snapshot preparation cannot mix direct and wire messages");return
 			creation_trace("raw-world:end-received")
 			if raw_world.is_empty() or int(message.get("serial",-1))!=raw_serial or int(message.get("generation",-1))!=int(raw_world.generation) or raw_world.data.objects.size()!=int(raw_world.count): fail("Incomplete native raw-world snapshot"); return
+			raw_world.trusted_entry_wire=bool(raw_world.get("trusted_entry_wire",false)) and snapshot_wire_depth>0
 			var snapshot:=raw_world; raw_world={}
 			var metadata: Dictionary={}
 			if snapshot_preparation.active:
@@ -961,11 +1021,188 @@ func commit_raw_snapshot(snapshot: Dictionary,metadata: Dictionary={}) -> void:
 		# Internal fixed worker-result reasons only; never retain a received row.
 		report.snapshot_metadata_last_fallback=str(metadata.error);metadata={}
 	snapshot_metadata=metadata;snapshot_metadata_objects=snapshot.data.objects
+	if bool(snapshot.get("trusted_entry_wire",false)) and initialized and int(snapshot.generation)>epoch and str(snapshot.data.get("bridgeMode","full"))=="full" and args.get("entry-commit","")!="sync":
+		if args.has("entry-commit-budget"):
+			match str(args["entry-commit-budget"]):
+				"6ms":entry_snapshot_budget_us=6000
+				"8ms":entry_snapshot_budget_us=8000
+				_:entry_snapshot_budget_us=4000
+		entry_snapshot_commit={"snapshot":snapshot,"message":{"kind":"snapshot","generation":snapshot.generation,"data":snapshot.data},"received_before":received,"started_us":Time.get_ticks_usec(),"phase":"core","steps":0,"maximum_step_us":0,"overruns":{},"phase_us":{},"initial_ui":gameplay_ui}
+		if begin_native_entry_snapshot(entry_snapshot_commit.message):
+			entry_snapshot_commit.base_state=_native_entry_snapshot
+			advance_entry_snapshot_commit();return
+		entry_snapshot_commit={}
 	var began:=FrameProfile.begin()
 	apply_raw_snapshot(snapshot)
 	FrameProfile.finish("entry_snapshot_commit_ms",began)
 	snapshot_metadata={};snapshot_metadata_objects=[];snapshot_commit_running=false
 	report.snapshot_preparation=snapshot_preparation_diagnostic()
+
+func native_entry_snapshot_allowed(message: Dictionary) -> bool:
+	return not entry_snapshot_commit.is_empty() and is_same(entry_snapshot_commit.message,message) and entry_snapshot_commit_current(entry_snapshot_commit)
+func entry_snapshot_commit_current(state: Dictionary) -> bool:
+	if closing or not initialized or not is_same(entry_snapshot_commit,state):return false
+	var snapshot: Dictionary=state.snapshot
+	if int(snapshot.get("connection",session_connection))!=session_connection or session_connection==cancelled_connection or int(snapshot.serial)!=raw_serial:return false
+	if not is_instance_valid(state.initial_ui) or gameplay_ui!=state.initial_ui:return false
+	var base: Dictionary=state.get("base_state",{})
+	if is_instance_valid(base.get("new_world")) and world!=base.new_world:return false
+	return true
+func entry_snapshot_next(state: Dictionary,phase: String) -> void:
+	if entry_snapshot_commit_current(state):state.phase=phase
+func advance_entry_snapshot_commit() -> void:
+	if entry_snapshot_commit.is_empty():return
+	var frame:=Engine.get_process_frames()
+	if int(entry_snapshot_commit.get("blocked_frame",-1))==frame:return
+	if entry_snapshot_frame!=frame:entry_snapshot_frame=frame;entry_snapshot_deadline=Time.get_ticks_usec()+entry_snapshot_budget_us
+	while not entry_snapshot_commit.is_empty() and Time.get_ticks_usec()<entry_snapshot_deadline:
+		var state: Dictionary=entry_snapshot_commit
+		if not entry_snapshot_commit_current(state):cancel_snapshot_preparation();return
+		var before:=Time.get_ticks_usec();var phase: String=state.phase
+		entry_snapshot_commit_unit(state,entry_snapshot_deadline)
+		var elapsed:=Time.get_ticks_usec()-before
+		state.steps=int(state.steps)+1;state.maximum_step_us=maxi(int(state.maximum_step_us),elapsed)
+		if phase=="ack":state.ack_maximum_step_us=maxi(int(state.get("ack_maximum_step_us",0)),elapsed)
+		state.phase_us[phase]=int(state.phase_us.get(phase,0))+elapsed
+		if Time.get_ticks_usec()>entry_snapshot_deadline:state.overruns[phase]=maxi(int(state.overruns.get(phase,0)),Time.get_ticks_usec()-entry_snapshot_deadline)
+		if state.has("receipt"):
+			state.receipt.maximum_step_us=state.maximum_step_us;state.receipt.steps=state.steps
+			state.receipt.ack_maximum_step_us=int(state.get("ack_maximum_step_us",0))
+			state.receipt.overruns=state.overruns.duplicate();state.receipt.phase_us=state.phase_us.duplicate()
+		if not entry_snapshot_commit.is_empty() and not entry_snapshot_commit_current(state):cancel_snapshot_preparation();return
+		# A pending old menu decoder has no useful main-thread work to do. Do
+		# not repeatedly poll it until the entire frame deadline is exhausted.
+		if not entry_snapshot_commit.is_empty() and int(state.get("blocked_frame",-1))==frame:return
+func entry_snapshot_commit_unit(state: Dictionary,deadline_usec: int) -> void:
+	var snapshot: Dictionary=state.snapshot
+	match str(state.phase):
+		"core":
+			var result:=advance_native_entry_snapshot(deadline_usec)
+			state.core_receipt=result
+			if result.get("cancelled",false):cancel_snapshot_preparation();return
+			if result.get("done",false):
+				if received!=int(state.received_before)+1 or not is_instance_valid(world) or not is_instance_valid(gameplay_ui):cancel_snapshot_preparation();return
+				state.context=raw_snapshot_context();entry_snapshot_next(state,"visibility")
+		"visibility":
+			if not raw_snapshot_current(snapshot,state.context):cancel_snapshot_preparation();return
+			world.set_show_blockers(render_settings.show_blockers_enabled)
+			if not raw_snapshot_current(snapshot,state.context):return
+			if native_visibility_runtime!=null:native_visibility_runtime.accepted_world(snapshot.data)
+			if not raw_snapshot_current(snapshot,state.context):return
+			if is_instance_valid(camera):camera_fov_binding.bind(camera)
+			entry_snapshot_next(state,"api_begin")
+		"api_begin":
+			if not raw_snapshot_current(snapshot,state.context):cancel_snapshot_preparation();return
+			if entity_api_binding==null:entry_snapshot_next(state,"ack");return
+			if not entity_api_binding.begin_entry_commit(session_connection,epoch,world.area_id,snapshot.data):
+				# The entity observer still never gates the authoritative ACK.
+				entity_api_snapshot_diagnostic("entry_binding_rejected",true);entry_snapshot_next(state,"ack");return
+			entry_snapshot_next(state,"api")
+		"api":
+			var result: Dictionary=entity_api_binding.entry_commit_steps(deadline_usec) if entity_api_binding.has_method("entry_commit_steps") else entity_api_binding.entry_commit_step()
+			state.api_calls=int(state.get("api_calls",0))+1
+			state.api_steps=int(state.get("api_steps",0))+int(result.get("steps",1))
+			if result.get("done",false):
+				if not result.get("accepted",false):entity_api_snapshot_diagnostic("entry_binding_rejected",true)
+				entry_snapshot_next(state,"ack")
+		"ack":
+			if not raw_snapshot_current(snapshot,state.context):cancel_snapshot_preparation();return
+			var tail_result:=advance_entry_snapshot_tail(state)
+			if tail_result.get("blocked",false):state.blocked_frame=Engine.get_process_frames();return
+			if not tail_result.get("done",false):return
+			if not entry_snapshot_commit_current(state) or not raw_snapshot_current(snapshot,state.context):return
+			var base: Dictionary=state.base_state
+			if is_instance_valid(base.get("new_world")) and not world.closed and not world.retiring:
+				world.set_meta("native_entry_commit_pending",false);world.process_mode=int(base.previous_mode)
+			var receipt:={"generation":snapshot.generation,"area_id":world.area_id,"serial":snapshot.serial,"started_us":state.started_us,"ack_latency_ms":(Time.get_ticks_usec()-int(state.started_us))/1000.0,"budget_us":entry_snapshot_budget_us,"maximum_step_us":state.maximum_step_us,"ack_maximum_step_us":int(state.get("ack_maximum_step_us",0)),"steps":state.steps,"overruns":state.overruns.duplicate(),"phase_us":state.phase_us.duplicate(),"tail_units_us":state.tail.units.duplicate(),"tail_max_units_us":state.tail.maximum_units.duplicate(),"tail_style_publication":state.tail.get("style_publication",{}),"core_phase_us":base.phase_us.duplicate(),"core_maximum_unit_us":base.maximum_unit_us,"core_overruns":base.overruns.duplicate(),"renderer":base.get("renderer_receipt",{}),"scope":"Wire full new-area entry only; ready-world full/delta remain synchronous; new entry clocks start after complete publication; tail_units_us accumulates repeated phases, tail_max_units_us records largest individual tail calls, and ack_maximum_step_us includes receipt/fence work after the final tail call"}
+			receipt.api_calls=int(state.get("api_calls",0));receipt.api_steps=int(state.get("api_steps",0))
+			state.receipt=receipt
+			report.entry_commit_entries=report.get("entry_commit_entries",[]);report.entry_commit_entries.append(receipt)
+			if report.entry_commit_entries.size()>16:report.entry_commit_entries.pop_front()
+			entry_snapshot_commit={};snapshot_metadata={};snapshot_metadata_objects=[];snapshot_commit_running=false
+			report.snapshot_preparation=snapshot_preparation_diagnostic()
+func advance_entry_snapshot_tail(state: Dictionary) -> Dictionary:
+	if not entry_snapshot_commit_current(state) or not raw_snapshot_current(state.snapshot,state.context):return {"done":false}
+	if not state.has("tail"):state.tail={"phase":"accept","menu":null,"menu_configuration":{},"units":{},"maximum_units":{},"needs_options":false}
+	var tail: Dictionary=state.tail;var phase:=str(tail.phase);var began:=Time.get_ticks_usec()
+	var result:=entry_snapshot_tail_unit(state,tail)
+	var elapsed:=Time.get_ticks_usec()-began
+	if phase!="menu_step":tail.units[phase]=int(tail.units.get(phase,0))+elapsed
+	# This includes the whole menu_step wrapper; the named menu totals below
+	# measure only native_configuration_step and can repeat after a blocked poll.
+	tail.maximum_units[phase]=maxi(int(tail.maximum_units.get(phase,0)),elapsed)
+	return result
+func entry_snapshot_tail_next(state: Dictionary,tail: Dictionary,phase: String) -> void:
+	if entry_snapshot_commit_current(state) and raw_snapshot_current(state.snapshot,state.context):tail.phase=phase
+func entry_snapshot_tail_unit(state: Dictionary,tail: Dictionary) -> Dictionary:
+	var snapshot: Dictionary=state.snapshot;var phase:=str(tail.phase)
+	match phase:
+		"accept":accepted_raw_serial=raw_serial;entry_snapshot_tail_next(state,tail,"offline_lobby")
+		"offline_lobby":
+			if args.get("offline-replay","")=="true" and is_instance_valid(character_lobby):character_lobby.panel.hide()
+			entry_snapshot_tail_next(state,tail,"options")
+		"options":
+			tail.needs_options=is_instance_valid(gameplay_ui) and not gameplay_ui.options_requested.is_connected(open_game_options)
+			entry_snapshot_tail_next(state,tail,"menu_bindings" if tail.needs_options else "radial")
+		"menu_bindings":
+			tail.menu=render_menu;render_menu.key_bindings=gameplay_ui.key_bindings
+			entry_snapshot_tail_next(state,tail,"menu_modal")
+		"menu_modal":
+			if tail.menu!=render_menu:entry_snapshot_tail_next(state,tail,"menu_bindings");return {"done":false}
+			render_menu.set_modal_order(gameplay_ui.modal_order,gameplay_ui.modal_surfaces)
+			entry_snapshot_tail_next(state,tail,"menu_begin")
+		"menu_begin":
+			if tail.menu!=render_menu:entry_snapshot_tail_next(state,tail,"menu_bindings");return {"done":false}
+			creation_trace("raw-world:menu-configure-before")
+			var value: Array=[session_connection,gameplay_ui.generation,gameplay_ui.area_id,gameplay_ui.controlled_id]
+			var cache_path:=ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2")))
+			if render_menu.has_method("begin_native_configuration") and render_menu.has_method("native_configuration_step") and render_menu.has_method("native_configuration_phase") and render_menu.has_method("cancel_native_configuration"):
+				tail.menu_configuration=render_menu.begin_native_configuration(gameplay_ui.inventory.frame_skin,gameplay_ui.text,catalog,cache_path,value)
+				entry_snapshot_tail_next(state,tail,"menu_step")
+			else:
+				# Nonstandard test/extension owners retain their complete legacy
+				# behavior; this fallback is explicit, never a production budget claim.
+				report.entry_tail_menu_legacy_fallbacks=int(report.get("entry_tail_menu_legacy_fallbacks",0))+1
+				render_menu.configure_native(gameplay_ui.inventory.frame_skin,gameplay_ui.text,catalog,cache_path,value)
+				if entry_snapshot_commit_current(state) and raw_snapshot_current(snapshot,state.context):creation_trace("raw-world:menu-configure-after")
+				entry_snapshot_tail_next(state,tail,"options_connect")
+		"menu_step":
+			if tail.menu!=render_menu:
+				if is_instance_valid(tail.menu):tail.menu.cancel_native_configuration(tail.menu_configuration)
+				entry_snapshot_tail_next(state,tail,"menu_bindings");return {"done":false}
+			var name: String=render_menu.native_configuration_phase(tail.menu_configuration)
+			var began:=Time.get_ticks_usec();var result: Dictionary=render_menu.native_configuration_step(tail.menu_configuration)
+			var menu_elapsed:=Time.get_ticks_usec()-began
+			tail.units["menu:"+name]=int(tail.units.get("menu:"+name,0))+menu_elapsed
+			tail.maximum_units["menu:"+name]=maxi(int(tail.maximum_units.get("menu:"+name,0)),menu_elapsed)
+			if not entry_snapshot_commit_current(state) or not raw_snapshot_current(snapshot,state.context):return {"done":false}
+			if result.get("blocked",false):return {"done":false,"blocked":true}
+			if result.get("done",false):
+				if not result.get("accepted",false):cancel_snapshot_preparation();return {"done":false}
+				if render_menu.has_method("entry_style_publication_receipt"):tail.style_publication=render_menu.entry_style_publication_receipt()
+				creation_trace("raw-world:menu-configure-after");entry_snapshot_tail_next(state,tail,"options_connect")
+		"options_connect":
+			if not gameplay_ui.options_requested.is_connected(open_game_options):gameplay_ui.options_requested.connect(open_game_options)
+			entry_snapshot_tail_next(state,tail,"creature_slots")
+		"creature_slots":
+			gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
+			entry_snapshot_tail_next(state,tail,"radial")
+		"radial":
+			if is_instance_valid(gameplay_ui):gameplay_ui.set_radial_preferences(render_settings.radial_preferences)
+			entry_snapshot_tail_next(state,tail,"menu_scope")
+		"menu_scope":
+			if is_instance_valid(gameplay_ui):refresh_entry_menu_scope(render_menu,[session_connection,gameplay_ui.generation,gameplay_ui.area_id,gameplay_ui.controlled_id])
+			entry_snapshot_tail_next(state,tail,"pointer")
+		"pointer":
+			if is_instance_valid(world_input):world_input.extra_pointer_block=native_pointer_blocked
+			entry_snapshot_tail_next(state,tail,"send_ack")
+		"send_ack":
+			creation_trace("raw-world:ack-before")
+			send({"kind":"raw-world-accepted","serial":raw_serial,"generation":snapshot.generation})
+			if creation_runtime.enabled:creation_runtime.acknowledge(creation_runtime_values())
+			creation_trace("raw-world:ack-after")
+			return {"done":true}
+	return {"done":false}
 func apply_raw_snapshot(snapshot: Dictionary) -> void:
 	# Apply the persisted render policy only at the next area boundary.
 	# Existing placements and in-flight batches keep their original layout.
@@ -1002,6 +1239,9 @@ func apply_raw_snapshot(snapshot: Dictionary) -> void:
 	if not raw_snapshot_current(snapshot,context):return
 	FrameProfile.finish("entry_entity_api_commit_ms",entry_began)
 	creation_trace("raw-world:entity-observer-after")
+	finish_raw_snapshot_tail(snapshot,context)
+func finish_raw_snapshot_tail(snapshot: Dictionary,context: Dictionary) -> void:
+	var entry_began:=FrameProfile.begin()
 	accepted_raw_serial=raw_serial
 	if args.get("offline-replay","")=="true" and is_instance_valid(character_lobby): character_lobby.panel.hide()
 	if is_instance_valid(gameplay_ui) and not gameplay_ui.options_requested.is_connected(open_game_options):

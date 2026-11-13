@@ -1,0 +1,7 @@
+# NWN-73 preview surface cache reachability gate
+
+The staged `--drive-preview-surface-cache=off/on` normal-client pair in `.cache/nwn73/nwn73-preview-cache-h/plan.json` cannot measure the candidate yet. Both selections pin the same current source identity (`f649aa31937b94206003c67adfe43da44751cccf2335ecd289b8b82c47b08867`), engine SHA-256 (`753b3e188068efaf865bda3abd6322ebe44e3a98ef2f5d199c8af1a78624c98b`), and `drive_collision_indexed.gd` SHA-256 (`f3c2b35e783dd7d0dec24a1978a6f47edc2e3024ef2f37d8b158b6a8cfaca928`). `tools/native-client-flags.cjs` forwards the two flags.
+
+The cache runs only inside `DriveCollisionIndexed.prepare_worker_preview()`. A production-source search across `systems`, `scripts`, `native`, and the host found no caller of that method or `worker_preview_current()`. The caller is present only in the unmerged `.cache/nwn73/preview-worker-a/live_world-proposal.gd` and companion private proposal files. Thus the staged flag change is inert in the accepted client. No FPS result or speedup can be attributed to it.
+
+Before testing the cache, review and integrate the owner worker route separately, then require nonzero worker submissions and cache hits, exact ordered packet/movement parity including area reset and in-place WOK edits, and clean lifetime diagnostics. The earlier private worker engagement in `.cache/nwn73/preview-entry-a/review.md` had 8/35 admissions, 31 busy fallbacks and unequal final controlled distance; it is not acceptance evidence for the current source.

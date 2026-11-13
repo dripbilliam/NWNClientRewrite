@@ -1,0 +1,10 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Three CRT initializer slots into text-model classification, ignorefog and setanimationscale command registrations; runtime token/argument and later render use remain conditional.",
+  "edges": [
+    {"from":"0x140ca3400","to":"0x140d7daa8","site":"0x140ca3435","site_evidence_id":"ev_bd63eeb29844b19d2010e822c79bf4d020b191a3076f91b05c21cfcd530216e4","kind":"initializer_table_visit","condition":"CRT _initterm range 0x140d7d790..0x140d7fea8 includes nonnull classification pointer entry to stub 0x140015180","status":"classification_registration_admitted","evidence_id":"ev_fee4aa696c0e17cfbe16c79a031ad1eb1a7d061255f38b897da884764b67d33c"},
+    {"from":"0x140ca3400","to":"0x140d7dab0","site":"0x140ca3435","site_evidence_id":"ev_bd63eeb29844b19d2010e822c79bf4d020b191a3076f91b05c21cfcd530216e4","kind":"initializer_table_visit","condition":"same CRT range includes nonnull ignorefog pointer entry to stub 0x140015270","status":"ignorefog_registration_admitted","evidence_id":"ev_b0434f7d8cd07e9dc1ba78922fa1b8518db1fbbaee5f2809d6c61a6ae4cc12df"},
+    {"from":"0x140ca3400","to":"0x140d7dac0","site":"0x140ca3435","site_evidence_id":"ev_bd63eeb29844b19d2010e822c79bf4d020b191a3076f91b05c21cfcd530216e4","kind":"initializer_table_visit","condition":"same CRT range includes nonnull setanimationscale pointer entry to stub 0x140015300","status":"animation_scale_registration_admitted","evidence_id":"ev_84b6effec38e3bd9b5f0dca2b26e515de4a617e59609c5011c08486dae7bec36"}
+  ]
+}

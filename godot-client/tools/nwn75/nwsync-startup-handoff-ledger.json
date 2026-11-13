@@ -1,0 +1,26 @@
+{
+  "schema": "nwn75-original-nwsync-startup-handoff-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "document": "nwsync-startup-handoff.md",
+  "scope": "Resource-manager creation of background NWSync provider and conditional synchronous join at manifest demand; shard and SQLite descendants remain open.",
+  "edges": [
+    {"from":"0x140046340","to":"0x1406acd40","callsite":"0x140046cb6","kind":"direct_call","condition":"SDL_main client-startup dispatch thunk","status":"client_startup_owner","evidence_id":"ev_34cff70119652b759670aa44d6fca8883543bd8c6dd10f7ed8a79b604f0b94b5"},
+    {"from":"0x1406acd40","to":"0x1406e3c80","callsite":"0x1406acd44","kind":"tail_jump","condition":"client wrapper forwards to inner-runtime initialization","status":"client_startup_owner","evidence_id":"ev_34cff70119652b759670aa44d6fca8883543bd8c6dd10f7ed8a79b604f0b94b5"},
+    {"from":"0x1406e3c80","to":"0x14018d6f0","callsite":"0x1406e3eaf","kind":"direct_call","condition":"client inner-runtime startup allocates resource manager","status":"startup_owner","evidence_id":"ev_34cff70119652b759670aa44d6fca8883543bd8c6dd10f7ed8a79b604f0b94b5"},
+    {"from":"0x14056c950","to":"0x14018d6f0","callsite":"0x14056cb33","kind":"direct_call","condition":"server StartServices and client/server mode 2","status":"alternate_startup_owner","evidence_id":"ev_d6ff51f4b3c50e3818ecbeee1a6f5c44b2f2db00e71309323bf925d0cf594c00"},
+    {"from":"0x14018d6f0","to":"0x1401b0810","callsite":"0x14018d768","kind":"direct_call","condition":"CExoResMan embeds CNWSync at +0x60","status":"startup_owner","evidence_id":"ev_c2521bc2348d3fe6b1b6695901831663ab4651b44fd96ca8d7358bd17af313b7"},
+    {"from":"0x1401b0810","to":"0x1401b04a0","callsite":"0x1401b084c","kind":"direct_call","condition":"CNWSync constructor clears internal pointer and ready byte then launches worker","status":"worker_launch","evidence_id":"ev_850c7940e5b485ea907098bded83840949fccfaad24b23803083b3f398514f66"},
+    {"from":"0x1401b04a0","to":"0x140be690c","callsite":"0x1401b0597","kind":"direct_call","condition":"launch helper starts NWSync std::thread and waits for launch pad startup signal","status":"worker_launch","evidence_id":"ev_64e301f99b6151ce48da7d215d132ca38f8acfef6e89873692512ac4e1f8acc1"},
+    {"from":"0x1401b04a0","to":"0x140da8118","kind":"launchpad_install","condition":"stack launch pad vtable installed for NWSync worker","status":"worker_entry","evidence_id":"ev_64e301f99b6151ce48da7d215d132ca38f8acfef6e89873692512ac4e1f8acc1"},
+    {"from":"0x140da8118","to":"0x1401b0f00","kind":"launchpad_vtable","condition":"NWSync launch pad enters background initialization worker","status":"worker_entry","evidence_id":"ev_5340fc411a5cd38f11c8ab91318ad77fa2fb4c08058d5560d490a65f766fea98"},
+    {"from":"0x1401b0f00","to":"0x1401ba420","callsite":"0x1401b100b","kind":"direct_call","condition":"background worker allocates internal provider then publishes pointer and ready byte","status":"worker_publication","evidence_id":"ev_195def23e3fcec9908a9f7bdf9dddf366caf6ede1c442452359c85b0a3fd61a4"},
+    {"from":"0x1401ba420","to":"0x1401d0cf0","callsite":"0x1401ba52b","kind":"direct_call","condition":"internal constructor opens or allocates platform storage shard","status":"storage_startup_frontier","evidence_id":"ev_6a626a45a04de9867ec43eca6d049942a17e256e68379432a6c1d8049f0ecf6b"},
+    {"from":"0x1401ba420","to":"0x1401c5240","callsite":"0x1401ba6e6","kind":"direct_call","condition":"SQLiteStorageProvider constructor enumerates existing shards before installation","status":"storage_startup_frontier","evidence_id":"ev_6a626a45a04de9867ec43eca6d049942a17e256e68379432a6c1d8049f0ecf6b"},
+    {"from":"0x1401d0cf0","to":"EXTERNAL:0x2a8","kind":"import_call","condition":"candidate shard file existence checked with KERNEL32 GetFileAttributesA","status":"external_file_boundary","evidence_id":"ev_dfbdc2ff31cc2eeca9d239682393cb6523e03ae79953ee3756a325bc7f758b00"},
+    {"from":"0x1401b1860","to":"0x1401b1390","callsite":"0x1401b188a","kind":"direct_call","condition":"every GetResrefData checks ready byte first","status":"readiness_gate","evidence_id":"ev_0220b12eaa9ddcffe8f40551c28404469933188aa0ebb6fa5c756bbe6c43c385"},
+    {"from":"0x1401b1860","to":"0x1401c3560","callsite":"0x1401b18a6","kind":"direct_call","condition":"after EnsureReady returns, query requested SHA1, resref and type","status":"manifest_lookup","evidence_id":"ev_0220b12eaa9ddcffe8f40551c28404469933188aa0ebb6fa5c756bbe6c43c385"},
+    {"from":"0x1401b1390","to":"0x1401b4910","callsite":"0x1401b14a0","kind":"direct_call","condition":"ready byte clear; join NWSync initialization thread","status":"synchronous_wait_branch","evidence_id":"ev_7ff28da6e9ef4710794c9d1997496ae947088e177deadeca7cc086c08a7f261b"},
+    {"from":"0x1401b4910","to":"0x140be6830","callsite":"0x1401b495a","kind":"direct_call","condition":"std::thread join on valid, non-self thread","status":"synchronous_wait_branch","evidence_id":"ev_9faf880d54cfc083dea56a33e4cbea6fffef7d3e6c3d64b9c105e2a4c44791b4"},
+    {"from":"0x140be6830","to":"EXTERNAL:0x266","kind":"import_call","condition":"WaitForSingleObjectEx(thread handle, INFINITE, false)","status":"external_wait_boundary","evidence_id":"ev_351f7caa478dece4185a9ca4d6ea3766b8f461e496f55fcbd3568f458bf2380e"}
+  ]
+}

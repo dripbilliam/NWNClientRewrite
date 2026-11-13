@@ -1,0 +1,10 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Three SQLite resource-read source nodes connected from existing NWSync open and VDBE roots: initialization, OS VFS registration, and conditional pager mmap/page-fetch selector.",
+  "edges": [
+    {"from":"0x1405ec730","to":"0x1406503e0","callsite":"0x1405ec79d","callsite_evidence_id":"ev_1bfd58578b2525b4326f7aca11d187adf552b0cd0b188314acf3832eeb90f005","kind":"direct_static","condition":"sqlite3_open_v2 body after nonnull output-pointer validation; initialize may return already-initialized without repeating OS registration","status":"sqlite_open_initialization_gate","evidence_id":"ev_95194442fdb6e857e74bcc4ba8c18dc83fc8b6149d01704dc9c2e2574ddad216"},
+    {"from":"0x140637d70","to":"0x1405edb40","callsite":"0x14063dba7","callsite_evidence_id":"ev_07ae3a095b12dc68cb2180121cee3a004f7dfed16e8c8aa9259fb2b8c94359a2","kind":"direct_static","condition":"selected VDBE opcode reaches pager open/refresh branch; active NWSync manifest query opcode not proved","status":"conditional_sqlite_pager_refresh","evidence_id":"ev_9dc2ef36914a0a6e6db293e24b087e5d1e2a5d0b591641eea0fc3e1425086e2d"},
+    {"from":"0x1405edb40","to":"0x1405ed8d0","callsite":"0x1405edcc6","callsite_evidence_id":"ev_95e43af48d9e2097bca2617168a8242c6a191265b224aa94dd8110d4852eb6dc","kind":"direct_static","condition":"after pager file-open attempt and local cleanup; selector chooses ordinary/mmap page callback from pager state","status":"sqlite_pager_callback_selection","evidence_id":"ev_c175a897171c5a5902e4f90d98545d755806b7b9a18fa22d3fa5bdafe8ad22f2"}
+  ]
+}

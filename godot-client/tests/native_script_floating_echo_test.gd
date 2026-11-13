@@ -10,8 +10,9 @@ class CountingTalk extends Talk:
 	var native_fetches: Array=[]
 	func fetch_native_reference(ref: Variant,gender: Variant=0) -> Dictionary:
 		native_fetches.append({"ref":ref,"gender":gender});return super.fetch_native_reference(ref,gender)
-	func parse_native(value: String,options: Dictionary={}) -> Dictionary:
-		calls+=1;options_seen.append(options.duplicate(true));return super.parse_native(value,options)
+	func parse_native_bytes(raw_bytes: PackedByteArray,options: Dictionary={}) -> Dictionary:
+		var value: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(options.get("language",base.language)),true).get("text","")
+		calls+=1;options_seen.append(options.duplicate(true));return super.parse_native_bytes(raw_bytes,options)
 func make_owner(surface: Control,talk) -> ControlledOwner:
 	var floating:=ControlledOwner.new();root.add_child(floating);floating.configure_processing(false)
 	floating.configure(surface,talk,null,null,EmptyCatalog.new(),context,source,anchor)

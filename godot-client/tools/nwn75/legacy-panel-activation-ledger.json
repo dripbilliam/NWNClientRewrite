@@ -1,0 +1,1257 @@
+{
+  "schema": "nwn75-legacy-panel-activation-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "source_vtable_census": "gui-update-vtables.json",
+  "method": "Filter named GUI Update +0x58 vtables to tables whose +0x40 points at CGuiPanel::AsGuiPanel 0x1401edc60; read +0x8, +0x60, +0x100 and +0x120 qword targets from pinned PE. This is a named static table census, not active panel population.",
+  "slot_meanings": {
+    "0x8": "InitializeModel conditional pre-activation",
+    "0x60": "PostAttachmentInitialize after AddPanel and RegisterUpdate",
+    "0x100": "OnActivate after layout close",
+    "0x120": "Reposition after AddPanel and RegisterUpdate"
+  },
+  "counts": {
+    "source_named_candidates": 84,
+    "confirmed_panel_signature": 81,
+    "excluded_nonpanel": 3,
+    "unique_targets": 86
+  },
+  "target_names": {
+    "0x1401e58d0": {
+      "name": "CGuiObject::InitializeModel",
+      "evidence_id": "ev_44b63445ae8569f8fbfb2addcff45267aa75b075b5d975d20d2fbcd9fe9a9fb2"
+    },
+    "0x1401ef8b0": {
+      "name": "CGuiPageControl::OnActivate",
+      "evidence_id": "ev_4d341826b93d140f24dc3e815a5ef1aff9ef60048dc70f7cdb520e5b4abf1309"
+    },
+    "0x1401eff20": {
+      "name": "CGuiPanel::Reposition",
+      "evidence_id": "ev_43c85ea60704cce5f2837282a3e8a968a437aad0d30f25684bf04f4a68aff3c3"
+    },
+    "0x1401f0980": {
+      "name": "CGuiPanel::OnActivate",
+      "evidence_id": "ev_0412df1458c3ad8c85554c84b128df47cd5a804e008074ec06430a6db2211fa2"
+    },
+    "0x1401fb400": {
+      "name": "CGuiObject::PostAttachmentInitialize",
+      "evidence_id": "ev_c2f67d3c86e672f760a1886743bccc2bb0e97e26e6d7f09dd10fbf3eddd7ffb5"
+    },
+    "0x1401fc9f0": {
+      "name": "CenteredPanel<CGuiPanel>::Reposition",
+      "evidence_id": "ev_45ce316332255fa762aab53adbe3d3edf8c965487c35d443302e82dba03d692a"
+    },
+    "0x140201960": {
+      "name": "CPanelGenericEditBox::InitializeModel",
+      "evidence_id": "ev_93b210e5ee6d012f5ed78a313ae635413f8c0e3208a701efc28474b142abb40d"
+    },
+    "0x140201c10": {
+      "name": "CPanelOk::InitializeModel",
+      "evidence_id": "ev_f94c080cc6a580d9cf553a08993ac179a8b0ee3f35d4abd23f5a1352037bd4d3"
+    },
+    "0x140201cf0": {
+      "name": "CPanelOkScroll::InitializeModel",
+      "evidence_id": "ev_cfb45856bf12547ab811a101f2ea29fcab870392416c8eac13c15f6ac74239c0"
+    },
+    "0x140201f70": {
+      "name": "CPanelGenericEditBox::PostAttachmentInitialize",
+      "evidence_id": "ev_0f989576e2347ec92bf24ccdc88109a9c4c9e1992f0d3f0cb530740acf0d58be"
+    },
+    "0x140201fa0": {
+      "name": "CPanelOkCancel::PostAttachmentInitialize",
+      "evidence_id": "ev_ddcb2162ed13ea1f56bb7e39ba54dded2e15fb246c896a1f104c1637dc6879e9"
+    },
+    "0x140202070": {
+      "name": "CPanelStatus::PostAttachmentInitialize",
+      "evidence_id": "ev_bea0912135da2c3ea3169e5df2889fd22e4146e36605bbc5cfbf6f16e8bffcb3"
+    },
+    "0x1402021c0": {
+      "name": "CPanelYesNoCancel::PostAttachmentInitialize",
+      "evidence_id": "ev_9828893529d8acde268be9aa58330604330b8e07cb87bb4849057d4856835a21"
+    },
+    "0x1402022c0": {
+      "name": "CenteredPanel<CGuiModalPanel>::Reposition",
+      "evidence_id": "ev_26b283a023bbc4a74f9979c972ea4a9d186f9293ae66bf75f3faa2d6d27a63a8"
+    },
+    "0x1406f9e60": {
+      "name": "FUN_1406f9e60",
+      "evidence_id": "ev_8ba6d8b304c9712fa6e864e258f4c87626b86719624e1ac1a79243eec5efa297"
+    },
+    "0x140712b10": {
+      "name": "FUN_140712b10",
+      "evidence_id": "ev_fc25ecdf0cd52411485f5e1db72a0ce771eb25b6b8d931ebc07fe9472caddd04"
+    },
+    "0x140712cb0": {
+      "name": "FUN_140712cb0",
+      "evidence_id": "ev_107abb649a4c754b1e189cf847edbff485debc62b923122530570b8705bdf1e1"
+    },
+    "0x140712f90": {
+      "name": "FUN_140712f90",
+      "evidence_id": "ev_3f66be8e6a84ffaf1bedbc873c4ba4e11f8cf8cbaef1bdb796fc24b7ae2a46ab"
+    },
+    "0x140713510": {
+      "name": "FUN_140713510",
+      "evidence_id": "ev_b32ec5af6aec1aabe52dcbe862b5f9a16856017ad8f83e3df215ad648a24495b"
+    },
+    "0x140713b50": {
+      "name": "FUN_140713b50",
+      "evidence_id": "ev_fb8e48b9cd9ce7715332148e71339b8967614a674f6a03ee04c776b8020ab0b7"
+    },
+    "0x140713e90": {
+      "name": "FUN_140713e90",
+      "evidence_id": "ev_62d653a542c30c5802ff310f50c11d286b2748062ede82244d90480fb62d942f"
+    },
+    "0x140714d80": {
+      "name": "FUN_140714d80",
+      "evidence_id": "ev_00bba9e0f2d81d75d2f1e7883d6aeea03143766a1c8a433a183d9a69950ea36a"
+    },
+    "0x1407b9390": {
+      "name": "CGuiPanel::SetPositionScreenCenter",
+      "evidence_id": "ev_e666aac73c4d1b7f8418e41d212d31249102705ab5a8f661882125e17cda0b58"
+    },
+    "0x14081a420": {
+      "name": "FUN_14081a420",
+      "evidence_id": "ev_ea6339976210879f10443614aa32f96fd0f098f51f3af0d9660d4753548b2f3d"
+    },
+    "0x14081a870": {
+      "name": "FUN_14081a870",
+      "evidence_id": "ev_fbf504d1adc5c4c0f6a6b5a7072b7602b86e99e5f18913af83f23cef888e4803"
+    },
+    "0x14081a880": {
+      "name": "FUN_14081a880",
+      "evidence_id": "ev_a4f6a82ab58f60471ff173b899af586ece2941da0b555a9557d50c498da1ab83"
+    },
+    "0x14081a910": {
+      "name": "FUN_14081a910",
+      "evidence_id": "ev_1cef21d4b7d4cb08c810677b5d812d46286af2fdd28912d2a05dc214d3a9b247"
+    },
+    "0x1408305c0": {
+      "name": "FUN_1408305c0",
+      "evidence_id": "ev_b6ffb8ab9ecdb2cd9fcb5b4a61a3c75c6993dd43865d3c1b5d8722e07d5cd014"
+    },
+    "0x140830b50": {
+      "name": "FUN_140830b50",
+      "evidence_id": "ev_8e21b700a35deb4acfa27fcdd47fdd6f05e03d9f7a36efb55169b23ae90d7c8c"
+    },
+    "0x140847e20": {
+      "name": "FUN_140847e20",
+      "evidence_id": "ev_0bac8891aaf3015e56ccdbbceaf0e6b95c6f94349ef3abf49a7f48baa460cd20"
+    },
+    "0x1408484d0": {
+      "name": "FUN_1408484d0",
+      "evidence_id": "ev_dcd48074c21b6bfc7225dcf0c379f336a7b2aba6d5064e982b6ba4c81bd3873a"
+    },
+    "0x140848ad0": {
+      "name": "FUN_140848ad0",
+      "evidence_id": "ev_d4b232c2f1e8f9579d2805121d9eeb204187efc147e9a5e4aa30911dc9a7b27a"
+    },
+    "0x1408496c0": {
+      "name": "FUN_1408496c0",
+      "evidence_id": "ev_0b871f20bf8cb50d6a5b8256442255683d0f7a7b400fd90c5e6f80d4c30514c7"
+    },
+    "0x1408496e0": {
+      "name": "FUN_1408496e0",
+      "evidence_id": "ev_2778d4f5d01c216475f1216b7acf2825ab36dd5a334c8aeffe1878684b3cd33f"
+    },
+    "0x140849870": {
+      "name": "FUN_140849870",
+      "evidence_id": "ev_c64eecbb8a46b985b76a4191751bd84dfd2ed1bb0e56f5535b40f28ebfd08acd"
+    },
+    "0x140849920": {
+      "name": "FUN_140849920",
+      "evidence_id": "ev_e1c9c9ae70b9112f68bcfdcb701a4cd33a108c78da08216c5010a5b3b8eec5ff"
+    },
+    "0x140860010": {
+      "name": "FUN_140860010",
+      "evidence_id": "ev_42f2afec0cfcf5e04b2e7f2ab72a4000a92983d224d44e406556d5a6c8c06615"
+    },
+    "0x140874d60": {
+      "name": "FUN_140874d60",
+      "evidence_id": "ev_c326512e4e030921839dcb6f00459ca8d0969a9f4ff7ce21181ac006bb8de8df"
+    },
+    "0x14087cfe0": {
+      "name": "FUN_14087cfe0",
+      "evidence_id": "ev_b8ee3139d701912555f9f0f59464d28bee8370c8a27f6cd6d5817c8c0f4c5541"
+    },
+    "0x1408851a0": {
+      "name": "FUN_1408851a0",
+      "evidence_id": "ev_9786a239abea84afbfdc970c4ccde9b7c7a1864aeb1d17ae48deebf7ff031e0f"
+    },
+    "0x1408853e0": {
+      "name": "FUN_1408853e0",
+      "evidence_id": "ev_62f6a5359ebf757028ed757d5d2056690dd52bc2149e50f0260d6f5e97177656"
+    },
+    "0x14088aef0": {
+      "name": "FUN_14088aef0",
+      "evidence_id": "ev_d69b6a3a9f6e44e28eb1145e742a0fbbbd63dd18e9ee6abda1e19ddd6491c90c"
+    },
+    "0x14088afb0": {
+      "name": "FUN_14088afb0",
+      "evidence_id": "ev_82e26bb5a1652a2b8dd93ef838a81d85d3e885cd49142378fc1c359f33bd9741"
+    },
+    "0x140893b60": {
+      "name": "FUN_140893b60",
+      "evidence_id": "ev_bed21a1ffaaaf0ceec7ba4e47c4c4ff3287d36d10c30d1a7374b498546b61fe8"
+    },
+    "0x140895b20": {
+      "name": "FUN_140895b20",
+      "evidence_id": "ev_f6f498f4f9fceca7109f1f81719116d9ff0cf4b894217c6cdc635ac691e0aee8"
+    },
+    "0x140898dc0": {
+      "name": "FUN_140898dc0",
+      "evidence_id": "ev_378d6be3f6512f871a14f6b53b948fd99f5b8b338c7e378c0ca3105db2051913"
+    },
+    "0x140898f30": {
+      "name": "FUN_140898f30",
+      "evidence_id": "ev_0c68d58bcaf803e4163d142f966dbbc3233d06612c19637c3197cbca20510da5"
+    },
+    "0x1408be660": {
+      "name": "FUN_1408be660",
+      "evidence_id": "ev_1f4103d503e869169cf6e383c24a890634d5096250cb71f592852196e701bbad"
+    },
+    "0x1408be9f0": {
+      "name": "FUN_1408be9f0",
+      "evidence_id": "ev_08c66ab9048e9b68c9df5a8f869cb050015c7620aecd64e1ffcae6f8f2fbc5d6"
+    },
+    "0x1408bedb0": {
+      "name": "FUN_1408bedb0",
+      "evidence_id": "ev_49a9f6523fb178c346ab14889c6bba1a69da6a2b4f13c729591209e39e7ef834"
+    },
+    "0x1408d28e0": {
+      "name": "FUN_1408d28e0",
+      "evidence_id": "ev_0634f6599cf0ae8c20d5c1f49255b12f812e7ddd014b71c80f2e9ae11371a207"
+    },
+    "0x1408d3c60": {
+      "name": "FUN_1408d3c60",
+      "evidence_id": "ev_fe00210f920570e5ae74ee7de01acd907dee9a0823a424067253deef3a621079"
+    },
+    "0x1408d3e50": {
+      "name": "FUN_1408d3e50",
+      "evidence_id": "ev_1a9b6b0d3ea28806d754031e998dd311a23b35384747e8c5dd9955cfaa1aa7c9"
+    },
+    "0x1408d44d0": {
+      "name": "FUN_1408d44d0",
+      "evidence_id": "ev_e6a79e2628b5c93fe6863d9d6c0052ab1c22ad35557051112bc08812c02aa192"
+    },
+    "0x1408d6110": {
+      "name": "CGuiPanel::SetPositionScreenCenter",
+      "evidence_id": "ev_ce950e1704883a89905866fdaff8056731c3196eed6dfa1f724aa3834c3f2afe"
+    },
+    "0x1408d6120": {
+      "name": "CGuiPanel::SetPositionScreenCenter",
+      "evidence_id": "ev_8f70dee8eeacb900a3308ce972c9aa7884d3e01ab1457c299025bbb5045a7190"
+    },
+    "0x1408e8df0": {
+      "name": "FUN_1408e8df0",
+      "evidence_id": "ev_2f2ebea7c47013c4c6589a84a9b8bb052ec500a090d9d516f6363d3e13bcf3d5"
+    },
+    "0x1408e8fe0": {
+      "name": "FUN_1408e8fe0",
+      "evidence_id": "ev_b184fac8b7d51db79c71695679e4615a1590d442422f4d210e54db77875473d5"
+    },
+    "0x1408ea6a0": {
+      "name": "FUN_1408ea6a0",
+      "evidence_id": "ev_485295c9b51b3560808a9ee662cf9efb3008c084f3fa819283e2ea29bc231158"
+    },
+    "0x1408eade0": {
+      "name": "FUN_1408eade0",
+      "evidence_id": "ev_2359706b154b87837b03b66795ad46d52f75f926a5f48aa65009b8223c450a68"
+    },
+    "0x1408eb480": {
+      "name": "FUN_1408eb480",
+      "evidence_id": "ev_8c544f065f25694d52237f59a6dfa7d8e6554eb7512e52d8096a251c7dcf2707"
+    },
+    "0x1408ec4b0": {
+      "name": "FUN_1408ec4b0",
+      "evidence_id": "ev_047ba9e4b08cee57caf1583579399e14581b75c271a962b906066ac269170d3b"
+    },
+    "0x1408ec740": {
+      "name": "FUN_1408ec740",
+      "evidence_id": "ev_ed6684b74e116342cc23fc977962a8f2b8a98ba16575051fcb18a20ef9e947be"
+    },
+    "0x1408ecc60": {
+      "name": "FUN_1408ecc60",
+      "evidence_id": "ev_420fc77758c9211fbd953f819a2471fda456539e3e21f392edac79d864f70cbe"
+    },
+    "0x1408ed110": {
+      "name": "FUN_1408ed110",
+      "evidence_id": "ev_6b9d26f014463490111807e56d64010dae3e20362740888fda4aa3efc9bc94ec"
+    },
+    "0x1408ed810": {
+      "name": "FUN_1408ed810",
+      "evidence_id": "ev_2019df79d5a32cfd5903b2d4a7e6dcd62a43de2a34e92b88f3cb6e656b915831"
+    },
+    "0x1408ed900": {
+      "name": "FUN_1408ed900",
+      "evidence_id": "ev_1b7d74e3118e5e732ef1159d91e1183852a4b3e8101bb2feaa146f5d1e5f8794"
+    },
+    "0x1408edb00": {
+      "name": "FUN_1408edb00",
+      "evidence_id": "ev_62e3dc4aa2db8dc53ac3eb666a1cb3cf69c8119c8d4e83f57fd8c51436da6886"
+    },
+    "0x1408edda0": {
+      "name": "FUN_1408edda0",
+      "evidence_id": "ev_adcb6b0e83dd44c35c5708e0673813aedecee5be65bf55b66514d5c58acadce0"
+    },
+    "0x1408ede10": {
+      "name": "FUN_1408ede10",
+      "evidence_id": "ev_a6a5f16f220098e63be18613f88666a4e3ded14b0747b4dba1f3a7ce266e51da"
+    },
+    "0x1408edfb0": {
+      "name": "FUN_1408edfb0",
+      "evidence_id": "ev_1ed5724b72e97b0fa8bd0f72ef7a091d0bbf7213c3097ba98d3cb5184703e471"
+    },
+    "0x14097c810": {
+      "name": "FUN_14097c810",
+      "evidence_id": "ev_89cde1d7fe712571cd2ab0f15db5bad63176cd8a7da3dfad544e6543b7a30977"
+    },
+    "0x14097ca50": {
+      "name": "FUN_14097ca50",
+      "evidence_id": "ev_3e19555a56c11338549eb45a59d6bd9474d1c4d35a0cd289ce292e6e99c8a82f"
+    },
+    "0x14097dc10": {
+      "name": "FUN_14097dc10",
+      "evidence_id": "ev_0b0813e813b17e2b9495a4e299a2398cfca57e574f08ae74cbf247fadb1d8c56"
+    },
+    "0x14097e030": {
+      "name": "FUN_14097e030",
+      "evidence_id": "ev_5142ca7c71fd764cfd560919f8ed41630dab666d4c4d6052baa36fa14b71525a"
+    },
+    "0x1409aa9b0": {
+      "name": "FUN_1409aa9b0",
+      "evidence_id": "ev_f8147253d8a4dcf61397a2a525584dc0b517b6daffee8983fded7b7776bc3e16"
+    },
+    "0x1409aaae0": {
+      "name": "FUN_1409aaae0",
+      "evidence_id": "ev_33b42cd279969936649460300c08d3cab3387fab8c865a4ed927de66e10d074c"
+    },
+    "0x1409aaba0": {
+      "name": "FUN_1409aaba0",
+      "evidence_id": "ev_a3ab2830bc76288516708b8977ac64f6022cd72989dd072b4d523b3dff66596b"
+    },
+    "0x1409cc0f0": {
+      "name": "FUN_1409cc0f0",
+      "evidence_id": "ev_3f056eccdece33833b336342eed56ffe3e562b1e3c69731e9dd9247288639bf9"
+    },
+    "0x1409cc4f0": {
+      "name": "FUN_1409cc4f0",
+      "evidence_id": "ev_9faf84e4aaf65ffdb68fd30c21fd4778cdc66729fe7bd82f4ed9093329fd9648"
+    },
+    "0x1409cc890": {
+      "name": "FUN_1409cc890",
+      "evidence_id": "ev_9577c6778b353f3bfe7d2c7dd22a77701dc4a54b25870bc1f6b087f8638f5307"
+    },
+    "0x1409ccb40": {
+      "name": "FUN_1409ccb40",
+      "evidence_id": "ev_044da7f8becd113fc6d03e1f50c96109a9ff4756c755df56d53d53539f889912"
+    },
+    "0x1409cce50": {
+      "name": "FUN_1409cce50",
+      "evidence_id": "ev_cabda06ef4e689707b6fb140a4d9cdecfb4567b6dc2016ff999e07a528fe38e5"
+    },
+    "0x1409cd040": {
+      "name": "FUN_1409cd040",
+      "evidence_id": "ev_5ec314780cf88d4e2ec7e4b36ceabe3334cbb794b1cc72323c7c2ae1a233041b"
+    },
+    "0x1409cd600": {
+      "name": "FUN_1409cd600",
+      "evidence_id": "ev_e77c36899543041dc32b9619ece95a6c9bb43e111d0954a0cdd47eaab45105ad"
+    },
+    "0x1409cd7b0": {
+      "name": "FUN_1409cd7b0",
+      "evidence_id": "ev_204a0f3a28da602bbc80cf5c1f9ff6426bc7b02261dd0e4efa8551ebef1e1386"
+    }
+  },
+  "vtables": [
+    {
+      "name": "CPanelExample::vftable",
+      "vtable": "0x140db1aa0",
+      "as_panel_evidence_id": "ev_7678b39237c06c8b1dc898066b1a890ffbbaf252db13d90400a60921fd729636",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CGuiModalPanel::vftable",
+      "vtable": "0x140db2cd0",
+      "as_panel_evidence_id": "ev_6be8ac2b37e1e896c05799ddf9bcba953f8bda4b225af51ada2d4842a2273813",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CGuiPanel::vftable",
+      "vtable": "0x140db3650",
+      "as_panel_evidence_id": "ev_7ca14cba3e0d00609691aa88663c8aa524be48d804f7eb837e1a66d2ac8d626b",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CenteredPanel<CGuiPanel>::vftable",
+      "vtable": "0x140db37a0",
+      "as_panel_evidence_id": "ev_0c12b8fc504c0699ba5110f680c8181b75131978624eaa782b28d6c4cbd1520b",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CGuiFadePanel::vftable",
+      "vtable": "0x140db38f0",
+      "as_panel_evidence_id": "ev_04be615cd8f75f5c1a80a1b1e3edf657f3cdc0076e4f6f83e5ec1c9f235cd73e",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CenteredPanel<CGuiModalPanel>::vftable",
+      "vtable": "0x140db48d8",
+      "as_panel_evidence_id": "ev_09ca09f4369efea00214ecfc675304708c5a2da9592e2679c3aebc82d9d9c115",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelOk::vftable",
+      "vtable": "0x140db4a28",
+      "as_panel_evidence_id": "ev_9476c92cd1c9b1b5042c86c4f1474041b2369826b4c79cf0b543e1f01461a89c",
+      "slots": {
+        "0x8": "0x140201c10",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelOkScroll::vftable",
+      "vtable": "0x140db4b80",
+      "as_panel_evidence_id": "ev_291ff13749aeed461ebe848c9a9b9aba479e091d356f7267a03aed2d4ab1956b",
+      "slots": {
+        "0x8": "0x140201cf0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelGenericEditBox::vftable",
+      "vtable": "0x140db4df0",
+      "as_panel_evidence_id": "ev_0a7ed2a9a4f3ad80a63948ff5bc570e3032a2a3b7989b71bcd6b445515273fb6",
+      "slots": {
+        "0x8": "0x140201960",
+        "0x60": "0x140201f70",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelOkCancel::vftable",
+      "vtable": "0x140db4f48",
+      "as_panel_evidence_id": "ev_9cfb53106858fe2a98ca35ae64633140afa9ac94fd9520911da397fd98e9e550",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x140201fa0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelYesNoCancel::vftable",
+      "vtable": "0x140db5098",
+      "as_panel_evidence_id": "ev_f43353e670b4cca93385a7407fc53d04e6df69b77b9ea97080d4a438cc8637fc",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1402021c0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelStatus::vftable",
+      "vtable": "0x140db51e8",
+      "as_panel_evidence_id": "ev_15ddba51ca884cafb10f90e822b46a5ef7cb2d50791f894ca2c9a5723fca502e",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x140202070",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CPanelScreenFade::vftable",
+      "vtable": "0x140db5338",
+      "as_panel_evidence_id": "ev_dbd1ad4ad1cd08c0dd6b2be19bd198ed1b6fbe011a0e58beb28bea0b1a04ef22",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CPopupModalPanel::vftable",
+      "vtable": "0x140db5488",
+      "as_panel_evidence_id": "ev_49e837009538d6e47de653e572d6b45eca63cd689b260449865201ee5ae6d1e7",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CPanelOkNoEsc::vftable",
+      "vtable": "0x140e2e0c0",
+      "as_panel_evidence_id": "ev_14ca0ea378e32d14369da718a9ada0b08ca11de6384724b81f6761be19200a05",
+      "slots": {
+        "0x8": "0x140201c10",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "COptionsSplashPanel::vftable",
+      "vtable": "0x140e2e230",
+      "as_panel_evidence_id": "ev_69483cdde93f4c53e0529987b60e638b3dace045baaa938de7511b82eda8199e",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CPanelPartyInvitation::vftable",
+      "vtable": "0x140e308e8",
+      "as_panel_evidence_id": "ev_101f38683097fe4b77e778cf5cd55b74c18ce8c4027ff4af0abc6cb010d426d2",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1406f9e60",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CConfirmationCheckboxPanel::vftable",
+      "vtable": "0x140e33390",
+      "as_panel_evidence_id": "ev_50bb89da33b93fc30ead305e6f1339dc3e0bb15a45ef2f43045e741667c27b56",
+      "slots": {
+        "0x8": "0x140712cb0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCDKeyPanel::vftable",
+      "vtable": "0x140e33600",
+      "as_panel_evidence_id": "ev_de5759b96fb71c51313f772380ef0ca464f81dae24a442296da82f5588d24c5f",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x140713b50",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CMoviePanel::vftable",
+      "vtable": "0x140e339f8",
+      "as_panel_evidence_id": "ev_bb6ae320a71c4718c68f9a11d80b78398a28697555389b9b39ef156cc7a142e1",
+      "slots": {
+        "0x8": "0x140712f90",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CMultiplayerPanel::vftable",
+      "vtable": "0x140e33b48",
+      "as_panel_evidence_id": "ev_5b945ab59b69208e339a6593716ca6ddb696689e769ff8bcef7b196b671dee0c",
+      "slots": {
+        "0x8": "0x140713510",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCampaignMoviesPanel::vftable",
+      "vtable": "0x140e340a0",
+      "as_panel_evidence_id": "ev_9f8abf025e7f1a1d0aebc4498c2c04e173000a9dd4e620201c28bd9d99940fd2",
+      "slots": {
+        "0x8": "0x140712b10",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelCreditsScreenFadeClickable::vftable",
+      "vtable": "0x140e341f0",
+      "as_panel_evidence_id": "ev_c2419d897067be8c9a1ae75933592b431d0e638f18962f481331f7a6a99fc022",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CMainMenuBackgroundPanel::vftable",
+      "vtable": "0x140e344a0",
+      "as_panel_evidence_id": "ev_aaa6d80b2d9d5e0d94eb37a85274fbd2442d058e22128893e3738fabb6a3fea1",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x140714d80"
+      }
+    },
+    {
+      "name": "CConnectionMessagesPanel::vftable",
+      "vtable": "0x140e345f0",
+      "as_panel_evidence_id": "ev_e04b95ef08fb70575fd4ca79cd7b9b38e41cede06a37785511a8beec538af74f",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x140713e90",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CPanelScreenFadeClickable::vftable",
+      "vtable": "0x140e358d8",
+      "as_panel_evidence_id": "ev_9510ab5e7f3bc5b38f78e895daf91282f1cf4833f0e6ebf04dec223d282aeade",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CPanelLoadSave::vftable",
+      "vtable": "0x140e48de8",
+      "as_panel_evidence_id": "ev_1db471f36ae517444b12efdf586c47dc6406041135882a04d86717a7d128af9e",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x14081a870",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelSaveGame::vftable",
+      "vtable": "0x140e490a8",
+      "as_panel_evidence_id": "ev_83af50ac74e585763c1e38c72d2e28d9dff817e3fe13d431fc0b3e219342c902",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x14081a880",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelSaveNamePopup::vftable",
+      "vtable": "0x140e49208",
+      "as_panel_evidence_id": "ev_ea1400a9a4cc05f2cefd8515d1c177349729cc004de2a7e897f8ebd302420979",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x14081a910",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelCharVersionPopup::vftable",
+      "vtable": "0x140e49358",
+      "as_panel_evidence_id": "ev_72a4c2c811d971caa1a668b4f1bbb82ecc8f8c4fbff8d3f18c25f45439a122a2",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x14081a420",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "COptionsPanel::vftable",
+      "vtable": "0x140e4abe8",
+      "as_panel_evidence_id": "ev_48f1f7e5dde42774d80f208d048026b208f4583acf317f77a214c845bfe52c53",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x140830b50",
+        "0x100": "0x1408305c0",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelDMCreator::vftable",
+      "vtable": "0x140e4e278",
+      "as_panel_evidence_id": "ev_66e68a29f82f8cfe71bd944b87300cae4413ed5a98902c2926de4f056608c5c8",
+      "slots": {
+        "0x8": "0x1408484d0",
+        "0x60": "0x1408496c0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x140849920"
+      }
+    },
+    {
+      "name": "CPanelDMChooser::vftable",
+      "vtable": "0x140e4e3c8",
+      "as_panel_evidence_id": "ev_5f57472c6392cdf602a946549933836494790f2cc749ae8f7c87b44cbfd91f15",
+      "slots": {
+        "0x8": "0x140847e20",
+        "0x60": "0x140848ad0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x140849870"
+      }
+    },
+    {
+      "name": "CPanelSearchByTag::vftable",
+      "vtable": "0x140e4e518",
+      "as_panel_evidence_id": "ev_98cc2e63b0278ee06cb57053f63c54436bd960baac47a7d5f268bc36d5038f9e",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408496e0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelInvEquip::vftable",
+      "vtable": "0x140e50aa0",
+      "as_panel_evidence_id": "ev_4874b1f8831dc5d6e2861a73598e170a57b198d42ba420a68593c3bd943ee5fa",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CPanelInventory::vftable",
+      "vtable": "0x140e50d10",
+      "as_panel_evidence_id": "ev_a296128794cd92fc57631f731c72fe7b55acf7dceb5f5df7c521795a30937372",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CPanelQuickBar::vftable",
+      "vtable": "0x140e52900",
+      "as_panel_evidence_id": "ev_4d043159fce714f4ef927f0622296da17c9420e151d8207b38567a6d7f93701d",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x140860010"
+      }
+    },
+    {
+      "name": "CPanelActionQueue::vftable",
+      "vtable": "0x140e54498",
+      "as_panel_evidence_id": "ev_f4b4acb2f7feccb31676a36f86f70b49cbe158758e002fbb3104e285120c4803",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x140874d60"
+      }
+    },
+    {
+      "name": "CGuiIngamePortalPanel::vftable",
+      "vtable": "0x140e552d0",
+      "as_panel_evidence_id": "ev_c8571abccf3207efaea64fa6cef5b613fb531fc22e0aa46c8ea6b1d366dfd287",
+      "slots": {
+        "0x8": "0x14087cfe0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CJournalPanel::vftable",
+      "vtable": "0x140e56168",
+      "as_panel_evidence_id": "ev_7f043d857752a3a5230ed2289b4cb2dc3b4bb6832d81b2cb96702cbb752e6068",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408853e0",
+        "0x100": "0x1401ef8b0",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CPanelAddNewWorldEntry::vftable",
+      "vtable": "0x140e56ae0",
+      "as_panel_evidence_id": "ev_63fabc61a2ad50699e3ee4562401ed5ebe719407f5674628df1ce12fccc74087",
+      "slots": {
+        "0x8": "0x1408851a0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelCharSheet::vftable",
+      "vtable": "0x140e57cc0",
+      "as_panel_evidence_id": "ev_cd11b779199a2d287465f905f611566b3adc894cccce5c97b24a8e93d0aef73c",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x14088aef0",
+        "0x100": "0x1401ef8b0",
+        "0x120": "0x14088afb0"
+      }
+    },
+    {
+      "name": "CPanelPinText::vftable",
+      "vtable": "0x140e58f98",
+      "as_panel_evidence_id": "ev_384959b0b0fd7c14d31730f62ac1348a0f1614266533d2eac7ee2a8f3e0f4d0f",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x140893b60",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelPlayerStateBar::vftable",
+      "vtable": "0x140e59590",
+      "as_panel_evidence_id": "ev_56df56188ea405dd06ed548b23873db272e5f8ad4178b9e623eeb6b08b0d8736",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x140895b20"
+      }
+    },
+    {
+      "name": "CGuiExaminePanel::vftable",
+      "vtable": "0x140e59888",
+      "as_panel_evidence_id": "ev_036a7e6caffdc463b9c23c8937d218a275d3a023b2b10d0bf1d92d2094de9a1a",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x140898f30",
+        "0x100": "0x140898dc0",
+        "0x120": "0x1407b9390"
+      }
+    },
+    {
+      "name": "CPregameOptionsPanel::vftable",
+      "vtable": "0x140e5e830",
+      "as_panel_evidence_id": "ev_fed4a6a06e2aaa1dd28c38dd569344252f5e629bfeebe023f68f1bb9f7145929",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408be9f0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CServerOptionsPanel::vftable",
+      "vtable": "0x140e5e980",
+      "as_panel_evidence_id": "ev_d5456bb772b0a4e3fe46fdb20c5c46ec3b2fc47407e026176002a226cc898975",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408bedb0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CAdvancedServerOptionsPanel::vftable",
+      "vtable": "0x140e5ead0",
+      "as_panel_evidence_id": "ev_8a431a966115f93fd50c92d4bf5eeac512a2c9e52983d4f551ec390290f10fcc",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408be660",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CMessageOfTheDayPanel::vftable",
+      "vtable": "0x140e607c8",
+      "as_panel_evidence_id": "ev_428cf8b573efeaf69f8ac39d381a9e60b2e031442aaa0fafc834267b4ecd1e46",
+      "slots": {
+        "0x8": "0x140712cb0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CServerIPPanel::vftable",
+      "vtable": "0x140e60bd8",
+      "as_panel_evidence_id": "ev_9589e6dce96630f2c6b7f883de4a9fe5d1e169b27b3675473ba8a58d0d5bbf3f",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408d44d0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPlayerPasswordPanel::vftable",
+      "vtable": "0x140e60d28",
+      "as_panel_evidence_id": "ev_2e8ec4c9e6b1b072b70dfaeb98b829be0d010a9a16184593c346f8fdd33ac89e",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408d3c60",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPlayerProfilePanel::vftable",
+      "vtable": "0x140e60e78",
+      "as_panel_evidence_id": "ev_192ad9e70cda67dff88d8efac932379605f2d02c6de76f5e70c349aab8b15ff0",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408d3e50",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CenteredPanel<CServerPage>::vftable",
+      "vtable": "0x140e61518",
+      "as_panel_evidence_id": "ev_a2aafca5c5449728c3fc8a545fb7afcb0650fdcdaac757ee2ae9b7947e7634e8",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1408d6120"
+      }
+    },
+    {
+      "name": "CenteredPanel<CGuiPageControl>::vftable",
+      "vtable": "0x140e61978",
+      "as_panel_evidence_id": "ev_1fa742f6c7ec401eccb3d5938459cb98d5c3d29ec8b0a467d76ad540be3f2528",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401ef8b0",
+        "0x120": "0x1408d6110"
+      }
+    },
+    {
+      "name": "CFilterPanel::vftable",
+      "vtable": "0x140e622a8",
+      "as_panel_evidence_id": "ev_a389edf085a1a7fb44a91cc0f811281d39d46499cad2957a7eec07c45d930e7d",
+      "slots": {
+        "0x8": "0x1408d28e0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterAlignmentPanel::vftable",
+      "vtable": "0x140e64018",
+      "as_panel_evidence_id": "ev_99f9653021c8a3451b2e093293f964fbe665b06e62e6e9fb268e7db251398a14",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408eade0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterAppearancePanel::vftable",
+      "vtable": "0x140e64168",
+      "as_panel_evidence_id": "ev_c9689dbf2c253ea09e7c92e3a1d384c73a6a739c434420340ac11d149814b134",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408eb480",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterAbilitiesPanel::vftable",
+      "vtable": "0x140e642b8",
+      "as_panel_evidence_id": "ev_49be46c10f9bd7536c164deb1c2b700ef040dd7448ef705fbf6aae6f8b780492",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408ea6a0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterClassPanel::vftable",
+      "vtable": "0x140e64528",
+      "as_panel_evidence_id": "ev_50f38d25b4b4f542f09e0294bd280da5be10c505408e37aa31ee1e415cf468a9",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408ec4b0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterGenerationPanel::vftable",
+      "vtable": "0x140e64678",
+      "as_panel_evidence_id": "ev_19b6cc6d2af004fa0a6220e4499223af4281ea95cc3cd836e6496cd40f45a61d",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408ec740",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CCharacterInfoPanel::vftable",
+      "vtable": "0x140e647c8",
+      "as_panel_evidence_id": "ev_6b61d46646e0d8319c73095143596238480546e1b643bf22eec2914e64fcf498",
+      "slots": {
+        "0x8": "0x1408e8df0",
+        "0x60": "0x1408ecc60",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterPackagesPanel::vftable",
+      "vtable": "0x140e64918",
+      "as_panel_evidence_id": "ev_238fdcd66b34d82c89a69c94d5af08f66fafb0d43d0c964d19d9dc3c566a3f03",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408ed900",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterPortraitPanel::vftable",
+      "vtable": "0x140e64a68",
+      "as_panel_evidence_id": "ev_72917d661eed4a3b4056e40c46758abf1e06cfada359bd09bca9db609318125a",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408edb00",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterRacePanel::vftable",
+      "vtable": "0x140e64bb8",
+      "as_panel_evidence_id": "ev_7b2d4b5000b0deaaa6ffb7f24e1fcb45faf14ed17f05f44f9737c934a85f74da",
+      "slots": {
+        "0x8": "0x1408e8fe0",
+        "0x60": "0x1408edda0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterSubRaceCustomPanel::vftable",
+      "vtable": "0x140e64d08",
+      "as_panel_evidence_id": "ev_ac6931a2c2f360fa439df44e8b5fcc06f9c530ed69e6003179105f7a40f1bce2",
+      "slots": {
+        "0x8": "0x140201960",
+        "0x60": "0x140201f70",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterSexPanel::vftable",
+      "vtable": "0x140e64e60",
+      "as_panel_evidence_id": "ev_459e5033eb17c170ae09f149f4db4ec66a312926d992b7c28377ba74af81f680",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408ede10",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCreateCharacterPanel::vftable",
+      "vtable": "0x140e64fb0",
+      "as_panel_evidence_id": "ev_9926d834b2d906a8cf10ba88f1845c1903cff80fa3ab5059137f57f31a793e2a",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408edfb0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CCharacterLevelUpAbilitiesPanel::vftable",
+      "vtable": "0x140e65100",
+      "as_panel_evidence_id": "ev_c3c22823112e2750d7a7a21cf134a8b6832f3d6dfd33502f180663f61c34e63f",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408ed110",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1401fc9f0"
+      }
+    },
+    {
+      "name": "CCharacterLevelUpSummaryPanel::vftable",
+      "vtable": "0x140e65250",
+      "as_panel_evidence_id": "ev_a4c8a0c2cf7bd89b77e1602a8db71a19e4e93485ba159cd8b749e665e81bea8c",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1408ed810",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CPanelStore::vftable",
+      "vtable": "0x140e71778",
+      "as_panel_evidence_id": "ev_92a156648358570cb6414e68f56fdd15bedcfc9e9d4e3b0eb4094030479a8312",
+      "slots": {
+        "0x8": "0x14097c810",
+        "0x60": "0x1401fb400",
+        "0x100": "0x14097ca50",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CGuiBarterPanel::vftable",
+      "vtable": "0x140e71ce0",
+      "as_panel_evidence_id": "ev_6b2989b3988e0dd8f4a3533885af386ddae514a36455bbf11f515a33034d195f",
+      "slots": {
+        "0x8": "0x14097dc10",
+        "0x60": "0x1401fb400",
+        "0x100": "0x14097e030",
+        "0x120": "0x1401eff20"
+      }
+    },
+    {
+      "name": "CPanelBuySellConfirm::vftable",
+      "vtable": "0x140e76810",
+      "as_panel_evidence_id": "ev_f4ad1e4d251f3b6bb082fecf7fb12037e6912bbc90ca3a2a8830025be49bb7cd",
+      "slots": {
+        "0x8": "0x1409aaae0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1409aaba0",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CGuiItemStackSplitPanel::vftable",
+      "vtable": "0x140e76960",
+      "as_panel_evidence_id": "ev_433b2395732f340536248ca368c28e132d5eac334c2afb490af26d76b94e35f2",
+      "slots": {
+        "0x8": "0x1409aa9b0",
+        "0x60": "0x1401fb400",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterDomainPanel::vftable",
+      "vtable": "0x140e7aef0",
+      "as_panel_evidence_id": "ev_f06f9499f7ec93b450c63367919ea1d58ae32799038a7cd8f1ec2539b6fe485b",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1409cc0f0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterFeatsPanel::vftable",
+      "vtable": "0x140e7b040",
+      "as_panel_evidence_id": "ev_49bbf0087351fb4212dcb844db99cd29d829fdb33e1f11e697af56649e1b24b5",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1409cc890",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterSchoolsPanel::vftable",
+      "vtable": "0x140e7b2e0",
+      "as_panel_evidence_id": "ev_14974ce88893e7803bf1aa4eb57dfea232ed6119b859c8c304240d090264f52f",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1409ccb40",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterSkillsPanel::vftable",
+      "vtable": "0x140e7b430",
+      "as_panel_evidence_id": "ev_54d6beb27389808a0e9ac1468a69c10ae7a4604dba38a2b29214d8206071bc64",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1409cce50",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterSpellsPanel::vftable",
+      "vtable": "0x140e7b580",
+      "as_panel_evidence_id": "ev_3c23e60dccccbb76937628b56ba0b10bd002e81b861d4422142c396b18b82f3a",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1409cd040",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CFeatInfoPanel::vftable",
+      "vtable": "0x140e7b6d8",
+      "as_panel_evidence_id": "ev_7bd3737261fb321212bfb865100f7a4ac0bdff1fc8933398ed2039ea3a994415",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1409cd600",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CSpellInfoPanel::vftable",
+      "vtable": "0x140e7b828",
+      "as_panel_evidence_id": "ev_59652a5294e1fe55b0c910558e21dc46b8bcbe5d2e146778c8ef1090d73deb85",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1409cd7b0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    },
+    {
+      "name": "CCharacterFamiliarPanel::vftable",
+      "vtable": "0x140e7b978",
+      "as_panel_evidence_id": "ev_5e1e59e2c1a86696e2d6fbd5916184bb07d0d6a1b21c59bc8805816d797bbf45",
+      "slots": {
+        "0x8": "0x1401e58d0",
+        "0x60": "0x1409cc4f0",
+        "0x100": "0x1401f0980",
+        "0x120": "0x1402022c0"
+      }
+    }
+  ]
+}

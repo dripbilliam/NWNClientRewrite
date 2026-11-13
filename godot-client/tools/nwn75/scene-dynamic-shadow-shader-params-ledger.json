@@ -1,0 +1,12 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Connected dynamic-shadow per-item shader vector and float state setters to GLRender generation producers",
+  "document": "scene-dynamic-shadow-shader-params.md",
+  "edges": [
+    {"from":"0x1400ce3a0","to":"0x1400bf280","callsite":"0x1400ce752","kind":"direct_call","condition":"shader available; admitted shadow bucket TriMesh with VDO and positive pending element count; vector parameter 0","status":"shadow_projection_source_stage","evidence_id":"ev_f6163d24843180dba61eb829063bf49413891098e62898a0e8a20c0044ee742c"},
+    {"from":"0x1400ce3a0","to":"0x1400bf260","callsite":"0x1400ce786","kind":"direct_call","condition":"same admitted item; float parameter 1 from absent projection or clamped projection+0x60","status":"shadow_projection_z_clip_stage","evidence_id":"ev_5a5844c744669932807a1707c51cc952c54988b92938dafe0bec83c39b8f2dc3"},
+    {"from":"0x1400bf280","to":"0x1400b7cb0","callsite":"0x1400bf291","kind":"direct_call","condition":"interface copies four floats to stack then calls GLRender implementation","status":"shadow_vector_generation_producer","evidence_id":"ev_f0b8f9b895744afab3b6096f510e898d1e7ef01199d10868b0dd09881c04802a"},
+    {"from":"0x1400bf260","to":"0x1400b7c70","callsite":"0x1400bf260","kind":"tail_jump","condition":"RenderInterface five-byte E9 thunk to GLRender implementation","status":"shadow_float_generation_producer","evidence_id":"ev_2f0f7a8da275c36c5364757839c041b1324a3a4dccb41069e4da59aec79db944"}
+  ]
+}

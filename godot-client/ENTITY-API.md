@@ -188,7 +188,7 @@ conservatively retire/re-add that ID. The API does not infer identity from an ID
 alone. A canonical token mismatch during lookup returns null even before a
 replacement boundary is committed.
 
-The [disclosure-lifetime validation](NATIVE-ENTITY-LIFETIME.md) records the actual
+The [disclosure-lifetime validation](../docs/research.md) records the actual
 World/raw-frame/native-session pipeline and196 source-hashed checks. This
 includes coalesced D+A stale-reference outcomes; it is isolated headless
 acceptance with authored decoded records/native owners, not live-client or

@@ -1,0 +1,9 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Light text-postprocess callback-to-texture-reference connector; TriMesh cleanup registration source alias canonicalized separately; exported AnimMesh InternalCreateInstance classified without a speculative in-image call.",
+  "edges": [
+    {"from":"0x140087640","to":"0x140092d70","site":"0x1400876bc","site_evidence_id":"ev_185a32d6065ad6665639879f23c0ffb24680e83633f66e0e7c376a336101c7a5","kind":"resolved_original_function_pointer_assignment","condition":"MdlNodeLight constructor installs PostProcess wrapper at node +0x10","status":"light_postprocess_callback_registered","evidence_id":"ev_e04e8b3cbe48a6e9c4c75eb7ea919c5254889226f9a5ba6985282d5c66f67ba1"},
+    {"from":"0x140092d70","to":"0x1400a9940","callsite":"0x140092d70","callsite_evidence_id":"ev_28e28a281962f766749b6b7b3386d88857997c730c2382042f39cbdc860c2cbf","kind":"direct_tail_jump","condition":"Light PostProcess wrapper forwards to InternalPostProcess after authored endnode; text flare texture-name count may be zero","status":"light_flare_texture_reference_acquisition","evidence_id":"ev_f96d691ff082b395c591457ecd0fe60826b133aa2d898fd5b2259e08b7ee7d2e"}
+  ]
+}

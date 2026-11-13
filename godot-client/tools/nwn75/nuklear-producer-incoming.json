@@ -1,0 +1,827 @@
+{
+  "schema": "nwn75-original-ui-producer-incoming-calls-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Ghidra incoming direct call references to each known central numeric UI command producer; static call graph only. Computed/inline paths and live reachability remain open.",
+  "entries": [
+    {
+      "producer": "0x140a84760",
+      "numeric_kind": 1,
+      "evidence_id": "ev_d4c75bf3393ba23c17b8d6b3dd4524beef2b501e6c9f20a65d512b5830532e6b",
+      "direct_callers": [
+        {
+          "caller": "0x140a84ae0",
+          "callsite": "0x140a84d42"
+        },
+        {
+          "caller": "0x140a87260",
+          "callsite": "0x140a8729f"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a89150",
+      "numeric_kind": 1,
+      "evidence_id": "ev_d160dd0d815b40f4c7050416801c73239a053d8a12dc3422fe1f7528912c05f4",
+      "direct_callers": [
+        {
+          "caller": "0x140951260",
+          "callsite": "0x1409516f3"
+        },
+        {
+          "caller": "0x140951260",
+          "callsite": "0x140952413"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a63ea3"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a64477"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a64562"
+        },
+        {
+          "caller": "0x140a6c8a0",
+          "callsite": "0x140a6cb01"
+        },
+        {
+          "caller": "0x140a6cc40",
+          "callsite": "0x140a6d9a0"
+        },
+        {
+          "caller": "0x140a6db10",
+          "callsite": "0x140a6dbca"
+        },
+        {
+          "caller": "0x140a84760",
+          "callsite": "0x140a84a56"
+        },
+        {
+          "caller": "0x140a87fc0",
+          "callsite": "0x140a88086"
+        },
+        {
+          "caller": "0x140a885c0",
+          "callsite": "0x140a887cb"
+        },
+        {
+          "caller": "0x140a888f0",
+          "callsite": "0x140a88983"
+        },
+        {
+          "caller": "0x140a888f0",
+          "callsite": "0x140a889f1"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a67fa0",
+      "numeric_kind": 2,
+      "evidence_id": "ev_b6f8ab2172c5eb7eaa57042c879ef094422ca7683e4b3331bc3c6026500314d2",
+      "direct_callers": [
+        {
+          "caller": "0x140a78b20",
+          "callsite": "0x140a78ce1"
+        },
+        {
+          "caller": "0x140a78d20",
+          "callsite": "0x140a78eda"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a8be00",
+      "numeric_kind": 2,
+      "evidence_id": "ev_7a06f69a2d4c1668a151455ce6c03ba20a858d8b2bbffcc584e50d974a107d74",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073c42d"
+        },
+        {
+          "caller": "0x14095b1a0",
+          "callsite": "0x14095b9cb"
+        },
+        {
+          "caller": "0x140a611a0",
+          "callsite": "0x140a61392"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a8bd10",
+      "numeric_kind": 3,
+      "evidence_id": "ev_ea3d7b7187d84c99e73d4787ca46669d02bf9654f3d78a113b6fb60586b115cc",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073c866"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a8c120",
+      "numeric_kind": 4,
+      "evidence_id": "ev_33ab50af8818232381744aa6b5d7d9a54b281176973fa225061a3ac7bd7caa0a",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073ca5f"
+        },
+        {
+          "caller": "0x140951260",
+          "callsite": "0x1409527e3"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a6368f"
+        },
+        {
+          "caller": "0x140a64610",
+          "callsite": "0x140a64850"
+        },
+        {
+          "caller": "0x140a64610",
+          "callsite": "0x140a6493c"
+        },
+        {
+          "caller": "0x140a649c0",
+          "callsite": "0x140a6510f"
+        },
+        {
+          "caller": "0x140a67be0",
+          "callsite": "0x140a67cc4"
+        },
+        {
+          "caller": "0x140a68af0",
+          "callsite": "0x140a68be7"
+        },
+        {
+          "caller": "0x140a68af0",
+          "callsite": "0x140a68cb1"
+        },
+        {
+          "caller": "0x140a68f10",
+          "callsite": "0x140a690a8"
+        },
+        {
+          "caller": "0x140a6db10",
+          "callsite": "0x140a6e338"
+        },
+        {
+          "caller": "0x140a79250",
+          "callsite": "0x140a794d1"
+        },
+        {
+          "caller": "0x140a79790",
+          "callsite": "0x140a79a11"
+        },
+        {
+          "caller": "0x140a79d20",
+          "callsite": "0x140a79fe5"
+        },
+        {
+          "caller": "0x140a7a360",
+          "callsite": "0x140a7a633"
+        },
+        {
+          "caller": "0x140a7a930",
+          "callsite": "0x140a7ac1c"
+        },
+        {
+          "caller": "0x140a7af60",
+          "callsite": "0x140a7b229"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a82050",
+      "numeric_kind": 5,
+      "evidence_id": "ev_f740b11307f843be2745ae3d9f0c45afab03527bf160e6c43973474d8b302184",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073c9a6"
+        },
+        {
+          "caller": "0x140951260",
+          "callsite": "0x140952450"
+        },
+        {
+          "caller": "0x14095b1a0",
+          "callsite": "0x14095b743"
+        },
+        {
+          "caller": "0x140a60fe0",
+          "callsite": "0x140a61173"
+        },
+        {
+          "caller": "0x140a611a0",
+          "callsite": "0x140a61327"
+        },
+        {
+          "caller": "0x140a611a0",
+          "callsite": "0x140a61452"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a636b0"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a6434e"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a64407"
+        },
+        {
+          "caller": "0x140a64610",
+          "callsite": "0x140a64822"
+        },
+        {
+          "caller": "0x140a64610",
+          "callsite": "0x140a64900"
+        },
+        {
+          "caller": "0x140a649c0",
+          "callsite": "0x140a650da"
+        },
+        {
+          "caller": "0x140a67be0",
+          "callsite": "0x140a67c95"
+        },
+        {
+          "caller": "0x140a67db0",
+          "callsite": "0x140a67e52"
+        },
+        {
+          "caller": "0x140a67db0",
+          "callsite": "0x140a67ec9"
+        },
+        {
+          "caller": "0x140a67db0",
+          "callsite": "0x140a67f31"
+        },
+        {
+          "caller": "0x140a68af0",
+          "callsite": "0x140a68bb8"
+        },
+        {
+          "caller": "0x140a68af0",
+          "callsite": "0x140a68c82"
+        },
+        {
+          "caller": "0x140a68cd0",
+          "callsite": "0x140a68e49"
+        },
+        {
+          "caller": "0x140a68f10",
+          "callsite": "0x140a69078"
+        },
+        {
+          "caller": "0x140a68f10",
+          "callsite": "0x140a690de"
+        },
+        {
+          "caller": "0x140a68f10",
+          "callsite": "0x140a69114"
+        },
+        {
+          "caller": "0x140a691a0",
+          "callsite": "0x140a6930d"
+        },
+        {
+          "caller": "0x140a691a0",
+          "callsite": "0x140a69382"
+        },
+        {
+          "caller": "0x140a69e60",
+          "callsite": "0x140a6a040"
+        },
+        {
+          "caller": "0x140a69e60",
+          "callsite": "0x140a6a237"
+        },
+        {
+          "caller": "0x140a69e60",
+          "callsite": "0x140a6a32c"
+        },
+        {
+          "caller": "0x140a6cc40",
+          "callsite": "0x140a6d264"
+        },
+        {
+          "caller": "0x140a6cc40",
+          "callsite": "0x140a6d872"
+        },
+        {
+          "caller": "0x140a6db10",
+          "callsite": "0x140a6dc88"
+        },
+        {
+          "caller": "0x140a6db10",
+          "callsite": "0x140a6dcd0"
+        },
+        {
+          "caller": "0x140a6db10",
+          "callsite": "0x140a6dd3b"
+        },
+        {
+          "caller": "0x140a6db10",
+          "callsite": "0x140a6dd8a"
+        },
+        {
+          "caller": "0x140a6e960",
+          "callsite": "0x140a6ea33"
+        },
+        {
+          "caller": "0x140a74690",
+          "callsite": "0x140a748ef"
+        },
+        {
+          "caller": "0x140a74690",
+          "callsite": "0x140a7495a"
+        },
+        {
+          "caller": "0x140a74d40",
+          "callsite": "0x140a74f93"
+        },
+        {
+          "caller": "0x140a74d40",
+          "callsite": "0x140a75002"
+        },
+        {
+          "caller": "0x140a774d0",
+          "callsite": "0x140a77806"
+        },
+        {
+          "caller": "0x140a774d0",
+          "callsite": "0x140a7786b"
+        },
+        {
+          "caller": "0x140a79250",
+          "callsite": "0x140a7948f"
+        },
+        {
+          "caller": "0x140a79250",
+          "callsite": "0x140a79617"
+        },
+        {
+          "caller": "0x140a79790",
+          "callsite": "0x140a799cf"
+        },
+        {
+          "caller": "0x140a79d20",
+          "callsite": "0x140a79fa1"
+        },
+        {
+          "caller": "0x140a7a360",
+          "callsite": "0x140a7a5ee"
+        },
+        {
+          "caller": "0x140a7a930",
+          "callsite": "0x140a7abd5"
+        },
+        {
+          "caller": "0x140a7af60",
+          "callsite": "0x140a7b1e7"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a82170",
+      "numeric_kind": 6,
+      "evidence_id": "ev_33546fe9f93b2b3376cb64bcc88efe2b470e3fd6887993bd0dcd39acf19d990c",
+      "direct_callers": [
+        {
+          "caller": "0x140a67fa0",
+          "callsite": "0x140a6809a"
+        },
+        {
+          "caller": "0x140a67fa0",
+          "callsite": "0x140a681b2"
+        },
+        {
+          "caller": "0x140a67fa0",
+          "callsite": "0x140a68278"
+        },
+        {
+          "caller": "0x140a67fa0",
+          "callsite": "0x140a682a5"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a8bbf0",
+      "numeric_kind": 7,
+      "evidence_id": "ev_903242eb9e035f69edf3122b2931027d99087266fd2db1342c89293cd3d15a69",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073cc62"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a81e20",
+      "numeric_kind": 8,
+      "evidence_id": "ev_6a0549721f9c7dad047af52095e30b48c77dfe1193b001977932040938564b59",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073cb93"
+        },
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073cbae"
+        },
+        {
+          "caller": "0x140a67050",
+          "callsite": "0x140a67446"
+        },
+        {
+          "caller": "0x140a67050",
+          "callsite": "0x140a67495"
+        },
+        {
+          "caller": "0x140a67050",
+          "callsite": "0x140a674f0"
+        },
+        {
+          "caller": "0x140a68f10",
+          "callsite": "0x140a6914a"
+        },
+        {
+          "caller": "0x140a691a0",
+          "callsite": "0x140a69286"
+        },
+        {
+          "caller": "0x140a691a0",
+          "callsite": "0x140a692fc"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a8bb30",
+      "numeric_kind": 9,
+      "evidence_id": "ev_4d74f83c98c3886a70f324923fca1ea9885500dc6724c124e0b9b7712fde5218",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073d10c"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a81d80",
+      "numeric_kind": 10,
+      "evidence_id": "ev_341434833ca4e60be71f2c1399dc14c424309015fc8757ef99403bfca0fc93a9",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073ceaf"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a8c270",
+      "numeric_kind": 11,
+      "evidence_id": "ev_0e2f7807fa518ff46843b81c321c9e423c39ceb72d70fbef530c195e4c509ef4",
+      "direct_callers": []
+    },
+    {
+      "producer": "0x140a82290",
+      "numeric_kind": 12,
+      "evidence_id": "ev_3ff34d70a6554566c937023dacfd539f00b0307ec88e515e67470040d277a25f",
+      "direct_callers": [
+        {
+          "caller": "0x140a691a0",
+          "callsite": "0x140a69495"
+        },
+        {
+          "caller": "0x140a6db10",
+          "callsite": "0x140a6e442"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a8bea0",
+      "numeric_kind": 13,
+      "evidence_id": "ev_c51ee74bf49c9fc4b16fadadc751b4a273cc8fa57dcee53076fbbbac1a43bc23",
+      "direct_callers": []
+    },
+    {
+      "producer": "0x140a81f20",
+      "numeric_kind": 14,
+      "evidence_id": "ev_eaa16d679bbee945e01966f5d1bac5547ec254e1d848690ea66199b069596eb1",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073c0b3"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a8bfe0",
+      "numeric_kind": 15,
+      "evidence_id": "ev_ab9ed8821185d41af2889fbaee9ccb7718932eafa15712412511893c97f83e77",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073c147"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a75460",
+      "numeric_kind": 16,
+      "evidence_id": "ev_7c593a71f549e4484161dd100c592d221203f90f705c59e089130397f090e288",
+      "direct_callers": [
+        {
+          "caller": "0x140a62590",
+          "callsite": "0x140a626d5"
+        },
+        {
+          "caller": "0x140a62720",
+          "callsite": "0x140a62910"
+        },
+        {
+          "caller": "0x140a629b0",
+          "callsite": "0x140a62bdc"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a6438d"
+        },
+        {
+          "caller": "0x140a649c0",
+          "callsite": "0x140a65165"
+        },
+        {
+          "caller": "0x140a67050",
+          "callsite": "0x140a67555"
+        },
+        {
+          "caller": "0x140a67db0",
+          "callsite": "0x140a67f7b"
+        },
+        {
+          "caller": "0x140a68cd0",
+          "callsite": "0x140a68ecf"
+        },
+        {
+          "caller": "0x140a691a0",
+          "callsite": "0x140a6925d"
+        },
+        {
+          "caller": "0x140a69e60",
+          "callsite": "0x140a6a099"
+        },
+        {
+          "caller": "0x140a69e60",
+          "callsite": "0x140a6a28e"
+        },
+        {
+          "caller": "0x140a69e60",
+          "callsite": "0x140a6a385"
+        },
+        {
+          "caller": "0x140a6cc40",
+          "callsite": "0x140a6d76d"
+        },
+        {
+          "caller": "0x140a74d40",
+          "callsite": "0x140a7532d"
+        },
+        {
+          "caller": "0x140a79d20",
+          "callsite": "0x140a7a284"
+        },
+        {
+          "caller": "0x140a7a930",
+          "callsite": "0x140a7ae8c"
+        },
+        {
+          "caller": "0x140a7af60",
+          "callsite": "0x140a7b38b"
+        },
+        {
+          "caller": "0x140a8ff00",
+          "callsite": "0x140a8ffbb"
+        },
+        {
+          "caller": "0x140a90000",
+          "callsite": "0x140a901d8"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a81600",
+      "numeric_kind": 16,
+      "evidence_id": "ev_003ef7a3852046c1f3737677618378ee3910c2cb7a239d3610f4b8554479c6fd",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073d305"
+        },
+        {
+          "caller": "0x140910270",
+          "callsite": "0x140910f94"
+        },
+        {
+          "caller": "0x140910270",
+          "callsite": "0x140910ff1"
+        },
+        {
+          "caller": "0x1409595d0",
+          "callsite": "0x140959cb8"
+        },
+        {
+          "caller": "0x14095a020",
+          "callsite": "0x14095a3ce"
+        },
+        {
+          "caller": "0x14095b1a0",
+          "callsite": "0x14095b474"
+        },
+        {
+          "caller": "0x14095b1a0",
+          "callsite": "0x14095b850"
+        },
+        {
+          "caller": "0x14095b1a0",
+          "callsite": "0x14095b92c"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a7db90",
+      "numeric_kind": 17,
+      "evidence_id": "ev_074cfeab6068886bce8eb57ab6ef202bdad73aea6699c55624a92d804168dc86",
+      "direct_callers": [
+        {
+          "caller": "0x14073b700",
+          "callsite": "0x14073d6df"
+        },
+        {
+          "caller": "0x140958cb0",
+          "callsite": "0x1409593aa"
+        },
+        {
+          "caller": "0x14095b1a0",
+          "callsite": "0x14095b50d"
+        },
+        {
+          "caller": "0x140a60b00",
+          "callsite": "0x140a60bff"
+        },
+        {
+          "caller": "0x140a622c0",
+          "callsite": "0x140a623fe"
+        },
+        {
+          "caller": "0x140a62720",
+          "callsite": "0x140a62941"
+        },
+        {
+          "caller": "0x140a62c70",
+          "callsite": "0x140a6365c"
+        },
+        {
+          "caller": "0x140a64610",
+          "callsite": "0x140a64800"
+        },
+        {
+          "caller": "0x140a64610",
+          "callsite": "0x140a648cf"
+        },
+        {
+          "caller": "0x140a649c0",
+          "callsite": "0x140a650ab"
+        },
+        {
+          "caller": "0x140a67050",
+          "callsite": "0x140a674a7"
+        },
+        {
+          "caller": "0x140a67050",
+          "callsite": "0x140a674e5"
+        },
+        {
+          "caller": "0x140a67be0",
+          "callsite": "0x140a67c72"
+        },
+        {
+          "caller": "0x140a67db0",
+          "callsite": "0x140a67ee6"
+        },
+        {
+          "caller": "0x140a67db0",
+          "callsite": "0x140a67f23"
+        },
+        {
+          "caller": "0x140a68af0",
+          "callsite": "0x140a68b93"
+        },
+        {
+          "caller": "0x140a68af0",
+          "callsite": "0x140a68c59"
+        },
+        {
+          "caller": "0x140a68cd0",
+          "callsite": "0x140a68e22"
+        },
+        {
+          "caller": "0x140a68cd0",
+          "callsite": "0x140a68e79"
+        },
+        {
+          "caller": "0x140a68f10",
+          "callsite": "0x140a69053"
+        },
+        {
+          "caller": "0x140a68f10",
+          "callsite": "0x140a6913f"
+        },
+        {
+          "caller": "0x140a6cc40",
+          "callsite": "0x140a6d22d"
+        },
+        {
+          "caller": "0x140a6cc40",
+          "callsite": "0x140a6d83e"
+        },
+        {
+          "caller": "0x140a6db10",
+          "callsite": "0x140a6e3f2"
+        },
+        {
+          "caller": "0x140a74690",
+          "callsite": "0x140a748b4"
+        },
+        {
+          "caller": "0x140a74d40",
+          "callsite": "0x140a74f52"
+        },
+        {
+          "caller": "0x140a74d40",
+          "callsite": "0x140a75251"
+        },
+        {
+          "caller": "0x140a774d0",
+          "callsite": "0x140a777cb"
+        },
+        {
+          "caller": "0x140a79250",
+          "callsite": "0x140a79455"
+        },
+        {
+          "caller": "0x140a79790",
+          "callsite": "0x140a79995"
+        },
+        {
+          "caller": "0x140a79790",
+          "callsite": "0x140a79b43"
+        },
+        {
+          "caller": "0x140a79d20",
+          "callsite": "0x140a79f5f"
+        },
+        {
+          "caller": "0x140a79d20",
+          "callsite": "0x140a7a1b2"
+        },
+        {
+          "caller": "0x140a7a360",
+          "callsite": "0x140a7a5ad"
+        },
+        {
+          "caller": "0x140a7a930",
+          "callsite": "0x140a7ab92"
+        },
+        {
+          "caller": "0x140a7af60",
+          "callsite": "0x140a7b1a4"
+        },
+        {
+          "caller": "0x140a85270",
+          "callsite": "0x140a852c7"
+        },
+        {
+          "caller": "0x140a852e0",
+          "callsite": "0x140a8533b"
+        }
+      ]
+    },
+    {
+      "producer": "0x140a89050",
+      "numeric_kind": 18,
+      "evidence_id": "ev_97ae78aa22ca72290476c810b39cd930b80239404e158b4f43f47818b40662f2",
+      "direct_callers": []
+    }
+  ]
+}

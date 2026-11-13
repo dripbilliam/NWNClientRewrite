@@ -3,6 +3,7 @@ extends RefCounted
 # Callers may submit only private decoded-JSON rows and must keep every nested
 # row immutable while borrowed. Direct/authored callers use synchronous receive.
 const Job=preload("res://systems/native_data/world_snapshot_metadata_job.gd")
+const VerifiedPacket=preload("res://systems/native_data/world_snapshot_verified_packet.gd")
 const MAXIMUM_ROWS:=65536
 const CHUNK_ROWS:=64
 const JOB_ROWS:=512
@@ -18,6 +19,8 @@ var pending: Array=[]
 var running: Array=[]
 var retired: Array=[]
 var prepared: Array=[]
+var prepared_sources: Array=[]
+var verified_all:=true
 var active:=false
 var sealed:=false
 var closed:=false
@@ -32,7 +35,7 @@ func begin(value: Array,target_area: int,count: int) -> bool:
 		if not coordinate is int and not coordinate is String:return false
 	cancel()
 	scope=value.duplicate();area_id=target_area;expected_count=count
-	prepared.resize(count);active=true
+	prepared.resize(count);prepared_sources.resize(count);verified_all=true;active=true
 	return true
 
 func submit(rows: Array) -> bool:
@@ -82,15 +85,22 @@ func poll() -> bool:
 		if int(result.get("version",-1))!=VERSION:failure="worker-result-version-mismatch"
 		if result.get("scope",[])!=scope or int(result.get("area_id",-1))!=area_id or int(result.get("offset",-1))!=int(entry.offset):failure="worker-result-scope-mismatch"
 		var rows: Variant=result.get("rows",[])
+		var source_refs: Variant=result.get("source_refs",[])
+		var worker_verified: bool=result.get("worker_verified",false)==true
 		if not rows is Array or rows.size()!=int(entry.count):
 			if failure.is_empty():failure="worker-result-count-mismatch"
+		if worker_verified and (not source_refs is Array or source_refs.size()!=int(entry.count)) and failure.is_empty():failure="worker-source-count-mismatch"
+		if not worker_verified:verified_all=false
 		if failure.is_empty():
 			for index in rows.size():
 				var row: Variant=rows[index]
 				if not row is Dictionary or not row.get("index") is int or int(row.index)!=int(entry.offset)+index:
 					failure="worker-result-order-mismatch";break
 		if failure.is_empty():
-			for row in rows:prepared[int(row.index)]=row
+			for index in rows.size():
+				var position: int=int(entry.offset)+index
+				prepared[position]=rows[index]
+				if worker_verified:prepared_sources[position]=source_refs[index]
 		elif error.is_empty():error=failure
 		# An errored packet is complete, but fallback/admission stays barred until
 		# every current packet has finished and all borrowed row readers joined.
@@ -105,15 +115,18 @@ func poll() -> bool:
 
 func take(expected_scope: Array) -> Dictionary:
 	if expected_scope!=scope or not poll():return {}
-	var result:={"version":VERSION,"error":error,"scope":scope,"area_id":area_id,"count":expected_count,"rows":prepared if error.is_empty() else []}
-	scope=[];prepared=[];pending=[];active=false;sealed=false
+	var verified: bool=error.is_empty() and verified_all
+	if verified:prepared.make_read_only();prepared_sources.make_read_only()
+	var proof=VerifiedPacket.new(scope,area_id,prepared,prepared_sources) if verified else null
+	var result:={"version":VERSION,"error":error,"scope":scope,"area_id":area_id,"count":expected_count,"rows":prepared if error.is_empty() else [],"proof":proof}
+	scope=[];prepared=[];prepared_sources=[];pending=[];active=false;sealed=false;verified_all=true
 	expected_count=0;submitted_count=0;completed_count=0;error=""
 	return result
 
 func cancel() -> void:
 	# Do not touch a running job or its owned input Array. Discarding its owner
 	# token is enough; poll joins and releases the completed stale packet later.
-	retired.append_array(running);running=[];pending=[];prepared=[];scope=[]
+	retired.append_array(running);running=[];pending=[];prepared=[];prepared_sources=[];verified_all=true;scope=[]
 	expected_count=0;submitted_count=0;completed_count=0;active=false;sealed=false;error=""
 
 func snapshot() -> Dictionary:
@@ -136,4 +149,4 @@ func _notification(what: int) -> void:
 	for entry in running:WorkerThreadPool.wait_for_task_completion(int(entry.task))
 	for entry in retired:WorkerThreadPool.wait_for_task_completion(int(entry.task))
 	stats.closed=true;stats.discarded+=running.size()+retired.size()
-	running=[];retired=[];pending=[];prepared=[];scope=[]
+	running=[];retired=[];pending=[];prepared=[];prepared_sources=[];verified_all=true;scope=[]

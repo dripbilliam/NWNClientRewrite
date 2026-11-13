@@ -5,6 +5,20 @@ const integer=value=>Number.isSafeInteger(value)&&value>=0;
 const endpoint=(value,port)=>value?.host==='127.0.0.1'&&value.port===port;
 const bic=value=>value?.kind==='bic'&&Number.isSafeInteger(value.bytes)&&value.bytes>=1000&&sha(value.sha256);
 const clone=value=>structuredClone(value);
+// Full parsed projections belong to the comparator, not each diagnostic row.
+// Full proofs have a separate 64 MiB ceiling; scalar records stay at 32 KiB.
+const MAX_CHARACTER_PROOF_BYTES=64*1024*1024;
+function copyEvidence(value,maxBytes=32768){
+ const json=JSON.stringify(value);
+ if(Buffer.byteLength(json)>maxBytes||/"(?:privateKey|password|bicBytes|characterBytes)"\s*:/.test(json))throw Error('Direct handoff evidence exceeds or violates scalar boundary');
+ return JSON.parse(json);
+}
+function characterSummary(value){
+ if(!value||typeof value!=='object')return value;
+ const {canonical,...summary}=value;
+ return canonical===undefined?summary:{...summary,canonicalStorage:'comparison-only',canonicalBytes:Buffer.byteLength(JSON.stringify(canonical))};
+}
+function digestSummary(value){return value?.character===undefined?value:{...value,character:characterSummary(value.character)};}
 function opaqueInt64Id(value){
  if(typeof value!=='string'||value.length>20||!/^\-?[1-9][0-9]*$/.test(value))return false;
  const id=BigInt(value);return id>=-9223372036854775808n&&id<=9223372036854775807n&&id.toString()===value;
@@ -52,12 +66,13 @@ class DirectHandoffCapture{
   if(typeof canonicalCharacterContinuity!=='boolean')throw Error('Canonical continuity configuration must be explicit boolean');this.canonicalCharacterContinuity=canonicalCharacterContinuity;
   this.data={version:1,route:'native-session-host',scenario,fixture:{descriptorSha256:fixture.descriptorSha256,servers:fixture.servers.map(({label,module,port,sha256})=>({label,module,port,sha256}))},admissions:[],transfers:[],characterReads:[],recovery:null,finalCharacter:null,semantic:{configured:canonicalCharacterContinuity,required:scenario==='roundtrip'&&canonicalCharacterContinuity},characterContinuity:null,retryCharacterContinuity:null,terminal:null,protocolErrors:[],captureFailure:null};
  }
- bounded(value){const bytes=JSON.stringify(value);if(bytes.length>32768||/"(?:privateKey|password|bicBytes|characterBytes)"\s*:/.test(bytes))throw Error('Direct handoff evidence exceeds or violates scalar boundary');return JSON.parse(bytes);}
+ bounded(value){return copyEvidence(value);}
+ copyCharacterDigest(value){return copyEvidence(value,MAX_CHARACTER_PROOF_BYTES);}
  admission(value){if(this.data.admissions.length>=3)throw Error('Too many admissions');this.data.admissions.push(this.bounded(value));}
- transfer(value){if(this.data.transfers.length>=2)throw Error('Too many transfers');this.data.transfers.push(this.bounded(value));}
- readCharacter(value){if(this.data.characterReads.length>=8)throw Error('Unexpected fresh character read');this.data.characterReads.push(this.bounded(value));}
+ transfer(value){if(this.data.transfers.length>=2)throw Error('Too many transfers');this.data.transfers.push(this.bounded({...value,character:digestSummary(value.character)}));}
+ readCharacter(value){if(this.data.characterReads.length>=8)throw Error('Unexpected fresh character read');this.data.characterReads.push(this.bounded(digestSummary(value)));}
  recovery(value){if(this.data.recovery)throw Error('Duplicate recovery');this.data.recovery=this.bounded(value);}
- finalExport(value){if(this.data.finalCharacter)throw Error('Duplicate final export');this.data.finalCharacter=this.bounded(value);}
+ finalExport(value){if(this.data.finalCharacter)throw Error('Duplicate final export');this.data.finalCharacter=this.bounded(digestSummary(value));}
  continuity(value){if(this.data.characterContinuity)throw Error('Duplicate canonical chain result');this.data.characterContinuity=this.bounded(value);}
  retryContinuity(value){if(this.data.retryCharacterContinuity)throw Error('Duplicate retry continuity result');this.data.retryCharacterContinuity=this.bounded(value);}
  terminal(value){if(this.data.terminal)throw Error('Duplicate terminal');this.data.terminal=this.bounded(value);}

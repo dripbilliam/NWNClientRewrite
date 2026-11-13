@@ -17,6 +17,66 @@ var model_end:=0
 var raw_start:=0
 var physical:=0
 var visited: Dictionary={}
+static var binary_clip_budget_mutex:=Mutex.new()
+# One clip helper globally. AncestorPreparation can own two independent
+# speculative helpers, so nested source parsing adds at most one more.
+static var binary_clip_helpers_active:=0
+static var binary_clip_helpers_started:=0
+static var binary_clip_start_fallbacks:=0
+static func configured_parallel_binary_clips() -> bool: return OS.get_cmdline_user_args().has("--binary-clips=parallel") or OS.get_cmdline_user_args().has("--binary-clips=inline")
+static func _claim_binary_clip_helper() -> bool:
+	binary_clip_budget_mutex.lock()
+	var accepted: bool=binary_clip_helpers_active<1
+	if accepted:binary_clip_helpers_active+=1
+	binary_clip_budget_mutex.unlock()
+	return accepted
+static func _release_binary_clip_helper() -> void:
+	binary_clip_budget_mutex.lock();binary_clip_helpers_active-=1;binary_clip_budget_mutex.unlock()
+static func binary_clip_helper_snapshot() -> Dictionary:
+	binary_clip_budget_mutex.lock()
+	var result:={"active":binary_clip_helpers_active,"maximum":1,"started":binary_clip_helpers_started,"start_fallbacks":binary_clip_start_fallbacks,"enabled":configured_parallel_binary_clips()}
+	binary_clip_budget_mutex.unlock()
+	return result
+static func _binary_clip_half(bytes: PackedByteArray,packed: bool,first: int,last: int) -> Dictionary:
+	# Both halves read the original immutable bytes, each with its own reader,
+	# parser and error state. No header or referenced clip payload is rewritten.
+	var parser:=new()
+	parser.reader=Binary.new(bytes);parser.model_end=12+parser.reader.u32(4)
+	parser.raw_start=parser.model_end;parser.packed_keys=packed
+	var clips: Array=parser.binary_animations(first,last)
+	return {"clips":clips,"failure":parser.failure,"read_failure":parser.reader.failure}
+func _parallel_binary_animations(bytes: PackedByteArray) -> Array:
+	var count:=int(reader.u32(12+124));var table:=int(reader.u32(12+120))
+	# Keep small, >8 MiB, malformed, or contended sources on the exact serial
+	# path. The original bytes are shared read-only, without patched copies.
+	if bytes.size()<262144 or bytes.size()>8*1024*1024 or count<16 or count>100000 or table<0 or 12+table>model_end or count*4>model_end-(12+table) or not _claim_binary_clip_helper():
+		return binary_animations()
+	var split:=int(count/2)
+	var worker:=Thread.new()
+	# The private inline mode exercises the same fallback as a failed start.
+	var started:=ERR_CANT_CREATE if OS.get_cmdline_user_args().has("--binary-clips=inline") else worker.start(_binary_clip_half.bind(bytes,packed_keys,split,count),Thread.PRIORITY_NORMAL)
+	if started!=OK:
+		binary_clip_budget_mutex.lock();binary_clip_start_fallbacks+=1;binary_clip_budget_mutex.unlock()
+		_release_binary_clip_helper()
+		return binary_animations()
+	binary_clip_budget_mutex.lock();binary_clip_helpers_started+=1;binary_clip_budget_mutex.unlock()
+	var first: Dictionary=_binary_clip_half(bytes,packed_keys,0,split)
+	var second: Variant=worker.wait_to_finish()
+	_release_binary_clip_helper()
+	if not second is Dictionary or not second.has("clips"):
+		# Neither half touched this parser. A failed helper result can safely use
+		# the exact serial reader/error path after its thread has joined.
+		return binary_animations()
+	# The original loop reports the first direct parser error by clip order;
+	# reader errors are observed only after the whole animation pass.
+	if not str(first.failure).is_empty():reject(str(first.failure))
+	elif not str(second.failure).is_empty():reject(str(second.failure))
+	elif not reader.failure.is_empty():reject(reader.failure)
+	elif not str(first.read_failure).is_empty():reject(str(first.read_failure))
+	elif not str(second.read_failure).is_empty():reject(str(second.read_failure))
+	var clips: Array=first.clips
+	clips.append_array(second.clips)
+	return clips
 func reject(reason: String) -> void:
 	if failure.is_empty(): failure=reason
 func bounded(at: int,size: int) -> bool:
@@ -36,7 +96,7 @@ func parse(bytes: PackedByteArray) -> Dictionary:
 		if not bounded(12,232): return {}
 		model.supermodel=reader.text(12+168,64,true).to_lower(); model.animation_scale=finite(12+164)
 		binary_parts(reader.u32(84),model.nodes,0)
-		model.animations=binary_animations()
+		model.animations=_parallel_binary_animations(bytes) if configured_parallel_binary_clips() else binary_animations()
 	else:
 		var parser:=AsciiModel.new(); var text: String=reader.text(0,bytes.size()); model=parser.parse(text)
 		if not parser.failure.is_empty(): reject(parser.failure); return {}
@@ -171,10 +231,11 @@ func skin(at: int,count: int) -> Dictionary:
 				values.append(vector)
 		result[key]=values
 	return result
-func binary_animations() -> Array:
+func binary_animations(first_index: int=0,last_index: int=-1) -> Array:
 	var clips: Array=[]; var array: int=12+reader.u32(12+120); var count: int=reader.u32(12+124)
 	if count>100000 or not bounded(array,count*4): reject("Original animation table is invalid"); return []
-	for index in count:
+	var indices: Variant=count if first_index==0 and last_index<0 else range(first_index,last_index)
+	for index in indices:
 		var at: int=12+reader.u32(array+index*4)
 		if not bounded(at,196): return []
 		var clip:={"name":reader.text(at+8,64,true).to_lower(),"length":finite(at+112),"transition":finite(at+116),"root":reader.text(at+120,64,true),"tracks":[],"emitter_tracks":[],"events":[],"unsupported":[],"controller_nodes":[]}

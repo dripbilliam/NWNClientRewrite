@@ -1,0 +1,86 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Authored text TriMesh render/tilefade/material/texture names through Part construction, material-name fallback and conditional texture reference acquisition.",
+  "edges": [
+    {
+      "from": "MdlNodeTriMesh+0x28",
+      "to": "0x1400930f0",
+      "kind": "callback_field_dispatch",
+      "condition": "ordinary TriMesh node selected by CreateInstanceTreeR",
+      "status": "cpu_part_factory",
+      "evidence_id": "ev_f89431dcf108875c4cdf21f53a5bb4cee2eca590fad831563d52b007727ada2c",
+      "target_label": "MdlNodeTriMeshCreateInstance"
+    },
+    {
+      "from": "0x1400930f0",
+      "to": "0x140087fd0",
+      "callsite": "0x14009311c",
+      "kind": "direct_static",
+      "condition": "0xc0-byte Part allocation succeeded",
+      "status": "cpu_part_construction",
+      "evidence_id": "ev_f89431dcf108875c4cdf21f53a5bb4cee2eca590fad831563d52b007727ada2c",
+      "target_label": "PartTriMesh::PartTriMesh"
+    },
+    {
+      "from": "0x1400930f0",
+      "to": "PartTriMesh+0xac/+0x9e",
+      "kind": "cpu_field_copy",
+      "condition": "tilefade node+0x224 and boolean render node+0x118",
+      "status": "cpu_part_state",
+      "evidence_id": "ev_f89431dcf108875c4cdf21f53a5bb4cee2eca590fad831563d52b007727ada2c"
+    },
+    {
+      "from": "0x140087fd0",
+      "to": "PartTriMesh+0x8/+0x58",
+      "kind": "cpu_object_ownership",
+      "condition": "source MdlNode stored and 0x130-byte Material allocated",
+      "status": "cpu_material_object",
+      "evidence_id": "ev_7d996c349b3ebca5e755ca9b77f7876daaab2291708abfa4b5b5b68422f76f38"
+    },
+    {
+      "from": "0x140084410",
+      "to": "0x14008e970",
+      "callsite": "0x140084468",
+      "kind": "direct_static",
+      "condition": "AsPartTriMesh nonnull; node from Part+0x8",
+      "status": "cpu_material_name",
+      "evidence_id": "ev_3e2e50cadd678a3ba9698411cfd17a19e8f0bfd1c05e05679739629f3ad1ed9d",
+      "target_label": "MdlNodeTriMesh::GetMaterialName"
+    },
+    {
+      "from": "0x14008e970",
+      "to": "MdlNodeTriMesh+0x1e4 or +0x124",
+      "kind": "cpu_fallback_selection",
+      "condition": "materialname nonempty chooses +0x1e4, otherwise texture0 +0x124",
+      "status": "cpu_material_name",
+      "evidence_id": "ev_e79fd78d8a4e3f092b821e8c42e4b3f378d79b312ba1fabeee064868621f6d3d"
+    },
+    {
+      "from": "0x140084410",
+      "to": "0x140083c90",
+      "callsite": "0x140084493",
+      "kind": "direct_static",
+      "condition": "mesh names +0x124/+0x164/+0x1a4 and selected material name; emitter source alternative",
+      "status": "conditional_resource_references",
+      "evidence_id": "ev_3e2e50cadd678a3ba9698411cfd17a19e8f0bfd1c05e05679739629f3ad1ed9d",
+      "target_label": "Material::InitializeTextures"
+    },
+    {
+      "from": "0x140084410",
+      "to": "NO_MATERIAL_LEAF",
+      "kind": "conditional_return",
+      "condition": "neither AsPartTriMesh nor AsPartEmitter",
+      "status": "terminal_cpu",
+      "evidence_id": "ev_3e2e50cadd678a3ba9698411cfd17a19e8f0bfd1c05e05679739629f3ad1ed9d"
+    },
+    {
+      "from": "0x140084410",
+      "to": "DYNAMIC:MATERIAL_ASSET_AND_CACHE_ADMISSION",
+      "kind": "unresolved_runtime_selector",
+      "condition": "selected asset, TXI/shared material, reference cache, later GL publication and draw are conditional",
+      "status": "unresolved_target",
+      "evidence_id": "ev_3e2e50cadd678a3ba9698411cfd17a19e8f0bfd1c05e05679739629f3ad1ed9d"
+    }
+  ]
+}

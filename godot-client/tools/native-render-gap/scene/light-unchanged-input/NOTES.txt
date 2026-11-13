@@ -1,0 +1,37 @@
+NWN-66: unchanged native light input rows
+
+The normal Core E selector uses this module with the existing 16 functional
+flags. It preserves Core D, its descriptor and a copy of its runtime selector.
+
+The fast path still validates live input. Poll-local canonical-script layout
+proofs permit direct plain member reads; ordinary Dictionary scalar reads and
+stable keys avoid repeated key conversion. If transform, revision, range,
+priority, eligibility, source ownership or camera inclusion changes, the
+original guarded staging/commit path runs. Unknown scripts, typed/read-only
+containers and unsupported values also use that path. Membership, histories,
+fades, physical lights, clocks, vision and shadow budgets remain with the same
+scene services. Notification-only skipping was rejected because direct
+metadata and in-place state changes do not reliably issue notifications.
+
+Build: build-private.cjs takes a fresh output label and a frozen proposal path.
+It changes two private light module translation units and the ordered archive,
+not shared engine source or objects. Exact original-engine and Core D control
+reconstructions precede the candidate; the original control repeats afterward.
+The final proposal is .cache/native-render-gap/scene/nwn66-input-proposal-c.
+seal.cjs records the tested source hashes and installs a separately named EXE.
+
+Acceptance: .cache/nwn66-light-input/acceptance.json. The uninstrumented
+600-light A-B-B-A fixture fell from 240/241 us median to 111 us stationary;
+animated medians fell from 243/244 to 114 us. These are input-component times,
+not total lighting cost or a measured Arelith FPS gain. Real Focus/Point light
+history and physical state match Core D, including in matched Forward+ runs
+with all 16 flags. The menu smoke test uses its existing isolated policy.
+
+Existing Tracy captures and the validated private Tracy engine use Core D.
+The diagnostic snapshot generator still identifies that exact binary; it does
+not silently claim to include this change. Source-transform checks cover both
+normal Core D and E selectors.
+
+Rollback (with no client running): restore tools/native-performance-runtime.cjs
+from .tools/native-core/native-performance-runtime-core-d.cjs. No engine or
+particle DLL replacement is needed. Both old accepted artifacts remain intact.

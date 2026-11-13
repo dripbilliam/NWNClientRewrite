@@ -1,0 +1,22 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const workspace=fileURLToPath(new URL('../../',import.meta.url)),project=path.join(workspace,'godot-client');
+const label=process.argv[2];if(!/^nwn33-[a-z0-9-]+$/.test(label??''))throw Error('Supply a fresh NWN-33 suite label');
+const directory=path.join(workspace,'.cache/nwn-33',label);if(fs.existsSync(directory))throw Error('Previous suite retained');fs.mkdirSync(directory,{recursive:true});
+const cases=[['providers','native_text_providers_test.gd',true],['parser','native_talk_parser_test.gd'],['snapshot','native_talk_snapshot_fetch_test.gd'],['actor-state','native_actor_name_state_test.gd'],['receipts','native_ordinary_text_receipt_test.gd'],['headers','native_ordinary_speech_header_test.gd'],['log-bodies','native_speech_log_bodies_test.gd'],['headers-integration','native_speech_headers_integration_test.gd'],['script-core','native_script_floating_core_test.gd'],['script-echo','native_script_floating_echo_test.gd'],['actor-gameplay','native_actor_name_gameplay_test.gd'],['overhead-integration','native_overhead_integration_test.gd']];
+const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const run=(args)=>new Promise(resolve=>{const child=spawn(process.execPath,args,{cwd:workspace,windowsHide:true,stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',b=>stdout+=b);child.stderr.on('data',b=>stderr+=b);child.once('error',e=>stderr+=e.message);child.once('close',code=>resolve({code,stdout,stderr}));});
+let next=0;const results=[];
+async function worker(){while(next<cases.length){const [name,script,graphical]=cases[next++],runLabel=label+'-'+name;const outcome=await run(['godot-client/tools/test-native-text-providers.mjs','--run='+runLabel,'--script=tests/'+script,...(graphical?['--graphical']:[])]);fs.writeFileSync(path.join(directory,name+'.log'),outcome.stdout+'\n'+outcome.stderr);const proofFile=path.join(project,'.cache/nwn33',runLabel,'proof.json');let proof=null;try{proof=JSON.parse(fs.readFileSync(proofFile));}catch{}const row={name,proof:path.relative(workspace,proofFile),success:outcome.code===0&&proof?.success===true,checks:proof?.checks??0};results.push(row);console.log(JSON.stringify(row));}}
+await Promise.all([worker(),worker(),worker()]);
+const nodeFiles=['godot-client/tests/native_text_providers_scope.test.mjs','godot-client/tests/native_text_context_scope.test.cjs','godot-client/tests/native-localized-text-context.test.mjs','test/game-talk-token-native.test.js','test/talk-token-parser-native.test.js','test/native-actor-name-state.test.js','test/native-actor-name-world.test.js','godot-client/tests/native_script_floating_received.test.mjs','godot-client/tests/native_script_floating_capture.test.mjs'];
+const node=await run(['--test',...nodeFiles]);fs.writeFileSync(path.join(directory,'node.tap'),node.stdout+'\n'+node.stderr);
+const nodeChecks=Number(node.stdout.match(/^# pass (\d+)$/m)?.[1]??0),inputs=new Map(),changed=[];
+for(const row of results){if(!row.success)continue;const proof=JSON.parse(fs.readFileSync(path.join(workspace,row.proof)));for(const item of proof.inputs){const previous=inputs.get(item.path);if(previous&&previous!==item.sha256)changed.push(item.path+': inconsistent suite inputs');inputs.set(item.path,item.sha256);if(hash(path.join(workspace,item.path))!==item.sha256)changed.push(item.path+': changed after acceptance');}}
+for(const file of [...nodeFiles,fileURLToPath(import.meta.url)])inputs.set(path.relative(workspace,path.resolve(workspace,file)),hash(path.resolve(workspace,file)));
+const window=JSON.parse(fs.readFileSync(path.join(project,'.cache/nwn33',label+'-providers/proof.json'))).window;
+const result={success:results.every(row=>row.success)&&node.code===0&&nodeChecks>0&&!changed.length,cases:results.sort((a,b)=>a.name.localeCompare(b.name)),nativeChecks:results.reduce((n,row)=>n+row.checks,0),nodeChecks,changed,window,inputs:[...inputs].map(([file,sha256])=>({file,sha256})),serverConnections:0,nativeBuilds:0,scope:'Offline copied native parser/provider/TLK/receipt/Gameplay tests and retained original corpora. No live-join or original glyph/pixel equality claim.'};
+fs.writeFileSync(path.join(directory,'completion.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({...result,inputs:inputs.size,cases:results.length}));process.exitCode=result.success?0:1;

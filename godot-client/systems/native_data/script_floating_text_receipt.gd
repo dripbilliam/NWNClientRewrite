@@ -4,27 +4,37 @@ extends RefCounted
 const Markup=preload("res://systems/native_data/script_floating_markup.gd")
 const Rich=preload("res://systems/native_data/rich_text.gd")
 const Frame=preload("res://systems/native_data/script_floating_frame.gd")
-static func capture(type: int,payload: Variant,target: int,show: bool,prefix: String,text) -> Dictionary:
+static func capture(type: int,payload: Variant,target: int,show: bool,prefix: String,text,frame: Dictionary={}) -> Dictionary:
 	var receipt:={"type":type,"target":target,"payload":payload.duplicate(true) if payload is Dictionary else payload,"showChat":show,"prefix":prefix,"bodyReady":false,"logged":false,"model":{},"tokenSnapshot":text.custom_tokens.duplicate(true) if type==93 and is_instance_valid(text) else {}}
+	receipt.frame=preload("res://systems/native_data/native_token_context.gd").frame(frame)
+	if frame.get("nativeByteProjection")=="windows-1252":receipt.tokenSnapshot=preload("res://systems/native_data/native_token_context.gd").tokens(receipt.tokenSnapshot,true)
 	snapshot_raw(receipt,text)
 	return receipt
 static func snapshot_raw(receipt: Dictionary,text) -> void:
 	if int(receipt.type)!=93 or receipt.has("rawSnapshot") or not is_instance_valid(text):return
 	var fetched: Dictionary=text.fetch_native_reference(int(receipt.payload)&4294967295,0)
-	if fetched.get("found",false):receipt.rawSnapshot=str(fetched.get("text",""))
+	if fetched.get("found",false):
+		receipt.rawSnapshot=str(fetched.get("text",""))
+		if fetched.get("bytes") is PackedByteArray:receipt.rawBytes=fetched.bytes.duplicate()
+		receipt.language=int(fetched.get("language",text.base.language))
 static func prepare(receipt: Dictionary,text) -> Dictionary:
 	if receipt.get("bodyReady",false):return {"ready":true}
 	var body: String
+	var program: Dictionary={}
 	if int(receipt.type)==94:body=str(receipt.payload.text) if receipt.payload is Dictionary else str(receipt.payload)
 	else:
 		if not is_instance_valid(text):return {"ready":false,"pending":true}
 		snapshot_raw(receipt,text)
 		if not receipt.has("rawSnapshot"):return {"ready":false,"pending":true}
 		if Markup.requires_named_tokens(str(receipt.rawSnapshot)) and text.get("named_ready")!=true:return {"ready":false,"pending":true}
-		var parsed: Dictionary=text.parse_native(str(receipt.rawSnapshot),{"context":{},"gender":0,"nativeB8":0,"nativeBC":0,"localCustomTokens":receipt.tokenSnapshot,"localCustomTokensComplete":true})
+		var call: Dictionary=receipt.get("frame",{}).duplicate(true)
+		call.merge({"context":{},"gender":0,"nativeB8":0,"nativeBC":0,"localCustomTokens":receipt.tokenSnapshot,"localCustomTokensComplete":true},true)
+		call.language=int(receipt.get("language",text.base.language))
+		var parsed: Dictionary=text.parse_native_bytes(receipt.rawBytes,call) if receipt.get("rawBytes") is PackedByteArray else text.parse_native(str(receipt.rawSnapshot),call)
 		if not parsed.get("ready",false):return parsed
 		body=str(parsed.body)
-	var program:=Markup.compile(body)
+		if parsed.get("bytes") is PackedByteArray:program=Markup.compile_native(parsed.bytes,int(parsed.get("language",call.language)))
+	if program.is_empty():program=Markup.compile(body)
 	if not program.get("ready",false):return program
 	receipt.bodyReady=true;receipt.body=body
 	receipt.model={"raw":body,"program":program,"font":"ttf fnt_maintext 17","rgb":Color.WHITE,"shadow":false,"depth":Frame.DEPTH}

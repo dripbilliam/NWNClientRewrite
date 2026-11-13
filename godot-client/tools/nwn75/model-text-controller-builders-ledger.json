@@ -1,0 +1,131 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Single, generic and Bezier model controller builders through AurGenericKey list/resource readers, CPU descriptor/value arrays and math leaves.",
+  "edges": [
+    {
+      "from": "0x140098790",
+      "to": "0x1400a06a0",
+      "callsite": "0x1400987da",
+      "kind": "direct_static",
+      "condition": "single controller field",
+      "status": "cpu_key_parse",
+      "evidence_id": "ev_86839b288f0b74e74e6b21f739ed01cf9e0e6c9fa2ac21187af8dcf5b7365639",
+      "target_label": "Parse AurGenericKey"
+    },
+    {
+      "from": "0x140098790",
+      "to": "node controller/value lists +0x78/+0x88",
+      "kind": "cpu_array_append",
+      "condition": "zero time, parsed components and 12-byte descriptor; grow with realloc when needed",
+      "status": "cpu_controller_state",
+      "evidence_id": "ev_86839b288f0b74e74e6b21f739ed01cf9e0e6c9fa2ac21187af8dcf5b7365639"
+    },
+    {
+      "from": "0x140098790",
+      "to": "Vector normalization and trig helpers",
+      "kind": "conditional_cpu_math",
+      "condition": "four parsed components represent axis-angle",
+      "status": "cpu_quaternion",
+      "evidence_id": "ev_86839b288f0b74e74e6b21f739ed01cf9e0e6c9fa2ac21187af8dcf5b7365639"
+    },
+    {
+      "from": "0x140098570",
+      "to": "0x140096fa0",
+      "callsite": "0x1400985bb",
+      "kind": "direct_static",
+      "condition": "generic key controller field",
+      "status": "cpu_key_list",
+      "evidence_id": "ev_d2f0d03bb59b9d52cd6f8c87421cfcd25a1753f6225e95e05dfbd4c8ce99c776",
+      "target_label": "Parse AurGenericKey list"
+    },
+    {
+      "from": "0x140098340",
+      "to": "0x140096fa0",
+      "callsite": "0x14009838b",
+      "kind": "direct_static",
+      "condition": "Bezier key controller field",
+      "status": "cpu_key_list",
+      "evidence_id": "ev_15c3b1f86e79285af5a27e003837212c640fc1b1f9f51329f28703f1880bbb39",
+      "target_label": "Parse AurGenericKey list"
+    },
+    {
+      "from": "0x140098570",
+      "to": "node controller/value lists +0x78/+0x88",
+      "kind": "cpu_array_append",
+      "condition": "parsed time/component words and descriptor; temporary list freed",
+      "status": "cpu_controller_state",
+      "evidence_id": "ev_d2f0d03bb59b9d52cd6f8c87421cfcd25a1753f6225e95e05dfbd4c8ce99c776"
+    },
+    {
+      "from": "0x140098340",
+      "to": "node controller/value lists +0x78/+0x88",
+      "kind": "cpu_array_append",
+      "condition": "parsed time/component words and Bezier descriptor; temporary list freed",
+      "status": "cpu_controller_state",
+      "evidence_id": "ev_15c3b1f86e79285af5a27e003837212c640fc1b1f9f51329f28703f1880bbb39"
+    },
+    {
+      "from": "0x140096fa0",
+      "to": "0x14005dff0",
+      "callsites": [
+        "0x140096ffa",
+        "0x140097032",
+        "0x140097081",
+        "0x1400970b0"
+      ],
+      "kind": "conditional_resource_line_reader",
+      "condition": "no-count endlist or counted text form",
+      "status": "cpu_key_input",
+      "evidence_id": "ev_60cfaa7b0de7714f2c658e5ad144f79ba225322d46b90f9e0eff9ab7f5e1795a",
+      "target_label": "AurResGetNextLine"
+    },
+    {
+      "from": "0x140096fa0",
+      "to": "0x14005de20",
+      "callsite": "0x140097061",
+      "kind": "conditional_resource_data_reader",
+      "condition": "count plus marker; 0x2c bytes per key",
+      "status": "cpu_key_input",
+      "evidence_id": "ev_60cfaa7b0de7714f2c658e5ad144f79ba225322d46b90f9e0eff9ab7f5e1795a",
+      "target_label": "AurResGetData"
+    },
+    {
+      "from": "0x140096fa0",
+      "to": "0x1400a06a0",
+      "callsites": [
+        "0x140097042",
+        "0x140097210"
+      ],
+      "kind": "conditional_element_parse",
+      "condition": "text-line key only, raw-data form bypasses",
+      "status": "cpu_key_parse",
+      "evidence_id": "ev_60cfaa7b0de7714f2c658e5ad144f79ba225322d46b90f9e0eff9ab7f5e1795a",
+      "target_label": "Parse AurGenericKey"
+    },
+    {
+      "from": "0x1400a06a0",
+      "to": "AurGenericKey+0x28 component count",
+      "kind": "cpu_scalar_scan",
+      "condition": "scan up to ten floats",
+      "status": "cpu_key_element",
+      "evidence_id": "ev_0e2b5f15bd3bca886922b0620b0dc040d52e4a3f40ec35f66dd6aae4f7988705"
+    },
+    {
+      "from": "0x1400a06a0",
+      "to": "Vector normalization and trig helpers",
+      "kind": "conditional_cpu_math",
+      "condition": "exactly five scanned floats axis-angle to quaternion",
+      "status": "cpu_quaternion",
+      "evidence_id": "ev_0e2b5f15bd3bca886922b0620b0dc040d52e4a3f40ec35f66dd6aae4f7988705"
+    },
+    {
+      "from": "0x140096fa0",
+      "to": "DYNAMIC:CONTROLLER_KEY_AUTHORING",
+      "kind": "unresolved_runtime_selector",
+      "condition": "text/raw mode, count, active controller and later interpolation",
+      "status": "unresolved_target",
+      "evidence_id": "ev_60cfaa7b0de7714f2c658e5ad144f79ba225322d46b90f9e0eff9ab7f5e1795a"
+    }
+  ]
+}

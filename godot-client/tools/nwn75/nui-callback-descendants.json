@@ -1,0 +1,43 @@
+{
+  "artifact": "nwmain.exe",
+  "sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original binary static callback descents; runtime activity remains open",
+  "paths": [
+    {
+      "family": "ConfigWindow bound member",
+      "table": "0x140e4b650",
+      "constructor": "0x140832700",
+      "callback": "0x1408342c0",
+      "bound_receiver_type": "Nui::ConfigWindow",
+      "bound_target": "0x1408318c0",
+      "gates": ["constructor param_2 != -1", "Widget callback non-null", "selected preset index != -1", "loaded preset entries", "button input for ApplyPreset"],
+      "downstream": ["0x140a86630", "0x140a6f240", "0x140a6e960", "0x140a82050", "0x140a76d50", "0x1401333b0"],
+      "numeric_kinds": [5, 16, 17],
+      "evidence_ids": ["ev_d0a7911925776e5d61f5e18168face5a8c0e2e3ed8743e58629d41f96c859a8b", "ev_8311fb016574b99c3986274a47fccb670f749b5167cc2f5b1e6d346115ed0dab", "ev_cd48b11c58a6cca9f32813bef196d549fa5e2b6854264695a525421e41f4cb76"]
+    },
+    {
+      "family": "ConfigDescriptionWindow TreeNode",
+      "table": "0x140e6e650",
+      "constructor": "0x140822f80",
+      "callback": "0x14095c900",
+      "tree_node_table": "0x140e6e6c0",
+      "tree_node_adjustor": "0x14095ce70",
+      "tree_node_target": "0x1409555b0",
+      "gates": ["registered visible ConfigDescriptionWindow", "non-null UI context and tree layout", "open tree header for nested content", "dynamic TreeNode+0x20 content and +0x30/+0x38 children"],
+      "downstream": ["0x140955000", "0x140a916f0", "0x140a74440", "0x140a74d40", "0x140a91750"],
+      "numeric_kinds": [5, 16, 17],
+      "evidence_ids": ["ev_f84307d72cce88bc6a3809b719757a19af155515ffda71b566fa58c6689b5b63", "ev_c45ffe25bbd14773dda15ef4609262ce822939b4e8bc7406c543228ffd624ed2", "ev_c751001f60492c1de318d8e6260f9da57c2bfc8847ffd3c4f24b6642efa13fd3", "ev_166e9384d8852f6a17f3e17b00b481f3be3383f0f74f04bdcab75d6d7943cb8a", "ev_0e8340f4b9f1cec316e980a27e81e2596c63a86ca07c6558aaa7e2405fc5bde9"]
+    },
+    {
+      "family": "Data-dependent group Widget",
+      "table": "0x140e3b328",
+      "callback": "0x140755af0",
+      "body": "0x14073e9d0",
+      "gates": ["valid context/output/label", "mode-derived group flags", "active unclipped layout", "record column count and StatefulWidget children"],
+      "downstream": ["0x140a87060", "0x140a84ae0", "0x140a6cc40", "0x140a84760"],
+      "numeric_kinds": [1, 5, 16, 17],
+      "evidence_ids": ["ev_ee0ed90a46e5e371de330ce79bbda388c27175ddfac320587bacde8d8515eb78", "ev_80e0f3896c93afa0456e27ae1a3deca491f66230e6982c790264c4fb26956a82", "ev_e61b5d60409db7257b53c60d8d0d7157243d4278da37f112379874fdc3d3ea53", "ev_e981473c3a49604036fbf6dd5e600f1c553f1345531f41832cb67acfd81dc6d3", "ev_bb823c277e255485f3bf875eb044caa0e295a54ce3012e16a50eb1dea254b6d3"]
+    }
+  ],
+  "open": ["Actual active/visible registry population", "TreeNode+0x20 content target for each runtime record", "StatefulWidget child target in group rows", "Complete ConfigWindow config item and style branches"]
+}

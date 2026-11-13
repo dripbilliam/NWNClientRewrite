@@ -17,7 +17,11 @@ struct Owner {
   // overflow; ordinary counts are nonnegative and well below this boundary.
   uint64_t result=static_cast<uint64_t>(sum)+static_cast<uint64_t>(next)-static_cast<uint64_t>(prior);std::memcpy(&sum,&result,8);
  }
- bool store(int64_t id,const int64_t* values){if(closed)return false;auto found=entries.find(id);if(found==entries.end()){error=1201;return false;}for(size_t n=0;n<fields;++n){delta(sums[n],values[n],found->second[n]);found->second[n]=values[n];}return true;}
+ void store_record(std::array<int64_t,fields>& record,const int64_t* values){for(size_t n=0;n<fields;++n){delta(sums[n],values[n],record[n]);record[n]=values[n];}}
+ bool store(int64_t id,const int64_t* values){if(closed)return false;auto found=entries.find(id);if(found==entries.end()){error=1201;return false;}store_record(found->second,values);return true;}
+ // A scene callback may remove this record before the ordered presentation
+ // pass reaches it. Skip that source without looking the same id up twice.
+ template<class MakeValues>bool store_if_present(int64_t id,MakeValues&& make_values){auto found=entries.find(id);if(found==entries.end())return true;if(closed)return false;const auto values=make_values();store_record(found->second,values.data());return true;}
  bool update(int64_t id,GDExtensionConstVariantPtr packet){
   if(closed)return false;auto found=entries.find(id);if(found==entries.end()){error=1201;return false;}
   if(get_type(packet)!=GDEXTENSION_VARIANT_TYPE_PACKED_INT64_ARRAY){error=1202;return false;}

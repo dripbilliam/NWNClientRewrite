@@ -36,6 +36,42 @@ test('world snapshot preparation is a managed normal-launch selector with explic
  assert.deepEqual(combined.nativeArguments,['--drive-collision=legacy','--light-input-registry=builtin','--world-snapshot-preparation=workers','--profile=false']);
  assert.equal(flags.catalogue().features.filter(row=>row.name==='world-snapshot-preparation').length,1);
 });
+test('entry commit can explicitly select the synchronous comparison and rollback route',()=>{
+ const ordinary=flags.resolvePerformanceOptions([]);
+ assert.deepEqual(ordinary.requested['entry-commit'],{value:'staged',explicit:false});
+ assert(!ordinary.nativeArguments.some(value=>value.startsWith('--entry-commit=')));
+ for(const value of ['staged','sync']){
+  const argument='--entry-commit='+value,selected=flags.resolvePerformanceOptions([argument]);
+  assert(selected.nativeArguments.includes(argument));
+  assert.deepEqual(selected.requested['entry-commit'],{value,explicit:true});
+  assert.equal(flags.validateHostOptions([argument]).values['entry-commit'],value);
+ }
+ for(const args of [['--entry-commit'],['--entry-commit=unknown'],['--entry-commit=staged','--entry-commit=sync']])assert.throws(()=>flags.validateHostOptions(args));
+});
+test('entry commit budget preserves 4ms default and forwards bounded opt-in choices',()=>{
+ const ordinary=flags.resolvePerformanceOptions([]);
+ assert.deepEqual(ordinary.requested['entry-commit-budget'],{value:'4ms',explicit:false});
+ assert(!ordinary.nativeArguments.some(value=>value.startsWith('--entry-commit-budget=')));
+ for(const value of ['4ms','6ms','8ms']){
+  const argument='--entry-commit-budget='+value,selected=flags.resolvePerformanceOptions([argument]);
+  assert(selected.nativeArguments.includes(argument));
+  assert.deepEqual(selected.requested['entry-commit-budget'],{value,explicit:true});
+  assert.equal(flags.validateHostOptions([argument]).values['entry-commit-budget'],value);
+ }
+ for(const args of [['--entry-commit-budget'],['--entry-commit-budget=9ms'],['--entry-commit-budget=6ms','--entry-commit-budget=8ms']])assert.throws(()=>flags.validateHostOptions(args));
+});
+test('drive height plan is explicit and forwards to the native client',()=>{
+ const row=flags.catalogue().features.find(value=>value.name==='drive-height-plan');
+ assert.equal(row.default,'off');assert.deepEqual(row.choices,['off','worker']);assert.equal(row.powershell,'DriveHeightPlan');
+ assert.deepEqual(flags.resolvePerformanceOptions([]).requested['drive-height-plan'],{value:'off',explicit:false});
+ for(const value of ['off','worker']){
+  const args=['--drive-height-plan='+value],selected=flags.resolvePerformanceOptions(args);
+  assert(selected.nativeArguments.includes(args[0]));
+  assert.deepEqual(selected.requested['drive-height-plan'],{value,explicit:true});
+  assert.equal(flags.validateHostOptions(args).values['drive-height-plan'],value);
+ }
+ for(const args of [['--drive-height-plan'],['--drive-height-plan=true'],['--drive-height-plan=workers'],['--drive-height-plan=worker','--drive-height-plan=off']])assert.throws(()=>flags.validateHostOptions(args));
+});
 test('bad, duplicate, misspelled and research-only host options reject',()=>{
  for(const args of [['--render-thread=worker'],['--drive-collision'],['--drive-collision=indexed','--drive-collision=legacy'],['--drive-collison=indexed'],['--performance-runtime=made-up'],['--particle-clocks=native'],['--base-scenery-stream=continuous'],['--garbage=true']])assert.throws(()=>flags.validateHostOptions(args),args.join(' '));
  assert.doesNotThrow(()=>flags.validateHostOptions(['--native-runtime=editor','--native-screen=1','--public-servers','--render-profile=gameplay','--loading-pipeline=ordinary']));
@@ -61,6 +97,12 @@ test('catalogue and returned configuration do not expose mutable registry data',
 });
 function manifest(){return {registry:{sha256:'registry'},runtime:{executable:path.join(project,'fake-engine.exe'),expectedCapabilities:[]},requested:flags.resolvePerformanceOptions(['--render-thread=separate','--drive-collision=indexed','--light-input-registry=builtin','--detailed-profiling=off']).requested};}
 function observation(){return {version:1,valid:true,registry:{sha256:'registry'},executable:path.join(project,'fake-engine.exe'),parsed_native_options:{'drive-collision':{value:'indexed'},'light-input-registry':{value:'builtin'},'world-snapshot-preparation':{value:'script'}},snapshot_preparation:{enabled:false,requested:'script',diagnostic:{worker:{active:false}}},capabilities:{light_input_registry:{available:true},classes:{}},presentation:{detailed_profiling:false},rendering:{display:'windows',render_thread_requirement:'matched',render_thread:{observed:true,thread_id:5,main_thread_id:1,separate:true}}};}
+test('explicit drive height plan requires matching native startup evidence',()=>{
+ const selected=manifest(),actual=observation();selected.requested['drive-height-plan']={value:'worker',explicit:true};
+ assert.equal(proof.verifyNativeObservation(selected,actual).status,'rejected');
+ actual.parsed_native_options['drive-height-plan']={value:'off'};assert.equal(proof.verifyNativeObservation(selected,actual).status,'rejected');
+ actual.parsed_native_options['drive-height-plan']={value:'worker'};assert.equal(proof.verifyNativeObservation(selected,actual).status,'observed');
+});
 
 test('snapshot preparation startup proof verifies parsed policy and actual Session enabled owner',()=>{
  const selected=manifest();selected.requested['world-snapshot-preparation']={value:'workers',explicit:true};

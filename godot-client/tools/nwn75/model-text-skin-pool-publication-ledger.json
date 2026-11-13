@@ -1,0 +1,120 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Skin Part generated vertices through bone remapping, paired index/weight render pools and cleanup.",
+  "edges": [
+    {
+      "from": "0x1400df860",
+      "to": "gathered bone/Part list and resolved bone references",
+      "kind": "cpu_bone_resolution",
+      "condition": "Skin node +0x278 geometry present; gathered local Part names and authored references",
+      "status": "cpu_skin_bone_ownership",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400df200",
+      "site": "0x1400dfdff",
+      "kind": "computed_callback_dispatch",
+      "condition": "installed node +0xa0 Skin generator after bone resolution",
+      "status": "cpu_skin_vertex_generation",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400a5e20",
+      "callsite": "0x1400dfe19",
+      "kind": "direct_static",
+      "condition": "after generated count is stored at node +0x284",
+      "status": "cpu_vertex_indices",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400a5a10",
+      "callsite": "0x1400dfe21",
+      "kind": "direct_static",
+      "condition": "after generated vertex-index construction",
+      "status": "cpu_neighbor_indices",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400a7790",
+      "callsite": "0x1400dfe29",
+      "kind": "direct_static",
+      "condition": "after neighbor-list construction; shared base/optional stream builder",
+      "status": "cpu_to_render_pool_handoff",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "node+0x2e0/+0x2e8 bone remap array",
+      "kind": "cpu_array_construct",
+      "condition": "allocate 2 bytes per gathered bone entry and initialize to 0xffff",
+      "status": "cpu_skin_bone_remap",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400beee0",
+      "callsites": ["0x1400dff06", "0x1400dff43"],
+      "kind": "direct_static",
+      "condition": "kind 0x40 index pool: 8 bytes per generated vertex at node +0x2dc; weight pool: 16 bytes per vertex at +0x2d8",
+      "status": "render_pool_request",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400bee30",
+      "callsites": ["0x1400dff18", "0x1400dff55"],
+      "kind": "direct_static",
+      "condition": "lock paired index and weight pools for CPU fill",
+      "status": "render_pool_lock",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "four 16-bit bone indices and four float weights per generated vertex",
+      "kind": "cpu_pool_fill",
+      "condition": "deduplicated node +0x2c8 weights, bone remap and nonzero-weight gates; unused indices or unresolved pairs receive -1",
+      "status": "render_pool_cpu_write",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400bf3d0",
+      "callsites": ["0x1400e031c", "0x1400e032b"],
+      "kind": "direct_static",
+      "condition": "unlock weight then index pool after filling both",
+      "status": "render_pool_unlock",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400a6130",
+      "callsite": "0x1400e0351",
+      "kind": "direct_static",
+      "condition": "after pool unlock and release of temporary SkinVertexWeight array",
+      "status": "cpu_tangent_basis",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "0x1400a9f30",
+      "site": "0x1400e0360",
+      "kind": "computed_callback_dispatch",
+      "condition": "installed node +0xa8 Skin temporary-array cleanup",
+      "status": "cpu_skin_temp_cleanup",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "DYNAMIC:SKIN_BONE_AND_POOL_STATE",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored bone names and weights, generated count, pool state and later GL admission",
+      "status": "unresolved_target",
+      "evidence_id": "ev_3547b374015f3148e8eeb921b1894b8679c898af2d14c01a81d2560eb4d955a3"
+    }
+  ]
+}

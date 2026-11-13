@@ -1,0 +1,9 @@
+# NWN-75: sound render side branch
+
+Scope: pinned installed `nwmain.exe` SHA-256 `3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a`. This is audio work adjacent to the alternate screen and client/area routes. It does not draw a world or GUI frame. The [edge ledger](audio-render-side-ledger.json) records exact original-byte sites; the [OpenAL continuation](audio-render-openal-continuation.md) follows the internal render body's conditional source lists to imported API leaves.
+
+`UpdateScreen` `0x1400451c0` loads global `g_pExoSound`, skips the call when it is null, and calls exported `CExoSound::Render` `0x1401d9d90` at `0x1400453d6`. The callsite bytes are `e8 b5 49 19 00`, following a `test rcx,rcx`/`jz` gate. This route inherits the caller of `UpdateScreen`; the [alternate-screen census](alternate-screen-callers.md) lists its twelve direct/tail entry sites. A tile-reveal/area function `0x14076d910` calls the same wrapper at `0x14076e14f`. A small client helper `0x1406e6a71` tail-jumps to it at `0x1406e6a88`; neither site's runtime branch frequency is established by a static call.
+
+The exported `CExoSound::Render` wrapper begins `48 8b 09 48 85 c9 0f 85 74 6a 00 00 c3`: it reads its internal pointer, returns when null, otherwise conditionally jumps at `0x1401d9d96` to exported `CExoSoundInternal::Render` `0x1401e0810`. The latter is the audio-specific open descendant. An additional small caller `0x1401da1c0` calls the internal body at `0x1401da1f9`. PE export names and original bytes can be reproduced with `inspect-pe-exports.cjs`, `scan-rip-references.cjs`, `pe-function-range.cjs` and `read-pe-bytes.cjs`.
+
+Open: OpenAL's external mixer/device implementation, computed source callbacks and live source population, owner/gate of the client-helper and area direct sites, and active runtime execution. This branch is not treated as evidence of visual draw or GPU work.

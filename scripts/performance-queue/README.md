@@ -8,7 +8,7 @@ trusted by IPC. The exact-document trust configuration is corrected and
 tested; the native paired comparison still needs a rerun. The final normal
 boot stage did not run after that failure.
 
-See [execution and live findings](../../evidence/performance-live-candidates.md)
+See [execution and live findings](../../docs/performance.md)
 for exact reports, timing caveats and subsequent focused checks. The local
 queue never connects to Arelith. The user subsequently requested a separate
 experimental build and manually joined Arelith; read-only live evidence is
@@ -170,7 +170,7 @@ enabling them.
 # Offline captured-room replay
 
 The decoded recorder and replay path are documented in
-[`offline-scene-replay.md`](../../evidence/offline-scene-replay.md). Native
+[`offline-scene-replay.md`](../../docs/research.md). Native
 payloads remain in private AppData; do not copy them into this workspace.
 The supplemented heavy-room replay now imports the complete canonical object
 inventory without resource gaps. Its original final-frame parity gate still
@@ -214,7 +214,7 @@ every entry to verify its hash. Private game resources and native binaries are
 excluded. The initial checkpoint is `captured-room-baseline-20261022.zip`.
 
 The latest private renderer experiments and deferred clean measurements are
-recorded in [`captured-room-renderer-experiments.md`](../../evidence/captured-room-renderer-experiments.md).
+recorded in [`captured-room-renderer-experiments.md`](../../docs/rendering.md).
 `replay-scene.cjs --compare=baseline,flat-scene,broad-main,broad-flat,broad-flat,broad-main,flat-scene,baseline`
 uses one isolated replay instance, warms each mode for 16 seconds and then
 observes it for 20 seconds (the final 15-second telemetry window is reported).

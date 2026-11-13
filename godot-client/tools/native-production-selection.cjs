@@ -67,7 +67,7 @@ async function stageProductionSelection({project,label,argv=[],preferenceSeeds:s
  const identity=require(path.join(project,'tools/native-feature-manifest.cjs')).sourceIdentity(project),stage=path.join(project,'.cache/native-presentation-parity/production-replay',label),sourceProject=path.join(stage,'project');
  if(fs.existsSync(stage))throw Error('Production stage already exists');
  const files=new Set(identity.files.map(row=>row.file));
- for(const name of ['join-native.ps1','tools/native-feature-manifest.cjs','tools/native-production-selection.cjs','.godot/global_script_class_cache.cfg','.cache/native-kernel/build-manifest.json','.cache/native-resource-index/build-manifest.json'])files.add(name);
+ for(const name of ['join-native.ps1','tools/native-feature-manifest.cjs','tools/native-production-selection.cjs','data/native_text_codepages.json','.godot/global_script_class_cache.cfg','.cache/native-kernel/build-manifest.json','.cache/native-resource-index/build-manifest.json'])files.add(name);
  for(const name of ['.cache/native-clock-source-v1/clock_source.gdextension','.cache/native-clock-source-v1/nwn-clock-source.dll'])if(fs.existsSync(path.join(project,name)))files.add(name);
  const nativeWalk=relative=>{for(const entry of fs.readdirSync(path.join(project,relative),{withFileTypes:true})){if(entry.isSymbolicLink())throw Error('Native source symlink is unsupported');const name=path.posix.join(relative,entry.name);if(entry.isDirectory())nativeWalk(name);else if(/\.(gd|gdextension|cpp|hpp|h|c)$/.test(name))files.add(name);}};nativeWalk('native');
  // Diagnostic branches also preload test/tool scripts. Preserve their complete

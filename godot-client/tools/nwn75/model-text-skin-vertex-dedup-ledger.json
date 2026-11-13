@@ -1,0 +1,108 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text Skin generated-vertex construction, weight-sensitive deduplication and CPU ownership before Skin pool publication.",
+  "edges": [
+    {
+      "from": "0x1400df860",
+      "to": "0x1400df200",
+      "site": "0x1400dfdff",
+      "kind": "computed_callback_dispatch",
+      "condition": "Skin node +0xa0 installed generator after bone resolution and geometry admission",
+      "status": "cpu_skin_vertex_generation",
+      "evidence_id": "ev_86cdb10a74e78f3b3c92b44972287e077f74299f941b521d1479b8d39a2a6666"
+    },
+    {
+      "from": "0x1400df200",
+      "to": "node+0x278 postprocess face and attribute arrays",
+      "kind": "cpu_indexed_read",
+      "condition": "positive node +0xb8 face count; each face has three corners",
+      "status": "cpu_skin_candidate_input",
+      "evidence_id": "ev_7fe27dd2d5527878a6dc8584b82a06af7df9ccf1e275b52bc8f3ca19d96a5d17"
+    },
+    {
+      "from": "0x1400df200",
+      "to": "0x1400aaa90",
+      "callsite": "0x1400df3d9",
+      "kind": "direct_static",
+      "condition": "allocate and construct a 0x6c-byte NodeVertex candidate per face corner",
+      "status": "cpu_skin_candidate",
+      "evidence_id": "ev_7fe27dd2d5527878a6dc8584b82a06af7df9ccf1e275b52bc8f3ca19d96a5d17"
+    },
+    {
+      "from": "0x1400df200",
+      "to": "node+0x2c8/+0x2d0 SkinVertexWeight array",
+      "kind": "cpu_indexed_read",
+      "condition": "face weight index in range; otherwise a zero-count local record",
+      "status": "cpu_skin_weight_input",
+      "evidence_id": "ev_7fe27dd2d5527878a6dc8584b82a06af7df9ccf1e275b52bc8f3ca19d96a5d17"
+    },
+    {
+      "from": "0x1400df200",
+      "to": "0x1400ab270",
+      "callsite": "0x1400df4a1",
+      "kind": "direct_static",
+      "condition": "scan each prior generated vertex at postprocess +0x90/+0x98",
+      "status": "cpu_linear_vertex_search",
+      "evidence_id": "ev_7fe27dd2d5527878a6dc8584b82a06af7df9ccf1e275b52bc8f3ca19d96a5d17"
+    },
+    {
+      "from": "0x1400df200",
+      "to": "0x14008a4a0",
+      "callsite": "0x1400df4bb",
+      "kind": "direct_static",
+      "condition": "base NodeVertex comparator matched; compare prior and current SkinVertexWeight records",
+      "status": "cpu_skin_weight_equality",
+      "evidence_id": "ev_7fe27dd2d5527878a6dc8584b82a06af7df9ccf1e275b52bc8f3ca19d96a5d17"
+    },
+    {
+      "from": "0x14008a4a0",
+      "to": "0x140c9a9fc",
+      "callsites": ["0x14008a4d3", "0x14008a522", "0x14008a575", "0x14008a5d4"],
+      "kind": "direct_static",
+      "condition": "both compared weight-name pointers are non-null for an entry; case-insensitive _stricmp",
+      "status": "crt_string_compare_leaf",
+      "evidence_id": "ev_77f9ce55053a27e5003e6a208d03fdcfc7bb2fd316a38e603132bbe1b39f9ec0"
+    },
+    {
+      "from": "0x14008a4a0",
+      "to": "weight count and per-entry index/float fields",
+      "kind": "cpu_exact_compare",
+      "condition": "count must match; integer and float checks are on the both-null-name branches",
+      "status": "cpu_skin_weight_equality",
+      "evidence_id": "ev_77f9ce55053a27e5003e6a208d03fdcfc7bb2fd316a38e603132bbe1b39f9ec0"
+    },
+    {
+      "from": "0x1400df200",
+      "to": "postprocess generated list +0x90/+0x98 and face 16-bit indices",
+      "kind": "cpu_dedup_or_append",
+      "condition": "matching base and weight: free candidate/reuse index; otherwise append new vertex/index",
+      "status": "cpu_skin_vertex_ownership",
+      "evidence_id": "ev_7fe27dd2d5527878a6dc8584b82a06af7df9ccf1e275b52bc8f3ca19d96a5d17"
+    },
+    {
+      "from": "0x1400df200",
+      "to": "node+0x2c8/+0x2d0 deduplicated SkinVertexWeight array",
+      "kind": "cpu_array_replace",
+      "condition": "after all face corners, copy temporary unique weight records and release temporary storage",
+      "status": "cpu_skin_weight_ownership",
+      "evidence_id": "ev_7fe27dd2d5527878a6dc8584b82a06af7df9ccf1e275b52bc8f3ca19d96a5d17"
+    },
+    {
+      "from": "0x1400df860",
+      "to": "Skin index/weight RenderInterface pools",
+      "kind": "conditional_pool_publication",
+      "condition": "after generated vertex deduplication, admitted geometry and valid skin data",
+      "status": "cpu_to_render_pool_handoff",
+      "evidence_id": "ev_86cdb10a74e78f3b3c92b44972287e077f74299f941b521d1479b8d39a2a6666"
+    },
+    {
+      "from": "0x1400df200",
+      "to": "DYNAMIC:SKIN_FACE_WEIGHTS_AND_DEDUP",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored face/attribute/weight data, prior vertex count and comparison outcomes",
+      "status": "unresolved_target",
+      "evidence_id": "ev_7fe27dd2d5527878a6dc8584b82a06af7df9ccf1e275b52bc8f3ca19d96a5d17"
+    }
+  ]
+}

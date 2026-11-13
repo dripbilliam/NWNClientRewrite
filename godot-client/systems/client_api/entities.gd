@@ -19,6 +19,95 @@ var _controlled_id: Variant=null
 var _player_identity: Dictionary={"available":false,"reason":"identity_not_received"}
 var _publishing:=false
 var _metrics:={"boundaries":0,"source_rows":0,"full_removal_visits":0,"lookups":0,"snapshots":0,"presentation_records":0}
+var _entry_boundary: Dictionary={}
+var _entry_callback_depth:=0
+
+# Full *new-area* boundaries only. Build private registry metadata first, then
+# publish the complete registry before emitting ordered observer events. This
+# does not change the synchronous live full/delta API.
+func _begin_entry_boundary(connection: int,generation: int,area_id: int,controlled: Variant,objects: Array,player_identity: Dictionary={}) -> bool:
+	if _publishing or not _entry_boundary.is_empty() or connection<0 or generation<0 or not valid_id(area_id) or not _received_lookup.is_valid():return false
+	if _scope.active and (connection<int(_scope.connection) or connection==int(_scope.connection) and generation<int(_scope.area_generation)):return false
+	if _scope.active and connection==_scope.connection and generation==_scope.area_generation and area_id==_scope.area_id:return false
+	_entry_boundary={"connection":connection,"generation":generation,"area_id":area_id,"controlled":controlled,"objects":objects,"player":player_identity,"phase":"validate","index":0,"rows":{},"known":{},"removed":[],"added":[],"next_lifetime":_next_lifetime,"previous_scope":Detached.copy(_scope),"previous_control":_control_marker(),"revision":_revision+1,"keys":[]}
+	return true
+
+func _entry_boundary_step() -> Dictionary:
+	if _entry_boundary.is_empty():return {"done":true,"accepted":false}
+	var state: Dictionary=_entry_boundary;var index:=int(state.index)
+	match str(state.phase):
+		"validate":
+			if index<state.objects.size():
+				var object: Variant=state.objects[index];state.index=index+1
+				if object is Dictionary and not object.get("replicationRemoved",false) and object.has("clientKnownLifetime") and _source_token(object)==null:
+					_entry_boundary={};return {"done":true,"accepted":false,"reason":"invalid_disclosure"}
+				# Entry rows are borrowed immutable wire dictionaries. Build the
+				# private last-wins index during validation rather than walking the
+				# same full snapshot again. Nothing is published until all rows pass.
+				if object is Dictionary and valid_id(object.get("id")):state.rows[int(object.id)]=object
+				return {"done":false}
+			state.phase="removed";state.keys=_known.keys();state.keys.sort();state.index=0
+		"removed":
+			if index<state.keys.size():
+				var id:=int(state.keys[index]);state.index=index+1
+				state.removed.append({"reference":_reference(id),"object_id":id,"reason":"scope_changed","revision":int(state.revision)})
+				return {"done":false}
+			state.phase="known";state.keys=state.rows.keys();state.keys.sort();state.index=0
+		"known":
+			if index<state.keys.size():
+				var id:=int(state.keys[index]);state.index=index+1
+				var object: Dictionary=state.rows[id]
+				if not object.get("replicationRemoved",false):
+					state.known[id]={"lifetime":int(state.next_lifetime),"source_lifetime":_source_token(object),"object_type":_integer(object.get("objectType")),"area_id":_integer(object.get("areaId")),"revision":int(state.revision),"presentation_revision":-1}
+					state.next_lifetime=int(state.next_lifetime)+1;state.added.append(id)
+				return {"done":false}
+			state.phase="publish"
+		"publish":
+			_known=state.known;_next_lifetime=int(state.next_lifetime);_revision=int(state.revision);_scope_id+=1
+			_scope={"active":true,"connection":state.connection,"area_generation":state.generation,"area_id":state.area_id,"scope_id":_scope_id}
+			_controlled_id=int(state.controlled) if valid_id(state.controlled) else null
+			var identity: Dictionary=state.player
+			_player_identity=Detached.copy(identity) if identity.get("available",false) and valid_id(identity.get("object_id")) and identity.get("provenance") is String and not str(identity.provenance).is_empty() else {"available":false,"reason":"identity_not_received"}
+			_metrics.boundaries+=1;_metrics.source_rows+=state.objects.size()
+			_publishing=true;state.phase="scope_event";state.index=0
+		"scope_event":
+			state.phase="removed_events";state.index=0
+			if state.previous_scope!=_scope and scope_changed.has_connections():_entry_callback_depth+=1;scope_changed.emit(Detached.event({"previous":state.previous_scope,"current":_scope,"revision":_revision}));_entry_callback_depth-=1
+		"removed_events":
+			if index<state.removed.size():
+				state.index=index+1
+				if entity_removed.has_connections():_entry_callback_depth+=1;entity_removed.emit(Detached.event(state.removed[index]));_entry_callback_depth-=1
+			else:state.phase="added_events";state.index=0
+		"added_events":
+			if index<state.added.size():
+				var id:=int(state.added[index]);state.index=index+1
+				if entity_added.has_connections():_entry_callback_depth+=1;entity_added.emit(Detached.event({"reference":_reference(id),"object_id":id,"revision":_revision,"source":"received"}));_entry_callback_depth-=1
+			else:state.phase="control_event"
+		"control_event":
+			state.phase="finish"
+			var control:=_control_marker()
+			if state.previous_control!=control and controlled_entity_changed.has_connections():_entry_callback_depth+=1;controlled_entity_changed.emit(Detached.event({"previous":state.previous_control,"current":control,"revision":_revision}));_entry_callback_depth-=1
+		"finish":
+			_entry_boundary={};_publishing=false;return {"done":true,"accepted":true}
+	if _entry_boundary.is_empty():_publishing=false;return {"done":true,"accepted":false,"reason":"cancelled"}
+	return {"done":false,"phase":state.phase}
+
+# Keep the same one-row state machine and observer order while avoiding a
+# session/native-binding round trip for every metadata row. The deadline is
+# checked after each row so an observer can cancel the boundary immediately.
+func _entry_boundary_steps(deadline_usec: int,max_steps: int=64) -> Dictionary:
+	var result: Dictionary={"done":false}
+	var steps:=0
+	while steps<max_steps:
+		result=_entry_boundary_step()
+		steps+=1
+		if result.get("done",false) or Time.get_ticks_usec()>=deadline_usec:break
+	result["steps"]=steps
+	return result
+
+func _cancel_entry_boundary() -> void:
+	_entry_boundary={}
+	if _entry_callback_depth==0:_publishing=false
 
 static func valid_id(value: Variant) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value)==floor(float(value)) and value>=0 and value<=0xffffffff and int(value)!=INVALID_OBJECT
@@ -190,7 +279,7 @@ func _publish(previous_scope: Dictionary,removed: Array,added: Array,updated: Ar
 	_publishing=false
 
 func _apply_boundary(connection: int,generation: int,area_id: int,controlled: Variant,objects: Array,removed_ids: Array,full: bool,player_identity: Dictionary={}) -> bool:
-	if _publishing or connection<0 or generation<0 or not valid_id(area_id) or not _received_lookup.is_valid(): return false
+	if _publishing or not _entry_boundary.is_empty() or connection<0 or generation<0 or not valid_id(area_id) or not _received_lookup.is_valid(): return false
 	for object in objects:
 		if object is Dictionary and not object.get("replicationRemoved",false) and object.has("clientKnownLifetime") and _source_token(object)==null: return false
 	if _scope.active and (connection<int(_scope.connection) or connection==int(_scope.connection) and generation<int(_scope.area_generation)): return false
@@ -232,7 +321,7 @@ func _apply_boundary(connection: int,generation: int,area_id: int,controlled: Va
 	return true
 
 func _reset(reason: String="session_reset") -> bool:
-	if _publishing: return false
+	if _publishing or not _entry_boundary.is_empty(): return false
 	var previous_scope: Dictionary=Detached.copy(_scope); var previous_control:=_control_marker(); var removed: Array=[]
 	_revision+=1
 	for reference in list_references(): _remove(int(reference.object_id),reason,removed)
@@ -242,7 +331,7 @@ func _reset(reason: String="session_reset") -> bool:
 	return true
 
 func _presentation_records(connection: int,generation: int,area_id: int,records: Array) -> bool:
-	if _publishing or not _scope.active or connection!=_scope.connection or generation!=_scope.area_generation or area_id!=_scope.area_id: return false
+	if _publishing or not _entry_boundary.is_empty() or not _scope.active or connection!=_scope.connection or generation!=_scope.area_generation or area_id!=_scope.area_id: return false
 	var ids: Dictionary={}
 	for record in records:
 		_metrics.presentation_records+=1

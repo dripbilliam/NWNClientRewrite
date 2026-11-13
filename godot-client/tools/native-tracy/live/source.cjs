@@ -8,13 +8,18 @@ function one(source, before, after) {
 }
 function runtimeSource(original, descriptor, descriptorSha256, config) {
  let source = original;
- source = one(source, 'const relative=".tools/native-core/Godot_native_core_d_win64.exe";', 'const relative=' + JSON.stringify(config.engineRelative) + ';');
- source = one(source, 'const sha256="10b24711d277f745ad72cc504b6a3e573c12bb1ce1be7fd8545faabab82b9f13",bytes=90973184;', 'const sha256=' + JSON.stringify(descriptor.engineSha256) + ',bytes=' + descriptor.engineBytes + ';');
- source = one(source, 'const proofRelative=".tools/native-core/accepted-core-d.json",proofSha256="5b76f260b5c65f18fcaa332ce806f2843325e08ec218f751652dd545689c579e";', 'const proofRelative=' + JSON.stringify(config.descriptorRelative) + ',proofSha256=' + JSON.stringify(descriptorSha256) + ';');
+ // A current normal selector may advance independently of the frozen Tracy
+ // build. Replace only the known selector grammar and keep diagnostic identity
+ // tied to its own descriptor, never the normal engine's current revision.
+ const seam=pattern=>{const matches=[...source.matchAll(pattern)];assert.equal(matches.length,1,'Normal runtime selector seam changed');return matches[0];};
+ const normal=seam(/const relative="\.tools\/native-core\/Godot_native_core_([de])_win64\.exe";/g),revision=normal[1];
+ source = one(source, normal[0], 'const relative=' + JSON.stringify(config.engineRelative) + ';');
+ source = one(source, seam(/const sha256="[a-f0-9]{64}",bytes=[1-9][0-9]*;/g)[0], 'const sha256=' + JSON.stringify(descriptor.engineSha256) + ',bytes=' + descriptor.engineBytes + ';');
+ source = one(source, seam(new RegExp('const proofRelative="\\.tools/native-core/accepted-core-'+revision+'\\.json",proofSha256="[a-f0-9]{64}";','g'))[0], 'const proofRelative=' + JSON.stringify(config.descriptorRelative) + ',proofSha256=' + JSON.stringify(descriptorSha256) + ';');
  source = one(source, 'const nativeSha256="485741af15f0581a3c60c0f9a8ae738888eba08716c7a5c2c2d1bd550828963d";', 'const nativeSha256=' + JSON.stringify(descriptor.nativeKernelSha256) + ';');
- source = one(source, 'policy:enabled?"accepted-normal-combined-d":"conservative-or-isolated"', 'policy:enabled?"private-tracy-diagnostic":"conservative-or-isolated"');
+ source = one(source, 'policy:enabled?"accepted-normal-combined-'+revision+'":"conservative-or-isolated"', 'policy:enabled?"private-tracy-diagnostic":"conservative-or-isolated"');
  source = one(source, "kind:'verified-native',executable", "kind:'private-tracy-diagnostic',executable");
- source = one(source, "revision:'verified-native-normal-bundle-d'", "revision:'private-tracy-source-equivalent-d'");
+ source = one(source, "revision:'verified-native-normal-bundle-"+revision+"'", "revision:'private-tracy-source-equivalent-d'");
  source = one(source, "verification:'Exact engine/native SHA256, engine byte count and accepted component proof'", "verification:'Exact private diagnostic engine/DLL SHA256 and build receipts; no normal-performance acceptance'");
  source = one(source, "particleExtensionPolicy:'Exact accepted combined-b DLL plus corresponding native sources; conservative flag-absent branches retained'", "particleExtensionPolicy:'Accepted combined-b source plus engine-owned Tracy bridge/PDB build; explicit diagnostic DLL hash'");
  source += '\nconst diagnostic=' + JSON.stringify({ descriptorRelative: config.descriptorRelative, descriptorSha256, tracing: descriptor.tracing, acceptedReference: descriptor.acceptedReference, performanceAccepted: false }) + ';\n';

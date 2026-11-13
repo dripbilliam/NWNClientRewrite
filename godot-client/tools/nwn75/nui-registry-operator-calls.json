@@ -1,0 +1,294 @@
+{
+  "schema": "nwn75-nui-registry-operator-calls-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "operator_address": "0x140700210",
+  "operator_evidence_id": "ev_57a11fd49fba11ec1e5f675266882f6e0222329532ae123ed409159c5c1cc178",
+  "representative_publication_evidence_id": "ev_0236c73b57962b87a5ddc9b92ddd62a2ae55f6fc0e94f57a76aa4cd082f9332b",
+  "method": "All direct E8 references to operator in pinned .text; each post-call instruction sequence tests/increments the new weak control block, stores object pointer and control pointer at the returned map value, then releases the prior weak control block. Post-call bytes are the exact 96 original bytes after E8. Co-located vtable names are class clues within each containing .pdata body, not data-flow proof of the published dynamic type. No runtime invocation or populated-map frequency is implied.",
+  "counts": {
+    "direct_calls": 31,
+    "live_weak_ptr_publication_paths": 31,
+    "lookup_only": 0,
+    "unresolved_direct_callsite_patterns": 0
+  },
+  "calls": [
+    {
+      "callsite": "0x140700711",
+      "containing_function": "0x140700620",
+      "co_located_window_vtables": [
+        "enable_make<Nui::Debug::Selector>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2440488918488b480848897808bbffffffff4885c974138bc3f00fc1410c83f8017507488b01ff500890488b8424b00000004883f8107236488d5001488b8c2498000000488bc14881fa0010000072194883c227"
+    },
+    {
+      "callsite": "0x1407058c9",
+      "containing_function": "0x140705820",
+      "co_located_window_vtables": [
+        "enable_make<ContentIndex::Browser>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2420488918488b4808488978084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424504883fa10722e48ffc2488b4c2438488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x140712311",
+      "containing_function": "0x140712200",
+      "co_located_window_vtables": [
+        "enable_make<News::Browser>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7408f0ff470c488b5db7488918488b480848897808bbffffffff4885c974138bc3f00fc1410c83f8017507488b01ff500890488b55374883fa10723148ffc2488b4d1f488bc14881fa0010000072194883c227488b49f8482bc14883c0"
+    },
+    {
+      "callsite": "0x140716dcf",
+      "containing_function": "0x140715dd0",
+      "co_located_window_vtables": [
+        "enable_make<Nui::NWSync::Downloader>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885f6740bf0ff460c4c8bb5d00000004c8930488b4808488970084885c97414418bc7f00fc1410c83f8017507488b01ff500890488b95180200004883fa10723448ffc2488b8d00020000488bc14881fa0010000072194883c227488b49f848"
+    },
+    {
+      "callsite": "0x1407a668c",
+      "containing_function": "0x1407a5f20",
+      "co_located_window_vtables": [
+        "enable_make<Nui::JSON::JsonWindow>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4d85ff740df041ff470c488b9c244001000048899c24c00100004889184c89bc24d0010000488b48084c8978084885c97413f0440fc1710c4183fe017507488b01ff500890488b9424880300004883fa10723548ffc2488b8c2470030000488b"
+    },
+    {
+      "callsite": "0x14081b9ea",
+      "containing_function": "0x14081b920",
+      "co_located_window_vtables": [
+        "enable_make<Nui::ConfigDescriptionWindow>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b95980000004883fa10723548ffc2488b8d80000000488bc14881fa0010000072194883c227488b49"
+    },
+    {
+      "callsite": "0x14081bcaa",
+      "containing_function": "0x14081bbe0",
+      "co_located_window_vtables": [
+        "enable_make<Nui::ConfigDescriptionWindow>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b95980000004883fa10723548ffc2488b8d80000000488bc14881fa0010000072194883c227488b49"
+    },
+    {
+      "callsite": "0x14081bf6a",
+      "containing_function": "0x14081bea0",
+      "co_located_window_vtables": [
+        "enable_make<Nui::ConfigDescriptionWindow>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b95980000004883fa10723548ffc2488b8d80000000488bc14881fa0010000072194883c227488b49"
+    },
+    {
+      "callsite": "0x14081c22a",
+      "containing_function": "0x14081c160",
+      "co_located_window_vtables": [
+        "enable_make<Nui::ConfigDescriptionWindow>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b95980000004883fa10723548ffc2488b8d80000000488bc14881fa0010000072194883c227488b49"
+    },
+    {
+      "callsite": "0x14081c4e4",
+      "containing_function": "0x14081c420",
+      "co_located_window_vtables": [
+        "enable_make<Nui::LicenceViewer>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b95980000004883fa10723548ffc2488b8d80000000488bc14881fa0010000072194883c227488b49"
+    },
+    {
+      "callsite": "0x14082f569",
+      "containing_function": "0x14082f4b0",
+      "co_located_window_vtables": [
+        "enable_make<Nui::ConfigWindow>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7408f0ff470c4c8b7dc74c8938488b4808488978084885c974138bc6f00fc1410c83f8017507488b01ff500890488b55374883fa10723148ffc2488b4d1f488bc14881fa0010000072194883c227488b49f8482bc14883c0f84883f81f"
+    },
+    {
+      "callsite": "0x14089a7a1",
+      "containing_function": "0x14089a670",
+      "co_located_window_vtables": [
+        "enable_make<Nui::Debug::NetworkTree>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885db7409f0ff430c488b742420488930488b4808488958084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424704883fa10722e48ffc2488b4c2458488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x14089bec1",
+      "containing_function": "0x14089bd90",
+      "co_located_window_vtables": [
+        "enable_make<Nui::Debug::ResManTree>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885db7409f0ff430c488b742420488930488b4808488958084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424704883fa10722e48ffc2488b4c2458488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x14089d431",
+      "containing_function": "0x14089d300",
+      "co_located_window_vtables": [
+        "enable_make<Nui::Debug::GUITree>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885db7409f0ff430c488b742420488930488b4808488958084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424704883fa10722e48ffc2488b4c2458488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x14089f021",
+      "containing_function": "0x14089eef0",
+      "co_located_window_vtables": [
+        "enable_make<Nui::Debug::Steam>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885db7409f0ff430c488b742420488930488b4808488958084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424704883fa10722e48ffc2488b4c2458488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x14089fab9",
+      "containing_function": "0x14089f940",
+      "co_located_window_vtables": [
+        "Nui::GameObjectPicker::vftable",
+        "enable_make<Nui::GameObjectPicker>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7408f0ff470c488b5d8f488918488b4808488978084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b552f4883fa10722d48ffc2488b4d17488bc14881fa0010000072154883c227488b49f8482bc14883c0f848"
+    },
+    {
+      "callsite": "0x1408a3809",
+      "containing_function": "0x1408a3760",
+      "co_located_window_vtables": [
+        "enable_make<_anon_B4CCDE18::NWScript>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2420488918488b4808488978084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424504883fa10722f48ffc2488b4c2438488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x1408a6298",
+      "containing_function": "0x1408a6160",
+      "co_located_window_vtables": [
+        "enable_make<Nui::Debug::DM>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885db7409f0ff430c488b742420488930488b4808488958084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424704883fa10722e48ffc2488b4c2458488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x1408a6881",
+      "containing_function": "0x1408a6750",
+      "co_located_window_vtables": [
+        "enable_make<Nui::Debug::Sound>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885db7409f0ff430c488b742420488930488b4808488958084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424704883fa10722e48ffc2488b4c2458488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x1408a79bd",
+      "containing_function": "0x1408a78c0",
+      "co_located_window_vtables": [
+        "enable_make<Nui::QueryDialog>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2430488918488b4808488978084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424784883fa10722e48ffc2488b4c2460488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x1408a7b3a",
+      "containing_function": "0x1408a7a70",
+      "co_located_window_vtables": [
+        "enable_make<Nui::NWSync::Housekeeping>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b95980000004883fa10723548ffc2488b8d80000000488bc14881fa0010000072194883c227488b49"
+    },
+    {
+      "callsite": "0x1408a7e12",
+      "containing_function": "0x1408a7d30",
+      "co_located_window_vtables": [
+        "enable_make<Nui::QueryDialog>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2440488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b95a80000004883fa10723548ffc2488b8d90000000488bc14881fa0010000072194883c227488b49"
+    },
+    {
+      "callsite": "0x1408bc7c9",
+      "containing_function": "0x1408bc710",
+      "co_located_window_vtables": [
+        "enable_make<Nui::ConfigWindow>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7408f0ff470c4c8b7dc74c8938488b4808488978084885c974138bc6f00fc1410c83f8017507488b01ff500890488b55374883fa10723148ffc2488b4d1f488bc14881fa0010000072194883c227488b49f8482bc14883c0f84883f81f"
+    },
+    {
+      "callsite": "0x1408bcb14",
+      "containing_function": "0x1408bca70",
+      "co_located_window_vtables": [
+        "enable_make<Nui::NWSync::StorageManager>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7408f0ff470c488b5dc7488918488b480848897808bbffffffff4885c974138bc3f00fc1410c83f8017507488b01ff500890488b55374883fa10723148ffc2488b4d1f488bc14881fa0010000072194883c227488b49f8482bc14883c0"
+    },
+    {
+      "callsite": "0x14091ac6b",
+      "containing_function": "0x14091ab50",
+      "co_located_window_vtables": [
+        "enable_make<ContentIndex::RepositoryManager>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885db7409f0ff430c488b742420488930488b4808488958084885c97416b8fffffffff00fc1410c83f8017507488b01ff500890488b5424704883fa10722e48ffc2488b4c2458488bc14881fa0010000072154883c227488b49f8482bc14883"
+    },
+    {
+      "callsite": "0x14091adfb",
+      "containing_function": "0x14091ad20",
+      "co_located_window_vtables": [
+        "enable_make<Nui::ConfigWindow>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b95980000004883fa10723548ffc2488b8d80000000488bc14881fa0010000072194883c227488b49"
+    },
+    {
+      "callsite": "0x14091b0a8",
+      "containing_function": "0x14091aff0",
+      "co_located_window_vtables": [
+        "enable_make<ContentIndex::RepositoryManager>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808bbffffffff4885c974138bc3f00fc1410c83f8017507488b01ff500890488b45104883f8107233488d5001488b4df8488bc14881fa0010000072194883c227488b49f8482bc148"
+    },
+    {
+      "callsite": "0x14091b2d2",
+      "containing_function": "0x14091b220",
+      "co_located_window_vtables": [
+        "enable_make<Nui::NWSync::StorageManager>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2438488918488b480848897808bbffffffff4885c974138bc3f00fc1410c83f8017507488b01ff500890488b45104883f8107233488d5001488b4df8488bc14881fa0010000072194883c227488b49f8482bc148"
+    },
+    {
+      "callsite": "0x14093be38",
+      "containing_function": "0x14093bd40",
+      "co_located_window_vtables": [
+        "enable_make<Nui::Window>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2428488918488b480848897808beffffffff4885c974138bc6f00fc1410c83f8017507488b01ff500890488b9424900000004883fa10723248ffc2488b4c2478488bc14881fa0010000072194883c227488b49f8"
+    },
+    {
+      "callsite": "0x1409dc4f4",
+      "containing_function": "0x1409dc400",
+      "co_located_window_vtables": [
+        "enable_make<ContentIndex::Browser>::vftable"
+      ],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885ff7409f0ff470c488b5c2430488918488b480848897808bbffffffff4885c974138bc3f00fc1410c83f8017507488b01ff500890488b9424b00000004883fa10723548ffc2488b8c2498000000488bc14881fa0010000072194883c22748"
+    },
+    {
+      "callsite": "0x1409dc953",
+      "containing_function": "0x1409dc730",
+      "co_located_window_vtables": [],
+      "classification": "live_weak_ptr_publication_path",
+      "post_call_96_bytes": "4885db7409f0ff430c488b742478488930488b4808488958084885c974138bc7f00fc1410c83f8017507488b01ff500890488b55404883fa10723148ffc2488b4d28488bc14881fa0010000072194883c227488b49f8482bc14883c0f84883f8"
+    }
+  ]
+}

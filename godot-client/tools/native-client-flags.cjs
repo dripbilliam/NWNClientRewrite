@@ -66,7 +66,7 @@ function resolvePerformanceOptions(argv=[],context={}){
   if(parsed.explicit.includes('detailed-profiling')&&parsed.values['detailed-profiling']!=='saved')throw Error('Do not combine --native-profile with an explicit detailed-profiling policy');
   if(!parsed.explicit.includes('detailed-profiling'))parsed.values['detailed-profiling']='saved';
  }
- for(const name of ['drive-collision','light-input-registry','world-snapshot-preparation']){
+ for(const name of ['drive-collision','drive-height-plan','drive-preview-height-index','drive-preview-worker','drive-preview-surface-cache','light-input-registry','world-snapshot-preparation','world-snapshot-verified-packet','entry-commit','entry-commit-budget','binary-clips','particle-animation-snapshot']){
   if(parsed.explicit.includes(name)||(normalGameplay&&name==='light-input-registry'))nativeArguments.push('--'+name+'='+parsed.values[name]);
  }
  if(parsed.values['detailed-profiling']!=='saved')nativeArguments.push('--profile='+(parsed.values['detailed-profiling']==='on'?'true':'false'));

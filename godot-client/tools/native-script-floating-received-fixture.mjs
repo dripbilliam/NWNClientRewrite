@@ -22,7 +22,7 @@ export function receivedScriptFloatingFixture({targetState='known-unrendered',di
  const hostPath=path.join(project,'tools/native-session-host.cjs'),source=fs.readFileSync(hostPath,'utf8');
  const first='if(current!==session||connection!==lobby.connection||ending)return;',last="if(message.kind==='object-updates'){const frame=rawCombat.frame",start=source.indexOf(first),end=source.indexOf(last,start);
  if(start<0||end<start||source.indexOf(first,start+1)>=0)throw Error('Current bounded Host text dispatch anchors changed');
- const fragment=source.slice(start,end),dispatch=new Function('current','session','connection','lobby','ending','message','areaGeneration','nativeTextEvents','rawVoice','rawScriptSounds','rawVisual','guiPanelEventForHost','send','report',fragment);
+ const fragment=source.slice(start,end),dispatch=new Function('current','session','connection','lobby','ending','message','areaGeneration','nativeTextEvents','rawTileVisibility','rawCreatureVisibilityPermission','rawVoice','rawScriptSounds','rawVisual','guiPanelEventForHost','send','report',fragment);
  const ownerLine=source.split(/\r?\n/).find(line=>line.startsWith('const nativeTextEvents='));
  if(!ownerLine)throw Error('Current actual Host text owner missing');
  const require=createRequire(hostPath),identities=new (require('./raw-combat-events.cjs').RawCombatEvents)();
@@ -53,10 +53,10 @@ export function receivedScriptFloatingFixture({targetState='known-unrendered',di
   const expected=structuredClone(row.outputs[0]);for(const [key,value]of Object.entries(expected.data.strings))expected.data.strings[key]={text:value};
   if(!isDeepStrictEqual(decoded,{kind:'combat-feedback',...expected,major:18,minor:11}))throw Error('Actual codec disagrees with original receiver field trace');
   if(disclosure==='redisclosed'&&previousMessages.length===0){
-   dispatch(current,current,3,{connection:3},false,decoded,2,owner,empty,empty,empty,()=>null,value=>previousMessages.push(structuredClone(value)),report);
+   dispatch(current,current,3,{connection:3},false,decoded,2,owner,{frames:()=>[]},{frames:()=>[]},empty,empty,empty,()=>null,value=>previousMessages.push(structuredClone(value)),report);
    target.replicationRemoved=true;world.entityDisclosures.observeAccepted([{action:'delete',id}],registry);target.replicationRemoved=false;
   }
-  dispatch(current,current,3,{connection:3},false,decoded,2,owner,empty,empty,empty,()=>null,value=>messages.push(value),report);
+  dispatch(current,current,3,{connection:3},false,decoded,2,owner,{frames:()=>[]},{frames:()=>[]},empty,empty,empty,()=>null,value=>messages.push(value),report);
   if(messages.length!==count+1||JSON.stringify(decoded)!==before)throw Error('Actual Host changed/dropped original decoded fields');
   packets.push({type:row.type,mode:row.mode,buildOk:row.buildOk,serverBuild:build,hex:Buffer.from(packet).toString('hex'),major:18,minor:11});
  }

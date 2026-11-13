@@ -45,13 +45,17 @@ class TileTerms extends RefCounted:
 			# PackedArray through a Dictionary here would cause copy-on-write work.
 			for edge_index in 3:
 				var edge: Vector2=tri.xy_edges[edge_index]
-				values[base+edge_index]=sign_value*cross(edge,from-points[edge_index])
+				var offset: Vector2=from-points[edge_index]
+				var crossed: float=edge.x*offset.y-edge.y*offset.x
+				values[base+edge_index]=sign_value*crossed
 			prepared[index]=1;counts.term_prepares+=1
 		else:counts.term_reuses+=1
 		var low:=0.0;var high:=1.0
 		for edge_index in 3:
 			var edge: Vector2=tri.xy_edges[edge_index]
-			var a: float=values[base+edge_index];var b:=sign_value*cross(edge,to-points[edge_index]);var d:=b-a
+			var offset: Vector2=to-points[edge_index]
+			var crossed: float=edge.x*offset.y-edge.y*offset.x
+			var a: float=values[base+edge_index];var b:=sign_value*crossed;var d:=b-a
 			if absf(d)<0.0000001:
 				if a< -0.00001:return Vector2(1,-1)
 			elif d>0:low=maxf(low,-a/d)
@@ -104,12 +108,31 @@ func tile_terms(index: int,triangles: Array)->TileTerms:
 	var entry:=TileTerms.new();entry.configure(triangles,counts);tiles[index]=entry;bytes+=charge
 	return entry
 func publish()->void:
-	var values: Array=[counts.term_prepares,counts.term_reuses,counts.height_hits,counts.budget_fallbacks]
-	var names: Array=["from_terms_prepared","from_terms_reused","height_memo_hits","arithmetic_budget_fallbacks"]
-	for index in names.size():
-		var delta:=int(values[index])-int(_published[index])
-		if delta!=0:
-			_ledger[names[index]]=int(_ledger.get(names[index],0))+delta
-			Profile.count("count_drive_"+str(names[index]),delta)
-		_published[index]=values[index]
+	# This runs after every clear in a blocked preview. Keep the original four
+	# counter writes and profiler calls in order, without per-probe arrays or
+	# metric-name construction.
+	var value:=counts.term_prepares
+	var delta:=int(value)-int(_published[0])
+	if delta!=0:
+		_ledger.from_terms_prepared=int(_ledger.get("from_terms_prepared",0))+delta
+		Profile.count("count_drive_from_terms_prepared",delta)
+	_published[0]=value
+	value=counts.term_reuses
+	delta=int(value)-int(_published[1])
+	if delta!=0:
+		_ledger.from_terms_reused=int(_ledger.get("from_terms_reused",0))+delta
+		Profile.count("count_drive_from_terms_reused",delta)
+	_published[1]=value
+	value=counts.height_hits
+	delta=int(value)-int(_published[2])
+	if delta!=0:
+		_ledger.height_memo_hits=int(_ledger.get("height_memo_hits",0))+delta
+		Profile.count("count_drive_height_memo_hits",delta)
+	_published[2]=value
+	value=counts.budget_fallbacks
+	delta=int(value)-int(_published[3])
+	if delta!=0:
+		_ledger.arithmetic_budget_fallbacks=int(_ledger.get("arithmetic_budget_fallbacks",0))+delta
+		Profile.count("count_drive_arithmetic_budget_fallbacks",delta)
+	_published[3]=value
 	_ledger.arithmetic_peak_bytes=maxi(int(_ledger.get("arithmetic_peak_bytes",0)),bytes)

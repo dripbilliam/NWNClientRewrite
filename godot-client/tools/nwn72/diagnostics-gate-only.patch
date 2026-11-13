@@ -1,0 +1,84 @@
+diff --git a/systems/network_motion.gd b/systems/network_motion.gd
+index f2aa8cc..b15c23c 100644
+--- a/systems/network_motion.gd
++++ b/systems/network_motion.gd
+@@ -23,6 +23,7 @@ var _position_update:=0
+ var _position_next_token:=1
+ var _position_emitting:=false
+ var _position_emission_states: Dictionary={}
++var collect_diagnostics:=true
+ var evaluation_stats:={"updates":0,"rows":0,"stationary_settled":0,"stationary_cardinal":0,"stationary_deadband":0,"facing_steps":0,"last_rows":0,"last_stationary_settled":0,"last_facing_steps":0,"last_active":0,"last_correcting":0,"last_targeted":0}
+ func evaluation_snapshot() -> Dictionary:return evaluation_stats.duplicate()
+ 
+@@ -358,14 +359,16 @@ func update(seconds: float) -> void:
+ 	var notify_scope:=_position_scope
+ 	_position_update+=1
+ 	var notify_update:=_position_update
++	var diagnostics:=collect_diagnostics
+ 	var evaluated:=0;var settled:=0;var cardinal_rows:=0;var deadband_rows:=0;var full_steps:=0;var active_rows:=0;var correcting:=0;var targeted:=0
+ 	for id in objects:
+ 		var state: Dictionary = objects[id]
+-		evaluated+=1
+-		if state.active:active_rows+=1
+-		if int(state.correction)!=0:correcting+=1
++		if diagnostics:
++			evaluated+=1
++			if state.active:active_rows+=1
++			if int(state.correction)!=0:correcting+=1
+ 		var facing_target:=int(state.get("facingTarget",0x7f000000))
+-		if facing_target!=0x7f000000 and facing_target!=int(id):targeted+=1
++		if diagnostics and facing_target!=0x7f000000 and facing_target!=int(id):targeted+=1
+ 		state.correctionCue = null
+ 		if state.active and not state.path.is_empty() and path_animation(int(state.animation)):
+ 			var prior_position: Variant=state.position if notify else null
+@@ -398,26 +401,42 @@ func update(seconds: float) -> void:
+ 			# Unit cardinal inputs have length1 exactly in the original f32
+ 			# arithmetic. Copy the *target's* zero signs, not the old facing's.
+ 			if old.is_finite() and (absf(target.x)==1.0 and target.y==0.0 and old.x==target.x or absf(target.y)==1.0 and target.x==0.0 and old.y==target.y):
+-				state.orientation=Vector3(target.x,target.y,0);state.facingTurn=null;settled+=1;cardinal_rows+=1
++				state.orientation=Vector3(target.x,target.y,0);state.facingTurn=null
++				if diagnostics:
++					settled+=1
++					cardinal_rows+=1
+ 				continue
+ 			var desired:=normalized32(Vector3(target.x,target.y,0))
+ 			var dot:=f(f(f(old.y*desired.y)+f(old.x*desired.x))+f(old.z*desired.z))
+ 			if dot==1.0:
+-				state.orientation=normalized32(desired);state.facingTurn=null;settled+=1
++				state.orientation=normalized32(desired);state.facingTurn=null
++				if diagnostics:settled+=1
+ 				continue
+ 			# Preserve the original idle/turn deadband, including its deliberate
+ 			# unchanged old orientation rather than snapping to the target.
+ 			if dot<1.0 and dot>=f(0.99) and int(state.get("visualAnimation",state.animation)) in [0,1,53,54]:
+-				state.facingTurn=null;settled+=1;deadband_rows+=1
++				state.facingTurn=null
++				if diagnostics:
++					settled+=1
++					deadband_rows+=1
+ 				continue
+ 		var facing_result := facing_step(state.orientation, target, int(state.get("visualAnimation", state.animation)), dt, {"modelType": state.modelType, "restored": state.restingBase})
+-		full_steps+=1
++		if diagnostics:full_steps+=1
+ 		state.orientation = facing_result.orientation
+ 		state.facingTurn = null if facing_result.requests.is_empty() else facing_result.requests[0]
+-	evaluation_stats.updates+=1;evaluation_stats.rows+=evaluated;evaluation_stats.stationary_settled+=settled;evaluation_stats.facing_steps+=full_steps
+-	evaluation_stats.stationary_cardinal+=cardinal_rows;evaluation_stats.stationary_deadband+=deadband_rows
+-	evaluation_stats.last_rows=evaluated;evaluation_stats.last_stationary_settled=settled;evaluation_stats.last_facing_steps=full_steps
+-	evaluation_stats.last_active=active_rows;evaluation_stats.last_correcting=correcting;evaluation_stats.last_targeted=targeted
++	if diagnostics:
++		evaluation_stats.updates+=1
++		evaluation_stats.rows+=evaluated
++		evaluation_stats.stationary_settled+=settled
++		evaluation_stats.facing_steps+=full_steps
++		evaluation_stats.stationary_cardinal+=cardinal_rows
++		evaluation_stats.stationary_deadband+=deadband_rows
++		evaluation_stats.last_rows=evaluated
++		evaluation_stats.last_stationary_settled=settled
++		evaluation_stats.last_facing_steps=full_steps
++		evaluation_stats.last_active=active_rows
++		evaluation_stats.last_correcting=correcting
++		evaluation_stats.last_targeted=targeted
+ 	if notify and not pending.is_empty():
+ 		_publish_positions(pending,notify_scope,notify_update)
+ 

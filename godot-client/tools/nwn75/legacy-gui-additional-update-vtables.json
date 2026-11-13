@@ -1,0 +1,333 @@
+{
+  "schema": "nwn75-legacy-gui-additional-primary-vtables-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "source_helper": "census-rtti-gui-update.cjs",
+  "scope": "Pinned PE MSVC RTTI COL offset-zero and .text-slot candidates absent from prior five-target 207-row census; CGuiIcon is rejected as unrelated vtable shape; other rows require constructor/registration reachability before active-frame claim",
+  "prior_census_matches": 207,
+  "additional_candidates": 32,
+  "rows": [
+    {
+      "name": ".?AVCGuiIcon@@",
+      "objectOffset": 0,
+      "vtable": "0x140daf678",
+      "slot": "0x140daf6d0",
+      "target": "0x1401e3920",
+      "col": "0x140ef3fa0",
+      "slot_bytes": "20391e4001000000",
+      "classification": "rejected-unrelated-CGuiObject-update-slot",
+      "reason": "target 0x1401e3920 is CArmorIcon::CreateCopyIconModel, not an Update(float) member"
+    },
+    {
+      "name": ".?AVCGuiInGamePopUpBubble@@",
+      "objectOffset": 0,
+      "vtable": "0x140e2f358",
+      "slot": "0x140e2f3b0",
+      "target": "0x1406e98a0",
+      "col": "0x140f0abe0",
+      "slot_bytes": "a0986e4001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCGuiPanelPlayerTimedEvent@@",
+      "objectOffset": 0,
+      "vtable": "0x140e30600",
+      "slot": "0x140e30658",
+      "target": "0x1406fcd00",
+      "col": "0x140f0ae00",
+      "slot_bytes": "00cd6f4001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCGuiCompassPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e30750",
+      "slot": "0x140e307a8",
+      "target": "0x1406fcbe0",
+      "col": "0x140f0ae98",
+      "slot_bytes": "e0cb6f4001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCConnectServerStatusPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e330f0",
+      "slot": "0x140e33148",
+      "target": "0x140715dd0",
+      "col": "0x140f0c310",
+      "slot_bytes": "d05d714001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCFixBadCDKeyPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e33240",
+      "slot": "0x140e33298",
+      "target": "0x140717600",
+      "col": "0x140f0c450",
+      "slot_bytes": "0076714001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCMainMenuPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e33750",
+      "slot": "0x140e337a8",
+      "target": "0x140717b00",
+      "col": "0x140f0c6e8",
+      "slot_bytes": "007b714001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCMainMenuConnectPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e338a0",
+      "slot": "0x140e338f8",
+      "target": "0x1407179e0",
+      "col": "0x140f0c780",
+      "slot_bytes": "e079714001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCChooseCharTypePanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e33c98",
+      "slot": "0x140e33cf0",
+      "target": "0x140715c80",
+      "col": "0x140f0c968",
+      "slot_bytes": "805c714001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPlayModulePanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e33f40",
+      "slot": "0x140e33f98",
+      "target": "0x1407184c0",
+      "col": "0x140f0cac8",
+      "slot_bytes": "c084714001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPanelImageCredits@@",
+      "objectOffset": 0,
+      "vtable": "0x140e34350",
+      "slot": "0x140e343a8",
+      "target": "0x140717f60",
+      "col": "0x140f0cca0",
+      "slot_bytes": "607f714001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPanelLoadGame@@",
+      "objectOffset": 0,
+      "vtable": "0x140e48f48",
+      "slot": "0x140e48fa0",
+      "target": "0x14081b560",
+      "col": "0x140f13598",
+      "slot_bytes": "60b5814001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCOptionsCancelPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e4aa90",
+      "slot": "0x140e4aae8",
+      "target": "0x140832bf0",
+      "col": "0x140f138e8",
+      "slot_bytes": "f02b834001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCVideoModePanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e4ad38",
+      "slot": "0x140e4ad90",
+      "target": "0x140832c70",
+      "col": "0x140f13a30",
+      "slot_bytes": "702c834001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCGuiAreaLoadscreen@@",
+      "objectOffset": 0,
+      "vtable": "0x140e4c0a8",
+      "slot": "0x140e4c100",
+      "target": "0x140837a30",
+      "col": "0x140f14e98",
+      "slot_bytes": "307a834001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPanelDMTaskBar@@",
+      "objectOffset": 0,
+      "vtable": "0x140e4e668",
+      "slot": "0x140e4e6c0",
+      "target": "0x14084a420",
+      "col": "0x140f154d8",
+      "slot_bytes": "20a4844001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCAutoConnectStatusPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e4ed00",
+      "slot": "0x140e4ed58",
+      "target": "0x14084b790",
+      "col": "0x140f15760",
+      "slot_bytes": "90b7844001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPanelPartyBar@@",
+      "objectOffset": 0,
+      "vtable": "0x140e4f828",
+      "slot": "0x140e4f880",
+      "target": "0x140854320",
+      "col": "0x140f15a38",
+      "slot_bytes": "2043854001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCJournalQuestPage@@",
+      "objectOffset": 0,
+      "vtable": "0x140e56550",
+      "slot": "0x140e565a8",
+      "target": "0x140886000",
+      "col": "0x140f17010",
+      "slot_bytes": "0060884001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCActiveQuestPage@@",
+      "objectOffset": 0,
+      "vtable": "0x140e566b8",
+      "slot": "0x140e56710",
+      "target": "0x140885f60",
+      "col": "0x140f16c50",
+      "slot_bytes": "605f884001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCDoneQuestPage@@",
+      "objectOffset": 0,
+      "vtable": "0x140e56978",
+      "slot": "0x140e569d0",
+      "target": "0x140885fb0",
+      "col": "0x140f16de0",
+      "slot_bytes": "b05f884001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPanelDeathMenu@@",
+      "objectOffset": 0,
+      "vtable": "0x140e56eb0",
+      "slot": "0x140e56f08",
+      "target": "0x140887270",
+      "col": "0x140f170d8",
+      "slot_bytes": "7072884001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCGuiIngamePVPPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e576d8",
+      "slot": "0x140e57730",
+      "target": "0x1408898b0",
+      "col": "0x140f17468",
+      "slot_bytes": "b098884001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPanelSpellbook@@",
+      "objectOffset": 0,
+      "vtable": "0x140e58720",
+      "slot": "0x140e58778",
+      "target": "0x14088f3c0",
+      "col": "0x140f17970",
+      "slot_bytes": "c0f3884001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPanelSpellMemorization@@",
+      "objectOffset": 0,
+      "vtable": "0x140e58b08",
+      "slot": "0x140e58b60",
+      "target": "0x140891230",
+      "col": "0x140f17a08",
+      "slot_bytes": "3012894001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCPanelAreaMap@@",
+      "objectOffset": 0,
+      "vtable": "0x140e59210",
+      "slot": "0x140e59268",
+      "target": "0x140894af0",
+      "col": "0x140f17c58",
+      "slot_bytes": "f04a894001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCKeyMappingPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e5ed98",
+      "slot": "0x140e5edf0",
+      "target": "0x1408bf920",
+      "col": "0x140f1b8e0",
+      "slot_bytes": "20f98b4001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCServerDetailsPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e60fc8",
+      "slot": "0x140e61020",
+      "target": "0x1408d92f0",
+      "col": "0x140f1c598",
+      "slot_bytes": "f0928d4001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCLANServerListPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e61748",
+      "slot": "0x140e617a0",
+      "target": "0x1408d8a90",
+      "col": "0x140f1c3a0",
+      "slot_bytes": "908a8d4001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCServerListPanel@@",
+      "objectOffset": 0,
+      "vtable": "0x140e61ac8",
+      "slot": "0x140e61b20",
+      "target": "0x1408d9350",
+      "col": "0x140f1c290",
+      "slot_bytes": "50938d4001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCGuiCGModelViewer@@",
+      "objectOffset": 0,
+      "vtable": "0x140e63f00",
+      "slot": "0x140e63f58",
+      "target": "0x1409d2cd0",
+      "col": "0x140f1ce10",
+      "slot_bytes": "d02c9d4001000000",
+      "classification": "static-GUI-update-candidate"
+    },
+    {
+      "name": ".?AVCGuiInGameFloatyText@@",
+      "objectOffset": 0,
+      "vtable": "0x140e70d18",
+      "slot": "0x140e70d70",
+      "target": "0x140972840",
+      "col": "0x140f24390",
+      "slot_bytes": "4028974001000000",
+      "classification": "static-GUI-update-candidate"
+    }
+  ],
+  "rejected_candidates": 1,
+  "plausible_candidates": 31
+}

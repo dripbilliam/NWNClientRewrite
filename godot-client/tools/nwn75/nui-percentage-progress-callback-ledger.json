@@ -1,0 +1,12 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "JSON progress single-float callback to fixed 100000 numerator/denominator and shared progress drawer. Distinct from programmatic uint64 value/max Widget; shared numeric draw is cross-referenced.",
+  "edges": [
+    {"from":"0x14095f040","to":"0x140e6e538","callsite":"0x14095f143","kind":"vtable_store","condition":"refcounted Widget captures one DynamicValue<float> in stored callback","status":"percentage_progress_callback_identity","evidence_id":"ev_3b7861cc3214efbfad7cf10438970003dfb997a5a36aaf4800fa4946c1b3af02"},
+    {"from":"0x1409528e0","to":"0x14095c970","kind":"resolved_original_vtable_candidate","condition":"stored function table 0x140e6e538 virtual slot +0x10","status":"percentage_progress_render_callback","evidence_id":"ev_381434c37e2188b47d039757f9a2a9b0eb18aa7e982bdcc7bf9b8ef6e88c8b70"},
+    {"from":"0x14095c970","to":"DynamicValue<float> generator","callsites":["0x14095c998","0x14095c9bc"],"kind":"unresolved_dynamic_callback","condition":"direct float pointer absent and generator installed; generator can run twice in one render","status":"percentage_source_frontier","evidence_id":"ev_381434c37e2188b47d039757f9a2a9b0eb18aa7e982bdcc7bf9b8ef6e88c8b70"},
+    {"from":"0x14095c970","to":"0x140a88a80","callsite":"0x14095ca25","kind":"tail_jump","condition":"chosen float multiplied by 100000 and converted to numerator; denominator 100000, mode zero","status":"percentage_progress_context_gate","evidence_id":"ev_381434c37e2188b47d039757f9a2a9b0eb18aa7e982bdcc7bf9b8ef6e88c8b70"},
+    {"from":"0x140a88a80","to":"0x140a64610","callsite":"0x140a88b2d","kind":"direct_static","condition":"nonnull Nui context, active window, valid row and style/clip conditions; shared draw leaves recorded separately","status":"percentage_progress_shared_draw","evidence_id":"ev_40fc6480ae2f90f7efba636a5716459e98206afb57f06a65f13d5de90fae5503"}
+  ]
+}

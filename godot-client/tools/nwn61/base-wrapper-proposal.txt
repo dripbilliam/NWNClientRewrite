@@ -1,0 +1,41 @@
+Add beside received metadata fields in systems/native_render/live_world.gd:
+
+const ReceivedSnapshotCommit=preload("res://systems/native_render/received_snapshot_commit.gd")
+var _received_snapshot_commit: RefCounted
+
+Add before receive(objects,controlled):
+
+func begin_received_snapshot(objects: Array,controlled: int,metadata: Dictionary={}) -> bool:
+	if _received_snapshot_commit!=null or closed or retiring:return false
+	var prepared: Dictionary={}
+	if not metadata.is_empty() and stage_received_metadata(objects,metadata):prepared=_staged_received_metadata
+	_staged_received_objects=[];_staged_received_metadata={}
+	var candidate:=ReceivedSnapshotCommit.new()
+	_received_snapshot_commit=candidate
+	if not candidate.begin(self,objects,controlled,prepared):
+		_received_snapshot_commit=null;return false
+	return true
+func advance_received_snapshot(deadline_usec: int) -> Dictionary:
+	if _received_snapshot_commit==null:return {"done":true,"cancelled":false,"units":0}
+	var current: RefCounted=_received_snapshot_commit
+	var result: Dictionary=current.advance(deadline_usec)
+	if result.done and is_same(_received_snapshot_commit,current):_received_snapshot_commit=null
+	return result
+func cancel_received_snapshot() -> void:
+	var current: RefCounted=_received_snapshot_commit
+	_received_snapshot_commit=null
+	if current!=null:current.cancel()
+func received_snapshot_active() -> bool:
+	return _received_snapshot_commit!=null and _received_snapshot_commit.active
+func received_snapshot_scope_begin(_objects: Array,_controlled: int) -> void:pass
+func received_snapshot_scope_step() -> bool:return true
+func received_snapshot_scope_end(_objects: Array,_controlled: int,_completed: bool) -> void:pass
+
+First line in begin_retirement() AND close():
+	cancel_received_snapshot()
+
+No change to synchronous receive/receive_delta or ordinary ready-world processing.
+Candidate begin only accepts empty desired/instances/hidden/motion.objects. Entry
+session holds pointer/API/control readiness and queues following protocol frames.
+Cancelled entry worlds remain disabled and are retired by the session lifecycle;
+they are never resumed as a partial live world. No existing clocks are paused.

@@ -23,6 +23,12 @@ var _position_update:=0
 var _position_next_token:=1
 var _position_emitting:=false
 var _position_emission_states: Dictionary={}
+# Gameplay does not consume these per-row counts. The normal world disables
+# collection when its detailed frame profiler is off; direct diagnostics retain
+# the historical default and the motion result is identical either way.
+var collect_diagnostics:=true
+var evaluation_stats:={"updates":0,"rows":0,"stationary_settled":0,"stationary_cardinal":0,"stationary_deadband":0,"facing_steps":0,"last_rows":0,"last_stationary_settled":0,"last_facing_steps":0,"last_active":0,"last_correcting":0,"last_targeted":0}
+func evaluation_snapshot() -> Dictionary:return evaluation_stats.duplicate()
 
 static func f(value: float) -> float:
 	return Vector3(value, 0, 0).x
@@ -207,9 +213,15 @@ static func distance(state: Dictionary, dt: int) -> Dictionary:
 		return {"distance": f(f(f(float(dt)) * f(rate * f(float(state.factor)))) / f(1e6)), "acceleration": 1.0, "rate": rate}
 	var remaining := 0.0
 	var last: Vector3 = state.position
-	for point in state.path.slice(int(state.cursor)):
+	var path: Array=state.path
+	var path_count:=path.size()
+	var cursor:=int(state.cursor)
+	if cursor<0:cursor=maxi(0,path_count+cursor)
+	while cursor<path_count:
+		var point: Vector3=path[cursor]
 		remaining = f(remaining + length32(Vector3(f(point.x - last.x), f(point.y - last.y), 0)))
 		last = point
+		cursor+=1
 	var half_second := f(f(rate * f(1000)) / f(2e6))
 	var limit := 1.0
 	if not half_second < remaining:
@@ -229,8 +241,10 @@ func step_path(state: Dictionary, amount: float) -> Dictionary:
 	var position: Vector3 = state.position
 	var direction: Vector3 = state.orientation
 	var done := false
-	while int(state.cursor) < state.path.size():
-		var point: Vector3 = state.path[int(state.cursor)]
+	var path: Array=state.path
+	var path_count:=path.size()
+	while int(state.cursor) < path_count:
+		var point: Vector3 = path[int(state.cursor)]
 		var delta := Vector3(f(point.x - position.x), f(point.y - position.y), 0)
 		var size := length32(delta)
 		if amount <= size:
@@ -239,19 +253,19 @@ func step_path(state: Dictionary, amount: float) -> Dictionary:
 			else:
 				direction = normalized32(delta)
 				position += direction * amount
-			if int(state.cursor) == state.path.size() - 1:
+			if int(state.cursor) == path_count - 1:
 				done = length32(position - point) <= f(0.01)
 			break
 		amount = f(amount - size)
 		position = point
 		if size > f(0.01):
 			direction = normalized32(delta)
-		if int(state.cursor) == state.path.size() - 1:
+		if int(state.cursor) == path_count - 1:
 			done = true
 			break
 		state.cursor += 1
-	if int(state.cursor) == state.path.size() - 1 and state.script == 0:
-		var end: Vector3 = state.path[-1]
+	if int(state.cursor) == path_count - 1 and state.script == 0:
+		var end: Vector3 = path[-1]
 		var remaining := length32(Vector3(f(end.x - state.position.x), f(end.y - state.position.y), 0))
 		if remaining <= 1 and f(f(direction.x * state.orientation.x) + f(direction.y * state.orientation.y)) < f(-0.707):
 			direction = -direction
@@ -326,6 +340,25 @@ static func facing_step(old: Vector3, target: Vector3, animation: int, dt: int, 
 		next = Vector3(f(f(old.x * cosine) - f(old.y * sine)), f(f(old.x * sine) + f(old.y * cosine)), 0)
 	return {"orientation": normalized32(next), "target": desired, "requests": requests}
 
+static func facing_orientation_no_request(old: Vector3, target: Vector3, animation: int, dt: int) -> Vector3:
+	# The caller has excluded the four animations that can request turns.
+	# Keep every f32 rounding boundary and the original trig order.
+	var desired := normalized32(Vector3(target.x, target.y, 0))
+	var dot := f(f(f(old.y * desired.y) + f(old.x * desired.x)) + f(old.z * desired.z))
+	var sign := -1.0 if f(f(old.x * desired.y) - f(old.y * desired.x)) < 0 else 1.0
+	var speed := f(f(1 - dot) * 3)
+	if animation == 4:
+		speed = f(speed + speed)
+	speed = f(0.55) if speed <= f(0.55) else minf(f(1.55), speed)
+	var angle := f(f(f(f(float(dt)) * speed) * 4000) / f(1e6))
+	var next := desired
+	if dot < f(cos(angle)):
+		var signed := f(angle * sign)
+		var cosine := f(cos(signed))
+		var sine := f(sin(signed))
+		next = Vector3(f(f(old.x * cosine) - f(old.y * sine)), f(f(old.x * sine) + f(old.y * cosine)), 0)
+	return normalized32(next)
+
 func update_facing_target(id: int,state: Dictionary) -> void:
 	# Original model update 0x1407fcdd6..0x1407fcedd resolves owner+0x3a8
 	# and writes the horizontal target direction before 0x140807690 turns.
@@ -356,8 +389,16 @@ func update(seconds: float) -> void:
 	var notify_scope:=_position_scope
 	_position_update+=1
 	var notify_update:=_position_update
+	var diagnostics:=collect_diagnostics
+	var evaluated:=0;var settled:=0;var cardinal_rows:=0;var deadband_rows:=0;var full_steps:=0;var active_rows:=0;var correcting:=0;var targeted:=0
 	for id in objects:
 		var state: Dictionary = objects[id]
+		if diagnostics:
+			evaluated+=1
+			if state.active:active_rows+=1
+			if int(state.correction)!=0:correcting+=1
+		var facing_target:=int(state.get("facingTarget",0x7f000000))
+		if diagnostics and facing_target!=0x7f000000 and facing_target!=int(id):targeted+=1
 		state.correctionCue = null
 		if state.active and not state.path.is_empty() and path_animation(int(state.animation)):
 			var prior_position: Variant=state.position if notify else null
@@ -376,13 +417,64 @@ func update(seconds: float) -> void:
 				pending.append({"id":int(id),"state":state,"position":state.position})
 		elif int(state.correction) != 0:
 			state.render = correct(state, state.position, dt)
-		update_facing_target(int(id),state)
+		# Most creatures have no live facing target. The resolver returns
+		# immediately for those rows; avoid its second Dictionary lookup and call.
+		if facing_target!=0x7f000000 and facing_target!=int(id):
+			update_facing_target(int(id),state)
 		var target: Vector3 = state.targetOrientation
 		if state.active and path_animation(int(state.animation)):
 			target = state.get("previewFacing", state.orientation) if state.script != 0 and state.get("previewBase", false) else state.get("movementDirection", state.targetOrientation)
-		var facing_result := facing_step(state.orientation, target, int(state.get("visualAnimation", state.animation)), dt, {"modelType": state.modelType, "restored": state.restingBase})
-		state.orientation = facing_result.orientation
-		state.facingTurn = null if facing_result.requests.is_empty() else facing_result.requests[0]
+		# Exact native-math fixed bearing. General inputs keep f32 normalization: a
+		# numerically equal input can still change by one float step, or carry
+		# signed zero. No vector cache/approximate comparison masks that work.
+		# For dot==1, the original turn branch cannot run (cos(angle)<=1),
+		# and no animation requests are generated for any animation/dt.
+		if not state.active:
+			var old: Vector3=state.orientation
+			# Unit cardinal inputs have length1 exactly in the original f32
+			# arithmetic. Copy the *target's* zero signs, not the old facing's.
+			if old.is_finite() and (absf(target.x)==1.0 and target.y==0.0 and old.x==target.x or absf(target.y)==1.0 and target.x==0.0 and old.y==target.y):
+				state.orientation=Vector3(target.x,target.y,0);state.facingTurn=null
+				if diagnostics:
+					settled+=1
+					cardinal_rows+=1
+				continue
+			var desired:=normalized32(Vector3(target.x,target.y,0))
+			var dot:=f(f(f(old.y*desired.y)+f(old.x*desired.x))+f(old.z*desired.z))
+			if dot==1.0:
+				state.orientation=normalized32(desired);state.facingTurn=null
+				if diagnostics:settled+=1
+				continue
+			# Preserve the original idle/turn deadband, including its deliberate
+			# unchanged old orientation rather than snapping to the target.
+			if dot<1.0 and dot>=f(0.99) and int(state.get("visualAnimation",state.animation)) in [0,1,53,54]:
+				state.facingTurn=null
+				if diagnostics:
+					settled+=1
+					deadband_rows+=1
+				continue
+		var animation:=int(state.get("visualAnimation", state.animation))
+		if diagnostics:full_steps+=1
+		if animation not in [0,1,53,54]:
+			state.orientation=facing_orientation_no_request(state.orientation,target,animation,dt)
+			state.facingTurn=null
+		else:
+			var facing_result := facing_step(state.orientation,target,animation,dt,{"modelType":state.modelType,"restored":state.restingBase})
+			state.orientation = facing_result.orientation
+			state.facingTurn = null if facing_result.requests.is_empty() else facing_result.requests[0]
+	if diagnostics:
+		evaluation_stats.updates+=1
+		evaluation_stats.rows+=evaluated
+		evaluation_stats.stationary_settled+=settled
+		evaluation_stats.facing_steps+=full_steps
+		evaluation_stats.stationary_cardinal+=cardinal_rows
+		evaluation_stats.stationary_deadband+=deadband_rows
+		evaluation_stats.last_rows=evaluated
+		evaluation_stats.last_stationary_settled=settled
+		evaluation_stats.last_facing_steps=full_steps
+		evaluation_stats.last_active=active_rows
+		evaluation_stats.last_correcting=correcting
+		evaluation_stats.last_targeted=targeted
 	if notify and not pending.is_empty():
 		_publish_positions(pending,notify_scope,notify_update)
 

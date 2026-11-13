@@ -10,7 +10,15 @@ const Rules=preload("res://systems/native_data/game_ui_rules.gd")
 const Spatial=preload("res://systems/native_render/drive_spatial_index.gd")
 const DriveProfile=preload("res://systems/native_render/frame_profile.gd")
 const PreviewArithmetic=preload("res://systems/native_render/drive_preview_arithmetic.gd")
+const HeightIndex=preload("res://systems/native_render/drive_height_index.gd")
+const TerrainSurface=preload("res://systems/native_render/terrain_surface.gd")
 const MOTION_PAD:=2.0 # Conservative broadphase slack; exact circles stay current.
+const EMPTY_MODEL_BOUNDS: Array=[] # Read-only fallback; no query mutates states.
+const HEIGHT_PLAN_MAX_FACES:=250000
+const PREVIEW_WORKER_MAX_TILES:=128
+const PREVIEW_WORKER_MAX_FACES:=12000
+const PREVIEW_WORKER_CACHE_MAX_TILES:=512
+const PREVIEW_WORKER_CACHE_MAX_FACES:=48000
 var world
 var assets
 var tables: Dictionary={}
@@ -38,6 +46,146 @@ var source_serial:=0
 var next_order:=0
 var sources_synchronized:=false
 var retained_flat_control:=false # Diagnostic comparison only; same narrow phase.
+var _received_full: Dictionary={}
+var _height_plan_worker: Thread
+var _height_plan_enabled:=OS.get_cmdline_user_args().has("--drive-height-plan=worker")
+var _preview_height_index_enabled:=OS.get_cmdline_user_args().has("--drive-preview-height-index=on")
+var _worker_surface_cache_enabled:=OS.get_cmdline_user_args().has("--drive-preview-surface-cache=on")
+var _height_plan_source: Dictionary={}
+var _height_plan: Dictionary={}
+var _height_plan_attempted_id:=0
+var _height_plan_stats:={"starts":0,"ready":0,"fallbacks":0,"samples":0,"faces":0,"source_misses":0,"start_errors":0,"snapshot_ms":0.0,"worker_ms":0.0}
+var _worker_surface_cache: Dictionary={}
+var _worker_surface_cache_stats:={"resets":0,"tile_hits":0,"tile_copies":0,"mesh_hits":0,"mesh_copies":0,"table_hits":0,"table_copies":0,"copy_ms":0.0}
+
+static func _build_height_plan(materials: Dictionary,walk: Dictionary) -> Dictionary:
+	# Worker input is a private copy of integer material IDs and plain booleans.
+	# It never touches the world, Nodes, WOK meshes or the live material table.
+	var began:=Time.get_ticks_usec()
+	var result: Dictionary={}
+	for key in materials:
+		var allowed:=PackedInt32Array();var blocked:=PackedInt32Array()
+		var ids: PackedInt32Array=materials[key]
+		for index in ids.size():
+			if bool(walk[int(ids[index])]):allowed.append(index)
+			else:blocked.append(index)
+		result[key]={"allowed":allowed,"blocked":blocked,"faces":ids.size()}
+	return {"plans":result,"worker_ms":(Time.get_ticks_usec()-began)/1000.0}
+
+func _height_plan_current(surface) -> bool:
+	return not _height_plan_source.is_empty() and is_instance_valid(surface) and surface.get_script()==TerrainSurface and not surface.closed and surface.ready() and _height_plan_source.ref.get_ref()==surface and is_same(surface.definition,_height_plan_source.definition) and is_same(surface.meshes,_height_plan_source.meshes) and is_same(surface.table,_height_plan_source.table) and is_same(surface.table.get("orderedRows"),_height_plan_source.table_rows)
+
+func _prepare_height_plan(surface) -> void:
+	if not _height_plan_enabled or not is_instance_valid(surface) or surface.get_script()!=TerrainSurface or not surface.ready():return
+	if _height_plan_worker!=null:
+		if _height_plan_worker.is_alive():return
+		var completed: Variant=_height_plan_worker.wait_to_finish();_height_plan_worker=null
+		if _height_plan_current(surface) and completed is Dictionary and completed.get("plans") is Dictionary:
+			_height_plan=completed.plans;_height_plan_stats.worker_ms=float(completed.worker_ms);_height_plan_stats.ready+=1
+		else:_height_plan.clear();_height_plan_attempted_id=0;_height_plan_stats.source_misses+=1
+	if not _height_plan.is_empty() and _height_plan_current(surface):return
+	if _height_plan_attempted_id==surface.get_instance_id():return
+	_height_plan_attempted_id=surface.get_instance_id();_height_plan.clear()
+	var snapshot_began:=Time.get_ticks_usec()
+	var materials: Dictionary={};var material_refs: Dictionary={};var walk: Dictionary={};var faces:=0
+	for key in surface.meshes:
+		var mesh: Variant=surface.meshes[key]
+		if not mesh is Dictionary or not mesh.get("faces") is Array or not mesh.get("materials") is Array:return
+		var source_faces: Array=mesh.faces;var source_materials: Array=mesh.materials
+		if source_faces.size()!=source_materials.size() or faces+source_faces.size()>HEIGHT_PLAN_MAX_FACES:return
+		faces+=source_faces.size()
+		var ids:=PackedInt32Array()
+		for value in source_materials:
+			var material:=int(value);ids.append(material)
+			if not walk.has(material):walk[material]=Surface.walkable(surface.table,material)
+		materials[key]=ids;material_refs[key]=source_materials
+	if materials.is_empty():return
+	_height_plan_stats.snapshot_ms=(Time.get_ticks_usec()-snapshot_began)/1000.0
+	_height_plan_source={"ref":weakref(surface),"definition":surface.definition,"meshes":surface.meshes,"table":surface.table,"table_rows":surface.table.get("orderedRows"),"material_refs":material_refs}
+	_height_plan_stats.faces=faces
+	_height_plan_worker=Thread.new()
+	var err:=_height_plan_worker.start(_build_height_plan.bind(materials,walk))
+	if err!=OK:_height_plan_worker=null;_height_plan_source.clear();_height_plan_stats.start_errors+=1
+	else:_height_plan_stats.starts+=1
+
+func _drive_height(surface,point: Vector3,previous: float) -> float:
+	if _height_plan.is_empty() or not _height_plan_current(surface):
+		_height_plan_stats.fallbacks+=1
+		return surface.height(point,previous)
+	var x:=floori(point.x/10.0);var y:=floori(point.y/10.0)
+	if x<0 or y<0 or x>=int(surface.definition.width) or y>=int(surface.definition.height):
+		surface.stats.queries+=1;surface.stats.outside_queries+=1;_height_plan_stats.samples+=1;return previous
+	var tile_source: Dictionary=surface.definition.tiles[y*int(surface.definition.width)+x]
+	var key: String=str(tile_source.model)
+	var mesh: Variant=surface.meshes.get(key)
+	var plan: Dictionary=_height_plan.get(key,{})
+	if not mesh is Dictionary or plan.is_empty() or not is_same(mesh.materials,_height_plan_source.material_refs.get(key)) or mesh.faces.size()!=int(plan.faces) or mesh.materials.size()!=int(plan.faces):
+		_height_plan_stats.fallbacks+=1;return surface.height(point,previous)
+	# Identical coordinate, edge, plane and f32 operation order to
+	# TileSurface.height and TerrainSurface.height; only Walk lookup is moved
+	# to a bounded data worker, preserving both pass and source-face order.
+	surface.stats.queries+=1;_height_plan_stats.samples+=1
+	var local: Array=Surface.canonical([Surface.f(Surface.f(point.x)-Surface.f(Surface.f(x)*10)),Surface.f(Surface.f(point.y)-Surface.f(Surface.f(y)*10))],int(tile_source.orientation))
+	var px:=Surface.f(local[0]);var py:=Surface.f(local[1])
+	for indices: PackedInt32Array in [plan.allowed,plan.blocked]:
+		for index in indices:
+			var face: Array=mesh.faces[index];var a: Array=mesh.vertices[face[0]];var b: Array=mesh.vertices[face[1]];var c: Array=mesh.vertices[face[2]]
+			if Surface.edge(a,b,px,py)>=0 and Surface.edge(b,c,px,py)>=0 and Surface.edge(c,a,px,py)>=0:
+				var n: Array=mesh.normals[index]
+				var value:=0.0 if n[2]==0 else Surface.f(-Surface.f(Surface.f(Surface.f(n[1]*py)+Surface.f(Surface.f(n[0]*px)+Surface.f(mesh.constants[index]))))/n[2])
+				return Surface.f(value+Surface.f(tile_source.position.y))
+	return Surface.f(0.0+Surface.f(tile_source.position.y))
+
+# Entry-only caller fences this fresh world's scene services. One source or
+# spatial group per step; existing synchronous full/delta methods stay intact.
+func begin_received_full() -> bool:
+	invalidate_preview_geometry()
+	if not ensure_spatial_scope():return false
+	_received_full={"phase":"begin_groups","keys":static_groups.keys(),"index":0,"present":{},"order":0}
+	source_batch=true;spatial.begin_batch(spatial_ticket);sources_synchronized=false
+	return true
+
+func received_full_step() -> bool:
+	if _received_full.is_empty():return true
+	if closed:cancel_received_full();return true
+	var state: Dictionary=_received_full;var index:=int(state.index)
+	match str(state.phase):
+		"begin_groups":
+			if index<state.keys.size():
+				var group: Dictionary=static_groups[state.keys[index]];group.index.begin_batch(group.ticket);state.index=index+1;return false
+			state.phase="sources";state.keys=world.desired.keys();state.index=0
+		"sources":
+			if index<state.keys.size():
+				var id:=int(state.keys[index]);state.index=index+1;state.present[id]=true
+				sync_source(id,world.desired[id].object,int(state.order));state.order=int(state.order)+1;return false
+			state.phase="absent";state.keys=source_rows.keys();state.index=0
+		"absent":
+			if index<state.keys.size():
+				var id:=int(state.keys[index]);state.index=index+1
+				if not state.present.has(id):forget_source(id)
+				return false
+			state.phase="errors";state.keys=source_errors.keys();state.index=0
+		"errors":
+			if index<state.keys.size():
+				var id:=int(state.keys[index]);state.index=index+1
+				if not state.present.has(id):source_errors.erase(id)
+				return false
+			spatial.end_batch(spatial_ticket);state.phase="end_groups";state.keys=static_groups.keys();state.index=0
+		"end_groups":
+			if index<state.keys.size():
+				var key: String=state.keys[index];state.index=index+1
+				var group: Dictionary=static_groups[key];group.index.end_batch(group.ticket);dirty_groups[key]=true;return false
+			source_batch=false;state.phase="bounds";state.keys=dirty_groups.keys();state.index=0
+		"bounds":
+			if index<state.keys.size():
+				var key: String=state.keys[index];state.index=index+1
+				if static_groups.has(key):static_groups[key].bounds=static_groups[key].index.root_bounds()
+				return false
+			dirty_groups.clear();next_order=int(state.order);sources_synchronized=true;_received_full={};return true
+	return false
+
+func cancel_received_full() -> void:
+	_received_full={};sources_synchronized=false
 var stats:={"queries":0,"blocked":0,"reasons":{},"models":0,"missing":0,"errors":[],"native_only":true,"exact_polygon_parity":false}
 func deny(reason: String,from: Vector3,to: Vector3) -> bool:
 	stats.blocked+=1; stats.reasons[reason]=int(stats.reasons.get(reason,0))+1
@@ -62,7 +210,9 @@ func prepared(id: int,result: Dictionary) -> void:
 		if tables.size()==4:reindex_sources()
 	else: publish_model(str(job.model),result.value); stats.models+=1
 func ready() -> bool:
-	return not closed and sources_synchronized and source_errors.is_empty() and tables.size()==4 and not spatial_ticket.is_empty() and is_instance_valid(world) and is_instance_valid(world.surface) and world.surface.ready()
+	var available: bool=not closed and sources_synchronized and source_errors.is_empty() and tables.size()==4 and not spatial_ticket.is_empty() and is_instance_valid(world) and is_instance_valid(world.surface) and world.surface.ready()
+	if available:_prepare_height_plan(world.surface)
+	return available
 func _process(_delta: float) -> void:
 	var began:=preload("res://systems/native_render/frame_profile.gd").begin()
 	if not closed and is_instance_valid(assets) and tables.size()==4:
@@ -80,6 +230,7 @@ func ensure_spatial_scope()->bool:
 	if spatial_ticket.get("scope",[])==scope and spatial.snapshot().active:return true
 	spatial_ticket=spatial.begin(scope)
 	invalidate_preview_geometry()
+	_worker_surface_cache={}
 	source_rows.clear();source_errors.clear();creature_ids.clear();model_users.clear();objects.clear();wanted_models.clear();model_queue.clear();pending_models.clear();static_groups.clear();dirty_groups.clear();source_batch=false
 	next_order=0;sources_synchronized=false
 	return bool(spatial_ticket.get("ready",false))
@@ -304,7 +455,9 @@ func flush_group_bounds()->void:
 		if static_groups.has(key):static_groups[key].bounds=static_groups[key].index.root_bounds()
 	dirty_groups.clear()
 func retire_index()->void:
+	cancel_received_full()
 	invalidate_preview_geometry()
+	_worker_surface_cache={}
 	if not spatial_ticket.is_empty():spatial.clear(spatial_ticket)
 	spatial_ticket={};sources_synchronized=false
 	source_rows.clear();source_errors.clear();creature_ids.clear();model_users.clear();wanted_models.clear();model_queue.clear();static_groups.clear();dirty_groups.clear();source_batch=false;set_process(false)
@@ -315,6 +468,11 @@ func dimensions(id: int) -> Vector2:
 	if source_rows.has(id) and source_rows[id].get("dimensions") is Vector2:return source_rows[id].dimensions
 	var object: Dictionary=world.desired.get(id,{}).get("object",{}); var data:=row("appearance",int(object.get("appearance",{}).get("appearance",-1)))
 	return Vector2(maxf(0,float(Rules.cell(data,"PERSPACE","0"))),maxf(0,float(Rules.cell(data,"HEIGHT","0"))))
+static func lazy_model_name(data: Dictionary)->Variant:
+	if data.has("ModelName"):return data["ModelName"]
+	for key in data:
+		if str(key).to_lower()=="modelname":return data[key]
+	return Rules.cell(data,"Model","")
 func descriptor(object: Dictionary) -> Dictionary:
 	var kind:=int(object.objectType); var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{})); var data: Dictionary={}
 	if kind==9: data=row("placeables",int(state.get("appearance",fixed.get("appearance",-1))))
@@ -322,7 +480,7 @@ func descriptor(object: Dictionary) -> Dictionary:
 		var type:=int(state.get("doorType",0)); data=row("genericdoors" if type==0 else "doortypes",int(state.get("genericType",0)) if type==0 else type)
 		if str(Rules.cell(data,"VisibleModel","1"))=="0": return {}
 	else: return {}
-	var name:=str(Rules.cell(data,"ModelName",Rules.cell(data,"Model",""))).to_lower()
+	var name:=str(lazy_model_name(data)).to_lower()
 	if name in ["","****"]: return {}
 	return {"model":name,"door":kind==10,"state":int(state.get("doorOpenState",0))}
 func demand(spec: Dictionary) -> void:
@@ -396,9 +554,111 @@ func query_preview(id: int,from: Vector3,target: Vector3,render: Vector3,radius_
 		var view: Dictionary=transaction.view
 		if not view.is_empty() and preview_geometry_current(ticket,id,witness,int(view.revision),int(view.published),int(view.frame)) and preview_inside(a,view.minimum,view.maximum) and preview_inside(b,view.minimum,view.maximum):
 			preview_stats.reused_clears+=1;DriveProfile.count("count_drive_preview_reused_clears",1)
-			return clear(a,b,radius,dims.y if radius_override<0 else radius_override,view.geometry.obstacles,view.geometry.creatures,view.geometry.pending,view.arithmetic)
+			return clear(a,b,radius,dims.y if radius_override<0 else radius_override,view.geometry.obstacles,view.geometry.creatures,view.geometry.pending,view.arithmetic,view.height_index)
 		preview_stats.fallback_clears+=1;DriveProfile.count("count_drive_preview_fallback_clears",1)
 		return indexed_clear(ticket,id,witness,a,b,radius,dims.y if radius_override<0 else radius_override,radius_override<0)
+
+# Snapshot only the blocked, multi-probe case. The first clearance stays on
+# the owner thread, preserving its exact unrestricted query and immediate free
+# movement behavior. All copied worker values are plain arrays/dictionaries.
+# A failed snapshot returns an empty packet and the caller retains the old path.
+func _preview_worker_surface_cache(surface,definition: Dictionary,width: int,height: int) -> Dictionary:
+	var cache: Dictionary=_worker_surface_cache
+	if cache.is_empty() or cache.ref.get_ref()!=surface or not is_same(cache.definition,definition) or not is_same(cache.mesh_source,surface.meshes) or int(cache.width)!=width or int(cache.height)!=height or cache.rows.size()>PREVIEW_WORKER_CACHE_MAX_TILES or cache.meshes.size()>PREVIEW_WORKER_CACHE_MAX_TILES or int(cache.faces)>PREVIEW_WORKER_CACHE_MAX_FACES:
+		# Replace the whole cache. A running worker can continue reading old
+		# detached values held by its packet; no shared value is mutated.
+		cache={"ref":weakref(surface),"definition":definition,"mesh_source":surface.meshes,"width":width,"height":height,"rows":{},"meshes":{},"triangles":{},"faces":0,"table":{}}
+		_worker_surface_cache=cache;_worker_surface_cache_stats.resets+=1
+	if cache.table!=surface.table:
+		var began:=Time.get_ticks_usec()
+		cache.table=surface.table.duplicate(true)
+		_worker_surface_cache_stats.table_copies+=1;_worker_surface_cache_stats.copy_ms+=(Time.get_ticks_usec()-began)/1000.0
+	else:_worker_surface_cache_stats.table_hits+=1
+	return cache
+
+func prepare_worker_preview(id: int,from: Vector3,target: Vector3,render: Vector3,radius_override: float=-1)->Dictionary:
+	if not ready() or not source_rows.has(id):return {}
+	var began:=Time.get_ticks_usec()
+	var dims:=dimensions(id);var radius:=dims.x if radius_override<0 else radius_override
+	var clear_query:=query_preview(id,from,target,render,radius_override)
+	if not clear_query.is_valid():return {}
+	var first_clear: bool=clear_query.call(from,target)
+	if first_clear:return {"immediate":true,"path":{"target":target,"factor":1.0},"snapshot_ms":(Time.get_ticks_usec()-began)/1000.0}
+	var first_reason: String=str(stats.get("last_blocked",{}).get("reason",""))
+	var ticket:=spatial_ticket.duplicate(true);var witness: Array=source_rows[id].witness.duplicate()
+	var view:=prepare_preview_view(ticket,id,witness,from,target,render,radius,radius_override<0)
+	if view.is_empty():return {}
+	var surface=world.surface
+	if not is_instance_valid(surface) or not surface.ready():return {}
+	var definition: Dictionary=surface.definition
+	var width:=int(definition.width);var height:=int(definition.height)
+	if width<=0 or height<=0 or not definition.get("tiles") is Array or definition.tiles.size()<width*height:return {}
+	var minimum: Vector3=view.minimum;var maximum: Vector3=view.maximum
+	var left:=maxi(0,floori((minimum.x-radius)/10));var right:=mini(width-1,floori((maximum.x+radius)/10))
+	var bottom:=maxi(0,floori((minimum.y-radius)/10));var top:=mini(height-1,floori((maximum.y+radius)/10))
+	if right<left or top<bottom or (right-left+1)*(top-bottom+1)>PREVIEW_WORKER_MAX_TILES:return {}
+	var cache: Dictionary=_preview_worker_surface_cache(surface,definition,width,height) if _worker_surface_cache_enabled else {}
+	var rows: Dictionary={};var triangles: Dictionary={};var meshes: Dictionary={};var faces:=0
+	for y in range(bottom,top+1):
+		for x in range(left,right+1):
+			var index:=y*width+x
+			var source: Dictionary=definition.tiles[index]
+			var key:=str(source.model)
+			if not surface.meshes.has(key) or not surface.meshes[key] is Dictionary:return {}
+			if _worker_surface_cache_enabled:
+				if cache.rows.has(index) and cache.rows[index]==source:_worker_surface_cache_stats.tile_hits+=1
+				else:
+					var copy_began:=Time.get_ticks_usec();cache.rows[index]=source.duplicate(true)
+					_worker_surface_cache_stats.tile_copies+=1;_worker_surface_cache_stats.copy_ms+=(Time.get_ticks_usec()-copy_began)/1000.0
+				rows[index]=cache.rows[index]
+			else:rows[index]=source.duplicate(true)
+			if not meshes.has(key):
+				if _worker_surface_cache_enabled:
+					if cache.meshes.has(key) and cache.meshes[key]==surface.meshes[key]:_worker_surface_cache_stats.mesh_hits+=1
+					else:
+						var copy_began:=Time.get_ticks_usec();cache.meshes[key]=surface.meshes[key].duplicate(true)
+						_worker_surface_cache_stats.mesh_copies+=1;_worker_surface_cache_stats.copy_ms+=(Time.get_ticks_usec()-copy_began)/1000.0
+					meshes[key]=cache.meshes[key]
+				else:meshes[key]=surface.meshes[key].duplicate(true)
+			var prepared: Array=tile(index)
+			faces+=prepared.size()
+			if faces>PREVIEW_WORKER_MAX_FACES:return {}
+			if _worker_surface_cache_enabled:
+				if cache.triangles.has(index) and cache.triangles[index]==prepared:_worker_surface_cache_stats.tile_hits+=1
+				else:
+					var copy_began:=Time.get_ticks_usec()
+					if cache.triangles.has(index):cache.faces-=cache.triangles[index].size()
+					cache.triangles[index]=prepared.duplicate(true);cache.faces+=prepared.size()
+					_worker_surface_cache_stats.tile_copies+=1;_worker_surface_cache_stats.copy_ms+=(Time.get_ticks_usec()-copy_began)/1000.0
+				triangles[index]=cache.triangles[index]
+			else:triangles[index]=prepared.duplicate(true)
+	var surface_copy:={"width":width,"height":height,"tiles":rows,"meshes":meshes,"table":cache.table if _worker_surface_cache_enabled else surface.table.duplicate(true),"triangles":triangles}
+	var packet:={"from":from,"target":target,"render":render,"minimum":minimum,"maximum":maximum,"radius":radius,"height":dims.y if radius_override<0 else radius_override,"include_creatures":radius_override<0,"first_clear":false,"first_reason":first_reason,"geometry":view.geometry.duplicate(true),"surface":surface_copy}
+	return {"packet":packet,"ticket":ticket,"witness":witness,"id":id,"revision":int(view.revision),"published":int(view.published),"surface_ref":weakref(surface),"snapshot_ms":(Time.get_ticks_usec()-began)/1000.0,"faces":faces,"tiles":rows.size()}
+
+# This check intentionally does more than compare Dictionary/Array identity.
+# Original WOK vertices and object bindings can be edited in place; a worker
+# result is accepted only when the copied source and current selected geometry
+# are still exactly equal. Caller must additionally check its input serial and
+# controlled-motion state before applying an asynchronous result.
+func worker_preview_current(snapshot: Dictionary)->bool:
+	if snapshot.is_empty() or not snapshot.has("packet") or not ready():return false
+	var ticket: Dictionary=snapshot.ticket;var id: int=snapshot.id;var witness: Array=snapshot.witness
+	if not preview_revision_valid or preview_revision!=int(snapshot.revision) or publication_revision!=int(snapshot.published) or spatial_ticket!=ticket:return false
+	if ticket.get("scope",[])!=[world.get_instance_id(),int(world.generation),int(world.area_id)] or not source_rows.has(id) or source_rows[id].witness!=witness:return false
+	var surface=snapshot.surface_ref.get_ref()
+	if not is_instance_valid(surface) or surface!=world.surface or not surface.ready():return false
+	var copy: Dictionary=snapshot.packet.surface
+	if int(surface.definition.width)!=int(copy.width) or int(surface.definition.height)!=int(copy.height) or surface.table!=copy.table:return false
+	if surface.definition.tiles.size()<int(copy.width)*int(copy.height):return false
+	for index in copy.tiles:
+		if surface.definition.tiles[index]!=copy.tiles[index]:return false
+	for key in copy.meshes:
+		if not surface.meshes.has(key) or surface.meshes[key]!=copy.meshes[key]:return false
+	for index in copy.triangles:
+		if not tiles.has(index) or tiles[index]!=copy.triangles[index]:return false
+	var view:=prepare_preview_view(ticket,id,witness,snapshot.packet.from,snapshot.packet.target,snapshot.packet.render,float(snapshot.packet.radius),bool(snapshot.packet.include_creatures))
+	return not view.is_empty() and view.geometry==snapshot.packet.geometry and view.minimum==snapshot.packet.minimum and view.maximum==snapshot.packet.maximum
 func prepare_preview_view(ticket: Dictionary,id: int,witness: Array,from: Vector3,target: Vector3,render: Vector3,radius: float,include_creatures: bool)->Dictionary:
 	if not from.is_finite() or not target.is_finite() or not render.is_finite() or not is_finite(radius) or radius<0:return {}
 	var revision:=preview_revision;var published:=publication_revision;var frame:=Engine.get_process_frames()
@@ -425,7 +685,11 @@ func prepare_preview_view(ticket: Dictionary,id: int,witness: Array,from: Vector
 	var arithmetic: PreviewArithmetic=null
 	if PreviewArithmetic.worthwhile(world.surface,minimum,maximum):
 		arithmetic=PreviewArithmetic.new();arithmetic.configure(from,world.surface,preview_stats)
-	return {"minimum":minimum,"maximum":maximum,"revision":revision,"published":published,"frame":frame,"geometry":geometry,"arithmetic":arithmetic}
+	var height_index: HeightIndex=null
+	if _preview_height_index_enabled and not _height_plan_enabled and HeightIndex.worthwhile(world.surface,minimum,maximum):
+		height_index=HeightIndex.new()
+		if not height_index.configure(world.surface):height_index=null
+	return {"minimum":minimum,"maximum":maximum,"revision":revision,"published":published,"frame":frame,"geometry":geometry,"arithmetic":arithmetic,"height_index":height_index}
 func collect_preview_geometry(ticket: Dictionary,id: int,minimum: Vector3,maximum: Vector3,radius: float,include_creatures: bool)->Dictionary:
 	var phase_began:=DriveProfile.begin()
 	var candidates:=spatial.query_flat_control(ticket,minimum,maximum,radius,id,include_creatures) if retained_flat_control else spatial.query(ticket,minimum,maximum,radius,id,include_creatures)
@@ -482,8 +746,11 @@ func static_candidates(from: Vector3,to: Vector3,radius: float,exclude: int)->Di
 		var group: Dictionary=static_groups[model_key]
 		var bounds: Dictionary=group.bounds
 		if bounds.is_empty():continue
-		var pending: bool=not models.has(model_key) or models[model_key].is_empty() or models[model_key].has("error")
-		var states: Array=model_bounds.get(model_key,[])
+		var pending: bool=not models.has(model_key)
+		if not pending:
+			var model: Dictionary=models[model_key]
+			pending=model.is_empty() or model.has("error")
+		var states: Array=model_bounds.get(model_key,EMPTY_MODEL_BOUNDS)
 		var footprint:=12.0 if pending else 0.0
 		if not pending:
 			for state in states:
@@ -492,9 +759,15 @@ func static_candidates(from: Vector3,to: Vector3,radius: float,exclude: int)->Di
 		var expansion:=footprint+(0.0 if pending else radius)
 		if not pending:
 			var magnitude:=maxf(1.0,footprint)
-			for value in [bounds.min_x,bounds.min_y,bounds.max_x,bounds.max_y]:magnitude=maxf(magnitude,absf(float(value)))
+			# Same bound/float/maxf order, without a temporary Array or a second
+			# set of Dictionary reads in the overlap test. No cross-query cache.
+			var group_min_x:=float(bounds.min_x);var group_min_y:=float(bounds.min_y)
+			var group_max_x:=float(bounds.max_x);var group_max_y:=float(bounds.max_y)
+			magnitude=maxf(magnitude,absf(group_min_x));magnitude=maxf(magnitude,absf(group_min_y))
+			magnitude=maxf(magnitude,absf(group_max_x));magnitude=maxf(magnitude,absf(group_max_y))
 			expansion+=magnitude*0.000003814697265625
-		if float(bounds.min_x)>max_x+expansion or float(bounds.max_x)<min_x-expansion or float(bounds.min_y)>max_y+expansion or float(bounds.max_y)<min_y-expansion:continue
+			if group_min_x>max_x+expansion or group_max_x<min_x-expansion or group_min_y>max_y+expansion or group_max_y<min_y-expansion:continue
+		elif float(bounds.min_x)>max_x+expansion or float(bounds.max_x)<min_x-expansion or float(bounds.min_y)>max_y+expansion or float(bounds.max_y)<min_y-expansion:continue
 		var selected: Dictionary=group.index.query_flat_control(group.ticket,from,to,expansion,exclude,false) if retained_flat_control else group.index.query(group.ticket,from,to,expansion,exclude,false)
 		if not selected.ready:result.ready=false;return result
 		for row in selected.rows:
@@ -539,19 +812,19 @@ static func hits(from: Vector2,to: Vector2,tri: Dictionary,radius: float,low: fl
 	if maxf(from.x,to.x)+radius<tri.min.x or minf(from.x,to.x)-radius>tri.max.x or maxf(from.y,to.y)+radius<tri.min.y or minf(from.y,to.y)-radius>tri.max.y: return false
 	var inside:=interval(from,to,tri)
 	if inside.x<=inside.y and inside.y>=0 and inside.x<=1: return true
-	var points: Array=[Vector2(tri.a.x,tri.a.y),Vector2(tri.b.x,tri.b.y),Vector2(tri.c.x,tri.c.y)]
+	var points: Array=tri.xy_points if tri.has("xy_points") else [Vector2(tri.a.x,tri.a.y),Vector2(tri.b.x,tri.b.y),Vector2(tri.c.x,tri.c.y)]
 	for i in 3:
 		if segment_distance(from,to,points[i],points[(i+1)%3])<radius*radius: return true
 	return false
-func clear(from: Vector3,to: Vector3,radius: float,height: float,obstacles: Array,creatures: Array,pending: Array,arithmetic: PreviewArithmetic=null) -> bool:
+func clear(from: Vector3,to: Vector3,radius: float,height: float,obstacles: Array,creatures: Array,pending: Array,arithmetic: PreviewArithmetic=null,height_index: HeightIndex=null) -> bool:
 	DriveProfile.count("count_drive_clear_calls",1)
 	var began:=DriveProfile.begin()
 	if arithmetic!=null and not arithmetic.accepts(world.surface,from):arithmetic=null
-	var result:=_clear_geometry(from,to,radius,height,obstacles,creatures,pending,arithmetic)
+	var result:=_clear_geometry(from,to,radius,height,obstacles,creatures,pending,arithmetic,height_index)
 	if arithmetic!=null:arithmetic.publish()
 	DriveProfile.finish("drive_clear_total_ms",began)
 	return result
-func _clear_geometry(from: Vector3,to: Vector3,radius: float,height: float,obstacles: Array,creatures: Array,pending: Array,arithmetic: PreviewArithmetic=null) -> bool:
+func _clear_geometry(from: Vector3,to: Vector3,radius: float,height: float,obstacles: Array,creatures: Array,pending: Array,arithmetic: PreviewArithmetic=null,height_index: HeightIndex=null) -> bool:
 	stats.queries+=1
 	var phase_began:=DriveProfile.begin()
 	var a:=Vector2(from.x,from.y); var b:=Vector2(to.x,to.y)
@@ -565,12 +838,13 @@ func _clear_geometry(from: Vector3,to: Vector3,radius: float,height: float,obsta
 	phase_began=DriveProfile.begin()
 	var start_z: float
 	if arithmetic!=null:start_z=arithmetic.start_height(world.surface,from,from.z)
-	else:DriveProfile.count("count_drive_height_samples",1);start_z=world.surface.height(from,from.z)
-	var end_z: float=world.surface.height(to,from.z);DriveProfile.count("count_drive_height_samples",1)
+	else:DriveProfile.count("count_drive_height_samples",1);start_z=_drive_height(world.surface,from,from.z) if _height_plan_enabled else world.surface.height(from,from.z)
+	var end_z: float=height_index.height(world.surface,to,from.z) if height_index!=null else _drive_height(world.surface,to,from.z) if _height_plan_enabled else world.surface.height(to,from.z);DriveProfile.count("count_drive_height_samples",1)
 	var low:=minf(start_z,end_z)-0.1; var high:=maxf(start_z,end_z)+height+0.1
 	DriveProfile.finish("drive_height_ms",phase_began);DriveProfile.count("count_drive_height_queries",2)
 	phase_began=DriveProfile.begin()
-	var intervals: Array=[]; var definition: Dictionary=world.surface.definition
+	var intervals: Array=[];var coverage_pending: Array=[];var coverage_end:=0.0;var coverage_tracking:=true
+	var floor_complete:=false;var skipped_walkable:=0;var definition: Dictionary=world.surface.definition
 	var left:=maxi(0,floori((minf(a.x,b.x)-radius)/10)); var right:=mini(int(definition.width)-1,floori((maxf(a.x,b.x)+radius)/10))
 	var bottom:=maxi(0,floori((minf(a.y,b.y)-radius)/10)); var top:=mini(int(definition.height)-1,floori((maxf(a.y,b.y)+radius)/10))
 	for y in range(bottom,top+1):
@@ -582,14 +856,37 @@ func _clear_geometry(from: Vector3,to: Vector3,radius: float,height: float,obsta
 			for triangle_index in triangle_inputs.size():
 				var tri: Dictionary=triangle_inputs[triangle_index]
 				if tri.walk:
+					# A connected union reaching the original endpoint proves floor
+					# coverage. Keep visiting every nonwalkable face: coverage cannot
+					# hide a blocking polygon. The small pending set bounds extra work;
+					# unusual face order falls back to the original complete sort.
+					if floor_complete:skipped_walkable+=1;continue
 					var span: Vector2=terms.interval(a,b,triangle_index,tri) if terms!=null and tri.has("xy_points") else interval(a,b,tri)
-					if span.x<=span.y: intervals.append(span)
+					if span.x<=span.y:
+						if span.y<=coverage_end:continue
+						if coverage_tracking:
+							if span.x<=coverage_end+0.00001:
+								coverage_end=maxf(coverage_end,span.y)
+								var pending_index:=0
+								while pending_index<coverage_pending.size():
+									var pending_span: Vector2=coverage_pending[pending_index]
+									if pending_span.x<=coverage_end+0.00001:
+										coverage_end=maxf(coverage_end,pending_span.y);coverage_pending.remove_at(pending_index);pending_index=0
+									else:pending_index+=1
+								floor_complete=coverage_end>=0.99999
+							elif coverage_pending.size()<8:coverage_pending.append(span)
+							else:coverage_tracking=false;coverage_pending.clear()
+						if not floor_complete:intervals.append(span)
 				elif hits(a,b,tri,radius,low,high):
+					DriveProfile.count("count_drive_walkable_intervals_skipped",skipped_walkable)
 					DriveProfile.finish("drive_tile_coverage_ms",phase_began);return deny("tile_polygon",from,to)
-	intervals.sort_custom(func(x,y):return x.x<y.x); var end:=0.0
-	for span in intervals:
-		if span.x>end+0.00001: break
-		end=maxf(end,span.y)
+	DriveProfile.count("count_drive_walkable_intervals_skipped",skipped_walkable)
+	var end:=1.0 if floor_complete else 0.0
+	if not floor_complete:
+		intervals.sort_custom(func(x,y):return x.x<y.x)
+		for span in intervals:
+			if span.x>end+0.00001: break
+			end=maxf(end,span.y)
 	DriveProfile.finish("drive_tile_coverage_ms",phase_began)
 	if end<0.99999: return deny("floor_coverage",from,to)
 	phase_began=DriveProfile.begin()
@@ -606,16 +903,23 @@ func snapshot() -> Dictionary:
 	state.spatial=spatial.snapshot();state.source_errors=source_errors.duplicate();state.sources=source_rows.size();state.model_users=model_users.size();state.queued_models=model_queue.size()
 	state.static_groups=static_groups.size();state.static_entries=0;state.static_last_bulk_ms=0.0
 	state.preview_geometry=preview_stats.duplicate()
+	if _worker_surface_cache_enabled:
+		state.preview_worker_surface_cache=_worker_surface_cache_stats.duplicate()
+		state.preview_worker_surface_cache.merge({"tiles":_worker_surface_cache.get("rows",{}).size(),"meshes":_worker_surface_cache.get("meshes",{}).size(),"faces":int(_worker_surface_cache.get("faces",0))})
+	if _height_plan_enabled:state.height_plan=_height_plan_stats.duplicate()
+	state.preview_height_index={"requested":_preview_height_index_enabled,"active":_preview_height_index_enabled and not _height_plan_enabled,"builds_process":HeightIndex.total_builds,"samples_process":HeightIndex.total_samples,"fallbacks_process":HeightIndex.total_fallbacks,"mutation_fallbacks_process":HeightIndex.mismatch_fallbacks,"scope":"Process totals for opt-in repeated preview end-height index; compare deltas within one isolated client."}
 	for group in static_groups.values():
 		var info: Dictionary=group.index.snapshot()
 		state.static_entries+=int(info.entries);state.static_last_bulk_ms+=float(info.last_bulk_ms)
 	return state
 func detach_prepared_data() -> Dictionary:
 	var payload:={"tables":tables.duplicate(),"models":models.duplicate(),"tiles":tiles.duplicate(),"objects":objects.duplicate(),"model_bounds":model_bounds.duplicate()}
-	tables={}; models={}; tiles={}; objects={};model_bounds={}; return payload
+	tables={}; models={}; tiles={}; objects={};model_bounds={};_worker_surface_cache={}; return payload
 func close() -> void:
 	if closed: return
 	closed=true
+	if _height_plan_worker!=null:_height_plan_worker.wait_to_finish();_height_plan_worker=null
+	_height_plan.clear();_height_plan_source.clear()
 	retire_index()
 	if is_instance_valid(assets): assets.close()
 	requests.clear(); models.clear();model_bounds.clear();model_versions.clear();pending_models.clear();objects.clear(); tiles.clear(); tables.clear(); world=null

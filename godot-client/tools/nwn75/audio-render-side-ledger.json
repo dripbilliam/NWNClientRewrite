@@ -1,0 +1,14 @@
+{
+  "schema": "nwn75-audio-render-side-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Audio rendering side branch encountered by alternate screen and area/client helper; visual render tree unaffected.",
+  "document": "audio-render-side-branch.md",
+  "edges": [
+    {"from":"0x1400451c0","to":"0x1401d9d90","callsite":"0x1400453d6","kind":"direct_call","condition":"g_pExoSound nonnull during UpdateScreen","status":"audio_descendants_open","original_pe_bytes":"e8 b5 49 19 00"},
+    {"from":"0x14076d910","to":"0x1401d9d90","callsite":"0x14076e14f","kind":"direct_call","condition":"area/tile reveal branch not fully classified","status":"audio_descendants_open","original_pe_bytes":"e8 rel32 target 0x1401d9d90"},
+    {"from":"0x1406e6a71","to":"0x1401d9d90","callsite":"0x1406e6a88","kind":"tail_jump","condition":"client helper returns through sound render; outer gate open","status":"audio_descendants_open","original_pe_bytes":"e9 03 33 af ff"},
+    {"from":"0x1401d9d90","to":"0x1401e0810","callsite":"0x1401d9d96","kind":"conditional_jump","condition":"inner sound pointer nonnull; otherwise return","status":"audio_descendants_open","original_pe_bytes":"48 8b 09 48 85 c9 0f 85 74 6a 00 00 c3"},
+    {"from":"0x1401da1c0","to":"0x1401e0810","callsite":"0x1401da1f9","kind":"direct_call","condition":"small internal sound helper branch; caller open","status":"audio_descendants_open","original_pe_bytes":"e8 rel32 target 0x1401e0810"}
+  ],
+  "open_edges": ["CExoSoundInternal::Render mixer/backend leaves", "outer client and area helper activation", "runtime thread and frequency"]
+}

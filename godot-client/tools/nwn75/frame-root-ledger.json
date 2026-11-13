@@ -1,0 +1,16 @@
+{
+  "schema": "nwn75-frame-root-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Pinned executable PE/CRT entry to normal SDL_main Update entry; startup failure gates and alternate SDL wrappers remain conditional.",
+  "documents": ["crt-entry-to-sdl-main.md", "render-startup.md", "original-render-tree.md"],
+  "edges": [
+    {"from":"0x140c11bdc","to":"0x140c133bc","callsite":"0x140c11be0","kind":"direct_call","condition":"PE entry initializes security cookie","status":"target_identified_descendants_open","evidence_id":"ev_7d40246726027989bb369c9a8e63b0f1ece46b23c3cdde5f824b1151ec277e16"},
+    {"from":"0x140c11bdc","to":"0x140c11a00","callsite":"0x140c11be9","kind":"tail_jump","condition":"after security cookie returns","status":"target_identified_descendants_open","evidence_id":"ev_7d40246726027989bb369c9a8e63b0f1ece46b23c3cdde5f824b1151ec277e16"},
+    {"from":"0x140c11a00","to":"0x140cc87a0","callsite":"0x140c11b01","kind":"direct_call","condition":"CRT initialization and checked startup callbacks succeed","status":"target_identified_descendants_open","evidence_id":"ev_1ebf0e68e94d8d329f74f812ea0c543a5b8b039564b619d872c5d1bf0b81a966"},
+    {"from":"0x140cc87a0","to":"0x140cc87c0","callsite":"0x140cc87a0","kind":"tail_jump","condition":"unconditional thunk","status":"target_identified_descendants_open","evidence_id":"ev_5f2eda5cd30a4b8423a8521a9f476a53162922871bcc27c3fd1464cc70675cb0"},
+    {"from":"0x140cc87c0","to":"0x140046340","callsite":"0x140cc88e7","kind":"direct_call","condition":"command line conversion and argv allocation succeed","status":"target_identified_descendants_open","evidence_id":"ev_866ac65d912135c66c9b83f3f8fa8e936dfed8145c82bd5114bd0e0051beea7c"},
+    {"from":"0x140046340","to":"0x1400448b0","callsite":"0x140046dc4","kind":"direct_call","condition":"SDL_main startup reaches normal update loop","status":"target_identified_descendants_open","evidence_id":"ev_833c7aa9adb229ef33dd413c495d7c0f61fbec645c741d6268e78b62f252dd65"},
+    {"from":"0x140046340","to":"0x14066fa60","callsite":"0x140046c6c","kind":"direct_call","condition":"startup taskmanager.threadpool.max-size configuration is read before task-manager initialization","status":"target_identified_descendants_open","evidence_id":"ev_833c7aa9adb229ef33dd413c495d7c0f61fbec645c741d6268e78b62f252dd65","evidence_note":"pinned PE rel32 displacement at 0x140046c6d; see task-pool-ownership.md"}
+  ],
+  "open_edges": ["CRT and argument-preparation early exits", "alternate SDL_main caller 0x140cc8940 lacks an executable incoming edge from this PE entry", "runtime process/thread identity and startup outcome"]
+}

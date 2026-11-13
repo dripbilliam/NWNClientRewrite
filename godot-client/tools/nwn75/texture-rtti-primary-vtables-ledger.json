@@ -1,0 +1,14 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Two MSVC RTTI-backed primary CAurTexture vtables and their identical image getter targets.",
+  "edges": [
+    {"from":"0x1400e4cc0","to":"0x140d90c70","kind":"constructor_vtable_install","condition":"base CAurTexture constructor; LEA/MOV at 0x1400e4ce2/0x1400e4ce9","status":"texture_base_type","evidence_id":"ev_305d28611dce0eb253596075b1d7ac26a968348c0bef1a30f870c5c40921020f"},
+    {"from":"0x1400e4d60","to":"0x140d90d90","kind":"constructor_vtable_install","condition":"Basic constructor overwrites primary vtable after base call at 0x1400e4d89","status":"texture_basic_type","evidence_id":"ev_7c6b4e03abdc85bad33e4653d02caa5265596f7ede5fbfae061f8f6b7ed5b276"},
+    {"from":"0x140d90c70","to":"shared texture getter slots +0x60/+0x70/+0x78/+0x80/+0x88/+0x90/+0x98/+0xa0/+0xa8/+0xb0/+0xb8/+0xc0/+0xd0","kind":"vtable_slot_data","condition":"base primary vtable, exact bytes through +0x110","status":"texture_getter_dispatch","evidence_id":"ev_c0aac1eacfca1ae9eed75bed32c5c2599e3f58abdb296b3fc9c466c2fcc0b13f"},
+    {"from":"0x140d90d90","to":"shared texture getter slots +0x60/+0x70/+0x78/+0x80/+0x88/+0x90/+0x98/+0xa0/+0xa8/+0xb0/+0xb8/+0xc0/+0xd0","kind":"vtable_slot_data","condition":"Basic primary vtable has byte-identical getter targets to base","status":"texture_getter_dispatch","evidence_id":"ev_1f347aae5714bc22bd9266ae9e3f3574a5ac2f7aaab54a4beddd4f04d6d01514"},
+    {"from":"0x140d90c70","to":"base destructor, null AsBasic and base FreeImage","kind":"vtable_slot_data","condition":"only different base slots through +0x110: +0x0/+0x8/+0xf0","status":"texture_base_lifetime","evidence_id":"ev_c0aac1eacfca1ae9eed75bed32c5c2599e3f58abdb296b3fc9c466c2fcc0b13f"},
+    {"from":"0x140d90d90","to":"Basic destructor, self AsBasic and Basic FreeImage","kind":"vtable_slot_data","condition":"only different Basic slots through +0x110: +0x0/+0x8/+0xf0","status":"texture_basic_lifetime","evidence_id":"ev_1f347aae5714bc22bd9266ae9e3f3574a5ac2f7aaab54a4beddd4f04d6d01514"},
+    {"from":"0x140d90c70","to":"DYNAMIC:TEXTURE_OBJECT_CLASS_AND_IMAGE_STATE","kind":"unresolved_runtime_selector","condition":"RTTI-stripped/external class possibility, active constructed class, resource/image and GL admission","status":"unresolved_target","evidence_id":"ev_c0aac1eacfca1ae9eed75bed32c5c2599e3f58abdb296b3fc9c466c2fcc0b13f"}
+  ]
+}

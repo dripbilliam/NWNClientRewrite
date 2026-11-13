@@ -13,7 +13,7 @@ export function receivedSpeechFixture({contextAvailable=true}={}){
  const hostPath=path.join(project,'tools/native-session-host.cjs'),source=fs.readFileSync(hostPath,'utf8');
  const first='if(current!==session||connection!==lobby.connection||ending)return;',last="if(message.kind==='object-updates'){const frame=rawCombat.frame",start=source.indexOf(first),end=source.indexOf(last,start);
  if(start<0||end<start||source.indexOf(first,start+1)>=0)throw Error('Current bounded Host text dispatch anchors changed');
- const fragment=source.slice(start,end),dispatch=new Function('current','session','connection','lobby','ending','message','areaGeneration','nativeTextEvents','rawVoice','rawScriptSounds','rawVisual','guiPanelEventForHost','send','report',fragment);
+ const fragment=source.slice(start,end),dispatch=new Function('current','session','connection','lobby','ending','message','areaGeneration','nativeTextEvents','rawTileVisibility','rawCreatureVisibilityPermission','rawVoice','rawScriptSounds','rawVisual','guiPanelEventForHost','send','report',fragment);
  const ownerLine=source.split(/\r?\n/).find(line=>line.startsWith('const nativeTextEvents='));
  if(!ownerLine)throw Error('Current actual Host text owner missing');
  const require=createRequire(hostPath),identities=new (require('./raw-combat-events.cjs').RawCombatEvents)();
@@ -29,7 +29,7 @@ export function receivedSpeechFixture({contextAvailable=true}={}){
  if(packets.length!==75)throw Error('Original sender packet count changed');
  for(const hex of packets){
   const decoded=decodeServerGameMessage(Buffer.from(hex,'hex'),{clientBuild:{number:8193,revision:37,postfix:17}}),before=JSON.stringify(decoded),count=messages.length;
-  dispatch(current,current,3,{connection:3},false,decoded,2,owner,empty,empty,empty,()=>null,value=>messages.push(value),report);
+  dispatch(current,current,3,{connection:3},false,decoded,2,owner,{frames:()=>[]},{frames:()=>[]},empty,empty,empty,()=>null,value=>messages.push(value),report);
   if(messages.length!==count+1||JSON.stringify(decoded)!==before)throw Error('Actual Host did not preserve one original received packet');
  }
  if(Object.keys(report).length)throw Error('Actual Host metadata capture failed');

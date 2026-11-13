@@ -4,6 +4,7 @@ const ParticleEmitter=preload("res://systems/native_render/particle_emitter.gd")
 const ModelReference=preload("res://systems/native_render/model_reference.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const MeshProvenance=preload("res://tools/native_parity/visibility/mesh_provenance.gd")
+static var _completion_diagnostics:=OS.get_cmdline_user_args().has("--publication-completion-diagnose")
 # Direct original-data scene assembly. Physical parts/instances stay private;
 # immutable mesh/texture/material resources are shared by the native pool.
 var failure := ""
@@ -75,7 +76,7 @@ func install_original(bundle: Dictionary,pool) -> bool:
 		if result.status=="failed":return false
 	return true
 func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents: Dictionary,basis: Quaternion) -> bool:
-	var phase_began:=Timing.begin()
+	var phase_began:=Time.get_ticks_usec() if _completion_diagnostics else Timing.begin()
 	var row: Dictionary = model.nodes[index]
 	# A leaf renderable can be the physical Part itself, as in a native
 	# PartTriMesh. Keep source transforms/data unchanged; never absorb a
@@ -137,7 +138,7 @@ func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents:
 	var material = pool.material(row,raster)
 	if phase_began>0: install_timings.material_ms=float(install_timings.get("material_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
 	if material == null: failure = pool.failure; _clear_parts(); return false
-	var binding_began:=Timing.begin()
+	var binding_began:=Time.get_ticks_usec() if _completion_diagnostics else Timing.begin()
 	var geometry: MeshInstance3D=part if compact else MeshInstance3D.new()
 	if not compact: geometry.name="mesh"
 	if binding_began>0: install_timings.node_create_ms=float(install_timings.get("node_create_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0; binding_began=Time.get_ticks_usec()

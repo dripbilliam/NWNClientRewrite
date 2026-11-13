@@ -95,6 +95,7 @@ var native_wind_owner
 var direct_scene_queries:=0
 var direct_scene_hits:=0
 var native_surface_output:=false
+var strict_geometry_worker:=OS.get_cmdline_user_args().has("--particle-geometry-worker=on")
 var native_surface_world: WeakRef
 var native_light_reference: WeakRef
 func _ready() -> void:
@@ -208,7 +209,7 @@ func _ready() -> void:
 	set_particles_enabled(particles_enabled)
 	var group_ancestor:=get_parent()
 	while group_ancestor!=null:
-		if not native_surface_output and group_ancestor.has_meta("native_particle_frame_group"):
+		if not strict_geometry_worker and not native_surface_output and group_ancestor.has_meta("native_particle_frame_group"):
 			var group=group_ancestor.get_meta("native_particle_frame_group")
 			if is_instance_valid(group): group.register(self)
 			break
@@ -220,6 +221,12 @@ func _ready() -> void:
 			if is_instance_valid(stream): stream.register(self)
 			break
 		stream_ancestor=stream_ancestor.get_parent()
+	# Opt-in is exclusive. Registration failures and emitters outside a shared
+	# world remain suppressed instead of silently resuming their private path.
+	if strict_geometry_worker and not is_instance_valid(native_stream_group):
+		if is_instance_valid(surface): surface.retire()
+		set_process(false)
+		limitations.append("Geometry worker opt-in suppressed an emitter outside the shared presentation")
 static func pose(node: Node3D) -> Dictionary:
 	var transform:=node.global_transform; var q:=transform.basis.orthonormalized().get_rotation_quaternion()
 	# Conjugation by the MDL Z-up -> Godot Y-up basis.
@@ -355,6 +362,7 @@ func shared_chunk_ready() -> bool:
 	if not chunk_models.failure.is_empty(): fail(chunk_models.failure); return false
 	return chunk_models.ready()
 func tick(delta: float,shared_frame: bool=false) -> void:
+	if strict_geometry_worker: return
 	if not particles_enabled or retired or not failure.is_empty() or _state.is_empty() or not is_instance_valid(source) or not is_visible_in_tree() or get_viewport().get_camera_3d()==null: return
 	if native_surface_output and native_surface_world!=null:
 		var owner=native_surface_world.get_ref()
@@ -493,6 +501,7 @@ func upload(output: Dictionary) -> bool:
 	sequence+=1
 	return surface.apply_frame(1,sequence,count,capacity,positions,attributes,bounds)
 func _process(delta: float) -> void:
+	if strict_geometry_worker: return
 	var began:=Profile.begin()
 	if is_instance_valid(native_frame_group) and native_frame_group.engine_ordered:
 		var result: Dictionary=native_frame_group.native.call("dispatch",8,native_group_identity)
@@ -514,11 +523,11 @@ func set_collision_enabled(value: bool) -> void:
 func set_particles_enabled(value: bool) -> void:
 	particles_enabled=value; visible=value
 	process_mode=Node.PROCESS_MODE_INHERIT if value else Node.PROCESS_MODE_DISABLED
-	set_process(value and not retired and failure.is_empty() and (not is_instance_valid(native_frame_group) or native_frame_group.engine_ordered))
+	set_process(value and not strict_geometry_worker and not retired and failure.is_empty() and (not is_instance_valid(native_frame_group) or native_frame_group.engine_ordered))
 	if is_instance_valid(native_frame_group): native_frame_group.control(self,{"enabled":value})
 	if is_instance_valid(native_stream_group):
 		native_stream_group.control(self,{"enabled":value}); set_process(false)
-	if is_instance_valid(surface): surface.visible=value and not last_culled
+	if is_instance_valid(surface): surface.visible=value and not strict_geometry_worker and not last_culled
 	if is_instance_valid(native_stream_group) and native_stream_group.members.get(get_instance_id(),{}).get("fast",false) and is_instance_valid(surface): surface.hide()
 func sync_stream_diagnostics() -> void:
 	if not is_instance_valid(native_stream_group): return

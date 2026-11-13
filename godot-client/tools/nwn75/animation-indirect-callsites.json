@@ -1,0 +1,326 @@
+{
+  "schema": "nwn75-original-animation-indirect-callsites-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original Scene/Gob/Part animation indirect callsites; addresses and slots from REA assembly, concrete base targets from constructor-backed original PE vtables or instance function fields. MdlNode Control has a bounded constructor-backed subclass target set; actual node selection remains branch-specific.",
+  "coverage": {
+    "sites": 27,
+    "target_identified": 27,
+    "unidentified": 0
+  },
+  "callsites": [
+    {
+      "from": "0x1400c5210",
+      "call_site": "0x1400c56ee",
+      "to": "0x14004dbd0",
+      "target_name": "Gob::Animate",
+      "slot": "Gob vtable+0x28",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_9548f69673c15e10a2847b5793fe0eb5f709a05be34f7e3bdf82138f0acdb1f7"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004dd92",
+      "to": "0x140048500",
+      "target_name": "Gob::GetName",
+      "slot": "Gob vtable+0x10",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004df13",
+      "to": "0x140048500",
+      "target_name": "Gob::GetName",
+      "slot": "Gob vtable+0x10",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e2e7",
+      "to": "0x140054ad0",
+      "target_name": "CAurBehavior::Control / subclass overrides",
+      "slot": "CAurBehavior vtable+0x18",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e304",
+      "to": "0x1400cafe0",
+      "target_name": "Scene::IsAnimating",
+      "slot": "Scene vtable+0x280",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e314",
+      "to": "0x140092000",
+      "target_name": "Gob::IsForceAnimated",
+      "slot": "Gob vtable+0x2a0",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e328",
+      "to": "0x140091ff0",
+      "target_name": "Gob::IsAnimating",
+      "slot": "Gob vtable+0x260",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e349",
+      "to": "0x140052570",
+      "target_name": "LookAtAnimation::IsActive",
+      "slot": "LookAtAnimation vtable+0x8",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e35a",
+      "to": "0x140050650",
+      "target_name": "LookAtAnimation::Control",
+      "slot": "LookAtAnimation vtable+0x18",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e41b",
+      "to": "0x14004d5e0",
+      "target_name": "LookAtAnimation deleting destructor",
+      "slot": "LookAtAnimation vtable+0x0",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e431",
+      "to": "0x140049110",
+      "target_name": "Gob::IsInViewVolume",
+      "slot": "Gob vtable+0x2b8",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e4aa",
+      "to": "0x140050d50",
+      "target_name": "Gob::DoEvent",
+      "slot": "Gob vtable+0x298",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e587",
+      "to": "0x140050d50",
+      "target_name": "Gob::DoEvent",
+      "slot": "Gob vtable+0x298",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e629",
+      "to": "0x140050d50",
+      "target_name": "Gob::DoEvent",
+      "slot": "Gob vtable+0x298",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e6cd",
+      "to": "0x140050d50",
+      "target_name": "Gob::DoEvent",
+      "slot": "Gob vtable+0x298",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e73a",
+      "to": "0x140050d50",
+      "target_name": "Gob::DoEvent",
+      "slot": "Gob vtable+0x298",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e8b2",
+      "to": "0x14004e9e0",
+      "target_name": "Part::Animate",
+      "slot": "root Part vtable+0xd0",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004dbd0",
+      "call_site": "0x14004e8ee",
+      "to": "0x14008ee60",
+      "target_name": "Gob::GetMinimumSphere",
+      "slot": "Gob vtable+0x2c8",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_4baafc31359362e9a499ee231aa5e00ad33685483100da12ea17591bb12f594c"
+    },
+    {
+      "from": "0x14004e9e0",
+      "call_site": "0x14004eb6d",
+      "to": "0x140062450",
+      "target_name": "Part::Name",
+      "slot": "Part vtable+0x8",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_981bd1d921c8df7e88c9f78a3c807ed6923ac3c5c7c385f6a040a0e7db09459f"
+    },
+    {
+      "from": "0x14004e9e0",
+      "call_site": "0x14004ece0",
+      "to": "0x140062450",
+      "target_name": "Part::Name",
+      "slot": "Part vtable+0x8",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_981bd1d921c8df7e88c9f78a3c807ed6923ac3c5c7c385f6a040a0e7db09459f"
+    },
+    {
+      "from": "0x14004e9e0",
+      "call_site": "0x14004eebe",
+      "to": "0x14004e9e0",
+      "target_name": "Part::Animate",
+      "slot": "child Part vtable+0xd0",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_981bd1d921c8df7e88c9f78a3c807ed6923ac3c5c7c385f6a040a0e7db09459f"
+    },
+    {
+      "from": "0x14004fce0",
+      "call_site": "0x14004fdf6",
+      "to": "0x140050d50",
+      "target_name": "Gob::DoEvent",
+      "slot": "Gob vtable+0x298",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_3c39cee22ab588783ec8177146f57e3a7b6af7bcf04ba339494b09ab0178b732"
+    },
+    {
+      "from": "0x14004fce0",
+      "call_site": "0x14004fe4e",
+      "to": "0x140050d50",
+      "target_name": "Gob::DoEvent",
+      "slot": "Gob vtable+0x298",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_3c39cee22ab588783ec8177146f57e3a7b6af7bcf04ba339494b09ab0178b732"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004feea",
+      "to": "0x1400616a0",
+      "target_name": "Part::AsPartLight / PartLight::AsPartLight",
+      "slot": "Part vtable+0x48",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004ff0c",
+      "to": "0x140050d50",
+      "target_name": "Gob::DoEvent",
+      "slot": "Gob vtable+0x298",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x140052400",
+      "call_site": "0x14005242b",
+      "to": "0x14008c490",
+      "target_name": "Part::AsPartEmitter / PartEmitter::AsPartEmitter",
+      "slot": "Part vtable+0x68",
+      "status": "target_identified_descendants_open",
+      "evidence_id": "ev_17d70983bde3128ad892ed07f460d42522b41cab6ecd42d443ff9329a5408088"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004fee1",
+      "to": "0x1400926c0",
+      "target_name": "MdlNodeControl",
+      "slot": "MdlNode field+0x18",
+      "condition": "base MdlNode",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004fee1",
+      "to": "0x1400930e0",
+      "target_name": "MdlNodeTriMeshControl",
+      "slot": "MdlNode field+0x18",
+      "condition": "TriMesh, AABB, DanglyMesh, Skin",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004fee1",
+      "to": "0x140092430",
+      "target_name": "MdlNodeAnimMeshControl",
+      "slot": "MdlNode field+0x18",
+      "condition": "AnimMesh node",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004fee1",
+      "to": "0x1400925c0",
+      "target_name": "MdlNodeCameraControl",
+      "slot": "MdlNode field+0x18",
+      "condition": "Camera node",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004fee1",
+      "to": "0x140092990",
+      "target_name": "MdlNodeEmitterControl",
+      "slot": "MdlNode field+0x18",
+      "condition": "Emitter node",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004fee1",
+      "to": "0x140092b00",
+      "target_name": "MdlNodeLightControl",
+      "slot": "MdlNode field+0x18",
+      "condition": "Light node",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004fee1",
+      "to": "0x140092e30",
+      "target_name": "MdlNodeReferenceControl",
+      "slot": "MdlNode field+0x18",
+      "condition": "Reference node",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    },
+    {
+      "from": "0x14004fe90",
+      "call_site": "0x14004fee1",
+      "to": "0x1400f08e0",
+      "target_name": "MdlNodeTriggerControl",
+      "slot": "MdlNode field+0x18",
+      "condition": "Trigger node",
+      "status": "target_candidates_identified_descendants_open",
+      "evidence_id": "ev_24de8218253aef83546817e34695641338094f0b75a7dc7d8ec1644ed314f5d9"
+    }
+  ]
+}

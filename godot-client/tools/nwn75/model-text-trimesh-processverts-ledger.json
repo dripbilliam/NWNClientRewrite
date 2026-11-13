@@ -1,0 +1,91 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Text TriMesh ProcessVerts face-normal, bounds, center and radius CPU geometry before conditional vertex-pool publication.",
+  "edges": [
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400aa1e0",
+      "callsite": "0x1400a9b0a",
+      "kind": "direct_static",
+      "condition": "node+0x284 vertex count zero",
+      "status": "cpu_text_mesh_postprocess",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "MdlNodeTriMesh::ProcessVerts"
+    },
+    {
+      "from": "0x1400aa1e0",
+      "to": "postprocess face list +0x70/+0x78",
+      "kind": "conditional_cpu_iteration",
+      "condition": "0x20-byte face records, three corners each",
+      "status": "cpu_face_geometry",
+      "evidence_id": "ev_98b6b8e48b2831b40b8f4abcc8a4a4d813b1268d065edfba0ebad43bb1e5b2b0"
+    },
+    {
+      "from": "0x1400aa1e0",
+      "to": "cross and Vector::Normalize",
+      "kind": "conditional_cpu_math",
+      "condition": "no positive authored normal-list state; derive face normal",
+      "status": "cpu_normal_geometry",
+      "evidence_id": "ev_98b6b8e48b2831b40b8f4abcc8a4a4d813b1268d065edfba0ebad43bb1e5b2b0"
+    },
+    {
+      "from": "0x1400aa1e0",
+      "to": "postprocess normal list +0x80/+0x88",
+      "kind": "conditional_cpu_array_append",
+      "condition": "smoothing-mask and common-vertex search; reuse accepted index or append 12-byte normalized Vector",
+      "status": "cpu_normal_geometry",
+      "evidence_id": "ev_98b6b8e48b2831b40b8f4abcc8a4a4d813b1268d065edfba0ebad43bb1e5b2b0"
+    },
+    {
+      "from": "0x1400aa1e0",
+      "to": "face corner normal-index slots",
+      "kind": "conditional_cpu_copy",
+      "condition": "authored normal-list state positive; copy original vertex indices",
+      "status": "cpu_normal_geometry",
+      "evidence_id": "ev_98b6b8e48b2831b40b8f4abcc8a4a4d813b1268d065edfba0ebad43bb1e5b2b0"
+    },
+    {
+      "from": "0x1400aa1e0",
+      "to": "MdlNodeTriMesh+0xc0..+0xd4",
+      "kind": "cpu_bounds_scan",
+      "condition": "scan authored position list +0x00/+0x08",
+      "status": "cpu_bounds",
+      "evidence_id": "ev_98b6b8e48b2831b40b8f4abcc8a4a4d813b1268d065edfba0ebad43bb1e5b2b0"
+    },
+    {
+      "from": "0x1400aa1e0",
+      "to": "MdlNodeTriMesh+0xdc..+0xe4",
+      "kind": "cpu_center_calculation",
+      "condition": "average position; guarded zero count",
+      "status": "cpu_center",
+      "evidence_id": "ev_98b6b8e48b2831b40b8f4abcc8a4a4d813b1268d065edfba0ebad43bb1e5b2b0"
+    },
+    {
+      "from": "0x1400aa1e0",
+      "to": "MdlNodeTriMesh+0xd8",
+      "kind": "cpu_radius_calculation",
+      "condition": "maximum squared distance to center then square root",
+      "status": "cpu_radius",
+      "evidence_id": "ev_98b6b8e48b2831b40b8f4abcc8a4a4d813b1268d065edfba0ebad43bb1e5b2b0"
+    },
+    {
+      "from": "0x1400a9ae0",
+      "to": "0x1400a7790",
+      "callsite": "0x1400a9b49",
+      "kind": "direct_static",
+      "condition": "postprocess face count +0xb8 positive after ProcessVerts and prior neighbor/index preparation",
+      "status": "conditional_render_pool_publication",
+      "evidence_id": "ev_4161d5fa56b2eb3cd8578eb37a7bcd27fa4d9ca5f63bb94e1ab33c37fabc3d19",
+      "target_label": "MdlNodeTriMesh::GenerateVertexData"
+    },
+    {
+      "from": "0x1400aa1e0",
+      "to": "DYNAMIC:TEXT_FACE_AND_SMOOTHING_INPUT",
+      "kind": "unresolved_runtime_selector",
+      "condition": "authored face/vertex counts, smoothing overlap, normal reuse and later pool/draw admission",
+      "status": "unresolved_target",
+      "evidence_id": "ev_98b6b8e48b2831b40b8f4abcc8a4a4d813b1268d065edfba0ebad43bb1e5b2b0"
+    }
+  ]
+}

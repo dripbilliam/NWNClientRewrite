@@ -1,0 +1,18 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "SharedMaterial .mtr twosided source through static/dynamic draw-item variant and Scene cull-state consumer.",
+  "edges": [
+    {"from":"0x1400849a0","to":"SharedMaterial+0x1f1/+0x1f8","kind":"cpu_field_parse","condition":"literal twosided and volumetric authored keys parse Boolean fields","status":"authored_cull_variant_source","evidence_id":"ev_4887293af9d7cb85107e066a23405c548a2c8257f62cbd3f8899eb04e2d11333"},
+    {"from":"SharedMaterial+0x1f1/+0x1f8","to":"0x1400c38f0","kind":"cpu_state_consumer","condition":"static mesh/fade material retained at Material+0xd0 and Part admitted","status":"static_cull_variant_gate","evidence_id":"ev_9b2776e75e9df7689deec134df0f62a5416d96a73218bc317ec5a36294648eb3"},
+    {"from":"SharedMaterial+0x1f1/+0x1f8","to":"0x1400c4620","kind":"cpu_state_consumer","condition":"live Gob triangle Part material retained and Part admitted","status":"dynamic_cull_variant_gate","evidence_id":"ev_9e24461701831c9aebc02a0ef6ef07bce145ed378527c97ae94477cf3ad247bb"},
+    {"from":"0x1400c38f0","to":"0x1400d75a0","callsite":"0x1400c3c5c","kind":"conditional_direct","condition":"static mesh item: twosided && !volumetric selects variant 1, otherwise variant 0","status":"static_mesh_cull_variant","evidence_id":"ev_42ee0257cf484527588c545d3590d4545e8fa4ed59f6bd539d38ad7d28e8f7e1"},
+    {"from":"0x1400c38f0","to":"0x1400d75a0","callsite":"0x1400c3df4","kind":"conditional_direct","condition":"static fade item: twosided && !volumetric selects variant 1, otherwise variant 0","status":"static_fade_cull_variant","evidence_id":"ev_c26b0866458c1a0f5fd466b8ea8b7ea929cc74f11fc8de30ce2d0f02405c9774"},
+    {"from":"0x1400c4620","to":"0x1400d75a0","callsite":"0x1400c4801","kind":"conditional_direct","condition":"live Gob main item: twosided && !volumetric selects variant 1, otherwise variant 0","status":"dynamic_cull_variant","evidence_id":"ev_268de64344876def2829ecfec47aa1738e4e6bdacf8190ed813351b3f1ccfc39"},
+    {"from":"0x1400d75a0","to":"DrawBucketManager[type*3+variant]","kind":"cpu_draw_item_append","condition":"capacity retained unless list grows; variant 1 is separate group, not a second twosided draw","status":"variant_group_publication","evidence_id":"ev_be929629581a2b9e85bcb28b997781374ebd3321a392e13ae1d3b0b4afcd79dc"},
+    {"from":"0x1400cd210","to":"0x1400be9e0","callsite":"0x1400cd6b0","kind":"conditional_direct","condition":"transition from variant 0 to nonempty variant 1; Disable(3) culling; GL state guard applies","status":"two_sided_no_cull_group","evidence_id":"ev_bbe6cb6f8d8ca3702b93375c0ae1435fa189cd52847d87a988e3b4f1da20cc7f"},
+    {"from":"0x1400cd210","to":"0x1400bea90","callsite":"0x1400cd6c1","kind":"conditional_direct","condition":"transition from variant 1 to nonempty variant 2; Enable(3) culling","status":"volumetric_front_cull_group","evidence_id":"ev_b1461c80b8e2688c85413f506910b73a4794f9a430270f2cfa4184d9d44fbb8a"},
+    {"from":"0x1400cd210","to":"0x1400bf080","callsite":"0x1400cd6c8","kind":"conditional_direct","condition":"nonempty variant 2 sets facing enum 0 = GL_FRONT","status":"volumetric_front_cull_group","evidence_id":"ev_7558e558db863a777d96faddfcee423b784e60989c7066640561526e594e0c34"},
+    {"from":"0x1400cd210","to":"DYNAMIC:ADMITTED_CULL_VARIANT_AND_STATE","kind":"unresolved_runtime_selector","condition":"active authored material, Part visibility, group occupancy and GL cached state determine draw and API transition","status":"unresolved_target","evidence_id":"ev_9cb4fee5f7abb56a1fbee9e133c16b18e9b842aa3563ed95e15eafd0504d3500"}
+  ]
+}

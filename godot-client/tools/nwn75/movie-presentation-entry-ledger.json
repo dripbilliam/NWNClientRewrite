@@ -1,0 +1,16 @@
+{
+  "schema": "nwn75-movie-presentation-entry-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Static normal Update to movie RenderFrame and swap, plus one separate Nui caller.",
+  "document": "movie-presentation-entry.md",
+  "edges": [
+    {"from":"0x1400448b0","to":"0x1406ac690","callsite":"0x1400450c8","kind":"direct_call","condition":"later Update test of helper 0x1406abc60 is nonzero: client+0x520 movie pointer nonnull","status":"target_identified_descendants_open","evidence_id":"ev_3957e705c146df933c995e572aaf92eb3c23c4e0496ad434efca96649e1b9376"},
+    {"from":"0x1406ac690","to":"0x1406dea40","callsite":"0x1406ac694","kind":"tail_jump","condition":"wrapper loads internal client at +0x8","status":"target_identified_descendants_open","original_pe_bytes":"48 8b 49 08 e9 rel32"},
+    {"from":"0x1406dea40","to":"0x140232200","callsite":"0x1406dea55","kind":"direct_call","condition":"client +0x520 movie pointer is nonnull","status":"target_identified_descendants_open","original_pe_bytes":"48 8b 89 20 05 00 00 48 85 c9 74 63 e8 a6 37 b5 ff"},
+    {"from":"0x140232200","to":"0x140233980","callsite":"0x140232206","kind":"conditional_tail_jump","condition":"inner movie pointer is nonnull; otherwise returns zero","status":"target_identified_descendants_open","original_pe_bytes":"48 8b 09 48 85 c9 0f 85 74 17 00 00 33 c0 c3"},
+    {"from":"0x140233980","to":"0x1400bf390","callsite":"0x140233a81","kind":"direct_call","condition":"movie frame presentation branch","status":"target_identified_descendants_open","evidence_id":"ev_38fcfc901015460d4ce6c6a208e53e484c76c1709e098a17b9d73defb8ce26d7"},
+    {"from":"0x14095b1a0","to":"0x1402321f0","callsite":"0x14095b66c","kind":"direct_call","condition":"Nui MoviePlayer content path, active class/gate unknown","status":"target_identified_descendants_open","original_pe_bytes":"e8 rel32 target 0x1402321f0"},
+    {"from":"0x1402321f0","to":"0x140233960","callsite":"0x1402321f6","kind":"conditional_tail_jump","condition":"nonnull inner movie pointer; distinct from RenderFrame target","status":"target_identified_descendants_open","original_pe_bytes":"48 8b 09 48 85 c9 0f 85 64 17 00 00 c3"}
+  ],
+  "open_edges": ["movie-pointer mutation between two Update tests", "Nui MoviePlayer runtime content/visibility", "movie decoder/audio descendants and active thread/frequency"]
+}

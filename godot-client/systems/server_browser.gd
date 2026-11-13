@@ -179,7 +179,7 @@ func native_browser_action(operation: String,fields: Dictionary,capture: Array) 
 		"direct": open_direct()
 		"filters": open_filters()
 		"selection-step": start_selection(operation,fields,false)
-		"page","sort-column","refresh": _send(operation,fields)
+		"page","sort-column","refresh","game-type": _send(operation,fields)
 		"visibility": _send("filter",{"filter":state.get("filter",""),"sort":state.get("sort","Players"),"filters":fields.filters})
 		"favorite":
 			if selected>=0: _send("favorite",{"direct":false,"entryId":selected,"on":fields.on})

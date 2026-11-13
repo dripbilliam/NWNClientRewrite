@@ -1,0 +1,22 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Scene grass active-bin wind/list update, point-source CPU scan and optional distance sort comparator",
+  "document": "scene-grass-wind-sort-continuation.md",
+  "edges": [
+    {"from":"0x14006deb0","to":"0x14006df10","callsite":"0x14006deeb","kind":"direct_call","condition":"each triangle list of a grass-enabled active bin","status":"grass_list_wind_update","evidence_id":"ev_2f81259a2c450f0bceeb1325ba176fe1edeedb4cc123b059b090385526a38dec"},
+    {"from":"0x14006df10","to":"0x1400cafe0","callsite":"0x14006df2a","kind":"constructor_backed_virtual_call","slot":"Scene+0x280","condition":"current Scene; IsAnimating gate before dynamic item access","status":"grass_animation_gate","evidence_id":"ev_c1f4e66479f1b9520f21f7862de41596dd8eee1867ee2c2c4ebea75c95a30c86"},
+    {"from":"0x14006df10","to":"0x1402303d0","callsite":"0x14006dfad","kind":"direct_call","condition":"Scene animating and list VDO nonnull; global wind magnitude","status":"grass_wind_cpu_math","evidence_id":"ev_b064b5d9dbd992bd82de0e23c27f68754f2816f40e27a71d1b740a8471e2d88c"},
+    {"from":"0x14006df10","to":"0x1400bd7a0","callsite":"0x14006dff8","kind":"direct_call","condition":"Scene animating and list VDO nonnull; get dynamic item data","status":"grass_dynamic_item_lock","evidence_id":"ev_250bb6a3df8f85cd166a2e6dd87eeb2e1295ecbb9ad84a849fad09bd1210b5e0"},
+    {"from":"0x14006df10","to":"0x1400f1830","callsite":"0x14006e054","kind":"direct_call","condition":"admitted list; first global-wind sample","status":"grass_first_global_wind_sample","evidence_id":"ev_75a0c794bac0d11e1f8aea9767b6854890a166df67b02cf2b1397bb356f061f3"},
+    {"from":"0x14006df10","to":"0x1400f1830","callsite":"0x14006e12b","kind":"direct_call","condition":"each positive-count dynamic entry only when fastwindongrass==0","status":"grass_per_entry_global_wind_sample","evidence_id":"ev_8d79cc06e494f3ca6b6cfa4f378c3e8cadeee2c7ae005f5cb9d69aaa03990fbb"},
+    {"from":"0x14006df10","to":"0x1400f1530","callsite":"0x14006e164","kind":"direct_call","condition":"each positive-count dynamic entry; point-source wind sample","status":"grass_per_entry_point_wind_sample","evidence_id":"ev_0c7aacbf1bf9a0b8462d8331051484eb58ff2ab09df5551240798fa69f4d39c9"},
+    {"from":"0x14006df10","to":"0x1400bd540","callsite":"0x14006e28b","kind":"direct_call","condition":"after entry loop for admitted list, including zero-count list; pool publication gated inside helper","status":"grass_dynamic_item_commit","evidence_id":"ev_7be0c074768ab72972a2663e190192cb9f825a884e95cb6ebe1ff9165811ca6f"},
+    {"from":"0x1400f1530","to":"0x1400f2070","callsite":"0x1400f1551","kind":"direct_call","condition":"point-source wind requested for one dynamic entry","status":"grass_point_source_scan","evidence_id":"ev_354e704625a807c4fd1ab55e62c1e3f93ccbb2f82efd5cd59bea5ba940c34ac1"},
+    {"from":"0x1400f2070","to":"0x140c7d6d8","callsite":"0x1400f2198","kind":"direct_call","condition":"point source box and sphere admit sample","status":"point_wind_cpu_sqrt","evidence_id":"ev_a56e3a253f9b10a9c331bfdbf7f1c879ec6122869b8906fc78b5ac20bf2f46ce"},
+    {"from":"0x1400f2070","to":"0x14022b240","callsite":"0x1400f21a8","kind":"direct_call","condition":"admitted point source; vector divide by distance","status":"point_wind_cpu_divide","evidence_id":"ev_af04f64b4a9fc4a61dd6d641b6493739304a625e26e1061dd5a1d56cff93713b"},
+    {"from":"0x1400f2070","to":"0x140230920","callsite":"0x1400f21b7","kind":"direct_call","condition":"admitted point source; normalize vector","status":"point_wind_cpu_normalize","evidence_id":"ev_d9edcf8929a94fbbb2614c3c0d4356907e7e28f665071ec17101f90fadc61529"},
+    {"from":"0x1400f2070","to":"0x14022b180","callsite":"0x1400f2205","kind":"direct_call","condition":"admitted point source; accumulate weighted vector","status":"point_wind_cpu_accumulate","evidence_id":"ev_b507a8580d44c82c94ed66c769e24a5040a978ee6f9d3fc1d822e7cebb5258a1"},
+    {"from":"0x1400c7580","to":"0x1400c5980","site":"0x1400c779c","kind":"callback_pointer","condition":"g_bSortGrass nonzero; pass farther-first bin comparator to sort","status":"grass_sort_comparator_source","evidence_id":"ev_4719c860feb63784e1233d557c7d3d3233ab311b08a9f777c026ff8797cb93a7"}
+  ]
+}

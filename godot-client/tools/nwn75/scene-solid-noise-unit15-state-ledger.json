@@ -1,0 +1,15 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Scene-owned solid_noise reference and each-render texture-unit-15 bind request before BSP/no-BSP draw work",
+  "document": "scene-solid-noise-unit15-state.md",
+  "edges": [
+    {"from":"0x1400c0ca0","to":"Scene+0x1f8","site":"0x1400c0dd3","kind":"state_write","condition":"Scene constructor initializes noise safe-pointer value to null","status":"noise_reference_initialization","evidence_id":"ev_2225ed03a7b5d1e82a2a9e10dc42f713a4cb244683fa1a3dc9ef6ad12171e8bf"},
+    {"from":"0x1400cc730","to":"0x1400e8b60","callsite":"0x1400cca68","kind":"direct_call","condition":"Scene+0x1f8 is null; request solid_noise reference once per null state","status":"noise_reference_lazy_acquisition","evidence_id":"ev_c623a80b69994a5e58e061b7d57c55e53fdeedc7b916ffea2c2c512c32cbb21f"},
+    {"from":"0x1400cc730","to":"0x14004bb00","callsite":"0x1400cca77","kind":"direct_call","condition":"same null-pointer branch; store returned reference into Scene+0x1f8","status":"noise_reference_publication","evidence_id":"ev_de17d30bd6778368769e21c8b755dc1b526f032a855d07aef505c150a47468c3"},
+    {"from":"0x1400cc730","to":"0x1400e8be0","callsite":"0x1400ccb0d","kind":"direct_call","condition":"after lazy noise/environment reference checks, before GetTID; publication/refresh subbranches gated inside helper","status":"scene_texture_frame_publication","evidence_id":"ev_b60ae38fd8608a8332f34a2444cec4dc5789cf98c255c64a53824be2d60c3b38"},
+    {"from":"0x1400cc730","to":"0x1400e8ba0","callsite":"0x1400ccb19","kind":"direct_call","condition":"get TID from Scene+0x1f8; null/reference-null yields zero","status":"noise_texture_id_selection","evidence_id":"ev_3657e2d8a8caa838e048c47228a61ce020e712fafc3d7e909d3455fefe036246"},
+    {"from":"0x1400cc730","to":"0x1400befc0","callsite":"0x1400ccb29","kind":"direct_call","condition":"request unit 15, target enum 4, selected TID before currentscene and ManageSceneBSP; GL state cache remains conditional","status":"noise_unit15_bind_request","evidence_id":"ev_7306965bdfa427bf19ecb33bc669c11082df7cd66337a7ea7cdb2ce45f0e3396"},
+    {"from":"0x1400c1c20","to":"Scene+0x1f8","site":"0x1400c1f62","kind":"state_read","condition":"Scene destructor conditionally unlinks noise safe-pointer observer entry","status":"noise_reference_observer_cleanup","evidence_id":"ev_9e802bd7b0e6aca27fe4d398c3eccb7dfe399651ab19baeeac749b7e2a851c2a"}
+  ]
+}

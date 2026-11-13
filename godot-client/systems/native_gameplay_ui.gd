@@ -368,8 +368,7 @@ func receive(message: Dictionary,epoch: int,transport_connection: Variant=null) 
 		return
 	if message.kind=="tlk-overrides":
 		for row in message.entries:
-			if str(row.text).is_empty(): text.overrides.erase(int(row.strRef))
-			else: text.overrides[int(row.strRef)]=str(row.text)
+			text.set_native_override(int(row.strRef),str(row.text))
 		text.mark_changed()
 		floating_text_data_changed()
 		return

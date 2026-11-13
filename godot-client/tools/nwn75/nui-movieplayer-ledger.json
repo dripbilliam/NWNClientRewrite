@@ -1,0 +1,31 @@
+{
+  "schema": "nwn75-nui-movie-presentation-edges-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original static factory, Nui content, updater and separate direct-movie presentation edges; runtime active state is unproven",
+  "edges": [
+    {"from":"0x140741070","site":"0x1407447a1","to":"0x14095eb90","gate":"JSON type equals movieplayer","evidence_id":"ev_22c002c865997b52b6d2cdaa9b9b1462dd7d9fff367c19b2df563ac41a6bc4b0"},
+    {"from":"0x14095eb90","to":"0x140954b90","gate":"movie widget allocation","evidence_id":"ev_20a94f4af2ffc126094e02b127a26c41a9a48e7b7b10d9df12aaa6b184ada890"},
+    {"from":"0x140954b90","to":"0x140957090","gate":"shared MoviePlayer construction","evidence_id":"ev_c9a8285f881bd0012bb7b645b7f57cde00cd7be719c720bd23f336780a250e8b"},
+    {"from":"0x140957090","to":"0x140231f50","gate":"movie member construction with false direct-quad flag","evidence_id":"ev_cecf9b8a4702f7e6fbee17d5a04dcd691fecfb8967ed225a9056016914040ff1"},
+    {"from":"0x140231f50","to":"0x140232620","gate":"forward direct-quad flag","evidence_id":"ev_ec5c488444bae999ee6f1b2001df396bcf9e0082d8247ca091d8d3f722199965"},
+    {"from":"0x140232620","to":"0x140233100","gate":"resource stream accepted","evidence_id":"ev_522fb6b7d8c057851d54996fb52bb60e2453766e4e507b8f4b5d5e1e0843ef6d"},
+    {"from":"0x140741070","to":"0x14071c1a0","gate":"movie factory result moved to output holder","evidence_id":"ev_ccb13ff0ea4517e7f8eaea1095b99a8c051a52375c0a6bed95d3ed6bbc6ee063"},
+    {"from":"JsonWindow::Initialize","to":"0x14074c0b0","gate":"JSON layout factory output available","evidence_id":"ev_08892ea91c7365964949d8f7c8cdfbfdfaea1318f29de6fc52090111f1379116"},
+    {"from":"0x1406c4b20","to":"0x1406c5350","gate":"live registered and open window under UI enable","evidence_id":"ev_fdd4a2429d1f0bc34d80bd3dadc79ae2cbe7531002b9758ca8a00086277d1cbe"},
+    {"from":"0x1406c44e0","to":"0x140950d90","gate":"JsonWindow content nonnull and installed SingleGroup selected","evidence_id":"ev_daabb01e3b637193b6eafc330825d4cbb65b3affd3c3ac9e9de6028146e8097b","edge_status":"conditional_virtual_descendant"},
+    {"from":"0x140950d90","to":"0x140952960","gate":"SingleGroup virtual +0x38 at table 0x140e6ce58","evidence_id":"ev_de8269f3ed639989898b684cd190ef9a01377fb5a7723f9bd7da039416d779ae"},
+    {"from":"0x140952960","to":"0x140951260","gate":"child layout traversal","evidence_id":"ev_a7ae7bb6485055251853f051bda773edc7156159e38e437018d9f16393db0939"},
+    {"from":"0x140951260","to":"0x14095b1a0","gate":"MoviePlayer child virtual +0x20 and layout/visibility conditions","evidence_id":"ev_fad75cefad3cd5f81b65559a485d8c263e4b4dddc0ad801c7d6dbbc2cf0195da","edge_status":"conditional_virtual_descendant"},
+    {"from":"0x14095b1a0","site":"0x14095b492","to":"0x140232250","gate":"CExoMoviePlayer::IsLoaded","evidence_id":"ev_33c77e978b141241f1dd816751c87f4cb43f214c74dd06825b165408ec7d26af"},
+    {"from":"0x140232250","to":"0x140234210","gate":"unconditional wrapper delegation","evidence_id":"ev_1871ed95ede910a77cf87f5c791e70dc66927ae76da8b47c38278b2836c17bfc"},
+    {"from":"0x140234210","to":"0x1400be9c0","gate":"decoded video frame available","evidence_id":"ev_f8c4b2066951eb65fc05a0a66a5e5adedc4f54fc6fa08fd96f9d3ac62f9f0f2c"},
+    {"from":"0x140234210","to":"0x140233b20","gate":"decoded frame and internal+0 nonzero; false from JSON MoviePlayer constructor","evidence_id":"ev_f8c4b2066951eb65fc05a0a66a5e5adedc4f54fc6fa08fd96f9d3ac62f9f0f2c","edge_status":"disabled_by_constructor_flag"},
+    {"from":"0x14095b1a0","site":"0x14095b50d","to":"0x140a7db90","gate":"movie loaded, image command generated","evidence_id":"ev_33c77e978b141241f1dd816751c87f4cb43f214c74dd06825b165408ec7d26af"},
+    {"from":"0x1400448b0","to":"0x1406abc60","gate":"normal and movie presentation decisions","evidence_id":"ev_3957e705c146df933c995e572aaf92eb3c23c4e0496ad434efca96649e1b9376"},
+    {"from":"0x1406abc60","site":"0x1400450c8","to":"0x1406ac690","gate":"client+0x520 nonnull","evidence_id":"ev_79b23dec8f9c7e52019015b13fa3de89c27706bd266e080c5ee9c0ebd22d3248"},
+    {"from":"0x1406dea40","to":"0x140232200","gate":"client+0x520 nonnull","evidence_id":"ev_e7fff9cdaf49cd4f56604194ef55213c1addbfe7703c8d926c7c55466b106c23"},
+    {"from":"0x1406dea40","to":"0x1406e4c20","gate":"direct movie RenderFrame returned zero","evidence_id":"ev_e7fff9cdaf49cd4f56604194ef55213c1addbfe7703c8d926c7c55466b106c23"},
+    {"from":"0x1406e4c20","to":"CExoMoviePlayer::~CExoMoviePlayer","gate":"completion teardown, clear client+0x520, restore GUI active","evidence_id":"ev_4d9fd001f7a4ab56cdf1d60884fea2870a380b3d2f336878f3903d66ae3944d4"},
+    {"from":"0x1406dea40","to":"0x1407ba050","gate":"zero result and client+0x58c flag and client+0x208 nonnull","evidence_id":"ev_e7fff9cdaf49cd4f56604194ef55213c1addbfe7703c8d926c7c55466b106c23"}
+  ]
+}

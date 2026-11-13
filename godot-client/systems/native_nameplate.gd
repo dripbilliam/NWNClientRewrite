@@ -29,6 +29,15 @@ var shape_dirty:=true
 var displayed_rich: Dictionary={}
 var text_indent:=0.0
 var display_refreshes:=0
+var reuse_presentation:=not OS.get_cmdline_user_args().has("--nameplate-presentation=reference")
+var shape_inputs: Array=[]
+var display_inputs: Array=[]
+var display_reuses:=0
+var shaped_size:=Vector2.ZERO
+var shaped_resource:=""
+var caption_output_position:=Vector2.ZERO
+var caption_output_size:=Vector2.ZERO
+var caption_output_text:=""
 func configure(images=null,typefaces=null,shared_source=null,dialog_font: String=FONT) -> void:
 	art=images;fonts=typefaces;source=shared_source;font_resource=dialog_font;mouse_filter=Control.MOUSE_FILTER_IGNORE;focus_mode=Control.FOCUS_NONE
 	placeholder=Panel.new(); add_child(placeholder); placeholder.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -50,13 +59,14 @@ func make_text() -> RichTextLabel:
 func set_content(value: Dictionary) -> void:
 	if closed: return
 	data=value;shape_dirty=true;layout_ready=false
-	caption.clear()
 	if not bool(value.get("available",false)):
+		caption.clear();display_inputs.clear()
 		hide()
 		if not portrait_frame.plan.is_empty(): portrait_frame.configure(portrait_frame.plan,art,"")
 		return
 	portrait_key=str(value.portrait)
 	portrait_frame.visible=presentation_mode==2 and bool(value.creature) and not portrait_key.is_empty()
+	if is_instance_valid(fonts) and str(caption.get_meta("native_font_applied",""))!=font_resource:caption.clear();display_inputs.clear()
 	relayout()
 func set_popup_preferences(mode: int,font: String)->void:
 	popup_bound=true;presentation_mode=mode
@@ -66,7 +76,7 @@ func set_popup_preferences(mode: int,font: String)->void:
 func apply_popup_state(record: Dictionary,mode_changed: bool,font_changed: bool)->void:
 	if closed:return
 	popup_bound=true;presentation_mode=int(record.mode);presentation_active=record.sceneActive and not record.hidden
-	if not record.get("currentRawKnown",true):layout_ready=false;data={};displayed_rich={};caption.clear();hide();return
+	if not record.get("currentRawKnown",true):layout_ready=false;data={};displayed_rich={};shape_inputs.clear();display_inputs.clear();caption.clear();hide();return
 	if mode_changed or data.get("caption",{})!=record.currentRich:
 		data=data.duplicate(true);data.merge({"available":true,"caption":record.currentRich,"name":record.currentRich,"color":Color.WHITE,"caption_color":Color.WHITE,"portrait":str(record.portrait),"creature":not str(record.portrait).is_empty()},true);portrait_key=str(record.portrait);shape_dirty=true;layout_ready=false
 	if font_changed or font_resource!=str(record.font):set_popup_preferences(int(record.mode),str(record.font))
@@ -82,17 +92,31 @@ func relayout() -> void:
 	var font:=caption.get_theme_font("normal_font"); var font_size:=caption.get_theme_font_size("normal_font_size")
 	if shape_dirty:
 		text_indent=(23.0 if popup_bound else 24.0) if presentation_mode==2 and portrait_frame.visible else 0.0
-		var rich: Dictionary=data.get("caption",data.get("name",{}));var content:=Fitting.plain(rich);var metrics:=Fitting.font_metrics(font,font_size,content)
-		var fitted:=Fitting.choose(content,metrics,font.get_height(font_size),2,text_indent);var choice: Array=fitted.bubble
-		displayed_rich=Fitting.display(rich,fitted.layout,float(fitted.width),metrics)
-		bubble_resource=str(choice[2]);size=Vector2(float(choice[0]),float(choice[1]));backdrop.size=size;placeholder.size=size;shape_dirty=false;layouts+=1
-	caption.clear();caption.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER);Text.append(caption,displayed_rich,data.get("caption_color",data.get("color",Color.WHITE)));caption.pop()
+		var rich: Dictionary=data.get("caption",data.get("name",{}))
+		var next_shape: Array=[rich,font,font_size,text_indent]
+		if not reuse_presentation or shape_inputs!=next_shape:
+			var content:=Fitting.plain(rich);var metrics:=Fitting.font_metrics(font,font_size,content)
+			var fitted:=Fitting.choose(content,metrics,font.get_height(font_size),2,text_indent);var choice: Array=fitted.bubble
+			displayed_rich=Fitting.display(rich,fitted.layout,float(fitted.width),metrics)
+			bubble_resource=str(choice[2]);size=Vector2(float(choice[0]),float(choice[1]));backdrop.size=size;placeholder.size=size;layouts+=1
+			shaped_size=size;shaped_resource=bubble_resource
+			shape_inputs=next_shape.duplicate(true)
+		elif size!=shaped_size or bubble_resource!=shaped_resource or backdrop.size!=shaped_size or placeholder.size!=shaped_size:
+			size=shaped_size;bubble_resource=shaped_resource;backdrop.size=size;placeholder.size=size
+		shape_dirty=false
 	var width:=size.x-text_indent
-	var content_size:=text_extent(caption,displayed_rich.get("text",""),width)
-	var shown_height:=minf(size.y,ceilf(content_size.y))
 	var origin:=Vector2(23,0) if portrait_frame.visible else Vector2.ZERO
 	if portrait_frame.visible and is_instance_valid(source) and source.plans.has("but_popup_prtrt"): origin=source.plans.but_popup_prtrt.hooks.get("textindent",origin)
+	var color: Color=caption.get_meta("native_text_color",data.get("caption_color",data.get("color",Color.WHITE)))
+	var next_display: Array=[displayed_rich,color,font,font_size,size,text_indent,origin]
+	if reuse_presentation and not display_inputs.is_empty() and display_inputs==next_display and caption.position==caption_output_position and caption.size==caption_output_size and caption.get_parsed_text()==caption_output_text:
+		layout_ready=true;display_reuses+=1;refresh_source();return
+	caption.clear();caption.push_paragraph(HORIZONTAL_ALIGNMENT_CENTER);Text.append(caption,displayed_rich,color);caption.pop()
+	var content_size:=text_extent(caption,displayed_rich.get("text",""),width)
+	var shown_height:=minf(size.y,ceilf(content_size.y))
 	caption.position=origin+Vector2(0,(size.y-shown_height)*0.5);caption.size=Vector2(width,shown_height);layout_ready=true;display_refreshes+=1
+	caption_output_position=caption.position;caption_output_size=caption.size;caption_output_text=caption.get_parsed_text()
+	display_inputs=next_display.duplicate(true)
 	refresh_source()
 func refresh_source() -> void:
 	if closed or not is_instance_valid(source) or source.closed: return
@@ -114,7 +138,9 @@ func source_loaded(name: String) -> void:
 	if name=="but_popup_prtrt": relayout()
 	elif name==bubble_resource: refresh_source()
 func font_loaded(name: String) -> void:
-	if not closed and name==font_resource:relayout()
+	# Native SetFont recalculates display data without choosing a new bubble or
+	# rewriting wrapped lines. A later SetText still keys shaping by the new font.
+	if not closed and name==font_resource:shape_inputs.clear();display_inputs.clear();relayout()
 func place(anchor: Vector2,viewport: Rect2,native_projection: bool=false) -> void:
 	if native_projection:
 		# Native766ea0 ->6e9820 has no viewport/behind/footprint clamp. Round
@@ -134,6 +160,7 @@ func place(anchor: Vector2,viewport: Rect2,native_projection: bool=false) -> voi
 func close() -> void:
 	if closed: return
 	closed=true; hide(); data.clear()
+	shape_inputs.clear();display_inputs.clear()
 	if backdrop.textures_changed.is_connected(update_placeholder): backdrop.textures_changed.disconnect(update_placeholder)
 	backdrop.close(); portrait_frame.close()
 	if is_instance_valid(source) and source.loaded.is_connected(source_loaded): source.loaded.disconnect(source_loaded)

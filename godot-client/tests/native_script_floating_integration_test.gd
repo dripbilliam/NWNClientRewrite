@@ -12,9 +12,10 @@ class TrackingText extends "res://systems/native_data/talk_text.gd":
 	var native_fetches: Array=[]
 	func fetch_native_reference(ref: Variant,gender: Variant=0) -> Dictionary:
 		native_fetches.append({"ref":ref,"gender":gender});return super.fetch_native_reference(ref,gender)
-	func parse_native(value: String,options: Dictionary={}) -> Dictionary:
+	func parse_native_bytes(raw_bytes: PackedByteArray,options: Dictionary={}) -> Dictionary:
+		var value: String=preload("res://systems/native_data/native_text_encoding.gd").decode(raw_bytes,int(options.get("language",base.language)),true).get("text","")
 		resolves.append({"id":null,"value":{"text":value},"options":options.duplicate(true)})
-		return super.parse_native(value,options)
+		return super.parse_native_bytes(raw_bytes,options)
 	func resolve(value: Variant,id: int,options: Dictionary={})->String:
 		resolves.append({"id":id,"value":value.duplicate(true) if value is Dictionary else value,"options":options.duplicate(true)})
 		return super.resolve(value,id,options)

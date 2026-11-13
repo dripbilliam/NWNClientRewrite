@@ -93,6 +93,11 @@ func run() -> void:
 	var at:=Vector3(5,5,0);var result: Dictionary=binding.query(at,11.0)
 	check(result.available and result.position.z==11.0,"authored ordinary bridge surface hits with material30")
 	check(result.normal==Vector3.ZERO,"ordinary polygon branch returns native zero normal instead of plane normal")
+	var first_cache: Dictionary=binding.snapshot().part_trace
+	result=binding.query(at,11.0)
+	var repeated_cache: Dictionary=binding.snapshot().part_trace
+	check(result.available and result.position.z==11.0 and result.normal==Vector3.ZERO,"same-pose support query remains identical")
+	check(int(repeated_cache.inverse_builds)==int(first_cache.inverse_builds) and int(repeated_cache.inverse_reuses)>int(first_cache.inverse_reuses),"same Part pose reuses its inverse")
 	check(world.surface.calls==0,"scene support never queries standalone WOK/navigation floor")
 	for fade in [2,4]:
 		var excluded:=facts();excluded.native_tilefade=fade;bridge.pick_surfaces[0].set_meta("native_mesh_source",excluded);stamp.revision+=1
@@ -105,10 +110,22 @@ func run() -> void:
 	check(result.available and floor_reference!=null and result.position.z==floor_reference[2],"authored bounds reject a vertex-face hit outside original box")
 	bridge.pick_surfaces[0].set_meta("native_mesh_source",facts());stamp.revision+=1
 	bridge.position=Vector3(10,11,0);bridge.rotation.y=PI/2;world.terrain.collision_index.put(bridge);stamp.revision+=1
+	var before_repose: int=int(binding.snapshot().part_trace.inverse_builds)
 	result=binding.query(at,11.0)
 	check(result.available and result.position.z==11.0 and result.normal==Vector3.ZERO,"current Part transform applies authored local box and preserves zero normal")
+	check(int(binding.snapshot().part_trace.inverse_builds)>before_repose,"changed parent pose rebuilds Part inverse")
+	bridge.pick_surfaces[0].position.y=0.5;stamp.revision+=1
+	var before_part_repose: int=int(binding.snapshot().part_trace.inverse_builds)
+	result=binding.query(at,11.0)
+	check(result.available and absf(result.position.z-11.5)<0.01,"changed Part-local pose is reflected in support hit")
+	check(int(binding.snapshot().part_trace.inverse_builds)>before_part_repose,"changed Part-local pose rebuilds inverse")
+	bridge.pick_surfaces[0].position.y=0.0;stamp.revision+=1
+	result=binding.query(at,11.0)
+	check(result.available and result.position.z==11.0,"restored Part pose restores support hit")
 	bridge.pick_surfaces[0].set_meta("native_mesh_source",{"node_is_aabb":false});stamp.revision+=1
 	check(not binding.query(at,11.0).available,"missing bounds explicit unavailable rather than vertex-box fallback")
+	bridge.pick_surfaces[0].set_meta("native_mesh_source",facts());bridge.pick_surfaces[0].free();stamp.revision+=1
+	check(not binding.query(at,11.0).available,"retired Part cannot reuse an old inverse or hit")
 	var snapshot:=binding.snapshot()
 	check(snapshot.part_trace.authored_box_queries>0 and snapshot.part_trace.authored_box_misses>0 and snapshot.part_trace.authored_box_unavailable>0,"actual authored box work and unsupported inputs counted")
 	var native_index: bool=world.terrain.collision_index.native_ready()

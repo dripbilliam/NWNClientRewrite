@@ -67,7 +67,7 @@ func sync() -> void:
 	var ready: bool=controller.can_select(); var legacy_ready: bool=is_instance_valid(controller.native_chooser) and controller.native_chooser.layout_ready
 	var capabilities:={"select":ready,"play":ready and controller.native_selection.is_empty(),"back":state.get("connected",false) and not state.get("busy",false),"create":state.get("canCreate",false),"delete":controller.delete_reason().is_empty(),"customize":false,"details":ready and key!="","server-info":state.get("canLobbyPages",false),"players":state.get("canLobbyPages",false),"roster":true}
 	var endpoint: Variant=state.get("endpoint"); var server_name: String="%s:%s"%[endpoint.host,int(endpoint.port)] if endpoint is Dictionary else "Multiplayer"
-	var feedback:=str(state.get("error",""))
+	var feedback: String=controller.failure_text(text)
 	if feedback.is_empty(): feedback=controller.local_notice
 	if not controller.delete_lease.is_empty(): feedback="Refreshing local characters…" if controller.delete_lease.get("refreshing",false) else "Confirm whether to delete the selected local character."
 	if feedback.is_empty(): feedback="Preparing character data…" if not ready else "Choose a character to enter the world"

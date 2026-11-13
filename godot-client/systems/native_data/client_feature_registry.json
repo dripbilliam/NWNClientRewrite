@@ -46,6 +46,71 @@
       "forwarder": "performance"
     },
     {
+      "name": "drive-height-plan",
+      "target": "native",
+      "default": "off",
+      "choices": [
+        "off",
+        "worker"
+      ],
+      "owner": "systems/native_render/drive_collision_indexed.gd",
+      "description": "Build the original WOK face-order height lookup on a worker after the terrain is ready. Explicit selection only; the accepted path stays off.",
+      "status": "selectable",
+      "powershell": "DriveHeightPlan",
+      "forwarder": "performance"
+    },
+    {
+      "name": "drive-preview-height-index",
+      "target": "native",
+      "default": "off",
+      "choices": [
+        "off",
+        "on"
+      ],
+      "requires": {
+        "drive-collision": "indexed",
+        "drive-height-plan": "off"
+      },
+      "owner": "systems/native_render/drive_collision_indexed.gd",
+      "description": "Opt into the original-WOK high-face movement-preview height index. Low-face tiles and normal gameplay retain the accepted direct route.",
+      "status": "selectable",
+      "powershell": "DrivePreviewHeightIndex",
+      "forwarder": "performance"
+    },
+    {
+      "name": "drive-preview-worker",
+      "target": "native",
+      "default": "off",
+      "choices": [
+        "off",
+        "on"
+      ],
+      "requires": {
+        "drive-collision": "indexed"
+      },
+      "owner": "systems/native_render/live_world.gd",
+      "description": "Run blocked movement preview search on a sealed collision snapshot in one bounded worker. The synchronous route remains the default until normal-client acceptance.",
+      "status": "selectable",
+      "forwarder": "performance"
+    },
+    {
+      "name": "drive-preview-surface-cache",
+      "target": "native",
+      "default": "off",
+      "choices": [
+        "off",
+        "on"
+      ],
+      "requires": {
+        "drive-collision": "indexed",
+        "drive-preview-worker": "on"
+      },
+      "owner": "systems/native_render/drive_collision_indexed.gd",
+      "description": "Reuse detached tile, mesh and table data for the optional blocked movement preview worker. Off preserves the uncached packet path.",
+      "status": "selectable",
+      "forwarder": "performance"
+    },
+    {
       "name": "light-input-registry",
       "target": "native",
       "default": "script",
@@ -75,6 +140,60 @@
       "forwarder": "performance"
     },
     {
+      "name": "world-snapshot-verified-packet",
+      "target": "native",
+      "default": "on",
+      "choices": [
+        "on",
+        "off"
+      ],
+      "owner": "systems/native_render/live_world.gd",
+      "description": "Use worker-verified snapshot metadata packets, or explicitly restore complete main-thread validation. Only relevant when snapshot workers are selected.",
+      "status": "selectable",
+      "powershell": "WorldSnapshotVerifiedPacket",
+      "forwarder": "performance"
+    },
+    {
+      "name": "entry-commit",
+      "target": "native",
+      "default": "staged",
+      "choices": [
+        "staged",
+        "sync"
+      ],
+      "owner": "native_session_world.gd",
+      "description": "Use bounded new-area world commitment, or explicitly select the original synchronous commit for matched validation and rollback.",
+      "status": "selectable",
+      "forwarder": "performance"
+    },
+    {
+      "name": "entry-commit-budget",
+      "target": "native",
+      "default": "4ms",
+      "choices": [
+        "4ms",
+        "6ms",
+        "8ms"
+      ],
+      "owner": "native_session_world.gd",
+      "description": "Bound each staged new-area commit frame to 4, 6, or 8 milliseconds. The 4 ms accepted setting remains the default; larger slices are private loading-latency experiments.",
+      "status": "selectable",
+      "forwarder": "performance"
+    },
+    {
+      "name": "binary-clips",
+      "target": "native",
+      "default": "off",
+      "choices": [
+        "off",
+        "parallel"
+      ],
+      "owner": "systems/native_data/actor_model.gd",
+      "description": "Use the bounded parallel parser for eligible original binary MDL clips. The ordinary path remains off until original-entry acceptance.",
+      "status": "selectable",
+      "forwarder": "performance"
+    },
+    {
       "name": "detailed-profiling",
       "target": "host",
       "default": "saved",
@@ -95,7 +214,10 @@
       "default": "ordinary",
       "choices": [
         "ordinary",
+        "packed",
         "streamed",
+        "static-merged",
+        "base-merged",
         "merged"
       ],
       "owner": "tools/native-loading-pipeline.cjs",
@@ -346,6 +468,19 @@
       "status": "selectable",
       "powershell": "SharedParticles",
       "forwarder": "render"
+    },
+    {
+      "name": "particle-animation-snapshot",
+      "target": "native",
+      "default": "off",
+      "choices": [
+        "off",
+        "on"
+      ],
+      "owner": "systems/native_render/particle_stream_group.gd",
+      "description": "Opt-in frame-local particle animation input snapshot for the shared native presentation route.",
+      "status": "selectable",
+      "forwarder": "performance"
     },
     {
       "name": "particle-lighting",

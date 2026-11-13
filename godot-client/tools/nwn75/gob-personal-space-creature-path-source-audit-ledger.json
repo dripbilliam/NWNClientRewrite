@@ -1,0 +1,15 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Two Scene/Gob disconnected sources: personal-space flag virtual/export roots and creature path-array cleanup direct call through deleting-destructor virtual root",
+  "document": "gob-personal-space-creature-path-source-audit.md",
+  "edges": [
+    {"from":"0x140d81680","to":"0x14004a980","kind":"stringgob_vtable_slot","condition":"StringGob Gob-side table 0x140d81440 +0x240; qword 80a9044001000000; virtual caller unresolved","status":"personal_space_stringgob_virtual_root","evidence_id":"ev_9125df4303a3e52a395518074ac9f8a38b2a9d40a9a4d8941422f58a0500eb72"},
+    {"from":"0x140d83158","to":"0x14004a980","kind":"camera_gob_vtable_slot","condition":"Camera Gob-subobject table 0x140d82f18 +0x240; qword 80a9044001000000; virtual caller unresolved","status":"personal_space_camera_virtual_root","evidence_id":"ev_e01dfcc3b3ac0870704e14581c299ead4ae280adcdf4ac59483d7baf2a712f30"},
+    {"from":"0x140d88c40","to":"0x14004a980","kind":"gob_vtable_slot","condition":"Gob primary table 0x140d88a00 +0x240; qword 80a9044001000000; virtual caller unresolved","status":"personal_space_gob_virtual_root","evidence_id":"ev_686e9233477980c8fd3abe9ca0d3d1daf786ee40f1f7e5935cacde9a90df85d0"},
+    {"from":"0x1410de660","to":"0x14004a980","kind":"pe_export_address_table","condition":"ordinal 13287, nonforwarded Gob::SetRenderPersonalSpace export; RVA 80a90400, not a callsite","status":"personal_space_external_root","evidence_id":"ev_d7d19913f708398cb9c606b72153800d85f096e6065d9244dd114f5a77f9a088"},
+    {"from":"0x140e474e8","to":"0x1407fbcd0","kind":"creature_vtable_deleting_destructor","condition":"constructor-backed CNWCCreature slot zero; qword d0bc7f4001000000; virtual deletion caller unresolved","status":"creature_deleting_destructor_root","evidence_id":"ev_9ef77b862dde5f68d0e26be4d55549ececa2763663627eba6c59f9fdfcec2729"},
+    {"from":"0x1407fbcd0","to":"0x1407fb8c0","callsite":"0x1407fbcdf","kind":"direct_call","condition":"deleting destructor calls cleanup body before conditional object free; E8 dc fb ff ff","status":"creature_path_owner_cleanup_connector","evidence_id":"ev_11973825561b5ca4a592002cb56526a7e9c88be7ad9eb65a268adf834f29a374"},
+    {"from":"0x141624864","to":"0x1407fb8c0","kind":"pe_pdata_function_range","condition":"begin/end/unwind RVA c0b87f00 8abc7f00 58b60301; metadata, not a caller","status":"creature_destructor_pdata_not_caller","evidence_id":"ev_e79e045676bc0829b1ecfb072c4d70e7d46b9bbf8c5da792e2bc6aa86125bdc9"}
+  ]
+}

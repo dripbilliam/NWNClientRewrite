@@ -1,0 +1,10 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Connected per-admitted-beam shader vector and float state producers to existing GLRender generation/consumer path",
+  "document": "scene-beam-shader-params.md",
+  "edges": [
+    {"from":"0x1400cceb0","to":"0x1400bf280","callsite":"0x1400cd10e","kind":"direct_call","condition":"enablebeams; first eligible distant light; cached shader available; bucket 0xf item resolves to PartBeam with nonnull VDO; vector parameter 0","status":"beam_projection_source_stage","evidence_id":"ev_618d6a0be28ed47cd5e54b2c92cdd3ed48d99e4b8714588534549555b62afa5f"},
+    {"from":"0x1400cceb0","to":"0x1400bf260","callsite":"0x1400cd11b","kind":"direct_call","condition":"same admitted beam item; float parameter 1 equals -20","status":"beam_projection_z_clip_stage","evidence_id":"ev_7b96661f72c698ce7b3d89981fdd40fd305ea742fd277001dabaf70c5b603529"}
+  ]
+}

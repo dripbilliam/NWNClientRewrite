@@ -103,11 +103,14 @@ func build() -> void:
 				if tag in ["locallabel","serverlabel","passwordlabel"]: label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 				label.tooltip_text=label.text
 			var side: Dictionary={}
-			for tag in ["gametypelist","filterlist"]:
-				side[tag]=side_list(stage,plan.entries[tag]); buttons["@"+tag]=side[tag].body
-			var names: Array=[]
-			for type in game_types: names.append(text_owner.raw({"strRef":type.ref}))
-			buttons["@gametypelist"].text="\n".join(names); side.gametypelist.scroll.tooltip_text="Game-type filtering is not migrated yet."
+			side.filterlist=side_list(stage,plan.entries.filterlist); buttons["@filterlist"]=side.filterlist.body
+			var types:=ItemList.new(); stage.add_child(types); types.position=plan.entries.gametypelist.rect.position; types.size=plan.entries.gametypelist.rect.size
+			types.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
+			frame.font_style(types,plan.entries.gametypelist.caption); types.add_theme_constant_override("v_separation",0); types.add_theme_constant_override("h_separation",0)
+			types.add_item(text_owner.raw({"strRef":67445}))
+			for type in game_types: types.add_item(text_owner.raw({"strRef":type.ref}))
+			types.item_selected.connect(func(index):select_game_type(index,scope.duplicate(),revision)); buttons["@gametypelist"]=types
+			types.tooltip_text=type_table_failure
 			pages[tab]={"stage":stage,"buttons":buttons,"guards":guards,"scroll":scroll,"body":body,"bar":bar,"side":side,"rows":[],"highlights":highlights,"revision":-1}
 		else: pages[tab]={"stage":stage,"buttons":buttons,"guards":guards,"scroll":scroll,"body":body,"bar":bar,"side":{},"rows":[],"highlights":highlights,"revision":-1}
 	# Replacement-only paging/status uses the original font and native button
@@ -135,6 +138,9 @@ func place() -> void:
 	if layout_ready: position=((get_viewport_rect().size-size)*0.5).max(Vector2.ZERO)
 func emit_action(operation: String,fields: Dictionary={}) -> void:
 	if not closed and visible and layout_ready: action_requested.emit(operation,fields,scope.duplicate())
+func select_game_type(index: int,capture: Array,version: int) -> void:
+	if closed or not visible or not layout_ready or capture!=scope or version!=revision or state.get("busy",false) or active_tab!="Internet" or index<0 or index>game_types.size(): return
+	emit_action("game-type",{"gameType":null if index==0 else index-1})
 func _gui_input(event: InputEvent) -> void:
 	#1e9790: all four cursor keys move one row; boundaries do not wrap.
 	# Keyboard ownership begins with a list click, not merely opening a page.
@@ -218,6 +224,11 @@ func set_view(value: Dictionary) -> void:
 		if tag in Plan.SORTS: button.set_pressed_no_signal(Plan.SORTS.find(tag)==int(state.get("sourceSort",{}).get("header",2)))
 	for guard in page.guards: guard.visible=state.get("busy",false)
 	if active_tab=="Internet":
+		var types: ItemList=page.buttons["@gametypelist"]; var selected_type: Variant=state.get("gameType")
+		types.mouse_filter=Control.MOUSE_FILTER_IGNORE if state.get("busy",false) else Control.MOUSE_FILTER_STOP; types.focus_mode=Control.FOCUS_NONE if state.get("busy",false) else Control.FOCUS_ALL
+		types.deselect_all()
+		var selected_index:=0 if selected_type==null else int(selected_type)+1
+		if selected_index>=0 and selected_index<types.item_count: types.select(selected_index)
 		for pair in [["hidelocal","local"],["hideserver","server"],["hidepasswords","password"]]: page.buttons[pair[0]].set_pressed_no_signal(not state.get("filters",{}).get(pair[1],true))
 		var lines: Array=[]
 		for pair in [["password",0x10ba5],["server",0x10ba4],["local",0x10ba3]]:
@@ -296,5 +307,5 @@ func close() -> void:
 		for side in page.side.values(): side.bar.close()
 	jobs.clear(); models.clear(); frame=null; text_owner=null
 func snapshot() -> Dictionary:
-	return {"ready":layout_ready,"failure":failure,"visible":visible,"tab":active_tab,"source_pages":pages.keys(),"game_types":game_types.size(),"type_table_failure":type_table_failure,"jobs":jobs.size(),"row_nodes_created":row_nodes_created,"row_updates":row_updates,"view_updates":view_updates,"duplicate_views_skipped":duplicate_views_skipped,"presentation_usec":presentation_usec,"native_only":true,"full_browser_parity":false,"unported":["game-type filtering","complete original details/password/connection panels","original PvP and local NWSync status text","double-click/keyboard/role/scale/audio comparison"]}
+	return {"ready":layout_ready,"failure":failure,"visible":visible,"tab":active_tab,"source_pages":pages.keys(),"game_types":game_types.size(),"type_table_failure":type_table_failure,"jobs":jobs.size(),"row_nodes_created":row_nodes_created,"row_updates":row_updates,"view_updates":view_updates,"duplicate_views_skipped":duplicate_views_skipped,"presentation_usec":presentation_usec,"native_only":true,"full_browser_parity":false,"game_type_filtering":true,"unported":["platform-authenticated buddy list","original-client pixel/audio comparison"]}
 func _exit_tree() -> void: close()

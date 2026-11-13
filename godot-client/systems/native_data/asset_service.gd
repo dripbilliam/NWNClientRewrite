@@ -1,7 +1,8 @@
 extends Node
 const Timing=preload("res://systems/native_render/frame_profile.gd")
-# Native worker jobs own only data/FileAccess/RefCounted parsers. SceneTree,
-# ArrayMesh/texture publication and consumers stay on the main thread.
+# Native worker jobs ordinarily own only data/FileAccess/RefCounted parsers.
+# The private worker-texture option creates immutable ImageTexture resources
+# through Forward+; scene consumers and cache ownership stay on the main thread.
 signal completed(request_id: int, result: Dictionary)
 const Gff = preload("res://systems/native_data/gff_document.gd")
 const Table = preload("res://systems/native_data/two_da.gd")
@@ -9,6 +10,7 @@ const Binary = preload("res://systems/native_data/binary_data.gd")
 const Model = preload("res://systems/native_data/binary_model.gd")
 const AsciiModel = preload("res://systems/native_data/ascii_model.gd")
 const Raster = preload("res://systems/native_data/texture_data.gd")
+const RasterUpload=preload("res://systems/native_data/raster_upload_preparation.gd")
 const Cache = preload("res://systems/native_data/prepared_cache.gd")
 const Palette = preload("res://systems/native_data/palette_texture.gd")
 const GuiPalette=preload("res://systems/native_data/gui_palette_texture.gd")
@@ -44,6 +46,8 @@ var high_priority:=false
 var ancestor_preparation_enabled:=Ancestors.configured_enabled() # --ancestor-preparation=false retains the measured reference.
 var mesh_preparation_enabled:=MeshPreparation.configured_enabled() # Immutable after requests start.
 var shared_animation_preparation_enabled:=SharedAnimation.configured_enabled()
+var raster_upload_preparation_enabled:=RasterUpload.configured_enabled()
+var worker_texture_creation_enabled:=RasterUpload.configured_worker_texture_creation()
 var failure := ""
 var closed := false
 var cache_directory := ""
@@ -51,8 +55,35 @@ var pending: Array = []
 var running: Dictionary = {}
 var results: Dictionary = {}
 var mutex := Mutex.new()
+var completion_budget_us:=1500
+var maximum_completions_per_pass:=8
+var completion_pool
+var _consuming_completions:=false
+var completion_stats:={"passes":0,"delivered":0,"stale":0,"deferred":0,"reentrant":0,"max_pass_us":0,"max_callback_us":0}
+var completion_diagnose:=OS.get_cmdline_user_args().has("--publication-completion-diagnose")
+var completion_diagnostic_requests: Dictionary={}
+var completion_diagnostic_peaks: Array=[]
+var completion_diagnostic_reported_max_us:=0
+var completion_diagnostic_logged:=0
+var worker_capacity_stats:={"dispatches":0,"completed_slot_reuses":0,"maximum_reserved_active":0,"maximum_inflight":0,"backlog_bound_blocks":0}
+func _init() -> void: set_process(false)
+func _ready() -> void:
+	_bind_completion_pool()
+	_refresh_processing()
+func _bind_completion_pool() -> void:
+	# A world supplies its existing pool through the scene service boundary.
+	# Standalone data/UI services retain their own bounded completion drain.
+	var ancestor:=get_parent()
+	while ancestor!=null and completion_pool==null:
+		if ancestor.has_meta("native_publication_pool"):completion_pool=ancestor.get_meta("native_publication_pool")
+		ancestor=ancestor.get_parent()
+func _refresh_processing() -> void:
+	# The process-owned draw-cache driver maintains its leases independently.
+	# Only this service's queued/running jobs need per-frame completion polling.
+	set_process(not closed and (not pending.is_empty() or not running.is_empty()))
 func configure(source) -> void:
 	retire_scope(); catalog = source; closed = false
+	_bind_completion_pool()
 	if CacheWrites.configured_enabled() and not prepared_write_lease: CacheWrites.acquire(); prepared_write_lease=true
 	if NativeDrawCache.enabled() and not native_draw_cache_lease:NativeDrawCache.acquire();native_draw_cache_lease=true
 func request(name: String, type: int, decoder: String = "bytes", options: Dictionary = {}) -> int:
@@ -62,15 +93,30 @@ func request(name: String, type: int, decoder: String = "bytes", options: Dictio
 	if pending.size() + running.size() >= maximum_pending: failure = "Native asset queue is full"; return -1
 	Prework.remember_request(catalog,name,type,decoder,options)
 	serial += 1
+	if completion_diagnose:completion_diagnostic_requests[serial]={"name":name.get_file().substr(0,96),"type":type,"decoder":decoder,"epoch":epoch}
 	var store=catalog.preparation_cache() if catalog.has_method("preparation_cache") else null
-	pending.append({"id": serial, "name": name, "type": type, "decoder": decoder, "epoch": epoch, "catalog": catalog.fork(), "cache_directory": cache_directory, "options":options.duplicate(true),"memory_store":store,"decoder_store":decoded_store(catalog),"memory_epoch":store.generation() if store!=null else -1,"requested_us":Time.get_ticks_usec(),"prework_write":prework_write,"prework_read":prework_read,"status_only":status_only,"prework_ticket":Prework.current_generation(cache_directory)})
+	var pool_ready: bool=(raster_upload_preparation_enabled or worker_texture_creation_enabled) and OS.get_thread_caller_id()==OS.get_main_thread_id() and completion_pool is Object and is_instance_valid(completion_pool) and completion_pool.has_method("raster_upload_preparation_active") and completion_pool.raster_upload_preparation_active()
+	pending.append({"id": serial, "name": name, "type": type, "decoder": decoder, "epoch": epoch, "catalog": catalog.fork(), "cache_directory": cache_directory, "options":options.duplicate(true),"memory_store":store,"decoder_store":decoded_store(catalog),"memory_epoch":store.generation() if store!=null else -1,"requested_us":Time.get_ticks_usec(),"raster_upload_preparation":raster_upload_preparation_enabled and pool_ready,"worker_texture_creation":worker_texture_creation_enabled and pool_ready,"prework_write":prework_write,"prework_read":prework_read,"status_only":status_only,"prework_ticket":Prework.current_generation(cache_directory)})
 	pump()
 	return serial
 func pump() -> void:
-	while not closed and not pending.is_empty() and running.size() < maximum_workers:
+	if closed or pending.is_empty():_refresh_processing();return
+	# Completed workers retain their original task/result ownership until the
+	# budgeted callback drain joins them. They need not leave CPU workers idle.
+	# Retain at most one extra completed wave; max_pending still bounds ALL
+	# queued/in-flight requests. A reduced limit never dispatches above either
+	# new bound, while already-running tasks finish under their existing lease.
+	var worker_limit:=maxi(0,maximum_workers);var active:=0
+	for task in running.values():
+		if not WorkerThreadPool.is_task_completed(int(task)):active+=1
+	while not closed and not pending.is_empty() and active<worker_limit and running.size()<worker_limit*2:
 		var job: Dictionary = pending.pop_front()
 		job.dispatched_us=Time.get_ticks_usec()
+		if running.size()>=worker_limit:worker_capacity_stats.completed_slot_reuses+=1
 		running[job.id] = WorkerThreadPool.add_task(_work.bind(job), high_priority, "Native NWN asset " + str(job.id))
+		active+=1;worker_capacity_stats.dispatches+=1;worker_capacity_stats.maximum_reserved_active=maxi(int(worker_capacity_stats.maximum_reserved_active),active);worker_capacity_stats.maximum_inflight=maxi(int(worker_capacity_stats.maximum_inflight),running.size())
+	if not pending.is_empty() and active<worker_limit and running.size()>=worker_limit*2:worker_capacity_stats.backlog_bound_blocks+=1
+	_refresh_processing()
 func prioritize(request_ids: Array) -> void:
 	# Reorder only queued work; an executing private-data job is never aborted.
 	var ranks: Dictionary={}
@@ -81,16 +127,18 @@ func _work(job: Dictionary) -> void:
 	var reader = job.catalog
 	var bytes: PackedByteArray = reader.get_resource(job.name, job.type)
 	var result := {"id": job.id, "epoch": job.epoch, "resource_name":str(job.name),"resource_error":reader.failure,"error": reader.failure, "thread": OS.get_thread_caller_id(), "bytes": bytes, "read_ms":(Time.get_ticks_usec()-began)/1000.0}
+	var digest_began:=Time.get_ticks_usec();var source_sha:=Cache.digest(bytes) if reader.failure.is_empty() else ""
+	var source_digest_ms:=(Time.get_ticks_usec()-digest_began)/1000.0
 	result.requested_ms=int(job.requested_us)/1000.0; result.started_ms=began/1000.0
 	var memory_key:=""
-	var phases:={"service_queue_ms":(int(job.dispatched_us)-int(job.requested_us))/1000.0,"worker_queue_ms":(began-int(job.dispatched_us))/1000.0,"memory_lookup_ms":0.0,"model_ms":0.0,"rig_ms":0.0,"textures_ms":0.0,"memory_save_ms":0.0}
+	var phases:={"service_queue_ms":(int(job.dispatched_us)-int(job.requested_us))/1000.0,"worker_queue_ms":(began-int(job.dispatched_us))/1000.0,"source_digest_ms":source_digest_ms,"memory_lookup_ms":0.0,"model_ms":0.0,"rig_ms":0.0,"textures_ms":0.0,"memory_save_ms":0.0}
 	var phase_began:=Time.get_ticks_usec()
 	var prework:=Prework.new(); var prework_key:=""; var icon_key:=""
 	var eligible: bool=reader.failure.is_empty() and job.decoder in ["actor-model","static-model","gui-icon-v1"] and not str(job.cache_directory).is_empty()
 	if eligible and prework.configure(str(job.cache_directory)):
 		var preparation_policy: Array=[mesh_preparation_enabled,skin_preparation_enabled,mesh_revision()]
 		if shared_animation_preparation_enabled: preparation_policy.append(SharedAnimation.REVISION)
-		prework_key=Prework.request_key(str(job.name),int(job.type),str(job.decoder),job.options,Cache.digest(bytes),preparation_policy)
+		prework_key=Prework.request_key(str(job.name),int(job.type),str(job.decoder),job.options,source_sha,preparation_policy)
 		if job.options.has("icon_descriptor"): icon_key=Cache.key(prework_key,"finished-icon-v1:"+Cache.digest(var_to_bytes(job.options.icon_descriptor)))
 		if job.prework_read:
 			var saved: Dictionary=prework.load_entry(icon_key,reader,true) if not icon_key.is_empty() else {}
@@ -101,12 +149,12 @@ func _work(job: Dictionary) -> void:
 	# palette images and optional emitters. A later catalog must revalidate them.
 	reader.failure=str(result.error) # Restore the original read status after a rejected cache entry.
 	var inputs=Prework.Inputs.new(reader) if eligible else null
-	if inputs!=null: inputs.remember(str(job.name),int(job.type),bytes); reader=inputs
+	if inputs!=null:inputs.remember(str(job.name),int(job.type),bytes,source_sha);reader=inputs
 	if reader.failure.is_empty() and job.memory_store!=null and job.decoder in ["2da","actor-model","static-model","gui-icon-v1"] and not (job.decoder=="2da" and job.options.get("immutable_source",false)):
 		var preparation_revision:="native-preparation-5-vertex-colors"
 		if job.decoder in ["actor-model","static-model"]:preparation_revision+=":"+Prework.MODEL_METADATA_REVISION
 		if shared_animation_preparation_enabled: preparation_revision+=":"+SharedAnimation.REVISION
-		memory_key=Cache.digest(var_to_bytes([preparation_revision,job.decoder,Cache.digest(bytes),job.options,mesh_preparation_enabled,skin_preparation_enabled]))
+		memory_key=Cache.digest(var_to_bytes([preparation_revision,job.decoder,source_sha,job.options,mesh_preparation_enabled,skin_preparation_enabled]))
 		var saved: Dictionary=job.memory_store.load_data(memory_key,int(job.memory_epoch))
 		phases.memory_lookup_ms=(Time.get_ticks_usec()-phase_began)/1000.0
 		if not saved.is_empty():
@@ -131,12 +179,12 @@ func _work(job: Dictionary) -> void:
 		reader.failure=str(result.error)
 	if reader.failure.is_empty():
 		phase_began=Time.get_ticks_usec()
-		var decoded := actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{} if job.options.get("relevant_tracks",false) else null) if job.decoder in ["actor-model","gui-icon-v1"] else decode(bytes,int(job.type),"mdl-original" if job.decoder == "static-model" else str(job.decoder),str(job.cache_directory),job.decoder_store,bool(job.options.get("immutable_source",false)))
+		var decoded := actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{} if job.options.get("relevant_tracks",false) else null,source_sha) if job.decoder in ["actor-model","gui-icon-v1"] else decode(bytes,int(job.type),"mdl-original" if job.decoder == "static-model" else str(job.decoder),str(job.cache_directory),job.decoder_store,bool(job.options.get("immutable_source",false)),source_sha)
 		# Placeable/tile emitters can be driven by original pause/loop clips.
 		# Retain those channels on the static-world route too, without expanding
 		# inherited actor animation data for every non-animated static model.
 		if job.decoder=="static-model" and str(decoded.get("error","")).is_empty() and decoded.value.nodes.any(func(row):return row.has("emitter")):
-			decoded=actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{})
+			decoded=actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{},source_sha)
 		phases.model_ms=(Time.get_ticks_usec()-phase_began)/1000.0
 		phases.model_sources=decoded.get("preparation_sources",[])
 		if decoded.has("ancestor_preparation"): phases.ancestor_preparation=decoded.ancestor_preparation
@@ -195,10 +243,11 @@ func _work(job: Dictionary) -> void:
 						if not str(palette.get("error","")).is_empty(): result.error=palette.error; break
 						textures[name]=palette; dependencies.append({"name":name,"sha256":palette.sha256,"cache_hit":palette.cache_hit,"palette":true}); continue
 					var read_began := Time.get_ticks_usec()
-					var raw: PackedByteArray = reader.get_resource(raster_name,int(selected.type))
+					var read_pair: Dictionary=reader.get_resource_with_digest(raster_name,int(selected.type)) if reader is Prework.Inputs else {"bytes":reader.get_resource(raster_name,int(selected.type)),"sha256":""}
+					var raw: PackedByteArray=read_pair.bytes
 					var read_ms := (Time.get_ticks_usec()-read_began)/1000.0
 					if not reader.failure.is_empty(): result.error = reader.failure; break
-					var raster := decode(raw,int(selected.type),"raster",str(job.cache_directory),job.decoder_store)
+					var raster := decode(raw,int(selected.type),"raster",str(job.cache_directory),job.decoder_store,false,str(read_pair.sha256))
 					if not str(raster.error).is_empty(): result.error = name + ": " + str(raster.error); break
 					if job.options.has("gui_texture_info"):
 						raster=GuiTextureInfo.attach(reader,raster_name,raster)
@@ -234,6 +283,13 @@ func _work(job: Dictionary) -> void:
 	result.worker_ms = (Time.get_ticks_usec()-began)/1000.0
 	publish_result(job,result)
 func publish_result(job: Dictionary,result: Dictionary) -> void:
+	if not job.status_only and (bool(job.get("raster_upload_preparation",false)) or bool(job.get("worker_texture_creation",false))) and str(result.get("error","")).is_empty():
+		var upload_began:=Time.get_ticks_usec();var sidecar:=RasterUpload.sidecar_on_worker(result,bool(job.get("worker_texture_creation",false)))
+		if not sidecar.get("rows",{}).is_empty():result._raster_upload_sidecar=sidecar
+		var upload_ms:=(Time.get_ticks_usec()-upload_began)/1000.0
+		result.worker_ms=float(result.get("worker_ms",0.0))+upload_ms
+		var upload_phases: Dictionary=result.get("phases",{}).duplicate();var upload_stats: Dictionary=sidecar.get("stats",{}).duplicate()
+		upload_stats.merge({"enabled":true,"thread":OS.get_thread_caller_id(),"cpu_ms":upload_ms,"maximum_job_bytes":RasterUpload.MAX_JOB_BYTES});upload_phases.raster_upload_preparation=upload_stats;result.phases=upload_phases
 	if not job.status_only:
 		if OS.get_cmdline_user_args().has("--base-scenery-draw=merged") and job.decoder=="static-model" and str(result.get("error","")).is_empty() and result.get("value") is Dictionary:
 			result.static_draw_proof=BaseStaticDrawProof.capture(result.get("bytes",PackedByteArray()),result.value,str(result.get("sha256","")))
@@ -284,9 +340,10 @@ func prepare_emitter_textures(reader,model: Dictionary,cache_path: String) -> Di
 			# (for example fxpa_cloud02). Keep their real geometry and preserve
 			# the unavailable emitter explicitly; never invent a replacement.
 			textures[name]={}; dependencies.append({"name":name,"role":"emitter","missing":true,"recorded_missing":recorded}); continue
-		var raw: PackedByteArray=reader.get_resource(name,int(selected.type))
+		var read_pair: Dictionary=reader.get_resource_with_digest(name,int(selected.type)) if reader is Prework.Inputs else {"bytes":reader.get_resource(name,int(selected.type)),"sha256":""}
+		var raw: PackedByteArray=read_pair.bytes
 		if not reader.failure.is_empty(): return {"error":reader.failure}
-		var raster:=decode(raw,int(selected.type),"raster",cache_path,decoded_store(reader))
+		var raster:=decode(raw,int(selected.type),"raster",cache_path,decoded_store(reader),false,str(read_pair.sha256))
 		if not str(raster.error).is_empty(): return {"error":name+": "+str(raster.error)}
 		textures[name]=raster; dependencies.append({"name":name,"role":"emitter","sha256":raster.sha256,"cache_hit":raster.cache_hit})
 	return {"error":"","textures":textures,"dependencies":dependencies}
@@ -298,9 +355,10 @@ func icon_textures(reader,model: Dictionary,layers: Array,cache_path: String) ->
 		else:
 			var selected: Dictionary=reader.raster_location(str(layer.name))
 			if selected.is_empty(): return {"error":"Original icon raster is absent: "+str(layer.name)}
-			var raw: PackedByteArray=reader.get_resource(str(layer.name),int(selected.type))
+			var read_pair: Dictionary=reader.get_resource_with_digest(str(layer.name),int(selected.type)) if reader is Prework.Inputs else {"bytes":reader.get_resource(str(layer.name),int(selected.type)),"sha256":""}
+			var raw: PackedByteArray=read_pair.bytes
 			if not reader.failure.is_empty(): return {"error":reader.failure}
-			raster=decode(raw,int(selected.type),"raster",cache_path,decoded_store(reader))
+			raster=decode(raw,int(selected.type),"raster",cache_path,decoded_store(reader),false,str(read_pair.sha256))
 		if not str(raster.get("error","")).is_empty(): return {"error":raster.error}
 		raster=GuiTextureInfo.attach(reader,str(layer.name),raster)
 		if not reader.failure.is_empty(): return {"error":reader.failure}
@@ -310,19 +368,19 @@ func icon_textures(reader,model: Dictionary,layers: Array,cache_path: String) ->
 		for name in part.mesh.get("textures",[]):
 			if str(name) not in ["","null"] and not textures.has(str(name).to_lower()): return {"error":"Original GUI icon has an unmatched replacement texture: "+str(name)}
 	return {"textures":textures,"dependencies":dependencies}
-func actor_data(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null) -> Dictionary:
+func actor_data(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="") -> Dictionary:
 	# Only the required/high-priority actor can start helpers. Other sources may
 	# reuse its immutable decoded work, without spawning competing helper waves.
 	var prefetch: Dictionary={}
 	if ancestors.is_empty() and high_priority and ancestor_preparation_enabled: prefetch=Ancestors.start(reader,name,bytes,cache_path,decode)
-	var result:=actor_data_serial(reader,name,bytes,cache_path,ancestors,relevant_nodes)
+	var result:=actor_data_serial(reader,name,bytes,cache_path,ancestors,relevant_nodes,known_sha)
 	# Join on every normal/error return before the asset owner can retire. Child
 	# results affect caching/timings only; authoritative parsing owns correctness.
 	if not prefetch.is_empty(): result.ancestor_preparation=Ancestors.finish(prefetch)
 	return result
-func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null) -> Dictionary:
+func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="") -> Dictionary:
 	if ancestors.size()>=16 or ancestors.has(name.to_lower()): return {"error":"Original actor supermodel inheritance cycle/depth"}
-	var decoded:=decode(bytes,2002,ActorModel.SOURCE_DECODER,cache_path,decoded_store(reader))
+	var decoded:=decode(bytes,2002,ActorModel.SOURCE_DECODER,cache_path,decoded_store(reader),false,known_sha)
 	if not str(decoded.error).is_empty(): return decoded
 	decoded.preparation_sources=[{"name":name,"source_bytes":bytes.size(),"memory_hit":decoded.get("memory_decode_hit",false),"timings":decoded.get("timings",{})}]
 	var model: Dictionary=decoded.value; var parent_name:=str(model.get("supermodel","")).to_lower()
@@ -418,9 +476,9 @@ func resource_metrics(reader) -> Dictionary:
 	return value.duplicate() if value is Dictionary else {}
 func decoded_store(reader):
 	return reader.decoded_cache() if reader.has_method("decoded_cache") else (reader.preparation_cache() if reader.has_method("preparation_cache") else null)
-func decode(bytes: PackedByteArray, type: int, decoder: String, cache_path: String, store=null, immutable_source: bool=false) -> Dictionary:
-	if store==null or decoder=="bytes": return decode_uncached(bytes,type,decoder,cache_path)
-	var began:=Time.get_ticks_usec(); var source_sha:=Cache.digest(bytes)
+func decode(bytes: PackedByteArray, type: int, decoder: String, cache_path: String, store=null, immutable_source: bool=false,known_sha: String="") -> Dictionary:
+	if store==null or decoder=="bytes":return decode_uncached(bytes,type,decoder,cache_path,known_sha)
+	var began:=Time.get_ticks_usec();var source_sha:=known_sha if not known_sha.is_empty() else Cache.digest(bytes)
 	var request_key:="decoded-native-v1:"+str(type)+":"+decoder+":"+source_sha+(":ambient-1:vertex-color-1:"+Prework.MODEL_METADATA_REVISION if decoder.begins_with("mdl-") else "")+(":"+mesh_revision() if mesh_preparation_enabled and decoder.begins_with("mdl-") else "")
 	var immutable_model:=decoder in ["mdl-actor-v2","mdl-actor-packed-v1","mdl-actor-packed-v2","mdl-actor-packed-v3",ActorModel.SOURCE_DECODER]
 	var borrowed:=immutable_model or decoder=="2da" and immutable_source
@@ -531,17 +589,76 @@ func _process(_delta: float) -> void:
 func _profile_process(_delta: float) -> void:
 	if native_draw_cache_lease:NativeDrawCache.poll()
 	Timing.count("count_asset_workers",running.size()); Timing.count("count_asset_queued",pending.size())
+	if _consuming_completions:completion_stats.reentrant+=1;return
+	_consuming_completions=true
+	var began:=Time.get_ticks_usec();var consumed:=0
 	for id in running.keys():
 		if not running.has(id): continue
 		var task: int = running[id]
 		if not WorkerThreadPool.is_task_completed(task): continue
+		if consumed>=maxi(1,maximum_completions_per_pass) or consumed>0 and completion_budget_us>0 and Time.get_ticks_usec()-began>=completion_budget_us:
+			completion_stats.deferred+=1;break
+		var budget_owner=completion_pool
+		var budgeted: bool=budget_owner is Object and is_instance_valid(budget_owner) and budget_owner.has_method("can_consume_completion")
+		if budgeted and not budget_owner.can_consume_completion(high_priority and consumed==0):completion_stats.deferred+=1;break
+		var callback_began:=Time.get_ticks_usec()
+		var diagnostic_phases: Variant=null
+		if completion_diagnose:diagnostic_phases={}
+		var diagnostic_began:=Time.get_ticks_usec() if completion_diagnose else 0
+		if budgeted:
+			if budget_owner.has_method("begin_prioritized_completion_scope"):budget_owner.begin_prioritized_completion_scope(high_priority and consumed==0)
+			else:budget_owner.begin_completion_scope()
+		if completion_diagnose:diagnostic_phases.scope_begin_us=Time.get_ticks_usec()-diagnostic_began;diagnostic_began=Time.get_ticks_usec()
 		WorkerThreadPool.wait_for_task_completion(task)
+		if completion_diagnose:diagnostic_phases.join_us=Time.get_ticks_usec()-diagnostic_began;diagnostic_began=Time.get_ticks_usec()
 		running.erase(id)
 		mutex.lock(); var result: Dictionary = results.get(id, {}); results.erase(id); mutex.unlock()
-		if not closed and int(result.get("epoch", -1)) == epoch: completed.emit(int(id), result)
+		if completion_diagnose:diagnostic_phases.result_take_us=Time.get_ticks_usec()-diagnostic_began;diagnostic_began=Time.get_ticks_usec()
+		var diagnostic_sha: String=str(result.get("sha256","")) if completion_diagnose else ""
+		var diagnostic_request: Variant=null
+		if completion_diagnose:diagnostic_request=completion_diagnostic_requests.get(id,{})
+		if not closed and int(result.get("epoch", -1)) == epoch:
+			var upload_sidecar: Variant=result.get("_raster_upload_sidecar")
+			result.erase("_raster_upload_sidecar") # Never expose ready pixels to caller key/serialization/template code.
+			if upload_sidecar is Dictionary and budget_owner is Object and is_instance_valid(budget_owner) and budget_owner.has_method("accept_raster_upload_sidecar"):budget_owner.accept_raster_upload_sidecar(upload_sidecar)
+			upload_sidecar=null
+			if completion_diagnose:diagnostic_phases.sidecar_us=Time.get_ticks_usec()-diagnostic_began;diagnostic_began=Time.get_ticks_usec()
+			completed.emit(int(id), result);completion_stats.delivered+=1
+			if completion_diagnose:diagnostic_phases.consumer_us=Time.get_ticks_usec()-diagnostic_began;diagnostic_began=Time.get_ticks_usec()
+		else:completion_stats.stale+=1
+		# Drop the drain's result reference inside the measured scope. Consumers
+		# which retained it keep ownership; stale graphs release here as well.
+		result={}
+		if completion_diagnose:diagnostic_phases.release_us=Time.get_ticks_usec()-diagnostic_began;diagnostic_began=Time.get_ticks_usec()
+		if budgeted:budget_owner.end_completion_scope()
+		var callback_us:=Time.get_ticks_usec()-callback_began
+		completion_stats.max_callback_us=maxi(int(completion_stats.max_callback_us),callback_us)
+		if completion_diagnose:
+			diagnostic_phases.scope_end_us=Time.get_ticks_usec()-diagnostic_began
+			_record_completion_diagnostic(int(id),diagnostic_request,diagnostic_sha,callback_us,diagnostic_phases)
+		consumed+=1
+	_consuming_completions=false;completion_stats.passes+=1;completion_stats.max_pass_us=maxi(int(completion_stats.max_pass_us),Time.get_ticks_usec()-began)
 	pump()
+func _record_completion_diagnostic(id: int,request: Dictionary,source_sha: String,callback_us: int,phases: Dictionary) -> void:
+	completion_diagnostic_requests.erase(id)
+	if callback_us<5000 or request.is_empty():return
+	var row: Dictionary={"service":str(get_path()),"request_id":id,"resource":str(request.get("name","")),"type":int(request.get("type",-1)),"decoder":str(request.get("decoder","")),"epoch":int(request.get("epoch",-1)),"sha256":source_sha,"callback_us":callback_us,"phases_us":phases}
+	completion_diagnostic_peaks.append(row)
+	completion_diagnostic_peaks.sort_custom(func(a,b):return int(a.callback_us)>int(b.callback_us))
+	if completion_diagnostic_peaks.size()>8:completion_diagnostic_peaks.resize(8)
+	if callback_us>completion_diagnostic_reported_max_us and completion_diagnostic_logged<16:
+		completion_diagnostic_reported_max_us=callback_us
+		completion_diagnostic_logged+=1
+		print("NWN62_COMPLETION_TAIL ",JSON.stringify(row))
 func retire_scope() -> void:
-	epoch += 1; pending.clear()
+	if completion_diagnose and not completion_diagnostic_peaks.is_empty():
+		print("NWN62_COMPLETION_SUMMARY ",JSON.stringify({"service":str(get_path()),"top":completion_diagnostic_peaks}))
+		completion_diagnostic_peaks.clear();completion_diagnostic_reported_max_us=0;completion_diagnostic_logged=0
+	epoch += 1;pending.clear();completion_pool=null
+	if completion_diagnose:completion_diagnostic_requests.clear()
+	# Stale workers still need to finish and release their results, without
+	# delivering completion into the replacement scope.
+	_refresh_processing()
 func detach_retired_results() -> Dictionary:
 	# World retirement calls this after observing real worker completion. The
 	# pure decoded result graphs can then be released by the data worker owner.

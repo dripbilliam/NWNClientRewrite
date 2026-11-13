@@ -1,0 +1,31 @@
+{
+  "schema": "nwn75-lightpart-pool-publication-ledger-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Original Scene::LightPartTriMesh source/output pool lock modes, four release sites, and conditional GL buffer leaves.",
+  "document": "lightpart-pool-publication.md",
+  "edges": [
+    {"from":"0x1400da420","to":"0x1400da970","callsite":"0x1400da64f","kind":"direct_call","condition":"lighting-mode transition BSP callback and eligible mesh/light set","status":"target_identified_descendants_mapped"},
+    {"from":"0x1400da6c0","to":"0x1400da970","callsite":"0x1400da8ff","kind":"direct_call","condition":"non-full-dynamic queued static-light node and eligible TriMesh","status":"target_identified_descendants_mapped"},
+    {"from":"0x1400da970","to":"0x1400bee30","callsite":"0x1400dab55","kind":"direct_call","condition":"source position pool geometry+0x280; mode R9D=8","status":"cpu_source_lock","evidence_id":"ev_cb426a7c87fdacdfa7c64ec288930463d36e55b83636183481abe6081bb40606"},
+    {"from":"0x1400da970","to":"0x1400bee30","callsite":"0x1400dab6e","kind":"direct_call","condition":"source normal pool geometry+0x298; mode R9D=8","status":"cpu_source_lock","evidence_id":"ev_cb426a7c87fdacdfa7c64ec288930463d36e55b83636183481abe6081bb40606"},
+    {"from":"0x1400da970","to":"0x1400bee30","callsite":"0x1400dab83","kind":"direct_call","condition":"output color pool Part+0x98; mode R9D=1","status":"cpu_output_lock","evidence_id":"ev_cb426a7c87fdacdfa7c64ec288930463d36e55b83636183481abe6081bb40606"},
+    {"from":"0x1400da970","to":"0x1400bee30","callsite":"0x1400daba6","kind":"direct_call","condition":"optional output bump pool Part+0xb0 for render hints 2/3; mode R9D=1","status":"cpu_output_lock","evidence_id":"ev_cb426a7c87fdacdfa7c64ec288930463d36e55b83636183481abe6081bb40606"},
+    {"from":"0x1400b4aa0","to":"pool_descriptor+0x11","callsite":"0x1400b4aba","kind":"lock_mode_store","condition":"valid pool ID; writes R9B mode, sentinel ID returns raw offset","status":"cpu_state_leaf","evidence_id":"ev_bdb5e45aed03bf964d0a183c0ed5c6b6d31eb1890c7f59f7bc39bb8a202a17ba"},
+    {"from":"0x1400da970","to":"0x1400bf3d0","callsite":"0x1400db26e","kind":"direct_call","condition":"optional bump output; (pool,-1,0), descriptor mode 1","status":"conditional_gl_publication","evidence_id":"ev_cb426a7c87fdacdfa7c64ec288930463d36e55b83636183481abe6081bb40606"},
+    {"from":"0x1400da970","to":"0x1400bf3d0","callsite":"0x1400db282","kind":"direct_call","condition":"color output; (pool,-1,0), descriptor mode 1","status":"conditional_gl_publication","evidence_id":"ev_cb426a7c87fdacdfa7c64ec288930463d36e55b83636183481abe6081bb40606"},
+    {"from":"0x1400da970","to":"0x1400bf3d0","callsite":"0x1400db2a0","kind":"direct_call","condition":"source positions; (pool,-1,0), descriptor mode 8","status":"cpu_release_no_gl_for_valid_source_pool","evidence_id":"ev_cb426a7c87fdacdfa7c64ec288930463d36e55b83636183481abe6081bb40606"},
+    {"from":"0x1400da970","to":"0x1400bf3d0","callsite":"0x1400db2be","kind":"direct_call","condition":"source normals; (pool,-1,0), descriptor mode 8","status":"cpu_release_no_gl_for_valid_source_pool","evidence_id":"ev_cb426a7c87fdacdfa7c64ec288930463d36e55b83636183481abe6081bb40606"},
+    {"from":"0x1400bf3d0","to":"0x1400bbad0","callsite":"0x1400bf3d0","kind":"tail_jump","condition":"RenderInterface::UnlockPool wrapper","status":"target_identified_descendants_mapped"},
+    {"from":"0x1400bbad0","to":"0x1400bbaf0","callsite":"0x1400bbadf","kind":"tail_jump","condition":"remaps (pool,-1,0) to (manager,pool,-1,0)","status":"target_identified_descendants_mapped","evidence_id":"ev_2bfe9d4aaf6e1752de5f7ec3e6a2982167327b34d9793c4fdb882dfbfbe59e75"},
+    {"from":"0x1400bbaf0","to":"pool_descriptor+0x11","kind":"mode_gate","condition":"invalid/sentinel pool, zero size/length or mode & 0x18 nonzero exits before GL; mode 8 source exits, mode 1 output continues conditionally","status":"cpu_gate","evidence_id":"ev_1f419d8f1c259c3e858798205ae5140de9198499fa4f2e2577aebc524ab8df12"},
+    {"from":"0x1400bbaf0","to":"0x1400be870","callsite":"0x1400bbb95","kind":"direct_call","condition":"admitted output pool, buffer binding state requires change","status":"conditional_gl_bind","evidence_id":"ev_1f419d8f1c259c3e858798205ae5140de9198499fa4f2e2577aebc524ab8df12"},
+    {"from":"0x1400bbaf0","to":"glGenBuffers","callsite":"0x1400bbb5d","kind":"indirect_gl_call","condition":"admitted output pool and first GPU buffer creation","status":"external_boundary_reached","evidence_id":"ev_e83d601a6cdb6ddff4c4c13c508896de862ad8a24d41171019061c15c2a086e8"},
+    {"from":"0x1400bbaf0","to":"glBufferData","callsites":["0x1400bbbd4","0x1400bbc40","0x1400bbc93"],"kind":"indirect_gl_call","condition":"first allocation, dynamic orphan, or static storage state","status":"external_boundary_reached","evidence_id":"ev_e83d601a6cdb6ddff4c4c13c508896de862ad8a24d41171019061c15c2a086e8"},
+    {"from":"0x1400bbaf0","to":"glBufferSubData","callsites":["0x1400bbc0b","0x1400bbc6b"],"kind":"indirect_gl_call","condition":"existing dynamic buffer update or range upload","status":"external_boundary_reached","evidence_id":"ev_e83d601a6cdb6ddff4c4c13c508896de862ad8a24d41171019061c15c2a086e8"}
+  ],
+  "open_edges": [
+    "Runtime lighting-mode transition or queued static-light nodes selecting LightPartTriMesh",
+    "Actual color/bump pool validity, buffer allocation/dirty flags and selected GL allocation/update branch",
+    "Later primitive VDO rebuild/draw when the mesh is subsequently admitted to a draw bucket"
+  ]
+}

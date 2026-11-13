@@ -1,0 +1,255 @@
+{
+  "schema": "nwn75-original-render-branch-ledger-supplement-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "scope": "Successful area packet GUI-owner and constructor-backed PVP panel refresh through party button model/text publication and linked GUI render subtree.",
+  "edges": [
+    {
+      "from": "0x140046340",
+      "to": "0x14003d280",
+      "callsite": "0x1400463f0",
+      "kind": "direct_static",
+      "condition": "SDL_main app-manager construction",
+      "status": "pvp_gui_startup_owner_connector",
+      "evidence_id": "ev_e4e20957d25a9675416c299708386db6f98f70d14b4bf8f68743d28dbc4e2825"
+    },
+    {
+      "from": "0x14003d280",
+      "to": "0x1406aadf0",
+      "callsite": "0x14003d2c9",
+      "kind": "direct_static",
+      "condition": "CAppManager constructs CClientExoApp wrapper",
+      "status": "pvp_client_wrapper_owner_connector",
+      "evidence_id": "ev_f1bbc0eb24d78627f5454ea52034dcf681a57e6cf8fe723f09579ea419a18364"
+    },
+    {
+      "from": "0x1406aadf0",
+      "to": "0x1406c9df0",
+      "callsite": "0x1406aae54",
+      "kind": "direct_static",
+      "condition": "CClientExoApp constructor allocates inner client; wrapper+8 owner",
+      "status": "inner_client_constructor",
+      "evidence_id": "ev_e147f1e66b5754a5bcfe971db0e9e1ebafd37924ad3866fd0f361acfc0717000"
+    },
+    {
+      "from": "0x1406c9df0",
+      "to": "inner client+0x90 null",
+      "kind": "terminal_cpu_leaf",
+      "condition": "constructor initialization",
+      "status": "gui_owner_initial_state",
+      "evidence_id": "ev_ed244e00dfa8bdc854d2c1718ba11ef09c4a0d36036fc93daddaeef9cebb4d25"
+    },
+    {
+      "from": "0x1406acd40",
+      "to": "0x1406e3c80",
+      "callsite": "0x1406acd44",
+      "kind": "tail_jump",
+      "condition": "wrapper passes inner client+8",
+      "status": "client_gui_setup",
+      "evidence_id": "ev_1501853c363fbd1be79bc192aaf2e8b0ddfb974e8eb7980b50ce686e7b97b46d"
+    },
+    {
+      "from": "0x1406e3c80",
+      "to": "0x1406f5cd0",
+      "callsite": "0x1406e471d",
+      "kind": "direct_static",
+      "condition": "initialization branch; 0x588 allocation succeeds",
+      "status": "gui_owner_constructor",
+      "evidence_id": "ev_2077c327f0ba1d2bd5fb8fb7aead9506ad5d79409ab6a2e8aba3381261d45b3a"
+    },
+    {
+      "from": "0x1406e3c80",
+      "to": "inner client+0x90 GUI owner",
+      "kind": "conditional_data_source",
+      "condition": "stores constructed object at 0x1406e4727; null on allocation failure",
+      "status": "gui_owner_publication",
+      "evidence_id": "ev_2077c327f0ba1d2bd5fb8fb7aead9506ad5d79409ab6a2e8aba3381261d45b3a"
+    },
+    {
+      "from": "0x1406f5cd0",
+      "to": "GUI owner+0x88 null",
+      "kind": "terminal_cpu_leaf",
+      "condition": "constructor initialization before optional panel creation",
+      "status": "pvp_panel_initial_state",
+      "evidence_id": "ev_59005caf3d66decf8d6b17a15d2666d5ace69186a48ffec44a47e0f038d55e38"
+    },
+    {
+      "from": "0x1406f89a0",
+      "to": "0x1406f7870",
+      "callsite": "0x1406f89e2",
+      "kind": "direct_static",
+      "condition": "PVP panel activation gate must return zero",
+      "status": "pvp_panel_gate",
+      "evidence_id": "ev_fca0a6f25c043fe95ab3505e5623f896be0f36f42c8801b7f9295057e1f4bf77"
+    },
+    {
+      "from": "0x1406db800",
+      "to": "0x1406f14e0",
+      "callsite": "0x1406db9f3",
+      "kind": "direct_static",
+      "condition": "client loop's input/update branch",
+      "status": "pvp_panel_input_activation_connector",
+      "evidence_id": "ev_671ef6ccff22d460039337d0e764b26d60baf0ed87d714fbaec3e433bf19289f"
+    },
+    {
+      "from": "0x1406f14e0",
+      "to": "0x1406ed720",
+      "callsite": "0x1406f16c5",
+      "kind": "direct_static",
+      "condition": "active CExoInput with one or more events",
+      "status": "pvp_panel_input_event_dispatch",
+      "evidence_id": "ev_19759255a559ccf4600d0f55947f324fd94e8f941271a8fe51009dfc8fa62078"
+    },
+    {
+      "from": "0x1406ed720",
+      "to": "0x1406f89a0",
+      "callsite": "0x1406ef0fc",
+      "kind": "direct_static",
+      "condition": "input case 0x21, nonzero event flag, no conflicting top GUI window and client/panel gate passes",
+      "status": "pvp_panel_input_creation",
+      "evidence_id": "ev_b53020bcbe37075c67c3346b55578bc16b75dbdbdd3f300aa09a73f599d9deae"
+    },
+    {
+      "from": "0x1406f89a0",
+      "to": "0x140887570",
+      "callsite": "0x1406f8a1e",
+      "kind": "direct_static",
+      "condition": "gate zero and owner+0x88 panel absent; allocation succeeds",
+      "status": "pvp_panel_constructor",
+      "evidence_id": "ev_fca0a6f25c043fe95ab3505e5623f896be0f36f42c8801b7f9295057e1f4bf77"
+    },
+    {
+      "from": "0x140887570",
+      "to": "0x140e576d8",
+      "kind": "vtable_store",
+      "condition": "CGuiIngamePVPPanel constructor",
+      "status": "pvp_panel_identity",
+      "evidence_id": "ev_c1ce58564457c447febbec751d7e7fdc0e03c74e886309484cffe1ab8d22d8cc"
+    },
+    {
+      "from": "0x140e576d8",
+      "to": "0x140889780",
+      "site": "0x140e57738",
+      "kind": "vtable_slot_data",
+      "condition": "PVP panel +0x60; area handler call at 0x14076e4a8 if owner/panel nonnull",
+      "status": "pvp_panel_refresh",
+      "evidence_id": "ev_0dd5936f9bdf6e4e81326e5693bc4d0952a3c57fc1f14ddf4b9f1b6a96d6c3b9"
+    },
+    {
+      "from": "0x14076d910",
+      "to": "0x140889780",
+      "site": "0x14076e4a8",
+      "kind": "resolved_virtual_candidate",
+      "condition": "successful area packet; nonnull client GUI owner+0x88 retains constructor-backed PVP panel table 0x140e576d8/+0x60",
+      "status": "area_success_pvp_refresh_connector",
+      "evidence_id": "ev_ef439a65e4302adc169bc79e2432566bdf0745b44372a3ff41e3bc35c1c38e8b"
+    },
+    {
+      "from": "0x140889780",
+      "to": "0x1408883c0",
+      "callsite": "0x140889789",
+      "kind": "direct_static",
+      "condition": "constructor-backed panel refresh",
+      "status": "party_list_refresh",
+      "evidence_id": "ev_867a1fed96d640e6179fe92466fd82afddd94accea55e54625e057b750e664fd"
+    },
+    {
+      "from": "0x140889780",
+      "to": "0x140887ee0",
+      "callsite": "0x140889796",
+      "kind": "tail_jump",
+      "condition": "after party list helper",
+      "status": "pvp_label_refresh",
+      "evidence_id": "ev_867a1fed96d640e6179fe92466fd82afddd94accea55e54625e057b750e664fd"
+    },
+    {
+      "from": "0x1408883c0",
+      "to": "0x140887b20",
+      "callsite": "0x140888507",
+      "kind": "direct_static",
+      "condition": "valid selected creature and admitted party list member",
+      "status": "party_button_model_producer",
+      "evidence_id": "ev_aa8923b8d79aadf084a4bf4dcd424ddc573c75c99b76e2802ec386486d48122b"
+    },
+    {
+      "from": "0x1408883c0",
+      "to": "0x140888ce0",
+      "callsite": "0x140888578",
+      "kind": "direct_static",
+      "condition": "nonempty rebuilt list; tab selected",
+      "status": "pvp_button_state",
+      "evidence_id": "ev_aa8923b8d79aadf084a4bf4dcd424ddc573c75c99b76e2802ec386486d48122b"
+    },
+    {
+      "from": "0x140887b20",
+      "to": "0x1401fb710",
+      "callsites": [
+        "0x140887b83",
+        "0x140887bbd"
+      ],
+      "kind": "direct_static",
+      "condition": "per-party button models CTL_IG_BTN_PVP and CTL_IG_BTN_ATTIT",
+      "status": "gui_model_demand",
+      "evidence_id": "ev_b25423823557db27bae1aa20738b23a34442b38e96e504e240ad0af1a00215d7"
+    },
+    {
+      "from": "0x140887b20",
+      "to": "0x1401fafa0",
+      "callsite": "0x140887bd3",
+      "kind": "direct_static",
+      "condition": "attach attitude widget to PVP button model",
+      "status": "gui_model_attachment",
+      "evidence_id": "ev_b25423823557db27bae1aa20738b23a34442b38e96e504e240ad0af1a00215d7"
+    },
+    {
+      "from": "0x140887ee0",
+      "to": "0x1401994d0",
+      "callsites": [
+        "0x140887f7d",
+        "0x140888027",
+        "0x1408880bc",
+        "0x140888166",
+        "0x1408881fb",
+        "0x1408882a5"
+      ],
+      "kind": "direct_static",
+      "condition": "client-world byte 0..3 selects localized PVP label components",
+      "status": "pvp_text_source",
+      "evidence_id": "ev_b8ce3c245d172ecf879ddd987a911ef0d10d21f44a48f739c842e4781b5e0417"
+    },
+    {
+      "from": "0x140887ee0",
+      "to": "DYNAMIC:PVP_LABEL_STRING_PLUS_0xd0",
+      "site": "0x140888395",
+      "kind": "computed_callback_dispatch",
+      "condition": "panel+0xc78 owned string pointer; constructed StringGob candidate",
+      "status": "pvp_label_text_publication",
+      "evidence_id": "ev_b8ce3c245d172ecf879ddd987a911ef0d10d21f44a48f739c842e4781b5e0417"
+    },
+    {
+      "from": "0x140d81750",
+      "to": "0x14004aae0",
+      "site": "0x140d81820",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed StringGob interface +0xd0; CPU text/line publication",
+      "status": "pvp_label_text_candidate",
+      "evidence_id": "ev_6ad91b5830fe650848e9efaebc83275a5df07eda1fa4233e966e7bd4ff0110cd"
+    },
+    {
+      "from": "0x140887b20",
+      "to": "GUI model/attachment and StringGob render tree",
+      "kind": "linked_subtree",
+      "condition": "models/text admitted to active panel and later GUI Scene render",
+      "status": "conditional_gui_draw",
+      "evidence_id": "ev_b25423823557db27bae1aa20738b23a34442b38e96e504e240ad0af1a00215d7"
+    },
+    {
+      "from": "0x140d88a00",
+      "to": "0x140094040",
+      "site": "0x140d88a60",
+      "kind": "vtable_slot_data",
+      "condition": "constructor-backed Gob +0x60 candidate for PVP button model replacement",
+      "status": "gui_model_texture_publication",
+      "evidence_id": "ev_37bb69650ee1e02d9727af8b617cc8671e753ed3eba1cddbec20a2ee93755981"
+    }
+  ]
+}

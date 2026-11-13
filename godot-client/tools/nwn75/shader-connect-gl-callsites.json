@@ -1,0 +1,1050 @@
+{
+  "schema": "nwn75-original-connect-shader-gl-callsites-v1",
+  "binary_sha256": "3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a",
+  "function_address": "0x1400add20",
+  "function_name": "GLRender::ConnectShaderData",
+  "function_evidence_id": "ev_1b582d1efdb9e0123b81bceac33e851bc40bdc08c670cfaf28be5f6ce1b68118",
+  "loader_catalog": "gl-extension-pointers.json",
+  "rip_scan": ".cache/nwn75/gl-pointer-rip-refs-a.json",
+  "method": "Every REA unresolved callsite in this function was joined to the exact original PE RIP-relative pointer reference; 19 direct memory CALLs and 127 register-loaded CALLs were verified against REA assembly, with no intervening destination-register write in the latter sequences. Pointer names derive from original wglGetProcAddress loader assignments.",
+  "coverage": {
+    "unresolved_calls": 146,
+    "mapped_calls": 146,
+    "direct_pointer_calls": 19,
+    "loaded_register_calls": 127,
+    "unmapped_calls": 0,
+    "api_counts": {
+      "glBindAttribLocation": 14,
+      "glLinkProgram": 1,
+      "glGetProgramiv": 1,
+      "glGetProgramInfoLog": 1,
+      "glGetUniformLocation": 127,
+      "glUseProgram": 1,
+      "glUniform1i": 1
+    }
+  },
+  "callsites": [
+    {
+      "call_site": "0x1400add61",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400add61",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400add7a",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400add7a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400add8e",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400add8e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400adda2",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400adda2",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400addb6",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400addb6",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400addca",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400addca",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400addde",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400addde",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400addf2",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400addf2",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ade06",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400ade06",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ade1a",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400ade1a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ade2e",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400ade2e",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ade42",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400ade42",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ade56",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400ade56",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ade6a",
+      "gl_pointer": "0x1414424d8",
+      "api": "glBindAttribLocation",
+      "load_site": "0x1400ade6a",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ade7d",
+      "gl_pointer": "0x1414425c0",
+      "api": "glLinkProgram",
+      "load_site": "0x1400ade7d",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400ade8f",
+      "gl_pointer": "0x141442558",
+      "api": "glGetProgramiv",
+      "load_site": "0x1400ade8f",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400adeac",
+      "gl_pointer": "0x141442550",
+      "api": "glGetProgramInfoLog",
+      "load_site": "0x1400adeac",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400adefa",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adee9",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adf13",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adf0c",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adf2c",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adf25",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adf45",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adf3e",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adf5e",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adf57",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adf77",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adf70",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adf90",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adf89",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adfa9",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adfa2",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adfc2",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adfbb",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adfdb",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adfd4",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400adff4",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400adfed",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae00d",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae006",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae026",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae01f",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae03f",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae038",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae058",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae051",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae071",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae06a",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae08a",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae079",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae0a3",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae09c",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae0bc",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae0b5",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae0d5",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae0ce",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae0ee",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae0e7",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae107",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae100",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae120",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae119",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae139",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae132",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae14f",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae148",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae165",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae15e",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae17b",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae174",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae191",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae18a",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae1a7",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae1a0",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae1bd",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae1b6",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae1d6",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae1cf",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae1ef",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae1e8",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae208",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae1fe",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae221",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae21a",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae23a",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae233",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae253",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae24c",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae291",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae283",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae2f1",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae2e3",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae31a",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae30c",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae33f",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae331",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae368",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae35a",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae391",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae383",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae3bd",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae3ac",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae3d6",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae3cf",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae3ef",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae3e8",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae40f",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae408",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae428",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae421",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae441",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae43a",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae45a",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae453",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae473",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae46c",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae48c",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae485",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae4a5",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae49e",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae4be",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae4b7",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae4d7",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae4d0",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae4f0",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae4e9",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae509",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae502",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae522",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae51b",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae53b",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae534",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae554",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae543",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae56d",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae566",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae586",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae57f",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae68d",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae67e",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae6a2",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae698",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae6c6",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae6b5",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae701",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae6f3",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae722",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae711",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae73b",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae734",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae7a4",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae79d",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae7bd",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae7b6",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae7d6",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae7cf",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae7ef",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae7e8",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae808",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae801",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae821",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae81a",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae83a",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae833",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae853",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae84c",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae86c",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae865",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae885",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae87e",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae89e",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae897",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae8b7",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae8ad",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae8d0",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae8c9",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae8e9",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae8e2",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae902",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae8fb",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae91b",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae914",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae934",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae92d",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae94d",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae946",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae966",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae95f",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae97f",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae978",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae998",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae991",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae9b1",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae9aa",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae9ca",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae9c3",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae9e3",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae9dc",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400ae9fc",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400ae9f5",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aea15",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aea0e",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aea2e",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aea27",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aea47",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aea40",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aea60",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aea59",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aea79",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aea72",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aea92",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aea8b",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeaab",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aeaa4",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeac4",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aeabd",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeadd",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aead6",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeaf6",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aeaec",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeb0f",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aeb05",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeb67",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aeb59",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeb7a",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aeb70",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeb8c",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aeb82",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aebaf",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aeb9e",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aebc8",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aebbe",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aebe1",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aebd7",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aebfa",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aebf0",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aec1a",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aec10",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aec3d",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aec33",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aec5d",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aec53",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aec76",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aec6c",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aec8f",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aec85",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeca8",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aec9e",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aecc1",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aecb7",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aecda",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aecd0",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aecf3",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aece9",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aed0c",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aed02",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aed25",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aed1b",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aed3e",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aed34",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aed57",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aed4d",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aed70",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aed66",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aed89",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aed7f",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aeda2",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aed98",
+      "dispatch": "loaded-register"
+    },
+    {
+      "call_site": "0x1400aedbf",
+      "gl_pointer": "0x141442680",
+      "api": "glUseProgram",
+      "load_site": "0x1400aedbf",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400aedd8",
+      "gl_pointer": "0x1414425f8",
+      "api": "glUniform1i",
+      "load_site": "0x1400aedd8",
+      "dispatch": "direct-pointer"
+    },
+    {
+      "call_site": "0x1400aee1f",
+      "gl_pointer": "0x141442578",
+      "api": "glGetUniformLocation",
+      "load_site": "0x1400aee07",
+      "dispatch": "loaded-register"
+    }
+  ]
+}
