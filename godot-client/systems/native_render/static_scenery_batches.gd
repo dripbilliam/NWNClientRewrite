@@ -30,7 +30,7 @@ static func _uniform_positive_basis(value: Basis) -> bool:
 	var scale:=value.x.length()
 	return scale>0.0001 and is_equal_approx(scale,value.y.length()) and is_equal_approx(scale,value.z.length()) and absf(value.x.dot(value.y))<0.00001*scale*scale and absf(value.x.dot(value.z))<0.00001*scale*scale and absf(value.y.dot(value.z))<0.00001*scale*scale
 
-func eligibility(model: Node3D,mesh: MeshInstance3D) -> String:
+func eligibility(model: Node3D,mesh: MeshInstance3D,batch_inverse: Transform3D=Transform3D.IDENTITY,has_batch_inverse: bool=false) -> String:
 	if closed or not is_instance_valid(model) or not model.is_inside_tree() or not is_instance_valid(mesh) or not mesh.is_inside_tree():return "owner-unavailable"
 	if not model.get("limitations") is Array:return "static-model-provenance-unavailable"
 	for feature in model.get("limitations"):
@@ -51,7 +51,7 @@ func eligibility(model: Node3D,mesh: MeshInstance3D) -> String:
 	# MODELVIEW_MATRIX/NORMAL_MATRIX for fog/specular. MultiMesh supplies each
 	# placement's transform. Instance-uniform semantics are deliberately refused.
 	if not MaterialContract.supports(material.shader,material.native_surface_output and material.native_tile_fog_enabled):return "unowned-or-mutated-shader-contract"
-	var pose:=global_transform.affine_inverse()*mesh.global_transform
+	var pose: Transform3D=(batch_inverse if has_batch_inverse else global_transform.affine_inverse())*mesh.global_transform
 	if not pose.is_finite() or not _uniform_positive_basis(pose.basis):return "mirrored-sheared-or-singular-transform"
 	var box: AABB=mesh.mesh.get_aabb() if mesh.custom_aabb==AABB() else mesh.custom_aabb
 	if not box.position.is_finite() or not box.end.is_finite():return "invalid-bounds"
@@ -66,15 +66,16 @@ func consider_tile(tile: int,model: Node3D) -> void:
 		var removed:=_model_removed.bind(model_id);var visibility:=_model_visibility_changed.bind(model_id)
 		if not model.tree_exiting.is_connected(removed):model.tree_exiting.connect(removed,CONNECT_ONE_SHOT)
 		if not model.visibility_changed.is_connected(visibility):model.visibility_changed.connect(visibility)
+	var batch_inverse: Transform3D=global_transform.affine_inverse()
 	for source in model.get("meshes"):
 		stats.source_surfaces+=1
 		if not source is MeshInstance3D:_reject("mesh-type-unavailable");continue
 		var source_id: int=source.get_instance_id()
 		if members.has(source_id):continue
-		var reason:=eligibility(model,source)
+		var reason:=eligibility(model,source,batch_inverse,true)
 		if not reason.is_empty():_reject(reason);continue
 		if members.size()>=MAX_MEMBERS:_reject("member-budget");continue
-		var pose: Transform3D=global_transform.affine_inverse()*source.global_transform
+		var pose: Transform3D=batch_inverse*source.global_transform
 		var cell:=Vector2i(floori(model.global_position.x/cell_size),floori(model.global_position.z/cell_size))
 		var properties: Array=[]
 		for key in DRAW_PROPERTIES:properties.append(source.get(key))
