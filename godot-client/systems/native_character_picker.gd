@@ -65,7 +65,8 @@ func sync() -> void:
 		for entry in data.get("classes",[]): parts.append(rules.title("classes",int(entry.id))+" "+str(int(entry.level)))
 		items.append({"key":str(data.key),"name":str(data.get("label","")),"classes":" / ".join(parts),"source":"Server" if data.get("source")=="server" else "Local","summary":"\n".join(parts)})
 	var ready: bool=controller.can_select(); var legacy_ready: bool=is_instance_valid(controller.native_chooser) and controller.native_chooser.layout_ready
-	var capabilities:={"select":ready,"play":ready and controller.native_selection.is_empty(),"back":state.get("connected",false) and not state.get("busy",false),"create":state.get("canCreate",false),"delete":controller.delete_reason().is_empty(),"customize":false,"details":ready and key!="","server-info":state.get("canLobbyPages",false),"players":state.get("canLobbyPages",false),"roster":true}
+	var delete_reason_text: String=controller.delete_reason()
+	var capabilities:={"select":ready,"play":ready and controller.native_selection.is_empty(),"back":state.get("connected",false) and not state.get("busy",false),"create":state.get("canCreate",false),"delete":delete_reason_text.is_empty(),"customize":false,"details":ready and key!="","server-info":state.get("canLobbyPages",false),"players":state.get("canLobbyPages",false),"roster":true}
 	var endpoint: Variant=state.get("endpoint"); var server_name: String="%s:%s"%[endpoint.host,int(endpoint.port)] if endpoint is Dictionary else "Multiplayer"
 	var feedback: String=controller.failure_text(text)
 	if feedback.is_empty(): feedback=controller.local_notice
@@ -74,7 +75,7 @@ func sync() -> void:
 	if details_page>=0 and not legacy_ready: feedback="Preparing character details…"
 	var pending_key: String=str(controller.native_selection.key) if controller.native_selection.get("connection")==controller.connection else ""
 	shell.present([controller.connection],items,key,capabilities,server_name,feedback,pending_key); shell.pregen.set_pressed_no_signal(show_pregenerated); shell.pregen.disabled=not ready
-	shell.buttons.delete.tooltip_text=controller.delete_reason(); shell.buttons.customize.tooltip_text="Server-vault characters cannot be customized here." if controller.selected_local_row().get("source")=="server" else "Local character customization is not migrated yet."
+	shell.buttons.delete.tooltip_text=delete_reason_text; shell.buttons.customize.tooltip_text="Server-vault characters cannot be customized here." if controller.selected_local_row().get("source")=="server" else "Local character customization is not migrated yet."
 	if is_instance_valid(art):
 		for row in choices: art.bind_portrait(shell.row_portraits[str(row.key)],rules.portrait({"replicated":row},1))
 	if legacy_ready: controller.native_chooser.show_pregenerated=show_pregenerated
