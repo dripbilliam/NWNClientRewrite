@@ -1,0 +1,171 @@
+{
+  "issue": "NWN-74",
+  "scope": "Private same-source ABBA normal-client FPS pair; do not promote accepted engine from this result alone because the control rebuild included 25 pending TUs",
+  "plan": "godot-client/.cache/nwn74/fps-pair-f/plan.json",
+  "pathRedaction": "The absolute local plan path was shortened for the review branch; planSha256 identifies the original local artifact.",
+  "planSha256": "bc6e5a4dbf1b148f43d98268d534f94305994c44c0f8430a8684266aaf1b1f4b",
+  "rows": [
+    {
+      "run": "nwn74-guard-fps-a-control",
+      "mode": "control",
+      "rawSuccess": false,
+      "rawFailure": "Native engine/lifetime diagnostics observed",
+      "engineSha256": "0c5b840e4dfd9500dcbba4e8aa68b1aed635461659281cda543d331916be4795",
+      "reportSha256": "03b6886539fa013358c81150a6c98aa2812ff1e56d999efc2f70c43b2e17f212",
+      "readyArea": 2147618622,
+      "entryAreaReadyMs": 5517.1998,
+      "steadyMs": 15027,
+      "intervals": 1814,
+      "meanFrameMs": 8.27126460859978,
+      "medianFrameMs": 8.02,
+      "p95FrameMs": 8.963,
+      "p99FrameMs": 18.594,
+      "worstFrameMs": 19.754,
+      "derivedMeanFps": 120.90049675841372,
+      "rollingFpsSamples": 3,
+      "rollingFpsMean": 121,
+      "view": {
+        "viewport": [
+          3440,
+          1369
+        ],
+        "msaa3d": 2,
+        "vsync": 0,
+        "maximumFps": 0,
+        "detailedProfiling": false,
+        "particlesEnabled": true,
+        "particleCollisionEnabled": false
+      }
+    },
+    {
+      "run": "nwn74-guard-fps-b-candidate",
+      "mode": "candidate",
+      "rawSuccess": false,
+      "rawFailure": "Native engine/lifetime diagnostics observed",
+      "engineSha256": "52d8c4f85e126c28de5d321119b3a67310ec121a307a9c6e83802a529a6a7af3",
+      "reportSha256": "0e549e3d08f87663c015f81c28d35e7d0eeee3a0bc08b8ca2781ed68d8662dad",
+      "readyArea": 2147618622,
+      "entryAreaReadyMs": 4698.2325,
+      "steadyMs": 15031,
+      "intervals": 1820,
+      "meanFrameMs": 8.24541373626374,
+      "medianFrameMs": 7.986,
+      "p95FrameMs": 8.915,
+      "p99FrameMs": 18.846,
+      "worstFrameMs": 19.499,
+      "derivedMeanFps": 121.27954181388742,
+      "rollingFpsSamples": 5,
+      "rollingFpsMean": 121.4,
+      "view": {
+        "viewport": [
+          3440,
+          1369
+        ],
+        "msaa3d": 2,
+        "vsync": 0,
+        "maximumFps": 0,
+        "detailedProfiling": false,
+        "particlesEnabled": true,
+        "particleCollisionEnabled": false
+      }
+    },
+    {
+      "run": "nwn74-guard-fps-c-candidate",
+      "mode": "candidate",
+      "rawSuccess": false,
+      "rawFailure": "Native engine/lifetime diagnostics observed",
+      "engineSha256": "52d8c4f85e126c28de5d321119b3a67310ec121a307a9c6e83802a529a6a7af3",
+      "reportSha256": "8305c3a0d1a92b3add7aff131d0fbf2d8b898a785a59e50c76e0c93bcc387477",
+      "readyArea": 2147618622,
+      "entryAreaReadyMs": 5048.7019,
+      "steadyMs": 15025,
+      "intervals": 1827,
+      "meanFrameMs": 8.21103174603173,
+      "medianFrameMs": 7.947,
+      "p95FrameMs": 8.878,
+      "p99FrameMs": 18.832,
+      "worstFrameMs": 19.683,
+      "derivedMeanFps": 121.78737470882207,
+      "rollingFpsSamples": 5,
+      "rollingFpsMean": 121.4,
+      "view": {
+        "viewport": [
+          3440,
+          1369
+        ],
+        "msaa3d": 2,
+        "vsync": 0,
+        "maximumFps": 0,
+        "detailedProfiling": false,
+        "particlesEnabled": true,
+        "particleCollisionEnabled": false
+      }
+    },
+    {
+      "run": "nwn74-guard-fps-d-control",
+      "mode": "control",
+      "rawSuccess": false,
+      "rawFailure": "Native engine/lifetime diagnostics observed",
+      "engineSha256": "0c5b840e4dfd9500dcbba4e8aa68b1aed635461659281cda543d331916be4795",
+      "reportSha256": "729b9bf26d26bbe8996613c0154bbd53dbdacdc677fb0fe949b94d1af6b61011",
+      "readyArea": 2147618622,
+      "entryAreaReadyMs": 4330.4164,
+      "steadyMs": 15031,
+      "intervals": 1839,
+      "meanFrameMs": 8.16050135943446,
+      "medianFrameMs": 7.897,
+      "p95FrameMs": 8.794,
+      "p99FrameMs": 18.785,
+      "worstFrameMs": 19.429,
+      "derivedMeanFps": 122.54149052299184,
+      "rollingFpsSamples": 5,
+      "rollingFpsMean": 122.8,
+      "view": {
+        "viewport": [
+          3440,
+          1369
+        ],
+        "msaa3d": 2,
+        "vsync": 0,
+        "maximumFps": 0,
+        "detailedProfiling": false,
+        "particlesEnabled": true,
+        "particleCollisionEnabled": false
+      }
+    }
+  ],
+  "byMode": {
+    "control": {
+      "runs": [
+        "nwn74-guard-fps-a-control",
+        "nwn74-guard-fps-d-control"
+      ],
+      "entryAreaReadyMs": 4923.8081,
+      "meanFrameMs": 8.21588298401712,
+      "medianFrameMs": 7.9585,
+      "p95FrameMs": 8.878499999999999,
+      "p99FrameMs": 18.689500000000002,
+      "worstFrameMs": 19.5915,
+      "derivedMeanFps": 121.72099364070277
+    },
+    "candidate": {
+      "runs": [
+        "nwn74-guard-fps-b-candidate",
+        "nwn74-guard-fps-c-candidate"
+      ],
+      "entryAreaReadyMs": 4873.4672,
+      "meanFrameMs": 8.228222741147736,
+      "medianFrameMs": 7.9665,
+      "p95FrameMs": 8.8965,
+      "p99FrameMs": 18.839,
+      "worstFrameMs": 19.591,
+      "derivedMeanFps": 121.53345826135475
+    }
+  },
+  "comparison": {
+    "candidateMinusControlMeanFrameMs": 0.01233975713061497,
+    "candidateMinusControlEntryMs": -50.34090000000015,
+    "candidateOverControlFpsRatio": 0.9984593012779571
+  },
+  "strictAllPassed": false
+}
