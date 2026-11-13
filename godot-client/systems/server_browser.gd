@@ -33,6 +33,7 @@ var apply_button: Button
 var entries: Dictionary = {}
 var selected := -1
 var wanted := false
+var join_handoff_pending:=false
 var loaded_draft := false
 var direct_row: HBoxContainer
 var list_box: VBoxContainer
@@ -265,23 +266,23 @@ func refresh_entry() -> void:
 		for tag in ["newbutton","loadbutton","lanjoinbutton"]:
 			if entry_menu.buttons.has(tag): entry_menu.buttons[tag].tooltip_text="LAN discovery is not implemented yet." if tag=="lanjoinbutton" else "Hosting a new or saved game is not implemented yet."
 		entry_menu.position=((get_viewport().get_visible_rect().size-entry_menu.size)*0.5).max(Vector2.ZERO)
-		entry_menu.visible=wanted and entry_context and not profile_first and entry_menu.art_ready() and (entry_stage=="entry" or entry_stage=="direct" and direct_return=="entry")
+		entry_menu.visible=wanted and not join_handoff_pending and entry_context and not profile_first and entry_menu.art_ready() and (entry_stage=="entry" or entry_stage=="direct" and direct_return=="entry")
 	var upper_modal: bool=is_instance_valid(profile_dialog) and profile_dialog.visible or is_instance_valid(direct_dialog) and direct_dialog.visible or is_instance_valid(filter_dialog) and filter_dialog.visible or is_instance_valid(password_dialog) and password_dialog.visible
 	if is_instance_valid(details_dialog):
-		if details_wanted and wanted and details_dialog.layout_ready: details_dialog.present(state)
+		if details_wanted and wanted and not join_handoff_pending and details_dialog.layout_ready: details_dialog.present(state)
 		elif details_dialog.visible: details_dialog.dismiss()
 	var modal: bool=upper_modal or is_instance_valid(details_dialog) and details_dialog.visible
 	if modal: selection_pending.clear()
 	if is_instance_valid(details_shield): details_shield.visible=upper_modal and is_instance_valid(details_dialog) and details_dialog.visible
 	if is_instance_valid(modal_shield): modal_shield.visible=modal
-	var source_visible: bool=entry_context and wanted and not profile_first and is_instance_valid(native_browser) and native_browser.layout_ready and str(state.get("tab","")) in ["Internet","History","Favorites"] and (entry_stage=="browser" or entry_stage=="direct" and direct_return=="browser")
+	var source_visible: bool=entry_context and wanted and not join_handoff_pending and not profile_first and is_instance_valid(native_browser) and native_browser.layout_ready and str(state.get("tab","")) in ["Internet","History","Favorites"] and (entry_stage=="browser" or entry_stage=="direct" and direct_return=="browser")
 	if is_instance_valid(native_browser):
 		if source_visible: native_browser.set_view(state)
 		native_browser.visible=source_visible
 		if modal or not source_visible: native_browser.release_focus()
 	# The source-defined frontend never exposes the prototype while a native
 	# page or an authoritative opening view is preparing.
-	panel.visible=wanted and not modal and not source_visible and not entry_context
+	panel.visible=wanted and not join_handoff_pending and not modal and not source_visible and not entry_context
 
 func back() -> void:
 	if entry_context and entry_stage=="browser":
@@ -304,7 +305,7 @@ func confirm_direct(address: String,password: String,capture: Array) -> void:
 		refresh_entry(); return
 	host_edit.text=str(endpoint.host); port_edit.value=int(endpoint.port)
 	var values:=endpoint.duplicate(); values.merge({"name":name_edit.text,"password":password,"cdKey":key_edit.text},true)
-	_send("join",{"direct":true,"entryId":-1,"values":values}); clear_secrets(); panel.show(); status.text="Connecting…"
+	begin_join_handoff(); _send("join",{"direct":true,"entryId":-1,"values":values}); clear_secrets(); status.text="Connecting…"
 
 func escape() -> bool:
 	if not wanted: return false
@@ -345,7 +346,7 @@ func open_list() -> void:
 
 func open(ask_profile: bool=false,original_entry: bool=false,list_tab: String="") -> void:
 	var list_page: bool=original_entry and list_tab in ["Internet","History","Favorites"]
-	wanted = true; entry_context=original_entry; entry_stage="entry" if original_entry and not list_page else "browser"; profile_return=entry_stage; pending_direct=false; return_to_main=false; profile_first=ask_profile; view_id = -1; loaded_draft = false; clear_secrets(); panel.visible=not original_entry; status.text = "Reading saved servers…"; _enable(false); place(); _send("open",{"listTab":list_tab} if list_page else {})
+	wanted = true; join_handoff_pending=false; entry_context=original_entry; entry_stage="entry" if original_entry and not list_page else "browser"; profile_return=entry_stage; pending_direct=false; return_to_main=false; profile_first=ask_profile; view_id = -1; loaded_draft = false; clear_secrets(); panel.visible=not original_entry; status.text = "Reading saved servers…"; _enable(false); place(); _send("open",{"listTab":list_tab} if list_page else {})
 
 func clear_secrets() -> void:
 	password_edit.clear(); key_edit.clear()
@@ -368,10 +369,10 @@ func clear_secrets() -> void:
 	if focused == password_edit or focused == key_edit: focused.release_focus()
 
 func reset(value: int) -> void:
-	connection = value; wanted = false; loaded_draft = false; view_id = -1; state = {}; entries.clear(); selected = -1; clear_secrets(); panel.hide(); refresh_entry()
+	connection = value; wanted = false; join_handoff_pending=false; loaded_draft = false; view_id = -1; state = {}; entries.clear(); selected = -1; clear_secrets(); panel.hide(); refresh_entry()
 
 func close() -> void:
-	return_to_main=entry_context or profile_first; wanted = false; clear_secrets(); panel.hide(); _send("close",{"leaveMultiplayer":entry_context}); closed.emit()
+	return_to_main=entry_context or profile_first; wanted = false; join_handoff_pending=false; clear_secrets(); panel.hide(); _send("close",{"leaveMultiplayer":entry_context}); closed.emit()
 
 func _send(operation: String, fields: Dictionary = {}) -> void:
 	if operation not in ["select","selection-step"]: selection_pending.clear()
@@ -419,7 +420,12 @@ func _join() -> void:
 func submit_selected_join(password: String) -> void:
 	var fields := _selection(); fields.values.merge({"name":name_edit.text, "password":password_edit.text, "cdKey":key_edit.text}, true)
 	fields.values.password=password
-	_send("join", fields); clear_secrets(); _enable(false); status.text = "Connecting…"
+	begin_join_handoff(); _send("join", fields); clear_secrets(); _enable(false); status.text = "Connecting…"
+func begin_join_handoff() -> void:
+	join_handoff_pending=true
+	for dialog in [password_dialog,details_dialog,direct_dialog]:
+		if is_instance_valid(dialog): dialog.hide()
+	refresh_entry()
 
 func _enable(enabled: bool) -> void:
 	for button in tab_buttons.values(): button.disabled = not enabled
@@ -436,9 +442,10 @@ func _enable(enabled: bool) -> void:
 func receive(message: Dictionary) -> void:
 	if int(message.get("connection", -1)) != connection: return
 	if message.kind=="browser-profile-result": profile_result(message); return
-	if message.kind == "browser-closed": wanted = false; clear_secrets(); panel.hide(); return
-	if message.kind == "browser-notice": status.text = str(message.text); clear_secrets(); return
+	if message.kind == "browser-closed": wanted = false; join_handoff_pending=false; clear_secrets(); refresh_entry(); return
+	if message.kind == "browser-notice": join_handoff_pending=false; status.text = str(message.text); clear_secrets(); refresh_entry(); return
 	if message.kind != "browser-view" or not wanted and not message.get("reopen", false): return
+	if not message.get("busy",false): join_handoff_pending=false
 	wanted = true; state = message.duplicate(true); view_id = int(message.viewId); panel.show()
 	if entry_context and str(message.get("tab","")) in ["Internet","History","Favorites"]: last_list_tab=str(message.tab)
 	if is_instance_valid(password_dialog) and password_dialog.visible and password_dialog.scope!=[connection,view_id]: password_dialog.dismiss(); password_entry=-1

@@ -33,6 +33,7 @@ var native_frontend:=false
 var native_wait: VBoxContainer
 var native_wait_text: Label
 var native_wait_cancel: Button
+var native_sync_bar: ProgressBar
 var native_prepared_at:=-1
 var native_selection: Dictionary={}
 var native_serial:=0
@@ -242,6 +243,7 @@ func show_native_wait() -> void:
 	if not is_instance_valid(native_wait):
 		var built=preload("res://systems/native_menu_builder.gd").build(panel,[{"kind":"column","id":"wait","children":[{"kind":"label","id":"text","properties":{"text":"Preparing character selection…"}},{"kind":"button","id":"cancel","properties":{"text":"Cancel"}}]}])
 		native_wait=built.nodes.wait; native_wait_text=built.nodes.text; native_wait_cancel=built.nodes.cancel
+		native_sync_bar=ProgressBar.new(); native_sync_bar.show_percentage=false; native_sync_bar.custom_minimum_size=Vector2(420,20); native_wait.add_child(native_sync_bar); native_wait.move_child(native_sync_bar,native_wait_cancel.get_index())
 		native_wait_cancel.pressed.connect(func():
 			if state.get("canCancelJoin",false): cancel_button.pressed.emit()
 			elif state.get("connected",false) and not state.get("busy",false): _send({"kind":"lobby-disconnect","saveCharacter":false}))
@@ -249,12 +251,27 @@ func show_native_wait() -> void:
 	panel.remove_theme_stylebox_override("panel"); panel.custom_minimum_size=Vector2(766,527); panel.size=panel.custom_minimum_size
 	native_wait_cancel.disabled=not state.get("canCancelJoin",false) and (not state.get("connected",false) or state.get("busy",false))
 	native_wait_text.text="Preparing character selection…"
+	if is_instance_valid(native_sync_bar): native_sync_bar.hide()
 	if is_instance_valid(native_chooser) and not native_chooser.failure.is_empty(): native_wait_text.text="Character selection unavailable: "+native_chooser.failure
+func show_sync_wait() -> void:
+	if is_instance_valid(picker): picker.hide()
+	panel.show(); show_native_wait()
+	var phase:=str(state.get("phase","")); var progress: Variant=state.get("resourceProgress")
+	if phase=="resources-unavailable": native_wait_text.text=str(state.get("error","Required server content could not be loaded."))
+	elif phase=="resources" and progress is Dictionary:
+		var total:=int(progress.get("total",0)); var completed:=int(progress.get("completed",0)); var bytes:=int(progress.get("downloadedBytes",0))
+		native_sync_bar.show(); native_sync_bar.indeterminate=progress.get("phase")=="server-manifest" or total==0; native_sync_bar.max_value=maxi(1,total); native_sync_bar.value=completed
+		native_wait_text.text="Reading server content manifest…" if progress.get("phase")=="server-manifest" else "%s · %s / %s resources · %.1f MiB received" % ["Downloading server content" if bytes>0 else "Checking cached server content",completed,total,bytes/1048576.0]
+	elif phase=="resources": native_wait_text.text="Checking required server content…"
+	else: native_wait_text.text="Connecting to server…"
 func enable_picker() -> void:
 	if is_instance_valid(picker): return
 	picker=preload("res://systems/native_character_picker.gd").new(); add_child(picker); picker.configure(self)
 	panel.visibility_changed.connect(sync_native); sync_native()
 func sync_native() -> void:
+	if is_instance_valid(native_wait): native_wait.hide()
+	if native_frontend and panel.visible and str(state.get("phase","")) in ["connecting","resources","resources-unavailable"]:
+		show_sync_wait(); _place(); return
 	if is_instance_valid(picker):
 		picker.sync()
 		var detailed: bool=picker.visible and picker.details_page>=0 and is_instance_valid(native_chooser) and native_chooser.layout_ready

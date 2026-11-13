@@ -107,7 +107,7 @@ func configure(scene, ticket_path: String) -> void:
 	lobby = preload("res://systems/character_lobby.gd").new()
 	add_child(lobby)
 	lobby.request.connect(send)
-	server_browser = preload("res://systems/server_browser.gd").new(); add_child(server_browser); server_browser.request.connect(send)
+	server_browser = preload("res://systems/server_browser.gd").new(); add_child(server_browser); server_browser.request.connect(browser_request)
 	server_browser.closed.connect(func(): if lobby.state.get("phase", "menu") == "menu": main_menu.open(false))
 	creation = preload("res://systems/server_creation.gd").new(); add_child(creation); creation.request.connect(send)
 	creation.voice_observed.connect(func(value): value["kind"] = "creation-audio-observed"; send(value))
@@ -240,6 +240,9 @@ func _make_ui() -> void:
 func _place_chat() -> void:
 	chat_box.position.y = maxf(80.0, get_viewport().get_visible_rect().size.y - 380.0)
 
+func browser_request(value: Dictionary) -> void:
+	if value.get("kind")=="browser-input" and value.get("operation")=="join": lobby.show_sync_wait()
+	send(value)
 func send(value: Dictionary) -> void:
 	if peer.get_status() == StreamPeerTCP.STATUS_CONNECTED:
 		if value.get("kind") != "hello" and not value.has("connection"):
@@ -329,6 +332,8 @@ func receive(message: Dictionary) -> void:
 		lobby.apply_state(message)
 		if str(message.state.phase) == "menu" and not message.get("auto", false): lobby.panel.hide(); main_menu.open(false)
 		elif str(message.state.phase) != "menu": main_menu.panel.hide()
+		if str(message.state.phase) in ["connecting","resources","resources-unavailable"]:
+			if not server_browser.wanted or server_browser.join_handoff_pending: lobby.show_sync_wait()
 		return
 	if int(message.get("connection", -1)) != connection:
 		return
@@ -350,6 +355,10 @@ func receive(message: Dictionary) -> void:
 		return
 	if str(message.get("kind", "")).begins_with("browser-"):
 		server_browser.receive(message)
+		var phase:=str(lobby.state.get("phase",""))
+		if phase in ["connecting","resources","resources-unavailable"] and lobby.state.get("canCancelJoin",false):
+			server_browser.begin_join_handoff(); lobby.show_sync_wait()
+		elif message.get("kind")=="browser-view" and not server_browser.join_handoff_pending: lobby.panel.hide()
 		if server_browser.panel.visible: main_menu.panel.hide(); lobby.panel.hide()
 		return
 	if message.get("kind") == "creator-live-test":

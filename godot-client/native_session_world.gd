@@ -359,7 +359,7 @@ func run() -> void:
 		character_lobby.native_frontend=true
 		render_menu.pregame.source_ready.connect(character_lobby.prepare_native_frontend)
 	character_lobby.configure_preview(str(args.get("preview-directory","")))
-	server_browser.request.connect(send)
+	server_browser.request.connect(browser_request)
 	character_lobby.request.connect(lobby_request)
 	render_menu.multiplayer_requested.connect(func():
 		if character_lobby.state.get("connected",false) or character_lobby.state.get("busy",false): character_lobby.panel.show()
@@ -397,6 +397,9 @@ func server_browser_closed() -> void:
 	if server_browser.return_to_main or not character_lobby.state.get("connected",false) and not character_lobby.state.get("canCancelJoin",false):
 		character_lobby.panel.hide(); label.text=""; render_menu.open(false)
 	else: character_lobby.panel.show()
+func browser_request(message: Dictionary) -> void:
+	if message.get("kind")=="browser-input" and message.get("operation")=="join": character_lobby.show_sync_wait()
+	send(message)
 func open_startup_menu() -> void:
 	if is_instance_valid(world): return
 	if server_browser.wanted: server_browser.close()
@@ -685,10 +688,16 @@ func receive_profiled(message: Dictionary) -> void:
 			if args.get("actions-check","")!="true" or message.get("host","")!="127.0.0.1" or int(message.get("port",0))!=5125: fail("Admission probe requires the owned original local action server"); return
 			probe_native_admission.call_deferred()
 		"browser-view","browser-closed","browser-notice","browser-profile-result":
+			if session_connection==cancelled_connection and return_to_browser and message.kind!="browser-closed": return
 			server_browser.receive(message)
+			var phase:=str(character_lobby.state.get("phase",""))
+			if session_connection!=cancelled_connection and phase in ["connecting","resources","resources-unavailable"] and character_lobby.state.get("canCancelJoin",false):
+				server_browser.begin_join_handoff(); character_lobby.show_sync_wait()
+			elif message.kind=="browser-view" and not server_browser.join_handoff_pending: character_lobby.panel.hide()
 			if message.kind=="browser-view":
 				send({"kind":"browser-observed","viewId":int(message.viewId),"native_rendering":true})
 		"lobby":
+			if session_connection==cancelled_connection and str(message.state.get("phase","")) in ["connecting","resources","resources-unavailable"]: return
 			session_connection=int(message.connection); character_lobby.apply_state(message)
 			if not pending_creator.is_empty() and not creation_entry_current(int(pending_creator.connection)):pending_creator.clear()
 			render_menu.observe_lobby(message.state)
@@ -707,7 +716,8 @@ func receive_profiled(message: Dictionary) -> void:
 			elif phase in ["menu","closed"] and return_to_browser and not message.state.get("busy",false):
 				return_to_browser=false; character_lobby.panel.hide(); label.text=""
 				server_browser.open_list()
-			elif server_browser.wanted: character_lobby.panel.hide()
+			elif server_browser.wanted and not server_browser.join_handoff_pending: character_lobby.panel.hide()
+			elif phase in ["connecting","resources","resources-unavailable"]: character_lobby.show_sync_wait()
 			if str(message.state.get("phase",""))=="area-loading" and not loading_announced:
 				loading_announced=true; loading_screen.begin(-2,"area")
 			elif str(message.state.get("phase",""))=="playing": loading_announced=false
