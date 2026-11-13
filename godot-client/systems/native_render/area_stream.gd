@@ -38,21 +38,56 @@ func _resume_clone_head() -> void:
 var priority_origin:=Vector3.ZERO
 var has_priority_origin:=false
 var priority_dirty:=false
+var native_tile_order:=OS.get_cmdline_user_args().has("--terrain-publication-order=native")
+var native_tile_batch_forced_off:=false
+var native_tile_cursor:=0
+var native_tile_failure_index:=-1
+var failed_models: Dictionary={}
+func native_order_active() -> bool:return native_tile_order and not use_terrain_batches
+func enforce_native_order_batch_contract() -> void:
+	native_tile_batch_forced_off=native_tile_order and use_terrain_batches
+	if native_tile_batch_forced_off:use_terrain_batches=false
+func fail_native_tile(index: int,reason: String) -> void:
+	if not native_order_active() or done:return
+	native_tile_failure_index=index
+	failure="Native tile "+str(index)+" failed before later publication: "+reason
+	diagnostics.errors.append(failure)
+	waiting.clear();requests.clear();publish_queue.clear();bundles.clear();publication_remaining.clear()
+	_cancel_staged_publication()
+	complete()
+func check_native_tile_failure() -> bool:
+	if not native_order_active() or done or native_tile_cursor>=definition.get("tiles",[]).size():return false
+	var model_name:=str(definition.tiles[native_tile_cursor].model)
+	if not failed_models.has(model_name):return false
+	fail_native_tile(native_tile_cursor,"model "+model_name)
+	return true
+func take_publish_row() -> Dictionary:
+	if check_native_tile_failure():return {}
+	if publish_queue.is_empty():return {}
+	if native_order_active() and int(publish_queue[0].index)!=native_tile_cursor:return {}
+	return publish_queue.pop_front()
+func queue_model_rows(model_name: String) -> void:
+	for index in definition.models[model_name]:publish_queue.append({"model":model_name,"index":index})
+	if native_order_active():publish_queue.sort_custom(func(a,b):return int(a.index)<int(b.index))
+func finish_native_tile() -> void:
+	if native_order_active():native_tile_cursor+=1
 var publication_remaining: Dictionary={}
 func set_priority_origin(value: Vector3) -> void:
 	if not value.is_finite() or has_priority_origin and priority_origin.distance_squared_to(value)<4.0: return
 	priority_origin=value; has_priority_origin=true; priority_dirty=true
 func refresh_priority() -> void:
-	if not priority_dirty or not has_priority_origin or definition.is_empty(): return
+	if not priority_dirty or definition.is_empty() or not native_order_active() and not has_priority_origin: return
 	priority_dirty=false
-	var names: Array=Priority.model_order(definition.models.keys(),definition.models,priority_origin,definition.tiles)
+	var names: Array=definition.models.keys() if native_order_active() else Priority.model_order(definition.models.keys(),definition.models,priority_origin,definition.tiles)
+	if native_order_active():names.sort_custom(func(a,b):return int(definition.models[a][0])<int(definition.models[b][0]))
 	var ranks: Dictionary={}
 	for index in names.size(): ranks[names[index]]=index
 	waiting.sort_custom(func(a,b):return int(ranks[a])<int(ranks[b]))
 	assets.prioritize(Priority.request_order(requests,names))
-	publish_queue.sort_custom(func(a,b):
-		var da: float=priority_origin.distance_squared_to(definition.tiles[int(a.index)].position); var db: float=priority_origin.distance_squared_to(definition.tiles[int(b.index)].position)
-		return da<db or (da==db and int(a.index)<int(b.index)))
+	if not native_order_active():
+		publish_queue.sort_custom(func(a,b):
+			var da: float=priority_origin.distance_squared_to(definition.tiles[int(a.index)].position); var db: float=priority_origin.distance_squared_to(definition.tiles[int(b.index)].position)
+			return da<db or (da==db and int(a.index)<int(b.index)))
 var assets
 var pool
 var generation := 0
@@ -94,6 +129,7 @@ func open_network_area(catalog, state: Dictionary, shared_pool, cache_path: Stri
 func open_source(catalog, area_name: String, shared_pool, cache_path: String, network_area: Dictionary) -> void:
 	if closed: failure="Native area owner is closed"; return
 	retire_scope(); pool=shared_pool; load_started=Time.get_ticks_usec()
+	enforce_native_order_batch_contract()
 	if not is_instance_valid(assets):
 		assets=Assets.new(); add_child(assets); assets.completed.connect(model_prepared)
 	if not is_instance_valid(batcher): batcher=TerrainBatches.new(); add_child(batcher)
@@ -136,6 +172,7 @@ func model_prepared(id: int, result: Dictionary) -> void:
 	var model_name := str(requests[id]); requests.erase(id)
 	diagnostics.worker_ms+=float(result.worker_ms)
 	if not str(result.error).is_empty():
+		if native_order_active():failed_models[model_name]=true
 		failed_tiles+=definition.models[model_name].size(); diagnostics.errors.append(model_name+": "+str(result.error)); return
 	if result.cache_hit: diagnostics.cache_hits+=1
 	if use_terrain_batches:
@@ -154,7 +191,7 @@ func model_prepared(id: int, result: Dictionary) -> void:
 	bundles[model_name]=result
 	template_keys[model_name]=Template.identity(result,pool)
 	publication_remaining[model_name]=definition.models[model_name].size()
-	for index in definition.models[model_name]: publish_queue.append({"model":model_name,"index":index})
+	queue_model_rows(model_name)
 	priority_dirty=true
 func _process(_delta: float) -> void:
 	var began:=Timing.begin()
@@ -174,8 +211,10 @@ func _profile_process(_delta: float) -> void:
 	while not waiting.is_empty() and assets.pending.size()+assets.running.size()<mini(assets.maximum_pending,assets.maximum_workers*2):
 		var model_name := str(waiting.pop_front()); var id: int = assets.request(model_name,2002,"static-model")
 		if id<0:
+			if native_order_active():failed_models[model_name]=true
 			failed_tiles+=definition.models[model_name].size(); diagnostics.errors.append(assets.failure)
 		else: requests[id]=model_name; diagnostics.model_jobs+=1
+	if check_native_tile_failure():return
 	if use_terrain_batches:
 		publish_batches(); return
 	if light_table.is_empty(): return
@@ -186,8 +225,11 @@ func _profile_process(_delta: float) -> void:
 		if attempted>=16 and not shared_budget:break
 		if attempted>0 and Time.get_ticks_usec()-begin>=Template.callback_budget(pool,int(publication_budget_ms*1000)): break
 		if pool.has_method("can_publish") and not pool.can_publish(): break
+		var row: Dictionary=take_publish_row()
+		if row.is_empty():break
 		attempted+=1
-		var row: Dictionary = publish_queue.pop_front(); var tile: Dictionary = definition.tiles[int(row.index)]
+		var row_generation:=generation
+		var tile: Dictionary = definition.tiles[int(row.index)]
 		var tile_begin:=Time.get_ticks_usec(); var key:=str(template_keys[row.model])
 		if not templates.has(key):
 			var template_begin:=Time.get_ticks_usec()
@@ -229,6 +271,7 @@ func _profile_process(_delta: float) -> void:
 			_clone_entry={};model=creation.get("instance")
 		else:model=templates[key].create() if templates.has(key) else null
 		diagnostics.clone_ms+=(Time.get_ticks_usec()-clone_begin)/1000.0
+		var native_row_failed:=model==null and native_order_active()
 		if model==null: failed_tiles+=1
 		else:
 			var attach_begin:=Time.get_ticks_usec()
@@ -239,18 +282,24 @@ func _profile_process(_delta: float) -> void:
 			collision_index.put(model)
 			diagnostics.tile_lights.append({"index":int(row.index),"model":row.model,"indices":tile.main_lights.duplicate(),"lights":TileLights.apply(model,str(row.model),TileLights.colors(tile.main_lights,light_table))})
 			tile_published.emit(int(row.index),model)
+			if native_order_active() and generation!=row_generation:return
 			if is_instance_valid(static_scenery_batches):static_scenery_batches.consider_tile(int(row.index),model)
 			for feature in model.limitations:
 				if not diagnostics.limitations.has(feature): diagnostics.limitations.append(feature)
 		published+=1
+		finish_native_tile()
 		if pool.has_method("publication_finished"): pool.publication_finished(tile_begin)
 		diagnostics.max_tile_publish_ms=maxf(diagnostics.max_tile_publish_ms,(Time.get_ticks_usec()-tile_begin)/1000.0)
 		# Once every placement for this model was consumed, drop the CPU bundle.
 		publication_remaining[row.model]-=1
 		if int(publication_remaining[row.model])==0: bundles.erase(row.model); publication_remaining.erase(row.model)
+		if native_row_failed:
+			fail_native_tile(int(row.index),"template or clone "+str(row.model))
+			return
 	if published>0:
 		var elapsed:=(Time.get_ticks_usec()-begin)/1000.0
 		diagnostics.publish_frames+=1; diagnostics.publish_ms+=elapsed; diagnostics.max_publish_ms=maxf(diagnostics.max_publish_ms,elapsed); progress.emit(snapshot())
+	if check_native_tile_failure():return
 	if waiting.is_empty() and requests.is_empty() and publish_queue.is_empty(): complete()
 func publish_batches() -> void:
 	var begin:=Time.get_ticks_usec(); var published:=0
@@ -270,7 +319,7 @@ func snapshot() -> Dictionary:
 	var state := diagnostics.duplicate(true)
 	state.collision_index=collision_index.snapshot()
 	state.static_scenery=static_scenery_batches.snapshot() if is_instance_valid(static_scenery_batches) else {"enabled":false,"mode":static_scenery_mode}
-	state.streaming_priority={"player_centered":has_priority_origin,"origin":[priority_origin.x,priority_origin.y,priority_origin.z],"policy":"nearest ready tile; unique model work ranked by nearest placement"}
+	state.streaming_priority={"player_centered":has_priority_origin,"origin":[priority_origin.x,priority_origin.y,priority_origin.z],"policy":"native ascending tile index; unique model work ranked by first tile" if native_order_active() else "nearest ready tile; unique model work ranked by nearest placement","native_tile_order_requested":native_tile_order,"native_tile_order_active":native_order_active(),"native_tile_cursor":native_tile_cursor,"native_tile_failure_index":native_tile_failure_index,"native_tile_batch_forced_off":native_tile_batch_forced_off}
 	state.merge({"complete":done,"success":done and diagnostics.errors.is_empty(),"tiles":definition.get("tiles",[]).size(),"rendered_tiles":completed_tiles,"failed_tiles":failed_tiles,"instances":instances.size(),"elapsed_ms":(Time.get_ticks_usec()-load_started)/1000.0,"rendering_native":true,"full_world":false})
 	return state
 func complete() -> void:
@@ -283,7 +332,7 @@ func invalidate_static_scenery_tile(index: int,reason: String="authored-tile-dra
 	if is_instance_valid(static_scenery_batches) and instances.get(index) is Node3D:static_scenery_batches.withdraw_model(instances[index],reason)
 func retire_scope() -> void:
 	_cancel_staged_publication()
-	generation+=1; definition_wait={}; waiting.clear(); requests.clear(); publish_queue.clear(); bundles.clear(); template_keys.clear(); definition={}; light_table={}; light_table_job=-1; failure=""; done=false; completed_tiles=0; failed_tiles=0
+	generation+=1; definition_wait={}; waiting.clear(); requests.clear(); publish_queue.clear(); bundles.clear(); template_keys.clear(); definition={}; light_table={}; light_table_job=-1; failure=""; done=false; completed_tiles=0; failed_tiles=0;native_tile_cursor=0;native_tile_failure_index=-1;native_tile_batch_forced_off=false;failed_models.clear()
 	batch_queue.clear(); batch_remaining.clear()
 	publication_remaining.clear(); priority_dirty=true
 	if is_instance_valid(batcher): batcher.retire_scope()
