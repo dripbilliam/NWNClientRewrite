@@ -1,6 +1,8 @@
 # Keep installed executables and extracted game data out of this research repo.
 node_modules/
 dist/
+# Local third-party research/build checkouts; keep them off Git without deleting local copies.
+/references/
 __pycache__/
 *.py[cod]
 *.exe
