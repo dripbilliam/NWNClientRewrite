@@ -51,11 +51,17 @@ func advance(state) -> void:
 	if not client.pivots.has(client.controlled_id) or not is_instance_valid(environment_owner.camera): return
 	var layout := Placement.from_camera(client.pivots[client.controlled_id].global_position,environment_owner.camera)
 	var index := 0
+	var sampled_intensity := NAN
+	var clip_fraction := 0.0
 	for model in models.values():
 		var p: Array = layout[index].position;var q: Array = layout[index].quaternion
 		model.global_transform = Transform3D(Basis(Quaternion(q[1],q[3],-q[2],q[0])),Vector3(p[0],p[2],-p[1]));index += 1
 		if last_intensity != state.intensity:
-			if not model.sample_weather_clip(types[current_type].animation,state.snapshot().clipFraction):
+			# A zero may change sign while comparing equal; keep its exact clip input.
+			if sampled_intensity != state.intensity or state.intensity == 0.0:
+				sampled_intensity = state.intensity
+				clip_fraction = state.snapshot().clipFraction
+			if not model.sample_weather_clip(types[current_type].animation,clip_fraction):
 				error = "Original weather animation/controller is unavailable";stats.failures += 1
 	if last_intensity != state.intensity: stats.samples += 1;last_intensity = state.intensity
 
