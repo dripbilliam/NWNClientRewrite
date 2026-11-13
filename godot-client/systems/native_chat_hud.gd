@@ -51,6 +51,10 @@ var context_epoch:=-1
 var admitted: Array=[{},{}]
 var reply_plan: Dictionary={}
 var rendering_history:=false
+var chat_activation_probe:=OS.get_cmdline_user_args().has("--nwn62-chat-activation-phases")
+var activation_probe_active:=false
+var activation_history_us:=0
+var activation_history_calls:=0
 func configure(ui,catalog,cache_path: String,layout: String) -> void:
 	owner_ui=ui; panel=ui.chat; panel.native_skin=self; frame=ui.inventory.frame_skin; storage=layout
 	preferences=Preferences.load_settings(storage); split=bool(preferences.split); panel.history_limit=int(preferences.history)
@@ -83,13 +87,33 @@ func prepared(id: int,result: Dictionary) -> void:
 func image(resource: String,parent: Control) -> TextureRect:
 	var target:=TextureRect.new(); parent.add_child(target); target.mouse_filter=Control.MOUSE_FILTER_IGNORE; target.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; target.stretch_mode=TextureRect.STRETCH_SCALE; return target
 func activate() -> void:
+	var activation_started:=Time.get_ticks_usec() if chat_activation_probe else 0
+	var phase_started:=activation_started
+	var phases: Dictionary={}
 	definition=Plan.parse(models)
 	if not str(definition.error).is_empty(): failure=str(definition.error); return
 	reply_plan=ReplyLayout.parse(models.but_chat_reply)
 	if not str(reply_plan.error).is_empty(): failure=str(reply_plan.error); return
+	if chat_activation_probe:
+		phases.parse_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
+		activation_probe_active=true;activation_history_us=0;activation_history_calls=0
+	var bind_started:=0
+	var direct_bind_us:=0
 	layout_ready=true; panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.mouse_filter=Control.MOUSE_FILTER_IGNORE; panel.custom_minimum_size=Vector2.ZERO
-	context=preload("res://systems/server_radial.gd").new(); panel.add_child(context); context.configure_art(frame.art); context.configure_text(frame.fonts); context.request.connect(context_request)
+	if chat_activation_probe:phases.layout_setup_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
+	context=preload("res://systems/server_radial.gd").new()
+	if chat_activation_probe:phases.context_new_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
+	panel.add_child(context)
+	if chat_activation_probe:
+		phases.context_add_us=Time.get_ticks_usec()-phase_started
+		phases.context_create_us=phases.context_new_us+phases.context_add_us;phase_started=Time.get_ticks_usec()
+	context.configure_art(frame.art); context.configure_text(frame.fonts); context.request.connect(context_request)
+	if chat_activation_probe:phases.context_bind_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
 	stage=Control.new(); panel.add_child(stage); stage.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	if chat_activation_probe:
+		phases.stage_create_us=Time.get_ticks_usec()-phase_started
+		phases.context_stage_us=phases.layout_setup_us+phases.context_create_us+phases.context_bind_us+phases.stage_create_us
+		phase_started=Time.get_ticks_usec();phases.pane_us=[]
 	for index in 2:
 		var container:=Control.new(); stage.add_child(container); container.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var background:=Backdrop.new(); container.add_child(background); var handle:=Control.new(); container.add_child(handle); handle.mouse_filter=Control.MOUSE_FILTER_STOP; handle.mouse_default_cursor_shape=Control.CURSOR_VSIZE; handle.gui_input.connect(handle_input.bind(index))
@@ -97,35 +121,85 @@ func activate() -> void:
 		var scroll:=ScrollContainer.new(); container.add_child(scroll); scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED; scroll.mouse_filter=Control.MOUSE_FILTER_STOP; scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
 		var body:=Control.new(); scroll.add_child(body); body.mouse_filter=Control.MOUSE_FILTER_PASS; body.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		var label: RichTextLabel=panel.messages if index==0 else panel.system_messages
-		label.reparent(body,false); label.fit_content=true; label.scroll_active=false; label.custom_minimum_size=Vector2.ZERO; label.mouse_filter=Control.MOUSE_FILTER_PASS; label.selection_enabled=true; label.context_menu_enabled=false; label.add_theme_constant_override("outline_size",0); frame.fonts.bind(label,Plan.FONT)
+		label.reparent(body,false); label.fit_content=true; label.scroll_active=false; label.custom_minimum_size=Vector2.ZERO; label.mouse_filter=Control.MOUSE_FILTER_PASS; label.selection_enabled=true; label.context_menu_enabled=false; label.add_theme_constant_override("outline_size",0)
+		if chat_activation_probe:bind_started=Time.get_ticks_usec()
+		frame.fonts.bind(label,Plan.FONT)
+		if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
 		label.gui_input.connect(pane_input.bind(index)); scroll.gui_input.connect(pane_input.bind(index))
 		label.minimum_size_changed.connect(sync_content.bind(index))
 		var bar:=Scrollbar.new(); container.add_child(bar)
 		var grip:=Control.new(); container.add_child(grip); grip.size=Vector2(12,12); grip.mouse_default_cursor_shape=Control.CURSOR_HSIZE; grip.gui_input.connect(width_input.bind(index))
 		panes.append({"container":container,"background":background,"handle":handle,"handle_image":handle_image,"scroll":scroll,"body":body,"label":label,"replies":{},"wanted_replies":{},"bar":bar,"grip":grip,"resource":"","background_resource":"","handle_resource":""})
-	prompt_background=Backdrop.new(); stage.add_child(prompt_background); prompt_background.configure(frame.art,"pnl_chat_prompt",Rect2(0,-20,2040,23))
+		if chat_activation_probe:phases.pane_us.append(Time.get_ticks_usec()-phase_started);phase_started=Time.get_ticks_usec()
+	prompt_background=Backdrop.new(); stage.add_child(prompt_background)
+	if chat_activation_probe:bind_started=Time.get_ticks_usec()
+	prompt_background.configure(frame.art,"pnl_chat_prompt",Rect2(0,-20,2040,23))
+	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
 	entry_clip=Control.new(); stage.add_child(entry_clip); entry_clip.clip_contents=true; entry_clip.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	panel.entry.reparent(entry_clip,false); panel.entry.placeholder_text=""; panel.entry.max_length=0; panel.entry.custom_minimum_size=Vector2.ZERO; panel.entry.add_theme_font_size_override("font_size",14)
 	for state in ["normal","focus","read_only"]: panel.entry.add_theme_stylebox_override(state,StyleBoxEmpty.new())
+	if chat_activation_probe:bind_started=Time.get_ticks_usec()
 	frame.fonts.bind(panel.entry,Plan.FONT)
+	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
 	panel.entry.minimum_size_changed.connect(place_entry)
-	mode_button=Button.new(); stage.add_child(mode_button); var rect: Rect2=definition.models.ctl_btn_chatmode.bounds; frame.button(mode_button,{"resource":"ctl_btn_chatmode","rect":rect,"offset":Vector2.ZERO},stage,models,false); mode_button.pressed.connect(toggle_modes)
-	mode_label=frame.button_caption(mode_button,"",14); frame.fonts.bind(mode_label,Plan.FONT); mode_label.modulate.a=0.65
+	if chat_activation_probe:phases.prompt_entry_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
+	mode_button=Button.new(); stage.add_child(mode_button); var rect: Rect2=definition.models.ctl_btn_chatmode.bounds
+	if chat_activation_probe:bind_started=Time.get_ticks_usec()
+	frame.button(mode_button,{"resource":"ctl_btn_chatmode","rect":rect,"offset":Vector2.ZERO},stage,models,false)
+	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
+	mode_button.pressed.connect(toggle_modes)
+	if chat_activation_probe:bind_started=Time.get_ticks_usec()
+	mode_label=frame.button_caption(mode_button,"",14)
+	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
+	if chat_activation_probe:bind_started=Time.get_ticks_usec()
+	frame.fonts.bind(mode_label,Plan.FONT)
+	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
+	mode_label.modulate.a=0.65
 	popup=Control.new(); stage.add_child(popup); popup.mouse_filter=Control.MOUSE_FILTER_IGNORE; popup.hide()
-	popup_background=image("",popup); var popup_rect: Rect2=definition.models.ctl_lst_chatmode.bounds; popup_background.position=popup_rect.position; popup_background.size=popup_rect.size; frame.art.bind(popup_background,"ctl_lst_chatmode","texture",true,"")
+	popup_background=image("",popup); var popup_rect: Rect2=definition.models.ctl_lst_chatmode.bounds; popup_background.position=popup_rect.position; popup_background.size=popup_rect.size
+	if chat_activation_probe:bind_started=Time.get_ticks_usec()
+	frame.art.bind(popup_background,"ctl_lst_chatmode","texture",true,"")
+	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
 	var lo: Vector2=definition.models.ctl_lst_chatmode.hooks.text0; var hi: Vector2=definition.models.ctl_lst_chatmode.hooks.text1
 	for index in Prompt.MODES.size():
 		var option:=Button.new(); popup.add_child(option); option.focus_mode=Control.FOCUS_NONE; option.position=Vector2(lo.x,lo.y+index*17); option.size=Vector2(hi.x-lo.x,17)
 		for state in ["normal","hover","pressed","disabled","focus"]: option.add_theme_stylebox_override(state,StyleBoxEmpty.new())
-		frame.fonts.bind(option,Plan.FONT); option.alignment=HORIZONTAL_ALIGNMENT_LEFT; option.pressed.connect(select_mode.bind(index)); mode_options.append(option)
-	notice=Label.new(); stage.add_child(notice); notice.mouse_filter=Control.MOUSE_FILTER_IGNORE; frame.fonts.bind(notice,Plan.FONT); notice.add_theme_color_override("font_color",Color(1,0.8,0.3)); notice.hide()
+		if chat_activation_probe:bind_started=Time.get_ticks_usec()
+		frame.fonts.bind(option,Plan.FONT)
+		if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
+		option.alignment=HORIZONTAL_ALIGNMENT_LEFT; option.pressed.connect(select_mode.bind(index)); mode_options.append(option)
+	notice=Label.new(); stage.add_child(notice); notice.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	if chat_activation_probe:bind_started=Time.get_ticks_usec()
+	frame.fonts.bind(notice,Plan.FONT)
+	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
+	notice.add_theme_color_override("font_color",Color(1,0.8,0.3)); notice.hide()
 	panel.set_meta("native_window_omit_body",true)
 	var regions: Array=[weakref(prompt_background),weakref(entry_clip),weakref(mode_button),weakref(popup_background)]
 	for pane in panes:
 		for control in [pane.background,pane.handle,pane.scroll,pane.grip]: regions.append(weakref(control))
 	panel.set_meta("native_window_extras",regions)
-	refresh_modes(); apply_message_font(); place(); rebuild_admission(); render_history()
+	if chat_activation_probe:
+		phases.mode_popup_meta_us=Time.get_ticks_usec()-phase_started
+		phases.construct_bind_us=phases.context_stage_us+phases.pane_us[0]+phases.pane_us[1]+phases.prompt_entry_us+phases.mode_popup_meta_us
+		phases.direct_bind_us=direct_bind_us;phase_started=Time.get_ticks_usec()
+	refresh_modes()
+	if chat_activation_probe:phases.refresh_modes_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
+	apply_message_font()
+	if chat_activation_probe:phases.font_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
+	place()
+	if chat_activation_probe:phases.place_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
+	rebuild_admission()
+	if chat_activation_probe:phases.admission_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
+	render_history()
+	if chat_activation_probe:phases.final_history_call_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
 	context_prepared.emit()
+	if chat_activation_probe:
+		phases.notify_us=Time.get_ticks_usec()-phase_started
+		phases.history_all_us=activation_history_us;phases.history_calls=activation_history_calls
+		phases.total_us=Time.get_ticks_usec()-activation_started
+		phases.rows=panel.rows.size();phases.panes=panes.size();phases.models=models.size()
+		activation_probe_active=false
+		print("NWN62_CHAT_ACTIVATION_PHASES ",JSON.stringify(phases))
 func refresh_modes() -> void:
 	if not layout_ready or closed: return
 	revision=int(owner_ui.text.revision)
@@ -175,6 +249,7 @@ func place() -> void:
 	if reflow: render_history()
 func render_history() -> void:
 	if not layout_ready or closed or rendering_history: return
+	var activation_history_started:=Time.get_ticks_usec() if chat_activation_probe and activation_probe_active else 0
 	rendering_history=true
 	var following: Array=[]; var positions: Array=[]
 	for pane in panes:
@@ -221,6 +296,7 @@ func render_history() -> void:
 	# after the container has recalculated the new received text height.
 	if scroll_restore.is_empty(): scroll_restore=[following.map(func(value):return bool(value) and bool(preferences.autoscroll)),positions]
 	if not get_tree().process_frame.is_connected(restore_scroll): get_tree().process_frame.connect(restore_scroll,CONNECT_ONE_SHOT)
+	if chat_activation_probe and activation_probe_active:activation_history_us+=Time.get_ticks_usec()-activation_history_started;activation_history_calls+=1
 func sync_content(index: int) -> void:
 	if closed or rendering_history or index>=panes.size(): return
 	var pane: Dictionary=panes[index]; var label: RichTextLabel=pane.label
