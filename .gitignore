@@ -3,6 +3,8 @@ node_modules/
 dist/
 # Local third-party research/build checkouts; keep them off Git without deleting local copies.
 /references/
+# Local Git worktrees are development state, not distributable submodules.
+/.worktrees/
 __pycache__/
 *.py[cod]
 *.exe
