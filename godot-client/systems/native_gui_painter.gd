@@ -55,6 +55,7 @@ func button_exiting(control: Button) -> void:
 func image(resource: String,rect: Rect2,parent: Control) -> TextureRect:
 	var control:=TextureRect.new(); control.mouse_filter=Control.MOUSE_FILTER_IGNORE; control.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; control.stretch_mode=TextureRect.STRETCH_SCALE; parent.add_child(control)
 	control.set_meta("native_gui_static_image",true)
+	control.set_meta("native_gui_art_key",art.models.model_key(resource,""))
 	control.position=rect.position; control.size=rect.size; art.bind(control,resource,"texture",true,"")
 	return control
 func button(control: Button,entry: Dictionary,parent: Control,source_models: Dictionary={},follow_footer: bool=true,checkbox: bool=false) -> void:

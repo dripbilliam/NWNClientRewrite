@@ -153,10 +153,57 @@ func confirm_result(accepted: bool) -> void:
 	var valid: bool=confirm_capture.get("scope",[])==scope and int(confirm_capture.get("revision",-1))==revision and press.get("scope",[])==scope and int(press.get("revision",-1))==revision and bool(enabled.get("exitbutton",false))
 	cancel_confirmation()
 	if accepted and valid: action_requested.emit("exit-confirmed")
+func cohort_snapshot() -> Dictionary:
+	# This is the complete constructed pre_main + okcancelpanel page cohort,
+	# including the hidden confirmation. Other menu pages have separate gates.
+	var result:={"scope":kind+"+okcancelpanel","sealed":layout_ready,"ready":false,"models_expected":requested.size(),"models_ready":models.size(),"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0,"pending":[],"failures":[]}
+	if not failure.is_empty(): result.failures.append(failure)
+	if closed: result.failures.append("Page owner is closed")
+	if not layout_ready:
+		if result.failures.is_empty(): result.pending.append("GFF/model layout")
+		return result
+	if not is_instance_valid(frame) or not is_instance_valid(frame.art) or not is_instance_valid(frame.fonts):
+		result.failures.append("Page artwork/font owners are unavailable"); return result
+	if models.size()!=requested.size(): result.failures.append("Resolved page model cohort is incomplete")
+	for owner in [stage,confirmation]:
+		if not is_instance_valid(owner): result.failures.append("Page image owner is unavailable"); continue
+		for node in owner.find_children("*","TextureRect",true,false):
+			result.images_expected+=1
+			var key:=str(node.get_meta("native_gui_art_key",""))
+			if key.is_empty(): result.failures.append("Unregistered page image: "+str(node.name)); continue
+			if node.texture!=null: result.images_ready+=1
+			elif frame.art.failed.has(key): result.failures.append("Page image "+key+": "+art_failure(key))
+			else: result.pending.append("image:"+key)
+		for node in owner.find_children("*","Label",true,false):
+			var name:=str(node.get_meta("native_font_resource",""))
+			if name.is_empty():
+				if not node.text.is_empty(): result.failures.append("Unregistered page font: "+str(node.name))
+				continue
+			result.fonts_expected+=1
+			if str(node.get_meta("native_font_applied",""))==name: result.fonts_ready+=1
+			elif frame.fonts.failed.has(name): result.failures.append("Page font "+name+": "+str(frame.fonts.failed[name]))
+			else: result.pending.append("font:"+name)
+	for button in buttons.values()+confirm_buttons.values():
+		var data: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		if data.is_empty(): result.failures.append("Unregistered page button: "+str(button.name)); continue
+		for pair in data.styles.values():
+			result.images_expected+=1
+			var key: String=frame.art.models.model_key(str(data.resource),str(pair[1]),data.overrides)
+			if pair[0].texture!=null: result.images_ready+=1
+			elif frame.art.failed.has(key): result.failures.append("Page image "+key+": "+art_failure(key))
+			else: result.pending.append("image:"+key)
+	result.ready=result.failures.is_empty() and result.pending.is_empty() and result.models_ready==result.models_expected
+	return result
+func art_failure(key: String) -> String:
+	if frame.art.ui_assets!=null:
+		var reason: String=frame.art.ui_assets.failure("model" if key.begins_with("gui:") else "raster",key)
+		if not reason.is_empty(): return reason
+	return "Original UI image could not be prepared"
 func art_ready() -> bool:
+	if kind=="pre_main": return bool(cohort_snapshot().ready)
+	# The options page retains its existing admission rule until its own
+	# installed-content cohort has a separate readiness gate.
 	if not layout_ready or closed or not is_instance_valid(frame) or not failure.is_empty(): return false
-	# Only this menu's visuals gate its presentation. Unrelated inventory/model
-	# jobs on the shared painter cannot hold the menu behind a prototype screen.
 	for owner in [stage,confirmation]:
 		for node in owner.find_children("*","TextureRect",true,false):
 			if node.texture==null: return false
@@ -169,9 +216,14 @@ func art_ready() -> bool:
 			if pair[0].texture==null: return false
 	return true
 func _process(_delta: float) -> void:
-	if not art_announced and art_ready(): art_announced=true; set_process(false); artwork_ready.emit()
+	if art_announced: return
+	if kind!="pre_main":
+		if art_ready(): art_announced=true; set_process(false); artwork_ready.emit()
+		return
+	var cohort: Dictionary=cohort_snapshot()
+	if cohort.ready or not cohort.failures.is_empty(): art_announced=true; set_process(false); artwork_ready.emit()
 func snapshot() -> Dictionary:
-	return {"ready":layout_ready,"art_ready":art_ready(),"failure":failure,"kind":kind,"size":[size.x,size.y],"buttons":buttons.keys(),"confirmation":is_instance_valid(confirmation) and confirmation.visible,"scope":scope.duplicate(),"jobs":jobs.size(),"native_only":true,"full_entry_menu_parity":false}
+	return {"ready":layout_ready,"art_ready":art_ready(),"failure":failure,"kind":kind,"size":[size.x,size.y],"buttons":buttons.keys(),"confirmation":is_instance_valid(confirmation) and confirmation.visible,"scope":scope.duplicate(),"jobs":jobs.size(),"cohort":cohort_snapshot(),"native_only":true,"full_entry_menu_parity":false}
 func close() -> void:
 	if closed: return
 	closed=true; dismiss()

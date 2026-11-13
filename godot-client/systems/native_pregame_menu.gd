@@ -76,6 +76,12 @@ func dismiss() -> void:
 func refresh() -> void:
 	if closed: return
 	if not failure.is_empty(): status.text="Menu resources unavailable: "+failure
+	elif page=="main":
+		var active=main
+		if is_instance_valid(active):
+			var cohort: Dictionary=active.cohort_snapshot()
+			if not cohort.failures.is_empty(): status.text="Menu resources unavailable ("+str(cohort.scope)+"): "+str(cohort.failures[0])
+			else: status.text="Preparing menu resources…"
 	if is_instance_valid(main):
 		var state:=Plan.main_state(main.layout_ready,false,true)
 		# Multiplayer-only client mode has no local New/Load workflow. Movies
