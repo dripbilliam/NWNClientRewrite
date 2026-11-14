@@ -9,6 +9,7 @@ const BicVisual=preload("res://systems/native_data/bic_visual.gd")
 const Table=preload("res://systems/native_data/two_da.gd")
 const Binary=preload("res://systems/native_data/binary_data.gd")
 const Appearance=preload("res://systems/native_data/creature_appearance.gd")
+const LiveWorld=preload("res://systems/native_render/live_world.gd")
 
 var failures: Array[String]=[]
 var output:=""
@@ -149,11 +150,26 @@ func run()->void:
 			await process_frame
 		if not headless_structural: await capture(variant+"-cloak-walk")
 		source.walk_code=walk_code; source.walk_clip=walk_name
+	var live:=LiveWorld.new()
+	live.area_id=91; live.controlled_id=83001
+	var bare: Dictionary=control.duplicate(true); bare.id=83001; bare.areaId=91
+	var equipped: Dictionary=cloaked.duplicate(true); equipped.id=83001; equipped.areaId=91
+	live.receive([bare],83001)
+	var bare_key: String=live.signature(bare)
+	live.installed[83001]=bare_key
+	live.receive_delta([equipped],[],83001)
+	var equipped_key: String=live.signature(equipped)
+	check(equipped_key!=bare_key and live.pending_plan({}).actors.size()==1,"slot-64 equip delta schedules controlled actor replacement")
+	live.installed[83001]=equipped_key
+	live.receive_delta([bare],[],83001)
+	check(live.desired[83001].key==bare_key and live.pending_plan({}).actors.size()==1,"slot-64 unequip delta schedules controlled actor replacement")
+	source.live_delta={"bare_key":bare_key,"equipped_key":equipped_key,"equip_replaced":equipped_key!=bare_key,"unequip_returned":live.desired[83001].key==bare_key}
+	live.close(); live.free()
 	finish()
 func finish()->void:
 	var source_hashes:={}
 	for path in ["systems/native_data/creature_appearance.gd","systems/native_render/creature_stream.gd","systems/native_render/actor_instance.gd","systems/native_data/bic_visual.gd","systems/native_data/resource_catalog.gd"]: source_hashes[path]=FileAccess.get_sha256("res://"+path)
-	var report:={"success":failures.is_empty(),"failures":failures,"source":source,"source_hashes":source_hashes,"captures":captures,"headless_structural":headless_structural,"secondary":root.current_screen!=DisplayServer.get_primary_screen() if not headless_structural else false,"no_focus":root.get_flag(Window.FLAG_NO_FOCUS) if not headless_structural else true,"scope":"Current production source, original shifter BIC row 3 or monk BIC with only cloak part changed to installed row 2. Control removes slot 64. Static and 24-step mapped walk. Headless structural mode omits pixel capture and makes no visual claim. No FPS or live Arelith."}
+	var report:={"success":failures.is_empty(),"failures":failures,"source":source,"source_hashes":source_hashes,"captures":captures,"headless_structural":headless_structural,"secondary":root.current_screen!=DisplayServer.get_primary_screen() if not headless_structural else false,"no_focus":root.get_flag(Window.FLAG_NO_FOCUS) if not headless_structural else true,"scope":"Current production source, original shifter BIC row 3 or monk BIC with only cloak part changed to installed row 2. Control removes slot 64. Static and 24-step mapped walk; actual LiveWorld slot-64 equip/unequip scheduling. Headless structural mode omits pixel capture and makes no visual claim. No FPS or live Arelith."}
 	var file:=FileAccess.open(output,FileAccess.WRITE); file.store_string(JSON.stringify(report,"  ")); file.close()
 	print(JSON.stringify({"success":report.success,"failures":failures,"report":output,"captures":captures}))
 	if is_instance_valid(stream): stream.close(); stream.queue_free()
