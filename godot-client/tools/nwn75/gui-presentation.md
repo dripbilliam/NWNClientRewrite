@@ -18,6 +18,8 @@ The [GUI ledger](gui-presentation-ledger.json) now gives an exact machine instru
 
 The [legacy GUI draw ownership supplement](legacy-gui-draw-ownership.md) follows panel GFF model/tag construction, activation into a registered `sceneGUI` view, the camera/scene/Gob render dispatch, label `StringGob` text, and the conditional model/image and font GL leaves. Its [edge ledger](legacy-gui-draw-ledger.json) separates static targets from dynamic panel, model and Part subtype reachability.
 
+The [item icon presentation supplement](item-icon-presentation.md) connects item-dependent icon selection and ownership to GUI icon-model creation and the shared scene/texture path. It does not establish an all-icons startup preload or the exact first-draw residency of each item image.
+
 The [legacy panel activation supplement](legacy-panel-activation.md) follows subclass activation slots, active-panel ownership, page callback/widget import and the attachment route into those draw leaves. Its [named-vtable ledger](legacy-panel-activation-ledger.json) records 81 panel-signature tables and leaves runtime panel population explicit.
 
 The [legacy attachment and panel callback producer supplement](legacy-gui-attachment-callback-producers.md) bounds `StringGob` embedded-model production, proves the fresh `AurPrintString` path has no local attached-model producer, and traces loadscreen/credits `CGuiPanel+0x88` callback installation through active-gated deactivation. Its [edge ledger](legacy-gui-attachment-callback-ledger.json) keeps the indirect model producer and runtime panel population open.

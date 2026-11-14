@@ -7,7 +7,7 @@ func run() -> void:
 		if arg.begins_with("--install="): install=arg.trim_prefix("--install=")
 	if install.is_empty(): quit(2); return
 	var phases: Array=[]; var last: Dictionary={}
-	var prepared: Dictionary=Session.prepare({"install":install,"language":"en"},Callable(),func(phase: String,completed: int,total: int):
+	var prepared: Dictionary=Session.prepare({"install":install,"language":"en","preloadBulkIconSources":true},Callable(),func(phase: String,completed: int,total: int):
 		if phases.is_empty() or phases.back()!=phase: phases.append(phase)
 		last.merge({"phase":phase,"completed":completed,"total":total},true))
 	if not str(prepared.get("error","")).is_empty(): push_error("Session preparation failed: "+str(prepared.error)); quit(3); return

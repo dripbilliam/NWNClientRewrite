@@ -111,10 +111,13 @@ static func prepare(sources: Dictionary,guard: Callable=Callable(),progress_call
 	stop=stopped(guard,catalog,began,"resource index"); if not stop.is_empty(): return stop
 	var index_stats:=catalog.build_resource_index()
 	stop=stopped(guard,catalog,began,"publication"); if not stop.is_empty(): return stop
-	var icon_sources:=ItemIconSources.preload_all(catalog,guard,progress_callback)
+	# Original source reads fall through to the catalog's selected archive and
+	# session store on demand. Only explicit diagnostics preload every icon.
+	var eager_icons: bool=bool(sources.get("preloadBulkIconSources",false))
+	var icon_sources: Dictionary=ItemIconSources.preload_all(catalog,guard,progress_callback) if eager_icons else {"policy":"on-demand","deferred":true,"total":0,"completed":0,"loaded":0,"reused":0,"failures":[],"resident_bytes":ItemIconSources.size_bytes()}
 	if icon_sources.get("cancelled",false): return stopped(guard,catalog,began,"item icons")
 	if not icon_sources.failures.is_empty(): return {"catalog":catalog,"error":"Item icon source unavailable: "+str(icon_sources.failures[0]),"stats":{"item_icon_sources":icon_sources}}
-	var spellbook_sources:=SpellbookIconSources.preload_all(catalog,guard,progress_callback)
+	var spellbook_sources: Dictionary=SpellbookIconSources.preload_all(catalog,guard,progress_callback) if eager_icons else {"policy":"on-demand","deferred":true,"total":0,"completed":0,"loaded":0,"reused":0,"missing":[],"failures":[],"resident_bytes":SpellbookIconSources.size_bytes()}
 	if spellbook_sources.get("cancelled",false): return stopped(guard,catalog,began,"spellbook icons")
 	if not spellbook_sources.failures.is_empty(): return {"catalog":catalog,"error":"Spellbook/action icon source unavailable: "+str(spellbook_sources.failures[0]),"stats":{"item_icon_sources":icon_sources,"spellbook_icon_sources":spellbook_sources}}
 	return {"catalog":catalog,"error":"","stats":{"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"metadata_backend":"compiled" if Backend.available() else "gd","lookup_index":index_stats,"phases":phases,"layers":catalog.layers.size(),"manifests":index,"workshop_mods":roots.map(func(row):return row.id),"item_icon_sources":icon_sources,"spellbook_icon_sources":spellbook_sources,"worker_thread":OS.get_thread_caller_id(),"rendering_prepared":false,"residency":catalog.residency_stats()}}

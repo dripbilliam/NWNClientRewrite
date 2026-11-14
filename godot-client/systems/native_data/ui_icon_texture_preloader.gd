@@ -1,12 +1,13 @@
 extends Node
-# Prepare installed item/spell raster images before the main menu is admitted.
-# The catalog-scoped UI owner holds every completed Texture2D strongly.
+# Optional eager diagnostic for installed item/spell/effect raster images.
+# Ordinary menu and server admission use exact visible art instead of this census.
 signal texture_ready(name: String, texture: Texture2D)
 signal completed(stats: Dictionary)
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Pool=preload("res://systems/native_render/resource_pool.gd")
 const Table=preload("res://systems/native_data/two_da.gd")
 const SpellIcons=preload("res://systems/native_data/spellbook_icon_sources.gd")
+const ItemIcons=preload("res://systems/native_data/item_icon_sources.gd")
 const SharedRasters=preload("res://systems/native_data/shared_ui_rasters.gd")
 const MAX_INFLIGHT:=24
 var catalog
@@ -38,7 +39,7 @@ func configure(source,cache_path: String,names: Array=[]) -> void:
 
 func item_references() -> Dictionary:
 	var names: Dictionary={}
-	for table_name in ["baseitems","iprp_spells"]:
+	for table_name in ["baseitems","iprp_spells","effecticons"]:
 		var bytes: PackedByteArray=catalog.get_resource(table_name,2017)
 		if bytes.is_empty(): continue
 		var table: Dictionary=Table.new().parse(bytes.get_string_from_ascii())
@@ -52,11 +53,13 @@ func discover() -> Array:
 	if not explicit_names.is_empty():
 		for name in explicit_names: names[str(name).to_lower()]=true
 	else:
-		# Original item icons use i-prefixed raster resources, plus explicit
-		# base-item defaults. Spell/action rows add every referenced bitmap name.
+		# Item/spell/effect/action raster families and explicit GUI symbol icons.
+		# Menu panels/backgrounds use their existing exact art admission gates;
+		# character portraits remain demand-loaded.
 		for type in [2073,2033,2059,3]:
 			for name in catalog.resource_names(type):
-				if str(name).begins_with("i"): names[str(name).to_lower()]=true
+				var key: String=str(name).to_lower()
+				if ItemIcons.ui_icon_family(key): names[key]=true
 		for name in item_references(): names[str(name)]=true
 		for name in SpellIcons.referenced(catalog): names[str(name)]=true
 	var ordered: Array=names.keys(); ordered.sort(); return ordered

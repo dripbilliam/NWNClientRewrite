@@ -30,15 +30,12 @@ func run() -> void:
 	var limit_ms:=180000 if graphical else 120000
 	var deadline:=Time.get_ticks_msec()+limit_ms
 	var result: Dictionary={}
-	var saw_icon_bar:=false
-	var saw_texture_bar:=false
+	var saw_menu_bar:=false
 	var early_menu:=false
 	while Time.get_ticks_msec()<deadline:
 		await process_frame
-		if is_instance_valid(menu.icon_loading_bar) and menu.icon_loading_bar.visible and not is_instance_valid(menu.main): saw_icon_bar=true
-		if is_instance_valid(menu.icon_preloader) and not menu.icon_preloader.finished:
-			if is_instance_valid(menu.icon_loading_bar) and menu.icon_loading_bar.visible: saw_texture_bar=true
-			if is_instance_valid(menu.main) and menu.main.visible: early_menu=true
+		if is_instance_valid(menu.icon_loading_bar) and menu.icon_loading_bar.visible and not is_instance_valid(menu.main): saw_menu_bar=true
+		if is_instance_valid(menu.main) and menu.main.visible and not bool(menu.menu_startup_status().get("ready",false)): early_menu=true
 		if not menu.failure.is_empty(): break
 		if not is_instance_valid(menu.main): continue
 		var snapshot: Dictionary=menu.main.cohort_snapshot()
@@ -54,7 +51,7 @@ func run() -> void:
 			for label in owner.find_children("*","Label",true,false):
 				if not label.text.is_empty() and str(label.get_meta("native_font_resource","")).is_empty():
 					untagged.append({"name":str(label.name),"text":label.text.substr(0,60),"parent":str(label.get_parent().name)})
-	var ready: bool=is_instance_valid(menu.main) and bool(menu.main.cohort_snapshot().ready) and is_instance_valid(menu.icon_preloader) and menu.icon_preloader.finished
+	var ready: bool=is_instance_valid(menu.main) and bool(menu.main.cohort_snapshot().ready) and bool(menu.menu_startup_status().get("ready",false))
 	var first_visible: bool=ready and bool(menu.main.visible)
 	var reopened:=false
 	if ready:
@@ -62,7 +59,7 @@ func run() -> void:
 		for extra_frame in 3: await process_frame
 		reopened=menu.main.cohort_snapshot().ready and menu.main.visible
 	var startup: Dictionary=menu.menu_startup_status()
-	result={"success":ready and startup.ready and untagged.is_empty() and first_visible and reopened and saw_icon_bar and saw_texture_bar and not early_menu and int(menu.catalog_stats.get("item_icon_sources",{}).get("completed",0))>5000 and (not graphical or root.get_flag(Window.FLAG_NO_FOCUS) and root.current_screen!=DisplayServer.get_primary_screen()),"menu_failure":menu.failure,"page_failure":menu.main.failure if is_instance_valid(menu.main) else "No page","cohort":menu.main.cohort_snapshot() if is_instance_valid(menu.main) else {},"menu_startup":startup,"untagged_nonempty_labels":untagged,"samples":samples,"elapsed_ms":limit_ms-(deadline-Time.get_ticks_msec()),"graphical":graphical,"no_focus":root.get_flag(Window.FLAG_NO_FOCUS) if graphical else true,"secondary":root.current_screen!=DisplayServer.get_primary_screen() if graphical else true,"page_visible":first_visible,"reopen_ready_visible":reopened,"wanted":menu.wanted,"art_announced":menu.main.art_announced if is_instance_valid(menu.main) else false,"icon_loading_bar_before_menu":saw_icon_bar,"texture_loading_bar_before_menu":saw_texture_bar,"early_menu":early_menu,"icon_sources":menu.catalog_stats.get("item_icon_sources",{}),"icon_textures":menu.icon_preloader.progress() if is_instance_valid(menu.icon_preloader) else {},"shared_rasters":menu.snapshot().get("shared_rasters",{})}
+	result={"success":ready and startup.ready and untagged.is_empty() and first_visible and reopened and saw_menu_bar and not early_menu and bool(menu.catalog_stats.get("item_icon_sources",{}).get("deferred",false)) and bool(menu.catalog_stats.get("spellbook_icon_sources",{}).get("deferred",false)) and not bool(menu.snapshot().get("icon_textures",{}).get("bulk_started",true)) and (not graphical or root.get_flag(Window.FLAG_NO_FOCUS) and root.current_screen!=DisplayServer.get_primary_screen()),"menu_failure":menu.failure,"page_failure":menu.main.failure if is_instance_valid(menu.main) else "No page","cohort":menu.main.cohort_snapshot() if is_instance_valid(menu.main) else {},"menu_startup":startup,"untagged_nonempty_labels":untagged,"samples":samples,"elapsed_ms":limit_ms-(deadline-Time.get_ticks_msec()),"graphical":graphical,"no_focus":root.get_flag(Window.FLAG_NO_FOCUS) if graphical else true,"secondary":root.current_screen!=DisplayServer.get_primary_screen() if graphical else true,"page_visible":first_visible,"reopen_ready_visible":reopened,"wanted":menu.wanted,"art_announced":menu.main.art_announced if is_instance_valid(menu.main) else false,"menu_loading_bar_before_menu":saw_menu_bar,"early_menu":early_menu,"icon_sources":menu.catalog_stats.get("item_icon_sources",{}),"spellbook_icon_sources":menu.catalog_stats.get("spellbook_icon_sources",{}),"icon_textures":menu.snapshot().get("icon_textures",{}),"shared_rasters":menu.snapshot().get("shared_rasters",{})}
 	menu.close()
 	settings.close()
 	var file:=FileAccess.open(output,FileAccess.WRITE)
