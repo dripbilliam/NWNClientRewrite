@@ -15,12 +15,14 @@ var captions: Dictionary={}
 var item_buttons: Dictionary={}
 var portraits: Dictionary={}
 var notice: Label
+var art_notice: Label
 var frame
 var definition: Dictionary={}
 func setup(owner,storage: String) -> void:
 	owner_barter=owner; gold_owner=owner.owner_ui.inventory.gold; frame=owner.owner_ui.inventory.frame_skin
 	item_tooltips=owner.owner_ui.inventory.item_tooltips
 	configure("Barter","barter",Vector2(470,100),storage); close_hides=false; close_requested.connect(func():owner_barter.command("close")); hide()
+	art_notice=Label.new();content.add_child(art_notice);art_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;art_notice.custom_minimum_size=Vector2(320,60);art_notice.mouse_filter=Control.MOUSE_FILTER_IGNORE;art_notice.hide()
 func build(plan: Dictionary,models: Dictionary) -> void:
 	definition=plan; window_column.hide(); add_theme_stylebox_override("panel",StyleBoxEmpty.new()); custom_minimum_size=plan.size; size=plan.size
 	stage=Control.new(); stage.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(stage); stage.size=plan.size
@@ -47,8 +49,8 @@ func build(plan: Dictionary,models: Dictionary) -> void:
 	notice=Label.new(); notice.mouse_filter=Control.MOUSE_FILTER_IGNORE; notice.position=Vector2(0,size.y+4); notice.custom_minimum_size=Vector2(size.x,30); notice.add_theme_color_override("font_shadow_color",Color.BLACK); stage.add_child(notice)
 func render(state: Dictionary,rows: Array,pending: Dictionary) -> void:
 	if definition.is_empty(): return
-	wanted=bool(state.get("open",false)); visible=wanted
-	if not wanted: return
+	wanted=bool(state.get("open",false));hide();art_notice.hide()
+	if not wanted:return
 	view_id+=1; size=definition.size; stage.size=size
 	var closing: bool=pending.has("close"); var lock_pending: bool=pending.has("lock"); var accept_pending: bool=pending.has("accept"); var item_pending:=false
 	for key in pending:
@@ -63,6 +65,7 @@ func render(state: Dictionary,rows: Array,pending: Dictionary) -> void:
 		var id:=int(row.itemId); keep[id]=true; var button
 		if item_buttons.has(id):
 			button=item_buttons[id]
+			if str(button.row.get("signature",""))!=str(row.signature):button.image.texture=null;button.caption.show()
 			if button.get_parent()!=grids[row.channel]: button.reparent(grids[row.channel],false)
 			button.row=row; button.channel=str(row.channel); button.bound_view=view_id
 		else:
@@ -75,6 +78,13 @@ func render(state: Dictionary,rows: Array,pending: Dictionary) -> void:
 	for id in item_buttons.keys():
 		if not keep.has(id): item_buttons[id].get_parent().remove_child(item_buttons[id]); item_buttons[id].queue_free(); item_buttons.erase(id)
 	_clamp()
+func admit_ready() -> void:
+	if not wanted:return
+	art_notice.hide();window_column.hide();stage.show();show()
+func admit_failure(reason: String) -> void:
+	if not wanted:return
+	if is_instance_valid(stage):stage.hide()
+	art_notice.text="Barter art unavailable: "+reason;art_notice.show();window_column.show();show()
 func select_item(id: int) -> void:
 	if examine_mode: examine_mode=false; owner_barter.examine(id)
 func operation(id: int,_operation: String) -> void:

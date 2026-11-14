@@ -26,13 +26,85 @@ var window_serial:=-1
 var closed:=false
 var layout_ready:=false
 var failure:=""
+var art_pending:=false
+var art_error:=""
+var last_art_cohort: Dictionary={}
+var icon_targets: Dictionary={}
+var icon_failures: Dictionary={}
 var stats:={"views":0,"commands":0,"stale_input":0,"rejected":0,"native_only":true}
 func configure(ui,catalog,cache_path: String,storage: String) -> void:
 	owner_ui=ui; view=View.new(); ui.controls.add_child(view); view.setup(self,storage)
 	ui.inventory.ui.barter_owner=self; ui.inventory.gold.barter_context=context
 	ui.inventory.icons.completed.connect(icon_ready)
 	assets=Assets.new(); add_child(assets); assets.maximum_workers=2; assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
-	jobs[assets.request("ingame_barter",2047,"gff")]="gui"
+	var gui_id: int=assets.request("ingame_barter",2047,"gff")
+	if gui_id<0:fail_layout("Original barter GUI: "+str(assets.failure));return
+	jobs[gui_id]="gui"
+func fail_layout(reason: String) -> void:
+	failure=reason
+	if active():view.wanted=true;view.admit_failure(reason)
+func _process(_delta: float) -> void:
+	if closed or not art_pending:set_process(false);return
+	var cohort: Dictionary=art_snapshot();last_art_cohort=cohort
+	if cohort.ready:
+		art_pending=false;art_error="";set_process(false);view.admit_ready()
+	elif not cohort.failures.is_empty():
+		art_pending=false;art_error=str(cohort.failures[0]);set_process(false);view.admit_failure(art_error)
+func cancel_art_admission() -> void:
+	art_pending=false;art_error="";last_art_cohort={};icon_targets.clear();icon_failures.clear();set_process(false)
+func request_art_admission() -> void:
+	if not active() or not layout_ready:return
+	art_pending=true;art_error=""
+	var cohort: Dictionary=art_snapshot();last_art_cohort=cohort
+	if cohort.ready:
+		art_pending=false;view.admit_ready();set_process(false)
+	elif not cohort.failures.is_empty():
+		art_pending=false;art_error=str(cohort.failures[0]);view.admit_failure(art_error);set_process(false)
+	else:set_process(true)
+func art_snapshot() -> Dictionary:
+	var result:={"ready":false,"pending":[],"failures":[],"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0}
+	if not failure.is_empty():result.failures.append(failure)
+	if not layout_ready or not is_instance_valid(view.stage):
+		if result.failures.is_empty():result.pending.append("Original barter layout")
+		return result
+	var stage: Control=view.stage
+	var frame=view.frame
+	for picture in stage.find_children("*","TextureRect",true,false):
+		var key:=str(picture.get_meta("native_gui_art_key",""))
+		if key.is_empty():continue
+		result.images_expected+=1
+		if picture.texture!=null and frame.art.textures.get(key)==picture.texture:result.images_ready+=1
+		elif frame.art.failed.has(key):result.failures.append("Barter artwork "+key+": "+str(frame.art.failed[key]))
+		else:result.pending.append("image:"+key)
+	for button in stage.find_children("*","Button",true,false):
+		var data: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		if data.is_empty():continue
+		for pair in data.styles.values():
+			var key: String=frame.art.models.model_key(str(data.resource),str(pair[1]),data.overrides)
+			result.images_expected+=1
+			if pair[0].texture!=null and frame.art.textures.get(key)==pair[0].texture:result.images_ready+=1
+			elif frame.art.failed.has(key):result.failures.append("Barter button "+key+": "+str(frame.art.failed[key]))
+			else:result.pending.append("image:"+key)
+	for control in stage.find_children("*","Control",true,false):
+		var font: String=str(control.get_meta("native_font_resource",""))
+		if font.is_empty():continue
+		result.fonts_expected+=1
+		if str(control.get_meta("native_font_applied",""))==font:result.fonts_ready+=1
+		elif frame.fonts.failed.has(font):result.failures.append("Barter font "+font+": "+str(frame.fonts.failed[font]))
+		else:result.pending.append("font:"+font)
+	var icons=owner_ui.inventory.icons
+	var shared=icons.catalog.ui_asset_owner()
+	for id in all_rows:
+		if not view.item_buttons.has(id):result.pending.append("barter-item:"+str(id));continue
+		if icon_failures.has(id):result.failures.append("Barter item "+str(id)+": "+str(icon_failures[id]));continue
+		if not icon_targets.has(id):result.failures.append("Barter item "+str(id)+": original icon key is unavailable");continue
+		var key: String=str(icon_targets[id]);var resident: Dictionary=shared.lookup("item",key)
+		result.images_expected+=1
+		if icons.failed.has(key):result.failures.append("Barter item "+str(id)+": "+str(icons.failed[key]))
+		elif not resident.is_empty() and icons.textures.get(key)==resident.texture and view.item_buttons[id].image.texture==resident.texture:result.images_ready+=1
+		else:result.pending.append("item-icon:"+key)
+	result.ready=result.failures.is_empty() and result.pending.is_empty()
+	return result
 func collect(root: Dictionary) -> void:
 	for child in root.get("Obj_ChildList",[]):
 		if child.has("Obj_ResRef"): models[str(child.Obj_ResRef).to_lower()]={}
@@ -40,15 +112,18 @@ func collect(root: Dictionary) -> void:
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var key:=str(jobs[id]); jobs.erase(id)
-	if not str(result.get("error","")).is_empty(): failure=str(result.error); return
+	if not str(result.get("error","")).is_empty():fail_layout(str(result.error));return
 	if key=="gui":
-		if str(result.value.get("type",""))!="GUI ": failure="Invalid original barter GUI"; return
+		if str(result.value.get("type",""))!="GUI ":fail_layout("Invalid original barter GUI");return
 		gui=result.value.root; models[str(gui.Obj_ResRef).to_lower()]={}; collect(gui)
-		for resource in models: jobs[assets.request(resource,2002,"mdl-original")]=resource
+		for resource in models:
+			var model_id: int=assets.request(resource,2002,"mdl-original")
+			if model_id<0:fail_layout("Original barter model "+resource+": "+str(assets.failure));return
+			jobs[model_id]=resource
 	else: models[key]=result.value
 	if not jobs.is_empty() or not failure.is_empty(): return
 	definition=Layout.parse(gui,models)
-	if not str(definition.error).is_empty(): failure=str(definition.error); return
+	if not str(definition.error).is_empty():fail_layout(str(definition.error));return
 	view.build(definition,models); layout_ready=true; signature=""; refresh()
 func active() -> bool:
 	return not closed and bool(state.get("open",false)) and int(state.get("actorId",-1))==actor and int(state.get("areaId",-1))==area
@@ -58,15 +133,16 @@ func set_world(generation: int,area_id: int,actor_id: int,source: Dictionary,hea
 	if closed: return
 	var changed: bool=epoch!=generation or actor!=actor_id or area!=area_id
 	if changed:
-		state={"open":false}; pending.clear(); receipts.clear(); window_serial=-1; signature=""; view.examine_mode=false
+		state={"open":false}; pending.clear(); receipts.clear(); window_serial=-1; signature=""; view.examine_mode=false;cancel_art_admission()
 	epoch=generation; area=area_id; actor=actor_id; objects=source
 	if int(header.get("serial",0))==int(state.get("serial",0)) and int(header.get("revision",0))<int(state.get("revision",0)): return
 	var was_active:=active(); var old_serial:=int(state.get("serial",-1)); state=header.duplicate(true)
 	if int(state.get("serial",-1))!=old_serial: pending.clear(); receipts.clear(); signature=""; view.examine_mode=false
 	if not active():
-		pending.clear(); receipts.clear(); own_rows.clear(); all_rows.clear(); view.wanted=false; view.hide()
+		pending.clear(); receipts.clear(); own_rows.clear(); all_rows.clear(); view.wanted=false; view.hide();cancel_art_admission()
 		if was_active and not changed and int(state.get("serial",-1))==old_serial: emit_command("window",{"value":false})
 		window_serial=-1; return
+	if not failure.is_empty():view.wanted=true;view.admit_failure(failure);return
 	for key in receipts.keys():
 		if int(state.get("revision",0))>=int(receipts[key]): pending.erase(key); receipts.erase(key)
 	for key in pending.keys():
@@ -100,13 +176,15 @@ func refresh() -> void:
 	for pair in [["playerportrait",actor],["barratorportrait",int(state.partnerId)]]:
 		var resource: String=view.frame.art.portrait_resource(owner_ui.desktop.rules.portrait(identities[int(pair[1])],3))
 		view.frame.art.bind(view.portraits[pair[0]],str(definition.entries[pair[0]].resource),"texture",true,"",false,{"gui_replace01":resource} if not resource.is_empty() else {})
-	icon_bindings.clear()
+	icon_bindings.clear();icon_targets.clear();icon_failures.clear()
 	for row in rows:
 		var key: String=inventory.icons.request(objects[int(row.itemId)].item,owner_ui.text.tables,int(objects.get(actor,{}).get("appearance",{}).get("gender",0)))
-		if key.is_empty(): continue
+		if key.is_empty():icon_failures[int(row.itemId)]=str(inventory.icons.last_request_error);continue
+		icon_targets[int(row.itemId)]=key
 		if not icon_bindings.has(key): icon_bindings[key]=[]
 		icon_bindings[key].append(int(row.itemId))
 		if inventory.icons.textures.has(key): view.item_buttons[int(row.itemId)].set_icon(inventory.icons.textures[key])
+	request_art_admission()
 	if window_serial!=int(state.serial):
 		window_serial=int(state.serial); view.move_to_front(); emit_command("window",{"value":true})
 func icon_ready(key: String,texture: Texture2D,error: String) -> void:
@@ -169,10 +247,10 @@ func receive(message: Dictionary) -> void:
 		if int(state.get("revision",0))>=int(receipts[key]): pending.erase(key); receipts.erase(key)
 		signature=""; refresh()
 func blocks_pointer(point: Vector2) -> bool: return view.visible and view.get_global_rect().has_point(point)
-func snapshot() -> Dictionary: return {"ready":layout_ready,"failure":failure,"active":active(),"own_items":own_rows.size(),"items":all_rows.size(),"pending":pending.size(),"stats":stats.duplicate(),"full_barter_acceptance":false}
+func snapshot() -> Dictionary: return {"ready":layout_ready,"failure":failure,"active":active(),"own_items":own_rows.size(),"items":all_rows.size(),"pending":pending.size(),"art_pending":art_pending,"art_error":art_error,"art_cohort":last_art_cohort,"stats":stats.duplicate(),"full_barter_acceptance":false}
 func close() -> void:
 	if closed: return
-	closed=true; assets.close()
+	closed=true;cancel_art_admission();assets.close()
 	if owner_ui.inventory.icons.completed.is_connected(icon_ready): owner_ui.inventory.icons.completed.disconnect(icon_ready)
 	owner_ui.inventory.ui.barter_owner=null; owner_ui.inventory.gold.barter_context=Callable(); view.queue_free(); jobs.clear(); models.clear(); objects={}; pending.clear(); all_rows.clear(); own_rows.clear()
 func _exit_tree() -> void: close()
