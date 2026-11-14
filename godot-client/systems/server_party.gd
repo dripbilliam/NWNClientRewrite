@@ -15,14 +15,34 @@ var scroll: ScrollContainer
 var column: VBoxContainer
 var retired: Array = []
 var native_skin
+var art_pending:=false
+var art_error:=""
+var art_notice: Label
 
 func setup() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	scroll = ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(scroll)
 	column = VBoxContainer.new(); column.add_theme_constant_override("separation", 5); column.mouse_filter = Control.MOUSE_FILTER_IGNORE; scroll.add_child(column)
+	art_notice=Label.new();add_child(art_notice);art_notice.position=Vector2(-230,0);art_notice.size=Vector2(300,48);art_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;art_notice.mouse_filter=Control.MOUSE_FILTER_IGNORE;art_notice.hide()
 	get_viewport().size_changed.connect(place); reset()
+func _process(_delta: float) -> void:
+	if not art_pending or not is_instance_valid(native_skin):set_process(false);return
+	var cohort: Dictionary=native_skin.cohort_snapshot()
+	if cohort.ready:
+		art_pending=false;art_error="";art_notice.hide();scroll.show()
+		if is_instance_valid(native_skin.stage):native_skin.stage.show()
+		visible=not rows.is_empty();set_process(false)
+	elif not cohort.failures.is_empty():
+		art_pending=false;art_error=str(cohort.failures[0]);art_notice.text="Party art unavailable: "+art_error;art_notice.show();scroll.hide()
+		if is_instance_valid(native_skin.stage):native_skin.stage.hide()
+		visible=true;set_process(false)
+func request_art_admission() -> void:
+	if rows.is_empty():hide();art_pending=false;set_process(false);return
+	art_pending=true;art_error="";art_notice.hide();hide();set_process(true)
 
 func reset() -> void:
+	art_pending=false;art_error="";set_process(false)
+	if is_instance_valid(art_notice):art_notice.hide()
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.reset_view()
 	if not cards.is_empty(): retired = cards.values().map(func(card): return weakref(card))
 	for card in cards.values():
@@ -35,6 +55,14 @@ func retired_alive() -> int: return retired.filter(func(value): return value.get
 func receive(message: Dictionary) -> void:
 	if message.kind == "party-view":
 		if int(message.viewId) <= view_id: return
+		var new_rows: Array=message.rows
+		var needs_art: bool=is_instance_valid(native_skin) and (not native_skin.layout_ready or art_pending or not visible or not art_error.is_empty() or new_rows.size()!=rows.size())
+		if is_instance_valid(native_skin) and not needs_art:
+			for row in new_rows:
+				var id:=int(row.entryId)
+				if not cards.has(id) or str(cards[id].get_meta("portrait_key",""))!=str(row.get("portraitKey","")) or int(cards[id].get_meta("object_id",-1))!=int(row.id):needs_art=true;break
+				if id<rows.size() and not bool(row.self) and str(rows[id].get("indicators",{}).get("state",""))!=str(row.get("indicators",{}).get("state","")) and not str(row.get("indicators",{}).get("state","")).is_empty():needs_art=true;break
+		if needs_art:hide()
 		view_id = int(message.viewId); actor_id = int(message.actorId); rows = message.rows; actions = message.actions
 		for entry_id in cards.keys():
 			if entry_id >= rows.size() or int(cards[entry_id].get_meta("object_id")) != int(rows[entry_id].id) or bool(cards[entry_id].get_meta("self")) != bool(rows[entry_id].self):
@@ -49,12 +77,18 @@ func receive(message: Dictionary) -> void:
 				parent.add_child(cards[index])
 			if cards[index].get_parent()==column: column.move_child(cards[index], column.get_child_count() - 1)
 			update_card(row)
-		visible = not rows.is_empty(); call_deferred("place")
+		if needs_art:request_art_admission()
+		else:visible=not rows.is_empty()
+		call_deferred("place")
 	elif int(message.get("viewId", -2)) == view_id:
 		if message.kind == "party-state":
+			var first_health_art:=false
 			for state in message.rows:
 				var index := int(state.entryId)
-				if index >= 0 and index < rows.size(): rows[index].health = state.health; rows[index].canLevelUp = state.canLevelUp; update_card(rows[index])
+				if index >= 0 and index < rows.size():
+					if is_instance_valid(native_skin) and not rows[index].health is Dictionary and state.health is Dictionary:first_health_art=true
+					rows[index].health = state.health; rows[index].canLevelUp = state.canLevelUp; update_card(rows[index])
+			if first_health_art:request_art_admission()
 			call_deferred("place")
 		elif message.kind == "party-art":
 			var texture := Images.png(str(message.skin.url), 512)
