@@ -1,0 +1,7 @@
+# NWN-83 cloak variant check
+
+The installed `cloakmodel.2da` has 17 rows. Ten use different MODEL and TEXTURE values; the selected Arcane row 2 uses `pfh0_cloak_001` and `cloak_010`. The installed GreatCloak row 3 uses `pme0_cloak_002` and `cloak_002` for `shifter.bic`.
+
+`cloak-row-census.gd` read the installed table and catalog. `cloak-variants-probe.gd` then exercised the current production `CreatureStream` and `ActorInstance` with installed `shifter.bic` (already equipped with GreatCloak) and `monk.bic` (only the cloak part changed to installed Arcane row 2). Each control removed slot 64. Both headless structural runs and both official Godot 4.7.2 OpenGL graphical runs exited 0 without fixture failures. GreatCloak added one mesh (22 to 23); Arcane added one (18 to 19). The model request carried the separate PLT key for Arcane. Static and 24-step mapped-walk images show both cloaks hanging from the back. Captures were inspected, including the walking states.
+
+Receipts: `.cache/nwn83-cloak-row-census-root.json`, `.cache/nwn83-cloak-great-root.json`, `.cache/nwn83-cloak-split-root.json`, `.cache/nwn83-cloak-great-graphic-root.json`, `.cache/nwn83-cloak-split-graphic-root.json` and their PNGs. The fixture records production source hashes. The graphical tests ran on the secondary display without taking focus. They are local asset/renderer checks, not original-client or Arelith comparisons. Equip/unequip, reconnect, other body types, original cloak animation/material parity and live server acceptance remain open. NWN-83 stays In Progress.
