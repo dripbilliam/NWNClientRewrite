@@ -55,6 +55,10 @@ var chat_activation_probe:=OS.get_cmdline_user_args().has("--nwn62-chat-activati
 var activation_probe_active:=false
 var activation_history_us:=0
 var activation_history_calls:=0
+var static_art_keys: Array[String]=[]
+var art_pending:=true
+var art_error:=""
+var art_notice: Label
 func configure(ui,catalog,cache_path: String,layout: String) -> void:
 	owner_ui=ui; panel=ui.chat; panel.native_skin=self; frame=ui.inventory.frame_skin; storage=layout
 	preferences=Preferences.load_settings(storage); split=bool(preferences.split); panel.history_limit=int(preferences.history)
@@ -66,18 +70,94 @@ func configure(ui,catalog,cache_path: String,layout: String) -> void:
 		split=bool(saved.get_value("chat-hud","split",false))
 		for index in 2: heights[index]=float(saved.get_value("chat-hud","height%d"%index,134.0)); expanded[index]=heights[index]
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
+	art_notice=Label.new(); panel.add_child(art_notice); art_notice.position=Vector2(80,24); art_notice.size=Vector2(600,48); art_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; art_notice.mouse_filter=Control.MOUSE_FILTER_IGNORE; art_notice.hide()
+	request_models()
+	request_static_art()
 	panel.get_viewport().size_changed.connect(place)
 	panel.entry.focus_entered.connect(focused.bind(true)); panel.entry.focus_exited.connect(focused.bind(false)); panel.entry.gui_input.connect(entry_input)
 	panel.get_child(0).hide()
 func _process(_delta: float) -> void:
 	if closed: return
-	if not requested:
-		requested=true
-		for name in Plan.RESOURCES:
-			var id: int=assets.request(name,2002,"actor-model" if name in ["scrollbar_simple","but_chat_reply"] else "mdl-original")
-			if id<0: failure=str(assets.failure); return
-			jobs[id]=name
+	if art_pending:admit_art()
 	if layout_ready and revision!=int(owner_ui.text.revision): refresh_modes()
+func request_models() -> void:
+	if requested or closed:return
+	requested=true
+	for name in Plan.RESOURCES:
+		var id: int=assets.request(name,2002,"actor-model" if name in ["scrollbar_simple","but_chat_reply"] else "mdl-original")
+		if id<0:failure=str(assets.failure);return
+		jobs[id]=name
+func request_static_art() -> void:
+	if closed or not is_instance_valid(frame) or not is_instance_valid(frame.art):return
+	for name in ["ctl_lst_chatmode","but_chat_bar360","but_chat_bar720"]:static_art_keys.append(frame.art.request_model(name,""))
+	for clip in ["up","hilite","down"]:static_art_keys.append(frame.art.request_model("ctl_btn_chatmode",clip))
+	for name in ["pb_scrl_up","pb_scrl_down"]:
+		for clip in ["up","hilite","down"]:static_art_keys.append(frame.art.request_model(name,clip))
+	static_art_keys.append(frame.art.request_model("pnl_chat_prompt","",{},0,"",[],Rect2(0,-20,2040,23)))
+	for name in ["edit_chat_left","edit_chat_right","edit_chat_main"]:
+		static_art_keys.append(frame.art.request_model(name,"",{},0,"",[],Rect2(0,-10,720.0 if name=="edit_chat_main" else 360.0,2048)))
+	frame.fonts.request(Plan.FONT)
+	frame.fonts.request("ttf fnt_default %d"%int(preferences.font_size))
+func art_snapshot() -> Dictionary:
+	var result:={"ready":false,"models_expected":Plan.RESOURCES.size(),"models_ready":models.size(),"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0,"pending":[],"failures":[]}
+	if not failure.is_empty():result.failures.append(failure)
+	if not is_instance_valid(frame) or not is_instance_valid(frame.art):result.failures.append("Original chat artwork owner is unavailable");return result
+	for key in static_art_keys:
+		result.images_expected+=1
+		if key.is_empty():result.failures.append("Original chat artwork could not be requested")
+		elif frame.art.textures.has(key):result.images_ready+=1
+		elif frame.art.failed.has(key):result.failures.append("Chat artwork "+key+": "+str(frame.art.failed[key]))
+		else:result.pending.append("image:"+key)
+	if not layout_ready:
+		if result.failures.is_empty():result.pending.append("Original chat layout")
+		return result
+	if models.size()!=Plan.RESOURCES.size():result.failures.append("Original chat model cohort is incomplete")
+	for control in [panel.entry,mode_label,notice]+mode_options:
+		result.fonts_expected+=1
+		if str(control.get_meta("native_font_applied",""))==Plan.FONT:result.fonts_ready+=1
+		elif frame.fonts.failed.has(Plan.FONT):result.failures.append("Chat font: "+str(frame.fonts.failed[Plan.FONT]))
+		else:result.pending.append("font:"+Plan.FONT)
+	var message_font: String="ttf fnt_default %d"%int(preferences.font_size)
+	for pane in panes:
+		result.fonts_expected+=1
+		if str(pane.label.get_meta("native_font_applied",""))==message_font:result.fonts_ready+=1
+		elif frame.fonts.failed.has(message_font):result.failures.append("Chat message font: "+str(frame.fonts.failed[message_font]))
+		else:result.pending.append("font:"+message_font)
+	for background in [prompt_background]+panes.map(func(pane):return pane.background):
+		result.images_expected+=1
+		if background.source_texture!=null and background.texture!=null:result.images_ready+=1
+		else:result.pending.append("chat-background")
+	result.images_expected+=1
+	if popup_background.texture!=null:result.images_ready+=1
+	else:result.pending.append("chat-mode-popup")
+	var button_data: Dictionary=frame.button_geometry.get(mode_button.get_instance_id(),{})
+	if button_data.is_empty():result.failures.append("Original chat mode button is unavailable")
+	for pair in button_data.get("styles",{}).values():
+		result.images_expected+=1
+		if pair[0].texture!=null:result.images_ready+=1
+		else:result.pending.append("chat-mode-button")
+	for pane in panes:
+		result.images_expected+=1
+		if pane.handle_image.texture!=null:result.images_ready+=1
+		else:result.pending.append("chat-handle")
+		if pane.container.visible:
+			if not str(pane.bar.failure).is_empty():result.failures.append("Chat scrollbar: "+str(pane.bar.failure))
+			elif not pane.bar.art_ready:result.pending.append("chat-scrollbar")
+			for arrow in [pane.bar.up,pane.bar.down]:
+				var arrow_data: Dictionary=frame.button_geometry.get(arrow.get_instance_id(),{}) if is_instance_valid(arrow) else {}
+				if arrow_data.is_empty():result.failures.append("Original chat scrollbar button is unavailable");continue
+				for pair in arrow_data.styles.values():
+					result.images_expected+=1
+					if pair[0].texture!=null:result.images_ready+=1
+					else:result.pending.append("chat-scrollbar-button")
+	result.ready=result.failures.is_empty() and result.pending.is_empty() and result.models_ready==result.models_expected
+	return result
+func admit_art() -> void:
+	var snapshot: Dictionary=art_snapshot()
+	if snapshot.ready:
+		art_pending=false;art_error="";art_notice.hide();stage.show()
+	elif not snapshot.failures.is_empty():
+		art_pending=false;art_error=str(snapshot.failures[0]);art_notice.text="Chat art unavailable: "+art_error;art_notice.show()
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var name: String=jobs[id]; jobs.erase(id)
@@ -109,7 +189,7 @@ func activate() -> void:
 		phases.context_create_us=phases.context_new_us+phases.context_add_us;phase_started=Time.get_ticks_usec()
 	context.configure_art(frame.art); context.configure_text(frame.fonts); context.request.connect(context_request)
 	if chat_activation_probe:phases.context_bind_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
-	stage=Control.new(); panel.add_child(stage); stage.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	stage=Control.new(); panel.add_child(stage); stage.mouse_filter=Control.MOUSE_FILTER_IGNORE; stage.hide()
 	if chat_activation_probe:
 		phases.stage_create_us=Time.get_ticks_usec()-phase_started
 		phases.context_stage_us=phases.layout_setup_us+phases.context_create_us+phases.context_bind_us+phases.stage_create_us
@@ -515,6 +595,8 @@ func save() -> void:
 func close() -> void:
 	if closed: return
 	closed=true; epoch+=1; drag.clear()
+	art_pending=false
+	if is_instance_valid(art_notice):art_notice.hide()
 	if get_tree()!=null and get_tree().process_frame.is_connected(restore_scroll): get_tree().process_frame.disconnect(restore_scroll)
 	scroll_restore.clear()
 	if is_instance_valid(assets): assets.close()
