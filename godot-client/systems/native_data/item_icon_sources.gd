@@ -9,7 +9,7 @@ static var bytes:=0
 static func source_key(name: String,type: int,identity: String) -> String:
 	return identity+":"+name.to_lower()+":"+str(type)
 static func lookup(catalog,name: String,type: int) -> PackedByteArray:
-	if type not in [3,6]: return PackedByteArray()
+	if type not in [3,6,2073,2033,2059]: return PackedByteArray()
 	var simple:=name.to_lower()+":"+str(type)
 	mutex.lock(); var known:=names.has(simple); mutex.unlock()
 	if not known: return PackedByteArray()
@@ -28,9 +28,21 @@ static func preload_all(catalog,stop: Callable=Callable(),progress: Callable=Cal
 			var field: String=str(row.get("DefaultIcon","")) if table_name=="baseitems" else str(row.get("Icon",""))
 			if field not in ["","****"]: referenced[field.to_lower()]=true
 	var work: Array=[]
-	for type in [3,6]:
+	var bitmap_names: Dictionary={}
+	for type in [2073,2033,2059,3]:
 		for name in catalog.resource_names(type):
-			if str(name).begins_with("i") or referenced.has(str(name)): work.append([str(name),type])
+			if str(name).begins_with("i") or referenced.has(str(name)): bitmap_names[str(name)]=true
+	var format_counts: Dictionary={}
+	for name in bitmap_names:
+		var selected: Dictionary=catalog.raster_location(str(name))
+		if selected.is_empty(): continue
+		var type:=int(selected.type)
+		work.append([str(name),type]); format_counts[type]=int(format_counts.get(type,0))+1
+	var palette_count:=0
+	for name in catalog.resource_names(6):
+		if str(name).begins_with("i") or referenced.has(str(name)):
+			work.append([str(name),6]); palette_count+=1
+	format_counts[6]=palette_count
 	work.sort_custom(func(a,b): return a[1]<b[1] or a[1]==b[1] and a[0]<b[0])
 	var loaded:=0; var reused:=0; var failures: Array=[]
 	for index in work.size():
@@ -50,7 +62,7 @@ static func preload_all(catalog,stop: Callable=Callable(),progress: Callable=Cal
 			payloads[key]=payload; names[name.to_lower()+":"+str(type)]=true; bytes+=payload.size(); loaded+=1
 		mutex.unlock()
 	if progress.is_valid(): progress.call("item-icons",work.size(),work.size())
-	return {"total":work.size(),"completed":work.size(),"loaded":loaded,"reused":reused,"referenced":referenced.size(),"failures":failures,"resident_bytes":size_bytes()}
+	return {"total":work.size(),"completed":work.size(),"loaded":loaded,"reused":reused,"referenced":referenced.size(),"formats":format_counts,"failures":failures,"resident_bytes":size_bytes()}
 static func size_bytes() -> int:
 	mutex.lock(); var result:=bytes; mutex.unlock(); return result
 static func snapshot() -> Dictionary:

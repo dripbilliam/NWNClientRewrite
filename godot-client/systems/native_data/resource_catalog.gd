@@ -179,7 +179,7 @@ func recorded_texture_miss(name: String) -> bool:
 	return raster_location(name).is_empty() and not has_resource(name,6)
 func get_resource(name: String, type: int) -> PackedByteArray:
 	stats.source_requests+=1
-	var resident: PackedByteArray=ItemIconSources.lookup(self,name,type)
+	var resident: PackedByteArray=ItemIconSources.lookup(self,name,type) if type in [3,6,2073,2033,2059] else PackedByteArray()
 	if not resident.is_empty():
 		failure=""; stats.source_memory_hits+=1
 		if recording!=null: recording.record(name,type,resident,"")
