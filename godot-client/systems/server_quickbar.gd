@@ -29,6 +29,7 @@ var inventory_valid: Callable
 var radial_valid: Callable
 var level_button: Button
 var native_skin
+var retained_item_icons:=false
 var admission_check: Callable
 var key_bindings
 func extra_art_ready() -> bool:
@@ -111,6 +112,8 @@ func place() -> void:
 func receive(message: Dictionary) -> void:
 	if message.kind == "quickbar-icon":
 		if int(message.quickbarId) == quickbar_id:
+			var index:=int(message.index)
+			if retained_item_icons and index>=0 and index<rows.size() and bool(rows[index].get("itemIcon",false)): return
 			var images: Dictionary = secondary_textures if message.get("secondary", false) else textures
 			images[int(message.index)] = Images.png(str(message.image), 512)
 			if buttons.has(int(message.index)):

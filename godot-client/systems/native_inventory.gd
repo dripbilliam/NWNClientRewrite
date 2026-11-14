@@ -6,6 +6,7 @@ signal request(message: Dictionary)
 signal ability_requested(item_id: int)
 const Inventory=preload("res://systems/server_inventory.gd")
 const Icons=preload("res://systems/native_item_icons.gd")
+const SceneIcons=preload("res://systems/native_item_icon_scene_service.gd")
 const IconPlan=preload("res://systems/native_data/item_icon.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
 const Tooltip=preload("res://systems/native_data/item_tooltip.gd")
@@ -16,6 +17,8 @@ const EQUIPMENT=[
 	[2048,80,160,100.0/3,80,"Arrows"],[4096,80+100.0/3,160,100.0/3,80,"Bullets"],[8192,80+200.0/3,160,100.0/3,80,"Bolts"]]
 var ui
 var icons
+var retained_item_icons:=OS.get_cmdline_user_args().has("--item-icon-backend=retained") or OS.get_environment("NWN_ITEM_ICON_BACKEND")=="retained"
+var scene_layout_ready_seen:=false
 var equipment_skin
 var frame_skin
 var store_skin
@@ -68,7 +71,12 @@ func configure(parent: Control,catalog,cache_path: String,text,layout_storage: S
 	stack_dialog=preload("res://systems/native_item_stack.gd").new(); stack_dialog.configure(self,parent,catalog,cache_path)
 	item_context=preload("res://systems/native_item_context.gd").new(); add_child(item_context); item_context.configure(self)
 	ui.menu_requested.connect(func(id,point): item_menu(id,point))
-	icons=Icons.new(); add_child(icons); icons.configure(catalog,cache_path); icons.completed.connect(icon_ready)
+	icons=SceneIcons.new() if retained_item_icons else Icons.new()
+	add_child(icons); icons.configure(catalog,cache_path)
+	if retained_item_icons:
+		icons.prepared.connect(scene_icon_ready)
+		ui.configure_scene_icons(icons)
+	else: icons.completed.connect(icon_ready)
 func displayed_owner() -> int:return controlled_id if display_owner_id<0 else display_owner_id
 func set_displayed_owner(id: int,serial: int,receipt: int) -> void:
 	window_serial=serial;window_receipt=receipt
@@ -179,7 +187,13 @@ func _process(_delta: float) -> void:
 	Timing.finish("callback_inventory",began)
 func _profile_process(_delta: float) -> void:
 	if closed or not rules_ready() or not objects.has(controlled_id): return
+	if retained_item_icons and frame_skin.layout_ready and not scene_layout_ready_seen:
+		scene_layout_ready_seen=true
+		if ui.wanted: ui.sync_scene_icon_host()
 	if not ui.wanted:
+		# Item updates can prepare their original GUI_ICON model/texture bundle
+		# before the inventory panel is opened. The retained backend keeps that
+		# bundle; it still creates no panel model or finished icon bitmap here.
 		if icon_tables_ready(): prewarm_icons()
 		return
 	for id in pending.keys():
@@ -192,7 +206,7 @@ func _profile_process(_delta: float) -> void:
 				pending[id].operation="equip"; pending[id].at=Time.get_ticks_msec(); send_command({"kind":"item-action","itemId":id,"operation":"equip","slot":int(pending[id].slot)})
 		if Time.get_ticks_msec()-int(pending[id].at)>6000: pending.erase(id); signature=""; notice_text="The server has not confirmed that item action."
 	refresh()
-	if icon_tables_ready(): prewarm_icons()
+	if not retained_item_icons and icon_tables_ready(): prewarm_icons()
 func refresh() -> void:
 	if closed or not ui.wanted or not rules_ready() or ui.native_icon_gate and not icon_tables_ready() or not objects.has(displayed_owner()): return
 	var refresh_started:=Time.get_ticks_usec() if detailed_timings else 0
@@ -205,8 +219,9 @@ func refresh() -> void:
 			if base.is_empty(): continue
 			sources.append([channel,location,item,object.get("inventoryLocation")])
 			rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"tooltip":Tooltip.project(item,text_owner,controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
-	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store]))
-	if next==signature: return
+	var scene_source: Variant=[icons.binding_scope(),icons.catalog.source_store.get_instance_id()] if retained_item_icons else null
+	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store,scene_source]))
+	if next==signature and (not retained_item_icons or ui.scene_icon_sealed): return
 	var ready_icons: Dictionary={}
 	var waiting:=false
 	for row in rows:
@@ -218,29 +233,43 @@ func refresh() -> void:
 				elif not icons.last_request_error.is_empty(): notice_text="Item icon unavailable: "+icons.last_request_error; ui.notice.text=notice_text
 			continue
 		ready_icons[int(row.entryId)]=key
-		if not icons.textures.has(key) and not icon_failures.has(key): waiting=true
+		if not (icons.bundles.has(key) if retained_item_icons else icons.textures.has(key)) and not icons.failed.has(key) and not icon_failures.has(key): waiting=true
 	if waiting: return
 	signature=next; view_serial+=1; views.clear()
 	for row in rows: views[int(row.entryId)]={"object":objects[int(row.itemId)].duplicate(true),"row":row.duplicate(true)}
 	var container_id:=int(containers.get("C",INVALID)); var container: Dictionary=objects.get(container_id,{})
+	if retained_item_icons and is_instance_valid(ui.scene_host): ui.scene_host.begin_batch()
 	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(actor.get("replicated",{}).get("name",actor.get("appearance",{}).get("name")),displayed_owner()),"page":page,"items":rows,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container.get("item",{}).get("name",container.get("replicated",{}).get("name",{})),controlled_id),"page":container_page,"pageCount":inventories.get("C",{}).get("pageCount",1)}})
 	if detailed_timings and timing_rows.size()<128:
 		var committed:=Time.get_ticks_usec()
 		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"role":window_role,"owner":displayed_owner(),"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
 	stats.views+=1; icon_bindings.clear()
 	if not notice_text.is_empty(): ui.notice.text=notice_text
+	var expected_scene_icons:=0
 	for row in rows:
 		if row.channel=="R" and floori(float(row.y)/6)!=page or row.channel=="C" and floori(float(row.y)/5)!=container_page: continue
+		if retained_item_icons: expected_scene_icons+=1
 		var key: String=str(ready_icons.get(int(row.entryId),""))
 		if key.is_empty(): continue
 		if not icon_bindings.has(key): icon_bindings[key]=[]
 		icon_bindings[key].append({"view":view_serial,"entry":int(row.entryId)})
-		if icons.textures.has(key): ui.install_native_icon(view_serial,int(row.entryId),icons.textures[key]); stats.icons_bound+=1
+		if retained_item_icons:
+			if icons.bundles.has(key) and ui.install_scene_icon(view_serial,int(row.entryId),key,icons.bundles[key]): stats.icons_bound+=1
+		elif icons.textures.has(key): ui.install_native_icon(view_serial,int(row.entryId),icons.textures[key]); stats.icons_bound+=1
+	if retained_item_icons:
+		ui.seal_scene_icon_view(expected_scene_icons)
+		if is_instance_valid(ui.scene_host): ui.scene_host.end_batch()
 func icon_ready(key: String,texture: Texture2D,error: String) -> void:
 	if closed: return
 	if not error.is_empty(): icon_failures[key]=error; notice_text="Item icon unavailable: "+error; ui.notice.text=notice_text; return
 	for row in icon_bindings.get(key,[]):
 		if ui.install_native_icon(int(row.view),int(row.entry),texture): stats.icons_bound+=1
+func scene_icon_ready(key: String,bundle: Dictionary,error: String) -> void:
+	if closed: return
+	if not error.is_empty():
+		icon_failures[key]=error; notice_text="Item icon unavailable: "+error; ui.notice.text=notice_text; return
+	for row in icon_bindings.get(key,[]):
+		if ui.install_scene_icon(int(row.view),int(row.entry),key,bundle): stats.icons_bound+=1
 func send_command(value: Dictionary) -> void:
 	if window_role=="alternate":
 		if value.get("kind","") not in ["inventory-open","inventory-close","inventory-page"]:stats["unported_alternate_commands"]=int(stats.get("unported_alternate_commands",0))+1;return
@@ -336,7 +365,8 @@ func receive(message: Dictionary) -> void:
 func snapshot() -> Dictionary:
 	stats.item_context=item_context.snapshot(); stats.stack_dialog=stack_dialog.snapshot()
 	if detailed_timings:stats.timings=timing_rows.duplicate(true)
-	var state:=stats.duplicate(true); state.merge({"wanted":ui.wanted,"view":view_serial,"items":views.size(),"pending":pending.size(),"icons":icons.snapshot(),"equipment_skin":equipment_skin.snapshot(),"frame_skin":frame_skin.snapshot(),"store_skin":store_skin.snapshot(),"gold":gold.snapshot(),"scope":"Native inventory/equipment/container presentation and server-owned item requests. Store presentation and item powers route through the native gameplay desktop; full UI migration remains incomplete."}); return state
+	var icon_state: Dictionary={"backend":"retained","prepared":icons.bundles.size(),"pending":icons.pending.size(),"failed":icons.failed.size(),"host_slots":ui.scene_host.slots.size() if is_instance_valid(ui.scene_host) else 0,"host_ready":ui.scene_host.presentation_ready() if is_instance_valid(ui.scene_host) else false,"host_failure":str(ui.scene_icon_failure)} if retained_item_icons else icons.snapshot()
+	var state:=stats.duplicate(true); state.merge({"wanted":ui.wanted,"view":view_serial,"items":views.size(),"pending":pending.size(),"icons":icon_state,"equipment_skin":equipment_skin.snapshot(),"frame_skin":frame_skin.snapshot(),"store_skin":store_skin.snapshot(),"gold":gold.snapshot(),"scope":"Native inventory/equipment/container presentation and server-owned item requests. Store presentation and item powers route through the native gameplay desktop; full UI migration remains incomplete."}); return state
 func close() -> void:
 	if closed: return
 	closed=true; item_tooltips.close(); item_context.close(); stack_dialog.close(); store_skin.close(); gold.close(); icons.close(); frame_skin.close(); equipment_skin.close(); ui.reset(); objects.clear(); inventories.clear(); containers.clear(); views.clear(); pending.clear(); icon_bindings.clear()

@@ -124,6 +124,7 @@ func refresh_properties(properties: Array,warnings: Array,target_id: int,revisio
 func set_portrait(message: Dictionary) -> bool:
 	if not visible and not admission_pending or state.is_empty() or int(message.get("revision", -1)) != int(state.get("revision", -2)) or int(message.get("targetId", -1)) != int(state.get("targetId", -2)):
 		return false
+	if native_skin!=null and native_skin.owner_ui.inventory.retained_item_icons and str(state.get("type",""))=="item":return false
 	var url := str(message.get("image", ""))
 	if not url.begins_with("data:image/png;base64,") or url.length() > 350000:
 		return false

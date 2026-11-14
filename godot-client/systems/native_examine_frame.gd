@@ -4,6 +4,8 @@ const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/examine_layout.gd")
 const Text=preload("res://systems/server_text.gd")
 const Rich=preload("res://systems/native_data/rich_text.gd")
+const ItemIconPlan=preload("res://systems/native_data/item_icon.gd")
+const ItemPanelHost=preload("res://systems/native_item_icon_panel_host.gd")
 var owner_ui
 var view
 var frame
@@ -27,11 +29,14 @@ var closed:=false
 var failure:=""
 var waiting: Dictionary={}
 var retired_store:=-1
+var item_icon_host
 var art_pending:=false
 var last_art_cohort: Dictionary={}
 func configure(ui,catalog,cache_path: String) -> void:
 	owner_ui=ui; view=ui.examine; view.native_skin=self; frame=ui.inventory.frame_skin; ui.inventory.examine_owner=self
-	ui.inventory.icons.completed.connect(icon_ready)
+	view.visibility_changed.connect(examine_visibility_changed)
+	if ui.inventory.retained_item_icons:ui.inventory.icons.prepared.connect(icon_scene_ready)
+	else:ui.inventory.icons.completed.connect(icon_ready)
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	for name in ["examine_basic","examine_item"]:
 		var id: int=assets.request(name,2047,"gff")
@@ -85,6 +90,10 @@ func build() -> void:
 		if key=="item":
 			identify_button=frame.create_button(plan.entries.identifybutton,stage,models)
 			frame.button_caption(identify_button,owner_ui.text.raw({"strRef":int(plan.entries.identifybutton.caption.Obj_StrRef)})); identify_button.pressed.connect(identify)
+			if owner_ui.inventory.retained_item_icons:
+				item_icon_host=ItemPanelHost.new(); stage.add_child(item_icon_host)
+				item_icon_host.resize_panel(plan.size)
+				if not item_icon_host.configure(owner_ui.inventory.icons.pool):failure=item_icon_host.failure;return
 		var scrollbar:=preload("res://systems/native_scrollbar.gd").new(); stage.add_child(scrollbar); scrollbars[key]=scrollbar
 		scrollbar.configure(frame,models,plan.entries.description,view.scroll,14)
 	view.title_text.mouse_filter=Control.MOUSE_FILTER_STOP; view.title_text.gui_input.connect(view._title_input)
@@ -107,11 +116,21 @@ func present(message: Dictionary) -> void:
 		old_body_parent.get_parent().remove_child(old_body_parent); old_body_parent.queue_free()
 	view.portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; view.scroll.scroll_vertical=0
 	icon_key=""; icon_target=int(message.targetId); icon_revision=int(message.revision)
+	if is_instance_valid(item_icon_host):
+		item_icon_host.clear()
+		view.portrait.visible=mode!="item"
 	if mode=="item":
 		var item: Dictionary=owner_ui.text.objects.get(icon_target,{}).get("item",{})
 		if not item.is_empty():
-			icon_key=owner_ui.inventory.icons.request(item,owner_ui.text.tables,int(owner_ui.text.objects.get(owner_ui.controlled_id,{}).get("appearance",{}).get("gender",0)))
-			if owner_ui.inventory.icons.textures.has(icon_key): icon_ready(icon_key,owner_ui.inventory.icons.textures[icon_key],"")
+			var gender:=int(owner_ui.text.objects.get(owner_ui.controlled_id,{}).get("appearance",{}).get("gender",0))
+			if owner_ui.inventory.retained_item_icons:
+				var icon_plan: Dictionary=ItemIconPlan.new().plan(item,owner_ui.text.tables,gender)
+				var presentation: String="small" if int(icon_plan.get("width",0))>=3 else "normal"
+				icon_key=owner_ui.inventory.icons.request(item,owner_ui.text.tables,gender,presentation)
+				if owner_ui.inventory.icons.bundles.has(icon_key):icon_scene_ready(icon_key,owner_ui.inventory.icons.bundles[icon_key],"")
+			else:
+				icon_key=owner_ui.inventory.icons.request(item,owner_ui.text.tables,gender)
+				if owner_ui.inventory.icons.textures.has(icon_key): icon_ready(icon_key,owner_ui.inventory.icons.textures[icon_key],"")
 	view._clamp(); sync()
 func request_art_admission() -> void:
 	if closed or view.state.is_empty():return
@@ -159,6 +178,10 @@ func art_snapshot() -> Dictionary:
 		var icons=owner_ui.inventory.icons
 		if icon_key.is_empty():result.failures.append("Received item icon is unavailable: "+str(icons.last_request_error))
 		elif icons.failed.has(icon_key):result.failures.append("Item icon "+icon_key+": "+str(icons.failed[icon_key]))
+		elif owner_ui.inventory.retained_item_icons:
+			result.images_expected+=1
+			if icons.bundles.has(icon_key) and is_instance_valid(item_icon_host) and item_icon_host.binding_ready("item"):result.images_ready+=1
+			else:result.pending.append("item-icon-scene:"+icon_key)
 		else:
 			result.images_expected+=1
 			var resident: Dictionary=icons.catalog.ui_asset_owner().lookup("item",icon_key)
@@ -211,6 +234,12 @@ func icon_ready(key: String,texture: Texture2D,error: String) -> void:
 	if bounds.has("min") and bounds.has("max"):
 		view.portrait.position=plans.item.icon+Vector2(bounds.min[0],-float(bounds.max[1]))*100.0
 		view.portrait.size=Vector2(float(bounds.max[0])-float(bounds.min[0]),float(bounds.max[1])-float(bounds.min[1]))*100.0
+func icon_scene_ready(key: String,bundle: Dictionary,error: String) -> void:
+	if closed or not layout_ready or mode!="item" or key!=icon_key or not error.is_empty() or not is_instance_valid(item_icon_host):return
+	if int(view.state.get("targetId",-1))!=icon_target or int(view.state.get("revision",-1))!=icon_revision:return
+	if not item_icon_host.bind_slot("item",key,bundle,plans.item.icon):failure=item_icon_host.failure
+func examine_visibility_changed() -> void:
+	if is_instance_valid(item_icon_host) and not view.visible and not view.admission_pending:item_icon_host.clear()
 func snapshot() -> Dictionary:
 	var bars: Dictionary={}
 	for key in scrollbars: bars[key]=scrollbars[key].snapshot()
@@ -218,7 +247,11 @@ func snapshot() -> Dictionary:
 func close() -> void:
 	if closed: return
 	closed=true;art_pending=false;set_process(false);assets.close(); view.native_skin=null; owner_ui.inventory.examine_owner=null
+	if is_instance_valid(item_icon_host):item_icon_host.clear()
+	if is_instance_valid(view) and view.visibility_changed.is_connected(examine_visibility_changed):view.visibility_changed.disconnect(examine_visibility_changed)
 	for scrollbar in scrollbars.values(): scrollbar.close()
-	if owner_ui.inventory.icons.completed.is_connected(icon_ready): owner_ui.inventory.icons.completed.disconnect(icon_ready)
+	if owner_ui.inventory.retained_item_icons:
+		if owner_ui.inventory.icons.prepared.is_connected(icon_scene_ready):owner_ui.inventory.icons.prepared.disconnect(icon_scene_ready)
+	elif owner_ui.inventory.icons.completed.is_connected(icon_ready):owner_ui.inventory.icons.completed.disconnect(icon_ready)
 	jobs.clear(); models.clear(); layouts.clear(); waiting.clear()
 func _exit_tree() -> void: close()

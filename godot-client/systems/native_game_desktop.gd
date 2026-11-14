@@ -93,7 +93,9 @@ var shortcut_dialogs
 var shortcut_timings: Array=[]
 var item_art: Dictionary={}
 var quickbar_item_keys: Dictionary={}
+var quickbar_secondary_keys: Dictionary={}
 var quickbar_item_retry: Array=[]
+var quickbar_retry_at:=0
 var quickbar_item_tables_wait:=false
 var quickbar_icon_errors: Dictionary={}
 var quickbar_art_view:=-1
@@ -118,13 +120,13 @@ func configure(ui,catalog,cache_path: String,layout: String="user://native-menu-
 	party.request.connect(func(_message): command({"kind":"native-rest"}))
 	party_frame=preload("res://systems/native_party_frame.gd").new(); add_child(party_frame); party_frame.configure(party,catalog,cache_path,ui.text,ui.inventory.frame_skin)
 	party_frame.locator_context=party_locator_context
-	quickbar=preload("res://systems/server_quickbar.gd").new(); ui.controls.add_child(quickbar); quickbar.setup(); quickbar.request.connect(input_request)
+	quickbar=preload("res://systems/server_quickbar.gd").new(); ui.controls.add_child(quickbar); quickbar.retained_item_icons=ui.inventory.retained_item_icons; quickbar.setup(); quickbar.request.connect(input_request)
 	quickbar.set_key_bindings(ui.key_bindings)
 	quickbar.inventory_requested.connect(func(): panel("inventory")); quickbar.character_requested.connect(func(): panel("character")); quickbar.spellbook_requested.connect(func(): panel("spells")); quickbar.map_requested.connect(func(): panel("map")); quickbar.journal_requested.connect(func(): panel("journal")); quickbar.options_requested.connect(func(): options_requested.emit()); quickbar.level_requested.connect(func(): panel("level-up"))
 	quickbar.assignment_requested.connect(shortcut_menu); quickbar.rendered.connect(bind_quickbar_art)
 	shortcut_rules.rules=rules
 	shortcut_dialogs=preload("res://systems/native_quickbar_context.gd").new();add_child(shortcut_dialogs);shortcut_dialogs.configure(self,catalog,cache_path)
-	quickbar_frame=preload("res://systems/native_quickbar_frame.gd").new(); add_child(quickbar_frame); quickbar_frame.configure(quickbar,catalog,cache_path,ui.text,ui.inventory.frame_skin)
+	quickbar_frame=preload("res://systems/native_quickbar_frame.gd").new(); add_child(quickbar_frame); quickbar_frame.configure(quickbar,catalog,cache_path,ui.text,ui.inventory.frame_skin,ui.inventory.icons.pool if ui.inventory.retained_item_icons else null)
 	quickbar.admission_check=quickbar_item_icons_ready
 	for button in quickbar.pages[0].get_parent().get_children():
 		if not button is Button or not quickbar.pages.has(button): button.hide()
@@ -153,7 +155,9 @@ func configure(ui,catalog,cache_path: String,layout: String="user://native-menu-
 	radial.configure_text(ui.inventory.frame_skin.fonts)
 	quickbar.record_valid=sheet.can_drag; quickbar.inventory_valid=func(data): return int(data.get("viewId",-1))==owner_ui.inventory.ui.view_id and owner_ui.inventory.views.has(int(data.get("entryId",-1)))
 	quickbar.radial_valid=func(data): return owner_ui.inventory.item_context.can_shortcut(data) if data.get("kind","")=="item-radial-entry" else can_radial_shortcut(data)
-	owner_ui.inventory.ability_requested.connect(use_inventory_item); owner_ui.inventory.icons.completed.connect(item_icon_ready)
+	owner_ui.inventory.ability_requested.connect(use_inventory_item)
+	if owner_ui.inventory.retained_item_icons:owner_ui.inventory.icons.prepared.connect(item_icon_prepared)
+	else:owner_ui.inventory.icons.completed.connect(item_icon_ready)
 	owner_ui.inventory.item_context.opened.connect(radial.reset)
 	owner_ui.inventory.item_context.ability_selected.connect(item_menu_ability)
 	owner_ui.inventory.item_context.spell_entries=func():return spell_branches(8)
@@ -211,6 +215,8 @@ func actor() -> Dictionary: return objects.get(actor_id,{})
 func _process(_delta: float) -> void:
 	if not shortcut_context.is_empty() and not shortcut_scope_valid(shortcut_context):retire_shortcut_context()
 	if closed or not objects.has(actor_id) or not owner_ui.hud_ready: return
+	if not quickbar_item_retry.is_empty() and not quickbar_binding_art and is_instance_valid(quickbar_frame) and Time.get_ticks_msec()>=quickbar_retry_at:
+		quickbar_retry_at=Time.get_ticks_msec()+100;quickbar_frame.try_admit()
 	if text_revision!=int(rules.text.revision): text_revision=int(rules.text.revision); dirty=true
 	if dirty: ensure_ability_tables()
 	if not owner_ui.tables_ready:
@@ -425,21 +431,30 @@ func bind_book_art() -> void:
 	for id in book.widgets:
 		if book.widgets[id].is_visible_in_tree(): art.bind(book.widgets[id].image,str(book.rows[id].icon))
 func prewarm_quickbar_item_icons() -> void:
-	quickbar_item_keys.clear(); quickbar_item_retry.clear(); quickbar_icon_errors.clear(); quickbar_item_tables_wait=false
+	quickbar_item_keys.clear(); quickbar_secondary_keys.clear(); quickbar_item_retry.clear(); quickbar_icon_errors.clear(); quickbar_item_tables_wait=false
 	if not owner_ui.inventory.icon_tables_ready():
 		for binding in quick_bindings:
 			if int(binding.get("type",0))==1: quickbar_item_tables_wait=true; break
 		return
-	var icons=owner_ui.inventory.icons
 	var gender:=int(actor().get("appearance",{}).get("gender",0))
 	for index in mini(36,quick_bindings.size()):
 		if int(quick_bindings[index].get("type",0))!=1: continue
-		var item: Dictionary=objects.get(int(quick_bindings[index].get("itemId",-1)),{}).get("item",{})
-		if item.is_empty(): continue
-		var key: String=icons.request(item,owner_ui.text.tables,gender)
-		if not key.is_empty(): quickbar_item_keys[index]=key
-		elif icons.last_request_error=="Native asset queue is full": quickbar_item_retry.append(index)
-		elif not icons.last_request_error.is_empty(): quickbar_icon_errors[index]=icons.last_request_error
+		request_quickbar_item(index,false,gender)
+		if owner_ui.inventory.retained_item_icons:request_quickbar_item(index,true,gender)
+func quickbar_item(index: int,secondary: bool=false) -> Dictionary:
+	if index<0 or index>=quick_bindings.size() or int(quick_bindings[index].get("type",0))!=1:return {}
+	var id:=int(quick_bindings[index].get("secondaryItemId",INVALID)) if secondary else int(quick_bindings[index].get("itemId",INVALID))
+	return objects.get(id,{}).get("item",{})
+func request_quickbar_item(index: int,secondary: bool,gender: int) -> void:
+	var item: Dictionary=quickbar_item(index,secondary)
+	if item.is_empty():return
+	var icons=owner_ui.inventory.icons
+	var key: String=icons.request(item,owner_ui.text.tables,gender,"small") if owner_ui.inventory.retained_item_icons else icons.request(item,owner_ui.text.tables,gender)
+	if not key.is_empty():
+		if secondary:quickbar_secondary_keys[index]=key
+		else:quickbar_item_keys[index]=key
+	elif icons.last_request_error=="Native asset queue is full":quickbar_item_retry.append({"index":index,"secondary":secondary})
+	elif not icons.last_request_error.is_empty():quickbar_icon_errors[str(index)+(":secondary" if secondary else "")]=icons.last_request_error
 func quickbar_item_icons_ready() -> bool:
 	if quickbar_item_tables_wait:
 		if not owner_ui.inventory.icon_tables_ready(): return false
@@ -447,19 +462,18 @@ func quickbar_item_icons_ready() -> bool:
 	if quickbar_binding_art or quickbar_art_view!=quickbar.quickbar_id: return false
 	if not quickbar_item_retry.is_empty():
 		var retry: Array=quickbar_item_retry.duplicate(); quickbar_item_retry.clear()
-		var icons=owner_ui.inventory.icons
 		var gender:=int(actor().get("appearance",{}).get("gender",0))
-		for index in retry:
-			if index>=quick_bindings.size(): continue
-			var item: Dictionary=objects.get(int(quick_bindings[index].get("itemId",-1)),{}).get("item",{})
-			if item.is_empty(): continue
-			var key: String=icons.request(item,owner_ui.text.tables,gender)
-			if not key.is_empty(): quickbar_item_keys[index]=key
-			elif icons.last_request_error=="Native asset queue is full": quickbar_item_retry.append(index)
-			elif not icons.last_request_error.is_empty(): quickbar_icon_errors[index]=icons.last_request_error
+		for job in retry:request_quickbar_item(int(job.index),bool(job.secondary),gender)
 		if not quickbar_item_retry.is_empty(): return false
-	for key in quickbar_item_keys.values():
-		if not owner_ui.inventory.icons.textures.has(key) and not owner_ui.inventory.icons.failed.has(key): return false
+	for key in quickbar_item_keys.values()+quickbar_secondary_keys.values():
+		if owner_ui.inventory.retained_item_icons:
+			if not owner_ui.inventory.icons.bundles.has(key) and not owner_ui.inventory.icons.failed.has(key):return false
+		else:
+			if not owner_ui.inventory.icons.textures.has(key) and not owner_ui.inventory.icons.failed.has(key): return false
+	if owner_ui.inventory.retained_item_icons:
+		for index in quickbar.buttons:
+			if quickbar_item_keys.has(index) and not quickbar_frame.item_icon_presented(int(index)):return false
+			if quickbar_secondary_keys.has(index) and not quickbar_frame.item_icon_presented(int(index),true):return false
 	return true
 func refresh_quickbar() -> void:
 	quick_bindings=state.get("quickbar",[]).duplicate(true); var rows: Array=[]
@@ -474,16 +488,34 @@ func bind_quickbar_art() -> void:
 	quickbar_binding_art=true
 	item_art.clear()
 	for index in quickbar.buttons:
-		var item: Dictionary=objects.get(int(quick_bindings[index].get("itemId",-1)),{}).get("item",{}) if owner_ui.inventory.icon_tables_ready() and index<quick_bindings.size() and int(quick_bindings[index].get("type",0))==1 else {}
-		if not item.is_empty():
-			var key: String=owner_ui.inventory.icons.request(item,owner_ui.text.tables,int(actor().get("appearance",{}).get("gender",0)))
-			if not key.is_empty():
-				if not item_art.has(key): item_art[key]=[]
-				item_art[key].append({"index":index,"view":quickbar.quickbar_id})
-				if owner_ui.inventory.icons.textures.has(key): item_icon_ready(key,owner_ui.inventory.icons.textures[key],"")
-		var row: Dictionary=quickbar.rows[index]; art.bind(quickbar.buttons[index].image,str(row.get("icon","")))
+		if owner_ui.inventory.icon_tables_ready():
+			for secondary in ([true,false] if owner_ui.inventory.retained_item_icons else [false]):
+				var item: Dictionary=quickbar_item(int(index),secondary)
+				if item.is_empty():continue
+				var key: String=owner_ui.inventory.icons.request(item,owner_ui.text.tables,int(actor().get("appearance",{}).get("gender",0)),"small") if owner_ui.inventory.retained_item_icons else owner_ui.inventory.icons.request(item,owner_ui.text.tables,int(actor().get("appearance",{}).get("gender",0)))
+				if key.is_empty():continue
+				if not item_art.has(key):item_art[key]=[]
+				item_art[key].append({"index":index,"view":quickbar.quickbar_id,"secondary":secondary})
+				if not owner_ui.inventory.retained_item_icons and owner_ui.inventory.icons.textures.has(key):item_icon_ready(key,owner_ui.inventory.icons.textures[key],"")
+		var row: Dictionary=quickbar.rows[index]
+		if not owner_ui.inventory.retained_item_icons or not bool(row.get("itemIcon",false)):art.bind(quickbar.buttons[index].image,str(row.get("icon","")))
 	quickbar_binding_art=false; quickbar_art_view=quickbar.quickbar_id
+	if owner_ui.inventory.retained_item_icons:call_deferred("bind_retained_quickbar_art")
 	if is_instance_valid(quickbar_frame): quickbar_frame.try_admit()
+func bind_retained_quickbar_art() -> void:
+	if closed or not owner_ui.inventory.retained_item_icons or not is_instance_valid(quickbar_frame):return
+	for secondary in [true,false]:
+		for key in item_art:
+			if not owner_ui.inventory.icons.bundles.has(key):continue
+			for job in item_art[key]:
+				if bool(job.secondary)!=secondary or int(job.view)!=quickbar.quickbar_id or not quickbar.buttons.has(int(job.index)):continue
+				var button: Button=quickbar.buttons[int(job.index)]
+				quickbar_frame.bind_item_icon(int(job.index),str(key),owner_ui.inventory.icons.bundles[key],button.modulate.a,secondary)
+	quickbar_frame.try_admit()
+func item_icon_prepared(key: String,_bundle: Dictionary,error: String) -> void:
+	if closed:return
+	if not error.is_empty() and (quickbar_item_keys.values().has(key) or quickbar_secondary_keys.values().has(key)) and is_instance_valid(target_prompt):target_prompt.text="Shortcut icon unavailable: "+error;target_prompt.show()
+	if item_art.has(key):call_deferred("bind_retained_quickbar_art")
 func shortcut_row(binding: Dictionary) -> Dictionary:
 	var type:=int(binding.get("type",0)); var id:=int(binding.get("intParam",0)); var table:="spells" if type in [2,44] else "feat" if type==4 else "skills" if type==3 else ""
 	if type==4: id&=65535
@@ -541,7 +573,7 @@ func shortcut_row(binding: Dictionary) -> Dictionary:
 				if cost in [7,13]: uses="*"
 				elif cost!=1: uses=item.get("propertyUses",item.get("field351",[])).get(str(index),0) if item.get("propertyUses",item.get("field351",[])) is Dictionary else item.get("propertyUses",item.get("field351",[]))[index] if index<item.get("propertyUses",item.get("field351",[])).size() else 0
 
-	return {"empty":type==0,"label":label,"enabled":bool(spell_shortcut.enabled) if type==2 else type!=0 and (uses==null or uses is String and uses=="*" or int(uses)>0),"uses":uses,"icon":action_icon if type==4 and not action_icon.is_empty() else rules.icon(table,id) if not table.is_empty() else action_icon}
+	return {"empty":type==0,"label":label,"enabled":bool(spell_shortcut.enabled) if type==2 else type!=0 and (uses==null or uses is String and uses=="*" or int(uses)>0),"uses":uses,"itemIcon":type==1,"icon":action_icon if type==4 and not action_icon.is_empty() else rules.icon(table,id) if not table.is_empty() else action_icon}
 func assign(index: int,binding: Dictionary) -> void:
 	if index<0 or index>=36: return
 	var button: Dictionary=item_binding(binding) if int(binding.get("type",0))==1 else FeatRadial.binding(int(binding.intParam),int(binding.get("auxiliary",(int(binding.intParam)>>16)&65535))) if int(binding.get("type",0))==4 else binding

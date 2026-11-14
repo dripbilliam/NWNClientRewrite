@@ -5,10 +5,17 @@ signal menu_requested(entry_id: int, point: Vector2)
 const Slot = preload("res://systems/inventory_slot.gd")
 const Repository = preload("res://systems/inventory_repository.gd")
 const Images = preload("res://systems/runtime_image.gd")
+const SceneHost = preload("res://systems/native_item_icon_panel_host.gd")
 var state: Dictionary = {}
 var items: Dictionary = {}
 var buttons: Dictionary = {}
 var textures: Dictionary = {}
+var scene_host
+var scene_icon_source
+var scene_icon_backend_selected:=false
+var scene_icon_bindings: Dictionary={}
+var scene_icon_sealed:=false
+var scene_icon_failure:=""
 var view_id := -1
 var wanted := false
 var native_icon_gate := false
@@ -121,6 +128,8 @@ func reset() -> void:
 	blocked_store_generation = -1
 	if is_instance_valid(store_panel): store_panel.reset()
 	state.clear(); items.clear(); textures.clear(); buttons.clear()
+	if is_instance_valid(scene_host): scene_host.clear()
+	scene_icon_bindings.clear(); scene_icon_sealed=false; scene_icon_failure=""
 	structural_key=null
 	equipment_controls.clear(); repository_controls.clear()
 	if equipment != null:
@@ -147,6 +156,7 @@ func present_received(opened: bool) -> void:
 	wanted=opened
 	if opened and not native_icon_gate:show();move_to_front()
 	else:
+		if not opened: retire_scene_icons()
 		examine_mode=false;hide()
 
 func close_inventory() -> void:
@@ -155,6 +165,7 @@ func close_inventory() -> void:
 	blocked_store_generation = int(state.get("store", {}).get("generation", -1))
 	if is_instance_valid(store_panel): store_panel.hide()
 	wanted = false
+	retire_scene_icons()
 	hide()
 	request.emit({"kind": "inventory-close"})
 
@@ -168,6 +179,7 @@ func receive(message: Dictionary) -> void:
 			blocked_store_generation = store_generation
 		"inventory-notice": notice.text = str(message.text)
 		"inventory-view":
+			if is_instance_valid(scene_host): hide()
 			if not wanted:
 				var store: Dictionary = message.get("store", {})
 				var new_store: bool = store.get("open", false) and int(store.get("generation", -1)) > blocked_store_generation
@@ -180,13 +192,16 @@ func receive(message: Dictionary) -> void:
 			view_id = int(message.viewId)
 			state = message.duplicate(true)
 			items.clear(); textures.clear()
+			if is_instance_valid(scene_host): scene_host.clear()
+			scene_icon_bindings.clear(); scene_icon_sealed=false; scene_icon_failure=""
 			for item in message.items: items[int(item.entryId)] = item
 			selected = -1
 			for id in items:
 				if int(items[id].itemId) == selected_item: selected = id; break
 			render()
-			if native_icon_gate and wanted: show(); move_to_front()
+			if native_icon_gate and wanted and not scene_icon_backend_selected: show(); move_to_front()
 		"inventory-icon":
+			if scene_icon_backend_selected: return
 			if int(message.viewId) != view_id: return
 			var texture: Texture2D = Images.png(str(message.image), 512)
 			if texture == null: return
@@ -197,7 +212,9 @@ func receive(message: Dictionary) -> void:
 func render() -> void:
 	if state.is_empty(): return
 	var layouts: Array=native_equipment.rows(creature_slots) if native_equipment!=null and native_equipment.layout_ready else state.layout
-	var next_key:=hash([layouts,creature_slots,state.page,state.get("container",{}).get("ownerId"),state.get("container",{}).get("page"),state.get("store",{}).get("open",false),native_frame.layout_ready if native_frame!=null else false])
+	# Backpack page changes replace repository slots below; equipment and frame
+	# controls retain the same structure and need no full-panel rebuild.
+	var next_key:=hash([layouts,creature_slots,state.get("container",{}).get("ownerId"),state.get("container",{}).get("page"),state.get("store",{}).get("open",false),native_frame.layout_ready if native_frame!=null else false])
 	var rebuild: bool=structural_key!=next_key
 	structural_key=next_key
 	if rebuild:
@@ -277,18 +294,87 @@ func render() -> void:
 		for control in item_controls.values():control.disabled=true
 		notice.text=""
 	_clamp()
+	if scene_icon_backend_selected: sync_scene_icon_host()
 
 func register_button(item: Dictionary, button) -> void:
 	var id := int(item.entryId)
 	buttons[id] = button
 	if not item_commands_enabled:button.disabled=true
-	if textures.has(id): button.set_icon(textures[id])
+	if not scene_icon_backend_selected and textures.has(id): button.set_icon(textures[id])
+	if scene_icon_bindings.has(id):
+		button.image.texture=null; button.caption.hide(); button.count.z_index=1
+		position_scene_icon(id)
 
 func install_native_icon(view: int,entry: int,texture: Texture2D) -> bool:
-	if view!=view_id or texture==null or not items.has(entry): return false
+	if scene_icon_backend_selected or view!=view_id or texture==null or not items.has(entry): return false
 	textures[entry]=texture
 	if buttons.has(entry): buttons[entry].set_icon(texture)
 	return true
+
+func configure_scene_icons(source) -> bool:
+	scene_icon_backend_selected=true
+	if is_instance_valid(scene_host) or not is_instance_valid(source): return false
+	scene_icon_source=source
+	scene_host=SceneHost.new(); scene_host.name="InventoryItemIconScene"
+	add_child(scene_host); scene_host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if not scene_host.configure(source.pool):
+		scene_icon_failure=str(scene_host.failure); return false
+	resized.connect(sync_scene_icon_host)
+	scene_host.resized.connect(func():
+		if scene_icon_sealed and not scene_host.presentation_ready(): hide())
+	scene_host.presented.connect(func(_revision): try_admit_scene_icons())
+	sync_scene_icon_host(); return true
+
+func retire_scene_icons() -> void:
+	if is_instance_valid(scene_host): scene_host.clear()
+	scene_icon_bindings.clear(); scene_icon_sealed=false; scene_icon_failure=""
+
+func sync_scene_icon_host() -> void:
+	if not is_instance_valid(scene_host): return
+	var pixels:=Vector2i(maxi(2,roundi(size.x)),maxi(2,roundi(size.y)))
+	if scene_host.viewport.size!=pixels:
+		hide(); scene_host.resize_panel(size)
+	for id in scene_icon_bindings: position_scene_icon(int(id))
+	try_admit_scene_icons()
+
+func scene_icon_anchor(button) -> Vector2:
+	var local: Vector2=button.native_icon_center if button.native_icon_center!=null else button.size*0.5
+	return scene_host.get_global_transform().affine_inverse()*(button.get_global_transform()*local)
+
+func position_scene_icon(entry: int) -> bool:
+	if not is_instance_valid(scene_host) or not buttons.has(entry) or not scene_icon_bindings.has(entry): return false
+	var row: Dictionary=scene_icon_bindings[entry]
+	var button=buttons[entry]
+	var anchor:=scene_icon_anchor(button)
+	var binding_id:=str(entry)
+	if scene_host.slots.has(binding_id):
+		if row.get("anchor") is Vector2 and row.anchor.is_equal_approx(anchor): return true
+		row.anchor=anchor; scene_icon_bindings[entry]=row
+		hide(); return scene_host.reposition_slot(binding_id,anchor)
+	row.anchor=anchor; scene_icon_bindings[entry]=row
+	return scene_host.bind_slot(binding_id,str(row.key),row.bundle,anchor)
+
+func install_scene_icon(view: int,entry: int,key: String,bundle: Dictionary) -> bool:
+	if view!=view_id or not is_instance_valid(scene_host) or not items.has(entry) or key.is_empty() or bundle.is_empty(): return false
+	scene_icon_bindings[entry]={"key":key,"bundle":bundle}
+	if buttons.has(entry):
+		buttons[entry].image.texture=null; buttons[entry].caption.hide()
+		buttons[entry].count.z_index=1
+		if not position_scene_icon(entry):
+			scene_icon_failure=str(scene_host.failure); return false
+	return true
+
+func seal_scene_icon_view(expected: int) -> void:
+	if scene_icon_bindings.size()!=expected:
+		scene_icon_failure="Original item icon scene is incomplete (%d/%d)"%[scene_icon_bindings.size(),expected]
+	scene_icon_sealed=true; try_admit_scene_icons()
+
+func try_admit_scene_icons() -> void:
+	if not scene_icon_sealed or not is_instance_valid(scene_host) or not wanted or view_id<0 or not scene_icon_failure.is_empty(): return
+	for id in scene_icon_bindings:
+		if not scene_host.binding_ready(str(id)): return
+	if not scene_host.presentation_ready(): hide(); return
+	show(); move_to_front()
 
 func select_item(id: int) -> void:
 	if examine_mode and items.has(id):

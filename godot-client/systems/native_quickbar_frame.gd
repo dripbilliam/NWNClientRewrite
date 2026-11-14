@@ -2,6 +2,7 @@ extends Node
 # Original model geometry over existing typed quickbar actions and private drops.
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/quickbar_layout.gd")
+const ItemPanelHost=preload("res://systems/native_item_icon_panel_host.gd")
 var panel
 var frame
 var text_owner
@@ -20,8 +21,12 @@ var art_keys: Array=[]
 var art_prewarm_sealed:=false
 var resident_icons: Dictionary={}
 var current_icons: Dictionary={}
-func configure(target,catalog,cache_path: String,text,painter) -> void:
+var retained_item_icons:=false
+var item_icon_pool
+var item_icon_host
+func configure(target,catalog,cache_path: String,text,painter,icon_pool=null) -> void:
 	panel=target; panel.native_skin=self; frame=painter; text_owner=text
+	retained_item_icons=panel.retained_item_icons; item_icon_pool=icon_pool
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	panel.rendered.connect(render); frame.art.loaded.connect(art_loaded)
 	frame.fonts.loaded.connect(font_loaded)
@@ -60,6 +65,7 @@ func prewarm_frame_art() -> void:
 func prewarm_rows(rows: Array) -> void:
 	current_icons.clear()
 	for row in rows:
+		if retained_item_icons and bool(row.get("itemIcon",false)):continue
 		var resource:=str(row.get("icon","")).to_lower()
 		if resource in ["","****"]: continue
 		current_icons[resource]=true
@@ -99,6 +105,12 @@ func activate() -> void:
 	stage=Control.new(); panel.add_child(stage); stage.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	image("pnl_quick_bar"); endcaps=image("gui_qbar_ends")
 	var previous: Control=panel.cells; panel.cells=Control.new(); stage.add_child(panel.cells); panel.cells.mouse_filter=Control.MOUSE_FILTER_IGNORE; previous.queue_free()
+	if retained_item_icons:
+		item_icon_host=ItemPanelHost.new(); stage.add_child(item_icon_host)
+		item_icon_host.position=Vector2.ZERO
+		item_icon_host.resize_panel(panel.size)
+		if not item_icon_host.configure(item_icon_pool):failure=item_icon_host.failure;return
+		item_icon_host.presented.connect(func(_revision):try_admit())
 	# Keep the action owner and its private handles; replace only presentation.
 	panel.render(panel.shown_page); place(); try_admit()
 func place() -> void:
@@ -110,6 +122,7 @@ func place() -> void:
 func render() -> void:
 	if closed or not layout_ready: return
 	keys.clear()
+	if is_instance_valid(item_icon_host):panel.hide();item_icon_host.clear()
 	for index in panel.buttons:
 		var button: Button=panel.buttons[index]; var entry: Dictionary=definition.slots[int(index)%12].duplicate(); entry.offset+=definition.origin; entry.rect.position+=definition.origin
 		# Generic slot children retain drag/action ownership, not their old sizes.
@@ -125,6 +138,14 @@ func render() -> void:
 		button.counter.remove_theme_color_override("font_color"); button.counter.remove_theme_constant_override("outline_size"); frame.font_style(button.counter,{"AurString_Font":Plan.FONT}); button.counter.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; button.counter.vertical_alignment=VERTICAL_ALIGNMENT_TOP; button.counter.clip_text=true
 		layout_children(int(index))
 	place()
+func bind_item_icon(index: int,key: String,bundle: Dictionary,alpha: float=1.0,secondary: bool=false) -> bool:
+	if not retained_item_icons or not is_instance_valid(item_icon_host) or not panel.buttons.has(index):return false
+	var button: Button=panel.buttons[index]
+	var image: TextureRect=button.secondary_image if secondary else button.image
+	var anchor: Vector2=button.position+image.position+image.size*0.5
+	return item_icon_host.bind_slot(str(index)+(":secondary" if secondary else ""),key,bundle,anchor,alpha)
+func item_icon_presented(index: int,secondary: bool=false) -> bool:
+	return is_instance_valid(item_icon_host) and item_icon_host.binding_ready(str(index)+(":secondary" if secondary else ""))
 func layout_children(index: int) -> void:
 	if not panel.buttons.has(index) or not keys.has(index): return
 	var button: Button=panel.buttons[index]; var entry: Dictionary=definition.slots[index%12]; var local: Vector2=entry.offset+definition.origin-button.position; var hooks: Dictionary=entry.model.hooks
@@ -132,6 +153,11 @@ func layout_children(index: int) -> void:
 	button.secondary_image.position=button.image.position+Vector2(16,16)
 	var key: Label=keys[index]; key.position=local+hooks.text-Vector2(0,14.0*0.7857143); key.size=Vector2(60,14); key.add_theme_color_override("font_color",Color.WHITE)
 	button.counter.position=local+hooks.count0; button.counter.size=(hooks.count1-hooks.count0).abs()
+	if retained_item_icons:
+		key.z_index=2;button.counter.z_index=2
+		if is_instance_valid(item_icon_host):
+			if item_icon_host.slots.has(str(index)):item_icon_host.reposition_slot(str(index),button.position+button.image.position+button.image.size*0.5,button.modulate.a)
+			if item_icon_host.slots.has(str(index)+":secondary"):item_icon_host.reposition_slot(str(index)+":secondary",button.position+button.secondary_image.position+button.secondary_image.size*0.5,button.modulate.a)
 func art_loaded(_key: String,_texture: Texture2D,_bounds: Dictionary) -> void:
 	if closed: return
 	try_activate()
@@ -143,6 +169,7 @@ func snapshot() -> Dictionary:
 func close() -> void:
 	if closed: return
 	closed=true; keys.clear(); jobs.clear(); models.clear(); art_keys.clear(); current_icons.clear(); resident_icons.clear()
+	if is_instance_valid(item_icon_host):item_icon_host.clear()
 	if is_instance_valid(frame) and is_instance_valid(frame.art) and frame.art.loaded.is_connected(art_loaded): frame.art.loaded.disconnect(art_loaded)
 	if is_instance_valid(frame) and is_instance_valid(frame.fonts) and frame.fonts.loaded.is_connected(font_loaded): frame.fonts.loaded.disconnect(font_loaded)
 	if is_instance_valid(assets): assets.close()

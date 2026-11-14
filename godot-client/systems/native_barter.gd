@@ -3,6 +3,7 @@ const Assets=preload("res://systems/native_data/asset_service.gd")
 const Layout=preload("res://systems/native_data/barter_layout.gd")
 const View=preload("res://systems/native_barter_view.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
+const SceneHost=preload("res://systems/native_item_icon_panel_host.gd")
 const INVALID:=2130706432
 var owner_ui
 var view
@@ -31,11 +32,15 @@ var art_error:=""
 var last_art_cohort: Dictionary={}
 var icon_targets: Dictionary={}
 var icon_failures: Dictionary={}
+var scene_host
 var stats:={"views":0,"commands":0,"stale_input":0,"rejected":0,"native_only":true}
+func scene_icons_enabled() -> bool:
+	return owner_ui!=null and is_instance_valid(owner_ui.inventory) and owner_ui.inventory.get("retained_item_icons")==true
 func configure(ui,catalog,cache_path: String,storage: String) -> void:
 	owner_ui=ui; view=View.new(); ui.controls.add_child(view); view.setup(self,storage)
 	ui.inventory.ui.barter_owner=self; ui.inventory.gold.barter_context=context
-	ui.inventory.icons.completed.connect(icon_ready)
+	if scene_icons_enabled(): ui.inventory.icons.prepared.connect(scene_icon_ready)
+	else: ui.inventory.icons.completed.connect(icon_ready)
 	assets=Assets.new(); add_child(assets); assets.maximum_workers=2; assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	var gui_id: int=assets.request("ingame_barter",2047,"gff")
 	if gui_id<0:fail_layout("Original barter GUI: "+str(assets.failure));return
@@ -52,6 +57,7 @@ func _process(_delta: float) -> void:
 		art_pending=false;art_error=str(cohort.failures[0]);set_process(false);view.admit_failure(art_error)
 func cancel_art_admission() -> void:
 	art_pending=false;art_error="";last_art_cohort={};icon_targets.clear();icon_failures.clear();set_process(false)
+	if is_instance_valid(scene_host): scene_host.clear()
 func request_art_admission() -> void:
 	if not active() or not layout_ready:return
 	art_pending=true;art_error=""
@@ -93,14 +99,17 @@ func art_snapshot() -> Dictionary:
 		elif frame.fonts.failed.has(font):result.failures.append("Barter font "+font+": "+str(frame.fonts.failed[font]))
 		else:result.pending.append("font:"+font)
 	var icons=owner_ui.inventory.icons
-	var shared=icons.catalog.ui_asset_owner()
+	var shared=icons.catalog.ui_asset_owner() if not scene_icons_enabled() else null
 	for id in all_rows:
 		if not view.item_buttons.has(id):result.pending.append("barter-item:"+str(id));continue
 		if icon_failures.has(id):result.failures.append("Barter item "+str(id)+": "+str(icon_failures[id]));continue
 		if not icon_targets.has(id):result.failures.append("Barter item "+str(id)+": original icon key is unavailable");continue
-		var key: String=str(icon_targets[id]);var resident: Dictionary=shared.lookup("item",key)
+		var key: String=str(icon_targets[id]);var resident: Dictionary=shared.lookup("item",key) if shared!=null else {}
 		result.images_expected+=1
 		if icons.failed.has(key):result.failures.append("Barter item "+str(id)+": "+str(icons.failed[key]))
+		elif scene_icons_enabled():
+			if is_instance_valid(scene_host) and scene_host.binding_ready(str(id)) and scene_host.slots.get(str(id),{}).get("key","")==key: result.images_ready+=1
+			else: result.pending.append("item-scene:"+key)
 		elif not resident.is_empty() and icons.textures.get(key)==resident.texture and view.item_buttons[id].image.texture==resident.texture:result.images_ready+=1
 		else:result.pending.append("item-icon:"+key)
 	result.ready=result.failures.is_empty() and result.pending.is_empty()
@@ -124,7 +133,29 @@ func prepared(id: int,result: Dictionary) -> void:
 	if not jobs.is_empty() or not failure.is_empty(): return
 	definition=Layout.parse(gui,models)
 	if not str(definition.error).is_empty():fail_layout(str(definition.error));return
-	view.build(definition,models); layout_ready=true; signature=""; refresh()
+	view.build(definition,models)
+	if scene_icons_enabled(): configure_scene_host()
+	layout_ready=true; signature=""; refresh()
+
+func configure_scene_host() -> void:
+	if is_instance_valid(scene_host): return
+	scene_host=SceneHost.new(); scene_host.name="BarterItemIconScene"; view.stage.add_child(scene_host)
+	scene_host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if not scene_host.configure(owner_ui.inventory.icons.pool): failure=str(scene_host.failure); return
+	view.resized.connect(func(): scene_host.resize_panel(view.size))
+	scene_host.presented.connect(func(_revision): request_art_admission())
+	scene_host.resize_panel(view.size)
+
+func scene_icon_anchor(button) -> Vector2:
+	var local: Vector2=button.native_icon_center if button.native_icon_center!=null else button.size*0.5
+	return scene_host.get_global_transform().affine_inverse()*(button.get_global_transform()*local)
+
+func bind_scene_icon(id: int,key: String,bundle: Dictionary) -> bool:
+	if not is_instance_valid(scene_host) or not view.item_buttons.has(id): return false
+	var button=view.item_buttons[id]
+	button.image.texture=null; button.caption.hide(); button.count.z_index=1
+	if scene_host.bind_slot(str(id),key,bundle,scene_icon_anchor(button)): return true
+	icon_failures[id]=str(scene_host.failure); return false
 func active() -> bool:
 	return not closed and bool(state.get("open",false)) and int(state.get("actorId",-1))==actor and int(state.get("areaId",-1))==area
 func context() -> Dictionary:
@@ -169,9 +200,11 @@ func refresh() -> void:
 		identities[id]=owner_ui.desktop.rules.presentation_object(objects,id,owner_ui.desktop.state.get("players",[]))
 		var replicated: Dictionary=identities[id].replicated
 		identity_signature.append([replicated.get("name"),replicated.get("portraitRef"),replicated.get("portrait")])
-	var next:=Cache.digest(var_to_bytes([epoch,actor,area,state,sources,pending,identity_signature]))
+	var scene_source: Variant=[inventory.icons.binding_scope(),inventory.icons.catalog.source_store.get_instance_id()] if scene_icons_enabled() else null
+	var next:=Cache.digest(var_to_bytes([epoch,actor,area,state,sources,pending,identity_signature,scene_source]))
 	if signature==next: return
 	signature=next; own_rows=own; all_rows=all; view.render(state,rows,pending); stats.views+=1
+	if is_instance_valid(scene_host): scene_host.clear(); scene_host.resize_panel(view.size)
 	view.heading.text=owner_ui.text.resolve({"strRef":0x1ab4},int(state.partnerId),{"nativeB8":1,"context":identities[int(state.partnerId)]})
 	for pair in [["playerportrait",actor],["barratorportrait",int(state.partnerId)]]:
 		var resource: String=view.frame.art.portrait_resource(owner_ui.desktop.rules.portrait(identities[int(pair[1])],3))
@@ -183,7 +216,9 @@ func refresh() -> void:
 		icon_targets[int(row.itemId)]=key
 		if not icon_bindings.has(key): icon_bindings[key]=[]
 		icon_bindings[key].append(int(row.itemId))
-		if inventory.icons.textures.has(key): view.item_buttons[int(row.itemId)].set_icon(inventory.icons.textures[key])
+		if scene_icons_enabled():
+			if inventory.icons.bundles.has(key): bind_scene_icon(int(row.itemId),key,inventory.icons.bundles[key])
+		elif inventory.icons.textures.has(key): view.item_buttons[int(row.itemId)].set_icon(inventory.icons.textures[key])
 	request_art_admission()
 	if window_serial!=int(state.serial):
 		window_serial=int(state.serial); view.move_to_front(); emit_command("window",{"value":true})
@@ -192,6 +227,11 @@ func icon_ready(key: String,texture: Texture2D,error: String) -> void:
 	if not error.is_empty(): view.notice.text=error; return
 	for id in icon_bindings[key]:
 		if view.item_buttons.has(id): view.item_buttons[id].set_icon(texture)
+func scene_icon_ready(key: String,bundle: Dictionary,error: String) -> void:
+	if closed or not active() or not icon_bindings.has(key): return
+	if not error.is_empty(): view.notice.text=error; return
+	for id in icon_bindings[key]: bind_scene_icon(int(id),key,bundle)
+	request_art_admission()
 func emit_command(operation: String,extra: Dictionary={}) -> void:
 	var value:={"kind":"native-barter","operation":operation,"serial":int(state.get("serial",-1)),"targetId":int(state.get("partnerId",INVALID))}; value.merge(extra,true)
 	stats.commands+=1; owner_ui.desktop.command(value)
@@ -251,6 +291,8 @@ func snapshot() -> Dictionary: return {"ready":layout_ready,"failure":failure,"a
 func close() -> void:
 	if closed: return
 	closed=true;cancel_art_admission();assets.close()
-	if owner_ui.inventory.icons.completed.is_connected(icon_ready): owner_ui.inventory.icons.completed.disconnect(icon_ready)
+	if scene_icons_enabled():
+		if owner_ui.inventory.icons.prepared.is_connected(scene_icon_ready): owner_ui.inventory.icons.prepared.disconnect(scene_icon_ready)
+	elif owner_ui.inventory.icons.completed.is_connected(icon_ready): owner_ui.inventory.icons.completed.disconnect(icon_ready)
 	owner_ui.inventory.ui.barter_owner=null; owner_ui.inventory.gold.barter_context=Callable(); view.queue_free(); jobs.clear(); models.clear(); objects={}; pending.clear(); all_rows.clear(); own_rows.clear()
 func _exit_tree() -> void: close()

@@ -1,4 +1,5 @@
 extends Button
+const SceneHost=preload("res://systems/native_item_icon_panel_host.gd")
 
 var inventory
 var row: Dictionary = {}
@@ -8,7 +9,21 @@ var bound_view := -1
 var image: TextureRect
 var count: Label
 var caption: Label
-var native_icon_center: Variant=null
+var _native_icon_center: Variant=null
+var native_icon_center: Variant:
+	get: return _native_icon_center
+	set(value):
+		_native_icon_center=value
+		if is_instance_valid(inventory) and inventory.has_method("position_scene_icon") and inventory.scene_icon_backend_selected and row.has("entryId"):
+			inventory.position_scene_icon(int(row.entryId))
+static func scene_drag_preview(source,key: String,bundle: Dictionary) -> Control:
+	if not is_instance_valid(source) or key.is_empty() or bundle.is_empty(): return null
+	var preview:=Control.new(); preview.size=Vector2(50,50); preview.custom_minimum_size=preview.size
+	var host:=SceneHost.new(); preview.add_child(host); host.position=Vector2.ZERO; host.size=preview.size
+	preview.ready.connect(func():
+		if not host.configure(source.pool): return
+		host.bind_slot("preview",key,bundle,preview.size*0.5))
+	return preview
 func set_icon(texture: Texture2D) -> void:
 	image.texture=texture; caption.hide(); refresh_icon()
 func refresh_icon() -> void:
@@ -101,12 +116,17 @@ func _gui_input(event: InputEvent) -> void:
 func _get_drag_data(_position: Vector2) -> Variant:
 	if not current() or not row.has("entryId") or disabled or inventory.examine_mode: return null
 	if is_instance_valid(inventory.item_tooltips): inventory.item_tooltips.cancel()
-	var preview := TextureRect.new()
-	preview.texture = image.texture
-	preview.custom_minimum_size = Vector2(50, 50)
-	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	set_drag_preview(preview)
+	if is_instance_valid(inventory.scene_host):
+		var binding: Dictionary=inventory.scene_icon_bindings.get(int(row.entryId),{})
+		var preview: Control=scene_drag_preview(inventory.scene_icon_source,str(binding.get("key","")),binding.get("bundle",{}))
+		if preview!=null: set_drag_preview(preview)
+	else:
+		var preview := TextureRect.new()
+		preview.texture = image.texture
+		preview.custom_minimum_size = Vector2(50, 50)
+		preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		set_drag_preview(preview)
 	return {"kind": "native-inventory-item", "viewId": inventory.view_id, "entryId": int(row.entryId)}
 
 func _can_drop_data(_position: Vector2, data: Variant) -> bool:
