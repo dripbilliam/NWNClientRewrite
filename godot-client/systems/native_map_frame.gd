@@ -21,7 +21,6 @@ var layouts: Dictionary={}
 var jobs: Dictionary={}
 var requested_names: Dictionary={}
 var image_requests: Dictionary={}
-var requested:=false
 var layout_ready:=false
 var closed:=false
 var failure:=""
@@ -44,6 +43,12 @@ func configure(owner,catalog,cache_path: String) -> void:
 	desktop=owner; panel=owner.area_map; panel.native_skin=self; frame=owner.owner_ui.inventory.frame_skin
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	frame.art.loaded.connect(loaded); panel.board.pin_action.connect(pin_selected); panel.board.panned.connect(pan); panel.board.note_dropped.connect(drop_note); panel.board.drag_source=valid_drag
+	# Prepare installed map resources before the first map view arrives.
+	for name in STATIC: request_model(name)
+	jobs[assets.request("map_pin_text",2047,"gff")]="@map_pin_text"
+	for name in Plan.TOOLS.values():
+		for clip in ["up","hilite","down"]: frame.art.request_model(name,clip)
+	var preview:=TextureRect.new(); add_child(preview); preview.hide(); desktop.art.bind(preview,"ir_buy")
 func scope() -> Array: return [desktop.generation,desktop.area_id,desktop.actor_id]
 func request_model(name: String) -> void:
 	if requested_names.has(name): return
@@ -52,16 +57,12 @@ func _process(_delta: float) -> void:
 	if closed: return
 	observe_pending()
 	if not panel.wanted or panel.board.columns<1: return
-	for request in image_requests.values():
-		if frame.art.failed.has(request.key): report_failure("Original map artwork could not be prepared: "+str(request.key)); return
+	var missing_art:=art_failure()
+	if not missing_art.is_empty(): report_failure(missing_art); return
 	if layout_ready and shape_signature==[panel.board.columns,panel.board.rows,level]:
+		panel.present_if_ready()
 		if auto_center: follow_player()
 		return
-	if not requested:
-		requested=true
-		for name in STATIC: request_model(name)
-		jobs[assets.request("map_pin_text",2047,"gff")]="@map_pin_text"
-		var preview:=TextureRect.new(); add_child(preview); preview.hide(); desktop.art.bind(preview,"ir_buy")
 	var target:=Plan.frame(panel.board.columns,panel.board.rows,level,Vector2i(21,24))
 	if not str(target.error).is_empty(): report_failure(str(target.error)); return
 	request_model(target.resource)
@@ -69,8 +70,32 @@ func _process(_delta: float) -> void:
 	if not is_instance_valid(editor):
 		editor=NoteEditor.new(); add_child(editor); editor.configure(self,layouts.map_pin_text,models)
 		if not editor.failure.is_empty(): report_failure(editor.failure); return
-	if definition.get("resource","")!=target.resource or displayed_level!=level: publish(target)
+	if definition.get("resource","")!=target.resource or displayed_level!=level or shape_signature!=[panel.board.columns,panel.board.rows,level]: publish(target)
+	panel.present_if_ready()
 	if layout_ready and auto_center: follow_player()
+func art_failure() -> String:
+	if desktop.art.failed.has("ir_buy"): return "Original map pin icon could not be prepared: ir_buy"
+	for request in image_requests.values():
+		if frame.art.failed.has(request.key): return "Original map artwork could not be prepared: "+str(request.key)
+	for button in buttons.values():
+		var data: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		for style in data.get("styles",{}).values():
+			var key: String=frame.art.models.model_key(str(data.resource),str(style[1]),data.overrides)
+			if frame.art.failed.has(key): return "Original map control artwork could not be prepared: "+key
+	return ""
+func display_ready() -> bool:
+	if closed or not failure.is_empty() or not layout_ready or shape_signature!=[panel.board.columns,panel.board.rows,level]: return false
+	if not desktop.art.textures.has("ir_buy"): return false
+	for request in image_requests.values():
+		if not frame.art.textures.has(request.key): return false
+	for button in buttons.values():
+		var data: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		if data.is_empty(): return false
+		for style in data.styles.values():
+			if not frame.art.textures.has(frame.art.models.model_key(str(data.resource),str(style[1]),data.overrides)): return false
+	for bar in bars:
+		if bar.visible and bar.texture.texture==null: return false
+	return true
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var name: String=jobs[id]; jobs.erase(id)
@@ -120,6 +145,7 @@ func map_changed() -> void:
 	var now:=scope()
 	if context!=now: pending.clear(); overlays.clear(); claimed_adds.clear(); context=now
 	close_editor(); auto_center=true; shape_signature=[]
+	panel.present_if_ready()
 	if layout_ready: panel.board.native_view=true; panel.board.zoom=Plan.PIXELS[level]; panel.board.resize_map(); desktop.prepare_map_level(level)
 func reset_view() -> void:
 	pending.clear(); overlays.clear(); claimed_adds.clear(); context=[]; close_editor(); auto_center=true; shape_signature=[]
@@ -132,6 +158,7 @@ func set_zoom(pixels: int) -> void:
 	if desired>=0: set_level(desired)
 func set_level(value: int) -> void:
 	level=clampi(value,0,2)
+	panel.present_if_ready()
 func follow_player() -> void:
 	if panel.board.point.is_empty(): return
 	var center: Vector2=panel.board.center(panel.board.point)

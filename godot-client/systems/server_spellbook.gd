@@ -25,6 +25,16 @@ var wanted := false
 var scrolls: Dictionary = {}
 var scroll_positions: Dictionary = {}
 var native_skin
+var pending_view: Dictionary={}
+func _process(_delta: float) -> void:
+	if not wanted or pending_view.is_empty(): set_process(false); return
+	if not is_instance_valid(native_skin):
+		var ready_view:=pending_view; pending_view={}; present(ready_view); return
+	if not str(native_skin.failure).is_empty():
+		notice.text="Original spellbook frame could not be prepared: "+str(native_skin.failure)
+		show(); set_process(false); return
+	if native_skin.view_icons_ready(pending_view):
+		var ready_view:=pending_view; pending_view={}; present(ready_view)
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Spellbook", "spellbook", Vector2(70, 170), storage)
@@ -85,6 +95,8 @@ func action_button(parent: Node, label: String, callback: Callable) -> Button:
 
 func reset() -> void:
 	wanted = false
+	pending_view.clear()
+	set_process(false)
 	view_id = -1
 	state.clear()
 	rows.clear()
@@ -101,8 +113,11 @@ func reset() -> void:
 
 func open() -> void:
 	wanted = true
-	show()
-	move_to_front()
+	pending_view.clear()
+	if not is_instance_valid(native_skin):
+		show()
+		move_to_front()
+	else: hide()
 	notice.text = "Loading spellbook…"
 	request.emit({"kind": "spellbook-open"})
 
@@ -130,6 +145,13 @@ func receive(message: Dictionary) -> void:
 				present(message)
 
 func present(message: Dictionary) -> void:
+	if is_instance_valid(native_skin) and not native_skin.view_icons_ready(message):
+		pending_view=message
+		hide()
+		set_process(true)
+		return
+	pending_view.clear()
+	set_process(false)
 	var old_key := str(rows.get(selected_id, {}).get("key", ""))
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.begin_render()
 	for key in scrolls:
@@ -174,6 +196,9 @@ func present(message: Dictionary) -> void:
 	if not kept:
 		details.clear()
 	show()
+	if is_instance_valid(native_skin):
+		var icon_error: String=native_skin.view_icon_error(message)
+		if not icon_error.is_empty(): notice.text="Original spell icon unavailable: "+icon_error
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render()
 	rendered.emit()
 

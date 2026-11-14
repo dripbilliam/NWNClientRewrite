@@ -26,8 +26,13 @@ func reset() -> void:
 	wanted = false; view_id = -1; board.reset(); Text.set_text(note, {}); hide()
 
 func open() -> void:
-	if wanted: show(); move_to_front(); return
-	wanted = true; show(); move_to_front(); Text.set_text(note, {"text": "Loading installed map artwork…"}); request.emit({"kind": "map-open"})
+	if wanted: present_if_ready(); return
+	wanted = true; present_if_ready(); Text.set_text(note, {"text": "Loading installed map artwork…"}); request.emit({"kind": "map-open"})
+
+func present_if_ready() -> void:
+	if not wanted: hide(); return
+	if is_instance_valid(native_skin) and not native_skin.display_ready(): hide(); return
+	show(); move_to_front()
 
 func close_map() -> void:
 	if wanted: request.emit({"kind": "map-close"})

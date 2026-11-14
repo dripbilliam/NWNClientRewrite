@@ -5,6 +5,7 @@ const Plan=preload("res://systems/native_data/spellbook_layout.gd")
 const Drag=preload("res://systems/draggable_panel.gd")
 const Bar=preload("res://systems/native_scrollbar.gd")
 const Gui=preload("res://systems/native_data/inventory_frame_layout.gd")
+const Table=preload("res://systems/native_data/two_da.gd")
 var panel
 var frame
 var text_owner
@@ -48,13 +49,78 @@ var scroll_values: Dictionary={}
 var last_level:=""
 var last_family:=""
 var repainting:=false
+var icon_queue: Array[String]=[]
+var icon_seen: Dictionary={}
+var icon_inflight: Dictionary={}
+var icon_failures: Dictionary={}
+var icon_catalog
 func configure(target,catalog,cache_path: String,text,painter,refresh: Callable) -> void:
 	panel=target; panel.native_skin=self; frame=painter; text_owner=text; refresh_owner=refresh
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	panel.visibility_changed.connect(owner_visibility); frame.art.loaded.connect(art_loaded)
+	icon_catalog=catalog
+	queue_original_icons()
+func queue_icon(resource: String,urgent: bool=false) -> void:
+	var key:=resource.to_lower()
+	if key.is_empty() or key.replace("*","").is_empty(): return
+	if icon_seen.has(key):
+		if urgent:
+			var queued:=icon_queue.find(key)
+			if queued>=0: icon_queue.remove_at(queued); icon_queue.push_front(key)
+		return
+	icon_seen[key]=true
+	if icon_catalog.raster_location(key).is_empty(): icon_failures[key]="Original raster missing"; return
+	if urgent: icon_queue.push_front(key)
+	else: icon_queue.append(key)
+	set_process(true)
+func queue_original_icons() -> void:
+	# These are the installed rules tables used by spellbook, quickbar actions,
+	# and spell/feat/skill selections. Keep the decoded textures in the UI owner.
+	for table_name in ["spells","classes","actions","feat","skills"]:
+		var data: Dictionary=text_owner.tables.get(table_name,{})
+		if data.is_empty():
+			var source: PackedByteArray=icon_catalog.get_resource(table_name,2017)
+			if source.is_empty(): continue
+			data=Table.new().parse(source.get_string_from_ascii())
+		for row in data.get("orderedRows",[]):
+			for column in row:
+				if str(column).to_lower() in ["icon","iconresref"]: queue_icon(str(row[column])); break
+	for name in Plan.LEVEL_ICONS: queue_icon(name)
+	for entry in Plan.META: queue_icon(str(entry.icon))
+func view_icons_ready(view: Dictionary) -> bool:
+	var ready:=layout_ready and failure.is_empty()
+	for cls in view.get("classes",[]):
+		var key:=str(cls.get("icon","")).to_lower(); queue_icon(key,true)
+		if not key.is_empty() and not key.replace("*","").is_empty() and not frame.art.textures.has(key) and not icon_failures.has(key): ready=false
+	for family_name in ["known","memory","family"]:
+		for row in view.get(family_name,[]):
+			var key:=str(row.get("icon","")).to_lower(); queue_icon(key,true)
+			if not key.is_empty() and not key.replace("*","").is_empty() and not frame.art.textures.has(key) and not icon_failures.has(key): ready=false
+	return ready
+func view_icon_error(view: Dictionary) -> String:
+	for family_name in ["classes","known","memory","family"]:
+		for row in view.get(family_name,[]):
+			var key:=str(row.get("icon","")).to_lower()
+			if icon_failures.has(key): return key+": "+str(icon_failures[key])
+	return ""
+func pump_icons() -> void:
+	for key in icon_inflight.keys():
+		if frame.art.textures.has(key) or frame.art.failed.has(key):
+			if frame.art.failed.has(key): icon_failures[key]="Original raster decode failed"
+			icon_inflight[key].queue_free(); icon_inflight.erase(key)
+	while icon_inflight.size()<16 and not icon_queue.is_empty():
+		var key: String=icon_queue.pop_front()
+		if frame.art.textures.has(key) or icon_failures.has(key): continue
+		var target:=TextureRect.new(); add_child(target); target.hide()
+		icon_inflight[key]=target; frame.art.bind(target,key)
+		if frame.art.textures.has(key): target.queue_free(); icon_inflight.erase(key)
 func _process(_delta: float) -> void:
-	if closed or requested or not panel.wanted: return
-	requested=true; set_process(false)
+	if closed: return
+	pump_icons()
+	if requested:
+		if icon_queue.is_empty() and icon_inflight.is_empty(): set_process(false)
+		return
+	requested=true
 	for name in Plan.RESOURCES+["scrollbar_simple","pb_scrl_up","pb_scrl_down","ctl_chrsht_lvlup"]:
 		var id: int=assets.request(name,2002,"actor-model" if name=="scrollbar_simple" else "mdl-original")
 		if id<0: failure=str(assets.failure); return
@@ -217,7 +283,10 @@ func layout_leaf(id: int) -> void:
 	button.image.position=local+entry.model.hooks.icon-Vector2(16,16); button.image.size=Vector2(32,32)
 	if entry.has("caption"): button.caption.position=entry.caption.position-button.position; button.caption.size=entry.caption.size
 func art_loaded(_key: String,_texture: Texture2D,_bounds: Dictionary) -> void:
-	if closed or not layout_ready: return
+	if icon_inflight.has(_key):
+		icon_inflight[_key].queue_free(); icon_inflight.erase(_key)
+	# Raster completions do not change model-button geometry.
+	if closed or not layout_ready or not _key.begins_with("gui:"): return
 	for id in leaves: layout_leaf(int(id))
 func select_entry() -> void:
 	if closed or not layout_ready: return
@@ -240,7 +309,10 @@ func snapshot() -> Dictionary:
 	return {"ready":layout_ready,"failure":failure,"pending":jobs.size(),"class_tabs":class_tabs.size(),"level_tabs":level_tabs.size(),"roots":roots.size(),"visible_entries":leaves.size(),"memory_visible":is_instance_valid(memory) and memory.visible,"native_only":true,"full_spellbook_parity":false}
 func close() -> void:
 	if closed: return
-	closed=true; jobs.clear(); models.clear()
+	closed=true; jobs.clear(); models.clear(); icon_queue.clear(); icon_seen.clear(); icon_failures.clear()
+	for target in icon_inflight.values():
+		if is_instance_valid(target): target.queue_free()
+	icon_inflight.clear(); icon_catalog=null
 	for bar in bars:
 		if is_instance_valid(bar): bar.close()
 	if is_instance_valid(help_bar): help_bar.close()

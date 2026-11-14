@@ -7,10 +7,13 @@ signal exit_requested
 signal button_sound_requested
 signal source_ready(painter,text,catalog,cache_path: String)
 const Loader=preload("res://systems/native_data/session_catalog.gd")
+const IconTextures=preload("res://systems/native_data/ui_icon_texture_preloader.gd")
+const SharedRasters=preload("res://systems/native_data/shared_ui_rasters.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/entry_menu_layout.gd")
 const Page=preload("res://systems/native_entry_menu_frame.gd")
 var loader
+var icon_preloader
 var catalog
 var painter
 var text=preload("res://systems/native_data/talk_text.gd").new()
@@ -46,14 +49,26 @@ func configure(source: Dictionary,cache: String,layout: String,settings) -> void
 	loader=Loader.new(); add_child(loader); loader.completed.connect(catalog_ready); loader.start(sources)
 	get_viewport().size_changed.connect(place)
 func _process(_delta: float) -> void:
-	if closed or not wanted or not is_instance_valid(loader) or loader.task<0: return
-	var progress: Dictionary=loader.progress()
-	if str(progress.get("phase",""))!="item-icons": return
+	if closed or not wanted: return
+	var progress: Dictionary={}
+	if is_instance_valid(loader) and loader.task>=0: progress=loader.progress()
+	elif is_instance_valid(icon_preloader) and not icon_preloader.finished: progress=icon_preloader.progress()
+	if str(progress.get("phase",""))=="catalog":
+		if is_instance_valid(icon_loading_bar): icon_loading_bar.max_value=1; icon_loading_bar.value=0; icon_loading_bar.show()
+		if is_instance_valid(status): status.text="Preparing resource catalog…"
+		return
+	if str(progress.get("phase","")) not in ["item-icons","spellbook-icons","item-and-spell-icons"]:
+		if not is_instance_valid(icon_preloader) or not icon_preloader.finished: return
+		var ui_progress: Dictionary=menu_startup_status()
+		if ui_progress.ready: return
+		if is_instance_valid(icon_loading_bar): icon_loading_bar.max_value=maxi(1,int(ui_progress.total)); icon_loading_bar.value=int(ui_progress.completed); icon_loading_bar.show()
+		if is_instance_valid(status): status.text="Preparing menu UI: %d / %d"%[int(ui_progress.completed),int(ui_progress.total)] if ui_progress.failures.is_empty() else "Menu resources unavailable: "+str(ui_progress.failures[0])
+		return
 	var completed:=int(progress.get("completed",0)); var total:=int(progress.get("total",0))
 	if is_instance_valid(icon_loading_bar):
 		icon_loading_bar.max_value=maxi(1,total); icon_loading_bar.value=completed; icon_loading_bar.show()
 	if is_instance_valid(status):
-		var message:="Loading item icons: %d / %d"%[completed,total]
+		var message:="Preparing icon images: %d / %d"%[completed,total] if str(progress.get("phase",""))=="item-and-spell-icons" else "Loading icon sources: %d / %d"%[completed,total]
 		if status.text!=message: status.text=message
 func catalog_ready(_serial: int,value: RefCounted,error: String,stats: Dictionary) -> void:
 	if closed: return
@@ -72,7 +87,28 @@ func catalog_ready(_serial: int,value: RefCounted,error: String,stats: Dictionar
 	keys=preload("res://systems/native_key_settings.gd").new(); add_child(keys); keys.configure(painter,text,catalog,cache_path,bindings,layout_path); keys.prepared.connect(refresh); keys.artwork_ready.connect(refresh); keys.finished.connect(return_options)
 	if is_instance_valid(window_settings):
 		video=preload("res://systems/native_video_options.gd").new(); add_child(video); video.configure(painter,text,catalog,cache_path,window_settings,layout_path); video.prepared.connect(refresh); video.artwork_ready.connect(refresh); video.finished.connect(return_options)
+	icon_preloader=IconTextures.new(); add_child(icon_preloader); icon_preloader.configure(catalog,cache_path)
+	icon_preloader.texture_ready.connect(icon_texture_ready); icon_preloader.completed.connect(icon_preload_complete); icon_preloader.start()
 	refresh()
+func icon_texture_ready(name: String,texture: Texture2D) -> void:
+	SharedRasters.retain(catalog,name,texture)
+func icon_preload_complete(_stats: Dictionary) -> void:
+	refresh()
+func menu_startup_status() -> Dictionary:
+	var total:=0; var completed:=0; var failures: Array=[]
+	for owner in [main,options,keys,video]:
+		if owner==null: continue
+		total+=1
+		if not is_instance_valid(owner): continue
+		if owner.has_method("cohort_snapshot"):
+			var cohort: Dictionary=owner.cohort_snapshot()
+			if bool(cohort.get("ready",false)): completed+=1
+			for reason in cohort.get("failures",[]): failures.append(str(reason))
+		elif owner.art_ready(): completed+=1
+	if is_instance_valid(bindings):
+		total+=1
+		if bindings.bindings_ready: completed+=1
+	return {"ready":total>0 and completed==total and failures.is_empty(),"completed":completed,"total":total,"failures":failures}
 func table_ready(_id: int,result: Dictionary) -> void:
 	if closed: return
 	if not str(result.get("error","")).is_empty(): failure="Keymap: "+str(result.error); refresh(); return
@@ -93,7 +129,10 @@ func dismiss() -> void:
 	hide()
 func refresh() -> void:
 	if closed: return
-	if is_instance_valid(icon_loading_bar): icon_loading_bar.visible=wanted and is_instance_valid(loader) and loader.task>=0 and str(loader.progress().get("phase",""))=="item-icons"
+	var source_loading: bool=is_instance_valid(loader) and loader.task>=0
+	var texture_loading: bool=is_instance_valid(icon_preloader) and not icon_preloader.finished
+	var menu_status: Dictionary=menu_startup_status() if is_instance_valid(icon_preloader) and icon_preloader.finished else {}
+	if is_instance_valid(icon_loading_bar): icon_loading_bar.visible=wanted and (source_loading or texture_loading or not menu_status.is_empty() and not menu_status.ready)
 	if not button_audio_failure.is_empty():status.text="Menu sound unavailable: "+button_audio_failure
 	elif not failure.is_empty(): status.text="Menu resources unavailable: "+failure
 	elif not button_audio_ready:status.text="Preparing menu sound…"
@@ -113,12 +152,12 @@ func refresh() -> void:
 		main.set_context(scope(),state.enabled,state.colors)
 		for tag in main.buttons:
 			if tag not in ["multibutton","optionsbutton","exitbutton"]: main.buttons[tag].tooltip_text="Unavailable in this client build."
-		main.visible=wanted and page=="main" and main.art_ready() and (button_audio_ready or not button_audio_failure.is_empty())
+		main.visible=wanted and page=="main" and is_instance_valid(icon_preloader) and icon_preloader.finished and bool(menu_status.get("ready",false)) and (button_audio_ready or not button_audio_failure.is_empty())
 	if is_instance_valid(options):
 		options.set_context(scope(),{"gamebutton":true,"videooptsbutton":is_instance_valid(video) and video.art_ready(),"controlbutton":is_instance_valid(keys) and keys.art_ready() and bindings.bindings_ready,"nwsyncbutton":false,"closebutton":true,"xbutton":true})
 		if options.buttons.has("nwsyncbutton"): options.buttons.nwsyncbutton.tooltip_text="Storage management is not available in this client build."
 		options.visible=wanted and page=="options" and options.art_ready() and (button_audio_ready or not button_audio_failure.is_empty())
-	status.visible=wanted and (not failure.is_empty() or not button_audio_failure.is_empty() or not button_audio_ready or not is_instance_valid(main) or not main.art_ready() or page=="options" and not options.art_ready())
+	status.visible=wanted and (not failure.is_empty() or not button_audio_failure.is_empty() or not button_audio_ready or not is_instance_valid(icon_preloader) or not icon_preloader.finished or not bool(menu_status.get("ready",false)) or page=="options" and not options.art_ready())
 	if layout_ready_ms<0 and is_instance_valid(main) and main.layout_ready and is_instance_valid(options) and options.layout_ready: layout_ready_ms=(Time.get_ticks_usec()-started_at)/1000.0
 	place()
 func place() -> void:
@@ -159,11 +198,11 @@ func snapshot() -> Dictionary:
 	var workers:=1 if is_instance_valid(loader) and loader.task>=0 else 0
 	for owner in find_children("*","Node",true,false):
 		if owner.get_script()==Assets: workers+=owner.running.size()
-	return {"native_only":true,"wanted":wanted,"page":page,"failure":failure,"closed":closed,"workers_running":workers,"catalog":catalog_stats,"layout_ready_ms":layout_ready_ms,"main":main.snapshot() if is_instance_valid(main) else {},"options":options.snapshot() if is_instance_valid(options) else {},"keys":keys.snapshot() if is_instance_valid(keys) else {},"video":video.snapshot() if is_instance_valid(video) else {},"full_entry_menu_parity":false,"unported_actions":["New/Load campaign","Movies","repository/news","NWSync Storage","complete modern configuration"]}
+	return {"native_only":true,"wanted":wanted,"page":page,"failure":failure,"closed":closed,"workers_running":workers,"catalog":catalog_stats,"icon_textures":icon_preloader.progress() if is_instance_valid(icon_preloader) else {},"shared_rasters":SharedRasters.snapshot(),"menu_startup":menu_startup_status(),"layout_ready_ms":layout_ready_ms,"main":main.snapshot() if is_instance_valid(main) else {},"options":options.snapshot() if is_instance_valid(options) else {},"keys":keys.snapshot() if is_instance_valid(keys) else {},"video":video.snapshot() if is_instance_valid(video) else {},"full_entry_menu_parity":false,"unported_actions":["New/Load campaign","Movies","repository/news","NWSync Storage","complete modern configuration"]}
 func close() -> void:
 	if closed: return
 	dismiss(); closed=true
-	for owner in [main,options,keys,video,bindings,assets,painter,loader]:
+	for owner in [main,options,keys,video,bindings,assets,icon_preloader,painter,loader]:
 		if is_instance_valid(owner): owner.close()
 	if catalog!=null and catalog.has_method("release_ui_assets"): catalog.release_ui_assets()
 	text.close(); catalog=null

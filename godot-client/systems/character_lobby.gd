@@ -286,7 +286,16 @@ func sync_native() -> void:
 		_place(); settle_local_delete(); return
 	if is_instance_valid(native_wait): native_wait.hide()
 	var selecting: bool=str(state.get("phase","")) in ["character-selection","character-rejected"] and not state.get("creating",false)
+	var portrait_warm: Dictionary={}
+	if native_frontend and selecting and is_instance_valid(native_chooser) and native_chooser.has_method("warm_portraits"): portrait_warm=native_chooser.warm_portraits()
 	if native_frontend and selecting and (not is_instance_valid(native_chooser) or not native_chooser.art_announced and not native_chooser.art_ready()): show_native_wait(); _place(); return
+	if native_frontend and selecting and not portrait_warm.is_empty() and not portrait_warm.get("ready",false):
+		show_native_wait()
+		if not str(portrait_warm.get("failure","")).is_empty(): native_wait_text.text=str(portrait_warm.failure)
+		else:
+			native_wait_text.text="Preparing character portraits: %d / %d"%[int(portrait_warm.completed),int(portrait_warm.total)]
+			native_sync_bar.max_value=maxi(1,int(portrait_warm.total)); native_sync_bar.value=int(portrait_warm.completed); native_sync_bar.show()
+		_place(); return
 	if not is_instance_valid(native_chooser) or not native_chooser.layout_ready: window_column.show(); return
 	var show_native: bool=str(state.get("phase","")) in ["character-selection","character-rejected"] and not state.get("creating",false)
 	native_chooser.visible=show_native; window_column.visible=not show_native

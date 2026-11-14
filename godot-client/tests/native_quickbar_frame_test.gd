@@ -47,7 +47,7 @@ func run() -> void:
 	var ui:=Gameplay.new(); surface.add_child(ui); ui.configure(catalog,install,ProjectSettings.globalize_path("user://native-prepared-v2"),output+".layout.cfg"); ui.request.connect(func(m):requests.append(m.duplicate(true)))
 	check(await wait_until(func():return ui.tables_ready and ui.inventory.frame_skin.fonts!=null),"Active original rules and native shared font owner prepare")
 	var desktop=ui.desktop; var bar=desktop.quickbar; var skin=desktop.quickbar_frame
-	check(not skin.requested and skin.jobs.is_empty(),"A disconnected quickbar does not schedule model work")
+	check(skin.requested and not bar.visible,"Original quickbar layout starts preparing before world admission")
 	var spell:=-1
 	for id in ui.text.tables.spells.orderedRows.size():
 		if desktop.rules.spell_level(id,10)==0: spell=id; break
@@ -58,6 +58,8 @@ func run() -> void:
 	check(await wait_until(func():return skin.layout_ready or not skin.failure.is_empty()),"Original programmatic quickbar models finish bounded preparation")
 	var diagnostic: Dictionary={"failure":skin.failure}
 	if skin.layout_ready and skin.failure.is_empty():
+		check(await wait_until(func():return bar.visible and skin.admission_ready()),"First quickbar view waits for frame art, font and all current shortcut icons")
+		check(skin.art_prewarm_sealed and skin.art_keys.size()==11 and skin.resident_icons.size()>=skin.current_icons.size(),"Original quickbar frame art and current shortcut icon sources remain resident")
 		check(await wait_until(func():return settled(ui)),"Original bank poses, end caps, icons and default dialog font publish")
 		check(not bar.get_child(0).visible and bar.buttons.size()==12 and bar.rows.size()==36,"Generic page/navigation strip is replaced while all36 shortcut bindings remain owned")
 		var expected:=[0,67,133,200,267,334,400,466,533,600,667,733]
@@ -111,8 +113,21 @@ func run() -> void:
 		var world:=WorldInput.new(); surface.add_child(world); await click(Vector2(30,785)); await key(KEY_W); await key(KEY_W,false); await click(Vector2(30,785),MOUSE_BUTTON_MIDDLE)
 		check(world.clicks==1 and world.movement==1 and world.middle==1,"Visual end caps let outside clicks, WASD and middle-mouse reach world input")
 		bar.render(2); bar.notification(Node.NOTIFICATION_WM_WINDOW_FOCUS_OUT); check(bar.shown_page==bar.page,"Focus loss releases temporary modifier bank")
+		var gate:={"ready":false}
+		bar.admission_check=func(): return bool(gate.ready)
+		bar.receive({"kind":"quickbar-view","quickbarId":bar.quickbar_id+1,"rows":bar.rows})
+		check(not bar.visible and not skin.admission_ready(),"A refreshed quickbar stays hidden while an external icon family is pending")
+		gate.ready=true; skin.try_admit()
+		check(bar.visible and skin.admission_ready(),"The quickbar admits the completed external icon family without another view")
+		bar.admission_check=Callable()
 		diagnostic=skin.snapshot(); diagnostic.offsets=offsets; diagnostic.scaled_anchor=str(scaled_anchor); diagnostic.scaled_spacing=scaled_spacing; diagnostic.slot_size=str(bar.buttons[0].size); diagnostic.icon_size=str(bar.buttons[0].image.size); diagnostic.physicalMouseWarped=false; diagnostic.art_failure=ui.inventory.frame_skin.art.failed.keys()
 		bar.reset(); check(skin.keys.is_empty() and bar.buttons.is_empty() and not bar.visible,"Disconnect retires all quickbar labels, slots and visibility")
-	else: check(false,"Original quickbar layout activates without a generic fallback")
+	else:
+		diagnostic=skin.snapshot()
+		diagnostic.model_pending=ui.inventory.frame_skin.art.models.pending.size()
+		diagnostic.model_queue=ui.inventory.frame_skin.art.models.queue.size()
+		diagnostic.model_active=ui.inventory.frame_skin.art.models.active
+		diagnostic.fonts=ui.inventory.frame_skin.fonts.snapshot()
+		check(false,"Original quickbar layout activates without a generic fallback")
 	ui.close(); ui.free(); await process_frame; await process_frame
 	var file:=FileAccess.open(output,FileAccess.WRITE); file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"diagnostic":diagnostic,"requests":requests,"publicConnections":0,"fullQuickbarParity":false,"scope":"Original model/layout frame and isolated native input. Full enabled/disabled/badge/tooltips/EE variants and original-client visual/input comparison remain open; server acceptance tested separately."},"  ")+"\n"); file.close(); quit(0 if failures.is_empty() else 1)

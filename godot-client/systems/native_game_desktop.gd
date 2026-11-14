@@ -92,6 +92,12 @@ var world_radial_coverage: Dictionary={}
 var shortcut_dialogs
 var shortcut_timings: Array=[]
 var item_art: Dictionary={}
+var quickbar_item_keys: Dictionary={}
+var quickbar_item_retry: Array=[]
+var quickbar_item_tables_wait:=false
+var quickbar_icon_errors: Dictionary={}
+var quickbar_art_view:=-1
+var quickbar_binding_art:=false
 var theme_ready:=false
 var map_cells: Array=[]
 var map_jobs: Dictionary={}
@@ -119,6 +125,7 @@ func configure(ui,catalog,cache_path: String,layout: String="user://native-menu-
 	shortcut_rules.rules=rules
 	shortcut_dialogs=preload("res://systems/native_quickbar_context.gd").new();add_child(shortcut_dialogs);shortcut_dialogs.configure(self,catalog,cache_path)
 	quickbar_frame=preload("res://systems/native_quickbar_frame.gd").new(); add_child(quickbar_frame); quickbar_frame.configure(quickbar,catalog,cache_path,ui.text,ui.inventory.frame_skin)
+	quickbar.admission_check=quickbar_item_icons_ready
 	for button in quickbar.pages[0].get_parent().get_children():
 		if not button is Button or not quickbar.pages.has(button): button.hide()
 	sheet=preload("res://systems/server_character_sheet.gd").new(); ui.controls.add_child(sheet); sheet.setup(layout); sheet.request.connect(input_request); sheet.level_requested.connect(func(): if sheet_context.is_empty():panel("level-up"))
@@ -417,17 +424,57 @@ func refresh_book() -> void:
 func bind_book_art() -> void:
 	for id in book.widgets:
 		if book.widgets[id].is_visible_in_tree(): art.bind(book.widgets[id].image,str(book.rows[id].icon))
+func prewarm_quickbar_item_icons() -> void:
+	quickbar_item_keys.clear(); quickbar_item_retry.clear(); quickbar_icon_errors.clear(); quickbar_item_tables_wait=false
+	if not owner_ui.inventory.icon_tables_ready():
+		for binding in quick_bindings:
+			if int(binding.get("type",0))==1: quickbar_item_tables_wait=true; break
+		return
+	var icons=owner_ui.inventory.icons
+	var gender:=int(actor().get("appearance",{}).get("gender",0))
+	for index in mini(36,quick_bindings.size()):
+		if int(quick_bindings[index].get("type",0))!=1: continue
+		var item: Dictionary=objects.get(int(quick_bindings[index].get("itemId",-1)),{}).get("item",{})
+		if item.is_empty(): continue
+		var key: String=icons.request(item,owner_ui.text.tables,gender)
+		if not key.is_empty(): quickbar_item_keys[index]=key
+		elif icons.last_request_error=="Native asset queue is full": quickbar_item_retry.append(index)
+		elif not icons.last_request_error.is_empty(): quickbar_icon_errors[index]=icons.last_request_error
+func quickbar_item_icons_ready() -> bool:
+	if quickbar_item_tables_wait:
+		if not owner_ui.inventory.icon_tables_ready(): return false
+		prewarm_quickbar_item_icons(); call_deferred("bind_quickbar_art"); return false
+	if quickbar_binding_art or quickbar_art_view!=quickbar.quickbar_id: return false
+	if not quickbar_item_retry.is_empty():
+		var retry: Array=quickbar_item_retry.duplicate(); quickbar_item_retry.clear()
+		var icons=owner_ui.inventory.icons
+		var gender:=int(actor().get("appearance",{}).get("gender",0))
+		for index in retry:
+			if index>=quick_bindings.size(): continue
+			var item: Dictionary=objects.get(int(quick_bindings[index].get("itemId",-1)),{}).get("item",{})
+			if item.is_empty(): continue
+			var key: String=icons.request(item,owner_ui.text.tables,gender)
+			if not key.is_empty(): quickbar_item_keys[index]=key
+			elif icons.last_request_error=="Native asset queue is full": quickbar_item_retry.append(index)
+			elif not icons.last_request_error.is_empty(): quickbar_icon_errors[index]=icons.last_request_error
+		if not quickbar_item_retry.is_empty(): return false
+	for key in quickbar_item_keys.values():
+		if not owner_ui.inventory.icons.textures.has(key) and not owner_ui.inventory.icons.failed.has(key): return false
+	return true
 func refresh_quickbar() -> void:
 	quick_bindings=state.get("quickbar",[]).duplicate(true); var rows: Array=[]
 	for index in 36:
 		var binding: Dictionary=quick_bindings[index] if index<quick_bindings.size() else {"type":0}
 		rows.append(shortcut_row(binding))
+	prewarm_quickbar_item_icons()
+	quickbar_art_view=-1
 	serial+=1; quickbar.receive({"kind":"quickbar-view","quickbarId":serial,"rows":rows})
 	if not shortcut_context.is_empty() and not shortcut_scope_valid(shortcut_context):retire_shortcut_context()
 func bind_quickbar_art() -> void:
+	quickbar_binding_art=true
 	item_art.clear()
 	for index in quickbar.buttons:
-		var item: Dictionary=objects.get(int(quick_bindings[index].get("itemId",-1)),{}).get("item",{}) if index<quick_bindings.size() and int(quick_bindings[index].get("type",0))==1 else {}
+		var item: Dictionary=objects.get(int(quick_bindings[index].get("itemId",-1)),{}).get("item",{}) if owner_ui.inventory.icon_tables_ready() and index<quick_bindings.size() and int(quick_bindings[index].get("type",0))==1 else {}
 		if not item.is_empty():
 			var key: String=owner_ui.inventory.icons.request(item,owner_ui.text.tables,int(actor().get("appearance",{}).get("gender",0)))
 			if not key.is_empty():
@@ -435,6 +482,8 @@ func bind_quickbar_art() -> void:
 				item_art[key].append({"index":index,"view":quickbar.quickbar_id})
 				if owner_ui.inventory.icons.textures.has(key): item_icon_ready(key,owner_ui.inventory.icons.textures[key],"")
 		var row: Dictionary=quickbar.rows[index]; art.bind(quickbar.buttons[index].image,str(row.get("icon","")))
+	quickbar_binding_art=false; quickbar_art_view=quickbar.quickbar_id
+	if is_instance_valid(quickbar_frame): quickbar_frame.try_admit()
 func shortcut_row(binding: Dictionary) -> Dictionary:
 	var type:=int(binding.get("type",0)); var id:=int(binding.get("intParam",0)); var table:="spells" if type in [2,44] else "feat" if type==4 else "skills" if type==3 else ""
 	if type==4: id&=65535
@@ -1121,9 +1170,12 @@ func item_menu_ability(binding: Dictionary) -> void:
 		else: cancel_target()
 	else: begin_target(item_binding(binding))
 func item_icon_ready(key: String,texture: Texture2D,error: String) -> void:
-	if closed or texture==null or not error.is_empty(): return
-	for job in item_art.get(key,[]):
-		if int(job.view)==quickbar.quickbar_id and quickbar.buttons.has(int(job.index)): quickbar.buttons[int(job.index)].image.texture=texture
+	if closed: return
+	if not error.is_empty() and quickbar_item_keys.values().has(key) and is_instance_valid(target_prompt): target_prompt.text="Shortcut icon unavailable: "+error; target_prompt.show()
+	if texture!=null and error.is_empty():
+		for job in item_art.get(key,[]):
+			if int(job.view)==quickbar.quickbar_id and quickbar.buttons.has(int(job.index)): quickbar.buttons[int(job.index)].image.texture=texture
+	if not quickbar_binding_art and is_instance_valid(quickbar_frame): quickbar_frame.try_admit()
 func show_radial(menu: Dictionary,push: bool=false) -> void:
 	if push: radial_stack.append(menu)
 	radial_entries.clear(); radial_serial+=1; var entries: Array=[]; var source: Array=ability_entries(menu) if menu.has("kind") else menu.entries

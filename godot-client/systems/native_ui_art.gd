@@ -4,6 +4,7 @@ signal loaded(key: String,texture: Texture2D,bounds: Dictionary)
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Pool=preload("res://systems/native_render/resource_pool.gd")
 const Icons=preload("res://systems/native_item_icons.gd")
+const SharedRasters=preload("res://systems/native_data/shared_ui_rasters.gd")
 var assets
 var models
 var pool:=Pool.new()
@@ -51,6 +52,11 @@ func bind(target: Object,resource: String,property: String="texture",model: bool
 	var key:=Icons.model_key(resource,clip,overrides,0,"",[],render_region) if model else resource.to_lower()
 	var shared: Dictionary=ui_assets.lookup("model" if model else "raster",key) if ui_assets!=null else {}
 	if not shared.is_empty(): textures[key]=shared.texture; bounds[key]=shared.bounds
+	if not model and not textures.has(key):
+		var process_texture: Texture2D=SharedRasters.lookup(catalog,resource)
+		if process_texture!=null:
+			textures[key]=process_texture
+			if ui_assets!=null: ui_assets.retain("raster",key,process_texture)
 	if textures.has(key): apply_image(target,property,textures[key],not model,portrait); bindings.erase(binding_key); return
 	if failed.has(key): bindings.erase(binding_key); return
 	binding_resources[binding_key]=key
@@ -125,6 +131,7 @@ func model_ready(key: String,texture: Texture2D,error: String) -> void:
 	deliver(key,texture)
 func deliver(key: String,texture: Texture2D) -> void:
 	textures[key]=texture
+	if not key.begins_with("gui:"): SharedRasters.retain(catalog,key,texture)
 	if ui_assets!=null: ui_assets.retain("model" if key.begins_with("gui:") else "raster",key,texture,bounds.get(key,{}))
 	loaded.emit(key,texture,bounds.get(key,{}))
 	for listener in waiting.get(key,[]):

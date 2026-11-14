@@ -8,6 +8,7 @@ const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Workshop=preload("res://systems/native_data/workshop_index.gd")
 const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 const ItemIconSources=preload("res://systems/native_data/item_icon_sources.gd")
+const SpellbookIconSources=preload("res://systems/native_data/spellbook_icon_sources.gd")
 var task:=-1
 var serial:=0
 var result: Dictionary={}
@@ -113,7 +114,10 @@ static func prepare(sources: Dictionary,guard: Callable=Callable(),progress_call
 	var icon_sources:=ItemIconSources.preload_all(catalog,guard,progress_callback)
 	if icon_sources.get("cancelled",false): return stopped(guard,catalog,began,"item icons")
 	if not icon_sources.failures.is_empty(): return {"catalog":catalog,"error":"Item icon source unavailable: "+str(icon_sources.failures[0]),"stats":{"item_icon_sources":icon_sources}}
-	return {"catalog":catalog,"error":"","stats":{"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"metadata_backend":"compiled" if Backend.available() else "gd","lookup_index":index_stats,"phases":phases,"layers":catalog.layers.size(),"manifests":index,"workshop_mods":roots.map(func(row):return row.id),"item_icon_sources":icon_sources,"worker_thread":OS.get_thread_caller_id(),"rendering_prepared":false,"residency":catalog.residency_stats()}}
+	var spellbook_sources:=SpellbookIconSources.preload_all(catalog,guard,progress_callback)
+	if spellbook_sources.get("cancelled",false): return stopped(guard,catalog,began,"spellbook icons")
+	if not spellbook_sources.failures.is_empty(): return {"catalog":catalog,"error":"Spellbook/action icon source unavailable: "+str(spellbook_sources.failures[0]),"stats":{"item_icon_sources":icon_sources,"spellbook_icon_sources":spellbook_sources}}
+	return {"catalog":catalog,"error":"","stats":{"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"metadata_backend":"compiled" if Backend.available() else "gd","lookup_index":index_stats,"phases":phases,"layers":catalog.layers.size(),"manifests":index,"workshop_mods":roots.map(func(row):return row.id),"item_icon_sources":icon_sources,"spellbook_icon_sources":spellbook_sources,"worker_thread":OS.get_thread_caller_id(),"rendering_prepared":false,"residency":catalog.residency_stats()}}
 func _process(_delta: float) -> void:
 	var began:=Timing.begin()
 	_profile_process(_delta)

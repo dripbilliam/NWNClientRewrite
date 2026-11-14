@@ -8,6 +8,7 @@ const Loose=preload("res://systems/native_data/loose_index.gd")
 const Residency=preload("res://systems/native_data/resource_residency.gd")
 const SessionUiAssets=preload("res://systems/native_data/session_ui_asset_owner.gd")
 const ItemIconSources=preload("res://systems/native_data/item_icon_sources.gd")
+const SpellbookIconSources=preload("res://systems/native_data/spellbook_icon_sources.gd")
 class BifStore:
 	extends RefCounted
 	var entries: Dictionary = {}
@@ -180,6 +181,7 @@ func recorded_texture_miss(name: String) -> bool:
 func get_resource(name: String, type: int) -> PackedByteArray:
 	stats.source_requests+=1
 	var resident: PackedByteArray=ItemIconSources.lookup(self,name,type) if type in [3,6,2073,2033,2059] else PackedByteArray()
+	if resident.is_empty() and type in [3,2073,2033,2059]: resident=SpellbookIconSources.lookup(self,name,type)
 	if not resident.is_empty():
 		failure=""; stats.source_memory_hits+=1
 		if recording!=null: recording.record(name,type,resident,"")

@@ -16,12 +16,17 @@ var layout_ready:=false
 var closed:=false
 var failure:=""
 var keys: Dictionary={}
+var art_keys: Array=[]
+var art_prewarm_sealed:=false
+var resident_icons: Dictionary={}
+var current_icons: Dictionary={}
 func configure(target,catalog,cache_path: String,text,painter) -> void:
 	panel=target; panel.native_skin=self; frame=painter; text_owner=text
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	panel.rendered.connect(render); frame.art.loaded.connect(art_loaded)
+	frame.fonts.loaded.connect(font_loaded)
 func _process(_delta: float) -> void:
-	if closed or requested or not panel.visible: return
+	if closed or requested: return
 	requested=true
 	set_process(false)
 	for name in Plan.RESOURCES:
@@ -36,7 +41,54 @@ func prepared(id: int,result: Dictionary) -> void:
 	if not jobs.is_empty() or not failure.is_empty(): return
 	definition=Plan.parse(models)
 	if not str(definition.error).is_empty(): failure=str(definition.error); return
+	prewarm_frame_art()
+func prewarm_frame_art() -> void:
+	# The five layout models are prepared before the quickbar has a world. Their
+	# original static images, slot poses and font must also exist before admission.
+	for name in ["pnl_quick_bar","gui_qbar_ends"]:
+		var key: String=frame.art.request_model(name,"")
+		if key.is_empty(): failure="Original quickbar image unavailable: "+name; return
+		art_keys.append(key)
+	for name in ["qb_but66","qb_but67","qb_but67end"]:
+		for pose in ["up","hilite","down"]:
+			var key: String=frame.art.request_model(name,pose)
+			if key.is_empty(): failure="Original quickbar slot pose unavailable: "+name+"/"+pose; return
+			art_keys.append(key)
+	frame.fonts.request(Plan.FONT)
+	art_prewarm_sealed=true
+	try_activate()
+func prewarm_rows(rows: Array) -> void:
+	current_icons.clear()
+	for row in rows:
+		var resource:=str(row.get("icon","")).to_lower()
+		if resource in ["","****"]: continue
+		current_icons[resource]=true
+		if resident_icons.has(resource): continue
+		var target:=TextureRect.new(); target.name="QuickbarIconSource"; target.hide(); add_child(target)
+		resident_icons[resource]=target
+		frame.art.bind(target,resource)
+func frame_art_ready() -> bool:
+	if not requested or not jobs.is_empty() or definition.is_empty() or not art_prewarm_sealed or not failure.is_empty(): return false
+	for key in art_keys:
+		if frame.art.failed.has(key): failure="Original quickbar art unavailable: "+key; return false
+		if not frame.art.textures.has(key): return false
+	if frame.fonts.failed.has(Plan.FONT): failure="Original quickbar font unavailable: "+str(frame.fonts.failed[Plan.FONT]); return false
+	return frame.fonts.fonts.has(Plan.FONT)
+func row_art_ready() -> bool:
+	for resource in current_icons:
+		if frame.art.failed.has(resource): failure="Original quickbar icon unavailable: "+resource; return false
+		if not frame.art.textures.has(resource): return false
+	return true
+func admission_ready() -> bool:
+	return layout_ready and row_art_ready() and panel.extra_art_ready() and failure.is_empty()
+func try_activate() -> void:
+	if closed or layout_ready or not frame_art_ready(): return
 	activate()
+func try_admit() -> void:
+	if closed or not admission_ready() or panel.quickbar_id<0: return
+	panel.show(); place()
+func font_loaded(_name: String) -> void:
+	try_activate(); try_admit()
 func image(resource: String) -> TextureRect:
 	var target:=TextureRect.new(); stage.add_child(target); target.mouse_filter=Control.MOUSE_FILTER_IGNORE; target.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; target.stretch_mode=TextureRect.STRETCH_SCALE
 	var rect: Rect2=definition.models[resource].bounds; target.position=definition.origin+rect.position; target.size=rect.size
@@ -48,7 +100,7 @@ func activate() -> void:
 	image("pnl_quick_bar"); endcaps=image("gui_qbar_ends")
 	var previous: Control=panel.cells; panel.cells=Control.new(); stage.add_child(panel.cells); panel.cells.mouse_filter=Control.MOUSE_FILTER_IGNORE; previous.queue_free()
 	# Keep the action owner and its private handles; replace only presentation.
-	panel.render(panel.shown_page); place()
+	panel.render(panel.shown_page); place(); try_admit()
 func place() -> void:
 	if not layout_ready or closed: return
 	var inverse: Transform2D=panel.get_parent().get_global_transform_with_canvas().affine_inverse()
@@ -81,13 +133,17 @@ func layout_children(index: int) -> void:
 	var key: Label=keys[index]; key.position=local+hooks.text-Vector2(0,14.0*0.7857143); key.size=Vector2(60,14); key.add_theme_color_override("font_color",Color.WHITE)
 	button.counter.position=local+hooks.count0; button.counter.size=(hooks.count1-hooks.count0).abs()
 func art_loaded(_key: String,_texture: Texture2D,_bounds: Dictionary) -> void:
-	if closed or not layout_ready: return
-	for index in keys: layout_children(int(index))
+	if closed: return
+	try_activate()
+	if layout_ready:
+		for index in keys: layout_children(int(index))
+	try_admit()
 func snapshot() -> Dictionary:
-	return {"ready":layout_ready,"failure":failure,"requested":requested,"pending":jobs.size(),"keys":keys.size(),"native_only":true,"full_quickbar_parity":false}
+	return {"ready":layout_ready,"admitted":panel.visible,"failure":failure,"requested":requested,"pending":jobs.size(),"frame_art":art_keys.size(),"resident_icons":resident_icons.size(),"current_icons":current_icons.size(),"keys":keys.size(),"native_only":true,"full_quickbar_parity":false}
 func close() -> void:
 	if closed: return
-	closed=true; keys.clear(); jobs.clear(); models.clear()
+	closed=true; keys.clear(); jobs.clear(); models.clear(); art_keys.clear(); current_icons.clear(); resident_icons.clear()
 	if is_instance_valid(frame) and is_instance_valid(frame.art) and frame.art.loaded.is_connected(art_loaded): frame.art.loaded.disconnect(art_loaded)
+	if is_instance_valid(frame) and is_instance_valid(frame.fonts) and frame.fonts.loaded.is_connected(font_loaded): frame.fonts.loaded.disconnect(font_loaded)
 	if is_instance_valid(assets): assets.close()
 func _exit_tree() -> void: close()

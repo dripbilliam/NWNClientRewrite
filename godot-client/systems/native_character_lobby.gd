@@ -56,6 +56,9 @@ var show_pregenerated:=false
 var layout_ready:=false
 var art_announced:=false
 var row_art_keys: Array=[]
+var portrait_warm_targets: Dictionary={}
+var portrait_warm_waiting:=false
+var portrait_table_waiting:=false
 var closed:=false
 var failure:=""
 var revision:=0
@@ -88,6 +91,7 @@ func request_model(name: String) -> void:
 func bind_data(text,catalog,cache_path: String,images) -> void:
 	if data_catalog==catalog and text_owner==text: return
 	data_epoch+=1
+	clear_portrait_warm_targets()
 	if is_instance_valid(projection_work): projection_work.retire()
 	record_projection={}; skill_projection={}; spell_projection={}
 	if is_instance_valid(rule_assets): rule_assets.close(); rule_assets.queue_free()
@@ -102,6 +106,60 @@ func bind_data(text,catalog,cache_path: String,images) -> void:
 	if is_instance_valid(extra_pages):
 		extra_pages.text_owner=text; extra_pages.rules.text=text; extra_pages.data_art=images; extra_pages.info_signature=""; extra_pages.player_signature=""
 	sync()
+func clear_portrait_warm_targets() -> void:
+	for target in portrait_warm_targets.values():
+		if is_instance_valid(data_art): data_art.unbind(target)
+		if is_instance_valid(target): target.queue_free()
+	portrait_warm_targets.clear(); portrait_warm_waiting=false; portrait_table_waiting=false
+func warm_portraits() -> Dictionary:
+	if closed or not is_instance_valid(data_art) or not is_instance_valid(owner_ui): return {"ready":false,"completed":0,"total":0,"failure":"Character portrait owner is unavailable"}
+	var wanted: Dictionary={}
+	var choices: Array=owner_ui.catalog_choices(text_owner)
+	var preview: Variant=owner_ui.record_preview()
+	var needs_table:=false
+	for row in choices:
+		if not show_pregenerated and row.get("pregenerated",false): continue
+		if str(row.get("portraitRef","")) in ["","****"] and int(row.get("portrait",-1))>=0 and int(row.get("portrait",-1))<65534: needs_table=true
+	if preview is Dictionary and str(preview.get("portraitRef","")) in ["","****"] and int(preview.get("portrait",-1))>=0 and int(preview.get("portrait",-1))<65534: needs_table=true
+	if needs_table and text_owner.tables.has("portraits") and not str(text_owner.tables.portraits.get("error","")).is_empty():
+		portrait_table_waiting=false; portrait_warm_waiting=false
+		return {"ready":false,"completed":0,"total":1,"failure":"Original portrait table: "+str(text_owner.tables.portraits.error)}
+	if needs_table and not text_owner.tables.has("portraits"):
+		portrait_table_waiting=true
+		if is_instance_valid(rule_assets) and not rule_jobs.values().has(["portraits",owner_ui.connection]):
+			var id: int=rule_assets.request("portraits",2017,"2da")
+			if id>=0: rule_jobs[id]=["portraits",owner_ui.connection]
+		portrait_warm_waiting=true
+		return portrait_warm_state()
+	portrait_table_waiting=false
+	for row in choices:
+		if not show_pregenerated and row.get("pregenerated",false): continue
+		for size in [1,4]:
+			var resource: String=rules.portrait({"replicated":row},size)
+			if not resource.is_empty(): wanted[data_art.portrait_resource(resource)]=true
+	if preview is Dictionary:
+		var preview_resource: String=rules.portrait({"replicated":preview},4)
+		if not preview_resource.is_empty(): wanted[data_art.portrait_resource(preview_resource)]=true
+	for key in portrait_warm_targets.keys():
+		if wanted.has(key): continue
+		var retired: Object=portrait_warm_targets[key]
+		data_art.unbind(retired)
+		retired.queue_free(); portrait_warm_targets.erase(key)
+	for key in wanted:
+		if portrait_warm_targets.has(key): continue
+		var target:=TextureRect.new(); target.hide(); add_child(target); portrait_warm_targets[key]=target
+		data_art.bind_portrait(target,str(key))
+	var state:=portrait_warm_state()
+	portrait_warm_waiting=not state.ready and str(state.failure).is_empty()
+	return state
+func portrait_warm_state() -> Dictionary:
+	if not is_instance_valid(data_art): return {"ready":false,"completed":0,"total":portrait_warm_targets.size(),"failure":"Character portrait owner is unavailable"}
+	if portrait_table_waiting and not text_owner.tables.has("portraits"): return {"ready":false,"completed":0,"total":1,"failure":""}
+	var completed:=0; var failure:=""
+	for key in portrait_warm_targets:
+		if data_art.textures.has(key): completed+=1
+		elif data_art.failed.has(key): failure="Original character portrait "+str(key)+": "+str(data_art.ui_assets.failure("raster",str(key)) if data_art.ui_assets!=null else "could not be prepared")
+	return {"ready":completed==portrait_warm_targets.size() and failure.is_empty(),"completed":completed,"total":portrait_warm_targets.size(),"failure":failure}
 func request_classes() -> void:
 	# Server-vault rows carry numeric class IDs too. Warm the installed labels at
 	# Main Menu, then resolve again from the active server catalog after binding.
@@ -244,6 +302,9 @@ func dismiss_pages() -> void:
 	if is_instance_valid(owner_ui) and owner_ui.connection==page_connection and owner_ui.state.get("connected",false) and str(owner_ui.state.get("phase","")) in ["character-selection","character-rejected"]: owner_ui._send({"kind":"lobby-page","page":0})
 func _process(_delta: float) -> void:
 	if not closed and layout_ready and not art_announced and art_ready(): art_announced=true; artwork_ready.emit()
+	if not closed and portrait_warm_waiting:
+		var portraits:=portrait_warm_state()
+		if portraits.ready or not str(portraits.failure).is_empty(): portrait_warm_waiting=false; owner_ui.sync_native()
 	if closed or not layout_ready or not is_visible_in_tree(): return
 	if get_viewport().gui_get_focus_owner()==null: grab_focus()
 	var signature:=str([text_owner.tables.keys(),text_owner.revision])
@@ -399,7 +460,7 @@ func art_ready() -> bool:
 func close() -> void:
 	if closed: return
 	if is_instance_valid(owner_ui) and not owner_ui.preferences.save(show_pregenerated): push_warning(owner_ui.preferences.failure)
-	closed=true; automatic_selection={}; hide()
+	closed=true; automatic_selection={}; hide(); clear_portrait_warm_targets()
 	if is_instance_valid(record_feats): record_feats.close()
 	if is_instance_valid(record_skills): record_skills.close()
 	if is_instance_valid(record_spells): record_spells.close()

@@ -29,7 +29,10 @@ var inventory_valid: Callable
 var radial_valid: Callable
 var level_button: Button
 var native_skin
+var admission_check: Callable
 var key_bindings
+func extra_art_ready() -> bool:
+	return not admission_check.is_valid() or bool(admission_check.call())
 func set_key_bindings(value) -> void:
 	if is_instance_valid(key_bindings) and key_bindings.changed.is_connected(binding_changed): key_bindings.changed.disconnect(binding_changed)
 	key_bindings=value
@@ -114,12 +117,16 @@ func receive(message: Dictionary) -> void:
 				if message.get("secondary", false): buttons[int(message.index)].secondary_image.texture = images[int(message.index)]
 				else: buttons[int(message.index)].image.texture = images[int(message.index)]
 	elif message.kind == "quickbar-view":
+		if is_instance_valid(native_skin):
+			hide()
+			native_skin.prewarm_rows(message.rows)
 		textures.clear()
 		secondary_textures.clear()
 		quickbar_id = int(message.quickbarId)
 		rows = message.rows
 		render(shown_page)
-		show()
+		if not is_instance_valid(native_skin): show()
+		elif native_skin.admission_ready(): native_skin.try_admit()
 		call_deferred("place")
 
 func render(index: int) -> void:

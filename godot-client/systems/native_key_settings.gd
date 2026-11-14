@@ -139,8 +139,9 @@ func build() -> void:
 	notice=Label.new(); add_child(notice); notice.mouse_filter=Control.MOUSE_FILTER_IGNORE; notice.position=Vector2(4,size.y+4); frame.font_style(notice,{"AurString_Font":"fnt_galahad14"}); notice.add_theme_color_override("font_shadow_color",Color.BLACK)
 	layout_ready=true; place(); prepared.emit()
 func _process(_delta: float) -> void:
-	if not closed and layout_ready and not artwork_announced and art_ready():
-		artwork_announced=true; artwork_ready.emit()
+	if closed or artwork_announced:return
+	var cohort: Dictionary=cohort_snapshot()
+	if cohort.ready or not cohort.failures.is_empty():artwork_announced=true;artwork_ready.emit()
 func place() -> void:
 	if closed or not layout_ready: return
 	var maximum: Vector2=(get_viewport_rect().size-size).max(Vector2.ZERO)
@@ -242,10 +243,55 @@ func _input(event: InputEvent) -> void:
 	if closed or not visible or not modal_lease.admits(): return
 	if dragging and event is InputEventMouseMotion: position=(event.position-drag_offset).clamp(Vector2.ZERO,(get_viewport_rect().size-size).max(Vector2.ZERO))
 	if dragging and event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed: dragging=false; save_position()
-func art_ready() -> bool:
-	return layout_ready and not closed and failure.is_empty() and requested.size()==models.size() and is_instance_valid(scrollbar) and scrollbar.art_ready and row_art_keys.size()==5 and row_art_keys.all(func(key):return frame.art.textures.has(key)) and preload("res://systems/native_menu_builder.gd").source_ready(self,frame)
+func cohort_snapshot() -> Dictionary:
+	var result:={"scope":"key_settings","ready":false,"models_expected":requested.size(),"models_ready":models.size(),"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0,"pending":[],"failures":[]}
+	if closed:result.failures.append("Key settings owner is closed")
+	if not failure.is_empty():result.failures.append(failure)
+	if not layout_ready:
+		if result.failures.is_empty():result.pending.append("GFF/model layout")
+		return result
+	if not is_instance_valid(frame) or not is_instance_valid(frame.art) or not is_instance_valid(frame.fonts):
+		result.failures.append("Key settings artwork/font owners are unavailable");return result
+	if models.size()!=requested.size():result.failures.append("Resolved key settings model cohort is incomplete")
+	for node in find_children("*","TextureRect",true,false):
+		var key:=str(node.get_meta("native_gui_art_key",""))
+		if key.is_empty():
+			if node.get_meta("native_gui_static_image",false):result.failures.append("Unregistered key settings image: "+str(node.name))
+			continue
+		result.images_expected+=1
+		if node.texture!=null:result.images_ready+=1
+		elif frame.art.failed.has(key):result.failures.append("Key settings image "+key+": original artwork failed")
+		else:result.pending.append("image:"+key)
+	for node in find_children("*","Label",true,false):
+		var name:=str(node.get_meta("native_font_resource",""))
+		if name.is_empty():continue
+		result.fonts_expected+=1
+		if str(node.get_meta("native_font_applied",""))==name:result.fonts_ready+=1
+		elif frame.fonts.failed.has(name):result.failures.append("Key settings font "+name+": "+str(frame.fonts.failed[name]))
+		else:result.pending.append("font:"+name)
+	for button in buttons.values():
+		var data: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		if data.is_empty():result.failures.append("Unregistered key settings button: "+str(button.name));continue
+		for pair in data.styles.values():
+			result.images_expected+=1
+			var key: String=frame.art.models.model_key(str(data.resource),str(pair[1]),data.overrides)
+			if pair[0].texture!=null:result.images_ready+=1
+			elif frame.art.failed.has(key):result.failures.append("Key settings button image "+key+": original artwork failed")
+			else:result.pending.append("image:"+key)
+	if row_art_keys.size()!=5:result.failures.append("Original key row artwork cohort is incomplete")
+	for key in row_art_keys:
+		result.images_expected+=1
+		if frame.art.textures.has(key):result.images_ready+=1
+		elif frame.art.failed.has(key):result.failures.append("Key row image "+str(key)+": original artwork failed")
+		else:result.pending.append("image:"+str(key))
+	if not is_instance_valid(scrollbar):result.failures.append("Key settings scrollbar is unavailable")
+	elif not scrollbar.failure.is_empty():result.failures.append(scrollbar.failure)
+	elif not scrollbar.art_ready or scrollbar.thumb_image_key!=scrollbar.thumb_key:result.pending.append("key settings scrollbar")
+	result.ready=result.failures.is_empty() and result.pending.is_empty() and result.models_ready==result.models_expected
+	return result
+func art_ready() -> bool:return bool(cohort_snapshot().ready)
 func snapshot() -> Dictionary:
-	return {"ready":layout_ready,"failure":failure,"page":page,"visible":visible,"rows":row_buttons.size(),"capturing":bindings.capturing,"hotbar_slots":36,"unsupported_actions":bindings.active.get("normal",{}).get("rows",[]).filter(func(row):return int(row.action) not in SUPPORTED).size(),"native_only":true,"full_key_settings_parity":false}
+	return {"ready":layout_ready,"art_ready":art_ready(),"failure":failure,"page":page,"visible":visible,"rows":row_buttons.size(),"capturing":bindings.capturing,"hotbar_slots":36,"unsupported_actions":bindings.active.get("normal",{}).get("rows",[]).filter(func(row):return int(row.action) not in SUPPORTED).size(),"cohort":cohort_snapshot(),"native_only":true,"full_key_settings_parity":false}
 func _notification(what: int) -> void:
 	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		if is_instance_valid(bindings): bindings.stop_capture(); refresh_bindings()

@@ -224,6 +224,7 @@ func cohort_snapshot() -> Dictionary:
 		return result
 	if not is_instance_valid(frame) or not is_instance_valid(frame.art) or not is_instance_valid(frame.fonts):
 		result.failures.append("Video page artwork/font owners are unavailable"); return result
+	if is_instance_valid(settings) and not settings.query_ready:result.pending.append("display modes")
 	if models.size()!=requested.size(): result.failures.append("Resolved video model cohort is incomplete")
 	for node in find_children("*","TextureRect",true,false):
 		var key:=str(node.get_meta("native_gui_art_key",""))
