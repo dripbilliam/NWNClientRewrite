@@ -27,11 +27,28 @@ var closed:=false
 var failure:=""
 var waiting: Dictionary={}
 var retired_store:=-1
+var art_pending:=false
+var last_art_cohort: Dictionary={}
 func configure(ui,catalog,cache_path: String) -> void:
 	owner_ui=ui; view=ui.examine; view.native_skin=self; frame=ui.inventory.frame_skin; ui.inventory.examine_owner=self
 	ui.inventory.icons.completed.connect(icon_ready)
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
-	for name in ["examine_basic","examine_item"]: jobs[assets.request(name,2047,"gff")]={"kind":"gui","name":name}
+	for name in ["examine_basic","examine_item"]:
+		var id: int=assets.request(name,2047,"gff")
+		if id<0:failure="Original examine GUI "+name+": "+str(assets.failure);return
+		jobs[id]={"kind":"gui","name":name}
+func _process(_delta: float) -> void:
+	if not art_pending or closed:set_process(false);return
+	var cohort: Dictionary=art_snapshot()
+	last_art_cohort=cohort
+	if cohort.ready:
+		art_pending=false;set_process(false)
+		if stages.has(mode):stages[mode].show()
+		view.admit_ready()
+	elif not cohort.failures.is_empty():
+		art_pending=false;set_process(false)
+		if stages.has(mode):stages[mode].hide()
+		view.admit_failure(str(cohort.failures[0]))
 func collect(root: Dictionary) -> void:
 	if root.has("Obj_ResRef"): models[str(root.Obj_ResRef).to_lower()]={}
 	for child in root.get("Obj_ChildList",[]): collect(child)
@@ -47,13 +64,16 @@ func prepared(id: int,result: Dictionary) -> void:
 		requested=true
 		for root in layouts.values(): collect(root)
 		for name in ["scrollbar_simple","pb_scrl_up","pb_scrl_down"]: models[name]={}
-		for name in models: jobs[assets.request(name,2002,"actor-model" if name=="scrollbar_simple" else "mdl-original")]={"kind":"model","name":name}
+		for name in models:
+			var requested_id: int=assets.request(name,2002,"actor-model" if name=="scrollbar_simple" else "mdl-original")
+			if requested_id<0:failure="Original examine model "+name+": "+str(assets.failure);return
+			jobs[requested_id]={"kind":"model","name":name}
 	if not jobs.is_empty() or layouts.size()!=2 or not failure.is_empty(): return
 	for key in ["basic","item"]:
 		plans[key]=Plan.parse(layouts["examine_"+key],models,key=="item")
 		if not str(plans[key].error).is_empty(): failure=str(plans[key].error); return
 	layout_ready=true; build()
-	if view.visible: present(view.state); view.render_details(view.state)
+	if not view.state.is_empty():present(view.state);view.render_details(view.state);request_art_admission()
 func build() -> void:
 	view.window_column.hide(); view.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
 	for key in plans:
@@ -93,6 +113,59 @@ func present(message: Dictionary) -> void:
 			icon_key=owner_ui.inventory.icons.request(item,owner_ui.text.tables,int(owner_ui.text.objects.get(owner_ui.controlled_id,{}).get("appearance",{}).get("gender",0)))
 			if owner_ui.inventory.icons.textures.has(icon_key): icon_ready(icon_key,owner_ui.inventory.icons.textures[icon_key],"")
 	view._clamp(); sync()
+func request_art_admission() -> void:
+	if closed or view.state.is_empty():return
+	art_pending=true;last_art_cohort={}
+	if stages.has(mode):stages[mode].hide()
+	set_process(true)
+func cancel_art_admission() -> void:
+	art_pending=false;last_art_cohort={};set_process(false)
+	if stages.has(mode):stages[mode].hide()
+func art_snapshot() -> Dictionary:
+	var result:={"ready":false,"mode":mode,"pending":[],"failures":[],"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0}
+	if not failure.is_empty():result.failures.append(failure)
+	if not layout_ready:
+		if result.failures.is_empty():result.pending.append("Original examine layout")
+		return result
+	if mode.is_empty() or not stages.has(mode):result.pending.append("Examine presentation");return result
+	var stage: Control=stages[mode]
+	for picture in stage.find_children("*","TextureRect",true,false):
+		var key:=str(picture.get_meta("native_gui_art_key",""))
+		if key.is_empty():continue
+		result.images_expected+=1
+		if picture.texture!=null and frame.art.textures.get(key)==picture.texture:result.images_ready+=1
+		elif frame.art.failed.has(key):result.failures.append("Examine artwork "+key+": "+str(frame.art.failed[key]))
+		else:result.pending.append("image:"+key)
+	for button in stage.find_children("*","Button",true,false):
+		var data: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		if data.is_empty():continue
+		for pair in data.styles.values():
+			var key: String=frame.art.models.model_key(str(data.resource),str(pair[1]),data.overrides)
+			result.images_expected+=1
+			if pair[0].texture!=null and frame.art.textures.get(key)==pair[0].texture:result.images_ready+=1
+			elif frame.art.failed.has(key):result.failures.append("Examine button "+key+": "+str(frame.art.failed[key]))
+			else:result.pending.append("image:"+key)
+	for control in stage.find_children("*","Control",true,false):
+		var font: String=str(control.get_meta("native_font_resource",""))
+		if font.is_empty():continue
+		result.fonts_expected+=1
+		if str(control.get_meta("native_font_applied",""))==font:result.fonts_ready+=1
+		elif frame.fonts.failed.has(font):result.failures.append("Examine font "+font+": "+str(frame.fonts.failed[font]))
+		else:result.pending.append("font:"+font)
+	var bar=scrollbars[mode]
+	if not str(bar.failure).is_empty():result.failures.append("Examine scrollbar: "+str(bar.failure))
+	elif not bar.art_ready or bar.snapshot().thumb_pending or bar.snapshot().layout_pending:result.pending.append("Examine scrollbar")
+	if mode=="item":
+		var icons=owner_ui.inventory.icons
+		if icon_key.is_empty():result.failures.append("Received item icon is unavailable: "+str(icons.last_request_error))
+		elif icons.failed.has(icon_key):result.failures.append("Item icon "+icon_key+": "+str(icons.failed[icon_key]))
+		else:
+			result.images_expected+=1
+			var resident: Dictionary=icons.catalog.ui_asset_owner().lookup("item",icon_key)
+			if icons.textures.has(icon_key) and view.portrait.texture==icons.textures[icon_key] and not resident.is_empty() and resident.texture==view.portrait.texture:result.images_ready+=1
+			else:result.pending.append("item-icon:"+icon_key)
+	result.ready=result.failures.is_empty() and result.pending.is_empty()
+	return result
 func details_changed() -> void:
 	if not layout_ready or closed: return
 	fee_label=Text.label({},view.detail_width); fee_label.add_theme_font_size_override("normal_font_size",14); style_detail(fee_label); view.body.add_child(fee_label); sync()
@@ -141,10 +214,10 @@ func icon_ready(key: String,texture: Texture2D,error: String) -> void:
 func snapshot() -> Dictionary:
 	var bars: Dictionary={}
 	for key in scrollbars: bars[key]=scrollbars[key].snapshot()
-	return {"ready":layout_ready,"mode":mode,"failure":failure,"waiting":not waiting.is_empty(),"scrollbars":bars,"native_only":true,"full_examine_parity":false}
+	return {"ready":layout_ready,"mode":mode,"failure":failure,"waiting":not waiting.is_empty(),"scrollbars":bars,"art_pending":art_pending,"art_cohort":last_art_cohort,"native_only":true,"full_examine_parity":false}
 func close() -> void:
 	if closed: return
-	closed=true; assets.close(); view.native_skin=null; owner_ui.inventory.examine_owner=null
+	closed=true;art_pending=false;set_process(false);assets.close(); view.native_skin=null; owner_ui.inventory.examine_owner=null
 	for scrollbar in scrollbars.values(): scrollbar.close()
 	if owner_ui.inventory.icons.completed.is_connected(icon_ready): owner_ui.inventory.icons.completed.disconnect(icon_ready)
 	jobs.clear(); models.clear(); layouts.clear(); waiting.clear()

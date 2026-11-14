@@ -9,6 +9,9 @@ var native_skin
 var scroll: ScrollContainer
 var detail_width:=440.0
 var detail_font:=17
+var admission_pending:=false
+var admission_failure:=""
+var admission_notice: Label
 var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
 func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
 	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
@@ -43,12 +46,16 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	close.focus_mode = Control.FOCUS_NONE
 	close.pressed.connect(hide)
 	content.add_child(close)
+	admission_notice=Label.new();add_child(admission_notice);admission_notice.position=Vector2(20,20);admission_notice.size=Vector2(520,64);admission_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;admission_notice.mouse_filter=Control.MOUSE_FILTER_IGNORE;admission_notice.hide()
 	reset()
 
 func reset() -> void:
 	modal_lease.retire()
+	if native_skin!=null:native_skin.cancel_art_admission()
 	dragging=false
 	state.clear()
+	admission_pending=false;admission_failure=""
+	if is_instance_valid(admission_notice):admission_notice.hide()
 	portrait.texture = null
 	portrait.hide()
 	for child in body.get_children():
@@ -62,12 +69,27 @@ func present(message: Dictionary) -> void:
 		return
 	state = message.duplicate(true)
 	Text.set_text(title_text, message.get("name", {"text": "Examine"}))
-	show()
+	admission_pending=native_skin!=null
 	if native_skin!=null: native_skin.present(message)
 	render_details(message)
+	if native_skin!=null:
+		native_skin.request_art_admission()
+		return
 	show()
 	move_to_front()
 	modal_lease.activate([],"other",superseded_modal_owner)
+func admit_ready() -> void:
+	if state.is_empty() or not admission_pending:return
+	admission_pending=false;admission_failure="";admission_notice.hide()
+	window_column.hide()
+	show();move_to_front();modal_lease.activate([],"other",superseded_modal_owner)
+	if is_instance_valid(native_skin) and native_skin.owner_ui.has_method("request_examine_tables"):native_skin.owner_ui.request_examine_tables()
+func admit_failure(reason: String) -> void:
+	if state.is_empty() or not admission_pending:return
+	admission_pending=false;admission_failure=reason;admission_notice.text="Examine art unavailable: "+reason;admission_notice.show()
+	window_column.show()
+	show();move_to_front();modal_lease.activate([],"other",superseded_modal_owner)
+	if is_instance_valid(native_skin) and native_skin.owner_ui.has_method("request_examine_tables"):native_skin.owner_ui.request_examine_tables()
 
 func detail(rich: Dictionary) -> RichTextLabel:
 	var label:=Text.label({},detail_width); label.add_theme_font_size_override("normal_font_size",detail_font)
@@ -95,12 +117,12 @@ func render_details(message: Dictionary) -> void:
 		body.add_child(detail({"text": str(warning)}))
 	if native_skin!=null: native_skin.details_changed()
 func refresh_properties(properties: Array,warnings: Array,target_id: int,revision: int) -> bool:
-	if not visible or int(state.get("targetId",-1))!=target_id or int(state.get("revision",-1))!=revision: return false
+	if not visible and not admission_pending or int(state.get("targetId",-1))!=target_id or int(state.get("revision",-1))!=revision: return false
 	state.properties=properties.duplicate(true); state.warnings=warnings.duplicate()
 	render_details(state); return true
 
 func set_portrait(message: Dictionary) -> bool:
-	if not visible or state.is_empty() or int(message.get("revision", -1)) != int(state.get("revision", -2)) or int(message.get("targetId", -1)) != int(state.get("targetId", -2)):
+	if not visible and not admission_pending or state.is_empty() or int(message.get("revision", -1)) != int(state.get("revision", -2)) or int(message.get("targetId", -1)) != int(state.get("targetId", -2)):
 		return false
 	var url := str(message.get("image", ""))
 	if not url.begins_with("data:image/png;base64,") or url.length() > 350000:
@@ -113,5 +135,5 @@ func set_portrait(message: Dictionary) -> bool:
 	return true
 
 func set_native_portrait(texture: Texture2D,target_id: int,revision: int) -> bool:
-	if texture==null or not visible or int(state.get("targetId",-1))!=target_id or int(state.get("revision",-1))!=revision: return false
+	if texture==null or not visible and not admission_pending or int(state.get("targetId",-1))!=target_id or int(state.get("revision",-1))!=revision: return false
 	portrait.texture=texture; portrait.show(); return true
