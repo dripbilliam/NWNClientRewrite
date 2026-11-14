@@ -29,17 +29,29 @@ var resize_start:=Vector2.ZERO
 var resizable_scrolls: Dictionary={}
 var background_height:=2048.0
 var selected_entry:=-1
+var image_requests: Dictionary={}
+var icon_catalog
+var ui_assets
+var icon_warm_targets: Array=[]
+var prewarmed_page_keys: Array=[]
 func configure(target,catalog,cache_path: String,text,painter) -> void:
-	panel=target; panel.native_skin=self; frame=painter; text_owner=text
+	panel=target; panel.native_skin=self; frame=painter; text_owner=text; icon_catalog=catalog; ui_assets=catalog.ui_asset_owner()
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	panel.visibility_changed.connect(func():if not panel.visible: stop_resize())
-func _process(_delta: float) -> void:
-	if closed or requested or not panel.wanted: return
-	requested=true
 	for name in Plan.RESOURCES:
 		var id: int=assets.request(name,2002,"actor-model" if name=="scrollbar_simple" else "mdl-original")
 		if id<0: failure=str(assets.failure); return
 		jobs[id]=name
+	if frame.fonts.has_method("request"):
+		for font in ["fnt_galahad14","ttf fnt_default 14"]: frame.fonts.request(font)
+	for ability in ["str","dex","con","int","wis","cha"]:
+		var icon:=TextureRect.new(); add_child(icon); icon.hide(); icon_warm_targets.append(icon); frame.art.bind(icon,"gui_chrsht_"+ability)
+func _process(_delta: float) -> void:
+	if closed: return
+	if panel.wanted and not requested: requested=true
+	if panel.wanted and not panel.visible:
+		if failure.is_empty(): failure=art_failure()
+		panel.present_if_ready()
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var name: String=jobs[id]; jobs.erase(id)
@@ -49,13 +61,83 @@ func prepared(id: int,result: Dictionary) -> void:
 	definition=Plan.parse(models)
 	if not str(definition.error).is_empty(): failure=str(definition.error); return
 	activate()
+func sheet_buttons() -> Array:
+	var result: Array=[panel.close_button,panel.level_button,footer]+panel.tabs+panel.entry_nodes.values()
+	for bar in bars:
+		if is_instance_valid(bar): result.append_array([bar.up,bar.down])
+	return result
+func current_icon_bindings() -> Dictionary:
+	var bindings: Dictionary={}
+	if panel.state.is_empty(): return bindings
+	if panel.page==0:
+		for row in panel.state.model.get("abilities",[]): bindings["ability:"+str(row.key)]="gui_chrsht_"+str(row.key).to_lower()
+	else:
+		for row in panel.state.get("entries",[]):
+			var name:=str(row.get("icon","")).to_lower()
+			if not name.is_empty() and name!="****": bindings["entry:"+str(int(row.entryId))]=name
+	return bindings
+func current_icon_names() -> Array: return current_icon_bindings().values()
+func art_failure() -> String:
+	var font_failures: Variant=frame.fonts.get("failed")
+	if font_failures is Dictionary:
+		for name in ["fnt_galahad14","ttf fnt_default 14"]:
+			if font_failures.has(name): return "Original character-sheet font could not be prepared: "+name
+	for key in prewarmed_page_keys:
+		if frame.art.failed.has(key): return "Original character-sheet page could not be prepared: "+str(key)
+	for data in image_requests.values():
+		var target: Object=data.target.get_ref()
+		if is_instance_valid(target) and not target.is_queued_for_deletion() and frame.art.failed.has(data.key): return "Original character-sheet artwork could not be prepared: "+str(data.key)
+	for button in sheet_buttons():
+		if not is_instance_valid(button) or button.is_queued_for_deletion(): continue
+		var geometry: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		for style in geometry.get("styles",{}).values():
+			var key: String=frame.art.models.model_key(str(geometry.resource),str(style[1]),geometry.overrides)
+			if frame.art.failed.has(key): return "Original character-sheet control could not be prepared: "+key
+	for bar in bars:
+		if is_instance_valid(bar) and not bar.failure.is_empty(): return "Original character-sheet scrollbar could not be prepared: "+bar.failure
+	if frame.art.get("ui_assets")!=null:
+		for name in current_icon_bindings().values():
+			if icon_catalog.raster_location(name).is_empty(): return "Original character-sheet icon is missing: "+name
+			var reason: String=ui_assets.failure("raster",name)
+			if not reason.is_empty(): return "Original character-sheet icon could not be prepared: "+name+": "+reason
+	return ""
+func display_ready() -> bool:
+	if closed or not failure.is_empty() or not layout_ready or panel.state.is_empty(): return false
+	if frame.fonts.has_method("request"):
+		for name in ["fnt_galahad14","ttf fnt_default 14"]:
+			if not frame.fonts.fonts.has(name): return false
+	for key in prewarmed_page_keys:
+		if not frame.art.textures.has(key): return false
+	for data in image_requests.values():
+		var target: Object=data.target.get_ref()
+		if is_instance_valid(target) and not target.is_queued_for_deletion() and not frame.art.textures.has(data.key): return false
+	for button in sheet_buttons():
+		if not is_instance_valid(button) or button.is_queued_for_deletion(): continue
+		var geometry: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
+		if geometry.is_empty(): return false
+		for style in geometry.styles.values():
+			if not frame.art.textures.has(frame.art.models.model_key(str(geometry.resource),str(style[1]),geometry.overrides)): return false
+	for bar in bars:
+		if not is_instance_valid(bar) or not bar.art_ready: return false
+	if frame.art.get("ui_assets")!=null:
+		var icon_bindings:=current_icon_bindings()
+		for target_key in icon_bindings:
+			var name: String=icon_bindings[target_key]
+			var target: Object=panel.image_nodes.get(target_key)
+			if not is_instance_valid(target): return false
+			var retained: Dictionary=ui_assets.lookup("raster",name)
+			if retained.is_empty() or target.texture!=retained.texture: return false
+	return true
 func control(parent: Control,rect: Rect2=Rect2()) -> Control:
 	var target:=Control.new(); parent.add_child(target); target.mouse_filter=Control.MOUSE_FILTER_IGNORE; target.position=rect.position; target.size=rect.size; return target
 func image(name: String,parent: Control,rect: Rect2,layer: String="",region: Rect2=Rect2()) -> TextureRect:
 	var target:=TextureRect.new(); parent.add_child(target); target.mouse_filter=Control.MOUSE_FILTER_IGNORE; target.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; target.stretch_mode=TextureRect.STRETCH_SCALE; target.position=rect.position; target.size=rect.size
+	var key: String=frame.art.models.model_key(name,"",{},0,layer,[],region)
+	image_requests[target.get_instance_id()]={"target":weakref(target),"key":key}
+	var id:=target.get_instance_id(); target.tree_exiting.connect(func():image_requests.erase(id),CONNECT_ONE_SHOT)
 	if layer.is_empty(): frame.art.bind(target,name,"texture",true,"",false,{},region)
 	else:
-		var key: String=frame.art.request_model(name,"",{},0,layer,[],region)
+		key=frame.art.request_model(name,"",{},0,layer,[],region)
 		if frame.art.textures.has(key): target.texture=frame.art.textures[key]
 		else:
 			var weak: WeakRef=weakref(target)
@@ -66,6 +148,9 @@ func image(name: String,parent: Control,rect: Rect2,layer: String="",region: Rec
 			target.tree_exiting.connect(func():if is_instance_valid(frame) and is_instance_valid(frame.art) and frame.art.loaded.is_connected(callback): frame.art.loaded.disconnect(callback),CONNECT_ONE_SHOT)
 	return target
 func activate() -> void:
+	for name in ["pnl_chrsht_char","pnl_chrsht_skils"]:
+		prewarmed_page_keys.append(frame.art.request_model(name,"",{},0,"gui_boxes_ingame",[],Rect2(0,0,definition.size.x,background_height)))
+	prewarmed_page_keys.append(frame.art.request_model("pnl_chrsht_char","",{},0,"gui_shield",[],Rect2(3,211,32,32)))
 	layout_ready=true; panel.window_column.hide(); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.custom_minimum_size=definition.size; panel.size=definition.size
 	window_height=definition.size.y
 	stage=control(panel,Rect2(Vector2.ZERO,definition.size)); stage.clip_contents=true
@@ -222,6 +307,10 @@ func snapshot() -> Dictionary:
 func close() -> void:
 	if closed: return
 	stop_resize(); closed=true; clear_page()
+	for target in icon_warm_targets:
+		if is_instance_valid(frame) and is_instance_valid(frame.art): frame.art.unbind(target)
+		if is_instance_valid(target): target.queue_free()
+	icon_warm_targets.clear(); image_requests.clear()
 	if is_instance_valid(assets): assets.close()
 	if is_instance_valid(panel): panel.native_skin=null
 	jobs.clear(); models.clear(); panel=null; frame=null; text_owner=null

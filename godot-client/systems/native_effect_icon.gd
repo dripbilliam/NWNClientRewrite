@@ -11,6 +11,11 @@ var resource:=""
 var flashing:=false
 var time:=0.0
 var closed:=false
+func art_ready() -> bool:
+	if icon_texture==null: return false
+	for part in definition.get("parts",[]):
+		if part.resource!="gui_replace01" and border_texture==null: return false
+	return true
 func configure(plan: Dictionary,owner,name: String) -> void:
 	definition=plan; art=owner; resource=name; mouse_filter=Control.MOUSE_FILTER_IGNORE; texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; texture_repeat=CanvasItem.TEXTURE_REPEAT_DISABLED
 	size=plan.models.ctl_ig_plreffect.bounds.size

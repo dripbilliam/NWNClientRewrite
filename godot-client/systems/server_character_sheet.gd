@@ -51,8 +51,18 @@ func clear_body() -> void:
 	image_nodes.clear(); entry_nodes.clear(); entry_data.clear(); active_scrolls.clear(); description = null; displayed_description.clear()
 
 func open() -> void:
-	wanted = true; show(); move_to_front(); notice.text = "Waiting for server character details…"
+	wanted = true; notice.text = "Waiting for server character details…"; present_if_ready()
 	request.emit({"kind": "sheet-open", "page": page})
+
+func present_if_ready() -> void:
+	if not wanted: hide(); return
+	if is_instance_valid(native_skin):
+		if not native_skin.failure.is_empty():
+			window_column.show()
+			if is_instance_valid(native_skin.stage): native_skin.stage.hide()
+			notice.text="Original character sheet unavailable: "+native_skin.failure
+		elif not native_skin.display_ready(): hide(); return
+	show(); move_to_front()
 
 func close_sheet() -> void:
 	save_scrolls(); wanted = false; hide(); request.emit({"kind": "sheet-close"})
@@ -63,7 +73,7 @@ func save_scrolls() -> void:
 func receive(message: Dictionary) -> void:
 	match message.kind:
 		"sheet-closed":
-			view_id = -1; state.clear(); clear_body(); hide()
+			wanted = false; view_id = -1; state.clear(); clear_body(); hide()
 		"sheet-notice": notice.text = str(message.text)
 		"sheet-view":
 			if not wanted: return
@@ -74,7 +84,7 @@ func receive(message: Dictionary) -> void:
 		"sheet-image":
 			if not wanted or int(message.viewId) != view_id or not image_nodes.has(str(message.key)): return
 			var texture: Texture2D = Images.png(str(message.image), 1024)
-			if texture != null: image_nodes[str(message.key)].texture = texture
+			if texture != null: image_nodes[str(message.key)].texture = texture; present_if_ready()
 		"sheet-description":
 			if not wanted or int(message.get("viewId",-1))!=view_id or int(message.get("page",-1))!=page: return
 			var id:=int(message.get("entryId",-1))
@@ -111,6 +121,7 @@ func render() -> void:
 	notice.text = "Select a skill or feat to read its description. Drag available entries to the quickbar." if page > 0 else ("Level-up available on the server." if state.get("canLevelUp", false) else "")
 	_clamp()
 	rendered.emit()
+	present_if_ready()
 
 func statistics(model: Dictionary) -> void:
 	var overview := HBoxContainer.new(); body.add_child(overview)

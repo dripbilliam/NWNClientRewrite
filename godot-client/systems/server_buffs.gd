@@ -18,6 +18,7 @@ var hovered := -1
 var pinned := false
 var pinned_id := -1
 var retired: Array = []
+var art_error := ""
 func setup() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	scroll = ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; scroll.mouse_filter = Control.MOUSE_FILTER_PASS; add_child(scroll)
