@@ -24,7 +24,7 @@ func run() -> void:
 	var players: Array=[[1,{"playerId":1,"objectId":42,"isDM":0,"name":"Own account","character":{"id":42,"firstName":{"text":"Player"},"lastName":{"text":"Tester"}}}],[99,{"playerId":99,"objectId":500,"isDM":1,"name":"DM account","character":{"id":600,"firstName":{"text":"Hidden DM"}}}]]
 	for index in 14: players.append([7+index,{"playerId":7+index,"objectId":84+index,"isDM":0,"name":"Account "+str(index),"character":{"id":184+index,"firstName":{"text":"Citizen"},"lastName":{"text":str(index)}}}])
 	var header:={"area":{"pvp":1},"ui":{"players":players,"party":[],"playerAttitudes":[],"partyListRevision":1}}; var original:=header.duplicate(true); var actor_original:=actor.duplicate(true)
-	ui.set_world(1,55,42,objects,{},header); var desktop=ui.desktop; var panel=desktop.players; var skin=desktop.players_frame; check(skin.requested.is_empty(),"A closed player window schedules no source-art work")
+	ui.set_world(1,55,42,objects,{},header); var desktop=ui.desktop; var panel=desktop.players; var skin=desktop.players_frame; check(skin.requested.has("pnl_ig_pvp"),"Original player models schedule during desktop setup before first open")
 	desktop.panel("pvp"); var diagnostic: Dictionary={}
 	var prepared: bool=await wait_until(func():return players_settled(ui)); check(prepared,"Original player frame, rows, icons, fonts, source scrollbar and invitation controls publish")
 	if prepared:

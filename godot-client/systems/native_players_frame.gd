@@ -24,6 +24,7 @@ var pvp_label: Label
 var buttons: Dictionary={}
 var cards: Dictionary={}
 var images: Dictionary={}
+var rendering:=false
 var selected:=-1
 var serial:=0
 var pending: Dictionary={}
@@ -31,7 +32,7 @@ var captured: Dictionary={}
 var popup
 func configure(owner,catalog,cache_path: String) -> void:
 	desktop=owner; panel=owner.players; panel.native_skin=self; frame=owner.owner_ui.inventory.frame_skin
-	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared); frame.art.loaded.connect(art_loaded)
+	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared); frame.art.loaded.connect(art_loaded); frame.fonts.loaded.connect(font_loaded)
 	panel.visibility_changed.connect(func():
 		if not panel.wanted:
 			captured.clear()
@@ -39,6 +40,14 @@ func configure(owner,catalog,cache_path: String) -> void:
 				if not pending[id].get("popup",false): pending.erase(id)
 			if layout_ready: clear_cards())
 	popup=preload("res://systems/native_party_invitation.gd").new(); add_child(popup); popup.configure(self)
+	schedule_sources()
+func schedule_sources() -> void:
+	for name in Plan.RESOURCES+["scrollbar_simple","pb_scrl_up","pb_scrl_down","pnl_util_ok","ctl_btn_pre_118","ctl_btn_xch"]: request_model(name)
+	for name in ["ingame_pvp","party_invitation"]:
+		var id: int=assets.request(name,2047,"gff")
+		if id<0: fail(name+": "+str(assets.failure)); return
+		jobs[id]="@"+name
+	frame.fonts.request("fnt_galahad14")
 func scope() -> Array: return [desktop.generation,desktop.area_id,desktop.actor_id]
 func flags() -> Dictionary: return desktop.actor().get("replicated",{}).get("party",{})
 func reaction(object: Dictionary) -> int:
@@ -49,13 +58,15 @@ func invitation() -> int: return int(flags().get("field7D8",-1)) if bool(flags()
 func _process(_delta: float) -> void:
 	if closed: return
 	popup.observe()
-	if not panel.wanted and not popup.wanted: return
-	if requested.is_empty():
-		for name in Plan.RESOURCES+["scrollbar_simple","pb_scrl_up","pb_scrl_down","pnl_util_ok","ctl_btn_pre_118","ctl_btn_xch"]: request_model(name)
-		for name in ["ingame_pvp","party_invitation"]: jobs[assets.request(name,2047,"gff")]="@"+name
+	# NativeUiArt records decode failures without a loaded signal. Poll only
+	# while waiting for first admission so a missing original is reported.
+	if panel.wanted and not panel.visible: try_admit()
 func request_model(name: String) -> void:
 	if requested.has(name): return
-	requested[name]=true; jobs[assets.request(name,2002,"actor-model")]=name
+	requested[name]=true
+	var id: int=assets.request(name,2002,"actor-model")
+	if id<0: fail(name+": "+str(assets.failure)); return
+	jobs[id]=name
 func collect_models(node: Dictionary) -> void:
 	var name:=str(node.get("Obj_ResRef","")).to_lower()
 	if not name.is_empty(): request_model(name)
@@ -70,7 +81,7 @@ func prepared(id: int,result: Dictionary) -> void:
 	if not jobs.is_empty() or not failure.is_empty() or layouts.size()<2: return
 	definition=Plan.parse(layouts.ingame_pvp,models)
 	if not str(definition.error).is_empty(): fail(str(definition.error)); return
-	activate(); popup.activate(layouts.party_invitation,models)
+	activate(); popup.activate(layouts.party_invitation,models); call_deferred("try_admit")
 func fail(message: String) -> void:
 	failure=message
 	if is_instance_valid(desktop.target_prompt): desktop.target_prompt.text=message; desktop.target_prompt.show()
@@ -84,6 +95,38 @@ func art_loaded(key: String,image: Texture2D,_bounds: Dictionary) -> void:
 	for entry in images.values():
 		var target: Object=entry.target.get_ref()
 		if entry.key==key and is_instance_valid(target) and not target.is_queued_for_deletion(): target.texture=image; target.show()
+	call_deferred("try_admit")
+func font_loaded(_name: String) -> void: call_deferred("try_admit")
+func art_and_font_ready(node: Node) -> bool:
+	if node is Control and node.has_meta("native_font_resource"):
+		var font_name: String=str(node.get_meta("native_font_resource"))
+		if frame.fonts.failed.has(font_name): fail("Original player font unavailable: "+font_name); return false
+		if str(node.get_meta("native_font_applied",""))!=font_name: return false
+	for child in node.get_children():
+		if not art_and_font_ready(child): return false
+	return true
+func admission_ready() -> bool:
+	if closed or rendering or not layout_ready or not popup.layout_ready or not failure.is_empty(): return false
+	if is_instance_valid(bar) and not bar.art_ready:
+		if not bar.failure.is_empty(): fail(bar.failure)
+		return false
+	for entry in images.values():
+		var target: Object=entry.target.get_ref()
+		if not is_instance_valid(target) or target.is_queued_for_deletion(): continue
+		if frame.art.failed.has(entry.key): fail("Original player image unavailable: "+str(entry.key)); return false
+		if not frame.art.textures.has(entry.key) or target.texture!=frame.art.textures[entry.key]: return false
+	for data in frame.button_geometry.values():
+		var control: Button=data.control
+		if not is_instance_valid(control) or not (stage.is_ancestor_of(control) or popup.panel.is_ancestor_of(control)): continue
+		for pair in data.styles.values():
+			var key: String=frame.art.models.model_key(str(data.resource),str(pair[1]),data.overrides)
+			if frame.art.failed.has(key): fail("Original player button art unavailable: "+key); return false
+			if not frame.art.textures.has(key) or pair[0].texture!=frame.art.textures[key]: return false
+	return art_and_font_ready(stage) and art_and_font_ready(popup.panel)
+func try_admit() -> void:
+	if closed or not panel.wanted or panel.visible: return
+	if admission_ready():
+		panel.show(); panel.move_to_front(); panel._clamp()
 func make_label(parent: Control,entry: Dictionary,value: String) -> Label:
 	var label: Label=frame.create_label(entry,parent); label.text=value; return label
 func reskin(button: Button,icon: String) -> void:
@@ -134,6 +177,7 @@ func clear_cards() -> void:
 	cards.clear()
 func render() -> void:
 	if not layout_ready: return
+	rendering=true
 	var present: Dictionary={}
 	for row in panel.rows: present[int(row.playerId)]=row
 	for id in cards.keys():
@@ -157,6 +201,7 @@ func render() -> void:
 		var refs: Dictionary={0:0x1918,1:0x1919,2:0x1917}; var colors: Dictionary={0:Color(0.26,0.29,0.8),1:Color(0.16,0.59,0.06),2:Color(0.83,0.14,0.09)}; card.reaction.text=desktop.owner_ui.text.raw({"strRef":int(refs.get(row.reaction,0x1076b))}); card.reaction.add_theme_color_override("font_color",colors.get(row.reaction,Color(0.5,0.5,0.5)))
 	tree.custom_minimum_size.y=maxf(0,definition.row.rect.position.y-definition.view.position.y+definition.row.rect.size.y+maxi(0,panel.rows.size()-1)*definition.row_step.y); update_actions()
 	var pvp:=int(desktop.state.get("area",{}).get("pvp",-1)); var refs: Dictionary={0:0x1f53,1:0x1f52,2:0x1f54}; pvp_label.text=desktop.owner_ui.text.raw({"strRef":0x1f51})+": "+desktop.owner_ui.text.raw({"strRef":refs[pvp]}) if refs.has(pvp) else ""
+	rendering=false; try_admit()
 func valid_card(card: Dictionary) -> bool: return panel.wanted and cards.get(card.id)==card and is_instance_valid(card.button) and card.button.is_inside_tree()
 func selected_row() -> Dictionary: return panel.rows[selected] if selected>=0 and selected<panel.rows.size() else {}
 func select_player(id: int,notify: bool) -> void:
@@ -208,10 +253,11 @@ func reset_view() -> void:
 	pending.clear(); captured.clear(); selected=-1
 	if layout_ready: clear_cards()
 	if is_instance_valid(popup): popup.reset_view()
-func snapshot() -> Dictionary: return {"ready":layout_ready,"failure":failure,"pending_assets":jobs.size(),"rows":cards.size(),"selected":selected,"pending_actions":pending.size(),"native_only":true,"full_players_parity":false,"popup":popup.snapshot()}
+func snapshot() -> Dictionary: return {"ready":layout_ready,"admitted":panel.visible,"art_ready":admission_ready(),"failure":failure,"pending_assets":jobs.size(),"rows":cards.size(),"selected":selected,"pending_actions":pending.size(),"native_only":true,"full_players_parity":false,"popup":popup.snapshot()}
 func close() -> void:
 	if closed: return
 	closed=true; reset_view(); images.clear(); jobs.clear(); assets.close(); popup.close()
 	if is_instance_valid(bar): bar.close()
 	if frame.art.loaded.is_connected(art_loaded): frame.art.loaded.disconnect(art_loaded)
+	if frame.fonts.loaded.is_connected(font_loaded): frame.fonts.loaded.disconnect(font_loaded)
 func _exit_tree() -> void: close()

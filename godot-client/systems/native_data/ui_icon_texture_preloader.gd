@@ -7,6 +7,7 @@ const Assets=preload("res://systems/native_data/asset_service.gd")
 const Pool=preload("res://systems/native_render/resource_pool.gd")
 const Table=preload("res://systems/native_data/two_da.gd")
 const SpellIcons=preload("res://systems/native_data/spellbook_icon_sources.gd")
+const SharedRasters=preload("res://systems/native_data/shared_ui_rasters.gd")
 const MAX_INFLIGHT:=24
 var catalog
 var ui_owner
@@ -77,6 +78,10 @@ func start() -> void:
 		var shared: Dictionary=ui_owner.lookup("raster",resource)
 		if not shared.is_empty():
 			reused_count+=1; completed_count+=1; texture_ready.emit(resource,shared.texture); continue
+		var process_texture: Texture2D=SharedRasters.lookup(catalog,resource)
+		if process_texture!=null:
+			ui_owner.retain("raster",resource,process_texture)
+			reused_count+=1; completed_count+=1; texture_ready.emit(resource,process_texture); continue
 		queue.append(resource)
 	pump()
 	if completed_count>=total: finish()

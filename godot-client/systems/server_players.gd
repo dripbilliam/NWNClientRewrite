@@ -19,7 +19,12 @@ func reset() -> void:
 func clear_rows() -> void:
 	for child in list.get_children(): list.remove_child(child); child.queue_free()
 func open() -> void:
-	wanted = true; show(); move_to_front(); request.emit({"kind":"players-open"})
+	wanted = true
+	if is_instance_valid(native_skin):
+		if native_skin.layout_ready: native_skin.render()
+		else: native_skin.try_admit()
+	else: show()
+	move_to_front(); request.emit({"kind":"players-open"})
 func close_players() -> void:
 	if wanted: request.emit({"kind":"players-close"})
 	wanted = false; hide()

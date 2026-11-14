@@ -2,6 +2,7 @@ extends SceneTree
 const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Preloader=preload("res://systems/native_data/ui_icon_texture_preloader.gd")
 const SpellIcons=preload("res://systems/native_data/spellbook_icon_sources.gd")
+const SharedRasters=preload("res://systems/native_data/shared_ui_rasters.gd")
 var checks:=0
 var failures: Array=[]
 func _initialize() -> void: call_deferred("run")
@@ -32,6 +33,7 @@ func run() -> void:
 	var icons:=Preloader.new(); root.add_child(icons); icons.configure(catalog,ProjectSettings.globalize_path("user://native-prepared-v2"),[item_name,spell_name])
 	var texture_events: Array=[]; var finish_events: Array=[]
 	icons.texture_ready.connect(func(name,texture):texture_events.append({"name":name,"size":Vector2i(texture.get_width(),texture.get_height())}))
+	icons.texture_ready.connect(func(name,texture):SharedRasters.retain(catalog,name,texture))
 	icons.completed.connect(func(stats):finish_events.append(stats.duplicate(true)))
 	var actual: Array=icons.discover()
 	icons.explicit_names=[]; var full: Array=icons.discover(); icons.explicit_names=[item_name,spell_name]
@@ -44,9 +46,13 @@ func run() -> void:
 	icons.close(); icons.free()
 	var reused:=Preloader.new(); root.add_child(reused); reused.configure(catalog,ProjectSettings.globalize_path("user://native-prepared-v2"),[item_name,spell_name]); reused.start()
 	check(reused.finished and reused.progress().reused==2 and reused.progress().retained==0 and reused.progress().failed==0,"A second pre-menu owner reuses resident textures without decoding again")
+	var joined_catalog:=Catalog.new(); check(joined_catalog.mount_install(install),"A later catalog selects the same installed bindings")
+	var joined:=Preloader.new(); root.add_child(joined); joined.configure(joined_catalog,ProjectSettings.globalize_path("user://native-prepared-v2"),[item_name,spell_name]); joined.start()
+	check(joined.finished and joined.progress().reused==2 and joined.progress().retained==0 and joined.progress().failed==0,"A later server catalog reuses installed process textures without decoding")
 	var absent:=Preloader.new(); root.add_child(absent); absent.configure(catalog,ProjectSettings.globalize_path("user://native-prepared-v2"),["nwn84_missing_original_icon"]); absent.start()
 	check(absent.finished and absent.progress().missing==1 and absent.progress().failed==0 and absent.failure.is_empty(),"An absent original table reference finishes as a visible missing warning, not a decode failure")
-	var diagnostic:={"item":item_name,"spell":spell_name,"full_count":full.size(),"progress":progress,"finish_events":finish_events,"texture_events":texture_events,"reuse":reused.progress(),"missing":absent.progress(),"owner":owner.snapshot()}
+	var diagnostic:={"item":item_name,"spell":spell_name,"full_count":full.size(),"progress":progress,"finish_events":finish_events,"texture_events":texture_events,"reuse":reused.progress(),"joined_reuse":joined.progress(),"missing":absent.progress(),"owner":owner.snapshot(),"shared":SharedRasters.snapshot()}
 	absent.close(); absent.free()
 	reused.close(); reused.free()
+	joined.close(); joined.free()
 	var file:=FileAccess.open(report,FileAccess.WRITE); file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"diagnostic":diagnostic},"  ")+"\n"); file.close(); quit(0 if failures.is_empty() else 1)

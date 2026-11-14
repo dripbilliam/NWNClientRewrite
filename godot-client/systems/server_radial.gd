@@ -32,6 +32,9 @@ var request_id := 0
 var menu_id := -1
 var active := false
 var pending := false
+var menu_art_pending:=false
+var menu_art_failure:=""
+var center_resource:=""
 var modal_owner_order
 var modal_owner_ticket: Dictionary={}
 var modal_owner_retire: Callable
@@ -223,6 +226,7 @@ func layout_controls() -> void:
 	if selected>=0: highlight(selected)
 
 func set_center(resource: String,portrait: bool=false) -> void:
+	center_resource=art.portrait_resource(resource) if portrait and not resource.is_empty() and is_instance_valid(art) else resource.to_lower()
 	center_image.texture=null; center_image.flip_v=false
 	center.size=Vector2(64,100) if portrait else Vector2(56,56)
 	center_image.position=Vector2.ZERO if portrait else Vector2(12,12); center_image.size=Vector2(64,100) if portrait else Vector2(32,32)
@@ -233,13 +237,65 @@ func set_center(resource: String,portrait: bool=false) -> void:
 	else: art.bind(center_image,resource)
 
 func skin_snapshot() -> Dictionary:
-	return {"native_only":true,"layout_ready":layout_ready,"frame_ready":center_frame.texture!=null,"selection_ready":selection.texture!=null,"arrow_bounds":arrow_bounds.duplicate(true),"errors":skin_errors.duplicate(),"left_mirrors_right":left_mirrors_right,"scope":"Original GUI hooks/art, native bubble-root edge alignment and mirrored left/right navigation; complete font wrapping, DPI and DM parity remain separate"}
+	return {"native_only":true,"layout_ready":layout_ready,"frame_ready":center_frame.texture!=null,"selection_ready":selection.texture!=null,"arrow_bounds":arrow_bounds.duplicate(true),"errors":skin_errors.duplicate(),"menu_art":menu_art_snapshot(),"menu_art_failure":menu_art_failure,"left_mirrors_right":left_mirrors_right,"scope":"Original GUI hooks/art, native bubble-root edge alignment and mirrored left/right navigation; complete font wrapping, DPI and DM parity remain separate"}
+func menu_art_snapshot() -> Dictionary:
+	var result:={"scope":"radial_current_menu","ready":false,"images_expected":0,"images_ready":0,"fonts_expected":0,"fonts_ready":0,"pending":[],"failures":[]}
+	if not active or menu_id<0:result.pending.append("Current radial menu");return result
+	if not skin_errors.is_empty():result.failures.append(str(skin_errors[0]))
+	if not layout_ready:result.pending.append("Original radial layout")
+	if not is_instance_valid(art):result.failures.append("Original radial artwork owner is unavailable");return result
+	var pictures: Array=[[center_frame,"gui_ra_circle56"],[selection,"gui_ra_clearring"]]
+	for entry in entries:
+		var slot:=int(entry.get("slot",-1))
+		if slot<0 or slot>7:result.failures.append("Invalid radial slot: "+str(slot));continue
+		pictures.append([frames[slot],"gui_ra_circle56"])
+		if bool(entry.get("submenu",false)) and not hide_icons:pictures.append([arrows[slot],"gui_ra_more"])
+	for pair in pictures:
+		result.images_expected+=1
+		var key:=GuiIcons.model_key(str(pair[1]),"")
+		if pair[0].texture!=null and art.textures.has(key):result.images_ready+=1
+		elif art.failed.has(key):result.failures.append("Radial frame "+key+": original artwork failed")
+		else:result.pending.append("image:"+key)
+	if not center_resource.is_empty() and not center_resource.replace("*","").is_empty():
+		result.images_expected+=1
+		if center_image.texture!=null and art.textures.has(center_resource):result.images_ready+=1
+		elif art.failed.has(center_resource):result.failures.append("Radial center "+center_resource+": original artwork failed")
+		else:result.pending.append("image:"+center_resource)
+	for entry in entries:
+		var slot:=int(entry.get("slot",-1))
+		if slot<0 or slot>7:continue
+		var key:=str(entry.get("icon","")).to_lower()
+		if key.is_empty() or key.replace("*","").is_empty():continue
+		result.images_expected+=1
+		if icons[slot].texture!=null and art.textures.has(key):result.images_ready+=1
+		elif art.failed.has(key):result.failures.append("Radial icon "+key+": original artwork failed")
+		else:result.pending.append("image:"+key)
+	if not is_instance_valid(text_fonts):result.failures.append("Original radial font owner is unavailable")
+	else:
+		for label in [hint]+captions.values():
+			result.fonts_expected+=1
+			if str(label.get_meta("native_font_applied",""))==Bubble.DIALOG_FONT:result.fonts_ready+=1
+			elif text_fonts.failed.has(Bubble.DIALOG_FONT):result.failures.append("Radial font "+Bubble.DIALOG_FONT+": "+str(text_fonts.failed[Bubble.DIALOG_FONT]))
+			else:result.pending.append("font:"+Bubble.DIALOG_FONT)
+	for label in [hint]+captions.values():
+		if not label.visible:continue
+		var background: TextureRect=text_backgrounds[label.get_instance_id()]
+		var resource:=str(background.get_meta("native_bubble_model",""))
+		if resource.is_empty():result.pending.append("Radial text bubble selection");continue
+		var key:=GuiIcons.model_key(resource,"")
+		result.images_expected+=1
+		if background.texture!=null and art.textures.has(key):result.images_ready+=1
+		elif art.failed.has(key):result.failures.append("Radial text bubble "+key+": original artwork failed")
+		else:result.pending.append("image:"+key)
+	result.ready=result.failures.is_empty() and result.pending.is_empty()
+	return result
 
 func reset() -> void:
 	retire_modal_owner()
 	request_id += 1
 	active = false
 	pending = false
+	menu_art_pending=false;menu_art_failure="";center_resource=""
 	menu_id = -1
 	entries.clear()
 	selected=-1
@@ -259,6 +315,7 @@ func open_at(point: Vector2, target_id: Variant, position: Vector3, emit_request
 	request_id += 1
 	active = true
 	pending = true
+	menu_art_pending=false;menu_art_failure="";center_resource=""
 	menu_id = -1
 	selected = -1
 	entries.clear()
@@ -277,7 +334,7 @@ func open_at(point: Vector2, target_id: Variant, position: Vector3, emit_request
 	selection.hide(); hint.hide()
 	for button in buttons.values():
 		button.hide()
-	stage.show()
+	stage.hide()
 	register_modal_owner()
 	if emit_request: emit_request({"kind": "radial-open", "requestId": request_id, "targetId": target_id, "position": [position.x, position.y, position.z]})
 
@@ -312,12 +369,16 @@ func receive(message: Dictionary) -> void:
 		"action-close": reset()
 		"action-error":
 			pending = false
+			menu_art_pending=false
 			hint.text = str(message.text)
-			hint.position=Vector2(35,200); hint.show()
+			hint.position=Vector2(35,200); hint.show();stage.show()
 		"action-menu":
 			menu_id = int(message.menuId)
 			depth = int(message.depth)
 			pending = false
+			menu_art_pending=true;menu_art_failure="";stage.hide()
+			center_resource="";center_image.texture=null
+			if is_instance_valid(art):art.bind(center_image,"")
 			# Reset owns this Array header. Never clear the caller's retained
 			# menu/page when backing out or reopening a wheel.
 			entries = message.entries.duplicate()
@@ -334,6 +395,7 @@ func receive(message: Dictionary) -> void:
 				icons[slot].texture = null
 				for entry in entries:
 					if int(entry.slot) == slot:
+						icons[slot].set_meta("original_resource",str(entry.get("icon","")).to_lower())
 						captions[slot].text = str(entry.label)
 						counts[slot].text = Numbers.text(entry.get("uses"), "")
 						button.tooltip_text = captions[slot].text + (" · uses: " + counts[slot].text if entry.get("uses") != null else "") + (" · drag to a shortcut" if entry.get("canDrag",false) and not entry.get("submenu",false) else "")
@@ -350,7 +412,7 @@ func receive(message: Dictionary) -> void:
 				icons[int(message.slot)].texture = Images.png(str(message.image), 512)
 
 func choose(slot: int) -> void:
-	if not active or pending or not modal_admitted():
+	if not active or pending or menu_art_pending or not menu_art_failure.is_empty() or not modal_admitted():
 		return
 	for entry in entries:
 		if int(entry.slot) == slot and not entry.get("disabled", false):
@@ -359,7 +421,7 @@ func choose(slot: int) -> void:
 			return
 
 func can_shortcut(data: Dictionary) -> bool:
-	if not active or pending or not modal_admitted() or int(data.get("requestId", -1)) != request_id or int(data.get("menuId", -1)) != menu_id: return false
+	if not active or pending or menu_art_pending or not menu_art_failure.is_empty() or not modal_admitted() or int(data.get("requestId", -1)) != request_id or int(data.get("menuId", -1)) != menu_id: return false
 	for entry in entries:
 		if int(entry.slot) == int(data.get("slot", -1)):
 			return entry.get("canDrag", false) and not entry.get("submenu", false) and not entry.get("disabled", false)
@@ -442,6 +504,16 @@ func build_preview(entry: Dictionary) -> void:
 		art.bind(icon,"gui_icon_1x1mrng" if not resource.is_empty() else "gui_ra_multisub8","texture",true,"",false,{"gui_replace01":resource} if not resource.is_empty() else {})
 	preview_layer.show()
 func _process(_delta: float) -> void:
+	if menu_art_pending:
+		var cohort: Dictionary=menu_art_snapshot()
+		if cohort.ready:
+			menu_art_pending=false;stage.show()
+		elif not cohort.failures.is_empty():
+			menu_art_pending=false;menu_art_failure=str(cohort.failures[0]);pending=true
+			for button in buttons.values():button.hide()
+			for arrow in arrows.values():arrow.hide()
+			hint.text="Original radial art unavailable: "+menu_art_failure
+			hint.position=Vector2(35,200);hint.show();stage.show()
 	if active and not pending and not click_mode and not get_viewport().gui_is_dragging() and hover_menu==menu_id and hover_slot>=0 and Time.get_ticks_usec()-hover_at>submenu_delay_usec:
 		var slot:=hover_slot; hover_slot=-1; choose(slot)
 
@@ -459,6 +531,10 @@ func on_button(point: Vector2) -> bool:
 	return false
 func _input(event: InputEvent) -> void:
 	if not active or not modal_admitted():
+		return
+	if menu_art_pending or not menu_art_failure.is_empty():
+		if event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_ESCAPE:
+			emit_request({"kind":"radial-cancel","requestId":request_id});reset();get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and is_instance_valid(key_bindings) and key_bindings.blocked(): return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not blocks_pointer(event.position):
