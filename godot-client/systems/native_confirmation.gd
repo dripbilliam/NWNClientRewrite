@@ -2,9 +2,11 @@ extends Control
 # Original OKCANCELPANEL, its original artwork/font controls and result codes.
 # The caller owns the operation and verifies this returned opaque capture.
 signal prepared
+signal artwork_ready
 signal answered(result: int,capture: Array)
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/connection_dialog_layout.gd")
+const Cohort=preload("res://systems/native_data/constructed_ui_cohort.gd")
 var frame
 var text_owner
 var assets
@@ -22,6 +24,8 @@ var revision:=0
 var layout_ready:=false
 var failure:=""
 var closed:=false
+var static_cohort: Dictionary={}
+var art_announced:=false
 var modal_lease=preload("res://systems/native_data/modal_lease.gd").new()
 func set_modal_order(order,surfaces=null,canvas: CanvasLayer=null) -> void:
 	modal_lease.configure(self,order,surfaces,canvas);modal_lease.bind_input(self)
@@ -52,11 +56,19 @@ func build() -> void:
 	for tag in ["okbutton","cancelbutton"]:
 		var button: Button=frame.create_button(definition.entries[tag],panel,models); buttons[tag]=button; captions[tag]=frame.button_caption(button,"")
 		button.button_down.connect(func():held[tag]=[scope.duplicate(true),revision]); button.pressed.connect(invoke.bind(tag))
+	static_cohort=Cohort.capture("okcancelpanel-local-delete",self,frame,models)
 	layout_ready=true; place(); prepared.emit()
+func cohort_snapshot() -> Dictionary: return Cohort.snapshot(static_cohort,frame,failure)
+func art_ready() -> bool: return bool(cohort_snapshot().ready)
+func _process(_delta: float) -> void:
+	if closed or art_announced or not layout_ready: return
+	var cohort: Dictionary=cohort_snapshot()
+	if cohort.ready or not cohort.failures.is_empty():
+		art_announced=true; set_process(false); artwork_ready.emit()
 func place() -> void:
 	if layout_ready: panel.position=((get_viewport_rect().size-panel.size)*0.5).max(Vector2.ZERO)
 func ask(message_ref: int,yes_ref: int,no_ref: int,capture: Array) -> bool:
-	if closed or not layout_ready or not failure.is_empty(): return false
+	if closed or not art_ready(): return false
 	dismiss(); scope=capture.duplicate(true); message.text=text_owner.raw({"strRef":message_ref}); captions.okbutton.text=text_owner.raw({"strRef":yes_ref}); captions.cancelbutton.text=text_owner.raw({"strRef":no_ref})
 	show(); move_to_front(); place(); grab_focus();modal_lease.activate(scope); return true
 func invoke(tag: String) -> void:

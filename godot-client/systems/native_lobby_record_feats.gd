@@ -26,6 +26,10 @@ var row_resource:="ctl_chr_btn_feat"
 var data_art
 var scope_provider:=Callable()
 var input_provider:=Callable()
+var icon_targets: Array=[]
+var icon_pending:=false
+var icon_failure:=""
+var rebuilding:=false
 func configure(owner_ui,painter,source: Dictionary,extent: Vector2,kind: int=2) -> void:
 	chooser=owner_ui
 	configure_view(painter,source,chooser.models,extent,kind,chooser.data_art,
@@ -47,6 +51,9 @@ func configure_view(painter,source: Dictionary,raw_models: Dictionary,extent: Ve
 	# meets its page bottom; SetHeightByAnchor puts scrollmax14 pixels above it.
 	var sized: Dictionary=list_model.duplicate(true); sized.hooks.bottom.y=size.y-layout.hooks.list.y; sized.hooks.scrollmax.y=sized.hooks.bottom.y-14
 	list_rect=Layout.box(sized,"top","bottom",layout.hooks.list); list=scroll(list_rect)
+	list.get_v_scroll_bar().value_changed.connect(func(_value: float):
+		if not rebuilding and not entries.is_empty():
+			icon_pending=true; list.hide(); check_icon_admission())
 	add_bar(list,layout.hooks.list,sized,float(models[row_resource].hooks.next.y),"")
 	body=Control.new(); list.add_child(body); body.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	visibility_changed.connect(func():if not is_visible_in_tree(): held.clear())
@@ -81,7 +88,9 @@ func present_entries(projected: Array,text_revision: int=0) -> void:
 	var identity: Array=scope_provider.call() if scope_provider.is_valid() else []
 	var next:=JSON.stringify([identity,projected,text_revision])
 	if next==signature: return
+	rebuilding=true
 	signature=next; revision+=1; held.clear(); selected=-1; entries=projected.duplicate(true); Text.set_text(description,{}); description_scroll.scroll_vertical=0; list.scroll_vertical=0
+	icon_targets.clear(); icon_failure=""; icon_pending=true; list.hide()
 	for row in rows: row.free()
 	rows.clear()
 	var model: Dictionary=models[row_resource]; var list_model: Dictionary=models.ctl_chr_btnlstbx; var offset: Vector2=list_model.hooks.listitem
@@ -89,13 +98,38 @@ func present_entries(projected: Array,text_revision: int=0) -> void:
 	for index in entries.size():
 		var entry: Dictionary=entries[index]; var button:=Button.new(); body.add_child(button); button.toggle_mode=true; button.button_group=group; frame.button(button,Layout.entry(models,row_resource,offset),body,get_meta("raw_models"),false,true)
 		button.button_down.connect(func():held[index]=scope()); button.pressed.connect(select.bind(index)); rows.append(button)
-		var local: Vector2=-model.bounds.position; var icon:=TextureRect.new(); button.add_child(icon); icon.position=local+model.hooks.icon-Vector2(16,16); icon.size=Vector2(32,32); icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; icon.mouse_filter=Control.MOUSE_FILTER_IGNORE; data_art.bind(icon,str(entry.icon))
+		var local: Vector2=-model.bounds.position; var icon:=TextureRect.new(); button.add_child(icon); icon.position=local+model.hooks.icon-Vector2(16,16); icon.size=Vector2(32,32); icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var icon_key:=str(entry.get("icon", "")).to_lower()
+		if not icon_key.is_empty() and icon_key!="****": icon_targets.append({"key":icon_key,"target":weakref(icon),"row":weakref(button)})
+		data_art.bind(icon,icon_key)
 		var name: Label=frame.create_label({"rect":Rect2(local+model.hooks.text-Vector2(0,17),Vector2(250 if page_kind==1 else 280,34)),"caption":{"AurString_Font":"fnt_galahad14","AurString_AlignH":0.0,"AurString_AlignV":0.5}},button); name.text=str(entry.name)
 		if page_kind==1:
 			var value_label: Label=frame.create_label({"rect":Rect2(local+model.hooks.value-Vector2(16,17),Vector2(33,34)),"caption":Layout.CAPTION},button); value_label.text=str(int(entry.value))
 			if entry.get("lostAbilities",false): value_label.add_theme_color_override("font_color",Color(1,0.1,0.1))
 		offset+=model.hooks.next
 	body.custom_minimum_size=Vector2(list.size.x,maxf(1,offset.y+model.bounds.position.y)); body.size=body.custom_minimum_size
+	rebuilding=false
+	check_icon_admission()
+func _process(_delta: float) -> void:
+	if icon_pending: check_icon_admission()
+func check_icon_admission() -> void:
+	if closed or rebuilding or not icon_pending or not is_instance_valid(data_art): return
+	var top: float=list.scroll_vertical
+	var bottom: float=top+list.size.y
+	for row in icon_targets:
+		var key: String=str(row.key)
+		var target: TextureRect=row.target.get_ref()
+		var button: Button=row.row.get_ref()
+		if not is_instance_valid(target) or not is_instance_valid(button): return
+		if button.position.y+button.size.y<=top or button.position.y>=bottom: continue
+		if data_art.failed.has(key):
+			icon_failure="Original character record icon unavailable: "+key
+			if data_art.ui_assets!=null:
+				var reason: String=data_art.ui_assets.failure("raster",key)
+				if not reason.is_empty(): icon_failure+=" ("+reason+")"
+			icon_pending=false; description.text=icon_failure; return
+		if not data_art.textures.has(key) or target.texture!=data_art.textures[key]: return
+	icon_pending=false; list.show()
 func select(index: int) -> void:
 	if closed or not is_visible_in_tree() or index<0 or index>=entries.size(): return
 	var captured: Array=held.get(index,[]); held.erase(index)
@@ -109,7 +143,7 @@ func select(index: int) -> void:
 	if page_kind!=3 or not entries[index].get("summary",false): Text.set_text(description,entries[index].description); description_scroll.scroll_vertical=0
 func close() -> void:
 	if closed: return
-	closed=true; held.clear()
+	closed=true; held.clear(); icon_pending=false; icon_targets.clear()
 	for bar in bars: if is_instance_valid(bar): bar.close()
 	bars.clear(); rows.clear(); entries.clear(); chooser=null; frame=null; data_art=null; scope_provider=Callable(); input_provider=Callable(); remove_meta("raw_models")
 func _exit_tree() -> void: close()
