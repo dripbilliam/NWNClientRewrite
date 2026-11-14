@@ -7,6 +7,7 @@ const NWSync=preload("res://systems/native_data/nwsync_store.gd")
 const Loose=preload("res://systems/native_data/loose_index.gd")
 const Residency=preload("res://systems/native_data/resource_residency.gd")
 const SessionUiAssets=preload("res://systems/native_data/session_ui_asset_owner.gd")
+const ItemIconSources=preload("res://systems/native_data/item_icon_sources.gd")
 class BifStore:
 	extends RefCounted
 	var entries: Dictionary = {}
@@ -178,6 +179,11 @@ func recorded_texture_miss(name: String) -> bool:
 	return raster_location(name).is_empty() and not has_resource(name,6)
 func get_resource(name: String, type: int) -> PackedByteArray:
 	stats.source_requests+=1
+	var resident: PackedByteArray=ItemIconSources.lookup(self,name,type)
+	if not resident.is_empty():
+		failure=""; stats.source_memory_hits+=1
+		if recording!=null: recording.record(name,type,resident,"")
+		return resident
 	var key:=name.to_lower()+":"+str(type); var generation:=source_store.generation()
 	var lease:=source_store.begin_data(key,generation); var bytes: PackedByteArray
 	if lease.owner:

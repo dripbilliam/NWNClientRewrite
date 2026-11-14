@@ -19,6 +19,7 @@ var ui_assets
 var pool:=Pool.new()
 var requests: Dictionary={}
 var pending: Dictionary={}
+var failed: Dictionary={}
 var deferred_models: Array=[]
 var maximum_deferred_models:=4096
 var textures: Dictionary={}
@@ -37,6 +38,7 @@ var reuse_models_enabled:=not OS.get_cmdline_user_args().has("--icon-model-reuse
 var maximum_cached_models:=32
 var cached_models: Dictionary={}
 var cache_directory:=""
+var last_request_error:=""
 var prework_records: Dictionary={}
 var stats:={"requested":0,"reused":0,"rendered":0,"errors":[],"native_only":true,"slow_cleanup":[],"model_reuses":0,"model_cache_full":0}
 func _ready() -> void:set_process(false)
@@ -64,18 +66,20 @@ func session_ui_owner():
 	# not turn a 3,819-image bake into an unbounded session GPU residency job.
 	return ui_assets if ui_assets!=null and is_instance_valid(assets) and not assets.prework_write else null
 func request(item: Dictionary,tables: Dictionary,gender: int=0) -> String:
+	last_request_error=""
 	var decoder:=Plan.new(); var plan:=decoder.plan(item,tables,gender)
-	if plan.is_empty(): stats.errors.append(decoder.failure); return ""
+	if plan.is_empty(): last_request_error=decoder.failure; stats.errors.append(decoder.failure); return ""
 	var key:=Cache.digest(var_to_bytes(plan))
 	if textures.has(key): stats.reused+=1; return key
 	var owner=session_ui_owner()
 	var shared: Dictionary=owner.lookup("item",key) if owner!=null else {}
 	if not shared.is_empty(): textures[key]=shared.texture; image_bounds[key]=shared.bounds; stats.reused+=1; stats.shared_reused=int(stats.get("shared_reused",0))+1; return key
 	if pending.has(key): return key
+	if failed.has(key): last_request_error=str(failed[key]); return key
 	var selected:=decoder.select(plan,catalog)
-	if selected.is_empty(): stats.errors.append(decoder.failure); return ""
+	if selected.is_empty(): last_request_error=decoder.failure; stats.errors.append(decoder.failure); return ""
 	var id: int=assets.request(str(selected.model),2002,"gui-icon-v1",{"icon_layers":selected.layers,"icon_descriptor":["item",key],"gui_texture_info":GuiTextureInfo.REVISION})
-	if id<0: stats.errors.append(assets.failure); return ""
+	if id<0: last_request_error=assets.failure; stats.errors.append(assets.failure); return ""
 	requests[id]=key; pending[key]=true; stats.requested+=1; return key
 static func model_key(name: String,clip: String="up",overrides: Dictionary={},turn: int=0,texture_layer: String="",poses: Array=[],render_region: Rect2=Rect2()) -> String:
 	return "gui:"+name.to_lower()+":"+clip+(":"+Cache.digest(var_to_bytes([overrides,turn,texture_layer])) if not overrides.is_empty() or turn!=0 or not texture_layer.is_empty() else "")+(":pose:"+Cache.digest(var_to_bytes(poses)) if not poses.is_empty() else "")+(":region:"+Cache.digest(var_to_bytes(render_region)) if render_region!=Rect2() else "")
@@ -110,7 +114,7 @@ func prepared(id: int,result: Dictionary) -> void:
 	var request_value: Variant=requests[id]; requests.erase(id)
 	var key:=str(request_value.key) if request_value is Dictionary else str(request_value)
 	var clip:=str(request_value.clip) if request_value is Dictionary else ""
-	if not str(result.error).is_empty(): pending.erase(key); stats.errors.append(result.error); completed.emit(key,null,str(result.error)); return
+	if not str(result.error).is_empty(): pending.erase(key); failed[key]=str(result.error); stats.errors.append(result.error); completed.emit(key,null,str(result.error)); return
 	if result.has("prework_icon"):
 		prework_records[key]={"key":result.prework_icon_key,"inputs":result.prework_inputs}
 		if restore_prework(key,result.prework_icon): return
@@ -282,6 +286,7 @@ func finish(key: String,model,texture: Texture2D,error: String) -> void:
 		var owner=session_ui_owner()
 		if owner!=null: owner.retain("model" if key.begins_with("gui:") else "item",key,texture,image_bounds.get(key,{}))
 	else:
+		failed[key]=error
 		stats.errors.append(error)
 		var owner=session_ui_owner()
 		if owner!=null: owner.note_failure("model" if key.begins_with("gui:") else "item",key,error)
@@ -293,7 +298,7 @@ func model_cache_key(job: Dictionary) -> String:
 	for name in job.bundle.get("textures",{}): samplers[name]=job.bundle.textures[name].get("gui_sampler",{})
 	return Cache.digest(var_to_bytes([Template.identity(job.bundle,pool),int(job.get("turn",0)),str(job.get("texture_layer","")),samplers]))
 func snapshot() -> Dictionary:
-	var state:=stats.duplicate(true); state.merge({"pending":pending.size(),"deferred_models":deferred_models.size(),"textures":textures.size(),"active":active,"model_reuse_enabled":reuse_models_enabled,"cached_models":cached_models.size(),"maximum_cached_models":maximum_cached_models}); return state
+	var state:=stats.duplicate(true); state.merge({"pending":pending.size(),"failed":failed.size(),"deferred_models":deferred_models.size(),"textures":textures.size(),"active":active,"model_reuse_enabled":reuse_models_enabled,"cached_models":cached_models.size(),"maximum_cached_models":maximum_cached_models}); return state
 func close() -> void:
 	if closed: return
 	closed=true;set_process(false)

@@ -21,6 +21,7 @@ var video
 var main
 var options
 var status: Label
+var icon_loading_bar: ProgressBar
 var sources: Dictionary={}
 var cache_path:=""
 var layout_path:=""
@@ -41,8 +42,19 @@ func configure(source: Dictionary,cache: String,layout: String,settings) -> void
 	started_at=Time.get_ticks_usec()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter=Control.MOUSE_FILTER_IGNORE; hide()
 	status=Label.new(); add_child(status); status.text="Preparing menu resources…"; status.position=Vector2(24,24); status.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	icon_loading_bar=ProgressBar.new(); add_child(icon_loading_bar); icon_loading_bar.position=Vector2(24,54); icon_loading_bar.custom_minimum_size=Vector2(320,18); icon_loading_bar.size=Vector2(320,18); icon_loading_bar.show_percentage=false; icon_loading_bar.mouse_filter=Control.MOUSE_FILTER_IGNORE; icon_loading_bar.hide()
 	loader=Loader.new(); add_child(loader); loader.completed.connect(catalog_ready); loader.start(sources)
 	get_viewport().size_changed.connect(place)
+func _process(_delta: float) -> void:
+	if closed or not wanted or not is_instance_valid(loader) or loader.task<0: return
+	var progress: Dictionary=loader.progress()
+	if str(progress.get("phase",""))!="item-icons": return
+	var completed:=int(progress.get("completed",0)); var total:=int(progress.get("total",0))
+	if is_instance_valid(icon_loading_bar):
+		icon_loading_bar.max_value=maxi(1,total); icon_loading_bar.value=completed; icon_loading_bar.show()
+	if is_instance_valid(status):
+		var message:="Loading item icons: %d / %d"%[completed,total]
+		if status.text!=message: status.text=message
 func catalog_ready(_serial: int,value: RefCounted,error: String,stats: Dictionary) -> void:
 	if closed: return
 	if not error.is_empty(): failure=error; status.text="Menu resources unavailable: "+error; return
@@ -81,6 +93,7 @@ func dismiss() -> void:
 	hide()
 func refresh() -> void:
 	if closed: return
+	if is_instance_valid(icon_loading_bar): icon_loading_bar.visible=wanted and is_instance_valid(loader) and loader.task>=0 and str(loader.progress().get("phase",""))=="item-icons"
 	if not button_audio_failure.is_empty():status.text="Menu sound unavailable: "+button_audio_failure
 	elif not failure.is_empty(): status.text="Menu resources unavailable: "+failure
 	elif not button_audio_ready:status.text="Preparing menu sound…"

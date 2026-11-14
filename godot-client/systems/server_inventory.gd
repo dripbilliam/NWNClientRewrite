@@ -11,6 +11,7 @@ var buttons: Dictionary = {}
 var textures: Dictionary = {}
 var view_id := -1
 var wanted := false
+var native_icon_gate := false
 var item_commands_enabled:=true
 var selected := -1
 var creature_slots := false
@@ -137,14 +138,14 @@ func wipe(node: Node) -> void:
 
 func open() -> void:
 	wanted = true
-	show(); move_to_front()
+	if not native_icon_gate: show(); move_to_front()
 	notice.text = "Waiting for server inventory…"
 	request.emit({"kind": "inventory-open"})
 
 func present_received(opened: bool) -> void:
 	# Server13/1 is a visibility instruction, not a user input to echo back.
 	wanted=opened
-	if opened:show();move_to_front()
+	if opened and not native_icon_gate:show();move_to_front()
 	else:
 		examine_mode=false;hide()
 
@@ -174,7 +175,7 @@ func receive(message: Dictionary) -> void:
 				var new_container := int(container.get("ownerId", 2130706432)) != 2130706432 and int(container.get("serial", -1)) > blocked_container_serial
 				if not message.get("automatic", false) or not (new_store or new_container): return
 				wanted = true
-				show(); move_to_front()
+				if not native_icon_gate: show(); move_to_front()
 			var selected_item: int = int(items[selected].itemId) if items.has(selected) else -1
 			view_id = int(message.viewId)
 			state = message.duplicate(true)
@@ -184,6 +185,7 @@ func receive(message: Dictionary) -> void:
 			for id in items:
 				if int(items[id].itemId) == selected_item: selected = id; break
 			render()
+			if native_icon_gate and wanted: show(); move_to_front()
 		"inventory-icon":
 			if int(message.viewId) != view_id: return
 			var texture: Texture2D = Images.png(str(message.image), 512)

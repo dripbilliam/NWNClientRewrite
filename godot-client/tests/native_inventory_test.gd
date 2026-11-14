@@ -60,12 +60,19 @@ func run() -> void:
 	var actor:={"id":1,"objectType":5,"replicated":{"name":{"text":"Native inventory test"}},"inventoryStats":{"field70":12,"field28c":149},"playerState":{"combat":{"field898":27,"armorClass":13}}}
 	var item: Dictionary=armor.item.duplicate(true); item.name={"text":"Authored armor"}; item.stackSize=1
 	var equipped:={"id":11,"objectType":6,"item":item,"inventoryLocation":{"ownerId":1,"channel":"I","slot":2}}
-	var raw:={"inventories":[["I",{"entries":[{"id":11,"slot":2}]}],["R",{"entries":[]}]],"containers":[]}
-	owner.set_world(1,3,1,[actor,equipped],raw); owner.ui.open(); owner.refresh()
+	var later_item:={"id":12,"objectType":6,"item":flat.item.duplicate(true),"inventoryLocation":{"ownerId":1,"channel":"R","x":0,"y":6}}
+	var raw:={"inventories":[["I",{"entries":[{"id":11,"slot":2}]}],["R",{"entries":[{"id":12,"x":0,"y":6}]}]],"containers":[]}
+	owner.set_world(1,3,1,[actor,equipped,later_item],raw); owner.prewarm_icons()
+	check(owner.prewarm_cursor==2 and owner.icons.pending.size()==2,"Closed inventory prewarms equipment and later page item icons")
+	owner.ui.open(); owner.refresh()
+	check(not owner.ui.visible and owner.ui.items.is_empty(),"Cold first opening waits for the item icon before displaying inventory rows")
+	var key:=Cache.digest(var_to_bytes(Plan.new().plan(item,tables,0)))
+	var image:=Image.create(4,4,false,Image.FORMAT_RGBA8); image.fill(Color.RED); var texture:=ImageTexture.create_from_image(image)
+	owner.icons.textures[key]=texture; owner.refresh()
 	check(commands[-1].kind=="inventory-open" and owner.ui.items.has(11),"Open native inventory requests real replication and displays server membership")
+	check(owner.ui.visible and owner.ui.textures.get(11)==texture,"First visible inventory view already contains its item icon")
 	check(not owner.ui.creature_slots and owner.ui.equipment.custom_minimum_size.y==240,"Creature equipment defaults hidden")
 	check(owner.ui.state.summary.gold==27 and owner.ui.state.summary.weight==15,"Native replicated gold and rounded decipounds")
-	var image:=Image.create(4,4,false,Image.FORMAT_RGBA8); image.fill(Color.RED); var texture:=ImageTexture.create_from_image(image)
 	check(owner.ui.install_native_icon(owner.view_serial,11,texture),"Direct Texture2D icon binding")
 	check(not owner.ui.install_native_icon(owner.view_serial-1,11,texture),"Retired icon view cannot overwrite current item")
 	var before: Dictionary=equipped.duplicate(true)
@@ -74,7 +81,7 @@ func run() -> void:
 	owner.receive({"kind":"inventory-result","itemId":11,"operation":"unequip","success":false}); owner.refresh()
 	check(owner.ui.notice.text=="The server rejected that item action.","Server rejection survives ordinary inventory refresh")
 	var obsolete:=owner.view_serial
-	owner.set_world(2,4,1,[actor,equipped],raw); owner.input_request({"kind":"inventory-action","viewId":obsolete,"entryId":11,"operation":"drop"})
+	owner.set_world(2,4,1,[actor,equipped,later_item],raw); owner.input_request({"kind":"inventory-action","viewId":obsolete,"entryId":11,"operation":"drop"})
 	check(commands[-1].operation=="unequip" and owner.stats.stale_input>0,"Old area view cannot send an item command")
 	owner.close(); check(owner.icons.assets.running.is_empty() and owner.icons.assets.pending.is_empty(),"Native icon work drains at ownership retirement")
 	owner.free(); parent.free(); text.close(); await process_frame; await process_frame

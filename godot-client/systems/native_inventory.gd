@@ -45,6 +45,10 @@ var views: Dictionary={}
 var pending: Dictionary={}
 var signature:=""
 var icon_bindings: Dictionary={}
+var icon_failures: Dictionary={}
+var prewarm_dirty:=true
+var prewarm_items: Array=[]
+var prewarm_cursor:=0
 var closed:=false
 var notice_text:=""
 var detailed_timings:=false
@@ -54,6 +58,7 @@ var data_received_wall_ms:=0.0
 var stats:={"views":0,"commands":0,"icons_bound":0,"rejected_results":0,"stale_input":0,"errors":[],"native_only":true}
 func configure(parent: Control,catalog,cache_path: String,text,layout_storage: String="user://native-menu-layout.cfg",role: String="primary") -> void:
 	window_role=role; text_owner=text; ui=Inventory.new(); parent.add_child(ui); ui.item_commands_enabled=role=="primary";ui.setup(layout_storage,"inventory" if role=="primary" else "associate-inventory"); ui.request.connect(input_request)
+	ui.native_icon_gate=true
 	equipment_skin=preload("res://systems/native_inventory_equipment.gd").new(); add_child(equipment_skin); ui.native_equipment=equipment_skin; equipment_skin.configure(ui,catalog,cache_path)
 	frame_skin=preload("res://systems/native_inventory_frame.gd").new(); add_child(frame_skin); ui.native_frame=frame_skin; frame_skin.configure(ui,catalog,cache_path,text,equipment_skin)
 	item_tooltips=frame_skin.tooltips; item_tooltips.prepare(); ui.item_tooltips=item_tooltips
@@ -69,27 +74,30 @@ func set_displayed_owner(id: int,serial: int,receipt: int) -> void:
 	window_serial=serial;window_receipt=receipt
 	if display_owner_id==id:return
 	var was_wanted: bool=ui.wanted
-	display_owner_id=id;signature="";views.clear();pending.clear();icon_bindings.clear();page=0;container_page=0
+	display_owner_id=id;signature="";views.clear();pending.clear();icon_bindings.clear();page=0;container_page=0;prewarm_dirty=true
 	item_context.cancel();stack_dialog.cancel();gold.cancel();ui.reset()
 	if was_wanted:ui.present_received(true)
 func set_world(epoch: int,area: int,controlled: int,source: Array,raw: Dictionary) -> void:
 	if generation!=epoch or controlled_id!=controlled:
 		gold.cancel()
 		ui.reset(); item_context.cancel(); stack_dialog.cancel(); signature=""; views.clear(); pending.clear(); icon_bindings.clear(); page=0; container_page=0; notice_text=""
-	generation=epoch; area_id=area; controlled_id=controlled; objects={}
+	generation=epoch; area_id=area; controlled_id=controlled; objects={}; prewarm_dirty=true
 	for object in source: objects[int(object.id)]=object
 	update_inventory(raw)
 func update_world(epoch: int,area: int,controlled: int,source: Array,removed: Array,raw: Dictionary) -> void:
 	if generation!=epoch or area_id!=area: return
 	if controlled_id!=controlled:
 		ui.reset(); item_context.cancel(); stack_dialog.cancel(); signature=""; views.clear(); pending.clear(); icon_bindings.clear(); page=0; container_page=0; notice_text=""
+	if controlled_id!=controlled: prewarm_dirty=true
 	controlled_id=controlled
 	for id in removed: objects.erase(int(id))
-	for object in source: objects[int(object.id)]=object
+	for object in source:
+		objects[int(object.id)]=object
+		if object.get("item") is Dictionary or int(object.id)==displayed_owner(): prewarm_dirty=true
 	update_inventory(raw)
 func update_inventory(raw: Dictionary) -> void:
 	if detailed_timings:data_received_us=Time.get_ticks_usec();data_received_wall_ms=Time.get_unix_time_from_system()*1000.0
-	var old_container:=int(containers.get("C",INVALID)); inventories={}; containers={}; store=raw.get("store",{}) if raw.get("store") is Dictionary else {}
+	var old_container:=int(containers.get("C",INVALID)); var old_inventories:=inventories; inventories={}; containers={}; store=raw.get("store",{}) if raw.get("store") is Dictionary else {}
 	for row in raw.get("inventories",[]):
 		var channel:=str(row[0])
 		if window_role=="primary" and channel in ["I","R","C","M"]:inventories[channel]=row[1]
@@ -97,12 +105,39 @@ func update_inventory(raw: Dictionary) -> void:
 	for row in raw.get("containers",[]):
 		if str(row[0])==("C" if window_role=="primary" else "c"):containers["C"]=int(row[1])
 	if window_role=="alternate":store={}
+	if old_inventories!=inventories: prewarm_dirty=true
 	if store.get("open",false) and int(store.get("generation",-1))>ui.blocked_store_generation and not ui.wanted: ui.open()
 	if int(containers.get("C",INVALID))!=old_container:
 		container_serial+=1; container_page=0
 		if window_role=="primary" and int(containers.get("C",INVALID))!=INVALID and not ui.wanted: ui.open()
 func rules_ready() -> bool:
 	return text_owner!=null and text_owner.tables.has("baseitems") and text_owner.tables.has("encumbrance")
+func icon_tables_ready() -> bool:
+	if not rules_ready(): return false
+	for name in ["capart","parts_robe","cloakmodel","iprp_spells"]:
+		if not text_owner.tables.has(name): return false
+	return true
+func prewarm_icons() -> void:
+	if prewarm_dirty:
+		prewarm_items.clear(); prewarm_cursor=0
+		var seen: Dictionary={}
+		for channel in ["I","R","C","M"]:
+			for location in inventories.get(channel,{}).get("entries",[]):
+				var id:=int(location.get("id",-1))
+				if seen.has(id) or not objects.has(id): continue
+				var object: Dictionary=objects[id]
+				if object.get("replicationRemoved",false) or not object.get("item") is Dictionary: continue
+				seen[id]=true; prewarm_items.append(id)
+		prewarm_dirty=false
+	var actor: Dictionary=objects.get(displayed_owner(),{})
+	var gender:=int(actor.get("appearance",{}).get("gender",0))
+	var issued:=0
+	while prewarm_cursor<prewarm_items.size() and issued<16:
+		if icons.assets.pending.size()+icons.assets.running.size()>=32 or icons.pending.size()>=48: break
+		var id: int=prewarm_items[prewarm_cursor]; prewarm_cursor+=1
+		var object: Dictionary=objects.get(id,{})
+		if object.get("replicationRemoved",false) or not object.get("item") is Dictionary: continue
+		icons.request(object.item,text_owner.tables,gender); issued+=1
 func store_price(item: Dictionary,buy: bool) -> int:
 	if not store.get("open",false) or not item.has("cost"): return -1
 	var cost:=int(item.cost)&4294967295
@@ -143,7 +178,10 @@ func _process(_delta: float) -> void:
 	_profile_process(_delta)
 	Timing.finish("callback_inventory",began)
 func _profile_process(_delta: float) -> void:
-	if closed or not ui.wanted or not rules_ready() or not objects.has(controlled_id): return
+	if closed or not rules_ready() or not objects.has(controlled_id): return
+	if not ui.wanted:
+		if icon_tables_ready(): prewarm_icons()
+		return
 	for id in pending.keys():
 		if pending[id].operation=="split":
 			var item: Dictionary=objects.get(id,{}).get("item",{})
@@ -154,8 +192,9 @@ func _profile_process(_delta: float) -> void:
 				pending[id].operation="equip"; pending[id].at=Time.get_ticks_msec(); send_command({"kind":"item-action","itemId":id,"operation":"equip","slot":int(pending[id].slot)})
 		if Time.get_ticks_msec()-int(pending[id].at)>6000: pending.erase(id); signature=""; notice_text="The server has not confirmed that item action."
 	refresh()
+	if icon_tables_ready(): prewarm_icons()
 func refresh() -> void:
-	if closed or not ui.wanted or not rules_ready() or not objects.has(displayed_owner()): return
+	if closed or not ui.wanted or not rules_ready() or ui.native_icon_gate and not icon_tables_ready() or not objects.has(displayed_owner()): return
 	var refresh_started:=Time.get_ticks_usec() if detailed_timings else 0
 	var actor: Dictionary=objects[displayed_owner()]; var rows: Array=[]; var sources: Array=[]
 	for channel in ["I","R","C","M"]:
@@ -168,6 +207,19 @@ func refresh() -> void:
 			rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"tooltip":Tooltip.project(item,text_owner,controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
 	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store]))
 	if next==signature: return
+	var ready_icons: Dictionary={}
+	var waiting:=false
+	for row in rows:
+		if row.channel=="R" and floori(float(row.y)/6)!=page or row.channel=="C" and floori(float(row.y)/5)!=container_page: continue
+		var key: String=icons.request(objects[int(row.itemId)].item,text_owner.tables,int(actor.get("appearance",{}).get("gender",0)))
+		if key.is_empty():
+			if ui.native_icon_gate:
+				if icons.last_request_error=="Native asset queue is full": waiting=true
+				elif not icons.last_request_error.is_empty(): notice_text="Item icon unavailable: "+icons.last_request_error; ui.notice.text=notice_text
+			continue
+		ready_icons[int(row.entryId)]=key
+		if not icons.textures.has(key) and not icon_failures.has(key): waiting=true
+	if waiting: return
 	signature=next; view_serial+=1; views.clear()
 	for row in rows: views[int(row.entryId)]={"object":objects[int(row.itemId)].duplicate(true),"row":row.duplicate(true)}
 	var container_id:=int(containers.get("C",INVALID)); var container: Dictionary=objects.get(container_id,{})
@@ -179,14 +231,14 @@ func refresh() -> void:
 	if not notice_text.is_empty(): ui.notice.text=notice_text
 	for row in rows:
 		if row.channel=="R" and floori(float(row.y)/6)!=page or row.channel=="C" and floori(float(row.y)/5)!=container_page: continue
-		var key: String=icons.request(objects[int(row.itemId)].item,text_owner.tables,int(actor.get("appearance",{}).get("gender",0)))
+		var key: String=str(ready_icons.get(int(row.entryId),""))
 		if key.is_empty(): continue
 		if not icon_bindings.has(key): icon_bindings[key]=[]
 		icon_bindings[key].append({"view":view_serial,"entry":int(row.entryId)})
 		if icons.textures.has(key): ui.install_native_icon(view_serial,int(row.entryId),icons.textures[key]); stats.icons_bound+=1
 func icon_ready(key: String,texture: Texture2D,error: String) -> void:
 	if closed: return
-	if not error.is_empty(): notice_text="Item icon unavailable: "+error; ui.notice.text=notice_text; return
+	if not error.is_empty(): icon_failures[key]=error; notice_text="Item icon unavailable: "+error; ui.notice.text=notice_text; return
 	for row in icon_bindings.get(key,[]):
 		if ui.install_native_icon(int(row.view),int(row.entry),texture): stats.icons_bound+=1
 func send_command(value: Dictionary) -> void:

@@ -26,11 +26,13 @@ func run() -> void:
 	menu.open()
 	var samples: Array=[]
 	var last_state:=""
-	var limit_ms:=10000 if graphical else 2000
+	var limit_ms:=12000 if graphical else 8000
 	var deadline:=Time.get_ticks_msec()+limit_ms
 	var result: Dictionary={}
+	var saw_icon_bar:=false
 	while Time.get_ticks_msec()<deadline:
 		await process_frame
+		if is_instance_valid(menu.icon_loading_bar) and menu.icon_loading_bar.visible and not is_instance_valid(menu.main): saw_icon_bar=true
 		if not menu.failure.is_empty(): break
 		if not is_instance_valid(menu.main): continue
 		var snapshot: Dictionary=menu.main.cohort_snapshot()
@@ -53,7 +55,7 @@ func run() -> void:
 		menu.dismiss(); menu.open()
 		for extra_frame in 3: await process_frame
 		reopened=menu.main.cohort_snapshot().ready and menu.main.visible
-	result={"success":ready and untagged.is_empty() and first_visible and reopened and (not graphical or root.get_flag(Window.FLAG_NO_FOCUS) and root.current_screen!=DisplayServer.get_primary_screen()),"menu_failure":menu.failure,"page_failure":menu.main.failure if is_instance_valid(menu.main) else "No page","cohort":menu.main.cohort_snapshot() if is_instance_valid(menu.main) else {},"untagged_nonempty_labels":untagged,"samples":samples,"elapsed_ms":limit_ms-(deadline-Time.get_ticks_msec()),"graphical":graphical,"no_focus":root.get_flag(Window.FLAG_NO_FOCUS) if graphical else true,"secondary":root.current_screen!=DisplayServer.get_primary_screen() if graphical else true,"page_visible":first_visible,"reopen_ready_visible":reopened,"wanted":menu.wanted,"art_announced":menu.main.art_announced if is_instance_valid(menu.main) else false}
+	result={"success":ready and untagged.is_empty() and first_visible and reopened and saw_icon_bar and int(menu.catalog_stats.get("item_icon_sources",{}).get("completed",0))>5000 and (not graphical or root.get_flag(Window.FLAG_NO_FOCUS) and root.current_screen!=DisplayServer.get_primary_screen()),"menu_failure":menu.failure,"page_failure":menu.main.failure if is_instance_valid(menu.main) else "No page","cohort":menu.main.cohort_snapshot() if is_instance_valid(menu.main) else {},"untagged_nonempty_labels":untagged,"samples":samples,"elapsed_ms":limit_ms-(deadline-Time.get_ticks_msec()),"graphical":graphical,"no_focus":root.get_flag(Window.FLAG_NO_FOCUS) if graphical else true,"secondary":root.current_screen!=DisplayServer.get_primary_screen() if graphical else true,"page_visible":first_visible,"reopen_ready_visible":reopened,"wanted":menu.wanted,"art_announced":menu.main.art_announced if is_instance_valid(menu.main) else false,"icon_loading_bar_before_menu":saw_icon_bar,"icon_sources":menu.catalog_stats.get("item_icon_sources",{})}
 	menu.close()
 	var file:=FileAccess.open(output,FileAccess.WRITE)
 	file.store_string(JSON.stringify(result,"  "))

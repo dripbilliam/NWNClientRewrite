@@ -7,27 +7,33 @@ signal completed(serial: int, catalog: RefCounted, error: String, stats: Diction
 const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Workshop=preload("res://systems/native_data/workshop_index.gd")
 const Backend=preload("res://systems/native_data/resource_index_backend.gd")
+const ItemIconSources=preload("res://systems/native_data/item_icon_sources.gd")
 var task:=-1
 var serial:=0
 var result: Dictionary={}
+var progress_state: Dictionary={"phase":"catalog","completed":0,"total":0}
 var mutex:=Mutex.new()
 var stop_requested:=true
 func start(sources: Dictionary) -> int:
 	close(); serial+=1
 	var owned:=sources.duplicate(true); var scope:=serial
-	mutex.lock(); stop_requested=false; mutex.unlock()
+	mutex.lock(); stop_requested=false; progress_state={"phase":"catalog","completed":0,"total":0}; mutex.unlock()
 	task=WorkerThreadPool.add_task(func():
-		var prepared:=prepare(owned,cancellation_requested)
+		var prepared:=prepare(owned,cancellation_requested,report_progress)
 		mutex.lock(); result={"serial":scope,"prepared":prepared}; mutex.unlock(),false,"Native session resource catalog")
 	return serial
 func cancel() -> void:
 	mutex.lock(); stop_requested=true; mutex.unlock()
 func cancellation_requested() -> bool:
 	mutex.lock(); var value:=stop_requested; mutex.unlock(); return value
+func report_progress(phase: String,completed: int,total: int) -> void:
+	mutex.lock(); progress_state={"phase":phase,"completed":completed,"total":total}; mutex.unlock()
+func progress() -> Dictionary:
+	mutex.lock(); var value:=progress_state.duplicate(); mutex.unlock(); return value
 static func stopped(guard: Callable,catalog: RefCounted,began: int,phase: String) -> Dictionary:
 	if not guard.is_valid() or not guard.call(): return {}
 	return {"catalog":catalog,"error":"Native catalog preparation cancelled","stats":{"cancelled":true,"phase":phase,"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"layers":catalog.layers.size(),"rendering_prepared":false}}
-static func prepare(sources: Dictionary,guard: Callable=Callable()) -> Dictionary:
+static func prepare(sources: Dictionary,guard: Callable=Callable(),progress_callback: Callable=Callable()) -> Dictionary:
 	var began:=Time.get_ticks_usec(); var catalog:=Catalog.new(); var stop:=stopped(guard,catalog,began,"begin")
 	var phase_began:=began; var phases: Dictionary={}
 	if not stop.is_empty(): return stop
@@ -104,7 +110,10 @@ static func prepare(sources: Dictionary,guard: Callable=Callable()) -> Dictionar
 	stop=stopped(guard,catalog,began,"resource index"); if not stop.is_empty(): return stop
 	var index_stats:=catalog.build_resource_index()
 	stop=stopped(guard,catalog,began,"publication"); if not stop.is_empty(): return stop
-	return {"catalog":catalog,"error":"","stats":{"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"metadata_backend":"compiled" if Backend.available() else "gd","lookup_index":index_stats,"phases":phases,"layers":catalog.layers.size(),"manifests":index,"workshop_mods":roots.map(func(row):return row.id),"workshop_haks":local_haks,"worker_thread":OS.get_thread_caller_id(),"rendering_prepared":false,"residency":catalog.residency_stats()}}
+	var icon_sources:=ItemIconSources.preload_all(catalog,guard,progress_callback)
+	if icon_sources.get("cancelled",false): return stopped(guard,catalog,began,"item icons")
+	if not icon_sources.failures.is_empty(): return {"catalog":catalog,"error":"Item icon source unavailable: "+str(icon_sources.failures[0]),"stats":{"item_icon_sources":icon_sources}}
+	return {"catalog":catalog,"error":"","stats":{"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"metadata_backend":"compiled" if Backend.available() else "gd","lookup_index":index_stats,"phases":phases,"layers":catalog.layers.size(),"manifests":index,"workshop_mods":roots.map(func(row):return row.id),"item_icon_sources":icon_sources,"worker_thread":OS.get_thread_caller_id(),"rendering_prepared":false,"residency":catalog.residency_stats()}}
 func _process(_delta: float) -> void:
 	var began:=Timing.begin()
 	_profile_process(_delta)
