@@ -192,7 +192,10 @@ func _work(job: Dictionary) -> void:
 		result.merge(decoded,true)
 		if job.decoder=="gui-icon-v1" and str(result.error).is_empty():
 			if not result.value.animations.is_empty(): result.error="Animated original GUI icon template needs a native up-pose adapter"
-			else: result.merge(icon_textures(reader,result.value,job.options.get("icon_layers",[]),str(job.cache_directory)),true)
+			else:
+				var icon_textures_began:=Time.get_ticks_usec()
+				result.merge(icon_textures(reader,result.value,job.options.get("icon_layers",[]),str(job.cache_directory)),true)
+				phases.icon_textures_ms=(Time.get_ticks_usec()-icon_textures_began)/1000.0
 		phase_began=Time.get_ticks_usec()
 		if job.decoder in ["actor-model","static-model"] and str(result.error).is_empty() and result.value.has("animations"):
 			if shared_animation_preparation_enabled: attach_shared_rig(job,result,phases)

@@ -219,13 +219,17 @@ func refresh() -> void:
 			if base.is_empty(): continue
 			sources.append([channel,location,item,object.get("inventoryLocation")])
 			rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"tooltip":Tooltip.project(item,text_owner,controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
+	var rows_built_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	var scene_source: Variant=[icons.binding_scope(),icons.catalog.source_store.get_instance_id()] if retained_item_icons else null
 	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store,scene_source]))
+	var signature_ready_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	if next==signature and (not retained_item_icons or ui.scene_icon_sealed): return
 	var ready_icons: Dictionary={}
 	var waiting:=false
+	var attempted_icons:=0
 	for row in rows:
 		if row.channel=="R" and floori(float(row.y)/6)!=page or row.channel=="C" and floori(float(row.y)/5)!=container_page: continue
+		attempted_icons+=1
 		var key: String=icons.request(objects[int(row.itemId)].item,text_owner.tables,int(actor.get("appearance",{}).get("gender",0)))
 		if key.is_empty():
 			if ui.native_icon_gate:
@@ -234,15 +238,19 @@ func refresh() -> void:
 			continue
 		ready_icons[int(row.entryId)]=key
 		if not (icons.bundles.has(key) if retained_item_icons else icons.textures.has(key)) and not icons.failed.has(key) and not icon_failures.has(key): waiting=true
-	if waiting: return
+	var requests_done_us: int=Time.get_ticks_usec() if detailed_timings else 0
+	if waiting:
+		if detailed_timings and timing_rows.size()<512:
+			timing_rows.append({"phase":"native-icon-wait","mono_us":requests_done_us,"page":page,"view":view_serial,"rows":rows.size(),"attempted_icons":attempted_icons,"ready_icons":ready_icons.size(),"asset_pending":icons.assets.pending.size(),"asset_running":icons.assets.running.size(),"icon_pending":icons.pending.size(),"rows_us":rows_built_us-refresh_started,"signature_us":signature_ready_us-rows_built_us,"requests_us":requests_done_us-signature_ready_us,"refresh_us":requests_done_us-refresh_started})
+		return
 	signature=next; view_serial+=1; views.clear()
 	for row in rows: views[int(row.entryId)]={"object":objects[int(row.itemId)].duplicate(true),"row":row.duplicate(true)}
 	var container_id:=int(containers.get("C",INVALID)); var container: Dictionary=objects.get(container_id,{})
 	if retained_item_icons and is_instance_valid(ui.scene_host): ui.scene_host.begin_batch()
 	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(actor.get("replicated",{}).get("name",actor.get("appearance",{}).get("name")),displayed_owner()),"page":page,"items":rows,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container.get("item",{}).get("name",container.get("replicated",{}).get("name",{})),controlled_id),"page":container_page,"pageCount":inventories.get("C",{}).get("pageCount",1)}})
-	if detailed_timings and timing_rows.size()<128:
+	if detailed_timings and timing_rows.size()<512:
 		var committed:=Time.get_ticks_usec()
-		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"role":window_role,"owner":displayed_owner(),"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
+		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"rows_us":rows_built_us-refresh_started,"signature_us":signature_ready_us-rows_built_us,"requests_us":requests_done_us-signature_ready_us,"ui_receive_us":committed-requests_done_us,"attempted_icons":attempted_icons,"role":window_role,"owner":displayed_owner(),"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
 	stats.views+=1; icon_bindings.clear()
 	if not notice_text.is_empty(): ui.notice.text=notice_text
 	var expected_scene_icons:=0
@@ -259,6 +267,8 @@ func refresh() -> void:
 	if retained_item_icons:
 		ui.seal_scene_icon_view(expected_scene_icons)
 		if is_instance_valid(ui.scene_host): ui.scene_host.end_batch()
+	if detailed_timings and timing_rows.size()<512:
+		timing_rows.append({"phase":"native-icon-bindings-committed","mono_us":Time.get_ticks_usec(),"page":page,"view":view_serial,"bound_icons":expected_scene_icons if retained_item_icons else ready_icons.size(),"host_revision":ui.scene_host.revision if retained_item_icons and is_instance_valid(ui.scene_host) else null})
 func icon_ready(key: String,texture: Texture2D,error: String) -> void:
 	if closed: return
 	if not error.is_empty(): icon_failures[key]=error; notice_text="Item icon unavailable: "+error; ui.notice.text=notice_text; return

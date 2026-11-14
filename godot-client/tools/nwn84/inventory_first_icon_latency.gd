@@ -5,6 +5,7 @@ const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Text=preload("res://systems/native_data/talk_text.gd")
 const Table=preload("res://systems/native_data/two_da.gd")
 const Owner=preload("res://systems/native_inventory.gd")
+const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 var failures: Array=[]
 
 func _initialize() -> void: call_deferred("run")
@@ -29,10 +30,12 @@ func measure_view(owner,ids: Array,label: String,started_us: int) -> Dictionary:
 	var deadline:=Time.get_ticks_msec()+90000
 	var peak:=0
 	var frames:=0
+	var frame_elapsed: Array=[]
 	while Time.get_ticks_msec()<deadline:
 		await RenderingServer.frame_post_draw
 		frames+=1
 		var elapsed_ms:=float(Time.get_ticks_usec()-started_us)/1000.0
+		if owner.detailed_timings:frame_elapsed.append(elapsed_ms)
 		if controls_ms==null:
 			var all_controls:=true
 			for id in ids:
@@ -44,7 +47,7 @@ func measure_view(owner,ids: Array,label: String,started_us: int) -> Dictionary:
 		if first_icon_ms==null and visible>0: first_icon_ms=elapsed_ms
 		if visible==ids.size(): all_icons_ms=elapsed_ms;break
 	if all_icons_ms==null:failures.append(label+" timed out with "+str(peak)+"/"+str(ids.size())+" visible icons")
-	return {"label":label,"expected_icons":ids.size(),"peak_icons":peak,"frames":frames,"controls_ms":controls_ms,"ui_visible_ms":ui_visible_ms,"first_icon_ms":first_icon_ms,"all_icons_ms":all_icons_ms,"view":owner.view_serial,"page":owner.page,"prepared":owner.icons.bundles.size() if owner.retained_item_icons else owner.icons.textures.size(),"pending":owner.icons.pending.size(),"host_revision":owner.ui.scene_host.revision if owner.retained_item_icons else null,"presented_revision":owner.ui.scene_host.presented_revision if owner.retained_item_icons else null}
+	return {"label":label,"action_started_ms":float(started_us)/1000.0,"expected_icons":ids.size(),"peak_icons":peak,"frames":frames,"frame_elapsed_ms":frame_elapsed,"controls_ms":controls_ms,"ui_visible_ms":ui_visible_ms,"first_icon_ms":first_icon_ms,"all_icons_ms":all_icons_ms,"view":owner.view_serial,"page":owner.page,"prepared":owner.icons.bundles.size() if owner.retained_item_icons else owner.icons.textures.size(),"pending":owner.icons.pending.size(),"host_revision":owner.ui.scene_host.revision if owner.retained_item_icons else null,"presented_revision":owner.ui.scene_host.presented_revision if owner.retained_item_icons else null}
 
 func switch_page(owner,page: int,ids: Array,label: String) -> Dictionary:
 	var started_us:=Time.get_ticks_usec()
@@ -91,6 +94,23 @@ func run() -> void:
 	var text:=Text.new();text.tables=tables
 	var surface:=Control.new();surface.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(surface)
 	var owner:=Owner.new();root.add_child(owner);owner.configure(surface,catalog,"",text)
+	var frame_profiler
+	if str(options.get("profile","false"))=="true":
+		frame_profiler=FrameProfile.new();root.add_child(frame_profiler);frame_profiler.maximum_rows=1000;frame_profiler.configure(root)
+	var asset_events: Array=[];var icon_events: Array=[];var host_events: Array=[]
+	if str(options.get("profile","false"))=="true":
+		owner.detailed_timings=true
+		if owner.retained_item_icons and is_instance_valid(owner.ui.scene_host):owner.ui.scene_host.presented.connect(func(revision: int):host_events.append({"revision":revision,"presented_ms":float(Time.get_ticks_usec())/1000.0}))
+		owner.icons.assets.completed.connect(func(_id: int,result: Dictionary):
+			var phases: Dictionary=result.get("phases",{})
+			var selected_phases: Dictionary={}
+			for name in ["service_queue_ms","worker_queue_ms","source_digest_ms","memory_lookup_ms","model_ms","icon_textures_ms","textures_ms","memory_save_ms","prework_hit"]:
+				if phases.has(name):selected_phases[name]=phases[name]
+			asset_events.append({"resource":str(result.get("resource_name","")),"requested_ms":float(result.get("requested_ms",0.0)),"worker_started_ms":float(result.get("started_ms",0.0)),"delivered_ms":float(Time.get_ticks_usec())/1000.0,"read_ms":float(result.get("read_ms",0.0)),"worker_ms":float(result.get("worker_ms",0.0)),"cache_hit":bool(result.get("cache_hit",false)),"memory_cache_hit":bool(result.get("memory_cache_hit",false)),"prework_hit":bool(result.get("prework_hit",false)),"dependencies":result.get("dependencies",[]).size(),"error":str(result.get("error","")),"phases":selected_phases}))
+		if owner.retained_item_icons:
+			owner.icons.prepared.connect(func(key: String,_bundle: Dictionary,error: String):icon_events.append({"key":key,"ready_ms":float(Time.get_ticks_usec())/1000.0,"error":error}))
+		else:
+			owner.icons.completed.connect(func(key: String,_texture: Texture2D,error: String):icon_events.append({"key":key,"ready_ms":float(Time.get_ticks_usec())/1000.0,"error":error}))
 	if owner.retained_item_icons!=(str(options.backend)=="retained"):failures.append("Whole-system backend mismatch")
 	var actor:={"id":1,"objectType":5,"replicated":{"name":{"text":"Icon latency"}},"inventoryStats":{"field70":12,"field28c":149},"playerState":{"combat":{"field898":27,"armorClass":13}},"appearance":{"gender":0}}
 	var objects: Array=[actor];var entries: Array=[];var pages: Array=[[],[]]
@@ -127,7 +147,8 @@ func run() -> void:
 				var image: Image=button.image.texture.get_image()
 				if image!=null and image.get_used_rect().has_area():final_pixels=true;break
 	if not final_pixels:failures.append("Final page icon texture has no visible pixels")
-	var report:={"success":failures.is_empty(),"backend":str(options.backend),"layout":str(options.layout),"idle_before_open_ms":idle_ms,"prepared_before_open":prepared_before_open,"pending_before_open":pending_before_open,"rows":rows,"final_icon_pixels":final_pixels,"failures":failures,"scope":"Offline installed-content inventory at 1100x850, Forward+/Vulkan, VSync off. Compact has six distinct 1x1 icons per page; full has twelve 1x1 on page 1 and twelve 1x2 on page 2. Times are action to completed visible-icon frame. No server, world, or Arelith."}
+	var report:={"success":failures.is_empty(),"backend":str(options.backend),"layout":str(options.layout),"idle_before_open_ms":idle_ms,"prepared_before_open":prepared_before_open,"pending_before_open":pending_before_open,"rows":rows,"asset_events":asset_events,"icon_events":icon_events,"host_events":host_events,"refresh_events":owner.timing_rows.duplicate(true) if owner.detailed_timings else [],"frame_profile_rows":frame_profiler.rows.duplicate(true) if frame_profiler!=null else [],"final_icon_pixels":final_pixels,"failures":failures,"scope":"Offline installed-content inventory at 1100x850, Forward+/Vulkan, VSync off. Compact has six distinct 1x1 icons per page; full has twelve 1x1 on page 1 and twelve 1x2 on page 2. Times are action to completed visible-icon frame. No server, world, or Arelith."}
+	if frame_profiler!=null:frame_profiler.set_enabled(false);frame_profiler.free()
 	owner.close();owner.free();surface.free();text.close();await process_frame
 	finish(options,report)
 
