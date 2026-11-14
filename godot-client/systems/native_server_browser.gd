@@ -92,6 +92,14 @@ func build() -> void:
 		var entry: Dictionary=plan.entries.ctl_serverlist; var art_rect: Rect2=entry.rect; art_rect.position-=plan.clip.position; frame.image(entry.resource,art_rect,art_clip)
 		var scroll:=ScrollContainer.new(); stage.add_child(scroll); scroll.position=plan.clip.position; scroll.size=plan.clip.size; scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED; scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
 		var body:=Control.new(); scroll.add_child(body); body.mouse_filter=Control.MOUSE_FILTER_IGNORE; body.custom_minimum_size=Vector2(plan.clip.size.x,0)
+		# Received rows create their selection image and six caption fonts on
+		# demand. Bind one hidden source-backed instance of each before sealing
+		# the installed-content cohort, so the first row uses resident assets.
+		var row_art:=Control.new(); stage.add_child(row_art); row_art.hide()
+		frame.image(plan.highlight,Rect2(Vector2.ZERO,plan.highlight_size),row_art)
+		for column in 6:
+			var row_font:=Label.new(); row_art.add_child(row_font)
+			frame.font_style(row_font,plan.entries[Plan.COLUMNS[column]].caption)
 		var bar:=Bar.new(); stage.add_child(bar); var bar_entry: Dictionary=entry.duplicate(true); bar_entry.caption.erase("AurString_Font"); bar.configure(frame,models,bar_entry,scroll,Plan.ROW_STEP)
 		if not bar.failure.is_empty(): failure=bar.failure; return
 		var highlights: Array=[]

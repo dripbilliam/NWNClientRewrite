@@ -53,7 +53,12 @@ func run() -> void:
 	var opened: Dictionary={}
 	var controller_gate: Dictionary={}
 	var delayed: Dictionary={}
+	var row_cohort: Dictionary={}
 	if all_ready:
+		var first_plan: Dictionary=owners.browser.definition.pages.Internet
+		var highlight_key: String=painter.art.models.model_key(str(first_plan.highlight),"")
+		var resident_highlight: Texture2D=painter.art.textures.get(highlight_key)
+		row_cohort.highlight_prepared=resident_highlight!=null and owners.browser.static_cohort.images.any(func(image):return str(image.key)==highlight_key)
 		opened.direct=owners.direct.open("localhost","",[1,1]); owners.direct.dismiss()
 		opened.profile=owners.profile.open_profile("Tester",[1,1]); owners.profile.dismiss()
 		opened.filters=owners.filters.open_filters({},[1,1]); owners.filters.dismiss()
@@ -79,6 +84,11 @@ func run() -> void:
 		controller.entries={7:selected}; controller.selected=7
 		controller.state={"connection":1,"viewId":2,"tab":"Internet","rows":[selected],"busy":false,"canJoin":true}
 		controller.view_id=2; controller.refresh_entry()
+		var row_button: Button=owners.browser.pages.Internet.rows[0] if not owners.browser.pages.Internet.rows.is_empty() else null
+		var row_highlight: TextureRect=row_button.get_meta("browser_highlight") if is_instance_valid(row_button) and row_button.has_meta("browser_highlight") else null
+		var row_labels: Array=row_button.get_meta("browser_labels",[]) if is_instance_valid(row_button) else []
+		row_cohort.first_selected_row_uses_resident_highlight=is_instance_valid(row_highlight) and row_highlight.texture==resident_highlight
+		row_cohort.first_row_fonts_ready=row_labels.size()==6 and row_labels.all(func(label):return str(label.get_meta("native_font_applied",""))==str(label.get_meta("native_font_resource","")))
 		var password_image: Object=owners.password.static_cohort.images[0].target.get_ref()
 		var password_texture=password_image.get("texture")
 		password_image.set("texture",null); controller.refresh_entry()
@@ -90,8 +100,19 @@ func run() -> void:
 		password_image.set("texture",password_texture)
 		controller.state={"connection":1,"viewId":3,"tab":"Internet","rows":[selected],"busy":false,"canJoin":true}; controller.view_id=3; controller.entry_stage="browser"; controller.refresh_entry()
 		delayed.back_or_view_change_cancels=sent.filter(func(message):return str(message.get("operation",""))=="join").is_empty() and not owners.password.visible and controller.pending_dialog.is_empty()
+		for tab in ["History","Favorites"]:
+			var plan: Dictionary=owners.browser.definition.pages[tab]
+			var key: String=painter.art.models.model_key(str(plan.highlight),"")
+			var resident: Texture2D=painter.art.textures.get(key)
+			owners.browser.set_view({"connection":1,"viewId":4 if tab=="History" else 5,"tab":tab,"rows":[selected],"busy":false})
+			var page: Dictionary=owners.browser.pages[tab]
+			var button: Button=page.rows[0] if not page.rows.is_empty() else null
+			var highlight: TextureRect=button.get_meta("browser_highlight") if is_instance_valid(button) and button.has_meta("browser_highlight") else null
+			var labels: Array=button.get_meta("browser_labels",[]) if is_instance_valid(button) else []
+			row_cohort[tab+"_highlight_ready"]=resident!=null and is_instance_valid(highlight) and highlight.texture==resident
+			row_cohort[tab+"_fonts_ready"]=labels.size()==6 and labels.all(func(label):return str(label.get_meta("native_font_applied",""))==str(label.get_meta("native_font_resource","")))
 		controller.wanted=false; controller.hide()
-	var result:={"success":all_ready and opened.size()==owners.size() and not opened.values().has(false) and controller_gate.size()==3 and not controller_gate.values().has(false) and delayed.size()==3 and not delayed.values().has(false) and root.get_flag(Window.FLAG_NO_FOCUS) and root.current_screen!=DisplayServer.get_primary_screen(),"elapsed_ms":Time.get_ticks_msec()-started,"secondary":root.current_screen!=DisplayServer.get_primary_screen(),"no_focus":root.get_flag(Window.FLAG_NO_FOCUS),"cohorts":snapshots,"opened":opened,"controller_gate":controller_gate,"delayed":delayed,"scope":"Installed original static multiplayer entry/browser/dialog content. Received rows and scrollbar resizes remain separate; no FPS or original-client visual parity."}
+	var result:={"success":all_ready and opened.size()==owners.size() and not opened.values().has(false) and controller_gate.size()==3 and not controller_gate.values().has(false) and delayed.size()==3 and not delayed.values().has(false) and row_cohort.size()==7 and not row_cohort.values().has(false) and root.get_flag(Window.FLAG_NO_FOCUS) and root.current_screen!=DisplayServer.get_primary_screen(),"elapsed_ms":Time.get_ticks_msec()-started,"secondary":root.current_screen!=DisplayServer.get_primary_screen(),"no_focus":root.get_flag(Window.FLAG_NO_FOCUS),"cohorts":snapshots,"opened":opened,"controller_gate":controller_gate,"delayed":delayed,"row_cohort":row_cohort,"scope":"Installed original static multiplayer entry/browser/dialog content and first received selected-row asset reuse on all three tabs. Later scrollbar resizes remain separate; no FPS or original-client visual parity."}
 	controller.close_native()
 	painter.close()
 	if catalog.has_method("release_ui_assets"): catalog.release_ui_assets()
