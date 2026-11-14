@@ -52,6 +52,10 @@ func configure(owner,catalog,cache_path: String) -> void:
 	notes.configure(ProjectSettings.globalize_path(storage+".journal-notes"))
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	frame.art.loaded.connect(art_loaded); frame.fonts.loaded.connect(font_loaded); panel.visibility_changed.connect(owner_visibility)
+	# Installed journal resources are independent of the server's journal rows.
+	for name in Plan.RESOURCES+["scrollbar_simple","pb_scrl_up","pb_scrl_down","ctl_btn_pre_116"]: jobs[assets.request(name,2002,"actor-model" if name in ["ctl_jnl_entrytxt","scrollbar_simple"] else "mdl-original")]=name
+	for name in ["jnl_panel","jnl_page_quest","jnl_page_notes"]: jobs[assets.request(name,2047,"gff")]="@"+name
+	if frame.fonts.has_method("request"): frame.fonts.request(Plan.FONT)
 func observe() -> bool:
 	var name: String=text_owner.name(null,desktop.actor_id)
 	if name.is_empty(): return false
@@ -70,12 +74,13 @@ func observe() -> bool:
 	return changed
 func _process(_delta: float) -> void:
 	if closed: return
-	if not requested and panel.wanted:
-		requested=true
-		for name in Plan.RESOURCES+["scrollbar_simple","pb_scrl_up","pb_scrl_down","ctl_btn_pre_116"]: jobs[assets.request(name,2002,"actor-model" if name in ["ctl_jnl_entrytxt","scrollbar_simple"] else "mdl-original")]=name
-		for name in ["jnl_panel","jnl_page_quest","jnl_page_notes"]: jobs[assets.request(name,2047,"gff") ]="@"+name
+	if not requested and panel.wanted: requested=true
 	if note_deadline>0 and Time.get_ticks_msec()>=note_deadline: note_deadline=0; notes.flush(); update_notice()
-	if layout_ready and panel.wanted and remeasure: remeasure=false; layout_rows()
+	if layout_ready and panel.wanted and remeasure:
+		remeasure=false; layout_rows(); panel.present_if_ready()
+	if panel.wanted and not panel.visible:
+		if failure.is_empty(): failure=art_failure()
+		panel.present_if_ready()
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var name: String=jobs[id]; jobs.erase(id)
@@ -106,6 +111,42 @@ func art_loaded(key: String,texture: Texture2D,_bounds: Dictionary) -> void:
 		if is_instance_valid(target) and not target.is_queued_for_deletion(): target.texture=texture; target.show()
 func font_loaded(name: String) -> void:
 	if layout_ready and name==Plan.FONT: remeasure=true
+func art_failure() -> String:
+	var font_failures: Variant=frame.fonts.get("failed")
+	if font_failures is Dictionary and font_failures.has(Plan.FONT): return "Original journal font could not be prepared: "+Plan.FONT
+	for data in image_requests.values():
+		var target: Object=data.target.get_ref()
+		if is_instance_valid(target) and not target.is_queued_for_deletion() and frame.art.failed.has(data.key): return "Original journal artwork could not be prepared: "+str(data.key)
+	for control in journal_buttons():
+		if not is_instance_valid(control) or control.is_queued_for_deletion(): continue
+		var geometry: Dictionary=frame.button_geometry.get(control.get_instance_id(),{})
+		for style in geometry.get("styles",{}).values():
+			var key: String=frame.art.models.model_key(str(geometry.resource),str(style[1]),geometry.overrides)
+			if frame.art.failed.has(key): return "Original journal control could not be prepared: "+key
+	for bar in [quest_bar,notes_bar]:
+		if is_instance_valid(bar) and not bar.failure.is_empty(): return "Original journal scrollbar could not be prepared: "+bar.failure
+	return ""
+func journal_buttons() -> Array:
+	var result: Array=[panel.close_button]+panel.tabs+sort_controls.filter(func(control):return control is Button)
+	for row in row_controls: result.append(row.button)
+	for bar in [quest_bar,notes_bar]:
+		if is_instance_valid(bar): result.append_array([bar.up,bar.down])
+	return result
+func display_ready() -> bool:
+	if closed or not failure.is_empty() or not layout_ready: return false
+	if frame.fonts.has_method("request") and not frame.fonts.fonts.has(Plan.FONT): return false
+	for data in image_requests.values():
+		var target: Object=data.target.get_ref()
+		if is_instance_valid(target) and not target.is_queued_for_deletion() and not frame.art.textures.has(data.key): return false
+	for control in journal_buttons():
+		if not is_instance_valid(control) or control.is_queued_for_deletion(): continue
+		var geometry: Dictionary=frame.button_geometry.get(control.get_instance_id(),{})
+		if geometry.is_empty(): return false
+		for style in geometry.styles.values():
+			if not frame.art.textures.has(frame.art.models.model_key(str(geometry.resource),str(style[1]),geometry.overrides)): return false
+	for bar in [quest_bar,notes_bar]:
+		if not is_instance_valid(bar) or not bar.art_ready: return false
+	return true
 func activate() -> void:
 	var utility_model:=Plan.Model.model(models.ctl_btn_pre_116); var utility_bounds: Rect2=utility_model.bounds
 	layout_ready=true; panel.window_column.hide(); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.custom_minimum_size=definition.size; panel.size=definition.size; panel.visual_extent=Vector2(definition.size.x,definition.size.y+4+utility_bounds.size.y)
@@ -189,7 +230,7 @@ func render() -> void:
 			row_controls.append({"root":root,"button":button,"label":label,"detail":detail,"background":background,"expanded":expanded})
 		layout_rows(); remeasure=true
 		quest_scroll.set_deferred("scroll_vertical",int(panel.positions.get(page,0)))
-	last_page=page; panel._clamp()
+	last_page=page; panel._clamp(); panel.present_if_ready()
 func layout_rows() -> void:
 	if not layout_ready or panel.page==2: return
 	var point: Vector2=definition.quest_tree-definition.quest_view.position

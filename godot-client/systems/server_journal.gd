@@ -27,12 +27,24 @@ func clear_body() -> void:
 func reset() -> void:
 	if is_instance_valid(native_skin): native_skin.reset_view()
 	journal_lifetime += 1
-	wanted = false; view_id = -1; page = 0; state.clear(); positions.clear(); clear_body(); hide()
+	wanted = false; view_id = -1; page = 0; state.clear(); positions.clear(); remove_meta("native_journal_failure"); clear_body(); hide()
 
 func open() -> void:
-	if wanted: show(); move_to_front(); return
+	if wanted: present_if_ready(); return
 	journal_lifetime += 1
-	wanted = true; show(); move_to_front(); clear_body(); body.add_child(Text.label({"text": "Waiting for the server journal…"}, 550)); request.emit({"kind": "journal-open", "page":page, "journalLifetime":journal_lifetime})
+	wanted = true; remove_meta("native_journal_failure"); clear_body(); body.add_child(Text.label({"text": "Waiting for the server journal…"}, 550)); present_if_ready(); request.emit({"kind": "journal-open", "page":page, "journalLifetime":journal_lifetime})
+
+func present_if_ready() -> void:
+	if not wanted: hide(); return
+	if is_instance_valid(native_skin):
+		if not native_skin.failure.is_empty():
+			window_column.show()
+			if is_instance_valid(native_skin.stage): native_skin.stage.hide()
+			var message: String="Original journal unavailable: "+native_skin.failure
+			if get_meta("native_journal_failure","")!=message:
+				set_meta("native_journal_failure",message); clear_body(); body.add_child(Text.label({"text":message},550))
+		elif not native_skin.display_ready(): hide(); return
+	show(); move_to_front()
 
 func close_journal() -> void:
 	var was_wanted := wanted
@@ -47,8 +59,8 @@ func receive(message: Dictionary) -> void:
 	if message.kind == "journal-closed": reset(); return
 	if not wanted or message.kind != "journal-view": return
 	positions[page] = native_skin.quest_scroll.scroll_vertical if is_instance_valid(native_skin) and native_skin.layout_ready and page!=2 else scroll.scroll_vertical
-	page = int(message.page); view_id = int(message.viewId); state = message.duplicate(true); clear_body()
-	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render(); return
+	page = int(message.page); view_id = int(message.viewId); state = message.duplicate(true); remove_meta("native_journal_failure"); clear_body()
+	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render(); present_if_ready(); return
 	for index in tabs.size(): tabs[index].disabled = index == page
 	for entry in state.entries:
 		body.add_child(Text.label(entry.title, 550)); body.add_child(Text.label(entry.description, 550)); body.add_child(HSeparator.new())
