@@ -22,6 +22,45 @@ func visible_icon_count(owner,ids: Array) -> int:
 		elif button.image.texture!=null and button.image.is_visible_in_tree(): count+=1
 	return count
 
+func capture_debug(owner,ids: Array,prefix: String,label: String) -> Dictionary:
+	var result: Dictionary={}
+	var screen: Image=root.get_texture().get_image()
+	var screen_path:=prefix+"-"+label+".png"
+	if screen==null or screen.save_png(screen_path)!=OK:failures.append(label+" screen capture")
+	else:
+		result.screen=screen_path
+		result.screen_icons=0
+		for id in ids:
+			var button=owner.ui.buttons.get(id)
+			if button==null:continue
+			var local: Vector2=button.native_icon_center if button.native_icon_center!=null else button.size*0.5
+			var center: Vector2i=Vector2i(button.get_global_transform()*local)
+			var found:=false
+			for y in range(maxi(0,center.y-35),mini(screen.get_height(),center.y+36)):
+				for x in range(maxi(0,center.x-20),mini(screen.get_width(),center.x+21)):
+					var color: Color=screen.get_pixel(x,y)
+					if maxf(color.r,maxf(color.g,color.b))>0.2:found=true;break
+				if found:break
+			if found:result.screen_icons+=1
+		if int(result.screen_icons)!=ids.size():failures.append(label+" screen shows "+str(result.screen_icons)+"/"+str(ids.size())+" icons")
+	if not owner.retained_item_icons:return result
+	var host=owner.ui.scene_host
+	var pixels: Image=host.viewport.get_texture().get_image()
+	var host_path:=prefix+"-"+label+"-host.png"
+	if pixels==null or pixels.save_png(host_path)!=OK:failures.append(label+" host capture")
+	else:
+		result.host=host_path
+		result.host_used_rect=str(pixels.get_used_rect())
+	result.host_size=str(host.size); result.host_position=str(host.global_position)
+	result.viewport_size=str(host.viewport.size); result.presentation_visible=host.presentation.visible
+	result.slots=[]
+	for id in ids:
+		var slot=host.slots.get(str(id),{})
+		if slot.is_empty():continue
+		var model: Node3D=slot.model
+		result.slots.append({"id":id,"anchor":str(slot.anchor),"model":str(model.position),"projected":str(host.camera.unproject_position(model.global_position)),"button":str(owner.ui.buttons[id].global_position) if owner.ui.buttons.has(id) else "absent"})
+	return result
+
 func measure_view(owner,ids: Array,label: String,started_us: int) -> Dictionary:
 	var first_icon_ms: Variant=null
 	var all_icons_ms: Variant=null
@@ -132,8 +171,15 @@ func run() -> void:
 	var opened_us:=Time.get_ticks_usec()
 	owner.ui.open()
 	var rows: Array=[]
+	var captures: Dictionary={}
 	rows.append(await measure_view(owner,pages[0],"initial_inventory_open",opened_us))
+	if options.has("capture-prefix"):
+		await RenderingServer.frame_post_draw
+		captures["open"]=capture_debug(owner,pages[0],str(options["capture-prefix"]),"open")
 	rows.append(await switch_page(owner,1,pages[1],"first_visit_page_2"))
+	if options.has("capture-prefix"):
+		await RenderingServer.frame_post_draw
+		captures["page2"]=capture_debug(owner,pages[1],str(options["capture-prefix"]),"page2")
 	rows.append(await switch_page(owner,0,pages[0],"repeat_visit_page_1"))
 	rows.append(await switch_page(owner,1,pages[1],"repeat_visit_page_2"))
 	var final_pixels:=false
@@ -147,7 +193,7 @@ func run() -> void:
 				var image: Image=button.image.texture.get_image()
 				if image!=null and image.get_used_rect().has_area():final_pixels=true;break
 	if not final_pixels:failures.append("Final page icon texture has no visible pixels")
-	var report:={"success":failures.is_empty(),"backend":str(options.backend),"layout":str(options.layout),"idle_before_open_ms":idle_ms,"prepared_before_open":prepared_before_open,"pending_before_open":pending_before_open,"rows":rows,"asset_events":asset_events,"icon_events":icon_events,"host_events":host_events,"refresh_events":owner.timing_rows.duplicate(true) if owner.detailed_timings else [],"frame_profile_rows":frame_profiler.rows.duplicate(true) if frame_profiler!=null else [],"final_icon_pixels":final_pixels,"failures":failures,"scope":"Offline installed-content inventory at 1100x850, Forward+/Vulkan, VSync off. Compact has six distinct 1x1 icons per page; full has twelve 1x1 on page 1 and twelve 1x2 on page 2. Times are action to completed visible-icon frame. No server, world, or Arelith."}
+	var report:={"success":failures.is_empty(),"backend":str(options.backend),"layout":str(options.layout),"idle_before_open_ms":idle_ms,"prepared_before_open":prepared_before_open,"pending_before_open":pending_before_open,"rows":rows,"captures":captures,"asset_events":asset_events,"icon_events":icon_events,"host_events":host_events,"refresh_events":owner.timing_rows.duplicate(true) if owner.detailed_timings else [],"frame_profile_rows":frame_profiler.rows.duplicate(true) if frame_profiler!=null else [],"final_icon_pixels":final_pixels,"failures":failures,"scope":"Offline installed-content inventory at 1100x850, Forward+/Vulkan, VSync off. Compact has six distinct 1x1 icons per page; full has twelve 1x1 on page 1 and twelve 1x2 on page 2. Times are action to completed visible-icon frame. No server, world, or Arelith."}
 	if frame_profiler!=null:frame_profiler.set_enabled(false);frame_profiler.free()
 	owner.close();owner.free();surface.free();text.close();await process_frame
 	finish(options,report)

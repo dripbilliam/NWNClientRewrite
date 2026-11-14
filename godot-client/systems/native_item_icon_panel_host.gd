@@ -65,9 +65,10 @@ func configure(shared_pool) -> bool:
 	presentation.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	presentation.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 	presentation.stretch_mode=TextureRect.STRETCH_SCALE
-	# The converter keeps source GUI model winding; mirror only the final panel
-	# image so top-left UI anchors increase downward without viewing backfaces.
-	presentation.flip_v=true
+	# The camera already presents source GUI model winding in the same direction
+	# as the bitmap icon path. Mirror only slot positions into panel coordinates;
+	# flipping the final image turns every item icon upside down.
+	presentation.flip_v=false
 	presentation.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(presentation)
 	presentation.texture=viewport.get_texture()
@@ -85,7 +86,9 @@ func _sync_viewport() -> void:
 	var center:=Vector3(float(pixels.x)*UNITS_PER_PIXEL*0.5,0.0,-float(pixels.y)*UNITS_PER_PIXEL*0.5)
 	camera.position=center+Vector3(0,100,0)
 	camera.look_at(center,Vector3(0,0,-1))
-	if not slots.is_empty():_mark_dirty()
+	if not slots.is_empty():
+		for slot in slots.values():_update_slot(slot,slot.anchor,float(slot.alpha))
+		_mark_dirty()
 
 func resize_panel(panel_size: Vector2) -> void:
 	if size!=panel_size:size=panel_size
@@ -125,6 +128,11 @@ func bind_slot(binding_id: String,key: String,bundle: Dictionary,anchor: Vector2
 			material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
 			material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
 			material.depth_draw_mode=BaseMaterial3D.DEPTH_DRAW_DISABLED
+			# The bitmap GUI icon renderer neutralizes MDL diffuse RGB on
+			# textured parts. Otherwise it multiplies the replacement raster
+			# and makes many icons nearly black; preserve the original alpha.
+			if material.albedo_texture!=null:
+				material.albedo_color=Color(1,1,1,material.albedo_color.a)
 			var index:=int(mesh.get_meta("native_mesh_source",{}).get("part_index",mesh.get_parent().get_meta("native_part_index",-1)))
 			var info:=GuiTextureInfo.defaults()
 			if index>=0 and index<bundle.value.nodes.size():
@@ -132,7 +140,7 @@ func bind_slot(binding_id: String,key: String,bundle: Dictionary,anchor: Vector2
 				if not names.is_empty():info=bundle.get("textures",{}).get(str(names[0]).to_lower(),{}).get("gui_sampler",info)
 			mesh.material_override=GuiSampler.material(material,info)
 		mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var slot:={"key":key,"identity":identity,"model":model}
+	var slot:={"key":key,"identity":identity,"model":model,"anchor":anchor,"alpha":alpha}
 	slots[binding_id]=slot
 	_update_slot(slot,anchor,alpha)
 	_mark_dirty()
@@ -198,10 +206,11 @@ func binding_ready(binding_id: String) -> bool:return slots.has(binding_id) and 
 
 func _update_slot(slot: Dictionary,anchor: Vector2,alpha: float) -> bool:
 	var model: Node3D=slot.model
-	var target:=Vector3(anchor.x*UNITS_PER_PIXEL,0.0,-anchor.y*UNITS_PER_PIXEL)
+	var target:=Vector3(anchor.x*UNITS_PER_PIXEL,0.0,-(float(viewport.size.y)-anchor.y)*UNITS_PER_PIXEL)
 	var transparency:=1.0-clampf(alpha,0.0,1.0)
 	var changed:=not model.position.is_equal_approx(target)
 	if changed:model.position=target
+	slot.anchor=anchor; slot.alpha=alpha
 	for mesh in model.meshes:
 		if not is_equal_approx(mesh.transparency,transparency):
 			mesh.transparency=transparency

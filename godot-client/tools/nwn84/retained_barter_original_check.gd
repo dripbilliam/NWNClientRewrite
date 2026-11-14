@@ -49,14 +49,14 @@ func hook_error(barter,id: int) -> float:
 	var local: Vector2=button.native_icon_center if button.native_icon_center!=null else button.size*0.5
 	var expected: Vector2=button.get_global_transform()*local
 	var model: Node3D=barter.scene_host.slots[str(id)].model
-	var drawn: Vector2=barter.scene_host.get_global_transform()*Vector2(model.position.x*100.0,-model.position.z*100.0)
+	var drawn: Vector2=barter.scene_host.get_global_transform()*Vector2(model.position.x*100.0,float(barter.scene_host.viewport.size.y)+model.position.z*100.0)
 	return expected.distance_to(drawn)
 func projection_error(barter,id: int) -> float:
 	if not barter.scene_host.slots.has(str(id)):return INF
 	var model: Node3D=barter.scene_host.slots[str(id)].model
 	var projected: Vector2=barter.scene_host.camera.unproject_position(model.global_position)
-	var composed:=Vector2(projected.x,float(barter.scene_host.viewport.size.y)-projected.y)
-	return composed.distance_to(Vector2(model.position.x*100.0,-model.position.z*100.0))
+	var composed:=projected
+	return composed.distance_to(Vector2(model.position.x*100.0,float(barter.scene_host.viewport.size.y)+model.position.z*100.0))
 func overlap_error(image: Image) -> float:
 	var marker:=Rect2i();var found:=false
 	for y in image.get_height():
@@ -65,13 +65,13 @@ func overlap_error(image: Image) -> float:
 			if color.r>0.9 and color.g<0.1 and color.b>0.9:
 				marker=marker.expand(Vector2i(x,y)) if found else Rect2i(x,y,1,1);found=true
 	if not found:return INF
-	var green:=Rect2i();var green_found:=false;var center:=marker.get_center()
-	for y in range(maxi(0,center.y-100),mini(image.get_height(),center.y+100)):
-		for x in range(maxi(0,center.x-100),mini(image.get_width(),center.x+100)):
+	var icon:=Rect2i();var icon_found:=false;var center:=marker.get_center()
+	for y in range(maxi(0,center.y-50),mini(image.get_height(),center.y+50)):
+		for x in range(maxi(0,center.x-50),mini(image.get_width(),center.x+50)):
 			var color: Color=image.get_pixel(x,y)
-			if color.g>0.03 and color.g<0.5 and color.g>color.r*1.2 and color.g>color.b*1.1:
-				green=green.expand(Vector2i(x,y)) if green_found else Rect2i(x,y,1,1);green_found=true
-	return center.distance_to(green.get_center()) if green_found else INF
+			if color.r>0.2 and color.g>0.2 and color.b>0.2:
+				icon=icon.expand(Vector2i(x,y)) if icon_found else Rect2i(x,y,1,1);icon_found=true
+	return center.distance_to(icon.get_center()) if icon_found else INF
 func run() -> void:
 	var install:="";var graphical:=false;var report_path:=""
 	for arg in OS.get_cmdline_user_args():
@@ -136,8 +136,9 @@ func run() -> void:
 		if not report_path.is_empty():
 			overlap_capture=report_path.trim_suffix(".json")+"-overlap.png"
 			var capture: Image=root.get_texture().get_image()
+			var captured: bool=capture.save_png(overlap_capture)==OK
 			marker_gap=overlap_error(capture)
-			success=success and marker_gap<12.0 and capture.save_png(overlap_capture)==OK
+			success=success and marker_gap<12.0 and captured
 		marker.free()
 	var drag_preview: Control=Slot.scene_drag_preview(icons,icon_key,icons.bundles.get(icon_key,{}))
 	if drag_preview!=null:

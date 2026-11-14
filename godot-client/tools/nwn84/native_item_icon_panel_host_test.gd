@@ -96,10 +96,10 @@ func run() -> void:
 	var first=host.slots.first.model
 	var second=host.slots.second.model
 	check(first!=second and first.meshes[0].mesh==second.meshes[0].mesh,"Each binding owns a model while sharing immutable geometry")
-	check(first.position.is_equal_approx(Vector3(0.33,0,-0.66)) and second.position.is_equal_approx(Vector3(0.99,0,-0.33)),"Panel-local top-left anchors map to 3D")
+	check(first.position.is_equal_approx(Vector3(0.33,0,-0.33)) and second.position.is_equal_approx(Vector3(0.99,0,-0.66)),"Panel-local top-left anchors map to 3D")
 	var first_projected: Vector2=host.camera.unproject_position(first.global_position)
 	var second_projected: Vector2=host.camera.unproject_position(second.global_position)
-	check(host.presentation.flip_v and Vector2(first_projected.x,host.viewport.size.y-first_projected.y).distance_to(Vector2(33,66))<0.1 and Vector2(second_projected.x,host.viewport.size.y-second_projected.y).distance_to(Vector2(99,33))<0.1,"Composited model origins land at their top-left panel anchors")
+	check(not host.presentation.flip_v and first_projected.distance_to(Vector2(33,66))<0.1 and second_projected.distance_to(Vector2(99,33))<0.1,"Composited model origins land at their top-left panel anchors")
 	check(is_equal_approx(second.meshes[0].transparency,0.6),"Disabled alpha is per binding")
 	var first_part=first.parts[0]
 	check(first_part.position.is_equal_approx(Vector3(0.25,0.75,-0.5)),"Authored part transform is retained")
@@ -111,7 +111,7 @@ func run() -> void:
 	host.resize_panel(Vector2(200,100))
 	check(host.viewport.size==Vector2i(200,100) and is_equal_approx(host.camera.size,1.0),"Resize updates panel camera and viewport")
 	var resized_projection: Vector2=host.camera.unproject_position(first.global_position)
-	check(Vector2(resized_projection.x,host.viewport.size.y-resized_projection.y).distance_to(Vector2(66,66))<0.1,"Resized panel preserves the composited item anchor")
+	check(resized_projection.distance_to(Vector2(66,66))<0.1 and first.position.is_equal_approx(Vector3(0.66,0,-0.34)),"Resized panel preserves the composited item anchor")
 	if gpu:
 		check(not host.presentation_ready() and host.viewport.render_target_update_mode==SubViewport.UPDATE_ONCE,"Resize invalidates the static icon image")
 		check(await wait_host(host) and host.viewport.render_target_update_mode==SubViewport.UPDATE_DISABLED,"Resized panel redraws exactly to a settled state")

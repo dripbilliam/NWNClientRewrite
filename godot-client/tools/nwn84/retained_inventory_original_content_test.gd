@@ -17,7 +17,7 @@ func hook_error(owner,entry: int) -> float:
 	var host=owner.ui.scene_host
 	var model: Node3D=host.slots[str(entry)].model
 	var expected: Vector2=slot.get_global_transform()*slot.native_icon_center
-	var drawn: Vector2=host.get_global_transform()*Vector2(model.position.x*100.0,-model.position.z*100.0)
+	var drawn: Vector2=host.get_global_transform()*Vector2(model.position.x*100.0,float(host.viewport.size.y)+model.position.z*100.0)
 	return expected.distance_to(drawn)
 func projected_bounds_error(owner,entry: int) -> float:
 	var slot=owner.ui.buttons.get(entry)
@@ -29,33 +29,33 @@ func projected_bounds_error(owner,entry: int) -> float:
 		var box: AABB=mesh.global_transform*mesh.get_aabb()
 		bounds=bounds.merge(box) if found else box; found=true
 	if not found: return INF
-	var rendered:=Vector2(bounds.get_center().x*100.0,-bounds.get_center().z*100.0)
+	var rendered:=Vector2(bounds.get_center().x*100.0,float(host.viewport.size.y)+bounds.get_center().z*100.0)
 	var hook: Vector2=host.get_global_transform().affine_inverse()*(slot.get_global_transform()*slot.native_icon_center)
 	return rendered.distance_to(hook)
 func lower_pixel_bounds(image: Image) -> Dictionary:
-	var magenta:=Rect2i(); var green:=Rect2i(); var magenta_found:=false; var green_found:=false
+	var magenta:=Rect2i(); var icon:=Rect2i(); var magenta_found:=false; var icon_found:=false
 	for y in range(650,mini(image.get_height(),1200)):
 		for x in range(0,mini(image.get_width(),900)):
 			var color: Color=image.get_pixel(x,y)
 			if color.r>0.9 and color.g<0.1 and color.b>0.9:
 				magenta=magenta.expand(Vector2i(x,y)) if magenta_found else Rect2i(x,y,1,1); magenta_found=true
-			elif color.g>0.03 and color.g<0.5 and color.g>color.r*1.2 and color.g>color.b*1.1:
-				green=green.expand(Vector2i(x,y)) if green_found else Rect2i(x,y,1,1); green_found=true
-	var green_near:=Rect2i();var green_near_found:=false
+			elif color.r>0.2 and color.g>0.2 and color.b>0.2:
+				icon=icon.expand(Vector2i(x,y)) if icon_found else Rect2i(x,y,1,1); icon_found=true
+	var icon_near:=Rect2i();var icon_near_found:=false
 	if magenta_found:
 		var marker_center: Vector2i=magenta.get_center()
 		for y in range(maxi(0,marker_center.y-100),mini(image.get_height(),marker_center.y+100)):
 			for x in range(maxi(0,marker_center.x-100),mini(image.get_width(),marker_center.x+100)):
 				var color: Color=image.get_pixel(x,y)
-				if color.g>0.03 and color.g<0.5 and color.g>color.r*1.2 and color.g>color.b*1.1:
-					green_near=green_near.expand(Vector2i(x,y)) if green_near_found else Rect2i(x,y,1,1);green_near_found=true
-	return {"magenta":str(magenta),"green":str(green),"magenta_found":magenta_found,"green_found":green_found,"center_gap":magenta.get_center().distance_to(green.get_center()) if magenta_found and green_found else INF,"near_green":str(green_near),"near_green_found":green_near_found,"near_gap":magenta.get_center().distance_to(green_near.get_center()) if green_near_found else INF}
-func host_green_bounds(image: Image) -> Dictionary:
+				if color.r>0.2 and color.g>0.2 and color.b>0.2:
+					icon_near=icon_near.expand(Vector2i(x,y)) if icon_near_found else Rect2i(x,y,1,1);icon_near_found=true
+	return {"magenta":str(magenta),"icon":str(icon),"magenta_found":magenta_found,"icon_found":icon_found,"center_gap":magenta.get_center().distance_to(icon.get_center()) if magenta_found and icon_found else INF,"near_icon":str(icon_near),"near_icon_found":icon_near_found,"near_gap":magenta.get_center().distance_to(icon_near.get_center()) if icon_near_found else INF}
+func host_icon_bounds(image: Image) -> Dictionary:
 	var bounds:=Rect2i(); var found:=false
 	for y in range(int(image.get_height()/2),image.get_height()):
 		for x in image.get_width():
 			var color: Color=image.get_pixel(x,y)
-			if color.g>0.03 and color.g<0.5 and color.g>color.r*1.2 and color.g>color.b*1.1:
+			if color.r>0.2 and color.g>0.2 and color.b>0.2:
 				bounds=bounds.expand(Vector2i(x,y)) if found else Rect2i(x,y,1,1); found=true
 	return {"bounds":str(bounds),"found":found,"center":str(bounds.get_center())}
 func run() -> void:
@@ -142,7 +142,7 @@ func run() -> void:
 		var slot=owner.ui.buttons[12]; var model: Node3D=owner.ui.scene_host.slots["12"].model
 		var anchor: Vector2=owner.ui.scene_icon_bindings[12].get("anchor",Vector2.ZERO)
 		var projected: Vector2=owner.ui.scene_host.camera.unproject_position(model.global_position)
-		var composed:=Vector2(projected.x,float(owner.ui.scene_host.viewport.size.y)-projected.y)
+		var composed:=projected
 		var camera_error: float=composed.distance_to(anchor)
 		scale_rows.append({"scale":scale_value,"window_width":root.size.x,"hook_error":error,"camera_error":camera_error,"projected_bounds_error":projected_bounds_error(owner,12),"host_ready":owner.ui.scene_host.binding_ready("12"),"native_center":str(slot.native_icon_center),"expected_global":str(slot.get_global_transform()*slot.native_icon_center) if slot.native_icon_center!=null else "pending","model_position":str(model.position),"host_global":str(owner.ui.scene_host.get_global_transform()),"host_size":str(owner.ui.scene_host.size),"viewport_size":str(owner.ui.scene_host.viewport.size),"presentation_size":str(owner.ui.scene_host.presentation.size),"presentation_position":str(owner.ui.scene_host.presentation.position),"stored_anchor":str(anchor)})
 		check(error<0.5 and camera_error<0.5 and owner.ui.scene_host.binding_ready("12"),"Original repository hook and camera projection at 3440 wide and UI scale "+str(scale_value))
@@ -153,8 +153,8 @@ func run() -> void:
 	var overlap_image: Image=root.get_texture().get_image()
 	check(overlap_image!=null and overlap_image.save_png(overlap_capture)==OK,"Overlapping control screenshot captured above retained icon panel")
 	var pixel_bounds: Dictionary=lower_pixel_bounds(overlap_image) if overlap_image!=null else {}
-	check(bool(pixel_bounds.get("near_green_found",false)) and float(pixel_bounds.get("near_gap",INF))<12.0,"Rendered item pixels center on original hook under overlapping control")
-	var host_bounds: Dictionary=host_green_bounds(owner.ui.scene_host.viewport.get_texture().get_image())
+	check(bool(pixel_bounds.get("near_icon_found",false)) and float(pixel_bounds.get("near_gap",INF))<12.0,"Rendered item pixels center on original hook under overlapping control")
+	var host_bounds: Dictionary=host_icon_bounds(owner.ui.scene_host.viewport.get_texture().get_image())
 	var host=owner.ui.scene_host
 	var slot_model: Node3D=host.slots["12"].model
 	var mesh_bounds: Array=[]
