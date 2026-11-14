@@ -9,6 +9,7 @@ var heading: Label
 var status: Label
 var progress: ProgressBar
 var details: Label
+var art_notice: Label
 var back: Button
 var ui
 var table: Dictionary={}
@@ -21,6 +22,8 @@ var screen_id:=-1
 var chosen_row:=-1
 var art_resource:=""
 var art_key:=""
+var art_error:=""
+var table_error:=""
 var started:=0
 var milestones: Dictionary={}
 var history: Array=[]
@@ -38,30 +41,52 @@ func _ready() -> void:
 	status=Label.new(); column.add_child(status)
 	progress=ProgressBar.new(); progress.show_percentage=false; progress.custom_minimum_size=Vector2(520,12); progress.max_value=1; column.add_child(progress)
 	details=Label.new(); details.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; details.custom_minimum_size.x=520; column.add_child(details)
+	art_notice=Label.new(); art_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; art_notice.custom_minimum_size.x=520; art_notice.add_theme_color_override("font_color",Color("e5b66d")); art_notice.hide(); column.add_child(art_notice)
 	var hint:=Label.new(); hint.text="Ctrl+Shift+L · Show the world early"; column.add_child(hint)
 	back=Button.new(); back.text="Back to server selection"; back.focus_mode=Control.FOCUS_NONE; back.pressed.connect(func():back_requested.emit()); column.add_child(back)
 	veil.hide()
 func configure(owner) -> void:
-	ui=owner; table={}; table_job=ui.assets.request("loadscreens",2017,"2da"); ui.assets.completed.connect(prepared)
+	ui=owner; table={}; table_error=""; table_job=ui.assets.request("loadscreens",2017,"2da"); ui.assets.completed.connect(prepared)
+	if table_job<0: table_error="Original loadscreens table could not be prepared: "+str(ui.assets.failure)
 	modal_lease.configure(self,modal_lease.property(owner,"modal_order"),modal_lease.property(owner,"modal_surfaces"),self);modal_lease.bind_input(veil)
 	if active and not dismissed:modal_lease.activate([epoch])
 	ui.desktop.art.loaded.connect(art_ready)
+	# The fallback panel is installed content. Area replacement names are only
+	# known after the received area record and loadscreens table resolve.
+	ui.desktop.art.request_model("pnl_loadscreen","up",{"gui_replace01":"ls_load"},0,"gui_replace01")
 	veil.theme=ui.skin_owner.theme()
 func prepared(id: int,result: Dictionary) -> void:
 	if id!=table_job: return
 	table_job=-1
-	if str(result.error).is_empty(): table=result.value; select_art()
+	if str(result.error).is_empty(): table=result.value
+	else: table_error="Original loadscreens table could not be prepared: "+str(result.error)
+	if active:
+		art_error=table_error; update_art_notice(); select_art()
 func art_ready(name: String,texture: Texture2D,_bounds: Dictionary) -> void:
 	if name==art_key and active: image.texture=texture; stats.art_loaded+=1
+func update_art_notice() -> void:
+	if not is_instance_valid(art_notice): return
+	art_notice.text=art_error; art_notice.visible=active and not art_error.is_empty()
+func _process(_delta: float) -> void:
+	if not active or not art_error.is_empty() or art_key.is_empty() or image.texture!=null or not is_instance_valid(ui): return
+	if ui.desktop.art.failed.has(art_key):
+		var shared=ui.desktop.art.ui_assets
+		var reason: String=shared.failure("model",art_key) if shared!=null else "Original model or replacement bitmap could not be prepared"
+		art_error="Original loading art unavailable: "+art_resource+" ("+reason+")"; update_art_notice()
 func select_art() -> void:
-	if not is_instance_valid(ui) or not active: return
+	if not is_instance_valid(ui) or not active or table_job>=0: return
 	var rows: Array=table.get("orderedRows",[]); var name:="ls_load"
 	if chosen_row<0 and not rows.is_empty():
 		# Native receiver treats 0 as random rows 2+, and 1 as custom text.
 		# Randomness here is presentation-only, never canonical gameplay state.
 		chosen_row=randi_range(2,rows.size()-1) if screen_id==0 and rows.size()>2 else screen_id
 	if chosen_row>=2 and chosen_row<rows.size(): name=str(Game.cell(rows[chosen_row],"BMPResRef","ls_load"))
-	if name in ["","****"]: name="ls_load"
+	elif screen_id>=2 and table_error.is_empty(): art_error="Original loading screen row unavailable: "+str(screen_id)
+	if name in ["","****"]:
+		if chosen_row>=2 and table_error.is_empty(): art_error="Original loading screen bitmap name is missing at row "+str(chosen_row)
+		name="ls_load"
+	if art_error.is_empty() and ui.desktop.art.catalog.raster_location(name).is_empty(): art_error="Original loading screen bitmap is missing: "+name
+	update_art_notice()
 	if name==art_resource: return
 	art_resource=name; replace_image()
 	# LOAD_SCREEN.GUI selects pnl_loadscreen. The original handler replaces
@@ -69,6 +94,7 @@ func select_art() -> void:
 	# Its UVs select the artwork from the packed bitmap; displaying the raw
 	# atlas repeats/misplaces parts of the loading screen.
 	art_key=ui.desktop.art.request_model("pnl_loadscreen","up",{"gui_replace01":name.to_lower()},0,"gui_replace01")
+	if art_key.is_empty(): art_error="Original loading panel could not be requested: "+name; update_art_notice(); return
 	if ui.desktop.art.textures.has(art_key): art_ready(art_key,ui.desktop.art.textures[art_key],{})
 func replace_image() -> void:
 	if is_instance_valid(image): veil.remove_child(image); image.queue_free()
@@ -77,7 +103,7 @@ func begin(generation: int,area: String,entry: Dictionary={}) -> void:
 	modal_lease.retire()
 	epoch=generation; active=true; dismissed=false; error=""; milestones={}; started=Time.get_ticks_msec(); stats.shown+=1
 	# A new target makes delayed archive-image callbacks harmless on transition.
-	replace_image(); art_resource=""; art_key=""; chosen_row=-1
+	replace_image(); art_resource=""; art_key=""; art_error=table_error; chosen_row=-1; update_art_notice()
 	screen_id=int(entry.get("loadingScreen",-1)); heading.text="Loading "+area; status.text="Preparing terrain…"; details.text=""; progress.value=0; veil.show(); select_art()
 	modal_lease.activate([epoch])
 func advance(generation: int,values: Dictionary) -> void:
@@ -102,9 +128,9 @@ func dismiss_early() -> void:
 func blocks_input() -> bool: return active and not dismissed
 func reset() -> void:
 	modal_lease.retire()
-	epoch=-1; active=false; dismissed=false; error=""; art_key=""; art_resource=""; veil.hide(); image.texture=null; table_job=-1; ui=null; table={}
+	epoch=-1; active=false; dismissed=false; error=""; art_error=""; table_error=""; art_key=""; art_resource=""; veil.hide(); image.texture=null; art_notice.hide(); table_job=-1; ui=null; table={}
 func snapshot() -> Dictionary:
-	var result:=stats.duplicate(true); result.merge({"active":active,"generation":epoch,"dismissed":dismissed,"error":error,"milestones":milestones.duplicate(true),"history":history.duplicate(true),"shortcut":"Ctrl+Shift+L"}); return result
+	var result:=stats.duplicate(true); result.merge({"active":active,"generation":epoch,"dismissed":dismissed,"error":error,"art_error":art_error,"art_resource":art_resource,"art_key":art_key,"milestones":milestones.duplicate(true),"history":history.duplicate(true),"shortcut":"Ctrl+Shift+L"}); return result
 func _input(event: InputEvent) -> void:
 	if active and modal_lease.admits() and event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed and event.shift_pressed and event.keycode==KEY_L:
 		dismiss_early(); get_viewport().set_input_as_handled()
