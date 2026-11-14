@@ -2,7 +2,7 @@ extends "res://tests/native_quickbar_frame_test.gd"
 const DialogPlan=preload("res://systems/native_data/conversation_layout.gd")
 func dialog_settled(ui) -> bool:
 	var skin=ui.conversation_skin
-	if not skin.layout_ready or not skin.failure.is_empty() or skin.background==null or not skin.background.visible or not settled(ui): return false
+	if not skin.layout_ready or not skin.failure.is_empty() or not ui.conversation.visible or not skin.display_ready() or skin.background==null or not skin.background.visible or not settled(ui): return false
 	for pair in [[skin.entry_bar,skin.entry_bar_host,skin.geometry.entry_bar],[skin.reply_bar,skin.reply_bar_host,skin.geometry.reply_bar]]:
 		if not pair[1].visible: continue
 		var bar=pair[0]; var entry: Dictionary=pair[2]
@@ -21,7 +21,7 @@ func run() -> void:
 	var catalog:=Catalog.new(); check(catalog.mount_install(install),"Original conversation resources mount read-only")
 	var ui:=Gameplay.new(); surface.add_child(ui); ui.configure(catalog,install,ProjectSettings.globalize_path("user://native-prepared-v2"),output+".layout.cfg"); ui.request.connect(func(m):requests.append(m.duplicate(true)))
 	check(await wait_until(func():return ui.tables_ready),"Active original TLK and portrait rules prepare")
-	var dialog=ui.conversation; var skin=ui.conversation_skin; check(not skin.requested,"Closed dialogue does not schedule model work")
+	var dialog=ui.conversation; var skin=ui.conversation_skin; check(skin.requested and not dialog.opened,"Installed conversation models prepare before the first dialogue")
 	var portrait:=-1
 	for id in ui.text.tables.portraits.orderedRows.size():
 		var res: String=ui.desktop.rules.cell(ui.desktop.rules.row("portraits",id),"BaseResRef","")
@@ -82,7 +82,9 @@ func run() -> void:
 		var focus_messages: Array=chat_messages.filter(func(message):return message.kind=="native-panel" and message.get("panel")=="chat-focus")
 		check(not chat_messages.any(func(message):return message.kind=="reply") and dialog.entry_id==chat_entry and dialog.serial==chat_serial and dialog.pending==chat_pending,"Typing numbers in chat leaves dialogue choices, entry serial and pending state untouched")
 		check(focus_messages.size()==2 and focus_messages.map(func(message):return message.open)==[true,false] and focus_messages.all(func(message):return message.actorId==42 and message.areaId==55 and message.generation==1 and message.mode==2),"Chat focus emits its separate open/close native-panel notifications")
-		ui.desktop.panel("character"); await key(KEY_1); await key(KEY_1,false); check(not dialog.pending,"A covered dialogue does not steal another window's numeric shortcuts"); ui.desktop.sheet.close_sheet(); before=requests.size()
+		ui.desktop.panel("character"); check(await wait_until(func():return ui.desktop.sheet.visible),"Character sheet is admitted before testing covered dialogue input")
+		await key(KEY_1); await key(KEY_1,false); check(not dialog.pending,"A covered dialogue does not steal another window's numeric shortcuts"); ui.desktop.sheet.close_sheet(); before=requests.size()
+		check(await wait_until(func():return dialog.visible),"Dialogue is admitted before testing its numeric choice")
 		dialog.move_to_front(); await key(KEY_1); await key(KEY_1,false); check(requests.size()==before+1 and requests.back().entryId==7,"The front dialogue accepts its real numeric choice")
 		await receive(ui,{"kind":"dialog-entry","ownerId":43,"speakerId":43,"tokenObjectId":43,"text":{"text":"A terminal entry"}})
 		await receive(ui,{"kind":"dialog-replies","entryId":8,"end":true,"firstCount":0,"secondCount":0,"tokenObjectId":43,"replies":[]}); before=requests.size(); dialog.choose(4294967295)
@@ -100,6 +102,7 @@ func run() -> void:
 		skin.reply_scroll.scroll_vertical=100000; await process_frame; await process_frame; check(skin.reply_scroll.scroll_vertical>0,"Long reply list can scroll beyond its first offered rows")
 		await shot(output,"-long")
 		var world:=WorldInput.new(); surface.add_child(world); await click(Vector2(1000,500)); await key(KEY_W); await key(KEY_W,false); await click(Vector2(1000,500),MOUSE_BUTTON_MIDDLE); check(world.clicks==1 and world.movement==1 and world.middle==1 and dialog.visible,"Open conversation preserves outside world clicks, WASD and outside middle camera input")
+		check(await wait_until(func():return dialog.visible and skin.display_ready()),"Long conversation remains admitted before Escape input")
 		before=requests.size(); await key(KEY_ESCAPE); await key(KEY_ESCAPE,false); check(dialog.visible and dialog.pending and requests.size()==before+1 and requests.back().abort,"Escape requests authoritative abort and keeps the dialog until the server responds")
 		await receive(ui,{"kind":"dialog-close"}); check(not dialog.visible and dialog.reply_ids.is_empty(),"Server close retires every received reply")
 		diagnostic=skin.snapshot(); diagnostic.art_failure=ui.inventory.frame_skin.art.failed.keys(); diagnostic.physicalMouseWarped=false; check(diagnostic.art_failure.is_empty(),"Original conversation resources and poses have no missing-art failures")

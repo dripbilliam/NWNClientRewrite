@@ -17,6 +17,7 @@ var local_end:=false
 var speaker_id:=-1
 var native_skin
 var entry_rich: Dictionary={}
+var failure_notice: RichTextLabel
 
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	close_hides = false
@@ -35,6 +36,7 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	end_button.focus_mode = Control.FOCUS_NONE
 	end_button.pressed.connect(func(): choose(4294967295, true))
 	content.add_child(end_button)
+	failure_notice=Text.label({},540); failure_notice.hide(); content.add_child(failure_notice)
 	close_requested.connect(func(): choose(4294967295, true))
 	reset()
 
@@ -53,7 +55,23 @@ func reset() -> void:
 	clear_replies()
 	body.clear()
 	entry_rich.clear()
+	if is_instance_valid(failure_notice): failure_notice.hide()
 	hide()
+
+func present_if_ready() -> void:
+	if not opened: hide(); return
+	if is_instance_valid(native_skin):
+		var failure: String=native_skin.art_failure()
+		if not failure.is_empty():
+			window_column.show()
+			if is_instance_valid(native_skin.stage): native_skin.stage.hide()
+			failure_notice.text="Original conversation unavailable: "+failure
+			failure_notice.show()
+		elif not native_skin.display_ready(): hide(); return
+		else:
+			failure_notice.hide()
+			if is_instance_valid(native_skin.stage): native_skin.stage.show()
+	show(); move_to_front()
 
 func present(message: Dictionary) -> void:
 	match message.kind:
@@ -67,8 +85,7 @@ func present(message: Dictionary) -> void:
 			clear_replies()
 			entry_rich=message.get("rich", {"text": message.get("text", "")}).duplicate(true)
 			Text.set_text(body, entry_rich)
-			show()
-			move_to_front()
+			present_if_ready()
 			rendered.emit(str(message.kind))
 		"dialog-replies":
 			if not opened:

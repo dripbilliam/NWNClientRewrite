@@ -33,16 +33,33 @@ var geometry: Dictionary={}
 var flow_count:=0
 var reply_metrics_dirty:=true
 var canvas_space: Dictionary={}
+var portrait_key:=""
+var fallback_portrait: TextureRect
+var rendered_serial:=-1
 func configure(owner,catalog,cache_path: String) -> void:
 	ui=owner; view=ui.conversation; view.native_skin=self; frame=ui.inventory.frame_skin
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	view.rendered.connect(changed); frame.art.loaded.connect(art_loaded); frame.fonts.loaded.connect(font_loaded)
+	# These installed models and fonts do not depend on a received dialogue.
+	requested=true
+	for name in Plan.RESOURCES:
+		var id: int=assets.request(name,2002,"actor-model" if name in ["scrollbar_simple","pnl_dialog"] else "mdl-original")
+		if id<0: failure=name+": "+str(assets.failure); break
+		jobs[id]=name
+	if frame.fonts.has_method("request"):
+		frame.fonts.request(Plan.FONT); frame.fonts.request("fnt_galahad14")
+	# The no-speaker portrait is an original installed resource too.
+	fallback_portrait=TextureRect.new(); add_child(fallback_portrait)
+	frame.art.bind_portrait(fallback_portrait,"po_hu_m_99_m")
 func _process(_delta: float) -> void:
 	if closed: return
-	if not requested and view.opened:
-		requested=true
-		for name in Plan.RESOURCES: jobs[assets.request(name,2002,"actor-model" if name in ["scrollbar_simple","pnl_dialog"] else "mdl-original")]=name
-	if not layout_ready or not view.visible: return
+	if not view.opened: return
+	if not failure.is_empty():
+		if not view.visible: view.present_if_ready()
+		return
+	if not layout_ready:
+		if not view.visible: view.present_if_ready()
+		return
 	refresh_speaker()
 	canvas_space=viewport_space()
 	if not canvas_space.is_empty() and view.scale!=Vector2.ONE*float(canvas_space.scale):view.scale=Vector2.ONE*float(canvas_space.scale)
@@ -51,17 +68,20 @@ func _process(_delta: float) -> void:
 		reply_metrics_dirty=false
 		for index in view.replies.get_child_count():refresh_reply_height(index,view.serial)
 	var measured: Array=[view.body.get_content_height(),view.replies.get_combined_minimum_size().y,ViewportFit.clearance(canvas_space,view.position),canvas_space]
-	if measured!=metrics: metrics=measured; reflow(float(measured[0]),float(measured[1]),float(measured[2]))
+	if metrics.is_empty() or absf(float(measured[0])-float(metrics[0]))>0.1 or absf(float(measured[1])-float(metrics[1]))>0.1 or absf(float(measured[2])-float(metrics[2]))>0.1 or measured[3]!=metrics[3]:
+		metrics=measured; reflow(float(measured[0]),float(measured[1]),float(measured[2]))
 	if not canvas_space.is_empty():view.position=ViewportFit.clamp_position(canvas_space,view.position,view.size)
+	if not view.visible: view.present_if_ready()
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var name: String=jobs[id]; jobs.erase(id)
-	if not str(result.get("error","")).is_empty(): failure=name+": "+str(result.error); return
+	if not str(result.get("error","")).is_empty(): failure=name+": "+str(result.error); view.present_if_ready(); return
 	models[name]=result.value
 	if not jobs.is_empty() or not failure.is_empty(): return
 	definition=Plan.parse(models)
-	if not str(definition.error).is_empty(): failure=str(definition.error); return
+	if not str(definition.error).is_empty(): failure=str(definition.error); view.present_if_ready(); return
 	activate()
+	view.present_if_ready()
 func control(parent: Control) -> Control:
 	var value:=Control.new(); parent.add_child(value); value.mouse_filter=Control.MOUSE_FILTER_IGNORE; return value
 func scroll(parent: Control) -> ScrollContainer:
@@ -84,9 +104,15 @@ func changed(kind: String) -> void:
 	if closed or not layout_ready: return
 	if kind in ["dialog-entry","dialog-replies","dialog-selected"]:
 		for index in view.replies.get_child_count(): style_reply(index)
-	metrics.clear();reply_metrics_dirty=true;refresh_speaker()
+		geometry.clear(); background_key=""
+		metrics.clear(); reply_metrics_dirty=true
+	rendered_serial=view.serial
+	refresh_speaker()
+	view.present_if_ready()
 func font_loaded(name: String) -> void:
-	if name in [Plan.FONT,"fnt_galahad14"]:metrics.clear();reply_metrics_dirty=true
+	if name in [Plan.FONT,"fnt_galahad14"]:
+		metrics.clear();reply_metrics_dirty=true
+		if view.opened and not view.visible: view.call_deferred("present_if_ready")
 func style_reply(index: int) -> void:
 	var button: Button=view.replies.get_child(index); var label: RichTextLabel=button.get_child(0)
 	if button.has_meta("native_dialog_number"):
@@ -144,10 +170,19 @@ func refresh_speaker() -> void:
 	if resource.is_empty(): resource="po_hu_m_99_m"
 	var signature: Array=[view.speaker_id,name,resource]
 	if speaker_signature==signature: return
-	speaker_signature=signature; Text.set_text(name_label,ui.text.rich({"text":name},view.speaker_id)); frame.art.bind_portrait(portrait,resource)
+	speaker_signature=signature; Text.set_text(name_label,ui.text.rich({"text":name},view.speaker_id)); portrait.hide(); frame.art.bind_portrait(portrait,resource)
+	portrait_key=frame.art.portrait_resource(resource).to_lower() if frame.art.has_method("portrait_resource") else resource.to_lower()
+	sync_portrait()
+func sync_portrait() -> void:
+	if not is_instance_valid(portrait) or portrait_key.is_empty(): return
+	var current: Texture2D=frame.art.textures.get(portrait_key)
+	var correct: bool=current!=null and portrait.texture is AtlasTexture and portrait.texture.atlas==current
+	portrait.visible=correct
+	var art_failures: Variant=frame.art.get("failed")
+	name_label.tooltip_text="Original speaker portrait unavailable: "+portrait_key if art_failures is Dictionary and art_failures.has(portrait_key) else ""
 func reflow(entry_height: float,reply_height: float,clearance: float) -> void:
 	var result:=Plan.layout(models,definition,Plan.flow(entry_height,reply_height,clearance))
-	if not str(result.get("error","")).is_empty(): failure=str(result.error); return
+	if not str(result.get("error","")).is_empty(): failure=str(result.error); view.present_if_ready(); return
 	geometry=result; flow_count+=1; view.custom_minimum_size=result.size; view.size=result.size; stage.size=result.size
 	name_label.position=result.name.position; name_label.size=result.name.size; portrait.position=result.portrait.position; portrait.size=result.portrait.size
 	entry_scroll.position=result.entry.position; entry_scroll.size=result.entry.size; reply_scroll.position=result.replies.position; reply_scroll.size=result.replies.size
@@ -171,9 +206,37 @@ func reflow(entry_height: float,reply_height: float,clearance: float) -> void:
 	if not canvas_space.is_empty():
 		if view.scale!=Vector2.ONE*float(canvas_space.scale):view.scale=Vector2.ONE*float(canvas_space.scale)
 		view.position=ViewportFit.clamp_position(canvas_space,view.position,view.size)
+	view.present_if_ready()
 func art_loaded(key: String,texture: Texture2D,_bounds: Dictionary) -> void:
-	if closed or not layout_ready or key!=background_key: return
-	background.texture=texture; background.show()
+	if closed: return
+	if layout_ready and key==background_key:
+		background.texture=texture; background.show()
+	if key==portrait_key: call_deferred("sync_portrait")
+	if view.opened and not view.visible: view.call_deferred("present_if_ready")
+func art_failure() -> String:
+	if not failure.is_empty(): return failure
+	var fonts_failed: Variant=frame.fonts.get("failed")
+	if fonts_failed is Dictionary:
+		for name in [Plan.FONT,"fnt_galahad14"]:
+			if fonts_failed.has(name): return "Original conversation font could not be prepared: "+name
+	var art_failures: Variant=frame.art.get("failed")
+	if art_failures is Dictionary and not background_key.is_empty() and art_failures.has(background_key): return "Original conversation artwork could not be prepared: "+background_key
+	for bar in [entry_bar,reply_bar]:
+		if is_instance_valid(bar) and not bar.failure.is_empty(): return "Original conversation scrollbar could not be prepared: "+bar.failure
+	return ""
+func display_ready() -> bool:
+	if closed or not failure.is_empty() or not layout_ready or rendered_serial!=view.serial or geometry.is_empty() or background_key.is_empty(): return false
+	var font_map: Variant=frame.fonts.get("fonts")
+	if font_map is Dictionary:
+		for name in [Plan.FONT,"fnt_galahad14"]:
+			if not font_map.has(name): return false
+	if not frame.art.textures.has(background_key) or background.texture!=frame.art.textures[background_key]: return false
+	var shared_owner: Variant=frame.art.get("ui_assets")
+	if shared_owner!=null:
+		if shared_owner.lookup("model",background_key).is_empty(): return false
+	for bar in [entry_bar,reply_bar]:
+		if is_instance_valid(bar) and not bar.art_ready: return false
+	return true
 func snapshot() -> Dictionary:
 	return {"ready":layout_ready,"failure":failure,"pending":jobs.size(),"reflows":flow_count,"speaker":view.speaker_id,"native_only":true,"canvas_space":canvas_space.duplicate(true),"full_conversation_parity":false}
 func close() -> void:
