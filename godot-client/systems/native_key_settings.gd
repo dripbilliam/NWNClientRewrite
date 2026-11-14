@@ -1,6 +1,7 @@
 extends Control
 signal prepared
 signal finished
+signal artwork_ready
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Plan=preload("res://systems/native_data/key_settings_layout.gd")
 const Rules=preload("res://systems/native_data/keymap_rules.gd")
@@ -19,6 +20,7 @@ var definition: Dictionary={}
 var buttons: Dictionary={}
 var row_buttons: Dictionary={}
 var row_labels: Dictionary={}
+var row_art_keys: Array=[]
 var heading: Label
 var notice: Label
 var scroller: ScrollContainer
@@ -31,6 +33,7 @@ var ticket:=-1
 var page:=0
 var revision:=0
 var layout_ready:=false
+var artwork_announced:=false
 var closed:=false
 var failure:=""
 var storage:=""
@@ -129,14 +132,21 @@ func build() -> void:
 	body=Control.new(); scroller.add_child(body); body.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	scrollbar=preload("res://systems/native_scrollbar.gd").new(); add_child(scrollbar); scrollbar.configure(frame,models,definition.page.entries.buttonlist,scroller,float(definition.row.step.y))
 	if not scrollbar.failure.is_empty(): failure=scrollbar.failure; return
+	# The checked row button uses five authored poses that are first bound only
+	# when a binding page opens. Request them with the static page cohort.
+	for clip in ["uncheckedup","uncheckeddown","disabled","checkedup","checkeddown"]:
+		row_art_keys.append(frame.art.request_model(str(definition.row.resource),clip))
 	notice=Label.new(); add_child(notice); notice.mouse_filter=Control.MOUSE_FILTER_IGNORE; notice.position=Vector2(4,size.y+4); frame.font_style(notice,{"AurString_Font":"fnt_galahad14"}); notice.add_theme_color_override("font_shadow_color",Color.BLACK)
 	layout_ready=true; place(); prepared.emit()
+func _process(_delta: float) -> void:
+	if not closed and layout_ready and not artwork_announced and art_ready():
+		artwork_announced=true; artwork_ready.emit()
 func place() -> void:
 	if closed or not layout_ready: return
 	var maximum: Vector2=(get_viewport_rect().size-size).max(Vector2.ZERO)
 	position=retained_position.clamp(Vector2.ZERO,maximum) if retained_position.is_finite() else maximum*0.5
 func show_page(value: Array) -> void:
-	if closed or not layout_ready or bindings.blocked(): return
+	if closed or not art_ready() or bindings.blocked(): return
 	revision+=1; scope=value.duplicate(); ticket=bindings.begin(); selected.clear(); held.clear(); page=0; render_rows(); show(); place(); move_to_front()
 	modal_lease.activate(scope)
 func capture(tag: String) -> void:
@@ -233,7 +243,7 @@ func _input(event: InputEvent) -> void:
 	if dragging and event is InputEventMouseMotion: position=(event.position-drag_offset).clamp(Vector2.ZERO,(get_viewport_rect().size-size).max(Vector2.ZERO))
 	if dragging and event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed: dragging=false; save_position()
 func art_ready() -> bool:
-	return layout_ready and failure.is_empty() and frame.art.waiting.is_empty() and frame.art.models.pending.is_empty() and not frame.art.models.active and frame.fonts.pending.is_empty() and scrollbar.art_ready
+	return layout_ready and not closed and failure.is_empty() and requested.size()==models.size() and is_instance_valid(scrollbar) and scrollbar.art_ready and row_art_keys.size()==5 and row_art_keys.all(func(key):return frame.art.textures.has(key)) and preload("res://systems/native_menu_builder.gd").source_ready(self,frame)
 func snapshot() -> Dictionary:
 	return {"ready":layout_ready,"failure":failure,"page":page,"visible":visible,"rows":row_buttons.size(),"capturing":bindings.capturing,"hotbar_slots":36,"unsupported_actions":bindings.active.get("normal",{}).get("rows",[]).filter(func(row):return int(row.action) not in SUPPORTED).size(),"native_only":true,"full_key_settings_parity":false}
 func _notification(what: int) -> void:

@@ -57,9 +57,9 @@ func catalog_ready(_serial: int,value: RefCounted,error: String,stats: Dictionar
 	main.artwork_ready.connect(refresh)
 	options=Page.new(); add_child(options); options.configure(painter,text,catalog,cache_path,"options_pregame"); options.action_requested.connect(options_action); options.prepared.connect(refresh); options.start()
 	options.artwork_ready.connect(refresh)
-	keys=preload("res://systems/native_key_settings.gd").new(); add_child(keys); keys.configure(painter,text,catalog,cache_path,bindings,layout_path); keys.prepared.connect(refresh); keys.finished.connect(return_options)
+	keys=preload("res://systems/native_key_settings.gd").new(); add_child(keys); keys.configure(painter,text,catalog,cache_path,bindings,layout_path); keys.prepared.connect(refresh); keys.artwork_ready.connect(refresh); keys.finished.connect(return_options)
 	if is_instance_valid(window_settings):
-		video=preload("res://systems/native_video_options.gd").new(); add_child(video); video.configure(painter,text,catalog,cache_path,window_settings,layout_path); video.prepared.connect(refresh); video.finished.connect(return_options)
+		video=preload("res://systems/native_video_options.gd").new(); add_child(video); video.configure(painter,text,catalog,cache_path,window_settings,layout_path); video.prepared.connect(refresh); video.artwork_ready.connect(refresh); video.finished.connect(return_options)
 	refresh()
 func table_ready(_id: int,result: Dictionary) -> void:
 	if closed: return
@@ -102,7 +102,7 @@ func refresh() -> void:
 			if tag not in ["multibutton","optionsbutton","exitbutton"]: main.buttons[tag].tooltip_text="Unavailable in this client build."
 		main.visible=wanted and page=="main" and main.art_ready() and (button_audio_ready or not button_audio_failure.is_empty())
 	if is_instance_valid(options):
-		options.set_context(scope(),{"gamebutton":true,"videooptsbutton":is_instance_valid(video) and video.layout_ready and video.failure.is_empty(),"controlbutton":is_instance_valid(keys) and keys.layout_ready and keys.failure.is_empty() and bindings.bindings_ready,"nwsyncbutton":false,"closebutton":true,"xbutton":true})
+		options.set_context(scope(),{"gamebutton":true,"videooptsbutton":is_instance_valid(video) and video.art_ready(),"controlbutton":is_instance_valid(keys) and keys.art_ready() and bindings.bindings_ready,"nwsyncbutton":false,"closebutton":true,"xbutton":true})
 		if options.buttons.has("nwsyncbutton"): options.buttons.nwsyncbutton.tooltip_text="Storage management is not available in this client build."
 		options.visible=wanted and page=="options" and options.art_ready() and (button_audio_ready or not button_audio_failure.is_empty())
 	status.visible=wanted and (not failure.is_empty() or not button_audio_failure.is_empty() or not button_audio_ready or not is_instance_valid(main) or not main.art_ready() or page=="options" and not options.art_ready())
@@ -120,6 +120,8 @@ func main_action(tag: String) -> void:
 		"exitbutton": dismiss(); exit_requested.emit()
 func options_action(tag: String,from_button: bool=true) -> void:
 	if closed or not wanted or page!="options" or not button_audio_ready and button_audio_failure.is_empty(): return
+	if tag=="videooptsbutton" and (not is_instance_valid(video) or not video.art_ready()): return
+	if tag=="controlbutton" and (not is_instance_valid(keys) or not keys.art_ready()): return
 	if from_button and tag in ["closebutton","xbutton","gamebutton","videooptsbutton","controlbutton"]: button_sound_requested.emit()
 	match tag:
 		"closebutton","xbutton": revision+=1; page="main"; options.dismiss(); refresh()

@@ -26,6 +26,8 @@ func run() -> void:
 	check(await wait_until(func():return menu.native_frame.art_ready() and editor.art_ready() or not editor.failure.is_empty()),"Original key editor frames, tabs, rows, fonts and scrollbar prepare")
 	var diagnostic: Dictionary={"failure":editor.failure}
 	if editor.layout_ready and editor.failure.is_empty():
+		check(await wait_until(func():return menu.key_bindings.bindings_ready),"Original key binding owner is ready before Controls is enabled")
+		await process_frame
 		check(not menu.native_frame.buttons.controlsbutton.disabled,"Options exposes Change Key Settings only with a ready native binding owner")
 		await click(menu.native_frame.buttons.controlsbutton.get_global_rect().get_center())
 		check(editor.visible and not menu.panel.visible and editor.size.distance_to(Vector2(430,447))<0.001,"Actual Controls click opens the complete source-sized key editor")

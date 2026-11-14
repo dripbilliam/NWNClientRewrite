@@ -20,7 +20,7 @@ func run() -> void:
 	menu.configure_pregame({"install":install,"modsDirectory":"","disabledMods":[]},ProjectSettings.globalize_path("user://native-prepared-v2")); menu.open(false)
 	var ui=menu.pregame
 	check(ui.wanted and not menu.panel.visible and not is_instance_valid(menu.native_frame),"Pregame opens before a game world or borrowed in-game UI exists")
-	check(await wait_until(func():return not ui.failure.is_empty() or is_instance_valid(ui.main) and is_instance_valid(ui.options) and ui.main.art_ready() and ui.main.visible and ui.options.art_ready() and ui.keys.layout_ready and ui.bindings.bindings_ready and is_instance_valid(ui.video) and ui.video.layout_ready),"Independent original pregame catalog, art, fonts and child controls finish native preparation and present the main page")
+	check(await wait_until(func():return not ui.failure.is_empty() or is_instance_valid(ui.main) and is_instance_valid(ui.options) and ui.main.art_ready() and ui.main.visible and ui.options.art_ready() and ui.keys.art_ready() and ui.bindings.bindings_ready and is_instance_valid(ui.video) and ui.video.art_ready()),"Independent original pregame catalog, art, fonts and child controls finish native preparation and present the main page")
 	check(ui.failure.is_empty(),"Pregame resource preparation succeeds: "+ui.failure)
 	if is_instance_valid(ui.main) and ui.main.layout_ready and ui.failure.is_empty():
 		check(ui.main.visible and not ui.options.visible and ui.main.buttons.size()==7 and not menu.fallback.is_visible_in_tree(),"Actual original seven-button main menu replaces the generic pregame fallback")
