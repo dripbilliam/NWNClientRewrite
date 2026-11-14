@@ -1,5 +1,7 @@
 extends CanvasLayer
 const Numbers=preload("res://systems/native_data/game_numbers.gd")
+const IconPreloader=preload("res://systems/native_data/ui_icon_texture_preloader.gd")
+const SharedRasters=preload("res://systems/native_data/shared_ui_rasters.gd")
 
 signal request(message: Dictionary)
 signal creation_requested
@@ -50,12 +52,18 @@ var delete_lease: Dictionary={}
 var delete_serial:=0
 var post_delete_index:=-1
 var local_notice:=""
+var server_icon_preloader
+var server_icon_catalog
+var server_icon_generation:=0
+var server_icon_timer: Timer
+var server_icon_progress: Dictionary={}
 
 func _ready() -> void:
 	local_catalog=preload("res://systems/native_local_character_catalog.gd").new(); add_child(local_catalog); local_catalog.completed.connect(func():
 		if is_instance_valid(native_chooser): native_chooser.sync()
 		if is_instance_valid(picker): picker.sync()
 		settle_local_delete())
+	server_icon_timer=Timer.new(); server_icon_timer.wait_time=0.2; add_child(server_icon_timer); server_icon_timer.timeout.connect(update_server_icon_wait)
 	native_preview=preload("res://systems/native_character_preview.gd").new(); add_child(native_preview); native_preview.completed.connect(func():
 		preview.text=_preview(record_preview())
 		if is_instance_valid(native_chooser): native_chooser.preview_signature=""; native_chooser.sync()
@@ -152,6 +160,7 @@ func _play() -> void:
 func apply_state(value: Dictionary) -> void:
 	var previous_phase := str(state.get("phase", ""))
 	if connection!=int(value.connection):
+		retire_server_icons()
 		native_selection.clear(); delete_lease={}; post_delete_index=-1
 		if is_instance_valid(confirmation): confirmation.dismiss()
 	connection = int(value.connection)
@@ -216,21 +225,28 @@ func apply_state(value: Dictionary) -> void:
 func prepare_native_frontend(painter,text,catalog,cache_path: String) -> void:
 	native_frontend=true
 	if not is_instance_valid(native_chooser): configure_native(painter,text,catalog,cache_path,true)
-func configure_native(painter,text,catalog,cache_path: String,base_only: bool=false) -> void:
-	if is_instance_valid(native_chooser) and native_catalog==catalog and native_base_only==base_only: return
+func configure_native(painter,text,catalog,cache_path: String,base_only: bool=false,icon_names: Array=[]) -> void:
+	if is_instance_valid(native_chooser) and native_catalog==catalog and native_base_only==base_only:
+		if native_frontend and not base_only and not is_instance_valid(server_icon_preloader): begin_server_icons(catalog,cache_path,icon_names)
+		return
 	native_preview.language=int(text.base.language)
 	native_preview.observe(connection,state.get("selected"),state.get("preview"),str(state.get("phase","")) in ["character-selection","character-rejected"])
 	if is_instance_valid(native_chooser):
 		if native_catalog!=catalog or native_base_only!=base_only:
 			native_catalog=catalog; native_base_only=base_only
+			if native_frontend and not base_only:
+				native_chooser.hide(); begin_server_icons(catalog,cache_path,icon_names)
+			else: retire_server_icons()
 			native_chooser.bind_data(text,catalog,cache_path,painter.art)
 			print("NATIVE_CHOOSER_DATA_BOUND base_only=",base_only," ticks_ms=",Time.get_ticks_msec())
 			sync_native()
 		return
 	configure_confirmation(painter,text,catalog,cache_path)
 	native_catalog=catalog; native_base_only=base_only
+	if native_frontend and not base_only: begin_server_icons(catalog,cache_path,icon_names)
 	native_chooser=preload("res://systems/native_character_lobby.gd").new(); panel.add_child(native_chooser)
 	native_chooser.configure(self,painter,text,catalog,cache_path); native_chooser.prepared.connect(sync_native); native_chooser.artwork_ready.connect(native_art_ready)
+	if is_instance_valid(server_icon_preloader) and server_icon_preloader.finished: native_chooser.icon_preload_notice=server_icon_notice()
 	print("NATIVE_CHOOSER_PREPARE base_only=",base_only," ticks_ms=",Time.get_ticks_msec())
 	if not panel.visibility_changed.is_connected(native_panel_visibility): panel.visibility_changed.connect(native_panel_visibility)
 	sync_native()
@@ -238,15 +254,57 @@ func native_panel_visibility() -> void:
 	if not panel.visible: native_selection.clear()
 func native_art_ready() -> void:
 	native_prepared_at=Time.get_ticks_msec(); print("NATIVE_CHOOSER_READY base_only=",native_base_only," ticks_ms=",native_prepared_at); sync_native()
+func retire_server_icons() -> void:
+	server_icon_generation+=1
+	if is_instance_valid(server_icon_timer): server_icon_timer.stop()
+	if is_instance_valid(server_icon_preloader): server_icon_preloader.close(); server_icon_preloader.queue_free()
+	server_icon_preloader=null; server_icon_catalog=null; server_icon_progress={}
+	if is_instance_valid(native_chooser): native_chooser.icon_preload_notice=""
+func begin_server_icons(catalog,cache_path: String,names: Array=[]) -> void:
+	# Worker forks cannot own GPU images. Only the active main-thread server
+	# catalog can prepare and retain a chooser's raster set.
+	if catalog==null or not catalog.has_method("ui_asset_owner") or catalog.ui_asset_owner()==null:
+		retire_server_icons(); return
+	if server_icon_catalog==catalog and is_instance_valid(server_icon_preloader): return
+	retire_server_icons()
+	server_icon_catalog=catalog
+	var lease: int=server_icon_generation
+	server_icon_preloader=IconPreloader.new(); add_child(server_icon_preloader)
+	server_icon_preloader.configure(catalog,cache_path,names)
+	server_icon_preloader.texture_ready.connect(func(name: String,texture: Texture2D):
+		if lease==server_icon_generation: SharedRasters.retain(catalog,name,texture))
+	server_icon_preloader.completed.connect(func(stats: Dictionary):
+		if lease!=server_icon_generation: return
+		server_icon_progress=stats.duplicate(true); server_icon_timer.stop()
+		if is_instance_valid(native_chooser): native_chooser.icon_preload_notice=server_icon_notice()
+		sync_native())
+	server_icon_preloader.start(); server_icon_progress=server_icon_preloader.progress()
+	if not server_icon_preloader.finished: server_icon_timer.start()
+func server_icon_notice() -> String:
+	var failed:=int(server_icon_progress.get("failed",0)); var missing:=int(server_icon_progress.get("missing",0)); var notes: Array=[]
+	if failed>0: notes.append("%d server icons could not be prepared: %s"%[failed,str(server_icon_preloader.failure).left(160)])
+	if missing>0: notes.append("%d original icon references have no raster in this server catalog."%missing)
+	return " ".join(notes)
+func server_icon_fatal() -> bool:
+	return is_instance_valid(server_icon_preloader) and server_icon_preloader.finished and int(server_icon_progress.get("failed",0))>0
+func update_server_icon_wait() -> void:
+	if not is_instance_valid(server_icon_preloader) or server_icon_preloader.finished: return
+	server_icon_progress=server_icon_preloader.progress()
+	if not is_instance_valid(native_wait) or not native_wait.visible: return
+	var total:=int(server_icon_progress.get("total",0)); var done:=int(server_icon_progress.get("completed",0))
+	native_wait_text.text="Preparing server item and spell icons: %d / %d"%[done,total]
+	native_sync_bar.indeterminate=total==0; native_sync_bar.max_value=maxi(1,total); native_sync_bar.value=done; native_sync_bar.show()
+	resource_progress.emit({"connection":connection,"phase":"server-item-spell-icons","completed":done,"total":total,"missing":int(server_icon_progress.get("missing",0)),"failed":int(server_icon_progress.get("failed",0)),"canCancel":state.get("canCancelJoin",false),"canPlay":false})
 func show_native_wait() -> void:
 	if is_instance_valid(native_chooser): native_chooser.hide()
+	if is_instance_valid(picker): picker.hide()
 	if not is_instance_valid(native_wait):
 		var built=preload("res://systems/native_menu_builder.gd").build(panel,[{"kind":"column","id":"wait","children":[{"kind":"label","id":"text","properties":{"text":"Preparing character selection…"}},{"kind":"button","id":"cancel","properties":{"text":"Cancel"}}]}])
 		native_wait=built.nodes.wait; native_wait_text=built.nodes.text; native_wait_cancel=built.nodes.cancel
 		native_sync_bar=ProgressBar.new(); native_sync_bar.show_percentage=false; native_sync_bar.custom_minimum_size=Vector2(420,20); native_wait.add_child(native_sync_bar); native_wait.move_child(native_sync_bar,native_wait_cancel.get_index())
 		native_wait_cancel.pressed.connect(func():
 			if state.get("canCancelJoin",false): cancel_button.pressed.emit()
-			elif state.get("connected",false) and not state.get("busy",false): _send({"kind":"lobby-disconnect","saveCharacter":false}))
+			elif state.get("connected",false) and (not state.get("busy",false) or server_icon_fatal()): _send({"kind":"lobby-disconnect","saveCharacter":false}))
 	window_column.hide(); native_wait.show(); native_wait.theme=preload("res://systems/native_client_menu_style.gd").for_tree(get_tree())
 	panel.remove_theme_stylebox_override("panel"); panel.custom_minimum_size=Vector2(766,527); panel.size=panel.custom_minimum_size
 	native_wait_cancel.disabled=not state.get("canCancelJoin",false) and (not state.get("connected",false) or state.get("busy",false))
@@ -272,6 +330,11 @@ func sync_native() -> void:
 	if is_instance_valid(native_wait): native_wait.hide()
 	if native_frontend and panel.visible and str(state.get("phase","")) in ["connecting","resources","resources-unavailable"]:
 		show_sync_wait(); _place(); return
+	var selecting: bool=str(state.get("phase","")) in ["character-selection","character-rejected"] and not state.get("creating",false)
+	if native_frontend and selecting and not native_base_only and server_icon_fatal():
+		show_native_wait(); native_wait_text.text="Character selection unavailable: "+server_icon_notice(); native_sync_bar.hide(); native_wait_cancel.disabled=false; _place(); return
+	if native_frontend and selecting and not native_base_only and is_instance_valid(server_icon_preloader) and not server_icon_preloader.finished:
+		show_native_wait(); update_server_icon_wait(); _place(); return
 	if is_instance_valid(picker):
 		picker.sync()
 		var detailed: bool=picker.visible and picker.details_page>=0 and is_instance_valid(native_chooser) and native_chooser.layout_ready
@@ -285,7 +348,6 @@ func sync_native() -> void:
 		if detailed: panel.custom_minimum_size=native_chooser.definition.size; panel.size=panel.custom_minimum_size
 		_place(); settle_local_delete(); return
 	if is_instance_valid(native_wait): native_wait.hide()
-	var selecting: bool=str(state.get("phase","")) in ["character-selection","character-rejected"] and not state.get("creating",false)
 	var portrait_warm: Dictionary={}
 	if native_frontend and selecting and is_instance_valid(native_chooser) and native_chooser.has_method("warm_portraits"): portrait_warm=native_chooser.warm_portraits()
 	if native_frontend and selecting and (not is_instance_valid(native_chooser) or not native_chooser.art_announced and not native_chooser.art_ready()): show_native_wait(); _place(); return
@@ -381,6 +443,7 @@ func finish_native_selection() -> void:
 	if activate: _play()
 func close_native() -> void:
 	delete_lease={}; post_delete_index=-1; local_notice=""
+	retire_server_icons()
 	if is_instance_valid(confirmation): confirmation.close(); confirmation.queue_free()
 	confirmation=null; confirmation_catalog=null
 	native_selection.clear()
@@ -404,6 +467,7 @@ func can_save() -> bool:
 
 func _auto() -> void:
 	# Bounded integration tests use the same native UI requests as a player.
+	if server_icon_fatal(): return
 	if state.get("canJoin", false) and last_auto_join == -1:
 		last_auto_join = connection
 		_send({"kind": "lobby-join"})
@@ -425,6 +489,7 @@ func failure_text(text_owner=null) -> String:
 		if not resolved.is_empty(): return resolved
 	return str(state.get("error",""))
 func can_select() -> bool:
+	if server_icon_fatal(): return false
 	if not delete_lease.is_empty(): return false
 	if not state.get("canSelect",false) or not local_catalog.ready(): return false
 	if needs_local_metadata():

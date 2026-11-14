@@ -61,6 +61,7 @@ var portrait_warm_waiting:=false
 var portrait_table_waiting:=false
 var closed:=false
 var failure:=""
+var icon_preload_notice:=""
 var revision:=0
 var row_signature:=""
 var catalog_signature:=""
@@ -346,6 +347,7 @@ func sync() -> void:
 		record_tabs[index].tooltip_text=text_owner.raw({"strRef":[0x2940,0x147,0x146,0x145f][index]})
 	sync_record_page()
 	notice.text=owner_ui.failure_text(text_owner)
+	if notice.text.is_empty(): notice.text=icon_preload_notice
 	if notice.text.is_empty() and owner_ui.native_frontend and owner_ui.native_base_only: notice.text="Preparing character details…"
 	if notice.text.is_empty() and is_instance_valid(owner_ui.native_preview): notice.text=owner_ui.native_preview.error
 	if notice.text.is_empty(): notice.text=owner_ui.preferences.failure
