@@ -5,6 +5,8 @@ import {createGraphqlClient} from './api.mjs';
 import {LinearSource} from './linear.mjs';
 import {GithubProject} from './github.mjs';
 import {planSync, executePlan} from './sync.mjs';
+import {GithubRepository} from './repository.mjs';
+import {planIssueSync, executeIssuePlan} from './issue-sync.mjs';
 
 export async function main(args = process.argv.slice(2), env = process.env, logger = console) {
   try {
@@ -22,15 +24,18 @@ export async function main(args = process.argv.slice(2), env = process.env, logg
     const linear = createGraphqlClient({service: 'Linear', token: env.LINEAR_API_KEY, config, readOnly: true, logger});
     const githubClient = createGraphqlClient({service: 'GitHub', token: env.GH_PROJECT_TOKEN, config, readOnly: dryRun, logger});
     const source = new LinearSource(linear, config), github = new GithubProject(githubClient, config);
-    logger.info('Linear to GitHub draft-card sync; mode=' + (dryRun ? 'dry-run' : 'apply')
+    const repository = config.target === 'issues' ? new GithubRepository(createGraphqlClient({
+      service: 'GitHub', token: env.GH_ISSUE_TOKEN, config, readOnly: dryRun, logger}), config) : null;
+    logger.info('Linear to GitHub ' + config.target + ' sync; mode=' + (dryRun ? 'dry-run' : 'apply')
       + ', publication=' + config.publicationMode + ', descriptions=' + config.descriptionMode + '.');
-    const plan = await planSync({source, github, config, logger});
+    const context = {source, github, repository, config, logger};
+    const plan = await (repository ? planIssueSync : planSync)(context);
     if (values.verbose) {
       logger.info('Fetched ' + plan.sourceCount + ' source issues and ' + plan.itemCount + ' project items.');
       logger.info('Planned ' + plan.actions.length + ' card writes and ' + plan.cleanup.length + ' retirement actions.');
       logger.info('Titles, descriptions, private labels, provider payloads and credentials are never logged.');
     }
-    const summary = await executePlan(plan, {github, config, dryRun, logger});
+    const summary = await (repository ? executeIssuePlan : executePlan)(plan, {...context, dryRun});
     return summary.failed ? 1 : 0;
   } catch (error) {
     logger.error('Sync stopped: ' + error.message);

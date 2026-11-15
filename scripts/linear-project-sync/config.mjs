@@ -42,8 +42,13 @@ export function loadConfig(env = process.env) {
   }
   const publicLabel = env.LINEAR_PUBLIC_LABEL || 'public';
   if (!publicLabel.trim()) throw Error('LINEAR_PUBLIC_LABEL must not be blank.');
+  const target = choice(env, 'SYNC_TARGET', 'drafts', ['drafts', 'issues']);
+  const repository = env.GH_ISSUE_REPOSITORY || '';
+  if (target === 'issues' && !/^[a-z\d][a-z\d-]{0,38}\/[a-z\d_.-]{1,100}$/i.test(repository)) {
+    throw Error('Set GH_ISSUE_REPOSITORY to owner/repository for issue synchronization.');
+  }
   return {
-    teamId, projectId, owner, namespace, publicLabel, statusMapping,
+    teamId, projectId, owner, namespace, publicLabel, statusMapping, target, repository,
     projectNumber: integer(env, 'GH_PROJECT_NUMBER', 0, 1, 2147483647),
     ownerType: choice(env, 'GH_PROJECT_OWNER_TYPE', 'user', ['user', 'organization']),
     publicationMode: choice(env, 'PUBLICATION_MODE', 'label', ['label', 'all']),

@@ -66,6 +66,7 @@ Some development builds also use separately obtained third-party source checkout
 | Documentation | [Topic guides](docs/README.md) |
 | Remaining work | [Playable parity and Linear issues](docs/parity.md) |
 | Public development board | [GitHub Kanban](https://github.com/users/dripbilliam/projects/3) · [Sync setup](scripts/linear-project-sync/README.md) |
+| Public tickets | [GitHub Issues](https://github.com/dripbilliam/NWNClientRewrite/issues) · Mirrored from Linear every five minutes |
 | Runtime ownership | [Architecture](docs/architecture.md) |
 | Setup and checks | [Development](docs/development.md) |
 | Native frontend | `godot-client/` |

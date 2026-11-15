@@ -54,6 +54,7 @@ function publicDescription(description, mode) {
 
 function assertPublicSafe(text) {
   if (/(?:github_pat_|gh[pousr]_|lin_api_)[a-z0-9_]{12,}/i.test(text)
+      || /\b(?:[a-z0-9]{5}-){6}[a-z0-9]{5}\b/i.test(text)
       || /-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(text)
       || /\b(?:api[_ -]?key|access[_ -]?token|auth(?:orization)?|password|secret|cd[_ -]?key)["']?\s*[:=]\s*\S+/i.test(text)
       || /\bBearer\s+[a-z0-9._~-]{12,}/i.test(text)
@@ -87,6 +88,21 @@ export function renderCard(issue, config) {
     + (description ? description + '\n\n' : '')
     + '<!-- linear-project-sync:v1 ' + config.namespace + ' ' + issue.id.toLowerCase() + ' -->';
   return {title, body};
+}
+
+export function renderIssue(issue, config) {
+  if (typeof issue.state?.name !== 'string' || typeof issue.state?.type !== 'string' || !issue.state.type) {
+    throw new PublicationError('Incomplete Linear workflow state.');
+  }
+  const card = renderCard(issue, config);
+  // Validate the status as public text, including control/credential checks.
+  const status = renderCard({...issue, title: issue.state.name, description: ''},
+    {...config, descriptionMode: 'title-only'}).title.slice(issue.identifier.length + 3);
+  const escaped = status.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const terminal = ['completed', 'canceled'].includes(issue.state.type);
+  return {...card, body: card.body.replace('\n\n', '\nLinear status: ' + escaped + '\n\n'),
+    state: terminal ? 'CLOSED' : 'OPEN',
+    stateReason: issue.state.type === 'completed' ? 'COMPLETED' : terminal ? 'NOT_PLANNED' : null};
 }
 
 export function makeStatusResolver(states, field, config, logger = console) {

@@ -33,7 +33,7 @@ export class GithubProject {
     const c = this.config;
     return paginate(async after => {
       const data = await this.client.request(
-        'query SyncItems($id: ID!, $first: Int!, $after: String, $statusName: String!) { node(id: $id) { ... on ProjectV2 { items(first: $first, after: $after, archivedStates: [ARCHIVED, NOT_ARCHIVED]) { totalCount nodes { id type isArchived content { __typename ... on DraftIssue { id title body } } fieldValueByName(name: $statusName) { ... on ProjectV2ItemFieldSingleSelectValue { optionId } } } ' + pageInfo + ' } } } }',
+        'query SyncItems($id: ID!, $first: Int!, $after: String, $statusName: String!) { node(id: $id) { ... on ProjectV2 { items(first: $first, after: $after, archivedStates: [ARCHIVED, NOT_ARCHIVED]) { totalCount nodes { id type isArchived content { __typename ... on DraftIssue { id title body } ... on Issue { id title body number url state stateReason repository { nameWithOwner } } } fieldValueByName(name: $statusName) { ... on ProjectV2ItemFieldSingleSelectValue { optionId } } } ' + pageInfo + ' } } } }',
         {id: project.id, first: c.pageSize, after, statusName: project.statusField.name});
       return data.node?.items;
     }, {name: 'GitHub project items', maxPages: c.maxPages});
@@ -55,6 +55,17 @@ export class GithubProject {
       'mutation SyncUpdate($input: UpdateProjectV2DraftIssueInput!) { updateProjectV2DraftIssue(input: $input) { draftIssue { id } } }',
       {input: {draftIssueId: item.content.id, title: card.title, body: card.body}}, {mutation: true});
     if (data.updateProjectV2DraftIssue?.draftIssue?.id !== item.content.id) throw Error('Draft update was not confirmed.');
+  }
+
+  async addIssue(project, issue) {
+    const data = await this.client.request(
+      'mutation SyncLinkIssue($input: AddProjectV2ItemByIdInput!) { addProjectV2ItemById(input: $input) { item { id type isArchived content { __typename ... on Issue { id title body number state stateReason repository { nameWithOwner } } } } } }',
+      {input: {projectId: project.id, contentId: issue.id}}, {mutation: true});
+    const item = data.addProjectV2ItemById?.item;
+    if (!item?.id || item.content?.__typename !== 'Issue' || item.content.id !== issue.id) {
+      throw Error('Issue project link was not confirmed; reconcile before retrying.');
+    }
+    return item;
   }
 
   async setStatus(project, item, optionId) {

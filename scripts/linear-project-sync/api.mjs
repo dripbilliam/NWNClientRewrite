@@ -3,7 +3,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 export class ApiError extends Error {
   constructor(service, status, codes, {ambiguous = false} = {}) {
     const hint = status === 401 ? 'Check the API credential.'
-      : status === 403 ? 'Check project access, token permissions and rate limits.'
+      : status === 403 ? 'Check destination access, token permissions and rate limits.'
         : codes.includes('RATELIMITED') || codes.includes('RATE_LIMITED') || status === 429
           ? 'Rate limit reached; retry later.' : 'Request failed; check API availability and configuration.';
     // Never echo provider messages, response bodies, request variables or tokens.
