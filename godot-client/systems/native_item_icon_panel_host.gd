@@ -106,12 +106,10 @@ func bind_slot(binding_id: String,key: String,bundle: Dictionary,anchor: Vector2
 		failure="Item icon model bundle is incomplete"
 		return false
 	var identity:=_identity(key,bundle)
-	if slots.has(binding_id):
-		var previous: Dictionary=slots[binding_id]
-		if int(previous.identity)==identity and is_instance_valid(previous.model):
-			if _update_slot(previous,anchor,alpha):_mark_dirty()
-			return true
-		unbind_slot(binding_id)
+	var previous: Dictionary=slots.get(binding_id,{})
+	if not previous.is_empty() and int(previous.identity)==identity and is_instance_valid(previous.model):
+		if _update_slot(previous,anchor,alpha):_mark_dirty()
+		return true
 	var model=ModelInstance.new()
 	model.name="ItemIcon_"+str(hash(binding_id))
 	stage.add_child(model)
@@ -140,6 +138,9 @@ func bind_slot(binding_id: String,key: String,bundle: Dictionary,anchor: Vector2
 				if not names.is_empty():info=bundle.get("textures",{}).get(str(names[0]).to_lower(),{}).get("gui_sampler",info)
 			mesh.material_override=GuiSampler.material(material,info)
 		mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Replace only after the new model is valid. Keep the last completed panel
+	# image visible until this view's draw receipt is ready.
+	if not previous.is_empty() and is_instance_valid(previous.model): previous.model.free()
 	var slot:={"key":key,"identity":identity,"model":model,"anchor":anchor,"alpha":alpha}
 	slots[binding_id]=slot
 	_update_slot(slot,anchor,alpha)
@@ -150,10 +151,10 @@ func _mark_dirty() -> void:
 	if viewport==null or slots.is_empty():return
 	if batch_depth>0:
 		batch_dirty=true
-		presentation.visible=false
+		if not is_visible_in_tree(): presentation.visible=false
 		return
 	revision+=1
-	presentation.visible=false
+	if not is_visible_in_tree(): presentation.visible=false
 	_request_draw()
 
 func begin_batch() -> void:

@@ -191,7 +191,8 @@ func receive(message: Dictionary) -> void:
 			view_id = int(message.viewId)
 			state = message.duplicate(true)
 			items.clear(); textures.clear()
-			if is_instance_valid(scene_host): scene_host.clear()
+			# Keep the last complete icon image and its model instances while the
+			# new view is installed. seal_scene_icon_view removes only departed items.
 			scene_icon_bindings.clear(); scene_icon_sealed=false; scene_icon_failure=""
 			for item in message.items: items[int(item.entryId)] = item
 			selected = -1
@@ -343,13 +344,10 @@ func position_scene_icon(entry: int) -> bool:
 	var row: Dictionary=scene_icon_bindings[entry]
 	var button=buttons[entry]
 	var anchor:=scene_icon_anchor(button)
-	var binding_id:=str(entry)
-	if scene_host.slots.has(binding_id):
-		if row.get("anchor") is Vector2 and row.anchor.is_equal_approx(anchor): return true
-		row.anchor=anchor; scene_icon_bindings[entry]=row
-		return scene_host.reposition_slot(binding_id,anchor)
 	row.anchor=anchor; scene_icon_bindings[entry]=row
-	return scene_host.bind_slot(binding_id,str(row.key),row.bundle,anchor)
+	# bind_slot reuses an unchanged model, repositions a moved one, or replaces
+	# an item whose visual resource changed without clearing the whole panel.
+	return scene_host.bind_slot(str(entry),str(row.key),row.bundle,anchor)
 
 func install_scene_icon(view: int,entry: int,key: String,bundle: Dictionary) -> bool:
 	if view!=view_id or not is_instance_valid(scene_host) or not items.has(entry) or key.is_empty() or bundle.is_empty(): return false
@@ -364,6 +362,10 @@ func install_scene_icon(view: int,entry: int,key: String,bundle: Dictionary) -> 
 func seal_scene_icon_view(expected: int) -> void:
 	if scene_icon_bindings.size()!=expected:
 		scene_icon_failure="Original item icon scene is incomplete (%d/%d)"%[scene_icon_bindings.size(),expected]
+	if is_instance_valid(scene_host):
+		for binding_id in scene_host.slots.keys():
+			if not scene_icon_bindings.has(int(binding_id)): scene_host.unbind_slot(str(binding_id))
+		if not scene_icon_failure.is_empty(): scene_host.presentation.visible=false
 	scene_icon_sealed=true; try_admit_scene_icons()
 
 func try_admit_scene_icons() -> void:

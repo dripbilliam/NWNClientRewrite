@@ -106,7 +106,7 @@ func run() -> void:
 	check(host.bind_slot("first","same-key",icon_bundle,Vector2(66,66)) and host.slots.first.model==first,"Matching binding repositions without reconstructing")
 	check(host.reposition_slot("second",Vector2(100,50),1.0) and is_equal_approx(second.meshes[0].transparency,0.0),"Reposition updates transform and alpha")
 	if gpu:
-		check(not host.presentation_ready() and host.viewport.render_target_update_mode==SubViewport.UPDATE_ONCE and not host.presentation.visible,"Changed position and alpha request only one new panel draw")
+		check(not host.presentation_ready() and host.viewport.render_target_update_mode==SubViewport.UPDATE_ONCE and host.presentation.visible,"Changed position and alpha keep the last complete image until one new draw")
 		check(await wait_host(host) and host.viewport.render_target_update_mode==SubViewport.UPDATE_DISABLED,"Reposition draw settles and turns the viewport off again")
 	host.resize_panel(Vector2(200,100))
 	check(host.viewport.size==Vector2i(200,100) and is_equal_approx(host.camera.size,1.0),"Resize updates panel camera and viewport")

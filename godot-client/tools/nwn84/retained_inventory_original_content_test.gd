@@ -117,8 +117,10 @@ func run() -> void:
 	check(owner.ui.visible and owner.ui.scene_host.binding_ready("11") and owner.ui.buttons[11].image.texture==null,"First visible inventory frame contains original item model without an item bitmap")
 	var icon_pixels: Image=owner.ui.scene_host.viewport.get_texture().get_image()
 	check(icon_pixels!=null and icon_pixels.get_used_rect().has_area(),"Retained inventory scene draws nontransparent original item pixels")
+	var equipment_model: Node3D=owner.ui.scene_host.slots["11"].model
 	owner.page=1; owner.signature=""; owner.refresh()
 	check(owner.ui.visible,"Changing backpack pages keeps the inventory frame visible during icon redraw")
+	check(owner.ui.scene_host.presentation.visible and owner.ui.scene_host.slots["11"].model==equipment_model,"Page redraw keeps the completed equipment image and model")
 	var flat_key: String=owner.icons.request(later.item,tables,0)
 	deadline=Time.get_ticks_msec()+10000
 	while Time.get_ticks_msec()<deadline and not owner.ui.scene_host.binding_ready("12"):
@@ -171,6 +173,24 @@ func run() -> void:
 	check(owner.frame_skin.full.texture!=null and owner.frame_skin.repository_image.texture!=null,"Original inventory frame art is loaded for layer comparison")
 	var visual_capture: String=str(options.report).trim_suffix(".json")+"-inventory.png"
 	check(root.get_texture().get_image().save_png(visual_capture)==OK,"Retained icon and original frame screenshot captured")
+	var frame_stage: Control=owner.frame_skin.stage
+	var moved_item: Dictionary=equipped.duplicate(true)
+	moved_item.inventoryLocation={"ownerId":1,"channel":"R","x":1,"y":6}
+	owner.update_world(1,3,1,[moved_item],[],{"inventories":[["I",{"entries":[]}],["R",{"entries":[{"id":11,"x":1,"y":6},{"id":12,"x":0,"y":6}]}]],"containers":[]})
+	owner.refresh()
+	check(owner.ui.visible and owner.ui.scene_host.presentation.visible and owner.frame_skin.stage==frame_stage,"Unequip update keeps the window and completed icon image visible")
+	check(owner.ui.scene_host.slots["11"].model==equipment_model and owner.ui.equipment_controls[2].row.is_empty(),"Unequip repositions the existing item model without rebuilding equipment")
+	deadline=Time.get_ticks_msec()+10000
+	while Time.get_ticks_msec()<deadline and not owner.ui.scene_host.binding_ready("11"): await process_frame
+	owner.update_world(1,3,1,[equipped],[],raw)
+	owner.refresh()
+	check(owner.ui.visible and owner.ui.scene_host.presentation.visible and owner.frame_skin.stage==frame_stage,"Equip update keeps the window and completed icon image visible")
+	check(owner.ui.scene_host.slots["11"].model==equipment_model and int(owner.ui.equipment_controls[2].row.get("entryId",-1))==11,"Equip reuses the item model and existing equipment controls")
+	deadline=Time.get_ticks_msec()+10000
+	while Time.get_ticks_msec()<deadline and not owner.ui.scene_host.binding_ready("11"): await process_frame
+	var stable_revision: int=owner.ui.scene_host.revision
+	owner.signature=""; owner.refresh()
+	check(owner.ui.scene_host.revision==stable_revision and owner.ui.scene_host.slots["11"].model==equipment_model,"Unchanged inventory view reuses all icon models without a GPU redraw")
 	var prepared_before: int=owner.icons.bundles.size()
 	owner.ui.close_inventory()
 	check(owner.ui.scene_host.slots.is_empty() and owner.ui.scene_host.viewport.render_target_update_mode==SubViewport.UPDATE_DISABLED,"Closing inventory retires all retained icon models and panel viewport work")
