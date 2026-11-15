@@ -29,12 +29,12 @@ Primary sources: [Electron 33 safeStorage implementation](https://github.com/ele
 
 | Stage | Concrete work | Initial estimate |
 | --- | --- | --- |
-| New credential store and compatibility spike | Prototype a native Windows Credential Manager adapter, verify save/read/delete with throwaway profiles, then prove one-time `v10` import without exposing key material | 1–3 working days |
-| Normal runtime replacement | Replace Electron bootstrap and protected-settings IPC with a Node-owned settings service; preserve profile paths, mods, browser state, launch arguments and shutdown | 3–6 days |
-| Workflow and dependency retirement | Replace Electron-only test helpers and launchers; retire the old Electron frontend; remove package/lockfile dependency and add a no-Electron guard | 5–10 days |
-| Acceptance | Clean install, existing-user upgrade, failed unlock/recovery, public-server login, character selection, NWSync, area/travel/reconnect, clean shutdown, packaging | 3–6 days |
+| Normal runtime replacement | Replace the 30-line Electron bootstrap and protected-settings IPC with a Node-owned settings service and new Windows key store; preserve profile paths and launch arguments | 1–3 working days |
+| Existing-user upgrade | Import the old `v10` keys into the new store, or implement an explicit re-entry route if the ticket's saved-key requirement is changed | 1–2 days |
+| Workflow and dependency retirement | Replace Electron-only test helpers and launchers; retire the old Electron frontend; remove package/lockfile dependency and add a no-Electron guard | 2–5 days |
+| Acceptance | Clean setup, existing-user upgrade, failed unlock/recovery, public-server login, character selection, NWSync, area/travel/reconnect and shutdown | 1–2 days |
 
-**Initial total: roughly 12–25 working days (about 3–5 weeks for one focused developer).** A first normal launch without an Electron process could plausibly be demonstrated in 4–8 days, but that would not complete NWN-79. The range depends most on the credential compatibility spike and on how much historical Electron-only regression coverage must be moved before deletion. This is an estimate, not measured implementation time.
+**Revised estimate: roughly 1–3 working days for the first normal Electron-free launch, 5–12 working days for strict NWN-79 completion.** The earlier 4–8 day estimate for a first launch and 12–25 day full-ticket estimate mixed conservative cleanup and acceptance time into the initial implementation. The bootstrap is small and the Node protocol host is already independent. The remaining range depends mainly on existing-key import and how much historical Electron-only regression coverage must be moved before deletion. This is a source-based estimate, not measured implementation time.
 
 A source search found 16 JavaScript files importing the Electron API directly and 26 source launch/test files referring to `electron.exe`. The older migration inventory lists 866 `src/` and `electron/` modules, 753 still marked pending feature audit, and 747 reference tests. Those are audit/retirement scope indicators, not 866 modules to rewrite: runtime protocol modules can remain as Node modules, but the legacy frontend and useful regression coverage need classification before deletion.
 
