@@ -66,6 +66,12 @@ export class GithubRepository {
       if (result?.id !== issue.id) throw Error('Repository issue state change was not confirmed.');
       return result;
     };
+    // A closed -> closed reason change is an explicit reopen/close transition;
+    // APIs may reject closeIssue when the issue is already closed.
+    if (issue.state === 'CLOSED' && card.state === 'CLOSED' && issue.stateReason !== card.stateReason) {
+      const reopened = await change(true);
+      if (reopened.state !== 'OPEN') throw Error('Repository issue reopen was not confirmed.');
+    }
     let result = await change(card.state === 'OPEN');
     // Some API versions leave the reason unchanged on an already closed issue.
     // Only this explicit reason transition needs a reopen/close pair.

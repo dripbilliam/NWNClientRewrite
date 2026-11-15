@@ -223,6 +223,18 @@ test('repository close-reason changes use a confirmed reopen/close if required',
   assert.deepEqual(calls, ['closeIssue', 'reopenIssue', 'closeIssue']);
 });
 
+test('changing a closed issue from completed to canceled works when redundant closes are rejected', async () => {
+  let state = 'CLOSED'; const calls = [];
+  const repository = new GithubRepository({request: async (query, variables) => {
+    const field = query.includes('reopenIssue(') ? 'reopenIssue' : 'closeIssue'; calls.push(field);
+    if (field === 'closeIssue' && state === 'CLOSED') throw Error('Already closed');
+    state = field === 'reopenIssue' ? 'OPEN' : 'CLOSED';
+    return {[field]: {issue: {id: 'I', state, stateReason: state === 'CLOSED' ? variables.input.stateReason : null}}};
+  }}, config());
+  await repository.setState({id: 'I', state: 'CLOSED', stateReason: 'COMPLETED'}, {state: 'CLOSED', stateReason: 'NOT_PLANNED'});
+  assert.deepEqual(calls, ['reopenIssue', 'closeIssue']);
+});
+
 test('repository inventories reject incomplete issue bodies instead of duplicating a hidden marker', async () => {
   const repository = new GithubRepository({request: async () => ({node: {issues: {
     nodes: [{id: 'I', number: 1, title: 'Existing', state: 'OPEN', repository: {nameWithOwner: repo.nameWithOwner}}],
