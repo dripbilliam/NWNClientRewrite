@@ -69,8 +69,9 @@ func bind_slot(button,entry: Dictionary) -> void:
 	if not layout_ready or not entry.has("native"): return
 	var source: Dictionary=entry.native
 	button.native_icon_center=source.icon+origin()-button.position
-	button.add_theme_stylebox_override("normal",StyleBoxEmpty.new()); button.add_theme_stylebox_override("pressed",StyleBoxEmpty.new())
-	var hover:=StyleBoxFlat.new(); hover.bg_color=Color(0,0,0,0); hover.border_color=Color("b6a16a"); hover.set_border_width_all(1); button.add_theme_stylebox_override("hover",hover)
+	for state_name in ["normal","pressed","disabled","focus"]: button.add_theme_stylebox_override(state_name,StyleBoxEmpty.new())
+	var hover:=StyleBoxFlat.new(); hover.bg_color=Color.TRANSPARENT; hover.border_color=Color("b6a16a"); hover.set_border_width_all(1)
+	button.add_theme_stylebox_override("hover",hover); button.add_theme_stylebox_override("hover_pressed",hover)
 	button.caption.hide(); button.refresh_icon()
 	if button.row.is_empty():
 		button.image.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)

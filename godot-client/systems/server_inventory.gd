@@ -179,7 +179,6 @@ func receive(message: Dictionary) -> void:
 			blocked_store_generation = store_generation
 		"inventory-notice": notice.text = str(message.text)
 		"inventory-view":
-			if is_instance_valid(scene_host): hide()
 			if not wanted:
 				var store: Dictionary = message.get("store", {})
 				var new_store: bool = store.get("open", false) and int(store.get("generation", -1)) > blocked_store_generation
@@ -320,8 +319,6 @@ func configure_scene_icons(source) -> bool:
 	if not scene_host.configure(source.pool):
 		scene_icon_failure=str(scene_host.failure); return false
 	resized.connect(sync_scene_icon_host)
-	scene_host.resized.connect(func():
-		if scene_icon_sealed and not scene_host.presentation_ready(): hide())
 	scene_host.presented.connect(func(_revision): try_admit_scene_icons())
 	sync_scene_icon_host(); return true
 
@@ -333,7 +330,7 @@ func sync_scene_icon_host() -> void:
 	if not is_instance_valid(scene_host): return
 	var pixels:=Vector2i(maxi(2,roundi(size.x)),maxi(2,roundi(size.y)))
 	if scene_host.viewport.size!=pixels:
-		hide(); scene_host.resize_panel(size)
+		scene_host.resize_panel(size)
 	for id in scene_icon_bindings: position_scene_icon(int(id))
 	try_admit_scene_icons()
 
@@ -350,7 +347,7 @@ func position_scene_icon(entry: int) -> bool:
 	if scene_host.slots.has(binding_id):
 		if row.get("anchor") is Vector2 and row.anchor.is_equal_approx(anchor): return true
 		row.anchor=anchor; scene_icon_bindings[entry]=row
-		hide(); return scene_host.reposition_slot(binding_id,anchor)
+		return scene_host.reposition_slot(binding_id,anchor)
 	row.anchor=anchor; scene_icon_bindings[entry]=row
 	return scene_host.bind_slot(binding_id,str(row.key),row.bundle,anchor)
 
@@ -373,7 +370,10 @@ func try_admit_scene_icons() -> void:
 	if not scene_icon_sealed or not is_instance_valid(scene_host) or not wanted or view_id<0 or not scene_icon_failure.is_empty(): return
 	for id in scene_icon_bindings:
 		if not scene_host.binding_ready(str(id)): return
-	if not scene_host.presentation_ready(): hide(); return
+	if not scene_host.presentation_ready(): return
+	# The frame art is a later sibling of the host. Put the transparent icon
+	# image above it so its dark overlay cannot tint the models or cover hover.
+	scene_host.move_to_front()
 	show(); move_to_front()
 
 func select_item(id: int) -> void:

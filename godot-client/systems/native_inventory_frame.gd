@@ -106,6 +106,9 @@ func activate() -> void:
 	inventory.notice.reparent(stage,false); inventory.notice.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	inventory.notice.add_theme_color_override("font_shadow_color",Color.BLACK); inventory.notice.add_theme_constant_override("shadow_offset_x",1); inventory.notice.add_theme_constant_override("shadow_offset_y",1)
 	if not inventory.state.is_empty(): inventory.render()
+	# The frame may finish loading after the first icon draw. Keep its art below
+	# the transparent retained scene, as bitmap icons inside slots already are.
+	if is_instance_valid(inventory.scene_host): inventory.scene_host.move_to_front()
 func configure_repository(repository,data: Dictionary,parent: Control) -> void:
 	relocate(repository,parent,data.rect); repository.cell_size=Layout.CELL; repository.bottom_origin=true; repository.native_art=true; repository.clip_contents=true; repository.queue_redraw()
 func split_background() -> void:
@@ -149,7 +152,11 @@ func update_notice() -> void:
 func decorate_item(button,repository,item: Dictionary) -> void:
 	if not layout_ready or not repository.bottom_origin: return
 	var width:=maxi(1,int(item.width)); var height:=maxi(1,int(item.height)); var center:=Layout.icon_center(0,0,width,height)
-	button.native_icon_center=Vector2(center.x,height*Layout.CELL-center.y); button.add_theme_stylebox_override("normal",StyleBoxEmpty.new()); button.add_theme_stylebox_override("pressed",StyleBoxEmpty.new()); button.refresh_icon()
+	button.native_icon_center=Vector2(center.x,height*Layout.CELL-center.y)
+	for state_name in ["normal","pressed","disabled","focus"]: button.add_theme_stylebox_override(state_name,StyleBoxEmpty.new())
+	var hover:=StyleBoxFlat.new(); hover.bg_color=Color.TRANSPARENT; hover.border_color=Color("b6a16a"); hover.set_border_width_all(1)
+	button.add_theme_stylebox_override("hover",hover); button.add_theme_stylebox_override("hover_pressed",hover)
+	button.refresh_icon()
 func snapshot() -> Dictionary:
 	var buttons: Array=[]
 	for data in button_geometry.values():

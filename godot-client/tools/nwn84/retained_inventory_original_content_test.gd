@@ -110,14 +110,15 @@ func run() -> void:
 		check(drag_preview.get_child(0).binding_ready("preview") and drag_preview.get_child(0).viewport.get_texture().get_image().get_used_rect().has_area(),"Drag preview presents original model pixels before use")
 	if drag_preview!=null: root.remove_child(drag_preview); drag_preview.free()
 	owner.refresh()
-	check(not owner.ui.visible and owner.ui.items.has(11) and owner.ui.scene_host.slots.has("11"),"Inventory stays hidden until retained model draw receipt")
+	check(owner.ui.items.has(11) and owner.ui.scene_host.slots.has("11") and (not owner.ui.visible or owner.ui.scene_host.presented_revision>0),"Inventory appears only after an initial retained model draw receipt")
 	deadline=Time.get_ticks_msec()+10000
-	while Time.get_ticks_msec()<deadline and not owner.ui.visible: await process_frame
+	while Time.get_ticks_msec()<deadline and (not owner.ui.visible or not owner.ui.scene_host.binding_ready("11")): await process_frame
 	var first_state:={"visible":owner.ui.visible,"binding_ready":owner.ui.scene_host.binding_ready("11"),"image_texture":owner.ui.buttons[11].image.texture!=null,"host_revision":owner.ui.scene_host.revision,"presented_revision":owner.ui.scene_host.presented_revision,"failure":owner.ui.scene_icon_failure}
 	check(owner.ui.visible and owner.ui.scene_host.binding_ready("11") and owner.ui.buttons[11].image.texture==null,"First visible inventory frame contains original item model without an item bitmap")
 	var icon_pixels: Image=owner.ui.scene_host.viewport.get_texture().get_image()
 	check(icon_pixels!=null and icon_pixels.get_used_rect().has_area(),"Retained inventory scene draws nontransparent original item pixels")
 	owner.page=1; owner.signature=""; owner.refresh()
+	check(owner.ui.visible,"Changing backpack pages keeps the inventory frame visible during icon redraw")
 	var flat_key: String=owner.icons.request(later.item,tables,0)
 	deadline=Time.get_ticks_msec()+10000
 	while Time.get_ticks_msec()<deadline and not owner.ui.scene_host.binding_ready("12"):
@@ -126,6 +127,9 @@ func run() -> void:
 	deadline=Time.get_ticks_msec()+15000
 	while Time.get_ticks_msec()<deadline and not owner.frame_skin.layout_ready: await process_frame
 	check(owner.frame_skin.layout_ready,"Original inventory frame hooks are ready for placement comparison")
+	check(owner.ui.scene_host.get_index()>owner.frame_skin.stage.get_index(),"Retained icons draw above the original inventory frame art")
+	var item_hover: StyleBox=owner.ui.buttons[12].get_theme_stylebox("hover")
+	check(item_hover is StyleBoxFlat and (item_hover as StyleBoxFlat).bg_color.a==0.0,"Item hover draws an outline without blacking out retained icons")
 	deadline=Time.get_ticks_msec()+3000
 	while Time.get_ticks_msec()<deadline and (hook_error(owner,12)>=0.5 or not owner.ui.scene_host.binding_ready("12")): await process_frame
 	var automatic_hook_error: float=hook_error(owner,12)
@@ -162,6 +166,11 @@ func run() -> void:
 		mesh_bounds.append({"local_aabb":str(mesh.get_aabb()),"world_aabb":str(mesh.global_transform*mesh.get_aabb()),"global_transform":str(mesh.global_transform)})
 	var projection_debug:={"camera_position":str(host.camera.position),"camera_transform":str(host.camera.global_transform),"projected_model_origin":str(host.camera.unproject_position(slot_model.global_position)),"mesh_bounds":mesh_bounds}
 	cover.free()
+	deadline=Time.get_ticks_msec()+8000
+	while Time.get_ticks_msec()<deadline and (owner.frame_skin.full.texture==null or owner.frame_skin.repository_image.texture==null): await process_frame
+	check(owner.frame_skin.full.texture!=null and owner.frame_skin.repository_image.texture!=null,"Original inventory frame art is loaded for layer comparison")
+	var visual_capture: String=str(options.report).trim_suffix(".json")+"-inventory.png"
+	check(root.get_texture().get_image().save_png(visual_capture)==OK,"Retained icon and original frame screenshot captured")
 	var prepared_before: int=owner.icons.bundles.size()
 	owner.ui.close_inventory()
 	check(owner.ui.scene_host.slots.is_empty() and owner.ui.scene_host.viewport.render_target_update_mode==SubViewport.UPDATE_DISABLED,"Closing inventory retires all retained icon models and panel viewport work")
@@ -169,7 +178,7 @@ func run() -> void:
 	deadline=Time.get_ticks_msec()+10000
 	while Time.get_ticks_msec()<deadline and not owner.ui.visible: await process_frame
 	check(owner.ui.visible and owner.icons.bundles.size()==prepared_before,"Reopening inventory reuses prepared original model bundles")
-	var report:={"success":failures.is_empty(),"checks":checks,"failures":failures,"first_state":first_state,"automatic_hook_error":automatic_hook_error,"scale_rows":scale_rows,"overlap_capture":overlap_capture,"pixel_bounds":pixel_bounds,"host_bounds":host_bounds,"projection_debug":projection_debug,"icons":owner.snapshot().icons,"owner":owner.snapshot(),"scope":"Installed original retained 3D item models, UI scales 1.0/1.3/1.9, 3440-wide resize, hook placement, overlap, drag model, close and reopen. No live Arelith or FPS measurement."}
+	var report:={"success":failures.is_empty(),"checks":checks,"failures":failures,"first_state":first_state,"automatic_hook_error":automatic_hook_error,"scale_rows":scale_rows,"overlap_capture":overlap_capture,"visual_capture":visual_capture,"pixel_bounds":pixel_bounds,"host_bounds":host_bounds,"projection_debug":projection_debug,"icons":owner.snapshot().icons,"owner":owner.snapshot(),"scope":"Installed original retained 3D item models, UI scales 1.0/1.3/1.9, 3440-wide resize, hook placement, overlap, drag model, close and reopen. No live Arelith or FPS measurement."}
 	owner.close(); owner.free(); surface.free(); text.close(); await process_frame
 	var file:=FileAccess.open(options.report,FileAccess.WRITE); file.store_string(JSON.stringify(report,"  ")); file.close()
 	print(JSON.stringify({"success":report.success,"checks":checks,"failures":failures}))
