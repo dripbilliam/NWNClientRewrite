@@ -32,3 +32,6 @@ scripts/inspect-movement-video.cjs
 # Generated static research wiki and its local npm cache.
 wiki/_site/
 wiki/.npm-cache/
+
+# Keep local test files (including generated sidecars) out of new Git additions.
+*_test*
