@@ -1,0 +1,142 @@
+{
+  "format": "nwn79-original-js-module-retirement-v1",
+  "scope": "Original implementation files are temporary read-only behavior blueprints; normal Godot runtime reaches no JavaScript files.",
+  "nominations": [
+    {
+      "path": "src/network_character.js",
+      "status": "retired-normal-runtime",
+      "exports": [
+        "MAX_NETWORK_CHARACTER_BYTES",
+        "characterExportRequest",
+        "readCharacterExport",
+        "characterBlobRequest"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_server_characters.gd",
+        "godot-client/systems/native_data/native_network_character_export.gd",
+        "godot-client/systems/native_data/native_network_session.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_character_export_test.gd"
+      ],
+      "liveEvidence": ".cache/nwn79-character-export-20261116-b/matrix-summary.json: selected character-export pass; requestSent, serverReply, saved, durableReadback, sessionAlive and cleanExit true; sealed 15 loaded inputs unchanged",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/network_game_session.mjs",
+        "electron/network_character_vault.mjs",
+        "src/network_character_selection.js",
+        "src/network_game_messages.js",
+        "src/network_portal.js"
+      ],
+      "retiredSha256": "da508bd798c79f81e97366a8f125ffeeef13dfc357eb80eb3cea80cde504ab95",
+      "retirementEvidence": ".cache/nwn79-original-js-module-cull-20261116-a.json",
+      "scopeNote": "Original-source importers are dead blueprint text; the normal Godot runtime has zero JavaScript callers."
+    },
+    {
+      "path": "src/network_gui_panel_access.js",
+      "status": "retired-normal-runtime",
+      "exports": [
+        "GUI_PANEL_EVENT_LIMIT",
+        "readGuiPanelDisabled",
+        "readGuiPanelPopup",
+        "guiPanelAttemptRequest",
+        "GuiPanelAccess",
+        "guiPanelEventForHost",
+        "guiPanelHeaderForHost"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_network_gui_access.gd",
+        "godot-client/systems/native_data/native_network_session.gd",
+        "godot-client/systems/native_gui_panel_access.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_gui_access_session_test.gd",
+        "godot-client/tests/nwn79_gui_access_vertical_test.gd",
+        "godot-client/tests/nwn79_gui_outbound_writer_test.gd",
+        "godot-client/tests/nwn79_gui_outbound_session_test.gd"
+      ],
+      "liveEvidence": "Focused original-writer, fake-peer session, and actual UI route tests pass; private live GUI attempt remains a separate broader acceptance row",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/network_game_session.mjs",
+        "src/network_game_messages.js",
+        "src/network_world.js"
+      ],
+      "retiredSha256": "6d68e3ff63100940783d294506ec4444d0de7b755a263dd705b9bf84316dac98",
+      "retirementEvidence": ".cache/nwn79-original-js-module-cull-20261116-a.json",
+      "scopeNote": "Original-source importers are dead blueprint text; the normal Godot runtime has zero JavaScript callers. Private live GUI acceptance remains pending."
+    },
+    {
+      "path": "electron/network_packet_cipher.mjs",
+      "status": "retired-normal-runtime",
+      "exports": ["requiresSessionEncryption", "NetworkPacketCipher"],
+      "godotReplacements": ["godot-client/systems/native_data/native_network_packet_cipher.gd", "godot-client/systems/native_data/native_network_datagram.gd"],
+      "focusedEvidence": ["godot-client/tests/nwn79_native_packet_cipher_test.gd"],
+      "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
+      "deadOriginalSourceImporters": ["electron/network_peer.mjs"],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "1af8d2738497e696ffd63cfff312a0144b82f408fe9b81196164cd117b518277",
+      "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-a.json"
+    },
+    {
+      "path": "electron/network_crypto.mjs",
+      "status": "retired-normal-runtime",
+      "exports": ["NetworkCrypto"],
+      "godotReplacements": ["godot-client/systems/native_data/native_network_crypto.gd"],
+      "focusedEvidence": ["godot-client/tests/nwn79_native_network_crypto_test.gd"],
+      "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
+      "deadOriginalSourceImporters": ["electron/network_peer.mjs"],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "cb6759d05e617b9bb9c992c812302dbe434f6768c5ef6d9a642562025dba332d",
+      "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-b.json"
+    },
+    {
+      "path": "electron/network_character_vault.mjs",
+      "status": "retired-normal-runtime",
+      "exports": ["NetworkCharacterVault"],
+      "godotReplacements": ["godot-client/systems/native_data/native_character_export_vault.gd"],
+      "focusedEvidence": ["godot-client/tests/nwn79_native_character_export_vault_test.gd"],
+      "privateEvidence": ".cache/nwn79-character-export-20261116-b/matrix-summary.json",
+      "deadOriginalSourceImporters": ["electron/main.cjs"],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "a128e6e968d38884f792c29f03ff8f3b6fd859e9643dfcb26b05146002029149",
+      "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-b.json"
+    },
+    {
+      "path": "electron/network_message_inflater.mjs",
+      "status": "retired-normal-runtime",
+      "exports": ["NetworkMessageInflater"],
+      "godotReplacements": ["godot-client/systems/native_data/native_network_inflater.gd"],
+      "focusedEvidence": ["godot-client/tests/nwn79_native_inflater_test.gd"],
+      "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
+      "deadOriginalSourceImporters": ["electron/network_peer.mjs"],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "1d8299c54c924ba09a392438b4da47511a05fc010ed3375b8910327e7269f6d2",
+      "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-a.json"
+    },
+    {
+      "path": "electron/network_login_identity.mjs",
+      "status": "retired-normal-runtime",
+      "exports": ["publicCdKey", "NetworkLoginIdentity"],
+      "godotReplacements": ["godot-client/systems/native_data/native_login_identity.gd"],
+      "focusedEvidence": ["godot-client/tests/nwn79_native_login_identity_test.gd"],
+      "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
+      "deadOriginalSourceImporters": ["electron/installed_network_session.mjs"],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "6fc247939585fd2b888a9a021ad33dcdb0f61ce0fa5efa4985a609ab26879236",
+      "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-a.json"
+    },
+    {
+      "path": "electron/installed_network_build.mjs",
+      "status": "retired-normal-runtime",
+      "exports": ["installedNetworkBuild"],
+      "godotReplacements": ["godot-client/systems/native_data/native_installed_network_build.gd"],
+      "focusedEvidence": ["godot-client/tests/nwn79_native_installed_build_test.gd"],
+      "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
+      "deadOriginalSourceImporters": ["electron/installed_network_session.mjs"],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "56e9b34e414fb119299377fea9af6ded101cc773ec7a8e6d90b7e322915e5e6f",
+      "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-a.json"
+    }
+  ]
+}

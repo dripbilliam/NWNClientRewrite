@@ -1,0 +1,568 @@
+{
+  "schema": 1,
+  "originalNativeSender": 36,
+  "capturedNative": 0,
+  "authoredWriter": 40,
+  "cases": [
+    {
+      "name": "native-sender-906",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffffff0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-907",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffffff0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-908",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffffff0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-912",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320114000000ffffffff0500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-913",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320114000000ffffffff0500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-914",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320114000000ffffffff0500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-918",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffffff0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-919",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffffff0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-920",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffffff0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-924",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320112000000ffffffff0300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "native-sender-925",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320112000000ffffffff0300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "native-sender-926",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320112000000ffffffff0300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "native-sender-930",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f0000000a0000000000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-931",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f0000000a0000000000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-932",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f0000000a0000000000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-936",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "503201140000000a0000000500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-937",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "503201140000000a0000000500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-938",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "503201140000000a0000000500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-942",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f0000000a0000000000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-943",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f0000000a0000000000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-944",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f0000000a0000000000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-948",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "503201120000000a0000000300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "native-sender-949",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "503201120000000a0000000300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "native-sender-950",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "503201120000000a0000000300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": 10,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "native-sender-954",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffff7f0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-955",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffff7f0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-956",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffff7f0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-960",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320114000000ffffff7f0500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-961",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320114000000ffffff7f0500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-962",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320114000000ffffff7f0500000076616c756560",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "value",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "76616c7565"
+      }
+    },
+    {
+      "name": "native-sender-966",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffff7f0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-967",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffff7f0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-968",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "5032010f000000ffffff7f0000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "native-sender-972",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320112000000ffffff7f0300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "native-sender-973",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320112000000ffffff7f0300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "native-sender-974",
+      "origin": "original native sender scalar observation plus original-format authored writer",
+      "packet": "50320112000000ffffff7f0300000061006260",
+      "expected": {
+        "kind": "custom-token",
+        "id": 2147483647,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "610062"
+      }
+    },
+    {
+      "name": "writer-edge-0",
+      "origin": "original-format authored writer checked against original JS receiver",
+      "packet": "50320111000000000000800200000080e960",
+      "expected": {
+        "kind": "custom-token",
+        "id": -2147483648,
+        "text": "€é",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "80e9"
+      }
+    },
+    {
+      "name": "writer-edge-1",
+      "origin": "original-format authored writer checked against original JS receiver",
+      "packet": "5032011b000000292300000c00000053657276657220412000204260",
+      "expected": {
+        "kind": "custom-token",
+        "id": 9001,
+        "text": null,
+        "major": 50,
+        "minor": 1,
+        "textComplete": false,
+        "textHex": "536572766572204120002042"
+      }
+    },
+    {
+      "name": "writer-edge-2",
+      "origin": "original-format authored writer checked against original JS receiver",
+      "packet": "5032010f000000000000000000000060",
+      "expected": {
+        "kind": "custom-token",
+        "id": 0,
+        "text": "",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": ""
+      }
+    },
+    {
+      "name": "writer-edge-3",
+      "origin": "original-format authored writer checked against original JS receiver",
+      "packet": "5032011b000000ffffffff0c0000003c435553544f4d393030313e60",
+      "expected": {
+        "kind": "custom-token",
+        "id": -1,
+        "text": "<CUSTOM9001>",
+        "major": 50,
+        "minor": 1,
+        "textComplete": true,
+        "textHex": "3c435553544f4d393030313e"
+      }
+    }
+  ]
+}

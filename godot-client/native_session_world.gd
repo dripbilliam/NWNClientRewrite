@@ -12,6 +12,7 @@ var camera_fov_binding=preload("res://tools/native_parity/ui/camera_fov_binding.
 var entity_inspector
 var render_menu
 var login_profiles
+var protected_settings_bridge
 var login_profiles_layer
 var window_settings
 var ui_preload
@@ -36,6 +37,9 @@ var character_preview_probe
 var chooser_ready_connection:=-1
 var fixture_filter_connection:=-1
 var session_connection:=0
+var device_metrics_revision:=0
+var last_device_metrics: Array=[]
+var device_metrics_hello_ready:=false
 var pending_creator: Dictionary={}
 var creation_request_serial:=0
 var loading_announced:=false
@@ -223,6 +227,24 @@ func entity_api_movement(message: Dictionary) -> void:
 	if not is_instance_valid(world) or int(message.get("generation",-1))!=epoch or int(message.get("areaId",-1))!=world.area_id: return
 	if world.closed or world.retiring: return
 	entity_api_binding.presentation_records(session_connection,epoch,world.area_id,message.get("records",[]))
+static func device_properties_packet(metrics: Dictionary,connection: int,revision: int) -> Dictionary:
+	var width: Variant=metrics.get("width")
+	var height: Variant=metrics.get("height")
+	var fixed: Variant=metrics.get("fixed")
+	if not width is int or not height is int or width<=0 or height<=0 or width>0x7fffffff or height>0x7fffffff:return {}
+	if not (fixed is float or fixed is int) or not is_finite(float(fixed)) or fixed<0 or fixed>16 or connection<0 or revision<=0:return {}
+	return {"kind":"device-properties","connection":connection,"metricsRevision":revision,"guiScalePercent":int(float(fixed)*100.0),"guiWidth":width,"guiHeight":height}
+static func device_properties_signature(packet: Dictionary) -> Array:
+	return [packet.connection,packet.guiScalePercent,packet.guiWidth,packet.guiHeight]
+func publish_device_properties() -> void:
+	if closing or not device_metrics_hello_ready or not is_instance_valid(window_settings) or peer.get_status()!=StreamPeerTCP.STATUS_CONNECTED or session_connection==cancelled_connection:return
+	var metrics: Dictionary=window_settings.current(); metrics.fixed=window_settings.fixed_scale
+	var packet:=device_properties_packet(metrics,session_connection,device_metrics_revision+1)
+	if packet.is_empty():return
+	var signature: Array=device_properties_signature(packet)
+	if signature==last_device_metrics:return
+	device_metrics_revision+=1;last_device_metrics=signature
+	send(packet)
 func send(value: Dictionary) -> void:
 	var scoped:=value.duplicate()
 	if not scoped.has("connection"): scoped.connection=session_connection
@@ -233,6 +255,7 @@ func send(value: Dictionary) -> void:
 			scoped.native_ticks_ms=Time.get_ticks_msec()
 		if is_instance_valid(particle_visibility): scoped.particle_visibility=particle_visibility.snapshot()
 		if is_instance_valid(environment): scoped.area_lighting=environment.lighting_diagnostic()
+	if str(scoped.get("kind",""))=="hello" and protected_settings_bridge!=null:scoped.settingsStatus=protected_settings_bridge.status()
 	if str(scoped.get("kind","")) in ["observed","catalog-ready"] and args.get("recording","")=="true":
 		scoped.nativeView=CameraObservation.capture_view(camera,controller,{"connection":session_connection,"position":[0,0,0],"quaternion":[0,0,0,1],"pose_valid":false,"pose_space":"unavailable","size":[root.size.x,root.size.y],"particles":render_settings.particles_enabled,"particle_collision":render_settings.particle_collision_enabled,"gore":render_settings.gore})
 	super.send(scoped)
@@ -262,6 +285,9 @@ func run() -> void:
 	snapshot_preparation_enabled=snapshot_preparation_choice()=="workers"
 	print("NATIVE_SESSION_PROTOCOL_OPEN ",host!=null)
 	if closing or host==null: return
+	if ticket.has("settingsDirectory"):
+		protected_settings_bridge=preload("res://systems/native_data/godot_settings_bridge.gd").new()
+		if not protected_settings_bridge.open(str(ticket.settingsDirectory),str(ticket.get("defaultModsDirectory","")),send):fail("Godot protected settings could not open");return
 	catalog_retirement=WorldRetirement.new(); host.add_child(catalog_retirement)
 	root.title="NWN · Native Godot"
 	if args.get("recording","")=="true":
@@ -277,6 +303,7 @@ func run() -> void:
 	if not gamma_controller.bind_settings(render_settings,args.has("native-gamma")):
 		fail("Native gamma settings binding is unavailable"); return
 	window_settings=preload("res://systems/native_window_settings.gd").new(); host.add_child(window_settings); window_settings.configure(root,str(args.get("render-preferences","user://native-options.cfg")))
+	window_settings.changed.connect(publish_device_properties)
 	asset_prework=preload("res://systems/native_prework_process.gd").new(); host.add_child(asset_prework); asset_prework.changed.connect(render_settings.update_prework)
 	ui_preload=preload("res://systems/native_ui_preload.gd").new(); host.add_child(ui_preload); ui_preload.changed.connect(render_settings.update_ui_preload)
 	render_settings.ui_preload_requested.connect(start_ui_preload)
@@ -404,12 +431,13 @@ func open_startup_menu() -> void:
 	if is_instance_valid(world): return
 	if server_browser.wanted: server_browser.close()
 	character_lobby.panel.hide(); render_menu.open(false); label.text=""
-	var ui=render_menu.pregame; var deadline:=Time.get_ticks_msec()+10000
-	while not closing and Time.get_ticks_msec()<deadline and is_instance_valid(ui) and ui.failure.is_empty() and (not is_instance_valid(ui.main) or not ui.main.layout_ready or DisplayServer.get_name()!="headless" and not ui.main.art_ready()): await process_frame
+	var ui=render_menu.pregame; var deadline:=Time.get_ticks_msec()+30000;var graphical:=DisplayServer.get_name()!="headless"
+	while not closing and Time.get_ticks_msec()<deadline and is_instance_valid(ui) and ui.failure.is_empty() and (not is_instance_valid(ui.main) or not ui.main.layout_ready or graphical and (not ui.main.art_ready() or not ui.menu_startup_status().ready or not ui.button_audio_ready and ui.button_audio_failure.is_empty())): await process_frame
 	if closing: return
 	if is_instance_valid(ui): ui.refresh()
-	var ready: bool=is_instance_valid(ui) and ui.failure.is_empty() and is_instance_valid(ui.main) and ui.main.layout_ready and (DisplayServer.get_name()=="headless" or ui.main.art_ready())
-	report.startup_menu={"ready":ready,"mainVisible":ready and ui.main.is_visible_in_tree(),"browserHidden":not server_browser.wanted,"lobbyHidden":not character_lobby.panel.visible}
+	var ready: bool=is_instance_valid(ui) and ui.failure.is_empty() and is_instance_valid(ui.main) and ui.main.layout_ready and (not graphical or ui.main.art_ready() and ui.menu_startup_status().ready)
+	var preload_status: Dictionary=ui.menu_startup_status() if is_instance_valid(ui) else {}
+	report.startup_menu={"ready":ready,"mainVisible":ready and ui.main.is_visible_in_tree(),"browserHidden":not server_browser.wanted,"lobbyHidden":not character_lobby.panel.visible,"preload":{"ready":preload_status.get("ready",false),"completed":preload_status.get("completed",0),"total":preload_status.get("total",0),"failures":preload_status.get("failures",[])},"buttonAudioReady":is_instance_valid(ui) and ui.button_audio_ready,"buttonAudioFailed":is_instance_valid(ui) and not ui.button_audio_failure.is_empty()}
 	send({"kind":"main-menu-observed","ready":ready,"mainVisible":report.startup_menu.mainVisible,"browserHidden":report.startup_menu.browserHidden,"lobbyHidden":report.startup_menu.lobbyHidden,"runtimeFeatures":runtime_features_snapshot()})
 	if ready: print("NATIVE_STARTUP_MAIN_MENU_READY")
 func open_render_settings() -> void:
@@ -551,6 +579,7 @@ func receive(message: Dictionary) -> void:
 func receive_profiled(message: Dictionary) -> void:
 	if closing and message.get("kind")!="finish-ack": return
 	if not accept_connection(message): return
+	if protected_settings_bridge!=null and protected_settings_bridge.handle(message):return
 	if message.get("kind")=="native-clock-protocol":
 		# Local constructor facts arrive from the canonical decoded lifecycle,
 		# independent of optional clock sampling and visual model preparation.
@@ -564,7 +593,12 @@ func receive_profiled(message: Dictionary) -> void:
 	if message.get("kind") in ["raw-tile-visibility","raw-creature-visibility-permission"]:
 		if native_visibility_runtime!=null:native_visibility_runtime.receive(message)
 		return
-	if message.get("kind")=="setup" and message.get("resourceSources") is Dictionary: current_prework_sources=message.resourceSources.duplicate(true)
+	if message.get("kind")=="setup":
+		# The loopback is connected by this boundary. Seed the host's map before
+		# its first game-server connection, even if startup changed was too early.
+		device_metrics_hello_ready=true
+		publish_device_properties()
+		if message.get("resourceSources") is Dictionary: current_prework_sources=message.resourceSources.duplicate(true)
 	match str(message.get("kind","")):
 		"test-lobby-participant-status":
 			if args.get("lobby-pages-check","")=="true" and args.get("actions-check","")=="true": test_lobby_participant=message.get("value",{}).duplicate(true)
@@ -634,15 +668,21 @@ func receive_profiled(message: Dictionary) -> void:
 			send(receipt)
 		"probe-native-creation":
 			if args.get("settings-check","")!="true": return
-			var probe=preload("res://tests/native_creation_live_probe.gd").new(); host.add_child(probe); probe.run(self)
+			var probe_source:=load("res://tests/native_creation_live_probe.gd") as Script
+			if probe_source==null:fail("Native creation development probe is unavailable");return
+			var probe=probe_source.new(); host.add_child(probe); probe.run(self)
 		"native-creation-result":
 			if is_instance_valid(gameplay_ui): gameplay_ui.creator.result(message)
 		"probe-level-source":
 			if args.get("level-source-check","")!="true":return
-			var probe=preload("res://tests/native_live_level_up_source_probe.gd").new();host.add_child(probe);probe.run(self)
+			var probe_source:=load("res://tests/native_live_level_up_source_probe.gd") as Script
+			if probe_source==null:fail("Native level-source development probe is unavailable");return
+			var probe=probe_source.new();host.add_child(probe);probe.run(self)
 		"probe-live-actions":
 			if args.get("actions-check","")!="true": return
-			var probe=preload("res://tests/native_live_actions_probe.gd").new(); host.add_child(probe); probe.run(self)
+			var probe_source:=load("res://tests/native_live_actions_probe.gd") as Script
+			if probe_source==null:fail("Native actions development probe is unavailable");return
+			var probe=probe_source.new(); host.add_child(probe); probe.run(self)
 		"probe-native-desktop":
 			if args.get("settings-check","")!="true": return
 			probe_native_desktop()
@@ -698,7 +738,11 @@ func receive_profiled(message: Dictionary) -> void:
 				send({"kind":"browser-observed","viewId":int(message.viewId),"native_rendering":true})
 		"lobby":
 			if session_connection==cancelled_connection and str(message.state.get("phase","")) in ["connecting","resources","resources-unavailable"]: return
-			session_connection=int(message.connection); character_lobby.apply_state(message)
+			session_connection=int(message.connection)
+			# The first authenticated lobby can reuse connection 0; it still seeds
+			# device properties before setup and before any game-server join.
+			device_metrics_hello_ready=true; publish_device_properties()
+			character_lobby.apply_state(message)
 			if not pending_creator.is_empty() and not creation_entry_current(int(pending_creator.connection)):pending_creator.clear()
 			render_menu.observe_lobby(message.state)
 			var phase:=str(message.state.get("phase",""))
@@ -727,7 +771,7 @@ func receive_profiled(message: Dictionary) -> void:
 			label.text="Character exported: "+str(message.get("name",""))
 			if is_instance_valid(gameplay_ui): gameplay_ui.chat.append_message({"system":true,"text":label.text})
 		"notice": label.text=str(message.text)
-		"session-reset": reset_session()
+		"session-reset": reset_session(); publish_device_properties()
 		"probe-session-disconnect":
 			if not is_instance_valid(world) or not world.ready_for_control() or character_lobby.disconnect_button.disabled: fail("Native local disconnect probe is unavailable"); return
 			if not report.has("session_disconnect_probes"): report.session_disconnect_probes=[]
@@ -935,6 +979,7 @@ func save_last_seen_appearance() -> void:
 		var saved: bool=character_lobby.save_last_seen(gameplay_ui.text.objects.get(gameplay_ui.controlled_id,{}))
 		report.last_seen_appearance={"saved":saved,"error":character_lobby.appearance_cache.error}
 func reset_session() -> void:
+	last_device_metrics=[]
 	cancel_snapshot_preparation()
 	camera_fov_binding.unbind()
 	if native_visibility_runtime!=null:
@@ -1002,6 +1047,7 @@ func shutdown() -> void:
 	if is_instance_valid(prework_discovery): prework_discovery.close()
 	if is_instance_valid(ui_preload): ui_preload.close(); report.ui_preload=ui_preload.state.duplicate(true)
 	if is_instance_valid(asset_prework): asset_prework.close(); report.asset_prework=asset_prework.state.duplicate(true)
+	if protected_settings_bridge!=null:protected_settings_bridge.close();protected_settings_bridge=null
 	super.shutdown()
 	# The base shutdown closes gameplay UI before its first await. Release only
 	# this server catalog; the independent pregame catalog closed above.

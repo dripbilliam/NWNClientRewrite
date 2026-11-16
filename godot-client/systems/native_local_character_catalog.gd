@@ -1,11 +1,13 @@
 extends Node
 signal completed
 const Policy=preload("res://systems/native_data/local_character_metadata.gd")
+const Vault=preload("res://systems/native_data/native_character_export_vault.gd")
 const MAX_BYTES:=948*65535-16
 class Batch extends RefCounted:
 	var scope:=""
 	var inputs: Array=[]
 	var roots: Array=[]
+	var vault_owner: RefCounted
 	var values: Dictionary={}
 	var errors: Dictionary={}
 	var decoded:=0
@@ -19,7 +21,18 @@ class Batch extends RefCounted:
 	func read_rows() -> void:
 		for item in inputs:
 			if stopped(): return
-			var packet: Dictionary=item.get("nativeFile",{}); var path:=str(packet.get("path","")).replace("\\","/").simplify_path(); var digest:=str(packet.get("sha256","")); var size: Variant=packet.get("bytes")
+			var packet: Dictionary=item.get("nativeFile",{}); var digest:=str(packet.get("sha256","")); var size: Variant=packet.get("bytes")
+			if packet.get("format")=="godot-vault-bic-v1":
+				var id:=str(packet.get("id",""))
+				if vault_owner==null or not Vault._valid_id(id) or str(item.get("key",""))!="godot-vault:"+id or str(item.get("nativeVaultId",""))!=id or str(item.get("source",""))!="vault" or not Vault._valid_hex(digest,64) or not (size is int or size is float) or not is_finite(float(size)) or float(size)!=floor(float(size)) or size<56 or size>MAX_BYTES:
+					errors[item.key]="Saved character ticket is invalid."; continue
+				var saved: Dictionary=vault_owner.export_character(id)
+				if not saved.get("ready",false) or not saved.get("entry") is Dictionary or str(saved.entry.get("id",""))!=id or str(saved.entry.get("sha256",""))!=digest or int(saved.entry.get("bytes",-1))!=int(size) or not saved.get("data") is PackedByteArray or saved.data.size()!=int(size):
+					errors[item.key]="Saved character changed before catalog admission."; continue
+				var vault_parser=preload("res://systems/native_data/gff_document.gd").new(); var vault_document: Dictionary=vault_parser.parse(saved.data,"BIC ")
+				if not vault_parser.failure.is_empty():errors[item.key]="Saved character BIC is invalid.";continue
+				values[item.key]=Policy.project(vault_document); decoded+=1; continue
+			var path:=str(packet.get("path","")).replace("\\","/").simplify_path()
 			if packet.get("format")!="native-local-bic-v1" or not path.is_absolute_path() or not roots.has(path.get_base_dir().to_lower()) or path.get_extension().to_lower()!="bic" or digest.length()!=64 or digest!=digest.to_lower() or not digest.is_valid_hex_number(false) or not (size is int or size is float) or not is_finite(float(size)) or float(size)!=floor(float(size)) or size<56 or size>MAX_BYTES:
 				errors[item.key]="Local character byte ticket is invalid."; continue
 			var file:=FileAccess.open(path,FileAccess.READ)
@@ -30,6 +43,7 @@ class Batch extends RefCounted:
 			if not parser.failure.is_empty(): errors[item.key]="Local character is not a valid BIC record."; continue
 			values[item.key]=Policy.project(document); decoded+=1
 var roots: Array=[]
+var vault_owner: RefCounted
 var wanted:=""
 var accepted:=""
 var pending: Array=[]
@@ -48,10 +62,12 @@ func configure(directories: Array) -> void:
 	for path in directories:
 		var root:=str(path).replace("\\","/").simplify_path().trim_suffix("/")
 		if root.is_absolute_path() and not roots.has(root.to_lower()): roots.append(root.to_lower())
+func configure_vault(owner: Variant)->void:
+	vault_owner=owner if owner is RefCounted and owner.has_method("export_character") else null
 func observe(connection: int,choices: Array) -> void:
 	if closed: return
 	var inputs: Array=choices.filter(func(row):return row.get("source")!="server" and row.get("nativeFile") is Dictionary)
-	var scope:=JSON.stringify([connection,roots,inputs])
+	var scope:=JSON.stringify([connection,roots,vault_owner.get_instance_id() if vault_owner!=null else 0,inputs])
 	if wanted==scope: return
 	wanted=scope; pending=inputs.duplicate(true); accepted=""; values={}; errors={}
 	if active!=null: active.stop()
@@ -59,7 +75,7 @@ func observe(connection: int,choices: Array) -> void:
 	dispatch()
 func dispatch() -> void:
 	if closed or task>=0 or pending.is_empty(): return
-	active=Batch.new(); active.scope=wanted; active.inputs=pending; active.roots=roots.duplicate(); pending=[]
+	active=Batch.new(); active.scope=wanted; active.inputs=pending; active.roots=roots.duplicate(); active.vault_owner=vault_owner; pending=[]
 	task=WorkerThreadPool.add_task(active.run,false,"Native local character catalog")
 func _process(_delta: float) -> void:
 	if closed or task<0 or not WorkerThreadPool.is_task_completed(task): return
@@ -75,5 +91,5 @@ func close() -> void:
 	closed=true; pending=[]
 	if active!=null: active.stop()
 	if task>=0: WorkerThreadPool.wait_for_task_completion(task)
-	task=-1; active=null; values={}; errors={}
+	task=-1; active=null; values={}; errors={}; vault_owner=null
 func _exit_tree() -> void: close()

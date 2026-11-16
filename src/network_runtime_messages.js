@@ -16,6 +16,12 @@ export function readDeviceEchoRequest(r){
 export function deviceEchoResponse(data,format=1){
  if(!(data instanceof Uint8Array))throw new Error('Native device echo data is unavailable');const w=new NativeMessageWriter(format);w.create(data.length+4,0xffffffff,1);w.writeDword(data.length);w.writeOpaqueBytes(data);w.setPrefix(Uint8Array.of(112,54,3));return Uint8Array.from(w.getWriteMessage().data);
 }
+// Client FUN_1407bbac0 -> major54/minor1: property key, version 1, value.
+// The caller owns timing and only supplies positive, current display values.
+export function devicePropertyRequest(key,value){
+ if(!['gui_scale','gui_width','gui_height'].includes(key)||!Number.isInteger(value)||value<(key==='gui_scale'?0:1)||value>2147483647)throw new Error('Native device property is unavailable');
+ const bytes=encodeGffText(key),w=new NativeMessageWriter(0);w.create(bytes.length+12,0xffffffff,1);w.writeStringBytes(bytes);w.writeInt(1);w.writeInt(value);w.setPrefix(Uint8Array.of(112,54,1));return Uint8Array.from(w.getWriteMessage().data);
+}
 // Native login1407a31b0 sends nothing when client waypoint478 is empty.
 // A configured waypoint is text passed to1407c21f0, never a guessed object ID.
 export function loginWaypointResponse(waypoint){

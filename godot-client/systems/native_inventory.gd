@@ -150,8 +150,10 @@ func store_price(item: Dictionary,buy: bool) -> int:
 	if not store.get("open",false) or not item.has("cost"): return -1
 	var cost:=int(item.cost)&4294967295
 	var rate:=int(store.get("sellRate",0)) if buy else int(store.get("blackMarketRate",0) if item.get("field458",false) else store.get("buyRate",0))
-	var value:=maxi(1,int(float(cost)*rate/100.0)) if cost!=0 else 0
-	if not buy and int(store.get("maxBuyPrice",-1))!=-1: value=mini(value,int(store.maxBuyPrice))
+	var value:=maxi(1,int((float(rate)/100.0)*float(cost))&0xffffffff) if cost!=0 else 0
+	var maximum:=int(store.get("maxBuyPrice",-1))
+	var signed_value:=value-0x100000000 if value>=0x80000000 else value
+	if not buy and maximum!=-1 and maximum<=signed_value:value=maximum&0xffffffff
 	return value
 func store_view() -> Dictionary:
 	if not store.get("open",false): return {}
@@ -221,7 +223,7 @@ func refresh() -> void:
 			rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"tooltip":Tooltip.project(item,text_owner,controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
 	var rows_built_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	var scene_source: Variant=[icons.binding_scope(),icons.catalog.source_store.get_instance_id()] if retained_item_icons else null
-	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store,scene_source]))
+	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,text_owner.revision,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store,scene_source]))
 	var signature_ready_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	if next==signature and (not retained_item_icons or ui.scene_icon_sealed): return
 	var ready_icons: Dictionary={}

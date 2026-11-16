@@ -1,1 +1,0 @@
-const {contextBridge,ipcRenderer}=require('electron');contextBridge.exposeInMainWorld('creationFixture',{resource:(name,type)=>ipcRenderer.invoke('creation-fixture:resource',name,type),talkString:ref=>ipcRenderer.invoke('creation-fixture:talk-string',ref)});

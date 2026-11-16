@@ -1,0 +1,1425 @@
+{
+  "schema": 1,
+  "originalNativeVoiceWire": 60,
+  "originalNativeQuickChatRelay": 54,
+  "authoredWriter": 4,
+  "capturedNative": 0,
+  "cases": [
+    {
+      "name": "native-voice-60",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000000000800065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483648,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-61",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d00000000000080000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483648,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-voice-62",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000000000800b65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483648,
+        "voiceCode": 11
+      }
+    },
+    {
+      "name": "native-voice-63",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000000000800b0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483648,
+        "quickChat": 11
+      }
+    },
+    {
+      "name": "native-voice-64",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c00000000000080ff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483648,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-65",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d00000000000080ff0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483648,
+        "quickChat": 255
+      }
+    },
+    {
+      "name": "native-voice-66",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000000000800065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483648,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-67",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d00000000000080000165",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483648,
+        "quickChat": 256
+      }
+    },
+    {
+      "name": "native-voice-68",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c00000000000080ff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483648,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-69",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d00000000000080ffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483648,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-voice-70",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000630000800065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483747,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-71",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d00000063000080000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483747,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-voice-72",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000630000800b65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483747,
+        "voiceCode": 11
+      }
+    },
+    {
+      "name": "native-voice-73",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000630000800b0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483747,
+        "quickChat": 11
+      }
+    },
+    {
+      "name": "native-voice-74",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c00000063000080ff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483747,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-75",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d00000063000080ff0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483747,
+        "quickChat": 255
+      }
+    },
+    {
+      "name": "native-voice-76",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000630000800065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483747,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-77",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d00000063000080000165",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483747,
+        "quickChat": 256
+      }
+    },
+    {
+      "name": "native-voice-78",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c00000063000080ff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483747,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-79",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d00000063000080ffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483747,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-voice-80",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000feffffff0065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967294,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-81",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000feffffff000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967294,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-voice-82",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000feffffff0b65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967294,
+        "voiceCode": 11
+      }
+    },
+    {
+      "name": "native-voice-83",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000feffffff0b0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967294,
+        "quickChat": 11
+      }
+    },
+    {
+      "name": "native-voice-84",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000feffffffff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967294,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-85",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000feffffffff0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967294,
+        "quickChat": 255
+      }
+    },
+    {
+      "name": "native-voice-86",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000feffffff0065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967294,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-87",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000feffffff000165",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967294,
+        "quickChat": 256
+      }
+    },
+    {
+      "name": "native-voice-88",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000feffffffff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967294,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-89",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000feffffffffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967294,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-voice-90",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffff0065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-91",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffff000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-voice-92",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffff0b65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 11
+      }
+    },
+    {
+      "name": "native-voice-93",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffff0b0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 11
+      }
+    },
+    {
+      "name": "native-voice-94",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffffff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-95",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffffff0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 255
+      }
+    },
+    {
+      "name": "native-voice-96",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffff0065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-97",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffff000165",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 256
+      }
+    },
+    {
+      "name": "native-voice-98",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffffff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-99",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffffffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-voice-100",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c0000000000007f0065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2130706432,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-101",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d0000000000007f000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-voice-102",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c0000000000007f0b65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2130706432,
+        "voiceCode": 11
+      }
+    },
+    {
+      "name": "native-voice-103",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d0000000000007f0b0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 11
+      }
+    },
+    {
+      "name": "native-voice-104",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c0000000000007fff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2130706432,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-105",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d0000000000007fff0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 255
+      }
+    },
+    {
+      "name": "native-voice-106",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c0000000000007f0065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2130706432,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-107",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d0000000000007f000165",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 256
+      }
+    },
+    {
+      "name": "native-voice-108",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c0000000000007fff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2130706432,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-109",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d0000000000007fffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-voice-110",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffff0065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-111",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffff000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-voice-112",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffff0b65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 11
+      }
+    },
+    {
+      "name": "native-voice-113",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffff0b0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 11
+      }
+    },
+    {
+      "name": "native-voice-114",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffffff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-115",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffffff0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 255
+      }
+    },
+    {
+      "name": "native-voice-116",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffff0065",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "native-voice-117",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffff000165",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 256
+      }
+    },
+    {
+      "name": "native-voice-118",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "501a010c000000ffffffffff65",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 4294967295,
+        "voiceCode": 255
+      }
+    },
+    {
+      "name": "native-voice-119",
+      "origin": "original native sender/writer and voice receiver observation",
+      "packet": "5016000d000000ffffffffffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-362",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-366",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-370",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-382",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-386",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-390",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-402",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-406",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-410",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-422",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000640000800a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-426",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000640000800a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-430",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000640000800a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-442",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-446",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-450",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-462",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080ffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-466",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080ffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-470",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d00000064000080ffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2147483748,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-482",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-486",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-490",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-502",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-506",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-510",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-522",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-526",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-530",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-542",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff0a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-546",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff0a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-550",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff0a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-562",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-566",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-570",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffff160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-582",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffffffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-586",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffffffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-590",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d000000ffffffffffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-602",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-606",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-610",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f000065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "native-relay-622",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-626",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-630",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f040065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 4
+      }
+    },
+    {
+      "name": "native-relay-642",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-646",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-650",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f090065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 9
+      }
+    },
+    {
+      "name": "native-relay-662",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f0a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-666",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f0a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-670",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f0a0065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 10
+      }
+    },
+    {
+      "name": "native-relay-682",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-686",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-690",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007f160065",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 22
+      }
+    },
+    {
+      "name": "native-relay-702",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007fffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-706",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007fffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "native-relay-710",
+      "origin": "original native quick-chat relay sender observation",
+      "packet": "5016000d0000000000007fffff65",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 2130706432,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "authored-0",
+      "origin": "authored original-format writer checked against original JS receiver",
+      "packet": "5016000d00000000000000000060",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 0,
+        "quickChat": 0
+      }
+    },
+    {
+      "name": "authored-1",
+      "origin": "authored original-format writer checked against original JS receiver",
+      "packet": "5016000d000000ffffffffffff60",
+      "expected": {
+        "kind": "quick-chat",
+        "major": 22,
+        "minor": 0,
+        "objectId": 4294967295,
+        "quickChat": 65535
+      }
+    },
+    {
+      "name": "authored-2",
+      "origin": "authored original-format writer checked against original JS receiver",
+      "packet": "501a010c0000000000007f0060",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2130706432,
+        "voiceCode": 0
+      }
+    },
+    {
+      "name": "authored-3",
+      "origin": "authored original-format writer checked against original JS receiver",
+      "packet": "501a010c00000000000080ff60",
+      "expected": {
+        "kind": "voice-play",
+        "major": 26,
+        "minor": 1,
+        "objectId": 2147483648,
+        "voiceCode": 255
+      }
+    }
+  ]
+}

@@ -1,0 +1,3391 @@
+{
+  "schema": 1,
+  "server": [
+    {
+      "name": "server-128",
+      "packet": "5023020f00000013000080ffffffff65",
+      "expected": {
+        "kind": "barter-start",
+        "firstId": 2147483667,
+        "secondId": 4294967295,
+        "major": 35,
+        "minor": 2
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-129",
+      "packet": "5023020f00000013000080ffffffff65",
+      "expected": {
+        "kind": "barter-start",
+        "firstId": 2147483667,
+        "secondId": 4294967295,
+        "major": 35,
+        "minor": 2
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-130",
+      "packet": "5023020f00000013000080ffffffff65",
+      "expected": {
+        "kind": "barter-start",
+        "firstId": 2147483667,
+        "secondId": 4294967295,
+        "major": 35,
+        "minor": 2
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-131",
+      "packet": "5023020f00000013000080ffffffff65",
+      "expected": {
+        "kind": "barter-start",
+        "firstId": 2147483667,
+        "secondId": 4294967295,
+        "major": 35,
+        "minor": 2
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-132",
+      "packet": "5023040700000085",
+      "expected": {
+        "kind": "barter-close",
+        "completed": false,
+        "major": 35,
+        "minor": 4
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-133",
+      "packet": "5023040700000095",
+      "expected": {
+        "kind": "barter-close",
+        "completed": true,
+        "major": 35,
+        "minor": 4
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-134",
+      "packet": "5023040700000085",
+      "expected": {
+        "kind": "barter-close",
+        "completed": false,
+        "major": 35,
+        "minor": 4
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-135",
+      "packet": "5023040700000095",
+      "expected": {
+        "kind": "barter-close",
+        "completed": true,
+        "major": 35,
+        "minor": 4
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-136",
+      "packet": "50230807000000a5",
+      "expected": {
+        "kind": "barter-lock",
+        "initiator": false,
+        "value": false,
+        "major": 35,
+        "minor": 8
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-137",
+      "packet": "50230807000000ad",
+      "expected": {
+        "kind": "barter-lock",
+        "initiator": false,
+        "value": true,
+        "major": 35,
+        "minor": 8
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-138",
+      "packet": "50230807000000b5",
+      "expected": {
+        "kind": "barter-lock",
+        "initiator": true,
+        "value": false,
+        "major": 35,
+        "minor": 8
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-139",
+      "packet": "50230807000000bd",
+      "expected": {
+        "kind": "barter-lock",
+        "initiator": true,
+        "value": true,
+        "major": 35,
+        "minor": 8
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-140",
+      "packet": "50230a07000000a5",
+      "expected": {
+        "kind": "barter-accept",
+        "initiator": false,
+        "value": false,
+        "major": 35,
+        "minor": 10
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-141",
+      "packet": "50230a07000000ad",
+      "expected": {
+        "kind": "barter-accept",
+        "initiator": false,
+        "value": true,
+        "major": 35,
+        "minor": 10
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-142",
+      "packet": "50230a07000000b5",
+      "expected": {
+        "kind": "barter-accept",
+        "initiator": true,
+        "value": false,
+        "major": 35,
+        "minor": 10
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "server-143",
+      "packet": "50230a07000000bd",
+      "expected": {
+        "kind": "barter-accept",
+        "initiator": true,
+        "value": true,
+        "major": 35,
+        "minor": 10
+      },
+      "origin": "original native server sender fixture"
+    },
+    {
+      "name": "reject-0",
+      "packet": "50230b0d00000001010000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 1,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-1",
+      "packet": "50230b0d00000001010200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 1,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-2",
+      "packet": "50230b0d0000000101ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 1,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-3",
+      "packet": "50230b0d00000001020000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 2,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-4",
+      "packet": "50230b0d00000001020200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 2,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-5",
+      "packet": "50230b0d0000000102ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 2,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-6",
+      "packet": "50230b0d00000001030000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 3,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-7",
+      "packet": "50230b0d00000001030200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 3,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-8",
+      "packet": "50230b0d0000000103ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 3,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-9",
+      "packet": "50230b0d00000001040000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 4,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-10",
+      "packet": "50230b0d00000001040200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 4,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-11",
+      "packet": "50230b0d0000000104ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 4,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-12",
+      "packet": "50230b0d00000001050000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 5,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-13",
+      "packet": "50230b0d00000001050200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 5,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-14",
+      "packet": "50230b0d0000000105ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 5,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-15",
+      "packet": "50230b0d00000001060000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 6,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-16",
+      "packet": "50230b0d00000001060200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 6,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-17",
+      "packet": "50230b0d0000000106ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 1,
+        "reason": 6,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-18",
+      "packet": "50230b0d00000005010000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 1,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-19",
+      "packet": "50230b0d00000005010200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 1,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-20",
+      "packet": "50230b0d0000000501ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 1,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-21",
+      "packet": "50230b0d00000005020000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 2,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-22",
+      "packet": "50230b0d00000005020200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 2,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-23",
+      "packet": "50230b0d0000000502ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 2,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-24",
+      "packet": "50230b0d00000005030000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 3,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-25",
+      "packet": "50230b0d00000005030200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 3,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-26",
+      "packet": "50230b0d0000000503ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 3,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-27",
+      "packet": "50230b0d00000005040000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 4,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-28",
+      "packet": "50230b0d00000005040200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 4,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-29",
+      "packet": "50230b0d0000000504ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 4,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-30",
+      "packet": "50230b0d00000005050000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 5,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-31",
+      "packet": "50230b0d00000005050200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 5,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-32",
+      "packet": "50230b0d0000000505ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 5,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-33",
+      "packet": "50230b0d00000005060000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 6,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-34",
+      "packet": "50230b0d00000005060200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 6,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-35",
+      "packet": "50230b0d0000000506ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 5,
+        "reason": 6,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-36",
+      "packet": "50230b0d00000006010000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 1,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-37",
+      "packet": "50230b0d00000006010200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 1,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-38",
+      "packet": "50230b0d0000000601ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 1,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-39",
+      "packet": "50230b0d00000006020000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 2,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-40",
+      "packet": "50230b0d00000006020200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 2,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-41",
+      "packet": "50230b0d0000000602ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 2,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-42",
+      "packet": "50230b0d00000006030000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 3,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-43",
+      "packet": "50230b0d00000006030200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 3,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-44",
+      "packet": "50230b0d0000000603ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 3,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-45",
+      "packet": "50230b0d00000006040000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 4,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-46",
+      "packet": "50230b0d00000006040200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 4,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-47",
+      "packet": "50230b0d0000000604ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 4,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-48",
+      "packet": "50230b0d00000006050000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 5,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-49",
+      "packet": "50230b0d00000006050200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 5,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-50",
+      "packet": "50230b0d0000000605ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 5,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-51",
+      "packet": "50230b0d00000006060000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 6,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-52",
+      "packet": "50230b0d00000006060200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 6,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-53",
+      "packet": "50230b0d0000000606ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 6,
+        "reason": 6,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-54",
+      "packet": "50230b0d00000007010000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 1,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-55",
+      "packet": "50230b0d00000007010200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 1,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-56",
+      "packet": "50230b0d0000000701ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 1,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-57",
+      "packet": "50230b0d00000007020000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 2,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-58",
+      "packet": "50230b0d00000007020200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 2,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-59",
+      "packet": "50230b0d0000000702ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 2,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-60",
+      "packet": "50230b0d00000007030000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 3,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-61",
+      "packet": "50230b0d00000007030200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 3,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-62",
+      "packet": "50230b0d0000000703ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 3,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-63",
+      "packet": "50230b0d00000007040000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 4,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-64",
+      "packet": "50230b0d00000007040200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 4,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-65",
+      "packet": "50230b0d0000000704ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 4,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-66",
+      "packet": "50230b0d00000007050000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 5,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-67",
+      "packet": "50230b0d00000007050200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 5,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-68",
+      "packet": "50230b0d0000000705ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 5,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-69",
+      "packet": "50230b0d00000007060000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 6,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-70",
+      "packet": "50230b0d00000007060200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 6,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-71",
+      "packet": "50230b0d0000000706ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 7,
+        "reason": 6,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-72",
+      "packet": "50230b0d00000009010000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 1,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-73",
+      "packet": "50230b0d00000009010200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 1,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-74",
+      "packet": "50230b0d0000000901ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 1,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-75",
+      "packet": "50230b0d00000009020000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 2,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-76",
+      "packet": "50230b0d00000009020200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 2,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-77",
+      "packet": "50230b0d0000000902ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 2,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-78",
+      "packet": "50230b0d00000009030000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 3,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-79",
+      "packet": "50230b0d00000009030200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 3,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-80",
+      "packet": "50230b0d0000000903ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 3,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-81",
+      "packet": "50230b0d00000009040000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 4,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-82",
+      "packet": "50230b0d00000009040200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 4,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-83",
+      "packet": "50230b0d0000000904ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 4,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-84",
+      "packet": "50230b0d00000009050000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 5,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-85",
+      "packet": "50230b0d00000009050200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 5,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-86",
+      "packet": "50230b0d0000000905ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 5,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-87",
+      "packet": "50230b0d00000009060000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 6,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-88",
+      "packet": "50230b0d00000009060200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 6,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-89",
+      "packet": "50230b0d0000000906ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 9,
+        "reason": 6,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-90",
+      "packet": "50230b0d0000000d010000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 1,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-91",
+      "packet": "50230b0d0000000d010200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 1,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-92",
+      "packet": "50230b0d0000000d01ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 1,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-93",
+      "packet": "50230b0d0000000d020000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 2,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-94",
+      "packet": "50230b0d0000000d020200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 2,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-95",
+      "packet": "50230b0d0000000d02ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 2,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-96",
+      "packet": "50230b0d0000000d030000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 3,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-97",
+      "packet": "50230b0d0000000d030200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 3,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-98",
+      "packet": "50230b0d0000000d03ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 3,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-99",
+      "packet": "50230b0d0000000d040000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 4,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-100",
+      "packet": "50230b0d0000000d040200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 4,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-101",
+      "packet": "50230b0d0000000d04ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 4,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-102",
+      "packet": "50230b0d0000000d050000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 5,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-103",
+      "packet": "50230b0d0000000d050200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 5,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-104",
+      "packet": "50230b0d0000000d05ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 5,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-105",
+      "packet": "50230b0d0000000d060000007f65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 6,
+        "targetId": 2130706432,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-106",
+      "packet": "50230b0d0000000d060200008065",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 6,
+        "targetId": 2147483650,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    },
+    {
+      "name": "reject-107",
+      "packet": "50230b0d0000000d06ffffffff65",
+      "expected": {
+        "kind": "barter-reject",
+        "operation": 13,
+        "reason": 6,
+        "targetId": 4294967295,
+        "major": 35,
+        "minor": 11
+      },
+      "origin": "original native server reject fixture"
+    }
+  ],
+  "client": [
+    {
+      "name": "client-0",
+      "packet": "7023010f000000130000800200008065",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-1",
+      "packet": "7023010f000000130000800200008065",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-2",
+      "packet": "7023010f000000130000800200008065",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-3",
+      "packet": "7023010f000000130000800200008065",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-4",
+      "packet": "7023010f0000000000007f0200008065",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-5",
+      "packet": "7023010f0000000000007f0200008065",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-6",
+      "packet": "7023010f0000000000007f0200008065",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-7",
+      "packet": "7023010f0000000000007f0200008065",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-8",
+      "packet": "7023010f00000013000080ffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-9",
+      "packet": "7023010f00000013000080ffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-10",
+      "packet": "7023010f00000013000080ffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-11",
+      "packet": "7023010f00000013000080ffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-12",
+      "packet": "7023010f0000000000007fffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-13",
+      "packet": "7023010f0000000000007fffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-14",
+      "packet": "7023010f0000000000007fffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-15",
+      "packet": "7023010f0000000000007fffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "start",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-16",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-17",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-18",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-19",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-20",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-21",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-22",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-23",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-24",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-25",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-26",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-27",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-28",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-29",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-30",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-31",
+      "packet": "7023030700000095",
+      "request": {
+        "format": 1,
+        "operation": "close",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-32",
+      "packet": "7023070700000085",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-33",
+      "packet": "7023070700000085",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-34",
+      "packet": "7023070700000095",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-35",
+      "packet": "7023070700000095",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-36",
+      "packet": "7023070700000085",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-37",
+      "packet": "7023070700000085",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-38",
+      "packet": "7023070700000095",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-39",
+      "packet": "7023070700000095",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-40",
+      "packet": "7023070700000085",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-41",
+      "packet": "7023070700000085",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-42",
+      "packet": "7023070700000095",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-43",
+      "packet": "7023070700000095",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-44",
+      "packet": "7023070700000085",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-45",
+      "packet": "7023070700000085",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-46",
+      "packet": "7023070700000095",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-47",
+      "packet": "7023070700000095",
+      "request": {
+        "format": 1,
+        "operation": "lock",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-48",
+      "packet": "7023090700000085",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-49",
+      "packet": "7023090700000085",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-50",
+      "packet": "7023090700000095",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-51",
+      "packet": "7023090700000095",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-52",
+      "packet": "7023090700000085",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-53",
+      "packet": "7023090700000085",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-54",
+      "packet": "7023090700000095",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-55",
+      "packet": "7023090700000095",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-56",
+      "packet": "7023090700000085",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-57",
+      "packet": "7023090700000085",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-58",
+      "packet": "7023090700000095",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-59",
+      "packet": "7023090700000095",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-60",
+      "packet": "7023090700000085",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-61",
+      "packet": "7023090700000085",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-62",
+      "packet": "7023090700000095",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-63",
+      "packet": "7023090700000095",
+      "request": {
+        "format": 1,
+        "operation": "accept",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-64",
+      "packet": "70230c0700000085",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-65",
+      "packet": "70230c0700000085",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-66",
+      "packet": "70230c0700000095",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-67",
+      "packet": "70230c0700000095",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-68",
+      "packet": "70230c0700000085",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-69",
+      "packet": "70230c0700000085",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-70",
+      "packet": "70230c0700000095",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-71",
+      "packet": "70230c0700000095",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-72",
+      "packet": "70230c0700000085",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-73",
+      "packet": "70230c0700000085",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-74",
+      "packet": "70230c0700000095",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-75",
+      "packet": "70230c0700000095",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-76",
+      "packet": "70230c0700000085",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-77",
+      "packet": "70230c0700000085",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-78",
+      "packet": "70230c0700000095",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-79",
+      "packet": "70230c0700000095",
+      "request": {
+        "format": 1,
+        "operation": "window",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-80",
+      "packet": "7023050d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-81",
+      "packet": "7023050d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-82",
+      "packet": "7023050d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-83",
+      "packet": "7023050d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-84",
+      "packet": "7023050d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-85",
+      "packet": "7023050d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-86",
+      "packet": "7023050d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-87",
+      "packet": "7023050d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-88",
+      "packet": "7023050d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-89",
+      "packet": "7023050d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-90",
+      "packet": "7023050d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-91",
+      "packet": "7023050d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-92",
+      "packet": "7023050d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-93",
+      "packet": "7023050d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-94",
+      "packet": "7023050d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-95",
+      "packet": "7023050d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "add",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-96",
+      "packet": "7023060d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-97",
+      "packet": "7023060d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-98",
+      "packet": "7023060d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-99",
+      "packet": "7023060d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-100",
+      "packet": "7023060d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-101",
+      "packet": "7023060d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-102",
+      "packet": "7023060d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-103",
+      "packet": "7023060d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-104",
+      "packet": "7023060d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-105",
+      "packet": "7023060d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-106",
+      "packet": "7023060d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-107",
+      "packet": "7023060d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-108",
+      "packet": "7023060d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-109",
+      "packet": "7023060d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-110",
+      "packet": "7023060d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-111",
+      "packet": "7023060d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "remove",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-112",
+      "packet": "70230d0d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-113",
+      "packet": "70230d0d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-114",
+      "packet": "70230d0d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-115",
+      "packet": "70230d0d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 2147483650,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-116",
+      "packet": "70230d0d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-117",
+      "packet": "70230d0d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-118",
+      "packet": "70230d0d00000002000080000065",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-119",
+      "packet": "70230d0d00000002000080ffff65",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 2147483650,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-120",
+      "packet": "70230d0d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-121",
+      "packet": "70230d0d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-122",
+      "packet": "70230d0d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-123",
+      "packet": "70230d0d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 4294967295,
+        "targetId": 2147483667,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-124",
+      "packet": "70230d0d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-125",
+      "packet": "70230d0d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": false,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-126",
+      "packet": "70230d0d000000ffffffff000065",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 0,
+        "y": 0
+      },
+      "origin": "original native client sender fixture"
+    },
+    {
+      "name": "client-127",
+      "packet": "70230d0d000000ffffffffffff65",
+      "request": {
+        "format": 1,
+        "operation": "move",
+        "itemId": 4294967295,
+        "targetId": 2130706432,
+        "value": true,
+        "x": 255,
+        "y": 255
+      },
+      "origin": "original native client sender fixture"
+    }
+  ]
+}

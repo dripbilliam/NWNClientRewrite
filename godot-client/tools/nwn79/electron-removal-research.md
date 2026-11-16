@@ -1,5 +1,7 @@
 # NWN-79 Electron removal: initial scope and estimate
 
+This was the initial 2026-11-14 estimate. The user subsequently required Godot to own the entire normal client unless Node is technically necessary. The Node-host retention and estimates below are historical and no longer define completion. The updated acceptance criteria are in NWN-79 and `docs/architecture.md`.
+
 Research snapshot: 2026-11-14. This is a source audit and format check, not an implementation or an acceptance result.
 
 ## Current normal launch

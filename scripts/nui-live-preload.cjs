@@ -1,1 +1,0 @@
-const {contextBridge,ipcRenderer}=require('electron');contextBridge.exposeInMainWorld('nuiFixture',{input:request=>ipcRenderer.invoke('nui-fixture:input',request),onMessage:callback=>ipcRenderer.on('nui-fixture:message',(_event,message)=>callback(message))});

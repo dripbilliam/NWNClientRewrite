@@ -1,0 +1,1015 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "name": "native-sender-0",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051800000003010200008008ffffffff0e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": -1,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-1",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d00000003010200008008ffffffff0e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": -1,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-2",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018053500000003010200008008ffffffff0e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": -1,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-3",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051800000003010200008008000000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 0,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-4",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d00000003010200008008000000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 0,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-5",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018053500000003010200008008000000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 0,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-6",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051800000003010200008008010000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 1,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-7",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d00000003010200008008010000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 1,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-8",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018053500000003010200008008010000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 1,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-9",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051800000003010200008008020000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 2,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-10",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d00000003010200008008020000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 2,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-11",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018053500000003010200008008020000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 2,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-12",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051800000003010200008008030000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 3,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-13",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d00000003010200008008030000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 3,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-14",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018053500000003010200008008030000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 3,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-15",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051800000003010200008008040000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 4,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-16",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d00000003010200008008040000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 4,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-17",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018053500000003010200008008040000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 4,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-18",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805180000000301feffffff08ffffffff0e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": -1,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-19",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d0000000301feffffff08ffffffff0e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": -1,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-20",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805350000000301feffffff08ffffffff0e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": -1,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-21",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805180000000301feffffff08000000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 0,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-22",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d0000000301feffffff08000000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 0,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-23",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805350000000301feffffff08000000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 0,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-24",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805180000000301feffffff08010000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 1,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-25",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d0000000301feffffff08010000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 1,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-26",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805350000000301feffffff08010000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 1,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-27",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805180000000301feffffff08020000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 2,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-28",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d0000000301feffffff08020000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 2,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-29",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805350000000301feffffff08020000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 2,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-30",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805180000000301feffffff08030000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 3,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-31",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d0000000301feffffff08030000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 3,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-32",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805350000000301feffffff08030000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 3,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-33",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805180000000301feffffff08040000000e080000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 4,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-34",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "5018051d0000000301feffffff08040000000e0805000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 4,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-35",
+      "origin": "original native sender/writer fixture",
+      "format": 0,
+      "packet": "501805350000000301feffffff08040000000e081d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 4,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-36",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018051300000002000080ffffffff0000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": -1,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-37",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018051800000002000080ffffffff05000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": -1,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-38",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018053000000002000080ffffffff1d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": -1,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-39",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018051300000002000080000000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 0,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-40",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000020000800000000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 0,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-41",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018053000000002000080000000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 0,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-42",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018051300000002000080010000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 1,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-43",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000020000800100000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 1,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-44",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018053000000002000080010000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 1,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-45",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018051300000002000080020000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 2,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-46",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000020000800200000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 2,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-47",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018053000000002000080020000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 2,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-48",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018051300000002000080030000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 3,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-49",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000020000800300000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 3,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-50",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018053000000002000080030000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 3,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-51",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018051300000002000080040000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 4,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-52",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000020000800400000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 4,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-53",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "5018053000000002000080040000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 2147483650,
+        "mode": 4,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-54",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180513000000feffffffffffffff0000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": -1,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-55",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000feffffffffffffff05000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": -1,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-56",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180530000000feffffffffffffff1d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": -1,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-57",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180513000000feffffff000000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 0,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-58",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000feffffff0000000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 0,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-59",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180530000000feffffff000000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 0,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-60",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180513000000feffffff010000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 1,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-61",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000feffffff0100000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 1,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-62",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180530000000feffffff010000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 1,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-63",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180513000000feffffff020000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 2,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-64",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000feffffff0200000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 2,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-65",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180530000000feffffff020000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 2,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-66",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180513000000feffffff030000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 3,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-67",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000feffffff0300000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 3,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-68",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180530000000feffffff030000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 3,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    },
+    {
+      "name": "native-sender-69",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180513000000feffffff040000000000000065",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 4,
+        "text": ""
+      }
+    },
+    {
+      "name": "native-sender-70",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180518000000feffffff0400000005000000506c61696e65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 4,
+        "text": "Plain"
+      }
+    },
+    {
+      "name": "native-sender-71",
+      "origin": "original native sender/writer fixture",
+      "format": 1,
+      "packet": "50180530000000feffffff040000001d0000003c6301ff013e4c696e653c2f633e0a5b625d6c69746572616c5b2f625d65",
+      "expected": {
+        "kind": "item-text-bubble-override",
+        "major": 24,
+        "minor": 5,
+        "itemId": 4294967294,
+        "mode": 4,
+        "text": "<c\u0001ÿ\u0001>Line</c>\n[b]literal[/b]"
+      }
+    }
+  ],
+  "capturedNative": 0,
+  "originalSenderWriter": 72
+}

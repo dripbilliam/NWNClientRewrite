@@ -18,6 +18,7 @@ const CameraObservation=preload("res://systems/native_render/camera_observation.
 const WorldRetirement=preload("res://systems/native_render/world_retirement.gd")
 const RenderPool=preload("res://systems/native_render/resource_pool.gd")
 const Interaction=preload("res://systems/native_interaction_policy.gd")
+const StartupPaths=preload("res://systems/native_data/native_startup_paths.gd")
 var render_pool:=RenderPool.new()
 var peer:=StreamPeerTCP.new()
 var protocol_output=preload("res://systems/native_protocol_output.gd").new()
@@ -25,6 +26,7 @@ var creation_runtime=preload("res://systems/native_data/creation_runtime_trace.g
 var frames:=Frames.new()
 var args: Dictionary={}
 var ticket: Dictionary={}
+var direct_mode:=false
 var catalog=Catalog.new()
 var catalog_loader
 var catalog_loading:=false
@@ -62,6 +64,9 @@ var authenticated:=false
 var closing:=false
 var finish_acknowledged:=false
 var _native_entry_snapshot: Dictionary={}
+
+func native_camera_follow_target_id()->int:
+	return world.controlled_id if is_instance_valid(world) else -1
 
 func native_entry_snapshot_allowed(_message: Dictionary) -> bool:return true
 func complete_native_entry_loading(load_errors: Array) -> void:
@@ -274,14 +279,26 @@ func run() -> void:
 	for arg in OS.get_cmdline_user_args():
 		var pair:=arg.trim_prefix("--").split("=",true,1)
 		if pair.size()==2: args[pair[0]]=pair[1]
+	direct_mode=OS.get_cmdline_user_args().has("--direct-session") or args.get("direct-session","")=="true"
+	if direct_mode and not args.has("report"):
+		args.report=ProjectSettings.globalize_path("user://nwn79-direct-"+str(OS.get_process_id())+"-"+str(Time.get_ticks_msec())+".json")
 	creation_runtime.configure(args)
-	if not args.has("ticket") or not args.has("report") or FileAccess.file_exists(args.report): quit(2); return
+	if not args.has("report") or not direct_mode and not args.has("ticket") or FileAccess.file_exists(args.report): quit(2); return
 	# The engine creates its main window non-activating (project.godot).
 	# Keep it non-activating until the user clicks the actual game window.
 	# Automated checks never activate it, including synthetic GUI probes.
 	if args.get("settings-check","")!="true" and args.get("actions-check","")!="true": root.window_input.connect(activate_window_from_click)
-	ticket=JSON.parse_string(FileAccess.get_file_as_string(args.ticket))
-	if ticket.get("host")!="127.0.0.1" or not ticket.get("port") is float or str(ticket.get("token","")).length()!=64: quit(2); return
+	if direct_mode:
+		var install:=str(args.get("direct-install",ProjectSettings.globalize_path("res://../../FullDecomp/NwnRootInstall")))
+		ticket=StartupPaths.direct_ticket(install,str(args.get("direct-profile","")),str(args.get("direct-settings","")))
+		if ticket.has("error"):
+			report.failure=str(ticket.error)
+			var startup_file:=FileAccess.open(str(args.report),FileAccess.WRITE)
+			if startup_file!=null:startup_file.store_string(JSON.stringify(report));startup_file.close()
+			quit(2);return
+	else:
+		ticket=JSON.parse_string(FileAccess.get_file_as_string(args.ticket))
+		if ticket.get("host")!="127.0.0.1" or not ticket.get("port") is float or str(ticket.get("token","")).length()!=64: quit(2); return
 	if not runtime_feature_report.configure(OS.get_cmdline_user_args(),ticket.get("featureSelection",{})):
 		report.failure="Native startup feature validation failed";report.runtime_features=runtime_feature_report.snapshot()
 		var failure_file:=FileAccess.open(str(args.report),FileAccess.WRITE)
@@ -314,7 +331,7 @@ func run() -> void:
 		root.position=usable.position+(usable.size-root.size)/2
 		report.startup_window={"screen":screen,"primary":DisplayServer.get_primary_screen(),"screens":DisplayServer.get_screen_count(),"non_activating":root.unfocusable}
 	native_clock_startup()
-	if peer.connect_to_host("127.0.0.1",int(ticket.port))!=OK: fail("Local protocol peer is unavailable"); return
+	if not direct_mode and peer.connect_to_host("127.0.0.1",int(ticket.port))!=OK: fail("Local protocol peer is unavailable"); return
 	process_frame.connect(tick)
 func activate_window_from_click(event: InputEvent) -> void:
 	if not closing and event is InputEventMouseButton and event.pressed:
@@ -358,6 +375,43 @@ func creation_trace(stage: String) -> void:
 	var value: Dictionary={"kind":"creation-native-phase","phase":stage,"sequence":creation_trace_sequence,"ticks_ms":Time.get_ticks_msec(),"epoch":epoch}
 	file.seek_end();file.store_line(JSON.stringify(value));file.flush();file.close()
 	send(value)
+func install_mounted_catalog(prepared: RefCounted,install: String,sources: Dictionary,recording_directory: String="") -> bool:
+	# The Godot network session already mounted these exact admitted sources.
+	# Its direct handoff reuses this UI owner instead of remounting or serializing
+	# the catalog through a local Node.js protocol.
+	if closing or initialized or is_instance_valid(gameplay_ui) or not is_instance_valid(host) or not is_instance_valid(loading_screen) or prepared==null or not prepared.has_method("get_resource"):
+		return false
+	catalog=prepared
+	if not recording_directory.is_empty():
+		var recorder:=preload("res://systems/native_data/resource_recording.gd").new()
+		var talk_files:={"base":install.path_join("lang/en/data/dialog.tlk"),"female":install.path_join("lang/en/data/dialogf.tlk")}
+		if sources.get("customTlk") is Dictionary and sources.customTlk.get("path") is String:
+			talk_files.custom=sources.customTlk.path; talk_files.custom_female=str(sources.customTlk.path).trim_suffix(".tlk")+"f.tlk"
+		if not recorder.start(recording_directory,catalog.layers,talk_files):fail("Native resource recording could not start");return false
+		catalog.recording=recorder; resource_recordings.append(recorder)
+	var ui_configure_began:=Time.get_ticks_msec()
+	gameplay_ui=GameplayUi.new(); host.add_child(gameplay_ui)
+	gameplay_ui.configure(catalog,install,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),str(args.get("menu-layout","user://native-menu-layout.cfg")),sources.customTlk if sources.get("customTlk") is Dictionary else {})
+	gameplay_ui.world_camera=camera; gameplay_ui.world_registry=registry
+	gameplay_ui.native_connection_query=native_text_connection;gameplay_ui.overhead_anchor_query=native_text_anchor
+	gameplay_ui.script_floating_anchor_query=native_script_floating_anchor;gameplay_ui.script_floating_object_delta_query=native_script_floating_object_delta
+	print("NATIVE_GAMEPLAY_UI_CONFIGURED elapsed_ms=",Time.get_ticks_msec()-ui_configure_began," ticks_ms=",Time.get_ticks_msec())
+	gameplay_ui.set_gameplay_visible(false)
+	gameplay_ui.gui_sound_requested.connect(func(resource):
+		if is_instance_valid(world) and is_instance_valid(world.effects) and is_instance_valid(world.effects.world_audio):
+			# Original PlayGuiSound1f6110: nonpositional one-shot, priority9,
+			# delay0 and default volume. Native catalog/decoder owns the WAV.
+			world.effects.world_audio.one_shot(resource,null,0,9,0,0))
+	gameplay_ui.request.connect(func(value):
+		if str(value.get("kind","")).begins_with("native-creation-"):
+			send(value)
+		elif is_instance_valid(world) and world.ready_for_control():
+			var command: Dictionary=value.duplicate(); command.generation=epoch; command.areaId=world.area_id; send(command))
+	loading_screen.configure(gameplay_ui)
+	creation_trace("setup:configured")
+	initialized=true
+	return true
+
 func receive(message: Dictionary) -> void:
 	if closing and message.get("kind")!="finish-ack": return
 	match str(message.get("kind","")):
@@ -383,34 +437,10 @@ func receive(message: Dictionary) -> void:
 			if closing or not is_instance_valid(own_loader) or catalog_loader!=own_loader: return
 			catalog_loading=false
 			if not str(mounted.error).is_empty(): fail(mounted.error); return
-			catalog=mounted.catalog; report.native_catalog=mounted.stats
+			report.native_catalog=mounted.stats
 			print("NATIVE_SESSION_CATALOG_READY mount_ms=",mounted.stats.get("mount_ms",-1)," ticks_ms=",Time.get_ticks_msec())
-			if message.has("recordingDirectory"):
-				var recorder:=preload("res://systems/native_data/resource_recording.gd").new()
-				var talk_files:={"base":install.path_join("lang/en/data/dialog.tlk"),"female":install.path_join("lang/en/data/dialogf.tlk")}
-				if sources.get("customTlk") is Dictionary and sources.customTlk.get("path") is String:
-					talk_files.custom=sources.customTlk.path; talk_files.custom_female=str(sources.customTlk.path).trim_suffix(".tlk")+"f.tlk"
-				if not recorder.start(str(message.recordingDirectory),catalog.layers,talk_files): fail("Native resource recording could not start"); return
-				catalog.recording=recorder; resource_recordings.append(recorder)
-			var ui_configure_began:=Time.get_ticks_msec()
-			gameplay_ui=GameplayUi.new(); host.add_child(gameplay_ui); gameplay_ui.configure(catalog,install,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),str(args.get("menu-layout","user://native-menu-layout.cfg")),sources.customTlk if sources.get("customTlk") is Dictionary else {}); gameplay_ui.world_camera=camera; gameplay_ui.world_registry=registry
-			gameplay_ui.native_connection_query=native_text_connection;gameplay_ui.overhead_anchor_query=native_text_anchor
-			gameplay_ui.script_floating_anchor_query=native_script_floating_anchor;gameplay_ui.script_floating_object_delta_query=native_script_floating_object_delta
-			print("NATIVE_GAMEPLAY_UI_CONFIGURED elapsed_ms=",Time.get_ticks_msec()-ui_configure_began," ticks_ms=",Time.get_ticks_msec())
-			gameplay_ui.set_gameplay_visible(false)
-			gameplay_ui.gui_sound_requested.connect(func(resource):
-				if is_instance_valid(world) and is_instance_valid(world.effects) and is_instance_valid(world.effects.world_audio):
-					# Original PlayGuiSound1f6110: nonpositional one-shot, priority9,
-					# delay0 and default volume. Native catalog/decoder owns the WAV.
-					world.effects.world_audio.one_shot(resource,null,0,9,0,0))
-			gameplay_ui.request.connect(func(value):
-				if str(value.get("kind","")).begins_with("native-creation-"):
-					send(value)
-				elif is_instance_valid(world) and world.ready_for_control():
-					var command: Dictionary=value.duplicate(); command.generation=epoch; command.areaId=world.area_id; send(command))
-			loading_screen.configure(gameplay_ui)
-			creation_trace("setup:configured")
-			initialized=true; send({"kind":"catalog-ready","layers":catalog.layers.size()})
+			if not install_mounted_catalog(mounted.catalog,install,sources,str(message.get("recordingDirectory",""))):return
+			send({"kind":"catalog-ready","layers":catalog.layers.size()})
 		"ui-protocol":
 			# SessionWorld has already admitted this outer connection. The base
 			# entry has no accepted connection and retains its legacy UI route.
@@ -632,9 +662,10 @@ func _profile_tick() -> void:
 	if closing:return
 	if creation_runtime.enabled:creation_runtime.begin_frame(creation_runtime_values())
 	var phase_began:=FrameProfile.begin()
-	var poll_error:=peer.poll()
+	var poll_error:=OK
+	if not direct_mode:poll_error=peer.poll()
 	creation_runtime_phase("frame:poll-after")
-	if peer.get_status()==StreamPeerTCP.STATUS_CONNECTED:
+	if not direct_mode and peer.get_status()==StreamPeerTCP.STATUS_CONNECTED:
 		if not authenticated: authenticated=true; send({"kind":"hello","token":ticket.token,"runtimeFeatures":runtime_features_snapshot()}); ticket.clear()
 		var count:=peer.get_available_bytes()
 		if count>0:
@@ -649,13 +680,13 @@ func _profile_tick() -> void:
 			dispatch_protocol_messages(messages,frames.last_frame_sizes)
 			FrameProfile.finish("protocol_apply",decode_began)
 			if not frames.failure.is_empty(): fail(frames.failure); return
-	elif authenticated:
+	elif not direct_mode and authenticated:
 		report.protocol_disconnect={"poll_error":poll_error,"status":peer.get_status(),"ticks_ms":Time.get_ticks_msec()}
 		creation_runtime.event("protocol:disconnect",report.protocol_disconnect)
 		fail("Local protocol session disconnected"); return
 	# Complete one admitted OS-key burst after protocol changes and before output.
 	if is_instance_valid(keyboard) and keyboard.frame_input_admission and keyboard.can_process():keyboard.flush_input_frame()
-	flush_protocol_output()
+	if not direct_mode:flush_protocol_output()
 	creation_runtime_phase("frame:protocol-after")
 	FrameProfile.finish("root_protocol",phase_began)
 	native_clock_post_receive()
@@ -686,8 +717,12 @@ func _profile_tick() -> void:
 		if initial_controlled==null:
 			initial_controlled=position; entry_camera.anchor(camera,controller,position,camera_memory)
 			world.stats.controlled_camera_bound_ms=(Time.get_ticks_usec()-world.opened_at)/1000.0
-		var movement: Dictionary=world.motion.objects.get(world.controlled_id,{})
-		if not movement.is_empty(): controller.follow_frame(position,rad_to_deg(atan2(movement.orientation.y,movement.orientation.x)),int(movement.animation),root.get_process_delta_time())
+		var camera_follow_id:=native_camera_follow_target_id()
+		if world.instances.has(camera_follow_id):
+			var camera_position: Vector3=world.instances[camera_follow_id].position
+			var movement: Dictionary=world.motion.objects.get(camera_follow_id,{})
+			if not movement.is_empty():controller.follow_frame(camera_position,rad_to_deg(atan2(movement.orientation.y,movement.orientation.x)),int(movement.animation),root.get_process_delta_time())
+			elif camera_follow_id!=world.controlled_id:controller.follow_frame(camera_position,0.0,0,root.get_process_delta_time())
 		maximum_distance=maxf(maximum_distance,position.distance_to(initial_controlled))
 	FrameProfile.finish("root_camera",phase_began)
 	creation_runtime_phase("frame:camera-after")

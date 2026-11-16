@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "source": "backups/animations/native-network-resource-observations.json",
+  "originalNativeStatusCoordinator": 2,
+  "capturedNative": 0,
+  "authoredWriter": 0,
+  "cases": [
+    {
+      "name": "original-server-mode-1",
+      "origin": "original native status/resource coordinator observation with synthetic module",
+      "packet": "500101",
+      "expected": {"kind": "server-loading", "major": 1, "minor": 1}
+    },
+    {
+      "name": "original-server-mode-0",
+      "origin": "original native status/resource coordinator observation with synthetic module",
+      "packet": "500102",
+      "expected": {"kind": "server-unavailable", "major": 1, "minor": 2}
+    }
+  ]
+}

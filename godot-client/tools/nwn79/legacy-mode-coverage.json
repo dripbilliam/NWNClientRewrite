@@ -1,0 +1,830 @@
+{
+  "format": "nwn79-legacy-mode-coverage-v1",
+  "scope": "Switch modes of four client entrypoints, six handoff scenarios, and npm scripts. Non-switch tuning parameters remain modifiers of their parent mode.",
+  "entries": [
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-LocalOnly",
+      "status": "supported-normal",
+      "replacement": "godot-client/join-godot.ps1",
+      "evidence": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\.cache\\nwn79-direct-matrix-20261115-d\\matrix-summary.json",
+      "limit": "Only ordinary launch when no legacy diagnostic mode is selected"
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-MenuCheck",
+      "status": "retired-core",
+      "replacement": "godot-client/join-native.ps1 -MenuCheck via join-godot.ps1 -GraphicalMenuCheck",
+      "evidence": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\reports\\nwn79-menu-entry-20261115-a.json",
+      "limit": "Pure no-server menu/chooser readiness and clean shutdown only; Exit click is separately proved by MenuExitSmoke; combined diagnostic modes remain pending"
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-LocalCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-ActionCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-CreationCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-NuiCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-EffectsCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-Headless",
+      "status": "supported-normal",
+      "replacement": "godot-client/join-godot.ps1",
+      "evidence": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\.cache\\nwn79-direct-matrix-20261115-d\\matrix-summary.json",
+      "limit": "Only ordinary launch when no legacy diagnostic mode is selected"
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-Debugger",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-GdParticles",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-SharedParticles",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-ListFlags",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-SharedAnimationPreparation",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-NativeDrawCache",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-LocalStreamAbort",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-LocalCancelCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-Profile",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-RangedCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-DeflectionCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-MissCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-ParryCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-ShieldCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-SpecialAttackCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-ParticleCrowdCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-CorrectionCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-RadialCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-FeatCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-BarterCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-PlayersCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-LobbyPagesCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-LocalVaultCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-LocalDeleteCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-QuickbarCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-PolymorphCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-WorldRadialCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-CombatPresentationCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-AssociateRecordCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-NpcCombatCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-LevelUpSourceCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-ScriptFloatingCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-OrdinarySpeechCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-ScriptFloatingVisual",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-native.ps1",
+      "mode": "-DirectHandoffCheck",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-WeatherSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-PortalRegionSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-Smoke",
+      "status": "retired-pure-mode",
+      "replacement": "godot-client/join-local.ps1 -Smoke via Godot-only tools/nwn79/run-direct-acceptance-matrix.ps1 -Scenarios local-smoke-graphical",
+      "evidence": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\.cache\\nwn79-local-smoke-entry-1794799377983-513dd621\\matrix-summary.json",
+      "limit": "Only the exact pure -Smoke caller is Godot graphical; combined flags reject before startup. No public Arelith or FPS claim."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-LifecycleSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-ContentSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-TransitionSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-MovementSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-TextSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-RadialSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-BookSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-CombatSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-ParticleSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-VisualModelSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-VisualDefinitionSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-VisualSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-InventorySmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-ShortcutReconnectSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-FeedbackSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-CameraSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-CameraCommandSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-NWSyncSmoke",
+      "status": "retired-core",
+      "replacement": "godot-client/tools/nwn79/run-direct-acceptance-matrix.ps1 -Scenarios nwsync",
+      "evidence": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\.cache\\nwn79-direct-nwsync-20261115-c\\matrix-summary.json",
+      "limit": "Private cold/warm/manifest+blob repair and authored 404 covered. The separate 13-resource graphical test-overlay receipt is in .cache/nwn79-visual-graphical-20261115-a/matrix-summary.json; ordinary texture parity and public Arelith remain pending"
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-NWSyncCancel",
+      "status": "retired-core",
+      "replacement": "godot-client/tools/nwn79/run-direct-acceptance-matrix.ps1 -Scenarios nwsync-cancel",
+      "evidence": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\.cache\\nwn79-visual-cancel-20261115-f\\matrix-summary.json",
+      "limit": "Private fixture pressed visible enabled native wait Cancel during a started pending HTTP request and verified repository/session/world retirement; public Arelith cancellation remains pending"
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-ContainerSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-StoreSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-CharacterSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-LevelSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-RecordsSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-NuiSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-NuiActionSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-NuiReconnectSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-NuiSkinSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-NuiPopupSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-BuffSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-PartySmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-SettingsSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-MenuExitSmoke",
+      "status": "retired-core",
+      "replacement": "godot-client/join-local.ps1 -MenuExitSmoke via join-godot.ps1 -GraphicalMenuExitCheck",
+      "evidence": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\godot-client\\reports\\nwn79-menu-exit-entry-20261115-a.json",
+      "limit": "Pure no-server mode proves source-defined pre_main.exitbutton pressed, five menu assets preloaded and clean exit; combined legacy diagnostic switches remain pending"
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-CreationSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-BuffPreview",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-AutoPlay",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-Headless",
+      "status": "supported-normal",
+      "replacement": "godot-client/join-godot.ps1",
+      "evidence": "C:\\Users\\Niflheim\\Desktop\\Tools\\Local Tools\\EntireDecomp\\.cache\\nwn79-direct-matrix-20261115-d\\matrix-summary.json",
+      "limit": "Only ordinary launch when no legacy diagnostic mode is selected"
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-NativeVerbose",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-PointVisualSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/join-local.ps1",
+      "mode": "-WorldAudioSmoke",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/replay-native-loading.ps1",
+      "mode": "-Headless",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/replay-native-loading.ps1",
+      "mode": "-Paced",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/replay-native-loading.ps1",
+      "mode": "-MovementTiming",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/replay-native-loading.ps1",
+      "mode": "-Interactive",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/replay-native-loading.ps1",
+      "mode": "-VerifyOnly",
+      "status": "retired-core",
+      "replacement": "godot-client/replay-native-loading.ps1 -VerifyOnly via tools/nwn79/verify-native-loading-capture.ps1",
+      "evidence": ".cache/nwn79-verify-combined-oracle-20261115-a/summary.json",
+      "limit": "All VerifyOnly calls, including Generation, Headless, Paced, MovementTiming and Interactive combinations, return the same read-only validation result as the original script. Actual playback without VerifyOnly remains legacy."
+    },
+    {
+      "path": "godot-client/test-handoff.ps1",
+      "mode": "-OriginGc",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/test-handoff.ps1",
+      "mode": "-Scenario roundtrip",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/test-handoff.ps1",
+      "mode": "-Scenario cancel",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/test-handoff.ps1",
+      "mode": "-Scenario failure",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/test-handoff.ps1",
+      "mode": "-Scenario nui",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/test-handoff.ps1",
+      "mode": "-Scenario vault",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "godot-client/test-handoff.ps1",
+      "mode": "-Scenario sync",
+      "status": "retired-unsupported",
+      "replacement": "No supported normal-client equivalent; old diagnostic caller rejects before startup",
+      "evidence": "godot-client/.cache/nwn79-retired-entrypoints-20261115-a.json",
+      "limit": "Intentional retirement under normal-Godot-only scope. Original JS diagnostic and replay paths were deleted; no client/server/Node/Electron launch."
+    },
+    {
+      "path": "package.json",
+      "mode": "npm run dev",
+      "status": "retired-removed",
+      "replacement": "Root package.json and package-lock.json removed; normal Godot uses setup.ps1 and join-native.ps1",
+      "evidence": ".cache/nwn79-root-package-retirement-20261115-a.json",
+      "limit": "Npm dev/build/test and prior start/check scripts are intentionally unsupported; unrelated wiki has its own package."
+    },
+    {
+      "path": "package.json",
+      "mode": "npm run build",
+      "status": "retired-removed",
+      "replacement": "Root package.json and package-lock.json removed; normal Godot uses setup.ps1 and join-native.ps1",
+      "evidence": ".cache/nwn79-root-package-retirement-20261115-a.json",
+      "limit": "Npm dev/build/test and prior start/check scripts are intentionally unsupported; unrelated wiki has its own package."
+    },
+    {
+      "path": "package.json",
+      "mode": "npm run start",
+      "status": "retired-removed",
+      "replacement": "Root package.json and package-lock.json removed; normal Godot uses setup.ps1 and join-native.ps1",
+      "evidence": ".cache/nwn79-root-package-retirement-20261115-a.json",
+      "limit": "Npm dev/build/test and prior start/check scripts are intentionally unsupported; unrelated wiki has its own package."
+    },
+    {
+      "path": "package.json",
+      "mode": "npm run test",
+      "status": "retired-removed",
+      "replacement": "Root package.json and package-lock.json removed; normal Godot uses setup.ps1 and join-native.ps1",
+      "evidence": ".cache/nwn79-root-package-retirement-20261115-a.json",
+      "limit": "Npm dev/build/test and prior start/check scripts are intentionally unsupported; unrelated wiki has its own package."
+    },
+    {
+      "path": "package.json",
+      "mode": "npm run check:electron",
+      "status": "retired-removed",
+      "replacement": "Root package.json and package-lock.json removed; normal Godot uses setup.ps1 and join-native.ps1",
+      "evidence": ".cache/nwn79-root-package-retirement-20261115-a.json",
+      "limit": "Npm dev/build/test and prior start/check scripts are intentionally unsupported; unrelated wiki has its own package."
+    }
+  ]
+}

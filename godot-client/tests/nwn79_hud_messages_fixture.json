@@ -1,0 +1,552 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "name": "journal-world-literal",
+      "origin": "authored original-format writer",
+      "packet": "501c0130000000fcffffff0600000041206e6f74650f000000546865206465736372697074696f6e0c0000002200000060",
+      "expected": {
+        "kind": "journal",
+        "operation": 1,
+        "worldEntry": {
+          "id": -4,
+          "title": {
+            "text": "A note"
+          },
+          "description": {
+            "text": "The description"
+          },
+          "date": 12,
+          "time": 34
+        },
+        "major": 28,
+        "minor": 1
+      }
+    },
+    {
+      "name": "journal-world-strref",
+      "origin": "authored original-format writer",
+      "packet": "501c021700000007000000b3e100000c0000002200000060",
+      "expected": {
+        "kind": "journal",
+        "operation": 2,
+        "worldEntry": {
+          "id": 7,
+          "strRef": 57779,
+          "date": 12,
+          "time": 34
+        },
+        "major": 28,
+        "minor": 2
+      }
+    },
+    {
+      "name": "journal-world-remove",
+      "origin": "authored original-format writer",
+      "packet": "501c030b000000fcffffff60",
+      "expected": {
+        "kind": "journal",
+        "operation": 3,
+        "worldId": -4,
+        "major": 28,
+        "minor": 3
+      }
+    },
+    {
+      "name": "journal-world-strref-remove",
+      "origin": "authored original-format writer",
+      "packet": "501c040b000000b3e1000060",
+      "expected": {
+        "kind": "journal",
+        "operation": 4,
+        "worldStrRef": 57779,
+        "major": 28,
+        "minor": 4
+      }
+    },
+    {
+      "name": "journal-clear",
+      "origin": "authored original-format writer",
+      "packet": "501c05080000000260",
+      "expected": {
+        "kind": "journal",
+        "operation": 5,
+        "clear": 2,
+        "major": 28,
+        "minor": 5
+      }
+    },
+    {
+      "name": "journal-quest-entry",
+      "origin": "authored original-format writer",
+      "packet": "501c0637000000070000004120717565737416e20000090000000a0000000b00000071756573745f6561727468feffffff030000000400ee",
+      "expected": {
+        "kind": "journal",
+        "operation": 6,
+        "entry": {
+          "title": {
+            "text": "A quest"
+          },
+          "description": {
+            "gender": 1,
+            "strRef": 57878
+          },
+          "date": 9,
+          "time": 10,
+          "tag": "quest_earth",
+          "state": -2,
+          "priority": 3,
+          "picture": 4,
+          "completed": 1,
+          "isQuest": true
+        },
+        "major": 28,
+        "minor": 6
+      }
+    },
+    {
+      "name": "journal-delete",
+      "origin": "authored original-format writer",
+      "packet": "501c07160000000b00000071756573745f656172746860",
+      "expected": {
+        "kind": "journal",
+        "operation": 7,
+        "tag": "quest_earth",
+        "major": 28,
+        "minor": 7
+      }
+    },
+    {
+      "name": "journal-picture",
+      "origin": "authored original-format writer",
+      "packet": "501c081a0000000b00000071756573745f6561727468f9ffffff60",
+      "expected": {
+        "kind": "journal",
+        "operation": 8,
+        "tag": "quest_earth",
+        "picture": -7,
+        "major": 28,
+        "minor": 8
+      }
+    },
+    {
+      "name": "journal-full",
+      "origin": "authored original-format writer",
+      "packet": "501c09500000000100000000800b00000071756573745f65617274680a00000046756c6c207469746c651000000046756c6c206465736372697074696f6e05000000060000000700000008000000090018",
+      "expected": {
+        "kind": "journal",
+        "operation": 9,
+        "present": 1,
+        "full": 1,
+        "entries": [
+          {
+            "mask": 32768,
+            "tag": "quest_earth",
+            "title": {
+              "text": "Full title"
+            },
+            "description": {
+              "text": "Full description"
+            },
+            "date": 5,
+            "time": 6,
+            "state": 7,
+            "priority": 8,
+            "picture": 9,
+            "completed": 0,
+            "isQuest": true
+          }
+        ],
+        "major": 28,
+        "minor": 9
+      }
+    },
+    {
+      "name": "journal-partial",
+      "origin": "authored original-format writer",
+      "packet": "501c091c0000000100000080000b00000071756573745f6561727468d4",
+      "expected": {
+        "kind": "journal",
+        "operation": 9,
+        "present": 1,
+        "full": 0,
+        "entries": [
+          {
+            "mask": 128,
+            "tag": "quest_earth",
+            "completed": 1,
+            "isQuest": true
+          }
+        ],
+        "major": 28,
+        "minor": 9
+      }
+    },
+    {
+      "name": "journal-entry-remove",
+      "origin": "authored original-format writer",
+      "packet": "501c091c0000000100000000400b00000071756573745f6561727468b0",
+      "expected": {
+        "kind": "journal",
+        "operation": 9,
+        "present": 1,
+        "full": 0,
+        "entries": [
+          {
+            "mask": 16384,
+            "tag": "quest_earth"
+          }
+        ],
+        "major": 28,
+        "minor": 9
+      }
+    },
+    {
+      "name": "journal-empty",
+      "origin": "authored original-format writer",
+      "packet": "501c090700000080",
+      "expected": {
+        "kind": "journal",
+        "operation": 9,
+        "present": 0,
+        "major": 28,
+        "minor": 9
+      }
+    },
+    {
+      "name": "journal-notice",
+      "origin": "authored original-format writer",
+      "packet": "501c0c0b00000016e20000fc",
+      "expected": {
+        "kind": "journal",
+        "operation": 12,
+        "title": {
+          "gender": 1,
+          "strRef": 57878
+        },
+        "quest": 1,
+        "changed": 0,
+        "major": 28,
+        "minor": 12
+      }
+    },
+    {
+      "name": "timing-on",
+      "origin": "authored original-format writer",
+      "packet": "5030010c000000e02e00000690",
+      "expected": {
+        "kind": "gui-timing",
+        "active": 1,
+        "duration": 12000,
+        "type": 6,
+        "major": 48,
+        "minor": 1
+      }
+    },
+    {
+      "name": "timing-off",
+      "origin": "authored original-format writer",
+      "packet": "5030010700000080",
+      "expected": {
+        "kind": "gui-timing",
+        "active": 0,
+        "major": 48,
+        "minor": 1
+      }
+    },
+    {
+      "name": "attitude-own",
+      "origin": "authored original-format writer",
+      "packet": "5029030f0000000100000002000000b8",
+      "expected": {
+        "kind": "player-attitude",
+        "sourcePlayerId": 1,
+        "playerId": 2,
+        "likes": 1,
+        "own": 1,
+        "major": 41,
+        "minor": 3
+      }
+    },
+    {
+      "name": "attitude-incoming",
+      "origin": "authored original-format writer",
+      "packet": "5029030f0000000400000005000000a0",
+      "expected": {
+        "kind": "player-attitude",
+        "sourcePlayerId": 4,
+        "playerId": 5,
+        "likes": 0,
+        "own": 0,
+        "major": 41,
+        "minor": 3
+      }
+    },
+    {
+      "name": "map-pin-enabled",
+      "origin": "authored original-format writer",
+      "packet": "5020010b0000001300008090",
+      "expected": {
+        "kind": "map-pin-enabled",
+        "id": 2147483667,
+        "enabled": 1,
+        "major": 32,
+        "minor": 1
+      }
+    },
+    {
+      "name": "map-pin-added",
+      "origin": "authored original-format writer",
+      "packet": "502004230000000000c03f000010c000007040080000004d6170206e6f74650900000060",
+      "expected": {
+        "kind": "map-pin-added",
+        "position": [
+          1.5,
+          -2.25,
+          3.75
+        ],
+        "text": "Map note",
+        "index": 9,
+        "major": 32,
+        "minor": 4
+      }
+    },
+    {
+      "name": "map-pin-created-literal",
+      "origin": "authored original-format writer",
+      "packet": "50200622000000140000800000803f0000004000004040070000004d61702070696ea8",
+      "expected": {
+        "kind": "map-pin-created",
+        "id": 2147483668,
+        "position": [
+          1,
+          2,
+          3
+        ],
+        "name": {
+          "text": "Map pin"
+        },
+        "enabled": 1,
+        "major": 32,
+        "minor": 6
+      }
+    },
+    {
+      "name": "map-pin-created-strref",
+      "origin": "authored original-format writer",
+      "packet": "5020061b00000015000080000080bf000000000000a04016e20000d8",
+      "expected": {
+        "kind": "map-pin-created",
+        "id": 2147483669,
+        "position": [
+          -1,
+          0,
+          5
+        ],
+        "name": {
+          "gender": 1,
+          "strRef": 57878
+        },
+        "enabled": 0,
+        "major": 32,
+        "minor": 6
+      }
+    },
+    {
+      "name": "journal-captured-0-0",
+      "origin": "captured native packet",
+      "packet": "501c0c0b00000016e20000f4",
+      "expected": {
+        "kind": "journal",
+        "operation": 12,
+        "title": {
+          "gender": 0,
+          "strRef": 57878
+        },
+        "quest": 1,
+        "changed": 0,
+        "major": 28,
+        "minor": 12
+      }
+    },
+    {
+      "name": "journal-captured-1-0",
+      "origin": "captured native packet",
+      "packet": "501c0c0b00000016e20000f4",
+      "expected": {
+        "kind": "journal",
+        "operation": 12,
+        "title": {
+          "gender": 0,
+          "strRef": 57878
+        },
+        "quest": 1,
+        "changed": 0,
+        "major": 28,
+        "minor": 12
+      }
+    },
+    {
+      "name": "journal-captured-2-0",
+      "origin": "captured native packet",
+      "packet": "501c0c0b00000016e20000f4",
+      "expected": {
+        "kind": "journal",
+        "operation": 12,
+        "title": {
+          "gender": 0,
+          "strRef": 57878
+        },
+        "quest": 1,
+        "changed": 0,
+        "major": 28,
+        "minor": 12
+      }
+    },
+    {
+      "name": "map-pin-original-1",
+      "origin": "original native receiver fixture",
+      "packet": "5020061b0000000000007f00000000000000000000000000000000a5",
+      "expected": {
+        "kind": "map-pin-created",
+        "id": 2130706432,
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "name": {
+          "text": ""
+        },
+        "enabled": 0,
+        "major": 32,
+        "minor": 6
+      }
+    },
+    {
+      "name": "map-pin-original-2",
+      "origin": "original native receiver fixture",
+      "packet": "5020061b0000000000007f0000000000000000000000007b000000d1",
+      "expected": {
+        "kind": "map-pin-created",
+        "id": 2130706432,
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "name": {
+          "gender": 0,
+          "strRef": 123
+        },
+        "enabled": 0,
+        "major": 32,
+        "minor": 6
+      }
+    },
+    {
+      "name": "map-pin-original-3",
+      "origin": "original native receiver fixture",
+      "packet": "5020061f0000000000007f000000000000000000000000040000004d617080a5",
+      "expected": {
+        "kind": "map-pin-created",
+        "id": 2130706432,
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "name": {
+          "text": "Map€"
+        },
+        "enabled": 0,
+        "major": 32,
+        "minor": 6
+      }
+    },
+    {
+      "name": "map-pin-original-4",
+      "origin": "original native receiver fixture",
+      "packet": "5020061e0000000000007f00000000000000000000000003000000410042a5",
+      "expected": {
+        "kind": "map-pin-created",
+        "id": 2130706432,
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "name": {
+          "text": "A\u0000B"
+        },
+        "enabled": 0,
+        "major": 32,
+        "minor": 6
+      }
+    },
+    {
+      "name": "map-pin-original-5",
+      "origin": "original native receiver fixture",
+      "packet": "502006e30000000000007f000000000000000000000000c80000004242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242a5",
+      "expected": {
+        "kind": "map-pin-created",
+        "id": 2130706432,
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "name": {
+          "text": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        },
+        "enabled": 0,
+        "major": 32,
+        "minor": 6
+      }
+    },
+    {
+      "name": "map-pin-original-6",
+      "origin": "original native receiver fixture",
+      "packet": "5020010b0000000000007f85",
+      "expected": {
+        "kind": "map-pin-enabled",
+        "id": 2130706432,
+        "enabled": 0,
+        "major": 32,
+        "minor": 1
+      }
+    },
+    {
+      "name": "map-pin-original-7",
+      "origin": "original native receiver fixture",
+      "packet": "5020061b0000000300008000000040000040400000804000000000ad",
+      "expected": {
+        "kind": "map-pin-created",
+        "id": 2147483651,
+        "position": [
+          2,
+          3,
+          4
+        ],
+        "name": {
+          "text": ""
+        },
+        "enabled": 1,
+        "major": 32,
+        "minor": 6
+      }
+    },
+    {
+      "name": "map-pin-original-8",
+      "origin": "original native receiver fixture",
+      "packet": "5020010b0000000300008095",
+      "expected": {
+        "kind": "map-pin-enabled",
+        "id": 2147483651,
+        "enabled": 1,
+        "major": 32,
+        "minor": 1
+      }
+    }
+  ]
+}

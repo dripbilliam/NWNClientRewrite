@@ -105,9 +105,10 @@ func install_light(id: int,plan: Dictionary) -> bool:
 	model.set_meta("native_model_name","fx_placeable01"); model.set_meta("native_generated_placeable_id",id)
 	instances[id]=model;created+=1
 	return apply(id,plan)
-func apply(id: int,plan: Dictionary) -> bool:
+func apply(id: int,plan: Dictionary,ready_anchor: Node3D=null) -> bool:
 	var model: Node3D=instances[id]
-	if configurations.get(id,{})!=plan:
+	var changed: bool=configurations.get(id,{})!=plan
+	if changed:
 		var part: Node3D=model.node_for(0,"auroralight01")
 		for light in part.get_children():
 			if not light is OmniLight3D:continue
@@ -120,7 +121,9 @@ func apply(id: int,plan: Dictionary) -> bool:
 		# set_part_local_pose uses native [w,x,y,z] quaternion representation.
 		model.set_part_local_pose("root",p,[q.w,q.x,-q.z,q.y])
 		configurations[id]=plan.duplicate(true)
-	var target:=anchor(id) if plan.dynamic else null
+	# A changed plan can update the model before attachment, so resolve its
+	# anchor afterward. An unchanged plan can reuse the admission lookup.
+	var target:=anchor(id) if plan.dynamic and (changed or not is_instance_valid(ready_anchor)) else ready_anchor
 	if is_instance_valid(target):model.attach_to(target)
 	else:
 		model.detach(); model.rotation=Vector3.ZERO; model.position=Vector3(plan.position[0],plan.position[2],-plan.position[1])
@@ -138,10 +141,11 @@ func _process(_delta: float) -> void:
 	for id in desired:
 		if failed.has(id):continue
 		var plan: Dictionary=desired[id]
-		if plan.dynamic and not is_instance_valid(anchor(id)):
+		var ready_anchor: Node3D=anchor(id) if plan.dynamic else null
+		if plan.dynamic and not is_instance_valid(ready_anchor):
 			# Keep the area-owned light until the actual body is ready to take it.
 			continue
-		if instances.has(id):apply(id,plan);continue
+		if instances.has(id):apply(id,plan,ready_anchor);continue
 		if count>=8 or Time.get_ticks_usec()-began>=3000:dirty=true;break
 		install_light(id,plan);count+=1
 func snapshot() -> Dictionary:

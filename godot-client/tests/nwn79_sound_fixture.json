@@ -1,0 +1,3621 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "name": "sound-0",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-1",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-2",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-3",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-4",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-5",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-6",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-7",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-8",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-9",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-10",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-11",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-12",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-13",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-14",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-15",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-16",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-17",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-18",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-19",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-20",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-21",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-22",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-23",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-24",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-25",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-26",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-27",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-28",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-29",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-30",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-31",
+      "origin": "original native server sender fixture",
+      "packet": "5017020b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 2,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 2
+      }
+    },
+    {
+      "name": "sound-32",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-33",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-34",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-35",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-36",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-37",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-38",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-39",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-40",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-41",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-42",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-43",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-44",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-45",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-46",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-47",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-48",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-49",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-50",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-51",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-52",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-53",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-54",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-55",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-56",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-57",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-58",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-59",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-60",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-61",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-62",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-63",
+      "origin": "original native server sender fixture",
+      "packet": "5017030b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 3,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 3
+      }
+    },
+    {
+      "name": "sound-64",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000130000800000008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483667,
+        "volume": -2147483648,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-65",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f00000013000080ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483667,
+        "volume": -1,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-66",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000130000800000000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483667,
+        "volume": 0,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-67",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000130000800100000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483667,
+        "volume": 1,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-68",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000130000807f00000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483667,
+        "volume": 127,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-69",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f00000013000080ff00000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483667,
+        "volume": 255,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-70",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000130000800001000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483667,
+        "volume": 256,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-71",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f00000013000080ffffff7f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483667,
+        "volume": 2147483647,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-72",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000ffffffff0000008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 4294967295,
+        "volume": -2147483648,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-73",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000ffffffffffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 4294967295,
+        "volume": -1,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-74",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000ffffffff0000000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 4294967295,
+        "volume": 0,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-75",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000ffffffff0100000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 4294967295,
+        "volume": 1,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-76",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000ffffffff7f00000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 4294967295,
+        "volume": 127,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-77",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000ffffffffff00000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 4294967295,
+        "volume": 255,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-78",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000ffffffff0001000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 4294967295,
+        "volume": 256,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-79",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000ffffffffffffff7f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 4294967295,
+        "volume": 2147483647,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-80",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f0000000000007f0000008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2130706432,
+        "volume": -2147483648,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-81",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f0000000000007fffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2130706432,
+        "volume": -1,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-82",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f0000000000007f0000000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2130706432,
+        "volume": 0,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-83",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f0000000000007f0100000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2130706432,
+        "volume": 1,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-84",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f0000000000007f7f00000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2130706432,
+        "volume": 127,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-85",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f0000000000007fff00000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2130706432,
+        "volume": 255,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-86",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f0000000000007f0001000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2130706432,
+        "volume": 256,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-87",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f0000000000007fffffff7f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2130706432,
+        "volume": 2147483647,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-88",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000210000800000008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483681,
+        "volume": -2147483648,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-89",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f00000021000080ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483681,
+        "volume": -1,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-90",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000210000800000000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483681,
+        "volume": 0,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-91",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000210000800100000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483681,
+        "volume": 1,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-92",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000210000807f00000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483681,
+        "volume": 127,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-93",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f00000021000080ff00000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483681,
+        "volume": 255,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-94",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f000000210000800001000065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483681,
+        "volume": 256,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-95",
+      "origin": "original native server sender fixture",
+      "packet": "5017040f00000021000080ffffff7f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 4,
+        "objectId": 2147483681,
+        "volume": 2147483647,
+        "major": 23,
+        "minor": 4
+      }
+    },
+    {
+      "name": "sound-96",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000001300008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483667,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-97",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000001300008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483667,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-98",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000001300008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483667,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-99",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000001300008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483667,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-100",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000001300008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483667,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-101",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000001300008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483667,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-102",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000001300008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483667,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-103",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000001300008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483667,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-104",
+      "origin": "original native server sender fixture",
+      "packet": "50170517000000ffffffff00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 4294967295,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-105",
+      "origin": "original native server sender fixture",
+      "packet": "50170517000000ffffffff00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 4294967295,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-106",
+      "origin": "original native server sender fixture",
+      "packet": "50170517000000ffffffff00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 4294967295,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-107",
+      "origin": "original native server sender fixture",
+      "packet": "50170517000000ffffffff00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 4294967295,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-108",
+      "origin": "original native server sender fixture",
+      "packet": "50170517000000ffffffff00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 4294967295,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-109",
+      "origin": "original native server sender fixture",
+      "packet": "50170517000000ffffffff00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 4294967295,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-110",
+      "origin": "original native server sender fixture",
+      "packet": "50170517000000ffffffff00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 4294967295,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-111",
+      "origin": "original native server sender fixture",
+      "packet": "50170517000000ffffffff00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 4294967295,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-112",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000000000007f00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2130706432,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-113",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000000000007f00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2130706432,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-114",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000000000007f00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2130706432,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-115",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000000000007f00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2130706432,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-116",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000000000007f00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2130706432,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-117",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000000000007f00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2130706432,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-118",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000000000007f00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2130706432,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-119",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000000000007f00005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2130706432,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-120",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000002100008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483681,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-121",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000002100008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483681,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-122",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000002100008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483681,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-123",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000002100008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483681,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-124",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000002100008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483681,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-125",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000002100008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483681,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-126",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000002100008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483681,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-127",
+      "origin": "original native server sender fixture",
+      "packet": "501705170000002100008000005040000008c16666e63f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 5,
+        "objectId": 2147483681,
+        "position": [
+          3.25,
+          -8.5,
+          1.7999999523162842
+        ],
+        "major": 23,
+        "minor": 5
+      }
+    },
+    {
+      "name": "sound-128",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000001300008047000080130000800000000000a03f000000800000000080000000800000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483667,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483667,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 2147483648,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 2147483648,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 2147483648,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-129",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000130000804700008013000080ffffff0000a03fffffffffffffffffffffffffff0000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483667,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483667,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 4294967295,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 4294967295,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 4294967295,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-130",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000001300008047000080130000800000000000a03f000000000000000000000000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483667,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483667,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 0,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 0,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 0,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-131",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000001300008047000080130000800101010000a03f010000000101000000010000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483667,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483667,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 1,
+            "318": 1,
+            "320": 1.25,
+            "324": 1,
+            "328": 1,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 1,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 1,
+            "34c": 1,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-132",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000001300008047000080130000807f7f7f0000a03f7f0000007f7f0000007f0000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483667,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483667,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 127,
+            "318": 127,
+            "320": 1.25,
+            "324": 127,
+            "328": 127,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 127,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 127,
+            "34c": 127,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-133",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000130000804700008013000080ffffff0000a03fff000000ffff000000ff0000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483667,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483667,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 255,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 255,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 255,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-134",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000001300008047000080130000800000000000a03f000100000000010000000100000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483667,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483667,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 256,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 256,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 256,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-135",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000130000804700008013000080ffffff0000a03fffffff7fffffffff7fffffff7f0000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483667,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483667,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 2147483647,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 2147483647,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 2147483647,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-136",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000ffffffff47000080ffffffff0000000000a03f000000800000000080000000800000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 4294967295,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 4294967295,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 2147483648,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 2147483648,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 2147483648,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-137",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000ffffffff47000080ffffffffffffff0000a03fffffffffffffffffffffffffff0000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 4294967295,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 4294967295,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 4294967295,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 4294967295,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 4294967295,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-138",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000ffffffff47000080ffffffff0000000000a03f000000000000000000000000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 4294967295,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 4294967295,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 0,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 0,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 0,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-139",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000ffffffff47000080ffffffff0101010000a03f010000000101000000010000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 4294967295,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 4294967295,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 1,
+            "318": 1,
+            "320": 1.25,
+            "324": 1,
+            "328": 1,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 1,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 1,
+            "34c": 1,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-140",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000ffffffff47000080ffffffff7f7f7f0000a03f7f0000007f7f0000007f0000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 4294967295,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 4294967295,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 127,
+            "318": 127,
+            "320": 1.25,
+            "324": 127,
+            "328": 127,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 127,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 127,
+            "34c": 127,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-141",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000ffffffff47000080ffffffffffffff0000a03fff000000ffff000000ff0000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 4294967295,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 4294967295,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 255,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 255,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 255,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-142",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000ffffffff47000080ffffffff0000000000a03f000100000000010000000100000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 4294967295,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 4294967295,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 256,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 256,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 256,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-143",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000ffffffff47000080ffffffffffffff0000a03fffffff7fffffffff7fffffff7f0000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 4294967295,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 4294967295,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 2147483647,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 2147483647,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 2147483647,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-144",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000000000007f470000800000007f0000000000a03f000000800000000080000000800000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2130706432,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2130706432,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 2147483648,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 2147483648,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 2147483648,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-145",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000000000007f470000800000007fffffff0000a03fffffffffffffffffffffffffff0000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2130706432,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2130706432,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 4294967295,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 4294967295,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 4294967295,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-146",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000000000007f470000800000007f0000000000a03f000000000000000000000000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2130706432,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2130706432,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 0,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 0,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 0,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-147",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000000000007f470000800000007f0101010000a03f010000000101000000010000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2130706432,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2130706432,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 1,
+            "318": 1,
+            "320": 1.25,
+            "324": 1,
+            "328": 1,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 1,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 1,
+            "34c": 1,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-148",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000000000007f470000800000007f7f7f7f0000a03f7f0000007f7f0000007f0000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2130706432,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2130706432,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 127,
+            "318": 127,
+            "320": 1.25,
+            "324": 127,
+            "328": 127,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 127,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 127,
+            "34c": 127,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-149",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000000000007f470000800000007fffffff0000a03fff000000ffff000000ff0000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2130706432,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2130706432,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 255,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 255,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 255,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-150",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000000000007f470000800000007f0000000000a03f000100000000010000000100000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2130706432,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2130706432,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 256,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 256,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 256,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-151",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000000000007f470000800000007fffffff0000a03fffffff7fffffffff7fffffff7f0000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2130706432,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2130706432,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 2147483647,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 2147483647,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 2147483647,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-152",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000002100008047000080210000800000000000a03f000000800000000080000000800000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483681,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483681,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 2147483648,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 2147483648,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 2147483648,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-153",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000210000804700008021000080ffffff0000a03fffffffffffffffffffffffffff0000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483681,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483681,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 4294967295,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 4294967295,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 4294967295,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-154",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000002100008047000080210000800000000000a03f000000000000000000000000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483681,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483681,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 0,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 0,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 0,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-155",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000002100008047000080210000800101010000a03f010000000101000000010000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483681,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483681,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 1,
+            "318": 1,
+            "320": 1.25,
+            "324": 1,
+            "328": 1,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 1,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 1,
+            "34c": 1,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-156",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000002100008047000080210000807f7f7f0000a03f7f0000007f7f0000007f0000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483681,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483681,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 127,
+            "318": 127,
+            "320": 1.25,
+            "324": 127,
+            "328": 127,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 127,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 127,
+            "34c": 127,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-157",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000210000804700008021000080ffffff0000a03fff000000ffff000000ff0000000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483681,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483681,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 255,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 255,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 255,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-158",
+      "origin": "original native server sender fixture",
+      "packet": "501706850000002100008047000080210000800000000000a03f000100000000010000000100000000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000002025",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483681,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483681,
+          "fields": {
+            "308": 0,
+            "310": 0,
+            "314": 0,
+            "318": 0,
+            "320": 1.25,
+            "324": 256,
+            "328": 0,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 256,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 0,
+            "30c": 0,
+            "31c": 0,
+            "34c": 256,
+            "35c": 0,
+            "32c": 0
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-159",
+      "origin": "original native server sender fixture",
+      "packet": "50170685000000210000804700008021000080ffffff0000a03fffffff7fffffffff7fffffff7f0000a03f0000a03f0000a03f0000a03f00005040000008c16666e63f0400636173655f536f756e640000000000006162636465666768696a6b6c6d6e6f7061006200000000000000000000000000000000000000000000000000000000003fa5",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 6,
+        "objectId": 2147483681,
+        "areaId": 2147483719,
+        "sound": {
+          "id": 2147483681,
+          "fields": {
+            "308": 1,
+            "310": 1,
+            "314": 255,
+            "318": 255,
+            "320": 1.25,
+            "324": 2147483647,
+            "328": 255,
+            "330": 1.25,
+            "334": 1.25,
+            "348": 2147483647,
+            "350": 1.25,
+            "354": 1.25,
+            "358": 1,
+            "30c": 1,
+            "31c": 255,
+            "34c": 2147483647,
+            "35c": 1,
+            "32c": 1
+          },
+          "position": [
+            3.25,
+            -8.5,
+            1.7999999523162842
+          ],
+          "refs": [
+            "case_Sound",
+            "abcdefghijklmnop",
+            "a",
+            ""
+          ]
+        },
+        "major": 23,
+        "minor": 6
+      }
+    },
+    {
+      "name": "sound-160",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-161",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-162",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-163",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-164",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-165",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-166",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-167",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000001300008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483667,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-168",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-169",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-170",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-171",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-172",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-173",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-174",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-175",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b000000ffffffff65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 4294967295,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-176",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-177",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-178",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-179",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-180",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-181",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-182",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-183",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000000000007f65",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2130706432,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-184",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-185",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-186",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-187",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-188",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-189",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-190",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 7
+      }
+    },
+    {
+      "name": "sound-191",
+      "origin": "original native server sender fixture",
+      "packet": "5017070b0000002100008065",
+      "expected": {
+        "kind": "sound-object",
+        "operation": 7,
+        "objectId": 2147483681,
+        "major": 23,
+        "minor": 7
+      }
+    }
+  ]
+}

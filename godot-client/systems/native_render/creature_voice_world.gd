@@ -6,6 +6,7 @@ const Ssf=preload("res://systems/native_data/sound_set.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Fields=preload("res://systems/native_data/combat_actor.gd")
 const Sound=preload("res://systems/world_sound_state.gd")
+const NetworkVoice=preload("res://systems/native_data/native_creature_voice_owner.gd")
 var manager
 var combat
 var assets
@@ -23,8 +24,10 @@ var wire_serial:=-1
 var closed:=false
 var retiring:=false
 var stats:={"requested":0,"started":0,"replaced":0,"destroyed":0,"suppressed":0,"stale":0,"failed":0,"overflow":0,"set_imports":0}
+var network_voice=NetworkVoice.new()
 func configure(owner) -> void:
 	manager=owner; combat=manager.world.get("combat")
+	network_voice.begin_area(int(manager.world.area_id),int(manager.world.generation))
 	if is_instance_valid(combat): combat.engine.presentation_event.connect(combat_event)
 	assets=Assets.new(); manager.add_child(assets); assets.configure(manager.world.catalog); assets.cache_directory=manager.world.cache_path; assets.maximum_workers=1; assets.completed.connect(prepared)
 	var job: int=assets.request("soundset",2017,"2da")
@@ -56,6 +59,21 @@ func receive_raw(message: Dictionary) -> void:
 	if closed or retiring or int(message.get("serial",-1))<=wire_serial: return
 	wire_serial=int(message.serial)
 	for value in message.get("events",[]): request(int(value.objectId),int(value.voiceCode)&255,1,int(value.lifetime),int(value.soundsetId))
+func receive_network(message: Dictionary,caption_sink: Callable=Callable(),transport_connection: int=-1) -> Dictionary:
+	if closed or retiring:return {"accepted":false,"reason":"Creature voice owner is retiring."}
+	if message.get("kind")=="quick-chat" and (not caption_sink.is_valid() or transport_connection<0):return {"accepted":false,"reason":"Quick-chat caption scope is unavailable."}
+	if queue.size()>=256:stats.overflow+=1;return {"accepted":false,"reason":"Creature voice queue is full."}
+	var id: int=int(message.get("objectId",-1));var object: Variant=manager.object(id)
+	if not object is Dictionary:stats.stale+=1;return {"accepted":false,"reason":"Creature voice actor is unavailable."}
+	var actor: Dictionary=object.duplicate(true)
+	actor.areaId=int(manager.world.area_id)
+	var admitted: Dictionary=network_voice.receive(message,actor)
+	if not admitted.get("accepted",false):stats.stale+=1;return admitted
+	var ticket: Dictionary=admitted.ticket
+	serial+=1
+	queue.append({"id":id,"code":int(ticket.code),"positional":1,"lifetime":int(ticket.lifetime),"soundset":int(ticket.soundsetId),"sequence":serial,"networkTicket":ticket,"captionSink":caption_sink,"captionConnection":transport_connection,"captionSent":false})
+	stats.requested+=1
+	return {"accepted":true,"sequence":int(ticket.sequence)}
 func request(id: int,code: int,positional: int=1,lifetime: int=0,soundset: int=-1) -> void:
 	if closed or retiring: return
 	var object: Variant=manager.object(id)
@@ -86,10 +104,14 @@ func advance() -> void:
 			# including finished/nonpositional sources. Follow the current actor
 			# pose rather than leaving voices at their initial request location.
 			var point: Variant=position_for(manager.object(int(id)))
-			if point is Array and point.size()==3: manager.world_audio.move(int(records[id].sound),point,1.5)
+			if point is Array and point.size()==3: manager.world_audio.move(int(records[id].sound),point,float(records[id].get("height",1.5)))
 	var waiting: Array=[]
 	for q in queue:
 		var object: Variant=manager.object(int(q.id))
+		if q.has("networkTicket"):
+			if not object is Dictionary:stats.stale+=1;continue
+			var actor: Dictionary=object.duplicate(true);actor.areaId=int(manager.world.area_id)
+			if not network_voice.current(q.networkTicket,actor):stats.stale+=1;continue
 		if object==null or int(object.get("nativeLifetime",0))<int(q.lifetime): waiting.append(q); continue
 		if int(object.get("nativeLifetime",0))!=int(q.lifetime) or int(object.get("objectType",0))!=5 or (int(object.get("appearance",{}).get("field8A0",65535))&65535)!=int(q.soundset): stats.stale+=1; continue
 		if int(q.soundset)==65535 or table_failed: stats.suppressed+=1; continue
@@ -105,9 +127,21 @@ func advance() -> void:
 			waiting.append(q); continue
 		if not str(sets[name].error).is_empty(): stats.suppressed+=1; continue
 		sets[name].last=int(q.sequence)
+		var network_prepared: Dictionary={}
+		if q.has("networkTicket"):
+			var current_actor: Dictionary=object.duplicate(true);current_actor.areaId=int(manager.world.area_id)
+			network_prepared=network_voice.prepare(q.networkTicket,current_actor,sets[name].data)
+			if not network_prepared.get("ready",false):stats.stale+=1;continue
+			if not bool(q.captionSent) and not network_prepared.caption.is_empty():
+				q.captionSent=true
+				if q.captionSink is Callable and q.captionSink.is_valid():
+					var caption: Dictionary=network_prepared.caption.duplicate(true)
+					caption.merge({"areaId":int(manager.world.area_id),"generation":int(manager.world.generation),"lifetime":int(q.lifetime),"connection":int(q.captionConnection)},true)
+					q.captionSink.call(caption)
+			if network_prepared.audio.is_empty():stats.suppressed+=1;continue
 		var position: Variant=position_for(object)
 		if not position is Array or position.size()!=3: waiting.append(q); continue
-		if not records.has(int(q.id)): records[int(q.id)]={"id":q.id,"lifetime":q.lifetime,"soundsetId":q.soundset,"sound":null,"delay":0,"validSequence":-1}
+		if not records.has(int(q.id)): records[int(q.id)]={"id":q.id,"lifetime":q.lifetime,"soundsetId":q.soundset,"sound":null,"delay":0,"validSequence":-1,"height":1.5}
 		var r: Dictionary=records[int(q.id)]
 		if int(q.sequence)<int(r.validSequence): stats.stale+=1; continue
 		r.soundsetId=q.soundset
@@ -117,7 +151,26 @@ func advance() -> void:
 			"sizeCategory":func():return Fields.integer(manager.tables.appearance,int(object.appearance.appearance),"SIZECATEGORY"),"destroySound":manager.world_audio.destroy,"createSound":create_source,
 			"sound3d":func(sound,value):manager.world_audio.setting(int(sound),"setting1401d9e90",int(value)),"soundPriority":func(sound,value):manager.world_audio.setting(int(sound),"setting1401da060",int(value)),
 			"position":func():return position,"updateSound":manager.world_audio.move,"playSound":manager.world_audio.play}
-		var started:=Voice.play(r,int(q.code),int(q.positional),providers)
+		var started:=false
+		if q.has("networkTicket"):
+			var current_actor: Dictionary=object.duplicate(true);current_actor.areaId=int(manager.world.area_id)
+			var size_category: int=Fields.integer(manager.tables.appearance,int(object.appearance.appearance),"SIZECATEGORY")
+			var ready: Dictionary=network_voice.admit_audio(q.networkTicket,current_actor,network_prepared.audio,manager.world.catalog.has_resource(str(network_prepared.audio.resRef),4),int(q.id)==int(manager.world.controlled_id),players.has(int(q.id)),size_category)
+			if ready.get("ready",false):
+				var play: Dictionary=ready.play
+				r.validSequence=int(q.sequence)
+				r.height=float(play.height)
+				r.delay=0
+				if r.sound!=null:manager.world_audio.destroy(int(r.sound))
+				r.sound=create_source(str(play.resRef))
+				if r.sound!=null:
+					manager.world_audio.setting(int(r.sound),"setting1401d9e90",int(play.positional))
+					manager.world_audio.setting(int(r.sound),"setting1401da060",int(play.priority))
+					manager.world_audio.move(int(r.sound),position,float(play.height))
+					manager.world_audio.play(int(r.sound));started=true
+		else:
+			started=Voice.play(r,int(q.code),int(q.positional),providers)
+			if started:r.height=1.5
 		if admitted[0]: r.validSequence=q.sequence
 		if started: stats.started+=1; stats.replaced+=int(old!=null)
 		else: stats.suppressed+=1
@@ -134,6 +187,7 @@ func rows_ref(id: int) -> String:
 	var rows: Array=table.get("orderedRows",[])
 	return Sound.resource_ref(str(rows[id].get("RESREF",""))).to_lower() if id>=0 and id<rows.size() else ""
 func forget(id: int) -> void:
+	network_voice.forget_actor(id)
 	if not records.has(id): return
 	var r: Dictionary=records[id]
 	if r.sound!=null: manager.world_audio.destroy(int(r.sound)); r.sound=null; stats.destroyed+=1
@@ -143,6 +197,7 @@ func snapshot() -> Dictionary:
 func begin_retirement() -> void:
 	if closed or retiring: return
 	retiring=true; queue.clear()
+	network_voice.reset()
 	for id in records.keys(): forget(int(id))
 	# Live-world asset_owners includes this service. Its existing retirement
 	# scheduler invalidates the epoch and drains actual workers without joining
@@ -153,6 +208,7 @@ func detach_prepared_data() -> Dictionary:
 func close() -> void:
 	if closed: return
 	closed=true
+	network_voice.reset()
 	if is_instance_valid(combat) and combat.engine.presentation_event.is_connected(combat_event): combat.engine.presentation_event.disconnect(combat_event)
 	for id in records.keys(): forget(int(id))
 	queue.clear(); sets.clear(); requested.clear(); jobs.clear(); players.clear(); table.clear()

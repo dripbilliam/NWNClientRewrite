@@ -1,0 +1,440 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "name": "local-network-examine-v93.json-0",
+      "origin": "captured native packet",
+      "packet": "501b0312010000ffffffffcb00000057616e6465726c7573742068617320726563656e746c79206c7572656420796f7520746f20656e7465722068756d616e206c616e647320616761696e737420796f75722066616d696c792773206164766963652c20616e6420796f7572206f776e20626574746572206a7564676d656e742e20596f7520706c616e20746f2073686f772074686573652073686f72742d6c697665642068756d616e7320616e642066696c746879206477617276657320776861742061207265616c20656c66206973206d616465206f662e0a00000053706563746f7269616c080000004d656c696d696f6effff706f5f656c5f6d5f30365f0000000000000100007041020023002b00866d",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 4294967295,
+        "type": "creature",
+        "description": {
+          "text": "Wanderlust has recently lured you to enter human lands against your family's advice, and your own better judgment. You plan to show these short-lived humans and filthy dwarves what a real elf is made of."
+        },
+        "hasDetails": 1,
+        "name": {
+          "firstName": {
+            "text": "Spectorial"
+          },
+          "lastName": {
+            "text": "Melimion"
+          }
+        },
+        "portraitId": 65535,
+        "portrait": "po_el_m_06_",
+        "damageLevel": 0,
+        "reaction": 1,
+        "challengeRating": 15,
+        "effects": [
+          35,
+          43
+        ],
+        "major": 27,
+        "minor": 3
+      }
+    },
+    {
+      "name": "local-network-examine-v93.json-1",
+      "origin": "captured native packet",
+      "packet": "501b060f0000000200008000000000a6",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483650,
+        "type": "door",
+        "description": {
+          "text": ""
+        },
+        "major": 27,
+        "minor": 6
+      }
+    },
+    {
+      "name": "local-network-examine-v93.json-2",
+      "origin": "captured native packet",
+      "packet": "501b040f0000000300008000000000a6",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483651,
+        "type": "placeable",
+        "description": {
+          "text": ""
+        },
+        "major": 27,
+        "minor": 4
+      }
+    },
+    {
+      "name": "local-network-examine-v93.json-3",
+      "origin": "captured native packet",
+      "packet": "501b022400000094020080ffffffff68fa0000000000000a0000000100200000000400ff7a9b",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147484308,
+        "type": "item",
+        "actorId": 4294967295,
+        "identified": 1,
+        "canUse": 1,
+        "description": {
+          "gender": 0,
+          "strRef": 64104
+        },
+        "meetsLevel": 1,
+        "charges": 0,
+        "weight": 10,
+        "properties": [
+          {
+            "type": 32,
+            "subtype": 0,
+            "costValue": 4,
+            "uses": 255,
+            "usable": 0
+          }
+        ],
+        "major": 27,
+        "minor": 2
+      }
+    },
+    {
+      "name": "local-network-examine-v94.json-0",
+      "origin": "captured native packet",
+      "packet": "501b022400000094020080ffffffff68fa0000000000000a0000000100200000000400ff7a9b",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147484308,
+        "type": "item",
+        "actorId": 4294967295,
+        "identified": 1,
+        "canUse": 1,
+        "description": {
+          "gender": 0,
+          "strRef": 64104
+        },
+        "meetsLevel": 1,
+        "charges": 0,
+        "weight": 10,
+        "properties": [
+          {
+            "type": 32,
+            "subtype": 0,
+            "costValue": 4,
+            "uses": 255,
+            "usable": 0
+          }
+        ],
+        "major": 27,
+        "minor": 2
+      }
+    },
+    {
+      "name": "item-close",
+      "origin": "authored original-format writer",
+      "packet": "501b020b0000000000007f60",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2130706432,
+        "type": "item",
+        "close": true,
+        "major": 27,
+        "minor": 2
+      }
+    },
+    {
+      "name": "item-identified-properties",
+      "origin": "authored original-format writer",
+      "packet": "501b023d0000000300008002000080140000004964656e746966696564206279207365727665720501000000230000006400000001000100020003000450c0",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483651,
+        "type": "item",
+        "actorId": 2147483650,
+        "identified": 1,
+        "canUse": 0,
+        "description": {
+          "text": "Identified by server"
+        },
+        "meetsLevel": 0,
+        "minimumLevel": 5,
+        "charges": 1,
+        "weight": 35,
+        "value": 100,
+        "properties": [
+          {
+            "type": 1,
+            "subtype": 2,
+            "costValue": 3,
+            "uses": 4,
+            "usable": 1
+          }
+        ],
+        "major": 27,
+        "minor": 2
+      }
+    },
+    {
+      "name": "item-unidentified",
+      "origin": "authored original-format writer",
+      "packet": "501b022700000003000080020000800c000000556e6b6e6f776e206974656d080000000a00000002",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483651,
+        "type": "item",
+        "actorId": 2147483650,
+        "identified": 0,
+        "description": {
+          "text": "Unknown item"
+        },
+        "meetsLevel": 1,
+        "charges": 8,
+        "weight": 10,
+        "major": 27,
+        "minor": 2
+      }
+    },
+    {
+      "name": "creature-hidden",
+      "origin": "authored original-format writer",
+      "packet": "501b0315000000020000800600000048696464656ec0",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483650,
+        "type": "creature",
+        "description": {
+          "text": "Hidden"
+        },
+        "hasDetails": 0,
+        "major": 27,
+        "minor": 3
+      }
+    },
+    {
+      "name": "creature-wide-effects",
+      "origin": "authored original-format writer",
+      "packet": "501b0345000000020000801200000043726561747572652062696f677261706879060000004e6174697665080000004372656174757265030002010000204002000200c2018660",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483650,
+        "type": "creature",
+        "description": {
+          "text": "Creature biography"
+        },
+        "hasDetails": 1,
+        "name": {
+          "firstName": {
+            "text": "Native"
+          },
+          "lastName": {
+            "text": "Creature"
+          }
+        },
+        "portraitId": 3,
+        "damageLevel": 2,
+        "reaction": 1,
+        "challengeRating": 2.5,
+        "effects": [
+          2,
+          450
+        ],
+        "major": 27,
+        "minor": 3
+      }
+    },
+    {
+      "name": "creature-narrow-effects-portrait",
+      "origin": "authored original-format writer",
+      "packet": "501b034c000000020000800c0000004f6c646572207365727665720e0000004f6c646572206372656174757265feff706f5f68755f6d5f303100000000000001020202c80c0000000700000044c0",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 1
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483650,
+        "type": "creature",
+        "description": {
+          "text": "Older server"
+        },
+        "hasDetails": 1,
+        "name": {
+          "text": "Older creature"
+        },
+        "portraitId": 65534,
+        "portrait": "po_hu_m_01",
+        "damageLevel": 1,
+        "reaction": 2,
+        "effects": [
+          2,
+          200
+        ],
+        "playerLevel": 12,
+        "playerFlags": 7,
+        "major": 27,
+        "minor": 3
+      }
+    },
+    {
+      "name": "placeable-description",
+      "origin": "authored original-format writer",
+      "packet": "501b041b000000020000800c0000004120646f6f72206c61746368a0",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483650,
+        "type": "placeable",
+        "description": {
+          "text": "A door latch"
+        },
+        "major": 27,
+        "minor": 4
+      }
+    },
+    {
+      "name": "door-localized-description",
+      "origin": "authored original-format writer",
+      "packet": "501b060f00000002000080f4010000cc",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483650,
+        "type": "door",
+        "description": {
+          "gender": 1,
+          "strRef": 500
+        },
+        "major": 27,
+        "minor": 6
+      }
+    },
+    {
+      "name": "trap-0",
+      "origin": "authored original-format writer",
+      "packet": "501b050d000000070000800402a0",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483655,
+        "type": "trap",
+        "success": 0,
+        "trapType": 4,
+        "assessment": 2,
+        "major": 27,
+        "minor": 5
+      }
+    },
+    {
+      "name": "trap-1",
+      "origin": "authored original-format writer",
+      "packet": "501b051c000000070000800b00000053657276657220747261700402b8",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "examine",
+        "targetId": 2147483655,
+        "type": "trap",
+        "success": 1,
+        "name": {
+          "text": "Server trap"
+        },
+        "trapType": 4,
+        "assessment": 2,
+        "major": 27,
+        "minor": 5
+      }
+    }
+  ],
+  "malformed": [
+    {
+      "name": "oversized-properties",
+      "packet": "501b021d0000000300008002000080000000000000000000000000ffff3100",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      }
+    },
+    {
+      "name": "oversized-effects",
+      "packet": "501b0321000000020000800000000008000000437265617475726501000000ffff2480",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      }
+    },
+    {
+      "name": "oversized-description",
+      "packet": "501b060f00000002000080ffffff7f90",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "format": "nwn79-direct-handoff-roundtrip-plan-v1",
+  "legacyMode": "godot-client/test-handoff.ps1 -Scenario roundtrip",
+  "status": "pending",
+  "currentEvidence": ".cache/nwn79-portal-live-20261115-170300/portal.json",
+  "currentEvidenceScope": "One 5121 to 5122 portal transfer, old session/world retirement, destination authentication and destination world admission; it does not prove a return transfer",
+  "fixture": {
+    "origin": "owned private Prelude server on UDP 5121",
+    "destination": "owned private handoff server on UDP 5122",
+    "settings": "copied version-3 settings, isolated profile and user-data directories",
+    "path": [5121, 5122, 5121],
+    "trigger": "Send the authored -native-portal command from each admitted actor only after the prior world and session are coherent",
+    "ownership": "Start and stop only the two exact owned server processes; preserve unrelated client and server processes"
+  },
+  "requiredReceipt": {
+    "connections": "three distinct authenticated session generations, in order",
+    "areas": "origin, destination, then origin area identity",
+    "oldWorldRetired": "true after each transfer before the next world is admitted",
+    "characterHandoff": "BIC identity or explicit reference with matching source/destination hash and accepted destination selection on each hop",
+    "resourceScope": "each new session uses its current catalog and rejects stale old-session work",
+    "presentation": "admitted controllable world on all three connections",
+    "shutdown": "clean acknowledged exit with both owned server processes stopped"
+  },
+  "notCoveredByThisRow": ["portal Cancel", "destination failure and retry", "NUI", "vault", "sync-content recovery", "origin garbage-collection stress"],
+  "nextHandoff": "After protocol level-up integration freezes, request a narrow direct-world opt-in two-hop portal fixture; keep test-handoff roundtrip and its variants until verified private receipts exist.",
+  "fpsMeasurements": 0
+}

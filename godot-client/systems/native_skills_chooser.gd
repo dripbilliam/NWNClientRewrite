@@ -19,12 +19,15 @@ var cost: Label
 var row_buttons: Array=[]
 var ranks: Array=[]
 var icons: Array=[]
+var icon_targets: Array=[]
 var help_icon_resource:=""
 var repeat_clock:=Repeat.new()
 var repeat_tag:=""
 var repeat_identity: Array=[]
 func _init() -> void:
-	resource="cg_skills";extra_models=["ctl_cg_btn_skill","ctl_cg_btn_skup","ctl_cg_btn_skdn","ctl_cg_numbox3","scrollbar_simple","pb_scrl_up","pb_scrl_down"];set_process(false)
+	resource="cg_skills";extra_models=["ctl_cg_btn_skill","ctl_cg_btn_skup","ctl_cg_btn_skdn","ctl_cg_numbox3","scrollbar_simple","pb_scrl_up","pb_scrl_down"];art_gate_enabled=true;set_process(false)
+func art_icon_targets() -> Array:return icon_targets
+func art_scrollbars() -> Array:return [bar,help.bar] if is_instance_valid(help) else [bar]
 func parse_layout() -> Dictionary:return Layout.parse(source,models)
 func assemble() -> void:
 	frame.image(plan.resource,plan.main,self);frame.image(plan.entries.skillsbuttonbox.resource,plan.entries.skillsbuttonbox.rect,self)
@@ -53,11 +56,12 @@ func set_busy(value: bool) -> void:
 func refresh() -> void:
 	if closed or not layout_ready:return
 	var ready: bool=model.get("ready",false)
+	var rows_changed: bool=ready and signature!=model.get("entries",[])
 	if not ready:
 		retire_input();clear_rows();selected=-1;help_icon_resource=""
 		for button in buttons.values():button.disabled=true
 		points.text="";cost.text="";help.invalidate();help.title.text="";help.body.clear();return
-	if signature!=model.entries:rebuild_rows()
+	if rows_changed:rebuild_rows()
 	for tag in buttons:buttons[tag].disabled=not ready or busy
 	for index in row_buttons.size():
 		var entry: Dictionary=model.entries[index];var enabled: bool=ready and not busy and entry.enabled
@@ -67,11 +71,12 @@ func refresh() -> void:
 		ranks[index].text=str(int(model.details[entry.id].rank))
 	points.text=str(int(model.points));buttons.recommendbutton.disabled=busy or not can_recommend;buttons.recommendbutton.get_child(0).modulate=Color.WHITE if can_recommend else Color(.5,.5,.5,1)
 	if selected<0 and help.current.is_empty():help.present(data_text,58250,58251)
+	if rows_changed and wanted:request_art_admission()
 func clear_rows() -> void:
 	stop_repeat();held.clear();signature=[]
 	if is_instance_valid(data_art):
 		for icon in icons:data_art.unbind(icon)
-	icons.clear();ranks.clear();row_buttons.clear()
+	icons.clear();icon_targets.clear();ranks.clear();row_buttons.clear()
 	for tag in buttons.keys():
 		if str(tag).begins_with("row:") or str(tag).begins_with("up:") or str(tag).begins_with("down:"):
 			if is_instance_valid(frame) and is_instance_valid(buttons[tag]):frame.button_geometry.erase(buttons[tag].get_instance_id())
@@ -85,8 +90,11 @@ func rebuild_rows() -> void:
 		var entry: Dictionary=model.entries[index];var rect: Rect2=row.bounds;rect.position+=offset
 		var button:=make_button("row:"+str(index),{"resource":"ctl_cg_btn_skill","rect":rect,"offset":offset,"caption":plan.entries.skillsbuttonbox.caption},body,true);button.button_group=group;row_buttons.append(button)
 		var label: Label=button.get_child(0);label.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT);label.position=row.hooks.text0-row.bounds.position;label.size=(row.hooks.text1-row.hooks.text0).abs();label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;label.text=str(entry.name)
-		if is_instance_valid(data_art) and not str(entry.icon).is_empty():
-			var icon:=TextureRect.new();button.add_child(icon);icon.position=row.hooks.icon-row.bounds.position-Vector2(16,16);icon.size=Vector2(32,32);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;data_art.bind(icon,str(entry.icon));icons.append(icon)
+		if not str(entry.icon).is_empty():
+			var icon: TextureRect
+			if is_instance_valid(data_art):
+				icon=TextureRect.new();button.add_child(icon);icon.position=row.hooks.icon-row.bounds.position-Vector2(16,16);icon.size=Vector2(32,32);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;data_art.bind(icon,str(entry.icon));icons.append(icon)
+			icon_targets.append({"target":icon,"resource":str(entry.icon),"art":data_art})
 		for operation in ["up","down"]:
 			var geometry: Dictionary=plan[operation];var point: Vector2=row.hooks["skill"+operation]-row.bounds.position;var arrow_rect: Rect2=geometry.bounds;arrow_rect.position+=point
 			var tag: String=operation+":"+str(entry.id);var arrow:=make_button(tag,{"resource":"ctl_cg_btn_sk"+("up" if operation=="up" else "dn"),"rect":arrow_rect,"offset":point,"caption":{}},button);arrow.button_down.connect(begin_repeat.bind(tag,index));arrow.button_up.connect(stop_repeat)

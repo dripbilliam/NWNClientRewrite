@@ -14,7 +14,7 @@ npm install
 
 The normal client opens Main Menu without joining a server. For the existing owned-local development profile, use `.\godot-client\join-local.ps1`. Its install/profile assumptions are workspace-specific; this is not a standalone release package.
 
-`npm start` builds/opens the preserved Electron reference client. It is not the primary frontend.
+`npm start` runs the same native Godot launcher as `join-native.ps1`. The supported launch does not install or start Electron. Historical Electron scripts are being retired under NWN-79 and are not supported launch routes.
 
 ## Checks
 

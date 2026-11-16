@@ -1,10 +1,10 @@
 # Architecture and ownership
 
-The active frontend is native desktop Godot. The Electron/Three.js client is retained for reference and regression work. The intended final application is fully native; transitional JavaScript services are unfinished migration work.
+The active frontend is native desktop Godot. Electron is no longer installed for the normal client; historical frontend and harness sources remain during NWN-79 migration. The intended final application is fully native, and transitional JavaScript protocol services are unfinished migration work.
 
 ## Normal runtime
 
-`godot-client/join-native.ps1` starts the protected bootstrap and session host. Godot opens Main Menu; the user chooses a server. Native rendering constructs the world from original resources rather than converting an entire area to GLB.
+`godot-client/join-native.ps1` currently starts one transitional Node protocol host, which starts Godot. Godot opens Main Menu and owns the protected settings endpoint; the user chooses a server. NWN-79 now requires Godot to own the normal protocol, downloads and world state as well. Native rendering constructs the world from original resources rather than converting an entire area to GLB.
 
 | Owner | Responsibility |
 | --- | --- |
@@ -18,7 +18,7 @@ The active frontend is native desktop Godot. The Electron/Three.js client is ret
 | `electron/network_game_session.mjs` | Original-server session, canonical replication and requests |
 | `electron/network_peer.mjs` | Authentication, encrypted transport and reliable delivery |
 
-Windowless Electron still unlocks Windows-protected settings and credentials. Node still owns protocol encoding/decoding, authentication, downloads and state transport. These dependencies do not mean presentation or creation rules are browser-rendered.
+Godot handles settings and current-user protected keys through a narrow Windows DPAPI helper. The Node protocol host currently prepares initial paths and imports old Chromium-protected keys, then sends settings requests to Godot over the authenticated local connection. Node still owns the normal playable session's game/world message flow. A separate Godot-only path now has live evidence for Arelith login, server resource requirements, installed-content admission, verified HTTP NWSync downloads and the server-vault character list. It is not yet the normal runtime. NWN-79 remains incomplete until Godot owns that full runtime, historical Electron workflows are retired, and the acceptance matrix passes. A retained Node process requires a specific documented technical necessity.
 
 ## Ownership rules
 

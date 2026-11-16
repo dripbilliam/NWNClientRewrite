@@ -18,6 +18,7 @@ var rows: Dictionary={"available":[],"known":[]}
 var signatures: Dictionary={"available":[],"known":[]}
 var selected: Dictionary={"available":-1,"known":-1}
 var icons: Array=[]
+var icon_targets: Dictionary={"available":[],"known":[]}
 var info_popup
 var group_popup
 var modal_active:=false
@@ -25,7 +26,10 @@ var popup_serial:=0
 var popup_identity: Array=[]
 var foreground_labels: Array=[]
 func _init() -> void:
-	resource="cg_feats";extra_models=["ctl_cg_btn_feat","ctl_cg_btn_left","ctl_cg_btn_right","ctl_cg_btn_help","scrollbar_simple","pb_scrl_up","pb_scrl_down"]
+	resource="cg_feats";extra_models=["ctl_cg_btn_feat","ctl_cg_btn_left","ctl_cg_btn_right","ctl_cg_btn_help","scrollbar_simple","pb_scrl_up","pb_scrl_down"];art_gate_enabled=true
+func art_icon_targets() -> Array:return icon_targets.available+icon_targets.known
+func art_scrollbars() -> Array:return bars.values()
+func art_excluded_subtrees() -> Array:return [info_popup,group_popup]
 func configure(painter,text,catalog,cache_path: String) -> void:
 	super.configure(painter,text,catalog,cache_path)
 	for information in [false,true]:
@@ -70,10 +74,11 @@ func set_busy(value: bool) -> void:
 func refresh() -> void:
 	if closed or not layout_ready:return
 	var ready: bool=model.get("ready",false)
+	var rows_changed:=false
 	if not ready:retire_input();dismiss_popups();clear_rows();selected={"available":-1,"known":-1}
 	for kind in ["available","known"]:
 		var entries: Array=model.get(kind,[]) if ready else []
-		if signatures[kind]!=entries:rebuild_rows(kind,entries)
+		if signatures[kind]!=entries:rebuild_rows(kind,entries);rows_changed=true
 	for tag in buttons:buttons[tag].disabled=not ready or busy or modal_active
 	for kind in ["available","known"]:
 		for index in rows[kind].size():
@@ -84,6 +89,7 @@ func refresh() -> void:
 	buttons.okbutton.disabled=not ready or busy or modal_active or not model.get("canAccept",false)
 	buttons.recommendbutton.disabled=not ready or busy or modal_active or not can_recommend;buttons.recommendbutton.get_child(0).modulate=Color.WHITE if can_recommend else Color(.5,.5,.5,1)
 	for tag in Layout.BUTTONS:buttons[tag].get_child(0).modulate=Color(.5,.5,.5,1) if buttons[tag].disabled else Color.WHITE
+	if rows_changed and wanted:request_art_admission()
 func clear_rows(kind: String="") -> void:
 	if not kind.is_empty():
 		for tag in buttons.keys():
@@ -95,6 +101,7 @@ func clear_rows(kind: String="") -> void:
 				if is_instance_valid(data_art):data_art.unbind(icon)
 				icons.erase(icon)
 		rows[kind]=[];signatures[kind]=[]
+		icon_targets[kind]=[]
 		if bodies.has(kind):
 			for node in bodies[kind].get_children():node.free()
 			bodies[kind].custom_minimum_size=Vector2(1,1);lists[kind].scroll_vertical=0
@@ -107,8 +114,11 @@ func rebuild_rows(kind: String,entries: Array) -> void:
 		var entry: Dictionary=entries[index];var rect: Rect2=row.bounds;rect.position+=offset;var prefix:=kind+":"+str(index)
 		var button:=make_button(prefix,{"resource":"ctl_cg_btn_feat","rect":rect,"offset":offset,"caption":plan.entries[tag].caption},bodies[kind],true);button.button_group=group;rows[kind].append(button)
 		var label: Label=button.get_child(0);label.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT);label.position=row.hooks.text0-row.bounds.position;label.size=(row.hooks.text1-row.hooks.text0).abs();label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;label.text=str(entry.name)
-		if is_instance_valid(data_art) and not str(entry.get("icon","")).is_empty():
-			var icon:=TextureRect.new();button.add_child(icon);icon.position=row.hooks.icon-row.bounds.position-Vector2(16,16);icon.size=Vector2(32,32);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;icon.set_meta("feat_list",kind);data_art.bind(icon,str(entry.icon));icons.append(icon)
+		if not str(entry.get("icon","")).is_empty():
+			var icon: TextureRect
+			if is_instance_valid(data_art):
+				icon=TextureRect.new();button.add_child(icon);icon.position=row.hooks.icon-row.bounds.position-Vector2(16,16);icon.size=Vector2(32,32);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;icon.set_meta("feat_list",kind);data_art.bind(icon,str(entry.icon));icons.append(icon)
+			icon_targets[kind].append({"target":icon,"resource":str(entry.icon),"art":data_art})
 		for helper in ["arrow","info"]:
 			var name:="ctl_cg_btn_help" if helper=="info" else "ctl_cg_btn_right" if kind=="available" else "ctl_cg_btn_left";var geometry:=Geometry.model(models[name]);var point: Vector2=row.hooks["helpbutton" if helper=="info" else "addremovebutton"]-row.bounds.position;var helper_rect: Rect2=geometry.bounds;helper_rect.position+=point
 			var child:=make_button(prefix+":"+helper,{"resource":name,"rect":helper_rect,"offset":point,"caption":{}},button);child.button_down.connect(select_row.bind(kind,index))

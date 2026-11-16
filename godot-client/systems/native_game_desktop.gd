@@ -655,6 +655,46 @@ func cancel_target() -> void:
 	target.clear()
 	if is_instance_valid(target_prompt): target_prompt.hide()
 	target_changed.emit(false)
+func server_target_current(binding: Dictionary) -> bool:
+	if int(binding.get("type",0))!=45: return false
+	# A newer packet can replace the mode before the next UI sync. The original
+	# client never sends a selection for a superseded server version.
+	if state.has("scriptTargeting"):
+		var mode: Variant=state.scriptTargeting
+		if not mode is Dictionary or mode.is_empty() or int(mode.get("version",-1))!=int(binding.get("version",-2)): return false
+		if int(mode.get("areaId",area_id))!=area_id or int(mode.get("actorId",actor_id))!=actor_id: return false
+	return true
+func target_preview_descriptor() -> Dictionary:
+	# Original NetworkSpellTargeting.presentation: 57/2 supplies the active
+	# server-script shape, while 57/1 overrides a spell's shape fields only.
+	# The visible ground shader is a separate render owner.
+	if target.is_empty(): return {}
+	var type:=int(target.get("type",0))
+	if type==45:
+		var script_data: Variant=state.get("scriptTargetingData")
+		return script_data.duplicate(true) if server_target_current(target) and script_data is Dictionary else {}
+	var spell_id:=int(target.get("spellId",target.get("intParam",-1)))
+	if spell_id<0 or type not in [1,2,4,44]: return {}
+	var spell: Dictionary=rules.row("spells",spell_id)
+	if spell.is_empty(): return {}
+	var overrides: Variant=state.get("spellTargetingOverrides",{})
+	var override: Dictionary={}
+	if overrides is Dictionary:
+		var selected: Variant=overrides.get(spell_id,overrides.get(str(spell_id),{}))
+		if selected is Dictionary: override=selected
+	var shape_name:=str(Rules.cell(spell,"TargetShape","")).to_lower()
+	var shape:=int({"sphere":1,"rectangle":2,"cone":3,"hsphere":4}.get(shape_name,0))
+	var range_class:=str(Rules.cell(spell,"Range","")).to_upper()
+	var range_index:=int({"P":1,"T":1,"S":2,"M":3,"L":4}.get(range_class,-1))
+	var range_value:=0.0
+	if range_index>=0:
+		var source: Variant=Rules.cell(rules.row("ranges",range_index),"PrimaryRange",0)
+		if source is int or source is float or str(source).is_valid_float(): range_value=float(source)
+	var x_value: Variant=Rules.cell(spell,"TargetSizeX",0)
+	var y_value: Variant=Rules.cell(spell,"TargetSizeY",0)
+	var size_x:=float(x_value) if x_value is int or x_value is float or str(x_value).is_valid_float() else 0.0
+	var size_y:=float(y_value) if y_value is int or y_value is float or str(y_value).is_valid_float() else 0.0
+	return {"shape":int(override.get("shape",shape)),"sizeX":float(override.get("sizeX",size_x)),"sizeY":float(override.get("sizeY",size_y)),"flags":int(override.get("flags",Rules.number(Rules.cell(spell,"TargetFlags"),0))),"range":range_value,"spellId":spell_id,"featId":-1}
 func target_cursor(id: int,has_ground: bool=false) -> Dictionary:
 	if int(target.get("type",0)) in [6,7,40,41]:
 		var kind:=int(objects.get(id,{}).get("objectType",0));var type:=int(target.type)
@@ -667,6 +707,10 @@ func target_cursor(id: int,has_ground: bool=false) -> Dictionary:
 	if target.is_empty(): return {}
 	var type:=int(target.get("type",0)); var object: Dictionary=objects.get(id,{})
 	var kind:=int(object.get("objectType",2 if has_ground else 0)); var spell_id:=int(target.get("spellId",target.get("intParam",-1))); var property_type:=-1
+	if type==45:
+		var result: Dictionary=preload("res://systems/native_data/mouse_cursor.gd").target(target,kind,false)
+		if not server_target_current(target): result.valid=false; result.id=int(target.get("badCursor",31))
+		return result
 	if type==1:
 		var properties: Array=objects.get(int(target.get("itemId",-1)),{}).get("item",{}).get("properties",[]); var index:=int(target.get("intParam",0))&65535
 		if index<properties.size(): property_type=int(properties[index].get("type",-1))
@@ -690,6 +734,7 @@ func cast_target(id: int,point: Vector3) -> void:
 		if not target_cursor(id).get("valid",false): return
 		cancel_target(); command({"kind":"native-activity","activityId":int(binding.intParam),"targetId":id}); return
 	if type==45:
+		if not server_target_current(binding): cancel_target(); return
 		var kind:=int(objects.get(id,{}).get("objectType",2)); var bit: int=[5,6,7,10,11,12,9,14,13,2].find(kind)
 		if bit<0 or (int(binding.objectMask)&(1<<bit))==0: target_prompt.text="Choose a valid target for the server action."; return
 		cancel_target(); command({"kind":"native-script-target","version":int(binding.version),"targetId":INVALID if id<0 else id,"position":[point.x,-point.z,point.y]}); return

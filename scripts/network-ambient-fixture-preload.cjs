@@ -1,1 +1,0 @@
-const {contextBridge,ipcRenderer}=require('electron');contextBridge.exposeInMainWorld('ambientFixture',{resource:(name,type)=>ipcRenderer.invoke('ambient-fixture:resource',name,type),audio:(name,type)=>ipcRenderer.invoke('ambient-fixture:audio',name,type)});

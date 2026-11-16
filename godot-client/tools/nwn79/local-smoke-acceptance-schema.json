@@ -1,0 +1,30 @@
+{
+  "format": "nwn79-direct-local-smoke-v1",
+  "scenario": "local-smoke",
+  "matrix": "tools/nwn79/run-direct-acceptance-matrix.ps1 -Scenarios local-smoke",
+  "graphicalScenario": "tools/nwn79/run-direct-acceptance-matrix.ps1 -Scenarios local-smoke-graphical",
+  "optInFlag": "--direct-headless-local-smoke-check=true",
+  "receipt": "direct_local_smoke_check",
+  "requiredFields": {
+    "requestKind": "walk or drive, emitted through the real gameplay UI/session command path",
+    "requestAccepted": "true only after the session accepts the command",
+    "requestTransmitted": "true only when the peer send_game_message succeeds; later server object-update position and displacement separately prove the server processed movement",
+    "originArea": "server area at the initial controlled pose",
+    "destinationArea": "same server area after movement",
+    "originGeneration": "world generation at the initial controlled pose",
+    "destinationGeneration": "same world generation after movement",
+    "serverDisplacement": "distance in world units between original and later server-authoritative controlled poses; must exceed 0.25",
+    "serverMovementObserved": "true only after a fresh authoritative pose/snapshot, not a predicted local pose",
+    "speechEcho": "true after a matching echo of the opt-in chat message",
+    "cameraFollowValid": "true when the follow target is the moved controlled actor and camera state remains valid",
+    "presentationAnimationAdvanced": "true only after ModelRigs diagnostic_sample/compare_samples witnesses changed controlled parts and either changed skin vertices or an active walk/run rigid clip with an advanced model clock",
+    "animationWitness": "bounded before/after controlled actor model-rig sample comparison; contains changed_local_parts, advanced_model_clocks, maximum_local_skin_vertex_delta, skin_meshes_sampled, active_clips, activeWalkClip and rigidOnly",
+    "presentationFrames": "at least two rendered actor rig pose-clock frames after command"
+  },
+  "graphicalFields": {
+    "visualCapture": "path to a PNG of the actual Godot world viewport after authoritative movement and animation witness, before clean shutdown",
+    "screen": "secondary monitor selected by the Godot/PowerShell matrix"
+  },
+  "acceptanceBoundary": "The headless private Prelude movement/echo/camera/animation witness passes. The legacy join-local -Smoke mode still requires a graphical world frame from the same admitted area and exact caller-level acceptance before retirement.",
+  "fpsMeasurements": 0
+}

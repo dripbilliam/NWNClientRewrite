@@ -6,6 +6,7 @@ extends RefCounted
 static var mutex:=Mutex.new()
 static var payloads: Dictionary={}
 static var names: Dictionary={}
+static var loose_current: Dictionary={}
 static var bytes:=0
 const UI_SYMBOL_ICONS=["gui_cg_qstn_mark","gui_char_icons","gui_chrsht_cha","gui_chrsht_con","gui_chrsht_dex","gui_chrsht_int","gui_chrsht_lvlup","gui_chrsht_str","gui_chrsht_wis","gui_compass3","gui_ig_faces","gui_ig_happyface","gui_ig_madface","gui_inv_armor_sm","gui_inv_icons","gui_inv_sto_icon","gui_lightning","gui_map_arrow","gui_shield","po_levelup","po_pause","po_timestop"]
 static func ui_icon_family(name: String) -> bool:
@@ -15,6 +16,20 @@ static func ui_icon_family(name: String) -> bool:
 	return key.begins_with("i") and not key.begins_with("isky")
 static func source_key(name: String,type: int,identity: String) -> String:
 	return identity+":"+name.to_lower()+":"+str(type)
+static func binding_identity(catalog,found: Dictionary) -> String:
+	var identity:=str(found.layer.get("binding_identity",""))
+	# Loose payloads can change without a remount. ResourceCatalog.invalidate()
+	# replaces source_store and is the explicit refresh boundary; forks share it.
+	if str(found.layer.get("kind",""))=="loose": identity+=":source-store:"+str(catalog.source_store.get_instance_id())
+	return identity
+static func retire_old_loose(found: Dictionary,simple: String,key: String) -> void:
+	if str(found.layer.get("kind",""))!="loose":return
+	var slot:=str(found.layer.get("binding_identity",""))+":"+simple
+	var previous: String=str(loose_current.get(slot,""))
+	if previous!=key:
+		if payloads.has(previous):
+			bytes-=payloads[previous].size(); payloads.erase(previous)
+		loose_current[slot]=key
 static func lookup(catalog,name: String,type: int) -> PackedByteArray:
 	if type not in [3,6,2073,2033,2059]: return PackedByteArray()
 	var simple:=name.to_lower()+":"+str(type)
@@ -22,8 +37,8 @@ static func lookup(catalog,name: String,type: int) -> PackedByteArray:
 	if not known: return PackedByteArray()
 	var found: Dictionary=catalog.location(name,type)
 	if found.is_empty(): return PackedByteArray()
-	var key:=source_key(name,type,str(found.layer.get("binding_identity","")))
-	mutex.lock(); var result: PackedByteArray=payloads.get(key,PackedByteArray()); mutex.unlock()
+	var key:=source_key(name,type,binding_identity(catalog,found))
+	mutex.lock(); retire_old_loose(found,simple,key); var result: PackedByteArray=payloads.get(key,PackedByteArray()); mutex.unlock()
 	return result
 static func preload_all(catalog,stop: Callable=Callable(),progress: Callable=Callable()) -> Dictionary:
 	var referenced: Dictionary={}
@@ -61,8 +76,8 @@ static func preload_all(catalog,stop: Callable=Callable(),progress: Callable=Cal
 		var name: String=work[index][0]; var type: int=work[index][1]
 		var found: Dictionary=catalog.location(name,type)
 		if found.is_empty(): failures.append(name+":"+str(type)+" unavailable"); continue
-		var key:=source_key(name,type,str(found.layer.get("binding_identity","")))
-		mutex.lock(); var exists:=payloads.has(key); mutex.unlock()
+		var key:=source_key(name,type,binding_identity(catalog,found))
+		mutex.lock(); retire_old_loose(found,name.to_lower()+":"+str(type),key); var exists:=payloads.has(key); mutex.unlock()
 		if exists: reused+=1; continue
 		var payload: PackedByteArray=catalog.read_resource(name,type)
 		if not catalog.failure.is_empty() or payload.is_empty(): failures.append(name+":"+str(type)+" "+catalog.failure); continue

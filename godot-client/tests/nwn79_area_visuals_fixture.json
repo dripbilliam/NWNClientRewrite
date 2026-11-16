@@ -1,0 +1,421 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "name": "weather-0-0",
+      "origin": "authored original-format writer",
+      "packet": "500404080000000080",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-weather",
+        "weather": {
+          "type": 0,
+          "enabled": 0
+        },
+        "major": 4,
+        "minor": 4
+      }
+    },
+    {
+      "name": "weather-0-1",
+      "origin": "authored original-format writer",
+      "packet": "500404080000000090",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-weather",
+        "weather": {
+          "type": 0,
+          "enabled": 1
+        },
+        "major": 4,
+        "minor": 4
+      }
+    },
+    {
+      "name": "weather-1-0",
+      "origin": "authored original-format writer",
+      "packet": "500404080000000180",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-weather",
+        "weather": {
+          "type": 1,
+          "enabled": 0
+        },
+        "major": 4,
+        "minor": 4
+      }
+    },
+    {
+      "name": "weather-1-1",
+      "origin": "authored original-format writer",
+      "packet": "500404080000000190",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-weather",
+        "weather": {
+          "type": 1,
+          "enabled": 1
+        },
+        "major": 4,
+        "minor": 4
+      }
+    },
+    {
+      "name": "weather-2-0",
+      "origin": "authored original-format writer",
+      "packet": "500404080000000280",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-weather",
+        "weather": {
+          "type": 2,
+          "enabled": 0
+        },
+        "major": 4,
+        "minor": 4
+      }
+    },
+    {
+      "name": "weather-2-1",
+      "origin": "authored original-format writer",
+      "packet": "500404080000000290",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-weather",
+        "weather": {
+          "type": 2,
+          "enabled": 1
+        },
+        "major": 4,
+        "minor": 4
+      }
+    },
+    {
+      "name": "weather-255-0",
+      "origin": "authored original-format writer",
+      "packet": "50040408000000ff80",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-weather",
+        "weather": {
+          "type": 255,
+          "enabled": 0
+        },
+        "major": 4,
+        "minor": 4
+      }
+    },
+    {
+      "name": "weather-255-1",
+      "origin": "authored original-format writer",
+      "packet": "50040408000000ff90",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-weather",
+        "weather": {
+          "type": 255,
+          "enabled": 1
+        },
+        "major": 4,
+        "minor": 4
+      }
+    },
+    {
+      "name": "wind-0",
+      "origin": "original native sender fixture",
+      "packet": "50040d1f00000000000000000000000000000000000000000000000000000065",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-wind",
+        "fields": {
+          "e8": 0,
+          "ec": 0,
+          "f0": 0,
+          "f4": 0,
+          "f8": 0,
+          "fc": 0
+        },
+        "major": 4,
+        "minor": 13
+      }
+    },
+    {
+      "name": "wind-1",
+      "origin": "original native sender fixture",
+      "packet": "50040d1f000000cdcc4c3ecdccccbe9a99193f933a5d40d6fc8841971f164065",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-wind",
+        "fields": {
+          "e8": 0.20000000298023224,
+          "ec": -0.4000000059604645,
+          "f0": 0.6000000238418579,
+          "f4": 3.456700086593628,
+          "f8": 17.123455047607422,
+          "fc": 2.3456780910491943
+        },
+        "major": 4,
+        "minor": 13
+      }
+    },
+    {
+      "name": "wind-2",
+      "origin": "original native sender fixture",
+      "packet": "50040d1f000000000080bf00000040000040c0000000c00000b4430000b4c265",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-wind",
+        "fields": {
+          "e8": -1,
+          "ec": 2,
+          "f0": -3,
+          "f4": -2,
+          "f8": 360,
+          "fc": -90
+        },
+        "major": 4,
+        "minor": 13
+      }
+    },
+    {
+      "name": "area-visual-0",
+      "origin": "captured native packet",
+      "packet": "5004029d00000024000000a0400000804000000000010000000000000001000000000000000000803f00000000000000000000803f00000000000000000000803f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000803f000000000000000083",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-visual",
+        "visualId": 36,
+        "position": [
+          5,
+          4,
+          0
+        ],
+        "visualTransform": {
+          "keys": [
+            0
+          ],
+          "entries": [
+            {
+              "key": 0,
+              "value": {
+                "channels": [
+                  {
+                    "value": 1,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 1,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 1,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 1,
+                    "type": 0,
+                    "duration": 0
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "major": 4,
+        "minor": 2
+      }
+    },
+    {
+      "name": "area-visual-1",
+      "origin": "captured native packet",
+      "packet": "5004029d00000063001da6ae40abe5404000000000010000000000000001000000000000000000803f00000000000000000000803f00000000000000000000803f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000803f000000000000000086",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 17
+      },
+      "expected": {
+        "kind": "area-visual",
+        "visualId": 99,
+        "position": [
+          5.457777500152588,
+          3.0140178203582764,
+          0
+        ],
+        "visualTransform": {
+          "keys": [
+            0
+          ],
+          "entries": [
+            {
+              "key": 0,
+              "value": {
+                "channels": [
+                  {
+                    "value": 1,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 1,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 1,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 0,
+                    "type": 0,
+                    "duration": 0
+                  },
+                  {
+                    "value": 1,
+                    "type": 0,
+                    "duration": 0
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "major": 4,
+        "minor": 2
+      }
+    },
+    {
+      "name": "area-visual-pre-14",
+      "origin": "authored original-format writer",
+      "packet": "50040215000000d7010000a03f000020c00000704060",
+      "build": {
+        "number": 8193,
+        "revision": 13,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "area-visual",
+        "visualId": 471,
+        "position": [
+          1.25,
+          -2.5,
+          3.75
+        ],
+        "visualTransform": {
+          "keys": [],
+          "entries": []
+        },
+        "major": 4,
+        "minor": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,2118 @@
+{
+  "seed": {
+    "revision": 4,
+    "retiredThrough": 0,
+    "disabled": [
+      {
+        "panelId": 5,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 6,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 7,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      }
+    ],
+    "events": [
+      {
+        "kind": "disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 1
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 2
+      },
+      {
+        "kind": "disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 3
+      },
+      {
+        "kind": "disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 4
+      }
+    ],
+    "control": {
+      "actorId": 4294967246,
+      "areaId": 2147483649,
+      "areaGeneration": 1,
+      "controlLifetime": 1,
+      "source": "client_receive_context"
+    }
+  },
+  "events": [
+    {
+      "kind": "disabled",
+      "panelId": 5,
+      "disabled": true,
+      "targetId": 2130706432,
+      "targetSource": "received",
+      "sequence": 1,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 6,
+      "disabled": true,
+      "targetId": 2130706432,
+      "targetSource": "received",
+      "sequence": 2,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 7,
+      "disabled": true,
+      "targetId": 2130706432,
+      "targetSource": "received",
+      "sequence": 3,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 8,
+      "disabled": true,
+      "targetId": 2130706432,
+      "targetSource": "received",
+      "sequence": 4,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967246,
+        "areaId": 2147483649,
+        "areaGeneration": 1,
+        "controlLifetime": 1,
+        "source": "client_receive_context"
+      },
+      "sequence": 5,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967246,
+        "areaId": 2147483649,
+        "areaGeneration": 1,
+        "controlLifetime": 1,
+        "source": "client_receive_context"
+      },
+      "sequence": 6,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 6,
+      "disabled": true,
+      "targetId": 2130706432,
+      "targetSource": "received",
+      "sequence": 7,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 6,
+      "disabled": false,
+      "targetId": 2130706432,
+      "targetSource": "received",
+      "sequence": 8,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 8,
+      "scope": {
+        "actorId": 4294967246,
+        "areaId": 2147483649,
+        "areaGeneration": 1,
+        "controlLifetime": 1,
+        "source": "client_receive_context"
+      },
+      "sequence": 9,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 8,
+      "disabled": true,
+      "targetId": 4294967245,
+      "targetSource": "received",
+      "sequence": 10,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 8,
+      "disabled": true,
+      "targetId": 4294967246,
+      "targetSource": "received",
+      "sequence": 11,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 2,
+        "source": "client_receive_context"
+      },
+      "sequence": 12,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 6,
+      "disabled": true,
+      "targetId": 2130706432,
+      "targetSource": "received",
+      "sequence": 13,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 2,
+        "source": "client_receive_context"
+      },
+      "sequence": 14,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 5,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 15,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 5,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 16,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 5,
+      "disabled": true,
+      "targetId": 4294967245,
+      "targetSource": "received",
+      "sequence": 17,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 7,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 18,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 7,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 19,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "disabled",
+      "panelId": 7,
+      "disabled": true,
+      "targetId": 4294967245,
+      "targetSource": "received",
+      "sequence": 20,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 21,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 22,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 23,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 24,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 25,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 26,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 27,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 28,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 29,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 30,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 31,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 32,
+      "retiredThrough": 0
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 33,
+      "retiredThrough": 1
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 34,
+      "retiredThrough": 2
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 35,
+      "retiredThrough": 3
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 36,
+      "retiredThrough": 4
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 37,
+      "retiredThrough": 5
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 38,
+      "retiredThrough": 6
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 39,
+      "retiredThrough": 7
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 40,
+      "retiredThrough": 8
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 41,
+      "retiredThrough": 9
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 42,
+      "retiredThrough": 10
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 43,
+      "retiredThrough": 11
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 44,
+      "retiredThrough": 12
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 45,
+      "retiredThrough": 13
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 46,
+      "retiredThrough": 14
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 47,
+      "retiredThrough": 15
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 48,
+      "retiredThrough": 16
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 49,
+      "retiredThrough": 17
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 50,
+      "retiredThrough": 18
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 51,
+      "retiredThrough": 19
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 52,
+      "retiredThrough": 20
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 53,
+      "retiredThrough": 21
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 54,
+      "retiredThrough": 22
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 55,
+      "retiredThrough": 23
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 56,
+      "retiredThrough": 24
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 57,
+      "retiredThrough": 25
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 58,
+      "retiredThrough": 26
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 59,
+      "retiredThrough": 27
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 60,
+      "retiredThrough": 28
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 61,
+      "retiredThrough": 29
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 62,
+      "retiredThrough": 30
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 63,
+      "retiredThrough": 31
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 64,
+      "retiredThrough": 32
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 65,
+      "retiredThrough": 33
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 66,
+      "retiredThrough": 34
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 67,
+      "retiredThrough": 35
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 68,
+      "retiredThrough": 36
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 69,
+      "retiredThrough": 37
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 70,
+      "retiredThrough": 38
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 71,
+      "retiredThrough": 39
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 72,
+      "retiredThrough": 40
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 73,
+      "retiredThrough": 41
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 74,
+      "retiredThrough": 42
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 75,
+      "retiredThrough": 43
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 76,
+      "retiredThrough": 44
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 77,
+      "retiredThrough": 45
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 78,
+      "retiredThrough": 46
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 79,
+      "retiredThrough": 47
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 80,
+      "retiredThrough": 48
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 81,
+      "retiredThrough": 49
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 82,
+      "retiredThrough": 50
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 83,
+      "retiredThrough": 51
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 84,
+      "retiredThrough": 52
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 85,
+      "retiredThrough": 53
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 86,
+      "retiredThrough": 54
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 87,
+      "retiredThrough": 55
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 88,
+      "retiredThrough": 56
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 89,
+      "retiredThrough": 57
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 90,
+      "retiredThrough": 58
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 91,
+      "retiredThrough": 59
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 92,
+      "retiredThrough": 60
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 93,
+      "retiredThrough": 61
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 94,
+      "retiredThrough": 62
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 95,
+      "retiredThrough": 63
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 96,
+      "retiredThrough": 64
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 97,
+      "retiredThrough": 65
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 98,
+      "retiredThrough": 66
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 99,
+      "retiredThrough": 67
+    },
+    {
+      "kind": "popup",
+      "panelId": 6,
+      "scope": {
+        "actorId": 4294967244,
+        "areaId": 2147483650,
+        "areaGeneration": 2,
+        "controlLifetime": 3,
+        "source": "client_receive_context"
+      },
+      "sequence": 100,
+      "retiredThrough": 68
+    }
+  ],
+  "next": {
+    "revision": 13,
+    "retiredThrough": 0,
+    "disabled": [
+      {
+        "panelId": 5,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 7,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 4294967245,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 4294967246,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 6,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      }
+    ],
+    "events": [
+      {
+        "kind": "disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 1
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 2
+      },
+      {
+        "kind": "disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 3
+      },
+      {
+        "kind": "disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 4
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967246,
+          "areaId": 2147483649,
+          "areaGeneration": 1,
+          "controlLifetime": 1,
+          "source": "client_receive_context"
+        },
+        "sequence": 5
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967246,
+          "areaId": 2147483649,
+          "areaGeneration": 1,
+          "controlLifetime": 1,
+          "source": "client_receive_context"
+        },
+        "sequence": 6
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 7
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 8
+      },
+      {
+        "kind": "popup",
+        "panelId": 8,
+        "scope": {
+          "actorId": 4294967246,
+          "areaId": 2147483649,
+          "areaGeneration": 1,
+          "controlLifetime": 1,
+          "source": "client_receive_context"
+        },
+        "sequence": 9
+      },
+      {
+        "kind": "disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 4294967245,
+        "targetSource": "received",
+        "sequence": 10
+      },
+      {
+        "kind": "disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 4294967246,
+        "targetSource": "received",
+        "sequence": 11
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 2,
+          "source": "client_receive_context"
+        },
+        "sequence": 12
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 13
+      }
+    ],
+    "control": {
+      "actorId": 4294967244,
+      "areaId": 2147483650,
+      "areaGeneration": 2,
+      "controlLifetime": 2,
+      "source": "client_receive_context"
+    }
+  },
+  "reused": {
+    "revision": 14,
+    "retiredThrough": 0,
+    "disabled": [
+      {
+        "panelId": 5,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 7,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 4294967245,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 4294967246,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 6,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      }
+    ],
+    "events": [
+      {
+        "kind": "disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 1
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 2
+      },
+      {
+        "kind": "disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 3
+      },
+      {
+        "kind": "disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 4
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967246,
+          "areaId": 2147483649,
+          "areaGeneration": 1,
+          "controlLifetime": 1,
+          "source": "client_receive_context"
+        },
+        "sequence": 5
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967246,
+          "areaId": 2147483649,
+          "areaGeneration": 1,
+          "controlLifetime": 1,
+          "source": "client_receive_context"
+        },
+        "sequence": 6
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 7
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 8
+      },
+      {
+        "kind": "popup",
+        "panelId": 8,
+        "scope": {
+          "actorId": 4294967246,
+          "areaId": 2147483649,
+          "areaGeneration": 1,
+          "controlLifetime": 1,
+          "source": "client_receive_context"
+        },
+        "sequence": 9
+      },
+      {
+        "kind": "disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 4294967245,
+        "targetSource": "received",
+        "sequence": 10
+      },
+      {
+        "kind": "disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 4294967246,
+        "targetSource": "received",
+        "sequence": 11
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 2,
+          "source": "client_receive_context"
+        },
+        "sequence": 12
+      },
+      {
+        "kind": "disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "sequence": 13
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 2,
+          "source": "client_receive_context"
+        },
+        "sequence": 14
+      }
+    ],
+    "control": {
+      "actorId": 4294967244,
+      "areaId": 2147483650,
+      "areaGeneration": 2,
+      "controlLifetime": 3,
+      "source": "client_receive_context"
+    }
+  },
+  "flood": {
+    "revision": 100,
+    "retiredThrough": 68,
+    "disabled": [
+      {
+        "panelId": 5,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 5,
+        "targetId": 4294967245,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 7,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 7,
+        "targetId": 4294967245,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 4294967245,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 8,
+        "targetId": 4294967246,
+        "targetSource": "received"
+      },
+      {
+        "panelId": 6,
+        "targetId": 2130706432,
+        "targetSource": "received"
+      }
+    ],
+    "events": [
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 69
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 70
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 71
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 72
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 73
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 74
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 75
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 76
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 77
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 78
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 79
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 80
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 81
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 82
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 83
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 84
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 85
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 86
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 87
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 88
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 89
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 90
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 91
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 92
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 93
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 94
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 95
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 96
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 97
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 98
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 99
+      },
+      {
+        "kind": "popup",
+        "panelId": 6,
+        "scope": {
+          "actorId": 4294967244,
+          "areaId": 2147483650,
+          "areaGeneration": 2,
+          "controlLifetime": 3,
+          "source": "client_receive_context"
+        },
+        "sequence": 100
+      }
+    ],
+    "control": {
+      "actorId": 4294967244,
+      "areaId": 2147483650,
+      "areaGeneration": 2,
+      "controlLifetime": 3,
+      "source": "client_receive_context"
+    }
+  },
+  "actor": {
+    "id": 4294967246,
+    "objectType": 5,
+    "areaId": 2147483649
+  },
+  "replacement": {
+    "id": 4294967244,
+    "objectType": 5,
+    "areaId": 2147483650
+  }
+}

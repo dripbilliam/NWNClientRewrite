@@ -3,6 +3,7 @@ const Tlk=preload("res://systems/native_data/talk_table.gd")
 const Rich=preload("res://systems/native_data/rich_text.gd")
 const RulesetCache=preload("res://systems/native_data/ruleset_cache.gd")
 const NativeParser=preload("res://systems/native_data/native_talk_parser.gd")
+const ServerTokens=preload("res://systems/native_data/native_custom_token_table.gd")
 var base:=Tlk.new()
 var female:=Tlk.new()
 var custom:=Tlk.new()
@@ -10,6 +11,7 @@ var custom_female:=Tlk.new()
 var tables: Dictionary={}
 var objects: Dictionary={}
 var custom_tokens: Dictionary={}
+var server_tokens=ServerTokens.new()
 var overrides: Dictionary={}
 var native_override_bytes: Dictionary={}
 var named: Array=[]
@@ -20,6 +22,20 @@ var native_families: Dictionary={}
 var ruleset_owner:=RulesetCache.Owner.new()
 var ruleset_publication:=0
 func mark_changed() -> void: revision+=1
+func apply_server_token(id: int,bytes: PackedByteArray) -> Dictionary:
+	if not server_tokens.apply(id,bytes):return {"applied":false,"reason":"Native custom-token ID is ignored."}
+	var projected: Dictionary=server_tokens.project_ui(id,base.language)
+	# Existing speech/tooltip consumers capture this dictionary by value. Only
+	# safely decoded UI text enters it; the exact native bytes remain in table.
+	if projected.get("ready",false):custom_tokens[id]=projected.text
+	else:
+		custom_tokens.erase(id)
+		warn(str(projected.get("reason","Native custom-token text is unavailable.")))
+	mark_changed()
+	return {"applied":true,"projected":projected.get("ready",false),"revision":server_tokens.revision}
+func reset_server_tokens() -> void:
+	server_tokens.reset();custom_tokens.clear();mark_changed()
+func server_token_snapshot() -> Array[Dictionary]:return server_tokens.snapshot()
 func publish_table(name: String,value: Dictionary) -> void:
 	if name=="stringtokens":named_ready=false
 	if name=="ruleset":
@@ -137,7 +153,13 @@ func resolve(value: Variant,id: int,options: Dictionary={}) -> String:
 			if valid and number!=4294967295:
 				var local_tokens: Dictionary=options.get("localCustomTokens",{})
 				if local_tokens.has(number): replacement=str(local_tokens[number])
-				elif not bool(options.get("localCustomTokensComplete",false)) and custom_tokens.has(number): replacement=str(custom_tokens[number])
+				elif not bool(options.get("localCustomTokensComplete",false)):
+					var owned: Dictionary=server_tokens.lookup_bytes(number)
+					if owned.get("found",false):
+						var projected: Dictionary=server_tokens.project_ui(number,base.language)
+						if projected.get("ready",false):replacement=str(projected.text)
+						else:replacement="<UNAVAILABLE TOKEN>";warn(str(projected.get("reason","Native custom-token text is unavailable.")))
+					elif custom_tokens.has(number):replacement=str(custom_tokens[number])
 		else:
 			var token:=find_named(key)
 			if not token.is_empty(): replacement=token_value(token,context,state)
@@ -452,9 +474,14 @@ func set_native_override(ref: int,value: String) -> void:
 	var encoded:=NativeParser.encode(value,0) # Existing wire byte projection.
 	if encoded.get("ready",false):native_override_bytes[ref]={"text":value,"bytes":encoded.bytes}
 	else:native_override_bytes.erase(ref)
+func reset_native_overrides() -> bool:
+	var changed:=not overrides.is_empty() or not native_override_bytes.is_empty()
+	overrides.clear();native_override_bytes.clear()
+	if changed:mark_changed()
+	return changed
 func close() -> void:
 	native_override_bytes.clear()
 	named_ready=false
 	native_families.clear()
 	ruleset_owner.retire()
-	base.close(); female.close(); custom.close(); custom_female.close(); objects.clear(); custom_tokens.clear(); overrides.clear(); named.clear(); tables.clear()
+	base.close(); female.close(); custom.close(); custom_female.close(); objects.clear(); server_tokens.reset(); custom_tokens.clear(); overrides.clear(); named.clear(); tables.clear()

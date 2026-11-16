@@ -1,0 +1,3175 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "name": "disabled-34--1-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34--1-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-0-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000000000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-5-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000500000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-6-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-7-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-8-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000000800000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-22-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001600000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000080",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-34-23-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020b0000001700000090",
+      "build": {
+        "number": 8193,
+        "revision": 34,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "legacy_protocol_default",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffff0000008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffff2a00008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffff0200008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffff0000007f80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffffffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": false,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffff0000008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffff2a00008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffff0200008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffff0000007f90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35--1-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000ffffffffffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": -1,
+        "disabled": true,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000000000000000008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000000000002a00008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000000000000200008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000000000000000007f80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000000000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": false,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000000000000000008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000000000002a00008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000000000000200008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000000000000000007f90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-0-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000000000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 0,
+        "disabled": true,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000050000000000008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000050000002a00008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000050000000200008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000050000000000007f80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000005000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": false,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000050000000000008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000050000002a00008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000050000000200008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000050000000000007f90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-5-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000005000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 5,
+        "disabled": true,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000060000000000008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000060000002a00008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000060000000200008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000060000000000007f80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000006000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": false,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000060000000000008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000060000002a00008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000060000000200008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000060000000000007f90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-6-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000006000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 6,
+        "disabled": true,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000070000000000008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000070000002a00008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000070000000200008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000070000000000007f80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000007000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": false,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000070000000000008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000070000002a00008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000070000000200008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000070000000000007f90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-7-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000007000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 7,
+        "disabled": true,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000080000000000008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000080000002a00008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000080000000200008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000080000000000007f80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000008000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": false,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000080000000000008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000080000002a00008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000080000000200008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000080000000000007f90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-8-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000008000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 8,
+        "disabled": true,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000160000000000008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000160000002a00008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000160000000200008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000160000000000007f80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000016000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": false,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000160000000000008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000160000002a00008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000160000000200008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000160000000000007f90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-22-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000016000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 22,
+        "disabled": true,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-0-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000170000000000008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-0-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000170000002a00008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-0-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000170000000200008080",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-0-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000170000000000007f80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-0-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000017000000ffffffff80",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": false,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-1-0",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000170000000000008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2147483648,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-1-42",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000170000002a00008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2147483690,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-1-2147483650",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000170000000200008090",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2147483650,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-1-2130706432",
+      "origin": "authored original-format writer",
+      "packet": "5035020f000000170000000000007f90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 2130706432,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "disabled-35-23-1-4294967295",
+      "origin": "authored original-format writer",
+      "packet": "5035020f00000017000000ffffffff90",
+      "build": {
+        "number": 8193,
+        "revision": 35,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-disabled",
+        "panelId": 23,
+        "disabled": true,
+        "targetId": 4294967295,
+        "targetSource": "received",
+        "major": 53,
+        "minor": 2
+      }
+    },
+    {
+      "name": "popup--1",
+      "origin": "authored original-format writer",
+      "packet": "5024040b000000ffffffff60",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-popup",
+        "panelId": -1,
+        "major": 36,
+        "minor": 4
+      }
+    },
+    {
+      "name": "popup-2",
+      "origin": "authored original-format writer",
+      "packet": "5024040b0000000200000060",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-popup",
+        "panelId": 2,
+        "major": 36,
+        "minor": 4
+      }
+    },
+    {
+      "name": "popup-4",
+      "origin": "authored original-format writer",
+      "packet": "5024040b0000000400000060",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-popup",
+        "panelId": 4,
+        "major": 36,
+        "minor": 4
+      }
+    },
+    {
+      "name": "popup-5",
+      "origin": "authored original-format writer",
+      "packet": "5024040b0000000500000060",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-popup",
+        "panelId": 5,
+        "major": 36,
+        "minor": 4
+      }
+    },
+    {
+      "name": "popup-6",
+      "origin": "authored original-format writer",
+      "packet": "5024040b0000000600000060",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-popup",
+        "panelId": 6,
+        "major": 36,
+        "minor": 4
+      }
+    },
+    {
+      "name": "popup-7",
+      "origin": "authored original-format writer",
+      "packet": "5024040b0000000700000060",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-popup",
+        "panelId": 7,
+        "major": 36,
+        "minor": 4
+      }
+    },
+    {
+      "name": "popup-8",
+      "origin": "authored original-format writer",
+      "packet": "5024040b0000000800000060",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-popup",
+        "panelId": 8,
+        "major": 36,
+        "minor": 4
+      }
+    },
+    {
+      "name": "popup-23",
+      "origin": "authored original-format writer",
+      "packet": "5024040b0000001700000060",
+      "build": {
+        "number": 8193,
+        "revision": 37,
+        "postfix": 0
+      },
+      "expected": {
+        "kind": "gui-panel-popup",
+        "panelId": 23,
+        "major": 36,
+        "minor": 4
+      }
+    }
+  ],
+  "capturedNative": 0,
+  "originalReceiverWriter": 0
+}

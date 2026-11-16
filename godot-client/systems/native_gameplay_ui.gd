@@ -57,6 +57,7 @@ var world_camera: Camera3D
 var world_camera_yaw: Callable
 var world_registry
 var text:=TextOwner.new()
+var custom_token_connection: Variant=null
 var pool:=Pool.new()
 var assets
 var catalog
@@ -101,6 +102,7 @@ var examine_pending: Dictionary={}
 var examine_message: Dictionary={}
 var queue: Array=[]
 var pending_speech_logs: Array=[]
+var pending_voice_captions: Array=[]
 var speech_text_revision:=-1
 var revision:=0
 var stats:={"messages":0,"speech":0,"dialogs":0,"examines":0,"portraits":0,"stale_messages":0,"errors":[],"native_only":true,"full_ui_migration":false}
@@ -268,21 +270,24 @@ func startup_snapshot() -> Dictionary:
 	return result
 func set_world(epoch: int,area: int,controlled: int,objects: Array,raw_inventory: Dictionary={},header: Dictionary={}) -> void:
 	var began:=Timing.begin()
+	if native_connection_query.is_valid():sync_custom_token_connection(native_connection_query.call())
 	if generation!=epoch:
-		conversation.reset(); examine.reset(); examine_message.clear(); clear_floating();pending_speech_logs.clear()
+		conversation.reset(); examine.reset(); examine_message.clear(); clear_floating();pending_speech_logs.clear();pending_voice_captions.clear()
 	Timing.finish("snapshot_ui_reset_ms",began); began=Timing.begin()
 	generation=epoch; area_id=area; controlled_id=controlled; text.objects={}
 	for object in objects: text.objects[int(object.id)]=object
+	sync_tlk_override_header(header)
 	observe_actor_names(header,objects)
 	if is_instance_valid(overhead):overhead.observe_sources()
 	if is_instance_valid(script_floating):script_floating.observe_sources()
 	if is_instance_valid(overhead_popup_registry):overhead_popup_registry.observe(text.objects.keys())
 	drain_speech_logs()
+	drain_voice_captions()
 	Timing.finish("snapshot_ui_object_map_ms",began); began=Timing.begin()
 	inventory.set_world(epoch,area,controlled,objects,raw_inventory)
 	if is_instance_valid(inventory_windows): inventory_windows.synchronize(epoch,area,controlled,raw_inventory)
 	Timing.finish("snapshot_ui_inventory_ms",began); began=Timing.begin()
-	desktop.set_world(epoch,area,controlled,text.objects,{"area":header.get("area",{}),"module":header.get("module",{}),"scriptTargeting":header.get("ui",{}).get("scriptTargeting"),"scriptTargetingData":header.get("ui",{}).get("scriptTargetingData"),"playerAttitudes":header.get("ui",{}).get("playerAttitudes",[]),"partyInviteNotice":header.get("ui",{}).get("partyInviteNotice"),"partyListRevision":header.get("ui",{}).get("partyListRevision",0),"party":header.get("ui",{}).get("party",[]),"quickbar":header.get("ui",{}).get("quickbar",[]),"players":header.get("ui",{}).get("players",[]),"playerRosterKnown":header.get("ui",{}).get("playerRosterKnown"),"gameMasterPermission":header.get("ui",{}).get("gameMasterPermission"),"journal":header.get("ui",{}).get("journal",{}),"mapPins":header.get("ui",{}).get("mapPins",[])})
+	desktop.set_world(epoch,area,controlled,text.objects,{"area":header.get("area",{}),"module":header.get("module",{}),"scriptTargeting":header.get("ui",{}).get("scriptTargeting"),"scriptTargetingData":header.get("ui",{}).get("scriptTargetingData"),"spellTargetingOverrides":header.get("ui",{}).get("spellTargetingOverrides",{}),"playerAttitudes":header.get("ui",{}).get("playerAttitudes",[]),"partyInviteNotice":header.get("ui",{}).get("partyInviteNotice"),"partyListRevision":header.get("ui",{}).get("partyListRevision",0),"party":header.get("ui",{}).get("party",[]),"quickbar":header.get("ui",{}).get("quickbar",[]),"players":header.get("ui",{}).get("players",[]),"playerRosterKnown":header.get("ui",{}).get("playerRosterKnown"),"gameMasterPermission":header.get("ui",{}).get("gameMasterPermission"),"journal":header.get("ui",{}).get("journal",{}),"mapPins":header.get("ui",{}).get("mapPins",[])})
 	Timing.finish("snapshot_ui_desktop_ms",began)
 	if is_instance_valid(gui_panel_access): gui_panel_access.observe_header(header.get("ui",{}).get("guiPanelAccess"))
 	barter.set_world(epoch,area,controlled,text.objects,header.get("ui",{}).get("barter",{}))
@@ -292,14 +297,16 @@ func update_world(epoch: int,area: int,controlled: int,objects: Array,removed: A
 	controlled_id=controlled
 	for id in removed: text.objects.erase(int(id))
 	for object in objects: text.objects[int(object.id)]=object
+	sync_tlk_override_header(header)
 	observe_actor_names(header,objects,removed)
 	if is_instance_valid(overhead):overhead.observe_sources(objects.map(func(object):return int(object.id)),removed)
 	if is_instance_valid(script_floating):script_floating.observe_sources(objects.map(func(object):return int(object.id)),removed)
 	if is_instance_valid(overhead_popup_registry):overhead_popup_registry.observe(objects.map(func(object):return int(object.id)),removed)
 	drain_speech_logs()
+	drain_voice_captions()
 	inventory.update_world(epoch,area,controlled,objects,removed,raw_inventory)
 	if is_instance_valid(inventory_windows): inventory_windows.synchronize(epoch,area,controlled,raw_inventory)
-	desktop.set_world(epoch,area,controlled,text.objects,{"area":header.get("area",{}),"module":header.get("module",{}),"scriptTargeting":header.get("ui",{}).get("scriptTargeting"),"scriptTargetingData":header.get("ui",{}).get("scriptTargetingData"),"playerAttitudes":header.get("ui",{}).get("playerAttitudes",[]),"partyInviteNotice":header.get("ui",{}).get("partyInviteNotice"),"partyListRevision":header.get("ui",{}).get("partyListRevision",0),"party":header.get("ui",{}).get("party",[]),"quickbar":header.get("ui",{}).get("quickbar",[]),"players":header.get("ui",{}).get("players",[]),"playerRosterKnown":header.get("ui",{}).get("playerRosterKnown"),"gameMasterPermission":header.get("ui",{}).get("gameMasterPermission"),"journal":header.get("ui",{}).get("journal",{}),"mapPins":header.get("ui",{}).get("mapPins",[])})
+	desktop.set_world(epoch,area,controlled,text.objects,{"area":header.get("area",{}),"module":header.get("module",{}),"scriptTargeting":header.get("ui",{}).get("scriptTargeting"),"scriptTargetingData":header.get("ui",{}).get("scriptTargetingData"),"spellTargetingOverrides":header.get("ui",{}).get("spellTargetingOverrides",{}),"playerAttitudes":header.get("ui",{}).get("playerAttitudes",[]),"partyInviteNotice":header.get("ui",{}).get("partyInviteNotice"),"partyListRevision":header.get("ui",{}).get("partyListRevision",0),"party":header.get("ui",{}).get("party",[]),"quickbar":header.get("ui",{}).get("quickbar",[]),"players":header.get("ui",{}).get("players",[]),"playerRosterKnown":header.get("ui",{}).get("playerRosterKnown"),"gameMasterPermission":header.get("ui",{}).get("gameMasterPermission"),"journal":header.get("ui",{}).get("journal",{}),"mapPins":header.get("ui",{}).get("mapPins",[])})
 	if is_instance_valid(gui_panel_access): gui_panel_access.observe_header(header.get("ui",{}).get("guiPanelAccess"))
 	barter.set_world(epoch,area,controlled,text.objects,header.get("ui",{}).get("barter",{}))
 	examine_skin.sync()
@@ -362,12 +369,26 @@ func receive(message: Dictionary,epoch: int,transport_connection: Variant=null) 
 		if epoch==generation: examine_skin.receive(message)
 		return
 	if message.kind=="custom-token":
-		if int(message.id)>=0: text.custom_tokens[int(message.id)]=str(message.text)
-		text.mark_changed()
-		floating_text_data_changed()
+		if transport_connection!=null and not sync_custom_token_connection(transport_connection):stats.stale_messages+=1;return
+		var value: Variant=message.get("id")
+		if not (value is int or value is float) or not is_finite(float(value)) or floor(float(value))!=float(value) or value<-2147483648 or value>2147483647:return
+		var bytes: Variant=message.get("textBytes")
+		if not bytes is PackedByteArray:
+			# Local authored UI callers predate native packet ingress. Their String
+			# text enters the same byte owner; admitted wire traffic must carry bytes.
+			if transport_connection!=null or not message.get("text") is String:return
+			var encoded: Dictionary=preload("res://systems/native_data/native_talk_parser.gd").encode(message.text,text.base.language)
+			if not encoded.get("ready",false):return
+			bytes=encoded.bytes
+		var result: Dictionary=text.apply_server_token(int(value),bytes)
+		if result.get("applied",false):floating_text_data_changed()
 		return
 	if message.kind=="tlk-overrides":
+		if transport_connection!=null and not sync_custom_token_connection(transport_connection):stats.stale_messages+=1;return
+		if not message.get("entries") is Array:return
+		if message.entries.is_empty():return
 		for row in message.entries:
+			if not row is Dictionary or not row.get("strRef") is int or not row.get("text") is String:return
 			text.set_native_override(int(row.strRef),str(row.text))
 		text.mark_changed()
 		floating_text_data_changed()
@@ -393,7 +414,51 @@ func observe_actor_names(header: Dictionary,objects: Array,removed: Array=[]) ->
 		if object.get("objectType")==5:actor_names.observe(object,object.get("nativeActorNameState"),text,current)
 func overhead_context() -> Dictionary:
 	return {"connection":native_connection_query.call() if native_connection_query.is_valid() else null,"generation":generation if generation>=0 else null,"areaId":area_id if area_id>=0 else null,"enabled":not closed and presentation_enabled}
+func sync_custom_token_connection(connection: Variant) -> bool:
+	if not (connection is int or connection is float) or not is_finite(float(connection)) or floor(float(connection))!=float(connection) or connection<0:return false
+	if native_connection_query.is_valid() and native_connection_query.call()!=connection:return false
+	if custom_token_connection!=connection:
+		text.reset_server_tokens()
+		text.reset_native_overrides()
+		custom_token_connection=connection
+		floating_text_data_changed()
+	return true
+func sync_tlk_override_header(header: Dictionary) -> void:
+	var ui_header: Variant=header.get("ui",{})
+	if not ui_header is Dictionary or not ui_header.has("tlkOverrides") or not ui_header.tlkOverrides is Dictionary:return
+	var desired: Dictionary=ui_header.tlkOverrides
+	if desired==text.overrides:return
+	text.reset_native_overrides()
+	for ref in desired:
+		if desired[ref] is String:text.set_native_override(int(ref),desired[ref])
+	if not desired.is_empty():text.mark_changed()
+	floating_text_data_changed()
+func custom_token_snapshot() -> Dictionary:
+	return {"connection":custom_token_connection,"revision":text.server_tokens.revision,"records":text.server_token_snapshot()}
 func overhead_source(id: int) -> Dictionary:return text.objects.get(id,{})
+func receive_voice_caption(event: Dictionary) -> Dictionary:
+	# Quick-chat22/0 has an SSF StrRef but no nativeTextEvent serial. Publish its
+	# caption to the existing chat/TLK service; do not fabricate an ordinary
+	# overhead speech serial that could suppress later real server speech.
+	if closed or not is_instance_valid(chat) or not native_connection_query.is_valid():return {"ready":false,"reason":"Voice caption UI is unavailable."}
+	if event.get("connection")!=native_connection_query.call() or int(event.get("generation",-1))!=generation or int(event.get("areaId",-1))!=area_id:return {"ready":false,"retired":true}
+	var id: int=int(event.get("actorId",-1));var object: Dictionary=text.objects.get(id,{})
+	if object.is_empty() or int(object.get("objectType",0))!=5 or int(object.get("nativeLifetime",-1))!=int(event.get("lifetime",-2)) or bool(object.get("replicationRemoved",false)):return {"ready":false,"retired":true}
+	var str_ref: int=int(event.get("strRef",4294967295))
+	if str_ref<0 or str_ref==4294967295:return {"ready":false,"reason":"Voice caption string reference is unavailable."}
+	if not tlk_jobs.is_empty():
+		if pending_voice_captions.size()<128:pending_voice_captions.append(event.duplicate(true));return {"ready":false,"pending":true}
+		return {"ready":false,"reason":"Voice caption queue is full."}
+	var body:=text.raw({"strRef":str_ref})
+	if body.is_empty():return {"ready":false,"reason":"Voice caption text is unavailable."}
+	var name:=text.name(null,id)
+	if name.is_empty():name=text.raw({"strRef":5189})
+	chat.append_message({"kind":"chat","channel":1,"system":false,"objectId":id,"name":Rich.parse(name),"rich":Rich.parse(body),"text":body,"nativeNameResolved":false})
+	return {"ready":true,"actorId":id,"text":body}
+func drain_voice_captions() -> void:
+	if closed or not tlk_jobs.is_empty() or pending_voice_captions.is_empty():return
+	var waiting: Array=pending_voice_captions;pending_voice_captions=[]
+	for event in waiting:receive_voice_caption(event)
 static func popup_settings_from(value: Dictionary)->Dictionary:
 	var cleaned:=preload("res://systems/native_data/chat_preferences.gd").clean(value)
 	return {"mode":cleaned["ui.text-bubble-mode"],"largeFont":cleaned["ui.large-font"]}
@@ -497,6 +562,7 @@ func _profile_process(_delta: float) -> void:
 		if is_instance_valid(desktop): desktop.dirty=true
 		if is_instance_valid(gui_panel_access): gui_panel_access.drain()
 	if not table_jobs.is_empty() or not tlk_jobs.is_empty(): return
+	drain_voice_captions()
 	if not tables_ready:
 		tables_ready=true; startup_marks.all_rules_ready_ms=Time.get_ticks_msec()-startup_at; barter.refresh()
 		if is_instance_valid(desktop): desktop.signatures.erase("party"); desktop.dirty=true
@@ -670,7 +736,7 @@ func refresh_examine_properties() -> void:
 	var details:=ItemPropertyText.project(examine_message.get("properties",[]),text,int(examine_message.get("actorId",controlled_id)))
 	if examine.refresh_properties(details.properties,details.warnings,int(examine_message.targetId),revision): request_examine_tables()
 func blocks_pointer(point: Vector2) -> bool:
-	if not presentation_enabled: return false
+	if closed or not presentation_enabled: return false
 	if is_instance_valid(barter) and barter.blocks_pointer(point): return true
 	if is_instance_valid(nui) and nui.blocks_pointer(point): return true
 	if is_instance_valid(desktop) and desktop.blocks_pointer(point): return true
@@ -728,5 +794,5 @@ func close() -> void:
 	if is_instance_valid(examine):examine.close_modal_owner()
 	if is_instance_valid(modal_surfaces):modal_surfaces.close()
 	actor_names.close();actor_name_history_complete=false
-	text.close(); table_jobs.clear(); portrait_jobs.clear(); examine_jobs.clear(); examine_pending.clear(); examine_message.clear(); queue.clear();pending_speech_logs.clear(); pool.clear(); catalog=null
+	text.close(); table_jobs.clear(); portrait_jobs.clear(); examine_jobs.clear(); examine_pending.clear(); examine_message.clear(); queue.clear();pending_speech_logs.clear();pending_voice_captions.clear(); pool.clear(); catalog=null
 func _exit_tree() -> void: close()

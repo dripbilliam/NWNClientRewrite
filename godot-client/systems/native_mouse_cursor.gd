@@ -1,4 +1,5 @@
 extends Node
+signal target_preview_changed(snapshot: Dictionary)
 # Original TGA bytes -> native worker decoder -> Godot hardware cursor. This
 # owner never moves/captures the pointer. Tests inject publication instead.
 const Policy=preload("res://systems/native_data/mouse_cursor.gd")
@@ -25,6 +26,29 @@ var closed:=false
 var stamp:=""
 var failures: Array=[]
 var publications:=0
+var target_preview_state: Dictionary={"enabled":false}
+func target_preview_snapshot() -> Dictionary: return target_preview_state.duplicate(true)
+func set_target_preview_state(value: Dictionary) -> void:
+	if target_preview_state==value:return
+	target_preview_state=value.duplicate(true); target_preview_changed.emit(target_preview_snapshot())
+func clear_target_preview() -> void: set_target_preview_state({"enabled":false})
+func target_preview_scope_valid() -> bool:
+	if not is_instance_valid(ui) or not is_instance_valid(ui.desktop): return false
+	var desktop=ui.desktop
+	return not desktop.target.is_empty() and desktop.generation==int(target_preview_state.get("generation",-1)) and desktop.area_id==int(target_preview_state.get("areaId",-1)) and desktop.actor_id==int(target_preview_state.get("actorId",-1)) and int(desktop.target.get("version",-1))==int(target_preview_state.get("targetVersion",-2)) and desktop.target_preview_descriptor()==target_preview_state.get("preview",{})
+func observe_target_preview(hit: Dictionary,blocked: bool,cursor: Dictionary) -> void:
+	if blocked or hit.is_empty() or not cursor.get("valid",false) or not is_instance_valid(ui) or not is_instance_valid(ui.desktop): clear_target_preview(); return
+	var desktop=ui.desktop
+	var preview: Dictionary=desktop.target_preview_descriptor()
+	var actor: Dictionary=desktop.objects.get(desktop.actor_id,{})
+	var player: Variant=actor.get("replicated",{}).get("position")
+	var point: Variant=hit.get("position")
+	if preview.is_empty() or not player is Array or player.size()!=3 or not point is Vector3 or not point.is_finite(): clear_target_preview(); return
+	for coordinate in player:
+		if not coordinate is int and not coordinate is float or not is_finite(float(coordinate)): clear_target_preview(); return
+	var id:=int(hit.get("id",-1))
+	var type:=int(desktop.objects.get(id,{}).get("objectType",2))
+	set_target_preview_state({"enabled":true,"preview":preview.duplicate(true),"point":[point.x,-point.z,point.y],"player":player.duplicate(),"type":type,"generation":desktop.generation,"areaId":desktop.area_id,"actorId":desktop.actor_id,"targetVersion":int(desktop.target.get("version",-1))})
 func configure(owner,catalog,cache_path: String) -> void:
 	ui=owner; assets=Assets.new(); add_child(assets); assets.maximum_workers=2; assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
 	jobs[assets.request("cursors",2017,"2da",{"immutable_source":true})]=-1
@@ -59,11 +83,13 @@ func world_pointer(hit: Dictionary,blocked: bool) -> void:
 	if closed: return
 	var desktop=ui.desktop
 	# GUI hover is resolved separately so slots win over the generic menu arrow.
-	if not is_instance_valid(desktop): select(Policy.selection(),pressed); return
+	if not is_instance_valid(desktop): clear_target_preview(); select(Policy.selection(),pressed); return
 	if blocked:
+		clear_target_preview()
 		var fallback: Dictionary=desktop.target_cursor(-1)
 		select(fallback if not fallback.is_empty() else Policy.selection(),pressed); return
 	var targeting: Dictionary=desktop.target_cursor(int(hit.get("id",-1)),not hit.is_empty())
+	observe_target_preview(hit,false,targeting)
 	if not targeting.is_empty(): select(targeting,pressed); return
 	var player_ids: Array=[]
 	for entry in desktop.state.get("players",[]):
@@ -101,9 +127,11 @@ func _process(_delta: float) -> void:
 	var began:=Timing.begin(); cursor_step(); Timing.finish("callback_mouse_cursor",began)
 func cursor_step() -> void:
 	if closed: return
+	if target_preview_state.get("enabled",false) and not target_preview_scope_valid(): clear_target_preview()
 	var window:=get_window(); var point:=get_viewport().get_mouse_position()
 	var allowed:=window.has_focus() and not window.unfocusable and get_viewport().get_visible_rect().has_point(point)
 	if not allowed:
+		clear_target_preview()
 		if installed: release()
 		focused=false; pressed=false; return
 	focused=true
@@ -112,7 +140,7 @@ func cursor_step() -> void:
 	var drag: Variant=get_viewport().gui_get_drag_data()
 	if drag is Dictionary and str(drag.get("kind", "")) in ["native-inventory-item","native-barter-item"]: value=Policy.selection(92,true)
 	# Physical camera capture owns its cursor visibility; never force it visible.
-	if Input.mouse_mode!=Input.MOUSE_MODE_VISIBLE: return
+	if Input.mouse_mode!=Input.MOUSE_MODE_VISIBLE: clear_target_preview(); return
 	publish(value,pressed,float(window.content_scale_factor))
 func publish(value: Dictionary,down: bool,scale: float) -> void:
 	if closed: return
@@ -146,6 +174,7 @@ func publish_hardware(image: Image,hotspot: Vector2) -> void:
 		elif DisplayServer.get_name()!="headless":Input.set_custom_mouse_cursor(image,shape,hotspot)
 	if not hardware_publisher.is_valid() and DisplayServer.get_name()!="headless":Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 func release() -> void:
+	clear_target_preview()
 	if installed:
 		if publisher.is_valid(): publisher.call({"reset":true})
 		else:publish_hardware(null,Vector2.ZERO)

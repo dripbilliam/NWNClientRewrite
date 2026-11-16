@@ -22,8 +22,9 @@ func configure(world: Node,source,shared_pool,cache_path: String="") -> void:
 	world_owner=weakref(world); pool=shared_pool; native_surface_output=world.get_meta("native_surface_output",false)
 	sky_shader=_shader(native_surface_output)
 	assets=Assets.new(); add_child(assets); assets.maximum_workers=1; assets.configure(source); assets.cache_directory=cache_path; assets.completed.connect(completed)
-	# The phase owner is advanced by AreaEnvironment after camera/area updates.
-	set_process(true)
+	# AreaEnvironment advances sky phases; this callback only publishes a
+	# complete staged model set and need not run during asset preparation.
+	set_process(false)
 func current(revision_value: int) -> bool:
 	var world=world_owner.get_ref() if world_owner!=null else null
 	return not closed and revision_value==request_revision and is_instance_valid(world) and not world.is_queued_for_deletion() and not world.get("closed") and not world.get("retiring")
@@ -31,6 +32,7 @@ func select_sky(value: int) -> bool:
 	if closed or value<0 or value>255: return false
 	if requested_id==value: return true
 	requested_id=value; request_revision+=1; pending.clear(); waiting.clear(); staged.clear(); desired_phases.clear(); error=""
+	set_process(false)
 	clear_staging()
 	assets.retire_scope()
 	if value==0:
@@ -70,6 +72,7 @@ func completed(id: int,result: Dictionary) -> void:
 	if job.kind=="table":
 		table=result.value; select_row(); return
 	staged[job.name]=result
+	if not waiting.is_empty() and staged.size()==waiting.size(): set_process(true)
 func _process(_delta: float) -> void:
 	if not current(request_revision) or waiting.is_empty() or staged.size()!=waiting.size() or not pool.can_publish(): return
 	var began:=Time.get_ticks_usec()
@@ -116,6 +119,7 @@ func build_model(resource: String,bundle: Dictionary) -> Node3D:
 		rows.append({"mesh":geometry,"surface":0,"base":pair[0],"overlay":pair[1]})
 	model.set_meta("sky_materials",rows); model.set_meta("sky_sha256",str(bundle.sha256)); return model
 func publish_set(prepared: Dictionary) -> void:
+	set_process(false)
 	clear_models(false)
 	instances=prepared.duplicate(); materials={}
 	for name in instances: materials[name]=instances[name].get_meta("sky_materials")
@@ -132,12 +136,14 @@ func clear_staging() -> void:
 			if is_instance_valid(node): node.free()
 		remove_meta("sky_staging")
 func reject(reason: String) -> void:
+	set_process(false)
 	error=reason; failures.append(reason); pending.clear(); waiting.clear(); staged.clear()
 	# Keep a working preceding sky on a failed replacement, as the reference
 	# installer does. Its resources remain private to this world's lifetime.
 	clear_staging()
 func stop() -> void:
 	if closed: return
+	set_process(false)
 	closed=true; request_revision+=1; pending.clear(); waiting.clear(); staged.clear(); hide()
 	if is_instance_valid(assets): assets.retire_scope()
 func close() -> void:

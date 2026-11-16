@@ -5,33 +5,39 @@ The normal client is native desktop Godot. It opens Main Menu; the user chooses 
 From the repository root:
 
 ```powershell
-npm install
 .\godot-client\tools\setup.ps1
 .\godot-client\join-native.ps1
 ```
 
-A compatible Node.js installation, MSVC x64/Windows SDK tools and an owned NWN:EE install/content are needed. The pinned Godot runtime is specified in `runtime-lock.json`.
+An owned NWN:EE install/content is needed. Setup provisions the pinned Godot runtime and builds the Windows helpers; building those helpers from source requires MSVC x64 and Windows SDK tools. The pinned runtime is specified in `runtime-lock.json`.
 
 ## Launch routes
 
 | Route | Purpose |
 | --- | --- |
 | `join-native.ps1` | Main Menu and normal native multiplayer flow |
-| `join-local.ps1` | Existing owned-local development profile |
-| `run.ps1` | Historical captured/offline viewer; not normal multiplayer acceptance |
-| Root `npm start` | Preserved Electron/Three.js reference frontend |
+| `join-godot.ps1` | Direct Godot original-server route and prerequisite check |
+| `join-local.ps1` | Owned private-server launch and the verified pure graphical smoke check |
 
-The owned-local route assumes the install/server under `../FullDecomp/NwnRootInstall` and a local profile on UDP 5121. Inspect its current options before using it; existing servers and user sessions must be preserved.
+The owned-local route assumes the install/server under `../FullDecomp/NwnRootInstall` and a local profile on UDP 5121. Unsupported original-host diagnostic flags fail before starting a client or server.
 
 ## Configuration and preparation
 
-[CLIENT-FLAGS](CLIENT-FLAGS.md) documents supported controls. Inspect the actual startup manifest and effective owners; engine/thread/light/collision/loading choices are independent.
+[CLIENT-FLAGS](CLIENT-FLAGS.md) records historical configuration research. Use the current Godot menu and launch parameters for supported controls.
 
-Normal gameplay rendering uses the integrated profile. `-RenderProfile legacy` remains a diagnostic rollback. Retain the user's preferences, including particle settings; do not count effects-off results as full-effect acceptance.
+Normal gameplay rendering uses the integrated Godot profile. Retain the user's preferences, including particle settings; effects-off results do not establish full-effect parity.
 
 Main Menu → Options → Prework offers Prepare assets, Cancel preparation, Clear saved prework and saved-file inspection for selected installed/downloaded content. Preparing content is separate from joining.
 
 ## Development references
+
+Run the offline NWN-79 Godot/PowerShell regression subset:
+
+```powershell
+.\godot-client\tools\nwn79\run-focused-tests.ps1
+```
+
+This command runs focused Godot and PowerShell checks plus the Godot-only source guard. Private-server and graphical acceptance use separate bounded fixtures.
 
 - [Architecture and ownership](../docs/architecture.md)
 - [Development and validation](../docs/development.md)
@@ -41,6 +47,6 @@ Main Menu → Options → Prework offers Prepare assets, Cancel preparation, Cle
 - [Compiled extensions](native/README.md)
 - [Archived feature notes](../docs/archive.md)
 
-Godot owns resource/model/texture preparation, animation, rendering and UI. Transitional Node/Electron services still own protocol/authentication/download/credential responsibilities. This is unfinished multiplayer-first migration, not a complete native single-player campaign replacement.
+The normal `join-native.ps1` path delegates to the Godot-owned session. Godot owns resource/model/texture preparation, animation, rendering, UI, networking and protected settings operations on that path. Run `join-godot.ps1 -CheckOnly` to verify its prerequisites without starting the client. [NWN-79 progress](tools/nwn79/godot-only-session-progress.md) records verified private-server coverage and remaining acceptance work. Unsupported original-host diagnostic modes now reject before startup; NWN-79 acceptance remains in progress.
 
 Feature tests have separate entry paths and limits. Normal-entry evidence, real original-server outcomes, paired original-client checks and representative visual/performance acceptance are required before declaring parity.

@@ -102,6 +102,25 @@ func manifest(hash: String) -> Dictionary:
 	return Residency.index("nwsync-installed-manifest",[hash],[bytes],func():
 		var value:=decode_installed_manifest(bytes)
 		return {"value":value,"error":str(value.get("error",""))}).value
+func available_blob_hashes() -> Dictionary:
+	var hashes: Dictionary={}
+	var path:=directory.path_join("objects")
+	if DirAccess.dir_exists_absolute(path):
+		for name in DirAccess.get_files_at(path):
+			if valid_hash(name): hashes[name]=true
+	if reader!=null:
+		var response: Dictionary=read_native(4,PackedByteArray())
+		if response.has("error"): return response
+		if not response.get("missing",false):
+			var bytes: PackedByteArray=response.bytes
+			if bytes.size()<4: return {"error":"Invalid installed NWSync inventory"}
+			var count:=int(bytes.decode_u32(0))
+			if count>1000000 or bytes.size()!=4+count*40: return {"error":"Invalid installed NWSync inventory length"}
+			for index in count:
+				var hash:=bytes.slice(4+index*40,4+(index+1)*40).get_string_from_ascii()
+				if not valid_hash(hash): return {"error":"Invalid installed NWSync inventory hash"}
+				hashes[hash]=true
+	return {"hashes":hashes}
 static func decode_installed_manifest(bytes: PackedByteArray) -> Dictionary:
 	if Backend.available(): return Backend.parse("installed-manifest",bytes)
 	if bytes.size()<4: return {"error":"Invalid installed NWSync catalog"}

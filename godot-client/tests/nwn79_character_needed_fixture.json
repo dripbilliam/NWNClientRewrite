@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "source": "src/network_game_messages.js original-receiver reconstruction, server 2/16 header-only branch",
+  "originalNativeReceiverExecution": 0,
+  "originalNativeWriter": 0,
+  "capturedNative": 0,
+  "authoredPacket": 1,
+  "cases": [
+    {
+      "name": "authored-original-header",
+      "origin": "authored exact header checked against original-receiver JS reconstruction; no original native packet capture",
+      "packet": "500210",
+      "expected": {"kind": "character-needed", "major": 2, "minor": 16}
+    }
+  ]
+}
