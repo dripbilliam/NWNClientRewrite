@@ -53,6 +53,8 @@ var closed := false
 var cache_directory := ""
 var pending: Array = []
 var running: Dictionary = {}
+var jobs: Dictionary = {}
+var repairing: Dictionary = {}
 var results: Dictionary = {}
 var mutex := Mutex.new()
 var completion_budget_us:=1500
@@ -90,13 +92,15 @@ func request(name: String, type: int, decoder: String = "bytes", options: Dictio
 	failure = ""
 	if closed or catalog == null: failure = "Native asset service is unavailable"; return -1
 	if decoder not in ["bytes", "gff", "2da", "mdl-binary", "mdl-original", "raster", "static-model", "actor-model", "gui-icon-v1", "tile-surface-v1", "pwk-surface-v1", "dwk-surface-v1", "nui-skin-v1", "font-v1", "bitmap-font-v1", "wave-native-v1", "ssf-native-v1", "ltr-native-v1"]: failure = "Unknown native decoder"; return -1
-	if pending.size() + running.size() >= maximum_pending: failure = "Native asset queue is full"; return -1
+	if pending.size() + running.size() + repairing.size() >= maximum_pending: failure = "Native asset queue is full"; return -1
 	Prework.remember_request(catalog,name,type,decoder,options)
 	serial += 1
 	if completion_diagnose:completion_diagnostic_requests[serial]={"name":name.get_file().substr(0,96),"type":type,"decoder":decoder,"epoch":epoch}
 	var store=catalog.preparation_cache() if catalog.has_method("preparation_cache") else null
 	var pool_ready: bool=(raster_upload_preparation_enabled or worker_texture_creation_enabled) and OS.get_thread_caller_id()==OS.get_main_thread_id() and completion_pool is Object and is_instance_valid(completion_pool) and completion_pool.has_method("raster_upload_preparation_active") and completion_pool.raster_upload_preparation_active()
-	pending.append({"id": serial, "name": name, "type": type, "decoder": decoder, "epoch": epoch, "catalog": catalog.fork(), "cache_directory": cache_directory, "options":options.duplicate(true),"memory_store":store,"decoder_store":decoded_store(catalog),"memory_epoch":store.generation() if store!=null else -1,"requested_us":Time.get_ticks_usec(),"raster_upload_preparation":raster_upload_preparation_enabled and pool_ready,"worker_texture_creation":worker_texture_creation_enabled and pool_ready,"prework_write":prework_write,"prework_read":prework_read,"status_only":status_only,"prework_ticket":Prework.current_generation(cache_directory)})
+	var job: Dictionary={"id": serial, "name": name, "type": type, "decoder": decoder, "epoch": epoch, "catalog": catalog.fork(), "cache_directory": cache_directory, "options":options.duplicate(true),"memory_store":store,"decoder_store":decoded_store(catalog),"memory_epoch":store.generation() if store!=null else -1,"requested_us":Time.get_ticks_usec(),"raster_upload_preparation":raster_upload_preparation_enabled and pool_ready,"worker_texture_creation":worker_texture_creation_enabled and pool_ready,"prework_write":prework_write,"prework_read":prework_read,"status_only":status_only,"prework_ticket":Prework.current_generation(cache_directory),"nwsync_repair_attempted":false}
+	jobs[serial]=job
+	pending.append(job)
 	pump()
 	return serial
 func pump() -> void:
@@ -585,6 +589,36 @@ func decode_uncached(bytes: PackedByteArray, type: int, decoder: String, cache_p
 		timings.cache_write_ms = (Time.get_ticks_usec()-began)/1000.0
 		timings.cache_write_phases=cache.last_save
 	return result
+func _queue_nwsync_repair(id: int,result: Dictionary)->bool:
+	if str(result.get("resource_error","")).is_empty() or not jobs.has(id):return false
+	var job: Dictionary=jobs[id]
+	if bool(job.get("nwsync_repair_attempted",false)) or catalog==null or not catalog.has_method("nwsync_repair_binding"):return false
+	var callback: Callable=catalog.nwsync_repair
+	if not callback.is_valid():return false
+	var binding: Dictionary=catalog.nwsync_repair_binding(str(job.name),int(job.type))
+	if binding.is_empty():return false
+	job.nwsync_repair_attempted=true
+	repairing[id]=true
+	_repair_nwsync.call_deferred(id,int(job.epoch),job,binding,result,callback)
+	return true
+func _repair_nwsync(id: int,source_epoch: int,job: Dictionary,binding: Dictionary,failed: Dictionary,callback: Callable)->void:
+	if closed or epoch!=source_epoch or not jobs.has(id):repairing.erase(id);jobs.erase(id);return
+	var reply: Variant={"error":"NWSync repository is unavailable"}
+	if callback.is_valid():reply=await callback.call(binding.store,binding.entry)
+	var repaired: Dictionary=reply if reply is Dictionary else {"error":"NWSync repository returned no result"}
+	if closed or epoch!=source_epoch or not jobs.has(id):repairing.erase(id);jobs.erase(id);return
+	repairing.erase(id)
+	if not repaired.has("error"):
+		# Source and preparation stores retain successes only. A fresh fork reads
+		# the newly verified object while preserving the original request ID.
+		job.catalog=catalog.fork()
+		pending.push_front(job)
+		pump()
+		return
+	failed.nwsync_repair_error=str(repaired.error)
+	jobs.erase(id)
+	completed.emit(id,failed)
+	completion_stats.delivered+=1
 func _process(_delta: float) -> void:
 	var began:=Timing.begin()
 	_profile_process(_delta)
@@ -620,15 +654,18 @@ func _profile_process(_delta: float) -> void:
 		var diagnostic_sha: String=str(result.get("sha256","")) if completion_diagnose else ""
 		var diagnostic_request: Variant=null
 		if completion_diagnose:diagnostic_request=completion_diagnostic_requests.get(id,{})
+		var deferred_for_repair:=false
 		if not closed and int(result.get("epoch", -1)) == epoch:
 			var upload_sidecar: Variant=result.get("_raster_upload_sidecar")
 			result.erase("_raster_upload_sidecar") # Never expose ready pixels to caller key/serialization/template code.
 			if upload_sidecar is Dictionary and budget_owner is Object and is_instance_valid(budget_owner) and budget_owner.has_method("accept_raster_upload_sidecar"):budget_owner.accept_raster_upload_sidecar(upload_sidecar)
 			upload_sidecar=null
 			if completion_diagnose:diagnostic_phases.sidecar_us=Time.get_ticks_usec()-diagnostic_began;diagnostic_began=Time.get_ticks_usec()
-			completed.emit(int(id), result);completion_stats.delivered+=1
+			deferred_for_repair=_queue_nwsync_repair(int(id),result)
+			if not deferred_for_repair:completed.emit(int(id), result);completion_stats.delivered+=1
 			if completion_diagnose:diagnostic_phases.consumer_us=Time.get_ticks_usec()-diagnostic_began;diagnostic_began=Time.get_ticks_usec()
 		else:completion_stats.stale+=1
+		if not deferred_for_repair:jobs.erase(id)
 		# Drop the drain's result reference inside the measured scope. Consumers
 		# which retained it keep ownership; stale graphs release here as well.
 		result={}
@@ -657,7 +694,7 @@ func retire_scope() -> void:
 	if completion_diagnose and not completion_diagnostic_peaks.is_empty():
 		print("NWN62_COMPLETION_SUMMARY ",JSON.stringify({"service":str(get_path()),"top":completion_diagnostic_peaks}))
 		completion_diagnostic_peaks.clear();completion_diagnostic_reported_max_us=0;completion_diagnostic_logged=0
-	epoch += 1;pending.clear();completion_pool=null
+	epoch += 1;pending.clear();jobs.clear();repairing.clear();completion_pool=null
 	if completion_diagnose:completion_diagnostic_requests.clear()
 	# Stale workers still need to finish and release their results, without
 	# delivering completion into the replacement scope.

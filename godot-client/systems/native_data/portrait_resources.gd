@@ -5,15 +5,21 @@ const SUFFIXES=["","t","s","m","l","h"]
 static func resref(value: String) -> String: return value.left(16).to_lower()
 static func exists(name: String,provider: Callable) -> bool:
 	return not provider.is_valid() or bool(provider.call(name,3)) or bool(provider.call(name,2033))
-static func sized(base: String,size: int,provider: Callable=Callable()) -> String:
+static func candidates(base: String,size: int) -> Array[String]:
 	base=resref(base)
-	if base.is_empty() or size==0: return base
-	if size<1 or size>5: return ""
+	var result: Array[String]=[]
+	if base.is_empty():return result
+	if size==0:result.append(base);return result
+	if size<1 or size>5:return result
 	for candidate in [size,size+1,size-1,size+2,size-2,size+3,size-3,size+4,size-4]:
 		if candidate<1 or candidate>5: continue
-		var name:=resref(base+SUFFIXES[candidate])
-		if exists(name,provider): return name
-	return resref(base+SUFFIXES[size])
+		result.append(resref(base+SUFFIXES[candidate]))
+	return result
+static func sized(base: String,size: int,provider: Callable=Callable()) -> String:
+	var choices:=candidates(base,size)
+	for name in choices:
+		if exists(name,provider):return name
+	return choices[0] if not choices.is_empty() else ""
 static func available(base: String,provider: Callable=Callable()) -> bool:
 	return not base.is_empty() and exists(sized(base,3,provider),provider)
 static func files(layers: Array) -> Array:

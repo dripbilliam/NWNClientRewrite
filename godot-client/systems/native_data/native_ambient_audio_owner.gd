@@ -142,12 +142,19 @@ func _set_track(channel: String,name: String,force: bool=false)->void:
 	if name.is_empty():return
 	if name.contains("/") or name.contains("\\") or name.contains(":"):
 		state.status="failed";stats.misses+=1;return
-	var type:=4 if catalog.has_resource(name,4) else 8 if catalog.has_resource(name,8) else -1
+	var type:=resource_type(catalog,name,channel)
 	if type<0:state.status="failed";stats.misses+=1;return
 	var id: int=assets.request(name,type,"wave-native-v1")
 	if id<0:state.status="failed";failure=str(assets.failure);stats.misses+=1;return
 	state.job=id;state.status="loading";state.generation=generation
 	jobs[id]={"generation":generation,"kind":"stream","channel":channel,"name":name};stats.requests+=1
+
+static func resource_type(source: Variant,name: String,channel: String)->int:
+	# The native audio lookup prefers BMU for a WAV request. A music request
+	# is strict BMU; it does not fall back to a same-named WAV.
+	if source.has_resource(name,8):return 8
+	if channel=="ambient" and source.has_resource(name,4):return 4
+	return -1
 
 func prepared(id: int,result: Dictionary)->void:
 	if not jobs.has(id):return

@@ -12,9 +12,11 @@ static func resolve(install: String,appdata: String="",documents: String="",stea
 	for name in ["Neverwinter Nights.0","Neverwinter Nights"]:
 		var candidate:=documents.path_join(name)
 		if FileAccess.file_exists(candidate.path_join("nwsync/nwsyncmeta.sqlite3")):profile=candidate;break
-	return {"settingsDirectory":appdata.path_join("nwn-model-viewer-research"),"userDirectory":profile,"defaultModsDirectory":default_mods(install,steam_directory)}
+	var mods: Dictionary=default_mods(install,steam_directory)
+	if mods.has("error"):return mods
+	return {"settingsDirectory":appdata.path_join("nwn-model-viewer-research"),"userDirectory":profile,"defaultModsDirectory":str(mods.directory)}
 
-static func default_mods(install: String,steam_directory: String)->String:
+static func default_mods(install: String,steam_directory: String)->Dictionary:
 	var candidates: Array[String]=[]
 	var directory:=install.simplify_path()
 	for _index in range(6):
@@ -24,7 +26,10 @@ static func default_mods(install: String,steam_directory: String)->String:
 		directory=parent
 	var libraries:=steam_directory.path_join("steamapps/libraryfolders.vdf")
 	if FileAccess.file_exists(libraries):
-		var text:=FileAccess.get_file_as_string(libraries)
+		var source:=FileAccess.open(libraries,FileAccess.READ)
+		if source==null:return {"error":"Steam workshop library file could not be read"}
+		var text:=source.get_as_text()
+		source.close()
 		var pattern:=RegEx.create_from_string('"path"\\s*"([^"]+)"')
 		for row in pattern.search_all(text):
 			candidates.append(str(row.get_string(1)).replace("\\\\","\\").path_join("steamapps/workshop/content/704450"))
@@ -34,8 +39,8 @@ static func default_mods(install: String,steam_directory: String)->String:
 		var path:=candidate.simplify_path()
 		if seen.has(path.to_lower()):continue
 		seen[path.to_lower()]=true
-		if DirAccess.dir_exists_absolute(path):return path
-	return ""
+		if DirAccess.dir_exists_absolute(path):return {"directory":path}
+	return {"directory":""}
 
 static func direct_ticket(install: String,profile_override: String="",settings_override: String="")->Dictionary:
 	var startup: Dictionary=resolve(install)

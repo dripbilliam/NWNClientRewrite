@@ -4,12 +4,16 @@ extends RefCounted
 # only after its records are accepted.
 const INVALID:=0x7f000000
 const EXTERNAL:=0x80000000
+const SkillAdmission=preload("res://systems/native_data/skill_admission.gd")
+const DM_PERMISSION_SOURCE:="received_game_master_permission_31_22"
+const CLIENT_PERMISSION_SOURCE:="native_connection_start_16"
 var module: Dictionary={}
 var area: Dictionary={}
 var entry: Dictionary={}
 var time: Dictionary={}
 var area_id:=INVALID
 var local_object_id:=INVALID
+var game_master_permission: Variant=null
 var registry: Dictionary={}
 var players: Dictionary={}
 var controls: Dictionary={}
@@ -146,6 +150,25 @@ func apply_module(value: Dictionary)->bool:
 
 func apply_time(changes: Dictionary)->void:
 	time.merge(changes,true)
+
+func begin_client_connection(connection_type: int)->bool:
+	if connection_type!=16:return false
+	game_master_permission={"permission":0,"field114":null,"parameter":null,"source":CLIENT_PERMISSION_SOURCE}
+	return true
+
+func apply_dm_permission(message: Dictionary)->bool:
+	if str(message.get("kind",""))!="game-master-permission" or not message.get("permission") is int or int(message.permission) not in [0,1] or not message.get("field114") is int or int(message.field114) not in [0,1] or not message.get("parameter") is int or int(message.parameter)<-2147483648 or int(message.parameter)>2147483647:
+		error="Invalid received native game-master permission";return false
+	var target: Dictionary=registry.get(local_object_id,{})
+	if int(message.permission)==0 and int(target.get("objectType",0))==5 and not bool(target.get("replicationRemoved",false)):
+		var current: Variant=target.get("clientSkillAdmission")
+		if current!=null and not SkillAdmission.valid(current):error="Invalid native skill-admission view";return false
+		var view: Dictionary=current.duplicate(true) if current is Dictionary else {"version":1,"source":SkillAdmission.SOURCE,"mask":null,"knownMask":0,"playerUpdateSeen":false,"inventoryUpdateSeen":false}
+		view.override=0;view.overrideSource=DM_PERMISSION_SOURCE
+		target.clientSkillAdmission=view
+		registry[local_object_id]=target
+	game_master_permission={"permission":int(message.permission),"field114":int(message.field114),"parameter":int(message.parameter),"source":DM_PERMISSION_SOURCE}
+	return true
 
 func valid_current_area()->bool:
 	var current: Dictionary=registry.get(area_id,{})
@@ -572,4 +595,4 @@ func presentation(prepare_area: bool=false)->Dictionary:
 	for key in player_attitudes:attitudes.append([key,player_attitudes[key].duplicate(true)])
 	var journal_view: Dictionary={"entries":journal_entries,"worldEntries":world_entries,"loaded":journal.loaded}
 	if journal.has("notification"):journal_view.notification=journal.notification.duplicate(true)
-	return {"area":area.duplicate(true),"objects":registry.values().map(func(value):return value.duplicate(true)),"controlledId":local_object_id,"entry":entry.duplicate(true),"time":time.duplicate(true),"module":module.duplicate(true),"inventory":{"inventories":inventory_rows,"containers":container_rows,"windows":inventory_window_snapshot(),"store":store.duplicate(true) if store is Dictionary else null},"ui":{"players":player_rows,"playerRosterKnown":player_roster_known,"party":party.duplicate(true),"partyListRevision":party_list_revision,"partyInviteNotice":party_invite_notice.duplicate(true) if party_invite_notice is Dictionary else null,"barter":barter.duplicate(true) if barter is Dictionary else {},"quickbar":quickbar.duplicate(true),"journal":journal_view,"mapPins":map_pin_rows,"playerAttitudes":attitudes,"timing":timing.duplicate(true) if timing is Dictionary else null,"scriptTargeting":script_targeting.duplicate(true) if script_targeting is Dictionary else null,"scriptTargetingData":script_targeting_data.duplicate(true) if script_targeting_data is Dictionary else null,"spellTargetingOverrides":spell_targeting_overrides.duplicate(true),"tlkOverrides":tlk_overrides.duplicate(true),"tlkOverrideVersion":tlk_override_version}}
+	return {"area":area.duplicate(true),"objects":registry.values().map(func(value):return value.duplicate(true)),"controlledId":local_object_id,"entry":entry.duplicate(true),"time":time.duplicate(true),"module":module.duplicate(true),"inventory":{"inventories":inventory_rows,"containers":container_rows,"windows":inventory_window_snapshot(),"store":store.duplicate(true) if store is Dictionary else null},"ui":{"players":player_rows,"playerRosterKnown":player_roster_known,"gameMasterPermission":game_master_permission.duplicate(true) if game_master_permission is Dictionary else null,"party":party.duplicate(true),"partyListRevision":party_list_revision,"partyInviteNotice":party_invite_notice.duplicate(true) if party_invite_notice is Dictionary else null,"barter":barter.duplicate(true) if barter is Dictionary else {},"quickbar":quickbar.duplicate(true),"journal":journal_view,"mapPins":map_pin_rows,"playerAttitudes":attitudes,"timing":timing.duplicate(true) if timing is Dictionary else null,"scriptTargeting":script_targeting.duplicate(true) if script_targeting is Dictionary else null,"scriptTargetingData":script_targeting_data.duplicate(true) if script_targeting_data is Dictionary else null,"spellTargetingOverrides":spell_targeting_overrides.duplicate(true),"tlkOverrides":tlk_overrides.duplicate(true),"tlkOverrideVersion":tlk_override_version}}

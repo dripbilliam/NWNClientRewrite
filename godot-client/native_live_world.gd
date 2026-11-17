@@ -68,6 +68,28 @@ var _native_entry_snapshot: Dictionary={}
 func native_camera_follow_target_id()->int:
 	return world.controlled_id if is_instance_valid(world) else -1
 
+func native_camera_follow_height(_target_id: int)->float:
+	return 1.0
+
+func native_camera_clear_view_facing(_target_id: int)->float:
+	return NAN
+
+func native_camera_clear_view_query()->Callable:
+	return Callable()
+
+static func native_camera_steering_input(actor: Dictionary, movement: Dictionary, controlled_rotation: Variant = null) -> Dictionary:
+	# NetworkPlayerCamera follows the attached target's position but steers from
+	# the controlled actor's orientation and animation.
+	var replicated: Dictionary=actor.get("replicated",{})
+	var orientation: Variant=movement.get("orientation",replicated.get("orientation"))
+	if orientation is Dictionary:orientation=orientation.get("vector")
+	var facing:=0.0
+	if orientation is Vector3:facing=rad_to_deg(atan2(-orientation.x,orientation.y))
+	elif orientation is Array and orientation.size()>=2:facing=rad_to_deg(atan2(-float(orientation[0]),float(orientation[1])))
+	elif controlled_rotation is float:facing=rad_to_deg(controlled_rotation)
+	var animation:=int(movement.get("animation",0)) if bool(movement.get("active",false)) else int(replicated.get("animation",0))
+	return {"facing":facing,"animation":animation}
+
 func native_entry_snapshot_allowed(_message: Dictionary) -> bool:return true
 func complete_native_entry_loading(load_errors: Array) -> void:
 	if not is_instance_valid(world) or world.closed or world.retiring or not world.get_meta("native_entry_loading",false) or world.generation!=epoch or not is_instance_valid(loading_screen) or loading_screen.epoch!=epoch or loading_screen.active or not load_errors.is_empty():return
@@ -275,7 +297,8 @@ func _initialize() -> void:
 					break
 	call_deferred("run")
 func run() -> void:
-	auto_accept_quit=false; root.close_requested.connect(shutdown)
+	auto_accept_quit=false
+	if not root.close_requested.is_connected(shutdown):root.close_requested.connect(shutdown)
 	for arg in OS.get_cmdline_user_args():
 		var pair:=arg.trim_prefix("--").split("=",true,1)
 		if pair.size()==2: args[pair[0]]=pair[1]
@@ -287,9 +310,26 @@ func run() -> void:
 	# The engine creates its main window non-activating (project.godot).
 	# Keep it non-activating until the user clicks the actual game window.
 	# Automated checks never activate it, including synthetic GUI probes.
-	if args.get("settings-check","")!="true" and args.get("actions-check","")!="true": root.window_input.connect(activate_window_from_click)
+	if args.get("settings-check","")!="true" and args.get("actions-check","")!="true" and not root.window_input.is_connected(activate_window_from_click): root.window_input.connect(activate_window_from_click)
 	if direct_mode:
-		var install:=str(args.get("direct-install",ProjectSettings.globalize_path("res://../../FullDecomp/NwnRootInstall")))
+		var selector_source=preload("res://systems/native_install_selector.gd")
+		var explicit_install:=str(args.get("direct-install",""))
+		if not explicit_install.is_empty() and not selector_source.valid_install(explicit_install):fail("NWN installation is unavailable or missing game data");return
+		var install:=explicit_install
+		if install.is_empty():
+			var settings_directory:=str(args.get("direct-settings",OS.get_environment("APPDATA").path_join("nwn-model-viewer-research")))
+			var install_settings=preload("res://systems/native_data/client_settings_store.gd").new()
+			if not install_settings.open(settings_directory):fail("Godot settings could not open: "+install_settings.error);return
+			install=selector_source.candidate("",str(install_settings.state.get("installDirectory","")),ProjectSettings.globalize_path("res://../../FullDecomp/NwnRootInstall"))
+			if install.is_empty():
+				if DisplayServer.get_name()=="headless":install_settings.close();fail("NWN installation is unavailable; launch graphically to choose its folder or pass --direct-install");return
+				var selector=selector_source.new();root.add_child(selector);selector.begin()
+				selector.chosen.connect(func(path: String):
+					selector.queue_free();install_settings.close();args["direct-install"]=path;args["direct-install-to-save"]=path
+					if not closing:call_deferred("run"),CONNECT_ONE_SHOT)
+				return
+			install_settings.close()
+		args["direct-install"]=install
 		ticket=StartupPaths.direct_ticket(install,str(args.get("direct-profile","")),str(args.get("direct-settings","")))
 		if ticket.has("error"):
 			report.failure=str(ticket.error)
@@ -717,13 +757,15 @@ func _profile_tick() -> void:
 		if initial_controlled==null:
 			initial_controlled=position; entry_camera.anchor(camera,controller,position,camera_memory)
 			world.stats.controlled_camera_bound_ms=(Time.get_ticks_usec()-world.opened_at)/1000.0
-		var camera_follow_id:=native_camera_follow_target_id()
-		if world.instances.has(camera_follow_id):
-			var camera_position: Vector3=world.instances[camera_follow_id].position
-			var movement: Dictionary=world.motion.objects.get(camera_follow_id,{})
-			if not movement.is_empty():controller.follow_frame(camera_position,rad_to_deg(atan2(movement.orientation.y,movement.orientation.x)),int(movement.animation),root.get_process_delta_time())
-			elif camera_follow_id!=world.controlled_id:controller.follow_frame(camera_position,0.0,0,root.get_process_delta_time())
 		maximum_distance=maxf(maximum_distance,position.distance_to(initial_controlled))
+	var camera_follow_id:=native_camera_follow_target_id()
+	if world.instances.has(camera_follow_id):
+		var camera_position: Vector3=world.instances[camera_follow_id].position
+		var controlled: Dictionary=world.desired.get(world.controlled_id,{}).get("object",{})
+		var controlled_motion: Dictionary=world.motion.objects.get(world.controlled_id,{})
+		var controlled_rotation: Variant=world.instances[world.controlled_id].rotation.y if world.instances.has(world.controlled_id) else null
+		var steering:=native_camera_steering_input(controlled,controlled_motion,controlled_rotation)
+		controller.follow_frame(camera_position,float(steering.facing),int(steering.animation),root.get_process_delta_time(),native_camera_follow_height(camera_follow_id),native_camera_clear_view_facing(camera_follow_id),native_camera_clear_view_query())
 	FrameProfile.finish("root_camera",phase_began)
 	creation_runtime_phase("frame:camera-after")
 	var load_errors: Array=[]

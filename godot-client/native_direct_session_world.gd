@@ -4,8 +4,13 @@ extends "res://native_session_world.gd"
 # saved-key migration and acceptance matrix replace the transitional host.
 const DirectSession=preload("res://systems/native_data/native_network_session.gd")
 const Characters=preload("res://systems/native_data/native_server_characters.gd")
+const CameraAppearanceHeight=preload("res://systems/native_data/native_camera_appearance_height.gd")
+const CameraSceneQuery=preload("res://systems/native_render/camera_scene_query.gd")
+const GameCameraState=preload("res://systems/game_camera_state.gd")
+const TwoDa=preload("res://systems/native_data/two_da.gd")
 const GffDocument=preload("res://systems/native_data/gff_document.gd")
 const CharacterPreview=preload("res://systems/native_data/character_preview.gd")
+const CharacterPreviewRules=preload("res://systems/native_data/character_preview_rules.gd")
 const ServerDirectory=preload("res://systems/native_data/native_server_directory.gd")
 const LoginProfileController=preload("res://systems/native_data/godot_login_profile_controller.gd")
 const ClientSettingsStore=preload("res://systems/native_data/client_settings_store.gd")
@@ -20,11 +25,15 @@ var direct_placed_sounds
 var direct_ambient_audio
 var direct_ambient_queue: Array[Dictionary]=[]
 var direct_visual_queue: Array[Dictionary]=[]
+var direct_projectile_queue: Array[Dictionary]=[]
+var direct_module_pause_queue: Array[Dictionary]=[]
 var direct_voice_queue: Array[Dictionary]=[]
 var direct_login_profiles
 var direct_upgrade_notice: String=""
 var direct_browser_store
 var direct_server_query: Node
+var direct_join_policy_query: Node
+var direct_join_policy_serial:=0
 var direct_inspect_endpoint: Dictionary={}
 var direct_inspect_tab: String=""
 var direct_inspect_result: Dictionary={}
@@ -36,12 +45,16 @@ var selected_character: Dictionary={}
 var direct_generation:=0
 var direct_area_presented:=false
 var direct_catalog_adopted:=false
+var direct_preview_rules_snapshot: Dictionary={}
 var direct_quickbar_received:=false
 var direct_check_deadline:=0
 var local_character_pending:=false
 var direct_lobby_choices: Dictionary={}
 var direct_lobby_state: Dictionary={}
+var direct_preview_pending: Dictionary={}
 var direct_choice_request_id:=-1
+var direct_vault_server_play_stage:=0
+var direct_vault_server_key: String=""
 var direct_manual_test_chosen:=false
 var direct_manual_test_played:=false
 var direct_started_from_browser:=false
@@ -86,8 +99,11 @@ var direct_portal_stage:=0
 var direct_portal_origin_area:=-1
 var direct_portal_origin_connection:=-1
 var direct_camera_state
+var direct_camera_appearance_table: Dictionary={}
+var direct_camera_height_cache: Dictionary={}
 var direct_camera_queue: Array[Dictionary]=[]
 var direct_camera_target_id:=-1
+var direct_camera_pending_entry_attach:=false
 var direct_nwsync_visual_descriptor: Dictionary={}
 var direct_nwsync_visual_progress: Array[Dictionary]=[]
 var direct_nwsync_visual_settings_hash:=""
@@ -100,6 +116,7 @@ var direct_levelup_outbound: Array[Dictionary]=[]
 var direct_levelup_probe_finished: Dictionary={}
 var direct_disconnect_after_export:=false
 var direct_character_export_stage:=0
+var direct_creation_probe_started:=false
 
 func run()->void:
 	super.run()
@@ -109,8 +126,7 @@ func run()->void:
 	direct_directory.completed.connect(direct_directory_ready)
 	direct_server_query=ServerQuery.new();host.add_child(direct_server_query)
 	direct_server_query.completed.connect(direct_server_query_ready)
-	var install:=str(args.get("direct-install",ProjectSettings.globalize_path("res://../../FullDecomp/NwnRootInstall")))
-	var startup: Dictionary=StartupPaths.resolve(install)
+	var startup: Dictionary=StartupPaths.resolve(str(args.get("direct-install","")))
 	if startup.has("error"):fail(str(startup.error));return
 	var visual_path:=str(args.get("direct-nwsync-visual-fixture",""))
 	if not visual_path.is_empty():
@@ -124,6 +140,9 @@ func run()->void:
 	direct_login_profiles=LoginProfileController.new()
 	if not direct_login_profiles.open(str(args.get("direct-settings",startup.settingsDirectory)),str(startup.defaultModsDirectory),session_connection,func(message: Dictionary):receive(message),func()->bool:return direct_session!=null, direct_profile_changed):
 		fail("Godot login profiles could not open: "+direct_login_profiles.error);return
+	var selected_install:=str(args.get("direct-install-to-save",""))
+	if not selected_install.is_empty() and not direct_login_profiles.store.update({"installDirectory":selected_install}):
+		fail("Selected NWN installation could not be saved: "+direct_login_profiles.store.error);return
 	if direct_login_profiles.legacy_upgrade.has("error"):
 		direct_upgrade_notice=str(direct_login_profiles.legacy_upgrade.error)+". Enter a temporary CD key or save a new login profile to recover."
 	elif bool(direct_login_profiles.legacy_upgrade.get("credentialReentryRequired",false)):
@@ -149,32 +168,133 @@ func run()->void:
 	if server_host.is_empty() or server_port<1 or server_port>65535:fail("Godot direct session requires a valid host and UDP port");return
 	direct_connect(server_host,server_port)
 
+func native_clock_direct_scope()->Dictionary:
+	if closing or direct_session==null or not direct_area_presented or direct_session.phase not in ["area-presenting","playing"] or not is_instance_valid(world):return {}
+	var area_id:=int(direct_session.world_state.area_id)
+	if area_id==0x7f000000 or int(direct_session.area_generation)!=direct_generation or world.area_id!=area_id:return {}
+	return {"connection":session_connection,"generation":direct_generation,"areaId":area_id}
+
+func direct_publish_clock_controlled()->void:
+	if native_clock_runtime==null or not native_clock_runtime.ready or direct_session==null:return
+	var scope: Dictionary=native_clock_direct_scope()
+	if scope.is_empty():return
+	var actor_id:=int(direct_session.world_state.local_object_id)
+	var actor: Dictionary=direct_session.world_state.registry.get(actor_id,{})
+	if int(actor.get("objectType",0))!=5 or int(actor.get("areaId",-1))!=int(scope.areaId) or bool(actor.get("replicationRemoved",false)):return
+	var published: Dictionary=native_clock_runtime.publish_direct_controlled_id(actor_id,int(scope.connection),int(scope.generation),int(scope.areaId))
+	if not published.get("ready",false):report.direct_clock_controlled_unavailable=str(published.get("reason","Controlled actor clock fact is unavailable."))
+
+func publish_device_properties()->void:
+	if not direct_mode:
+		super.publish_device_properties()
+		return
+	if closing or direct_session==null or not is_instance_valid(window_settings):return
+	var metrics: Dictionary=window_settings.current()
+	metrics.fixed=window_settings.fixed_scale
+	var packet: Dictionary=device_properties_packet(metrics,session_connection,device_metrics_revision+1)
+	if packet.is_empty():return
+	var signature: Array=device_properties_signature(packet)
+	if signature==last_device_metrics:return
+	if not direct_session.set_device_metrics({"gui_scale":int(packet.guiScalePercent),"gui_width":int(packet.guiWidth),"gui_height":int(packet.guiHeight)}):
+		report.direct_device_properties_error="Current window metrics could not be queued for the original server."
+		return
+	device_metrics_revision+=1
+	last_device_metrics=signature
+
+func native_clock_prefix()->void:
+	super.native_clock_prefix()
+	direct_drain_module_pause()
+
+func direct_module_pause(receipt: Dictionary)->void:
+	if closing or direct_session==null or not receipt.get("message") is Dictionary:return
+	if direct_module_pause_queue.size()>=128:fail("Native module-pause admission queue exceeded bound");return
+	direct_module_pause_queue.append({"connection":session_connection,"generation":int(receipt.get("generation",-1)),"areaId":int(receipt.get("areaId",-1)),"message":receipt.message.duplicate(true)})
+	report.direct_module_pause_pending=direct_module_pause_queue.size()
+
+func direct_drain_module_pause()->void:
+	if direct_module_pause_queue.is_empty() or native_clock_runtime==null or not bool(native_clock_runtime.ready) or not bool(native_clock_runtime.diagnostics.get("directOwnersReady",false)):return
+	var scope: Dictionary=native_clock_direct_scope()
+	if scope.is_empty():return
+	while not direct_module_pause_queue.is_empty():
+		var entry: Dictionary=direct_module_pause_queue[0]
+		direct_module_pause_queue.pop_front()
+		if int(entry.connection)!=int(scope.connection) or int(entry.generation)!=int(scope.generation) or int(entry.areaId)!=int(scope.areaId):
+			report.direct_module_pause_retired=int(report.get("direct_module_pause_retired",0))+1
+			continue
+		var applied: Dictionary=native_clock_runtime.receive_direct_pause(entry.message,int(scope.connection),int(scope.generation),int(scope.areaId))
+		if not applied.get("ready",false):fail("Native module-pause transition unavailable: "+str(applied.get("reason","clock owner rejected receipt")));return
+		report.direct_module_pause_applied=int(report.get("direct_module_pause_applied",0))+1
+		report.direct_module_pause_last={"mask":int(entry.message.mask),"value":int(entry.message.value),"deliveryOrder":int(applied.get("deliveryOrder",0)),"duplicatePacket":bool(applied.get("duplicatePacket",false))}
+	report.direct_module_pause_pending=direct_module_pause_queue.size()
+
 func direct_connect(server_host: String,server_port: int,server_password: String="",temporary_cd_key: String="",player_name: String="",portal_handoff: Dictionary={})->void:
 	var install:=str(args.get("direct-install",ProjectSettings.globalize_path("res://../../FullDecomp/NwnRootInstall")))
 	var startup: Dictionary=StartupPaths.resolve(install)
 	if startup.has("error"):
 		if portal_handoff.get("identity") is RefCounted:portal_handoff.identity.dispose()
 		fail(str(startup.error));return
+	direct_cancel_join_policy_query()
+	direct_lobby_state={"phase":"connecting","endpoint":{"host":server_host,"port":server_port},"busy":true,"canCancelJoin":true,"connected":false}
+	direct_show_character_state()
+	character_lobby.show_sync_wait()
+	label.text="Checking server character policy…"
+	var policy_serial:=direct_join_policy_serial
+	direct_join_policy_query=ServerQuery.new();host.add_child(direct_join_policy_query)
+	var query: Node=direct_join_policy_query
+	var server_info: Dictionary={}
+	if query.query(server_host,server_port):
+		var answer: Array=await query.completed
+		if answer.size()==2 and str(answer[1]).is_empty() and answer[0] is Dictionary:server_info=answer[0]
+	if closing or policy_serial!=direct_join_policy_serial:
+		if portal_handoff.get("identity") is RefCounted:portal_handoff.identity.dispose()
+		return
+	if is_instance_valid(query):query.close();query.queue_free()
+	direct_join_policy_query=null
+	direct_begin_connect(server_host,server_port,server_password,temporary_cd_key,player_name,portal_handoff,install,startup,server_info)
+
+func direct_cancel_join_policy_query()->void:
+	direct_join_policy_serial+=1
+	if not is_instance_valid(direct_join_policy_query):direct_join_policy_query=null;return
+	var query: Node=direct_join_policy_query
+	direct_join_policy_query=null
+	query.close()
+	query.completed.emit({},"Join cancelled")
+	query.queue_free()
+
+func direct_begin_connect(server_host: String,server_port: int,server_password: String,temporary_cd_key: String,player_name: String,portal_handoff: Dictionary,install: String,startup: Dictionary,server_info: Dictionary)->void:
 	var profile:=str(args.get("direct-profile",startup.userDirectory))
+	direct_preview_rules_snapshot.clear()
+	direct_preview_pending.clear()
+	if is_instance_valid(character_lobby) and is_instance_valid(character_lobby.native_preview):character_lobby.native_preview.configure_rules({})
+	direct_vault_server_play_stage=0;direct_vault_server_key=""
 	direct_server_port=server_port
-	direct_camera_state=null;direct_camera_queue.clear();direct_camera_target_id=-1
+	direct_camera_state=null;direct_camera_queue.clear();direct_camera_target_id=-1;direct_camera_pending_entry_attach=false;direct_camera_appearance_table.clear();direct_camera_height_cache.clear()
 	server_label=server_host;root.title="NWN · Godot direct · "+server_host
 	direct_session=DirectSession.new();host.add_child(direct_session)
+	var policy_known: bool=direct_session.set_server_vault_policy(server_info,server_host,server_port)
+	publish_device_properties()
+	report.direct_vault_policy={"known":policy_known,"localAllowed":direct_session.local_vault_allowed,"source":"fresh-BNXR" if policy_known else "unavailable"}
+	report.direct_character_list={"acceptedPackets":0,"receivedServerRows":0,"projectedServerRows":0,"projectedLocalRows":0,"projectedSavedRows":0,"phase":"connecting"}
 	direct_lobby_state={"phase":"connecting","endpoint":{"host":server_host,"port":server_port},"busy":true,"canCancelJoin":true,"connected":false}
 	direct_show_character_state()
 	character_lobby.show_sync_wait()
 	if not is_instance_valid(direct_placed_sounds):
 		direct_placed_sounds=PlacedSounds.new();host.add_child(direct_placed_sounds)
-	direct_placed_sounds.configure(null,func()->Dictionary:return direct_session.world_state.time if direct_session!=null else {})
+	direct_placed_sounds.configure(null,func()->Dictionary:return direct_session.world_state.time if direct_session!=null else {},func()->Dictionary:return direct_session.world_state.registry if direct_session!=null else {})
 	direct_ambient_audio=AmbientAudio.new();host.add_child(direct_ambient_audio)
 	direct_ambient_queue.clear()
 	direct_voice_queue.clear()
 	direct_session.catalog_ready.connect(direct_catalog_ready)
 	direct_session.phase_changed.connect(direct_phase_changed)
 	direct_session.resource_progress.connect(direct_resource_progress)
+	direct_session.diagnostic.connect(func(code: String,_reason: String):
+		var rows: Array=report.get("direct_resource_diagnostics",[])
+		if rows.size()<16:rows.append({"code":code});report.direct_resource_diagnostics=rows
+		if code=="network.nwsync-native-cache-failed":push_warning("Installed content cache unavailable; fetching required content"))
 	direct_session.character_list_ready.connect(direct_character_list)
 	direct_session.lobby_players_ready.connect(direct_lobby_players)
 	direct_session.character_preview_ready.connect(direct_character_preview)
+	direct_session.character_rejected_ready.connect(direct_character_rejected)
 	direct_session.module_information_ready.connect(direct_module_ready)
 	direct_session.area_state_ready.connect(direct_area_ready)
 	direct_session.roster_message_ready.connect(func(_message: Dictionary):direct_present_area())
@@ -211,32 +331,39 @@ func direct_connect(server_host: String,server_port: int,server_password: String
 	direct_session.object_visual_ready.connect(direct_object_visual)
 	direct_session.camera_command_ready.connect(direct_camera_command)
 	direct_session.creature_voice_ready.connect(direct_creature_voice)
+	direct_session.projectile_ready.connect(direct_projectile)
+	direct_session.module_pause_ready.connect(direct_module_pause)
 	direct_session.character_export_status_ready.connect(direct_character_export_status)
 	direct_session.portal_handoff_ready.connect(func(handoff: Dictionary):direct_portal_handoff.call_deferred(handoff))
 	direct_session.quickbar_ready.connect(func(_message: Dictionary):direct_quickbar_received=true)
 	direct_session.session_failed.connect(func(reason: String):
 		if direct_started_from_browser:direct_connection_failed(reason)
 		else:fail("Godot original-server session failed: "+reason))
-	if not portal_handoff.is_empty() and not direct_session.configure_portal(portal_handoff.identity,portal_handoff.character,str(portal_handoff.waypoint)):
+	if not portal_handoff.is_empty() and not direct_session.configure_portal(portal_handoff.identity,portal_handoff.character,str(portal_handoff.waypoint),portal_handoff.get("workshopSelection",{})):
 		if portal_handoff.get("identity") is RefCounted:portal_handoff.identity.dispose()
 		fail("Portal destination character could not be prepared");return
 	if not direct_session.start(server_host,server_port,profile,install,server_password,temporary_cd_key,player_name,str(args.get("direct-settings",""))):
 		if not closing and not direct_started_from_browser:fail("Godot original-server session could not start: "+str(direct_session.error))
 		return
+	if not portal_handoff.is_empty() and report.has("direct_portal_check"):report.direct_portal_check.destination_auth_started=true
 	var saved: Dictionary=direct_session.saved_character_list()
-	if saved.get("ready",false):direct_lobby_state.savedCharacters=saved.entries
+	if direct_session.local_vault_allowed and saved.get("ready",false):direct_lobby_state.savedCharacters=saved.entries
 	label.text="Connecting to "+server_host+" with Godot networking…"
 	if args.get("direct-headless-check","")=="true":direct_check_deadline=Time.get_ticks_msec()+75000
+	if str(args.get("direct-headless-vault-policy-check","")) in ["server-only","local-allowed","server-only-play"]:direct_check_deadline=Time.get_ticks_msec()+(120000 if args.get("direct-headless-vault-policy-check","")=="server-only-play" else 75000)
 	if args.get("direct-headless-levelup-check","")=="true":direct_check_deadline=Time.get_ticks_msec()+180000
 	if args.get("direct-headless-local-smoke-check","")=="true":direct_check_deadline=Time.get_ticks_msec()+90000
 	if args.get("direct-headless-character-export-check","")=="true":direct_check_deadline=Time.get_ticks_msec()+90000
 	if args.get("direct-headless-portal-check","")=="true":direct_check_deadline=Time.get_ticks_msec()+120000
 	if not direct_nwsync_visual_descriptor.is_empty():direct_check_deadline=Time.get_ticks_msec()+120000
 	if args.get("direct-headless-nwsync-cancel-check","")=="true":direct_check_deadline=Time.get_ticks_msec()+30000
+	if args.get("direct-server-vault-create-check","")=="true":direct_check_deadline=Time.get_ticks_msec()+300000
+	if args.get("direct-server-vault-reconnect-check","")=="true":direct_check_deadline=Time.get_ticks_msec()+120000
 
 func direct_phase_changed(phase: String)->void:
-	report.direct_status={"phase":phase,"catalog_adopted":direct_catalog_adopted,"area_presented":direct_area_presented,"generation":direct_generation,"snapshots":received}
+	report.direct_status={"phase":phase,"catalog_adopted":direct_catalog_adopted,"area_presented":direct_area_presented,"generation":direct_generation,"snapshots":received,"characterListPackets":int(report.get("direct_character_list",{}).get("acceptedPackets",0)),"serverCharacterRows":int(report.get("direct_character_list",{}).get("receivedServerRows",0))}
 	if closing or not is_instance_valid(character_lobby):return
+	if is_instance_valid(gameplay_ui) and phase in ["area-loading","playing"]:gameplay_ui.creator.observe({"phase":phase})
 	if phase in ["connecting","resources","loading-content"]:
 		direct_lobby_state.phase="resources" if phase=="loading-content" else phase
 		direct_lobby_state.busy=true
@@ -249,6 +376,12 @@ func direct_phase_changed(phase: String)->void:
 		direct_lobby_state.canCancelJoin=false
 		direct_lobby_state.connected=true
 		direct_lobby_state.erase("resourceProgress")
+		direct_show_character_state()
+	elif phase=="character-rejected":
+		direct_lobby_state.phase="character-rejected"
+		direct_lobby_state.busy=false
+		direct_lobby_state.connected=true
+		direct_lobby_state.canSelect=not direct_lobby_state.get("choices",[]).is_empty()
 		direct_show_character_state()
 
 func direct_resource_progress(stage: String,completed: int,total: int)->void:
@@ -346,7 +479,14 @@ func direct_browser_test_start()->void:
 	server_browser.name_edit.text=active_name
 	server_browser.key_edit.text="BAD"
 	server_browser.confirm_direct("127.0.0.1:5121","",[server_browser.connection,server_browser.view_id])
-	await process_frame
+	# Invalid temporary credentials can finish after the browser's next frame.
+	# Wait only for this exact rejection; a successful join or lost browser is a
+	# wrong terminal state, and the bounded deadline still fails the fixture.
+	var invalid_key_deadline:=Time.get_ticks_msec()+3000
+	while not closing and Time.get_ticks_msec()<invalid_key_deadline:
+		if direct_session==null and str(server_browser.state.get("status","")).contains("temporary CD key format"):break
+		if not server_browser.wanted or (direct_session!=null and direct_session.phase in ["characters","character-selection","area-loading","area-presenting","playing"]):break
+		await process_frame
 	if closing or direct_session!=null or not str(server_browser.state.get("status","")).contains("temporary CD key format"):fail("Godot direct browser did not recover from invalid temporary credentials");return
 	report.direct_browser_check.invalid_temporary_key_rejected=true
 	server_browser.name_edit.text=active_name
@@ -428,12 +568,16 @@ func direct_inspect_test_start()->void:
 
 func direct_connection_failed(reason: String)->void:
 	if closing:return
+	direct_cancel_join_policy_query()
 	report.direct_last_error=reason
-	direct_visual_queue.clear();direct_ambient_queue.clear();direct_voice_queue.clear()
+	direct_visual_queue.clear();direct_ambient_queue.clear();direct_voice_queue.clear();direct_projectile_queue.clear();direct_module_pause_queue.clear()
 	if is_instance_valid(direct_placed_sounds):direct_placed_sounds.detach()
 	if is_instance_valid(direct_ambient_audio):direct_ambient_audio.close();direct_ambient_audio.queue_free();direct_ambient_audio=null
 	direct_browser_join_row.clear();direct_browser_join_name=""
 	direct_lobby_choices.clear();direct_lobby_state.clear();selected_character.clear()
+	direct_preview_rules_snapshot.clear()
+	direct_preview_pending.clear()
+	if is_instance_valid(character_lobby) and is_instance_valid(character_lobby.native_preview):character_lobby.native_preview.configure_rules({})
 	direct_catalog_adopted=false;direct_area_presented=false;direct_quickbar_received=false
 	if direct_session!=null:
 		direct_session.close();direct_session.queue_free();direct_session=null
@@ -609,7 +753,7 @@ func browser_request(message: Dictionary)->void:
 			direct_inspect_endpoint={"host":str(endpoint.get("host","")),"port":int(endpoint.get("port",0))}
 			direct_inspect_tab=direct_browser_tab;direct_browser_busy=true
 			direct_browser_view("Contacting server…")
-			if not direct_server_query.query(str(direct_inspect_endpoint.host),int(direct_inspect_endpoint.port)) and not direct_inspect_endpoint.is_empty():
+			if not direct_server_query.query(str(direct_inspect_endpoint.host),int(direct_inspect_endpoint.port),3500,true) and not direct_inspect_endpoint.is_empty():
 				direct_inspect_endpoint.clear();direct_browser_busy=false;direct_browser_view("Server information request failed")
 		"join":
 			if direct_session!=null:return
@@ -647,6 +791,39 @@ func _profile_tick()->void:
 	super._profile_tick()
 	direct_camera_bind()
 	if closing or direct_check_deadline<=0:return
+	var vault_mode:=str(args.get("direct-headless-vault-policy-check",""))
+	if vault_mode in ["server-only","local-allowed","server-only-play"] and direct_session!=null and direct_session.phase=="character-selection" and str(direct_lobby_state.get("phase",""))=="character-selection":
+		var expected_local:=vault_mode=="local-allowed"
+		if expected_local and not character_lobby.local_catalog.ready():return
+		var local_keys: Array=[]
+		var server_count:=0
+		for key in direct_lobby_choices:
+			if str(direct_lobby_choices[key].get("source",""))!="server":local_keys.append(key)
+			else:server_count+=1
+		var ui_local_keys: Array=[]
+		for key in character_lobby.keys:
+			if str(key).begins_with("installed:") or str(key).begins_with("local:") or str(key).begins_with("vault:") or str(key).begins_with("godot-vault:"):ui_local_keys.append(key)
+		report.direct_vault_policy_check={"policyKnown":direct_session.local_vault_policy_known,"localAllowed":direct_session.local_vault_allowed,"phase":direct_lobby_state.phase,"connected":bool(direct_lobby_state.get("connected",false)),"localChoices":local_keys.size(),"uiLocalChoices":ui_local_keys.size(),"savedRows":direct_lobby_state.get("savedCharacters",[]).size(),"serverChoices":server_count,"serverPreviewRequested":direct_vault_server_play_stage>=1,"serverPreviewReady":direct_vault_server_play_stage>=2,"serverPlaySent":direct_vault_server_play_stage>=3,"worldAdmitted":false}
+		if not bool(report.direct_vault_policy_check.policyKnown) or bool(report.direct_vault_policy_check.localAllowed)!=expected_local or not bool(report.direct_vault_policy_check.connected) or (expected_local and (local_keys.is_empty() or ui_local_keys.is_empty())) or (not expected_local and (not local_keys.is_empty() or not ui_local_keys.is_empty() or int(report.direct_vault_policy_check.savedRows)!=0)):fail("Server character-vault policy disagreed with the chooser");return
+		if vault_mode=="server-only-play":
+			if server_count!=1:fail("Private server-vault fixture did not present one server character");return
+			if direct_vault_server_play_stage==0:
+				for key in direct_lobby_choices:
+					if str(direct_lobby_choices[key].get("source",""))=="server":direct_vault_server_key=str(key);break
+				if direct_vault_server_key.is_empty():fail("Private server-vault choice was unavailable");return
+				lobby_request({"kind":"lobby-choose","key":direct_vault_server_key,"requestId":1})
+				if direct_session.pending_preview.is_empty():fail("Private server-vault preview request was not sent");return
+				direct_vault_server_play_stage=1
+			elif direct_vault_server_play_stage==1 and direct_lobby_state.get("preview") is Dictionary:
+				if direct_lobby_state.preview.has("error"):fail("Private server-vault preview was invalid");return
+				direct_vault_server_play_stage=2
+				lobby_request({"kind":"lobby-play","key":direct_vault_server_key})
+				if direct_session.phase!="character-loading":fail("Private server-vault Play was not sent");return
+				direct_vault_server_play_stage=3
+			return
+		direct_check_deadline=0
+		shutdown()
+		return
 	if args.get("direct-headless-manual-check","")=="true" and is_instance_valid(character_lobby):
 		var chooser=character_lobby.native_chooser
 		report.direct_manual_state={"session_phase":direct_session.phase if direct_session!=null else "none","lobby_phase":direct_lobby_state.get("phase"),"selected":direct_lobby_state.get("selected"),"preview_ready":direct_lobby_state.get("preview") is Dictionary,"preview_error":str(direct_lobby_state.get("preview",{}).get("error","")) if direct_lobby_state.get("preview") is Dictionary else "","selection_pending":character_lobby.native_selection.duplicate(true),"panel_visible":character_lobby.panel.visible,"key_present":character_lobby.keys.has("installed:fighter.bic"),"row_visible":is_instance_valid(chooser) and chooser.row_keys.has("installed:fighter.bic"),"show_pregenerated":chooser.show_pregenerated if is_instance_valid(chooser) else false,"choice_request_id":direct_choice_request_id,"chosen":direct_manual_test_chosen,"played":direct_manual_test_played}
@@ -801,6 +978,33 @@ func _profile_tick()->void:
 		report.direct_headless_check.manual_played=direct_manual_test_played
 		if not direct_manual_test_chosen or not direct_manual_test_played:fail("Godot chooser did not submit a selected local character");return
 	if not bool(report.direct_headless_check.catalog_shared) or int(report.direct_headless_check.ui_generation)!=epoch:fail("Godot direct world and UI did not share the admitted session");return
+	if vault_mode=="server-only-play":
+		if direct_vault_server_play_stage!=3:fail("Private server-vault Play did not complete");return
+		report.direct_vault_policy_check.serverPreviewRequested=true
+		report.direct_vault_policy_check.serverPreviewReady=true
+		report.direct_vault_policy_check.serverPlaySent=true
+		report.direct_vault_policy_check.worldAdmitted=true
+	if args.get("direct-server-vault-create-check","")=="true":
+		var creation: Dictionary=report.get("direct_server_vault_create_check",{})
+		var proof: Dictionary=report.get("creationProof",{})
+		var expected: Dictionary=proof.get("expected",{}) if proof.get("expected",{}) is Dictionary else {}
+		if not bool(proof.get("success",false)) or not bool(creation.get("creatorOpened",false)) or not bool(creation.get("creatorSubmitted",false)) or not bool(creation.get("source19Sent",false)) or str(expected.get("firstName","")).is_empty() or str(creation.get("characterFingerprint","")).is_empty():fail("Private source character creation did not complete before world admission");return
+		report.direct_server_vault_create_check.worldAdmitted=true
+		direct_disconnect()
+		report.direct_server_vault_create_check.disconnectClean=direct_session==null and str(character_lobby.state.get("phase",""))=="menu"
+		if not report.direct_server_vault_create_check.disconnectClean:fail("Private created-character disconnect did not return to menu");return
+		shutdown.call_deferred()
+		return
+	if args.get("direct-server-vault-reconnect-check","")=="true":
+		var reconnect: Dictionary=report.get("direct_server_vault_reconnect_check",{})
+		var proof: Dictionary=report.get("creationProof",{})
+		if not bool(proof.get("success",false)) or not bool(reconnect.get("rosterAccepted",false)) or not bool(reconnect.get("serverRowMatched",false)) or not bool(reconnect.get("previewRequested",false)) or not bool(reconnect.get("previewReady",false)) or not bool(reconnect.get("playSent",false)) or str(reconnect.get("characterFingerprint","")).is_empty():fail("Private persisted server character was not selected and played through native controls");return
+		report.direct_server_vault_reconnect_check.worldAdmitted=true
+		direct_disconnect()
+		report.direct_server_vault_reconnect_check.disconnectClean=direct_session==null and str(character_lobby.state.get("phase",""))=="menu"
+		if not report.direct_server_vault_reconnect_check.disconnectClean:fail("Private persisted-character disconnect did not return to menu");return
+		shutdown.call_deferred()
+		return
 	direct_check_deadline=0
 	if args.get("direct-headless-reconnect-check","")=="true" and direct_reconnect_stage==0:
 		report.direct_reconnect={"first_world":report.direct_headless_check.duplicate(true)}
@@ -912,7 +1116,6 @@ func direct_portal_handoff(handoff: Dictionary)->void:
 		return
 	report.direct_portal_transfers=int(report.get("direct_portal_transfers",0))+1
 	direct_connect(host_name,port_number,"","",player_name,handoff)
-	if direct_session!=null:report.direct_portal_check.destination_auth_started=true
 
 func request_disconnect(_save_character: bool)->void:
 	if not direct_mode:super.request_disconnect(_save_character);return
@@ -932,7 +1135,7 @@ func direct_character_export_status(status: Dictionary)->void:
 	direct_lobby_state.exportStatus=status.duplicate(true)
 	if str(status.get("state",""))=="saved":
 		var saved: Dictionary=direct_session.saved_character_list()
-		if saved.get("ready",false):direct_lobby_state.savedCharacters=saved.entries
+		if direct_session.local_vault_allowed and saved.get("ready",false):direct_lobby_state.savedCharacters=saved.entries
 		var entry: Dictionary=status.get("entry",{})
 		if args.get("direct-headless-character-export-check","")=="true" and direct_character_export_stage==1:
 			var readback: Dictionary=direct_session.saved_character_bytes(str(entry.get("id","")))
@@ -954,12 +1157,16 @@ func direct_character_export_status(status: Dictionary)->void:
 
 func direct_disconnect(return_to_menu: bool=true)->void:
 	if closing:return
+	if is_instance_valid(gameplay_ui) and gameplay_ui.creator.phase!="closed":gameplay_ui.creator.finish_view()
+	direct_cancel_join_policy_query()
 	direct_disconnect_after_export=false
 	direct_character_export_stage=0
 	direct_visual_queue.clear()
+	direct_projectile_queue.clear()
+	direct_module_pause_queue.clear()
 	direct_ambient_queue.clear()
 	direct_voice_queue.clear()
-	direct_camera_queue.clear();direct_camera_state=null;direct_camera_target_id=-1
+	direct_camera_queue.clear();direct_camera_state=null;direct_camera_target_id=-1;direct_camera_pending_entry_attach=false;direct_camera_appearance_table.clear();direct_camera_height_cache.clear()
 	if is_instance_valid(direct_placed_sounds):direct_placed_sounds.detach()
 	if is_instance_valid(direct_ambient_audio):direct_ambient_audio.close();direct_ambient_audio.queue_free();direct_ambient_audio=null
 	if direct_session!=null:
@@ -968,6 +1175,9 @@ func direct_disconnect(return_to_menu: bool=true)->void:
 	direct_nwsync_cancel_pending=false
 	reset_session()
 	direct_lobby_choices.clear();direct_lobby_state.clear();selected_character.clear()
+	direct_preview_rules_snapshot.clear()
+	direct_preview_pending.clear()
+	if is_instance_valid(character_lobby) and is_instance_valid(character_lobby.native_preview):character_lobby.native_preview.configure_rules({})
 	direct_catalog_adopted=false;direct_area_presented=false;direct_quickbar_received=false;local_character_pending=false
 	direct_inventory_stage=0;direct_inventory_deadline=0;direct_item_id=-1
 	session_connection+=1
@@ -976,42 +1186,80 @@ func direct_disconnect(return_to_menu: bool=true)->void:
 		direct_login_profiles.visible=false;direct_login_profiles.view_id+=1
 	server_browser.reset(session_connection)
 	character_lobby.apply_state({"connection":session_connection,"state":{"phase":"menu","canJoin":true}})
+	if is_instance_valid(render_menu):render_menu.observe_lobby({"phase":"menu","connected":false,"busy":false})
 	if return_to_menu:open_startup_menu.call_deferred()
 
 func direct_catalog_ready(prepared: RefCounted)->void:
 	if closing or direct_catalog_adopted:return
 	if not install_mounted_catalog(prepared,str(direct_session.install_root),direct_session.resource_sources):fail("Godot catalog could not attach to the native gameplay UI");return
+	direct_preview_rules_snapshot=CharacterPreviewRules.capture(prepared,session_connection)
+	if is_instance_valid(character_lobby) and is_instance_valid(character_lobby.native_preview):character_lobby.native_preview.configure_rules(direct_preview_rules_snapshot)
 	direct_catalog_adopted=true
+	if not direct_preview_pending.is_empty():
+		var pending: Dictionary=direct_preview_pending
+		direct_preview_pending={}
+		if direct_session!=null and int(pending.get("connection",-1))==session_connection and int(pending.get("sessionId",-1))==direct_session.get_instance_id() and str(pending.get("key",""))==str(direct_lobby_state.get("selected","")) and int(pending.get("requestId",-1))==direct_choice_request_id and direct_session.phase in ["character-selection","character-rejected"]:
+			var delayed: Dictionary=direct_project_bic(pending.bytes)
+			if delayed.has("error"):
+				direct_lobby_state.error="Character preview could not be prepared. Select the character again."
+			else:
+				direct_lobby_state.preview=delayed
+				direct_lobby_state.selectionAck={"requestId":direct_choice_request_id,"key":direct_lobby_state.selected}
+			direct_show_character_state()
+	var appearance_bytes: PackedByteArray=prepared.get_resource("appearance",2017)
+	if not appearance_bytes.is_empty():
+		var parser:=TwoDa.new()
+		direct_camera_appearance_table=parser.parse(appearance_bytes.get_string_from_ascii())
+		if not parser.failure.is_empty():report.direct_camera_appearance_table_unavailable=parser.failure
+	direct_camera_height_cache.clear()
 	if is_instance_valid(direct_ambient_audio):direct_ambient_audio.configure(prepared,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))))
 	current_prework_sources=direct_session.resource_sources.duplicate(true)
 	label.text="Godot resource catalog ready"
 	if local_character_pending:direct_select_local_character()
+	if not direct_lobby_state.is_empty():direct_show_character_state()
 	direct_present_area()
 
 func direct_character_list(rows: Array[Dictionary])->void:
 	if closing:return
+	if args.get("direct-server-vault-reconnect-check","")=="true":report.direct_server_vault_reconnect_check={"rosterAccepted":not rows.is_empty(),"serverRowMatched":false,"previewRequested":false,"previewReady":false,"playSent":false,"worldAdmitted":false}
+	var accepted_packets:=int(report.get("direct_character_list",{}).get("acceptedPackets",0))+1
+	report.direct_character_list={"acceptedPackets":accepted_packets,"receivedServerRows":rows.size(),"projectedServerRows":0,"projectedLocalRows":0,"projectedSavedRows":0,"phase":"character-selection"}
+	if report.get("direct_status") is Dictionary:
+		report.direct_status.characterListPackets=accepted_packets
+		report.direct_status.serverCharacterRows=rows.size()
 	if not direct_browser_join_row.is_empty() and direct_browser_store!=null:
 		var remembered: bool=direct_browser_store.remember(direct_browser_join_row,direct_browser_join_name)
 		report.direct_history_saved=remembered
 		direct_browser_join_row.clear();direct_browser_join_name=""
-	if args.get("direct-headless-manual-check","")=="true" or not args.has("direct-pregen-bic") and not args.has("direct-local-bic") and args.get("direct-headless-check","")!="true":
+	if args.get("direct-headless-manual-check","")=="true" or str(args.get("direct-headless-vault-policy-check","")) in ["server-only","local-allowed","server-only-play"] or args.get("direct-server-vault-create-check","")=="true" or args.get("direct-server-vault-reconnect-check","")=="true" or not args.has("direct-pregen-bic") and not args.has("direct-local-bic") and args.get("direct-headless-check","")!="true":
 		direct_lobby_choices.clear()
 		var choices: Array=[]
 		for row in rows:
 			var key: String="server:"+str(row.source)+":"+str(row.resref)
 			if direct_lobby_choices.has(key):fail("Duplicate native server character identity");return
-			direct_lobby_choices[key]=row.duplicate(true)
 			var choice: Dictionary=row.duplicate(true)
 			choice.key=key;choice.source="server";choice.nativeSource=int(row.source);choice.serverSource=int(row.source);choice.label=str(row.resref)
+			direct_lobby_choices[key]=choice.duplicate(true)
 			choices.append(choice)
 		if direct_session.local_vault_allowed:
 			for row in direct_local_choices():
 				direct_lobby_choices[row.key]=row.duplicate(true)
 				choices.append(row)
-		direct_lobby_state={"phase":"character-selection","endpoint":{"host":server_label,"port":int(args.get("direct-port",0))},"choices":choices,"selected":null,"preview":null,"canSelect":not choices.is_empty(),"canCreate":false,"connected":true,"localAllowed":direct_session.local_vault_allowed,"busy":false,"error":"" if not choices.is_empty() else "No usable local or server character was found"}
+		var empty_notice: String="No server characters were returned for this login profile. Create a character or check the player name and CD key." if not direct_session.local_vault_allowed else "No usable local or server character was found; create a character to continue"
+		direct_lobby_state={"phase":"character-selection","endpoint":{"host":server_label,"port":int(args.get("direct-port",0))},"choices":choices,"selected":null,"preview":null,"canSelect":not choices.is_empty(),"canCreate":true,"connected":true,"localAllowed":direct_session.local_vault_allowed,"busy":false,"error":"" if not choices.is_empty() else empty_notice}
 		var saved: Dictionary=direct_session.saved_character_list()
-		if saved.get("ready",false):direct_lobby_state.savedCharacters=saved.entries
+		if direct_session.local_vault_allowed and saved.get("ready",false):direct_lobby_state.savedCharacters=saved.entries
+		report.direct_character_list.projectedServerRows=rows.size()
+		report.direct_character_list.projectedLocalRows=choices.size()-rows.size()
+		report.direct_character_list.projectedSavedRows=direct_lobby_state.get("savedCharacters",[]).size()
 		direct_show_character_state()
+		if (args.get("direct-server-vault-create-check","")=="true" or args.get("direct-server-vault-reconnect-check","")=="true") and not direct_creation_probe_started:
+			if not direct_session.local_vault_policy_known or direct_session.local_vault_allowed:fail("Private creation fixture requires authoritative server-vault policy");return
+			if args.get("direct-server-vault-create-check","")=="true" and not rows.is_empty():fail("Private creation fixture server vault was not empty");return
+			direct_creation_probe_started=true
+			var source: Script=load("res://tests/native_creation_source_live_probe.gd")
+			if source==null:fail("Private native creator driver is unavailable");return
+			var probe: Node=source.new();host.add_child(probe);probe.run.call_deferred(self)
 		return
 	if rows.is_empty():
 		local_character_pending=true
@@ -1040,18 +1288,46 @@ func direct_character_preview(preview: Dictionary)->void:
 	var bytes: PackedByteArray=preview.get("bytes",PackedByteArray())
 	if bytes.size()<4 or bytes.slice(0,4).get_string_from_ascii()!="BIC ":fail("Godot direct server-vault preview is invalid");return
 	if not direct_lobby_state.is_empty():
+		if not direct_catalog_adopted:
+			if bytes.size()>Characters.MAX_CHARACTER_BYTES:fail("Godot direct server-vault preview exceeds native bound");return
+			direct_preview_pending={"connection":session_connection,"sessionId":direct_session.get_instance_id(),"key":str(direct_lobby_state.get("selected","")),"requestId":direct_choice_request_id,"bytes":bytes.duplicate()}
+			direct_lobby_state.preview=null
+			direct_show_character_state()
+			return
 		direct_lobby_state.preview=direct_project_bic(bytes)
 		if direct_lobby_state.preview.has("error"):fail("Godot server character preview is invalid");return
+		if args.get("direct-server-vault-reconnect-check","")=="true":report.direct_server_vault_reconnect_check.previewReady=true
 		direct_lobby_state.selectionAck={"requestId":direct_choice_request_id,"key":direct_lobby_state.selected}
 		direct_show_character_state()
 		return
 	if not direct_session.play_character(int(selected_character.source),str(selected_character.resref)):fail("Godot direct character Play request failed")
 
+func direct_character_rejected(message: Dictionary)->void:
+	if closing or direct_session==null:return
+	direct_preview_pending.clear()
+	if is_instance_valid(gameplay_ui):gameplay_ui.creator.observe({"phase":"character-rejected"})
+	selected_character.clear()
+	direct_lobby_state.phase="character-rejected"
+	direct_lobby_state.busy=false
+	direct_lobby_state.connected=true
+	direct_lobby_state.canCreate=true
+	direct_lobby_state.selected=null
+	direct_lobby_state.preview=null
+	direct_lobby_state.erase("selectionAck")
+	direct_lobby_state.canSelect=not direct_lobby_state.get("choices",[]).is_empty()
+	direct_lobby_state.error="The server rejected that character. Select another character or reconnect to refresh the list."
+	report.direct_character_rejections=int(report.get("direct_character_rejections",0))+1
+	report.direct_last_character_rejection_reason=int(message.get("reason",0))
+	direct_show_character_state()
+
 func direct_project_bic(bytes: PackedByteArray)->Dictionary:
 	var parser:=GffDocument.new()
 	var document: Dictionary=parser.parse(bytes,"BIC ")
 	if not parser.failure.is_empty():return {"error":"Invalid BIC record"}
-	var projected: Dictionary=CharacterPreview.project(document.root,int(direct_session.language))
+	if direct_session==null:return {"error":"Character preview connection is unavailable"}
+	var preview_rules: Dictionary={}
+	if direct_catalog_adopted and direct_session.catalog!=null and bool(direct_preview_rules_snapshot.get("ready",false)) and int(direct_preview_rules_snapshot.get("connection",-1))==session_connection and int(direct_preview_rules_snapshot.get("catalogId",-1))==direct_session.catalog.get_instance_id():preview_rules=direct_preview_rules_snapshot
+	var projected: Dictionary=CharacterPreview.project_document(document,int(direct_session.language),preview_rules)
 	if projected.has("error"):return projected
 	projected.visualSource=preload("res://systems/native_data/bic_visual.gd").source(document)
 	projected.skillSource=preload("res://systems/native_data/pregame_skills.gd").source(document)
@@ -1087,6 +1363,7 @@ func direct_local_choices()->Array:
 	return choices
 
 func direct_local_bytes(row: Dictionary)->PackedByteArray:
+	if direct_session==null or not direct_session.local_vault_allowed:return PackedByteArray()
 	var ticket_file: Dictionary=row.get("nativeFile",{})
 	if str(ticket_file.get("format",""))=="godot-vault-bic-v1":
 		if direct_session==null or str(row.get("nativeVaultId",""))!=str(ticket_file.get("id","")):return PackedByteArray()
@@ -1106,8 +1383,23 @@ func direct_show_character_state()->void:
 	if not is_instance_valid(character_lobby):return
 	var state: Dictionary=direct_lobby_state.duplicate(true)
 	if str(state.get("phase","")) in ["character-selection","character-rejected"] and direct_session!=null:state.lobbyPlayers=direct_session.lobby_players.list()
-	character_lobby.apply_state({"connection":session_connection,"state":state,"localCharacterRoots":ticket.get("localCharacterRoots",[]),"nativeVault":direct_session.character_vault if direct_session!=null else null})
-	if str(direct_lobby_state.get("phase",""))=="character-selection":character_lobby.panel.show()
+	character_lobby.apply_state({"connection":session_connection,"state":state,"localCharacterRoots":ticket.get("localCharacterRoots",[]) if direct_session!=null and direct_session.local_vault_allowed else [],"nativeVault":direct_session.character_vault if direct_session!=null and direct_session.local_vault_allowed else null})
+	if is_instance_valid(render_menu):render_menu.observe_lobby(state)
+	if str(direct_lobby_state.get("phase","")) in ["character-selection","character-rejected"] and (not is_instance_valid(gameplay_ui) or gameplay_ui.creator.phase=="closed"):character_lobby.panel.show()
+
+func direct_reject_local_choice(key: String,reason: String)->void:
+	# A stale or disallowed local BIC is a chooser error, not a session failure.
+	direct_lobby_choices.erase(key)
+	var remaining: Array=[]
+	for row in direct_lobby_state.get("choices",[]):
+		if str(row.get("key",""))!=key:remaining.append(row)
+	direct_lobby_state.choices=remaining
+	direct_lobby_state.selected=null
+	direct_lobby_state.preview=null
+	direct_lobby_state.canSelect=not remaining.is_empty()
+	direct_lobby_state.error=reason
+	selected_character.clear()
+	direct_show_character_state()
 
 func direct_lobby_players(_rows: Array)->void:
 	if not closing and direct_session!=null and direct_session.phase=="character-selection":direct_show_character_state()
@@ -1127,7 +1419,7 @@ func lobby_request(message: Dictionary)->void:
 		if requested.has("error"):direct_character_export_status({"state":"failed","text":str(requested.error),"uncertain":direct_session.character_export_uncertain})
 		return
 	if kind=="lobby-page":
-		if direct_session.phase!="character-selection":return
+		if direct_session.phase not in ["character-selection","character-rejected"]:return
 		var page:=int(message.get("page",-1))
 		if page<0 or page>2:return
 		var subscription: Dictionary=direct_session.lobby_player_subscription(page==2)
@@ -1137,26 +1429,37 @@ func lobby_request(message: Dictionary)->void:
 		return
 	if kind=="lobby-choose":
 		var key:=str(message.get("key",""))
-		if direct_lobby_state.is_empty() or direct_session.phase!="character-selection" or not direct_lobby_choices.has(key):return
+		if direct_lobby_state.is_empty() or direct_session.phase not in ["character-selection","character-rejected"] or not direct_lobby_choices.has(key):return
+		direct_preview_pending.clear()
 		selected_character=direct_lobby_choices[key].duplicate(true)
 		direct_choice_request_id=int(message.get("requestId",-1))
 		direct_lobby_state.selected=key;direct_lobby_state.preview=null
+		direct_lobby_state.error=""
 		if str(selected_character.get("source",""))=="server":
 			if not direct_session.request_preview(int(selected_character.nativeSource),str(selected_character.resref)):fail("Godot direct character preview request failed");return
+			if args.get("direct-server-vault-reconnect-check","")=="true":report.direct_server_vault_reconnect_check.previewRequested=true
 		else:
+			if not direct_session.local_vault_allowed:direct_reject_local_choice(key,"This server does not allow local characters. Choose a server character.");return
 			var bytes:=direct_local_bytes(selected_character)
-			if bytes.is_empty():fail("Godot local character changed before preview");return
+			if bytes.is_empty():direct_reject_local_choice(key,"Local character data changed. Select another character or reconnect to refresh the list.");return
 			direct_lobby_state.preview=direct_project_bic(bytes)
-			if direct_lobby_state.preview.has("error"):fail("Godot local character preview is invalid");return
+			if direct_lobby_state.preview.has("error"):direct_reject_local_choice(key,"Local character data is invalid. Select another character.");return
 			direct_lobby_state.selectionAck={"requestId":direct_choice_request_id,"key":key}
 		direct_show_character_state()
 	elif kind=="lobby-play":
-		if direct_lobby_state.is_empty() or direct_session.phase!="character-selection" or direct_lobby_state.get("selected")!=message.get("key") or direct_lobby_state.get("preview")==null:return
+		if direct_lobby_state.is_empty() or direct_session.phase not in ["character-selection","character-rejected"] or direct_lobby_state.get("selected")!=message.get("key") or direct_lobby_state.get("preview")==null:return
 		if str(selected_character.get("source",""))=="server":
 			if not direct_session.play_character(int(selected_character.nativeSource),str(selected_character.resref)):fail("Godot direct character Play request failed");return
+			if args.get("direct-server-vault-reconnect-check","")=="true":report.direct_server_vault_reconnect_check.playSent=true
 		else:
+			var key:=str(message.get("key",""))
+			if not direct_session.local_vault_allowed:direct_reject_local_choice(key,"This server does not allow local characters. Choose a server character.");return
 			var bytes:=direct_local_bytes(selected_character)
-			if bytes.is_empty() or not direct_session.play_local_character(bytes,false,str(selected_character.get("nativeVaultId",""))):fail("Godot local character Play request failed");return
+			if bytes.is_empty():direct_reject_local_choice(key,"Local character data changed. Select another character or reconnect to refresh the list.");return
+			if not direct_session.play_local_character(bytes,false,str(selected_character.get("nativeVaultId",""))):
+				direct_lobby_state.error="Local character could not be submitted. Check this server's character policy and try again."
+				direct_show_character_state()
+				return
 		direct_lobby_state.phase="area-loading";direct_lobby_state.canSelect=false
 		direct_show_character_state()
 
@@ -1166,9 +1469,12 @@ func direct_module_ready(module: Dictionary)->void:
 
 func direct_area_ready(_entry: Dictionary)->void:
 	direct_visual_queue.clear()
+	direct_projectile_queue.clear()
+	direct_module_pause_queue.clear()
 	direct_ambient_queue.clear()
 	direct_voice_queue.clear()
 	direct_camera_target_id=-1
+	direct_camera_pending_entry_attach=true
 	direct_camera_queue=direct_camera_queue.filter(func(command: Dictionary):return str(command.get("kind",""))!="camera-attach" or int(command.get("nativeAreaId",-1))==direct_session.world_state.area_id)
 	if is_instance_valid(direct_placed_sounds):direct_placed_sounds.detach()
 	if is_instance_valid(direct_ambient_audio):direct_ambient_audio.detach()
@@ -1193,16 +1499,30 @@ func direct_present_area()->void:
 		direct_ambient_queue.clear()
 	direct_drain_visuals()
 	direct_drain_voices()
+	direct_drain_projectiles()
 	direct_area_presented=true
+	direct_bind_gameplay_menu()
+	direct_publish_clock_controlled()
 	label.text="Preparing Godot world…"
 
 func direct_world_ready(data: Dictionary)->void:
 	if closing or not direct_area_presented or direct_session==null or direct_session.phase!="playing":return
 	if int(data.get("area",{}).get("id",-1))!=world.area_id:return
 	receive({"kind":"snapshot","connection":session_connection,"generation":direct_generation,"data":data})
+	direct_bind_gameplay_menu()
 	direct_drain_visuals()
 	direct_drain_voices()
+	direct_drain_projectiles()
 	direct_camera_bind()
+	direct_publish_clock_controlled()
+
+func direct_bind_gameplay_menu()->void:
+	if closing or not direct_area_presented or direct_session==null or not initialized or not is_instance_valid(world) or not is_instance_valid(gameplay_ui):return
+	var connection:=session_connection
+	var generation:=direct_generation
+	var area:=int(direct_session.world_state.area_id)
+	ensure_native_gameplay_menu(func()->bool:
+		return not closing and direct_area_presented and direct_session!=null and session_connection==connection and direct_generation==generation and int(direct_session.world_state.area_id)==area and is_instance_valid(world) and int(world.area_id)==area and is_instance_valid(gameplay_ui) and int(gameplay_ui.generation)==generation and int(gameplay_ui.area_id)==area)
 
 func direct_movement(rows: Array)->void:
 	if closing or direct_session==null or direct_session.phase!="playing" or not is_instance_valid(world) or world.area_id!=direct_session.world_state.area_id:return
@@ -1227,6 +1547,34 @@ func direct_creature_voice(message: Dictionary)->void:
 	direct_voice_queue.append({"message":message.duplicate(true),"connection":session_connection,"generation":direct_generation,"areaId":direct_session.world_state.area_id,"objectId":id,"lifetime":lifetime})
 	direct_drain_voices()
 
+func direct_projectile(message: Dictionary)->void:
+	if closing or direct_session==null or int(message.get("nativeAreaId",-1))!=direct_session.world_state.area_id or int(message.get("nativeAreaGeneration",-1))!=direct_generation:return
+	if direct_projectile_queue.size()>=128:
+		report.direct_projectile_overflow=int(report.get("direct_projectile_overflow",0))+1
+		return
+	direct_projectile_queue.append({"connection":session_connection,"generation":direct_generation,"areaId":direct_session.world_state.area_id,"message":message.duplicate(true)})
+	direct_drain_projectiles()
+
+func direct_drain_projectiles()->void:
+	if closing or direct_session==null or not is_instance_valid(world) or not is_instance_valid(world.effects) or not is_instance_valid(world.effects.projectiles):return
+	if world.area_id!=direct_session.world_state.area_id:return
+	for entry in direct_projectile_queue:
+		if int(entry.connection)!=session_connection or int(entry.generation)!=direct_generation or int(entry.areaId)!=world.area_id:continue
+		var message: Dictionary=entry.message
+		var header: Dictionary=message.header
+		var source_id:=int(header.sourceId)
+		var target_id:=int(header.targetId)
+		var source_lifetime:=int(message.get("sourceLifetime",0))
+		var target_lifetime:=int(message.get("targetLifetime",0))
+		if source_lifetime>0:
+			var source: Dictionary=direct_session.world_state.registry.get(source_id,{})
+			if int(source.get("nativeLifetime",0))!=source_lifetime or bool(source.get("replicationRemoved",false)):continue
+		if target_lifetime>0:
+			var target: Dictionary=direct_session.world_state.registry.get(target_id,{})
+			if int(target.get("nativeLifetime",0))!=target_lifetime or bool(target.get("replicationRemoved",false)):continue
+		world.effects.projectiles.receive({"message":message,"id":target_id,"lifetime":target_lifetime,"sourceLifetime":source_lifetime,"receivedAtMs":int(message.get("receivedAtMs",Time.get_ticks_msec()))})
+	direct_projectile_queue.clear()
+
 func direct_drain_voices()->void:
 	if closing or direct_session==null or not is_instance_valid(world) or not is_instance_valid(world.effects) or not is_instance_valid(gameplay_ui):return
 	var waiting: Array[Dictionary]=[]
@@ -1247,6 +1595,32 @@ func native_camera_follow_target_id()->int:
 	if direct_camera_target_id>=0 and world.instances.has(direct_camera_target_id) and world.desired.has(direct_camera_target_id) and int(world.desired[direct_camera_target_id].object.get("objectType",0)) in [5,9]:return direct_camera_target_id
 	return world.controlled_id
 
+func native_camera_follow_height(target_id: int)->float:
+	if direct_session==null:return 1.0
+	var object: Dictionary=direct_session.world_state.registry.get(target_id,{})
+	if int(object.get("objectType",0))!=5:return 1.0
+	var appearance: Variant=object.get("appearance")
+	var index: Variant=appearance.get("appearance") if appearance is Dictionary else null
+	if not index is int:return 1.0
+	if not direct_camera_height_cache.has(index):direct_camera_height_cache[index]=CameraAppearanceHeight.from_table(object,direct_camera_appearance_table)
+	return float(direct_camera_height_cache[index])
+
+func native_camera_clear_view_facing(target_id: int)->float:
+	if not is_instance_valid(world):return NAN
+	var movement: Dictionary=world.motion.objects.get(target_id,{})
+	var orientation: Variant=movement.get("orientation")
+	if orientation is Vector3:
+		return GameCameraState.mul(GameCameraState.f(atan2(-orientation.x,orientation.y)),GameCameraState.f(57.295776))
+	if world.instances.has(target_id) and is_instance_valid(world.instances[target_id]):
+		return rad_to_deg(world.instances[target_id].rotation.y)
+	return NAN
+
+func direct_camera_query_blocked(start: Array,finish: Array)->bool:
+	return CameraSceneQuery.blocked(world,start,finish) if is_instance_valid(world) else false
+
+func native_camera_clear_view_query()->Callable:
+	return Callable(self,"direct_camera_query_blocked")
+
 func direct_camera_command(message: Dictionary)->void:
 	if closing or direct_session==null:return
 	if direct_camera_queue.size()>=128:fail("Native camera command queue exceeded bound");return
@@ -1263,11 +1637,12 @@ func direct_camera_bind()->void:
 	if closing or direct_session==null or not is_instance_valid(world) or not is_instance_valid(controller) or controller.follow_state==null:return
 	if direct_camera_state==null:direct_camera_state=controller.follow_state
 	elif controller.follow_state!=direct_camera_state:controller.enable_follow(int(direct_camera_state.state.mode),controller.target,float(controller.follow_height) if is_finite(float(controller.follow_height)) else 1.0,{},direct_camera_state)
+	direct_camera_state.state.modeAppearanceHeight=native_camera_follow_height(world.controlled_id)
 	if direct_camera_target_id>=0 and (not world.desired.has(direct_camera_target_id) or not world.instances.has(direct_camera_target_id)):
 		direct_camera_target_id=-1
 		if world.instances.has(world.controlled_id):
 			var home: Vector3=world.instances[world.controlled_id].global_position
-			direct_camera_state.attach([home.x,-home.z,home.y],1.0,true,false)
+			direct_camera_state.attach([home.x,-home.z,home.y],native_camera_follow_height(world.controlled_id),true,false)
 	while not direct_camera_queue.is_empty():
 		var command: Dictionary=direct_camera_queue[0]
 		var accepted:=false
@@ -1278,20 +1653,27 @@ func direct_camera_bind()->void:
 				direct_camera_queue.pop_front()
 				continue
 			if not world.instances.has(target) or not is_instance_valid(world.instances[target]):
-				if Time.get_ticks_msec()-int(command.nativeReceivedMs)<5000:return
 				direct_camera_queue.pop_front()
 				report.direct_camera_unresolved=int(report.get("direct_camera_unresolved",0))+1
 				continue
 			var position: Vector3=world.instances[target].global_position
-			direct_camera_state.attach([position.x,-position.z,position.y],1.0,int(object.objectType)==5,bool(command.findClearView))
+			direct_camera_state.attach([position.x,-position.z,position.y],native_camera_follow_height(target),int(object.objectType)==5,bool(command.findClearView))
 			direct_camera_target_id=-1 if target==world.controlled_id else target
-			if bool(command.findClearView):
-				report.direct_camera_clear_view_unavailable=int(report.get("direct_camera_clear_view_unavailable",0))+1
-				direct_camera_state.state.findClearView=false
+			direct_camera_pending_entry_attach=false
 			accepted=true
 		else:accepted=direct_camera_state.apply_command(command)
 		direct_camera_queue.pop_front()
 		if not accepted:report.direct_camera_rejected=int(report.get("direct_camera_rejected",0))+1
+	# The provisional area anchor can precede publication of the PC render
+	# object. The original pending entry attach waits for that binding, then
+	# performs one clear-view self-attach; it is separate from received 16/10.
+	if direct_camera_pending_entry_attach and entry_camera.anchored and world.instances.has(world.controlled_id) and is_instance_valid(world.instances[world.controlled_id]):
+		var controlled: Dictionary=direct_session.world_state.registry.get(world.controlled_id,{})
+		if int(controlled.get("objectType",0))==5 and int(controlled.get("areaId",-1))==world.area_id and not bool(controlled.get("replicationRemoved",false)):
+			var position: Vector3=world.instances[world.controlled_id].global_position
+			direct_camera_state.attach([position.x,-position.z,position.y],native_camera_follow_height(world.controlled_id),true,true)
+			direct_camera_target_id=-1
+			direct_camera_pending_entry_attach=false
 
 func direct_nwsync_visual_validate()->bool:
 	var descriptor:=direct_nwsync_visual_descriptor
@@ -1406,10 +1788,52 @@ func direct_drain_visuals()->void:
 func gameplay_presentation_allowed()->bool:
 	return not closing and direct_session!=null and direct_session.phase=="playing" and is_instance_valid(world) and (gameplay_ui.presentation_enabled or world.ready_for_control()) and not loading_screen.blocks_input()
 
+func direct_creation_request(value: Dictionary)->void:
+	if not is_instance_valid(gameplay_ui) or direct_session==null:return
+	var creator=gameplay_ui.creator
+	var connection:=int(value.get("connection",-1))
+	var draft:=int(value.get("draft",-1))
+	if connection!=session_connection or connection!=creator.connection or draft!=creator.draft_scope:return
+	var kind:=str(value.get("kind",""))
+	if kind=="native-creation-cancel":
+		direct_show_character_state.call_deferred()
+		return
+	var permitted: bool=direct_session.phase in ["character-selection","character-rejected"] and bool(direct_lobby_state.get("canCreate",false)) and bool(direct_lobby_state.get("connected",false))
+	if kind=="native-creation-begin":
+		creator.result({"operation":kind,"connection":connection,"draft":draft,"accepted":permitted,"text":"Character creation is unavailable for this connection."})
+		if permitted and args.get("direct-server-vault-create-check","")=="true":report.direct_server_vault_create_check={"creatorOpened":true,"creatorSubmitted":false,"source19Sent":false,"worldAdmitted":false,"disconnectClean":false}
+		return
+	if kind!="native-creation-submit" or creator.phase!="waiting":return
+	var bytes:=Marshalls.base64_to_raw(str(value.get("data","")))
+	var parser:=GffDocument.new()
+	if permitted and bytes.size()>=4 and bytes.size()<=Characters.MAX_CHARACTER_BYTES and bytes.slice(0,4).get_string_from_ascii()=="BIC ":parser.parse(bytes,"BIC ")
+	else:parser.failure="Invalid character data"
+	var accepted: bool=parser.failure.is_empty() and direct_session.play_local_character(bytes,true)
+	bytes.fill(0)
+	creator.result({"operation":kind,"connection":connection,"draft":draft,"accepted":accepted,"text":"The new character could not be submitted. Review its details and try again."})
+	if not accepted:return
+	report.direct_creation={"source19Sent":true,"connection":connection,"draft":draft}
+	if args.get("direct-server-vault-create-check","")=="true":
+		report.direct_server_vault_create_check.creatorSubmitted=true
+		report.direct_server_vault_create_check.source19Sent=true
+	direct_lobby_state.busy=true;direct_lobby_state.canCreate=false
+	direct_show_character_state()
+
 func send(value: Dictionary)->void:
 	if direct_login_profiles!=null and direct_login_profiles.handle(value):return
 	if closing or direct_session==null:return
 	var kind:=str(value.get("kind",""))
+	if kind.begins_with("native-creation-"):direct_creation_request(value);return
+	if kind=="creation-proof" and (args.get("direct-server-vault-create-check","")=="true" or args.get("direct-server-vault-reconnect-check","")=="true"):
+		report.creationProof=value.duplicate(true)
+		if not bool(value.get("success",false)):fail("Private source character creation probe failed before admission");return
+		var expected: Dictionary=value.get("expected",{}) if value.get("expected",{}) is Dictionary else {}
+		var fingerprint: String=(str(expected.get("firstName",""))+"\u0000"+str(expected.get("lastName",""))).sha256_text()
+		if args.get("direct-server-vault-create-check","")=="true":report.direct_server_vault_create_check.characterFingerprint=fingerprint
+		else:
+			report.direct_server_vault_reconnect_check.characterFingerprint=fingerprint
+			report.direct_server_vault_reconnect_check.serverRowMatched=bool(value.get("reconnectSelection",{}).get("success",false))
+		return
 	if kind=="area-ready":
 		if direct_session.phase=="area-presenting" and is_instance_valid(world):
 			if not direct_session.area_ready(world):fail("Godot prepared-area acknowledgement failed")
@@ -1509,3 +1933,6 @@ func shutdown()->void:
 	if direct_session!=null:direct_session.close()
 	finish_acknowledged=true
 	super.shutdown()
+
+func application_exit_policy()->bool:
+	return str(args.get("direct-headless-vault-policy-check","")) in ["server-only","local-allowed"] or super.application_exit_policy()

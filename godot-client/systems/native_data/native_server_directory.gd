@@ -16,7 +16,7 @@ static func parse_rows(bytes: PackedByteArray)->Dictionary:
 		if not item is Dictionary or not item.get("host") is String or str(item.host).is_empty() or str(item.host).length()>255:continue
 		var port_value: Variant=item.get("port")
 		if not (port_value is int or port_value is float) or not is_finite(float(port_value)) or float(port_value)!=floorf(float(port_value)) or int(port_value)<1 or int(port_value)>65535:continue
-		rows.append({"entryId":rows.size(),"host":str(item.host),"port":int(item.port),"serverName":str(item.get("session_name"," ")).left(256),"moduleName":str(item.get("module_name"," ")).left(256),"description":str(item.get("module_description","")).left(8192),"playerCount":item.get("current_players"),"maximumPlayers":item.get("max_players"),"minimumLevel":item.get("min_level"),"maximumLevel":item.get("max_level"),"pvpSetting":item.get("pvp"),"gameType":item.get("game_type"),"allowLocalVaultCharacters":not bool(item.get("servervault",true)),"passwordRequired":bool(item.get("passworded",false)),"latency":item.get("latency"),"allowed":true})
+		rows.append({"entryId":rows.size(),"host":str(item.host),"port":int(item.port),"serverName":str(item.get("session_name"," ")).left(256),"moduleName":str(item.get("module_name"," ")).left(256),"description":str(item.get("module_description","")).left(8192),"playerCount":item.get("current_players"),"maximumPlayers":item.get("max_players"),"minimumLevel":item.get("min_level"),"maximumLevel":item.get("max_level"),"pvpSetting":item.get("pvp"),"gameType":item.get("game_type"),"allowLocalVaultCharacters":not bool(item.get("servervault",false)),"passwordRequired":bool(item.get("passworded",false)),"latency":item.get("latency"),"allowed":true})
 	return {"rows":rows}
 
 func refresh()->void:

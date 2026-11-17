@@ -50,7 +50,7 @@ func run()->void:
 							result.error=str(decoded.error)
 							break
 						result.entries.append({"name":str(authored.name),"type":int(authored.type),"size":decoded.bytes.size(),"hash":Store.sha1(decoded.bytes),"algorithm":int(authored.algorithm),"passed":true})
-						if str(authored.name)=="gd_sync_icon":
+						if str(authored.name)==str(descriptor.get("visualTextureName","gd_sync_icon")):
 							var image:=Image.new()
 							if image.load_tga_from_buffer(decoded.bytes)!=OK or image.get_size()!=Vector2i(16,16):
 								result.error="Authored TGA failed Godot decode"

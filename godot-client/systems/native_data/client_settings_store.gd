@@ -21,7 +21,7 @@ func open(profile_directory: String,mods_directory: String="",helper: String="")
 	if not protection.open(executable):error="Windows protected storage is unavailable";return false
 	opened_existing=FileAccess.file_exists(file)
 	if not FileAccess.file_exists(file):
-		state={"version":CURRENT_VERSION,"modsDirectory":default_mods,"loginProfiles":[],"activeProfileId":null};return true
+		state={"version":CURRENT_VERSION,"modsDirectory":default_mods,"installDirectory":"","loginProfiles":[],"activeProfileId":null};return true
 	var source:=FileAccess.get_file_as_bytes(file)
 	var parsed: Variant=JSON.parse_string(source.get_string_from_utf8())
 	if not parsed is Dictionary or not validate(parsed):error="Saved client settings could not be read";close();return false
@@ -34,6 +34,8 @@ func validate(value: Dictionary)->bool:
 	if version not in [1,2,CURRENT_VERSION] or not value.get("modsDirectory",null) is String:return false
 	var mods: String=value.modsDirectory
 	if mods.length()>4096 or mods.to_utf8_buffer().has(0) or not mods.is_empty() and not mods.is_absolute_path():return false
+	var install: Variant=value.get("installDirectory","")
+	if not install is String or install.length()>4096 or install.to_utf8_buffer().has(0) or not install.is_empty() and not install.is_absolute_path():return false
 	var disabled: Variant=value.get("disabledMods",[])
 	if not disabled is Array or disabled.size()>10000:return false
 	var mod_id:=RegEx.create_from_string("^(local|[0-9]{1,32})$")
@@ -43,7 +45,7 @@ func validate(value: Dictionary)->bool:
 	if not rows is Array or rows.size()>64:return false
 	var ids:={}
 	for row in rows:
-		if not row is Dictionary or not valid_id(row.get("id",null)) or not valid_label(row.get("label",null)) or not valid_blob(row.get("protectedCdKey",null)) or version==CURRENT_VERSION and not current_blob(row.get("protectedCdKey",null)) or ids.has(row.id):return false
+		if not row is Dictionary or not valid_id(row.get("id",null)) or not valid_label(row.get("label",null)) or not valid_label(row.get("playerName",null)) or not valid_blob(row.get("protectedCdKey",null)) or version==CURRENT_VERSION and not current_blob(row.get("protectedCdKey",null)) or ids.has(row.id):return false
 		ids[row.id]=true
 	var active: Variant=value.get("activeProfileId",null)
 	return (active==null or ids.has(active)) and valid_blob(value.get("protectedCdKey",null)) and (version!=CURRENT_VERSION or current_blob(value.get("protectedCdKey",null)))
@@ -79,7 +81,7 @@ func status()->Dictionary:
 	var active:=active_row(state)
 	var profiles:=[]
 	for row in state.get("loginProfiles",[]):profiles.append({"id":row.id,"label":row.label,"playerName":row.playerName,"hasSavedCdKey":row.has("protectedCdKey")})
-	return {"modsDirectory":state.get("modsDirectory",default_mods),"defaultModsDirectory":default_mods,"disabledMods":state.get("disabledMods",[]).duplicate(),"hasSavedCdKey":active.has("protectedCdKey"),"hasLegacyCdKey":state.has("protectedCdKey"),"protectedStorageAvailable":protection!=null and not protection.closed,"activeProfileId":state.get("activeProfileId",null),"loginProfiles":profiles}
+	return {"modsDirectory":state.get("modsDirectory",default_mods),"installDirectory":state.get("installDirectory",""),"defaultModsDirectory":default_mods,"disabledMods":state.get("disabledMods",[]).duplicate(),"hasSavedCdKey":active.has("protectedCdKey"),"hasLegacyCdKey":state.has("protectedCdKey"),"protectedStorageAvailable":protection!=null and not protection.closed,"activeProfileId":state.get("activeProfileId",null),"loginProfiles":profiles}
 
 func protect_key(value: String)->String:
 	var key:=value.strip_edges().to_upper()
@@ -155,9 +157,13 @@ func commit(next: Dictionary,importing: bool=false)->bool:
 	state=next;error="";return true
 
 func update(request: Dictionary)->bool:
-	if request.keys().any(func(name):return name not in ["modsDirectory","disabledMods","cdKey","removeCdKey"]):error="Invalid client settings";return false
+	if request.keys().any(func(name):return name not in ["installDirectory","modsDirectory","disabledMods","cdKey","removeCdKey"]):error="Invalid client settings";return false
 	if request.has("removeCdKey") and not request.removeCdKey is bool or request.has("cdKey") and not request.cdKey is String:error="Invalid protected-key request";return false
 	var next:=state.duplicate(true)
+	if request.has("installDirectory"):
+		var install: Variant=request.installDirectory
+		if not install is String or install.is_empty() or install.length()>4096 or install.to_utf8_buffer().has(0) or not install.is_absolute_path() or not DirAccess.dir_exists_absolute(install):error="Select a valid NWN installation folder";return false
+		next.installDirectory=install.simplify_path()
 	if request.has("modsDirectory"):
 		var folder: Variant=request.modsDirectory
 		if not folder is String or folder.length()>4096 or not folder.is_empty() and not folder.is_absolute_path() or not folder.is_empty() and not DirAccess.dir_exists_absolute(folder):error="Select a valid mods folder";return false
@@ -165,9 +171,12 @@ func update(request: Dictionary)->bool:
 		next.modsDirectory=folder
 	if request.has("disabledMods"):
 		if not request.disabledMods is Array or request.disabledMods.size()>10000:error="Invalid mod selection";return false
+		var selected: Array=[]
+		var seen: Dictionary={}
 		for id in request.disabledMods:
 			if not id is String or RegEx.create_from_string("^(local|[0-9]{1,32})$").search(id)==null:error="Invalid mod selection";return false
-		next.disabledMods=request.disabledMods.duplicate()
+			if not seen.has(id):seen[id]=true;selected.append(id)
+		next.disabledMods=selected
 	if request.get("removeCdKey",false) and request.has("cdKey"):error="Choose key replacement or removal";return false
 	var target:=active_row(next)
 	if request.has("cdKey") and not str(request.cdKey).is_empty():

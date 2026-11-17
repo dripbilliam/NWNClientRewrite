@@ -6,6 +6,7 @@ const Policy=preload("res://systems/native_data/mouse_cursor.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Slot=preload("res://systems/inventory_slot.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
+const TargetPreview=preload("res://systems/native_render/native_target_preview_shader.gd")
 var publisher: Callable
 # Isolated test seam. Production leaves this empty and uses Input directly.
 var hardware_publisher: Callable
@@ -27,6 +28,9 @@ var stamp:=""
 var failures: Array=[]
 var publications:=0
 var target_preview_state: Dictionary={"enabled":false}
+func _ready() -> void:
+	target_preview_changed.connect(TargetPreview.publish)
+	TargetPreview.publish(target_preview_snapshot())
 func target_preview_snapshot() -> Dictionary: return target_preview_state.duplicate(true)
 func set_target_preview_state(value: Dictionary) -> void:
 	if target_preview_state==value:return
@@ -175,6 +179,7 @@ func publish_hardware(image: Image,hotspot: Vector2) -> void:
 	if not hardware_publisher.is_valid() and DisplayServer.get_name()!="headless":Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 func release() -> void:
 	clear_target_preview()
+	TargetPreview.reset()
 	if installed:
 		if publisher.is_valid(): publisher.call({"reset":true})
 		else:publish_hardware(null,Vector2.ZERO)

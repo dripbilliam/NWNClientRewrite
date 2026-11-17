@@ -64,9 +64,10 @@ func save_settings() -> void:
 	if view_id < 0 or save_button.disabled: return
 	var values: Dictionary = {}
 	if not status.get("resourcesLocked", true):
-		values.disabled = []
+		values.modsDirectory = folder.text
+		values.disabledMods = []
 		for item in mods.get_root().get_children():
-			if item.get_metadata(0) != null and not item.is_checked(0): values.disabled.append(int(item.get_metadata(0)))
+			if item.get_metadata(0) != null and not item.is_checked(0): values.disabledMods.append(str(item.get_metadata(0)))
 	if not key.text.is_empty(): values.cdKey = key.text
 	if remove_key.button_pressed: values.removeCdKey = true
 	scrub(); set_busy(true); notice.text = "Saving…"; request_id += 1
@@ -93,7 +94,7 @@ func render() -> void:
 	if not status.protectedStorageAvailable: key_status.text += " Windows-protected storage is unavailable."
 	mods.clear(); var root := mods.create_item()
 	for row in rows:
-		var item := mods.create_item(root); item.set_cell_mode(0, TreeItem.CELL_MODE_CHECK); item.set_checked(0, bool(row.enabled)); item.set_editable(0, not status.resourcesLocked); item.set_text(0, str(row.label)); item.set_text(1, str(row.id)); item.set_metadata(0, int(row.entryId)); item.set_tooltip_text(0, str(row.directory))
+		var item := mods.create_item(root); item.set_cell_mode(0, TreeItem.CELL_MODE_CHECK); item.set_checked(0, bool(row.enabled)); item.set_editable(0, not status.resourcesLocked); item.set_text(0, str(row.label)); item.set_text(1, str(row.id)); item.set_metadata(0, str(row.id)); item.set_tooltip_text(0, str(row.directory))
 	if rows.is_empty():
 		var empty := mods.create_item(root); empty.set_text(0, "No mods found in this folder.")
 	set_busy(false)

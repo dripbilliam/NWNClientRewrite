@@ -3,6 +3,7 @@ const Policy=preload("res://systems/native_render/native_light_policy.gd")
 const Palette=preload("res://systems/native_render/native_light_palette.gd")
 const StandardLight=preload("res://systems/native_render/native_standard_light.gd")
 const SurfaceTransfer=preload("res://systems/native_render/native_surface_transfer.gd")
+const TargetPreview=preload("res://systems/native_render/native_target_preview_shader.gd")
 const InstanceContract=preload("res://systems/native_render/native_material_contract.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 static var shaders: Dictionary={}
@@ -61,13 +62,14 @@ func shader_variant_key() -> String:
 func refresh_shader() -> void:
 	if _configuring_shader:return
 	if native_surface_output: preload("res://systems/native_render/native_surface_state.gd").ensure()
+	TargetPreview.ensure()
 	var blended:=transparency==BaseMaterial3D.TRANSPARENCY_ALPHA
 	var filtering:=filtering_name(filter_mode)
 	var key:=shader_variant_key()
 	if not shaders.has(key):
 		var program_began:=Timing.begin()
 		var program:=Shader.new()
-		var shader_code: String="shader_type spatial;\nrender_mode diffuse_lambert,"+("" if standard_specular or native_surface_output else "specular_disabled,")+"ambient_light_disabled,cull_back"+(",depth_draw_never" if blended else "")+(",fog_disabled" if native_surface_output else "")+";\n"+Palette.shader_code()+(StandardLight.code(standard_quality) if standard_specular else "")+(SurfaceTransfer.code(native_tile_fog_enabled) if native_surface_output else "")+"""
+		var shader_code: String="shader_type spatial;\nrender_mode diffuse_lambert,"+("" if standard_specular or native_surface_output else "specular_disabled,")+"ambient_light_disabled,cull_back"+(",depth_draw_never" if blended else "")+(",fog_disabled" if native_surface_output else "")+";\n"+Palette.shader_code()+(StandardLight.code(standard_quality) if standard_specular else "")+(SurfaceTransfer.code(native_tile_fog_enabled) if native_surface_output else "")+TargetPreview.code()+"""
 uniform sampler2D native_texture : repeat_enable,%s;
 uniform bool native_has_texture=false;
 uniform vec3 native_ambient=vec3(1.0);
@@ -84,6 +86,9 @@ void fragment(){
  %s
  %s
  %s
+ vec3 nwn_target_weight=nwn_target_overlay(nwn_world_vertex);
+ ALBEDO=mix(ALBEDO,vec3(1.0),nwn_target_weight);
+ EMISSION=mix(EMISSION,vec3(1.0),nwn_target_weight);
 }
 void light(){
  vec2 lighting=nwn_local_light(ATTENUATION,SPECULAR_AMOUNT,LIGHT_IS_DIRECTIONAL);

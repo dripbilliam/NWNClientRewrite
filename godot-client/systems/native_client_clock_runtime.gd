@@ -18,11 +18,13 @@ var module_present:=false
 var area_present:=false
 var delivering: Dictionary={}
 var bound_ui: WeakRef
-var diagnostics:={"enabled":false,"ready":false,"protocolFrames":0,"unavailable":0,"lastReason":"","phase":"native-direct-real-candidate"}
+var diagnostics:={"enabled":false,"ready":false,"protocolFrames":0,"directPackets":0,"directOwnersReady":false,"directControlledIdKnown":false,"unavailable":0,"lastReason":"","phase":"native-direct-real-candidate"}
 func configure(owner)->void:
 	client=owner
-	# Kept opt-in until actual pause lower-provider and live visual acceptance.
-	enabled=client.args.get("native-overhead-clocks","")=="true" and client.args.get("offline-replay","")!="true"
+	# The process-owned absolute timers and frame prefix are valid for a normal
+	# direct session. Pause transitions still require independently bound scene
+	# and GUI owners; enabling these clocks never certifies those providers.
+	enabled=client.args.get("offline-replay","")!="true" and (client.direct_mode or client.args.get("native-overhead-clocks","")=="true")
 	diagnostics.enabled=enabled
 	client.report.native_clock_runtime=diagnostics
 	if not enabled:return
@@ -42,6 +44,50 @@ func note(result: Dictionary)->void:
 func prefix(frame: int)->void:
 	if not ready:return
 	current_frame=frame;note(services.begin_frame(frame))
+func bind_direct_owners(facts: Dictionary,providers: Dictionary)->Dictionary:
+	if not ready:return {"ready":false,"reason":"Native direct clock process is unavailable."}
+	var result: Dictionary=services.bind_direct_owners(facts,providers)
+	diagnostics.directOwnersReady=result.get("ready",false) and result.get("transitionsReady",false)
+	if not result.ready:note(result)
+	return result
+func publish_direct_controlled_id(value: int,source_connection: int,source_generation: int,source_area: int)->Dictionary:
+	# This is the actual admitted actor ID, not a substitute for the native
+	# profile/GUI or scene providers required by a pause transition.
+	if not ready or client==null or not Scope.integer(value,0,Scope.MAX_ID):return {"ready":false,"reason":"Direct controlled actor or process clock is unavailable."}
+	if not client.has_method("native_clock_direct_scope"):return {"ready":false,"reason":"Direct clock live area owner is unavailable."}
+	var live_scope: Variant=client.native_clock_direct_scope()
+	if not live_scope is Dictionary or live_scope.get("connection")!=source_connection or live_scope.get("generation")!=source_generation or live_scope.get("areaId")!=source_area:return {"ready":false,"reason":"Direct controlled actor does not match the live area owner."}
+	var result: Dictionary=services.publish_owner_facts({"controlledId":value})
+	if result.get("ready",false):diagnostics.directControlledIdKnown=true
+	else:note(result)
+	return result
+func receive_direct_pause(message: Dictionary,source_connection: int,source_generation: int,source_area: int)->Dictionary:
+	# Only the admitted direct session may supply this connection. The three
+	# absolute timers were already prefixed by NativeSessionWorld this frame.
+	if not ready or not diagnostics.directOwnersReady or current_frame<0:
+		return {"ready":false,"reason":"Direct clock frame or lower owners are unavailable."}
+	if not Scope.integer(source_connection,0,Scope.MAX_SAFE) or not Scope.integer(source_generation,0,Scope.MAX_SAFE) or not Scope.integer(source_area,0,Scope.MAX_ID):
+		return {"ready":false,"reason":"Direct clock connection or area scope is invalid."}
+	if client==null or not client.has_method("native_text_connection") or client.native_text_connection()!=source_connection:
+		return {"ready":false,"reason":"Direct clock packet has no current accepted connection."}
+	if not client.has_method("native_clock_direct_scope"):
+		return {"ready":false,"reason":"Direct clock live area owner is unavailable."}
+	var live_scope: Variant=client.native_clock_direct_scope()
+	if not live_scope is Dictionary or live_scope.get("connection")!=source_connection or live_scope.get("generation")!=source_generation or live_scope.get("areaId")!=source_area:
+		return {"ready":false,"reason":"Direct clock packet does not match the live area owner."}
+	if connection<0:
+		var attached: Dictionary=services.attach_connection(source_connection)
+		if not attached.ready:note(attached);return attached
+		connection=source_connection
+	elif connection!=source_connection:return {"ready":false,"reason":"Direct clock packet belongs to another connection."}
+	var scope: Dictionary={"generation":source_generation,"areaId":source_area}
+	set_scope(scope)
+	if current_scope!=[source_connection,source_generation,source_area]:
+		return {"ready":false,"reason":"Direct clock area scope was not admitted."}
+	diagnostics.directPackets=mini(int(diagnostics.directPackets)+1,9007199254740991)
+	var result: Dictionary=services.receive_server_pause(message,source_connection,source_area,source_generation)
+	if not result.ready:note(result)
+	return result
 func set_scope(value: Dictionary)->void:
 	var generation: Variant=value.get("generation");var area: Variant=value.get("areaId")
 	if not Scope.integer(generation,0,Scope.MAX_SAFE) or not Scope.integer(area,0,Scope.MAX_ID):return
@@ -123,6 +169,8 @@ func cleanup_connection()->void:
 	var result: Dictionary=services.cleanup_connection()
 	if not result.ready:note(result);return
 	connection=-1;current_scope=[];module_present=false;area_present=false;delivering={};bound_ui=null
+	diagnostics.directOwnersReady=false
+	diagnostics.directControlledIdKnown=false
 func state_view(full: bool=false)->Dictionary:
 	var result: Dictionary=diagnostics.duplicate(true)
 	result.connection=connection;result.scope=current_scope.duplicate();result.frame=current_frame

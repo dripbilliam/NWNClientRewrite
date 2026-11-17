@@ -111,6 +111,41 @@ static func follow(s: Dictionary,seconds: float,target: Array) -> void:
 	s.position = []
 	for index in 3: s.position.append(add(mul(axis[index],s.distance),s.focus[index]))
 
+static func find_clear_view(s: Dictionary, position: Array, facing: float, seconds: float, blocked: Callable) -> Dictionary:
+	# Native7cc070 predicts from its own focus/limits before the visible Follow.
+	s.yaw = f(facing); s.manualLatch = 1; s.turning = 0
+	var predicted: Dictionary = s.duplicate(true)
+	if s.get("predictionInputs") is Dictionary: predicted.merge(s.predictionInputs, true)
+	predicted.focus = (s.get("clearViewFocus") if s.get("clearViewFocus") is Array else s.focus).duplicate()
+	predicted.quaternion = s.quaternion.duplicate()
+	predicted.spring = 750.0; predicted.clampYaw = 0
+	predicted.clampPitch = 1; predicted.minPitch = s.effectiveLimits.minPitch; predicted.maxPitch = s.effectiveLimits.maxPitch
+	predicted.clampDist = 1; predicted.minDist = s.effectiveLimits.minDist; predicted.maxDist = s.effectiveLimits.maxDist
+	follow(predicted, seconds, position)
+	var finish: Array = []
+	var delta: Array = []
+	for axis in 3:
+		finish.append(add(position[axis], s.offset[axis]))
+		delta.append(f(predicted.position[axis] - finish[axis]))
+	var start: Array = predicted.position
+	var z := add(delta[2], finish[2])
+	var queries := 1
+	var selected := false
+	if blocked.call(start, finish):
+		queries += 1
+		if not blocked.call([add(-delta[0], finish[0]), add(-delta[1], finish[1]), z], finish):
+			s.yaw = add(s.yaw, 180); selected = true
+		else:
+			queries += 1
+			if not blocked.call([add(finish[0], -delta[1]), f(finish[1] - -delta[0]), z], finish):
+				s.yaw = add(s.yaw, -90); selected = true
+			else:
+				# The original fourth segment repeats the first endpoint.
+				queries += 1
+				if not blocked.call(start, finish):
+					s.yaw = add(s.yaw, 90); selected = true
+	return {"selected":selected,"queries":queries,"focus":predicted.focus}
+
 func reset(mode: int = 1,height: float = 1,position: Variant = null,yaw: float = 0) -> void:
 	state = {"mode":mode,"appearanceHeight":height,"yaw":f(yaw),"pitch":50.0,"distance":20.0,"spring":750.0,"clampPitch":1,"minPitch":1.0,"maxPitch":89.0,"clampDist":1,"minDist":1.0,"maxDist":25.0,"clampYaw":0,"minYaw":0.0,"maxYaw":360.0,"turn":0.0,"tilt":0.0,"speed":0.0,"turnDelta":0.0,"tiltDelta":0.0,"zoomImpulse":0.0,"manual":0,"manualLatch":0,"turning":0,"wasIdle":1,"flags":0,"predictionInputs":null,"yawEvent":0,"zoomEvent":0}
 	state.merge({"heightOverride":null,"modeAppearanceHeight":null,"rawLimits":{"minPitch":-1.0,"maxPitch":-1.0,"minDist":-1.0,"maxDist":-1.0},"effectiveLimits":DEFAULT_LIMITS.duplicate(),"locks":{"pitch":false,"distance":false,"yaw":false},"savedCamera":null,"scriptLocation":null,"rememberedPose":null,"findClearView":false})
@@ -239,14 +274,19 @@ func input(values: Dictionary) -> void:
 	if values.has("pitch"): rate(state,"pitch",values.pitch,true)
 	if values.has("zoom"): state.zoomImpulse = add(state.get("zoomImpulse",0),values.zoom)
 
-func update(actor: Dictionary,seconds: float) -> bool:
+func update(actor: Dictionary,seconds: float,clear_view_query: Callable = Callable()) -> bool:
 	if not actor.get("position") is Array or not is_finite(seconds) or seconds < 0: return false
 	if state.get("focus") == null: state.focus = [add(actor.position[0],state.offset[0]),add(actor.position[1],state.offset[1]),add(actor.position[2],state.offset[2])]
 	rate(state,"yaw",0); rate(state,"pitch",0)
-	steering(state,actor,seconds)
-	if location(state,seconds,bool(actor.get("paused",false))) and state.scriptLocation != null: state.scriptLocation.rate = 0
-	state.rememberedPose = {"distance":state.distance,"yaw":state.yaw,"pitch":state.pitch}
+	if not state.findClearView:
+		steering(state,actor,seconds)
+		if location(state,seconds,bool(actor.get("paused",false))) and state.scriptLocation != null: state.scriptLocation.rate = 0
+		state.rememberedPose = {"distance":state.distance,"yaw":state.yaw,"pitch":state.pitch}
 	var zoom: float = state.get("zoomImpulse",0); state.zoomImpulse = 0.0
 	if absf(zoom) > f(0.0001): rate(state,"zoom",zoom)
+	if state.findClearView:
+		state.clearViewResult = find_clear_view(state, actor.position, float(actor.get("clearViewFacing", actor.get("facing",0))), seconds, clear_view_query) if clear_view_query.is_valid() else {"selected":false,"queries":0,"unavailable":true}
+		if state.clearViewResult.has("focus"): state.clearViewFocus = state.clearViewResult.focus
+		state.findClearView = false
 	follow(state,seconds,actor.position); state.manual = 0
 	return true

@@ -8,6 +8,7 @@ var bytes:=PackedByteArray()
 var failure:=""
 var count:=0
 var language:=0
+var decode_language:=0
 var text_offset:=0
 var length:=0
 var records: Dictionary={}
@@ -22,7 +23,9 @@ func header() -> bool:
 	if data.size()!=20 or data.slice(0,8).get_string_from_ascii()!="TLK V3.0": failure="Invalid original TLK header"; return false
 	language=int(data.decode_u32(8)); count=int(data.decode_u32(12)); text_offset=int(data.decode_u32(16))
 	if count>1000000 or not range_valid(20,count*40) or text_offset<20+count*40 or text_offset>length: failure="Invalid original TLK tables"; return false
-	if not Encoding.LANGUAGE_CODES.has(language): failure="Native TLK language encoding is unavailable"; return false
+	# The old installed parser preserves the header ID but decodes unknown IDs
+	# with Windows-1252. Keep known language mappings unchanged.
+	decode_language=language if Encoding.LANGUAGE_CODES.has(language) else 0
 	return true
 func open_file(path: String) -> bool:
 	close(); file=FileAccess.open(path,FileAccess.READ)
@@ -45,11 +48,11 @@ func entry(index: int) -> Dictionary:
 		# into Godot's Unicode conversion; stored byte length remains recorded.
 		var zero:=raw.find(0)
 		if zero>=0: raw=raw.slice(0,zero)
-	var decoded:=Encoding.decode(raw,language,true)
+	var decoded:=Encoding.decode(raw,decode_language,true)
 	if not decoded.get("ready",false):failure=str(decoded.reason);return {"found":false,"text":""}
 	var result:={"found":true,"text":str(decoded.text),"bytes":raw,"language":language,"flags":flags,"stored_bytes":size,"sound":Binary.new(row).text(4,16,true),"duration":row.decode_float(36)}
 	reads+=1
 	if records.size()>=4096: records.erase(records.keys()[0])
 	records[index]=result; return result
 func close() -> void:
-	file=null; bytes=PackedByteArray(); records.clear(); count=0; language=0; text_offset=0; length=0; reads=0; failure=""
+	file=null; bytes=PackedByteArray(); records.clear(); count=0; language=0; decode_language=0; text_offset=0; length=0; reads=0; failure=""

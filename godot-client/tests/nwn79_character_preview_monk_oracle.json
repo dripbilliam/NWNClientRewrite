@@ -1,0 +1,16 @@
+{
+  "format": "nwn79-character-preview-derived-oracle-v1",
+  "source": "src/network_character_preview.js::serverCharacterPreviewSummary with active installed rules",
+  "fixture": "data/lcv/monk.bic",
+  "bicSha256": "77b605ab223b074ae5144f2538ad2068a3740ad1c832235cb1c99a64b831504b",
+  "derived": {
+    "abilities": {"Str": 16, "Dex": 14, "Con": 14, "Int": 10, "Wis": 16, "Cha": 10},
+    "abilityModifiers": {"Str": 3, "Dex": 2, "Con": 2, "Int": 0, "Wis": 3, "Cha": 0},
+    "hitPoints": 127,
+    "currentHitPoints": 127,
+    "nextExperience": 120000,
+    "armorClass": 31,
+    "saves": {"fortitude": 12, "reflex": 12, "will": 13},
+    "baseAttackBonus": 11
+  }
+}

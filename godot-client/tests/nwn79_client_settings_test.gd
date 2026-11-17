@@ -9,6 +9,7 @@ func _initialize()->void:
 	if not first.open(directory):fail("open",first.error);return
 	if not first.update({"cdKey":KEY}):fail("save",first.error);return
 	if first.status().hasSavedCdKey!=true:fail("status","missing key");return
+	if not first.update({"disabledMods":["local","123","local","123"]}) or first.status().disabledMods!=["local","123"]:fail("mod selection","duplicate IDs were not collapsed in first-seen order");return
 	if not first.save_profile({"label":"Main","playerName":"Druid","cdKey":KEY}):fail("profile save",first.error);return
 	var main_id: String=first.status().activeProfileId
 	if not first.save_profile({"label":"Alt","playerName":"Wizard","cdKey":ALT}):fail("alternate save",first.error);return

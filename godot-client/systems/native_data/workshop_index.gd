@@ -40,3 +40,18 @@ func scan(directory: String, disabled: Array=[]) -> Array:
 	for id in order:
 		if not disabled.has(id): roots.append({"id":id,"directory":root.path_join(id)})
 	return roots
+
+func directories_for(roots: Array, alias: String) -> Array[String]:
+	failure=""
+	if not ALIASES.has(alias): failure="Unsupported Workshop resource directory"; return []
+	var result: Array[String]=[]
+	for selected in roots:
+		if not selected is Dictionary or not str(selected.get("directory","")).is_absolute_path(): failure="Invalid selected Workshop root"; return []
+		var path:=str(selected.directory).path_join(alias)
+		var folder:=DirAccess.open(path)
+		if folder!=null:
+			result.append(path)
+		elif DirAccess.dir_exists_absolute(path):
+			failure="Selected Workshop resource directory is unreadable"
+			return []
+	return result

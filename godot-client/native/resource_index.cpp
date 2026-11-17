@@ -1,5 +1,6 @@
-// Bounds-checked worker-local resource metadata parsing. No files, scenes,
-// network, mutable shared keys or persistent instance state. Inputs and output
+// Bounds-checked worker-local resource metadata parsing and cheap file stamps.
+// No file payloads, scenes, network, mutable shared keys or persistent state.
+// Inputs and output
 // layouts match archive_index.gd / nwsync_store.gd reference implementations.
 #include "gdextension_interface.h"
 #include <cstdint>
@@ -11,6 +12,7 @@
 #include <unordered_set>
 #include <vector>
 #include <limits>
+#include <filesystem>
 namespace {
 GDExtensionClassLibraryPtr library;
 GDExtensionInterfaceVariantNewNil new_nil;
@@ -193,6 +195,18 @@ void call_parse(void*,GDExtensionClassInstancePtr,const GDExtensionConstVariantP
  error->error=GDEXTENSION_CALL_OK;if(count!=4){error->error=count<4?GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS:GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS;error->expected=4;new_nil(result);return;}
  try{Var kind(args[0]),one(args[1]),two(args[2]),options(args[3]);Bytes table(one),other(two);auto out=parse(kind.text(),table,other,options);new_copy(result,out.data);}catch(const std::exception& failure){auto out=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);put(out,Var::text("error"),Var::text(failure.what()));new_copy(result,out.data);}
 }
+void call_file_stamp(void*,GDExtensionClassInstancePtr,const GDExtensionConstVariantPtr* args,GDExtensionInt count,GDExtensionVariantPtr result,GDExtensionCallError* error){
+ error->error=GDEXTENSION_CALL_OK;if(count!=1){error->error=count<1?GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS:GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS;error->expected=1;new_nil(result);return;}
+ try{
+  Var requested(args[0]);const auto path=std::filesystem::u8path(requested.text());std::error_code status;
+  const auto size=std::filesystem::file_size(path,status);if(status||size>static_cast<uintmax_t>(std::numeric_limits<int64_t>::max()))throw std::runtime_error("Native resource file stat is unavailable");
+  const auto modified=std::filesystem::last_write_time(path,status);if(status)throw std::runtime_error("Native resource file stamp is unavailable");
+  auto out=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);
+  put(out,Var::text("size"),Var::integer(static_cast<int64_t>(size)));
+  put(out,Var::text("modified_ticks"),Var::integer(static_cast<int64_t>(modified.time_since_epoch().count())));
+  new_copy(result,out.data);
+ }catch(const std::exception& failure){auto out=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);put(out,Var::text("error"),Var::text(failure.what()));new_copy(result,out.data);}
+}
 void free_instance(void*,GDExtensionClassInstancePtr){}
 void initialize(void*,GDExtensionInitializationLevel level){
  if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;
@@ -203,6 +217,7 @@ void initialize(void*,GDExtensionInitializationLevel level){
  GDExtensionClassMethodInfo m{};m.name=method.data;m.call_func=call_parse;m.method_flags=GDEXTENSION_METHOD_FLAG_NORMAL|GDEXTENSION_METHOD_FLAG_STATIC;m.has_return_value=true;m.return_value_info=&ret;m.argument_count=4;m.arguments_info=args;m.arguments_metadata=metadata;register_method(library,name.data,&m);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
  Name cost_method("retained_cost"),value("value"),maximum("maximum_bytes");string_new(hint,"");GDExtensionPropertyInfo cost_args[]={property(GDEXTENSION_VARIANT_TYPE_NIL,value),property(GDEXTENSION_VARIANT_TYPE_INT,maximum)};cost_args[0].usage|=131072;/* PROPERTY_USAGE_NIL_IS_VARIANT in pinned API dump */GDExtensionClassMethodArgumentMetadata cost_metadata[2]{};m.name=cost_method.data;m.call_func=call_cost;m.argument_count=2;m.arguments_info=cost_args;m.arguments_metadata=cost_metadata;register_method(library,name.data,&m);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
  Name table_method("two_da"),source("source");string_new(hint,"");GDExtensionPropertyInfo table_args[]={property(GDEXTENSION_VARIANT_TYPE_STRING,source)};GDExtensionClassMethodArgumentMetadata table_metadata[1]{};m.name=table_method.data;m.call_func=call_two_da;m.argument_count=1;m.arguments_info=table_args;m.arguments_metadata=table_metadata;register_method(library,name.data,&m);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
+ Name stamp_method("file_stamp"),filename("filename");string_new(hint,"");GDExtensionPropertyInfo stamp_args[]={property(GDEXTENSION_VARIANT_TYPE_STRING,filename)};GDExtensionClassMethodArgumentMetadata stamp_metadata[1]{};m.name=stamp_method.data;m.call_func=call_file_stamp;m.argument_count=1;m.arguments_info=stamp_args;m.arguments_metadata=stamp_metadata;register_method(library,name.data,&m);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
 }
 void deinitialize(void*,GDExtensionInitializationLevel level){if(level==GDEXTENSION_INITIALIZATION_SCENE){Name name("NwnResourceIndex");unregister_class(library,name.data);}}
 }

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 #include <fcntl.h>
 #include <io.h>
 
@@ -117,10 +118,69 @@ static int serve(void) {
     return 0;
 }
 
-int main(int argc, char **argv) {
+/* Godot's Windows DirAccess.rename removes an existing destination before
+   MoveFileW. Keep the old content reachable through a same-volume hard link
+   while one Windows replace move publishes the verified temp by name. */
+static int replace_existing(const wchar_t *source, const wchar_t *destination) {
+    wchar_t backup[32768];
+    size_t length = wcslen(source);
+    if (length > 32760) return 3;
+    wcscpy_s(backup, 32768, source);
+    wcscat_s(backup, 32768, L".backup");
+    if (GetFileAttributesW(backup) != INVALID_FILE_ATTRIBUTES) return 3;
+    if (!CreateHardLinkW(backup, destination, NULL)) return 3;
+    if (MoveFileExW(source, destination, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        DeleteFileW(backup); /* Verified replacement is already published. */
+        return 0;
+    }
+    /* A failed move must not silently lose the old object. Preserve both the
+       verified temp and the old hard link if the destination still exists. */
+    if (GetFileAttributesW(destination) == INVALID_FILE_ATTRIBUTES) {
+        if (MoveFileExW(backup, destination, MOVEFILE_WRITE_THROUGH)) return 3;
+        return 4; /* Preserve both temp and backup for external recovery. */
+    }
+    /* The destination may contain either version after an unusual failure.
+       Keep the named old hard link for explicit recovery. */
+    return 3;
+}
+
+static int replace_cache(const wchar_t *source, const wchar_t *destination) {
+    wchar_t source_full[32768], destination_full[32768];
+    wchar_t *source_name = NULL, *destination_name = NULL;
+    DWORD source_length = GetFullPathNameW(source, 32768, source_full, &source_name);
+    DWORD destination_length = GetFullPathNameW(destination, 32768, destination_full, &destination_name);
+    if (!source_length || source_length >= 32768 || !destination_length || destination_length >= 32768 || !source_name || !destination_name) return 3;
+    size_t source_parent = (size_t)(source_name - source_full);
+    size_t destination_parent = (size_t)(destination_name - destination_full);
+    if (source_parent != destination_parent || _wcsnicmp(source_full, destination_full, source_parent) != 0 || wcslen(destination_name) != 40) return 3;
+    for (size_t index = 0; index < 40; index++) {
+        wchar_t ch = destination_name[index];
+        if (!((ch >= L'0' && ch <= L'9') || (ch >= L'a' && ch <= L'f'))) return 3;
+    }
+    size_t source_name_length = wcslen(source_name);
+    if (source_name_length <= 45 || wcsncmp(source_name, destination_name, 40) != 0 || source_name[40] != L'.' || wcscmp(source_name + source_name_length - 4, L".tmp") != 0) return 3;
+    DWORD from = GetFileAttributesW(source_full);
+    DWORD to = GetFileAttributesW(destination_full);
+    if (from == INVALID_FILE_ATTRIBUTES || (from & FILE_ATTRIBUTE_DIRECTORY)) return 3;
+    if (to != INVALID_FILE_ATTRIBUTES && (to & FILE_ATTRIBUTE_DIRECTORY)) return 3;
+    if (to != INVALID_FILE_ATTRIBUTES) {
+        return replace_existing(source_full, destination_full);
+    }
+    if (MoveFileExW(source_full, destination_full, MOVEFILE_WRITE_THROUGH)) return 0;
+    /* Another writer may have published the same hash after the initial
+       existence check. Replace that file atomically; never delete it first. */
+    to = GetFileAttributesW(destination_full);
+    if (to != INVALID_FILE_ATTRIBUTES && !(to & FILE_ATTRIBUTE_DIRECTORY)) {
+        return replace_existing(source_full, destination_full);
+    }
+    return 3;
+}
+
+int wmain(int argc, wchar_t **argv) {
+    if (argc == 4 && wcscmp(argv[1], L"replace-cache") == 0) return replace_cache(argv[2], argv[3]);
     if (argc != 2) return 2;
-    if (strcmp(argv[1], "serve") == 0) return serve();
-    if (strcmp(argv[1], "documents") == 0) {
+    if (wcscmp(argv[1], L"serve") == 0) return serve();
+    if (wcscmp(argv[1], L"documents") == 0) {
         PWSTR wide = NULL;
         if (SHGetKnownFolderPath(&FOLDERID_Documents, 0, NULL, &wide) != S_OK) return 3;
         int size = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wide, -1, NULL, 0, NULL, NULL);
@@ -129,12 +189,12 @@ int main(int argc, char **argv) {
         if (utf8 && WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wide, -1, utf8, size, NULL, NULL) && fwrite(utf8, 1, (size_t)size - 1, stdout) == (size_t)size - 1) result = 0;
         free(utf8); CoTaskMemFree(wide); return result;
     }
-    if (strcmp(argv[1], "protect") != 0 && strcmp(argv[1], "unprotect") != 0) return 2;
+    if (wcscmp(argv[1], L"protect") != 0 && wcscmp(argv[1], L"unprotect") != 0) return 2;
     if (_setmode(_fileno(stdin), _O_BINARY) == -1 || _setmode(_fileno(stdout), _O_BINARY) == -1) return 3;
     BYTE *input = NULL; DWORD size = 0;
     if (!read_input(&input, &size)) return 3;
     DATA_BLOB source = { size, input }, output = { 0, NULL };
-    BOOL ok = strcmp(argv[1], "protect") == 0
+    BOOL ok = wcscmp(argv[1], L"protect") == 0
         ? CryptProtectData(&source, L"NWN native client", NULL, NULL, NULL, CRYPTPROTECT_UI_FORBIDDEN, &output)
         : CryptUnprotectData(&source, NULL, NULL, NULL, NULL, CRYPTPROTECT_UI_FORBIDDEN, &output);
     int result = 3;

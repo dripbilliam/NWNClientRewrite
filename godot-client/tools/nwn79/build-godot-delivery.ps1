@@ -1,7 +1,8 @@
 param(
  [Parameter(Mandatory=$true)][string]$Destination,
  [string]$Install='',
- [switch]$Zip
+ [switch]$Zip,
+ [switch]$IncludeVaultCreationProbe
 )
 $ErrorActionPreference='Stop'
 $client=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -23,12 +24,15 @@ foreach($name in @('project.godot','runtime-lock.json','main.tscn','join-godot.p
 foreach($file in Get-ChildItem -LiteralPath $client -File){if($file.Name -match '\.gd(?:\.uid)?$'){Add-Source $file.FullName}}
 foreach($folder in @('systems','data','tools')){
  foreach($file in Get-ChildItem -LiteralPath (Join-Path $client $folder) -Recurse -File){
+  $insideFolder=$file.FullName.Substring((Join-Path $client $folder).Length+1)
+  if($insideFolder.Replace([char]92,[char]47) -match '(^|/)tests/'){continue}
   if($folder -eq 'data' -and $file.Extension -eq '.json') {Add-Source $file.FullName}
   elseif($folder -eq 'systems' -and ($file.Name -match '\.(?:gd|json)(?:\.uid)?$')) {Add-Source $file.FullName}
   elseif($folder -eq 'tools' -and ($file.Name -match '\.gd(?:\.uid)?$')) {Add-Source $file.FullName}
  }
 }
-foreach($name in @('native/particle_kernel.gdextension','native/resource_index.gdextension','native/window_modes.c','tools/setup.ps1','tools/build-window-modes.ps1','tools/nwn79/check-godot-only.ps1','tools/nwn79/build-windows-profile.ps1','tools/nwn79/verify-godot-delivery.ps1','tools/nwn79/build-godot-delivery.ps1','.godot/extension_list.cfg','.tools/Godot_v4.7.2-stable_win64.exe','.tools/Godot_v4.7.2-stable_win64_console.exe','.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-resource-index/nwn-resource-index.dll','.cache/nwn79/windows-profile.exe','.cache/native-window/nwn-window-modes.exe','.cache/native-window/build-manifest.json')){Add-Source (Join-Path $client $name)}
+if($IncludeVaultCreationProbe){Add-Source (Join-Path $client 'tests/native_creation_source_live_probe.gd')}
+foreach($name in @('native/particle_kernel.gdextension','native/resource_index.gdextension','native/window_modes.c','tools/setup.ps1','tools/build-window-modes.ps1','tools/nwn79/check-godot-only.ps1','tools/nwn79/build-windows-profile.ps1','tools/nwn79/verify-godot-delivery.ps1','tools/nwn79/build-godot-delivery.ps1','.godot/extension_list.cfg','.tools/Godot_v4.7.2-stable_win64.exe','.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-resource-index/nwn-resource-index.dll','.cache/nwn79/windows-profile.exe','.cache/native-window/nwn-window-modes.exe','.cache/native-window/build-manifest.json')){Add-Source (Join-Path $client $name)}
 foreach($name in @('tooling/native/content-reader/nwn-content-reader.exe','tooling/native/content-reader/zstd-LICENSE.txt','tooling/native/nwn-network-crypto.exe','tooling/native/libhydrogen-LICENSE.txt','scripts/build-content-reader.ps1','scripts/build-network-crypto.ps1')){Add-Source (Join-Path $workspace $name)}
 foreach($name in @('clock_source.gdextension','nwn-clock-source.dll')){
  $optional=Join-Path $client ('.cache/native-clock-source-v1/'+$name)
@@ -52,6 +56,7 @@ foreach($source in $files){
  if((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sourceHashes[$source]){throw ('Delivery source changed during staging: '+$source)}
 }
 $manifest=@{format='nwn79-godot-delivery-v1';files=$manifestFiles}
+if($IncludeVaultCreationProbe){$manifest.testFixture='server-vault-create-reconnect-v1'}
 $manifestPath=Join-Path $destination 'godot-client/godot-delivery-manifest.json'
 $manifest|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $manifestPath -Encoding utf8
 & (Join-Path $PSScriptRoot 'verify-godot-delivery.ps1') -PackageRoot $destination -Strict

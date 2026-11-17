@@ -77,9 +77,11 @@ func description(table: String,id: int) -> Dictionary:
 func icon(table: String,id: int) -> String: return str(cell(row(table,id),"IconResRef" if table=="spells" else "Icon",""))
 func portrait(object: Dictionary,size: int=4) -> String:
 	var state: Dictionary=object.get("replicated",{})
-	var resource:=str(state.get("portraitRef",""))
-	if resource.is_empty() or resource=="****":
-		var id:=number(state.get("portrait"),-1)
+	var id:=number(state.get("portrait"),-1)
+	var resource: String=""
+	if id>0xfffd:
+		resource=str(state.get("portraitRef",""))
+	elif id>=0:
 		var base:=str(cell(row("portraits",id),"BaseResRef",""))
 		resource="po_"+base if base!="****" and not base.is_empty() else ""
 	if resource.is_empty() or resource=="****": return ""

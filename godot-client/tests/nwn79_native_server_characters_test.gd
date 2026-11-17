@@ -39,8 +39,16 @@ func _initialize()->void:
 		var expected: PackedByteArray=str(row.packet).hex_decode()
 		if result.has("error") or result.bytes.size()!=expected.size() or result.bytes.slice(0,-1)!=expected.slice(0,-1) or (int(result.bytes[-1])&0xe0)!=(int(expected[-1])&0xe0):fail("Native character upload differs from original sender");return
 	if not Characters.upload_request(PackedByteArray()).has("error") or not Characters.upload_request(PackedByteArray([1]),2).has("error"):fail("Native upload accepted invalid input");return
-	var session:=Session.new();var peer:=FakePeer.new();session.peer=peer;session.phase="character-selection";session.catalog=RefCounted.new()
 	var local_bic:=PackedByteArray([66,73,67,32,1,2,3])
+	var restricted:=Session.new();var restricted_peer:=FakePeer.new()
+	if restricted.local_vault_allowed or not restricted.set_server_vault_policy({"host":"fixture","port":5121,"allowLocalVaultCharacters":false},"fixture",5121):fail("Server-vault-only policy was not admitted from the original server-info result");return
+	restricted.peer=restricted_peer;restricted.phase="character-selection";restricted.catalog=RefCounted.new()
+	if restricted.play_local_character(local_bic) or not restricted_peer.sent.is_empty():fail("Server-vault-only session uploaded a local character");return
+	if not restricted.play_local_character(local_bic,true) or restricted_peer.sent.size()!=1 or restricted_peer.sent[0]!=Characters.upload_request(local_bic,19).bytes:fail("Server-vault-only character creation did not preserve original subtype 19");return
+	restricted.close();restricted.free()
+	var session:=Session.new();var peer:=FakePeer.new()
+	if not session.set_server_vault_policy({"host":"fixture","port":5121,"allowLocalVaultCharacters":true},"fixture",5121):fail("Local-vault policy was not admitted from the original server-info result");return
+	session.peer=peer;session.phase="character-selection";session.catalog=RefCounted.new()
 	if not session.play_local_character(local_bic) or session.phase!="character-loading" or peer.sent.size()!=1 or peer.sent[0]!=Characters.upload_request(local_bic).bytes:fail("Godot local character admission did not send the original packet");return
 	if session.play_local_character(local_bic) or peer.sent.size()!=1:fail("Godot session uploaded a local character twice");return
 	session.close();session.free()

@@ -2,6 +2,7 @@ extends RefCounted
 # One session's ordered resource catalog. Workers use independent file handles.
 # No eager BIF/HAK payload reads, Three scene, GLB, JSON/base64 or Electron.
 const Archive = preload("res://systems/native_data/archive_index.gd")
+const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 const PreparationStore=preload("res://systems/native_data/preparation_store.gd")
 const NWSync=preload("res://systems/native_data/nwsync_store.gd")
 const Loose=preload("res://systems/native_data/loose_index.gd")
@@ -28,6 +29,8 @@ func _init() -> void:
 	prepared_store.maximum_bytes=Residency.prepared_budget(); prepared_store.maximum_entries=2048
 var bif_store := BifStore.new()
 var bifs: Dictionary = bif_store.entries # Read-only view outside get_resource.
+var nwsync_repair: Callable
+var nested_archive_repair: Dictionary={}
 var stats := {"index_bytes":0,"payload_bytes":0,"reads":0,"lookup_us":0,"lookups":0,"loose_read_us":0,"archive_read_us":0,"bif_index_wait_us":0,"nwsync_read_us":0,"nwsync_wait_us":0,"nwsync_pipe_us":0,"nwsync_decode_us":0,"source_memory_hits":0,"source_coalesced_wait_us":0,"source_requests":0}
 func count_source_cache(timing: Dictionary) -> void:
 	for name in ["cache_read_us","cache_save_us","cache_prune_us","raw_cache_us"]:
@@ -69,6 +72,8 @@ func compile_bindings() -> Dictionary:
 	return entries
 func reset() -> void:
 	_ui_asset_owner=null
+	nwsync_repair=Callable()
+	nested_archive_repair={}
 	prepared_store=PreparationStore.new(); source_store=PreparationStore.new()
 	decoder_store=Residency.decoded; _init()
 	layers=[]; resolved={}; resolved_ready=false; bif_store = BifStore.new(); bifs = bif_store.entries; failure = ""
@@ -77,11 +82,21 @@ func mount_install(install_root: String, language: String = "en") -> bool:
 	failure = ""
 	if not language.is_valid_identifier(): failure = "Invalid install language directory"; return false
 	var before: Array = layers.duplicate()
-	var sources := [["data/nwn_base.key", 1000000, true], ["data/nwn_retail.key", 2000000, false], ["lang/" + language + "/data/nwn_base_loc.key", 3000000, false]]
+	# The old game-data reader inspected these two directories and required each
+	# selected KEY basename to be unique across them. Probe only those six paths.
+	var directories: Array[String]=[install_root.path_join("data"),install_root.path_join("lang").path_join(language).path_join("data")]
+	var sources := [["nwn_base_loc.key", 3000000, false], ["nwn_retail.key", 2000000, false], ["nwn_base.key", 1000000, true]]
 	for source in sources:
-		var path: String = install_root.path_join(source[0])
-		if not FileAccess.file_exists(path) and not source[2]: continue
-		if not mount_key(path, install_root, source[1]): layers = before; return false
+		var path: String=""
+		for directory in directories:
+			var candidate: String=directory.path_join(str(source[0]))
+			if not FileAccess.file_exists(candidate): continue
+			if not path.is_empty(): failure="Could not uniquely locate "+str(source[0])+" in the selected game-data folder."; layers=before; return false
+			path=candidate
+		if path.is_empty():
+			if bool(source[2]): failure="The selected game-data folder must contain data/nwn_base.key."; layers=before; return false
+			continue
+		if not mount_key(path, install_root, int(source[1])): layers = before; return false
 	return true
 func fork() -> RefCounted:
 	# Immutable indexes are shared after locked publication. Every payload read
@@ -96,6 +111,17 @@ func fork() -> RefCounted:
 	copy._ui_asset_scope_permitted=false
 	copy.bif_store = bif_store; copy.bifs = bif_store.entries
 	return copy
+func bind_nwsync_repair(callback: Callable)->void:
+	# Main-thread publication owner only. Worker forks carry source data, not
+	# an HTTP/scene Callable.
+	nwsync_repair=callback
+func nwsync_repair_binding(name: String,type: int)->Dictionary:
+	var found:=location(name,type)
+	if found.is_empty():return {}
+	var kind:=str(found.layer.get("kind",""))
+	if kind=="nwsync":return {"store":found.layer.store,"entry":found.entry}
+	if kind=="nwsync-erf":return {"store":found.layer.store,"entry":found.layer.source_entry}
+	return {}
 func preparation_cache(): return prepared_store
 func decoded_cache(): return decoder_store
 func bif_index_build_count() -> int:
@@ -127,6 +153,22 @@ func mount_erf(path: String, priority: int = 0) -> bool:
 	layers.append({"kind": "erf", "priority": priority, "serial": layers.size(), "archive": index, "entries": index.entries,"binding_identity":reader.index_identity})
 	invalidate()
 	layers.sort_custom(func(a, b): return a.priority > b.priority or (a.priority == b.priority and a.serial < b.serial))
+	return true
+func mount_nwsync_erf(store: RefCounted,source_entry: Dictionary,priority: int,source_name: String) -> bool:
+	failure="";nested_archive_repair={}
+	if store==null or not store.has_method("resource_borrowed") or str(source_entry.get("hash","")).length()!=40:failure="Invalid verified NWSync archive source";return false
+	var source: Dictionary=store.resource_borrowed(source_entry)
+	if source.has("error"):
+		failure=str(source.error)
+		nested_archive_repair={"store":store,"entry":source_entry.duplicate(true)}
+		return false
+	var reader:=Archive.new()
+	var index: Dictionary=reader.erf_bytes_index(source.bytes,str(source_entry.hash))
+	if not reader.failure.is_empty():failure=reader.failure;return false
+	stats.index_bytes+=reader.index_bytes
+	layers.append({"kind":"nwsync-erf","priority":priority,"serial":layers.size(),"store":store,"source_entry":source_entry.duplicate(true),"archive":index,"entries":index.entries,"binding_identity":"nwsync-erf:"+str(source_entry.hash)+":"+source_name+":"+str(reader.index_identity)})
+	invalidate()
+	layers.sort_custom(func(a,b):return a.priority>b.priority or a.priority==b.priority and a.serial<b.serial)
 	return true
 func mount_key(path: String, install_root: String, priority: int = 0) -> bool:
 	failure = ""
@@ -180,6 +222,27 @@ func recorded_texture_miss(name: String) -> bool:
 	return raster_location(name).is_empty() and not has_resource(name,6)
 func get_resource(name: String, type: int) -> PackedByteArray:
 	stats.source_requests+=1
+	var selected:=location(name,type)
+	if not selected.is_empty() and str(selected.layer.get("kind",""))=="erf":
+		var archive: Dictionary=selected.layer.archive
+		if bool(archive.get("stamp_precise",false)):
+			var current: Dictionary=Backend.file_stamp(str(archive.path))
+			if current.has("error") or int(current.get("size",-1))!=int(archive.size) or int(current.get("modified",-1))!=int(archive.modified):
+				failure="Resource archive changed; rebuild the native catalog"
+				return PackedByteArray()
+		else:
+			# A whole-second stamp cannot distinguish an index-table rewrite either.
+			# Re-read only the ERF header/tables and compare their residency identity
+			# before using the mounted offset. The payload itself still bypasses the
+			# resident caches so an equal-size payload rewrite reads current bytes.
+			var verifier:=Archive.new()
+			verifier.erf(str(archive.path))
+			if not verifier.failure.is_empty() or verifier.index_identity!=str(selected.layer.binding_identity):
+				failure="Resource archive changed; rebuild the native catalog"
+				return PackedByteArray()
+			var fresh: PackedByteArray=read_resource(name,type)
+			if recording!=null:recording.record(name,type,fresh,failure)
+			return fresh
 	var resident: PackedByteArray=ItemIconSources.lookup(self,name,type) if type in [3,6,2073,2033,2059] else PackedByteArray()
 	if resident.is_empty() and type in [3,2073,2033,2059]: resident=SpellbookIconSources.lookup(self,name,type)
 	if not resident.is_empty():
@@ -196,7 +259,7 @@ func get_resource(name: String, type: int) -> PackedByteArray:
 	else:
 		bytes=lease.value.bytes; failure=str(lease.value.error); stats.source_memory_hits+=1; stats.source_coalesced_wait_us+=int(lease.wait_us)
 	if recording!=null: recording.record(name,type,bytes,failure)
-	return bytes
+	return bytes.duplicate() if not selected.is_empty() and str(selected.layer.get("kind",""))=="nwsync-erf" else bytes
 func read_resource(name: String, type: int) -> PackedByteArray:
 	failure = ""
 	var found := location(name, type)
@@ -217,6 +280,18 @@ func read_resource(name: String, type: int) -> PackedByteArray:
 		if result.has("error"): failure=result.error; return PackedByteArray()
 		var original: PackedByteArray=result.bytes
 		stats.payload_bytes+=original.size(); stats.reads+=1; return original
+	if layer.kind=="nwsync-erf":
+		var began:=Time.get_ticks_usec()
+		var source: Dictionary=layer.store.resource_borrowed(layer.source_entry)
+		stats.nwsync_read_us+=Time.get_ticks_usec()-began
+		count_source_cache(source.get("timings",{}))
+		if source.has("error"):failure=str(source.error);return PackedByteArray()
+		var archive_bytes: PackedByteArray=source.bytes
+		var offset:=int(entry.get("offset",-1));var size:=int(entry.get("size",-1))
+		if archive_bytes.size()!=int(layer.archive.size) or offset<0 or size<0 or offset>archive_bytes.size() or size>archive_bytes.size()-offset:
+			failure="Nested NWSync archive changed or resource bounds differ";return PackedByteArray()
+		var nested:=archive_bytes.slice(offset,offset+size)
+		stats.payload_bytes+=nested.size();stats.reads+=1;return nested
 	var reader := Archive.new(); var archive: Dictionary
 	if layer.kind == "key":
 		var path: String = layer.root.path_join(entry.bif)

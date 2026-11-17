@@ -123,6 +123,29 @@ func publish_owner_facts(value: Dictionary)->Dictionary:
 	if value.has("profileMode"):_pause.profile_mode=WorldClock.i32(value.profileMode)
 	if value.has("controlledId"):_pause.controlled_id=WorldClock.u32(value.controlledId)
 	return {"ready":true,"transitionsReady":_providers_ready()}
+func bind_direct_owners(facts: Dictionary,providers: Dictionary)->Dictionary:
+	# A decoded server pause is not sufficient to invent scene, GUI or audio
+	# ownership. Require the actual client owners before any transition runs.
+	if not _constructed or _released:return unavailable("Direct clock process owner is unavailable.")
+	if not facts.has("gui") or not facts.has("profileMode") or not facts.has("controlledId"):
+		return unavailable("Direct clock GUI/profile/controlled owners are incomplete.")
+	var gui_fact: Variant=facts.gui
+	if not gui_fact is Dictionary or gui_fact.get("known")!=true or not gui_fact.has("value") or not WorldClock.integer(facts.profileMode) or not WorldClock.integer(facts.controlledId):
+		return unavailable("Direct clock owner facts are invalid.")
+	var required: Array=LOWER.duplicate()
+	if gui_fact.value!=null:required.append_array(GUI_LOWER)
+	for name in required:
+		var callback: Variant=providers.get(name)
+		if not callback is Callable or not callback.is_valid():return unavailable("Direct clock lower provider is unavailable: "+name)
+	var next: Dictionary=providers.duplicate()
+	next.acceptedLifecycle=_lower.get("acceptedLifecycle")
+	var previous: Dictionary=_lower
+	_lower=next
+	var published: Dictionary=publish_owner_facts(facts)
+	if not published.ready or not _providers_ready():
+		_lower=previous
+		return unavailable("Direct clock owner publication is incomplete.")
+	return {"ready":true,"transitionsReady":true,"guiPresent":gui_fact.value!=null}
 func _providers_ready()->bool:
 	if not _constructed or not _pause.gui_known or _pause.profile_mode==null or _pause.controlled_id==null:return false
 	var required: Array=LOWER.duplicate()

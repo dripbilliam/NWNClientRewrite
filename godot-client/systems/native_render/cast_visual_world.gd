@@ -25,21 +25,30 @@ func record(object: Dictionary) -> Dictionary:
 	if not records.has(id):
 		records[id]={"id":id,"lifetime":lifetime,"source":{},"visuals":State.create(),"animation":0,"spellId":-1,"previousCasting":0,"suppressSound":0,"race":-1,"gender":255,"last":Time.get_ticks_msec()}
 	return records[id]
-func refresh(r: Dictionary,object: Dictionary,animation: int) -> void:
+func refresh(r: Dictionary,object: Dictionary,animation: int) -> bool:
+	var source: Variant=manager.projectiles.object_view(int(object.id))
+	if source==null:return false
 	var immediate: Dictionary=cast_states.get(int(object.id),{})
 	if not immediate.is_empty() and int(immediate.lifetime)==int(object.get("nativeLifetime",0)): animation=int(immediate.animation)
-	r.source={"id":int(object.id),"position":manager.projectiles.object_view(int(object.id)).position}; r.animation=animation
+	r.source={"id":int(object.id),"position":source.position}; r.animation=animation
 	var replicated: Dictionary=object.get("replicated",{})
 	if ((animation-15)&65535)<6 or (animation&65535)==61:
 		var cast: Dictionary=immediate.cast if not immediate.is_empty() and int(immediate.lifetime)==int(r.lifetime) else replicated.get("cast",{})
 		if cast.has("spell"): r.spellId=int(cast.spell); r.suppressSound=int(cast.get("silent",0))
-	r.race=int(replicated.get("stats",{}).get("racialType",-1)); r.gender=int(object.get("appearance",{}).get("gender",255)) if manager.host(int(object.id))!=null else 255
+	var stats_state: Dictionary=replicated.get("stats",{}) if replicated.get("stats",{}) is Dictionary else {}
+	var race: Variant=stats_state.get("racialType",null)
+	if race==null:race=stats_state.get("fieldD20",-1)
+	r.race=int(race)
+	var appearance: Dictionary=object.get("appearance",{}) if object.get("appearance",{}) is Dictionary else {}
+	var gender: Variant=appearance.get("gender",null)
+	r.gender=int(gender) if gender!=null else 255
+	return true
 func observe(object: Dictionary,animation: int) -> void:
 	if closed or int(object.objectType)!=5: return
 	var id:=int(object.id)
 	if cast_states.has(id) and int(cast_states[id].lifetime)==int(object.get("nativeLifetime",0)): animation=int(cast_states[id].animation)
 	if not State.casting(animation) and not records.has(id): return
-	refresh(record(object),object,animation)
+	if not refresh(record(object),object,animation):forget(id)
 func receive(row: Dictionary) -> void:
 	if closed: return
 	var id:=int(row.id); var animation:=int(row.animation)
@@ -49,7 +58,7 @@ func receive(row: Dictionary) -> void:
 	if not State.casting(animation) and not records.has(id): cast_states.erase(id); return
 	if not cast_states.has(id) and cast_states.size()>=128: stats.overflow+=1; return
 	cast_states[id]={"lifetime":int(row.lifetime),"animation":animation,"cast":row.get("cast",{}).duplicate(true),"received":Time.get_ticks_msec()}
-	if object!=null and int(object.get("nativeLifetime",0))==int(row.lifetime): refresh(record(object),object,animation)
+	if object!=null and int(object.get("nativeLifetime",0))==int(row.lifetime) and not refresh(record(object),object,animation):forget(id)
 func release(object: Dictionary,refs: Array,received: int) -> void:
 	if closed: return
 	if releases.size()>=128: stats.overflow+=1; return
@@ -141,7 +150,7 @@ func advance() -> void:
 				cast_states.erase(id)
 				if not records.has(id): stats.stale+=1
 			continue
-		if not records.has(id) and manager.host(int(id))!=null: refresh(record(object),object,int(state.animation))
+		if not records.has(id) and manager.host(int(id))!=null and not refresh(record(object),object,int(state.animation)):forget(int(id))
 	for entry in releases:
 		var object: Variant=manager.object(int(entry.id))
 		if object==null or int(object.get("nativeLifetime",0))!=int(entry.lifetime): stats.stale+=1; continue
@@ -149,7 +158,8 @@ func advance() -> void:
 			if now-int(entry.received)<5000: waiting.append(entry)
 			else: stats.stale+=1
 			continue
-		var r:=record(object); var animation:=int(object.get("replicated",{}).get("animation",0)); refresh(r,object,animation)
+		var r:=record(object); var animation:=int(object.get("replicated",{}).get("animation",0))
+		if not refresh(r,object,animation):forget(int(entry.id));stats.stale+=1;continue
 		var p:=providers(r); State.drive(r,0,p); State.release(r.visuals,entry.refs,r.source,p); r.visuals.released=1
 		event("release",{"sourceId":entry.id,"refs":entry.refs})
 	releases=waiting

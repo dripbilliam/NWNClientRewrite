@@ -3,17 +3,51 @@
 Godot owns the normal client path: `join-native.ps1` delegates to
 `join-godot.ps1`, with no Node or Electron process. Native helpers remain for
 Windows DPAPI, libhydrogen and read-only installed NWSync SQLite access.
-NWN-79 remains In Progress while public-server, remaining protocol, visual and
-delivery acceptance is completed.
+NWN-79 remains In Progress while current-package local-server gameplay and
+delivery acceptance is completed. The user has deferred public Arelith testing.
 
-The clean Godot-only package staged on 2026-11-16 has 2,432 hash-verified
-files. Its private matrix passed baseline login/world admission, browser
-authentication, manual character choice, inventory/dialog, reconnect, travel,
-character export and NWSync cold/warm/corrupt-cache repair, with clean exits
-and zero live settings writes. Evidence:
-`.cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json`
-(relative to the workspace root). This does not establish public Arelith,
-ordinary in-world visual parity, or FPS acceptance.
+The current ordinary Godot-only package J staged on 2026-11-17 has 2,431
+hash-verified files and manifest SHA-256
+`2f22f6d9f8e96d484144cbaad2a64fe8cedba8b06ae25b20619b5985c972c2b8`.
+Strict verification and the Godot-only guard passed; all packaged files matched
+source at build time. The package contains no test scripts, creator probe or
+unused Windows console wrapper. Its supported headless CheckOnly path launched
+the pinned GUI executable with `--headless` and
+exited cleanly. Evidence:
+`.cache/nwn79-final-ordinary-package-20261117-j-acceptance.json` and
+`.cache/nwn79-final-ordinary-package-20261117-j-headless.json`.
+Any later runtime source change requires another build and verification.
+The previous 2,438-file ordinary package and its one-probe test-package
+comparison remain historical acceptance artifacts. Evidence:
+`.cache/nwn79-vault-create-test-vs-ordinary-20261116-a.json`.
+The earlier sealed package C passed its ten-row private protocol matrix:
+`.cache/nwn79-browser-fix-matrix-20261116-c/matrix-summary.json`.
+The previous ordinary package separately passed server-vault preview and Play
+against a hash-verified private seed:
+`.cache/nwn79-final-package-server-only-play-20261116-b/summary.json`.
+The source client also passed genuine new-character creation, disconnect,
+reconnect, preview and Play on one owned server:
+`.cache/nwn79-vault-create-reconnect-source-20261116-i/amended-evidence.json`.
+Earlier ordinary package E passed private in-world Esc open and close with
+configured native Options art:
+`.cache/nwn79-esc-live-20261116-a/package-e/esc.json`.
+Earlier package H passed an owned local ServerVault-on graphical Exit-to-menu and
+same-process rejoin: the visible native Exit button returned to a usable main
+menu, then the saved server character reentered the world. Evidence:
+`.cache/nwn79-local-visible-20261116-a/exit-h-r1.probe.json`.
+The normal-menu settings UI source passed disposable save/reopen and graphical
+Options checks before package I was sealed. Package I then passed a packaged
+synthetic ClientSetup check without server access or live credentials. Evidence:
+`.cache/nwn79-client-setup-menu-20261117-e.json` and
+`.cache/nwn79-client-setup-menu-20261117-visual.json`, plus
+`.cache/nwn79-package-i-acceptance-20261117-c/acceptance.json`.
+Package J has no fresh ServerVault create/rejoin/Exit, NWSync or travel gameplay
+run; those accepted outcomes remain scoped to their earlier source/packages.
+These receipts have distinct scopes. Public Arelith is deferred by the user. The
+older implementation bullets below are chronological checkpoints; where they
+say a later-completed private step was pending, the
+current status and receipts above supersede them. FPS measurement is outside
+the current NWN-79 scope.
 
 After NWN-79 meets all acceptance criteria, continue with ready NWNAnalog
 tickets that are not about FPS or CPU timing. This is the user's requested
@@ -127,15 +161,15 @@ next-work order; it does not relax NWN-79 completion requirements.
   manifest, custom TLK and every required blob pass the admission check.
 - Recorded native binary wire fixtures pass the login, reliable-window,
   message, resource, character-list/request and device-property tests.
-- The Windows protection helper now authenticates legacy Chromium `v10`
-  ciphertext with the DPAPI-wrapped profile key and AES-256-GCM through a
-  private pipe. Godot's settings store re-protects and verifies every legacy
-  CD key, saves a ciphertext-only backup before replacing the settings file,
-  and leaves the original untouched if any profile fails. A disposable two-
-  profile test passed migration, backup, idempotence and corrupt-second-key
-  refusal without Node. A copy-only check of the current user profile found
-  two profiles and a readable active key; it had already been upgraded, so it
-  migrated zero records. The real settings file was not modified by that test.
+- Godot imports non-secret fields from prior settings exactly once, preserves
+  a backup and durable import marker, and does not re-import on later launches
+  even if the prior source changes or disappears. Prior Chromium-protected keys
+  are retired; the user re-enters a key into the Godot-owned Windows-protected
+  store. Packaged import, interrupted-import recovery and credential rejection,
+  re-entry and reopen checks passed without changing live prior settings.
+  Evidence: `.cache/nwn79-packaged-settings-acceptance-20261116.json`,
+  `.cache/nwn79-package-synthetic-upgrade-20261116-receipt.json` and
+  `.cache/nwn79-packaged-credential-recovery-20261116.json`.
 - The direct Godot startup now resolves the installed profile, saved Workshop
   selection, NWSync cache and local character roots before the menu starts,
   using the same content descriptor the transitional host supplies. The
@@ -239,7 +273,8 @@ next-work order; it does not relax NWN-79 completion requirements.
   extended details. The existing browser's Server info action displayed the
   module detail and then joined the playable world. Evidence:
   `.cache/nwn79/direct-server-info-20261115.json`. Graphical list/detail
-  acceptance and a real prior-version key upgrade remain outstanding.
+  acceptance remains outstanding. The accepted key path is re-entry into the
+  Godot-owned store after the one-time non-secret settings import.
 - The Godot session now accepts shortcut activation and assignment from the
   existing gameplay UI. Ten original shortcut-assignment packet shapes match
   the former sender byte-for-byte. Assignment checks current actor and item
@@ -267,33 +302,52 @@ next-work order; it does not relax NWN-79 completion requirements.
 
 ## Remaining NWN-79 acceptance
 
-1. Finish the remaining original-server protocol and UI behaviors, then verify
-   them through the normal Godot entry. Private travel, reconnect, inventory,
-   character export and NWSync paths have passed in the clean package.
-2. Verify one-time settings import and credential failure/re-entry as separate
-   acceptance rows. The old saved key does not need to be decrypted.
-3. Complete public Arelith gameplay, visual and performance checks, plus any
-   remaining delivery scenarios. Keep NWN-79 In Progress until these pass.
+1. Check any final-package J local normal-entry gameplay scenarios required by
+   NWN-79 acceptance. Package I's synthetic settings check and package H's
+   owned ServerVault-on Exit-to-menu and same-process
+   rejoin pass is recorded above. Private travel, reconnect, inventory, character
+   export, NWSync, and source-client new-character persistence have separate
+   passing receipts; the earlier ordinary package has a private server-vault
+   preview/Play pass.
+2. Review the completed one-time non-secret settings import and credential
+   failure/re-entry receipts against the final release workflow. Old saved-key
+   decryption is not required.
+3. Package H's local native Exit/menu/rejoin is accepted. Package E's private
+   in-world Esc/Options pass is evidence for its earlier fixture; any remaining
+   local visual checks need their own receipts. Public Arelith remains deferred
+   by the user, with no
+   connection authorized in this acceptance window.
+4. Restage the ordinary package if runtime source changes. Continue the
+   per-function old JS migration review in
+   `tools/nwn79/js-runtime-function-ledger-v1.json`: its
+   mechanical 848-file, 6,333-declaration inventory is in progress, with pending
+   caller and parity evidence. The scanner covers literal imports, known Worker
+   URLs and BrowserWindow preload; multiline, computed and anonymous function
+   forms and other dynamic process loaders still need source review. A few
+   individual modules have verified rows, but the full inventory remains
+   incomplete. The structural validator passes, while
+   its strict completion gate intentionally fails; file counts do not prove
+   every function was mapped or ported.
 
-Run the focused checks from `godot-client` with the pinned Godot console binary:
+Run the focused checks from `godot-client` with the pinned Godot desktop executable in headless mode:
 
 ```powershell
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_resource_requirements_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_server_characters_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_device_properties_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_area_state_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_player_roster_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_object_updates_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_inventory_stats_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_inventory_messages_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_world_state_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_world_state_test.gd' -- --render-world
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_resource_sources_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_resource_sources_test.gd' -- --mount
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_runtime_messages_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_player_requests_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_direct_startup_ticket_test.gd'
-& '.\.tools\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script 'res://tests/nwn79_native_network_session_test.gd' -- --enter-area
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_resource_requirements_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_server_characters_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_device_properties_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_area_state_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_player_roster_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_object_updates_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_inventory_stats_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_inventory_messages_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_world_state_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_world_state_test.gd' -- --render-world
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_resource_sources_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_resource_sources_test.gd' -- --mount
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_runtime_messages_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_player_requests_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_direct_startup_ticket_test.gd'
+& '.\.tools\Godot_v4.7.2-stable_win64.exe' --headless --path . --script 'res://tests/nwn79_native_network_session_test.gd' -- --enter-area
 ```
 
 The repository and live session checks need network access and the Windows

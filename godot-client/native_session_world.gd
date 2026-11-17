@@ -13,6 +13,7 @@ var entity_inspector
 var render_menu
 var login_profiles
 var protected_settings_bridge
+var client_setup
 var login_profiles_layer
 var window_settings
 var ui_preload
@@ -299,6 +300,10 @@ func run() -> void:
 	login_profiles=preload("res://systems/native_login_profiles.gd").new(); login_profiles_layer.add_child(login_profiles); login_profiles.setup(str(args.get("menu-layout","user://native-menu-layout.cfg"))); login_profiles.request.connect(send)
 	render_settings=RenderSettings.new(); render_settings_layer.add_child(render_settings)
 	render_settings.setup(str(args.get("render-preferences","user://native-options.cfg")),str(args.get("menu-layout","user://native-menu-layout.cfg")),args.get("profile","")=="true",str(args.get("static-parts","")),str(args.get("profile","")))
+	client_setup=preload("res://systems/client_setup.gd").new();client_setup.name="Mods and CD key";render_settings.tabs.add_child(client_setup);client_setup.setup()
+	client_setup.request.connect(client_setup_request)
+	render_settings.tabs.tab_changed.connect(func(_tab):sync_client_setup())
+	render_settings.visibility_changed.connect(sync_client_setup)
 	camera_fov_binding.configure(render_settings)
 	if not gamma_controller.bind_settings(render_settings,args.has("native-gamma")):
 		fail("Native gamma settings binding is unavailable"); return
@@ -364,6 +369,7 @@ func run() -> void:
 		if is_instance_valid(character_lobby) and (character_lobby.state.get("canCancelJoin",false) or loading_announced): cancel_loading(); return true
 		return false
 	render_menu.options_requested.connect(open_render_settings)
+	render_menu.client_settings_requested.connect(open_client_settings)
 	render_settings.visibility_changed.connect(func():
 		if not render_settings.visible: render_menu.child_closed())
 	render_menu.exit_requested.connect(shutdown)
@@ -440,6 +446,24 @@ func open_startup_menu() -> void:
 	report.startup_menu={"ready":ready,"mainVisible":ready and ui.main.is_visible_in_tree(),"browserHidden":not server_browser.wanted,"lobbyHidden":not character_lobby.panel.visible,"preload":{"ready":preload_status.get("ready",false),"completed":preload_status.get("completed",0),"total":preload_status.get("total",0),"failures":preload_status.get("failures",[])},"buttonAudioReady":is_instance_valid(ui) and ui.button_audio_ready,"buttonAudioFailed":is_instance_valid(ui) and not ui.button_audio_failure.is_empty()}
 	send({"kind":"main-menu-observed","ready":ready,"mainVisible":report.startup_menu.mainVisible,"browserHidden":report.startup_menu.browserHidden,"lobbyHidden":report.startup_menu.lobbyHidden,"runtimeFeatures":runtime_features_snapshot()})
 	if ready: print("NATIVE_STARTUP_MAIN_MENU_READY")
+func client_settings_locked() -> bool:
+	return closing or initialized or is_instance_valid(world) or is_instance_valid(character_lobby) and (bool(character_lobby.state.get("connected",false)) or bool(character_lobby.state.get("canCancelJoin",false)))
+func client_setup_request(message: Dictionary) -> void:
+	if not is_instance_valid(client_setup):return
+	if protected_settings_bridge==null:
+		client_setup.receive({"kind":"settings-notice","requestId":int(message.get("requestId",-1)),"text":"Saved settings are unavailable."})
+		return
+	for response in protected_settings_bridge.client_setup(message,client_settings_locked()):client_setup.receive(response)
+func sync_client_setup() -> void:
+	if not is_instance_valid(client_setup) or not is_instance_valid(render_settings):return
+	var selected: bool=render_settings.visible and render_settings.tabs.current_tab==client_setup.get_index()
+	if selected and not client_setup.wanted:client_setup.open()
+	elif not selected and client_setup.wanted:client_setup.close()
+func open_client_settings() -> void:
+	if not is_instance_valid(client_setup):return
+	open_render_settings()
+	render_settings.tabs.current_tab=client_setup.get_index()
+	sync_client_setup()
 func open_render_settings() -> void:
 	refresh_prework_sources()
 	render_settings.show(); render_settings.move_to_front()
@@ -1047,6 +1071,7 @@ func shutdown() -> void:
 	if is_instance_valid(prework_discovery): prework_discovery.close()
 	if is_instance_valid(ui_preload): ui_preload.close(); report.ui_preload=ui_preload.state.duplicate(true)
 	if is_instance_valid(asset_prework): asset_prework.close(); report.asset_prework=asset_prework.state.duplicate(true)
+	if is_instance_valid(client_setup):client_setup.close()
 	if protected_settings_bridge!=null:protected_settings_bridge.close();protected_settings_bridge=null
 	super.shutdown()
 	# The base shutdown closes gameplay UI before its first await. Release only
@@ -1300,21 +1325,26 @@ func apply_raw_snapshot(snapshot: Dictionary) -> void:
 	FrameProfile.finish("entry_entity_api_commit_ms",entry_began)
 	creation_trace("raw-world:entity-observer-after")
 	finish_raw_snapshot_tail(snapshot,context)
+func ensure_native_gameplay_menu(current: Callable) -> bool:
+	if not current.is_valid() or not bool(current.call()) or not is_instance_valid(gameplay_ui) or not is_instance_valid(render_menu):return false
+	if gameplay_ui.options_requested.is_connected(open_game_options):return true
+	render_menu.key_bindings=gameplay_ui.key_bindings
+	render_menu.set_modal_order(gameplay_ui.modal_order,gameplay_ui.modal_surfaces)
+	if not bool(current.call()):return false
+	creation_trace("raw-world:menu-configure-before")
+	render_menu.configure_native(gameplay_ui.inventory.frame_skin,gameplay_ui.text,catalog,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),[session_connection,gameplay_ui.generation,gameplay_ui.area_id,gameplay_ui.controlled_id])
+	if not bool(current.call()):return false
+	creation_trace("raw-world:menu-configure-after")
+	gameplay_ui.options_requested.connect(open_game_options)
+	gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
+	return true
 func finish_raw_snapshot_tail(snapshot: Dictionary,context: Dictionary) -> void:
 	var entry_began:=FrameProfile.begin()
 	accepted_raw_serial=raw_serial
 	if args.get("offline-replay","")=="true" and is_instance_valid(character_lobby): character_lobby.panel.hide()
 	if is_instance_valid(gameplay_ui) and not gameplay_ui.options_requested.is_connected(open_game_options):
 		entry_began=FrameProfile.begin()
-		render_menu.key_bindings=gameplay_ui.key_bindings
-		render_menu.set_modal_order(gameplay_ui.modal_order,gameplay_ui.modal_surfaces)
-		if not raw_snapshot_current(snapshot,context):return
-		creation_trace("raw-world:menu-configure-before")
-		render_menu.configure_native(gameplay_ui.inventory.frame_skin,gameplay_ui.text,catalog,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),[session_connection,gameplay_ui.generation,gameplay_ui.area_id,gameplay_ui.controlled_id])
-		if not raw_snapshot_current(snapshot,context):return
-		creation_trace("raw-world:menu-configure-after")
-		gameplay_ui.options_requested.connect(open_game_options)
-		gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
+		if not ensure_native_gameplay_menu(func():return raw_snapshot_current(snapshot,context)):return
 		FrameProfile.finish("entry_options_configure_ms",entry_began)
 	if not raw_snapshot_current(snapshot,context):return
 	entry_began=FrameProfile.begin()

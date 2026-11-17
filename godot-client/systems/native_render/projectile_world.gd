@@ -154,14 +154,40 @@ func event(kind: String,s: Dictionary,detail: Dictionary={}) -> void:
 func receive(event_data: Dictionary) -> void:
 	if closed: return
 	if queue.size()>=128: stats.overflow+=1; return
-	queue.append({"event":event_data.duplicate(true),"received":Time.get_ticks_msec()}); stats.received+=1
+	var received:=Time.get_ticks_msec()
+	if event_data.get("receivedAtMs") is int and int(event_data.receivedAtMs)>0 and int(event_data.receivedAtMs)<=received:received=int(event_data.receivedAtMs)
+	queue.append({"event":event_data.duplicate(true),"received":received}); stats.received+=1
+static func network_pose(row: Dictionary,private_dummy: bool=false) -> Dictionary:
+	# The original network adapter reads the canonical replicated/static pose.
+	# A rendered model can be interpolated or attached elsewhere and is not the
+	# position returned by ClientObjectArray.getObject during path updates.
+	var state: Dictionary=row.get("replicated",{}) if row.get("replicated",{}) is Dictionary else {}
+	var fixed: Dictionary=row.get("staticState",{}) if row.get("staticState",{}) is Dictionary else row.get("lightState",{}) if row.get("lightState",{}) is Dictionary else {}
+	var position: Variant=state.get("position",null)
+	if position==null: position=fixed.get("position",null)
+	# Client-only dummy objects own a flat pose, outside NetworkWorld.registry.
+	if position==null and private_dummy: position=row.get("position",null)
+	if not position is Array or position.size()!=3: return {}
+	var orientation: Variant=state.get("orientation",null)
+	if orientation==null: orientation=fixed.get("orientation",null)
+	if orientation==null: orientation=row.get("orientation",null)
+	var vector: Variant=orientation if orientation is Array else orientation.get("vector",null) if orientation is Dictionary else null
+	if not vector is Array:
+		var yaw: float=float(orientation.get("yaw",0.0)) if orientation is Dictionary else 0.0
+		var radians: float=M.f(yaw*PI/180.0)
+		vector=[M.f(cos(radians)),M.f(sin(radians)),0.0]
+	if vector.size()!=3: return {}
+	return {"position":position.duplicate(),"orientation":vector.duplicate()}
 func object_view(id: int) -> Variant:
 	var row: Variant=manager.object(id)
-	if row==null and manager.client_dummies.entries.has(id): row=manager.client_dummies.entries[id].object
-	if row==null: return null
-	var result: Dictionary=row.duplicate(); var model=model_view(result)
-	if is_instance_valid(model): result.position=[model.global_position.x,-model.global_position.z,model.global_position.y]
-	else: result.position=row.get("replicated",{}).get("position",row.get("position",[0,0,0])).duplicate()
+	var private_dummy:=false
+	if row==null and manager.client_dummies.entries.has(id):
+		row=manager.client_dummies.entries[id].object
+		private_dummy=true
+	if row==null or not row is Dictionary or bool(row.get("replicationRemoved",false)): return null
+	var pose:=network_pose(row,private_dummy)
+	if pose.is_empty(): return null
+	var result: Dictionary=row.duplicate(); result.position=pose.position; result.orientation=pose.orientation
 	return result
 func model_view(object: Dictionary,_part: int=255,_flags: int=1) -> Variant:
 	return object.model if object.has("model") else manager.host(int(object.id),int(object.get("privateToken",0)))

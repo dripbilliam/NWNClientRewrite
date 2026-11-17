@@ -3,6 +3,7 @@ const Desktop=preload("res://systems/native_game_desktop.gd")
 const Text=preload("res://systems/native_data/talk_text.gd")
 const Gameplay=preload("res://systems/native_gameplay_ui.gd")
 const Cursor=preload("res://systems/native_mouse_cursor.gd")
+const TargetPreview=preload("res://systems/native_render/native_target_preview_shader.gd")
 const INVALID:=2130706432
 class ProbePointer extends RefCounted:
 	var desktop
@@ -88,9 +89,11 @@ func run() -> void:
 	cursor.world_pointer({"id":102,"position":Vector3(1,2,3)},false)
 	var pointer: Dictionary=cursor.target_preview_snapshot()
 	check(pointer.enabled and pointer.point==[1.0,-3.0,2.0] and pointer.player==[10.0,20.0,30.0] and pointer.type==5 and pointer.areaId==42 and pointer.generation==7 and pointer.actorId==101 and pointer.targetVersion==1,"Actual world pointer publishes scoped native shader inputs for valid server target")
+	check(TargetPreview.snapshot().state.get("enabled",false) and TargetPreview.snapshot().state.shape==3 and TargetPreview.snapshot().state.point==Vector3(1,-3,2),"Cursor signal publishes the Desktop target through the actual material adapter")
 	check(observed.size()==1 and observed[0]==pointer,"Pointer preview change has one immutable snapshot for render owner")
 	cursor.world_pointer({"id":103,"position":Vector3(1,2,3)},false)
 	check(not cursor.target_preview_snapshot().enabled,"Invalid target hides preview while retaining server cursor")
+	check(not TargetPreview.snapshot().state.enabled,"Invalid target disables the global material preview")
 	cursor.world_pointer({"id":102,"position":Vector3(1,2,3)},false)
 	cursor.world_pointer({"id":102,"position":Vector3(1,2,3)},true)
 	check(not cursor.target_preview_snapshot().enabled,"Blocked GUI pointer hides preview")
@@ -99,8 +102,9 @@ func run() -> void:
 	check(not cursor.target_preview_snapshot().enabled,"Replaced server mode clears preview before the next world pick")
 	desktop.state.scriptTargeting.version=1; cursor.world_pointer({"id":102,"position":Vector3(1,2,3)},false); cursor.release()
 	check(not cursor.target_preview_snapshot().enabled,"Pointer/focus release clears preview")
+	check(not TargetPreview.snapshot().state.enabled,"Pointer release clears the material preview")
 	cursor.close(); cursor.free(); pointer_ui=null
 	desktop.target_prompt.free(); desktop.free(); text.close(); await process_frame
 	var file:=FileAccess.open(output,FileAccess.WRITE)
-	file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"commands":commands,"scope":"Desktop type45 world cursor/click and 57/1-2 descriptor; original packet and 112/6/37 writer oracles are separate, visible target shader not yet implemented."},"\t")); file.close()
+	file.store_string(JSON.stringify({"success":failures.is_empty(),"checks":checks,"failures":failures,"commands":commands,"scope":"Desktop type45 world cursor/click, 57/1-2 descriptor and cursor-to-material publication; original packet and 112/6/37 writer oracles are separate."},"\t")); file.close()
 	print(JSON.stringify({"checks":checks,"failures":failures})); quit(0 if failures.is_empty() else 1)

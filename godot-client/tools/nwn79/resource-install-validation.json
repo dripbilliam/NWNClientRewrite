@@ -1,0 +1,34 @@
+{
+  "format": "nwn79-resource-install-validation-v1",
+  "scope": "Partial source gate for resource admission, archive/cache, Workshop audio, TLK and install selection. It does not certify all NWN-79 runtime changes.",
+  "cases": [
+    "nwn79_workshop_admission",
+    "nwn79_workshop_audio_mount",
+    "nwn79_workshop_audio_preference",
+    "nwn79_erf_bytes_index",
+    "nwn79_nwsync_nested_archive",
+    "nwn79_installed_key_selection",
+    "nwn79_custom_tlk_admission",
+    "nwn79_tlk_unknown_language",
+    "nwn79_erf_file_stamp",
+    "nwn79_nwsync_nested_archive_borrow",
+    "nwn79_nwsync_archive_tlk_repair",
+    "nwn79_native_install_selection"
+  ],
+  "gates": [
+    "Pinned Godot and native helper setup",
+    "Godot-only source guard",
+    "Direct-world Godot parse",
+    "Focused-runner positive and negative exit gate",
+    "Twelve isolated focused cases with structured receipts",
+    "Fresh Godot-only package build and strict manifest verification"
+  ],
+  "separateAcceptance": [
+    "Camera follow and clear-view behavior",
+    "NWSync cold/warm/repair/cancel and private gameplay",
+    "Settings import and protected-key recovery",
+    "Protocol, pause and scene-clock integration",
+    "Graphical menu, inventory, audio and material presentation",
+    "Public Arelith acceptance"
+  ]
+}

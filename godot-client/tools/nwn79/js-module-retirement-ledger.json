@@ -69,11 +69,21 @@
     {
       "path": "electron/network_packet_cipher.mjs",
       "status": "retired-normal-runtime",
-      "exports": ["requiresSessionEncryption", "NetworkPacketCipher"],
-      "godotReplacements": ["godot-client/systems/native_data/native_network_packet_cipher.gd", "godot-client/systems/native_data/native_network_datagram.gd"],
-      "focusedEvidence": ["godot-client/tests/nwn79_native_packet_cipher_test.gd"],
+      "exports": [
+        "requiresSessionEncryption",
+        "NetworkPacketCipher"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_network_packet_cipher.gd",
+        "godot-client/systems/native_data/native_network_datagram.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_packet_cipher_test.gd"
+      ],
       "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
-      "deadOriginalSourceImporters": ["electron/network_peer.mjs"],
+      "deadOriginalSourceImporters": [
+        "electron/network_peer.mjs"
+      ],
       "normalRuntimeCallers": 0,
       "retiredSha256": "1af8d2738497e696ffd63cfff312a0144b82f408fe9b81196164cd117b518277",
       "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-a.json"
@@ -81,11 +91,19 @@
     {
       "path": "electron/network_crypto.mjs",
       "status": "retired-normal-runtime",
-      "exports": ["NetworkCrypto"],
-      "godotReplacements": ["godot-client/systems/native_data/native_network_crypto.gd"],
-      "focusedEvidence": ["godot-client/tests/nwn79_native_network_crypto_test.gd"],
+      "exports": [
+        "NetworkCrypto"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_network_crypto.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_network_crypto_test.gd"
+      ],
       "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
-      "deadOriginalSourceImporters": ["electron/network_peer.mjs"],
+      "deadOriginalSourceImporters": [
+        "electron/network_peer.mjs"
+      ],
       "normalRuntimeCallers": 0,
       "retiredSha256": "cb6759d05e617b9bb9c992c812302dbe434f6768c5ef6d9a642562025dba332d",
       "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-b.json"
@@ -93,11 +111,19 @@
     {
       "path": "electron/network_character_vault.mjs",
       "status": "retired-normal-runtime",
-      "exports": ["NetworkCharacterVault"],
-      "godotReplacements": ["godot-client/systems/native_data/native_character_export_vault.gd"],
-      "focusedEvidence": ["godot-client/tests/nwn79_native_character_export_vault_test.gd"],
+      "exports": [
+        "NetworkCharacterVault"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_character_export_vault.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_character_export_vault_test.gd"
+      ],
       "privateEvidence": ".cache/nwn79-character-export-20261116-b/matrix-summary.json",
-      "deadOriginalSourceImporters": ["electron/main.cjs"],
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs"
+      ],
       "normalRuntimeCallers": 0,
       "retiredSha256": "a128e6e968d38884f792c29f03ff8f3b6fd859e9643dfcb26b05146002029149",
       "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-b.json"
@@ -105,11 +131,19 @@
     {
       "path": "electron/network_message_inflater.mjs",
       "status": "retired-normal-runtime",
-      "exports": ["NetworkMessageInflater"],
-      "godotReplacements": ["godot-client/systems/native_data/native_network_inflater.gd"],
-      "focusedEvidence": ["godot-client/tests/nwn79_native_inflater_test.gd"],
+      "exports": [
+        "NetworkMessageInflater"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_network_inflater.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_inflater_test.gd"
+      ],
       "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
-      "deadOriginalSourceImporters": ["electron/network_peer.mjs"],
+      "deadOriginalSourceImporters": [
+        "electron/network_peer.mjs"
+      ],
       "normalRuntimeCallers": 0,
       "retiredSha256": "1d8299c54c924ba09a392438b4da47511a05fc010ed3375b8910327e7269f6d2",
       "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-a.json"
@@ -117,11 +151,20 @@
     {
       "path": "electron/network_login_identity.mjs",
       "status": "retired-normal-runtime",
-      "exports": ["publicCdKey", "NetworkLoginIdentity"],
-      "godotReplacements": ["godot-client/systems/native_data/native_login_identity.gd"],
-      "focusedEvidence": ["godot-client/tests/nwn79_native_login_identity_test.gd"],
+      "exports": [
+        "publicCdKey",
+        "NetworkLoginIdentity"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_login_identity.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_login_identity_test.gd"
+      ],
       "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
-      "deadOriginalSourceImporters": ["electron/installed_network_session.mjs"],
+      "deadOriginalSourceImporters": [
+        "electron/installed_network_session.mjs"
+      ],
       "normalRuntimeCallers": 0,
       "retiredSha256": "6fc247939585fd2b888a9a021ad33dcdb0f61ce0fa5efa4985a609ab26879236",
       "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-a.json"
@@ -129,14 +172,414 @@
     {
       "path": "electron/installed_network_build.mjs",
       "status": "retired-normal-runtime",
-      "exports": ["installedNetworkBuild"],
-      "godotReplacements": ["godot-client/systems/native_data/native_installed_network_build.gd"],
-      "focusedEvidence": ["godot-client/tests/nwn79_native_installed_build_test.gd"],
+      "exports": [
+        "installedNetworkBuild"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_installed_network_build.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_installed_build_test.gd"
+      ],
       "privateEvidence": ".cache/nwn79-current-clean-restage-20261116-b-private-matrix/matrix-summary.json",
-      "deadOriginalSourceImporters": ["electron/installed_network_session.mjs"],
+      "deadOriginalSourceImporters": [
+        "electron/installed_network_session.mjs"
+      ],
       "normalRuntimeCallers": 0,
       "retiredSha256": "56e9b34e414fb119299377fea9af6ded101cc773ec7a8e6d90b7e322915e5e6f",
       "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-a.json"
+    },
+    {
+      "path": "electron/network_portal_transfer.mjs",
+      "status": "retired-normal-runtime",
+      "exports": [
+        "NetworkPortalTransfer.constructor",
+        "receive",
+        "begin",
+        "peerClosed",
+        "clear",
+        "fail",
+        "dispose"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_network_session.gd:begin_portal/finish_portal/configure_portal/submit_portal_character/close",
+        "godot-client/native_direct_session_world.gd:direct_portal_handoff"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_portal_session_test.gd",
+        ".cache/nwn79-portal-session-retirement-20261116.log"
+      ],
+      "privateEvidence": ".cache/nwn79-portal-live-20261115-170300/portal.json: source 5121 to destination 5122, old_retired/destination_auth_started/world_admitted/clean_exit true",
+      "deadOriginalSourceImporters": [
+        "electron/network_game_session.mjs"
+      ],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "b0c0e5ba3aa8f840ebc23eb487d7158d5eb9271fbb7bf5dd9090668328dd5634",
+      "retirementEvidence": ".cache/nwn79-electron-module-cull-20261116-c.json"
+    },
+    {
+      "path": "src/network_item_text_bubble.js",
+      "status": "retired-normal-runtime",
+      "exports": [
+        "readItemTextBubbleOverride"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_network_item_caption.gd",
+        "godot-client/systems/native_data/native_network_session.gd",
+        "godot-client/systems/native_data/native_network_world.gd",
+        "godot-client/systems/native_data/item_tooltip.gd",
+        "godot-client/systems/native_data/nameplate_state.gd",
+        "godot-client/systems/native_inventory.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_native_item_caption_test.gd",
+        "godot-client/tests/nwn79_item_caption_session_test.gd",
+        "godot-client/tests/nwn79_item_caption_ui_route_test.gd",
+        "godot-client/.cache/nwn79-item-caption-ui-20261116d.json"
+      ],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "src/network_game_messages.js"
+      ],
+      "retiredSha256": "d7ce367471035eb0612683163304ca1129f180c45917cf88c4703f849d9900ad",
+      "retirementEvidence": "godot-client/.cache/nwn79-item-caption-ui-20261116d.json: actual retained inventory control, tooltip row and nameplate projection 20/20 checks pass",
+      "scopeNote": "Original server 24/5 updates only an existing item; normal Godot runtime reaches no JavaScript importer. Old JS importer remains a dead blueprint."
+    },
+    {
+      "path": "electron/prepared_model_cache.mjs",
+      "status": "retired-obsolete-electron-runtime",
+      "exports": [
+        "preparedModelSchema",
+        "PreparedModelCache"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/prework_store.gd",
+        "godot-client/systems/native_data/prepared_cache.gd",
+        "godot-client/systems/native_data/asset_service.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/native_asset_prework_test.gd",
+        "godot-client/reports/asset-prework-verified-1793222960164-cold.json: PASS 9",
+        "godot-client/reports/asset-prework-verified-1793222960164-warm.json: PASS 46"
+      ],
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs"
+      ],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "7a908985dfe051ddf7e22ccd88378ca487d9444765901f810e1f9858c2f3811d",
+      "retirementEvidence": "Source reference audit: only obsolete electron/main.cjs dynamically imports this module; supported join-godot.ps1 launches pinned Godot.",
+      "scopeNote": "Removed unreachable Electron-only cache implementation; no V8 artifact compatibility is required by the supported Godot client."
+    },
+    {
+      "path": "electron/prepared_model_worker.mjs",
+      "status": "retired-obsolete-electron-runtime",
+      "exports": [],
+      "godotReplacements": [
+        "godot-client/systems/native_data/asset_service.gd",
+        "godot-client/systems/native_data/prework_store.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/native_prework_workers_test.gd",
+        "godot-client/reports/asset-prework-verified-1793222960164-cold.json: PASS 9",
+        "godot-client/reports/asset-prework-verified-1793222960164-warm.json: PASS 46"
+      ],
+      "deadOriginalSourceImporters": [
+        "electron/prepared_model_cache.mjs"
+      ],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "4351dd8e08e48d07412f338ae4e3d0e4dd3df3c6420af527a0b9fed8db0afbbb",
+      "retirementEvidence": "Source reference audit: only obsolete prepared_model_cache.mjs imports/spawns this worker; supported client uses Godot WorkerThreadPool.",
+      "scopeNote": "Removed unreachable Electron-only V8 serialization worker."
+    },
+    {
+      "path": "electron/runtime_log.cjs",
+      "status": "retired-obsolete-electron-runtime",
+      "exports": [
+        "createRuntimeLog",
+        "registerRuntimeLog",
+        "observeWindow",
+        "flushOnClose"
+      ],
+      "godotReplacements": [
+        "godot-client/join-godot.ps1",
+        "godot-client/native_direct_session_world.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/join-godot.ps1: -Report forwards a fresh report path to Godot",
+        "godot-client/native_direct_session_world.gd: Godot-owned session report and shutdown"
+      ],
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs",
+        "electron/preload.cjs"
+      ],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "6fb08504d95e1e31452df23822c170a0e8834f6cf11e2a4acb5dd457dea9f905",
+      "retirementEvidence": "Source reference audit: only obsolete Electron main/preload use its IPC log and renderer-window crash/flush events; supported join-godot.ps1 starts pinned Godot directly.",
+      "scopeNote": "The removed functions log Electron-only process events; Godot session diagnostics use the native report path. No IPC log format is required by the supported client."
+    },
+    {
+      "path": "electron/application_build.cjs",
+      "status": "retired-obsolete-electron-runtime",
+      "exports": [
+        "resolveApplicationBuild"
+      ],
+      "godotReplacements": [
+        "godot-client/join-godot.ps1",
+        "godot-client/tools/nwn79/build-godot-delivery.ps1"
+      ],
+      "focusedEvidence": [
+        "godot-client/join-godot.ps1: pinned Godot 4.7.2 executable and direct project launch",
+        "godot-client/tools/nwn79/build-godot-delivery.ps1: Godot-only delivery source"
+      ],
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs"
+      ],
+      "normalRuntimeCallers": 0,
+      "retiredSha256": "7fcc95e04bda28f560faa41e4d9b4cb1a31a06c57adff966973c67604492db35",
+      "retirementEvidence": "Source reference audit: obsolete electron/main.cjs alone calls --client-build HTML dist/performance artifact selector; supported Godot launch and package paths do not invoke it.",
+      "scopeNote": "The old dist/index.html selector has no role in the Godot-only client."
+    },
+    {
+      "path": "electron/scene_capture_archive.mjs",
+      "status": "retired-obsolete-electron-research",
+      "godotReplacements": [],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/scene_capture.mjs"
+      ],
+      "retiredSha256": "e9a14f90bbb846d3273a721107895c587510b7685957d1b1b508e0fb8b5eaa6c",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron scene capture/replay research paths call this module; supported Godot launch/setup/test/package paths do not.",
+      "scopeNote": "Old capture research mode intentionally removed under normal-runtime-only scope; no gameplay parity claim."
+    },
+    {
+      "path": "electron/scene_capture_supplement.mjs",
+      "status": "retired-obsolete-electron-research",
+      "godotReplacements": [],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/scene_capture.mjs"
+      ],
+      "retiredSha256": "d193aa2168a2e5c75d3a71b4eaf8fa19828c1f022cae881eba88c912dd49b4d4",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron scene capture/replay research paths call this module; supported Godot launch/setup/test/package paths do not.",
+      "scopeNote": "Old capture research mode intentionally removed under normal-runtime-only scope; no gameplay parity claim."
+    },
+    {
+      "path": "electron/scene_capture_worker.mjs",
+      "status": "retired-obsolete-electron-research",
+      "godotReplacements": [],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/scene_capture.mjs"
+      ],
+      "retiredSha256": "08fc69dcf1d33f94a60a5908cc24d09f4c2af9be2d4524a0ccd31ba15365df67",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron scene capture/replay research paths call this module; supported Godot launch/setup/test/package paths do not.",
+      "scopeNote": "Old capture research mode intentionally removed under normal-runtime-only scope; no gameplay parity claim."
+    },
+    {
+      "path": "electron/scene_capture.mjs",
+      "status": "retired-obsolete-electron-research",
+      "godotReplacements": [],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs --record-scene"
+      ],
+      "retiredSha256": "8cb2c308411170672e7fc95c5584a914cdaddca901c2404b1620a3c1efbe9df1",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron --record-scene path activates this capture mode; supported Godot launch/setup/test/package paths do not.",
+      "scopeNote": "Old capture research mode intentionally removed under normal-runtime-only scope; no gameplay parity claim."
+    },
+    {
+      "path": "electron/scene_replay_requests.mjs",
+      "status": "retired-obsolete-electron-research",
+      "godotReplacements": [],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/scene_replay.mjs"
+      ],
+      "retiredSha256": "722b32afc77094b2712f0032d4abe09b36a119887110d42b913196f4ec642a4f",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron scene capture/replay research paths call this module; supported Godot launch/setup/test/package paths do not.",
+      "scopeNote": "Old replay research mode intentionally removed under normal-runtime-only scope; no gameplay parity claim."
+    },
+    {
+      "path": "electron/scene_replay_talk.mjs",
+      "status": "retired-obsolete-electron-research",
+      "godotReplacements": [],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/scene_replay.mjs"
+      ],
+      "retiredSha256": "39d6cb43e6b960bcec039b5501ad69f1583867b9c4b6f740c8937609efd78fd8",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron scene capture/replay research paths call this module; supported Godot launch/setup/test/package paths do not.",
+      "scopeNote": "Old replay research mode intentionally removed under normal-runtime-only scope; no gameplay parity claim."
+    },
+    {
+      "path": "electron/scene_replay.mjs",
+      "status": "retired-obsolete-electron-research",
+      "godotReplacements": [],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs"
+      ],
+      "retiredSha256": "55c74e7ccec738c7b6464abdffa4066a7366e0b3c3f7a2ef8869309238e048b61",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron scene capture/replay research paths call this module; supported Godot launch/setup/test/package paths do not.",
+      "scopeNote": "Old replay research mode intentionally removed under normal-runtime-only scope; no gameplay parity claim."
+    },
+    {
+      "path": "electron/network_ipc.cjs",
+      "status": "retired-obsolete-electron-bridge",
+      "exports": [
+        "registerNetworkIpc"
+      ],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs"
+      ],
+      "retiredSha256": "da1d0f39037fc63dbd0327e307ea0d97a55b450b6b3b85036663e82b03353013",
+      "retirementEvidence": "Protocol source audit: Electron ipcMain network bridge is unreachable from supported Godot launcher/setup/test/package routes; only obsolete Electron main and old checkpoint scripts reference it.",
+      "scopeNote": "Removed an Electron IPC bridge, not a normal-runtime gameplay parity port."
+    },
+    {
+      "path": "electron/preload.cjs",
+      "status": "retired-obsolete-electron-bridge",
+      "exports": [],
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs"
+      ],
+      "retiredSha256": "9f4195bf9aa42c9f21a0392a29dbfcc639f0871cb6c797ba7ede73b30fe3d3e4",
+      "retirementEvidence": "Protocol source audit: Electron contextBridge/ipcRenderer preload is unreachable from supported Godot launcher/setup/test/package routes; only obsolete Electron main and old checkpoint scripts reference it.",
+      "scopeNote": "Removed an Electron IPC bridge, not a normal-runtime gameplay parity port."
+    },
+    {
+      "path": "electron/debug.css",
+      "status": "retired-obsolete-electron-debug",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/debug.html"
+      ],
+      "retiredSha256": "dd8f98c3deb0d83e89cafae3d429712863bea617a1401882a6b95b609aa86947",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron debug frontend cluster reaches this file; supported Godot routes do not.",
+      "scopeNote": "Old Electron debug frontend retired; Godot native_debug_window.gd remains. No parity-port claim."
+    },
+    {
+      "path": "electron/debug.html",
+      "status": "retired-obsolete-electron-debug",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/debug_window.cjs"
+      ],
+      "retiredSha256": "fad617fbf3ce45612e1db43ef99fc965390e74fbd8c466923588ff247636b4d1",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron debug frontend cluster reaches this file; supported Godot routes do not.",
+      "scopeNote": "Old Electron debug frontend retired; Godot native_debug_window.gd remains. No parity-port claim."
+    },
+    {
+      "path": "electron/debug_preload.cjs",
+      "status": "retired-obsolete-electron-debug",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/debug_window.cjs"
+      ],
+      "retiredSha256": "991c51be40dc687d3b1a49d3107301a92b0db3bdbc56aba11e577a2c55b09a82",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron debug frontend cluster reaches this file; supported Godot routes do not.",
+      "scopeNote": "Old Electron debug frontend retired; Godot native_debug_window.gd remains. No parity-port claim."
+    },
+    {
+      "path": "electron/debug_renderer.js",
+      "status": "retired-obsolete-electron-debug",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/debug.html"
+      ],
+      "retiredSha256": "ecc57030082f44201b65efaf8d430905d80bc70c141280dcfe471f6dd60740ad",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron debug frontend cluster reaches this file; supported Godot routes do not.",
+      "scopeNote": "Old Electron debug frontend retired; Godot native_debug_window.gd remains. No parity-port claim."
+    },
+    {
+      "path": "electron/debug_window.cjs",
+      "status": "retired-obsolete-electron-debug",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "electron/main.cjs"
+      ],
+      "retiredSha256": "e72d2f6e8996bc2f9cc3b5194d22df8d258e7d35806a6cda3d55130c5070eb19",
+      "retirementEvidence": "Delivery source audit: only obsolete Electron main loads this debug frontend; supported Godot routes do not.",
+      "scopeNote": "Old Electron debug frontend retired; Godot native_debug_window.gd remains. No parity-port claim."
+    },
+    {
+      "path": "electron/main.cjs",
+      "status": "retired-obsolete-electron-runtime",
+      "normalRuntimeCallers": 0,
+      "retiredBytes": 4072,
+      "retiredSha256": "99f31d63dae51610ccf8909759a995fd549518356a983dcabb698d486d77c3c8",
+      "retirementEvidence": "Delivery verified this obsolete Electron BrowserWindow/IPC entrypoint had no supported Godot launch, setup, test or package caller before deletion; join-godot.ps1 is the normal launcher.",
+      "scopeNote": "Retired unreachable Electron process startup. No parity-port claim."
+    },
+    {
+      "path": "src/network_sound_objects.js",
+      "status": "retired-normal-runtime",
+      "exports": [
+        "readNetworkSoundState",
+        "readNetworkSoundObject"
+      ],
+      "internalFunctions": [
+        "fields"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_area_state.gd::fields/sound_state",
+        "godot-client/systems/native_data/native_network_sound.gd::decode_packet",
+        "godot-client/systems/native_data/native_network_session.gd:1335-1337",
+        "godot-client/systems/native_data/native_network_world.gd::apply_sound_object"
+      ],
+      "focusedEvidence": [
+        ".cache/nwn79-sound-object-focused-20261116-b/summary.json",
+        ".cache/nwn79-sound-area-focused-20261116-a/summary.json"
+      ],
+      "liveEvidence": "Captured original area 4/1 packet with 10 sounds; public live 23/2-7 observation pending separately",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "src/network_area.js",
+        "src/network_game_messages.js"
+      ],
+      "retiredSha256": "d73e6735a7e082138ebee8bc6928410b63fca92f3ca7ade536de6207f3323404",
+      "headBlob": "9a65d6952f3baf1863779c1909fd250ef8138cda",
+      "retirementEvidence": ".cache/nwn79-sound-object-retirement-20261116-a.json",
+      "scopeNote": "Function-level parser/route parity verified; no claim of public live sound output parity."
+    },
+    {
+      "path": "src/network_login_packets.js",
+      "status": "retired-normal-runtime",
+      "exports": [
+        "connectRequest",
+        "validationResponse",
+        "disconnectRequest",
+        "readDisconnectResponse",
+        "readConnectResponse",
+        "readValidationResponse"
+      ],
+      "internalFunctions": [
+        "Writer",
+        "Reader",
+        "integer"
+      ],
+      "godotReplacements": [
+        "godot-client/systems/native_data/native_login_packets.gd",
+        "godot-client/systems/native_data/native_network_login.gd",
+        "godot-client/systems/native_data/native_network_peer.gd"
+      ],
+      "focusedEvidence": [
+        "godot-client/tests/nwn79_login_packet_edges_test.gd",
+        "godot-client/tests/nwn79_native_login_packets_test.gd",
+        "godot-client/tests/nwn79_native_portal_peer_drain_test.gd"
+      ],
+      "liveEvidence": "Private original-server login and world admission in .cache/nwn79-preview-package-d-20261116-a/chooser.json; BNDP Peer order verified in focused fixture. Public Arelith authentication remains a separate scenario.",
+      "normalRuntimeCallers": 0,
+      "deadOriginalSourceImporters": [
+        "src/network_login.js",
+        "electron/network_peer.mjs"
+      ],
+      "retiredSha256": "c5de1b3edcac391d9e171b1fd8aeef80d9aa33d9495a7abb9c4a9406c3671fde",
+      "headBlob": "e7cd30fc2edc7c8111f0df04822621ff4549ed3e",
+      "retirementEvidence": ".cache/nwn79-login-packets-retirement-20261116-a.json",
+      "scopeNote": "All nine packet codec candidate functions verified; the separate NetworkLogin trailing-byte diagnostic remains pending."
     }
   ]
 }

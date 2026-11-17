@@ -12,11 +12,17 @@ if($defaultInventory){
   (Join-Path $client 'replay-native-loading.ps1'),
   (Join-Path $client 'test-handoff.ps1'),
   (Join-Path $client 'native_direct_session_world.gd'),
+  (Join-Path $client 'native_live_world.gd'),
+  (Join-Path $client 'systems/native_install_selector.gd'),
+  (Join-Path $client 'systems/native_data/client_settings_store.gd'),
   (Join-Path $client 'systems/native_data/native_startup_paths.gd'),
   (Join-Path $client 'systems/native_data/godot_login_profile_controller.gd'),
   (Join-Path $client 'systems/native_data/godot_server_browser_store.gd'),
   (Join-Path $client 'tools/setup.ps1'),
+  (Join-Path $client 'tools/native-window-screen.ps1'),
   (Join-Path $client 'tools/nwn79/build-windows-profile.ps1'),
+  (Join-Path $client 'tests/nwn79_run_levelup_private.ps1'),
+  (Join-Path $client 'tests/nwn79_install_launcher_test.ps1'),
   (Join-Path $client 'tools/nwn79/nwsync-cache-repair.gd'),
   (Join-Path $client 'tools/nwn79/nwsync-visual-fixture-check.gd'),
   (Join-Path $client 'tools/nwn79/nwsync-visual-repository-check.gd'),
@@ -26,6 +32,8 @@ if($defaultInventory){
  )+@(Get-ChildItem -LiteralPath (Join-Path $client 'systems/native_data') -Filter 'native_network_*.gd' -File|ForEach-Object FullName)
  $SourcePaths+=@('join-arelith.ps1','tools/nwn79/setup-godot-client.ps1','tools/nwn79/stage-clean-source.ps1','tools/nwn79/prepare-clean-restage.ps1','tools/nwn79/build-godot-delivery.ps1','tools/nwn79/verify-godot-delivery.ps1','tools/nwn79/run-direct-acceptance-matrix.ps1','tools/nwn79/verify-local-smoke-receipt.ps1','tools/nwn79/run-focused-tests.ps1','tools/nwn79/run-direct-handoff-roundtrip.ps1','tools/nwn79/verify-direct-handoff-roundtrip-receipt.ps1','tools/nwn79/nwsync-loopback-fixture.ps1','tools/nwn79/verify-nwsync-visual-repository.ps1','tools/nwn79/verify-native-loading-capture.ps1','tools/nwn79/test-retired-entrypoints.ps1')|ForEach-Object {Join-Path $client $_}
  # Supported client launchers, setup/build helpers, and NWN-79 test runners.
+ # The other tests/*.ps1 and tools/* subtrees are archived research fixtures;
+ # they are not called by the supported NWN-79 launch/acceptance entrypoints.
  $SourcePaths+=@(Get-ChildItem -LiteralPath $client -Filter '*.ps1' -File|ForEach-Object FullName)
  $SourcePaths+=@(Get-ChildItem -LiteralPath (Join-Path $client 'tools/nwn79') -Filter '*.ps1' -File|ForEach-Object FullName)
  $SourcePaths+=@(Get-ChildItem -LiteralPath (Join-Path $client 'tools') -Filter '*.ps1' -File|Where-Object {$_.Name -match '^(?:setup|build-[^\\/]+|ensure-[^\\/]+|resource-index-build-inputs|local-test-guard)\.ps1$'}|ForEach-Object FullName)
@@ -53,6 +61,12 @@ if($defaultInventory){
  $packagePath=Join-Path $workspace 'package.json'
  $lockPath=Join-Path $workspace 'package-lock.json'
  if((Test-Path -LiteralPath $packagePath) -or (Test-Path -LiteralPath $lockPath)){throw 'Root npm package or lockfile reintroduced into Godot-only client workspace'}
+ $directPath=Join-Path $client 'join-godot.ps1'
+ if(Test-Path -LiteralPath $directPath){
+  $direct=[IO.File]::ReadAllText($directPath)
+  if(-not$direct.Contains('$engine=$desktop') -or -not$direct.Contains("if(`$Headless){`$arguments=@('--headless')+`$arguments}")){throw 'Headless Godot entry no longer uses the pinned desktop engine with --headless'}
+  if($direct.Contains('$engine=if($Headless){$console}')){throw 'Broken Windows console wrapper became the supported headless engine'}
+ }
  $ordinaryPath=Join-Path $client 'join-native.ps1'
  $localPath=Join-Path $client 'join-local.ps1'
  if($fullWorkspace -and (-not(Test-Path -LiteralPath $ordinaryPath) -or -not(Test-Path -LiteralPath $localPath))){throw 'Source normal launcher is missing'}

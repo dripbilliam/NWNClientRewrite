@@ -54,7 +54,7 @@ func remembered_pose() -> Dictionary:
 	var s: Dictionary = follow_state.state
 	return {"mode":s.mode,"yaw":s.yaw,"pitch":s.pitch,"distance":s.distance}
 
-func follow_frame(position: Vector3, facing: float, animation: int, delta: float, height: float = 1.0) -> void:
+func follow_frame(position: Vector3, facing: float, animation: int, delta: float, height: float = 1.0, clear_view_facing: float = NAN, clear_view_query: Callable = Callable()) -> void:
 	if follow_state == null: return
 	if follow_height != height: follow_state.set_height(height,true); follow_height = height
 	var focus := get_viewport().gui_get_focus_owner()
@@ -64,7 +64,7 @@ func follow_frame(position: Vector3, facing: float, animation: int, delta: float
 	var wheel := (float(camera_keys.has(KEY_PAGEUP))-float(camera_keys.has(KEY_PAGEDOWN)))*7.5
 	follow_state.rate(follow_state.state,"yaw",turn); follow_state.rate(follow_state.state,"pitch",tilt)
 	if wheel != 0: follow_state.input({"zoom":wheel})
-	if not follow_state.update({"position":[position.x,-position.z,position.y],"facing":facing,"animation":animation},delta): return
+	if not follow_state.update({"position":[position.x,-position.z,position.y],"facing":facing,"clearViewFacing":clear_view_facing if is_finite(clear_view_facing) else facing,"animation":animation},delta,clear_view_query): return
 	var s: Dictionary = follow_state.state; var p: Array = s.position; var q: Array = s.quaternion; var center: Array = s.focus
 	var view := Transform3D(Basis(Quaternion(Vector3.RIGHT,-PI/2)*Quaternion(q[1],q[2],q[3],q[0])),Vector3(p[0],p[2],-p[1]))
 	if camera.global_transform != view:

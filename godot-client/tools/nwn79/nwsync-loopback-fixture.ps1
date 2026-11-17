@@ -2,6 +2,7 @@ param(
  [Parameter(Mandatory=$true)][string]$Directory,
  [ValidateRange(1024,65535)][int]$Port=31879,
  [switch]$VisualCohort,
+ [ValidatePattern('^[A-Za-z0-9_]{1,16}$')][string]$WorldTextureName='',
  [switch]$Serve
 )
 $ErrorActionPreference='Stop'
@@ -47,6 +48,7 @@ if($Serve){
   }
  }finally{$listener.Stop()}
 }
+if($WorldTextureName -and -not $VisualCohort){throw 'WorldTextureName requires VisualCohort'}
 if(Test-Path -LiteralPath $directory){throw 'NWSync fixture directory already exists'}
 New-Item -ItemType Directory -Path $directory|Out-Null
 if($VisualCohort){
@@ -77,19 +79,39 @@ if($VisualCohort){
  $tga[2]=2;[BitConverter]::GetBytes([uint16]16).CopyTo($tga,12);[BitConverter]::GetBytes([uint16]16).CopyTo($tga,14)
  $tga[16]=32;$tga[17]=0x28
  for($offset=18;$offset -lt $tga.Length;$offset+=4){$tga[$offset]=20;$tga[$offset+1]=170;$tga[$offset+2]=240;$tga[$offset+3]=255}
- $resources.Add([ordered]@{name='gd_sync_icon';type=3;data=$tga;algorithm=2})
+ $visualTextureName=if($WorldTextureName){$WorldTextureName.ToLowerInvariant()}else{'gd_sync_icon'}
+ $resources.Add([ordered]@{name=$visualTextureName;type=3;data=$tga;algorithm=2})
  $visualRaw=Join-Path $directory 'zstd-input';$visualCompressed=Join-Path $directory 'zstd-compressed'
  New-Item -ItemType Directory -Path $visualRaw|Out-Null
  foreach($resource in $resources){if($resource.algorithm -eq 2){$hash=[Convert]::ToHexString([Security.Cryptography.SHA1]::HashData([byte[]]$resource.data)).ToLowerInvariant();[IO.File]::WriteAllBytes((Join-Path $visualRaw ($hash+'.bin')),[byte[]]$resource.data)}}
- $godot=Join-Path $PSScriptRoot '../../.tools/Godot_v4.7.2-stable_win64_console.exe'
+ $godot=Join-Path $PSScriptRoot '../../.tools/Godot_v4.7.2-stable_win64.exe'
  if(-not(Test-Path -LiteralPath $godot -PathType Leaf)){throw 'Pinned Godot is required to author genuine Zstandard fixture blocks'}
  $visualUserData=Join-Path $directory 'godot-user-data';New-Item -ItemType Directory -Path $visualUserData|Out-Null
- $previousAppData=$env:APPDATA
+ $start=[Diagnostics.ProcessStartInfo]::new()
+ $start.FileName=$godot
+ $start.WorkingDirectory=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+ $start.UseShellExecute=$false
+ $start.CreateNoWindow=$true
+ $start.RedirectStandardOutput=$true
+ $start.RedirectStandardError=$true
+ $start.Environment['APPDATA']=$visualUserData
+ foreach($argument in @('--headless','--path',$start.WorkingDirectory,'--script','res://tools/nwn79/nwsync-visual-zstd.gd','--',('--input-dir='+$visualRaw),('--output-dir='+$visualCompressed))){$start.ArgumentList.Add($argument)}
+ $author=[Diagnostics.Process]::Start($start)
+ if($null -eq $author){throw 'Pinned Godot Zstandard authoring process did not start'}
  try{
-  $env:APPDATA=$visualUserData
-  & $godot --headless --path ([IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))) --script 'res://tools/nwn79/nwsync-visual-zstd.gd' -- ('--input-dir='+$visualRaw) ('--output-dir='+$visualCompressed) | Out-Null
-  if($LASTEXITCODE -ne 0){throw 'Godot could not author genuine Zstandard fixture blocks'}
- }finally{$env:APPDATA=$previousAppData}
+  $stdoutTask=$author.StandardOutput.ReadToEndAsync()
+  $stderrTask=$author.StandardError.ReadToEndAsync()
+  if(-not $author.WaitForExit(45000)){$author.Kill($true);[void]$author.WaitForExit(10000);throw 'Pinned Godot Zstandard authoring timed out'}
+  if(-not $stdoutTask.Wait(10000) -or -not $stderrTask.Wait(10000)){throw 'Pinned Godot Zstandard authoring output did not close'}
+  [IO.File]::WriteAllText((Join-Path $directory 'zstd-author.stdout.log'),$stdoutTask.Result)
+  [IO.File]::WriteAllText((Join-Path $directory 'zstd-author.stderr.log'),$stderrTask.Result)
+  if($author.ExitCode -ne 0){throw ('Pinned Godot Zstandard authoring exited '+$author.ExitCode)}
+  $expected=@($resources|Where-Object {$_.algorithm -eq 2}).Count
+  if(@(Get-ChildItem -LiteralPath $visualCompressed -Filter '*.bin' -File).Count -ne $expected){throw 'Pinned Godot Zstandard authoring did not produce the expected resource count'}
+ }finally{
+  if(-not $author.HasExited){$author.Kill($true);[void]$author.WaitForExit(10000)}
+  $author.Dispose()
+ }
  $blobs=Join-Path $directory 'blobs';New-Item -ItemType Directory -Path $blobs|Out-Null
  $manifestStream=[IO.MemoryStream]::new();$manifestWriter=[IO.BinaryWriter]::new($manifestStream,[Text.Encoding]::ASCII,$true)
  $manifestWriter.Write([Text.Encoding]::ASCII.GetBytes('NSYM'))
@@ -108,7 +130,7 @@ if($VisualCohort){
  $manifestWriter.Flush();$manifest=$manifestStream.ToArray();$manifestWriter.Dispose();$manifestStream.Dispose()
  $manifestHash=[Convert]::ToHexString([Security.Cryptography.SHA1]::HashData($manifest)).ToLowerInvariant()
  [IO.File]::WriteAllBytes((Join-Path $directory 'manifest.bin'),$manifest)
- [ordered]@{format='nwn79-private-nwsync-visual-v1';url="http://127.0.0.1:$Port/";manifestHash=$manifestHash;manifestBytes=$manifest.Length;entries=@($entries);expectedColdRequests=14;expectedResourceCount=13;scope='Private authored multi-resource NWSync; no visual/client acceptance yet'}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $descriptorPath -Encoding utf8
+ [ordered]@{format='nwn79-private-nwsync-visual-v1';url="http://127.0.0.1:$Port/";manifestHash=$manifestHash;manifestBytes=$manifest.Length;entries=@($entries);visualTextureName=$visualTextureName;worldTextureName=if($WorldTextureName){$visualTextureName}else{''};expectedColdRequests=14;expectedResourceCount=13;scope='Private authored multi-resource NWSync; no visual/client acceptance yet'}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $descriptorPath -Encoding utf8
  Write-Output $descriptorPath
  return
 }

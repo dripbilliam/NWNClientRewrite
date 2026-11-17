@@ -1,6 +1,7 @@
 extends RefCounted
 # Native BIC display extraction only. No creature/world/effect/script import.
 const ABILITIES=["Str","Dex","Con","Int","Wis","Cha"]
+const Derived=preload("res://systems/native_data/character_preview_stats.gd")
 const FIELDS={"race":"Race","subrace":"Subrace","gender":"Gender","experience":"Experience","hitPoints":"HitPoints","currentHitPoints":"CurrentHitPoints","portrait":"PortraitId","portraitRef":"Portrait","lawChaos":"LawfulChaotic","goodEvil":"GoodEvil"}
 static func localized(value: Variant,language: int,gender: int) -> Dictionary:
 	if value is String: return {"text":value}
@@ -33,4 +34,14 @@ static func project(root: Dictionary,language: int=0) -> Dictionary:
 		if skills[index] is Dictionary and skills[index].get("Rank") is int: result.skills.append({"id":index,"rank":skills[index].Rank})
 	for feat in root.get("FeatList",[]):
 		if feat is Dictionary and feat.get("Feat") is int: result.feats.append(int(feat.Feat)&65535)
+	return result
+
+static func project_document(document: Dictionary,language: int=0,rules_snapshot: Dictionary={}) -> Dictionary:
+	var result: Dictionary=project(document.get("root",{}),language)
+	if result.has("error") or not rules_snapshot.get("ready",false):return result
+	var derived: Dictionary=Derived.project(document,rules_snapshot)
+	if not derived.get("ready",false):return {"error":str(derived.get("error","Character preview combat rules are invalid."))}
+	for field in ["abilities","abilityModifiers","hitPoints","currentHitPoints","nextExperience","armorClass","saves","baseAttackBonus"]:
+		result[field]=derived[field]
+	result.derived_combat_ready=true
 	return result

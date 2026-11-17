@@ -32,7 +32,10 @@ func resource_prepared(id: int,result: Dictionary) -> void:
 	var job: Dictionary=jui_jobs[id]; jui_jobs.erase(id)
 	if not state.windows.has(int(job.token)) or int(state.windows[int(job.token)].serial)!=int(job.serial): return
 	if not str(result.error).is_empty(): diagnostics.append(str(result.error)); return
-	var layout: Variant=JSON.parse_string(result.bytes.get_string_from_utf8())
+	var bytes: PackedByteArray=result.bytes
+	var text: String=bytes.get_string_from_utf8()
+	if text.to_utf8_buffer()!=bytes: diagnostics.append("Invalid native JUI UTF-8"); return
+	var layout: Variant=JSON.parse_string(text)
 	if not layout is Dictionary or not layout.has("root"): diagnostics.append("Invalid native JUI layout"); return
 	state.version+=1; state.windows[int(job.token)].layout=layout; state.windows[int(job.token)].ready=true; state.windows[int(job.token)].version=state.version
 func _process(_delta: float) -> void:

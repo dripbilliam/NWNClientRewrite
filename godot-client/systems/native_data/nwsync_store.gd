@@ -21,6 +21,12 @@ var maximum_readers:=4
 var native_directory:=""
 var helper_executable:=""
 var closed:=false
+var native_read_failed:=false
+func native_unavailable()->bool:
+	reader_mutex.lock();var unavailable:=closed or native_read_failed;reader_mutex.unlock()
+	return unavailable
+func mark_native_failed()->void:
+	reader_mutex.lock();native_read_failed=true;reader_mutex.unlock()
 func configure(cache_directory: String, native_directory: String="", helper: String="", raw_cache_directory: String="") -> bool:
 	if not cache_directory.is_absolute_path(): return false
 	directory=cache_directory.simplify_path()
@@ -37,7 +43,7 @@ func configure(cache_directory: String, native_directory: String="", helper: Str
 func read_native(operation: int,payload: PackedByteArray) -> Dictionary:
 	var began:=Time.get_ticks_usec(); reader_slots.wait()
 	var acquired:=Time.get_ticks_usec(); reader_mutex.lock()
-	if closed: reader_mutex.unlock(); reader_slots.post(); return {"error":"Native NWSync pool is closed"}
+	if closed or native_read_failed: reader_mutex.unlock(); reader_slots.post(); return {"error":"Native NWSync pool is closed"}
 	var owned=available.pop_back() if not available.is_empty() else null
 	reader_mutex.unlock()
 	if owned==null:
@@ -93,32 +99,40 @@ func manifest(hash: String) -> Dictionary:
 	if FileAccess.file_exists(path):
 		var file:=FileAccess.open(path,FileAccess.READ)
 		if file==null or file.get_length()>MANIFEST_LIMIT: return {"error":"Native NWSync manifest exceeds bound"}
-		return decode_manifest(file.get_buffer(file.get_length()),hash)
-	if reader==null: return {"error":"Native NWSync manifest is not cached"}
+		var cached:=file.get_buffer(file.get_length());file.close()
+		# A wrong-digest local file is corrupt, not authoritative. The original
+		# content owner tries installed storage before repository repair.
+		if sha1(cached)==hash:return decode_manifest(cached,hash)
+	if reader==null or native_unavailable(): return {"error":"Native NWSync manifest is not cached"}
 	var response: Dictionary=reader.request(1,hash.to_ascii_buffer())
-	if response.has("error"): return response
+	if response.has("error"): mark_native_failed(); return response
 	if response.get("missing",false): return {"error":"Installed NWSync manifest is absent"}
 	var bytes: PackedByteArray=response.bytes
-	return Residency.index("nwsync-installed-manifest",[hash],[bytes],func():
+	var decoded: Dictionary=Residency.index("nwsync-installed-manifest",[hash],[bytes],func():
 		var value:=decode_installed_manifest(bytes)
 		return {"value":value,"error":str(value.get("error",""))}).value
-func available_blob_hashes() -> Dictionary:
+	if decoded.has("error"):mark_native_failed()
+	return decoded
+func local_blob_hashes()->Dictionary:
 	var hashes: Dictionary={}
 	var path:=directory.path_join("objects")
 	if DirAccess.dir_exists_absolute(path):
 		for name in DirAccess.get_files_at(path):
 			if valid_hash(name): hashes[name]=true
-	if reader!=null:
+	return hashes
+func available_blob_hashes() -> Dictionary:
+	var hashes: Dictionary=local_blob_hashes()
+	if reader!=null and not native_unavailable():
 		var response: Dictionary=read_native(4,PackedByteArray())
-		if response.has("error"): return response
+		if response.has("error"): mark_native_failed(); return response
 		if not response.get("missing",false):
 			var bytes: PackedByteArray=response.bytes
-			if bytes.size()<4: return {"error":"Invalid installed NWSync inventory"}
+			if bytes.size()<4: mark_native_failed(); return {"error":"Invalid installed NWSync inventory"}
 			var count:=int(bytes.decode_u32(0))
-			if count>1000000 or bytes.size()!=4+count*40: return {"error":"Invalid installed NWSync inventory length"}
+			if count>1000000 or bytes.size()!=4+count*40: mark_native_failed(); return {"error":"Invalid installed NWSync inventory length"}
 			for index in count:
 				var hash:=bytes.slice(4+index*40,4+(index+1)*40).get_string_from_ascii()
-				if not valid_hash(hash): return {"error":"Invalid installed NWSync inventory hash"}
+				if not valid_hash(hash): mark_native_failed(); return {"error":"Invalid installed NWSync inventory hash"}
 				hashes[hash]=true
 	return {"hashes":hashes}
 static func decode_installed_manifest(bytes: PackedByteArray) -> Dictionary:
@@ -155,6 +169,12 @@ static func decode_blob(encoded: PackedByteArray, expected: String, size: int=-1
 	if size!=-1 and decoded.size()!=size or sha1(decoded)!=expected: return {"error":"Native NWSync resource digest or size differs"}
 	return {"bytes":decoded}
 func resource(entry: Dictionary) -> Dictionary:
+	return _resource(entry,false)
+func resource_borrowed(entry: Dictionary) -> Dictionary:
+	# Internal archive extraction only: callers must slice and must never mutate
+	# the returned PackedByteArray. Public resource() keeps defensive copies.
+	return _resource(entry,true)
+func _resource(entry: Dictionary,borrowed: bool) -> Dictionary:
 	var hash:=str(entry.get("hash","")); var size:=int(entry.get("size",-1))
 	if not valid_hash(hash) or size < -1 or size>LIMIT: return {"error":"Invalid native NWSync resource identity or size"}
 	var store=Residency.synced_bytes; var generation: int=store.generation()
@@ -163,15 +183,16 @@ func resource(entry: Dictionary) -> Dictionary:
 		var saved: Dictionary=lease.value.duplicate()
 		if not saved.has("error"):
 			if size!=-1 and saved.bytes.size()!=size: return {"error":"Native NWSync resource digest or size differs"}
-			# Packed arrays are mutable references in GDScript. A caller owns its
-			# returned byte buffer; it must not edit the process-resident source.
-			saved.bytes=saved.bytes.duplicate()
+			if not borrowed:
+				# Public callers own a writable copy, never the resident source.
+				saved.bytes=saved.bytes.duplicate()
 			saved.timings={"memory_source_hit":true,"wait_us":int(lease.wait_us)}
 		return saved
 	var result:=read_resource(entry)
 	var frozen: Dictionary=result if result.has("error") else {"bytes":result.bytes.duplicate()}
-	if not result.has("error"): store.save_data(hash,hash,frozen,generation,result.bytes.size()+128,true)
+	if not result.has("error"): store.save_data(hash,hash,frozen,generation,result.bytes.size() if borrowed else result.bytes.size()+128,true)
 	store.finish_data(hash,generation,frozen)
+	if borrowed and not result.has("error"):result.bytes=frozen.bytes
 	return result
 func read_resource(entry: Dictionary) -> Dictionary:
 	var hash:=str(entry.get("hash","")); var size:=int(entry.get("size",-1))
@@ -182,20 +203,25 @@ func read_resource(entry: Dictionary) -> Dictionary:
 		cache_read_us=Time.get_ticks_usec()-began
 		if not saved.is_empty(): saved.timings={"raw_cache_hit":true,"raw_cache_us":Time.get_ticks_usec()-began}; return saved
 	var path:=directory.path_join("objects").path_join(hash)
+	var cached_failure: Dictionary={}
 	if FileAccess.file_exists(path):
 		var file:=FileAccess.open(path,FileAccess.READ)
 		if file==null or file.get_length()>LIMIT: return {"error":"Native NWSync cached blob exceeds bound"}
 		var encoded:=file.get_buffer(file.get_length()); file.close()
 		var began:=Time.get_ticks_usec(); var decoded:=decode_blob(encoded,hash,size)
 		decoded.timings={"decode_us":Time.get_ticks_usec()-began}
-		if not decoded.has("error") and source_cache!=null:
-			queue_cache(hash,decoded.bytes,decoded.timings,cache_read_us)
-		return decoded
-	if reader==null: return {"error":"Native NWSync resource is not cached"}
+		if not decoded.has("error"):
+			if source_cache!=null: queue_cache(hash,decoded.bytes,decoded.timings,cache_read_us)
+			return decoded
+		# A corrupt local object does not hide a valid installed copy. The old
+		# content owner tries native storage before repairing from the repository.
+		cached_failure=decoded
+	if reader==null or native_unavailable(): return cached_failure if not cached_failure.is_empty() else {"error":"Native NWSync resource is not cached"}
 	var response: Dictionary=read_native(2,hash.to_ascii_buffer())
-	if response.has("error"): return response
+	if response.has("error"): mark_native_failed(); return response
 	if response.get("missing",false): return {"error":"Installed NWSync resource is absent"}
 	var began:=Time.get_ticks_usec(); var decoded:=decode_blob(response.bytes,hash,size,true)
+	if decoded.has("error"):mark_native_failed()
 	decoded.timings=response.get("timings",{}); decoded.timings.decode_us=Time.get_ticks_usec()-began
 	if not decoded.has("error") and source_cache!=null:
 		queue_cache(hash,decoded.bytes,decoded.timings,cache_read_us)

@@ -389,6 +389,7 @@ func receive(message: Dictionary,epoch: int,transport_connection: Variant=null) 
 		if message.entries.is_empty():return
 		for row in message.entries:
 			if not row is Dictionary or not row.get("strRef") is int or not row.get("text") is String:return
+		for row in message.entries:
 			text.set_native_override(int(row.strRef),str(row.text))
 		text.mark_changed()
 		floating_text_data_changed()

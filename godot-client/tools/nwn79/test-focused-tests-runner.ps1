@@ -17,5 +17,5 @@ try{
  if($LASTEXITCODE -eq 0){throw 'Focused runner swallowed child test failure'}
  $failed=Get-Content (Join-Path $negative 'summary.json') -Raw|ConvertFrom-Json
  if($failed.passed -ne $false -or $failed.cases._intentional_failure.exitCode -ne 23 -or $failed.cases._intentional_failure.status -ne 'fail'){throw 'Focused runner negative receipt did not preserve child exit'}
- [ordered]@{format='nwn79-focused-runner-gate-v1';positive='ps-local-smoke-receipt';negative='child exit 23';passed=$true;nodeInvoked=$false;serverInvoked=$false}|ConvertTo-Json -Depth 3
+ [ordered]@{format='nwn79-focused-runner-gate-v1';positive='ps-local-smoke-receipt';negative='child exit 23';passed=$true}|ConvertTo-Json -Depth 3
 }finally{if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force}}

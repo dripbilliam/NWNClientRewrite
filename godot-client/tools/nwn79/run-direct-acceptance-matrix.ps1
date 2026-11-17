@@ -3,7 +3,8 @@ param(
  [string]$Install='',
  [string]$SettingsSource='',
  [string]$OutputRoot='',
- [ValidateSet('baseline','browser-auth','manual-character','inventory-dialog','reconnect','travel','character-export','local-smoke','local-smoke-graphical','nwsync','nwsync-failure','nwsync-cancel','nwsync-visual-admission','nwsync-visual-graphical')][string[]]$Scenarios=@('baseline','browser-auth','manual-character','inventory-dialog','reconnect','travel'),
+ [string]$WorldTextureTargetReport='',
+ [ValidateSet('baseline','browser-auth','manual-character','inventory-dialog','reconnect','travel','character-export','local-smoke','local-smoke-graphical','nwsync','nwsync-failure','nwsync-cancel','nwsync-visual-admission','nwsync-visual-graphical','nwsync-world-control','nwsync-world-candidate')][string[]]$Scenarios=@('baseline','browser-auth','manual-character','inventory-dialog','reconnect','travel'),
  [ValidateRange(30,180)][int]$ScenarioTimeoutSeconds=110,
  [switch]$Run
 )
@@ -15,8 +16,8 @@ $installed=if($Install){[IO.Path]::GetFullPath($Install)}else{[IO.Path]::GetFull
 $serverScript=Join-Path $workspace 'scripts/local-multiplayer-server.ps1'
 $nwsyncFixtureScript=Join-Path $sourceClient 'tools/nwn79/nwsync-loopback-fixture.ps1'
 $serverHome=Join-Path $workspace 'runtime-logs/local-multiplayer-server'
-$console=Join-Path $project '.tools/Godot_v4.7.2-stable_win64_console.exe'
-$desktop=Join-Path $project '.tools/Godot_v4.7.2-stable_win64.exe'
+$engine=Join-Path $project '.tools/Godot_v4.7.2-stable_win64.exe'
+
 $matrix=@(
  [ordered]@{id='baseline';module='Prelude';flags=@('--direct-pregen-bic=fighter.bic');proves='Saved-key login, installed resources, local fighter Play, admitted world and clean shutdown'},
  [ordered]@{id='browser-auth';module='Prelude';flags=@('--direct-headless-browser-check=true','--direct-pregen-bic=fighter.bic');proves='Main menu/Direct browser, rejected mismatched profile and malformed temporary key, then authenticated Play'},
@@ -31,13 +32,15 @@ $matrix=@(
  [ordered]@{id='nwsync-failure';module='Prelude';flags=@('--direct-pregen-bic=fighter.bic');proves='Godot reports authored NWSync blob HTTP 404 without world admission'},
  [ordered]@{id='nwsync-cancel';module='Prelude';flags=@('--direct-headless-nwsync-cancel-check=true');proves='Real character-lobby Cancel during a pending NWSync manifest request retires session and returns to menu'},
  [ordered]@{id='nwsync-visual-admission';module='GodotFeedback1';flags=@('--direct-pregen-bic=fighter.bic');proves='Private-server thirteen-resource NWSync cold/warm fetch, mounted cache hashes and world admission; UI capture is a separate row'},
- [ordered]@{id='nwsync-visual-graphical';module='GodotFeedback1';flags=@('--direct-pregen-bic=fighter.bic');proves='Private-server thirteen-resource cold graphical world admission and authored TGA overlay frame on secondary screen'}
+ [ordered]@{id='nwsync-visual-graphical';module='GodotFeedback1';flags=@('--direct-pregen-bic=fighter.bic');proves='Private-server thirteen-resource cold graphical world admission and authored TGA overlay frame on secondary screen'},
+ [ordered]@{id='nwsync-world-control';module='GodotFeedback1';flags=@('--direct-pregen-bic=fighter.bic','--direct-nwsync-world-material-check=true');proves='No-advertisement control: original dense_a tile ttr01_g01_01 material and graphical world frame'},
+ [ordered]@{id='nwsync-world-candidate';module='GodotFeedback1';flags=@('--direct-pregen-bic=fighter.bic','--direct-nwsync-world-material-check=true');proves='Private NWSync replacement of a real dense_a tile bitmap and graphical world frame; compare with control'}
 )
-if(-not(Test-Path -LiteralPath $project -PathType Container) -or -not(Test-Path -LiteralPath $installed -PathType Container) -or -not(Test-Path -LiteralPath $console -PathType Leaf) -or -not(Test-Path -LiteralPath $serverScript -PathType Leaf)){throw 'Godot project, installation, pinned console or owned server script is unavailable'}
-if((Get-FileHash -LiteralPath $console -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'c8f0a6bc45a19b33541501e57f6f7cd972ab18453743266339d495cbbe846643'){throw 'Direct matrix requires the pinned Godot console'}
-if(@($Scenarios|Where-Object {$_ -in @('nwsync-visual-graphical','local-smoke-graphical')}).Count){
- if(-not(Test-Path -LiteralPath $desktop -PathType Leaf)){throw 'Pinned Godot graphical engine is unavailable'}
- . (Join-Path $project 'tools/native-window-screen.ps1')
+if(-not(Test-Path -LiteralPath $project -PathType Container) -or -not(Test-Path -LiteralPath $installed -PathType Container) -or -not(Test-Path -LiteralPath $engine -PathType Leaf) -or -not(Test-Path -LiteralPath $serverScript -PathType Leaf)){throw 'Godot project, installation, pinned engine or owned server script is unavailable'}
+if((Get-FileHash -LiteralPath $engine -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424'){throw 'Direct matrix requires the pinned Godot engine'}
+if(@($Scenarios|Where-Object {$_ -in @('nwsync-visual-graphical','local-smoke-graphical','nwsync-world-control','nwsync-world-candidate')}).Count){
+
+ . (Join-Path $sourceClient 'tools/native-window-screen.ps1')
  $graphicalScreen=Get-NativeSecondaryScreen
  if($graphicalScreen -lt 0){throw 'Graphical capture needs a secondary screen'}
 }
@@ -58,6 +61,18 @@ if(Test-Path -LiteralPath $output){throw 'Matrix OutputRoot already exists'}
 if(-not(Test-Path -LiteralPath (Join-Path $settingsSource 'client-settings.json') -PathType Leaf)){throw 'Saved-key settings source is unavailable'}
 $settingsVersion=(Get-Content -LiteralPath (Join-Path $settingsSource 'client-settings.json') -Raw|ConvertFrom-Json).version
 if($settingsVersion -ne 3){throw 'Direct matrix requires an already imported Godot version-3 settings store; one-time import is a separate acceptance row'}
+$worldTarget=$null
+$worldName=''
+$worldRows=@($selected|Where-Object {$_.id -in @('nwsync-world-control','nwsync-world-candidate')})
+if($worldRows.Count){
+ if($worldRows.Count -ne 2){throw 'Ordinary-world NWSync acceptance requires both matched control and candidate'}
+ if(-not$WorldTextureTargetReport){throw 'Ordinary-world NWSync acceptance requires the source tile texture target receipt'}
+ $targetPath=[IO.Path]::GetFullPath($WorldTextureTargetReport)
+ if(-not$targetPath.StartsWith($workspace+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or -not(Test-Path -LiteralPath $targetPath -PathType Leaf)){throw 'World texture target receipt must be an existing workspace file'}
+ $worldTarget=Get-Content -LiteralPath $targetPath -Raw|ConvertFrom-Json
+ $worldName=[string]$worldTarget.selected.name
+ if($worldTarget.format -ne 'nwn79-nwsync-world-texture-target-v1' -or $worldTarget.success -ne $true -or $worldTarget.module -ne 'GodotFeedback1' -or $worldTarget.area -ne 'dense_a' -or $worldTarget.tileModel -ne 'ttr01_g01_01' -or $worldName -cnotmatch '^[a-z0-9_]{1,16}$' -or [int]$worldTarget.selected.indexReferences -lt 3 -or [string]$worldTarget.selected.originalSha256 -cnotmatch '^[0-9a-f]{64}$'){throw 'World texture target receipt does not identify an original rendered dense_a bitmap'}
+}
 $travelSource=Join-Path $sourceClient '.cache/nwn79/travel-profile/nwm/GodotBuffs1.nwm'
 $travelTarget=Join-Path $serverHome 'nwm/GodotBuffs1.nwm'
 if($selected.id -contains 'travel'){
@@ -156,14 +171,16 @@ function Invoke-Direct([System.Collections.IDictionary]$spec,[string]$phase=''){
  $stdout=Join-Path $output ($stem+'.stdout.log')
  $stderr=Join-Path $output ($stem+'.stderr.log')
  $start=[Diagnostics.ProcessStartInfo]::new()
- $graphical=$spec.id -in @('nwsync-visual-graphical','local-smoke-graphical')
- $start.FileName=if($graphical){$desktop}else{$console};$start.WorkingDirectory=$project;$start.UseShellExecute=$false;$start.CreateNoWindow=(-not$graphical);$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true;$start.Environment['APPDATA']=$userData
+ $graphical=$spec.id -in @('nwsync-visual-graphical','local-smoke-graphical','nwsync-world-control','nwsync-world-candidate')
+ $start.FileName=$engine;$start.WorkingDirectory=$project;$start.UseShellExecute=$false;$start.CreateNoWindow=(-not$graphical);$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true;$start.Environment['APPDATA']=$userData
  $arguments=@()
  if($graphical){$arguments+=@('--screen',[string]$graphicalScreen)}else{$arguments+='--headless'}
  $arguments+=@('--path',$project,'--script','res://native_direct_session_world.gd','--','--direct-session',('--direct-install='+$installed),('--direct-profile='+$profile),('--direct-settings='+$settings),('--report='+$report),'--direct-headless-check=true')
  if($spec.id -ne 'browser-auth'){$arguments+=@('--direct-host=127.0.0.1','--direct-port=5121')}
  if($spec.id -eq 'nwsync-cancel'){$arguments+=('--direct-nwsync-fixture-ready='+(Join-Path $output 'nwsync-cancel-http/request-starts.log'))}
  if($spec.id -in @('nwsync-visual-admission','nwsync-visual-graphical')){$visualPhase=if($phase){$phase}else{'cold'};$visualDescriptor=(Join-Path $output ($spec.id+'-http/descriptor.json')).Replace([char]92,[char]47);$arguments+=@(('--direct-nwsync-visual-fixture='+$visualDescriptor),('--direct-nwsync-visual-phase='+$visualPhase))}
+ if($spec.id -in @('nwsync-world-control','nwsync-world-candidate')){$arguments+=('--direct-nwsync-world-material-name='+$worldName)}
+ if($spec.id -eq 'nwsync-world-candidate'){$visualDescriptor=(Join-Path $output ($spec.id+'-http/descriptor.json')).Replace([char]92,[char]47);$arguments+=@(('--direct-nwsync-visual-fixture='+$visualDescriptor),'--direct-nwsync-visual-phase=cold')}
  $arguments+=@($spec.flags)
  if($spec.id -in @('nwsync-visual-admission','nwsync-visual-graphical') -and @($arguments|Where-Object {$_ -like '--direct-nwsync-visual-*'}).Count -ne 2){throw 'Visual NWSync fixture arguments did not stay separate'}
  foreach($argument in $arguments){$start.ArgumentList.Add($argument)}
@@ -187,15 +204,15 @@ function Invoke-Direct([System.Collections.IDictionary]$spec,[string]$phase=''){
 function Invoke-NWSyncVisualPreflight([string]$fixtureDirectory){
  $descriptor=(Join-Path $fixtureDirectory 'descriptor.json').Replace([char]92,[char]47)
  Require (Test-Path -LiteralPath $descriptor -PathType Leaf) 'visual descriptor exists before server startup'
- $report=(Join-Path $output 'nwsync-visual-fixture-preflight.json').Replace([char]92,[char]47)
- $stdout=Join-Path $output 'nwsync-visual-fixture-preflight.stdout.log'
- $stderr=Join-Path $output 'nwsync-visual-fixture-preflight.stderr.log'
- $userData=Join-Path $output 'nwsync-visual-preflight-user-data'
+ $stem=Split-Path -Path $fixtureDirectory -Leaf
+ $stdout=Join-Path $output ($stem+'-preflight.stdout.log')
+ $stderr=Join-Path $output ($stem+'-preflight.stderr.log')
+ $userData=Join-Path $output ($stem+'-preflight-user-data')
  New-Item -ItemType Directory -Path $userData -Force|Out-Null
  $start=[Diagnostics.ProcessStartInfo]::new()
- $start.FileName=$console;$start.WorkingDirectory=$project;$start.UseShellExecute=$false;$start.CreateNoWindow=$true
+ $start.FileName=$engine;$start.WorkingDirectory=$sourceClient;$start.UseShellExecute=$false;$start.CreateNoWindow=$true
  $start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true;$start.Environment['APPDATA']=$userData
- foreach($argument in @('--headless','--path',$project,'--script','res://tools/nwn79/nwsync-visual-fixture-check.gd','--',('--descriptor='+$descriptor),('--report='+$report))){$start.ArgumentList.Add($argument)}
+ foreach($argument in @('--headless','--path',$sourceClient,'--script','res://tools/nwn79/nwsync-visual-fixture-check.gd','--',('--descriptor='+$descriptor),('--report='+$report))){$start.ArgumentList.Add($argument)}
  $process=[Diagnostics.Process]::Start($start)
  if($process -eq $null){throw 'Godot visual fixture preflight did not start'}
  try{
@@ -214,7 +231,7 @@ function Invoke-NWSyncRepairProbe([System.Collections.IDictionary]$fixture,[stri
  $stdout=Join-Path $output 'nwsync-repair-probe.stdout.log'
  $stderr=Join-Path $output 'nwsync-repair-probe.stderr.log'
  $start=[Diagnostics.ProcessStartInfo]::new()
- $start.FileName=$console;$start.WorkingDirectory=$project;$start.UseShellExecute=$false;$start.CreateNoWindow=$true
+ $start.FileName=$engine;$start.WorkingDirectory=$project;$start.UseShellExecute=$false;$start.CreateNoWindow=$true
  $start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
  $start.Environment['APPDATA']=Join-Path $output 'nwsync-private/user-data'
  foreach($argument in @('--headless','--path',$project,'--script','res://tools/nwn79/nwsync-cache-repair.gd','--',('--url='+$fixture.url),('--cache='+$cache),('--manifest='+$fixture.manifestHash),('--resource='+$fixture.resourceHash),('--report='+$report))){$start.ArgumentList.Add($argument)}
@@ -384,7 +401,7 @@ try{
  if($serverStarted){& $serverScript -Action Stop -Port 5121 | Out-Null;$serverStarted=$false}
  $nwsyncRow=if($results.Contains('nwsync')){$results['nwsync']}else{[ordered]@{status='pending';reason='Select the private-server NWSync scenario for an end-to-end receipt'}}
  $nwsyncVisualRow=if($results.Contains('nwsync-visual-admission')){$results['nwsync-visual-admission']}else{[ordered]@{status='pending';reason='Select the authored thirteen-resource private-server NWSync scenario'}}
- $summary=[ordered]@{format='nwn79-direct-private-matrix-v1';project=$project;engineSha256=(Get-FileHash -LiteralPath $console -Algorithm SHA256).Hash.ToLowerInvariant();selected=@($selected|ForEach-Object {$_.id});results=$results;nwsyncPhases=$nwsyncPhases;nwsyncVisualPhases=$nwsyncVisualPhases;credentialImport=[ordered]@{status='pending';reason='First-launch one-time import, marker/backup, second launch without old source, and failed credential re-entry belong to the isolated credential fixture; this matrix consumes an already imported version-3 store'};nwsync=$nwsyncRow;nwsyncVisual=$nwsyncVisualRow;alternateContainer=[ordered]@{status='pending';reason='The self-inventory fixture receives inventory channels but does not emit server 13/1 alternate-container receipts'};publicServer='not-tested';graphicalParity='not-tested';fpsMeasurements=0;liveSettingsWrites=0;allSelectedPassed=($failure -eq '' -and @($results.Values|Where-Object {$_.status -ne 'pass'}).Count -eq 0);nwn79Complete=$false}
+ $summary=[ordered]@{format='nwn79-direct-private-matrix-v1';project=$project;engineSha256=(Get-FileHash -LiteralPath $engine -Algorithm SHA256).Hash.ToLowerInvariant();selected=@($selected|ForEach-Object {$_.id});results=$results;nwsyncPhases=$nwsyncPhases;nwsyncVisualPhases=$nwsyncVisualPhases;credentialImport=[ordered]@{status='pending';reason='First-launch one-time import, marker/backup, second launch without old source, and failed credential re-entry belong to the isolated credential fixture; this matrix consumes an already imported version-3 store'};nwsync=$nwsyncRow;nwsyncVisual=$nwsyncVisualRow;alternateContainer=[ordered]@{status='pending';reason='The self-inventory fixture receives inventory channels but does not emit server 13/1 alternate-container receipts'};publicServer='not-tested';graphicalParity='not-tested';fpsMeasurements=0;liveSettingsWrites=0;allSelectedPassed=($failure -eq '' -and @($results.Values|Where-Object {$_.status -ne 'pass'}).Count -eq 0);nwn79Complete=$false}
  $summaryPath=Join-Path $output 'matrix-summary.json'
  [IO.File]::WriteAllText($summaryPath,($summary|ConvertTo-Json -Depth 9))
  Write-Output ('Direct private matrix receipt: '+$summaryPath)

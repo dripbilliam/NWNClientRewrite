@@ -1,24 +1,22 @@
 # Architecture and ownership
 
-The active frontend is native desktop Godot. Electron is no longer installed for the normal client; historical frontend and harness sources remain during NWN-79 migration. The intended final application is fully native, and transitional JavaScript protocol services are unfinished migration work.
+The supported client runs in native desktop Godot. Its normal launch path does not start Node or Electron. Historical JavaScript implementation files remain temporarily as read-only references while NWN-79 ports the remaining behavior.
 
 ## Normal runtime
 
-`godot-client/join-native.ps1` currently starts one transitional Node protocol host, which starts Godot. Godot opens Main Menu and owns the protected settings endpoint; the user chooses a server. NWN-79 now requires Godot to own the normal protocol, downloads and world state as well. Native rendering constructs the world from original resources rather than converting an entire area to GLB.
+`godot-client/join-native.ps1` forwards ordinary launches to `join-godot.ps1`, which starts `native_direct_session_world.gd` in Godot. Godot opens the Main Menu and owns server authentication, transport, resource admission and NWSync, replicated world state, gameplay UI and rendering. Native rendering constructs the world from original resources rather than converting an entire area to GLB.
 
 | Owner | Responsibility |
 | --- | --- |
-| `godot-client/native_session_world.gd` | Session entry, accepted snapshots, menus and connection lifecycle |
+| `godot-client/native_direct_session_world.gd` | Normal Godot session entry, server chooser, protocol lifecycle and world admission |
+| `godot-client/native_session_world.gd` | Shared session/world presentation services and accepted snapshots |
 | `godot-client/native_live_world.gd` | Live frontend entry and native world integration |
-| `godot-client/systems/native_data/` | Catalogs, resource decoding, table-driven rules and preparation |
+| `godot-client/systems/native_data/` | Original-server transport/session, resource catalogs and decoding, replicated state, table-driven rules and preparation |
 | `godot-client/systems/native_render/` | World admission, models, animation, effects, collision and rendering |
 | `godot-client/systems/native_game_desktop.gd` | Gameplay UI, input and scoped action dispatch |
-| `godot-client/native/` | Compiled extensions and their ABI/build contracts |
-| `godot-client/tools/native-session-host.cjs` | Transitional host, transport and native process coordination |
-| `electron/network_game_session.mjs` | Original-server session, canonical replication and requests |
-| `electron/network_peer.mjs` | Authentication, encrypted transport and reliable delivery |
+| `godot-client/native/` and `tooling/native/` | Compiled extensions and native content, crypto and protected-settings helpers |
 
-Godot handles settings and current-user protected keys through a narrow Windows DPAPI helper. The Node protocol host currently prepares initial paths and imports old Chromium-protected keys, then sends settings requests to Godot over the authenticated local connection. Node still owns the normal playable session's game/world message flow. A separate Godot-only path now has live evidence for Arelith login, server resource requirements, installed-content admission, verified HTTP NWSync downloads and the server-vault character list. It is not yet the normal runtime. NWN-79 remains incomplete until Godot owns that full runtime, historical Electron workflows are retired, and the acceptance matrix passes. A retained Node process requires a specific documented technical necessity.
+Godot owns settings and calls a narrow Windows helper for current-user protected keys. Existing nonsecret settings import once; a legacy saved key may need re-entry. The Godot-only path is the normal runtime and has private acceptance evidence for authentication, character selection, NWSync, gameplay, travel and reconnect. NWN-79 remains open for full feature and public-server acceptance and retirement of obsolete source and delivery paths.
 
 ## Ownership rules
 

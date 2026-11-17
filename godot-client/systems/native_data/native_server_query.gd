@@ -13,12 +13,13 @@ var info: Dictionary={}
 var details: Dictionary={}
 var server_name: String=""
 var name_received:=false
+var extended_requested:=false
 
-func query(host: String,port: int,timeout_ms: int=3500)->bool:
+func query(host: String,port: int,timeout_ms: int=3500,extended: bool=false)->bool:
 	close()
 	var endpoint:=BrowserStore.new().normalized_endpoint({"host":host,"port":port})
 	if endpoint.is_empty():completed.emit({},"Invalid server endpoint");return false
-	host_name=str(endpoint.host);server_port=int(endpoint.port);deadline=Time.get_ticks_msec()+clampi(timeout_ms,100,10000)
+	host_name=str(endpoint.host);server_port=int(endpoint.port);deadline=Time.get_ticks_msec()+clampi(timeout_ms,100,10000);extended_requested=extended
 	socket=PacketPeerUDP.new()
 	if socket.bind(0,"0.0.0.0")!=OK:finish("Server information socket could not open");return false
 	if host_name.is_valid_ip_address():address=host_name;send_queries()
@@ -32,7 +33,9 @@ func send_queries()->void:
 	if socket==null:return
 	if socket.set_dest_address(address,server_port)!=OK:finish("Server information endpoint is unavailable");return
 	var local:=socket.get_local_port()
-	for tag in ["BNXI","BNES","BNDS"]:
+	var tags: Array[String]=["BNXI","BNES"]
+	if extended_requested:tags.append("BNDS")
+	for tag in tags:
 		var bytes: PackedByteArray=tag.to_ascii_buffer();bytes.append(local&255);bytes.append((local>>8)&255)
 		if tag=="BNES":bytes.append(0)
 		if socket.put_packet(bytes)!=OK:finish("Server information request failed");return
@@ -58,7 +61,7 @@ func _process(_delta: float)->void:
 			"details":details=parsed
 			"discovery":
 				if int(parsed.get("section",-1))==0:server_name=str(parsed.serverName);name_received=true
-		if not info.is_empty() and name_received and not details.is_empty():finish("");return
+		if not info.is_empty() and name_received and (not extended_requested or not details.is_empty()):finish("");return
 	if Time.get_ticks_msec()>=deadline:finish("" if not info.is_empty() else "Server information request timed out")
 
 func finish(reason: String)->void:
@@ -76,7 +79,7 @@ func close()->void:
 	set_process(false)
 	if resolver_id>=0:IP.erase_resolve_item(resolver_id);resolver_id=-1
 	if socket!=null:socket.close();socket=null
-	address="";host_name="";server_port=0;deadline=0;info.clear();details.clear();server_name="";name_received=false
+	address="";host_name="";server_port=0;deadline=0;info.clear();details.clear();server_name="";name_received=false;extended_requested=false
 
 static func decode_packet(bytes: PackedByteArray)->Dictionary:
 	if bytes.size()<4 or bytes.size()>65535:return {"error":"Invalid server query packet"}

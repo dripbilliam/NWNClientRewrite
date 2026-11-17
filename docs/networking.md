@@ -1,10 +1,10 @@
 # Networking and multiplayer
 
-Original-client interoperability on unchanged original servers is the acceptance target. Protocol services remain transitional JavaScript; native Godot owns presentation and UI.
+Original-client interoperability on unchanged original servers is the acceptance target. The normal client owns protocol, world state, presentation and UI in Godot; it does not launch Node or Electron.
 
 ## Main owners
 
-`electron/network_peer.mjs` owns the peer and reliable/encrypted transport. `electron/network_game_session.mjs` owns admission, requests and canonical state. `src/network_game_messages.js` decodes server messages. The native session host forwards scoped data into `native_session_world.gd`.
+`godot-client/systems/native_data/native_network_peer.gd` owns the peer and reliable/encrypted transport. `native_network_session.gd` owns admission, requests and session scope, with `native_network_messages.gd` and focused decoders handling server messages. `native_network_world.gd` owns received world state; `native_nwsync_repository.gd` handles server content. `godot-client/native_direct_session_world.gd` connects the normal session to menus and the rendered world. Original `src/` and `electron/` JavaScript files are temporary behavior references, not runtime owners.
 
 A sent request is not an acknowledgment. Preserve original message order, build-specific fields, bounds and failure behavior. Unsupported-message diagnostics require classification against an actual player scenario; not every protocol number is necessarily required.
 
@@ -16,7 +16,9 @@ Encrypted original-server admission, character selection, replicated worlds and 
 
 Earlier bridge-based NUI/NWSync/recovery checks have their own scope. Do not use them as automatic acceptance of a later direct-native entry.
 
-## Current blockers
+## Historical follow-up tickets
+
+These links record earlier direct-route gaps. Check the current tracker and latest acceptance receipts before treating a listed symptom as unresolved.
 
 - [NWN-14](https://linear.app/nwnanalog/issue/NWN-14): intermittent entry/reconnect disconnects and stalled world delivery. NPC, Cleric and first-snapshot failures are retained symptoms; a shared timeout owner is not proven.
 - [NWN-15](https://linear.app/nwnanalog/issue/NWN-15): composed handoff semantic validation rejects the expanded character proof before comparison. The audit reproduced a 70,321-character proof against a 32,768 capture limit. This is a harness integration defect, not evidence of production character corruption.

@@ -86,7 +86,10 @@ func poll()->Dictionary:
 		if decoded.has("error"):fail(str(decoded.error));return {"error":error}
 		payloads.append(decoded.bytes)
 	if disconnected:
-		fail("Native server disconnected")
+		# The native HandleBNDP path drops the active server before cleanup, so
+		# it does not send a local BNDM in response to the server's BNDP.
+		error="Native server disconnected"
+		close(false)
 		return {"error":error,"reason":disconnect_reason,"records":records,"payloads":payloads}
 	return {"admitted":admitted,"phase":login.phase,"remote":remote.duplicate(true),"records":records,"payloads":payloads}
 
@@ -106,9 +109,9 @@ func fail(reason: String)->bool:
 	close()
 	return false
 
-func close()->void:
+func close(send_disconnect: bool=true)->void:
 	if closed and datagram==null and crypto==null:return
-	if admitted and datagram!=null and not datagram.closed:datagram.send(Packets.disconnect_request())
+	if send_disconnect and admitted and datagram!=null and not datagram.closed:datagram.send(Packets.disconnect_request())
 	closed=true;admitted=false
 	if datagram!=null:datagram.close();datagram=null
 	if crypto!=null:crypto.close();crypto=null

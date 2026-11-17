@@ -1391,6 +1391,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				view.close_requested.emit()
 				if view.close_hides: view.hide()
 				get_viewport().set_input_as_handled(); return
+		options_requested.emit()
+		get_viewport().set_input_as_handled(); return
 	if is_instance_valid(bindings):
 		var actions:={66:"character",68:"map",65:"journal",70:"options",107:"rest",69:"pvp"}
 		var selected: int=bindings.action(event,actions.keys())

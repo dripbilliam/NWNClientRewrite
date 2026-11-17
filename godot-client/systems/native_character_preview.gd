@@ -8,6 +8,7 @@ class ReadJob extends RefCounted:
 	var packet: Dictionary={}
 	var scope: Array=[]
 	var language:=0
+	var rules_snapshot: Dictionary={}
 	var value: Dictionary={}
 	var error:=""
 	var elapsed_ms:=0.0
@@ -18,7 +19,7 @@ class ReadJob extends RefCounted:
 		if bytes.size()!=int(packet.bytes) or preload("res://systems/native_data/prepared_cache.gd").digest(bytes)!=str(packet.sha256): error="Character preview bytes failed their integrity check."; return
 		var parser:=preload("res://systems/native_data/gff_document.gd").new(); var document:=parser.parse(bytes,"BIC ")
 		if not parser.failure.is_empty(): error="Character preview is not a valid native BIC record."; return
-		value=PreviewData.project(document.root,language)
+		value=PreviewData.project_document(document,language,rules_snapshot)
 		if not value.has("error"): value.visualSource=preload("res://systems/native_data/bic_visual.gd").source(document)
 		if not value.has("error"): value.skillSource=preload("res://systems/native_data/pregame_skills.gd").source(document)
 		if not value.has("error"): value.spellSource=preload("res://systems/native_data/pregame_spells.gd").source(document,value.skillSource)
@@ -27,6 +28,8 @@ class ReadJob extends RefCounted:
 		elapsed_ms=(Time.get_ticks_usec()-began)/1000.0
 var directory:=""
 var language:=0
+var rules_snapshot: Dictionary={}
+var rules_generation:=0
 var wanted: Array=[]
 var pending: Dictionary={}
 var active: ReadJob
@@ -37,13 +40,19 @@ var closed:=false
 var accepted: Array=[]
 var stats:={"decoded":0,"stale":0,"failed":0,"last_ms":0.0}
 func configure(path: String) -> void: directory=path.replace("\\","/").simplify_path().trim_suffix("/")
+func configure_rules(snapshot: Dictionary)->void:
+	rules_generation+=1
+	rules_snapshot=snapshot.duplicate(true) if snapshot.get("ready",false) and str(snapshot.get("format",""))=="nwn79-character-preview-rules-v1" else {}
+	wanted=[];pending={};value={};accepted=[];error=""
+	completed.emit()
 func observe(connection: int,key: Variant,packet: Variant,allowed: bool) -> void:
 	if closed: return
+	if not rules_snapshot.is_empty() and int(rules_snapshot.get("connection",-1))!=connection:allowed=false
 	var size:=-1
 	if packet is Dictionary:
 		var count: Variant=packet.get("bytes")
 		if (count is int or count is float) and is_finite(float(count)) and count>=56 and count<=MAX_BYTES and float(count)==floor(float(count)): size=int(count)
-	var next: Array=[connection,key,str(packet.get("sha256","")),language,packet.get("path"),size] if allowed and packet is Dictionary and packet.get("format","")=="native-bic-file-v1" else []
+	var next: Array=[connection,key,str(packet.get("sha256","")),language,packet.get("path"),size,rules_generation] if allowed and packet is Dictionary and packet.get("format","")=="native-bic-file-v1" else []
 	if next==wanted: return
 	wanted=next; pending={}; value={}; accepted=[]; error=""
 	if next.is_empty(): return
@@ -53,7 +62,7 @@ func observe(connection: int,key: Variant,packet: Variant,allowed: bool) -> void
 	pending=packet.duplicate(); dispatch()
 func dispatch() -> void:
 	if closed or task>=0 or pending.is_empty(): return
-	active=ReadJob.new(); active.packet=pending; active.scope=wanted.duplicate(); active.language=language; pending={}; task=WorkerThreadPool.add_task(active.run,false,"Native character record")
+	active=ReadJob.new(); active.packet=pending; active.scope=wanted.duplicate(); active.language=language; active.rules_snapshot=rules_snapshot.duplicate(true); pending={}; task=WorkerThreadPool.add_task(active.run,false,"Native character record")
 func _process(_delta: float) -> void:
 	if closed or task<0 or not WorkerThreadPool.is_task_completed(task): return
 	WorkerThreadPool.wait_for_task_completion(task); task=-1
@@ -65,10 +74,10 @@ func _process(_delta: float) -> void:
 		completed.emit()
 	else: stats.stale+=1
 	dispatch()
-func snapshot() -> Dictionary: return {"native_only":true,"closed":closed,"decoded":stats.decoded,"failed":stats.failed,"stale":stats.stale,"last_ms":stats.last_ms,"pending":not pending.is_empty(),"worker_running":task>=0,"ready":not value.is_empty(),"error":error,"derived_combat_ready":false}
+func snapshot() -> Dictionary: return {"native_only":true,"closed":closed,"decoded":stats.decoded,"failed":stats.failed,"stale":stats.stale,"last_ms":stats.last_ms,"pending":not pending.is_empty(),"worker_running":task>=0,"ready":not value.is_empty(),"error":error,"derived_combat_ready":bool(value.get("derived_combat_ready",false))}
 func close() -> void:
 	if closed: return
-	closed=true; wanted=[]; pending={}; value={}; accepted=[]
+	closed=true; wanted=[]; pending={}; value={}; accepted=[];rules_snapshot={};rules_generation+=1
 	if task>=0: WorkerThreadPool.wait_for_task_completion(task)
 	task=-1; active=null
 func _exit_tree() -> void: close()

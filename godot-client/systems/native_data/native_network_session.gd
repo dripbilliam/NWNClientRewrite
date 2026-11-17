@@ -46,6 +46,9 @@ const NetworkCreatureVoice=preload("res://systems/native_data/native_network_cre
 const NetworkCustomToken=preload("res://systems/native_data/native_network_custom_token.gd")
 const NetworkItemCaption=preload("res://systems/native_data/native_network_item_caption.gd")
 const NetworkTargeting=preload("res://systems/native_data/native_network_targeting.gd")
+const NetworkProjectile=preload("res://systems/native_data/native_network_projectile.gd")
+const NetworkDmPermission=preload("res://systems/native_data/native_network_dm_permission.gd")
+const NetworkModulePause=preload("res://systems/native_data/native_network_module_pause.gd")
 const NetworkRuntime=preload("res://systems/native_data/native_network_runtime_52_54.gd")
 const NetworkCharacterExport=preload("res://systems/native_data/native_network_character_export.gd")
 const CharacterExportVault=preload("res://systems/native_data/native_character_export_vault.gd")
@@ -63,10 +66,12 @@ const WorldState=preload("res://systems/native_data/native_network_world.gd")
 signal phase_changed(phase: String)
 signal character_list_ready(characters: Array[Dictionary])
 signal character_preview_ready(preview: Dictionary)
+signal character_rejected_ready(message: Dictionary)
 signal server_status_ready(status: Dictionary)
 signal character_needed_ready(message: Dictionary)
 signal lobby_players_ready(players: Array)
 signal session_failed(reason: String)
+signal diagnostic(code: String,reason: String)
 signal resource_progress(phase: String,completed: int,total: int)
 signal resource_sources_ready(sources: Dictionary)
 signal catalog_ready(catalog: RefCounted)
@@ -88,6 +93,8 @@ signal portal_handoff_ready(handoff: Dictionary)
 signal camera_command_ready(message: Dictionary)
 signal area_visual_ready(message: Dictionary)
 signal creature_voice_ready(message: Dictionary)
+signal projectile_ready(message: Dictionary)
+signal module_pause_ready(receipt: Dictionary)
 signal character_export_status_ready(status: Dictionary)
 var phase: String="idle"
 var peer: RefCounted
@@ -96,6 +103,9 @@ var content_store: RefCounted
 var repository: Node
 var profile_root: String=""
 var install_root: String=""
+var mods_directory: String=""
+var disabled_mods: Array=[]
+var portal_workshop_selection: Dictionary={}
 var language:=0
 var deadline:=0
 var characters: Array[Dictionary]=[]
@@ -122,8 +132,10 @@ var resource_sources: Dictionary={}
 var catalog_loader: Node
 var catalog: RefCounted
 var catalog_serial:=-1
+var catalog_archive_repair_attempted:=false
 var character_confirmed:=false
-var local_vault_allowed:=true
+var local_vault_allowed:=false
+var local_vault_policy_known:=false
 var module_information: Dictionary={}
 var module_ready_sent:=false
 var object_rules: RefCounted
@@ -197,12 +209,34 @@ func decode_quickbar_packet(packet: PackedByteArray)->bool:
 	quickbar_ready.emit(message)
 	return true
 
-func accept_catalog(serial: int,prepared: RefCounted,reason: String,_stats: Dictionary)->void:
+func accept_catalog(serial: int,prepared: RefCounted,reason: String,stats: Dictionary)->void:
 	if phase in ["closed","failed"] or serial!=catalog_serial:return
-	if not reason.is_empty() or prepared==null:fail("Native server catalog preparation failed: "+reason);return
+	if not reason.is_empty() or prepared==null:
+		var binding: Dictionary=stats.get("repair",{}) if stats.get("repair",{}) is Dictionary else {}
+		if not reason.is_empty() and not catalog_archive_repair_attempted and binding.has("store") and binding.has("entry") and repository!=null and is_instance_valid(repository):
+			catalog_archive_repair_attempted=true
+			var archive_repository: Node=repository
+			var repaired: Dictionary=await archive_repository.repair_failed_blob(binding.store,binding.entry)
+			if phase in ["closed","failed"] or serial!=catalog_serial or repository!=archive_repository:return
+			if repaired.has("error"):fail("Native server archive repair failed: "+str(repaired.error));return
+			if catalog_loader==null or not is_instance_valid(catalog_loader):fail("Native server catalog loader is unavailable after repair");return
+			catalog_serial=catalog_loader.start(resource_sources)
+			return
+		fail("Native server catalog preparation failed: "+reason)
+		return
+	if repository==null or not is_instance_valid(repository):fail("Native server content repair owner is unavailable");return
+	var repair_repository: Node=repository
+	prepared.bind_nwsync_repair(Callable(repair_repository,"repair_failed_blob"))
 	var tables: Dictionary={}
 	for name in ["baseitems","classes","visualeffects","skills"]:
 		var bytes: PackedByteArray=prepared.get_resource(name,2017)
+		if bytes.is_empty():
+			var binding: Dictionary=prepared.nwsync_repair_binding(name,2017)
+			if not binding.is_empty():
+				var repaired: Dictionary=await repair_repository.repair_failed_blob(binding.store,binding.entry)
+				if phase in ["closed","failed"] or serial!=catalog_serial or repository!=repair_repository:return
+				if repaired.has("error"):fail("Server catalog object rule table repair failed: "+name);return
+				bytes=prepared.get_resource(name,2017)
 		if bytes.is_empty():fail("Server catalog omitted object rule table "+name);return
 		tables[name]=TwoDA.new().parse(bytes.get_string_from_utf8())
 	catalog=prepared
@@ -212,8 +246,9 @@ func accept_catalog(serial: int,prepared: RefCounted,reason: String,_stats: Dict
 	catalog_ready.emit(catalog)
 	if phase=="portal-character-pending" and not submit_portal_character():fail("Portal destination character could not be submitted")
 
-func configure_portal(next_identity: RefCounted,character: Dictionary,waypoint: String)->bool:
+func configure_portal(next_identity: RefCounted,character: Dictionary,waypoint: String,workshop_selection: Dictionary={})->bool:
 	if phase!="idle" or portal_identity!=null or next_identity==null or next_identity.get_script()!=Identity or next_identity.disposed or RuntimeMessages.login_waypoint_response(waypoint).has("error"):return false
+	if not workshop_selection.is_empty() and (not workshop_selection.get("modsDirectory") is String or not workshop_selection.get("disabledMods") is Array):return false
 	if character.has("data"):
 		if not character.data is PackedByteArray or character.data.size()<56 or character.data.size()>Characters.MAX_CHARACTER_BYTES:return false
 		var document:=GffDocument.new()
@@ -224,6 +259,7 @@ func configure_portal(next_identity: RefCounted,character: Dictionary,waypoint: 
 		if reference.has("error"):return false
 		portal_character={"source":int(character.source),"resref":str(character.resref)}
 	portal_identity=next_identity
+	portal_workshop_selection=workshop_selection.duplicate(true)
 	login_waypoint=waypoint
 	return true
 
@@ -246,7 +282,7 @@ func begin_portal(message: Dictionary)->bool:
 	var next_identity: RefCounted=identity.for_portal(str(message.password))
 	message.password=""
 	if next_identity==null:return fail("Portal destination identity could not be prepared")
-	portal_pending={"host":str(message.host),"port":int(message.port),"waypoint":str(message.waypoint) if not str(message.waypoint).is_empty() else "*PAUL_WAS_HERE*" if bool(message.seamless) else "","identity":next_identity,"playerName":player_name}
+	portal_pending={"host":str(message.host),"port":int(message.port),"waypoint":str(message.waypoint) if not str(message.waypoint).is_empty() else "*PAUL_WAS_HERE*" if bool(message.seamless) else "","identity":next_identity,"playerName":player_name,"workshopSelection":{"modsDirectory":mods_directory,"disabledMods":disabled_mods.duplicate(true)}}
 	if not peer.send_game_message(NetworkPortal.character_request()):return fail("Portal character download request failed")
 	change_phase("transferring")
 	deadline=Time.get_ticks_msec()+15000
@@ -265,6 +301,26 @@ func finish_portal(message: Dictionary)->bool:
 	change_phase("portal-ready")
 	portal_handoff_ready.emit(handoff)
 	return true
+
+func select_portal_workshop(default_mods: String,settings_directory: String)->bool:
+	if not portal_workshop_selection.is_empty():
+		mods_directory=str(portal_workshop_selection.modsDirectory)
+		disabled_mods=portal_workshop_selection.disabledMods.duplicate(true)
+		portal_workshop_selection.clear()
+		return true
+	# An externally configured portal has no source-session selection. Read
+	# non-secret settings only; this path never imports or unlocks credentials.
+	var portal_settings:=Settings.new()
+	if not portal_settings.open(settings_directory,default_mods):return false
+	mods_directory=str(portal_settings.state.get("modsDirectory",default_mods))
+	disabled_mods=portal_settings.state.get("disabledMods",[]).duplicate(true)
+	portal_settings.close()
+	return true
+
+func bind_repository(owner: Node)->void:
+	repository=owner
+	repository.progress.connect(func(current: String,completed: int,total: int):resource_progress.emit(current,completed,total))
+	repository.diagnostic.connect(func(code: String,reason: String):diagnostic.emit(code,reason))
 
 func decode_object_packet(packet: PackedByteArray)->bool:
 	if object_rules==null:
@@ -880,7 +936,7 @@ func flush_device_metrics()->bool:
 	return true
 
 func request_preview(source: int,resref: String)->bool:
-	if phase!="character-selection" or not pending_preview.is_empty() or peer==null:return false
+	if phase not in ["character-selection","character-rejected"] or not pending_preview.is_empty() or peer==null:return false
 	var selected:=false
 	for row in characters:
 		if int(row.source)==source and str(row.resref)==resref:selected=true;break
@@ -891,7 +947,7 @@ func request_preview(source: int,resref: String)->bool:
 	return true
 
 func play_character(source: int,resref: String)->bool:
-	if phase!="character-selection" or peer==null:return false
+	if phase not in ["character-selection","character-rejected"] or peer==null:return false
 	var selected:=false
 	for row in characters:
 		if int(row.source)==source and str(row.resref)==resref:selected=true;break
@@ -908,7 +964,7 @@ func play_character(source: int,resref: String)->bool:
 	return true
 
 func play_local_character(bic: PackedByteArray,create_on_server: bool=false,vault_id: String="")->bool:
-	if phase!="character-selection" or peer==null or catalog==null or not local_vault_allowed and not create_on_server or bic.size()<4 or bic.slice(0,4).get_string_from_ascii()!="BIC ":return false
+	if phase not in ["character-selection","character-rejected"] or peer==null or catalog==null or not local_vault_allowed and not create_on_server or bic.size()<4 or bic.slice(0,4).get_string_from_ascii()!="BIC ":return false
 	var packet: Dictionary=Characters.upload_request(bic,19 if create_on_server else 1)
 	if packet.has("error"):return false
 	if lobby_players.subscribed and not lobby_player_subscription(false).get("sent",false):return false
@@ -920,8 +976,15 @@ func play_local_character(bic: PackedByteArray,create_on_server: bool=false,vaul
 	deadline=Time.get_ticks_msec()+30000
 	return true
 
+func set_server_vault_policy(server_info: Dictionary,host: String,port: int)->bool:
+	# Only a fresh BNXR query for this endpoint may admit local BIC uploads.
+	if phase!="idle" or local_vault_policy_known or not server_info.get("allowLocalVaultCharacters") is bool or str(server_info.get("host","")).to_lower()!=host.to_lower() or int(server_info.get("port",0))!=port:return false
+	local_vault_allowed=bool(server_info.allowLocalVaultCharacters)
+	local_vault_policy_known=true
+	return true
+
 func lobby_player_subscription(open: bool)->Dictionary:
-	if phase!="character-selection" or peer==null:return {"error":"Lobby player list is unavailable outside character selection"}
+	if phase not in ["character-selection","character-rejected"] or peer==null:return {"error":"Lobby player list is unavailable outside character selection"}
 	var packet:=PackedByteArray([112,49,1 if open else 2])
 	if not peer.send_game_message(packet):return {"error":"Lobby player list request failed"}
 	lobby_players.set_subscribed(open)
@@ -966,6 +1029,8 @@ func start(host: String,port: int,profile: String,install: String,server_passwor
 	var vault_parent:=settings_directory_override if not settings_directory_override.is_empty() else str(startup.settingsDirectory)
 	if not character_vault.configure(vault_parent.path_join("godot-character-vault")):return fail("Godot character vault is unavailable")
 	if portal_identity!=null:
+		var portal_settings_directory:=settings_directory_override if not settings_directory_override.is_empty() else str(startup.settingsDirectory)
+		if not select_portal_workshop(str(startup.defaultModsDirectory),portal_settings_directory):return fail("Saved client settings are unavailable")
 		player_name=player_name_override.strip_edges()
 		if not player_name.is_empty() and not Settings.new().valid_label(player_name):return fail("Player name is invalid")
 		identity=portal_identity;portal_identity=null
@@ -973,6 +1038,8 @@ func start(host: String,port: int,profile: String,install: String,server_passwor
 		var settings_directory:=settings_directory_override if not settings_directory_override.is_empty() else str(startup.settingsDirectory)
 		var settings:=Settings.new()
 		if not settings.open(settings_directory,str(startup.defaultModsDirectory)):return fail("Saved client settings are unavailable")
+		mods_directory=str(settings.state.get("modsDirectory",startup.defaultModsDirectory))
+		disabled_mods=settings.state.get("disabledMods",[]).duplicate(true)
 		var credential: Dictionary={}
 		if temporary_cd_key.is_empty():
 			if int(settings.state.get("version",0))<Settings.CURRENT_VERSION:
@@ -999,14 +1066,21 @@ func start(host: String,port: int,profile: String,install: String,server_passwor
 	var content_helper:=ProjectSettings.globalize_path("res://../tooling/native/content-reader/nwn-content-reader.exe")
 	content_store=Store.new()
 	if not content_store.configure(cache,profile_root.path_join("nwsync"),content_helper):return fail("Installed NWSync content reader is unavailable")
-	repository=Repository.new();add_child(repository)
-	repository.progress.connect(func(current: String,completed: int,total: int):resource_progress.emit(current,completed,total))
+	var content_repository:=Repository.new();add_child(content_repository)
+	bind_repository(content_repository)
 	peer=Peer.new()
 	var metadata: Dictionary={"connectionType":16,"build":build.build,"language":language,"name":player_name,"legacyPublicKey":"","platformId":build.platformId,"platformIdentifier":build.platformIdentifier}
+	if not world_state.begin_client_connection(int(metadata.connectionType)):return fail("Native client connection permission could not initialize")
 	if not peer.connect_to_server(host,port,identity,metadata,crypto_helper):return fail(peer.error)
 	change_phase("connecting")
 	deadline=Time.get_ticks_msec()+15000
 	return true
+
+static func transport_failure_reason(result: Dictionary)->String:
+	var reason:=str(result.get("error",""))
+	if reason.is_empty() or not result.has("connectionError"):
+		return reason
+	return "%s (connection error %d)" % [reason,int(result.connectionError)]
 
 func _process(_delta: float)->void:
 	if phase in ["idle","closed","failed","portal-ready"] or peer==null:return
@@ -1020,8 +1094,10 @@ func _process(_delta: float)->void:
 	if Time.get_ticks_msec()>deadline and phase in ["connecting","resources","characters","character-loading","area-loading","area-presenting","transferring","portal-character-pending"]:
 		fail("Original-server session timed out");return
 	var result: Dictionary=peer.poll()
-	var transport_error:=str(result.get("error",""))
-	if not transport_error.is_empty() and (phase!="transferring" or result.get("payloads",[]).is_empty()):fail(transport_error);return
+	var transport_error:=transport_failure_reason(result)
+	# A BNDP may share this poll with earlier reliable records. Deliver those
+	# records in wire order before retiring the connection in every phase.
+	if not transport_error.is_empty() and result.get("payloads",[]).is_empty():fail(transport_error);return
 	if phase=="connecting" and result.get("admitted",false):
 		remote_build=result.get("remote",{}).get("build",{}).duplicate(true)
 		if not flush_device_metrics():fail("Native device properties could not be sent");return
@@ -1058,6 +1134,11 @@ func _process(_delta: float)->void:
 			if export_message.has("error"):fail("Invalid native character export: "+str(export_message.error));return
 			receive_character_export(export_message)
 			continue
+		if phase in ["resources","loading-content","characters","character-selection","character-loading","area-loading","area-presenting","playing"] and NetworkDmPermission.accepted(int(bytes[1]),int(bytes[2])):
+			var permission: Dictionary=NetworkDmPermission.decode_packet(bytes)
+			if permission.has("error") or not world_state.apply_dm_permission(permission):fail("Invalid native game-master permission: "+str(permission.get("error",world_state.error)));return
+			world_revision+=1
+			continue
 		if phase in ["character-loading","area-loading","area-presenting","playing"] and NetworkCustomToken.accepted(int(bytes[1]),int(bytes[2])):
 			var token_message: Dictionary=NetworkCustomToken.decode_packet(bytes)
 			if token_message.has("error"):fail("Invalid native custom token: "+str(token_message.error));return
@@ -1092,13 +1173,13 @@ func _process(_delta: float)->void:
 			characters=list.characters
 			change_phase("character-selection")
 			character_list_ready.emit(characters.duplicate(true))
-		elif phase=="character-selection" and bytes[1]==17 and bytes[2]==4:
+		elif phase in ["character-selection","character-rejected"] and bytes[1]==17 and bytes[2]==4:
 			var preview: Dictionary=Characters.decode_preview_packet(bytes)
 			if preview.has("error"):fail("Invalid server character preview");return
 			if pending_preview.is_empty() or str(preview.resref)!=str(pending_preview.resref) or int(preview.previewType)!=int(pending_preview.type):continue
 			pending_preview.clear()
 			character_preview_ready.emit(preview)
-		elif phase=="character-selection" and LobbyPlayer.accepted(int(bytes[1]),int(bytes[2])):
+		elif phase in ["character-selection","character-rejected"] and LobbyPlayer.accepted(int(bytes[1]),int(bytes[2])):
 			var player_message: Dictionary=LobbyPlayer.decode_packet(bytes)
 			if player_message.has("error"):fail("Invalid native lobby-player record: "+str(player_message.error));return
 			if not lobby_players.subscribed:continue
@@ -1112,7 +1193,10 @@ func _process(_delta: float)->void:
 			var needed: Dictionary=CharacterNeeded.decode_packet(bytes)
 			if needed.has("error"):fail("Invalid native character-needed response: "+str(needed.error));return
 			character_confirmed=false;module_information.clear();module_ready_sent=false;pending_preview.clear()
-			world_state=WorldState.new();world_revision+=1;published_revision=-1
+			var current_permission: Variant=world_state.game_master_permission
+			world_state=WorldState.new()
+			if current_permission is Dictionary:world_state.game_master_permission=current_permission.duplicate(true)
+			world_revision+=1;published_revision=-1
 			change_phase("character-selection")
 			deadline=Time.get_ticks_msec()+30000
 			character_needed_ready.emit(needed)
@@ -1156,6 +1240,10 @@ func _process(_delta: float)->void:
 			world_state.apply_time(clock.changes)
 			world_revision+=1
 			time_changed.emit(clock.changes)
+		elif phase in ["area-loading","area-presenting","playing"] and NetworkModulePause.accepted(int(bytes[1]),int(bytes[2])):
+			var pause_message: Dictionary=NetworkModulePause.decode_packet(bytes)
+			if pause_message.has("error"):fail("Invalid native module-pause packet: "+str(pause_message.error));return
+			module_pause_ready.emit({"message":pause_message,"areaId":world_state.area_id,"generation":area_generation})
 		elif phase in ["area-loading","area-presenting","playing"] and NetworkCamera.accepted(int(bytes[1]),int(bytes[2])):
 			var camera_message: Dictionary=NetworkCamera.decode_packet(bytes)
 			if camera_message.has("error"):fail("Invalid native camera command: "+str(camera_message.error));return
@@ -1164,6 +1252,18 @@ func _process(_delta: float)->void:
 			var targeting: Dictionary=NetworkTargeting.decode_packet(bytes)
 			if targeting.has("error") or not world_state.apply_targeting(targeting):fail("Invalid native targeting instruction: "+str(targeting.get("error",world_state.error)));return
 			world_revision+=1
+		elif phase in ["area-loading","area-presenting","playing"] and NetworkProjectile.accepted(int(bytes[1]),int(bytes[2])):
+			var projectile: Dictionary=NetworkProjectile.decode_packet(bytes)
+			if projectile.has("error"):fail("Invalid native projectile: "+str(projectile.error));return
+			var current_area:=int(world_state.area_id)
+			var source: Dictionary=world_state.registry.get(int(projectile.header.sourceId),{})
+			var target: Dictionary=world_state.registry.get(int(projectile.header.targetId),{})
+			projectile.nativeAreaId=current_area
+			projectile.nativeAreaGeneration=area_generation
+			projectile.sourceLifetime=int(source.get("nativeLifetime",0)) if int(source.get("areaId",-1))==current_area and not bool(source.get("replicationRemoved",false)) else 0
+			projectile.targetLifetime=int(target.get("nativeLifetime",0)) if int(target.get("areaId",-1))==current_area and not bool(target.get("replicationRemoved",false)) else 0
+			projectile.receivedAtMs=Time.get_ticks_msec()
+			projectile_ready.emit(projectile)
 		elif phase in ["area-loading","area-presenting","playing"] and NetworkLevelUp.accepted(int(bytes[1]),int(bytes[2])):
 			var level_message: Dictionary=NetworkLevelUp.decode_packet(bytes)
 			if level_message.has("error"):fail("Invalid native level-up reply: "+str(level_message.error));return
@@ -1291,20 +1391,27 @@ func _process(_delta: float)->void:
 				"dialog-close":current_dialog.clear()
 			ui_message_ready.emit(dialog)
 		elif phase=="character-loading" and bytes[1]==2 and bytes[2]==18:
-			fail("Server rejected the selected character")
+			if bytes.size()!=7:fail("Invalid server character rejection");return
+			var rejection: Dictionary={"kind":"character-rejected","reason":int(bytes.decode_u32(3))}
+			character_confirmed=false;module_information.clear();module_ready_sent=false;pending_preview.clear()
+			change_phase("character-rejected")
+			deadline=Time.get_ticks_msec()+30000
+			character_rejected_ready.emit(rejection)
 	if not transport_error.is_empty():fail(transport_error);return
 	publish_world_if_ready()
 
 func load_content(requirements: Dictionary)->void:
 	var roots: Array[String]=[profile_root,install_root]
-	var resolution: Dictionary=await repository.ensure_requirements(content_store,requirements,language,roots)
-	if phase!="loading-content":return
+	var content_repository: Node=repository
+	var resolution: Dictionary=await content_repository.ensure_requirements(content_store,requirements,language,roots,mods_directory,disabled_mods)
+	if phase!="loading-content" or repository!=content_repository:return
 	if resolution.has("error") or not resolution.get("ready",false):
 		fail("Required server content is unavailable: "+str(resolution.get("error","missing="+str(resolution.get("missing",[]).size()))))
 		return
-	var sources: Dictionary=ResourceSources.build(resolution,install_root,profile_root,profile_root.path_join("replacement-client/server-content"),profile_root.path_join("nwsync"),ProjectSettings.globalize_path("res://../tooling/native/content-reader/nwn-content-reader.exe"))
+	var sources: Dictionary=ResourceSources.build(resolution,install_root,profile_root,profile_root.path_join("replacement-client/server-content"),profile_root.path_join("nwsync"),ProjectSettings.globalize_path("res://../tooling/native/content-reader/nwn-content-reader.exe"),mods_directory,disabled_mods)
 	if sources.has("error"):fail("Admitted server content cannot be mounted: "+str(sources.error));return
 	resource_sources=sources
+	catalog_archive_repair_attempted=false
 	resource_sources_ready.emit(sources.duplicate(true))
 	if phase=="closed" or phase=="failed":return
 	catalog_loader=SessionCatalog.new();add_child(catalog_loader)
@@ -1331,6 +1438,11 @@ func fail(reason: String)->bool:
 
 func close()->void:
 	if phase=="closed":return
+	# Closing the repository settles pending HTTP waits synchronously. Retire the
+	# session before that can resume load_content and report Cancel as a failure.
+	phase="closed"
+	local_vault_allowed=false;local_vault_policy_known=false
+	mods_directory="";disabled_mods.clear();portal_workshop_selection.clear()
 	if portal_pending.get("identity") is RefCounted:portal_pending.identity.dispose()
 	portal_pending.clear()
 	if portal_identity!=null:portal_identity.dispose();portal_identity=null
@@ -1339,6 +1451,7 @@ func close()->void:
 	if repository!=null:repository.close();repository.queue_free();repository=null
 	if catalog_loader!=null:catalog_loader.close();catalog_loader.queue_free();catalog_loader=null
 	catalog=null;catalog_serial=-1
+	catalog_archive_repair_attempted=false
 	if content_store!=null:content_store.close();content_store=null
 	if peer!=null:peer.close();peer=null
 	if identity!=null:identity.dispose();identity=null
@@ -1366,4 +1479,4 @@ func close()->void:
 	pending_object_packets.clear();pending_object_bytes=0;object_rules=null
 	pending_quickbar_packets.clear();pending_quickbar_bytes=0;pending_visual_packets.clear();pending_visual_bytes=0
 	world_state=WorldState.new();world_revision=0;published_revision=-1;last_presentation_ms=0
-	change_phase("closed")
+	phase_changed.emit("closed")

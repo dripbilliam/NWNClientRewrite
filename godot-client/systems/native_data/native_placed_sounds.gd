@@ -4,13 +4,14 @@ extends Node
 const State=preload("res://systems/world_sound_state.gd")
 var audio
 var time_source: Callable
+var registry_source: Callable
 var area: Dictionary={}
 var owners: Dictionary={}
 var diagnostics: Array[String]=[]
 var closed:=false
 
-func configure(source,clock: Callable)->void:
-	audio=source;time_source=clock
+func configure(source,clock: Callable,registry: Callable=Callable())->void:
+	audio=source;time_source=clock;registry_source=registry
 
 func attach(area_state: Dictionary,registry: Dictionary,source)->void:
 	detach()
@@ -33,6 +34,8 @@ static func interval(base: int,variation: int,sample: int)->Variant:
 func add(record: Dictionary)->void:
 	var id:=int(record.get("id",-1));var sound: Variant=record.get("state")
 	if owners.has(id) or area.is_empty() or int(record.get("areaId",-1))!=int(area.id) or not sound is Dictionary:return
+	if not sound.get("fields") is Dictionary or not sound.get("refs") is Array or not sound.get("position") is Array or sound.position.size()!=3:
+		diagnostics.append("Sound object state is unavailable: "+str(id));return
 	var fields: Dictionary=sound.get("fields",{})
 	var refs: Array=[]
 	for value in sound.get("refs",[]):refs.append(State.resource_ref(str(value)).to_lower())
@@ -121,7 +124,10 @@ func begin_voice(owner: Dictionary)->void:
 	if audio==null or not is_instance_valid(audio):return
 	stop_voice(owner)
 	var voice:=int(audio.create_sound(reference,int(owner.id)))
-	if voice<0:return
+	if voice<0:
+		owner.active=0;owner.pending=false;owner.loopPending=false
+		diagnostics.append("Sound resource create failed: "+str(owner.id))
+		return
 	owner.voice=voice;owner.selected=reference;owner.pending=true
 	audio.setting(voice,"setting1401d9e90",1 if owner.positional else 0)
 	audio.setting(voice,"setting1401d9f90",1 if owner.looping else 0)
@@ -135,8 +141,13 @@ func begin_voice(owner: Dictionary)->void:
 
 func advance(now: int,time: Dictionary)->void:
 	if closed or area.is_empty():return
+	var registry: Variant=registry_source.call() if registry_source.is_valid() else null
 	for id in owners.keys():
 		var owner: Dictionary=owners[id]
+		if registry is Dictionary:
+			var record: Variant=registry.get(id)
+			if not record is Dictionary or int(record.get("objectType",0))!=16 or int(record.get("areaId",-1))!=int(area.id):
+				stop_voice(owner);owners.erase(id);continue
 		gate(owner,time)
 		if not bool(owner.active) or not bool(owner.allowed):
 			if int(owner.voice)>=0:stop_voice(owner)
@@ -145,14 +156,23 @@ func advance(now: int,time: Dictionary)->void:
 		if bool(owner.pending):
 			if audio==null or not is_instance_valid(audio):continue
 			var row: Dictionary=audio.voices.get(int(owner.voice),{})
-			if row.is_empty() or str(row.get("stage",""))=="failed":stop_voice(owner);owner.active=0;continue
+			if row.is_empty() or str(row.get("stage",""))=="failed":
+				diagnostics.append("Sound resource failed before playback: "+str(id))
+				stop_voice(owner);owner.active=0;continue
 			if str(row.get("stage",""))!="playing":continue
 			owner.pending=false
-			var resource: Dictionary=audio.resources.get(int(row.resourceId),{})
-			var stream: Variant=resource.get("stream")
-			var duration:=roundi(stream.get_length()*1000.0) if stream!=null else 0
+			if not row.get("resourceId") is int:
+				diagnostics.append("Sound resource identity is unavailable: "+str(id))
+				stop_voice(owner);owner.active=0;continue
+			var resource: Variant=audio.resources.get(int(row.resourceId))
+			var stream: Variant=resource.get("stream") if resource is Dictionary else null
+			if not stream is Object or not is_instance_valid(stream) or not stream.has_method("get_length"):
+				diagnostics.append("Sound resource stream is unavailable: "+str(id))
+				stop_voice(owner);owner.active=0;continue
+			var duration:=roundi(stream.get_length()*1000.0)
 			owner.remaining=duration
-			var rate:=int(resource.get("metadata",{}).get("sampleRate",0))
+			var metadata: Variant=resource.get("metadata",{})
+			var rate:=int(metadata.get("sampleRate",0)) if metadata is Dictionary else 0
 			if rate>0 and float(owner.pitchVariation)!=0.0:
 				var add: bool=(randi()&1)!=0
 				var span:=int(f(float(rate)*f(float(owner.pitchVariation)))) if add else int(f(f(float(rate)*f(0.5))*f(float(owner.pitchVariation))))

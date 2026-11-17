@@ -37,7 +37,7 @@ func run()->void:
 				var mounted: Dictionary=store.resource(entry)
 				if mounted.has("error") or Store.sha1(mounted.bytes)!=str(authored.hash) or mounted.bytes.size()!=int(authored.size):result.error="Mounted Godot resource bytes or digest differ: "+key;break
 				result.entries.append({"name":str(authored.name),"type":int(authored.type),"hash":Store.sha1(mounted.bytes),"size":mounted.bytes.size(),"algorithm":int(authored.algorithm),"passed":true})
-				if str(authored.name)=="gd_sync_icon":
+				if str(authored.name)==str(descriptor.get("visualTextureName","gd_sync_icon")):
 					var image:=Image.new()
 					if image.load_tga_from_buffer(mounted.bytes)!=OK or image.get_size()!=Vector2i(16,16):result.error="Mounted TGA did not decode in Godot";break
 					var pixel:=image.get_pixel(0,0)
