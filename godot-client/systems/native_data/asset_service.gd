@@ -179,12 +179,13 @@ func _work(job: Dictionary) -> void:
 		reader.failure=str(result.error)
 	if reader.failure.is_empty():
 		phase_began=Time.get_ticks_usec()
-		var decoded := actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{} if job.options.get("relevant_tracks",false) else null,source_sha) if job.decoder in ["actor-model","gui-icon-v1"] else decode(bytes,int(job.type),"mdl-original" if job.decoder == "static-model" else str(job.decoder),str(job.cache_directory),job.decoder_store,bool(job.options.get("immutable_source",false)),source_sha)
+		var decoder: String="mdl-static-render-v1" if job.decoder=="static-model" else str(job.decoder)
+		var decoded := actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{} if job.options.get("relevant_tracks",false) else null,source_sha) if job.decoder in ["actor-model","gui-icon-v1"] else decode(bytes,int(job.type),decoder,str(job.cache_directory),job.decoder_store,bool(job.options.get("immutable_source",false)),source_sha)
 		# Placeable/tile emitters can be driven by original pause/loop clips.
 		# Retain those channels on the static-world route too, without expanding
 		# inherited actor animation data for every non-animated static model.
-		if job.decoder=="static-model" and str(decoded.get("error","")).is_empty() and decoded.value.nodes.any(func(row):return row.has("emitter")):
-			decoded=actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{},source_sha)
+		if job.decoder=="static-model" and str(decoded.get("error","")).is_empty() and decoded.value.has("animations"):
+			decoded=actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{},source_sha,decoded)
 		phases.model_ms=(Time.get_ticks_usec()-phase_began)/1000.0
 		phases.model_sources=decoded.get("preparation_sources",[])
 		if decoded.has("ancestor_preparation"): phases.ancestor_preparation=decoded.ancestor_preparation
@@ -371,19 +372,19 @@ func icon_textures(reader,model: Dictionary,layers: Array,cache_path: String) ->
 		for name in part.mesh.get("textures",[]):
 			if str(name) not in ["","null"] and not textures.has(str(name).to_lower()): return {"error":"Original GUI icon has an unmatched replacement texture: "+str(name)}
 	return {"textures":textures,"dependencies":dependencies}
-func actor_data(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="") -> Dictionary:
+func actor_data(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="",prepared_source: Dictionary={}) -> Dictionary:
 	# Only the required/high-priority actor can start helpers. Other sources may
 	# reuse its immutable decoded work, without spawning competing helper waves.
 	var prefetch: Dictionary={}
 	if ancestors.is_empty() and high_priority and ancestor_preparation_enabled: prefetch=Ancestors.start(reader,name,bytes,cache_path,decode)
-	var result:=actor_data_serial(reader,name,bytes,cache_path,ancestors,relevant_nodes,known_sha)
+	var result:=actor_data_serial(reader,name,bytes,cache_path,ancestors,relevant_nodes,known_sha,prepared_source)
 	# Join on every normal/error return before the asset owner can retire. Child
 	# results affect caching/timings only; authoritative parsing owns correctness.
 	if not prefetch.is_empty(): result.ancestor_preparation=Ancestors.finish(prefetch)
 	return result
-func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="") -> Dictionary:
+func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="",prepared_source: Dictionary={}) -> Dictionary:
 	if ancestors.size()>=16 or ancestors.has(name.to_lower()): return {"error":"Original actor supermodel inheritance cycle/depth"}
-	var decoded:=decode(bytes,2002,ActorModel.SOURCE_DECODER,cache_path,decoded_store(reader),false,known_sha)
+	var decoded:=decode(bytes,2002,ActorModel.SOURCE_DECODER,cache_path,decoded_store(reader),false,known_sha) if prepared_source.is_empty() else prepared_source
 	if not str(decoded.error).is_empty(): return decoded
 	decoded.preparation_sources=[{"name":name,"source_bytes":bytes.size(),"memory_hit":decoded.get("memory_decode_hit",false),"timings":decoded.get("timings",{})}]
 	var model: Dictionary=decoded.value; var parent_name:=str(model.get("supermodel","")).to_lower()
@@ -567,6 +568,8 @@ func decode_uncached(bytes: PackedByteArray, type: int, decoder: String, cache_p
 			var parser := ActorModel.new(); result.value = parser.parse(bytes); result.error = parser.failure
 		"mdl-actor-packed-v1", "mdl-actor-packed-v2", "mdl-actor-packed-v3", "mdl-actor-packed-v4", ActorModel.SOURCE_DECODER:
 			var parser:=ActorModel.new(); parser.packed_keys=true; result.value=parser.parse(bytes); result.error=parser.failure
+		"mdl-static-render-v1":
+			var parser:=ActorModel.new(); parser.packed_keys=true; result.value=parser.parse(bytes,true); result.error=parser.failure
 		"mdl-original":
 			if bytes.size()>=4 and bytes.decode_u32(0)==0:
 				var parser := Model.new(); result.value = parser.parse(bytes); result.error = parser.failure

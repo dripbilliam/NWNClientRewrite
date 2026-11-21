@@ -188,6 +188,8 @@ async function finish(reason){
  socket?.destroy();server?.close();
  if(temporary){
   if(recordLoading&&native?.exitCode!==null){try{const owned=await fs.realpath(temporary),prepared=await fs.realpath(path.join(temporary,'prepared'));if(path.dirname(prepared)!==owned||path.basename(prepared)!=='prepared'||!path.basename(owned).startsWith('nwn-native-session-'))throw Error('Prepared cache ownership differs');await fs.rm(prepared,{recursive:true});report.recordingPreparedCacheRemoved=true;}catch(error){if(error.code!=='ENOENT')report.recordingPreparedCacheCleanup=error.message;}}
+  const files=await fs.readdir(temporary).catch(()=>[]);
+  await Promise.all(files.filter(file=>/^nwsync-[0-9a-f]{40}-[0-9a-f-]{36}\.index$/.test(file)).map(file=>fs.unlink(path.join(temporary,file)).catch(()=>{})));
   await fs.unlink(path.join(temporary,'ticket.json')).catch(()=>{});await fs.rmdir(temporary).catch(()=>{});
  }
  try{
@@ -418,7 +420,7 @@ async function finish(reason){
  const sourceDescriptor=current=>{
   const archives=[],nwsync=[],seen=new Set(),groups=new Map();
   for(const entry of [...current.resourceResult.resolved].reverse()){
-   if(entry.kind==='nwsync'){nwsync.unshift({hash:entry.name,cacheDirectory,nativeDirectory:path.join(userDirectory,'nwsync'),helper:path.join(root,'tooling/native/content-reader/nwn-content-reader.exe')});continue;}
+   if(entry.kind==='nwsync'){nwsync.unshift({hash:entry.name,cacheDirectory,nativeDirectory:path.join(userDirectory,'nwsync'),helper:path.join(root,'tooling/native/content-reader/nwn-content-reader.exe'),handoff:entry.resource?.handoff});continue;}
    if(!['nwm','hak'].includes(entry.kind))continue;
    if(typeof entry.resource!=='string')throw Error('This server archive has no native file-backed resource location');
    const key=path.resolve(entry.resource).toLowerCase();if(seen.has(key))continue;seen.add(key);
@@ -514,7 +516,7 @@ async function finish(reason){
  };
  const createSession=async(request,connection,{signal,owned=()=>!ending&&connection===lobby.connection}={})=>{
   const {nativeVaultId=null,...options}=request,state={connection,vaultId:nativeVaultId};
-   const created=await createInstalledNetworkSession({...options,signal,onDiagnostic:d=>{if(report.diagnostics.length<128)report.diagnostics.push(d);sessionFailureJournal.record(d,connection);},persistCharacter:async message=>{
+   const created=await createInstalledNetworkSession({...options,signal,manifestHandoffDirectory:temporary,onDiagnostic:d=>{if(report.diagnostics.length<128)report.diagnostics.push(d);sessionFailureJournal.record(d,connection);},persistCharacter:async message=>{
     if(directHandoffCheck){if(!directHandoffHarness.exported(created.session,connection,message.data))throw Error('Unexpected owned direct export');return{id:'native-direct-handoff',name:'Original handoff fixture'};}
     if(!actionCheck&&!creationCheck&&!levelSourceCheck&&!scriptFloatingOwned){rememberVaultId(created.session);const saved=await vault.save(message,{id:state.vaultId});state.vaultId=saved.id;return saved;}
     const {parseGff}=await import('../../src/gff.js'),c=parseGff(message.data,'BIC ').root;
@@ -977,7 +979,8 @@ async function finish(reason){
    data.ui.partyInviteNotice=session.world.partyInviteNotice;
    data.ui.playerAttitudes=[...session.world.playerAttitudes];
    data.ui.partyListRevision=session.world.partyListRevision;
-   const changed=worldDeltas.plan({serial,generation,data,connection:lobby.connection});
+   // These DTOs are local plain data and are framed synchronously after planning.
+   const changed=worldDeltas.plan({serial,generation,data,connection:lobby.connection},{reuseObjectJson:true});
    if(!changed)return;
    report.rawWorldUpdates??={full:0,delta:0,objects:0,removed:0};report.rawWorldUpdates[changed.bridgeMode]++;report.rawWorldUpdates.objects+=changed.objects.length;report.rawWorldUpdates.removed+=changed.removedObjectIds.length;
    let frames=worldRadialCapture&&!worldRadialCapture.work?[...rawWorldFrames({serial,generation,data:changed,connection:lobby.connection})]:rawWorldFrames({serial,generation,data:changed,connection:lobby.connection});

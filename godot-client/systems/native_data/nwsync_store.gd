@@ -87,8 +87,11 @@ static func decode_verified_manifest(bytes: PackedByteArray) -> Dictionary:
 		entries[key]=row
 		if index<count: base.append(row)
 	return {"entries":entries}
-func manifest(hash: String) -> Dictionary:
+func manifest(hash: String, handoff: Dictionary={}) -> Dictionary:
 	if not valid_hash(hash): return {"error":"Invalid native NWSync manifest identity"}
+	if not handoff.is_empty():
+		var admitted:=admitted_manifest(hash,handoff)
+		if not admitted.is_empty() and not admitted.has("error"): return admitted
 	var path:=directory.path_join("manifests").path_join(hash)
 	if FileAccess.file_exists(path):
 		var file:=FileAccess.open(path,FileAccess.READ)
@@ -98,8 +101,25 @@ func manifest(hash: String) -> Dictionary:
 	var response: Dictionary=reader.request(1,hash.to_ascii_buffer())
 	if response.has("error"): return response
 	if response.get("missing",false): return {"error":"Installed NWSync manifest is absent"}
-	var bytes: PackedByteArray=response.bytes
-	return Residency.index("nwsync-installed-manifest",[hash],[bytes],func():
+	return installed_manifest(hash,response.bytes)
+static func admitted_manifest(hash: String, handoff: Dictionary) -> Dictionary:
+	var path:=str(handoff.get("path","")); var expected:=str(handoff.get("sha256",""))
+	if not path.is_absolute_path() or not path.get_file().begins_with("nwsync-"+hash+"-") or path.get_extension()!="index": return {}
+	if expected.length()!=64 or not expected.is_valid_hex_number(false): return {}
+	var file:=FileAccess.open(path,FileAccess.READ)
+	if file==null or file.get_length()<4 or file.get_length()>MANIFEST_LIMIT: return {}
+	var bytes:=file.get_buffer(file.get_length())
+	if bytes.size()<4: return {}
+	var context:=HashingContext.new()
+	context.start(HashingContext.HASH_SHA256)
+	context.update(bytes)
+	if context.finish().hex_encode()!=expected: return {}
+	return installed_manifest(hash,bytes,expected)
+static func installed_manifest(hash: String, bytes: PackedByteArray, digest: String="") -> Dictionary:
+	var key_parts: Array=[hash] if digest.is_empty() else [hash,digest]
+	var source_bytes: Array=[bytes] if digest.is_empty() else []
+	var kind:="nwsync-installed-manifest" if digest.is_empty() else "nwsync-admitted-manifest"
+	return Residency.index(kind,key_parts,source_bytes,func():
 		var value:=decode_installed_manifest(bytes)
 		return {"value":value,"error":str(value.get("error",""))}).value
 static func decode_installed_manifest(bytes: PackedByteArray) -> Dictionary:

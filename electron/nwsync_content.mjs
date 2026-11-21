@@ -24,8 +24,8 @@ export async function decodeNWSyncBlob(input,{decompressZstd,maxBytes=MAX_RESOUR
 // Only verified, content-addressed bytes enter the private cache. Original
 // client databases are read-only. No server supplied names become file paths.
 export class NWSyncContent{
- constructor({directory,nativeDirectory=null,fetch:fetchResource=globalThis.fetch,readerFactory=dir=>new NWSyncReader(dir),onDiagnostic=()=>{},onProgress=()=>{},concurrency=4}={}){
-  if(!directory)throw new Error('NWSync cache directory is unavailable');if(!Number.isInteger(concurrency)||concurrency<1||concurrency>16)throw new Error('Invalid NWSync download concurrency');Object.assign(this,{directory,nativeDirectory,fetchResource,readerFactory,onDiagnostic,onProgress,concurrency});this.controller=new AbortController();this.manifests=new Map();this.pendingBlobs=new Map();this.ready=new Set();this.nativeBlobs=new Set();this.closed=false;this.downloadedBytes=0;
+ constructor({directory,nativeDirectory=null,manifestHandoffDirectory=null,fetch:fetchResource=globalThis.fetch,readerFactory=dir=>new NWSyncReader(dir),onDiagnostic=()=>{},onProgress=()=>{},concurrency=4}={}){
+  if(!directory)throw new Error('NWSync cache directory is unavailable');if(!Number.isInteger(concurrency)||concurrency<1||concurrency>16)throw new Error('Invalid NWSync download concurrency');Object.assign(this,{directory,nativeDirectory,manifestHandoffDirectory,fetchResource,readerFactory,onDiagnostic,onProgress,concurrency});this.controller=new AbortController();this.manifests=new Map();this.pendingBlobs=new Map();this.ready=new Set();this.nativeBlobs=new Set();this.closed=false;this.downloadedBytes=0;
  }
  reader(){if(!this.nativeReader||this.nativeReader.closed)this.nativeReader=this.readerFactory(this.nativeDirectory??this.directory);return this.nativeReader;}
  check(){if(this.closed)throw new Error('Server content loading was cancelled');}
@@ -80,15 +80,31 @@ export class NWSyncContent{
   this.check();if(!validHash(hash))throw new Error('Invalid NWSync manifest hash');if(this.manifests.has(hash))return this.manifests.get(hash);
   const work=this.loadManifest(hash,advertisement?.url??null);this.manifests.set(hash,work);try{return await work;}catch(error){this.manifests.delete(hash);if(!this.closed)this.diagnostic('network.nwsync-manifest-failed','Server content could not be loaded',{hash,detail:/^(Invalid|Unsupported|NWSync|Downloaded|Cached|Required|Duplicate)/.test(error.message)?error.message:error.code??'CONTENT_LOAD_FAILED'});throw error;}
  }
+ async publishInstalledManifest(hash,bytes){
+  const file=path.join(this.manifestHandoffDirectory,`nwsync-${hash}-${randomUUID()}.index`);
+  try{
+   await fs.writeFile(file,bytes,{flag:'wx'});
+   this.check();
+   return {path:file,sha256:createHash('sha256').update(bytes).digest('hex')};
+  }catch(error){
+   if(error.code!=='EEXIST')await fs.unlink(file).catch(()=>{});
+   if(!this.closed)this.diagnostic('network.nwsync-manifest-handoff-unavailable','Godot can read the installed NWSync catalog directly',{hash});
+   return null;
+  }
+ }
  async loadManifest(hash,url){
   this.check();this.progressState={phase:'server-manifest',manifest:hash,completed:0,total:0};this.publishProgress(true);let bytes=await this.readCache(path.join('manifests',hash),MAX_MANIFEST),manifest=null;
   if(bytes){if(digest(bytes)===hash)manifest=parseNWSyncManifest(bytes);else this.diagnostic('network.nwsync-cache-corrupt','Cached server manifest failed verification',{hash});}
-  if(!manifest&&this.nativeDirectory&&!this.nativeReadFailed){try{manifest=await this.reader().manifest(hash);}catch{this.nativeReadFailed=true;this.diagnostic('network.nwsync-native-cache-failed','Installed NWSync catalog could not be read');}}
+  const reuseManifest=typeof this.manifestHandoffDirectory==='string'&&path.isAbsolute(this.manifestHandoffDirectory);
+  if(!manifest&&this.nativeDirectory&&!this.nativeReadFailed){try{manifest=await this.reader().manifest(hash,{retainBytes:reuseManifest});}catch{this.nativeReadFailed=true;this.diagnostic('network.nwsync-native-cache-failed','Installed NWSync catalog could not be read');}}
   if(!manifest){if(!url)throw new Error('Required NWSync manifest is not cached and no repository is available');bytes=await this.download(url,`manifests/${hash}`,MAX_MANIFEST);if(digest(bytes)!==hash)throw new Error('Downloaded NWSync manifest failed hash verification');manifest=parseNWSyncManifest(bytes);await this.writeCache(path.join('manifests',hash),bytes);}
   const entries=[...new Map(manifest.entries.map(e=>[e.hash,e])).values()];let cursor=0;this.progressState={phase:'server-content',manifest:hash,completed:0,total:entries.length};this.publishProgress(true);
   let failed=false;const workers=await Promise.allSettled(Array.from({length:Math.min(this.concurrency,entries.length)},async()=>{while(!failed&&cursor<entries.length){const entry=entries[cursor++];try{await this.ensureBlob(entry,url);}catch(error){failed=true;throw error;}this.progressState.completed++;this.publishProgress();}}));const failure=workers.find(result=>result.status==='rejected');if(failure)throw failure.reason;this.check();this.publishProgress(true);
-  return{name:hash,entries:manifest.entries,catalog:manifest.catalog,hasResource:(name,type)=>manifest.catalog.has(`${name.toLowerCase()}:${type}`),getResource:async(name,type)=>{
-   this.check();const entry=manifest.catalog.get(`${name.toLowerCase()}:${type}`);if(!entry)throw Object.assign(new Error('Resource is not in the selected NWSync manifest'),{code:'RESOURCE_NOT_FOUND'});const data=await this.blob(entry,url);return data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength);
+  const {installedBytes,entries:references,catalog}=manifest;
+  const handoff=reuseManifest&&Buffer.isBuffer(installedBytes)?await this.publishInstalledManifest(hash,installedBytes):null;
+  this.check();
+  return{name:hash,entries:references,catalog,...(handoff?{handoff}:{}),hasResource:(name,type)=>catalog.has(`${name.toLowerCase()}:${type}`),getResource:async(name,type)=>{
+   this.check();const entry=catalog.get(`${name.toLowerCase()}:${type}`);if(!entry)throw Object.assign(new Error('Resource is not in the selected NWSync manifest'),{code:'RESOURCE_NOT_FOUND'});const data=await this.blob(entry,url);return data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength);
   }};
  }
  close(){if(this.closed)return;this.closed=true;this.controller.abort();this.nativeReader?.close();this.ready.clear();this.nativeBlobs.clear();}

@@ -30,6 +30,35 @@ function tlk(text){const data=Buffer.from(text),bytes=Buffer.alloc(60+data.lengt
 async function temporary(t){const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nwn-server-content-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));return directory;}
 async function repository(t,files){const requests=[];const server=http.createServer((request,response)=>{requests.push(request.url);const bytes=files.get(request.url);if(bytes){response.writeHead(200,{'content-length':bytes.length});response.end(bytes);}else{response.writeHead(404);response.end();}});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));return{url:`http://127.0.0.1:${server.address().port}/content`,requests};}
 function expose(files,entries,{mappings=[],algorithm=0}={}){const bytes=manifest(entries,mappings),hash=sha(bytes);files.set('/content/manifests/'+hash,bytes);for(const e of entries)files.set(`/content/data/sha1/${e.hash.slice(0,2)}/${e.hash.slice(2,4)}/${e.hash}`,compressed(e.data,algorithm));return hash;}
+
+test('installed catalog admission can hand off its verified helper bytes without querying twice',async t=>{
+ const directory=await temporary(t),resource=entry('rules','cached');
+ const hash=sha(manifest([resource])),bytes=Buffer.alloc(62);
+ bytes.writeUInt32LE(1);bytes.write(resource.name,4);bytes.writeUInt16LE(resource.type,20);bytes.write(resource.hash,22);
+ let manifestRequests=0;
+ const reader={
+  manifest:NWSyncReader.prototype.manifest,
+  async request(operation,payload){
+   assert.equal(operation,1);assert.equal(payload.toString(),hash);manifestRequests++;return bytes;
+  },
+  async inventory(){return new Set([resource.hash]);},
+  close(){}
+ };
+ const options={directory,nativeDirectory:directory,readerFactory:()=>reader,fetch:()=>assert.fail('unexpected HTTP')};
+ const content=new NWSyncContent({...options,manifestHandoffDirectory:directory});
+ t.after(()=>content.close());
+ const [first,second]=await Promise.all([content.findManifest(hash),content.findManifest(hash)]);
+ assert.equal(first,second);assert.equal(manifestRequests,1);
+ assert.equal(first.hasResource('RULES',2017),true);
+ assert.equal(path.dirname(first.handoff.path),directory);
+ assert.deepEqual(await fs.readFile(first.handoff.path),bytes);
+ assert.equal(first.handoff.sha256,createHash('sha256').update(bytes).digest('hex'));
+ const fallback=new NWSyncContent({...options,manifestHandoffDirectory:path.join(directory,'missing')});
+ t.after(()=>fallback.close());
+ const admitted=await fallback.findManifest(hash);
+ assert.equal(admitted.hasResource('rules',2017),true);
+ assert.equal(admitted.handoff,undefined);
+});
 async function install(t){const root=await temporary(t);await fs.mkdir(path.join(root,'data'));for(const key of ['nwn_base','nwn_retail']){const bytes=Buffer.alloc(64);bytes.write('KEY V1  ');bytes.writeUInt32LE(64,16);bytes.writeUInt32LE(64,20);await fs.writeFile(path.join(root,'data',key+'.key'),bytes);}await fs.mkdir(path.join(root,'lang/en/data'),{recursive:true});await fs.writeFile(path.join(root,'lang/en/data/dialog.tlk'),tlk('Base text'));return root;}
 function erf(entries){const count=entries.length,start=160+count*32,bytes=Buffer.alloc(start+entries.reduce((n,e)=>n+e.data.length,0));bytes.write('HAK V1.0');bytes.writeUInt32LE(count,16);bytes.writeUInt32LE(160,24);bytes.writeUInt32LE(160+count*24,28);let next=start;for(const [i,e]of entries.entries()){const key=160+i*24,record=160+count*24+i*8;bytes.write(e.name,key,16,'latin1');bytes.writeUInt32LE(i,key+16);bytes.writeUInt16LE(e.type,key+20);bytes.writeUInt32LE(next,record);bytes.writeUInt32LE(e.data.length,record+4);e.data.copy(bytes,next);next+=e.data.length;}return bytes;}
 

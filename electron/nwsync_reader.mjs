@@ -24,11 +24,11 @@ export class NWSyncReader{
    return new Promise((resolve,reject)=>{const header=Buffer.alloc(5);header.writeUInt32LE(payload.length+1);header[4]=operation;this.pending={resolve,reject,header:Buffer.alloc(4),headerBytes:0,chunks:[],bytes:0,timer:setTimeout(()=>this.close(),30000)};this.child.stdin.write(header);this.child.stdin.write(payload);});
   });this.tail=run.catch(()=>{});return run;
  }
- async manifest(hash){
+ async manifest(hash,{retainBytes=false}={}){
   const bytes=await this.request(1,Buffer.from(hash,'ascii'));if(bytes===null)return null;if(bytes.length<4)throw new Error('Invalid installed NWSync catalog');const count=bytes.readUInt32LE();
   if(!count||count>1_000_000||bytes.length!==4+count*58)throw new Error('Invalid installed NWSync catalog');
   const entries=[];for(let i=0;i<count;i++){const offset=4+i*58,raw=bytes.subarray(offset,offset+16),end=raw.indexOf(0),name=raw.subarray(0,end<0?16:end).toString('latin1').toLowerCase(),type=bytes.readUInt16LE(offset+16),hash=bytes.subarray(offset+18,offset+58).toString('ascii');if(!name||/[\x00-\x1f/\\:]/.test(name)||!type||!/^[0-9a-f]{40}$/.test(hash))throw new Error('Invalid installed NWSync catalog entry');entries.push({name,type,hash,size:null});}
-  const catalog=new Map(entries.map(entry=>[`${entry.name}:${entry.type}`,entry]));if(catalog.size!==entries.length)throw new Error('Duplicate installed NWSync catalog entry');return{entries,catalog};
+  const catalog=new Map(entries.map(entry=>[`${entry.name}:${entry.type}`,entry]));if(catalog.size!==entries.length)throw new Error('Duplicate installed NWSync catalog entry');return{entries,catalog,...(retainBytes?{installedBytes:bytes}:{})};
  }
  blob(hash){return this.request(2,Buffer.from(hash,'ascii'));}
  async inventory(){const bytes=await this.request(4,Buffer.alloc(0));if(bytes===null)return new Set();if(bytes.length<4||bytes.readUInt32LE()>1_000_000||bytes.length!==4+bytes.readUInt32LE()*40)throw new Error('Invalid installed NWSync resource inventory');const hashes=new Set();for(let offset=4;offset<bytes.length;offset+=40){const hash=bytes.subarray(offset,offset+40).toString('ascii');if(!/^[0-9a-f]{40}$/.test(hash))throw new Error('Invalid installed NWSync inventory hash');hashes.add(hash);}return hashes;}

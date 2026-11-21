@@ -10,7 +10,7 @@ export async function createInstalledNetworkSession(request){
  try{
   request.signal?.throwIfAborted();
   identity=request.loginIdentity??new NetworkLoginIdentity(request.credentials);delete request.loginIdentity;for(const key of ['cdKey','password','communityPassword'])if(request.credentials)request.credentials[key]='';delete request.credentials;
-  resources=installedNetworkResources({install:request.install,modsDirectory:request.modsDirectory,disabledMods:request.disabledMods,userDirectory:request.userDirectory,cacheDirectory:request.cacheDirectory,reuseInstalledNWSync:request.reuseInstalledNWSync??true,onDiagnostic:request.onDiagnostic});
+  resources=installedNetworkResources({install:request.install,modsDirectory:request.modsDirectory,disabledMods:request.disabledMods,userDirectory:request.userDirectory,cacheDirectory:request.cacheDirectory,reuseInstalledNWSync:request.reuseInstalledNWSync??true,onDiagnostic:request.onDiagnostic,contentOptions:{manifestHandoffDirectory:request.manifestHandoffDirectory}});
   const language=await resources.languageId();request.signal?.throwIfAborted();build=await installedNetworkBuild(request.install);request.signal?.throwIfAborted();
   peer=new NetworkPeer({onDiagnostic:request.onDiagnostic});
   let serverInfo=null;if(request.host){try{serverInfo=await queryNetworkServer({host:request.host,port:request.port,signal:request.signal});}catch{request.signal?.throwIfAborted();request.onDiagnostic?.({code:'network.server-info-unavailable',reason:'Public server vault policy could not be queried'});}}

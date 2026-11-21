@@ -26,3 +26,19 @@ test('invalid identity/count and duplicates are rejected without a pending trans
  const p=new RawWorldDeltas();for(const objects of [[object(1),object(1)],[{id:NaN}],Array(65537).fill(object(1))])assert.throws(()=>p.plan(input(1,objects)),/Invalid/);
  assert.equal(p.pending,null);assert.equal(p.plan(input(1,[])).bridgeMode,'full');
 });
+test('immediate world framing uses the planning JSON once and preserves exact frame bytes',()=>{
+ const baseline=new RawWorldDeltas(),optimized=new RawWorldDeltas();
+ let writes=0,label='雪'.repeat(350);
+ const objects=Array.from({length:69},(_,id)=>({id,replicated:{toJSON(){writes++;return {position:[id,2,3],label,wide:42n};}}}));
+ for(const serial of [1,2]){
+  const oldFrames=[...rawWorldFrames({...scope,serial,data:baseline.plan(input(serial,objects))},4096)];
+  writes=0;
+  const frames=[...rawWorldFrames({...scope,serial,data:optimized.plan(input(serial,objects),{reuseObjectJson:true})},4096)];
+  assert.deepEqual(frames,oldFrames);
+  assert.ok(frames.length>3);
+  assert.equal(writes,objects.length);
+  baseline.acknowledge({...scope,serial});
+  optimized.acknowledge({...scope,serial});
+  label+='色';
+ }
+});

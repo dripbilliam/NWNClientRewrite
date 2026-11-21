@@ -9,6 +9,7 @@ const Residency=preload("res://systems/native_data/resource_residency.gd")
 const SessionUiAssets=preload("res://systems/native_data/session_ui_asset_owner.gd")
 const ItemIconSources=preload("res://systems/native_data/item_icon_sources.gd")
 const SpellbookIconSources=preload("res://systems/native_data/spellbook_icon_sources.gd")
+const RASTER_STORAGE_ORDER: Array[int]=[2,5,3,1]
 class BifStore:
 	extends RefCounted
 	var entries: Dictionary = {}
@@ -100,11 +101,11 @@ func preparation_cache(): return prepared_store
 func decoded_cache(): return decoder_store
 func bif_index_build_count() -> int:
 	bif_store.mutex.lock(); var count := bif_store.builds; bif_store.mutex.unlock(); return count
-func mount_nwsync(manifest_hash: String, cache_directory: String, native_directory: String="", helper: String="", priority: int=40000000, raw_cache_directory: String="") -> bool:
+func mount_nwsync(manifest_hash: String, cache_directory: String, native_directory: String="", helper: String="", priority: int=40000000, raw_cache_directory: String="", handoff: Dictionary={}) -> bool:
 	failure=""
 	var store:=NWSync.new()
 	if not store.configure(cache_directory,native_directory,helper,raw_cache_directory): failure="Native NWSync store is unavailable"; return false
-	var manifest:=store.manifest(manifest_hash)
+	var manifest:=store.manifest(manifest_hash,handoff)
 	if manifest.has("error"): failure=manifest.error; store.close(); return false
 	layers.append({"kind":"nwsync","priority":priority,"serial":layers.size(),"storage_class":5,"store":store,"entries":manifest.entries,"binding_identity":"nwsync:"+manifest_hash})
 	invalidate()
@@ -165,13 +166,18 @@ func resource_names(type: int) -> Array:
 	return names.keys()
 func raster_location(name: String) -> Dictionary:
 	# Format ties use original storage classes, not priorities across formats.
-	for storage_class in [2,5,3,1]:
-		for type in [2073,2033,2059,3]:
-			var found := location(name,type)
-			if found.is_empty(): continue
-			var actual: int = found.layer.get("storage_class",1 if found.layer.kind == "key" else 3)
-			if actual == storage_class: return {"name":name.to_lower(),"type":type}
-	return {}
+	var selected_type:=0
+	var best_rank:=RASTER_STORAGE_ORDER.size()
+	for type: int in [2073,2033,2059,3]:
+		var found:=location(name,type)
+		if found.is_empty(): continue
+		var actual: int=found.layer.get("storage_class",1 if found.layer.kind=="key" else 3)
+		var rank:=RASTER_STORAGE_ORDER.find(actual)
+		if rank<0 or rank>=best_rank: continue
+		best_rank=rank
+		selected_type=type
+		if rank==0: break
+	return {"name":name.to_lower(),"type":selected_type} if selected_type!=0 else {}
 func recorded_texture_miss(name: String) -> bool:
 	# This catalog is complete for the selected live session. An absent bitmap
 	# is an authoritative lookup miss, unlike an unrecorded capture dependency.

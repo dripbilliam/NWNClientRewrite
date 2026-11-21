@@ -291,11 +291,15 @@ func update_world(epoch: int,area: int,controlled: int,objects: Array,removed: A
 	if epoch!=generation or area!=area_id: return
 	controlled_id=controlled
 	for id in removed: text.objects.erase(int(id))
-	for object in objects: text.objects[int(object.id)]=object
+	var upsert_ids: Array=[]
+	for object in objects:
+		var id:=int(object.id)
+		text.objects[id]=object
+		upsert_ids.append(id)
 	observe_actor_names(header,objects,removed)
-	if is_instance_valid(overhead):overhead.observe_sources(objects.map(func(object):return int(object.id)),removed)
-	if is_instance_valid(script_floating):script_floating.observe_sources(objects.map(func(object):return int(object.id)),removed)
-	if is_instance_valid(overhead_popup_registry):overhead_popup_registry.observe(objects.map(func(object):return int(object.id)),removed)
+	if is_instance_valid(overhead):overhead.observe_sources(upsert_ids,removed)
+	if is_instance_valid(script_floating):script_floating.observe_sources(upsert_ids,removed)
+	if is_instance_valid(overhead_popup_registry):overhead_popup_registry.observe(upsert_ids,removed)
 	drain_speech_logs()
 	inventory.update_world(epoch,area,controlled,objects,removed,raw_inventory)
 	if is_instance_valid(inventory_windows): inventory_windows.synchronize(epoch,area,controlled,raw_inventory)

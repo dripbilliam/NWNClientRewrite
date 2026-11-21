@@ -89,7 +89,7 @@ static func prepare(sources: Dictionary,guard: Callable=Callable(),progress_call
 		var hash:=str(manifest.get("hash",""))
 		if seen.has(hash): continue
 		seen[hash]=true
-		if not catalog.mount_nwsync(hash,str(manifest.get("cacheDirectory","")),str(manifest.get("nativeDirectory","")),str(manifest.get("helper","")),40000000+index,str(sources.get("rawCacheDirectory",ProjectSettings.globalize_path("user://native-original-bytes-v1")))): return {"catalog":catalog,"error":catalog.failure}
+		if not catalog.mount_nwsync(hash,str(manifest.get("cacheDirectory","")),str(manifest.get("nativeDirectory","")),str(manifest.get("helper","")),40000000+index,str(sources.get("rawCacheDirectory",ProjectSettings.globalize_path("user://native-original-bytes-v1"))),manifest.get("handoff",{})): return {"catalog":catalog,"error":catalog.failure}
 		index+=1
 	phases.manifests_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
 	var profile:=str(sources.get("profileDirectory","")); var portraits: Array=[]; var overrides: Array=[]
