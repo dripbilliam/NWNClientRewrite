@@ -35,3 +35,10 @@ wiki/.npm-cache/
 
 # Keep local test files (including generated sidecars) out of new Git additions.
 *_test*
+
+# Generated Godot migration analysis and comparison artifacts.
+/godot-client/tools/nwn79/*.cjs
+/godot-client/tools/nwn79/*-handoff*.json
+/godot-client/tools/nwn79/*-followup*.json
+/godot-client/tools/nwn79/*-reconciliation*.json
+/godot-client/tools/nwn79/*-inventory*.json
