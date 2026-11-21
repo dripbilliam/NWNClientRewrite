@@ -1,0 +1,20 @@
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const project=path.resolve(__dirname,'../../..'),stage=path.join(project,'.cache/native-render-gap/engine'),file=path.join(stage,'manifest.json'),m=JSON.parse(fs.readFileSync(file)),source=m.source;
+const sha=x=>crypto.createHash('sha256').update(x).digest('hex'),plans=new Map();
+function once(s,a,b){if(s.split(a).length!==2)throw Error('Nonunique anchor '+a.slice(0,80));return s.replace(a,b);}
+function edit(relative,fn){const before=fs.readFileSync(path.join(source,relative),'utf8'),after=fn(before);if(before===after)throw Error('No source change');plans.set(relative,{before,after});}
+for(const p of m.patches)if(sha(fs.readFileSync(path.join(source,p.relative)))!==p.afterSha256)throw Error('Private source drift');
+for(const p of m.modules)if(sha(fs.readFileSync(path.join(source,p.relative)))!==p.sha256)throw Error('Private module drift');
+edit('servers/rendering/renderer_rd/storage_rd/light_storage.cpp',s=>once(s,'\tp_reflection_atlas->depth_buffer = RID();\n\n\tfor (int i = 0; i < p_reflection_atlas->reflections.size(); i++) {',
+ '\tp_reflection_atlas->depth_buffer = RID();\n\n\t// Free the temporary capture cube and its dependent shared face views.\n\t// RenderingDevice recursively releases dependent RIDs and defers driver\n\t// destruction until safe; depth-buffer disposal already invalidates FBOs.\n\tif (p_reflection_atlas->color_buffer.is_valid()) {\n\t\tRD::get_singleton()->free_rid(p_reflection_atlas->color_buffer);\n\t\tp_reflection_atlas->color_buffer = RID();\n\t}\n\tfor (int face = 0; face < 6; ++face) {\n\t\tp_reflection_atlas->color_views[face] = RID();\n\t\tp_reflection_atlas->color_fbs[face] = RID();\n\t}\n\n\tfor (int i = 0; i < p_reflection_atlas->reflections.size(); i++) {'));
+// The previous enum is a single generated line: append two explicit world
+// metrics without changing the existing LOCAL-AABB counter semantics.
+edit('modules/nwn_frame_probe/frame_probe.h',s=>once(s,' COUNT\n',' WORLD_BOUNDS_EQUAL, WORLD_BOUNDS_CHANGED,\n COUNT\n'));
+edit('modules/nwn_frame_probe/frame_probe.cpp',s=>once(s,'"viewport_draw_us"','"viewport_draw_us", "world_bounds_equal", "world_bounds_changed"'));
+edit('servers/rendering/renderer_scene_cull.cpp',s=>once(s,'\tp_instance->transformed_aabb = new_aabb;','\tNwnFrameMetrics::add(p_instance->prev_transformed_aabb==new_aabb ? NwnFrameMetrics::WORLD_BOUNDS_EQUAL : NwnFrameMetrics::WORLD_BOUNDS_CHANGED);\n\tp_instance->transformed_aabb = new_aabb;'));
+const dir=path.join(stage,'upgrade-v3');if(fs.existsSync(dir))throw Error('Existing upgrade retained');fs.mkdirSync(dir,{recursive:true});fs.copyFileSync(file,path.join(dir,'previous-manifest.json'));
+for(const [relative,p]of plans){const saved=path.join(dir,'before',relative);fs.mkdirSync(path.dirname(saved),{recursive:true});fs.writeFileSync(saved,p.before);fs.writeFileSync(path.join(source,relative),p.after);if(!relative.startsWith('modules/'))m.patches.find(p=>p.relative===relative).afterSha256=sha(p.after);}
+fs.cpSync(path.join(__dirname,'../motion/module'),path.join(source,'modules/nwn_motion_numeric'),{recursive:true});
+m.modules=[];for(const name of ['nwn_frame_probe','nwn_particle_snapshot','nwn_motion_numeric'])for(const f of fs.readdirSync(path.join(source,'modules',name))){const p=path.join(source,'modules',name,f);if(fs.statSync(p).isFile())m.modules.push({relative:path.relative(source,p),sha256:sha(fs.readFileSync(p))});}
+m.revision=3;m.createdAt=new Date().toISOString();m.upgradeV3='Reflection capture cube lifetime fix, separate world-bound telemetry, data-only optional facing arithmetic helper. Motion helper has no caller in the current application.';
+fs.writeFileSync(file,JSON.stringify(m,null,2)+'\n');fs.writeFileSync(path.join(dir,'receipt.json'),JSON.stringify({success:true,changes:[...plans].map(([relative,p])=>({relative,before:sha(p.before),after:sha(p.after)})),manifestSha256:sha(fs.readFileSync(file))},null,2)+'\n');console.log(JSON.stringify({success:true,source}));

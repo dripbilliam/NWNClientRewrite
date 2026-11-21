@@ -6,38 +6,6 @@ const Vitals=preload("res://systems/native_data/creation_vitals.gd")
 const ClassTables=preload("res://systems/native_data/creation_feat_tables.gd")
 var failure:=""
 var writer:=W.new()
-static func validate_created_character(document: Dictionary) -> String:
-	var root: Dictionary=document.get("root",{})
-	if int(root.get("IsDM",0))!=0:return "DM character import requires a DM session"
-	if int(root.get("PM_IsPolymorphed",0))!=0 or not root.get("EffectList",[]).is_empty():return "Importing polymorphed characters or saved active effects is not implemented"
-	if int(root.get("IsPC",0))==0:return "The BIC is not a player character"
-	for field in ["Str","Dex","Con","Int","Wis","Cha","Race","Appearance_Type","Gender","Experience"]:
-		if not root.get(field) is int or int(root[field])<0:return "Invalid character "+field
-	var classes: Variant=root.get("ClassList")
-	if not classes is Array or classes.is_empty() or classes.size()>8:return "Invalid character class list"
-	var seen_classes: Dictionary={};var level:=0
-	for entry in classes:
-		if not entry is Dictionary or not entry.get("Class") is int or not entry.get("ClassLevel") is int:return "Invalid character class entry"
-		var id:=int(entry.Class);var count:=int(entry.ClassLevel)
-		if id<0 or id>254 or seen_classes.has(id) or count<1 or count>255:return "Invalid character class entry"
-		seen_classes[id]=true;level+=count
-	if level>255 or int(root.Experience)>4294967295:return "Character stats exceed native field ranges"
-	for field in ["Str","Dex","Con","Int","Wis","Cha"]:
-		if int(root[field])>255:return "Character stats exceed native field ranges"
-	for field in ["HitPoints","CurrentHitPoints"]:
-		if not root.get(field) is int or int(root[field])< -32768 or int(root[field])>32767:return "Invalid character "+field
-	var history: Variant=root.get("LvlStatList",[])
-	if not history is Array or history.size()<level:return "Player character level history is incomplete"
-	for entry in history:
-		if not entry is Dictionary or not entry.get("LvlStatHitDie") is int or int(entry.LvlStatHitDie)<0 or int(entry.LvlStatHitDie)>255:return "Invalid character level hit die"
-	var equipment: Dictionary={}
-	for item in root.get("Equip_ItemList",[]):
-		var mask:=-1
-		for id in document.get("records",{}):
-			if is_same(document.records[id],item):mask=int(document.get("struct_types",[])[int(id)]);break
-		if mask<=0 or mask>0x20000 or mask&(mask-1)!=0 or equipment.has(mask):return "Invalid or duplicate equipment slot"
-		equipment[mask]=true
-	return ""
 static func source_hp_fields(rules) -> Dictionary:
 	# Original807950 serializes the already committed first-level caches.
 	# Getter7f5e20 returns +8a; selected feat insertion9c8a90 does not recalculate it.
@@ -105,11 +73,10 @@ func item(catalog,name: String,type: int) -> Dictionary:
 	var result:=writer.typed(document,document.root,type)
 	if not writer.failure.is_empty(): failure=writer.failure; return {}
 	result.fields.erase("ObjectId"); result.fields.Identified=W.field(0,1); return result
-func build(rules,literal_js_creation: bool=false) -> PackedByteArray:
+func build(rules) -> PackedByteArray:
 	failure=""; var errors: Array=validation_errors(rules)
 	if not errors.is_empty(): failure="\n".join(errors); return PackedByteArray()
 	var d: Dictionary=rules.draft; var cls: Dictionary=rules.cls(); var race: Dictionary=rules.race(); var package: Dictionary=rules.row("packages",int(d.packageId)); var hp: int=rules.num(cls,"HitDie")
-	var source_tail: bool=d.get("sourceTailChoices",false) and not literal_js_creation
 	var skill_rows: Array=[]; var feat_rows: Array=[]; var feats: Array=rules.granted_feats()
 	for choice in d.feats: feats.append(int(choice.id))
 	for id in rules.rows("skills").size(): skill_rows.append({"Rank":W.field(0,int(d.skills.get(id,0)))})
@@ -118,17 +85,17 @@ func build(rules,literal_js_creation: bool=false) -> PackedByteArray:
 	# PickDomains flags and a ClassList element of type0. Other classes omit
 	# these optional fields; internal unset domains are not ordinary domain0.
 	var classes:={"Class":W.field(5,int(d.classId)),"ClassLevel":W.field(3,1)}
-	if literal_js_creation or rules.num(cls,"PickSchool")!=0: classes.School=W.field(0,int(d.school))
-	if literal_js_creation or rules.num(cls,"PickDomains")!=0:
-		classes.Domain1=W.field(0,int(d.domains[0]) if not d.domains.is_empty() else 0); classes.Domain2=W.field(0,int(d.domains[1]) if d.domains.size()>1 else 0)
+	if rules.num(cls,"PickSchool")!=0: classes.School=W.field(0,int(d.school))
+	if rules.num(cls,"PickDomains")!=0:
+		classes.Domain1=W.field(0,int(d.domains[0])); classes.Domain2=W.field(0,int(d.domains[1]))
 	var history:={"LvlStatHitDie":W.field(0,hp),"LvlStatClass":W.field(0,int(d.classId)),"EpicLevel":W.field(0,0),"SkillPoints":W.field(2,rules.skill_balance()),"SkillList":list(skill_rows,0),"FeatList":list(feat_rows,0)}
 	for level in 10:
-		if source_tail and d.known.get(level,[]).size()>255:failure="The original first-level known-spell loop cannot terminate above255 entries.";return PackedByteArray()
+		if d.get("sourceTailChoices",false) and d.known.get(level,[]).size()>255:failure="The original first-level known-spell loop cannot terminate above255 entries.";return PackedByteArray()
 		var known: Array=[]
 		for id in d.known.get(level,[]): known.append({"Spell":W.field(2,int(id))})
-		if not known.is_empty(): classes["KnownList"+str(level)]=list(known,0 if source_tail else 3); history["KnownList"+str(level)]=list(known,0)
-		var count: int=rules.spell_slots(level,not literal_js_creation)
-		if source_tail and (count<0 or count>255):failure="The original first-level memorized slot count is outside its BYTE range.";return PackedByteArray()
+		if not known.is_empty(): classes["KnownList"+str(level)]=list(known,0 if d.get("sourceTailChoices",false) else 3); history["KnownList"+str(level)]=list(known,0)
+		var count: int=rules.spell_slots(level)
+		if d.get("sourceTailChoices",false) and (count<0 or count>255):failure="The original first-level memorized slot count is outside its BYTE range.";return PackedByteArray()
 		if rules.num(cls,"MemorizesSpells")!=0 and count>0:
 			var prepared: Array=[]; var source: Array=d.memorized.get(level,[])
 			for slot in count:
@@ -136,24 +103,24 @@ func build(rules,literal_js_creation: bool=false) -> PackedByteArray:
 				var values:={"Spell":W.field(2,65535 if id==null else int(id))}
 				#807950 AddListElement0 writes only WORD Spell; richer saved-game
 				# flags belong to the unrelated generic serialization path.
-				if not source_tail:
+				if not d.get("sourceTailChoices",false):
 					values.Ready=W.field(0,0 if id==null else 1);values.SpellMetaMagic=W.field(0,0)
 					if rules.num(cls,"PickDomains")!=0 and level>0 and slot==count-1:values.DomainSpell=W.field(0,1)
 				prepared.append(values)
-			classes["MemorizedList"+str(level)]=list(prepared,0 if source_tail else 3)
+			classes["MemorizedList"+str(level)]=list(prepared,0 if d.get("sourceTailChoices",false) else 3)
 	# The original first-level807950 writer emits known/memorized lists here,
 	# and lets the authoritative server derive spontaneous daily uses. Retain
 	# the older generic path only for drafts outside the verified source flow.
-	if not source_tail and (literal_js_creation or not d.get("sourceSpellChoices",false)) and rules.num(cls,"SpellCaster")!=0 and rules.num(cls,"MemorizesSpells")==0:
+	if not d.get("sourceTailChoices",false) and not d.get("sourceSpellChoices",false) and rules.num(cls,"SpellCaster")!=0 and rules.num(cls,"MemorizesSpells")==0:
 		var uses: Array=[]
-		for level in 10: uses.append({"NumSpellsLeft":W.field(0,rules.spell_slots(level,not literal_js_creation))})
+		for level in 10: uses.append({"NumSpellsLeft":W.field(0,rules.spell_slots(level))})
 		classes.SpellsPerDayList=list(uses,0x4567)
 	var fields: Dictionary={}
 	for pair in [["FirstName",str(d.firstName).strip_edges()],["LastName",str(d.lastName).strip_edges()],["Description",d.biography]]: fields[pair[0]]=W.field(12,pair[1])
 	for pair in [["IsPC",1],["IsDM",0],["Gender",d.gender],["Race",d.raceId],["StartingPackage",int(d.packageId) if int(d.packageId)<256 else 0],["Interruptable",1],["Disarmable",1],["IsCommandable",1],["IsDestroyable",1],["IsRaiseable",1],["NaturalAC",0],["GoodEvil",d.goodEvil],["LawfulChaotic",d.lawChaos],["Appearance_Head",d.head],["Color_Skin",d.skin],["Color_Hair",d.hair],["Color_Tattoo1",d.tattoo1],["Color_Tattoo2",d.tattoo2],["MovementRate",0]]: fields[pair[0]]=W.field(0,int(pair[1]))
 	for pair in [["Age",d.age],["Phenotype",d.phenotype]]: fields[pair[0]]=W.field(5,int(pair[1]))
 	for pair in [["Subrace",d.subrace],["Deity",d.deity],["Tag",""]]: fields[pair[0]]=W.field(10,pair[1])
-	if source_tail:
+	if d.get("sourceTailChoices",false):
 		var pets:=source_pet_fields(rules)
 		if not pets.ready:failure=pets.reason;return PackedByteArray()
 		fields.merge(pets.fields,true)
@@ -161,8 +128,8 @@ func build(rules,literal_js_creation: bool=false) -> PackedByteArray:
 		for pair in [["FamiliarType",d.familiar],["CompanionType",d.companion]]:fields[pair[0]]=W.field(5,int(pair[1]))
 		for pair in [["FamiliarName",d.familiarName],["CompanionName",d.companionName]]:fields[pair[0]]=W.field(10,pair[1])
 	for pair in [["Conversation",""],["Portrait",d.portrait]]: fields[pair[0]]=W.field(11,pair[1])
-	for pair in [["xStartingPackage",d.packageId],["Experience",0],["Gold",int(d.get("packageGold",0)) if d.get("packageSource",false) and not literal_js_creation else rules.num(package,"Gold")]]: fields[pair[0]]=W.field(4,int(pair[1]))
-	if source_tail:
+	for pair in [["xStartingPackage",d.packageId],["Experience",0],["Gold",int(d.get("packageGold",0)) if d.get("packageSource",false) else rules.num(package,"Gold")]]: fields[pair[0]]=W.field(4,int(pair[1]))
+	if d.get("sourceTailChoices",false):
 		var hitpoints:=source_hp_fields(rules)
 		if not hitpoints.ready:failure=hitpoints.reason;return PackedByteArray()
 		fields.merge(hitpoints.fields,true)
@@ -172,9 +139,9 @@ func build(rules,literal_js_creation: bool=false) -> PackedByteArray:
 	for pair in [["XPosition",0],["YPosition",0],["ZPosition",0],["XOrientation",0],["YOrientation",1]]: fields[pair[0]]=W.field(8,float(pair[1]))
 	for key in rules.ABILITIES: fields[key]=W.field(0,int(d.abilities[key]))
 	for part in ["Neck","Torso","Pelvis","LBicep","LFArm","LHand","LThigh","LShin","LFoot","RBicep","RFArm","RHand","RThigh","RShin"]: fields["BodyPart_"+part]=W.field(0,1)
-	fields.ArmorPart_RFoot=W.field(0,1); fields.SkillList=list(skill_rows,0); fields.FeatList=list(feat_rows,1); fields.ClassList=W.field(15,[W.record(classes,2 if literal_js_creation else 0)]); fields.LvlStatList=W.field(15,[W.record(history,0)])
+	fields.ArmorPart_RFoot=W.field(0,1); fields.SkillList=list(skill_rows,0); fields.FeatList=list(feat_rows,1); fields.ClassList=W.field(15,[W.record(classes,0)]); fields.LvlStatList=W.field(15,[W.record(history,0)])
 	var items: Array=[]; var catalog=rules.catalog.fork()
-	var equipment: Array=d.get("packageEquipment",[]) if d.get("packageSource",false) and not literal_js_creation else rules.rows(str(rules.cell(package,"Equip2DA",""))).map(func(data):return str(rules.cell(data,"Label","")))
+	var equipment: Array=d.get("packageEquipment",[]) if d.get("packageSource",false) else rules.rows(str(rules.cell(package,"Equip2DA",""))).map(func(data):return str(rules.cell(data,"Label","")))
 	for entry in equipment:
 		var name:=str(entry)
 		if not rules.present(name):continue
@@ -182,7 +149,7 @@ func build(rules,literal_js_creation: bool=false) -> PackedByteArray:
 		if not failure.is_empty(): return PackedByteArray()
 		items.append(value)
 	fields.ItemList=W.field(15,items)
-	if source_tail:
+	if d.get("sourceTailChoices",false):
 		var patch:=tail_patch(d)
 		if not patch.ready:failure=patch.reason;return PackedByteArray()
 		fields.merge(patch.fields,true)
@@ -192,6 +159,5 @@ func build(rules,literal_js_creation: bool=false) -> PackedByteArray:
 		fields.Equip_ItemList=W.field(15,[clothing])
 	var bytes:=writer.write("BIC ",W.record(fields)); failure=writer.failure
 	if failure.is_empty():
-		var parser:=Gff.new();var document:=parser.parse(bytes,"BIC ");failure=parser.failure
-		if failure.is_empty() and literal_js_creation:failure=validate_created_character(document)
+		var parser:=Gff.new(); parser.parse(bytes,"BIC "); failure=parser.failure
 	return bytes if failure.is_empty() else PackedByteArray()

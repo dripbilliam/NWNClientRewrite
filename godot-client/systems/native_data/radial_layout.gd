@@ -8,7 +8,7 @@ static func parse(model: Dictionary) -> Dictionary:
 		if p.size()!=3 or q.size()!=4: return {"error":"Original radial hook transform is incomplete"}
 		var position:=Vector3(p[0],p[1],p[2]); var quaternion:=Quaternion(q[0],q[1],q[2],q[3]); var scale_value:=float(row.get("scale",1.0))
 		if not position.is_finite() or not quaternion.is_finite() or quaternion.length_squared()<0.000001 or not is_finite(scale_value): return {"error":"Original radial hook transform is invalid"}
-		var parent:=int(row.get("parentIndex",row.get("parent",-1)))
+		var parent:=int(row.get("parent",-1))
 		if parent>=poses.size() or parent < -1: return {"error":"Original radial hook hierarchy is invalid"}
 		var pose:=Transform3D(Basis(quaternion.normalized()).scaled(Vector3.ONE*scale_value),position)
 		if parent>=0: pose=poses[parent]*pose

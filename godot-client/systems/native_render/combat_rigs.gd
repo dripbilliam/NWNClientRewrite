@@ -8,28 +8,12 @@ var listeners: Dictionary={}
 func attach(id: int,rigs) -> void:
 	if targets.get(id)==rigs: return
 	forget(id); targets[id]=rigs; entities[id]=rigs.entities[id]
-	# The body supplies hit events when it has clips. A clipless body keeps its
-	# hierarchy, while the first animated robe/tail/wing supplies the clock.
-	var source_index:=-1
-	var models: Array=entities[id].get("models",[])
-	for index in models.size():
-		var model: Dictionary=models[index]
-		if bool(model.get("follow",false)) and model.get("player")!=null:
-			source_index=index
-			break
-	for index in models.size(): models[index].event_source=index==source_index
-	entities[id].relay_animation_source=source_index
-	if source_index>=0:
-		var listener:=func(_owner: Variant,event: String,_data: Variant):
-			if targets.get(id)==rigs and rigs.entities.has(id):
-				var serial:=int(rigs.entities[id].models[source_index].get("play_serial",0))
-				animation_event.emit(id,event,serial)
-		listeners[id]={"index":source_index,"record":rigs.add_model_event_listener(id,source_index,"*",listener)}
+	var listener:=func(actor: int,event: String,serial: int):
+		if actor==id and targets.get(id)==rigs: animation_event.emit(id,event,serial)
+	listeners[id]=listener; rigs.animation_event.connect(listener)
 func forget(id: int) -> void:
 	var rigs=targets.get(id)
-	if is_instance_valid(rigs) and listeners.has(id):
-		var listener: Dictionary=listeners[id]
-		rigs.remove_model_event_listener(id,int(listener.index),listener.record)
+	if is_instance_valid(rigs) and listeners.has(id) and rigs.animation_event.is_connected(listeners[id]): rigs.animation_event.disconnect(listeners[id])
 	entities.erase(id); targets.erase(id); listeners.erase(id)
 func clip_length(id: int,animation: int,side: int=-1) -> float:
 	return targets[id].clip_length(id,animation,side) if targets.has(id) else 0.0

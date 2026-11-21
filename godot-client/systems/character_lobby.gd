@@ -1,13 +1,11 @@
 extends CanvasLayer
 const Numbers=preload("res://systems/native_data/game_numbers.gd")
-const LobbyPlayers=preload("res://systems/native_data/native_lobby_player_registry.gd")
 
 signal request(message: Dictionary)
 signal creation_requested
 signal resource_progress(value: Dictionary)
 var connection := 0
 var state: Dictionary = {}
-var lobby_players: Array[Dictionary]=[]
 var panel: PanelContainer
 var choices: ItemList
 var preview: Label
@@ -20,11 +18,6 @@ var create_button: Button
 var cancel_button: Button
 var disconnect_button: Button
 var export_button: Button
-var export_status_label: Label
-var saved_button: Button
-var saved_popup: PopupPanel
-var saved_list: ItemList
-var saved_characters: Array[Dictionary]=[]
 var save_on_disconnect: CheckBox
 var keys: Array[String] = []
 var displayed_choice_rows: Array=[]
@@ -57,9 +50,6 @@ var delete_lease: Dictionary={}
 var delete_serial:=0
 var post_delete_index:=-1
 var local_notice:=""
-var local_file_dialog: FileDialog
-var local_file_request: Dictionary={}
-var local_file_serial:=0
 
 func _ready() -> void:
 	local_catalog=preload("res://systems/native_local_character_catalog.gd").new(); add_child(local_catalog); local_catalog.completed.connect(func():
@@ -75,13 +65,6 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
-	local_file_dialog=FileDialog.new()
-	local_file_dialog.access=FileDialog.ACCESS_FILESYSTEM
-	local_file_dialog.file_mode=FileDialog.FILE_MODE_OPEN_FILE
-	local_file_dialog.add_filter("*.bic, *.BIC", "Neverwinter Nights character")
-	add_child(local_file_dialog)
-	local_file_dialog.file_selected.connect(_local_file_selected)
-	local_file_dialog.canceled.connect(func(): _retire_local_file(false))
 	panel = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(760, 550)
 	var style := StyleBoxFlat.new()
@@ -129,20 +112,12 @@ func _ready() -> void:
 	buttons.add_child(play_button)
 	create_button = _button("Create character", func(): if state.get("canCreate", false): panel.hide(); creation_requested.emit())
 	buttons.add_child(create_button)
-	export_button = _button("Save character", _export)
+	export_button = _button("Export character", func(): _send({"kind": "lobby-export"}))
 	buttons.add_child(export_button)
 	disconnect_button = _button("Disconnect", func(): _send({"kind": "lobby-disconnect", "saveCharacter": save_on_disconnect.button_pressed and can_save()}))
 	buttons.add_child(disconnect_button)
 	cancel_button = _button("Cancel connection", func(): _send({"kind":"lobby-cancel-join"}))
 	column.add_child(cancel_button)
-	export_status_label=Label.new(); export_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; column.add_child(export_status_label)
-	saved_button=_button("Saved characters (0)",func(): saved_popup.popup_centered(Vector2i(500,300)))
-	column.add_child(saved_button)
-	saved_popup=PopupPanel.new(); root.add_child(saved_popup)
-	var saved_column:=VBoxContainer.new(); saved_popup.add_child(saved_column)
-	var saved_heading:=Label.new(); saved_heading.text="Saved characters"; saved_column.add_child(saved_heading)
-	saved_list=ItemList.new(); saved_list.custom_minimum_size=Vector2(480,220); saved_column.add_child(saved_list)
-	saved_column.add_child(_button("Close",func(): saved_popup.hide()))
 	column.add_child(_button("Return to game", func(): panel.hide()))
 	get_viewport().size_changed.connect(_place)
 	_place()
@@ -163,37 +138,6 @@ func _send(value: Dictionary) -> void:
 	value["connection"] = connection
 	request.emit(value)
 
-func open_local_file() -> void:
-	if connection<=0 or not panel.visible or not bool(state.get("localAllowed",false)) or str(state.get("phase","")) not in ["character-selection","character-rejected"]: return
-	local_file_serial+=1
-	local_file_request={"connection":connection,"token":local_file_serial}
-	local_file_dialog.popup_centered_ratio(0.7)
-
-func _local_file_current(capture: Dictionary) -> bool:
-	return not capture.is_empty() and capture==local_file_request and capture.get("connection")==connection and bool(state.get("localAllowed",false)) and str(state.get("phase","")) in ["character-selection","character-rejected"] and panel.visible
-
-func _retire_local_file(close_dialog: bool=true) -> void:
-	local_file_request.clear()
-	if close_dialog and is_instance_valid(local_file_dialog): local_file_dialog.hide()
-
-func _local_file_selected(path: String) -> void:
-	var capture: Dictionary=local_file_request.duplicate(true)
-	if not _local_file_current(capture): return
-	var bytes: PackedByteArray=FileAccess.get_file_as_bytes(path)
-	if not _local_file_current(capture):
-		bytes.fill(0)
-		return
-	if bytes.is_empty():
-		local_notice="Could not read the selected character file."
-		_retire_local_file(false)
-		sync_native()
-		return
-	var outbound: PackedByteArray=bytes.duplicate()
-	_send({"kind":"lobby-local-file-preview","token":int(capture.token),"name":path.get_file(),"bytes":outbound})
-	bytes.fill(0)
-	outbound.fill(0)
-	_retire_local_file(false)
-
 func _choose(index: int) -> void:
 	if index >= 0 and index < keys.size() and can_select():
 		_send({"kind": "lobby-choose", "key": keys[index]})
@@ -205,51 +149,14 @@ func _play() -> void:
 	if selected != null and can_select() and visible_keys.has(selected):
 		_send({"kind": "lobby-play", "key": str(selected)})
 
-func _export()->void:
-	if can_export():_send({"kind":"lobby-export"})
-
-func can_export()->bool:
-	var status: Variant=state.get("exportStatus",{})
-	return state.get("connected",false) and str(state.get("phase",""))=="playing" and not state.get("busy",false) and (not status is Dictionary or str(status.get("state",""))!="pending" and not bool(status.get("uncertain",false)))
-
-func present_saved_characters()->void:
-	saved_characters.clear()
-	var values: Variant=state.get("savedCharacters",[])
-	if values is Array:
-		for value in values:
-			if not value is Dictionary or not value.get("id") is String or str(value.id).is_empty() or not value.get("name") is String:continue
-			saved_characters.append({"id":str(value.id),"name":str(value.name),"revision":int(value.get("revision",1))})
-	saved_list.clear()
-	for entry in saved_characters:
-		var index:=saved_list.item_count
-		saved_list.add_item(str(entry.name))
-		saved_list.set_item_metadata(index,str(entry.id))
-	saved_button.text="Saved characters ("+str(saved_characters.size())+")"
-	saved_button.visible=state.get("connected",false) and state.has("savedCharacters")
-	if not saved_button.visible and saved_popup.visible:saved_popup.hide()
-	var status: Variant=state.get("exportStatus",{})
-	export_status_label.text=str(status.get("text","")) if status is Dictionary and str(status.get("state","")) in ["pending","saved","failed"] else ""
-	export_status_label.visible=not export_status_label.text.is_empty()
-
 func apply_state(value: Dictionary) -> void:
 	var previous_phase := str(state.get("phase", ""))
 	if connection!=int(value.connection):
-		_retire_local_file()
 		native_selection.clear(); delete_lease={}; post_delete_index=-1
-		lobby_players.clear()
-		if is_instance_valid(saved_popup):saved_popup.hide()
 		if is_instance_valid(confirmation): confirmation.dismiss()
 	connection = int(value.connection)
 	state = value.state
-	if not bool(state.get("localAllowed",false)) or str(state.get("phase","")) not in ["character-selection","character-rejected"]: _retire_local_file()
-	present_saved_characters()
-	var next_phase: String=str(state.get("phase","menu"))
-	if next_phase not in ["character-selection","character-rejected"]:lobby_players.clear()
-	else:
-		var copied: Variant=LobbyPlayers.copy_snapshot(state.get("lobbyPlayers",[]))
-		lobby_players=copied if copied is Array else []
 	if value.get("localCharacterRoots") is Array: local_catalog.configure(value.localCharacterRoots)
-	local_catalog.configure_vault(value.get("nativeVault"))
 	local_catalog.observe(connection,state.get("choices",[]))
 	var phase := str(state.get("phase", "menu"))
 	if phase=="playing":
@@ -292,7 +199,7 @@ func apply_state(value: Dictionary) -> void:
 	create_button.disabled = not state.get("canCreate", false)
 	disconnect_button.disabled = not state.get("connected", false) or phase == "disconnecting"
 	save_on_disconnect.visible = can_save()
-	export_button.disabled = not can_export()
+	export_button.disabled = phase not in ["playing", "area-loading"] or state.get("busy", false)
 	native_preview.observe(connection,state.get("selected"),state.get("preview"),phase in ["character-selection","character-rejected"])
 	preview.text = _preview(record_preview())
 	call_deferred("_place")
@@ -470,9 +377,7 @@ func finish_native_selection() -> void:
 	if is_instance_valid(picker): picker.sync()
 	if activate: _play()
 func close_native() -> void:
-	_retire_local_file()
 	delete_lease={}; post_delete_index=-1; local_notice=""
-	lobby_players.clear()
 	if is_instance_valid(confirmation): confirmation.close(); confirmation.queue_free()
 	confirmation=null; confirmation_catalog=null
 	native_selection.clear()
@@ -492,7 +397,7 @@ func _exit_tree() -> void:
 	if is_instance_valid(native_preview): native_preview.close()
 
 func can_save() -> bool:
-	return state.get("connected",false) and str(state.get("phase",""))=="playing"
+	return state.get("connected",false) and state.get("localAllowed",false) and str(state.get("phase","")) in ["playing","area-loading"]
 
 func _auto() -> void:
 	# Bounded integration tests use the same native UI requests as a player.
@@ -509,7 +414,7 @@ func _auto() -> void:
 		_play()
 
 func configure_preview(directory: String) -> void: native_preview.configure(directory)
-func needs_local_metadata() -> bool: return state.get("choices",[]).any(func(row):return row.get("source")!="server" and row.get("nativeFile") is Dictionary and str(row.nativeFile.get("format",""))!="godot-vault-bic-v1")
+func needs_local_metadata() -> bool: return state.get("choices",[]).any(func(row):return row.get("source")!="server" and row.get("nativeFile") is Dictionary)
 func failure_text(text_owner=null) -> String:
 	var rejection: Variant=state.get("characterRejection")
 	if text_owner!=null and rejection is Dictionary and (rejection.get("strRef") is float or rejection.get("strRef") is int):
@@ -535,8 +440,7 @@ func catalog_choices(text) -> Array:
 		if row.get("source")!="server" and row.get("nativeFile") is Dictionary:
 			if not local_catalog.ready() or not local_catalog.values.has(row.key): continue
 			item.merge(local_catalog.values[row.key],true)
-			var godot_vault: bool=str(row.nativeFile.get("format",""))=="godot-vault-bic-v1"
-			item.pregenerated=false if godot_vault else preload("res://systems/native_data/local_character_metadata.gd").pregenerated(str(row.get("catalogStem","")),text.tables.get("pregen",{}))
+			item.pregenerated=preload("res://systems/native_data/local_character_metadata.gd").pregenerated(str(row.get("catalogStem","")),text.tables.get("pregen",{}))
 			for field in ["firstName","lastName"]: item[field]=preload("res://systems/native_data/character_preview.gd").localized(item[field],int(text.base.language),0)
 			item.label=text.name(item,-1)
 			var ordinal: int=preload("res://systems/native_data/local_character_metadata.gd").ordinal(str(row.get("catalogStem",""))) if row.source!="vault" else 0

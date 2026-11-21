@@ -9,7 +9,6 @@ var state: Dictionary = {}
 var inputs: Dictionary = {}
 var controls: Dictionary = {}
 var tabs: Array = []
-var navigation: HBoxContainer
 var scroll: ScrollContainer
 var body: VBoxContainer
 var status: Label
@@ -18,7 +17,7 @@ var back: Button
 var next: Button
 var finish: Button
 var cancel: Button
-var render_scroll := 0
+var positions: Dictionary = {}
 var waiting := false
 var source_active:=false
 var request_serial:=0
@@ -27,9 +26,9 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Level Up", "level-up", Vector2(100, 70), storage)
 	custom_minimum_size = Vector2(820, 700)
 	close_hides = false
-	navigation = HBoxContainer.new(); content.add_child(navigation)
+	var navigation := HBoxContainer.new(); content.add_child(navigation)
 	for index in 7:
-		var button := Button.new(); button.text = ["Class", "Abilities", "Skills", "Feats", "Spells", "Companions", "Review"][index]; button.focus_mode = Control.FOCUS_NONE
+		var button := Button.new(); button.text = ["Class", "Abilities", "Skills", "Feats", "Spells", "Choices", "Review"][index]; button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(func(): navigate(index)); navigation.add_child(button); tabs.append(button)
 	status = Label.new(); status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; status.custom_minimum_size.x = 780; content.add_child(status)
 	scroll = ScrollContainer.new(); scroll.custom_minimum_size = Vector2(780, 440); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; content.add_child(scroll)
@@ -47,7 +46,7 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	reset()
 
 func reset() -> void:
-	wanted = false; view_id = -1; waiting = false; source_active=false;request_serial+=1;state.clear(); render_scroll=0; clear_body(); status.text=""; errors.text=""; scroll.hide(); hide();presentation_reset.emit()
+	wanted = false; view_id = -1; waiting = false; source_active=false;request_serial+=1;state.clear(); positions.clear(); clear_body(); hide();presentation_reset.emit()
 
 func clear_body() -> void:
 	inputs.clear(); controls.clear()
@@ -56,8 +55,7 @@ func clear_body() -> void:
 func open() -> void:
 	if wanted and source_active:source_reopen.emit();return
 	if wanted: show(); move_to_front(); return
-	wanted = true;request_serial+=1; show(); move_to_front(); status.text = "Requesting available classes from the server…"; errors.text=""
-	navigation.hide(); scroll.hide(); back.hide(); next.hide(); finish.hide(); cancel.show()
+	wanted = true;request_serial+=1; show(); move_to_front(); status.text = "Requesting server level-up choices…"
 	request.emit({"kind": "level-open"})
 
 func activate_source(value: bool) -> void:
@@ -102,21 +100,14 @@ func receive(message: Dictionary) -> void:
 	match message.kind:
 		"level-closed", "level-complete": reset()
 		"level-notice": status.text = str(message.text)
-		"level-error":
-			if wanted:
-				status.text=""
-				errors.text=str(message.text)
-				navigation.hide(); scroll.hide(); back.hide(); next.hide(); finish.hide(); cancel.show()
 		"level-view":
 			if not wanted: return
-			render_scroll=scroll.scroll_vertical if not state.is_empty() and int(state.step)==int(message.step) else 0
+			if not state.is_empty(): positions[int(state.step)] = scroll.scroll_vertical
 			state = message.duplicate(true); view_id = int(message.viewId); waiting = false
-			scroll.show()
 			render()
 
 func render() -> void:
 	clear_body()
-	navigation.show(); back.show(); cancel.show()
 	set_caption("Level Up" + (" · Level " + str(int(state.level)) if state.get("level") != null else ""))
 	status.text = str(state.get("status", ""))
 	errors.text = "\n".join(state.get("errors", [])) if int(state.step) == 6 else ""
@@ -145,7 +136,7 @@ func render() -> void:
 			var row := HBoxContainer.new(); body.add_child(row)
 			var label := Label.new(); label.text = str(item.label); label.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(label)
 			var choice := OptionButton.new(); choice.focus_mode = Control.FOCUS_NONE; choice.disabled = item.disabled
-			var offset := 1 if int(item.value) < 0 or int(item.value) >= item.options.size() else 0
+			var offset := 1 if int(item.value) < 0 else 0
 			if offset: choice.add_item("Choose…"); choice.set_item_disabled(0, true)
 			for option in item.options: choice.add_item(str(option))
 			choice.select(int(item.value) + offset if int(item.value) >= 0 else 0)
@@ -154,15 +145,7 @@ func render() -> void:
 			var row := HBoxContainer.new(); body.add_child(row)
 			var label := Label.new(); label.text = str(item.label); row.add_child(label)
 			var input := LineEdit.new(); input.text = str(item.value); input.max_length = int(item.maxLength); input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			if item.get("tag","")=="name":
-				input.text_changed.connect(func(value):
-					if ready_for_input(bound):request.emit({"kind":"level-name-edit","viewId":bound,"controlId":id,"value":value}))
-			else:
-				var initial_text:=str(item.value)
-				input.focus_exited.connect(func():
-					if input.text!=initial_text:change(id,input.text,bound))
-				input.text_submitted.connect(func(value):
-					if value!=initial_text:change(id,value,bound))
-			row.add_child(input); inputs[id] = input; controls[id] = input
-	scroll.set_deferred("scroll_vertical", render_scroll)
+			input.text_submitted.connect(func(value): change(id, value, bound)); row.add_child(input); inputs[id] = input; controls[id] = input
+			var apply := Button.new(); apply.text = "Apply"; apply.focus_mode = Control.FOCUS_NONE; apply.pressed.connect(func(): change(id, input.text, bound)); row.add_child(apply)
+	scroll.set_deferred("scroll_vertical", int(positions.get(int(state.step), 0)))
 	_clamp()

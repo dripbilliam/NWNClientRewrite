@@ -11,7 +11,6 @@ var cards: Dictionary = {}
 var actions: Array = []
 var action_buttons: Dictionary = {}
 var art: Dictionary = {}
-var encouraged: Dictionary = {}
 var scroll: ScrollContainer
 var column: VBoxContainer
 var retired: Array = []
@@ -40,14 +39,6 @@ func _process(_delta: float) -> void:
 func request_art_admission() -> void:
 	if rows.is_empty():hide();art_pending=false;set_process(false);return
 	art_pending=true;art_error="";art_notice.hide();hide();set_process(true)
-func encourage(id: String,enabled: bool=true) -> void:
-	if enabled:encouraged[id]=true
-	else:encouraged.erase(id)
-	for action in actions:
-		if str(action.id)!=id or not action_buttons.has(int(action.index)):continue
-		var button: Button=action_buttons[int(action.index)]
-		button.set_meta("encouraged",enabled)
-		button.modulate=Color(1.0,0.86,0.45) if enabled else Color.WHITE
 
 func reset() -> void:
 	art_pending=false;art_error="";set_process(false)
@@ -57,7 +48,7 @@ func reset() -> void:
 	for card in cards.values():
 		if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.retire_card(card)
 		card.get_parent().remove_child(card); card.queue_free()
-	cards.clear(); action_buttons.clear(); art.clear(); encouraged.clear(); rows.clear(); actions.clear(); view_id = -1; actor_id = -1; hide()
+	cards.clear(); action_buttons.clear(); art.clear(); rows.clear(); actions.clear(); view_id = -1; actor_id = -1; hide()
 
 func retired_alive() -> int: return retired.filter(func(value): return value.get_ref() != null).size()
 
@@ -117,7 +108,7 @@ func make_card(row: Dictionary) -> PanelContainer:
 	var card := PanelContainer.new(); card.name = "Member%s" % int(row.entryId); card.custom_minimum_size.x = 78; card.set_meta("object_id", int(row.id)); card.set_meta("self", bool(row.self))
 	var style := StyleBoxFlat.new(); style.bg_color = Color("111912f0"); style.border_color = Color("b6a16a"); style.set_border_width_all(1); style.set_content_margin_all(3); card.add_theme_stylebox_override("panel", style)
 	var box := VBoxContainer.new(); box.name = "Box"; box.add_theme_constant_override("separation", 2); box.mouse_filter = Control.MOUSE_FILTER_IGNORE; card.add_child(box)
-	var button := Button.new(); button.name = "Portrait"; button.custom_minimum_size = Vector2(64, 100 if row.self else 64); button.focus_mode = Control.FOCUS_NONE; button.text = "♙"; box.add_child(button)
+	var button := Button.new(); button.name = "Portrait"; button.custom_minimum_size = Vector2(64, 100 if row.self else 64); button.focus_mode = Control.FOCUS_NONE; button.text = "?"; box.add_child(button)
 	var image := TextureRect.new(); image.name = "Image"; image.mouse_filter = Control.MOUSE_FILTER_IGNORE; image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; button.add_child(image); image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var index := int(row.entryId)
 	button.pressed.connect(func(): if cards.get(index)==card and index < rows.size() and rows[index].available: portrait_selected.emit(index, button.get_global_rect().get_center()))
@@ -134,7 +125,6 @@ func make_card(row: Dictionary) -> PanelContainer:
 			var control := Button.new(); control.name = "Action%s" % int(action.index); control.custom_minimum_size = Vector2(34, 22); control.text = str(action.label).left(1); control.tooltip_text = str(action.label) + (" (%s)" % str(action.key).to_upper() if action.key != null else ""); control.focus_mode = Control.FOCUS_NONE
 			control.pressed.connect(func():
 				if cards.get(index)!=card or index>=rows.size() or not rows[index].available: return
-				encourage(str(action.id),false)
 				if str(action.id) == "rest": request.emit({"kind":"party-rest","viewId":view_id})
 				else: panel_requested.emit(str(action.id)))
 			grid.add_child(control)
@@ -145,7 +135,7 @@ func make_card(row: Dictionary) -> PanelContainer:
 func update_card(row: Dictionary) -> void:
 	var card: PanelContainer = cards[int(row.entryId)]; var box: Control = card.get_node("Box"); var button: Button = box.get_node("Portrait")
 	button.disabled = not row.available; button.tooltip_text = str(row.label) + ("" if row.available else " · not currently available"); card.modulate.a = 1.0 if row.available else 0.5; box.get_node("Name").text = str(row.label)
-	if card.get_meta("portrait_key", "") != str(row.portraitKey): card.set_meta("portrait_key", str(row.portraitKey)); button.get_node("Image").texture = null; button.text = "♙"
+	if card.get_meta("portrait_key", "") != str(row.portraitKey): card.set_meta("portrait_key", str(row.portraitKey)); button.get_node("Image").texture = null; button.text = "?"
 	var health: ProgressBar = box.get_node("Health"); var hp: Label = health.get_node("Text")
 	if row.health == null: health.value = 0; hp.text = "—"; health.tooltip_text = "Hit points have not been received"
 	else:
@@ -155,8 +145,6 @@ func update_card(row: Dictionary) -> void:
 		for action in actions:
 			var control: Button = box.get_node("Actions/Action%s" % int(action.index)); control.disabled = not row.available; action_buttons[int(action.index)] = control; apply_art(int(action.index))
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.update_card(row)
-	if row.self:
-		for action in actions:encourage(str(action.id),encouraged.has(str(action.id)))
 
 func apply_art(index: int) -> void:
 	if not action_buttons.has(index): return

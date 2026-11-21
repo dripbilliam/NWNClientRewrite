@@ -63,7 +63,7 @@ func _candidate_reason(model: Node3D,mesh: MeshInstance3D) -> String:
 
 func consider_instance(id: int,model: Node3D) -> bool:
 	var world:=_scope_current()
-	if world==null or not is_instance_valid(model) or not model is Template.Placement or not model.is_inside_tree() or model.is_processing() or _placements.has(model.get_instance_id()) or not model.get("meshes") is Array or model.get("renderer_alpha")!=null:return false
+	if world==null or not is_instance_valid(model) or not model is Template.Placement or not model.is_inside_tree() or _placements.has(model.get_instance_id()) or not model.get("meshes") is Array or model.get("renderer_alpha")!=null:return false
 	var wanted: Variant=world.get("desired").get(id)
 	if not wanted is Dictionary or not wanted.get("object") is Dictionary or not Base.classify(wanted.object,int(_scope[2])).base:return false
 	var model_id:=model.get_instance_id();var record:={"id":id,"owner":weakref(model),"signature":str(wanted.get("key","")),"lifetime":Lifetime.token(wanted.object)}

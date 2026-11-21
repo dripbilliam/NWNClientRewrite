@@ -1,0 +1,26 @@
+import fs from 'node:fs/promises';import path from 'node:path';import {createHash} from 'node:crypto';import {spawn} from 'node:child_process';import {fileURLToPath} from 'node:url';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),[label,buildLabel,chosenEntry]=process.argv.slice(2),entry=chosenEntry??'native_highlight_kernel_test.gd';
+if(!/^[a-z0-9-]+$/.test(label??'')||!/^highlight-kernel-build-v[0-9]+$/.test(buildLabel??''))throw Error('Fresh explicit test/build labels required');
+if(!['native_highlight_kernel_test.gd','native_highlight_kernel_owner_test.gd'].includes(entry))throw Error('Only owned bounded kernel fixtures permitted');
+const folder=path.join(project,'.cache/native-presentation-parity/particles-agent',label),copy=path.join(folder,'project'),buildFile=path.join(project,'.cache/native-presentation-parity/particles-agent',buildLabel,'build.json');
+const hash=data=>createHash('sha256').update(data).digest('hex'),build=JSON.parse(await fs.readFile(buildFile));
+if(build.exit_code!==0||build.source_changed.length||hash(await fs.readFile(build.binary))!==build.binary_sha256||hash(await fs.readFile(build.descriptor))!==build.descriptor_sha256)throw Error('Private native build is not accepted');
+for(const pin of build.sources)if(hash(await fs.readFile(pin.source))!==pin.sha256||hash(await fs.readFile(pin.file))!==pin.sha256)throw Error('Private native source pin differs');
+await fs.mkdir(folder,{recursive:false});await fs.mkdir(copy);const pins=[],seen=new Set();
+async function stage(relative){
+ if(seen.has(relative))return;seen.add(relative);
+ if(relative==='native/highlight_geometry.gdextension')return;
+ if(relative.includes('..')||path.isAbsolute(relative)||!['.gd','.gdshader','.json'].includes(path.extname(relative)))throw Error('Unexpected source dependency');
+ const bytes=await fs.readFile(path.join(project,relative)),dest=path.join(copy,relative);await fs.mkdir(path.dirname(dest),{recursive:true});await fs.writeFile(dest,bytes,{flag:'wx'});pins.push({relative,sha256:hash(bytes)});
+ for(const m of bytes.toString('utf8').matchAll(/(?:preload|load)\(\s*["']res:\/\/([^"']+)["']\s*\)|extends\s+["']res:\/\/([^"']+)["']|FileAccess\.get_file_as_string\(\s*["']res:\/\/([^"']+)["']\s*\)/g))await stage(m[1]??m[2]??m[3]);
+}
+await stage('tests/'+entry);await fs.mkdir(path.join(copy,'native'));await fs.mkdir(path.join(copy,'.cache/highlight-kernel'),{recursive:true});await fs.copyFile(build.descriptor,path.join(copy,'native/highlight_geometry.gdextension'));await fs.copyFile(build.binary,path.join(copy,'.cache/highlight-kernel/nwn-highlight-geometry.dll'));
+await fs.mkdir(path.join(copy,'.godot'));await fs.writeFile(path.join(copy,'.godot/global_script_class_cache.cfg'),'list=[]\n');await fs.writeFile(path.join(copy,'project.godot'),'config_version=5\n[application]\nconfig/name="Isolated NWN highlight kernel"\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name="CodexParity/'+label+'"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');
+const engine=JSON.parse(await fs.readFile(path.join(project,'.cache/native-140fps/render-agent/engine-builtin-light-v2/engine-descriptor.json'))).engines.candidate;
+if(engine.sha256!=='ce2d36407d0a6107a3076a00faf7d9f9dae185c86994ccea8dfd7e450c50f12a'||hash(await fs.readFile(engine.path))!==engine.sha256)throw Error('Pinned Godot engine differs');
+const reportFile=path.join(folder,'report.json'),args=['--headless','--path',copy,'--log-file',path.join(folder,'engine.log'),'--script','res://tests/'+entry,'--','--report='+reportFile];
+const user=path.join(folder,'userdata');await fs.mkdir(user);const child=spawn(engine.path,args,{cwd:copy,windowsHide:true,env:{...process.env,APPDATA:user,LOCALAPPDATA:user}});console.log(JSON.stringify({pid:child.pid,folder,args}));let stdout='',stderr='',timeout=false;child.stdout.on('data',b=>stdout+=b);child.stderr.on('data',b=>stderr+=b);const timer=setTimeout(()=>{timeout=true;child.kill();},30000);const terminal=await new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',(code,signal)=>resolve({code,signal}));});clearTimeout(timer);
+await fs.writeFile(path.join(folder,'stdout.log'),stdout);await fs.writeFile(path.join(folder,'stderr.log'),stderr);let report=null;try{report=JSON.parse(await fs.readFile(reportFile));}catch{}
+const sourceChanged=[];for(const pin of pins)if(hash(await fs.readFile(path.join(project,pin.relative)))!==pin.sha256||hash(await fs.readFile(path.join(copy,pin.relative)))!==pin.sha256)sourceChanged.push(pin.relative);
+const errors=(stdout+'\n'+stderr).split(/\r?\n/).filter(line=>/SCRIPT ERROR|^ERROR:|Parse Error|ObjectDB.*leak|resources still in use/.test(line));
+const result={version:1,buildFile,buildSha256:hash(await fs.readFile(buildFile)),build,engine,pins,args,pid:child.pid,...terminal,timeout,errors,sourceChanged,report,success:terminal.code===0&&!timeout&&!errors.length&&!sourceChanged.length&&report?.success===true,scope:'Isolated standalone native kernel correctness only; no GPU/server/shared-native builds'};await fs.writeFile(path.join(folder,'run.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({folder,...terminal,timeout,errors,sourceChanged,report,success:result.success}));process.exitCode=result.success?0:1;

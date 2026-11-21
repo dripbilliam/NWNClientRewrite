@@ -17,7 +17,7 @@ var art
 var stage
 var jobs: Dictionary={}
 var row_keys: Array=[]
-var show_pregenerated:=true
+var show_pregenerated:=false
 var details_page:=-1
 var last_text_revision:=-1
 var portrait_identity:=""
@@ -37,7 +37,7 @@ func configure_source(source_text,source,path: String) -> void:
 	if catalog==source: return
 	var requested_page:=details_page; clear_source(false); details_page=requested_page; catalog=source; text=source_text; rules.text=text; cache_path=path
 	assets=Assets.new(); add_child(assets); assets.configure(source); assets.cache_directory=path; assets.maximum_workers=1; assets.high_priority=true; assets.completed.connect(table_ready)
-	for name in ["pregen","classes","racialtypes","portraits","skills","feat","spells","exptable"]: jobs[assets.request(name,2017,"2da")]=name
+	for name in ["pregen","classes","portraits"]: jobs[assets.request(name,2017,"2da")]=name
 	art=preload("res://systems/native_ui_art.gd").new(); add_child(art); art.configure(source,path); sync()
 func table_ready(id: int,value: Dictionary) -> void:
 	if closed or not jobs.has(id): return
@@ -48,10 +48,10 @@ func _process(_delta: float) -> void:
 func available_rows() -> Array:
 	var result: Array=[]
 	for data in controller.catalog_choices(text):
-		if data.get("source")!="server" and not bool(data.get("localFile",false)) and (catalog==null or not text.tables.has("pregen")): continue
+		if data.get("source")!="server" and (catalog==null or not text.tables.has("pregen")): continue
 		if not show_pregenerated and data.get("pregenerated",false): continue
 		result.append(data)
-	return result
+	result.sort_custom(func(a,b):return str(a.get("label","")).nocasecmp_to(str(b.get("label","")))<0); return result
 func sync() -> void:
 	if closed or not is_instance_valid(controller): return
 	var state: Dictionary=controller.state; var active: bool=str(state.get("phase","")) in ["character-selection","character-rejected"] and not state.get("creating",false) and controller.panel.visible
@@ -66,7 +66,7 @@ func sync() -> void:
 		items.append({"key":str(data.key),"name":str(data.get("label","")),"classes":" / ".join(parts),"source":"Server" if data.get("source")=="server" else "Local","summary":"\n".join(parts)})
 	var ready: bool=controller.can_select(); var legacy_ready: bool=is_instance_valid(controller.native_chooser) and controller.native_chooser.layout_ready
 	var delete_reason_text: String=controller.delete_reason()
-	var capabilities:={"select":ready,"play":ready and controller.native_selection.is_empty(),"back":state.get("connected",false) and not state.get("busy",false),"create":state.get("canCreate",false),"delete":delete_reason_text.is_empty(),"customize":bool(state.get("localAllowed",false)),"details":ready and key!="","server-info":state.get("canLobbyPages",false),"players":state.get("canLobbyPages",false),"roster":true}
+	var capabilities:={"select":ready,"play":ready and controller.native_selection.is_empty(),"back":state.get("connected",false) and not state.get("busy",false),"create":state.get("canCreate",false),"delete":delete_reason_text.is_empty(),"customize":false,"details":ready and key!="","server-info":state.get("canLobbyPages",false),"players":state.get("canLobbyPages",false),"roster":true}
 	var endpoint: Variant=state.get("endpoint"); var server_name: String="%s:%s"%[endpoint.host,int(endpoint.port)] if endpoint is Dictionary else "Multiplayer"
 	var feedback: String=controller.failure_text(text)
 	if feedback.is_empty(): feedback=controller.local_notice
@@ -75,7 +75,7 @@ func sync() -> void:
 	if details_page>=0 and not legacy_ready: feedback="Preparing character details…"
 	var pending_key: String=str(controller.native_selection.key) if controller.native_selection.get("connection")==controller.connection else ""
 	shell.present([controller.connection],items,key,capabilities,server_name,feedback,pending_key); shell.pregen.set_pressed_no_signal(show_pregenerated); shell.pregen.disabled=not ready
-	shell.buttons.delete.tooltip_text=delete_reason_text; shell.buttons.customize.text="Local Character…"; shell.buttons.customize.tooltip_text="Choose a local .bic character file" if bool(state.get("localAllowed",false)) else "This server requires characters from its vault."
+	shell.buttons.delete.tooltip_text=delete_reason_text; shell.buttons.customize.tooltip_text="Server-vault characters cannot be customized here." if controller.selected_local_row().get("source")=="server" else "Local character customization is not migrated yet."
 	if is_instance_valid(art):
 		for row in choices: art.bind_portrait(shell.row_portraits[str(row.key)],rules.portrait({"replicated":row},1))
 	if legacy_ready: controller.native_chooser.show_pregenerated=show_pregenerated
@@ -116,7 +116,6 @@ func action(tag: String) -> void:
 		"back": controller._send({"kind":"lobby-disconnect","saveCharacter":false})
 		"create": controller.create_button.pressed.emit()
 		"delete": controller.begin_delete()
-		"customize": controller.open_local_file()
 		"details","server-info","players":
 			details_page={"details":0,"server-info":1,"players":2}[tag]
 			if is_instance_valid(controller.native_chooser): controller.native_chooser.automatic_selection={}

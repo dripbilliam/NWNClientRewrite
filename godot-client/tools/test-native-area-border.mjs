@@ -1,0 +1,23 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),label=process.argv[2];
+if(!/^[a-z0-9-]{3,70}$/.test(label??''))throw Error('Supply a unique evidence label');
+const directory=path.join(project,'.cache/area-border',label),copy=path.join(directory,'inputs');if(fs.existsSync(directory))throw Error('Existing evidence preserved');
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+const files=['systems/native_data/area_border.gd','systems/native_render/particle_math.gd','systems/native_data/ruleset_cache.gd','tests/native_area_border_test.gd','reports/native-area-border-installed-v1.json','reports/native-area-border-original-v2.json','tools/test-native-area-border.mjs'];
+const inputs=files.map(file=>({path:file,sha256:hash(fs.readFileSync(path.join(project,file)))}));
+for(const row of inputs){const target=path.join(copy,row.path);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(project,row.path),target);if(hash(fs.readFileSync(target))!==row.sha256)throw Error('Copy mismatch');}
+fs.writeFileSync(path.join(copy,'project.godot'),'config_version=5\n[application]\nconfig/name="Native area border values"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');
+const engine=path.join(project,'.tools/Godot_v4.7.2-stable_win64.exe'),engineSha256=hash(fs.readFileSync(engine));
+if(engineSha256!=='ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424')throw Error('Unexpected engine');
+const report=path.join(directory,'result.json'),log=path.join(directory,'engine.log');
+const child=spawnSync(engine,['--headless','--max-fps','60','--path',copy,'--log-file',log,'--script','res://tests/native_area_border_test.gd','--','--report='+report],{windowsHide:true,encoding:'utf8',timeout:35000});
+fs.writeFileSync(path.join(directory,'stdout.log'),child.stdout??'');fs.writeFileSync(path.join(directory,'stderr.log'),child.stderr??'');
+const result=fs.existsSync(report)?JSON.parse(fs.readFileSync(report)):null,engineLog=fs.existsSync(log)?fs.readFileSync(log,'utf8'):'';
+const cleanEngine=!/^(?:ERROR:|WARNING:)|SCRIPT ERROR|Parse Error|ObjectDB instances leaked|Leaked instance|still in use at exit/m.test(engineLog+'\n'+child.stderr);
+const changedInputs=inputs.filter(r=>hash(fs.readFileSync(path.join(project,r.path)))!==r.sha256).map(r=>r.path),changedCopies=inputs.filter(r=>hash(fs.readFileSync(path.join(copy,r.path)))!==r.sha256).map(r=>r.path);
+const proof={success:child.status===0&&!child.error&&cleanEngine&&result?.success===true&&!changedInputs.length&&!changedCopies.length,checks:result?.checks??0,failures:result?.failures??[],cleanEngine,exitCode:child.status,error:child.error?.message??null,inputs,changedInputs,changedCopies,engineSha256,gameplay:false,gpu:false,serverConnections:0,nativeBuilds:0,productionImported:false,scope:result?.scope??'No accepted result.'};
+fs.writeFileSync(path.join(directory,'proof.json'),JSON.stringify(proof,null,2)+'\n');console.log(JSON.stringify({...proof,inputs:inputs.length,failures:proof.failures.length}));process.exitCode=proof.success?0:1;

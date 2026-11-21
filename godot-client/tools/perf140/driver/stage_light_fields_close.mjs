@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {stage,hash} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
+const parentFile=path.join(project,'.cache/native-140fps/root/light-fields-fenced-v4/manifest.json');
+if(hash(fs.readFileSync(parentFile))!=='d3b783698c607a47387bc255678dd8c0983f6dbe92469cfed787c36b68d4997b')throw Error('Frozen V4 root parent differs');
+const sourceFile=path.join(project,'.cache/native-140fps/render-agent/pushed-fields-close-check-v2/manifest.json');
+if(hash(fs.readFileSync(sourceFile))!=='8084c561efd1d171ab9df77609a7f660b888fd58aeca316e27671760cdcabd10')throw Error('Corrected close fixture differs');
+const parent=JSON.parse(fs.readFileSync(parentFile));
+const relative='systems/native_render/focus_lighting_native_input_candidate.gd';
+const from=path.join(path.dirname(sourceFile),'corrected-adapter.gd');
+const after='ff6b385a7abd88543504820068dfd9d573845fe2b2b96847cff010408defa895';
+if(hash(fs.readFileSync(from))!==after)throw Error('Corrected adapter differs');
+console.log(JSON.stringify(stage(project,parentFile,'light-fields-close-fenced-v1',[{relative,from,before:parent.pins.find(p=>p.relative===relative).sha256,after}],[sourceFile])));

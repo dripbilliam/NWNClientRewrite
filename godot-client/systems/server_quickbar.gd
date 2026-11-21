@@ -18,7 +18,6 @@ var shown_page := 0
 var selected_index := -1
 var rows: Array = []
 var buttons: Dictionary = {}
-var pending: Dictionary = {}
 var pages: Array[Button] = []
 var cells: Control
 var caption: Label
@@ -94,7 +93,6 @@ func reset() -> void:
 	page = 0
 	rows.clear()
 	buttons.clear()
-	pending.clear()
 	textures.clear()
 	secondary_textures.clear()
 	if is_instance_valid(native_skin): native_skin.keys.clear()
@@ -178,7 +176,6 @@ func render(index: int) -> void:
 			else:
 				request.emit({"kind": "quickbar-move", "quickbarId": quickbar_id, "sourceIndex": data.sourceIndex, "index": slot}))
 		button.modulate = Color(1, 1, 1, 1.0 if row.enabled or row.empty else 0.5)
-		button.disabled = pending.has(slot) or not row.enabled and not row.empty
 		var key := Label.new()
 		key.text = "F%s" % (i + 1)
 		key.position = Vector2(23, 41)
@@ -193,14 +190,8 @@ func render(index: int) -> void:
 	rendered.emit()
 
 func activate(index: int) -> void:
-	if quickbar_id >= 0 and index>=0 and index < rows.size() and rows[index].enabled and not pending.has(index):
+	if quickbar_id >= 0 and index>=0 and index < rows.size() and rows[index].enabled:
 		request.emit({"kind": "quickbar-activate", "quickbarId": quickbar_id, "index": index})
-
-func set_pending(index: int, active: bool) -> void:
-	if active:pending[index]=true
-	else:pending.erase(index)
-	if buttons.has(index):
-		buttons[index].disabled=active or not bool(rows[index].get("enabled",true)) and not bool(rows[index].get("empty",false))
 
 func _input(event: InputEvent) -> void:
 	if not visible or not event is InputEventKey:

@@ -48,8 +48,8 @@ func configure(owner,catalog,cache_path: String) -> void:
 		jobs[id]=name
 	if frame.fonts.has_method("request"):
 		frame.fonts.request(Plan.FONT); frame.fonts.request("fnt_galahad14")
-	# Warm the fallback without adding it to the visible gameplay canvas.
-	fallback_portrait=TextureRect.new(); fallback_portrait.hide(); add_child(fallback_portrait)
+	# The no-speaker portrait is an original installed resource too.
+	fallback_portrait=TextureRect.new(); add_child(fallback_portrait)
 	frame.art.bind_portrait(fallback_portrait,"po_hu_m_99_m")
 func _process(_delta: float) -> void:
 	if closed: return

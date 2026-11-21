@@ -1,7 +1,7 @@
 extends Node3D
 # Experimental RenderingDevice path. Each packet owns its bytes until the
 # render-thread callback finishes. GPU resources are strongly retained there.
-const MAX_VERTICES:=2147483646 # Signed 32-bit mesh vertex count, rounded down to a whole quad.
+const MAX_VERTICES:=196608
 var capacity:=0
 var vertex_count:=0
 var epoch:=-1
@@ -90,23 +90,20 @@ func _cancel() -> void:
 	if native_upload!=null: native_upload.call("cancel")
 	if lease!=null:
 		lease.mutex.lock(); lease.alive=false; lease.mutex.unlock()
-func _allocate(next_capacity: int) -> bool:
-	var initial:=PackedFloat32Array()
-	if initial.resize(next_capacity/6*20)!=OK: return false
+func _allocate(next_capacity: int) -> void:
 	_cancel()
 	if node==null:
 		node=MultiMeshInstance3D.new(); add_child(node); node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if draw_material==null: draw_material=_material()
 	var next:=MultiMesh.new(); next.transform_format=MultiMesh.TRANSFORM_3D; next.use_colors=true; next.use_custom_data=true
 	next.mesh=quad_mesh(); next.instance_count=next_capacity/6; next.visible_instance_count=0
-	next.buffer=initial
+	var initial:=PackedFloat32Array(); initial.resize(next.instance_count*20); next.buffer=initial
 	node.multimesh=next; node.material_override=draw_material; instances=next; capacity=next_capacity
 	var use_native:=ClassDB.class_exists("NwnParticleUpload") and not OS.get_cmdline_user_args().has("--particle-instance-upload=gd") and OS.get_environment("NWN_PARTICLE_INSTANCE_UPLOAD")!="gd"
 	if use_native:
 		native_upload=ClassDB.instantiate("NwnParticleUpload"); native_upload.call("configure",next,next_capacity); lease=null
 		batch_upload=ClassDB.class_exists("NwnParticleUploadBatch") and (OS.get_cmdline_user_args().has("--particle-instance-upload=batch") or OS.get_environment("NWN_PARTICLE_INSTANCE_UPLOAD")=="batch")
 	else: native_upload=null; lease=Lease.new()
-	return true
 func upload_error() -> String:
 	if native_upload!=null:
 		var code: int=native_upload.call("error"); return "" if code==0 else "Native particle upload failed: "+str(code)
@@ -119,7 +116,7 @@ func apply_instances(owner_epoch: int,next_sequence: int,count: int,next_capacit
 	if count<0 or count%6 or next_capacity<count or next_capacity<capacity or next_capacity>MAX_VERTICES or next_capacity%6 or bytes.size()!=count/6*80: return false
 	if count>0 and (not bounds.position.is_finite() or not bounds.size.is_finite() or bounds.size.x<0 or bounds.size.y<0 or bounds.size.z<0): return false
 	if not upload_error().is_empty(): return false
-	if next_capacity>capacity and not _allocate(next_capacity): return false
+	if next_capacity>capacity: _allocate(next_capacity)
 	if instances!=null:
 		instances.custom_aabb=bounds.grow(0.001) if count>0 else AABB(); instances.visible_instance_count=count/6
 	if count>0 and native_upload!=null:

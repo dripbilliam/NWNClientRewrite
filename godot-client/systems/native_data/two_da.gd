@@ -36,12 +36,8 @@ func parse_reference(text: String) -> Dictionary:
 		if not line.is_empty() and not line.begins_with(";"): lines.append(line)
 	if lines.is_empty() or not str(lines[0]).begins_with("2DA V"): failure = "Unsupported 2DA header"; return {}
 	var cursor := 1; var default_value := "****"
-	# The source decoder finds the first DEFAULT line anywhere after its header.
-	for index in range(1,lines.size()):
-		if str(lines[index]).to_upper().begins_with("DEFAULT:"):
-			var values := tokens(lines[index]); default_value = str(values[1]) if values.size() > 1 else "****"
-			cursor=index+1
-			break
+	if cursor < lines.size() and str(lines[cursor]).to_upper().begins_with("DEFAULT:"):
+		var values := tokens(lines[cursor]); default_value = str(values[1]) if values.size() > 1 else "****"; cursor += 1
 	if cursor >= lines.size(): failure = "Missing 2DA columns"; return {}
 	var columns := tokens(lines[cursor]); cursor += 1
 	var rows := {}; var ordered: Array = []; var cells: Array = []; var labels: Array=[]
@@ -54,7 +50,5 @@ func parse_reference(text: String) -> Dictionary:
 			physical.append(value)
 			if not row.has(columns[index]): row[columns[index]] = value
 		ordered.append(row); cells.append(physical); labels.append(str(values[0]))
-		var label:=str(values[0])
-		var numeric:=float(label.hex_to_int()) if label.to_lower().begins_with("0x") and label.is_valid_hex_number(true) else label.to_float()
-		if (label.is_empty() or label.is_valid_float() or label.to_lower().begins_with("0x") and label.is_valid_hex_number(true)) and is_finite(numeric) and floor(numeric)==numeric and absf(numeric)<9223372036854775808.0:rows[int(numeric)]=row
+		if str(values[0]).is_valid_int(): rows[int(values[0])] = row
 	return {"defaultValue": default_value, "columns": columns, "rows": rows, "orderedRows": ordered, "orderedCells": cells,"rowLabels":labels}

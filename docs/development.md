@@ -2,24 +2,25 @@
 
 ## Setup and launch
 
-The client development route is Windows/PowerShell with pinned Godot and the native helper build prerequisites installed by the setup script. Godot identity is pinned in `godot-client/runtime-lock.json`. A user-owned NWN:EE installation, required content and credentials are external inputs.
+The development route is Windows/PowerShell with compatible Node.js/npm, MSVC x64 and Windows SDK tools. Godot identity is pinned in `godot-client/runtime-lock.json`. A user-owned NWN:EE installation, required content and credentials are external inputs.
 
 From the repository root:
 
 ```powershell
+npm install
 .\godot-client\tools\setup.ps1
 .\godot-client\join-native.ps1
 ```
 
-The normal client opens Main Menu without joining a server. `join-native.ps1` forwards ordinary gameplay to the Godot-only `join-godot.ps1`; an explicit owned local server can be selected with `join-godot.ps1 -ServerHost 127.0.0.1 -Port 5121`. These source-workspace commands assume an installed NWN:EE content tree and are not a standalone release package.
+The normal client opens Main Menu without joining a server. For the existing owned-local development profile, use `.\godot-client\join-local.ps1`. Its install/profile assumptions are workspace-specific; this is not a standalone release package.
 
-The root npm package, lockfile and `npm start` route have been retired. The supported launch does not install or start Node or Electron. Historical JavaScript implementation files remain read-only references during NWN-79 migration.
+`npm start` builds/opens the preserved Electron reference client. It is not the primary frontend.
 
 ## Checks
 
 | Change | Appropriate validation |
 | --- | --- |
-| Godot protocol/data | `join-godot.ps1 -CheckOnly`, relevant focused Godot tests, then an isolated owned-server matrix for network behavior |
+| JavaScript/protocol | Relevant existing Node tests; `npm test` is the broad regression suite |
 | Native data or controls | Feature-specific copied-source/headless harness |
 | Rendering or presentation | Actual graphical fixture with matching source/runtime/settings and visual review |
 | Multiplayer behavior | Unchanged owned original server, real controls, received results and independent exports where applicable |

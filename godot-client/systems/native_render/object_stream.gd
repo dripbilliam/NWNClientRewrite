@@ -1,6 +1,5 @@
 extends Node3D
 const Timing=preload("res://systems/native_render/frame_profile.gd")
-const JoinDiagnostics=preload("res://systems/native_render/join_publication_diagnostics.gd")
 # Native original-table/model selection for static replicated objects. Actor,
 # equipment, animated door state and visual-transform consumers follow separately.
 signal finished(state: Dictionary)
@@ -9,14 +8,6 @@ const Template=preload("res://systems/native_render/model_template.gd")
 const Priority=preload("res://systems/native_render/stream_priority.gd")
 const Placeable=preload("res://systems/native_render/placeable_instance.gd")
 var publication_keys: Dictionary={}
-var reference_admissions: Dictionary={}
-func reference_token(entry: Dictionary) -> String:
-	return "object:"+str(get_instance_id())+":"+str(entry.placement.id)
-func release_reference_token(token: String) -> void:
-	if not reference_admissions.has(token):return
-	var hub=admission_parent.get_meta("native_reference_hub") if is_instance_valid(admission_parent) and admission_parent.has_meta("native_reference_hub") else null
-	if is_instance_valid(hub):hub.release_admission(str(reference_admissions[token]),token)
-	reference_admissions.erase(token)
 var _animated_instance
 var _animated_entry: Dictionary={}
 var _animated_state: Dictionary={}
@@ -37,9 +28,6 @@ func _animated_publication(entry: Dictionary,door: bool) -> Dictionary:
 		_cancel_animated_publication();stats.superseded_animated_states=int(stats.get("superseded_animated_states",0))+1
 	if not is_instance_valid(_animated_instance):
 		var instance=preload("res://systems/native_render/door_instance.gd").new() if door else Placeable.new()
-		if door:
-			var door_id:=int(placement.id)
-			instance.animation_warning=func(code: String,animation: int):stats.warnings.append({"code":code,"objectId":door_id,"animation":animation})
 		var accepted: bool=instance.begin_install_door(entry.bundle,pool,int(placement.id),publication_state(placement)) if door else instance.begin_install_placeable(entry.bundle,pool,int(placement.id),publication_state(placement))
 		if not accepted:
 			var reason: String=instance.failure;instance.retire();return {"status":"failed","reason":reason}
@@ -85,14 +73,12 @@ func _resume_clone_head() -> void:
 			if index>0:queue.push_front(queue.pop_at(index))
 			return
 	# The exact queued row retired; cancel only its private publication work.
-	release_reference_token(reference_token(entry))
 	if not _animated_entry.is_empty():_cancel_animated_publication()
 	if not _clone_entry.is_empty():Template.cancel_creation(_clone_pending);_clone_entry={}
 	if not _template_entry.is_empty():
 		if pool!=null and pool.has_method("cancel_template_step"):pool.cancel_template_step(_template_pending)
 		_template_entry={}
 func _cancel_publication_row(entry: Dictionary) -> void:
-	release_reference_token(reference_token(entry))
 	if not _animated_entry.is_empty() and is_same(entry,_animated_entry):_cancel_animated_publication()
 	if not _clone_entry.is_empty() and is_same(entry,_clone_entry):
 		Template.cancel_creation(_clone_pending);_clone_entry={}
@@ -120,13 +106,9 @@ var assets
 var pool
 var maximum_asset_workers:=4
 var tables: Dictionary={}
-var live_table_bank: Variant
-var _live_table_scope: Dictionary={}
 var table_requests: Dictionary={}
 var initial_static_tables_only:=false
 var model_requests: Dictionary={}
-var door_surface_requests: Dictionary={}
-var door_surfaces: Dictionary={}
 var groups: Dictionary={}
 var waiting: Array=[]
 var queue: Array=[]
@@ -154,13 +136,8 @@ var base_template_probes: Dictionary={}
 var continuous_base_stream:=OS.get_cmdline_user_args().has("--base-scenery-stream=continuous")
 var continuous_rows: Dictionary={}
 var group_bundles: Dictionary={}
-var graphics_model_sources: Dictionary={}
 var maximum_continuous_rows:=64
 var stats: Dictionary={"planned":0,"rendered":0,"invisible":0,"deferred_actors":0,"deferred_items":0,"errors":[],"scope_errors":[],"object_failures":{},"warnings":[],"limitations":[],"model_jobs":0}
-const SourcePrefetch=preload("res://systems/native_data/resource_prefetch.gd")
-var source_prefetch
-var prefetch_waiting: Dictionary={}
-var foreground_keys: Dictionary={}
 func object_failed(id: int,reason: String,model: String="") -> void:
 	var diagnostic:={"id":id,"reason":reason}
 	if not model.is_empty(): diagnostic.model=model
@@ -170,36 +147,13 @@ func model_failed(name: String,reason: String) -> void:
 func configure(catalog, shared_pool, objects: Array, target_area: int, cache_path: String) -> void:
 	pool=shared_pool; snapshot_objects=objects; area_id=target_area
 	assets=Assets.new(); add_child(assets); assets.maximum_workers=maxi(1,maximum_asset_workers); assets.configure(catalog);assets.completion_pool=pool; assets.cache_directory=cache_path; assets.completed.connect(prepared)
-	source_prefetch=admission_parent.get("source_prefetch") if is_instance_valid(admission_parent) else null
-	if is_instance_valid(source_prefetch):source_prefetch.finished.connect(_prefetch_ready)
 	reusable_table_scope=_table_scope(catalog);reusable_asset_epoch=assets.epoch;wave_parked=false
 	initial_static_tables_only=base_static_snapshot()
-	if JoinDiagnostics.enabled:
-		JoinDiagnostics.wave(pool,get_instance_id(),"base" if initial_static_tables_only else "object",objects)
 	if continuous_base_stream and initial_static_tables_only:
 		for object in objects:continuous_rows[int(object.id)]=true
 	if reuse_base_templates and initial_static_tables_only:
 		base_templates=preload("res://systems/native_render/base_template_directory.gd").new();base_templates.begin_wave(assets,pool,area_id)
-	var wanted_tables: Array = ["placeables"] if initial_static_tables_only else ["placeables","genericdoors","doortypes"]
-	if JoinDiagnostics.enabled and not initial_static_tables_only:stats.live_table_bank={"reused":[],"requested":[],"errors":[]}
-	_live_table_scope = _current_live_table_scope()
-	if not _live_table_scope.is_empty():
-		if live_table_bank.get("scope",{}) != _live_table_scope:
-			live_table_bank.scope = _live_table_scope
-			live_table_bank.tables = {}
-		var known: Dictionary = live_table_bank.tables
-		for name in wanted_tables:
-			if known.has(name):
-				tables[name] = known[name]
-				if stats.has("live_table_bank"):stats.live_table_bank.reused.append(name)
-		stats.live_table_reuses = tables.size()
-	for table_name in wanted_tables:
-		if not tables.has(table_name):
-			if stats.has("live_table_bank"):stats.live_table_bank.requested.append(table_name)
-			table_requests[assets.request(table_name,2017,"2da")] = table_name
-	if table_requests.is_empty():
-		if Template.cooperative(pool):begin_planning()
-		else:plan_objects()
+	for table_name in (["placeables"] if initial_static_tables_only else ["placeables","genericdoors","doortypes"]): table_requests[assets.request(table_name,2017,"2da")]=table_name
 func base_static_snapshot() -> bool:
 	if snapshot_objects.is_empty():return false
 	for object in snapshot_objects:
@@ -214,20 +168,8 @@ func _table_scope(source) -> Dictionary:
 	var epoch: Variant=store.generation()
 	if not epoch is int or epoch<0:return {}
 	return {"catalog":source,"store":store,"generation":epoch}
-func _current_live_table_scope() -> Dictionary:
-	if not live_table_bank is Dictionary or not is_instance_valid(admission_parent) or admission_parent.closed or admission_parent.retiring or not is_instance_valid(assets) or assets.closed or assets.epoch != reusable_asset_epoch:
-		return {}
-	if assets.catalog.get("recording") != null:return {}
-	if not is_same(admission_parent.catalog,assets.catalog) or not is_same(admission_parent.pool,pool) or int(admission_parent.area_id) != area_id:
-		return {}
-	var scope := _table_scope(assets.catalog)
-	if scope.is_empty():return {}
-	scope.world = admission_parent.get_instance_id()
-	scope.area = area_id
-	scope.worldGeneration = int(admission_parent.generation)
-	return scope
 func _wave_empty() -> bool:
-	if not (instances.is_empty() and invisible_ids.is_empty() and table_requests.is_empty() and model_requests.is_empty() and prefetch_waiting.is_empty() and foreground_keys.is_empty() and door_surface_requests.is_empty() and base_retry_requests.is_empty() and waiting.is_empty() and queue.is_empty() and is_instance_valid(assets) and not assets.closed and assets.pending.is_empty() and assets.running.is_empty()):return false
+	if not (instances.is_empty() and invisible_ids.is_empty() and table_requests.is_empty() and model_requests.is_empty() and base_retry_requests.is_empty() and waiting.is_empty() and queue.is_empty() and is_instance_valid(assets) and not assets.closed and assets.pending.is_empty() and assets.running.is_empty()):return false
 	if not assets.mutex.try_lock():return false
 	var empty: bool=assets.results.is_empty();assets.mutex.unlock();return empty
 func can_park_wave() -> bool:
@@ -251,7 +193,6 @@ func can_resume_wave(source,shared_pool,objects: Array,target_area: int,cache_pa
 func resume_wave(source,shared_pool,objects: Array,target_area: int,cache_path: String) -> bool:
 	if not can_resume_wave(source,shared_pool,objects,target_area,cache_path):return false
 	snapshot_objects=objects;stats=_fresh_wave_stats();done=false;wave_parked=false
-	if JoinDiagnostics.enabled:JoinDiagnostics.wave(pool,get_instance_id(),"base",objects)
 	if continuous_base_stream:
 		continuous_rows.clear()
 		for object in objects:continuous_rows[int(object.id)]=true
@@ -278,9 +219,6 @@ static func pose(object: Dictionary) -> Dictionary:
 func table_row(name: String, index: int) -> Dictionary:
 	var rows: Array=tables.get(name,{}).get("orderedRows",[])
 	return rows[index] if index>=0 and index<rows.size() else {}
-func door_label_row(name: String,index: int)->Dictionary:
-	var labels: Dictionary=tables.get(name,{}).get("rows",{})
-	return labels.get(index,{})
 func plan_objects() -> void:
 	plan_object_rows(snapshot_objects)
 	waiting=groups.keys()
@@ -297,7 +235,7 @@ func plan_object_rows(objects: Array) -> Array:
 		var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{})); var row: Dictionary={}
 		if kind==9: row=table_row("placeables",int(state.get("appearance",fixed.get("appearance",-1))))
 		else:
-			var appearance:=int(state.get("doorType",0)); row=door_label_row("genericdoors" if appearance==0 else "doortypes",int(state.get("genericType",0)) if appearance==0 else appearance)
+			var appearance:=int(state.get("doorType",0)); row=table_row("genericdoors" if appearance==0 else "doortypes",int(state.get("genericType",0)) if appearance==0 else appearance)
 			if str(row.get("VisibleModel","1"))=="0": stats.invisible+=1; invisible_ids.append(int(object.id)); continue
 		var name:=str(row.get("ModelName",row.get("Model",""))).to_lower()
 		if name.is_empty() or name=="****": object_failed(int(object.id),"Original appearance table has no model"); continue
@@ -320,17 +258,12 @@ func extend_base_wave(source,shared_pool,objects: Array,target_area: int,cache_p
 		# existing reservation finish and start its ordinary correctly typed wave.
 		if Placeable.requires_animation(object.get("replicated",{})):return false
 		additions[int(object.id)]=true
-	if JoinDiagnostics.enabled:JoinDiagnostics.wave(pool,get_instance_id(),"base",objects)
 	snapshot_objects.append_array(objects)
 	continuous_rows.merge(additions)
 	for placement in plan_object_rows(objects):
 		var name: String=placement.model
-		if group_bundles.has(name):
-			if JoinDiagnostics.enabled:JoinDiagnostics.stage(get_instance_id(),int(placement.id),"assetsReady")
-			queue.append({"model":name,"bundle":group_bundles[name],"placement":placement})
-		elif templates.has(name) and base_templates!=null and base_templates.still_bound(name,templates[name]):
-			if JoinDiagnostics.enabled:JoinDiagnostics.stage(get_instance_id(),int(placement.id),"assetsReady")
-			queue.append({"model":name,"bundle":{},"placement":placement,"base_template_hit":true})
+		if group_bundles.has(name):queue.append({"model":name,"bundle":group_bundles[name],"placement":placement})
+		elif templates.has(name) and base_templates!=null and base_templates.still_bound(name,templates[name]):queue.append({"model":name,"bundle":{},"placement":placement,"base_template_hit":true})
 		elif not waiting.has(name) and not model_requests.values().has(name):waiting.append(name);base_template_probes.erase(name)
 	done=false;set_process(true);assets.set_process(true);priority_dirty=true
 	stats["continuous_refills"]=int(stats.get("continuous_refills",0))+1
@@ -347,20 +280,11 @@ func retire_base_row(id: int) -> void:
 func prepared(id: int, result: Dictionary) -> void:
 	if closed: return
 	if base_retry_requests.has(id):prepared_base_retry(id,result);return
-	if door_surface_requests.has(id):
-		var door_name: String=door_surface_requests[id];door_surface_requests.erase(id)
-		door_surfaces[door_name]=result.get("value",{}) if str(result.get("error","")).is_empty() else {}
-		if not str(result.get("error","")).is_empty():stats.warnings.append({"model":door_name,"reason":"network.scene-door-picking-unavailable: "+str(result.error)})
-		return
 	if table_requests.has(id):
 		var table_name: String=table_requests[id]; table_requests.erase(id)
 		if not str(result.error).is_empty():
 			var diagnostic:={"table":table_name,"reason":result.error}; stats.errors.append(diagnostic); stats.scope_errors.append(diagnostic)
-			if stats.has("live_table_bank"):stats.live_table_bank.errors.append(diagnostic)
-		else:
-			tables[table_name]=result.value
-			if not _live_table_scope.is_empty() and live_table_bank.get("scope",{}) == _live_table_scope and _current_live_table_scope() == _live_table_scope:
-				live_table_bank.tables[table_name] = result.value
+		else: tables[table_name]=result.value
 		if table_requests.is_empty():
 			# The caller owns mutable rows. Escalate before planning if the batch changed.
 			if initial_static_tables_only and not base_static_snapshot():
@@ -371,30 +295,12 @@ func prepared(id: int, result: Dictionary) -> void:
 		return
 	if not model_requests.has(id): return
 	var name: String=model_requests[id]; model_requests.erase(id)
-	var source_key:=str(foreground_keys.get(id,""));foreground_keys.erase(id)
-	if JoinDiagnostics.enabled:JoinDiagnostics.model_job(pool,"objects",result)
-	_model_ready(name,result)
-	if not source_key.is_empty() and is_instance_valid(source_prefetch):source_prefetch.foreground_done(source_key,result)
-func _prefetch_ready(source_key: String,result: Dictionary)->void:
-	if closed or not prefetch_waiting.has(source_key):return
-	var names: Array=prefetch_waiting[source_key];prefetch_waiting.erase(source_key)
-	for name in names:
-		if groups.has(name):_model_ready(str(name),result.duplicate(true))
-func _model_ready(name: String,result: Dictionary)->void:
 	if not str(result.error).is_empty(): model_failed(name,str(result.error)); return
 	stats.warnings.append_array(prepared_warnings(name,result))
 	if continuous_base_stream:group_bundles[name]=result
 	# Model de-duplication must not turn into model-group publication order.
-	for placement in groups[name]:
-		if JoinDiagnostics.enabled:JoinDiagnostics.stage(get_instance_id(),int(placement.id),"assetsReady")
-		queue.append({"model":name,"bundle":result,"placement":placement})
+	for placement in groups[name]: queue.append({"model":name,"bundle":result,"placement":placement})
 	priority_dirty=true
-func _request_door_surface(name: String,door: bool)->void:
-	if not door or door_surfaces.has(name) or door_surface_requests.values().has(name):return
-	var surface_id: int=assets.request(name,2052,"dwk-pick-v1")
-	if surface_id<0:
-		door_surfaces[name]={};stats.warnings.append({"model":name,"reason":"network.scene-door-picking-unavailable: "+str(assets.failure)})
-	else:door_surface_requests[surface_id]=name
 func prepared_warnings(name: String,result: Dictionary) -> Array:
 	var warnings: Array=[]
 	for texture_name in result.get("missing_textures",[]): warnings.append({"model":name,"texture":texture_name,"reason":"Original texture lookup was recorded as missing; material retained without a bitmap"})
@@ -410,9 +316,7 @@ func queue_base_template(name: String) -> bool:
 	templates[name]=cached.template;stats.warnings.append_array(cached.warnings)
 	for feature in cached.template.limitations:
 		if not stats.limitations.has(feature):stats.limitations.append(feature)
-	for placement in groups[name]:
-		if JoinDiagnostics.enabled:JoinDiagnostics.stage(get_instance_id(),int(placement.id),"assetsReady")
-		queue.append({"model":name,"bundle":{},"placement":placement,"base_template_hit":true})
+	for placement in groups[name]:queue.append({"model":name,"bundle":{},"placement":placement,"base_template_hit":true})
 	stats["base_template_request_hits"]=int(stats.get("base_template_request_hits",0))+1;priority_dirty=true
 	return true
 func probe_ready_base_templates() -> void:
@@ -443,7 +347,6 @@ func request_base_retry(name: String,placement: Dictionary,animated: bool) -> vo
 	else:base_retry_requests[request_id]={"model":name,"placement":placement};stats.model_jobs+=1
 func prepared_base_retry(id: int,result: Dictionary) -> void:
 	var entry: Dictionary=base_retry_requests[id];base_retry_requests.erase(id)
-	if JoinDiagnostics.enabled:JoinDiagnostics.model_job(pool,"object-template-retries",result)
 	if not str(result.get("error","")).is_empty():object_failed(int(entry.placement.id),str(result.error),str(entry.model));return
 	stats.warnings.append_array(prepared_warnings(str(entry.model),result))
 	queue.append({"model":entry.model,"bundle":result,"placement":entry.placement,"base_template_retry":true});priority_dirty=true
@@ -466,25 +369,9 @@ func _profile_process(_delta: float) -> void:
 			# A speculative miss never suppresses this later ordinary lookup.
 			if probe_base_templates and base_template_probes.has(name):stats["base_template_probe_rechecks"]=int(stats.get("base_template_probe_rechecks",0))+1
 			if queue_base_template(name):continue
-		var decoder:="actor-model" if animated else "static-model"
-		var options:={"relevant_tracks":true} if animated else {}
-		var source_key: String=""
-		if is_instance_valid(source_prefetch):
-			source_key=SourcePrefetch.key(name,decoder,options)
-			var shared: Dictionary=source_prefetch.claim(source_key)
-			if shared.get("status")=="ready":_model_ready(name,shared.result);_request_door_surface(name,door);continue
-			if shared.get("status")=="running":
-				if not prefetch_waiting.has(source_key):prefetch_waiting[source_key]=[]
-				prefetch_waiting[source_key].append(name);_request_door_surface(name,door);continue
-			if not source_key.is_empty():source_prefetch.foreground_begin(source_key)
-		var id: int=assets.request(name,2002,decoder,options)
-		if id<0:
-			model_failed(name,str(assets.failure))
-			if not source_key.is_empty() and is_instance_valid(source_prefetch):source_prefetch.foreground_done(source_key,{"error":str(assets.failure)})
-		else:
-			model_requests[id]=name; stats.model_jobs+=1
-			if not source_key.is_empty():foreground_keys[id]=source_key
-			_request_door_surface(name,door)
+		var id: int=assets.request(name,2002,"actor-model" if animated else "static-model",{"relevant_tracks":true} if animated else {})
+		if id<0: model_failed(name,str(assets.failure))
+		else: model_requests[id]=name; stats.model_jobs+=1
 	Timing.finish("object_stream_requests_ms",phase_began)
 	if probe_base_templates:
 		var ready_priority_began:=Timing.begin();refresh_priority();Timing.finish("object_stream_ready_priority_ms",ready_priority_began)
@@ -492,22 +379,13 @@ func _profile_process(_delta: float) -> void:
 	var began:=Time.get_ticks_usec(); var published:=0; var attempted:=0;var callback_budget:=Template.callback_budget(pool)
 	var shared_budget: bool=pool.has_method("can_publish") and pool.has_method("publication_finished")
 	while not queue.is_empty() and (maximum_objects_per_frame==0 or published<maximum_objects_per_frame):
-		if attempted>=16 and not shared_budget:
-			if JoinDiagnostics.enabled:JoinDiagnostics.blocked(get_instance_id(),"object-local-units")
-			break
-		if attempted>0 and Time.get_ticks_usec()-began>=callback_budget:
-			if JoinDiagnostics.enabled:JoinDiagnostics.blocked(get_instance_id(),"object-local-time")
-			break
-		if pool.has_method("can_publish") and not pool.can_publish():
-			if JoinDiagnostics.enabled:JoinDiagnostics.blocked(get_instance_id(),"object-queued-shared-budget")
-			break
+		if attempted>=16 and not shared_budget:break
+		if attempted>0 and Time.get_ticks_usec()-began>=callback_budget: break
+		if pool.has_method("can_publish") and not pool.can_publish(): break
 		var unit_began:=Time.get_ticks_usec()
 		var entry: Dictionary=queue.pop_front(); var name: String=entry.model
 		attempted+=1
 		var placement: Dictionary=entry.placement; var door: bool=int(placement.object.objectType)==10
-		if door and not door_surfaces.has(name):
-			if JoinDiagnostics.enabled:JoinDiagnostics.blocked(get_instance_id(),"object-door-surface")
-			queue.push_front(entry);break
 		var placeable: bool=int(placement.object.objectType)==9 and Placeable.requires_animation(placement.object.get("replicated",{}))
 		if not publication_current(int(placement.id)):
 			_cancel_publication_row(entry);stats.stale_publications=int(stats.get("stale_publications",0))+1
@@ -522,18 +400,6 @@ func _profile_process(_delta: float) -> void:
 			if pool.has_method("construction_finished"):pool.construction_finished(unit_began)
 			elif pool.has_method("publication_finished"):pool.publication_finished(unit_began)
 			continue
-		if not entry.bundle.is_empty() and entry.bundle.value.nodes.any(func(part):return part.has("reference")):
-			var reference_hub=admission_parent.get_meta("native_reference_hub") if is_instance_valid(admission_parent) and admission_parent.has_meta("native_reference_hub") else null
-			var token:=reference_token(entry);reference_admissions[token]=name
-			var tree: Dictionary=reference_hub.prefetch_tree(name,entry.bundle,null,token) if is_instance_valid(reference_hub) else {"status":"failed","reason":"Native reference preparation scope is unavailable"}
-			if tree.status=="pending":
-				if JoinDiagnostics.enabled:JoinDiagnostics.blocked(get_instance_id(),"object-reference")
-				queue.push_front(entry);break
-			if tree.status=="failed":
-				release_reference_token(token)
-				model_failed(name,str(tree.reason));queue=queue.filter(func(row):return str(row.model)!=name)
-				continue
-		if JoinDiagnostics.enabled:JoinDiagnostics.stage(get_instance_id(),int(placement.id),"eligible")
 		if not door and not placeable and (not templates.has(name) or entry.get("base_template_retry",false)):
 			phase_began=Timing.begin()
 			var template
@@ -549,15 +415,13 @@ func _profile_process(_delta: float) -> void:
 			else:template=pool.model_template(entry.bundle)
 			Timing.finish("object_stream_template_ms",phase_began)
 			if template==null:
-				release_reference_token(reference_token(entry))
 				if entry.get("base_template_retry",false):
 					object_failed(int(placement.id),str(pool.failure),name)
 					if pool.has_method("publication_finished"):pool.publication_finished(unit_began)
 				else:model_failed(name,str(pool.failure));queue=queue.filter(func(row):return row.model!=name)
 				continue
 			templates[name]=template
-			if reusable_static_group(name) and not entry.bundle.value.nodes.any(func(part):return part.has("reference")):
-				base_templates.remember(name,Template.identity(entry.bundle,pool),prepared_warnings(name,entry.bundle))
+			if reusable_static_group(name):base_templates.remember(name,Template.identity(entry.bundle,pool),prepared_warnings(name,entry.bundle))
 			for feature in template.limitations:
 				if not stats.limitations.has(feature): stats.limitations.append(feature)
 		var instance
@@ -574,8 +438,6 @@ func _profile_process(_delta: float) -> void:
 			instance=creation.get("instance")
 		elif door:
 			instance=preload("res://systems/native_render/door_instance.gd").new()
-			var door_id:=int(placement.id)
-			instance.animation_warning=func(code: String,animation: int):stats.warnings.append({"code":code,"objectId":door_id,"animation":animation})
 			if not instance.install_door(entry.bundle,pool,int(placement.id),placement.object.get("replicated",{})):
 				object_failed(int(placement.id),instance.failure,name); instance.retire(); instance=null
 		elif placeable:
@@ -595,46 +457,18 @@ func _profile_process(_delta: float) -> void:
 		Timing.finish("object_stream_door_ms" if door else "object_stream_clone_ms",phase_began)
 		if instance==null: object_failed(int(placement.id),"Native model instance failed",name)
 		else:
-			if door:instance.configure_legacy_dwk(door_surfaces.get(name,{}))
 			instance.position=placement.position; instance.rotation.y=float(placement.rotation); instance.set_meta("world_object_id",placement.id)
 			phase_began=Timing.begin()
 			if is_instance_valid(admission_parent): instance.hide(); admission_parent.add_child(instance)
 			else: add_child(instance)
-			var reference_hub=admission_parent.get_meta("native_reference_hub") if is_instance_valid(admission_parent) and admission_parent.has_meta("native_reference_hub") else null
-			var constructed: Dictionary=reference_hub.publish_prefetched_tree(instance) if is_instance_valid(reference_hub) else {"status":"ready"}
-			if constructed.status=="failed":
-				object_failed(int(placement.id),str(constructed.reason),name)
-				instance.retire();release_reference_token(reference_token(entry))
-				if pool.has_method("publication_finished"):pool.publication_finished(unit_began)
-				continue
-			# Old NetworkScene.prepareAsset owns independent color/fade/shadow
-			# variants for each parsed asset before the instance is admitted.
-			var graphics=admission_parent.get_meta("native_area_graphics_owner") if is_instance_valid(admission_parent) and admission_parent.has_meta("native_area_graphics_owner") else null
-			if graphics!=null:
-				var source_sha:=str(entry.bundle.get("sha256","base-template"))
-				if not graphics_model_sources.has(name) or str(graphics_model_sources[name].sha)!=source_sha:
-					graphics_model_sources[name]={"sha":source_sha,"id":Template.identity(entry.bundle,pool) if not entry.bundle.is_empty() else name}
-				var source_id: String=str(graphics_model_sources[name].id)
-				var graphics_key:="object:"+name+":"+source_id
-				var graphics_result: Dictionary=graphics.prepare_model(instance,graphics_key)
-				if graphics_result.has("error"):
-					object_failed(int(placement.id),str(graphics_result.error),name)
-					instance.retire();release_reference_token(reference_token(entry))
-					if pool.has_method("publication_finished"):pool.publication_finished(unit_began)
-					continue
 			Timing.finish("object_stream_attach_ms",phase_began)
 			if closed or not publication_current(int(placement.id)):instance.retire()
-			else:
-				instances[placement.id]=instance; stats.rendered+=1
-				if JoinDiagnostics.enabled:JoinDiagnostics.stage(get_instance_id(),int(placement.id),"built",instance)
-		release_reference_token(reference_token(entry))
+			else:instances[placement.id]=instance; stats.rendered+=1
 		published+=1
 		phase_began=Timing.begin()
 		if pool.has_method("publication_finished"): pool.publication_finished(unit_began)
 		Timing.finish("object_stream_bookkeeping_ms",phase_began)
-	if JoinDiagnostics.enabled and maximum_objects_per_frame>0 and published>=maximum_objects_per_frame and not queue.is_empty():
-		JoinDiagnostics.blocked(get_instance_id(),"object-call-publication-ceiling")
-	if waiting.is_empty() and model_requests.is_empty() and prefetch_waiting.is_empty() and door_surface_requests.is_empty() and base_retry_requests.is_empty() and queue.is_empty():
+	if waiting.is_empty() and model_requests.is_empty() and base_retry_requests.is_empty() and queue.is_empty():
 		done=true
 		# Counters accumulate across this retained owner's waves; byte/entry gauges
 		# describe this completion only. The envelope contains no live object refs.
@@ -644,27 +478,21 @@ func _profile_process(_delta: float) -> void:
 		finished.emit(stats.duplicate(true))
 func detach_prepared_data() -> Dictionary:
 	_planning_active=false;_planning_cursor=0
-	for token in reference_admissions.keys():release_reference_token(str(token))
 	_cancel_staged_publication()
-	var payload:={"queue":queue,"groups":groups,"objects":snapshot_objects,"tables":tables,"base_retry_requests":base_retry_requests,"base_template_probes":base_template_probes,"group_bundles":group_bundles,"door_surfaces":door_surfaces}
+	var payload:={"queue":queue,"groups":groups,"objects":snapshot_objects,"tables":tables,"base_retry_requests":base_retry_requests,"base_template_probes":base_template_probes,"group_bundles":group_bundles}
 	queue=[]; groups={}; snapshot_objects=[]; tables={};base_retry_requests={};base_template_probes={}
-	group_bundles={};door_surfaces={};door_surface_requests.clear();continuous_rows.clear()
+	group_bundles={};continuous_rows.clear()
 	return payload
 func close() -> void:
 	if closed: return
-	graphics_model_sources.clear()
 	_planning_active=false;_planning_cursor=0
-	for token in reference_admissions.keys():release_reference_token(str(token))
 	_cancel_staged_publication()
 	publication_keys={}
 	closed=true;wave_parked=false;reusable_table_scope={};reusable_asset_epoch=-1
-	live_table_bank=null;_live_table_scope={}
-	if is_instance_valid(source_prefetch):
-		for source_key in foreground_keys.values():source_prefetch.foreground_cancel(str(source_key))
 	if base_templates!=null:base_templates.clear();base_templates=null
 	if is_instance_valid(assets): assets.close()
 	for instance in instances.values():
 		if is_instance_valid(instance): instance.retire()
-	instances.clear(); templates.clear(); queue.clear(); model_requests.clear(); prefetch_waiting.clear(); foreground_keys.clear(); door_surface_requests.clear(); door_surfaces.clear(); base_retry_requests.clear(); base_template_probes.clear(); waiting.clear(); groups.clear(); snapshot_objects.clear(); tables.clear()
+	instances.clear(); templates.clear(); queue.clear(); model_requests.clear(); base_retry_requests.clear(); base_template_probes.clear(); waiting.clear(); groups.clear(); snapshot_objects.clear(); tables.clear()
 	group_bundles.clear();continuous_rows.clear()
 func _exit_tree() -> void: close()

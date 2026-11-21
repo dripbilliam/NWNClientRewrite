@@ -1,7 +1,6 @@
 extends Node
 # Native archive reads and GUI-model rendering. No browser or prepared images.
 signal loaded(key: String,texture: Texture2D,bounds: Dictionary)
-signal image_failed(key: String,reason: String)
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Pool=preload("res://systems/native_render/resource_pool.gd")
 const Icons=preload("res://systems/native_item_icons.gd")
@@ -43,7 +42,7 @@ func retire_binding(binding_key: String) -> void:
 		else: retained.append(listener)
 	if retained.is_empty(): waiting.erase(key); deferred.erase(key)
 	else: waiting[key]=retained
-func bind(target: Object,resource: String,property: String="texture",model: bool=false,clip: String="up",portrait: bool=false,overrides: Dictionary={},render_region: Rect2=Rect2(),portrait_fallbacks: Array[String]=[],portrait_crop: bool=true) -> void:
+func bind(target: Object,resource: String,property: String="texture",model: bool=false,clip: String="up",portrait: bool=false,overrides: Dictionary={},render_region: Rect2=Rect2()) -> void:
 	if closed or not is_instance_valid(target): return
 	binding_serial+=1
 	var binding_key:=str(target.get_instance_id())+":"+property
@@ -58,13 +57,10 @@ func bind(target: Object,resource: String,property: String="texture",model: bool
 		if process_texture!=null:
 			textures[key]=process_texture
 			if ui_assets!=null: ui_assets.retain("raster",key,process_texture)
-	if textures.has(key): apply_image(target,property,textures[key],not model,portrait,portrait_crop); bindings.erase(binding_key); return
-	if failed.has(key):
-		bindings.erase(binding_key)
-		if portrait and not portrait_fallbacks.is_empty():bind(target,portrait_fallbacks[0],property,false,"up",true,{},Rect2(),portrait_fallbacks.slice(1),portrait_crop)
-		return
+	if textures.has(key): apply_image(target,property,textures[key],not model,portrait); bindings.erase(binding_key); return
+	if failed.has(key): bindings.erase(binding_key); return
 	binding_resources[binding_key]=key
-	var listener:={"target":weakref(target),"property":property,"flip":not model,"portrait":portrait,"portrait_crop":portrait_crop,"binding_key":binding_key,"serial":binding_serial,"portrait_fallbacks":portrait_fallbacks.duplicate()}
+	var listener:={"target":weakref(target),"property":property,"flip":not model,"portrait":portrait,"binding_key":binding_key,"serial":binding_serial}
 	if waiting.has(key): waiting[key].append(listener); return
 	waiting[key]=[listener]
 	if model:
@@ -97,30 +93,22 @@ func drain_deferred() -> void:
 	for key in deferred.keys():
 		if not current_listeners(str(key)): continue
 		if not submit_bitmap(str(key),deferred[key]): break
-func bind_portrait(target: Object,resource: String,crop: bool=true) -> void:
+func bind_portrait(target: Object,resource: String) -> void:
 	if resource.is_empty(): bind(target,""); return
-	var choices:=portrait_candidates(resource)
-	if choices.is_empty():bind(target,"");return
-	bind(target,choices[0],"texture",false,"up",true,{},Rect2(),choices.slice(1),crop)
-func portrait_candidates(resource: String) -> Array[String]:
-	var suffixes:=["","t","s","m","l","h"]
-	var size:=suffixes.find(resource.right(1).to_lower())
-	if size<=0:return [resource]
-	return preload("res://systems/native_data/portrait_resources.gd").candidates(resource.left(-1),size)
+	bind(target,portrait_resource(resource),"texture",false,"up",true)
 func portrait_resource(resource: String) -> String:
 	var suffixes:=["","t","s","m","l","h"]; var size:=suffixes.find(resource.right(1).to_lower())
 	if size<=0: return resource
 	return preload("res://systems/native_data/portrait_resources.gd").sized(resource.left(-1),size,catalog.has_resource)
-static func portrait_texture(texture: Texture2D,crop: bool=true) -> Texture2D:
+static func portrait_texture(texture: Texture2D) -> AtlasTexture:
 	# Original rasters retain bottom-left row order for 3D UVs. The GUI's
 	# portrait rectangle uses only width*100/64 rows, excluding pad rows.
-	if not crop:return texture
 	var atlas:=AtlasTexture.new(); atlas.atlas=texture
 	var height:=mini(texture.get_height(),roundi(texture.get_width()*100.0/64.0))
 	atlas.region=Rect2(0,texture.get_height()-height,texture.get_width(),height)
 	return atlas
-static func apply_image(target: Object,property: String,texture: Texture2D,flip: bool,portrait: bool,portrait_crop: bool=true) -> void:
-	target.set(property,portrait_texture(texture,portrait_crop) if portrait else texture)
+static func apply_image(target: Object,property: String,texture: Texture2D,flip: bool,portrait: bool) -> void:
+	target.set(property,portrait_texture(texture) if portrait else texture)
 	if target is TextureRect: target.flip_v=flip
 func prepared(id: int,result: Dictionary) -> void:
 	if not jobs.has(id): return
@@ -149,7 +137,7 @@ func deliver(key: String,texture: Texture2D) -> void:
 	for listener in waiting.get(key,[]):
 		var target: Object=listener.target.get_ref()
 		if is_instance_valid(target) and bindings.get(listener.binding_key,-1)==listener.serial:
-			apply_image(target,str(listener.property),texture,bool(listener.flip),bool(listener.portrait),bool(listener.portrait_crop)); bindings.erase(listener.binding_key); binding_resources.erase(listener.binding_key)
+			apply_image(target,str(listener.property),texture,bool(listener.flip),bool(listener.portrait)); bindings.erase(listener.binding_key); binding_resources.erase(listener.binding_key)
 		else:
 			stale_bindings+=1
 			if bindings.get(listener.binding_key,-1)==listener.serial: bindings.erase(listener.binding_key); binding_resources.erase(listener.binding_key)
@@ -157,20 +145,9 @@ func deliver(key: String,texture: Texture2D) -> void:
 func fail_image(key: String,reason: String="Original UI image could not be prepared") -> void:
 	failed[key]=true
 	if ui_assets!=null: ui_assets.note_failure("model" if key.begins_with("gui:") else "raster",key,reason)
-	var listeners: Array=waiting.get(key,[]).duplicate()
+	for listener in waiting.get(key,[]):
+		if bindings.get(listener.binding_key,-1)==listener.serial: bindings.erase(listener.binding_key); binding_resources.erase(listener.binding_key)
 	waiting.erase(key); deferred.erase(key)
-	for listener in listeners:
-		if bindings.get(listener.binding_key,-1)!=listener.serial:continue
-		var target: Object=listener.target.get_ref()
-		var remaining: Array=listener.get("portrait_fallbacks",[])
-		if bool(listener.portrait) and is_instance_valid(target) and not remaining.is_empty():
-			bind(target,str(remaining[0]),str(listener.property),false,"up",true,{},Rect2(),remaining.slice(1),bool(listener.portrait_crop))
-		else:bindings.erase(listener.binding_key); binding_resources.erase(listener.binding_key)
-	image_failed.emit(key,reason)
-func retry_failed_raster(resource: String) -> void:
-	# NUI's old promise cache evicted a rejected image key. Keep this retry
-	# explicit so unrelated GUI binding policy remains unchanged.
-	failed.erase(resource.to_lower())
 func close() -> void:
 	closed=true
 	if is_instance_valid(assets): assets.close()

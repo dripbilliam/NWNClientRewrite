@@ -19,9 +19,7 @@ static func random_position(particle: Dictionary,e: Dictionary,x_size: int,y_siz
 	particle.position10=position
 static func randomize_frame(e: Dictionary,particle: Dictionary,p: Dictionary) -> void:
 	if not (int(e.flags)&32): return
-	var difference:=M.cvtt(M.f(M.f(e.frameEnd)-M.f(e.frameStart))); var plus:=(difference+1)&0xffffffff
-	if plus>=0x80000000: plus-=0x100000000
-	var count:=plus if plus>=0 else ~difference
+	var difference:=M.cvtt(M.f(M.f(e.frameEnd)-M.f(e.frameStart))); var plus:=difference+1; var count:=plus if plus>=0 else ~difference
 	if count!=0: particle.frame44=M.cvtt(M.f(M.f(remainder(random_value(p),count))+M.f(e.frameStart)))
 static func inherit_velocity(particle: Dictionary,e: Dictionary,delta: float) -> void:
 	var direction:=M.axis_z(e.previousQuaternion178); var inverse:=M.f(1/M.f(delta)) if M.f(delta)>0 else STEP
@@ -37,8 +35,7 @@ static func rotation(axis: Array,angle: float,p: Dictionary) -> Array:
 	return [cosine,M.f(axis[0]*sine),M.f(axis[1]*sine),M.f(axis[2]*sine)]
 static func random_direction(particle: Dictionary,e: Dictionary,p: Dictionary) -> void:
 	var camera: Array=Schedule.invoke(p,"cameraPosition"); var cam:=M.normalize(M.subtract(particle.position10,camera))
-	var spread:=M.f(M.f(e.spread)*M.f(0.5)); var count:=(1-M.cvtt(M.f(spread*M.f(-100))))&0xffffffff
-	if count>=0x80000000: count-=0x100000000
+	var spread:=M.f(M.f(e.spread)*M.f(0.5)); var count:=1-M.cvtt(M.f(spread*M.f(-100)))
 	var first:=M.f(M.f(M.f(remainder(random_value(p),count))*STEP)*M.f(0.5))
 	particle.quaternion34=M.multiply(rotation(e.basis140.slice(0,3),first,p),particle.quaternion34)
 	var second:=M.f(M.f(M.f(remainder(random_value(p),628))*STEP)*M.f(0.5))

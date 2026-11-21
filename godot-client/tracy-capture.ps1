@@ -7,7 +7,7 @@ $tracyConfig=Get-Content -LiteralPath $tracyConfigFile -Raw|ConvertFrom-Json
 & $tracyConfig.node (Join-Path $tracyConfig.source 'verify.cjs') $tracyConfigFile
 if($LASTEXITCODE-ne0){throw 'Private Tracy client files changed'}
 $tracyStartFile=Join-Path $tracyStage 'native-start.json'
-if(-not(Test-Path -LiteralPath $tracyStartFile)){throw 'A verified native-start.json receipt is required; the retired tracy-client.ps1 launcher cannot create a new session'}
+if(-not(Test-Path -LiteralPath $tracyStartFile)){throw 'Open tracy-client.ps1 and enter the game first'}
 $tracyStart=Get-Content -LiteralPath $tracyStartFile -Raw|ConvertFrom-Json
 $tracyClient=Get-Process -Id $tracyStart.pid -ErrorAction Stop
 if(-not$tracyClient.MainModule.FileName.Equals($tracyConfig.engineLaunch,[StringComparison]::OrdinalIgnoreCase)){throw 'Recorded PID no longer belongs to this private client'}

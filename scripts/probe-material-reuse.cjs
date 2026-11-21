@@ -1,0 +1,18 @@
+const {app,BrowserWindow,session}=require('electron'),fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..'),profile=path.join(root,'runtime-logs/material-reuse-fixture');for(const k of ['userData','logs','crashDumps'])app.setPath(k,profile);
+app.whenReady().then(async()=>{
+ let win;const report={success:false,errors:[],sourceHashes:{}};
+ try{
+  for(const file of ['src/renderer_material_reuse.js','src/renderer_local_hooks.js','src/target_preview_shader.js','src/renderer_shadow_traversal.js','src/camera_keyhole_shader.js','scripts/material-reuse-fixture.mjs','scripts/material-reuse-fixture.html','scripts/probe-material-reuse.cjs'])report.sourceHashes[file]=crypto.createHash('sha256').update(await fs.readFile(path.join(root,file))).digest('hex');
+  const {openServerResourceContext}=await import('../electron/server_resource_context.mjs'),{loadTargetPreviewShader}=await import('../src/target_preview_shader.js'),resolver=await openServerResourceContext({install:path.resolve(root,'../FullDecomp/NwnRootInstall')}),targetShader=await loadTargetPreviewShader(resolver);const {loadKeyholeShader}=await import('../src/camera_keyhole_shader.js'),keyholeShader=await loadKeyholeShader(resolver);report.shader={target:{resources:targetShader.resources,cacheKey:targetShader.cacheKey},keyhole:{resources:keyholeShader.resources,cacheKey:keyholeShader.cacheKey}};
+  session.defaultSession.webRequest.onBeforeRequest((d,done)=>done({cancel:/^https?:/.test(d.url)}));
+  win=new BrowserWindow({show:false,width:1024,height:768,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,offscreen:true,backgroundThrottling:false}});win.webContents.on('console-message',(_e,level,message)=>{if(level>=3)report.errors.push(message.split('\n')[0]);});await win.loadFile(path.join(__dirname,'material-reuse-fixture.html'));
+  const js=c=>win.webContents.executeJavaScript(c),deadline=Date.now()+12000;
+  while(!await js('typeof runMaterialReuseFixture==="function"')){const failure=await js('window.fixtureFailure');if(failure||Date.now()>deadline)throw Error(failure||'Startup timeout');await new Promise(r=>setTimeout(r,25));}
+  await js(`window.fixtureFinished=false;runMaterialReuseFixture(${JSON.stringify({targetShader,keyholeShader})}).then(value=>window.fixtureResult=value,error=>window.fixtureFailure=error.stack).finally(()=>window.fixtureFinished=true);void 0;`);
+  const end=Date.now()+90000;let previous;
+  while(!await js('window.fixtureFinished')){const progress=await js('window.fixtureProgress');if(JSON.stringify(progress)!==JSON.stringify(previous)){await fs.writeFile(path.join(root,'backups/animations/material-reuse-progress-v1.json'),JSON.stringify(progress));previous=progress;}if(Date.now()>end)throw Error(`Fixture deadline: ${JSON.stringify(progress)}`);await new Promise(r=>setTimeout(r,100));}
+  const failure=await js('window.fixtureFailure');if(failure)throw Error(failure);report.result=await js('window.fixtureResult');
+  await fs.writeFile(path.join(root,'backups/animations/material-reuse-v1.png'),Buffer.from(report.result.screenshot.split(',')[1],'base64'));delete report.result.screenshot;report.success=report.result.success&&!report.errors.length;
+ }catch(e){report.failure=e.stack;}finally{await fs.writeFile(path.join(root,'backups/animations/material-reuse-v1.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({success:report.success,failure:report.failure,errors:report.errors}));win?.destroy();app.exit(report.success?0:1);}
+});

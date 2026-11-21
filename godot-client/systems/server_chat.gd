@@ -3,7 +3,6 @@ extends PanelContainer
 signal request(message: Dictionary)
 var native_skin
 const Text = preload("res://systems/server_text.gd")
-const Rich = preload("res://systems/native_data/rich_text.gd")
 var messages: RichTextLabel
 var system_messages: RichTextLabel
 var entry: LineEdit
@@ -89,11 +88,6 @@ func reset() -> void:
 
 func append_message(message: Dictionary) -> void:
 	var row := message.duplicate(true)
-	if not row.has("rich"):
-		var raw: String=str(row.get("text",""))
-		row.raw=raw
-		row.rich=Rich.parse(str(row.get("prefix",""))+raw)
-		row.text=Rich.parse(raw).text
 	sequence+=1; row.chat_sequence=sequence
 	if not row.has("received_at"): row.received_at=Time.get_time_string_from_system()
 	row["system"] = row.get("system", false) or int(row.get("channel", 0)) in [5, 15]

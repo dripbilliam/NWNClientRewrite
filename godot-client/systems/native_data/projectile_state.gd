@@ -38,7 +38,6 @@ static func node(kind: int,point: Array,attachment: Array,duration: int,target: 
 	return {"point":M.values(point),"attachment":M.values(attachment),"targetId":target&0xffffffff,"childPath":child,"duration":duration&0xffffffff,"threshold":threshold&0xffffffff,"radius":radius,"spawnCount":spawn,"kind":kind}
 static func append(s: Dictionary,n: Dictionary,p: Dictionary) -> void: p.allocateNode.call(n); s.nodes.append(n)
 static func configure_path(s: Dictionary,path: int,p: Dictionary) -> void:
-	path=(path<<32)>>32
 	s.path=path
 	if int(s.targetId)!=INVALID:
 		var found: Dictionary=p.getObject.call(int(s.targetId))
@@ -55,14 +54,8 @@ static func configure_path(s: Dictionary,path: int,p: Dictionary) -> void:
 		else: append(s,node(12 if path==10 else path,point,[0.0,0.0,0.0] if path==7 else point,int(s.totalTime),int(s.targetId)),p)
 	elif path in [3,6,8,11,12,13]: p.buildPath.call(s,path)
 	else: return
-	if bool(s.get("destroyed",false)):return
-	s.node=s.nodes.pop_front() if not s.nodes.is_empty() else null
-	if s.node==null:
-		# The source throws when a builder yields no physical node. Its caller
-		# owns the projectile; retire it here before it can be marked ready.
-		p.unsupported.call("projectile.path-builder-empty",path)
-		p.destroy.call(s)
-		return
+	s.node=s.nodes.pop_front()
+	if s.node==null: return
 	s.remaining=int(s.node.duration)&0xffffffff; s.totalTime=s.remaining; s.endpoint=M.values(s.node.point)
 	p.initializeNode.call(s,M.values(s.orientation))
 static func initialize_node(s: Dictionary,orientation: Array,p: Dictionary) -> void:
@@ -77,9 +70,7 @@ static func initialize_node(s: Dictionary,orientation: Array,p: Dictionary) -> v
 			if model==null: point=M.values(s.endpoint)
 			else:
 				var pose: Array=[0.0,0.0,0.0]; var q: Array=[1.0,0.0,0.0,0.0]
-				var pose_result:=int(p.nodePose.call(p.model.call(object),str(s.get("impactNode","")),pose,q))
-				if pose_result<0:p.failPartQuery.call(s,str(p.partQueryFailure.call()));return
-				if pose_result==0: point=[M.f(object.position[0]),M.f(object.position[1]),M.f(M.f(object.position[2])+1.25)]
+				if not p.nodePose.call(p.model.call(object),str(s.get("impactNode","")),pose,q): point=[M.f(object.position[0]),M.f(object.position[1]),M.f(M.f(object.position[2])+1.25)]
 				else: point=M.values(pose)
 				point=M.add(point,n.point)
 	var delta:=M.subtract(point,M.values(s.position))
@@ -105,12 +96,7 @@ static func build_path(s: Dictionary,path: int,p: Dictionary) -> void:
 		var reset:=M.values(point); reset[2]=M.f(reset[2]+30); append(s,node(11,reset,point,0,int(s.targetId)),p)
 		append(s,node(1,point,point,(int(s.totalTime)-half)&0xffffffff,int(s.targetId)),p)
 	elif path==6:
-		var draw: Variant=p.random.call()
-		if not (draw is int or draw is float) or not is_finite(float(draw)) or float(draw)!=floorf(float(draw)) or float(draw)<0.0 or float(draw)>32767.0:
-			p.unsupported.call("projectile.crt-draw-unavailable",0)
-			p.destroy.call(s)
-			return
-		s.spiralSide=int(draw)%2
+		s.spiralSide=int(p.random.call())%2
 		var delta:=M.subtract(M.values(s.endpoint),M.values(s.position))
 		var perpendicular: Array=[M.f(-delta[1]),delta[0],0.0] if s.spiralSide!=0 else [delta[1],M.f(-delta[0]),0.0]
 		if square(perpendicular)<=M.f(1e-10): perpendicular=[0.0,1.0,0.0]
@@ -132,19 +118,15 @@ static func next_node(s: Dictionary,p: Dictionary) -> int:
 		if n==null: return 0
 		if int(n.kind)==11:
 			if s.model!=null and p.setStage.call(s,0)!=0: s.stage=0
-			if not p.animateExternal.call(p.model.call(s),1):return -1
+			p.animateExternal.call(p.model.call(s),1)
 			if int(n.targetId)==INVALID: p.setPosition.call(s,M.values(n.point))
 			else:
 				var found: Dictionary=p.getObject.call(int(n.targetId))
 				if int(found.status)==0: p.setPosition.call(s,M.add(M.values(found.object.position),n.point))
-			if not p.animateExternal.call(p.model.call(s),1):return -1
+			p.animateExternal.call(p.model.call(s),1)
 			if s.model!=null and p.setStage.call(s,1)!=0: s.stage=1
-		if (int(n.spawnCount)&255)!=0 and not p.spawnNodeChildren.call(s,n):return -1
+		if (int(n.spawnCount)&255)!=0: p.spawnNodeChildren.call(s,n)
 		s.remaining=int(n.duration)&0xffffffff; s.totalTime=s.remaining; s.endpoint=M.values(n.point); p.initializeNode.call(s,M.values(s.orientation))
-		# A failed kind-12 reference link retires this shot inside initializeNode.
-		# Stop the path before it consumes the cleared node/model, as the old
-		# throwing provider stopped this stack at the same boundary.
-		if bool(s.get("destroyed",false)):return -1
 		if int(n.kind)!=11 and (int(s.elapsed)&0xffffffff)<int(s.remaining): return 1
 	return 0
 static func endpoint(s: Dictionary,p: Dictionary,first: bool,resolved: Array) -> void:
@@ -158,9 +140,7 @@ static func endpoint(s: Dictionary,p: Dictionary,first: bool,resolved: Array) ->
 	if model==null: resolved.assign(M.values(s.endpoint))
 	else:
 		var pose: Array=[0.0,0.0,0.0]; var q: Array=[1.0,0.0,0.0,0.0]
-		var pose_result:=int(p.nodePose.call(p.model.call(object),str(s.get("impactNode","")),pose,q))
-		if pose_result<0:p.failPartQuery.call(s,str(p.partQueryFailure.call()));return
-		if pose_result==0:
+		if not p.nodePose.call(p.model.call(object),str(s.get("impactNode","")),pose,q):
 			resolved.assign([M.f(object.position[0]),M.f(object.position[1]),M.f(M.f(object.position[2])+1.25)])
 			if (((int(s.result)&255)-2)&255)<2: resolved.assign(M.add(resolved,M.values(s.orientation).map(func(v):return M.f(v*M.f(-0.5)))))
 		else: resolved.assign(M.values(pose))
@@ -168,15 +148,12 @@ static func endpoint(s: Dictionary,p: Dictionary,first: bool,resolved: Array) ->
 static func update_path(s: Dictionary,p: Dictionary) -> void:
 	if s.node==null: return
 	var resolved: Array=[0.0,0.0,0.0]; endpoint(s,p,true,resolved)
-	if bool(s.get("destroyed",false)):return
 	var expired: bool=(int(s.remaining)&0xffffffff)<=(int(s.elapsed)&0xffffffff)
 	if expired: s.elapsed=(int(s.elapsed)-int(s.remaining))&0xffffffff; s.remaining=0; p.setPosition.call(s,M.values(s.endpoint))
-	if (((int(s.remaining)-int(s.elapsed))&0xffffffff)<=(int(s.node.threshold)&0xffffffff) or expired):
-		if p.nextNode.call(s)<=0:return
+	if (((int(s.remaining)-int(s.elapsed))&0xffffffff)<=(int(s.node.threshold)&0xffffffff) or expired) and p.nextNode.call(s)==0: return
 	s.remaining=(int(s.remaining)-int(s.elapsed))&0xffffffff
 	if s.node==null: return
 	endpoint(s,p,false,resolved)
-	if bool(s.get("destroyed",false)):return
 	var delta:=M.subtract(M.values(s.endpoint),M.values(s.position))
 	if square(delta)>M.f(1e-10):
 		var n: Dictionary=s.node
@@ -188,37 +165,16 @@ static func update_path(s: Dictionary,p: Dictionary) -> void:
 	else:
 		p.setPosition.call(s,M.values(s.endpoint))
 		if s.node.radius<0: return
-	var saved:=int(s.remaining)
-	if p.nextNode.call(s)<0:return
-	s.remaining=(int(s.remaining)+saved)&0xffffffff
-static func play_animation(model,stage_value: int,speed: float,flags: int,start: float,p: Dictionary) -> int:
-	var code:=stage_value&65535
-	speed=M.f(speed); start=M.f(start); flags=(flags<<32)>>32
-	if speed==0.0:speed=1.0
-	var clip: String=""
-	if code==0:clip="default"
-	elif code==1:clip="travel01"
-	elif code==2:clip="impact01";flags|=1
-	else:speed=1.0;flags=0
-	if not p.has("playAnimation") or not p.playAnimation is Callable:
-		push_error("Native projectile model animation provider is unavailable")
-		return 0
-	p.playAnimation.call(model,clip,speed,flags,start)
-	return 1
+	var saved:=int(s.remaining); p.nextNode.call(s); s.remaining=(int(s.remaining)+saved)&0xffffffff
 static func stage(s: Dictionary,value: int,p: Dictionary) -> int:
 	if s.model==null: return 0
-	if play_animation(s.model,value,1.0,0,0.0,p)!=0:
-		s.stage=value&65535
-		return 1
-	return 0
+	var code:=value&65535; var clip: String={0:"default",1:"travel01",2:"impact01"}.get(code,"")
+	p.playAnimation.call(s.model,clip,1.0,1 if code==2 else 0,0.0); s.stage=code; return 1
 static func update(s: Dictionary,now: Dictionary,p: Dictionary) -> void:
 	s.elapsed=int(p.difference.call(now,s.lastTime).time)&0xffffffff
 	if int(s.phase)==1:
-		var saved: int=s.remaining; s.remaining=0; p.updatePath.call(s)
-		if s.get("destroyed",false):return
-		s.remaining=saved
+		var saved: int=s.remaining; s.remaining=0; p.updatePath.call(s); s.remaining=saved
 	else: p.updatePath.call(s)
-	if s.get("destroyed",false):return
 	if int(s.tracked)==1:
 		if s.sound!=null: p.updateSound.call(s.sound,M.values(s.position),1.5)
 		if int(s.phase)==1:
@@ -241,9 +197,6 @@ static func update(s: Dictionary,now: Dictionary,p: Dictionary) -> void:
 				p.setStage.call(s,2); s.phase=1
 				if s.sound!=null: p.stopSound.call(s.sound); p.destroySound.call(s.sound); s.sound=null
 				if s.impactSound: p.oneShot.call(s.impactSound,M.values(s.position),12,0)
-				if int(s.attachOnImpact)==1:
-					p.attachImpact.call(s)
-					if bool(s.get("destroyed",false)):return
-					s.remaining=int(s.impactDuration)&0xffffffff
+				if int(s.attachOnImpact)==1: p.attachImpact.call(s); s.remaining=int(s.impactDuration)&0xffffffff
 				else: s.remaining=0
 	s.lastTime=now.duplicate()

@@ -1,0 +1,22 @@
+// Separate CLI process: do not retain full captures in a persistent REPL.
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {decodeServerGameMessage} from '../src/network_game_messages.js';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),folder=path.join(root,'backups/animations');
+const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+const name='local-network-audio-v134.json',bytes=await fs.readFile(path.join(folder,name)),report=JSON.parse(bytes);
+assert.equal(report.states.at(-1).phase,'closed');for(const key of ['failure','sampleFailure','disconnectFailure'])assert.ok(!report[key],key);
+const casts=report.gameplayRequests.filter(r=>r.packet.startsWith('700612'));assert.equal(casts.length,2);
+const feedback=report.wireMessages.filter(h=>h.startsWith('501208')).map(h=>decodeServerGameMessage(Buffer.from(h,'hex')));
+for(const spell of [100,78])for(const casting of [0,1])assert.ok(feedback.some(r=>r.sourceId===0xffffffff&&r.spellId===spell&&r.casting===casting));
+const audio=report.samples.at(-1).audio;assert.equal(audio.output.played,6);assert.equal(audio.output.pending,0);assert.equal(audio.events.length,6);
+assert.deepEqual([...new Set(audio.events.map(e=>e.channel))].sort(),['conjure','projectile','visual']);
+const log=(await fs.readFile(report.runtimeLog,'utf8')).trim().split('\n').filter(Boolean).map(s=>JSON.parse(s)),errors=log.filter(r=>r.severity==='error').map(({code,message})=>({code,message}));
+assert.equal(errors.length,1);assert.deepEqual(errors[0],{code:'runtime.uncaught',message:'Panel close unavailable'});assert.equal(report.recoveredSampleFailures.length,1);
+const currentName='network-audio-current-v135.json',currentBytes=await fs.readFile(path.join(folder,currentName)),current=JSON.parse(currentBytes);
+assert.equal(current.phase,'playing');assert.equal(current.castRequests.length,2);assert.equal(current.feedback.length,4);assert.equal(current.audio.output.played,6);assert.equal(current.audio.output.pending,0);assert.deepEqual(current.runtimeErrors,[]);assert.deepEqual(current.failedObjects,[]);assert.equal(current.picking.blocked,null);assert.equal(current.picking.hit.objectId,0xffffffff);
+const result={scope:'Partial native-derived multiplayer one-shot audio acceptance. Full multiplayer goal remains active.',sealed:{file:name,sha256:hash(bytes),bytes:bytes.length,samples:report.samples.length,wireMessages:report.wireMessages.length,finalPhase:'closed'},casts,feedback,audio,historicalQaFailure:{errors,recovered:report.recoveredSampleFailures,fix:'Panel-close QA now waits for asynchronous spellbook rendering; clean v135 passed.'},current:{file:currentName,sha256:hash(currentBytes),pid:current.pid,phase:current.phase,casts:current.castRequests,feedback:current.feedback,audio:current.audio,picking:current.picking,runtimeErrors:current.runtimeErrors,failedObjects:current.failedObjects},limits:['Current v135 full report is unsealed; frozen current-session evidence is explicit.','218 original-code cases and actual muted Chromium PCM fixture do not prove original OpenAL or hardware sample parity.','Native9/7 request is oracle/installed-fixture verified; these live spell sounds were driven by native projectile/visual events.','v134 world-center target misses remain unexplained; v135 Haste canvas target succeeded.','Original player remains connected but active shared casting in the same area is not demonstrated.','Ambient/music, duration/moving sounds, dialogue/SSF voice, combat sound queues and native mixer limits remain incomplete.']};
+await fs.writeFile(path.join(folder,'network-audio-acceptance-v1.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({accepted:true,sealedPhase:'closed',live135Phase:'playing',nativeCasts:casts.length,liveSounds:audio.output.played,clean135RuntimeErrors:current.runtimeErrors.length,historicalQaErrors:errors.length,scope:result.scope}));

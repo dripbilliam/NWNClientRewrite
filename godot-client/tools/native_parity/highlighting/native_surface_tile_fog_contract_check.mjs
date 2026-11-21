@@ -1,0 +1,21 @@
+// Bounded extension-free CPU fixture. No GPU draw, server, or production launch.
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+import {selectClientLaunchEngine,verifyClientLaunchEngine} from '../loading/client_launch_engine.mjs';
+const source=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),workspace=path.dirname(source),[label,phase]=process.argv.slice(2),sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+if(!/^native-surface-tile-fog-[a-z0-9-]+$/.test(label??'')||!['stage','run'].includes(phase))throw Error('Fresh native-surface-tile-fog label and stage|run required');
+const folder=path.join(source,'.cache/native-presentation-parity/visibility-agent',label),project=path.join(folder,'project'),stageFile=path.join(folder,'stage.json'),test='tools/native_parity/highlighting/native_surface_tile_fog_contract_test.gd';
+if(phase==='stage'){
+ if(fs.existsSync(folder))throw Error('Existing proof preserved');const engine=selectClientLaunchEngine(source);fs.mkdirSync(project,{recursive:true});const pins=[],seen=new Set(),queue=[test];
+ const copy=(relative,raw,from)=>{const target=path.join(project,relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,raw,{flag:'wx'});pins.push({relative,source:from,target,sha256:sha(raw)});};
+ while(queue.length){const relative=queue.shift();if(seen.has(relative))continue;seen.add(relative);if(relative.includes('..')||seen.size>24)throw Error('Bounded closure exceeded');const from=path.join(source,relative),raw=fs.readFileSync(from);copy(relative,raw,from);for(const match of raw.toString('utf8').matchAll(/preload\(\s*["']res:\/\/([^"']+)["']\s*\)|extends\s+["']res:\/\/([^"']+)["']/g))queue.push(match[1]??match[2]);}
+ copy('project.godot',Buffer.from('config_version=5\n[application]\nconfig/name="Native surface tile fog contract CPU"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n'),null);fs.mkdirSync(path.join(project,'.godot'));fs.writeFileSync(path.join(project,'.godot/global_script_class_cache.cfg'),'list=[]\n',{flag:'wx'});
+ fs.writeFileSync(stageFile,JSON.stringify({label,project,test,engine,pins,extensions:0,gpuDraws:0,serverConnections:0,nativeBuilds:0},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({staged:true,pins:pins.length,folder}));process.exit(0);
+}
+const stage=JSON.parse(fs.readFileSync(stageFile)),report=path.join(folder,'result.json'),receipt=path.join(folder,'run.json');if(fs.existsSync(report)||fs.existsSync(receipt))throw Error('Existing run preserved');verifyClientLaunchEngine(stage.engine);
+const changed=()=>stage.pins.filter(p=>sha(fs.readFileSync(p.target))!==p.sha256||p.source&&sha(fs.readFileSync(p.source))!==p.sha256).map(p=>p.relative);if(changed().length)throw Error('Pinned source differs');const userdata=path.join(folder,'userdata');fs.mkdirSync(userdata);
+const child=spawnSync(stage.engine.path,['--headless','--log-file',path.join(folder,'engine.log'),'--path',project,'--script','res://'+test,'--','--report='+report],{cwd:workspace,encoding:'utf8',windowsHide:true,timeout:30000,maxBuffer:2*1024*1024,env:{...process.env,APPDATA:userdata,LOCALAPPDATA:userdata}}),stdout=child.stdout??'',stderr=child.stderr??'';
+fs.writeFileSync(path.join(folder,'stdout.log'),stdout,{flag:'wx'});fs.writeFileSync(path.join(folder,'stderr.log'),stderr,{flag:'wx'});
+const errors=(stdout+'\n'+stderr).split(/\r?\n/).filter(line=>/SCRIPT ERROR|^ERROR:|Parse Error|ObjectDB instances (?:were )?leaked|resources still in use|Invalid call/.test(line));let result=null;try{result=JSON.parse(fs.readFileSync(report));}catch{}
+const sourceChanged=changed(),success=child.status===0&&!child.error&&!errors.length&&result?.success===true&&!sourceChanged.length;
+fs.writeFileSync(receipt,JSON.stringify({success,exit:child.status,error:child.error?.message??null,errors,result,sourceChanged,stage:{file:stageFile,sha256:sha(fs.readFileSync(stageFile))},engine:stage.engine,extensions:0,gpuDraws:0,serverConnections:0,nativeBuilds:0},null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({success,checks:result?.checks,failures:result?.failures,errors,exit:child.status,error:child.error?.message??null,sourceChanged,receipt}));process.exit(success?0:1);

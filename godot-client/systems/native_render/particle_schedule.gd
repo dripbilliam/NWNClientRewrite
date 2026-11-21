@@ -57,10 +57,8 @@ static func fountain(e: Dictionary,delta: float,p: Dictionary) -> void:
 		e.accumulator198=M.f(delta+M.f(e.accumulator198))
 		if not (e.accumulator198>=interval): return
 		var index:=0
-		var divisor:=rate_int+1
-		if divisor>2147483647: divisor-=4294967296 # Old `(rateInt+1)|0`.
 		# Re-evaluate after callbacks, as the original owner does.
-		while index<M.cvtt(M.f(rate*M.f(e.accumulator198)))%divisor: spawn(e,delta,factor,p); index+=1
+		while index<M.cvtt(M.f(rate*M.f(e.accumulator198)))%(rate_int+1): spawn(e,delta,factor,p); index+=1
 		e.accumulator198=0.0; return
 	var displacement: Array=[]
 	for axis in 3: displacement.append(M.f(M.f(M.f(e.position1e0[axis])-M.f(e.previous19c[axis]))+M.f(e.remaining164[axis])))

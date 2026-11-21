@@ -9,7 +9,6 @@ signal highlight_changed(enabled: bool)
 const Rules=preload("res://systems/native_data/keymap_rules.gd")
 const Highlight=preload("res://systems/native_data/tooltip_highlight.gd")
 const TooltipPreferences=preload("res://systems/native_data/tooltip_preferences.gd")
-const GameInput=preload("res://systems/native_data/game_input.gd")
 const SHIFT:=1
 const CTRL:=2
 const ALT:=4
@@ -35,7 +34,7 @@ func _ready() -> void:
 	get_window().focus_exited.connect(clear_highlight)
 	set_process(false)
 func highlight_focus(control: Control) -> void:
-	if GameInput.is_text_entry(control): clear_highlight()
+	if control is LineEdit or control is TextEdit: clear_highlight()
 func apply_highlight(value: int) -> void:
 	if value<0: return
 	var previous:=highlighted; highlighted=bool(value)
@@ -51,10 +50,8 @@ func _process(_delta: float) -> void:
 	apply_highlight(highlight_policy.advance(Time.get_ticks_msec()))
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo or blocked(): return
-	# WorldHighlightView owns fixed Tab admission after GUI controls get first use.
-	if physical(event)==KEY_TAB:return
 	var focus:=get_viewport().gui_get_focus_owner()
-	if GameInput.is_text_entry(focus) or not action_matches(97,event): return
+	if focus is LineEdit or focus is TextEdit or not action_matches(97,event): return
 	highlight_key=physical(event)
 	apply_highlight(highlight_policy.key(true,Time.get_ticks_msec(),TooltipPreferences.doubletap_ms))
 	get_viewport().set_input_as_handled()

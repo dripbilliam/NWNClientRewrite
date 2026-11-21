@@ -216,17 +216,12 @@ func configure(painter,text,base_catalog,cache_path: String) -> void:
 	main=preload("res://systems/native_creation_main_frame.gd").new(); surface.add_child(main); main.configure(painter,text,base_catalog,cache_path); main.prepared.connect(refresh); main.action_requested.connect(main_action); main.start()
 	gender=preload("res://systems/native_gender_chooser.gd").new();surface.add_child(gender);gender.configure(painter,text,base_catalog,cache_path);gender.prepared.connect(place);gender.finished.connect(gender_result);gender.start()
 	race=preload("res://systems/native_race_chooser.gd").new();surface.add_child(race);race.configure(painter,text,base_catalog,cache_path);race.prepared.connect(place);race.finished.connect(race_result);race.start()
-	race.art_cancel_requested.connect(art_cancelled.bind("racebutton",2))
 	class_chooser=preload("res://systems/native_class_chooser.gd").new();surface.add_child(class_chooser);class_chooser.configure(painter,text,base_catalog,cache_path);class_chooser.prepared.connect(place);class_chooser.finished.connect(class_result);class_chooser.start()
-	class_chooser.art_cancel_requested.connect(art_cancelled.bind("classbutton",2))
 	alignment=preload("res://systems/native_alignment_chooser.gd").new();surface.add_child(alignment);alignment.configure(painter,text,base_catalog,cache_path);alignment.prepared.connect(place);alignment.finished.connect(alignment_result);alignment.start()
 	attributes=preload("res://systems/native_attributes_chooser.gd").new();surface.add_child(attributes);attributes.configure(painter,text,base_catalog,cache_path);attributes.prepared.connect(place);attributes.action_requested.connect(attributes_action);attributes.finished.connect(attributes_result);attributes.start()
 	packages=preload("res://systems/native_package_chooser.gd").new();surface.add_child(packages);packages.configure(painter,text,base_catalog,cache_path);packages.prepared.connect(place);packages.finished.connect(packages_result);packages.start()
-	packages.art_cancel_requested.connect(art_cancelled.bind("packagesbutton",3))
 	skills=preload("res://systems/native_skills_chooser.gd").new();surface.add_child(skills);skills.configure(painter,text,base_catalog,cache_path);skills.prepared.connect(place);skills.action_requested.connect(skills_action);skills.finished.connect(skills_result);skills.start()
-	skills.art_cancel_requested.connect(art_cancelled.bind("package-configuration",3))
 	feats=preload("res://systems/native_feats_chooser.gd").new();surface.add_child(feats);feats.configure(painter,text,base_catalog,cache_path);feats.prepared.connect(place);feats.action_requested.connect(feats_action);feats.finished.connect(feats_result);feats.start()
-	feats.art_cancel_requested.connect(art_cancelled.bind("package-feats",3))
 	school=preload("res://systems/native_school_chooser.gd").new();surface.add_child(school);school.configure(painter,text,base_catalog,cache_path);school.prepared.connect(place);school.finished.connect(school_result);school.start()
 	# Original9c69a0 constructs this class-dependent child on demand. Keep
 	# its preparation off the ordinary pregame/character-picker startup path.
@@ -440,8 +435,6 @@ func open_child(tag: String,code: int=0x8010) -> void:
 	else: child_requested.emit(tag,ticket.duplicate())
 	place()
 func owns(value_ticket: Array) -> bool: return not closed and wanted and not child.is_empty() and ticket==value_ticket
-func art_cancelled(value_ticket: Array,tag: String,code: int) -> void:
-	if owns(value_ticket) and child==tag:accept_child(value_ticket,code)
 func accept_child(value_ticket: Array,code: int) -> bool:
 	if not owns(value_ticket): return false
 	retire_child()

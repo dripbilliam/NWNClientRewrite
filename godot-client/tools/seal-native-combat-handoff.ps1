@@ -1,0 +1,20 @@
+param()
+$ErrorActionPreference='Stop'
+$sealProject=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'));$sealRun=Join-Path $sealProject '.cache/combat-presentation-tests/native-combat-presentation-v3';$sealCopy=Join-Path $sealRun 'godot-client'
+$sealProof=Get-Content -LiteralPath (Join-Path $sealRun 'proof.json') -Raw|ConvertFrom-Json
+if(-not$sealProof.success-or$sealProof.changedInputs.Count-ne0){throw 'Accepted combat receipt missing'}
+$sealArchive=Join-Path $sealProject 'backups/native-combat-handoff-bound-v1.zip'
+if(Test-Path -LiteralPath $sealArchive){throw 'Final checkpoint already exists'}
+$sealFiles=[ordered]@{}
+foreach($input in $sealProof.inputs){$name=if($input.path.StartsWith('../')){$input.path.Substring(3)}else{'godot-client/'+$input.path};$sealFiles[$name]=@{source=(Join-Path $sealCopy $input.path);sha256=$input.sha256}}
+foreach($file in (Get-ChildItem -LiteralPath $sealRun -File)){if($file.Name-eq'facing-fixture.json'-or$file.Name-eq'proof.json'-or$file.Extension-in@('.json','.log','.tap')){$sealFiles['godot-client/reports/combat-presentation-v3/'+$file.Name]=@{source=$file.FullName;sha256=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}}}
+foreach($relative in @('NATIVE-COMBAT-HANDOFF.md','reports/native-combat-receiver-research-v1.json','../scripts/inspect-native-combat-base-handoff.py','backups/native-combat-handoff-before-v1/combat_animation.gd','backups/native-combat-facing-before-v1/network_world.js','backups/native-combat-facing-before-v1/native-session-host.cjs','tools/seal-native-combat-handoff.ps1')){$source=Join-Path $sealProject $relative;$name=if($relative.StartsWith('../')){$relative.Substring(3)}else{'godot-client/'+$relative};$sealFiles[$name]=@{source=$source;sha256=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()}}
+$sealStream=[IO.File]::Open($sealArchive,[IO.FileMode]::CreateNew)
+try{$zip=[IO.Compression.ZipArchive]::new($sealStream,[IO.Compression.ZipArchiveMode]::Create,$true);try{foreach($name in $sealFiles.Keys){$entry=$sealFiles[$name];if((Get-FileHash -LiteralPath $entry.source -Algorithm SHA256).Hash.ToLowerInvariant()-ne$entry.sha256){throw ('Snapshot changed '+$name)};[IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$entry.source,$name,[IO.Compression.CompressionLevel]::Optimal)|Out-Null}}finally{$zip.Dispose()}}finally{$sealStream.Dispose()}
+$sealRead=[IO.Compression.ZipFile]::OpenRead($sealArchive)
+try{if($sealRead.Entries.Count-ne$sealFiles.Count){throw 'Archive entry count mismatch'};foreach($entry in $sealRead.Entries){$stream=$entry.Open();try{$sha=[Security.Cryptography.SHA256]::Create();$actual=[Convert]::ToHexString($sha.ComputeHash($stream)).ToLowerInvariant();$sha.Dispose()}finally{$stream.Dispose()};if($actual-ne$sealFiles[$entry.FullName].sha256){throw ('Archive readback mismatch '+$entry.FullName)}}}finally{$sealRead.Dispose()}
+$sealHash=(Get-FileHash -LiteralPath $sealArchive -Algorithm SHA256).Hash.ToLowerInvariant()
+$sealReceipt=[ordered]@{success=$true;archive=$sealArchive;sha256=$sealHash;files=$sealFiles.Count;bytes=(Get-Item -LiteralPath $sealArchive).Length;readbackVerified=$true;acceptedInputCount=$sealProof.inputs.Count;nativeChecks=5065;protocolChecks=5;originalBaseCases=120;acceptedSnapshot='native-combat-presentation-v3';sourceSnapshotExact=$true;currentWholeTreeClaim=$false;nativeBuilds=0;gameServerConnections=0;publicConnections=0;gpu=$false;serverOutcomeAccepted=$false;pixelsAccepted=$false;fullCombatAccepted=$false;fullUiAccepted=$false;goalComplete=$false;scope='Scoped original cast-base handoff and immediate received-facing protocol/native pivot delivery. Exact accepted snapshot, not later unrelated concurrent work.'}
+[IO.File]::WriteAllText(($sealArchive+'.verified.json'),($sealReceipt|ConvertTo-Json -Depth 5)+[Environment]::NewLine)
+[IO.File]::WriteAllText((Join-Path $sealProject 'reports/native-combat-handoff-acceptance-v1.json'),($sealReceipt|ConvertTo-Json -Depth 5)+[Environment]::NewLine)
+$sealReceipt|ConvertTo-Json -Compress

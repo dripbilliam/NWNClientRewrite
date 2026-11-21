@@ -44,31 +44,16 @@ var container_page:=0
 var container_serial:=0
 var view_serial:=0
 var request_serial:=0
-var open_requests: Dictionary={}
-var open_pending:=false
-var page_requests: Dictionary={}
-var container_requests: Dictionary={}
-var item_requests: Dictionary={}
-var close_steps: Array=[]
-var close_request_id:=-1
-var close_request_kind:=""
 var views: Dictionary={}
 var pending: Dictionary={}
-var store_requests: Dictionary={}
-var store_pending_ids: Dictionary={}
-var store_examine_requests: Dictionary={}
 var signature:=""
 var icon_bindings: Dictionary={}
 var icon_failures: Dictionary={}
-var icon_failure_families: Dictionary={}
-var icon_family_by_key: Dictionary={}
 var prewarm_dirty:=true
 var prewarm_items: Array=[]
 var prewarm_cursor:=0
 var closed:=false
 var notice_text:=""
-var source_failure:=""
-var target_selector: Callable
 var detailed_timings:=false
 var timing_rows: Array=[]
 var data_received_us:=0
@@ -76,7 +61,6 @@ var data_received_wall_ms:=0.0
 var stats:={"views":0,"commands":0,"icons_bound":0,"rejected_results":0,"stale_input":0,"errors":[],"native_only":true}
 func configure(parent: Control,catalog,cache_path: String,text,layout_storage: String="user://native-menu-layout.cfg",role: String="primary") -> void:
 	window_role=role; text_owner=text; ui=Inventory.new(); parent.add_child(ui); ui.item_commands_enabled=role=="primary";ui.setup(layout_storage,"inventory" if role=="primary" else "associate-inventory"); ui.request.connect(input_request)
-	ui.drag_source_admission=Callable(self,"drag_source_valid")
 	ui.native_icon_gate=true
 	equipment_skin=preload("res://systems/native_inventory_equipment.gd").new(); add_child(equipment_skin); ui.native_equipment=equipment_skin; equipment_skin.configure(ui,catalog,cache_path)
 	frame_skin=preload("res://systems/native_inventory_frame.gd").new(); add_child(frame_skin); ui.native_frame=frame_skin; frame_skin.configure(ui,catalog,cache_path,text,equipment_skin)
@@ -97,24 +81,21 @@ func displayed_owner() -> int:return controlled_id if display_owner_id<0 else di
 func set_displayed_owner(id: int,serial: int,receipt: int) -> void:
 	window_serial=serial;window_receipt=receipt
 	if display_owner_id==id:return
-	close_steps.clear();close_request_id=-1;close_request_kind=""
 	var was_wanted: bool=ui.wanted
-	display_owner_id=id;signature="";views.clear();pending.clear();store_requests.clear();store_pending_ids.clear();store_examine_requests.clear();open_requests.clear();open_pending=false;page_requests.clear();container_requests.clear();item_requests.clear();icon_bindings.clear();icon_failures.clear();icon_failure_families.clear();icon_family_by_key.clear();source_failure="";page=0;container_page=0;prewarm_dirty=true
+	display_owner_id=id;signature="";views.clear();pending.clear();icon_bindings.clear();page=0;container_page=0;prewarm_dirty=true
 	item_context.cancel();stack_dialog.cancel();gold.cancel();ui.reset()
 	if was_wanted:ui.present_received(true)
 func set_world(epoch: int,area: int,controlled: int,source: Array,raw: Dictionary) -> void:
 	if generation!=epoch or controlled_id!=controlled:
-		close_steps.clear();close_request_id=-1;close_request_kind=""
 		gold.cancel()
-		ui.reset(); item_context.cancel(); stack_dialog.cancel(); signature=""; views.clear(); pending.clear(); store_requests.clear(); store_pending_ids.clear(); store_examine_requests.clear();open_requests.clear();open_pending=false;page_requests.clear();container_requests.clear();item_requests.clear(); icon_bindings.clear();icon_failures.clear();icon_failure_families.clear();icon_family_by_key.clear();source_failure=""; page=0; container_page=0; notice_text=""
+		ui.reset(); item_context.cancel(); stack_dialog.cancel(); signature=""; views.clear(); pending.clear(); icon_bindings.clear(); page=0; container_page=0; notice_text=""
 	generation=epoch; area_id=area; controlled_id=controlled; objects={}; prewarm_dirty=true
 	for object in source: objects[int(object.id)]=object
 	update_inventory(raw)
 func update_world(epoch: int,area: int,controlled: int,source: Array,removed: Array,raw: Dictionary) -> void:
 	if generation!=epoch or area_id!=area: return
 	if controlled_id!=controlled:
-		close_steps.clear();close_request_id=-1;close_request_kind=""
-		ui.reset(); item_context.cancel(); stack_dialog.cancel(); signature=""; views.clear(); pending.clear(); store_requests.clear(); store_pending_ids.clear(); store_examine_requests.clear();open_requests.clear();open_pending=false;page_requests.clear();container_requests.clear();item_requests.clear(); icon_bindings.clear();icon_failures.clear();icon_failure_families.clear();icon_family_by_key.clear();source_failure=""; page=0; container_page=0; notice_text=""
+		ui.reset(); item_context.cancel(); stack_dialog.cancel(); signature=""; views.clear(); pending.clear(); icon_bindings.clear(); page=0; container_page=0; notice_text=""
 	if controlled_id!=controlled: prewarm_dirty=true
 	controlled_id=controlled
 	for id in removed: objects.erase(int(id))
@@ -169,49 +150,32 @@ func store_price(item: Dictionary,buy: bool) -> int:
 	if not store.get("open",false) or not item.has("cost"): return -1
 	var cost:=int(item.cost)&4294967295
 	var rate:=int(store.get("sellRate",0)) if buy else int(store.get("blackMarketRate",0) if item.get("field458",false) else store.get("buyRate",0))
-	var value:=maxi(1,int((float(rate)/100.0)*float(cost))&0xffffffff) if cost!=0 else 0
-	var maximum:=int(store.get("maxBuyPrice",-1))
-	var signed_value:=value-0x100000000 if value>=0x80000000 else value
-	if not buy and maximum!=-1 and maximum<=signed_value:value=maximum&0xffffffff
+	var value:=maxi(1,int(float(cost)*rate/100.0)) if cost!=0 else 0
+	if not buy and int(store.get("maxBuyPrice",-1))!=-1: value=mini(value,int(store.maxBuyPrice))
 	return value
 func store_view() -> Dictionary:
 	if not store.get("open",false): return {}
 	var result:=store.duplicate(true); result.pageCount=int(inventories.get("M",{}).get("pageCount",1)); result.page=int(store.get("page",0)); result.labels=[]
-	for index in 5: result.labels.append(text_owner.resolve({"strRef":0xf85c+index},INVALID))
+	for index in 5: result.labels.append(text_owner.raw({"strRef":0xf85c+index}))
 	return result
 func store_command(message: Dictionary) -> void:
 	if int(message.get("viewId",-1))!=view_serial or not store.get("open",false): return
 	var operation:=str(message.operation); var value:={"kind":"native-store","operation":operation,"storeGeneration":int(store.generation)}
 	if operation in ["buy","sell","identify"]:
 		var row:=valid_item(message)
-		if row.is_empty() or row.pending or pending.has(int(row.itemId)) or store_pending_ids.has(int(row.itemId)) or int(row.get("price",-1))<0: return
+		if row.is_empty() or row.pending or pending.has(int(row.itemId)) or int(row.get("price",-1))<0: return
 		value.itemId=int(row.itemId)
-		store_pending_ids[value.itemId]=true
 		pending[value.itemId]={"at":Time.get_ticks_msec(),"operation":"store-"+operation}; signature=""
-		notice_text="Transaction requested"; ui.notice.text=notice_text
 	elif operation=="page": value.page=int(message.page)
 	elif operation=="panel": value.panel=int(message.panel)
 	elif operation!="close": return
-	store_requests[request_serial+1]={"generation":generation,"viewId":view_serial,"operation":operation,"itemId":value.get("itemId",-1)}
 	send_command(value)
 func summary(actor: Dictionary) -> Dictionary:
 	var combat: Dictionary=actor.get("playerState",{}).get("combat",{}); var state: Dictionary=actor.get("inventoryStats",{})
-	var weight: Variant=state.get("field28c");var abilities: Array=actor.get("playerState",{}).get("abilities",{}).get("current",[])
-	if weight==null:weight=combat.get("field978")
-	var strength: Variant=state.get("field70")
-	if strength==null:
-		var fields70: Variant=state.get("fields70")
-		if fields70 is Array and not fields70.is_empty():strength=fields70[0]
-	if strength==null and not abilities.is_empty():strength=abilities[0]
-	var capacity_row: Dictionary=IconPlan.row(text_owner.tables,"encumbrance",int(strength) if strength!=null else -1)
-	var capacity: Variant=capacity_row.get("Normal")
-	var normal_capacity: Variant=null
-	if capacity_row.has("Normal") and str(capacity)!="****":
-		var capacity_text: String="" if capacity==null else str(capacity).strip_edges()
-		if capacity_text.is_empty():normal_capacity=0
-		elif capacity_text.is_valid_float():normal_capacity=int(Vector3(float(capacity_text)/10,0,0).x+0.5)
-		else:normal_capacity="NaN"
-	return {"gold":combat.get("field898") if combat.get("field898") is int else null,"weight":floorf(Vector3(float(weight)/10,0,0).x+0.5) if weight is int else null,"capacity":normal_capacity}
+	var weight: Variant=state.get("field28c",combat.get("field978")); var abilities: Array=actor.get("playerState",{}).get("abilities",{}).get("current",[])
+	var strength: Variant=state.get("field70",state.get("fields70",[null])[0] if not state.get("fields70",[]).is_empty() else (abilities[0] if not abilities.is_empty() else null))
+	var capacity: Variant=IconPlan.row(text_owner.tables,"encumbrance",int(strength) if strength!=null else -1).get("Normal")
+	return {"gold":combat.get("field898"),"weight":floorf(Vector3(float(weight)/10,0,0).x+0.5) if weight!=null else null,"capacity":int(Vector3(float(capacity)/10,0,0).x+0.5) if capacity!=null and str(capacity).is_valid_float() else null}
 func layout() -> Array:
 	var result: Array=[]
 	for row in EQUIPMENT: result.append({"slot":row[0],"x":row[1],"y":row[2],"w":row[3],"h":row[4],"label":row[5]})
@@ -244,26 +208,20 @@ func _profile_process(_delta: float) -> void:
 	refresh()
 	if not retained_item_icons and icon_tables_ready(): prewarm_icons()
 func refresh() -> void:
-	if closed or not ui.wanted or ui.close_pending or open_pending or not rules_ready() or ui.native_icon_gate and not icon_tables_ready() or not objects.has(displayed_owner()): return
+	if closed or not ui.wanted or not rules_ready() or ui.native_icon_gate and not icon_tables_ready() or not objects.has(displayed_owner()): return
 	var refresh_started:=Time.get_ticks_usec() if detailed_timings else 0
 	var actor: Dictionary=objects[displayed_owner()]; var rows: Array=[]; var sources: Array=[]
 	for channel in ["I","R","C","M"]:
 		for location in inventories.get(channel,{}).get("entries",[]):
 			var id:=int(location.id); var object: Dictionary=objects.get(id,{})
-			if object.get("replicationRemoved",false) or not object.get("item") is Dictionary:
-				report_source_failure("Replicated inventory item is unavailable")
-				return
+			if object.get("replicationRemoved",false) or not object.get("item") is Dictionary: continue
 			var item: Dictionary=object.item; var base:=IconPlan.row(text_owner.tables,"baseitems",int(item.get("baseItem",-1)))
-			for field in ["EquipableSlots","InvSlotWidth","InvSlotHeight"]:
-				if base.is_empty() or not base.has(field) or str(base[field]) in ["","****"]:
-					report_source_failure("Native item "+field+" is unavailable")
-					return
+			if base.is_empty(): continue
 			sources.append([channel,location,item,object.get("inventoryLocation")])
 			rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"tooltip":Tooltip.project(item,text_owner,controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
-	source_failure=""
 	var rows_built_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	var scene_source: Variant=[icons.binding_scope(),icons.catalog.source_store.get_instance_id()] if retained_item_icons else null
-	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,text_owner.revision,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store,scene_source]))
+	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store,scene_source]))
 	var signature_ready_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	if next==signature and (not retained_item_icons or ui.scene_icon_sealed): return
 	var ready_icons: Dictionary={}
@@ -272,16 +230,12 @@ func refresh() -> void:
 	for row in rows:
 		if row.channel=="R" and floori(float(row.y)/6)!=page or row.channel=="C" and floori(float(row.y)/5)!=container_page: continue
 		attempted_icons+=1
-		var source_item: Dictionary=objects[int(row.itemId)].item
-		var family:=JSON.stringify([source_item.get("baseItem"),source_item.get("parts")])
-		var key: String=icons.request(source_item,text_owner.tables,int(actor.get("appearance",{}).get("gender",0)))
+		var key: String=icons.request(objects[int(row.itemId)].item,text_owner.tables,int(actor.get("appearance",{}).get("gender",0)))
 		if key.is_empty():
 			if ui.native_icon_gate:
 				if icons.last_request_error=="Native asset queue is full": waiting=true
-				elif not icons.last_request_error.is_empty(): report_icon_failure(family,int(source_item.get("baseItem",-1)),str(icons.last_request_error))
+				elif not icons.last_request_error.is_empty(): notice_text="Item icon unavailable: "+icons.last_request_error; ui.notice.text=notice_text
 			continue
-		icon_family_by_key[key]={"family":family,"baseItem":int(source_item.get("baseItem",-1))}
-		if icons.failed.has(key):report_icon_failure(family,int(source_item.get("baseItem",-1)),str(icons.failed[key]))
 		ready_icons[int(row.entryId)]=key
 		if not (icons.bundles.has(key) if retained_item_icons else icons.textures.has(key)) and not icons.failed.has(key) and not icon_failures.has(key): waiting=true
 	var requests_done_us: int=Time.get_ticks_usec() if detailed_timings else 0
@@ -293,7 +247,7 @@ func refresh() -> void:
 	for row in rows: views[int(row.entryId)]={"object":objects[int(row.itemId)].duplicate(true),"row":row.duplicate(true)}
 	var container_id:=int(containers.get("C",INVALID)); var container: Dictionary=objects.get(container_id,{})
 	if retained_item_icons and is_instance_valid(ui.scene_host): ui.scene_host.begin_batch()
-	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(actor.get("replicated",{}).get("name",actor.get("appearance",{}).get("name")),displayed_owner()),"page":page,"items":rows,"inventoryChannels":inventories.keys(),"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container.get("item",{}).get("name",container.get("replicated",{}).get("name",{})),controlled_id),"page":container_page,"pageCount":inventories.get("C",{}).get("pageCount",1)}})
+	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(actor.get("replicated",{}).get("name",actor.get("appearance",{}).get("name")),displayed_owner()),"page":page,"items":rows,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container.get("item",{}).get("name",container.get("replicated",{}).get("name",{})),controlled_id),"page":container_page,"pageCount":inventories.get("C",{}).get("pageCount",1)}})
 	if detailed_timings and timing_rows.size()<512:
 		var committed:=Time.get_ticks_usec()
 		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"rows_us":rows_built_us-refresh_started,"signature_us":signature_ready_us-rows_built_us,"requests_us":requests_done_us-signature_ready_us,"ui_receive_us":committed-requests_done_us,"attempted_icons":attempted_icons,"role":window_role,"owner":displayed_owner(),"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
@@ -317,99 +271,42 @@ func refresh() -> void:
 		timing_rows.append({"phase":"native-icon-bindings-committed","mono_us":Time.get_ticks_usec(),"page":page,"view":view_serial,"bound_icons":expected_scene_icons if retained_item_icons else ready_icons.size(),"host_revision":ui.scene_host.revision if retained_item_icons and is_instance_valid(ui.scene_host) else null})
 func icon_ready(key: String,texture: Texture2D,error: String) -> void:
 	if closed: return
-	if not error.is_empty():
-		icon_failures[key]=error
-		var family: Dictionary=icon_family_by_key.get(key,{})
-		report_icon_failure(str(family.get("family",key)),int(family.get("baseItem",-1)),error)
-		return
+	if not error.is_empty(): icon_failures[key]=error; notice_text="Item icon unavailable: "+error; ui.notice.text=notice_text; return
 	for row in icon_bindings.get(key,[]):
 		if ui.install_native_icon(int(row.view),int(row.entry),texture): stats.icons_bound+=1
-func report_source_failure(reason: String) -> void:
-	notice_text=reason;ui.notice.text=reason
-	if source_failure==reason:return
-	source_failure=reason
-	stats.errors.append({"code":"network.inventory-render-failed","reason":reason})
-func report_icon_failure(family: String,base_item: int,reason: String) -> void:
-	notice_text="Item icon unavailable: "+reason;ui.notice.text=notice_text
-	if icon_failure_families.has(family):return
-	icon_failure_families[family]=true
-	stats.errors.append({"code":"network.inventory-icon-unavailable","reason":reason,"baseItem":base_item})
 func scene_icon_ready(key: String,bundle: Dictionary,error: String) -> void:
 	if closed: return
 	if not error.is_empty():
-		icon_failures[key]=error
-		var family: Dictionary=icon_family_by_key.get(key,{})
-		report_icon_failure(str(family.get("family",key)),int(family.get("baseItem",-1)),error)
-		return
+		icon_failures[key]=error; notice_text="Item icon unavailable: "+error; ui.notice.text=notice_text; return
 	for row in icon_bindings.get(key,[]):
 		if ui.install_scene_icon(int(row.view),int(row.entry),key,bundle): stats.icons_bound+=1
 func send_command(value: Dictionary) -> void:
 	if window_role=="alternate":
 		if value.get("kind","") not in ["inventory-open","inventory-close","inventory-page"]:stats["unported_alternate_commands"]=int(stats.get("unported_alternate_commands",0))+1;return
 		value.merge({"inventoryRole":"alternate","ownerId":displayed_owner(),"windowSerial":window_serial,"inventoryReceipt":window_receipt},true)
-	request_serial+=1; value.requestId=request_serial
-	if str(value.get("kind",""))=="item-action":item_requests[request_serial]=int(value.get("itemId",-1))
-	stats.commands+=1; request.emit(value)
-func continue_close() -> void:
-	if close_steps.is_empty():close_request_id=-1;close_request_kind="";ui.finish_close(true);return
-	var next: Dictionary=close_steps.pop_front()
-	close_request_id=request_serial+1;close_request_kind=str(next.kind)
-	send_command(next)
+	request_serial+=1; value.requestId=request_serial; stats.commands+=1; request.emit(value)
 func valid_item(message: Dictionary) -> Dictionary:
 	var id:=int(message.get("entryId",-1))
 	if not ui.wanted or int(message.get("viewId",-1))!=view_serial or not views.has(id) or not objects.has(id): stats.stale_input+=1; return {}
 	var previous: Dictionary=views[id].object; var current: Dictionary=objects[id]
 	if current.get("replicationRemoved",false) or previous.get("item")!=current.get("item") or previous.get("inventoryLocation")!=current.get("inventoryLocation"): stats.stale_input+=1; return {}
 	return views[id].row
-func drag_source_valid(data: Dictionary) -> bool:
-	if not ui.wanted or int(data.get("viewId",-1))!=view_serial:return false
-	var id:=int(data.get("entryId",-1))
-	if not views.has(id) or not objects.has(id):return false
-	var prior: Dictionary=views[id].object;var current: Dictionary=objects[id]
-	if current.get("replicationRemoved",false) or prior.get("inventoryLocation")!=current.get("inventoryLocation"):return false
-	var location: Dictionary=current.get("inventoryLocation",{})
-	var channel:=str(location.get("channel",""));var owner:=int(location.get("ownerId",INVALID))
-	if channel in ["I","R"]:return owner==controlled_id
-	if channel=="C":return int(containers.get("C",INVALID))!=INVALID and owner==int(containers.C)
-	if channel=="M" and store.get("open",false):
-		for entry in inventories.get("M",{}).get("entries",[]):
-			if int(entry.get("id",-1))==id:return true
-	return false
 func input_request(message: Dictionary) -> void:
 	if closed or controlled_id<0: return
 	if window_role=="alternate" and str(message.kind) not in ["inventory-open","inventory-close","inventory-page"]:
 		stats["unported_alternate_commands"]=int(stats.get("unported_alternate_commands",0))+1;return
 	match str(message.kind):
-		"inventory-open":
-			if close_request_id>=0:ui.present_received(false);return
-			if open_pending:return
-			open_pending=true;open_requests[request_serial+1]=true
-			signature="";send_command({"kind":"inventory-open","page":page})
+		"inventory-open": signature=""; send_command({"kind":"inventory-open","page":page})
 		"inventory-close":
-			if close_request_id>=0:return
 			gold.cancel()
-			item_context.cancel(); stack_dialog.cancel(); views.clear(); pending.clear(); store_requests.clear();open_requests.clear();open_pending=false;page_requests.clear();container_requests.clear();item_requests.clear(); icon_bindings.clear()
-			close_steps=[]
-			if store.get("open",false):close_steps.append({"kind":"native-store","operation":"close","storeGeneration":int(store.generation)})
-			if int(containers.get("C",INVALID))!=INVALID:close_steps.append({"kind":"inventory-container","operation":"close","targetId":int(containers.C)})
-			close_steps.append({"kind":"inventory-close"})
-			continue_close()
+			if store.get("open",false): send_command({"kind":"native-store","operation":"close","storeGeneration":int(store.generation)})
+			item_context.cancel(); stack_dialog.cancel(); views.clear(); pending.clear(); icon_bindings.clear(); send_command({"kind":"inventory-close"})
 		"inventory-page":
 			if int(message.viewId)!=view_serial or int(message.page)<0 or int(message.page)>5: stats.stale_input+=1; return
-			page_requests[request_serial+1]=int(message.page)
-			send_command({"kind":"inventory-page","page":int(message.page)})
+			page=int(message.page); signature=""; send_command({"kind":"inventory-page","page":page})
 		"inventory-container":
 			if int(message.viewId)!=view_serial or str(message.operation) not in ["close","previous","next"]: stats.stale_input+=1; return
-			if str(message.operation) in ["previous","next"]:
-				var current: int=container_page&255
-				var count: int=int(inventories.get("C",{}).get("pageCount",1))&255
-				container_requests[request_serial+1]=(0 if count-1<=current else current+1) if message.operation=="next" else (count-1 if current==0 else current-1)
-				# The old view cleared the current container entries before asking
-				# for another page, so stale items were never shown during the wait.
-				var container_view: Dictionary=inventories.get("C",{})
-				if not container_view.is_empty():
-					container_view.entries=[]; inventories["C"]=container_view
-					signature=""; refresh()
+			var count:=maxi(1,int(inventories.get("C",{}).get("pageCount",1))); container_page=(container_page+(1 if message.operation=="next" else count-1))%count; signature=""
 			send_command({"kind":"inventory-container","operation":message.operation,"targetId":int(containers.get("C",INVALID))})
 		"inventory-action","inventory-activate": item_action(message)
 		"inventory-store": store_command(message)
@@ -419,14 +316,7 @@ func item_action(message: Dictionary) -> void:
 	var id:=int(row.itemId); var operation:=str(message.get("operation","activate"))
 	notice_text=""
 	if operation=="power": ability_requested.emit(id); return
-	if operation=="examine":
-		var examine_request: Dictionary={"kind":"examine","targetId":id}
-		if store.get("open",false):
-			var store_generation:=int(store.get("generation",-1))
-			examine_request.merge({"inventoryExamineOrigin":"store","inventoryGeneration":generation,"storeGeneration":store_generation})
-			store_examine_requests[request_serial+1]={"generation":generation,"storeGeneration":store_generation,"itemId":id}
-		send_command(examine_request)
-		return
+	if operation=="examine": send_command({"kind":"examine","targetId":id}); return
 	if pending.has(id): return
 	if operation=="open": send_command({"kind":"item-use","itemId":id}); return
 	if operation in ["split","learn"]:
@@ -459,63 +349,10 @@ func item_action(message: Dictionary) -> void:
 		if message.has(field): value[field]=int(message[field])
 	pending[id]={"at":Time.get_ticks_msec(),"operation":operation}; signature=""; send_command(value)
 func item_menu(id: int,point: Vector2) -> void:
-	if target_selector.is_valid() and bool(target_selector.call(id)):return
 	item_context.open_inventory(id,point)
-func item_target_failure(reason: String) -> void:
-	notice_text=reason
-	if is_instance_valid(ui) and is_instance_valid(ui.notice):ui.notice.text=reason
-	stats.errors.append({"code":"network.inventory-action-failed","reason":reason})
 func blocks_pointer(point: Vector2) -> bool:
 	return gold.blocks_pointer(point) or stack_dialog.blocks_pointer(point) or item_context.blocks_pointer(point) or ui.blocks_pointer(point)
 func receive(message: Dictionary) -> void:
-	if message.kind=="native-action-result" and message.get("action","")=="examine" and message.get("inventoryExamineOrigin","")=="store":
-		var examine_request_id:=int(message.get("requestId",-1))
-		var examine_request: Dictionary=store_examine_requests.get(examine_request_id,{})
-		store_examine_requests.erase(examine_request_id)
-		if examine_request.is_empty() or not store.get("open",false) or int(examine_request.generation)!=generation or int(examine_request.storeGeneration)!=int(store.get("generation",-1)) or int(examine_request.itemId)!=int(message.get("targetId",-1)) or int(message.get("inventoryGeneration",-1))!=generation or int(message.get("storeGeneration",-1))!=int(store.get("generation",-1)):return
-		if not bool(message.get("accepted",false)):
-			notice_text=str(message.get("text","Item examination could not be sent.")); ui.notice.text=notice_text
-			stats.errors.append({"code":"network.inventory-action-failed","reason":notice_text}); stats.rejected_results+=1
-		return
-	if close_request_id>=0 and int(message.get("requestId",-1))==close_request_id and (message.kind=="inventory-command-result" or message.kind=="native-action-result" and close_request_kind=="native-store" and str(message.get("action",""))=="native-store"):
-		if bool(message.get("accepted",false)):continue_close()
-		else:
-			close_steps.clear();close_request_id=-1;close_request_kind=""
-			ui.finish_close(false)
-			signature=""
-	if message.kind=="inventory-command-result":
-		var request_id:=int(message.get("requestId",-1))
-		if item_requests.has(request_id):
-			if not bool(message.get("accepted",false)):pending.erase(int(item_requests[request_id]));signature=""
-			item_requests.erase(request_id)
-		if open_requests.has(request_id):
-			open_requests.erase(request_id);open_pending=false
-			if bool(message.get("accepted",false)):signature=""
-			else:ui.present_received(false)
-		if page_requests.has(request_id):
-			if bool(message.get("accepted",false)):page=int(page_requests[request_id]);signature=""
-			page_requests.erase(request_id)
-		if container_requests.has(request_id):
-			if bool(message.get("accepted",false)):container_page=int(container_requests[request_id]);signature=""
-			container_requests.erase(request_id)
-	if message.kind=="native-action-result" and message.get("action","")=="native-store":
-		var request_id:=int(message.get("requestId",-1)); var request: Dictionary=store_requests.get(request_id,{})
-		store_requests.erase(request_id)
-		if request.is_empty():
-			if not bool(message.get("accepted",false)):
-				for id in pending.keys():
-					if str(pending[id].operation).begins_with("store-"):pending.erase(id)
-				signature=""
-			return
-		if int(request.generation)!=generation:return
-		if bool(message.get("accepted",false)):
-			if is_instance_valid(ui.store_panel):ui.store_panel.clear_selection()
-			if str(request.operation)=="identify":pending.erase(int(request.itemId));store_pending_ids.erase(int(request.itemId))
-			signature=""
-		else:
-			if int(request.itemId)>=0:pending.erase(int(request.itemId));store_pending_ids.erase(int(request.itemId))
-			notice_text=str(message.get("text","Store request was rejected."));ui.notice.text=notice_text;signature="";stats.rejected_results+=1
-		return
 	if message.kind=="inventory-ack" and message.get("operation","")=="learn":
 		if not bool(message.get("alternate",false)):
 			if pending.get(int(message.itemId),{}).get("operation","")=="learn": pending.erase(int(message.itemId)); signature=""
@@ -524,23 +361,17 @@ func receive(message: Dictionary) -> void:
 	if message.kind=="examine" and message.get("type","")=="item":
 		var id:=int(message.get("targetId",-1))
 		if pending.get(id,{}).get("operation","")=="store-identify": pending.erase(id); signature=""
-	if message.kind=="store-transaction":
-		pending.erase(int(message.itemId)); signature=""
-		notice_text="Server transaction reply received";ui.notice.text=notice_text
-		return
+	if message.kind=="store-transaction": pending.erase(int(message.itemId)); signature=""; return
 	if message.kind=="store-close" or message.kind=="native-action-result" and message.get("action","")=="native-store" and not message.get("accepted",false):
 		for id in pending.keys():
 			if str(pending[id].operation).begins_with("store-"): pending.erase(id)
 		signature=""; return
 	if message.kind=="inventory-result" and not bool(message.get("alternate",false)):
 		if pending.get(int(message.itemId),{}).get("operation","")=="equip-pickup" and bool(message.success): return
-		var operation:=str(pending.get(int(message.itemId),{}).get("operation",""))
-		var confirmed:=str(message.get("operation",""))
-		if operation==confirmed or operation=="toggle" and confirmed in ["equip","unequip"] or operation=="equip-pickup" and not bool(message.success):pending.erase(int(message.itemId)); signature=""
-		if bool(message.success): notice_text=""; ui.notice.text=""
-		else: stats.rejected_results+=1; notice_text="The server rejected that action"; ui.notice.text=notice_text
+		pending.erase(int(message.itemId)); signature=""
+		if not bool(message.success): stats.rejected_results+=1; notice_text="The server rejected that item action."; ui.notice.text=notice_text
 	elif message.kind=="inventory-command-result" and not bool(message.accepted):
-		notice_text=str(message.get("reason","Inventory request was rejected.")); ui.notice.text=notice_text; stats.rejected_results+=1
+		pending.clear(); signature=""; notice_text=str(message.get("reason","Inventory request was rejected.")); ui.notice.text=notice_text; stats.rejected_results+=1
 func snapshot() -> Dictionary:
 	stats.item_context=item_context.snapshot(); stats.stack_dialog=stack_dialog.snapshot()
 	if detailed_timings:stats.timings=timing_rows.duplicate(true)
@@ -548,6 +379,5 @@ func snapshot() -> Dictionary:
 	var state:=stats.duplicate(true); state.merge({"wanted":ui.wanted,"view":view_serial,"items":views.size(),"pending":pending.size(),"icons":icon_state,"equipment_skin":equipment_skin.snapshot(),"frame_skin":frame_skin.snapshot(),"store_skin":store_skin.snapshot(),"gold":gold.snapshot(),"scope":"Native inventory/equipment/container presentation and server-owned item requests. Store presentation and item powers route through the native gameplay desktop; full UI migration remains incomplete."}); return state
 func close() -> void:
 	if closed: return
-	close_steps.clear();close_request_id=-1;close_request_kind=""
-	closed=true; item_tooltips.close(); item_context.close(); stack_dialog.close(); store_skin.close(); gold.close(); icons.close(); frame_skin.close(); equipment_skin.close(); ui.reset(); objects.clear(); inventories.clear(); containers.clear(); views.clear(); pending.clear();store_examine_requests.clear();open_requests.clear();open_pending=false;page_requests.clear();container_requests.clear();item_requests.clear(); icon_bindings.clear();icon_failure_families.clear();icon_family_by_key.clear()
+	closed=true; item_tooltips.close(); item_context.close(); stack_dialog.close(); store_skin.close(); gold.close(); icons.close(); frame_skin.close(); equipment_skin.close(); ui.reset(); objects.clear(); inventories.clear(); containers.clear(); views.clear(); pending.clear(); icon_bindings.clear()
 func _exit_tree() -> void: close()

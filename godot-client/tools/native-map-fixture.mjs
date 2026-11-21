@@ -1,0 +1,26 @@
+// Authored loopback-only map note/GUI event fixture. Original server owns state.
+import fs from 'node:fs/promises';import path from 'node:path';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
+import {parseErf,decodeResourceText} from '../../src/resource_archive.js';import {parseGff} from '../../src/gff.js';import {typedGff,writeGff,gffField as field} from '../../src/gff_writer.js';import {parseScriptApi,parseNcs} from '../../src/ncs.js';import {openServerResourceContext} from '../../electron/server_resource_context.mjs';
+const hash=b=>createHash('sha256').update(b).digest('hex');
+export async function createNativeMapFixture(home,base){
+ const input=await fs.readFile(path.join(home,'modules',base.module+'.mod'));assert.equal(hash(input),base.sha256);const entries=new Map(parseErf(input).entries),resolver=await openServerResourceContext({install:path.resolve('../FullDecomp/NwnRootInstall')}),api=parseScriptApi(decodeResourceText(await resolver.getResource('nwscript',2009)));
+ function builder(){const code=[],patches=[];const integer=n=>{const b=Buffer.alloc(4);b.writeInt32BE(n);code.push(4,3,...b);},str=s=>{const b=Buffer.from(s,'ascii');code.push(4,5,b.length>>>8,b.length&255,...b);},action=(name,count)=>{const row=api.find(r=>r.name===name);assert.ok(row,name);assert.equal(row.args.length,count,name);code.push(5,0,row.id>>>8,row.id&255,count);},add=()=>code.push(0x14,0x23),ret=()=>code.push(0x20,0);return{code,patches,integer,str,action,add,ret,finish(tail=null){if(tail)code.push(...tail.subarray(13));const body=Buffer.from(code);for(const p of patches)body.writeInt32BE(p.next-p.at,p.at+2);const bytes=Buffer.alloc(13+body.length);bytes.write('NCS V1.0');bytes[8]=0x42;bytes.writeUInt32BE(bytes.length,9);bytes.set(body,13);parseNcs(bytes);return bytes;}};}
+ const b=builder(),pc=()=>b.action('GetPCChatSpeaker',0);
+ for(const command of ['explore','read','hide','show']){
+  b.str('-native-map-'+command);b.action('GetPCChatMessage',0);b.code.push(0x0b,0x23);const at=b.code.length;b.code.push(0x1f,0,0,0,0,0);
+  if(command==='explore'){b.integer(1);pc();pc();b.action('GetArea',1);b.action('ExploreAreaForPlayer',3);}
+  if(command==='hide'||command==='show'){b.integer(command==='show'?1:0);b.str('native_map_note');b.action('GetWaypointByTag',1);b.action('SetMapPinEnabled',2);}
+  if(command==='read'){
+   b.str('NATIVE_MAP_VALUE:');b.str('NW_MAP_PIN_NTRY_');b.str('NW_TOTAL_MAP_PINS');pc();b.action('GetLocalInt',2);b.action('IntToString',1);b.add();pc();b.action('GetLocalString',2);b.add();b.str(':<END>');b.add();pc();b.action('SendMessageToPC',2);
+  }else{b.str('NATIVE_MAP_'+command.toUpperCase());pc();b.action('SendMessageToPC',2);}
+  b.ret();b.patches.push({at,next:b.code.length});
+ }
+ entries.set('godot_chat:2010',b.finish(entries.get('godot_chat:2010')));
+ const g=builder();g.str('NATIVE_MAP_GUI_TYPE:');g.action('GetLastGuiEventType',0);g.action('IntToString',1);g.add();g.action('GetLastGuiEventPlayer',0);g.action('SendMessageToPC',2);g.str('NATIVE_MAP_GUI_TARGET:');g.action('GetLastGuiEventObject',0);g.action('GetTag',1);g.add();g.action('GetLastGuiEventPlayer',0);g.action('SendMessageToPC',2);g.ret();entries.set('native_map_gui:2010',g.finish());
+ const git=typedGff(parseGff(entries.get('dense_a:2023')).root),waypoint=structuredClone(git.fields.WaypointList.value[0]);Object.assign(waypoint.fields,{Tag:field(10,'native_map_note'),MapNote:field(12,'Native server map pin'),HasMapNote:field(0,1),MapNoteEnabled:field(0,1),XPosition:field(8,55),YPosition:field(8,45)});git.fields.WaypointList.value.push(waypoint);entries.set('dense_a:2023',writeGff('GIT ',git));
+ const module='GodotMap1',ifo=typedGff(parseGff(entries.get('module:2014')).root);Object.assign(ifo.fields,{Mod_Name:field(12,'Godot Native Map'),Mod_Tag:field(10,module),Mod_OnPlrGuiEvt:field(11,'native_map_gui')});entries.set('module:2014',writeGff('IFO ',ifo));
+ const count=entries.size,keys=160,resources=keys+24*count,start=resources+8*count,out=Buffer.alloc(start+[...entries.values()].reduce((n,v)=>n+v.length,0));out.write('MOD V1.0');out.writeUInt32LE(count,16);out.writeUInt32LE(160,20);out.writeUInt32LE(keys,24);out.writeUInt32LE(resources,28);let at=start;
+ for(const[index,[key,value]]of[...entries].entries()){const split=key.lastIndexOf(':');out.write(key.slice(0,split),keys+24*index,16,'ascii');out.writeUInt32LE(index,keys+24*index+16);out.writeUInt16LE(Number(key.slice(split+1)),keys+24*index+20);out.writeUInt32LE(at,resources+8*index);out.writeUInt32LE(value.length,resources+8*index+4);out.set(value,at);at+=value.length;}
+ assert.equal(parseErf(out).entries.size,count);for(const dir of ['modules','client/nwm']){await fs.mkdir(path.join(home,dir),{recursive:true});const file=path.join(home,dir,module+'.'+(dir==='modules'?'mod':'nwm'));try{assert.equal(hash(await fs.readFile(file)),hash(out));}catch(error){if(error.code!=='ENOENT')throw error;await fs.writeFile(file,out,{flag:'wx'});}}
+ return{module,port:5125,sha256:hash(out),baseline:base.sha256,map:{tag:'native_map_note',guiEvent:'native_map_gui',commands:['explore','read','hide','show']},scope:'Authored waypoint, chat inspection and OnPlayerGuiEvent scripts. Original server alone persists personal notes and supplies Added, exploration, enable and GUI-event outcomes; no client state is edited by this fixture.'};
+}

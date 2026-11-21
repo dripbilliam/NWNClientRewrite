@@ -2,7 +2,6 @@ extends RefCounted
 # Explicit process-service composition. No runtime/transport/provider inference.
 const WorldClock=preload("res://systems/native_data/world_timer.gd")
 const PauseOwner=preload("res://systems/native_data/client_pause_state.gd")
-const ModulePause=preload("res://systems/native_data/native_module_pause_state.gd")
 const ObjectClocks=preload("res://systems/native_data/client_object_clocks.gd")
 const LOWER=["object","asObject","scene","sceneVirtual","resetObjectTimes","pauseText","audio"]
 const GUI_LOWER=["guiActive","guiBlocked","guiSetFlags","guiClearFlags"]
@@ -11,7 +10,6 @@ var _construction_known:=false
 var _clock_complete:=false
 var _transport_complete:=false
 var _lifetime_complete:=false
-var _direct_connection:=false
 var _connection: int=-1
 var _last_connection: int=-1
 var _serial: int=0
@@ -19,11 +17,8 @@ var _frame: int=-1
 var _phase:="idle"
 var _scope: Array=[]
 var _timers: Dictionary={}
-func world_timer() -> Variant:
-	return _timers.get("world") if _constructed else null
 var _lower: Dictionary={}
 var _pause
-var _server_pause=ModulePause.new()
 var _objects
 var _limits: Dictionary={}
 var _resets: Array=[]
@@ -111,9 +106,8 @@ func construct_process(absolute_u64_reader: Callable,owner_facts: Dictionary,pro
 	for key in ["gui","profileMode","controlledId"]:
 		if owner_facts.has(key):initial[key]=owner_facts[key]
 	_pause.configure(initial,_timers,_callbacks())
-	_server_pause.reset()
 	_objects=ObjectClocks.new();_constructed=true;_construction_known=true;_clock_complete=true;_failure="";_frame_failure=""
-	_connection=-1;_last_connection=-1;_serial=0;_frame=-1;_phase="idle";_scope=[];_resets=[];_transport_complete=false;_lifetime_complete=false;_direct_connection=false;_physical_refs={};_unavailable_ids={};_cleanup_origin_phase=""
+	_connection=-1;_last_connection=-1;_serial=0;_frame=-1;_phase="idle";_scope=[];_resets=[];_transport_complete=false;_lifetime_complete=false;_physical_refs={};_unavailable_ids={};_cleanup_origin_phase=""
 	return {"ready":true,"processConstructed":true,"transitionsReady":_providers_ready()}
 func publish_owner_facts(value: Dictionary)->Dictionary:
 	if not _constructed:return unavailable("Process owner is absent.")
@@ -126,29 +120,6 @@ func publish_owner_facts(value: Dictionary)->Dictionary:
 	if value.has("profileMode"):_pause.profile_mode=WorldClock.i32(value.profileMode)
 	if value.has("controlledId"):_pause.controlled_id=WorldClock.u32(value.controlledId)
 	return {"ready":true,"transitionsReady":_providers_ready()}
-func bind_direct_owners(facts: Dictionary,providers: Dictionary)->Dictionary:
-	# A decoded server pause is not sufficient to invent scene, GUI or audio
-	# ownership. Require the actual client owners before any transition runs.
-	if not _constructed or _released:return unavailable("Direct clock process owner is unavailable.")
-	if not facts.has("gui") or not facts.has("profileMode") or not facts.has("controlledId"):
-		return unavailable("Direct clock GUI/profile/controlled owners are incomplete.")
-	var gui_fact: Variant=facts.gui
-	if not gui_fact is Dictionary or gui_fact.get("known")!=true or not gui_fact.has("value") or not WorldClock.integer(facts.profileMode) or not WorldClock.integer(facts.controlledId):
-		return unavailable("Direct clock owner facts are invalid.")
-	var required: Array=LOWER.duplicate()
-	if gui_fact.value!=null:required.append_array(GUI_LOWER)
-	for name in required:
-		var callback: Variant=providers.get(name)
-		if not callback is Callable or not callback.is_valid():return unavailable("Direct clock lower provider is unavailable: "+name)
-	var next: Dictionary=providers.duplicate()
-	next.acceptedLifecycle=_lower.get("acceptedLifecycle")
-	var previous: Dictionary=_lower
-	_lower=next
-	var published: Dictionary=publish_owner_facts(facts)
-	if not published.ready or not _providers_ready():
-		_lower=previous
-		return unavailable("Direct clock owner publication is incomplete.")
-	return {"ready":true,"transitionsReady":true,"guiPresent":gui_fact.value!=null}
 func _providers_ready()->bool:
 	if not _constructed or not _pause.gui_known or _pause.profile_mode==null or _pause.controlled_id==null:return false
 	var required: Array=LOWER.duplicate()
@@ -159,16 +130,8 @@ func _providers_ready()->bool:
 	return true
 func attach_connection(value: Variant)->Dictionary:
 	if not _constructed or not ObjectClocks.natural(value) or value<=_last_connection or _connection>=0 or _phase=="cleanup-partial":return unavailable("Fresh transport attach is unavailable; cleanup must precede replacement.")
-	_connection=int(value);_last_connection=_connection;_serial=0;_transport_complete=false;_lifetime_complete=false;_direct_connection=false
-	_server_pause.reset()
+	_connection=int(value);_last_connection=_connection;_serial=0;_transport_complete=false;_lifetime_complete=false
 	return {"ready":true,"timersReconstructed":false}
-func attach_direct_connection(value: int,record_history: bool,construction_history: bool)->Dictionary:
-	var result:=attach_connection(value)
-	if not result.ready:return result
-	_direct_connection=true
-	_transport_complete=record_history
-	_lifetime_complete=record_history and construction_history
-	return result
 func set_scope(value: Array,transfers: Array=[],fact: Dictionary={})->Dictionary:
 	var next:=ObjectClocks.normalized_scope(value)
 	if not _constructed or _connection<0 or next.is_empty() or next[0]!=_connection:return unavailable("Accepted native connection/scope is unavailable.")
@@ -195,9 +158,6 @@ func set_scope(value: Array,transfers: Array=[],fact: Dictionary={})->Dictionary
 			_resets=remapped
 			_physical_refs=admitted;_unavailable_ids=unavailable_ids
 		_scope=next
-		if _server_pause.connection<0:_server_pause.begin_connection(int(next[0]),int(next[2]),int(next[1]))
-		elif int(next[1])>_server_pause.area_generation:_server_pause.set_area(int(next[2]),int(next[1]))
-		elif int(next[2])!=_server_pause.area_id:_server_pause.begin_connection(int(next[0]),int(next[2]),int(next[1]))
 	return result
 func _block_object(id_value: Variant,reason: String)->void:
 	if ObjectClocks.natural(id_value,WorldClock.U32) and _physical_refs.has(int(id_value)):_unavailable_ids[int(id_value)]=reason
@@ -222,9 +182,6 @@ static func _lifecycle_fields(value: Dictionary)->Dictionary:
 		if value.has(key):
 			if value[key]!=null and (not ObjectClocks.natural(value[key]) or value[key]<1):return {}
 			result[key]=value[key]
-	if result.objectId<0x80000000 or result.operation=="create" and result.deletionFlag!=null or result.operation=="remove" and result.deletionFlag==null:return {}
-	if result.constructionCertified and (result.operation!="create" or result.ownership!="new" or result.physicalToken==null or not result.aiRegistrationCertified or not result.constructionHistoryComplete) or result.aiRegistrationCertified and not result.constructionCertified:return {}
-	if result.ownerAbsentCertified and (result.operation!="remove" or result.physicalToken!=null) or result.ownership=="unknown" and result.physicalToken!=null:return {}
 	return result
 func begin_frame(frame_value: Variant)->Dictionary:
 	if not _constructed or not ObjectClocks.natural(frame_value) or frame_value<=_frame or _phase=="receive":return unavailable("Native frame order/owner is unavailable.")
@@ -232,8 +189,6 @@ func begin_frame(frame_value: Variant)->Dictionary:
 	var prefixed: Dictionary=_pause.snapshot_before_receive()
 	if not prefixed.ready or not _frame_failure.is_empty():_taint("Native frame snapshot prefix is unavailable.");return unavailable(_failure,true)
 	return {"ready":true,"prefixSlots":prefixed.slots.duplicate()}
-func receive_frame_open(frame_value: int)->bool:
-	return _phase=="receive" and _frame==frame_value
 func _apply_pause(mask: int,value: int,incoming: Variant)->Dictionary:
 	var noop: bool=(_pause.flags_known and (_pause.flags&mask)==WorldClock.u32(value)) or mask==0 and value==0
 	if not noop and not _providers_ready():_taint("Native pause lower providers/owners are unsupported.");return unavailable(_failure)
@@ -241,22 +196,8 @@ func _apply_pause(mask: int,value: int,incoming: Variant)->Dictionary:
 	if not result.ready or not _frame_failure.is_empty():_taint("Native pause transition is partial or unavailable.");return unavailable(_failure,true)
 	if incoming is Dictionary and incoming.get("disposed")!=true:result.unconsumedIncoming=incoming.duplicate(true)
 	return result
-func receive_server_pause(message: Dictionary,source_connection: int,source_area: int,source_generation: int)->Dictionary:
-	# Direct decoded3/9 ingress still requires the actual process-owned timers,
-	# current accepted area scope and the pre-receive frame prefix. It does not
-	# manufacture a native-clock-protocol begin/serial/history certificate.
-	if not _constructed or _connection<0 or _phase!="receive" or _scope!=[source_connection,source_generation,source_area]:return unavailable("Decoded module-pause packet has no current clock receive owner.")
-	var accepted: Dictionary=_server_pause.apply(message,source_connection,source_area,source_generation)
-	if not accepted.get("accepted",false):return unavailable(str(accepted.get("reason","Decoded module-pause packet was rejected.")))
-	var event: Dictionary=accepted.clockEvent
-	var incoming:=PauseOwner.owned_incoming(event.exclusionIds)
-	if not incoming.get("ready",false):return unavailable("Decoded pause exclusions are unavailable.")
-	var applied: Dictionary=_apply_pause(int(event.mask),int(event.value),incoming)
-	applied.deliveryOrder=int(accepted.deliveryOrder)
-	applied.duplicatePacket=bool(accepted["duplicate"])
-	return applied
 func receive_clock(dto: Dictionary)->Dictionary:
-	if not _constructed or _connection<0 or _direct_connection or _phase!="receive":return unavailable("Protocol facts require the open native receive phase.")
+	if not _constructed or _connection<0 or _phase!="receive":return unavailable("Protocol facts require the open native receive phase.")
 	if dto.get("connection")!=_connection:return unavailable("Old connection clock fact ignored.")
 	if dto.get("kind")!="native-clock-protocol" or dto.get("version")!=1 or not ObjectClocks.natural(dto.get("serial")) or dto.serial!=_serial+1:
 		_transport_complete=false;_lifetime_complete=false;_taint("Clock protocol serial/schema gap.");return unavailable(_failure)
@@ -273,22 +214,7 @@ func receive_clock(dto: Dictionary)->Dictionary:
 		_lifetime_complete=event.get("constructionHistoryComplete")==true
 		return {"ready":true,"clockHistoryComplete":_clock_complete,"processReconstructed":false}
 	if _serial==1:_transport_complete=false;_taint("Native clock begin was not received.")
-	return _receive_admitted_event(event)
-func receive_direct_event(event: Dictionary,source_connection: int)->Dictionary:
-	if not _constructed or not _direct_connection or _connection!=source_connection or _phase!="receive":return unavailable("Direct clock fact has no current receive owner.")
-	# The accepted calendar signal carries applied changes. The wire decoder
-	# has already checked its mask, and this boundary does not reset a clock.
-	if event.get("type")=="module-time":return {"ready":true,"clockReset":false}
-	if event.get("type")=="controlled-actor":return publish_owner_facts({"controlledId":event.get("objectId")})
-	if event.get("type")=="accepted-lifecycle" and _lifecycle_fields(event).is_empty():
-		return _receive_admitted_event({"type":"history-gap","cause":"invalid-lifecycle-fact"})
-	return _receive_admitted_event(event)
-func _receive_admitted_event(event: Dictionary)->Dictionary:
-	var type: Variant=event.get("type")
-	if type=="history-gap":
-		_transport_complete=false;_lifetime_complete=false
-		_taint("Direct clock history gap: "+str(event.get("cause","source-unknown")) if _direct_connection else "Explicit native clock history gap.")
-		return unavailable(_failure)
+	if type=="history-gap":_transport_complete=false;_lifetime_complete=false;_taint("Explicit native clock history gap.");return unavailable(_failure)
 	if type=="module-info":
 		if not ObjectClocks.natural(event.get("minutesPerHour"),255):_taint("Module rate BYTE is unavailable.");return unavailable(_failure)
 		return _clock_call(_timers.world,"set_minutes_per_hour",[event.minutesPerHour])
@@ -468,7 +394,7 @@ func cleanup_connection()->Dictionary:
 	if not first.ready:_phase="cleanup-partial";return unavailable("Mask2 cleanup is partial/unavailable; connection is retained.",true)
 	var second:=_apply_pause(1,0,null)
 	if not second.ready:_phase="cleanup-partial";return unavailable("Mask1 cleanup is partial/unavailable; connection is retained.",true)
-	_objects.close();_scope=[];_resets=[];_connection=-1;_serial=0;_transport_complete=false;_lifetime_complete=false;_direct_connection=false;_phase="receive" if receive_open else "idle";_gui_result={};_physical_refs={};_unavailable_ids={};_cleanup_origin_phase="";_server_pause.reset()
+	_objects.close();_scope=[];_resets=[];_connection=-1;_serial=0;_transport_complete=false;_lifetime_complete=false;_phase="receive" if receive_open else "idle";_gui_result={};_physical_refs={};_unavailable_ids={};_cleanup_origin_phase=""
 	return {"ready":true,"order":[2,1],"timersRetired":false,"clockHistoryComplete":_clock_complete,"receivePhasePreserved":receive_open}
 func state_view()->Dictionary:
 	var clocks: Dictionary={}
@@ -479,7 +405,7 @@ func destroy_process()->Dictionary:
 	for clock in _timers.values():clock.close()
 	if _pause!=null:_pause.close()
 	if _objects!=null:_objects.close()
-	_timers.clear();_lower.clear();_scope=[];_resets=[];_physical_refs={};_unavailable_ids={};_constructed=false;_construction_known=false;_clock_complete=false;_phase="idle";_server_pause.reset()
+	_timers.clear();_lower.clear();_scope=[];_resets=[];_physical_refs={};_unavailable_ids={};_constructed=false;_construction_known=false;_clock_complete=false;_phase="idle"
 	return {"ready":true}
 func release_process(fact: Dictionary)->Dictionary:
 	if fact.get("processExiting")!=true:return unavailable("Final process resource release requires explicit processExiting:true.")

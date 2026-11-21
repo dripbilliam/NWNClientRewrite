@@ -1,0 +1,28 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict'),{spawnSync}=require('node:child_process');
+const root=path.resolve(__dirname,'../..'),stage=path.join(root,'.cache/nwn62/small-recipe-h');
+const out=path.join(stage,'correctness-c');assert(!fs.existsSync(out));fs.mkdirSync(path.join(out,'user'),{recursive:true});
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const hTemplate=path.join(stage,'systems/native_render/model_template.gd');
+const hRecipe=path.join(stage,'systems/native_render/native_model_recipe.gd');
+const fTemplate=path.join(root,'.cache/nwn62/small-recipe-f/systems/native_render/model_template.gd');
+const fRecipe=path.join(root,'.cache/nwn62/small-recipe-f/systems/native_render/native_model_recipe.gd');
+assert.notEqual(sha(hTemplate),sha(fTemplate));assert.equal(sha(hRecipe),sha(fRecipe));
+let fixture=fs.readFileSync(path.join(root,'.cache/nwn62/small-recipe-f/tail-coverage-f.gd'),'utf8');
+const once=(old,next)=>{assert.equal(fixture.split(old).length,2,old);fixture=fixture.replace(old,next)};
+once('.cache/nwn62/small-recipe-f/systems/native_render/model_template.gd','.cache/nwn62/small-recipe-h/systems/native_render/model_template.gd');
+once('"known-node-recipe" if expect_recipe else "packed-scene"','"hybrid-light-skeleton" if expect_recipe else "packed-scene"');
+once('"pack_us":int(template.staged_diagnostic_phase_max_us.get("packed_scene_pack_us",0))',
+     '"pack_us":int(template.staged_diagnostic_phase_max_us.get("packed_scene_pack_us",0)),"light_leaf_pack_us":int(template.construction_snapshot().get("hybrid_leaf_pack_us",0)),"hybrid_light_count":int(template.construction_snapshot().get("hybrid_light_count",0))');
+const fixtureFile=path.join(stage,'tail-coverage-h-c.gd');fs.writeFileSync(fixtureFile,fixture,{flag:'wx'});
+const engine=path.join(root,'.tools/Godot_v4.7.2-stable_win64.exe'),report=path.join(out,'report.json');
+const install=path.resolve(root,'../../FullDecomp/NwnRootInstall');assert(fs.existsSync(install));
+const args=['--headless','--path',root,'--script','res://.cache/nwn62/small-recipe-h/tail-coverage-h-c.gd','--','--model-template=recipe-small-tail-f','--publication-template-diagnose','--install='+install,'--report='+report];
+const run=spawnSync(engine,args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:90000,maxBuffer:5*1024*1024,env:{...process.env,APPDATA:path.join(out,'user'),LOCALAPPDATA:path.join(out,'user')}});
+fs.writeFileSync(path.join(out,'engine.log'),(run.stdout||'')+(run.stderr||''));
+const value=fs.existsSync(report)?JSON.parse(fs.readFileSync(report,'utf8')):null;
+const rows=(value?.rows||[]).map(row=>({model:row.model,control:row.control,candidate:row.candidate,parity:row.parity}));
+const receipt={issue:'NWN-62',private:true,accepted:false,scope:'Original installed source graph first/clone parity and light-stripped skeleton pack duration; no FPS or full-client timing',fTemplateSha256:sha(fTemplate),hTemplateSha256:sha(hTemplate),recipeSha256:sha(hRecipe),engineSha256:sha(engine),fixtureSha256:sha(fixtureFile),reportSha256:value?sha(report):null,exit:run.status,error:run.error?.message||'',success:run.status===0&&value?.success===true&&value?.rows?.length===10&&rows.every(row=>row.parity?.first_equal===true&&row.parity?.clone_equal===true),checks:value?.checks||0,failures:value?.failures||[],rows};
+fs.writeFileSync(path.join(out,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');
+console.log(JSON.stringify({success:receipt.success,exit:receipt.exit,checks:receipt.checks,failures:receipt.failures,rows:rows.map(row=>({model:row.model,control:row.control?.mode,candidate:row.candidate?.mode,pack_us:row.candidate?.pack_us,leaf_us:row.candidate?.light_leaf_pack_us,leaves:row.candidate?.hybrid_light_count,parity:row.parity?.first_equal&&row.parity?.clone_equal})),logTail:fs.readFileSync(path.join(out,'engine.log'),'utf8').slice(-650)}));
+if(!receipt.success)process.exitCode=1;

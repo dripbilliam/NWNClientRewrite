@@ -8,16 +8,6 @@ const HARD_CANDIDATES:=64
 const HARD_PARTS:=512
 static func native(value: Vector3) -> Array: return [value.x,-value.z,value.y]
 static func engine(value: Array) -> Vector3: return Vector3(value[0],value[2],-value[1])
-static func placement(world: Node,owner: Node3D) -> Dictionary:
-	var result:={"owner_position":Trace.point(owner.global_position,"godot_world")}
-	if not owner.has_meta("world_object_id"):return result
-	var desired: Variant=Trace.property(world,"desired",{})
-	if not desired is Dictionary:return result
-	var object: Dictionary=desired.get(owner.get_meta("world_object_id"),{}).get("object",{})
-	var fixed: Dictionary=object.get("staticState",object.get("lightState",{}))
-	result.static_position=Trace.point(fixed.get("position"),"nwn_world_z_up")
-	result.replicated_position=Trace.point(object.get("replicated",{}).get("position"),"nwn_world_z_up")
-	return result
 static func capture(world: Node,camera: Camera3D,request: Dictionary) -> Dictionary:
 	var result:={"version":1,"status":"unavailable","read_only":true,"kind":"single_cold_published_terrain_ray","errors":[],"truncated":false,"candidate_count":0,"part_count":0,"hit":null}
 	if OS.get_thread_caller_id()!=OS.get_main_thread_id(): result.errors.append("main_thread_required");return result
@@ -29,7 +19,6 @@ static func capture(world: Node,camera: Camera3D,request: Dictionary) -> Diction
 	if not a.available or not b.available:result.errors.append("finite_explicit_world_ray_required");return result
 	var start:=Vector3(a.value[0],a.value[1],a.value[2]);var end:=Vector3(b.value[0],b.value[1],b.value[2])
 	if start==end or start.distance_squared_to(end)>40000.0:result.errors.append("ray_length_must_be_positive_at_most_200");return result
-	var visible_only:=bool(request.get("visible_only",false))
 	var maximum:=clampi(int(request.get("max_candidates",32)),1,HARD_CANDIDATES);var part_maximum:=clampi(int(request.get("max_parts",128)),1,HARD_PARTS)
 	var terrain: Variant=Trace.property(world,"terrain")
 	var indexes: Array=[Trace.property(terrain,"collision_index") if terrain is Object else null,Trace.property(world,"static_collision_index")]
@@ -50,7 +39,6 @@ static func capture(world: Node,camera: Camera3D,request: Dictionary) -> Diction
 	if entry_count==0:result.errors.append("published_scene_indexes_empty");return result
 	result.candidate_count=candidates.size();result.truncated=candidates.size()>maximum;result.ray={"start":a,"end":b};result.scope={"world_id":str(world.get_instance_id()),"generation":generation,"area_id":area}
 	var limit:=end;var best_distance:=INF
-	var best_owner: Node3D
 	for candidate_index in mini(candidates.size(),maximum):
 		var owner: Variant=candidates[candidate_index]
 		if not owner is Node3D or not is_instance_valid(owner) or not owner.is_inside_tree():continue
@@ -64,7 +52,6 @@ static func capture(world: Node,camera: Camera3D,request: Dictionary) -> Diction
 			if not part is Dictionary:continue
 			var node: Variant=part.get("node");var data: Variant=part.get("data")
 			if not node is Node3D or not is_instance_valid(node) or not node.is_inside_tree() or not data is Object or not is_instance_valid(data) or not data.has_method("nearest"):continue
-			if visible_only and (not node is MeshInstance3D or node.mesh==null or not node.is_visible_in_tree()):continue
 			var transform: Transform3D=node.global_transform
 			if not transform.is_finite() or transform.basis.determinant()==0.0:result.errors.append("part_transform_unsupported");continue
 			var inverse:=transform.affine_inverse()
@@ -76,11 +63,10 @@ static func capture(world: Node,camera: Camera3D,request: Dictionary) -> Diction
 			if not point.available:continue
 			var world_point:=transform*engine(point.value);var distance:=start.distance_squared_to(world_point)
 			if not world_point.is_finite() or distance>=best_distance:continue
-			best_distance=distance;limit=world_point;best_owner=owner
+			best_distance=distance;limit=world_point
 			var facts: Variant=node.get_meta("native_mesh_source") if node.has_meta("native_mesh_source") else null
 			var tile_index: Variant=owner.get_meta("native_tile_index") if owner.has_meta("native_tile_index") else null
 			result.hit={"owner_instance_id":str(owner.get_instance_id()),"object_id":owner.get_meta("world_object_id") if owner.has_meta("world_object_id") else null,"part_instance_id":str(node.get_instance_id()),"tile_index":tile_index if tile_index is int else null,"world_position":Trace.point(world_point,"godot_world"),"source":Provenance.detached(facts) if facts is Dictionary else null,"source_available":facts is Dictionary,"mesh":Trace.mesh_view(node,owner,camera) if node is MeshInstance3D else null,"policy":"published CPU geometry, not native pointer priority or GPU visibility"}
 	if not is_instance_valid(world) or generation!=Trace.property(world,"generation") or area!=Trace.property(world,"area_id"):result.hit=null;result.errors.append("scope_changed_during_observation");return result
-	if is_instance_valid(best_owner):result.hit.placement=placement(world,best_owner)
 	result.status="truncated" if result.truncated else "complete" if result.errors.is_empty() else "partial"
 	return result

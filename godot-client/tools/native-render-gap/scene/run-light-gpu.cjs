@@ -1,0 +1,18 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{spawn}=require('node:child_process');
+const project=path.resolve(__dirname,'../../..'),sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const id=process.argv[2];if(!/^[a-z0-9-]+$/.test(id??''))throw Error('Prepared stage required');
+const directory=path.join(project,'.cache/native-render-gap/scene',id),manifestFile=path.join(directory,'manifest.json'),manifest=JSON.parse(fs.readFileSync(manifestFile));
+if(manifest.launches!==0||fs.existsSync(path.join(directory,'gpu-process.json')))throw Error('Stage already launched; preserve outcome');
+for(const r of manifest.copies)if(sha(fs.readFileSync(path.join(manifest.renderer,r.relative)))!==r.sha256)throw Error('Prepared copy changed');
+const engine=path.join(project,'.cache/native-render-gap/engine/build-1794129649064/godot.windows.template_release.x86_64.exe');
+if(sha(fs.readFileSync(engine))!=='fa5151fdda9a0c6a62802a150fa459406ddc885c8084a7b6df343e4a63f3bbe0')throw Error('Current common engine changed');
+const args=['--windowed','--audio-driver','Dummy','--path',manifest.renderer,'--log-file',path.join(directory,'gpu.engine.log'),'--script','res://tests/light_gpu.gd','--',`--report=${path.join(directory,'gpu.native.json')}`];
+const privateData=path.join(directory,'owned-appdata'),privateCache=path.join(directory,'owned-localappdata');
+fs.mkdirSync(privateData,{recursive:true});fs.mkdirSync(privateCache,{recursive:true});
+const startedAtUtc=new Date().toISOString();const child=spawn(engine,args,{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,APPDATA:privateData,LOCALAPPDATA:privateCache}});
+const processRecord={pid:child.pid,startedAtUtc,engine,engineSha256:sha(fs.readFileSync(engine)),command:[engine,...args],privateData,privateCache,manifestSha256:sha(fs.readFileSync(manifestFile)),gpu:true,fps:false};
+fs.writeFileSync(path.join(directory,'gpu-process.json'),JSON.stringify(processRecord,null,2),{flag:'wx'});
+console.log(JSON.stringify({started:true,pid:child.pid,directory}));
+let stdout='',stderr='',timedOut=false;child.stdout.on('data',x=>stdout+=x);child.stderr.on('data',x=>stderr+=x);
+const timer=setTimeout(()=>{timedOut=true;child.kill();},60000);
+child.on('close',(code,signal)=>{clearTimeout(timer);fs.writeFileSync(path.join(directory,'gpu.stdout.log'),stdout,{flag:'wx'});fs.writeFileSync(path.join(directory,'gpu.stderr.log'),stderr,{flag:'wx'});const reportFile=path.join(directory,'gpu.native.json');const report=fs.existsSync(reportFile)?JSON.parse(fs.readFileSync(reportFile)):null;const merged=stdout+'\n'+stderr;const ca=/ERROR: Failed to read the root certificate store\.\r?\n\s+at: get_system_ca_certificates \(platform\/windows\/os_windows\.cpp:2582\)/g;const errorsClean=!/SCRIPT ERROR|ERROR:|leaked|still in use|crash/i.test(merged.replace(ca,''));const changed=manifest.copies.filter(r=>sha(fs.readFileSync(path.join(manifest.renderer,r.relative)))!==r.sha256).map(r=>r.relative);const receipt={success:code===0&&report?.success===true&&!timedOut&&errorsClean&&!changed.length,finishedAtUtc:new Date().toISOString(),code,signal,timedOut,process:processRecord,errorsClean,changed,report,scope:'Current-engine GPU component validity only; no FPS or full-world native-material claim'};fs.writeFileSync(path.join(directory,'gpu.receipt.json'),JSON.stringify(receipt,null,2),{flag:'wx'});console.log(JSON.stringify({finished:true,pid:child.pid,success:receipt.success,code,checks:report?.checks,failures:report?.failures,errorsClean,changed},null,2));process.exitCode=receipt.success?0:1;});

@@ -6,6 +6,7 @@ const Accounting=preload("res://systems/native_data/resource_index_backend.gd")
 var mutex:=Mutex.new()
 var epoch:=0
 var maximum_bytes:=256*1024*1024
+var maximum_entries:=512
 var entries: Dictionary={}
 var requests: Dictionary={}
 var order: Array=[]
@@ -16,18 +17,11 @@ var evictions:=0
 var flights: Dictionary={}
 var coalesced:=0
 var accounting:={"native":0,"serialized":0,"hinted":0,"usec":0,"shared_storage":0,"bounded":0}
-func touch_locked(identity: String) -> void:
-	# A successful read refreshes the retained entry, as in the original
-	# prepared-model memory cache. Caller holds mutex.
-	var previous:=order.find(identity)
-	if previous>=0:order.remove_at(previous)
-	order.append(identity)
 func begin_data(request: String,expected: int,private_graph: bool=true) -> Dictionary:
 	var flight_key:=str(expected)+":"+request
 	mutex.lock()
 	if expected==epoch and requests.has(request) and entries.has(requests[request]):
-		var identity: String=requests[request]
-		var saved: Dictionary=entries[identity].value; hits+=1; touch_locked(identity); mutex.unlock()
+		var saved: Dictionary=entries[requests[request]].value; hits+=1; mutex.unlock()
 		return {"owner":false,"value":saved.duplicate(true) if private_graph else saved,"wait_us":0}
 	if not flights.has(flight_key):
 		flights[flight_key]={"wake":Semaphore.new(),"waiters":0,"value":{}}
@@ -60,8 +54,7 @@ func clear() -> void:
 func load_data(request: String,expected: int) -> Dictionary:
 	mutex.lock()
 	if expected!=epoch or not requests.has(request) or not entries.has(requests[request]): misses+=1; mutex.unlock(); return {}
-	var identity: String=requests[request]
-	var value: Dictionary=entries[identity].value; hits+=1; touch_locked(identity); mutex.unlock()
+	var value: Dictionary=entries[requests[request]].value; hits+=1; mutex.unlock()
 	return value.duplicate(true)
 func save_data(request: String,identity: String,value: Dictionary,expected: int,size_hint: int=-1,retain_immutable: bool=false) -> void:
 	var began:=Time.get_ticks_usec(); var cost:=Accounting.retained_cost(value,maximum_bytes) if size_hint<0 else {}
@@ -75,12 +68,11 @@ func save_data(request: String,identity: String,value: Dictionary,expected: int,
 	mutex.lock()
 	if epoch!=expected: mutex.unlock(); return
 	if not entries.has(identity):
-		while not order.is_empty() and bytes+size>maximum_bytes:
+		while not order.is_empty() and (bytes+size>maximum_bytes or entries.size()>=maximum_entries):
 			var old: String=order.pop_front(); bytes-=int(entries[old].bytes); detached.append(entries[old]); entries.erase(old); evictions+=1
 			for key in requests.keys():
 				if requests[key]==old: requests.erase(key)
 		entries[identity]={"value":copy,"bytes":size}; order.append(identity); bytes+=size
-	else:touch_locked(identity)
 	requests[request]=identity; mutex.unlock()
 	detached.clear() # Worker-owned data disposal, outside the presentation lock.
 func snapshot() -> Dictionary:

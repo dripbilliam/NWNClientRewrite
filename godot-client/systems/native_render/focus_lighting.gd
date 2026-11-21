@@ -1,12 +1,12 @@
 extends Node
-# Last rendered-frame CPU illumination and the default renderer light admission.
-# Native binary light history remains a separate selected mode.
+# Last rendered-frame CPU illumination, requested only by gated visual programs.
+# Native arithmetic is independently verified. Original main-world sphere
+# collection/history is a separate research candidate; static BSP baking and
+# special view-volume policy remain open. No race-based or global boost.
 const Sample=preload("res://systems/native_render/focus_light_sample.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const InputRegistry=preload("res://systems/native_render/native_light_input_registry.gd")
-const DEFAULT_MAXIMUM:=32 # Native-binary history setting; JS renderer admission below uses 128.
-const RENDERER_MAXIMUM:=128
-const LightPriority=preload("res://systems/native_data/light_priority.gd")
+const DEFAULT_MAXIMUM:=32 # Original graphics.lighting.max-lights default, not its128-slot storage capacity.
 var world: Node3D
 var members: Dictionary={}
 var gate:=Sample.new()
@@ -28,10 +28,6 @@ var history_camera: WeakRef
 var history_environment: WeakRef
 var history_result: Dictionary={}
 var history_rows: Dictionary={}
-var history_row_ids:=PackedInt64Array()
-var history_scan_ids:=PackedInt64Array()
-var history_row_order_reuses:=0
-var history_row_order_rebuilds:=0
 var history_peak_ms:=0.0
 var history_error:=""
 var history_static_fallbacks:=0
@@ -44,8 +40,6 @@ var history_draw_ids: Dictionary={}
 var history_static_ids: Dictionary={}
 var history_publication_owner: Variant=null
 var member_order_serial:=0
-var renderer_managed: Dictionary={}
-var renderer_result: Dictionary={}
 var _input_registry
 func _init() -> void:
 	configure_input_registry(OS.get_cmdline_user_args())
@@ -90,12 +84,11 @@ static func maximum_setting(arguments: PackedStringArray) -> Dictionary:
 func enable_history(maximum: int=DEFAULT_MAXIMUM) -> void:
 	if closed or history!=null: return
 	if _input_registry.effective=="unavailable":history_error=_input_registry.failure;return
-	_restore_renderer_admission()
 	if _input_registry.effective=="builtin":
 		var reset: Dictionary=_input_registry.reset_publications()
 		if reset.has("error"):_input_registry_failure(str(reset.error));return
 	history=ClassDB.instantiate("NwnLightHistory"); history_maximum=clampi(maximum,0,128)
-	history_rows.clear(); history_row_ids.clear(); history_scan_ids.clear()
+	history_rows.clear()
 	history.dispatch(0,{"enhanced":true})
 func disable_history() -> void:
 	blind_light_owner=null
@@ -107,92 +100,11 @@ func disable_history() -> void:
 	if is_instance_valid(environment) and not area.is_empty():
 		var policy=preload("res://systems/native_render/native_light_policy.gd")
 		environment.apply_native_area_light(policy.linear_rgb(area.ambient.color),policy.linear_rgb(area.diffuse.color))
-	history_rows.clear(); history_row_ids.clear(); history_scan_ids.clear(); history_result.clear()
+	history_rows.clear(); history_result.clear()
 	history_draw_ids.clear(); history_static_ids.clear(); history_publication_owner=null
-func renderer_admission_frame() -> void:
-	# RendererLightSelection.update restores its previous layer publication first,
-	# then inspects current visibility, camera pose and authored lamp properties.
-	for id in renderer_managed.keys():
-		var state: Dictionary=renderer_managed[id]
-		var light: VisualInstance3D=state.light.get_ref()
-		if not is_instance_valid(light):renderer_managed.erase(id);continue
-		if light.layers==int(state.applied):light.layers=int(state.original)
-		else:state.original=light.layers
-	var camera: Camera3D=history_camera.get_ref() if history_camera!=null else null
-	if not is_instance_valid(camera):_restore_renderer_admission();return
-	var planes: Array=camera.get_frustum()
-	# A convex frustum's farthest point from a lamp is one of its corners.
-	# Include both clipping planes so a Godot OmniLight cannot cut off the
-	# original unbounded quadratic contribution on a rendered fragment.
-	var viewport:=camera.get_viewport().get_visible_rect()
-	var origin:=Vector2(viewport.position)
-	var extent:=Vector2(viewport.size)
-	var camera_hull: Array[Vector3]=[]
-	for depth in [camera.near,camera.far]:
-		for pixel in [origin,origin+Vector2(extent.x,0),origin+extent,origin+Vector2(0,extent.y)]:
-			var corner: Vector3=camera.project_position(pixel,maxf(float(depth),0.001))
-			if corner.is_finite():camera_hull.append(corner)
-	var target: Vector3=focus if focus.is_finite() else camera.global_position
-	var native_focus: Array=native_point(target)
-	var candidates: Array=[];var seen: Dictionary={};var total:=0;var outside:=0;var disabled:=0
-	var ordered: Array=members.keys()
-	# RendererLightSelection receives Three scene.traverseVisible order. A
-	# retained member can be reparented after registration, so source ties use
-	# its current physical hierarchy order rather than registration serial.
-	ordered.sort_custom(func(a,b):
-		var left=members[a].light.get_ref();var right=members[b].light.get_ref()
-		if not is_instance_valid(left) or not left.is_inside_tree():return false if is_instance_valid(right) and right.is_inside_tree() else int(members[a].publication_order)<int(members[b].publication_order)
-		if not is_instance_valid(right) or not right.is_inside_tree():return true
-		return left.is_greater_than(right))
-	for id in ordered:
-		var entry: Dictionary=members[id];var light: VisualInstance3D=entry.light.get_ref()
-		if not is_instance_valid(light) or not light.is_inside_tree():continue
-		if light.get_parent() is Node3D and not light.get_parent().is_visible_in_tree():continue
-		if not light.is_visible_in_tree() or (light.layers&camera.cull_mask)==0:continue
-		var properties: Dictionary=light.get_meta("native_model_light_properties",{})
-		if properties.is_empty():continue
-		total+=1;seen[id]=true
-		if not renderer_managed.has(id):renderer_managed[id]={"light":weakref(light),"original":light.layers,"applied":light.layers}
-		var position: Vector3=light.global_position
-		var colour: Array=properties.get("color",[1,1,1])
-		var multiplier:=float(properties.get("multiplier",1));var radius:=LightPriority.f(float(properties.get("radius",0)))
-		if radius<1000:radius=LightPriority.f(radius*LightPriority.f(multiplier))
-		var admitted:=radius>0 and multiplier>0 and colour.size()>=3 and (float(colour[0])!=0 or float(colour[1])!=0 or float(colour[2])!=0)
-		if not admitted:disabled+=1
-		elif radius<1000:
-			for plane: Plane in planes:
-				if plane.distance_to(position)>radius:admitted=false;outside+=1;break
-		if admitted:
-			# RendererLightSelection defaults an absent authored priority to zero.
-			# The separate native shadow-budget owner keeps its own default.
-			var score: Dictionary=LightPriority.rank(properties,native_point(position),native_focus,int(light.get_meta("native_light_priority",0)),false,0)
-			candidates.append({"id":id,"light":light,"priority":float(score.priority),"order":candidates.size()})
-		else:
-			light.layers=0
-			var state: Dictionary=renderer_managed[id];state.applied=0
-	candidates.sort_custom(func(a,b):return a.priority<b.priority if a.priority!=b.priority else a.order<b.order)
-	for index in candidates.size():
-		var row: Dictionary=candidates[index];var state: Dictionary=renderer_managed[row.id]
-		if index<RENDERER_MAXIMUM and row.light.has_method("cover_camera_extent"):
-			var reach:=0.0
-			for corner in camera_hull:reach=maxf(reach,row.light.global_position.distance_to(corner))
-			row.light.cover_camera_extent(reach)
-		row.light.layers=int(state.original) if index<RENDERER_MAXIMUM else 0
-		state.applied=row.light.layers
-	for id in renderer_managed.keys():
-		if seen.has(id):continue
-		var state: Dictionary=renderer_managed[id];var light: VisualInstance3D=state.light.get_ref()
-		if is_instance_valid(light) and light.layers==int(state.applied):light.layers=int(state.original)
-		renderer_managed.erase(id)
-	renderer_result={"total":total,"eligible":candidates.size(),"admitted":mini(candidates.size(),RENDERER_MAXIMUM),"outside":outside,"disabled":disabled,"limited":maxi(0,candidates.size()-RENDERER_MAXIMUM),"maxLights":RENDERER_MAXIMUM}
-func _restore_renderer_admission() -> void:
-	for state in renderer_managed.values():
-		var light: VisualInstance3D=state.light.get_ref()
-		if is_instance_valid(light) and light.layers==int(state.applied):light.layers=int(state.original)
-	renderer_managed.clear();renderer_result.clear()
 func history_frame(delta: float) -> void:
 	if history==null or closed: return
-	var began:=Time.get_ticks_usec(); var rows: Array=[]; var removed: Array=[]
+	var began:=Time.get_ticks_usec(); var rows: Array=[]; var removed: Array=[]; var next_rows: Dictionary={}
 	var view_began:=Timing.begin()
 	var camera: Camera3D=history_camera.get_ref() if history_camera!=null else null
 	var planes: Array=camera.get_frustum() if is_instance_valid(camera) else []
@@ -212,8 +124,6 @@ func history_frame(delta: float) -> void:
 		Timing.finish("light_history_input_apply_ms",apply_began)
 	else:
 		var collect_began:=Timing.begin()
-		var live_count:=0
-		history_scan_ids.resize(members.size())
 		for id in members.keys():
 			var entry: Dictionary=members[id]; var light: Node3D=entry.light.get_ref()
 			if not is_instance_valid(light): members.erase(id); continue
@@ -250,27 +160,12 @@ func history_frame(delta: float) -> void:
 			if bool(row.in_view)!=in_view: row.in_view=in_view; changed=true
 			# Retain all physical inputs in the native owner. Collection, original
 			# ordering and both fade channels still execute every rendered frame.
-			history_scan_ids[live_count]=int(id)
-			live_count+=1
+			next_rows[id]=row
 			if changed: rows.append(row)
 			else: history_input_reused+=1
-		history_scan_ids.resize(live_count)
-		# The live checks above still run. Retain the ordered registry when its
-		# membership is unchanged, including on frames with property updates.
-		if history_scan_ids==history_row_ids:
-			for row in rows: history_rows[int(row.id)]=row
-			history_row_order_reuses+=1
-		else:
-			var next_rows: Dictionary={}
-			for id in history_scan_ids: next_rows[id]=members[id].history_row
-			for id in history_rows:
-				if not next_rows.has(id): removed.append(id)
-			history_rows=next_rows
-			var spare:=history_row_ids
-			history_row_ids=history_scan_ids
-			history_scan_ids=spare
-			history_row_order_rebuilds+=1
-		history_input_rows+=rows.size()
+		for id in history_rows:
+			if not next_rows.has(id): removed.append(id)
+		history_rows=next_rows; history_input_rows+=rows.size()
 		Timing.finish("light_history_script_collect_ms",collect_began)
 	Timing.finish("light_history_registry",began); var solve_began:=Timing.begin()
 	if not removed.is_empty(): history.dispatch(3,{"ids":removed})
@@ -339,12 +234,8 @@ func register(light: Node3D) -> void:
 	if _input_registry.effective=="builtin":
 		var result: Dictionary=_input_registry.register_light(id,source.get_instance_id() if source!=null and source!=world else 0)
 		if result.has("error"):_input_registry_failure(str(result.error))
-func unregister(light: VisualInstance3D) -> void:
+func unregister(light: Node3D) -> void:
 	var id:=light.get_instance_id()
-	if renderer_managed.has(id):
-		var state: Dictionary=renderer_managed[id]
-		if light.layers==int(state.applied):light.layers=int(state.original)
-		renderer_managed.erase(id)
 	if not closed and _input_registry.effective=="builtin":
 		var result: Dictionary=_input_registry.erase_light(id)
 		if result.has("error"):_input_registry_failure(str(result.error))
@@ -437,17 +328,14 @@ func refresh() -> void:
 	Timing.record("callback_focus_lighting",elapsed); Timing.count("count_focus_sample_lights",sampled_lights)
 func _process(_delta: float) -> void:
 	history_frame(_delta)
-	if history==null and not closed:renderer_admission_frame()
 	if not requested or closed: return
 	requested=false; refresh()
 func snapshot() -> Dictionary:
-	var result: Dictionary={"sample":[value.x,value.y,value.z],"active":gate.active,"samples":samples,"lights":sampled_lights,"excluded":excluded_lights,"registered":members.size(),"only_light_owner":only_light_owner(),"peak_ms":peak_ms,"closed":closed,"history":{"enabled":history!=null,"maximum":history_maximum,"radius":history_radius,"steps":history_result.get("steps",0),"active":history_result.get("active0",[]).size(),"static_fallbacks":history_static_fallbacks,"static_suppressed":history_static_suppressed,"input_rows":history_input_rows,"reused_input_rows":history_input_reused,"row_order_reuses":history_row_order_reuses,"row_order_rebuilds":history_row_order_rebuilds,"view_tests":history_view_tests,"peak_ms":history_peak_ms,"error":history_error},"admission":"Original dynamic sphere collection/priority/fades (research switch); static-only lamps retain baseline pending vertex bake; special view plane pending" if history!=null else "JS renderer visible-model-light/frustum/radius/priority admission with 128 slots"}
-	result.renderer_admission=renderer_result.duplicate(true)
+	var result: Dictionary={"sample":[value.x,value.y,value.z],"active":gate.active,"samples":samples,"lights":sampled_lights,"excluded":excluded_lights,"registered":members.size(),"only_light_owner":only_light_owner(),"peak_ms":peak_ms,"closed":closed,"history":{"enabled":history!=null,"maximum":history_maximum,"radius":history_radius,"steps":history_result.get("steps",0),"active":history_result.get("active0",[]).size(),"static_fallbacks":history_static_fallbacks,"static_suppressed":history_static_suppressed,"input_rows":history_input_rows,"reused_input_rows":history_input_reused,"view_tests":history_view_tests,"peak_ms":history_peak_ms,"error":history_error},"admission":"Original dynamic sphere collection/priority/fades (research switch); static-only lamps retain baseline pending vertex bake; special view plane pending" if history!=null else "Current world lamp registry; original main-world history not selected"}
 	result.light_input_registry=input_registry_snapshot()
 	result.input_registry_class=result.light_input_registry["class"]
 	return result
 func close() -> void:
-	_restore_renderer_admission()
 	_input_registry.close()
 	if history!=null: history.dispatch(8,{}); history=null
 	closed=true; requested=false; members.clear(); controlled=null; blind_light_owner=null; set_process(false)

@@ -1,7 +1,6 @@
 extends Node3D
 # CNWCArea::AddPlaceableObjectLight1407d8ed0 / CNWCPlaceable::LoadLight140870cc0.
 # The area packet's light list is independent of the ordinary static geometry.
-const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const OriginalModel=preload("res://systems/native_render/effect_model.gd")
 const Objects=preload("res://systems/native_render/object_stream.gd")
@@ -48,25 +47,15 @@ func receive_area(lights: Array) -> void:
 		if light is Dictionary and light.has_all(["id","appearance","position"]): next[int(light.id)]=light
 	if next!=area_records: area_records=next.duplicate(true); dirty=true
 func receive(values: Array,deleted: Array=[],full: bool=false) -> void:
-	_receive(values,deleted,full,false)
-func receive_snapshot_delta(values: Array,deleted: Array) -> void:
-	# Canonical snapshot light rows are replaced on receive. Direct callers
-	# can still mutate a submitted row and wake its plan through receive().
-	_receive(values,deleted,false,true)
-func _receive(values: Array,deleted: Array,full: bool,skip_unrelated_deltas: bool) -> void:
 	if closed:return
-	var needs_refresh:=full or not skip_unrelated_deltas
 	if full: objects.clear()
-	for id in deleted:
-		if objects.erase(int(id)):needs_refresh=true
+	for id in deleted: objects.erase(int(id))
 	for object in values:
 		var id:=int(object.get("id",-1))
-		if int(object.get("areaId",-1))==world.area_id and int(object.get("objectType",0))==9 and not object.get("replicationRemoved",false) and object.get("replicated",{}).has("lightOn"):
-			objects[id]=object
-			needs_refresh=true
-		elif objects.erase(id):needs_refresh=true
-	if needs_refresh:dirty=true
-	elif not dirty:FrameProfile.count("count_placeable_light_delta_wakes_avoided",1)
+		if int(object.get("areaId",-1))!=world.area_id or int(object.get("objectType",0))!=9 or object.get("replicationRemoved",false): objects.erase(id); continue
+		if object.get("replicated",{}).has("lightOn"):objects[id]=object
+		else:objects.erase(id)
+	dirty=true
 func instance_ready(_id: int,_source: Dictionary,_instance) -> void: dirty=true
 func instance_removed(id: int) -> void:
 	if instances.has(id): instances[id].detach()
@@ -116,10 +105,9 @@ func install_light(id: int,plan: Dictionary) -> bool:
 	model.set_meta("native_model_name","fx_placeable01"); model.set_meta("native_generated_placeable_id",id)
 	instances[id]=model;created+=1
 	return apply(id,plan)
-func apply(id: int,plan: Dictionary,ready_anchor: Node3D=null) -> bool:
+func apply(id: int,plan: Dictionary) -> bool:
 	var model: Node3D=instances[id]
-	var changed: bool=configurations.get(id,{})!=plan
-	if changed:
+	if configurations.get(id,{})!=plan:
 		var part: Node3D=model.node_for(0,"auroralight01")
 		for light in part.get_children():
 			if not light is OmniLight3D:continue
@@ -132,9 +120,7 @@ func apply(id: int,plan: Dictionary,ready_anchor: Node3D=null) -> bool:
 		# set_part_local_pose uses native [w,x,y,z] quaternion representation.
 		model.set_part_local_pose("root",p,[q.w,q.x,-q.z,q.y])
 		configurations[id]=plan.duplicate(true)
-	# A changed plan can update the model before attachment, so resolve its
-	# anchor afterward. An unchanged plan can reuse the admission lookup.
-	var target:=anchor(id) if plan.dynamic and (changed or not is_instance_valid(ready_anchor)) else ready_anchor
+	var target:=anchor(id) if plan.dynamic else null
 	if is_instance_valid(target):model.attach_to(target)
 	else:
 		model.detach(); model.rotation=Vector3.ZERO; model.position=Vector3(plan.position[0],plan.position[2],-plan.position[1])
@@ -145,23 +131,19 @@ func erase(id: int) -> void:
 func _process(_delta: float) -> void:
 	if closed or not dirty or not requests.is_empty() or not tables.has_all(["placeables","lightcolor"]) or bundle.is_empty():return
 	dirty=false
-	var refresh_began:=FrameProfile.begin()
 	var desired:=plans()
-	FrameProfile.count("count_placeable_light_plan_refreshes",1)
 	for id in instances.keys():
 		if not desired.has(id):erase(id)
 	var began:=Time.get_ticks_usec();var count:=0
 	for id in desired:
 		if failed.has(id):continue
 		var plan: Dictionary=desired[id]
-		var ready_anchor: Node3D=anchor(id) if plan.dynamic else null
-		if plan.dynamic and not is_instance_valid(ready_anchor):
+		if plan.dynamic and not is_instance_valid(anchor(id)):
 			# Keep the area-owned light until the actual body is ready to take it.
 			continue
-		if instances.has(id):apply(id,plan,ready_anchor);continue
+		if instances.has(id):apply(id,plan);continue
 		if count>=8 or Time.get_ticks_usec()-began>=3000:dirty=true;break
 		install_light(id,plan);count+=1
-	FrameProfile.finish("placeable_light_refresh_ms",refresh_began)
 func snapshot() -> Dictionary:
 	var lights: Array=[]
 	for id in instances:

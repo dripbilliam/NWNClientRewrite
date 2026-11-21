@@ -114,10 +114,7 @@ func build() -> void:
 	if closed or layout_ready: return
 	size=definition.size; custom_minimum_size=size; frame.image(definition.resource,definition.main.rect,self)
 	var scale_entry: Dictionary=definition.entries.intlabel
-	# A type-8 scale parent may contain only text/arrow hooks. Its model is
-	# required for layout, but there is no original mesh to rasterize.
-	if bool(scale_entry.get("model",{}).get("drawn",false)):
-		frame.image(str(scale_entry.resource),scale_entry.rect,self)
+	frame.image(str(scale_entry.resource),scale_entry.rect,self)
 	for tag in ["applybutton","okbutton","cancelbutton","xbutton","intupbutton","intdownbutton"]:
 		var button: Button=frame.create_button(definition.entries[tag],self,models); buttons[tag]=button
 		frame.button_caption(button,text_owner.raw({"strRef":int(definition.entries[tag].caption.get("Obj_StrRef",-1))}))
@@ -237,7 +234,7 @@ func cohort_snapshot() -> Dictionary:
 			continue
 		result.images_expected+=1
 		if node.texture!=null: result.images_ready+=1
-		elif frame.art.failed.has(key): result.failures.append("Video image "+key+": "+str(frame.art.models.failed.get(key,"original artwork failed")))
+		elif frame.art.failed.has(key): result.failures.append("Video image "+key+": original artwork failed")
 		else: result.pending.append("image:"+key)
 	for node in find_children("*","Label",true,false):
 		var name:=str(node.get_meta("native_font_resource",""))

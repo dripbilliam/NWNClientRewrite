@@ -221,8 +221,7 @@ func _create_one(row: Dictionary,nodes: Array[Node3D]) -> Node3D:
 		for path in row.fields.reference_paths:paths.append(path)
 		node.reference_paths=paths
 	if row.kind=="mesh":
-		for surface in mini(row.surfaces.size(),node.get_surface_override_material_count()):
-			node.set_surface_override_material(surface,row.surfaces[surface])
+		for surface in row.surfaces.size():node.set_surface_override_material(surface,row.surfaces[surface])
 	# Light configure computes visibility; restore the authored construction
 	# value after its private native-property initialization. Other nodes have
 	# already received any nondefault visibility in the normal field order.

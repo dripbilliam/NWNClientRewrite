@@ -58,7 +58,7 @@ func choose(index: int) -> void:
 func receive(message: Dictionary) -> void:
 	if message.kind == "journal-closed": reset(); return
 	if not wanted or message.kind != "journal-view": return
-	positions[page] = (native_skin.notes_scroll.scroll_vertical if page==2 else native_skin.quest_scroll.scroll_vertical) if is_instance_valid(native_skin) and native_skin.layout_ready else scroll.scroll_vertical
+	positions[page] = native_skin.quest_scroll.scroll_vertical if is_instance_valid(native_skin) and native_skin.layout_ready and page!=2 else scroll.scroll_vertical
 	page = int(message.page); view_id = int(message.viewId); state = message.duplicate(true); remove_meta("native_journal_failure"); clear_body()
 	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render(); present_if_ready(); return
 	for index in tabs.size(): tabs[index].disabled = index == page

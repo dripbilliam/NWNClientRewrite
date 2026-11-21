@@ -1,0 +1,31 @@
+// Fresh, headless CPU source-boundary fixture. No extension/native build,
+// network, render readback, shared project import or production source edits.
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+import {selectClientLaunchEngine,verifyClientLaunchEngine} from '../loading/client_launch_engine.mjs';
+const source=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),root=path.dirname(source),[label,phase]=process.argv.slice(2),sha=raw=>crypto.createHash('sha256').update(raw).digest('hex');
+if(!/^native-camera-boundary-[a-z0-9-]+$/.test(label??'')||!['stage','run'].includes(phase))throw Error('Fresh native-camera-boundary label and stage/run required');
+const folder=path.join(source,'.cache/native-presentation-parity/loading-agent',label),project=path.join(folder,'project'),stageFile=path.join(folder,'stage.json'),test='tools/native_parity/visibility/camera_boundary_test.gd';
+const oracleFile=path.join(source,'.cache/native-presentation-parity/loading-agent/native-collector-oracle-v4/corpus.json'),oracleHash='0787fb0f48d81743adaf79a526b4f44428f36d4063d8a334d99a364cea0c542d';
+if(phase==='stage'){
+ if(fs.existsSync(folder))throw Error('Existing stage/evidence preserved');
+ const engine=selectClientLaunchEngine(source),corpus=fs.readFileSync(oracleFile);if(sha(corpus)!==oracleHash)throw Error('Retained original instruction oracle differs');
+ fs.mkdirSync(project,{recursive:true});const pins=[],seen=new Set(),queue=[test];let bytes=0;
+ const stage=(relative,raw,from)=>{const target=path.join(project,relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,raw,{flag:'wx'});pins.push({relative,source:from,target,sha256:sha(raw),bytes:raw.length});};
+ while(queue.length){const relative=queue.shift();if(seen.has(relative))continue;seen.add(relative);if(relative.includes('..')||seen.size>85)throw Error('Bounded source closure exceeded');const from=path.join(source,relative),raw=fs.readFileSync(from);bytes+=raw.length;if(bytes>2*1024*1024)throw Error('Source closure exceeds2MiB');stage(relative,raw,from);if(relative.endsWith('.gd'))for(const match of raw.toString('utf8').matchAll(/(?:preload|load)\(\s*["']res:\/\/([^"']+)["']\s*\)|extends\s+["']res:\/\/([^"']+)["']/g))queue.push(match[1]??match[2]);}
+ stage('original-corpus.json',corpus,oracleFile);
+ const config='config_version=5\n[application]\nconfig/name="Isolated native camera source boundary"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n';stage('project.godot',Buffer.from(config),null);fs.mkdirSync(path.join(project,'.godot'));fs.writeFileSync(path.join(project,'.godot/global_script_class_cache.cfg'),'list=[]\n',{flag:'wx'});
+ const auditPaths=['native_live_world.gd','native_session_world.gd','systems/native_render/live_world.gd','systems/area_environment.gd','tools/native_parity/ui/camera_fov_binding.gd','tools/native_parity/visibility/evidence/native-tile-fog-math-and-inputs-v1.json','tools/native_parity/visibility/capture_bsp_collector_oracle.py'];
+ const engineSource='.cache/native-140fps/render-agent/engine-font-atlas-ownership-v1/source/';auditPaths.push(...['scene/3d/camera_3d.cpp','scene/3d/node_3d.cpp','scene/main/viewport.cpp','scene/main/scene_tree.cpp','servers/rendering/renderer_viewport.cpp','servers/rendering/renderer_scene_cull.cpp'].map(p=>engineSource+p));
+ const auditPins=auditPaths.map(relative=>({relative,file:path.join(source,relative),sha256:sha(fs.readFileSync(path.join(source,relative)))}));
+ fs.writeFileSync(stageFile,JSON.stringify({label,project,test,engine,pins,auditPins,bytes,serverConnections:0,gpuDraws:0,nativeBuilds:0,extensions:0,productionHooks:0},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({staged:true,folder,pins:pins.length,auditPins:auditPins.length,bytes}));process.exit(0);
+}
+const stage=JSON.parse(fs.readFileSync(stageFile)),report=path.join(folder,'result.json'),receipt=path.join(folder,'run.json');if(fs.existsSync(receipt)||fs.existsSync(report))throw Error('Existing receipt preserved');verifyClientLaunchEngine(stage.engine);
+const changed=()=>stage.pins.filter(p=>sha(fs.readFileSync(p.target))!==p.sha256||p.source&&sha(fs.readFileSync(p.source))!==p.sha256).map(p=>p.relative);
+const auditChanged=()=>stage.auditPins.filter(p=>sha(fs.readFileSync(p.file))!==p.sha256).map(p=>p.relative);
+if(changed().length||auditChanged().length)throw Error('Staged/live source or read-only audit pin differs');
+const home=path.join(folder,'userdata');fs.mkdirSync(home);const started=new Date().toISOString(),args=['--headless','--log-file',path.join(folder,'engine.log'),'--path',project,'--script','res://'+test,'--','--report='+report,'--oracle='+path.join(project,'original-corpus.json')];
+const child=spawnSync(stage.engine.path,args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:30000,maxBuffer:2*1024*1024,env:{...process.env,APPDATA:home,LOCALAPPDATA:home}}),stdout=child.stdout??'',stderr=child.stderr??'';fs.writeFileSync(path.join(folder,'stdout.log'),stdout,{flag:'wx'});fs.writeFileSync(path.join(folder,'stderr.log'),stderr,{flag:'wx'});
+const errors=(stdout+'\n'+stderr).split(/\r?\n/).filter(line=>/SCRIPT ERROR|^ERROR:|Parse Error|ObjectDB instances (?:were )?leaked|resources still in use|Invalid call/.test(line));let result=null;try{result=JSON.parse(fs.readFileSync(report));}catch{}
+const sourceChanged=changed(),auditSourceChanged=auditChanged(),success=child.status===0&&!child.error&&!errors.length&&result?.success===true&&!sourceChanged.length&&!auditSourceChanged.length;
+fs.writeFileSync(receipt,JSON.stringify({success,started,finished:new Date().toISOString(),exit:child.status,error:child.error?.message??null,errors,result,sourceChanged,auditSourceChanged,stage:{file:stageFile,sha256:sha(fs.readFileSync(stageFile))},engine:stage.engine,serverConnections:0,gpuDraws:0,nativeBuilds:0,extensions:0,productionHooks:0},null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({success,checks:result?.checks,failures:result?.failures,errors,exit:child.status,error:child.error?.message??null,sourceChanged,auditSourceChanged,receipt}));process.exit(success?0:1);

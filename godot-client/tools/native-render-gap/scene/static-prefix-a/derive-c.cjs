@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+let core=fs.readFileSync(path.join(__dirname,'coarse_prefix.hpp'),'utf8');
+core=core.replace('magnitude*0.000003814697265625','magnitude*0x1.fffffffffd1e2p-19');
+core=core.replace('// All fields are current-call values supplied by a future validated adapter.','// All fields are current-call values supplied by a future validated adapter.\n// Margin preserves actual Godot4.7.2 parsed literal bits3ecfffffffffd1e2;\n// C++ decimal spelling would round to a different value. Pin this compiler observation.');
+fs.writeFileSync(path.join(__dirname,'coarse_prefix_c.hpp'),core,{flag:'wx'});
+fs.writeFileSync(path.join(__dirname,'oracle_c.cpp'),fs.readFileSync(path.join(__dirname,'oracle_main.cpp'),'utf8').replace('"coarse_prefix.hpp"','"coarse_prefix_c.hpp"'),{flag:'wx'});
+let prepare=fs.readFileSync(path.join(__dirname,'prepare-b.cjs'),'utf8').replace('scene/static-prefix-core-b','scene/static-prefix-core-c').replace("'coarse_prefix.hpp','oracle_main.cpp','prepare-b.cjs'","'coarse_prefix_c.hpp','oracle_c.cpp','prepare-c.cjs'");
+prepare=prepare.replace('JSON.stringify({"version":1,"cases":results})','JSON.stringify({"version":1,"margin_bits":double_bits(0.000003814697265625),"cases":results})');
+prepare=prepare.replace("const manifest={version:1,","fs.copyFileSync(path.join(project,'.cache/native-render-gap/scene/light-segment-functional-a/project/fixture-ca.crt'),path.join(out,'project/fixture-ca.crt'));fs.writeFileSync(path.join(out,'project/override.cfg'),'[network]\\ntls/certificate_bundle_override=\"res://fixture-ca.crt\"\\n');\nconst manifest={version:1,");
+prepare=prepare.replace("path.join(out,'labels.json')].map(file","path.join(out,'labels.json'),path.join(out,'project/fixture-ca.crt'),path.join(out,'project/override.cfg')].map(file");
+fs.writeFileSync(path.join(__dirname,'prepare-c.cjs'),prepare,{flag:'wx'});
+fs.writeFileSync(path.join(__dirname,'compare-c.cjs'),fs.readFileSync(path.join(__dirname,'compare.cjs'),'utf8').replace('scene/static-prefix-core-b','scene/static-prefix-core-c').replace("const result={version:1,","assert.equal(godot.margin_bits,'e2d1ffffffffcf3e');\nconst result={version:1,"),{flag:'wx'});

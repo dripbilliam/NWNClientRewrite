@@ -1,0 +1,34 @@
+// Derived evidence only; no production edit, binary process, network or key.
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const relative='godot-client/reports/native-cached-warlock-voice-initialization-original-v1.json';
+const target=path.join(root,relative);assert.ok(!fs.existsSync(target),'Preserve previous evidence');
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const source={};
+function read(file){const bytes=fs.readFileSync(path.join(root,file));source[file]=sha(bytes);return JSON.parse(bytes);}
+const info=read('godot-client/reports/native-creation-voice-caption-original-v1.json');
+const getter=read('godot-client/reports/native-package-integer-followup-v1.json');
+const fixture=read('godot-client/.cache/cached-warlock-creation/cached-arelith-warlock-tail-v2/fixture.json');
+const run=read('godot-client/.cache/cached-warlock-complete/cached-warlock-complete-v2/runner.json');
+const init=info.rows.informationInitializer;
+assert.equal(init.procedure.address,'0x1408ecc60');
+assert.equal(info.binarySha256,getter.binarySha256);
+assert.ok(getter.pseudocode.includes('*param_3 = 0;'));
+const begin=init.assembly.findIndex(row=>row.startsWith('0x1408ed036:'));
+const end=init.assembly.findIndex(row=>row.startsWith('0x1408ed076:'));
+assert.ok(begin>=0&&end>begin);
+const assembly=init.assembly.slice(begin,end);
+assert.ok(assembly.some(row=>row==='0x1408ed043: CALL 0x1401a7010'));
+assert.ok(!assembly.some(row=>/TEST|CMP|JZ|JNZ/.test(row)));
+const packages=fixture.packages.map(row=>({physicalId:row.physicalId,Soundset:row[Object.keys(row).find(key=>key.toLowerCase()==='soundset')],Associate:row.Associate,PlayerClass:row.PlayerClass}));
+assert.deepEqual(packages.map(row=>row.physicalId),[149,310,311,312,313,314]);
+assert.ok(packages.every(row=>row.Soundset==='****'));
+const at=init.pseudocode.indexOf('C2DA::GetINTEntry');assert.ok(at>=0);
+source['scripts/record-cached-warlock-voice-gap.mjs']=sha(fs.readFileSync(fileURLToPath(import.meta.url)));
+const report={binarySha256:info.binarySha256,scope:'Exact cached Warlock package Soundset missing cells and original Info initializer consuming the failed integer getter output. No guessed fallback or production mutation.',sources:source,manifest:fixture.manifest,packages,observed:{case:'cached-warlock-complete-v2',accepted:run.success,checks:run.checks,cleanEngine:run.cleanEngine,blocker:"The package's initial native voice index is unavailable."},original:{initializer:init.procedure,assembly,pseudocode:init.pseudocode.slice(Math.max(0,at-450),at+600),getter:{procedure:getter.procedure,pseudocode:getter.pseudocode},semantics:'GetINTEntry writes output0 and returns0 for a zero-length/missing literal cell. Info ignores that BOOL, forwards the output local to SelectTab, then to 8e7110. SelectTab uses a visible index; callback maps metadata WORD to physical soundset ID.'},proposal:{owner:'entity_api',file:'godot-client/systems/native_data/creation_tail_provider.gd',method:'character_info',change:'Require index.ready, consume index.value regardless of index.ok, retaining existing filtered visible-index mapping. Do not inject a soundset physical ID.',preserve:['Unresolved/malformed conversion remains unavailable (ready=false).','Positive out-of-range visible index remains explicitly unavailable.','Existing negative-index and empty-voice-list handling stays separate.','No changes to draft, voice samples, table publication or other getters.']},productionEdited:false,networkConnections:0,protectedProfilesRead:0};
+fs.writeFileSync(target,JSON.stringify(report,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({report:relative,sha256:sha(fs.readFileSync(target)),packages:packages.length,initializer:init.procedure.address,assemblyRange:['0x1408ed036','0x1408ed071'],productionEdited:false}));

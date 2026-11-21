@@ -109,9 +109,7 @@ struct Bridge final:Services {
  V3 camera()override{return ctx->camera?*ctx->camera:values<3>(invoke(providers,"cameraPosition"));}
  double cosine(double angle)override{return invoke(providers,"cosineDouble",{Var::number(angle)}).number();}
  V3 wind(const V3& position,float delta)override{return scene_wind::owner(ctx->wind_token).sample(position,delta);}
-  // ModelParticlePresentation supplies a no-op clearHit callback. A successful
-  // collision replaces the normal before movement reads it; a miss skips it.
-  void clear_hit()override{}
+ void clear_hit()override{set(hit,particle_field::normal,array(V3{}));}
  bool collide(Particle* part,const V3& start,V3& end,V3& normal)override{
   if(chunk){invoke(providers,"resetIgnoredHits",{hit});const auto found=extras->find(part);if(found!=extras->end()&&!found->second.child.nil())invoke(providers,"addIgnoredHit",{hit,found->second.child});}
   if(ctx->direct_scene){using Clock=std::chrono::steady_clock;const auto began=ctx->profile?Clock::now():Clock::time_point{};bool found=false;
@@ -131,7 +129,7 @@ struct Bridge final:Services {
  void destroyed(Particle* part,int flag)override{auto found=extras->find(part);if(found!=extras->end()){if(!found->second.child.nil())invoke(providers,"destroyChunkModel",{found->second.child,Var::integer(flag)});extras->erase(found);}}
 };
 void import_pool(Pool& out,std::unordered_map<Particle*,Bridge::Extra>& extras,const Var& state){
- for(const auto name:{particle_field::active188,particle_field::free130}){const bool active=name.index==particle_field::active188.index;const auto owner=get(state,name),records=get(owner,particle_field::records);auto& target=active?out.active:out.free;auto& capacity=active?out.active_capacity:out.free_capacity;capacity=i(owner,particle_field::capacity);if(capacity<0||capacity>2147483647)throw std::runtime_error("Invalid compact imported particle capacity");target.reserve(static_cast<size_t>(capacity));
+ for(const auto name:{particle_field::active188,particle_field::free130}){const bool active=name.index==particle_field::active188.index;const auto owner=get(state,name),records=get(owner,particle_field::records);auto& target=active?out.active:out.free;auto& capacity=active?out.active_capacity:out.free_capacity;capacity=i(owner,particle_field::capacity);if(capacity<0||capacity>32768)throw std::runtime_error("Invalid compact imported particle capacity");target.reserve(static_cast<size_t>(capacity));
   for(int64_t n=0;n<size(records);++n){auto record=at(records,n);auto part=out.create();*part=particle_from(record);target.push_back(part);auto native=field_value(record,"nativeChunky"),child=field_value(record,"chunk78");if(native||child){auto& extra=extras[part];extra.native_chunk=native&&native->boolean();if(child)extra.child=*child;} }
  }
 }

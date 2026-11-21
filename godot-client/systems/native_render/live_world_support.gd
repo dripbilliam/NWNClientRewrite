@@ -75,10 +75,7 @@ func receive_delta(objects: Array,removed: Array,controlled: int) -> void:
 	_support_writer_depth+=1
 	client_support_revision+=1
 	super.receive_delta(objects,removed,controlled)
-	if is_instance_valid(effects):
-		var perception_began:=FrameProfile.begin()
-		effects.observe_perception(objects,controlled)
-		FrameProfile.finish("snapshot_delta_perception_ms",perception_began)
+	if is_instance_valid(effects):effects.observe_perception(objects,controlled)
 	client_support_revision+=1
 	_support_writer_depth-=1
 

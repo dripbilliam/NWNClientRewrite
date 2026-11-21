@@ -29,13 +29,13 @@ static func acquire(owner: Node) -> int:
 	ensure()
 	if free_slots.is_empty():
 		overflows+=1
-		if overflows==1: push_warning("Native enhanced light palette capacity exceeded; suppressing unencoded lamp")
+		if overflows==1: push_warning("Native enhanced light palette capacity exceeded; retaining Godot fallback light")
 		return -1
 	var slot: int=free_slots.pop_back(); active[slot]=weakref(owner); return slot
 static func update(slot: int,position: Vector3,state: Dictionary) -> void:
 	if not active.has(slot): return
 	image.set_pixel(0,slot,Color(position.x,position.y,position.z,maxf(state.range,0.0001)))
-	image.set_pixel(1,slot,Color(float(state.get("render_range",state.inverse)) if state.get("legacy",false) else state.inverse,state.factor,1.0 if state.ambient else 0.0,2.0 if state.get("legacy",false) else 1.0))
+	image.set_pixel(1,slot,Color(state.inverse,state.factor,1.0 if state.ambient else 0.0,1.0))
 	dirty=true; revision+=1
 static func release(slot: int) -> void:
 	if not active.has(slot): return
@@ -74,14 +74,6 @@ vec2 nwn_local_light(float attenuation,float index_value,bool directional){
  if(policy.a<0.5)return vec2(attenuation,0.0);
  vec3 delta=nwn_world_vertex-shape.xyz;
  float q=dot(delta,delta)/(shape.w*shape.w);
-  if(policy.a>1.5){
-   // The original model-light Three adapter replaces distance attenuation
-   // with the legacy quadratic; ambient-only suppresses Lambert's cosine.
-   float render_q=dot(delta,delta)/max(policy.x*policy.x,0.00000001);
-   float envelope=max(1.0-render_q*render_q,0.0);envelope*=envelope;
-   float shadow_factor=clamp(attenuation/max(envelope,0.00000001),0.0,1.0);
-   return vec2(shadow_factor/(1.0+4.5*q),policy.z);
-  }
  if(q>=1.0)return vec2(0.0,policy.z);
  // Godot's range envelope, with distance decay=0. Divide out only this
  // envelope, retaining its shadow factor. Never infer distance from shadows.

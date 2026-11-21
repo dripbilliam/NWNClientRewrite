@@ -1,7 +1,6 @@
 extends CanvasLayer
 signal multiplayer_requested
 signal options_requested
-signal client_settings_requested
 signal exit_requested
 signal disconnect_requested
 signal export_requested
@@ -94,7 +93,7 @@ func configure_pregame(sources: Dictionary,cache_path: String) -> void:
 	pregame.button_sound_requested.connect(play_menu_click)
 	pregame.multiplayer_requested.connect(func():choose("multiplayer"))
 	pregame.exit_requested.connect(func():choose("exit"))
-	pregame.client_settings_requested.connect(func():client_settings_requested.emit())
+	pregame.client_settings_requested.connect(func():options_requested.emit())
 	pregame.source_ready.connect(func(painter,_text,catalog,cache):
 		configure_client_style(painter)
 		configure_menu_audio(catalog,cache))

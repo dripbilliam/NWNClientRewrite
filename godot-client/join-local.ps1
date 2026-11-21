@@ -1,46 +1,5 @@
 param([switch]$WeatherSmoke, [switch]$PortalRegionSmoke, [switch]$Smoke, [switch]$LifecycleSmoke, [switch]$ContentSmoke, [switch]$TransitionSmoke, [switch]$MovementSmoke, [switch]$TextSmoke, [switch]$RadialSmoke, [switch]$BookSmoke, [switch]$CombatSmoke, [switch]$ParticleSmoke, [switch]$VisualModelSmoke, [switch]$VisualDefinitionSmoke, [switch]$VisualSmoke, [switch]$InventorySmoke, [switch]$ShortcutReconnectSmoke, [switch]$FeedbackSmoke, [switch]$CameraSmoke, [switch]$CameraCommandSmoke, [switch]$NWSyncSmoke, [switch]$NWSyncCancel, [string]$NWSyncFixture='', [switch]$ContainerSmoke, [switch]$StoreSmoke, [switch]$CharacterSmoke, [switch]$LevelSmoke, [switch]$RecordsSmoke, [switch]$NuiSmoke, [switch]$NuiActionSmoke, [switch]$NuiReconnectSmoke, [switch]$NuiSkinSmoke, [switch]$NuiPopupSmoke, [switch]$BuffSmoke, [switch]$PartySmoke, [switch]$SettingsSmoke, [switch]$MenuExitSmoke, [switch]$CreationSmoke, [switch]$BuffPreview, [switch]$AutoPlay, [switch]$Headless, [switch]$NativeVerbose, [int]$PreserveOriginalPid=0, [string]$Report='', [switch]$PointVisualSmoke, [switch]$WorldAudioSmoke)
 $ErrorActionPreference='Stop'
-if($NWSyncSmoke -and -not$NWSyncCancel){
- throw 'The original NWSync success smoke is retired. Run tools/nwn79/run-direct-acceptance-matrix.ps1 -Scenarios nwsync -Run with an isolated output root.'
-}
-if($NWSyncCancel){throw 'The original NWSync Cancel smoke is retired. Use tools/nwn79/run-direct-acceptance-matrix.ps1 -Scenarios nwsync-cancel for the verified visible native wait Cancel.'}
-if($NWSyncFixture){throw 'The original NWSync fixture input is retired; use the Godot-only NWSync acceptance matrix.'}
-# NWN79_GODOT_LOCAL_SMOKE: the pure caller keeps its private-server and graphical presentation contract.
-if($Smoke -and $PSBoundParameters.Count -eq 1){
- $smokeSettings=Join-Path $env:APPDATA 'nwn-model-viewer-research'
- if(-not(Test-Path -LiteralPath $smokeSettings -PathType Container)){throw 'Godot local smoke needs the current imported settings profile'}
- $smokeOutput=Join-Path (Split-Path $PSScriptRoot -Parent) ('.cache/nwn79-local-smoke-entry-'+[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+'-'+[guid]::NewGuid().ToString('N').Substring(0,8))
- & (Join-Path $PSScriptRoot 'tools/nwn79/run-direct-acceptance-matrix.ps1') -Scenarios local-smoke-graphical -SettingsSource $smokeSettings -OutputRoot $smokeOutput -Run
- $smokeSummary=Get-Content -LiteralPath (Join-Path $smokeOutput 'matrix-summary.json') -Raw|ConvertFrom-Json
- if($smokeSummary.allSelectedPassed -ne $true -or $smokeSummary.results.'local-smoke-graphical'.status -ne 'pass'){throw 'Godot local graphical smoke did not pass its movement and presentation receipt'}
- Write-Output ('Godot local graphical smoke PASS: '+(Join-Path $smokeOutput 'matrix-summary.json'))
- return
-}
-# NWN79_GODOT_MENU_EXIT: the pure no-server Exit check uses the actual Godot menu control.
-if($MenuExitSmoke -and -not @($PSBoundParameters.Keys|Where-Object {$_ -notin @('MenuExitSmoke','Report')}).Count){
- $exitName=if($Report){$Report}else{'nwn79-menu-exit-'+[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()+'-'+[guid]::NewGuid().ToString('N').Substring(0,8)+'.json'}
- if($exitName -notmatch '^[a-z0-9-]+\.json$'){throw 'MenuExitSmoke report must be a simple .json filename'}
- $exitReport=Join-Path $PSScriptRoot ('reports/'+$exitName)
- if(Test-Path -LiteralPath $exitReport){throw 'Use a fresh Godot menu Exit report name'}
- $exitScratch=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot ('.cache/nwn79/'+$exitName.Substring(0,$exitName.Length-5))))
- $exitCache=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '.cache/nwn79'))
- if(-not$exitScratch.StartsWith($exitCache+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Menu Exit scratch escaped the private cache'}
- try{
-  foreach($name in @('settings','profile','user-data')){New-Item -ItemType Directory -Path (Join-Path $exitScratch $name) -Force|Out-Null}
-  . (Join-Path $PSScriptRoot 'tools/native-window-screen.ps1')
-  $exitScreen=Get-NativeSecondaryScreen
-  $exitLaunch=@{GraphicalMenuExitCheck=$true;Report=$exitReport;SettingsDirectory=(Join-Path $exitScratch 'settings');Profile=(Join-Path $exitScratch 'profile');UserDataDirectory=(Join-Path $exitScratch 'user-data')}
-  if($exitScreen -ge 0){$exitLaunch.UseScreen=$true;$exitLaunch.Screen=$exitScreen}
-  & (Join-Path $PSScriptRoot 'join-godot.ps1') @exitLaunch
-  $exitReceipt=Get-Content -LiteralPath $exitReport -Raw|ConvertFrom-Json
-  $exitState=$exitReceipt.direct_menu_exit_check
-  if($exitReceipt.success -ne $true -or $exitReceipt.clean_exit -ne $true -or $exitReceipt.protocol_finish_ack -ne $true -or $exitState.success -ne $true -or $exitState.resource -ne 'pre_main' -or $exitState.control -ne 'exitbutton' -or $exitState.via -ne 'pressed-signal' -or $exitState.world_present -ne $false -or $exitState.connected -ne $false -or $exitReceipt.startup_menu.preload.ready -ne $true){throw 'Godot main-menu Exit receipt failed'}
-  Write-Output ('Godot menu Exit check PASS: '+$exitReport)
- }finally{if(Test-Path -LiteralPath $exitScratch){Remove-Item -LiteralPath $exitScratch -Recurse -Force}}
- return
-}
-$unsupportedLocal=@($PSBoundParameters.Keys|Where-Object {$_ -notin @('Headless','NativeVerbose','PreserveOriginalPid')})
-if($unsupportedLocal.Count){throw ('Original-host local diagnostic flags are retired: '+($unsupportedLocal -join ', ')+'. Use the Godot/PowerShell NWN-79 fixtures for supported checks.')}
 $root=Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'tools/local-test-guard.ps1')
 Assert-NativeLocalTestAvailable $PSScriptRoot -PreserveOriginalPid $PreserveOriginalPid
@@ -62,5 +21,61 @@ if(-not $diagnosticArguments.Count){
  & (Join-Path $PSScriptRoot 'join-native.ps1') -LocalOnly -Server '127.0.0.1:5121' -Headless:$Headless
  exit $LASTEXITCODE
 }
-# NWN79_UNSUPPORTED_LOCAL_DIAGNOSTICS: no original-host fallback remains.
-throw 'Original-host local diagnostics are retired; use the Godot/PowerShell NWN-79 fixtures.'
+$build=Join-Path $PSScriptRoot '.cache/local-bridge/latest.json'
+if(-not (Test-Path -LiteralPath $build)){throw 'Build the compatibility bridge before running staged diagnostic fixtures.'}
+$electron=Join-Path $root 'node_modules/electron/dist/electron.exe'
+$arguments=@((Join-Path $PSScriptRoot 'tools/local-host.cjs'))
+if($WeatherSmoke){$arguments+='--weather-smoke'}
+if($PortalRegionSmoke){$arguments+='--portal-region-smoke'}
+if($Smoke){$arguments+='--smoke'}
+if($LifecycleSmoke){$arguments+='--lifecycle-smoke'}
+if($ContentSmoke){$arguments+='--content-smoke'}
+if($TransitionSmoke){$arguments+='--transition-smoke'}
+if($MovementSmoke){$arguments+='--movement-smoke'}
+if($TextSmoke){$arguments+='--text-smoke'}
+if($RadialSmoke){$arguments+='--radial-smoke'}
+if($BookSmoke){$arguments+='--book-smoke'}
+if($CombatSmoke){$arguments+='--combat-smoke'}
+if($ParticleSmoke){$arguments+='--particle-smoke'}
+if($VisualModelSmoke){$arguments+='--visual-model-smoke'}
+if($VisualDefinitionSmoke){$arguments+='--visual-definition-smoke'}
+if($VisualSmoke){$arguments+='--visual-smoke'}
+if($PointVisualSmoke){$arguments+='--point-visual-smoke'}
+if($WorldAudioSmoke){$arguments+='--world-audio-smoke'}
+if($InventorySmoke){$arguments+='--inventory-smoke'}
+if($ShortcutReconnectSmoke){$arguments+='--shortcut-reconnect-smoke'}
+if($FeedbackSmoke){$arguments+='--feedback-smoke'}
+if($NWSyncCancel){$arguments+='--nwsync-cancel'}
+if($CameraSmoke){$arguments+='--camera-smoke'}
+if($CameraCommandSmoke){$arguments+='--camera-command-smoke'}
+if($NWSyncSmoke){$arguments+='--nwsync-smoke'; if(-not $NWSyncFixture){throw 'Provide the owned NWSync fixture descriptor'}; $arguments+='--nwsync-fixture='+$NWSyncFixture}
+if($ContainerSmoke){$arguments+='--container-smoke'}
+if($StoreSmoke){$arguments+='--store-smoke'}
+if($CharacterSmoke){$arguments+='--character-smoke'}
+if($LevelSmoke){$arguments+='--level-smoke'}
+if($RecordsSmoke){$arguments+='--records-smoke'}
+if($NuiSmoke){$arguments+='--nui-smoke'}
+if($NuiActionSmoke){$arguments+='--nui-action-smoke'}
+if($NuiReconnectSmoke){$arguments+='--nui-reconnect-smoke'}
+if($NuiSkinSmoke){$arguments+='--nui-skin-smoke'}
+if($NuiPopupSmoke){$arguments+='--nui-popup-smoke'}
+if($BuffSmoke){$arguments+='--buff-smoke'}
+if($PartySmoke){$arguments+='--party-smoke'}
+if($SettingsSmoke){$arguments+='--settings-smoke'}
+if($MenuExitSmoke){$arguments+='--menu-exit-smoke'}
+if($CreationSmoke){$arguments+='--creation-smoke'}
+if($BuffPreview){$arguments+='--buff-preview'}
+if($AutoPlay){$arguments+='--auto-play'}
+if($Headless){$arguments+='--native-headless'}
+if($NativeVerbose){$arguments+='--native-verbose'}
+if($Report){$arguments+='--report='+$Report}
+$start=[Diagnostics.ProcessStartInfo]::new()
+$start.FileName=$electron
+$start.WorkingDirectory=$root
+$start.UseShellExecute=$false
+$start.CreateNoWindow=$true
+$start.Environment.Remove('ELECTRON_RUN_AS_NODE') | Out-Null
+foreach($argument in $arguments){$start.ArgumentList.Add($argument)}
+$process=[Diagnostics.Process]::Start($start)
+$process.WaitForExit()
+exit $process.ExitCode

@@ -1,9 +1,7 @@
 extends RefCounted
 const Enhanced=preload("res://systems/native_render/native_model_material.gd")
-const TargetMaterial=preload("res://systems/native_render/standard_keyhole_material.gd")
 const StandardAlpha=preload("res://tools/native_parity/ui/actor-alpha-standard.gd")
 const EnhancedAlpha=preload("res://tools/native_parity/ui/actor-alpha-enhanced.gd")
-const TargetAlpha=preload("res://tools/native_parity/ui/actor-alpha-target.gd")
 const State=preload("res://tools/native_parity/ui/actor-alpha-state.gd")
 const Endpoint=preload("res://tools/native_parity/ui/actor-alpha-endpoint.gd")
 const Publication=preload("res://tools/native_parity/ui/actor-alpha-publication.gd")
@@ -31,20 +29,14 @@ func begin_model(model_index: int) -> bool:
 func enroll(mesh: MeshInstance3D,model_index: int) -> bool:
 	if closed or not is_instance_valid(mesh) or model_index<0:return false
 	var source: Material=mesh.material_override
-	var target
-	if source is TargetMaterial:
-		target=TargetAlpha.new()
-		if not target.configure(source.standard_source,source.keyhole_enabled):failure="Unsupported actor alpha material";return false
-		source=source.standard_source
-	elif source is StandardMaterial3D or source is Enhanced:
-		target=EnhancedAlpha.new() if source is Enhanced else StandardAlpha.new()
-		Publication.copy_storage(source,target)
-	else:failure="Unsupported actor alpha material";return false
+	if not source is StandardMaterial3D and not source is Enhanced:failure="Unsupported actor alpha material";return false
+	var target=EnhancedAlpha.new() if source is Enhanced else StandardAlpha.new()
+	Publication.copy_storage(source,target)
 	begin_model(model_index)
 	var endpoint:=Endpoint.new();endpoint.configure(mesh);endpoints.append(endpoint)
 	target.actor_part_color=source.albedo_color;target.actor_part_emission=source.emission;target.actor_part_emission_enabled=source.emission_enabled;target.actor_part_blended=source.transparency==BaseMaterial3D.TRANSPARENCY_ALPHA
 	target.actor_base_transparency=source.transparency
-	if target is StandardAlpha:target.actor_base_depth_draw=source.depth_draw_mode
+	if source is StandardMaterial3D:target.actor_base_depth_draw=source.depth_draw_mode
 	target.actor_alpha_endpoint=endpoint;target.actor_alpha_context=models[model_index]
 	mesh.material_override=target;target.refresh_actor_alpha();return true
 func set_alpha(value: float,model_indices: Array=[0],gob_flag18: bool=false,colour_shift: bool=true) -> bool:

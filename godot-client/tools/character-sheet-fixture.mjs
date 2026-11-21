@@ -1,0 +1,13 @@
+// Authored metadata only; never reads installed characters, art or strings.
+import {CharacterSheetService} from './character-sheet-service.mjs';
+const table=rows=>({rows:new Map(rows.map((r,i)=>[i,r])),orderedRows:rows,defaultValue:'****'});
+export function sheetFixture(){
+ const rules={ruleset:table([]),classes:table([{Name:'100'}]),racialtypes:table([{Name:'101'}]),exptable:table([{XP:'0'},{XP:'1000'}]),baseitems:table([]),skills:table([{Name:'102',Description:'1002',Icon:'auth_skill'},{Name:'104',Description:'1004'},{Name:'105',Description:'1005'}]),feat:table([{FEAT:'103',DESCRIPTION:'1003',ICON:'auth_feat'}]),iprp_damagecost:table([]),damagetypes:table([]),damagetypegroups:table([])};
+ const strings={100:'Authored Class',101:'Authored Race',102:'Authored Skill',103:'Authored Feat',104:'Hidden Skill',105:'Untrained Skill',1002:'<c'+String.fromCharCode(1,255,1)+'>Authored skill description</c> [b]literal[/b]',1003:'Authored feat description',1005:'Untrained description',317:'Fortitude',318:'Reflex',319:'Will'};
+ const actor={id:9,objectType:5,replicated:{name:{text:'Authored record'},stats:{racialType:0,fieldDE4:80,fieldDE6:10,classes:[{id:0,level:1}]},hitPoints:{current:6,fieldE8:3,maximum:12},portrait:0},playerState:{abilities:{current:[12,12,12,12,12,12]},combat:{armorClass:17},feats:[0]},inventoryStats:{field94:123,field98:9,field99:24,field9a:11,fields70:[20,14,14,10,10,15],fields7d:[2,0,0,0,0,0],skills:[{index:0,value:20,flag:1},{index:1,value:100,flag:0},{index:2,value:0,flag:1}],feats:[{id:0}]}};
+ const world={localObjectId:9,areaId:7,inventories:new Map(),registry:new Map([[9,actor]]),players:new Map(),party:[],customTokens:{records:[]},quickbar:Array.from({length:36},()=>({type:0}))},calls=[],sent=[];
+ const session={world,areaGeneration:2,hudPanel:async r=>{calls.push({name:'hudPanel',...r});},assignQuickbar:async r=>{calls.push({name:'assignQuickbar',...r});world.quickbar[r.index]={...r.button};}};
+ const actions={session,connection:1,capture:()=>({connection:1,areaId:7,areaGeneration:session.areaGeneration,actorId:9,actor}),owned:s=>!session.closed&&s.actor===session.world.registry.get(9)&&s.areaId===session.world.areaId&&s.areaGeneration===session.areaGeneration,emit:r=>sent.push(r),icon:async()=>null,diagnose:()=>{},text:{rules:async n=>rules[n],resolve:async v=>v?.text??(v?.strRef===undefined?'':strings[v.strRef]??'TLK '+v.strRef)}};
+ const shortcuts={refresh:async force=>calls.push({name:'quickbarRefresh',force})};
+ const sheet=new CharacterSheetService({actions,shortcuts});return{sheet,actor,world,session,actions,calls,sent,rules};
+}

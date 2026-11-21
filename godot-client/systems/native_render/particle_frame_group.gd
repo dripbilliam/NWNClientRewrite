@@ -13,7 +13,7 @@ var closed:=false
 var failure:=""
 var last: Dictionary={}
 var engine_ordered:=false
-func _enter_tree() -> void: process_priority=70
+func _enter_tree() -> void: process_priority=20
 func configure(value: Node3D,ordered_callbacks: bool=false) -> bool:
 	if native!=null or closed or not ClassDB.class_exists("NwnParticleFrameGroup"): return false
 	if value.has_meta("native_particle_frame_group"): return false
@@ -31,7 +31,7 @@ func register(emitter: Node3D) -> bool:
 	if closed or native==null or not emitter.failure.is_empty() or emitter.retired or not scope_root.is_ancestor_of(emitter): return false
 	# Different viewports/priorities need their own frame owner to preserve
 	# camera selection and the engine's processing order.
-	if emitter.get_viewport()!=get_viewport() or emitter.process_priority!=70: return false
+	if emitter.get_viewport()!=get_viewport() or emitter.process_priority!=20: return false
 	var id:=emitter.get_instance_id()
 	if members.has(id): return true
 	if is_instance_valid(emitter.native_frame_group): return false
@@ -42,7 +42,7 @@ func register(emitter: Node3D) -> bool:
 	if fast:
 		var input:={"clip":emitter.static_clip,"capacity":emitter.surface.capacity,"source_flags":emitter.source_model_flags,"culling":emitter.frustum_enabled,"draw_enabled":emitter.original_texture!=null}
 		if is_instance_valid(emitter.native_wind_owner): input.wind_token=emitter.native_wind_owner.token
-		config.merge({"owner":emitter.native_owner,"input":input,"providers":emitter.providers,"receiver":Callable(emitter,"receive_group_frame"),"clock":emitter.clock_provider,"part_provider":emitter.emitter_part_provider,"elapsed":emitter.elapsed,"clip_length":float(emitter.channels.clips.get(emitter.static_clip,{}).get("length",0.0))})
+		config.merge({"owner":emitter.native_owner,"input":input,"providers":emitter.providers,"receiver":Callable(emitter,"receive_group_frame"),"clock":emitter.clock_provider,"elapsed":emitter.elapsed,"clip_length":float(emitter.channels.clips.get(emitter.static_clip,{}).get("length",0.0))})
 	var result: Dictionary=native.call("dispatch",0,config)
 	if result.has("error") and fast:
 		config={"id":id,"fallback":Callable(emitter,"grouped_fallback_tick"),"enabled":emitter.particles_enabled}; result=native.call("dispatch",0,config); fast=false

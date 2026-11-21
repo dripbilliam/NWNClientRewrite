@@ -72,12 +72,10 @@ static func project(object: Dictionary,controlled: int,text) -> Dictionary:
 	# Door/trigger vtable+220 is the original no-op766a60. Selection/highlight
 	# remains available; those classes do not publish this world-name caption.
 	return {"id":id,"available":type in [5,6,9] and not object.is_empty() and not object.get("replicationRemoved",false) and not object.get("destroyed",false) and not str(caption.text).is_empty(),"creature":creature,"name":name,"condition":condition,"caption":caption,"caption_color":Color.WHITE,"override_mode":mode,"portrait":portrait,"color":color,"condition_color":injury_color(level),"damage_level":level}
-static func owns_highlight_caption(row: Dictionary,hovered: bool) -> bool:
-	var type:=int(row.get("type",0))
-	return row.get("eligible",false) and (type==5 or hovered and type in [6,9])
 static func visible_ids(ids: Array,rows: Dictionary,hovered: int=-1) -> Array:
 	var output: Array=[]
 	for raw_id in ids:
 		var id:=int(raw_id); var row: Dictionary=rows.get(id,{})
-		if owns_highlight_caption(row,id==hovered) and not output.has(id): output.append(id)
+		var type:=int(row.get("type",0))
+		if row.get("eligible",false) and (type==5 or id==hovered and type in [6,9]) and not output.has(id): output.append(id)
 	return output

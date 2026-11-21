@@ -1,0 +1,18 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{spawnSync}=require('node:child_process');
+const root=path.resolve(__dirname,'../..'),out=path.join(root,'.cache/nwn62/f-asset-census-a');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+if(fs.existsSync(out))throw Error('immutable output already exists');
+fs.mkdirSync(path.join(out,'user'),{recursive:true});
+const fixture=path.join(root,'tools/nwn62/f-asset-census.gd');
+const engine=path.join(root,'.tools/Godot_v4.7.2-stable_win64.exe');
+const install=path.resolve(root,'../../FullDecomp/NwnRootInstall');
+const report=path.join(out,'report.json');
+const args=['--headless','--path',root,'--script','res://tools/nwn62/f-asset-census.gd','--','--install='+install,'--report='+report];
+const run=spawnSync(engine,args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:90000,maxBuffer:2*1024*1024,env:{...process.env,APPDATA:path.join(out,'user'),LOCALAPPDATA:path.join(out,'user')}});
+fs.writeFileSync(path.join(out,'engine.log'),(run.stdout||'')+(run.stderr||''));
+const value=fs.existsSync(report)?JSON.parse(fs.readFileSync(report,'utf8')):null;
+const receipt={issue:'NWN-62',scope:'Read-only original model structure and source identity; no client or FPS timing',fixtureSha256:sha(fixture),engineSha256:sha(engine),exit:run.status,error:run.error?.message||'',reportSha256:value?sha(report):null,success:run.status===0&&value?.success===true,rows:value?.rows||[],failed:value?.failed||[]};
+fs.writeFileSync(path.join(out,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');
+console.log(JSON.stringify({success:receipt.success,rows:receipt.rows,failed:receipt.failed,logTail:fs.readFileSync(path.join(out,'engine.log'),'utf8').slice(-350)}));
+if(!receipt.success)process.exitCode=1;

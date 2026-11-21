@@ -1,6 +1,6 @@
 extends RefCounted
 # Typed native GFF V3.2 output. Struct IDs and field widths are wire contracts.
-const Western=preload("res://systems/native_data/native_gff_text.gd")
+const Binary=preload("res://systems/native_data/binary_data.gd")
 var failure:=""
 var structs: Array=[]
 var fields: Array=[]
@@ -12,9 +12,15 @@ static func record(values: Dictionary,type: int=4294967295) -> Dictionary: retur
 func reject(reason: String) -> void:
 	if failure.is_empty(): failure=reason
 func text(value: String) -> PackedByteArray:
-	var encoded: Dictionary=Western.encode(value)
-	if encoded.has("error"):reject(str(encoded.error));return PackedByteArray()
-	return encoded.bytes
+	var result:=PackedByteArray()
+	for code in value.length():
+		var point:=value.unicode_at(code); var byte:=point
+		if point>=128 and point<=159 or point>255:
+			var index:=Binary.CP1252_HIGH.find(point)
+			if index<0: reject("Text cannot be encoded in the original client character set"); return PackedByteArray()
+			byte=128+index
+		result.append(byte)
+	return result
 static func u32(value: int) -> PackedByteArray:
 	var bytes:=PackedByteArray(); bytes.resize(4); bytes.encode_u32(0,value&0xffffffff); return bytes
 func push(bytes: PackedByteArray) -> int:
@@ -27,7 +33,6 @@ func typed(document: Dictionary,node: Dictionary,type_override: int=-1,depth: in
 	if index<0: reject("GFF field metadata is unavailable"); return {}
 	var values: Dictionary={}
 	for key in node:
-		if not document.field_types.get(index) is Dictionary or not document.field_types[index].has(key):reject("GFF type is unavailable for "+str(key));return {}
 		var type:=int(document.field_types[index][key]); var value: Variant=node[key]
 		if type==14: value=typed(document,value,-1,depth+1)
 		elif type==15:
@@ -37,47 +42,39 @@ func typed(document: Dictionary,node: Dictionary,type_override: int=-1,depth: in
 		values[key]=field(type,value)
 	return record(values,type_override if type_override>=0 else int(document.struct_types[index]))
 func add(node: Dictionary,ancestors: Array=[]) -> int:
-	if ancestors.size()>128: reject("GFF structure cycle or excessive depth"); return 0
+	if ancestors.size()>128 or structs.size()>100000 or fields.size()>1000000: reject("GFF structure bounds exceeded"); return 0
 	for parent in ancestors:
-		if is_same(parent,node): reject("GFF structure cycle or excessive depth"); return 0
+		if is_same(parent,node): reject("Cyclic GFF structure"); return 0
 	var index:=structs.size(); var structure:={"type":int(node.get("type",4294967295)),"indices":[]}; structs.append(structure)
 	for key in node.get("fields",{}):
 		var label:=str(key)
-		if label.is_empty() or label.length()>16: reject("Invalid GFF label "+label); return 0
-		for character in label.length():
-			var code:=label.unicode_at(character)
-			if code<32 or code>126: reject("Invalid GFF label "+label); return 0
+		if label.is_empty() or label.length()>16: reject("Invalid GFF label"); return 0
+		for code in label.to_ascii_buffer():
+			if code<32 or code>126: reject("Invalid GFF label"); return 0
 		var label_id:=labels.find(label)
 		if label_id<0: label_id=labels.size(); labels.append(label)
 		var source: Dictionary=node.fields[key]; var type:=int(source.type); var value: Variant=source.value
 		var entry:={"type":type,"label":label_id,"value":0}; structure.indices.append(fields.size()); fields.append(entry)
-		if type<=5:
-			if type<0:reject("GFF "+label+" exceeds field range");return 0
+		if type>=0 and type<=5:
 			var limits: Array=[[0,255],[-128,127],[0,65535],[-32768,32767],[0,4294967295],[-2147483648,2147483647]][type]
-			if not (value is int or value is float and is_finite(value) and value==floorf(value)) or value<limits[0] or value>limits[1]: reject("GFF "+label+" exceeds field range"); return 0
-			entry.value=int(value)&0xffffffff
+			if not value is int or value<limits[0] or value>limits[1]: reject("GFF integer out of range: "+label); return 0
+			entry.value=value&0xffffffff
 		elif type in [6,7,9]:
 			var bytes:=PackedByteArray(); bytes.resize(8)
 			if type==9: bytes.encode_double(0,float(value))
-			elif type==6 and value is Dictionary:
-				if not value.has("unsigned64_low") or not value.has("unsigned64_high") or int(value.unsigned64_low)<0 or int(value.unsigned64_low)>0xffffffff or int(value.unsigned64_high)<0 or int(value.unsigned64_high)>0xffffffff:reject("GFF uint64 is out of range");return 0
-				bytes.encode_u32(0,int(value.unsigned64_low)); bytes.encode_u32(4,int(value.unsigned64_high))
-			elif type==6 and (not value is int or value<0):reject("GFF uint64 is out of range");return 0
+			elif type==6 and value is Dictionary: bytes.encode_u32(0,int(value.unsigned64_low)); bytes.encode_u32(4,int(value.unsigned64_high))
 			else: bytes.encode_s64(0,int(value))
 			entry.value=push(bytes)
 		elif type==8:
 			var bytes:=PackedByteArray(); bytes.resize(4); bytes.encode_float(0,float(value)); entry.value=bytes.decode_u32(0)
 		elif type in [10,11]:
 			var bytes:=text(str(value))
-			if type==11 and bytes.size()>16: reject("Resref "+label+" is too long"); return 0
+			if type==11 and bytes.size()>16: reject("GFF resref is too long"); return 0
 			var prefix:=PackedByteArray([bytes.size()]) if type==11 else u32(bytes.size()); prefix.append_array(bytes); entry.value=push(prefix)
 		elif type==12:
 			var loc: Dictionary={"strRef":4294967295,"entries":[{"languageId":0,"text":value}]} if value is String else value
-			var loc_ref: Variant=loc.get("strRef")
-			var loc_entries: Variant=loc.get("entries")
-			if loc_entries==null:loc_entries=[]
-			var body:=u32(4294967295 if loc_ref==null else int(loc_ref)); body.append_array(u32(loc_entries.size()))
-			for row in loc_entries:
+			var body:=u32(int(loc.get("strRef",4294967295))); body.append_array(u32(loc.get("entries",[]).size()))
+			for row in loc.get("entries",[]):
 				var bytes:=text(str(row.text)); body.append_array(u32(int(row.languageId))); body.append_array(u32(bytes.size())); body.append_array(bytes)
 			var prefix:=u32(body.size()); prefix.append_array(body); entry.value=push(prefix)
 		elif type==13:
@@ -89,19 +86,17 @@ func add(node: Dictionary,ancestors: Array=[]) -> int:
 			entry.value=at*4
 		elif type in [16,17]:
 			var count:=4 if type==16 else 3
-			if not value is Array or value.size()!=count: reject("Invalid GFF "+label+" vector"); return 0
+			if not value is Array or value.size()!=count: reject("Invalid GFF vector"); return 0
 			var bytes:=PackedByteArray(); bytes.resize(count*4)
 			for part in count: bytes.encode_float(part*4,float(value[part]))
 			entry.value=push(bytes)
 		elif type==18: entry.value=push(u32(int(value)))
-		else: reject("Unsupported GFF field type "+str(type)); return 0
+		else: reject("Unsupported GFF field type"); return 0
 		if not failure.is_empty(): return 0
 	return index
 func write(kind: String,root: Dictionary) -> PackedByteArray:
 	failure=""; structs.clear(); fields.clear(); labels.clear(); data.clear(); lists.clear()
-	if kind.length()!=4: reject("GFF file type must contain four ASCII characters"); return PackedByteArray()
-	for code in kind.to_utf8_buffer():
-		if code<32 or code>126:reject("GFF file type must contain four ASCII characters");return PackedByteArray()
+	if kind.length()!=4: reject("GFF type must have four characters"); return PackedByteArray()
 	add(root)
 	if not failure.is_empty(): return PackedByteArray()
 	var structures:=PackedByteArray(); var field_bytes:=PackedByteArray(); var label_bytes:=PackedByteArray(); var indices:=PackedByteArray(); var list_bytes:=PackedByteArray()

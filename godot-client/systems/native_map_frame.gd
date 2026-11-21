@@ -75,8 +75,6 @@ func _process(_delta: float) -> void:
 	if layout_ready and auto_center: follow_player()
 func art_failure() -> String:
 	if desktop.art.failed.has("ir_buy"): return "Original map pin icon could not be prepared: ir_buy"
-	for key in desktop.map_jobs:
-		if desktop.art.failed.has(key): return "Original map tile artwork could not be prepared: "+str(key)
 	for request in image_requests.values():
 		if frame.art.failed.has(request.key): return "Original map artwork could not be prepared: "+str(request.key)
 	for button in buttons.values():
@@ -88,12 +86,6 @@ func art_failure() -> String:
 func display_ready() -> bool:
 	if closed or not failure.is_empty() or not layout_ready or shape_signature!=[panel.board.columns,panel.board.rows,level]: return false
 	if not desktop.art.textures.has("ir_buy"): return false
-	# The old MapUi.load publishes the map only after every tile skin resolves.
-	# Keep the same admission boundary even though the Godot requests are queued.
-	var tile_bank: Dictionary=panel.board.tile_banks.get(Plan.PIXELS[level],{})
-	if tile_bank.size()<panel.board.cells.size(): return false
-	for index in panel.board.controls.values():
-		if not panel.board.art.has(int(index)): return false
 	for request in image_requests.values():
 		if not frame.art.textures.has(request.key): return false
 	for button in buttons.values():

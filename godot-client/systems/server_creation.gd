@@ -1,5 +1,4 @@
 extends CanvasLayer
-const GameInput=preload("res://systems/native_data/game_input.gd")
 
 signal request(message: Dictionary)
 signal closed
@@ -11,10 +10,7 @@ var voice_sample_button: Button
 var voice_sample_id := -1
 var voice_caption := ""
 var panel: PanelContainer
-var middle: HBoxContainer
 var title: Label
-var destination: Label
-var storage_warning: Label
 var status: Label
 var errors: RichTextLabel
 var body: VBoxContainer
@@ -29,8 +25,6 @@ var positions: Dictionary = {}
 var view_id := -1
 var wanted := false
 var waiting := false
-var source_loading := false
-var previous_focus: Control
 var back: Button
 var next: Button
 var finish: Button
@@ -44,10 +38,8 @@ func _ready() -> void:
 	var style := StyleBoxFlat.new(); style.bg_color = Color(0.035, 0.055, 0.065, 0.99); style.border_color = Color(0.6, 0.51, 0.29); style.set_border_width_all(2); style.set_content_margin_all(18); panel.add_theme_stylebox_override("panel", style)
 	var column := VBoxContainer.new(); column.add_theme_constant_override("separation", 12); panel.add_child(column)
 	title = Label.new(); title.text = "Create Character"; title.add_theme_font_size_override("font_size", 28); title.add_theme_color_override("font_color", Color(0.94, 0.86, 0.63)); column.add_child(title)
-	destination = Label.new(); column.add_child(destination);destination.hide()
-	storage_warning=Label.new();storage_warning.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;storage_warning.add_theme_color_override("font_color",Color(1,0.65,0.52));column.add_child(storage_warning);storage_warning.hide()
 	status = Label.new(); status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; column.add_child(status)
-	middle = HBoxContainer.new(); middle.size_flags_vertical = Control.SIZE_EXPAND_FILL; middle.add_theme_constant_override("separation", 20); column.add_child(middle)
+	var middle := HBoxContainer.new(); middle.size_flags_vertical = Control.SIZE_EXPAND_FILL; middle.add_theme_constant_override("separation", 20); column.add_child(middle)
 	var sidebar := VBoxContainer.new(); sidebar.custom_minimum_size.x = 200; middle.add_child(sidebar)
 	for index in 15:
 		var button := make_button("%d. %s" % [index + 1, ["Gender", "Race", "Portrait", "Class", "Alignment", "Package", "Abilities", "Domains & school", "Skills", "Feats", "Spells", "Appearance", "Voice", "Name", "Review"][index]], navigate.bind(index))
@@ -60,9 +52,7 @@ func _ready() -> void:
 	var footer := HBoxContainer.new(); footer.alignment = BoxContainer.ALIGNMENT_END; column.add_child(footer)
 	voice_sample_button = make_button("Play sample", func(): sample_voice(voice_sample_id, view_id)); footer.add_child(voice_sample_button); voice_sample_button.hide()
 	cancel = make_button("Cancel", close_creator); footer.add_child(cancel)
-	back = make_button("Back", func():
-		if int(state.get("step",0))>0:navigate(int(state.step)-1)
-		else:close_creator()); footer.add_child(back)
+	back = make_button("Back", func(): navigate(int(state.get("step", 0)) - 1)); footer.add_child(back)
 	recommend = make_button("Recommended", choose_recommended); footer.add_child(recommend)
 	next = make_button("Next", func(): navigate(int(state.get("step", 0)) + 1)); footer.add_child(next)
 	finish = make_button("Play", submit); footer.add_child(finish)
@@ -73,11 +63,7 @@ func make_button(label: String, callback: Callable) -> Button:
 
 func place() -> void:
 	var viewport := get_viewport().get_visible_rect().size
-	if source_loading:
-		panel.size = Vector2(minf(580.0,viewport.x-48.0),180.0)
-		panel.position = (viewport-panel.size)*0.5
-	else:
-		panel.position = Vector2(24, 12); panel.size = (viewport - Vector2(48, 24)).max(Vector2(720, 640))
+	panel.position = Vector2(24, 12); panel.size = (viewport - Vector2(48, 24)).max(Vector2(720, 640))
 	status.custom_minimum_size.x = maxf(450, panel.size.x - 40); errors.custom_minimum_size.x = status.custom_minimum_size.x
 
 func clear_body() -> void:
@@ -88,36 +74,13 @@ func clear_body() -> void:
 func reset() -> void:
 	if is_instance_valid(voice_audio): voice_audio.reset()
 	if is_instance_valid(appearance_preview): appearance_preview.set_active(false)
-	wanted = false; waiting = false; source_loading = false; view_id = -1; state.clear(); pending.clear(); items.clear(); positions.clear()
-	if is_instance_valid(middle):middle.show()
-	for button in [back,recommend,next,finish]:
-		if is_instance_valid(button):button.show()
-	place()
-	if is_instance_valid(destination):destination.hide()
-	if is_instance_valid(storage_warning):storage_warning.hide()
+	wanted = false; waiting = false; view_id = -1; state.clear(); pending.clear(); items.clear(); positions.clear()
 	if is_instance_valid(body): clear_body(); panel.hide()
-	if is_instance_valid(previous_focus):previous_focus.grab_focus()
-	previous_focus=null
 
-func open(module_label: String="",vault_error: String="") -> void:
+func open() -> void:
 	if wanted: panel.show(); return
-	previous_focus=get_viewport().gui_get_focus_owner()
-	destination.text="Entering "+module_label;destination.visible=not module_label.is_empty()
-	storage_warning.text="Local character storage: "+vault_error;storage_warning.visible=not vault_error.is_empty()
 	wanted = true; waiting = true; panel.show(); status.text = "Reading active character creation rules…"
 	request.emit({"kind":"creation-input", "operation":"open"})
-
-func open_source_loading(module_label: String="",vault_error: String="") -> void:
-	previous_focus=get_viewport().gui_get_focus_owner()
-	source_loading=true;wanted=true;waiting=true;view_id=-1
-	destination.text="Entering "+module_label;destination.visible=not module_label.is_empty()
-	storage_warning.text="Local character storage: "+vault_error;storage_warning.visible=not vault_error.is_empty()
-	title.text="Create Character";status.text="Reading character choices…";errors.hide();middle.hide()
-	for button in [back,recommend,next,finish]:button.hide()
-	cancel.show();cancel.disabled=false;place();panel.show()
-
-func update_source_loading(message: String) -> void:
-	if source_loading and wanted:status.text=message
 
 func text_values() -> Array:
 	var values: Array = []
@@ -154,31 +117,10 @@ func close_creator() -> void:
 	if wanted and state.get("canCancel", true):
 		set_waiting(); request.emit({"kind":"creation-input", "operation":"cancel"})
 
-func _input(event: InputEvent) -> void:
-	if not wanted or not event is InputEventKey:return
-	if not event.pressed:
-		# src/game_ui.js:64:38: an active character chooser captures
-		# nonmovement key releases other than Shift and Tab. Movement releases
-		# still reach the world input owner so any held key can be cleared.
-		var code: int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
-		if not GameInput.is_world_move_key(code) and event.keycode not in [KEY_SHIFT,KEY_TAB]:
-			get_viewport().set_input_as_handled()
-		return
-	if event.echo:return
-	if event.keycode==KEY_ESCAPE:
-		get_viewport().set_input_as_handled()
-		close_creator()
-
 func sample_voice(id: int, bound: int) -> void:
 	if ready_for_input(bound):
 		voice_audio.stop(); voice_status.text = "Loading voice sample…"
 		request.emit({"kind":"creation-input","operation":"voice","viewId":view_id,"controlId":id})
-
-func select_voice(id: int,bound: int) -> void:
-	if not ready_for_input(bound):return
-	for control in controls.values():
-		if control is BaseButton and control.has_meta("voice_id"):control.button_pressed=int(control.get_meta("voice_id"))==id
-	request.emit({"kind":"creation-input","operation":"voice-select","viewId":view_id,"controlId":id})
 
 func _process(_delta: float) -> void:
 	if wanted and voice_status.visible: voice_status.text = "Selected voice: " + voice_caption + "\n" + (voice_audio.status if not voice_audio.status.is_empty() else "Play sample to listen. Repeat for the next line.")
@@ -199,9 +141,7 @@ func receive(message: Dictionary) -> void:
 			if pending.get("viewId", -1) == message.viewId and pending["items"].size() + message.items.size() <= int(pending.count): pending["items"].append_array(message.items)
 		"creation-commit":
 			if pending.get("viewId", -1) != message.viewId or pending["items"].size() != int(pending.count): return
-			# The old frontend retains scroll only while redrawing the same step.
-			if not state.is_empty() and int(state.step)==int(pending.step):positions={int(pending.step):scroll.scroll_vertical}
-			else:positions.clear()
+			if not state.is_empty(): positions[int(state.step)] = scroll.scroll_vertical
 			state = pending; pending = {}; items = state["items"]; view_id = int(state.viewId); waiting = false; render()
 		"creation-portrait":
 			if int(message.viewId) != view_id or not controls.has(int(message.controlId)): return
@@ -222,7 +162,7 @@ func render() -> void:
 		if index == int(state.step):
 			var active := StyleBoxFlat.new(); active.bg_color = Color(0.23, 0.2, 0.13); active.border_color = Color(0.85, 0.72, 0.38); active.set_border_width_all(1); tabs[index].add_theme_stylebox_override("disabled", active); tabs[index].add_theme_color_override("font_disabled_color", Color(0.94, 0.86, 0.63))
 		else: tabs[index].remove_theme_stylebox_override("disabled"); tabs[index].remove_theme_color_override("font_disabled_color")
-	back.disabled = not state.canEdit; next.disabled = not state.canEdit; next.visible = int(state.step) < 14
+	back.disabled = not state.canEdit or int(state.step) == 0; next.disabled = not state.canEdit; next.visible = int(state.step) < 14
 	finish.visible = int(state.step) == 14; finish.disabled = not state.canFinish; recommend.disabled = not state.canRecommend; cancel.disabled = not state.canCancel
 	var grid: GridContainer = null
 	var grid_kind := ""
@@ -234,7 +174,7 @@ func render() -> void:
 			var label := Label.new(); label.text = str(item.label); label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; body.add_child(label)
 			increments = null; continue
 		var id := int(item.controlId); var bound := view_id
-		if item.type in ["button", "portrait", "colour", "voice-choice"]:
+		if item.type in ["button", "portrait", "colour"]:
 			var target: Node = body
 			if item.type in ["portrait", "colour"]:
 				if grid == null or grid_kind != str(item.type):
@@ -243,17 +183,10 @@ func render() -> void:
 			elif item.get("tag", "") in ["ability", "skill"]:
 				if int(item.delta) == -1 or increments == null: increments = HBoxContainer.new(); body.add_child(increments)
 				target = increments
-			var callback:=select_voice.bind(id,bound) if item.type=="voice-choice" else change.bind(id,null,bound)
-			var button := make_button(str(item.label),callback); button.disabled = item.disabled; button.tooltip_text = str(item.get("description",item.get("reason", ""))); target.add_child(button); controls[id] = button
-			if item.type=="voice-choice":
-				button.toggle_mode=true;button.button_pressed=bool(item.get("selected",false));button.set_meta("voice_id",id)
-				button.gui_input.connect(func(event):
-					if event is InputEventMouseButton and event.double_click and event.button_index==MOUSE_BUTTON_LEFT:sample_voice(id,bound))
+			var button := make_button(str(item.label), change.bind(id, null, bound)); button.disabled = item.disabled; button.tooltip_text = str(item.get("reason", "")); target.add_child(button); controls[id] = button
 			button.clip_text = true
 			if item.get("selected", false):
 				var selected := StyleBoxFlat.new(); selected.bg_color = Color(0.2, 0.17, 0.1); selected.border_color = Color(0.9, 0.75, 0.36); selected.set_border_width_all(2); button.add_theme_stylebox_override("normal", selected); button.add_theme_color_override("font_color", Color(1, 0.86, 0.6))
-			if item.get("tag","")=="palette-open" and not str(item.get("color","")).is_empty():
-				var swatch := StyleBoxFlat.new(); swatch.bg_color = Color(0.08, 0.08, 0.08); swatch.border_color = Color(str(item.color)); swatch.set_border_width(SIDE_LEFT, 12); button.add_theme_stylebox_override("normal", swatch)
 			if item.type == "portrait":
 				button.custom_minimum_size = Vector2(70, 106); button.clip_text = true
 				var image := TextureRect.new(); image.position = Vector2(3, 3); image.size = Vector2(64, 100); image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; image.mouse_filter = Control.MOUSE_FILTER_IGNORE; button.add_child(image); button.set_meta("portrait", image); button.tooltip_text = str(item.resource)
@@ -278,9 +211,6 @@ func render() -> void:
 				var field := TextEdit.new(); field.text = str(item.value); field.custom_minimum_size.y = 150; field.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY; field.editable = state.canEdit; body.add_child(field); inputs[id] = field; controls[id] = field; field.text_changed.connect(limit_text.bind(field, int(item.maxLength)))
 			else:
 				var field := LineEdit.new(); field.text = str(item.value); field.max_length = int(item.maxLength); field.editable = state.canEdit; body.add_child(field); inputs[id] = field; controls[id] = field
-				if item.get("tag","")=="feat-filter":
-					field.text_submitted.connect(func(value): change(id,value,bound))
-					field.focus_exited.connect(func(): change(id,field.text,bound))
 	call_deferred("restore_scroll", int(state.step))
 
 func restore_scroll(step: int) -> void:

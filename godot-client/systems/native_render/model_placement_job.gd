@@ -8,13 +8,10 @@ var part_slots: Array=[]
 var phase:="nodes"
 var index:=0
 var graph
-var geometry_pool: WeakRef
-var geometry_bound:=false
 var status:="pending"
 var failure:=""
-func configure(root: Node3D,target,model_name: String,limitations: Array,references: Array,proof: Dictionary,clone_index: Dictionary={},pool=null)->void:
+func configure(root: Node3D,target,model_name: String,limitations: Array,references: Array,proof: Dictionary,clone_index: Dictionary={})->void:
 	root_node=root;placement=target;reference_rows=references
-	geometry_pool=weakref(pool) if pool!=null else null
 	placement.set_meta("native_model_name",model_name);placement.static_draw_proof=proof;placement.limitations=limitations.duplicate();placement.add_child(root)
 	if root.has_meta("native_scene_bounds"):placement.set_meta("native_scene_bounds",root.get_meta("native_scene_bounds"))
 	if clone_index.is_empty():
@@ -51,10 +48,6 @@ func step(maximum_nodes: int=8,budget_us: int=1500)->Dictionary:
 				if not part is MeshInstance3D and part.has_meta("native_pick_geometry"):placement.pick_surfaces.append(part)
 			units+=1
 		elif phase=="references":
-			if not geometry_bound:
-				var pool: Variant=geometry_pool.get_ref() if geometry_pool!=null else null
-				if not placement.acquire_geometry(pool):failure=placement.geometry_failure;cancel();status="failed";break
-				geometry_bound=true
 			if reference_rows.is_empty():status="ready";break
 			if graph==null:
 				graph=Graph.new()

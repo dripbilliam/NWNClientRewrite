@@ -1,0 +1,17 @@
+import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const directory=new URL('../backups/animations/',import.meta.url),read=async name=>JSON.parse(await fs.readFile(new URL(name,directory),'utf8'));
+const before=await read('shadow-preparation-v1.json'),after=await read('shadow-preparation-v3.json'),boot=await read('shadow-preparation-main-v1.json');
+assert.equal(before.result.controlReproduces,true);assert.equal(before.result.fixed,false);assert.deepEqual(before.errors,[]);
+assert.equal(after.success,true);assert.equal(after.result.controlReproduces,true);assert.equal(after.result.fixed,true);assert.equal(after.result.equalPixels,true);assert.deepEqual(after.errors,[]);
+for(const [file,expected] of Object.entries(after.sourceHashes)){const actual=crypto.createHash('sha256').update(await fs.readFile(new URL('../'+file,import.meta.url))).digest('hex');assert.equal(actual,expected,file);}
+const [control,candidate]=after.result.results;assert.equal(candidate.shadowInstances,true);assert.ok(control.frames.some(frame=>frame.newPrograms>0));assert.ok(candidate.frames.every(frame=>frame.newPrograms===0));
+for(let i=0;i<control.frames.length;i++){assert.equal(control.frames[i].pixels,candidate.frames[i].pixels);assert.deepEqual(control.frames[i].atlases,candidate.frames[i].atlases);}
+for(const result of after.result.results){assert.equal(result.after.pending,0);assert.equal(result.after.activeAreas,0);}
+const main=await fs.readFile(new URL('../src/main.js',import.meta.url),'utf8');assert.ok(main.includes('shadowInstances:Boolean(rendererShadowTraversal.instances)'));
+assert.equal(boot.success,true);assert.equal(boot.joins,0);assert.equal(boot.fetches,0);assert.deepEqual(boot.errors,[]);
+const unit=await fs.readFile(new URL('shadow-preparation-unit-v3.txt',directory),'utf8');assert.match(unit,/# tests 31/);assert.match(unit,/# pass 31/);assert.match(unit,/# fail 0/);
+const build=await fs.readFile(new URL('shadow-preparation-build-v1/index.html',directory),'utf8'),bundle=build.match(/src="\.\/assets\/([^"\s]+\.js)"/)?.[1];assert.equal(bundle,boot.bundle);
+const proof={goalComplete:false,scope:after.result.scope,confirmedGap:'Production rigid shadow instancing uses custom instanced depth/distance vertex programs absent from previous preparation.',sourceIntegrated:true,sourceHashes:after.sourceHashes,isolatedBuild:{bundle,sha256:crypto.createHash('sha256').update(await fs.readFile(new URL('shadow-preparation-build-v1/assets/'+bundle,directory))).digest('hex'),bootPassed:true,joins:0,fetches:0},controlNewPrograms:control.frames.map(frame=>frame.newPrograms),candidateNewPrograms:candidate.frames.map(frame=>frame.newPrograms),finalPixelsExact:true,pointAndDirectionalAtlasesExact:true,focusedTests:31,limits:['Four observed frames in one authored GPU scene; not proof of all shader variants or all areas.','No claim that these are the exact programs responsible for the recorded 3.75-second live frame.','Compilation is moved before reveal, not eliminated; no whole-client FPS or area-load speedup established.','Live client/dist untouched; native local-server validation and final release build remain outstanding.','Cross-area retained shader cache, per-object lighting, accepted main batching, further dirty-state caching, loading budgets and full performance acceptance remain incomplete.']};
+await fs.writeFile(new URL('shadow-preparation-proof-v1.json',directory),JSON.stringify(proof,null,2)+'\n');console.log(JSON.stringify(proof,null,2));

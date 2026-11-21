@@ -1,0 +1,30 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),workspace=path.dirname(project),label=process.argv[2],kind=process.argv[3]??'wizard';
+const entries=Object.fromEntries(['wizard','cleric','druid','sorcerer','bard'].map(name=>[name,'native_creation_class_controls_test.gd']));
+entries['cleric-live']='native_creation_cleric_live_driver_test.gd';
+entries['memorizing-non-scroll']='native_creation_mem_class_controls_test.gd';
+entries['memorizing-non-scroll-recommended']='native_creation_mem_class_controls_test.gd';
+if(!/^[a-z0-9-]{3,80}$/.test(label??'')||!entries[kind])throw Error('Supply a unique label and a recognized case');
+const directory=path.join(project,'.cache/creation-class-controls',label),copy=path.join(directory,'inputs');if(fs.existsSync(directory))throw Error('Existing evidence preserved');
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex'),inputs=new Map();
+function include(file){
+ file=path.resolve(file);if(inputs.has(file))return;if(!file.startsWith(workspace+path.sep))throw Error('Input leaves workspace');
+ const bytes=fs.readFileSync(file);inputs.set(file,{path:path.relative(workspace,file).replaceAll('\\','/'),sha256:hash(bytes)});
+ if(file.endsWith('.gd')){for(const m of bytes.toString().matchAll(/(?:preload|load)\s*\(\s*["']res:\/\/([^"']+)["']/g))include(path.join(project,m[1]));for(const m of bytes.toString().matchAll(/extends\s+["']res:\/\/([^"']+)["']/g))include(path.join(project,m[1]));}
+}
+include(path.join(project,'tests',entries[kind]));include(fileURLToPath(import.meta.url));
+include(path.join(project,'systems/native_data/feedback_descriptors.json'));
+for(const[file,row]of inputs){const target=path.join(copy,row.path);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(file,target);if(hash(fs.readFileSync(target))!==row.sha256)throw Error('Source changed during copy');}
+const copiedProject=path.join(copy,'godot-client');fs.writeFileSync(path.join(copiedProject,'project.godot'),'config_version=5\n[application]\nconfig/name="Owned Creation Class Flow"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');
+const godot=path.join(project,'.tools/Godot_v4.7.2-stable_win64.exe'),engineSha256=hash(fs.readFileSync(godot));if(engineSha256!=='ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424')throw Error('Unexpected Godot runtime');
+const report=path.join(directory,'result.json'),log=path.join(directory,'engine.log');const child=spawnSync(godot,['--headless','--max-fps','60','--path',copiedProject,'--log-file',log,'--script','res://tests/'+entries[kind],'--','--report='+report,'--install='+path.resolve(workspace,'../FullDecomp/NwnRootInstall'),'--class='+(kind==='cleric-live'?'cleric':kind)],{windowsHide:true,timeout:65000,encoding:'utf8'});
+fs.writeFileSync(path.join(directory,'stdout.log'),child.stdout??'');fs.writeFileSync(path.join(directory,'stderr.log'),child.stderr??'');
+const result=fs.existsSync(report)?JSON.parse(fs.readFileSync(report)):null,engine=fs.existsSync(log)?fs.readFileSync(log,'utf8'):'';
+const clean=!/^(?:ERROR:|WARNING:)|SCRIPT ERROR|Parse Error|ObjectDB instances leaked|Leaked instance|still in use at exit/m.test(engine+'\n'+child.stderr);
+const changed=[...inputs].filter(([file,row])=>hash(fs.readFileSync(file))!==row.sha256).map(([,row])=>row.path);
+const proof={success:child.status===0&&!child.error&&clean&&result?.success===true&&!changed.length,checks:result?.checks??0,failures:result?.failures??[],directory,cleanEngine:clean,exitCode:child.status,error:child.error?.message??null,inputs:[...inputs.values()],changedInputs:changed,engineSha256,gpu:false,serverConnections:0,nativeBuilds:0,scope:result?.scope??'No functional result.'};
+fs.writeFileSync(path.join(directory,'proof.json'),JSON.stringify(proof,null,2)+'\n');console.log(JSON.stringify({...proof,inputs:inputs.size}));process.exitCode=proof.success?0:1;

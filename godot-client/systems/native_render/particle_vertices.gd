@@ -3,7 +3,7 @@ const M=preload("res://systems/native_render/particle_math.gd")
 const Schedule=preload("res://systems/native_render/particle_schedule.gd")
 const Trig=preload("res://systems/native_render/particle_trig.gd")
 const BYTE_SCALE=255.99000549316406
-const MAX_VERTICES=2147483646 # Largest six-vertex multiple in Godot's signed 32-bit mesh count.
+const MAX_VERTICES=196608
 static func draw_count(e: Dictionary) -> int:
 	if e.source50!=null and e.source50.get("instance")!=null and 1>M.f(e.source50.instance.fade) or e.instance100!=null and 1>M.f(e.instance100.fade): return 0
 	var count: int=e.active188.records.size()-(1 if int(e.renderMode1a8)==3 else 0)
@@ -13,17 +13,14 @@ static func advance_frame(e: Dictionary,particle: Dictionary,age: float) -> void
 	if interval!=0 and M.f(e.frameStart)!=M.f(e.frameEnd) and elapsed>=interval:
 		var steps:=M.cvtt(M.f(elapsed/interval))
 		if M.f(e.frameStart)>M.f(e.frameEnd):
-			particle.frame44=signed32(int(particle.frame44)-steps)
+			particle.frame44=int(particle.frame44)-steps
 			if M.f(e.frameEnd)>M.f(particle.frame44): particle.frame44=M.cvtt(e.frameStart)
 		else:
-			particle.frame44=signed32(int(particle.frame44)+steps)
+			particle.frame44=int(particle.frame44)+steps
 			if M.f(particle.frame44)>M.f(e.frameEnd): particle.frame44=M.cvtt(e.frameStart)
 		particle.field48=age
-static func signed32(value: int) -> int:
-	var word:=value&0xffffffff
-	return word-0x100000000 if word>=0x80000000 else word
 static func advance_atlas(e: Dictionary) -> void:
-	if signed32(int(e.xGrid))<=1 and signed32(int(e.yGrid))<=1: return
+	if int(e.xGrid)<=1 and int(e.yGrid)<=1: return
 	for index in draw_count(e): advance_frame(e,e.active188.records[index],M.f(e.active188.records[index].age))
 static func mix_value(start: float,end: float,time: float) -> float:
 	return M.f(M.f(time*end)+M.f(M.f(1-time)*start))
@@ -37,7 +34,7 @@ static func write(bytes: PackedByteArray,index: int,color: int,position: Array,u
 static func build(e: Dictionary,p: Dictionary,atlas_prepared: bool=false) -> Dictionary:
 	var count:=draw_count(e)
 	if count==0: return {}
-	if count*6>MAX_VERTICES: return {"error":"Particle vertex count exceeds Godot's signed 32-bit mesh count"}
+	if count*6>MAX_VERTICES: return {"error":"Native particle vertex allocation exceeds explicit surface limit"}
 	var mode:=int(e.renderMode1a8); var list: Array=e.active188.records; var life:=M.f(e.lifeExp)
 	var factor:=M.f(Schedule.invoke(p,"sourceFactor",[e.source50])) if e.source50!=null else 1.0; var camera:=M.values(Schedule.invoke(p,"cameraQuaternion")); var splat: bool=(int(e.flags)&512)!=0; var tinted: bool=(int(e.flags)&8)!=0
 	var orientation: Array=M.values(e.quaternion1d0) if mode==1 else ([1.0,0.0,0.0,0.0] if mode==2 else camera)
@@ -46,7 +43,8 @@ static func build(e: Dictionary,p: Dictionary,atlas_prepared: bool=false) -> Dic
 		var w:=float(camera[0]); var x:=float(camera[1]); var y:=float(camera[2]); var z:=float(camera[3]); var direction:=M.f(M.f(M.f(M.f(1-M.f(M.f(M.f(w*w)+M.f(x*x))*2))*0)+M.f(M.f(M.f(M.f(x*y)-M.f(z*w))*2)*0))+M.f(M.f(w*y)+M.f(x*z))*2)
 		if direction<0: upright=-1.0
 	var life_scale:=M.f(1/M.f(list.size())) if int(e.ageMode1cc)==0 else (M.f(1/life) if life>0 else M.f(0.01))
-	var x_grid:=1 if int(e.xGrid)==0 else signed32(int(e.xGrid)); var y_grid:=1 if int(e.yGrid)==0 else signed32(int(e.yGrid)); var atlas: bool=x_grid>1 or y_grid>1
+	var x_grid:=1 if int(e.xGrid)==0 else int(e.xGrid); var y_grid:=1 if int(e.yGrid)==0 else int(e.yGrid); var atlas: bool=x_grid>1 or y_grid>1
+	if x_grid<1 or y_grid<1: return {"error":"Invalid original particle atlas dimensions"}
 	var dx:=M.f(1/M.f(x_grid)); var dy:=M.f(1/M.f(y_grid)); var instance: Variant=e.instance100 if e.instance100!=null else (e.source50.get("instance") if e.source50!=null else null); var elevation:=1.0
 	if instance!=null and M.f(M.f(e.position1e0[2])-M.f(instance.height50))>M.f(e.elevationThreshold): elevation=M.f(instance.opacity70)
 	var opacity:=M.f(e.source50.opacity108) if e.source50!=null else 1.0; var tint: Array=M.values(Schedule.invoke(p,"lightColor",[e.position1e0.duplicate()])) if tinted else [1.0,1.0,1.0]
@@ -58,9 +56,7 @@ static func build(e: Dictionary,p: Dictionary,atlas_prepared: bool=false) -> Dic
 	var alpha_end:=M.f(clampf(M.f(M.f(elevation*M.f(e.alphaEnd))*opacity),0,1)*BYTE_SCALE) if vary_alpha else alpha_start
 	var start:=half_size(factor,e.sizeStart); var vary_size: bool=life>0 and M.f(e.sizeStart)!=M.f(e.sizeEnd) and not splat; var end:=half_size(factor,e.sizeEnd) if vary_size or splat else start
 	var start_y:=half_size(factor,e.sizeStartY); var vary_y: bool=life>0 and M.f(e.sizeStartY)!=M.f(e.sizeEndY) and not splat; var end_y:=half_size(factor,e.sizeEndY) if vary_y or splat else start_y
-	var maximum_size:=maxf(maxf(start,end),maxf(start_y,end_y)); var bytes:=PackedByteArray()
-	if bytes.resize(count*6*24)!=OK: return {"error":"Particle vertex allocation failed"}
-	var stationary_axes: Array=[null,null]
+	var maximum_size:=maxf(maxf(start,end),maxf(start_y,end_y)); var bytes:=PackedByteArray(); bytes.resize(count*6*24)
 	for index in count:
 		var particle: Dictionary=list[index]; var age:=M.f(particle.age); var t:=minf(1,M.f((M.f(index) if int(e.ageMode1cc)==0 else age)*life_scale)) if life>0 else 0.0
 		var color: Array=[]
@@ -79,16 +75,9 @@ static func build(e: Dictionary,p: Dictionary,atlas_prepared: bool=false) -> Dic
 			if mode==6: tail_color=packed_color(color,M.f(minf(1,M.f(inverse*width))*alpha))
 		elif mode==5: x=M.axis_x(particle.quaternion34); y=M.axis_z(particle.quaternion34)
 		else:
-			var angle:=M.f(M.f(particle.rotation1c)*M.f(0.5))
-			var cacheable:=angle==0 and int(particle.stopped70)==0 and not splat and not p.has("sineFloat") and not p.has("cosineFloat")
-			var cache_key:=1 if cacheable and (PackedFloat32Array([angle]).to_byte_array().decode_u32(0)&0x80000000)!=0 else 0
-			var cached: Variant=stationary_axes[cache_key] if cacheable else null
-			if cached!=null: x=cached[0].duplicate(); y=cached[1].duplicate()
-			else:
-				var sine: float=p.sineFloat.call(angle) if p.has("sineFloat") else Trig.sine(angle); var cosine: float=p.cosineFloat.call(angle) if p.has("cosineFloat") else Trig.cosine(angle)
-				var rotation_axis: Array=particle.direction4c if int(particle.stopped70)!=0 else axis; var q:=M.multiply([cosine,M.f(M.f(rotation_axis[0])*sine),M.f(M.f(rotation_axis[1])*sine),M.f(M.f(rotation_axis[2])*sine)],particle.quaternion34 if int(particle.stopped70)!=0 else orientation)
-				x=M.axis_x(q); y=[0.0,0.0,upright] if mode==4 else M.cross(particle.direction4c if splat else axis,x)
-				if cacheable: stationary_axes[cache_key]=[x.duplicate(),y.duplicate()]
+			var angle:=M.f(M.f(particle.rotation1c)*M.f(0.5)); var sine: float=p.sineFloat.call(angle) if p.has("sineFloat") else Trig.sine(angle); var cosine: float=p.cosineFloat.call(angle) if p.has("cosineFloat") else Trig.cosine(angle)
+			var rotation_axis: Array=particle.direction4c if int(particle.stopped70)!=0 else axis; var q:=M.multiply([cosine,M.f(M.f(rotation_axis[0])*sine),M.f(M.f(rotation_axis[1])*sine),M.f(M.f(rotation_axis[2])*sine)],particle.quaternion34 if int(particle.stopped70)!=0 else orientation)
+			x=M.axis_x(q); y=[0.0,0.0,upright] if mode==4 else M.cross(particle.direction4c if splat else axis,x)
 		for component in 3: x[component]=M.f(width*x[component]); y[component]=M.f(height*y[component])
 		var u0:=0.0; var u1:=1.0; var v0:=0.0; var v1:=1.0
 		if atlas:

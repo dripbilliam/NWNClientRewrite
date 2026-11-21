@@ -2,7 +2,6 @@ extends RefCounted
 # CPU data only: preserve compressed blocks/mips for native GPU publication.
 const Binary = preload("res://systems/native_data/binary_data.gd")
 const Conversion=preload("res://systems/native_data/raster_conversion.gd")
-const S3TC=preload("res://systems/native_data/s3tc_decode.gd")
 const MAX_PIXELS := 16777216
 var failure := ""
 var reader
@@ -41,33 +40,18 @@ func packed_mips(at: int, width: int, height: int, format: String, count: int, a
 		if width == 1 and height == 1: break
 		width = maxi(1, width >> 1); height = maxi(1, height >> 1)
 	return result
-func s3tc_texture(mips: Array,width: int,height: int,format: String) -> Dictionary:
-	# src/s3tc_decode.js::s3tcTexture retains aligned compressed levels and
-	# decodes all levels when either base dimension is not 4-texel aligned.
-	var s3tc:=format in ["dxt1_rgb","dxt1_rgba","dxt3","dxt5"]
-	if s3tc and (width%4!=0 or height%4!=0):
-		for index in mips.size():
-			var mip: Dictionary=mips[index]
-			mip.data=S3TC.decode(mip.data,int(mip.width),int(mip.height),format)
-			if mip.data.is_empty(): return reject("Invalid S3TC block data")
-			mips[index]=mip
-		format="rgba8"
-	return {"width":width,"height":height,"format":format,"mips":mips,"generate_mips":false,"s3tc_source":s3tc}
 func bioware_dds() -> Dictionary:
 	if not reader.contains(0, 20): return reject("Truncated BioWare DDS header")
 	var width: int = reader.u32(0); var height: int = reader.u32(4); var marker: int = reader.u32(8)
-	if width<1 or height<1 or width>=32768 or height>=32768 or marker not in [3, 4]: return reject("Invalid BioWare DDS dimensions/format")
+	if not dimensions(width, height) or marker not in [3, 4]: return reject("Invalid BioWare DDS dimensions/format")
 	var format := "dxt1_rgb" if marker == 3 else "dxt5"
-	var top_size:=block_bytes(format,width,height)
-	if reader.u32(12) != top_size or top_size>reader.data.size()-20: return reject("Invalid BioWare DDS top mip size")
+	if reader.u32(12) != block_bytes(format, width, height): return reject("Invalid BioWare DDS top mip size")
 	var mips := packed_mips(20, width, height, format, 16, true)
-	var result:=s3tc_texture(mips,width,height,format)
-	result.bioware_dds=true
-	return result
+	return {"width": width, "height": height, "format": format, "mips": mips, "generate_mips": false}
 func dds() -> Dictionary:
 	if not reader.contains(0, 128) or reader.u32(4) != 124: return reject("Invalid standard DDS header")
 	var width: int = reader.u32(16); var height: int = reader.u32(12)
-	if width<1 or height<1 or width>=32768 or height>=32768 or reader.u32(112) & 0x200 or reader.u32(24) > 1: return reject("Only bounded 2D DDS rasters are admitted")
+	if not dimensions(width, height) or reader.u32(112) & 0x200 or reader.u32(24) > 1: return reject("Only bounded 2D DDS rasters are admitted")
 	var count := maxi(1, reader.u32(28)) if reader.u32(8) & 0x20000 else 1
 	if count > 16: return reject("DDS mip count exceeds dimensions")
 	var fourcc: String = reader.text(84, 4); var at := 128
@@ -76,7 +60,7 @@ func dds() -> Dictionary:
 		if not reader.contains(128, 20) or reader.u32(132) != 3 or reader.u32(136) & 4 or reader.u32(140) != 1: return reject("Unsupported DDS DX10 texture kind")
 		format = {95:"bc6h_unsigned",96:"bc6h_signed"}.get(reader.u32(128), ""); at = 148
 	if not format.is_empty():
-		return s3tc_texture(packed_mips(at,width,height,format,count),width,height,format)
+		return {"width":width, "height":height, "format":format, "mips":packed_mips(at,width,height,format,count), "generate_mips":false}
 	var bits: int = reader.u32(88)
 	if bits not in [24,32] or reader.u32(92) != 0xff0000 or reader.u32(96) != 0xff00 or reader.u32(100) != 0xff or (bits == 32 and reader.u32(104) != 0xff000000): return reject("Unsupported DDS pixel format")
 	var mips: Array = []; var w := width; var h := height
@@ -101,7 +85,7 @@ func ktx() -> Dictionary:
 	if endian not in [0x04030201,0x01020304]: return reject("Invalid KTX byte order")
 	var little := endian == 0x04030201
 	var width := ktx_u32(36,little); var height := ktx_u32(40,little); var count := maxi(1,ktx_u32(56,little))
-	if width<1 or height<1 or width>=32768 or height>=32768 or count > 16 or ktx_u32(16,little) != 0 or ktx_u32(20,little) != 1 or ktx_u32(24,little) != 0 or ktx_u32(44,little) != 0 or ktx_u32(48,little) != 0 or ktx_u32(52,little) != 1: return reject("Unsupported KTX raster layout")
+	if not dimensions(width,height) or count > 16 or ktx_u32(16,little) != 0 or ktx_u32(20,little) != 1 or ktx_u32(24,little) != 0 or ktx_u32(44,little) != 0 or ktx_u32(48,little) != 0 or ktx_u32(52,little) != 1: return reject("Unsupported KTX raster layout")
 	var format: String = {33776:"dxt1_rgb",33777:"dxt1_rgba",33778:"dxt3",33779:"dxt5",36196:"etc1"}.get(ktx_u32(28,little), "")
 	if format.is_empty(): return reject("Unsupported KTX compression")
 	var at := 64 + ktx_u32(60,little); var w := width; var h := height; var mips: Array = []
@@ -111,7 +95,7 @@ func ktx() -> Dictionary:
 		if size != block_bytes(format,w,h) or not reader.contains(at,size): return reject("Invalid KTX mip size")
 		mips.append({"width":w,"height":h,"data":reader.bytes(at,size)}); at += size + ((4 - size % 4) % 4)
 		w = maxi(1,w >> 1); h = maxi(1,h >> 1)
-	return s3tc_texture(mips,width,height,format)
+	return {"width":width,"height":height,"format":format,"mips":mips,"generate_mips":false}
 func tga() -> Dictionary:
 	if use_native and Conversion.available:
 		var converted:=Conversion.tga(reader.data)

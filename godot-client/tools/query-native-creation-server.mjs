@@ -1,0 +1,10 @@
+import dgram from 'node:dgram';
+import fs from 'node:fs/promises';
+import {serverInfoRequest,readServerQueryResponse} from '../../src/server_discovery.js';
+const arg=name=>process.argv.find(value=>value.startsWith('--'+name+'='))?.slice(name.length+3);
+const port=Number(arg('port')),output=arg('output');
+if(![5121,5129].includes(port)||!output)throw Error('Explicit owned creation endpoint and new receipt required');
+const info=await new Promise((resolve,reject)=>{const socket=dgram.createSocket('udp4');let complete=false;const timer=setTimeout(()=>finish(Error('Owned original server query timed out')),2500);const finish=(error,value)=>{if(complete)return;complete=true;clearTimeout(timer);socket.close();error?reject(error):resolve(value);};socket.on('error',error=>finish(error));socket.on('message',(bytes,remote)=>{if(remote.address!=='127.0.0.1'||remote.port!==port)return;try{const value=readServerQueryResponse(bytes);if(value.type==='info')finish(null,value);}catch(error){finish(error);}});socket.bind(0,'127.0.0.1',()=>socket.send(serverInfoRequest(port),port,'127.0.0.1'));});
+const success=info.moduleName==='Prelude'&&info.playerCount===0&&info.enforceLegalCharacters===1&&info.maximumPlayers===(port===5121?2:1)&&info.allowLocalVaultCharacters===(port===5121?1:0);
+await fs.writeFile(output,JSON.stringify({success,endpoint:{host:'127.0.0.1',port},testedAtUtc:new Date().toISOString(),info,authentication:false},null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({success,port,playerCount:info.playerCount,localVaultAllowed:info.allowLocalVaultCharacters,enforceLegal:info.enforceLegalCharacters,module:info.moduleName}));process.exitCode=success?0:1;

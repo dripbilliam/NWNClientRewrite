@@ -5,6 +5,7 @@ const M=preload("res://systems/native_render/particle_math.gd")
 var native_owner: RefCounted
 var token:=0
 var rng
+var maximum_records:=32768
 var closed:=false
 var failure:=""
 var last_noise_draws:=0
@@ -60,6 +61,7 @@ func set_area(fields: Dictionary) -> bool:
 	area_signature=signature; return true
 func add_source(position: Array,radius: float,duration: float,strength: float) -> bool:
 	if closed or native_owner==null: failure="Native point-wind scene is retired"; return false
+	if point_count>=maximum_records: failure="Native point-wind source allocation exceeds explicit limit"; return false
 	if not accept(native_owner.call("dispatch",3,{"position":position,"radius":radius,"duration":duration,"strength":strength}),false): return false
 	point_count+=1; stats.added+=1; stats.peak_records=maxi(stats.peak_records,point_count); return true
 func tick(delta: float) -> void:

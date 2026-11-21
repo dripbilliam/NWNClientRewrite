@@ -1,0 +1,29 @@
+// Authored fixture bytecode. Installed nwscript signatures are read-only;
+// all resources/art remain references, and the prior authored module is hashed.
+import fs from 'node:fs/promises';import path from 'node:path';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
+import {parseErf,decodeResourceText} from '../../src/resource_archive.js';import {parseGff} from '../../src/gff.js';import {typedGff,gffField as F,writeGff} from '../../src/gff_writer.js';import {parseScriptApi,parseNcs} from '../../src/ncs.js';import {openServerResourceContext} from '../../electron/server_resource_context.mjs';
+const module='GodotCamera1',home=path.resolve('runtime-logs/local-multiplayer-server'),name=process.argv.find(v=>v.startsWith('--report='))?.slice(9);
+if(!/^[a-z0-9-]+\.json$/.test(name??''))throw Error('Provide unused report name');
+const outputs=[path.join(home,'modules',module+'.mod'),path.join(home,'nwm',module+'.nwm')],report=path.resolve('godot-client/reports',name);
+for(const p of [...outputs,report]){try{await fs.access(p);throw Error('Output exists');}catch(e){if(e.code!=='ENOENT')throw e;}}
+const baseline=await fs.readFile(path.join(home,'modules/GodotFeedback1.mod'));assert.equal(createHash('sha256').update(baseline).digest('hex'),'0923e003ef612d80e5b1423661b05ab6492cbc4ff95edf7e9857751b3fe2a237');
+const entries=new Map(parseErf(baseline).entries),context=await openServerResourceContext({install:path.resolve('../FullDecomp/NwnRootInstall')}),api=parseScriptApi(decodeResourceText(await context.getResource('nwscript',2009)));
+function builder(){const code=[];return{code,int(v){const b=Buffer.alloc(4);b.writeInt32BE(v);code.push(4,3,...b);},float(v){const b=Buffer.alloc(4);b.writeFloatBE(v);code.push(4,4,...b);},string(v){const b=Buffer.from(v,'ascii');code.push(4,5,b.length>>>8,b.length&255,...b);},action(name,count){const row=api.find(v=>v.name===name);assert.equal(row.args.length,count,name);code.push(5,0,row.id>>>8,row.id&255,count);},finish(){code.push(0x20,0);const b=Buffer.alloc(13+code.length);b.write('NCS V1.0');b[8]=0x42;b.writeUInt32BE(b.length,9);b.set(code,13);parseNcs(b);return b;}};}
+const pc=b=>b.action('GetPCChatSpeaker',0),locks=(b,value)=>{for(const action of ['LockCameraPitch','LockCameraDistance','LockCameraDirection']){b.int(value);pc(b);b.action(action,2);}},flags=(b,value)=>{b.int(value);pc(b);b.action('SetCameraFlags',2);},facing=(b,yaw,distance,pitch,rate)=>{b.int(rate);b.float(pitch);b.float(distance);b.float(yaw);b.action('SetCameraFacing',4);},height=(b,value)=>{b.float(value);pc(b);b.action('SetCameraHeight',2);};
+const phases={
+ setup:b=>{b.int(1);pc(b);b.action('SetCameraMode',2);b.float(30);b.float(2);b.float(80);b.float(10);pc(b);b.action('SetCameraLimits',5);locks(b,0);height(b,3);flags(b,0);facing(b,135,12,55,0);},
+ store:b=>b.action('StoreCameraFacing',0),snap:b=>facing(b,250,8,35,0),restore:b=>b.action('RestoreCameraFacing',0),lock:b=>locks(b,1),unlock:b=>locks(b,0),flags:b=>flags(b,112),clear:b=>flags(b,0),transition:b=>facing(b,210,6,65,90),
+ attach:b=>{b.int(0);b.int(0);b.string('native_speaker');b.action('GetObjectByTag',2);pc(b);b.action('AttachCamera',3);},
+ self:b=>{b.int(0);pc(b);pc(b);b.action('AttachCamera',3);},height:b=>height(b,0),
+ reset:b=>{locks(b,0);flags(b,0);height(b,0);for(let i=0;i<4;i++)b.float(-1);pc(b);b.action('SetCameraLimits',5);for(const mode of [2,1]){b.int(mode);pc(b);b.action('SetCameraMode',2);}}
+};
+const chat=builder(),fix=[];let index=0;
+for(const [phase,write]of Object.entries(phases)){const script='gd_cam_'+(++index),b=builder();write(b);b.string('GODOT_CAMERA_'+phase.toUpperCase());pc(b);b.action('SendMessageToPC',2);entries.set(script+':2010',b.finish());
+ chat.string('-native-camera-'+phase);chat.action('GetPCChatMessage',0);chat.code.push(0x0b,0x23);const at=chat.code.length;chat.code.push(0x1f,0,0,0,0,0);pc(chat);chat.string(script);chat.action('ExecuteScript',2);chat.code.push(0x20,0);fix.push({at,to:chat.code.length});
+}
+chat.code.push(...entries.get('godot_chat:2010').subarray(13));const body=Buffer.from(chat.code);for(const {at,to}of fix)body.writeInt32BE(to-at,at+2);const ncs=Buffer.alloc(13+body.length);ncs.write('NCS V1.0');ncs[8]=0x42;ncs.writeUInt32BE(ncs.length,9);ncs.set(body,13);parseNcs(ncs);entries.set('godot_chat:2010',ncs);
+const ifo=typedGff(parseGff(entries.get('module:2014')).root);ifo.fields.Mod_Name=F(12,'Godot Native Camera Commands');ifo.fields.Mod_Tag=F(10,module);entries.set('module:2014',writeGff('IFO ',ifo));
+const count=entries.size,keys=160,resources=keys+count*24,start=resources+count*8,bytes=Buffer.alloc(start+[...entries.values()].reduce((n,v)=>n+v.length,0));bytes.write('MOD V1.0');bytes.writeUInt32LE(count,16);bytes.writeUInt32LE(160,20);bytes.writeUInt32LE(keys,24);bytes.writeUInt32LE(resources,28);let cursor=start;
+for(const[index,[key,value]]of[...entries].entries()){const split=key.lastIndexOf(':');bytes.write(key.slice(0,split),keys+index*24,16,'ascii');bytes.writeUInt32LE(index,keys+index*24+16);bytes.writeUInt16LE(Number(key.slice(split+1)),keys+index*24+20);bytes.writeUInt32LE(cursor,resources+index*8);bytes.writeUInt32LE(value.length,resources+index*8+4);bytes.set(value,cursor);cursor+=value.length;}
+assert.equal(parseErf(bytes).entries.size,count);for(const file of outputs)await fs.writeFile(file,bytes,{flag:'wx'});
+const result={module,sha256:createHash('sha256').update(bytes).digest('hex'),commands:Object.keys(phases).map(v=>'-native-camera-'+v),scope:'Actual native server camera location/mode/store/restore/height/limits/locks/flags/attachment messages via authored PC-executed scripts; no synthesized client camera packets or copied art'};await fs.writeFile(report,JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify(result));

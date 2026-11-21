@@ -3,8 +3,6 @@ extends RefCounted
 # in World. Only one small latch and owned visual ID per observed lifetime.
 const Controller=preload("res://tools/native_parity/visibility/perception_controller.gd")
 const Lifetime=preload("res://systems/native_data/entity_presentation_lifetime.gd")
-const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
-var reuse_observation:=not OS.get_cmdline_user_args().has("--perception-repeat=always-observe")
 var _world: WeakRef
 var _apply: Callable
 var _remove: Callable
@@ -62,7 +60,15 @@ func received_step() -> bool:
 			if not _entries.has(id):_entries[id]={"controller":Controller.new(),"lifetime":Lifetime.token(source),"effect":0}
 			var entry: Dictionary=_entries[id]
 			var scope:={"connection_epoch":"%s/observer/%s"%[world.get_instance_id(),controlled],"area_generation":world.generation,"area_id":world.area_id,"object_id":id,"entity_lifetime":str(entry.lifetime)}
-			if _observe(entry,scope,flags,id,int(lifetime)):FrameProfile.count("count_perception_duplicate_observations_skipped",1)
+			var transition: Dictionary=entry.controller.observe(scope,flags);stats.observations+=1
+			if not transition.available:stats.unavailable+=1;return false
+			match str(transition.action.kind):
+				"apply6":
+					entry.effect=int(_apply.call(id,int(lifetime),6)) if _apply.is_valid() else 0
+					stats.applied+=1
+				"remove6":
+					if entry.effect>0 and _remove.is_valid():_remove.call(id,int(entry.effect))
+					entry.effect=0;stats.removed+=1
 	return false
 
 func cancel_received() -> void:_received={}
@@ -72,35 +78,6 @@ func _retire(id: int) -> void:
 	var entry: Dictionary=_entries[id]
 	if int(entry.effect)>0 and _remove.is_valid():_remove.call(id,int(entry.effect))
 	entry.controller.retire();_entries.erase(id);stats.retired+=1
-
-func _observe(entry: Dictionary,scope: Dictionary,flags: Variant,id: int,lifetime: int) -> bool:
-	stats.observations+=1
-	var mask:=-1
-	if reuse_observation:
-		var normalized: Variant=Controller.Latch.flags_value(flags)
-		if normalized!=null:
-			mask=int(normalized[0])|(int(normalized[1])<<1)|(int(normalized[2])<<2)
-			# A second application of the same valid triple in the same scope
-			# always leaves the settled latch in place. Keep scalar flags so an
-			# in-place change of the received array cannot masquerade as a repeat.
-			if entry.get("observation_mask",-1)==mask and entry.get("observation_scope")==scope:return true
-	var transition: Dictionary=entry.controller.observe(scope,flags)
-	if not transition.available:
-		if reuse_observation:entry.observation_mask=-1
-		stats.unavailable+=1
-		return false
-	if reuse_observation:
-		entry.observation_mask=mask
-		entry.observation_scope=scope
-	match str(transition.action.kind):
-		"apply6":
-			entry.effect=int(_apply.call(id,lifetime,6)) if _apply.is_valid() else 0
-			stats.applied+=1
-		"remove6":
-			if entry.effect>0 and _remove.is_valid():_remove.call(id,int(entry.effect))
-			entry.effect=0;stats.removed+=1
-	return false
-
 func receive(objects: Array,controlled: int) -> void:
 	var world: Node=_world.get_ref() if _world!=null else null
 	if _closed or not is_instance_valid(world):return
@@ -119,7 +96,6 @@ func receive(objects: Array,controlled: int) -> void:
 			for key in visibility:
 				var text:=str(key)
 				if text.is_valid_int():candidates[text.to_int()]=true
-	var reused:=0
 	for id in candidates:
 		if not world.desired.has(id):continue
 		var source: Dictionary=world.desired[id].object
@@ -131,8 +107,15 @@ func receive(objects: Array,controlled: int) -> void:
 		if not _entries.has(id):_entries[id]={"controller":Controller.new(),"lifetime":Lifetime.token(source),"effect":0}
 		var entry: Dictionary=_entries[id]
 		var scope:={"connection_epoch":"%s/observer/%s"%[world.get_instance_id(),controlled],"area_generation":world.generation,"area_id":world.area_id,"object_id":id,"entity_lifetime":str(entry.lifetime)}
-		if _observe(entry,scope,flags,int(id),int(lifetime)):reused+=1
-	if reused>0:FrameProfile.count("count_perception_duplicate_observations_skipped",reused)
+		var transition: Dictionary=entry.controller.observe(scope,flags);stats.observations+=1
+		if not transition.available:stats.unavailable+=1;continue
+		match str(transition.action.kind):
+			"apply6":
+				entry.effect=int(_apply.call(id,int(lifetime),6)) if _apply.is_valid() else 0
+				stats.applied+=1
+			"remove6":
+				if entry.effect>0 and _remove.is_valid():_remove.call(id,int(entry.effect))
+				entry.effect=0;stats.removed+=1
 func snapshot() -> Dictionary:
 	return {"closed":_closed,"observer":_controlled,"entries":_entries.size(),"stats":stats.duplicate(),"input":"received PlayerInfo.visibility only; creature-update triple has distinct packing","fade_policy":"No guessed reveal/LOS fade triggered"}
 func close() -> void:

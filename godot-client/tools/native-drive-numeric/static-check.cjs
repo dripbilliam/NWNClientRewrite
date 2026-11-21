@@ -1,0 +1,35 @@
+'use strict';
+// Source-only checks. These neither compile C++ nor parse/run Godot scripts.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const project=path.resolve(__dirname,'../..'),evidence=path.join(project,'.cache/native-presentation-parity/root/pause-fixes-v1/movement/numeric-sidecar-v1');
+const label=process.argv.find(value=>value.startsWith('--label='))?.slice(8);
+const integration=process.argv.find(value=>value.startsWith('--integration='))?.slice(14)??'integration-b';
+if(!/^[a-z0-9][a-z0-9-]{0,79}$/.test(label??'')||!/^integration(?:-[a-z0-9]+)?$/.test(integration)||process.argv.slice(2).some(value=>!value.startsWith('--label=')&&!value.startsWith('--integration='))||process.argv.filter(value=>value.startsWith('--label=')).length!==1||process.argv.filter(value=>value.startsWith('--integration=')).length>1)throw Error('Use fresh --label=<label> and optional --integration=<reviewed label>; historical proofs are never overwritten');
+const output=path.join(evidence,'static-proof-'+label+'.json');if(fs.existsSync(output))throw Error('Existing static proof preserved');
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex'),read=f=>fs.readFileSync(path.join(project,f)),text=f=>read(f).toString('utf8');let checks=0;
+function check(value,label){assert(value,label);checks++;}
+const originalPins=JSON.parse(fs.readFileSync(path.join(evidence,'before.json'))).files;
+for(const pin of originalPins)check(sha(read(pin.relative))===pin.sha256,'Original main/shared source unchanged: '+pin.relative);
+for(const file of ['drive_clear_kernel.hpp','drive_height_kernel.hpp','drive_clear_kernel_test.cpp','drive_height_kernel_test.cpp'])check(sha(read('tools/native-drive-numeric/'+file))===sha(read('tools/perf140/loading/'+file)),'Reviewed private source retained: '+file);
+check(sha(read('tools/native-drive-numeric/frozen_drive_collision_indexed.gd'))===originalPins.find(p=>p.relative.endsWith('drive_collision_indexed.gd')).sha256,'Frozen script is exact baseline');
+const adapter=text('systems/native_render/drive_numeric_batch.gd'),bridge=text('tools/native-drive-numeric/drive_numeric_extension.cpp'),builder=text('tools/native-drive-numeric/build-private.ps1');
+check(adapter.includes('const CLASS_NAME:="NwnDriveNumericBatch"')&&bridge.includes('CLASS="NwnDriveNumericBatch"'),'Dedicated class only');
+check(!adapter.includes('NwnSceneGeometry')&&!bridge.includes('NwnSceneGeometry'),'No legacy-class dispatch');
+check(adapter.includes('SCHEMA:="nwn-drive-numeric-v1"')&&bridge.includes('SCHEMA="nwn-drive-numeric-v1"'),'Matching schema');
+check(adapter.includes('OS.has_feature("double")')&&adapter.includes('engine.patch!=2'),'Unaccepted engine/precision fallback');
+check(bridge.includes('put(out,"height",Var::boolean(false))')&&!bridge.includes('case 4:'),'Height capability remains unsupported');
+check(builder.includes('/fp:strict')&&builder.includes('/WX')&&builder.includes('[switch]$Build'),'Explicit private strict build');
+check(!builder.includes('particle_kernel')&&!builder.includes('extension_list')&&!builder.includes('Start-Process'),'No shared build/activation/engine launch in builder');
+check(!fs.existsSync(path.join(__dirname,'private.gdextension')),'Template is inactive');
+const candidate=fs.readFileSync(path.join(evidence,integration,'drive_collision_indexed.gd'),'utf8');
+const original=text('systems/native_render/drive_collision_indexed.gd');
+const publicInterval=s=>s.replace(/\r\n/g,'\n').split('static func interval(')[1].split('static func point_distance(')[0];
+check(publicInterval(candidate)===publicInterval(original),'Candidate retains public interval byte-for-byte');
+const prefix=s=>s.replace(/\r\n/g,'\n').split('func _clear_geometry(')[1].split('\tvar intervals: Array=[];')[0];
+check(prefix(candidate)===prefix(original),'Candidate retains prefix/height arithmetic and call boundary');
+for(const line of candidate.split('\n').filter(l=>l.includes('objects.erase(')))check(line.includes('numeric_batch.invalidate('),'Every object erase retires matching payload');
+check(candidate.includes('func retire_index()->void:\n\tnumeric_batch.clear()')&&candidate.includes('func detach_prepared_data() -> Dictionary:\n\tnumeric_batch.clear()'),'Retire/detach release payload');
+check(candidate.includes('func prepare_numeric_payloads()->void:'),'Publication hook for immutable prepared geometry is available');
+const files=[...fs.readdirSync(__dirname).filter(f=>fs.statSync(path.join(__dirname,f)).isFile()).map(f=>'tools/native-drive-numeric/'+f),'systems/native_render/drive_numeric_batch.gd'];
+const proof={version:1,state:'STATIC_CHECK_ONLY',checks,engineLaunches:0,builds:0,mainIntegrationApplied:false,sharedSourceUnchanged:true,files:files.map(relative=>({relative,sha256:sha(read(relative))})),limitations:['This invocation checks source only; separate private build/oracle receipts determine runtime acceptance.','Profile-OFF cold/warm total movement timing remains pending.','Original live 960ms tail not proven resolved.']};
+fs.writeFileSync(output,JSON.stringify(proof,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({checks,state:proof.state,files:proof.files.length,output}));

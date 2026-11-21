@@ -7,20 +7,16 @@ var registry
 var area_id:=-1
 var objects: Dictionary={}
 var instances: Dictionary={}
-var signatures: Dictionary={}
 var closed:=false
 var stats:={"registered":0,"removed":0,"invalid":0}
 class Target extends Node3D:
 	var meshes: Array=[]
 	var pick_surfaces: Array=[]
 func configure(value,area: int) -> void: registry=value; area_id=area
-static func geometry_signature(object: Dictionary) -> PackedByteArray:
-	var state: Dictionary=object.get("replicated",{})
-	return var_to_bytes([state.get("vertices"),bool(state.get("hasTransition",false)),bool(state.get("isTrap",false))])
 func forget(id: int) -> void:
 	if is_instance_valid(registry): registry.forget_entity(id)
 	if instances.has(id): instances[id].queue_free(); instances.erase(id); stats.removed+=1
-	objects.erase(id);signatures.erase(id)
+	objects.erase(id)
 func receive(rows: Array,removed: Array=[],delta: bool=false) -> bool:
 	if closed: return false
 	var previous:=int(stats.registered)+int(stats.removed)
@@ -40,10 +36,7 @@ func receive(rows: Array,removed: Array=[],delta: bool=false) -> bool:
 		if not Policy.eligible(object,area_id):
 			if objects.has(id): forget(id)
 			continue
-		var signature: PackedByteArray=geometry_signature(object)
-		if objects.has(id) and signatures.get(id)==signature:
-			objects[id]=object
-			continue
+		if objects.has(id) and objects[id]==object: continue
 		var data:=Surface.prepare(object)
 		if objects.has(id): forget(id)
 		if data.is_empty(): stats.invalid+=1; continue
@@ -58,7 +51,7 @@ func receive(rows: Array,removed: Array=[],delta: bool=false) -> bool:
 		visual.set_meta("native_pick_shape",shape); visual.set_meta("native_pick_bounds",data.bounds); target.add_child(visual); target.meshes=[visual]
 		var raw_name: Variant=object.get("replicated",{}).get("name",{})
 		var name:=str(raw_name.get("text","Area transition")) if raw_name is Dictionary else "Area transition"
-		objects[id]=object; signatures[id]=signature; instances[id]=target
+		objects[id]=object; instances[id]=target
 		registry.register_native(id,{"id":id,"name":name,"type":7,"eligible":true,"color":"#55ddff","destination":data.destination},target); stats.registered+=1
 	return int(stats.registered)+int(stats.removed)!=previous
 func close() -> void:

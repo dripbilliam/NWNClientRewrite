@@ -11,8 +11,8 @@ func register_native(id: int,row: Dictionary,instance) -> bool:
 func forget_entity(id: int) -> bool:
 	_door_targets.erase(id)
 	return super.forget_entity(id)
-func pick(camera: Camera3D,screen: Vector2,include_player: bool=false,objects_only: bool=false,player_id: int=-1) -> Dictionary:
-	var best:=super.pick(camera,screen,include_player,objects_only,player_id)
+func pick(camera: Camera3D,screen: Vector2) -> Dictionary:
+	var best:=super.pick(camera,screen)
 	var origin:=camera.project_ray_origin(screen)
 	var end: Vector3=best.position if best.get("position") is Vector3 else origin+camera.project_ray_normal(screen)*camera.far
 	var distance:=origin.distance_squared_to(end)

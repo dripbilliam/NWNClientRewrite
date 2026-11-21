@@ -7,7 +7,6 @@ const Assets=preload("res://systems/native_data/asset_service.gd")
 const Surface=preload("res://systems/native_data/tile_surface.gd")
 const Objects=preload("res://systems/native_render/object_stream.gd")
 const Rules=preload("res://systems/native_data/game_ui_rules.gd")
-const MovementRate=preload("res://systems/native_data/native_movement_rate.gd")
 var world
 var assets
 var tables: Dictionary={}
@@ -53,16 +52,13 @@ func row(table: String,index: int) -> Dictionary:
 	var rows: Array=tables.get(table,{}).get("orderedRows",[])
 	return rows[index] if index>=0 and index<rows.size() else {}
 func dimensions(id: int) -> Vector2:
-	var object: Dictionary=world.desired.get(id,{}).get("object",{})
-	var appearance: Variant=object.get("appearance",{})
-	var index:=int(appearance.get("appearance",-1)) if appearance is Dictionary else -1
-	var table: Variant=tables.get("appearance")
-	return Vector2(float(MovementRate.native_float_entry(table,index,"PERSPACE").get("value",0.0)),float(MovementRate.native_float_entry(table,index,"HEIGHT").get("value",0.0)))
+	var object: Dictionary=world.desired.get(id,{}).get("object",{}); var data:=row("appearance",int(object.get("appearance",{}).get("appearance",-1)))
+	return Vector2(maxf(0,float(Rules.cell(data,"PERSPACE","0"))),maxf(0,float(Rules.cell(data,"HEIGHT","0"))))
 func descriptor(object: Dictionary) -> Dictionary:
 	var kind:=int(object.objectType); var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{})); var data: Dictionary={}
 	if kind==9: data=row("placeables",int(state.get("appearance",fixed.get("appearance",-1))))
 	elif kind==10:
-		var type:=int(state.get("doorType",0)); data=tables.get("genericdoors" if type==0 else "doortypes",{}).get("rows",{}).get(int(state.get("genericType",0)) if type==0 else type,{})
+		var type:=int(state.get("doorType",0)); data=row("genericdoors" if type==0 else "doortypes",int(state.get("genericType",0)) if type==0 else type)
 		if str(Rules.cell(data,"VisibleModel","1"))=="0": return {}
 	else: return {}
 	var name:=str(Rules.cell(data,"ModelName",Rules.cell(data,"Model",""))).to_lower()

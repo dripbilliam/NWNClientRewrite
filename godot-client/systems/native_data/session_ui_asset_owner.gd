@@ -1,7 +1,6 @@
 extends RefCounted
 # Strong, catalog-scoped ownership of completed UI images. The catalog's ordered
 # bindings, not a resource name alone, determine which source supplied an image.
-signal asset_unavailable(kind: String,key: String,reason: String)
 var binding_identities: Array=[]
 var images: Dictionary={}
 var failures: Dictionary={}
@@ -24,7 +23,6 @@ func note_failure(kind: String,key: String,reason: String) -> void:
 	if closed or kind.is_empty() or key.is_empty(): return
 	if not failures.has(kind): failures[kind]={}
 	failures[kind][key]=reason
-	call_deferred("emit_signal","asset_unavailable",kind,key,reason)
 
 func failure(kind: String,key: String) -> String:
 	return str(failures.get(kind,{}).get(key,""))

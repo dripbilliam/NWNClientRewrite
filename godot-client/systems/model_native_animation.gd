@@ -14,52 +14,31 @@ var diagnostics: Array = []
 var providers: Dictionary
 var closed := false
 var controller_plans: Dictionary={}
-var visual_speed_provider: Callable=Callable()
-var root_committed:=false
 
-func _update_root(_root: Variant, _delta: float) -> void:
-	# The run clock calls this once after its clip/event callbacks. The rig
-	# owner publishes model-local CPU skin at this boundary.
-	root_committed=true
-
-func playback_scale() -> float:
-	return float(visual_speed_provider.call()) if visual_speed_provider.is_valid() else 1.0
-
-func configure(asset: Dictionary, source: Dictionary, entity: Dictionary, model_index: int = -1) -> void:
+func configure(asset: Dictionary, source: Dictionary, entity: Dictionary) -> void:
 	entry = entity
-	pose.configure(asset.nativeAnimation, source, entity.nodes, entity.manual_poses, entity.get("gpu_meshes", []), model_index)
+	pose.configure(asset.nativeAnimation, source, entity.nodes, entity.manual_poses)
 	for clip in asset.clips:
-		var authored_name:=str(clip.name)
-		var key:=authored_name.to_lower()
-		var native_clips: Dictionary=asset.nativeAnimation.clips
-		descriptors[key] = {"name": authored_name, "length90": clip.length, "transition94": clip.transition, "events": clip.events, "native": native_clips.get(authored_name, native_clips.get(key, {}))}
+		descriptors[str(clip.name)] = {"name": str(clip.name), "length90": clip.length, "transition94": clip.transition, "events": clip.events, "native": asset.nativeAnimation.clips.get(str(clip.name), {})}
 	gob = {"model68": descriptors, "model80": null, "runsE0": [], "root90": true, "period188": 0}
 	providers = {"findAnimation": func(_resource, name): return descriptors.get(Runs.lower(name)), "createRun": func(_clip): return {}, "destroyRun": func(_run, _bytes): pass,
-		"animationScale": func(_resource, _clip): return 1.0, "playbackScale": func(_gob): return playback_scale(), "event": _event,
-		"applyClip": _apply, "animateEvents": _animate_events, "updateRoot": _update_root, "periodicUpdate": func(_gob): pass}
+		"animationScale": func(_resource, _clip): return 1.0, "playbackScale": func(_gob): return 1.0, "event": _event,
+		"applyClip": _apply, "animateEvents": _animate_events, "updateRoot": func(_root, _delta): pass, "periodicUpdate": func(_gob): pass}
 
 func diagnose(message: String) -> void:
 	if not diagnostics.has(message): diagnostics.append(message)
 
 func play(name: Variant, speed: float, flags: int, time: float) -> bool:
-	if not is_finite(speed) or not is_finite(time):
-		diagnose("Native model playback parameters are unavailable")
-		return false
-	var key := Runs.lower(str(name)) if name != null else ""
-	var clearing:=name==null or key in ["","null"]
-	if not clearing and flags & 256:
+	if flags & 256:
 		diagnose("native motion-run controller provider unavailable")
 		return false
-	if not clearing and descriptors.has(key) and not descriptors[key].native.has("root"):
+	var key := Runs.lower(str(name)) if name != null else ""
+	if descriptors.has(key) and not descriptors[key].native.has("root"):
 		diagnose(str(descriptors[key].native.get("unavailable", "native clip storage unavailable")))
 		return false
 	return Runs.play(gob, name, speed, flags, time, providers) != 0
 
 func advance(delta: float) -> void:
-	# ModelAnimator.update returns once the last run has completed. Keep the
-	# original clock, root callback and periodic work dormant until the next play.
-	root_committed=false
-	if gob.runsE0.is_empty() or not is_finite(delta) or delta<0.0: return
 	Runs.advance(gob, delta, providers)
 	for message in pose.diagnostics: diagnose(message)
 

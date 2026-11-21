@@ -7,8 +7,6 @@ const World=preload("res://systems/native_render/live_world_pending_appearances.
 const Frames=preload("res://systems/bridge_frames.gd")
 const AreaEnvironment=preload("res://systems/area_environment.gd")
 const CameraController=preload("res://systems/camera_controller.gd")
-const CameraKeyhole=preload("res://systems/native_render/camera_keyhole_presentation.gd")
-const TargetPreviewShader=preload("res://systems/native_render/native_target_preview_shader.gd")
 const Lights=preload("res://systems/native_render/model_light_budget.gd")
 const Registry=preload("res://systems/native_render/door_entity_registry.gd")
 const Hud=preload("res://systems/native_hud.gd")
@@ -18,12 +16,8 @@ const Keyboard=preload("res://systems/native_keyboard.gd")
 const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 const CameraObservation=preload("res://systems/native_render/camera_observation.gd")
 const WorldRetirement=preload("res://systems/native_render/world_retirement.gd")
-const AreaGraphicsPreparation=preload("res://systems/native_render/area_graphics_preparation.gd")
-const RendererResourceRetirement=preload("res://systems/native_render/renderer_resource_retirement.gd")
 const RenderPool=preload("res://systems/native_render/resource_pool.gd")
 const Interaction=preload("res://systems/native_interaction_policy.gd")
-const ActionMenu=preload("res://systems/native_data/native_network_action_menu.gd")
-const StartupPaths=preload("res://systems/native_data/native_startup_paths.gd")
 var render_pool:=RenderPool.new()
 var peer:=StreamPeerTCP.new()
 var protocol_output=preload("res://systems/native_protocol_output.gd").new()
@@ -31,7 +25,6 @@ var creation_runtime=preload("res://systems/native_data/creation_runtime_trace.g
 var frames:=Frames.new()
 var args: Dictionary={}
 var ticket: Dictionary={}
-var direct_mode:=false
 var catalog=Catalog.new()
 var catalog_loader
 var catalog_loading:=false
@@ -43,7 +36,6 @@ var native_output
 var native_output_settings: Dictionary={}
 var camera: Camera3D
 var controller
-var keyhole
 var registry
 var transition_targets
 var hud
@@ -51,7 +43,6 @@ var world_input
 var gameplay_ui
 var keyboard
 var walkmesh_registered:=false
-var walk_pointer_serial:=0
 var interactive:=false
 var module_name:="Prelude"
 var server_label:="LOCAL"
@@ -71,129 +62,6 @@ var authenticated:=false
 var closing:=false
 var finish_acknowledged:=false
 var _native_entry_snapshot: Dictionary={}
-var _finish_renderer_retirement: Callable
-var _finish_graphics_retirement: Callable
-var _finish_renderer_resource_transition: Callable
-var _finish_renderer_resource_graphics: Callable
-var graphics_pending:=false
-var area_graphics_failed_epoch:=-1
-var area_graphics:=AreaGraphicsPreparation.new()
-var _area_graphics_expected_nodes:=-1
-var _area_graphics_lights: Dictionary={}
-var _area_graphics_exiting_lights: Dictionary={}
-var _area_graphics_prune_queued:=false
-var renderer_resource_retirement:=RendererResourceRetirement.new()
-func begin_renderer_retirement() -> void:
-	finish_renderer_retirement()
-	# The outgoing scene's keyhole is disposed before the next area installs its
-	# own shader state. Its later world exit must not reset the new owner.
-	if is_instance_valid(keyhole):keyhole.close();keyhole=null
-	graphics_pending=false
-	_finish_renderer_resource_transition=renderer_resource_retirement.begin()
-	_finish_graphics_retirement=area_graphics.begin()
-	renderer_resource_retirement.retire(func():area_graphics.flush())
-	if is_instance_valid(world) and is_instance_valid(world_retirement):_finish_renderer_retirement=world_retirement.begin()
-func finish_area_graphics_hold() -> void:
-	# Area material preparation settles at ACK; previous-world transition
-	# retirement may continue until the first scene update is delivered.
-	graphics_pending=false
-	if _finish_renderer_resource_graphics.is_valid():_finish_renderer_resource_graphics.call()
-	_finish_renderer_resource_graphics=Callable()
-func renderer_transition_pending() -> bool:
-	return _finish_renderer_retirement.is_valid() or _finish_renderer_resource_transition.is_valid() or _finish_graphics_retirement.is_valid()
-func finish_renderer_retirement() -> void:
-	finish_area_graphics_hold()
-	if _finish_renderer_retirement.is_valid():_finish_renderer_retirement.call()
-	_finish_renderer_retirement=Callable()
-	if _finish_renderer_resource_transition.is_valid():_finish_renderer_resource_transition.call()
-	_finish_renderer_resource_transition=Callable()
-	if _finish_graphics_retirement.is_valid():_finish_graphics_retirement.call()
-	_finish_graphics_retirement=Callable()
-	area_graphics.flush()
-
-func native_model_world_timer() -> Variant:
-	var runtime: Variant=get("native_clock_runtime")
-	return runtime.world_timer() if runtime!=null and runtime.has_method("world_timer") else null
-func native_model_diagnostic(_row: Dictionary) -> void: pass
-
-func native_camera_follow_target_id()->int:
-	return world.controlled_id if is_instance_valid(world) else -1
-
-func native_camera_follow_height(_target_id: int)->float:
-	return 1.0
-
-func native_camera_clear_view_facing(_target_id: int)->float:
-	return NAN
-
-func native_camera_clear_view_query()->Callable:
-	return Callable()
-
-func native_camera_collision_context()->Dictionary:
-	return {}
-
-static func native_camera_steering_input(actor: Dictionary, movement: Dictionary, controlled_rotation: Variant = null) -> Dictionary:
-	# NetworkPlayerCamera follows the attached target's position but steers from
-	# the controlled actor's orientation and animation.
-	var replicated: Dictionary=actor.get("replicated",{})
-	var orientation: Variant=movement.get("orientation",replicated.get("orientation"))
-	if orientation is Dictionary:orientation=orientation.get("vector")
-	var facing:=0.0
-	if orientation is Vector3:facing=rad_to_deg(atan2(-orientation.x,orientation.y))
-	elif orientation is Array and orientation.size()>=2:facing=rad_to_deg(atan2(-float(orientation[0]),float(orientation[1])))
-	elif controlled_rotation is float:facing=rad_to_deg(controlled_rotation)
-	var animation:=int(movement.get("animation",0)) if bool(movement.get("active",false)) else int(replicated.get("animation",0))
-	return {"facing":facing,"animation":animation}
-
-func native_camera_anchor_early(_delta: float,scoped_world: Node,scoped_epoch: int) -> void:
-	if closing or not is_instance_valid(scoped_world) or world!=scoped_world or epoch!=scoped_epoch or scoped_world.closed or scoped_world.retiring or not is_instance_valid(camera) or not is_instance_valid(controller):return
-	if initial_controlled==null and not entry_camera.anchored:
-		var pending_pose: Dictionary=world.object_pose(world.desired[world.controlled_id].object) if world.desired.has(world.controlled_id) else {}
-		if not pending_pose.is_empty() or world.has_priority_origin:
-			var position: Vector3=pending_pose.position if not pending_pose.is_empty() else world.priority_origin
-			if entry_camera.anchor(camera,controller,position,camera_memory): world.stats.camera_anchor_ms=(Time.get_ticks_usec()-world.opened_at)/1000.0
-	if world.instances.has(world.controlled_id):
-		var position: Vector3=world.instances[world.controlled_id].position
-		if initial_controlled==null:
-			initial_controlled=position; entry_camera.anchor(camera,controller,position,camera_memory)
-			world.stats.controlled_camera_bound_ms=(Time.get_ticks_usec()-world.opened_at)/1000.0
-		maximum_distance=maxf(maximum_distance,position.distance_to(initial_controlled))
-
-func native_camera_post_motion(delta: float,scoped_world: Node,scoped_epoch: int) -> void:
-	if closing or not is_instance_valid(scoped_world) or world!=scoped_world or epoch!=scoped_epoch or scoped_world.closed or scoped_world.retiring or not is_instance_valid(camera) or not is_instance_valid(controller):return
-	var phase_began:=FrameProfile.begin()
-	var camera_follow_id:=native_camera_follow_target_id()
-	if world.instances.has(camera_follow_id):
-		var camera_position: Vector3=world.instances[camera_follow_id].position
-		var controlled: Dictionary=world.desired.get(world.controlled_id,{}).get("object",{})
-		var controlled_motion: Dictionary=world.motion.objects.get(world.controlled_id,{})
-		var controlled_rotation: Variant=world.instances[world.controlled_id].rotation.y if world.instances.has(world.controlled_id) else null
-		var steering:=native_camera_steering_input(controlled,controlled_motion,controlled_rotation)
-		controller.follow_frame(camera_position,float(steering.facing),int(steering.animation),delta,native_camera_follow_height(camera_follow_id),native_camera_clear_view_facing(camera_follow_id),native_camera_clear_view_query(),native_camera_collision_context())
-	if is_instance_valid(keyhole):
-		var keyhole_player: Variant=world.instances[world.controlled_id].position if world.instances.has(world.controlled_id) else null
-		keyhole.update(keyhole_player if keyhole_player is Vector3 else Vector3.ZERO,keyhole_player is Vector3 and gameplay_presentation_allowed())
-	FrameProfile.finish("root_camera",phase_began)
-
-func native_focus_player_camera() -> bool:
-	if not is_instance_valid(world) or not is_instance_valid(controller) or not is_instance_valid(camera) or controller.follow_state==null:return false
-	var controlled_id: int=world.controlled_id
-	if not world.instances.has(controlled_id) or not is_instance_valid(world.instances[controlled_id]):return false
-	var followed_id:=native_camera_follow_target_id()
-	if not world.instances.has(followed_id) or not is_instance_valid(world.instances[followed_id]):return false
-	var controlled: Node3D=world.instances[controlled_id]
-	var followed: Node3D=world.instances[followed_id]
-	controller.focus_on(followed.position)
-	var actor: Dictionary=world.desired.get(controlled_id,{}).get("object",{})
-	var movement: Dictionary=world.motion.objects.get(controlled_id,{})
-	var steering:=native_camera_steering_input(actor,movement,controlled.rotation.y)
-	# Old focusPlayer performs one immediate camera update with the controlled
-	# actor even when the stored recenter anchor belongs to another attachment.
-	camera.keep_aspect=Camera3D.KEEP_HEIGHT
-	camera.fov=45.0
-	camera.near=0.1
-	camera.far=500.0
-	controller.follow_frame(controlled.position,float(steering.facing),int(steering.animation),1.0,native_camera_follow_height(followed_id),native_camera_clear_view_facing(followed_id),native_camera_clear_view_query(),native_camera_collision_context())
-	return true
 
 func native_entry_snapshot_allowed(_message: Dictionary) -> bool:return true
 func complete_native_entry_loading(load_errors: Array) -> void:
@@ -222,7 +90,6 @@ func begin_native_entry_snapshot(message: Dictionary) -> bool:
 	return true
 func cancel_native_entry_snapshot() -> void:
 	var state: Dictionary=_native_entry_snapshot;_native_entry_snapshot={}
-	finish_renderer_retirement()
 	if not state.is_empty() and is_instance_valid(state.get("new_world")):
 		state.new_world.set_meta("native_publication_loading",false)
 		state.new_world.cancel_received_snapshot()
@@ -255,20 +122,17 @@ func _native_entry_snapshot_unit(state: Dictionary,deadline_usec: int) -> void:
 				report.retired_areas=report.get("retired_areas",[]);report.retired_areas.append(world.snapshot());camera_memory=controller.remembered_pose()
 			_native_entry_next(state,"retire")
 		"retire":
-			begin_renderer_retirement()
 			if is_instance_valid(keyboard):keyboard.stop(false);keyboard.queue_free()
 			for owned in [world_input,hud,registry]:
 				if is_instance_valid(owned):owned.process_mode=Node.PROCESS_MODE_DISABLED;owned.queue_free()
 			if is_instance_valid(world):world_retirement.retire(world)
-			area_graphics.retire()
 			if is_instance_valid(environment):environment.queue_free()
 			_native_entry_next(state,"open")
 		"open":
 			epoch=int(message.generation);acknowledged=-1;initial_controlled=null;entry_camera=preload("res://systems/native_render/entry_camera.gd").new();walkmesh_registered=false;presentation_stats={};stats_at=0
 			loading_screen.begin(epoch,str(data.area.get("resRef",module_name)),data.get("entry",{}))
 			if not native_entry_snapshot_current(state):return
-			world=World.new();world.visual_world_timer=native_model_world_timer();world.set_meta("native_area_graphics_owner",area_graphics);world.camera_pre_motion=Callable(self,"native_camera_anchor_early").bind(world,epoch);world.camera_post_motion=Callable(self,"native_camera_post_motion").bind(world,epoch);state.new_world=world;state.previous_mode=world.process_mode;world.process_mode=Node.PROCESS_MODE_DISABLED
-			world.set_meta("native_model_diagnostic",Callable(self,"native_model_diagnostic"))
+			world=World.new();state.new_world=world;state.previous_mode=world.process_mode;world.process_mode=Node.PROCESS_MODE_DISABLED
 			world.set_meta("native_entry_loading",true);world.set_meta("native_entry_commit_pending",true)
 			if render_pool.scenery_publication_budget_us>render_pool.publication_budget_us:world.set_meta("native_publication_loading",true)
 			world.tile_borders_enabled=native_tile_borders_enabled();world.set_meta("native_enhanced_lighting",render_pool.native_lighting)
@@ -281,35 +145,30 @@ func _native_entry_snapshot_unit(state: Dictionary,deadline_usec: int) -> void:
 		"camera":
 			if camera==null:
 				camera=Camera3D.new();host.add_child(camera);camera.near=0.1;camera.far=150;camera.current=true;camera.position=Vector3(0,15,15)
-				gamma_controller.attach(camera);controller=CameraController.new();host.add_child(controller);controller.configure(camera,Vector3.ZERO);controller.orbit_admission=native_camera_orbit_allowed;controller.key_admission=native_camera_keys_allowed;controller.pointer_admission=native_camera_pointer_allowed;controller.focus_request=Callable(self,"native_focus_player_camera")
-			keyhole=CameraKeyhole.new();world.add_child(keyhole);keyhole.configure(world.terrain,camera,controller,catalog)
-			if keyhole.blocked:native_model_diagnostic({"code":"camera.keyhole-load-failed","message":str(preload("res://systems/native_render/native_camera_keyhole.gd").source_profile.get("error","Native keyhole shader is unavailable")),"detail":{},"severity":"error"})
+				gamma_controller.attach(camera);controller=CameraController.new();host.add_child(controller);controller.configure(camera,Vector3.ZERO)
 			controller.keyboard_pan=false;_native_entry_next(state,"registry")
 		"registry":
 			registry=Registry.new();host.add_child(registry);gameplay_ui.world_camera=camera;gameplay_ui.world_registry=registry
 			registry.configure_highlight_assets(world.references.assets,catalog,world.pool)
 			gameplay_ui.world_camera_yaw=func():return controller.follow_state.quaternion_yaw(controller.follow_state.state.quaternion) if controller.follow_state!=null else NAN
 			transition_targets=preload("res://systems/native_render/transition_targets.gd").new();world.add_child(transition_targets);transition_targets.configure(registry,world.area_id)
-			bind_scenery_picking()
 			hud=Hud.new();host.add_child(hud);hud.configure(registry,camera);hud.enable_live_mode();hud.metrics.hide();hud.bind_gameplay(gameplay_ui)
 			hud.instructions.text="Middle drag: orbit · wheel: zoom\nW/S: forward/back · A/D: turn · Q/E: strafe\nShift: walk · left click: move, talk, use or pick up\nHold Tab: highlights · right click: examine\nFull gameplay menus and effects pending."
 			hud.examine_requested.connect(func(id):send({"kind":"examine","generation":epoch,"areaId":world.area_id,"targetId":id}))
 			_native_entry_next(state,"input")
 		"input":
-			bind_world_input()
+			world_input=InputOwner.new();host.add_child(world_input);world_input.configure(registry,camera,hud);world_input.camera_controller=controller;world_input.action=world_action
 			var hover=preload("res://systems/native_render/world_hover_presentation.gd").new();world.add_child(hover);hover.configure(world,registry);world_input.hover_presentation=hover.select
-			world_input.extra_pointer_block=native_world_pointer_blocked
+			world_input.extra_pointer_block=func(point):return native_snapshot_transition_waiting() or gameplay_ui.blocks_pointer(point)
 			world_input.context_action=gameplay_ui.desktop.open_radial;world_input.cursor_action=gameplay_ui.mouse_cursor.world_pointer
 			world.instance_ready.connect(instance_ready)
 			world.instance_state_changed.connect(func(id,source):instance_ready(id,source,world.instances[id]))
 			world.instance_removed.connect(func(id):
 				if registry.forget_entity(id):hud.queue_refresh_entities())
-			keyboard=Keyboard.new();host.add_child(keyboard);keyboard.context_query=keyboard_context;keyboard.enabled_query=native_keyboard_enabled;keyboard.transmit=player_command;keyboard.predict=world.preview_drive;keyboard.end_prediction=world.end_drive;world.preview_token=keyboard.preview_token;world.preview_completed=keyboard.complete_async_preview
-			world_input.clear_movement=func():
-				if is_instance_valid(keyboard):keyboard.stop()
+			keyboard=Keyboard.new();host.add_child(keyboard);keyboard.context_query=keyboard_context;keyboard.transmit=player_command;keyboard.predict=world.preview_drive;keyboard.end_prediction=world.end_drive
 			keyboard.set_key_bindings(gameplay_ui.key_bindings);world_input.set_key_bindings(gameplay_ui.key_bindings);controller.set_key_bindings(gameplay_ui.key_bindings)
 			keyboard.set_frame_input_admission(bool(ProjectSettings.get_setting("nwn/private/keyboard_frame_admission",true)))
-			var budget:=Lights.new();world.add_child(budget);budget.camera=camera;budget.maximum=int(args.get("native-shadow-lights",3));budget.focus_query=world.shadow_focus;world.set_meta("native_point_shadow_budget",weakref(budget))
+			var budget:=Lights.new();world.add_child(budget);budget.camera=camera;budget.maximum=int(args.get("native-shadow-lights",1));budget.focus_query=world.shadow_focus;world.set_meta("native_point_shadow_budget",weakref(budget))
 			_native_entry_next(state,"environment")
 		"environment":
 			environment=AreaEnvironment.new();host.add_child(environment);environment.configure({},world);environment.camera=camera;environment.controller=controller
@@ -373,9 +232,7 @@ func observed_camera_snapshot() -> Dictionary:
 	if is_instance_valid(controller):
 		value.target=[controller.target.x,controller.target.y,controller.target.z]
 		value.follow=controller.remembered_pose()
-		if controller.follow_state!=null:
-			value.follow_height=float(controller.follow_state.state.height)
-			value.networkCamera=controller.follow_state.snapshot()
+		if controller.follow_state!=null: value.follow_height=float(controller.follow_state.state.height)
 	if is_instance_valid(world) and world.motion.objects.has(world.controlled_id):
 		var state: Dictionary=world.motion.objects[world.controlled_id]
 		var controlled:={"actor_id":world.controlled_id,"generation":world.generation,"area_id":world.area_id,"lifetime":int(state.get("lifetime",-1)),"active":bool(state.get("active",false)),"script":int(state.get("script",0)),"driveHeld":bool(state.get("driveHeld",false))}
@@ -398,98 +255,6 @@ func native_clock_post_receive() -> void: pass
 func dispatch_protocol_messages(messages: Array,_wire_sizes: PackedInt32Array) -> void:
 	for message in messages:receive(message)
 func native_material_policy_ready() -> void: pass
-func native_area_graphics_gate() -> Dictionary:
-	# Request the actual published area's color/fade material variants and
-	# retain its shadow-casting materials through the current epoch. Godot's
-	# material RID request does not expose compileAsync completion.
-	if not _finish_renderer_resource_graphics.is_valid():_finish_renderer_resource_graphics=renderer_resource_retirement.begin()
-	graphics_pending=true
-	var result: Dictionary=area_graphics.prepare(world,epoch)
-	# The old graphics work releases its resource hold only in finally, after
-	# complete/failed has settled. The caller finishes this hold after its
-	# area-ready or error path; reset/shutdown also release it on cancellation.
-	return result
-func native_area_graphics_failed(reason: String) -> void:
-	fail("Native area graphics preparation failed: "+reason)
-func _begin_area_graphics_light_census() -> void:
-	if _area_graphics_expected_nodes>=0:return
-	# Start before the session creates its World. Count deltas detect reads
-	# reentered before SceneTree has emitted the corresponding node signal.
-	_area_graphics_expected_nodes=get_node_count()
-	for light in root.find_children("*","Light3D",true,false):
-		_area_graphics_lights[light.get_instance_id()]=light
-	node_added.connect(_area_graphics_node_added)
-	node_removed.connect(_area_graphics_node_removed)
-
-func _end_area_graphics_light_census() -> void:
-	if node_added.is_connected(_area_graphics_node_added):node_added.disconnect(_area_graphics_node_added)
-	if node_removed.is_connected(_area_graphics_node_removed):node_removed.disconnect(_area_graphics_node_removed)
-	_area_graphics_expected_nodes=-1
-	_area_graphics_lights.clear()
-	_area_graphics_exiting_lights.clear()
-
-func _area_graphics_node_added(node: Node) -> void:
-	_area_graphics_expected_nodes+=1
-	if not node is Light3D:return
-	var id:=node.get_instance_id()
-	_area_graphics_lights[id]=node
-	_area_graphics_exiting_lights.erase(id)
-
-func _area_graphics_node_removed(node: Node) -> void:
-	_area_graphics_expected_nodes-=1
-	if not node is Light3D:return
-	# During child_exiting_tree the old query can still see an exiting light.
-	# Leave its identity in the index until its tree exit has unwound.
-	_area_graphics_exiting_lights[node.get_instance_id()]=true
-	if not _area_graphics_prune_queued:
-		_area_graphics_prune_queued=true
-		_prune_area_graphics_exiting_lights.call_deferred()
-
-func _prune_area_graphics_exiting_lights() -> void:
-	_area_graphics_prune_queued=false
-	for id in _area_graphics_exiting_lights:
-		_area_graphics_lights.erase(id)
-	_area_graphics_exiting_lights.clear()
-
-func native_area_graphics_profile() -> Array:
-	# Old readProfile observes renderer light slot capacities and the visible
-	# shadow-casting scene before preparing each asset. Godot exposes only its
-	# authored admission result and live Light3D state, not WebGL internals.
-	var slots: Array=[]
-	var shadows: Array[int]=[0,0,0]
-	if is_instance_valid(world):
-		if is_instance_valid(world.focus_lighting):
-			var admitted: Dictionary=world.focus_lighting.renderer_result
-			if admitted.has("maxLights"):slots.append(int(admitted.maxLights))
-		var began:=FrameProfile.begin()
-		var use_census: bool=_area_graphics_expected_nodes==get_node_count() and world.is_inside_tree() and world.get_tree()==self
-		var candidates: Array=_area_graphics_lights.values() if use_census else world.find_children("*","Light3D",true,false)
-		for candidate in candidates:
-			if not is_instance_valid(candidate) or use_census and not world.is_ancestor_of(candidate):continue
-			var light:=candidate as Light3D
-			if light==null or not light.shadow_enabled or not light.is_visible_in_tree():continue
-			if is_instance_valid(camera) and (light.layers&camera.cull_mask)==0:continue
-			if light is OmniLight3D:shadows[0]+=1
-			elif light is SpotLight3D:shadows[1]+=1
-			elif light is DirectionalLight3D:shadows[2]+=1
-		if use_census:
-			FrameProfile.finish("area_graphics_profile_live_lights_ms",began)
-			FrameProfile.count("count_area_graphics_profile_live_reads",1)
-		else:
-			FrameProfile.finish("area_graphics_profile_tree_lights_ms",began)
-			FrameProfile.count("count_area_graphics_profile_tree_queries",1)
-		FrameProfile.count("count_area_graphics_profile_light_candidates",candidates.size())
-	var tone: Variant=null
-	var fog: Variant=null
-	if is_instance_valid(environment) and environment.environment!=null:
-		tone=int(environment.environment.tonemap_mode)
-		if environment.environment.fog_enabled:fog=int(environment.environment.fog_mode)
-	var environment_identity: Variant=null
-	if is_instance_valid(world) and is_instance_valid(world.model_environment) and world.model_environment.map_ready:
-		environment_identity=[str(world.model_environment.selected),int(world.model_environment.publications)]
-	# Shadow-map algorithm, output color space and global clipping plane count
-	# are not exposed as equivalents of Three's renderer fields.
-	return [slots,shadows,null,null,tone,fog,environment_identity,null]
 func native_snapshot_transition_waiting() -> bool:return false
 func _initialize() -> void:
 	# Launchers select the secondary screen before the native window is created.
@@ -505,52 +270,18 @@ func _initialize() -> void:
 					break
 	call_deferred("run")
 func run() -> void:
-	auto_accept_quit=false
-	area_graphics.profile_provider=Callable(self,"native_area_graphics_profile")
-	if not OS.get_cmdline_user_args().has("--area-graphics-light-profile=tree"):_begin_area_graphics_light_census()
-	if not root.close_requested.is_connected(shutdown):root.close_requested.connect(shutdown)
-	if not root.window_input.is_connected(toggle_performance_input):root.window_input.connect(toggle_performance_input)
-	if not RenderingServer.frame_post_draw.is_connected(record_render_frame):RenderingServer.frame_post_draw.connect(record_render_frame)
+	auto_accept_quit=false; root.close_requested.connect(shutdown)
 	for arg in OS.get_cmdline_user_args():
 		var pair:=arg.trim_prefix("--").split("=",true,1)
 		if pair.size()==2: args[pair[0]]=pair[1]
-	direct_mode=OS.get_cmdline_user_args().has("--direct-session") or args.get("direct-session","")=="true"
-	if direct_mode and not args.has("report"):
-		args.report=ProjectSettings.globalize_path("user://nwn79-direct-"+str(OS.get_process_id())+"-"+str(Time.get_ticks_msec())+".json")
 	creation_runtime.configure(args)
-	if not args.has("report") or not direct_mode and not args.has("ticket") or FileAccess.file_exists(args.report): quit(2); return
+	if not args.has("ticket") or not args.has("report") or FileAccess.file_exists(args.report): quit(2); return
 	# The engine creates its main window non-activating (project.godot).
 	# Keep it non-activating until the user clicks the actual game window.
 	# Automated checks never activate it, including synthetic GUI probes.
-	if args.get("settings-check","")!="true" and args.get("actions-check","")!="true" and not root.window_input.is_connected(activate_window_from_click): root.window_input.connect(activate_window_from_click)
-	if direct_mode:
-		var selector_source=preload("res://systems/native_install_selector.gd")
-		var explicit_install:=str(args.get("direct-install",""))
-		if not explicit_install.is_empty() and not selector_source.valid_install(explicit_install):fail("NWN installation is unavailable or missing game data");return
-		var install:=explicit_install
-		if install.is_empty():
-			var settings_directory:=str(args.get("direct-settings",OS.get_environment("APPDATA").path_join("nwn-model-viewer-research")))
-			var install_settings=preload("res://systems/native_data/client_settings_store.gd").new()
-			if not install_settings.open(settings_directory):fail("Godot settings could not open: "+install_settings.error);return
-			install=selector_source.candidate("",str(install_settings.state.get("installDirectory","")),ProjectSettings.globalize_path("res://../../FullDecomp/NwnRootInstall"))
-			if install.is_empty():
-				if DisplayServer.get_name()=="headless":install_settings.close();fail("NWN installation is unavailable; launch graphically to choose its folder or pass --direct-install");return
-				var selector=selector_source.new();root.add_child(selector);selector.begin()
-				selector.chosen.connect(func(path: String):
-					selector.queue_free();install_settings.close();args["direct-install"]=path;args["direct-install-to-save"]=path
-					if not closing:call_deferred("run"),CONNECT_ONE_SHOT)
-				return
-			install_settings.close()
-		args["direct-install"]=install
-		ticket=StartupPaths.direct_ticket(install,str(args.get("direct-profile","")),str(args.get("direct-settings","")))
-		if ticket.has("error"):
-			report.failure=str(ticket.error)
-			var startup_file:=FileAccess.open(str(args.report),FileAccess.WRITE)
-			if startup_file!=null:startup_file.store_string(JSON.stringify(report));startup_file.close()
-			quit(2);return
-	else:
-		ticket=JSON.parse_string(FileAccess.get_file_as_string(args.ticket))
-		if ticket.get("host")!="127.0.0.1" or not ticket.get("port") is float or str(ticket.get("token","")).length()!=64: quit(2); return
+	if args.get("settings-check","")!="true" and args.get("actions-check","")!="true": root.window_input.connect(activate_window_from_click)
+	ticket=JSON.parse_string(FileAccess.get_file_as_string(args.ticket))
+	if ticket.get("host")!="127.0.0.1" or not ticket.get("port") is float or str(ticket.get("token","")).length()!=64: quit(2); return
 	if not runtime_feature_report.configure(OS.get_cmdline_user_args(),ticket.get("featureSelection",{})):
 		report.failure="Native startup feature validation failed";report.runtime_features=runtime_feature_report.snapshot()
 		var failure_file:=FileAccess.open(str(args.report),FileAccess.WRITE)
@@ -560,13 +291,7 @@ func run() -> void:
 	# releases this lease only after every asset owner has joined at shutdown.
 	if GameplayUi.Assets.CacheWrites.configured_enabled(): GameplayUi.Assets.CacheWrites.acquire(); prepared_write_session_lease=true
 	host=Node3D.new(); root.add_child(host); var canvas:=CanvasLayer.new(); host.add_child(canvas); label=Label.new(); canvas.add_child(label); label.position=Vector2(12,12); label.add_theme_color_override("font_shadow_color",Color.BLACK); label.add_theme_constant_override("shadow_offset_x",2); label.add_theme_constant_override("shadow_offset_y",2); label.text="Opening native Prelude renderer…"
-	# src/main.js installs model_light.js's quadratic/ambient-only shader
-	# adapter unconditionally. The old ordinary client therefore selects the
-	# legacy response; explicit enhanced and Godot modes remain available.
-	var lighting_mode:=str(args.get("native-lighting",""))
-	if lighting_mode.is_empty():lighting_mode="legacy"
-	render_pool.native_lighting=lighting_mode in ["legacy","enhanced"]
-	render_pool.native_legacy_lighting=lighting_mode=="legacy"
+	render_pool.native_lighting=args.get("native-lighting","")=="enhanced"
 	gamma_controller=preload("res://systems/native_render/native_gamma.gd").new(); host.add_child(gamma_controller)
 	native_output_settings=preload("res://systems/native_render/native_scene_output.gd").options(args,OS.get_cmdline_user_args().has("--native-light-history"))
 	if native_output_settings.has("error"):
@@ -589,7 +314,7 @@ func run() -> void:
 		root.position=usable.position+(usable.size-root.size)/2
 		report.startup_window={"screen":screen,"primary":DisplayServer.get_primary_screen(),"screens":DisplayServer.get_screen_count(),"non_activating":root.unfocusable}
 	native_clock_startup()
-	if not direct_mode and peer.connect_to_host("127.0.0.1",int(ticket.port))!=OK: fail("Local protocol peer is unavailable"); return
+	if peer.connect_to_host("127.0.0.1",int(ticket.port))!=OK: fail("Local protocol peer is unavailable"); return
 	process_frame.connect(tick)
 func activate_window_from_click(event: InputEvent) -> void:
 	if not closing and event is InputEventMouseButton and event.pressed:
@@ -633,49 +358,6 @@ func creation_trace(stage: String) -> void:
 	var value: Dictionary={"kind":"creation-native-phase","phase":stage,"sequence":creation_trace_sequence,"ticks_ms":Time.get_ticks_msec(),"epoch":epoch}
 	file.seek_end();file.store_line(JSON.stringify(value));file.flush();file.close()
 	send(value)
-func install_mounted_catalog(prepared: RefCounted,install: String,sources: Dictionary,recording_directory: String="") -> bool:
-	# The Godot network session already mounted these exact admitted sources.
-	# Its direct handoff reuses this UI owner instead of remounting or serializing
-	# the catalog through a local Node.js protocol.
-	if closing or initialized or is_instance_valid(gameplay_ui) or not is_instance_valid(host) or not is_instance_valid(loading_screen) or prepared==null or not prepared.has_method("get_resource"):
-		return false
-	catalog=prepared
-	if not recording_directory.is_empty():
-		var recorder:=preload("res://systems/native_data/resource_recording.gd").new()
-		var talk_files:={"base":install.path_join("lang/en/data/dialog.tlk"),"female":install.path_join("lang/en/data/dialogf.tlk")}
-		if sources.get("customTlk") is Dictionary and sources.customTlk.get("path") is String:
-			talk_files.custom=sources.customTlk.path; talk_files.custom_female=str(sources.customTlk.path).trim_suffix(".tlk")+"f.tlk"
-		if not recorder.start(recording_directory,catalog.layers,talk_files):fail("Native resource recording could not start");return false
-		catalog.recording=recorder; resource_recordings.append(recorder)
-	# Match the old active resolver after recording has attached to the layers.
-	if not TargetPreviewShader.load_profile(catalog):
-		# The original network onArea attaches WorldPointerView after installing
-		# the area root and reports an unavailable inc_target source here.
-		native_model_diagnostic({"code":"target.preview-load-failed","message":str(TargetPreviewShader.source_profile.get("error","Native target preview shader is unavailable")),"detail":{}})
-	var ui_configure_began:=Time.get_ticks_msec()
-	gameplay_ui=GameplayUi.new(); host.add_child(gameplay_ui)
-	gameplay_ui.configure(catalog,install,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),str(args.get("menu-layout","user://native-menu-layout.cfg")),sources.customTlk if sources.get("customTlk") is Dictionary else {})
-	gameplay_ui.creator.capture_changed.connect(native_creator_capture)
-	gameplay_ui.world_camera=camera; gameplay_ui.world_registry=registry
-	gameplay_ui.native_connection_query=native_text_connection;gameplay_ui.overhead_anchor_query=native_text_anchor
-	gameplay_ui.script_floating_anchor_query=native_script_floating_anchor;gameplay_ui.script_floating_object_delta_query=native_script_floating_object_delta
-	print("NATIVE_GAMEPLAY_UI_CONFIGURED elapsed_ms=",Time.get_ticks_msec()-ui_configure_began," ticks_ms=",Time.get_ticks_msec())
-	gameplay_ui.set_gameplay_visible(false)
-	gameplay_ui.gui_sound_requested.connect(func(resource):
-		if is_instance_valid(world) and is_instance_valid(world.effects) and is_instance_valid(world.effects.world_audio):
-			# Original PlayGuiSound1f6110: nonpositional one-shot, priority9,
-			# delay0 and default volume. Native catalog/decoder owns the WAV.
-			world.effects.world_audio.one_shot(resource,null,0,9,0,0))
-	gameplay_ui.request.connect(func(value):
-		if str(value.get("kind","")).begins_with("native-creation-"):
-			send(value)
-		elif is_instance_valid(world) and world.ready_for_control():
-			var command: Dictionary=value.duplicate(); command.generation=epoch; command.areaId=world.area_id; send(command))
-	loading_screen.configure(gameplay_ui)
-	creation_trace("setup:configured")
-	initialized=true
-	return true
-
 func receive(message: Dictionary) -> void:
 	if closing and message.get("kind")!="finish-ack": return
 	match str(message.get("kind","")):
@@ -701,10 +383,34 @@ func receive(message: Dictionary) -> void:
 			if closing or not is_instance_valid(own_loader) or catalog_loader!=own_loader: return
 			catalog_loading=false
 			if not str(mounted.error).is_empty(): fail(mounted.error); return
-			report.native_catalog=mounted.stats
+			catalog=mounted.catalog; report.native_catalog=mounted.stats
 			print("NATIVE_SESSION_CATALOG_READY mount_ms=",mounted.stats.get("mount_ms",-1)," ticks_ms=",Time.get_ticks_msec())
-			if not install_mounted_catalog(mounted.catalog,install,sources,str(message.get("recordingDirectory",""))):return
-			send({"kind":"catalog-ready","layers":catalog.layers.size()})
+			if message.has("recordingDirectory"):
+				var recorder:=preload("res://systems/native_data/resource_recording.gd").new()
+				var talk_files:={"base":install.path_join("lang/en/data/dialog.tlk"),"female":install.path_join("lang/en/data/dialogf.tlk")}
+				if sources.get("customTlk") is Dictionary and sources.customTlk.get("path") is String:
+					talk_files.custom=sources.customTlk.path; talk_files.custom_female=str(sources.customTlk.path).trim_suffix(".tlk")+"f.tlk"
+				if not recorder.start(str(message.recordingDirectory),catalog.layers,talk_files): fail("Native resource recording could not start"); return
+				catalog.recording=recorder; resource_recordings.append(recorder)
+			var ui_configure_began:=Time.get_ticks_msec()
+			gameplay_ui=GameplayUi.new(); host.add_child(gameplay_ui); gameplay_ui.configure(catalog,install,ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2"))),str(args.get("menu-layout","user://native-menu-layout.cfg")),sources.customTlk if sources.get("customTlk") is Dictionary else {}); gameplay_ui.world_camera=camera; gameplay_ui.world_registry=registry
+			gameplay_ui.native_connection_query=native_text_connection;gameplay_ui.overhead_anchor_query=native_text_anchor
+			gameplay_ui.script_floating_anchor_query=native_script_floating_anchor;gameplay_ui.script_floating_object_delta_query=native_script_floating_object_delta
+			print("NATIVE_GAMEPLAY_UI_CONFIGURED elapsed_ms=",Time.get_ticks_msec()-ui_configure_began," ticks_ms=",Time.get_ticks_msec())
+			gameplay_ui.set_gameplay_visible(false)
+			gameplay_ui.gui_sound_requested.connect(func(resource):
+				if is_instance_valid(world) and is_instance_valid(world.effects) and is_instance_valid(world.effects.world_audio):
+					# Original PlayGuiSound1f6110: nonpositional one-shot, priority9,
+					# delay0 and default volume. Native catalog/decoder owns the WAV.
+					world.effects.world_audio.one_shot(resource,null,0,9,0,0))
+			gameplay_ui.request.connect(func(value):
+				if str(value.get("kind","")).begins_with("native-creation-"):
+					send(value)
+				elif is_instance_valid(world) and world.ready_for_control():
+					var command: Dictionary=value.duplicate(); command.generation=epoch; command.areaId=world.area_id; send(command))
+			loading_screen.configure(gameplay_ui)
+			creation_trace("setup:configured")
+			initialized=true; send({"kind":"catalog-ready","layers":catalog.layers.size()})
 		"ui-protocol":
 			# SessionWorld has already admitted this outer connection. The base
 			# entry has no accepted connection and retains its legacy UI route.
@@ -717,7 +423,6 @@ func receive(message: Dictionary) -> void:
 			if int(message.generation)!=epoch:
 				creation_trace("snapshot:transition-begin")
 				gameplay_ui.set_gameplay_visible(false)
-				begin_renderer_retirement()
 				var transition_began:=FrameProfile.begin()
 				if is_instance_valid(world):
 					report.retired_areas=report.get("retired_areas",[]); report.retired_areas.append(world.snapshot())
@@ -727,13 +432,11 @@ func receive(message: Dictionary) -> void:
 				for owned in [world_input,hud,registry]:
 					if is_instance_valid(owned): owned.process_mode=Node.PROCESS_MODE_DISABLED; owned.queue_free()
 				if is_instance_valid(world): world_retirement.retire(world)
-				area_graphics.retire()
 				if is_instance_valid(environment): environment.queue_free()
 				FrameProfile.finish("transition_retire_begin",transition_began); transition_began=FrameProfile.begin()
 				epoch=int(message.generation); acknowledged=-1; initial_controlled=null; entry_camera=preload("res://systems/native_render/entry_camera.gd").new(); walkmesh_registered=false; presentation_stats={}; stats_at=0
 				loading_screen.begin(epoch,str(data.area.get("resRef",module_name)),data.get("entry",{}))
-				world=World.new();world.visual_world_timer=native_model_world_timer();world.tile_borders_enabled=native_tile_borders_enabled(); world.set_meta("native_enhanced_lighting",render_pool.native_lighting);world.set_meta("native_area_graphics_owner",area_graphics);world.camera_pre_motion=Callable(self,"native_camera_anchor_early").bind(world,epoch);world.camera_post_motion=Callable(self,"native_camera_post_motion").bind(world,epoch)
-				world.set_meta("native_model_diagnostic",Callable(self,"native_model_diagnostic"))
+				world=World.new();world.tile_borders_enabled=native_tile_borders_enabled(); world.set_meta("native_enhanced_lighting",render_pool.native_lighting)
 				world.set_meta("native_entry_loading",true)
 				if render_pool.scenery_publication_budget_us>render_pool.publication_budget_us:world.set_meta("native_publication_loading",true)
 				# Absence is the established ordinary-world contract. In particular,
@@ -749,9 +452,7 @@ func receive(message: Dictionary) -> void:
 				if camera==null:
 					camera=Camera3D.new(); host.add_child(camera); camera.near=0.1; camera.far=150; camera.current=true; camera.position=Vector3(0,15,15)
 					gamma_controller.attach(camera)
-					controller=CameraController.new(); host.add_child(controller); controller.configure(camera,Vector3.ZERO); controller.orbit_admission=native_camera_orbit_allowed;controller.key_admission=native_camera_keys_allowed;controller.pointer_admission=native_camera_pointer_allowed;controller.focus_request=Callable(self,"native_focus_player_camera")
-				keyhole=CameraKeyhole.new();world.add_child(keyhole);keyhole.configure(world.terrain,camera,controller,catalog)
-				if keyhole.blocked:native_model_diagnostic({"code":"camera.keyhole-load-failed","message":str(preload("res://systems/native_render/native_camera_keyhole.gd").source_profile.get("error","Native keyhole shader is unavailable")),"detail":{},"severity":"error"})
+					controller=CameraController.new(); host.add_child(controller); controller.configure(camera,Vector3.ZERO)
 				controller.keyboard_pan=false
 				creation_trace("snapshot:registry-hud-before")
 				FrameProfile.finish("transition_camera_setup_ms",transition_began);transition_began=FrameProfile.begin()
@@ -759,28 +460,25 @@ func receive(message: Dictionary) -> void:
 				registry.configure_highlight_assets(world.references.assets,catalog,world.pool)
 				gameplay_ui.world_camera_yaw=func(): return controller.follow_state.quaternion_yaw(controller.follow_state.state.quaternion) if controller.follow_state!=null else NAN
 				transition_targets=preload("res://systems/native_render/transition_targets.gd").new(); world.add_child(transition_targets); transition_targets.configure(registry,world.area_id)
-				bind_scenery_picking()
 				hud=Hud.new(); host.add_child(hud); hud.configure(registry,camera); hud.enable_live_mode(); hud.metrics.hide()
 				hud.bind_gameplay(gameplay_ui)
 				hud.instructions.text="Middle drag: orbit · wheel: zoom\nW/S: forward/back · A/D: turn · Q/E: strafe\nShift: walk · left click: move, talk, use or pick up\nHold Tab: highlights · right click: examine\nFull gameplay menus and effects pending."
 				hud.examine_requested.connect(func(id): send({"kind":"examine","generation":epoch,"areaId":world.area_id,"targetId":id}))
 				creation_trace("snapshot:registry-hud-after-input-before")
 				FrameProfile.finish("transition_registry_hud_ms",transition_began);transition_began=FrameProfile.begin()
-				bind_world_input()
+				world_input=InputOwner.new(); host.add_child(world_input); world_input.configure(registry,camera,hud); world_input.camera_controller=controller; world_input.action=world_action
 				var hover_presentation=preload("res://systems/native_render/world_hover_presentation.gd").new();world.add_child(hover_presentation);hover_presentation.configure(world,registry);world_input.hover_presentation=hover_presentation.select
-				world_input.extra_pointer_block=native_world_pointer_blocked; world_input.context_action=gameplay_ui.desktop.open_radial
+				world_input.extra_pointer_block=gameplay_ui.blocks_pointer; world_input.context_action=gameplay_ui.desktop.open_radial
 				world_input.cursor_action=gameplay_ui.mouse_cursor.world_pointer
 				world.instance_ready.connect(instance_ready)
 				world.instance_state_changed.connect(func(id,source): instance_ready(id,source,world.instances[id]))
 				world.instance_removed.connect(func(id):
 					if registry.forget_entity(id): hud.queue_refresh_entities())
 				creation_trace("snapshot:input-after-keyboard-before")
-				keyboard=Keyboard.new(); host.add_child(keyboard); keyboard.context_query=keyboard_context; keyboard.enabled_query=native_keyboard_enabled; keyboard.transmit=player_command; keyboard.predict=world.preview_drive; keyboard.end_prediction=world.end_drive; world.preview_token=keyboard.preview_token; world.preview_completed=keyboard.complete_async_preview
-				world_input.clear_movement=func():
-					if is_instance_valid(keyboard):keyboard.stop()
+				keyboard=Keyboard.new(); host.add_child(keyboard); keyboard.context_query=keyboard_context; keyboard.transmit=player_command; keyboard.predict=world.preview_drive; keyboard.end_prediction=world.end_drive
 				keyboard.set_key_bindings(gameplay_ui.key_bindings); world_input.set_key_bindings(gameplay_ui.key_bindings); controller.set_key_bindings(gameplay_ui.key_bindings)
 				keyboard.set_frame_input_admission(bool(ProjectSettings.get_setting("nwn/private/keyboard_frame_admission",true)))
-				var budget:=Lights.new(); world.add_child(budget); budget.camera=camera; budget.maximum=int(args.get("native-shadow-lights",3))
+				var budget:=Lights.new(); world.add_child(budget); budget.camera=camera; budget.maximum=int(args.get("native-shadow-lights",1))
 				budget.focus_query=world.shadow_focus
 				world.set_meta("native_point_shadow_budget",weakref(budget))
 				creation_trace("snapshot:keyboard-after-environment-before")
@@ -928,33 +626,15 @@ func flush_script_sounds() -> void:
 func tick() -> void:
 	if is_instance_valid(frame_profile): frame_profile.start_frame()
 	var began:=FrameProfile.begin(); _profile_tick(); FrameProfile.finish("callback_root",began)
-func toggle_performance_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_F3 and event.ctrl_pressed and event.alt_pressed and is_instance_valid(hud):hud.toggle_performance()
-func record_render_frame() -> void:
-	if closing or not is_instance_valid(hud):return
-	var shown: bool=root.visible
-	if DisplayServer.get_name()!="headless":shown=shown and DisplayServer.window_get_mode(root.get_window_id())!=DisplayServer.WINDOW_MODE_MINIMIZED
-	var frame: Dictionary={"at":Time.get_ticks_usec()/1000.0,"visible":shown,"rendered":shown,"details":{"draw":{"calls":Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),"triangles":Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)},"viewport":{"width":root.size.x,"height":root.size.y}}}
-	if is_instance_valid(world) and is_instance_valid(world.focus_lighting):
-		var admission: Dictionary=world.focus_lighting.renderer_result
-		if not admission.is_empty():frame.details.lighting={"selection":{"admitted":int(admission.admitted)}}
-	if is_instance_valid(world):
-		var budget_reference: WeakRef=world.get_meta("native_point_shadow_budget",null)
-		var budget: Variant=budget_reference.get_ref() if budget_reference!=null else null
-		if is_instance_valid(budget):
-			if not frame.details.has("lighting"):frame.details.lighting={}
-			frame.details.lighting.shadows={"admitted":budget.active,"requested":budget.eligible}
-	hud.record_performance(frame)
 func _profile_tick() -> void:
 	if closing: return
 	native_clock_prefix()
 	if closing:return
 	if creation_runtime.enabled:creation_runtime.begin_frame(creation_runtime_values())
 	var phase_began:=FrameProfile.begin()
-	var poll_error:=OK
-	if not direct_mode:poll_error=peer.poll()
+	var poll_error:=peer.poll()
 	creation_runtime_phase("frame:poll-after")
-	if not direct_mode and peer.get_status()==StreamPeerTCP.STATUS_CONNECTED:
+	if peer.get_status()==StreamPeerTCP.STATUS_CONNECTED:
 		if not authenticated: authenticated=true; send({"kind":"hello","token":ticket.token,"runtimeFeatures":runtime_features_snapshot()}); ticket.clear()
 		var count:=peer.get_available_bytes()
 		if count>0:
@@ -969,13 +649,13 @@ func _profile_tick() -> void:
 			dispatch_protocol_messages(messages,frames.last_frame_sizes)
 			FrameProfile.finish("protocol_apply",decode_began)
 			if not frames.failure.is_empty(): fail(frames.failure); return
-	elif not direct_mode and authenticated:
+	elif authenticated:
 		report.protocol_disconnect={"poll_error":poll_error,"status":peer.get_status(),"ticks_ms":Time.get_ticks_msec()}
 		creation_runtime.event("protocol:disconnect",report.protocol_disconnect)
 		fail("Local protocol session disconnected"); return
 	# Complete one admitted OS-key burst after protocol changes and before output.
 	if is_instance_valid(keyboard) and keyboard.frame_input_admission and keyboard.can_process():keyboard.flush_input_frame()
-	if not direct_mode:flush_protocol_output()
+	flush_protocol_output()
 	creation_runtime_phase("frame:protocol-after")
 	FrameProfile.finish("root_protocol",phase_began)
 	native_clock_post_receive()
@@ -995,12 +675,25 @@ func _profile_tick() -> void:
 	var state: Dictionary=presentation_stats
 	creation_runtime_phase("frame:stats-after")
 	if not walkmesh_registered and is_instance_valid(world.surface) and world.surface.ready(): registry.register_walkmesh(world.surface); walkmesh_registered=true
+	phase_began=FrameProfile.begin()
+	if initial_controlled==null and not entry_camera.anchored:
+		var pending_pose: Dictionary=world.object_pose(world.desired[world.controlled_id].object) if world.desired.has(world.controlled_id) else {}
+		if not pending_pose.is_empty() or world.has_priority_origin:
+			var position: Vector3=pending_pose.position if not pending_pose.is_empty() else world.priority_origin
+			if entry_camera.anchor(camera,controller,position,camera_memory): world.stats.camera_anchor_ms=(Time.get_ticks_usec()-world.opened_at)/1000.0
+	if world.instances.has(world.controlled_id):
+		var position: Vector3=world.instances[world.controlled_id].position
+		if initial_controlled==null:
+			initial_controlled=position; entry_camera.anchor(camera,controller,position,camera_memory)
+			world.stats.controlled_camera_bound_ms=(Time.get_ticks_usec()-world.opened_at)/1000.0
+		var movement: Dictionary=world.motion.objects.get(world.controlled_id,{})
+		if not movement.is_empty(): controller.follow_frame(position,rad_to_deg(atan2(movement.orientation.y,movement.orientation.x)),int(movement.animation),root.get_process_delta_time())
+		maximum_distance=maxf(maximum_distance,position.distance_to(initial_controlled))
+	FrameProfile.finish("root_camera",phase_began)
+	creation_runtime_phase("frame:camera-after")
 	var load_errors: Array=[]
 	for failure in state.errors: load_errors.append(str(failure))
 	for failure in world.terrain.diagnostics.get("errors",[]): load_errors.append(str(failure))
-	if is_instance_valid(world.surface) and world.surface.done and world.surface.table.is_empty():
-		for failure in world.surface.stats.errors:
-			if str(failure.get("resource",""))=="@surfacemat":load_errors.append(str(failure.get("reason","Native surface table is unavailable")))
 	var anchored: bool=initial_controlled!=null and world.instances.has(world.controlled_id) and controller.follow_valid(world.instances[world.controlled_id].position)
 	loading_screen.advance(epoch,{"terrain":world.ready_for_admission(),"player":world.ready_for_control(),"camera":anchored,"tiles":world.terrain.completed_tiles,"total_tiles":world.terrain.definition.get("tiles",[]).size(),"errors":load_errors})
 	complete_native_entry_loading(load_errors)
@@ -1008,26 +701,9 @@ func _profile_tick() -> void:
 	gameplay_ui.set_gameplay_visible(gameplay_presentation_allowed())
 	creation_runtime_phase("frame:loading-after")
 	if not load_errors.is_empty(): report.area_loading_error=load_errors
-	if state.admission_ready and acknowledged!=epoch and area_graphics_failed_epoch!=epoch:
-		var graphics_gate: Dictionary=native_area_graphics_gate()
-		if graphics_gate.has("error"):
-			area_graphics_failed_epoch=epoch
-			native_area_graphics_failed(str(graphics_gate.error));return
-		if bool(graphics_gate.get("ready",false)):
-			# The original onArea configures shadow-casting lights in its loaded
-			# root once. Preserve the first full population's pending model identity
-			# alongside the lights already present at this gate.
-			world.capture_initial_shadow_membership(epoch)
-			world.set_meta("native_area_model_shadow_capture_epoch",epoch)
-			# The normal direct session releases this transition after the first
-			# scene-delivery update settles (main.js onUpdates), not at area ACK.
-			if direct_mode:finish_area_graphics_hold()
-			else:finish_renderer_retirement()
-			acknowledged=epoch; send({"kind":"area-ready","generation":epoch,"areaId":world.area_id})
+	if state.admission_ready and acknowledged!=epoch: acknowledged=epoch; send({"kind":"area-ready","generation":epoch,"areaId":world.area_id})
 	if Time.get_ticks_msec()-observed_at>500:
-		observed_at=Time.get_ticks_msec()
-		if not direct_mode:
-			send({"kind":"observed","generation":epoch,"areaId":world.area_id,"state":world.snapshot(false),"area_graphics_preparation":area_graphics.snapshot(),"ui_startup":gameplay_ui.startup_snapshot() if is_instance_valid(gameplay_ui) else {},"protocol_output":protocol_output.snapshot(),"record_selection":gameplay_ui.desktop.sheet.selection_timings.duplicate() if is_instance_valid(gameplay_ui) and is_instance_valid(gameplay_ui.desktop) else {},"controlledDistance":maximum_distance,"fps":Engine.get_frames_per_second(),"frame_profile":frame_profile.snapshot() if is_instance_valid(frame_profile) else {}})
+		observed_at=Time.get_ticks_msec(); send({"kind":"observed","generation":epoch,"areaId":world.area_id,"state":world.snapshot(false),"ui_startup":gameplay_ui.startup_snapshot() if is_instance_valid(gameplay_ui) else {},"protocol_output":protocol_output.snapshot(),"record_selection":gameplay_ui.desktop.sheet.selection_timings.duplicate() if is_instance_valid(gameplay_ui) and is_instance_valid(gameplay_ui.desktop) else {},"controlledDistance":maximum_distance,"fps":Engine.get_frames_per_second(),"frame_profile":frame_profile.snapshot() if is_instance_valid(frame_profile) else {}})
 		if interactive and str(args.get("capture-preview","false"))=="true" and DisplayServer.get_name()!="headless" and state.ready and state.pending_batches==0 and not preview_captured:
 			preview_captured=true; capture_preview.call_deferred()
 	creation_runtime_phase("frame:end")
@@ -1037,34 +713,6 @@ func gameplay_presentation_allowed() -> bool:
 	# hide the canvases before opening their world, so this latch cannot cross
 	# an area boundary. Server phase/connection gates remain in the session owner.
 	return not closing and is_instance_valid(world) and (gameplay_ui.presentation_enabled or world.ready_for_control()) and not loading_screen.blocks_input()
-func native_camera_keys_allowed() -> bool:
-	if not gameplay_presentation_allowed() or graphics_pending:return false
-	if is_instance_valid(gameplay_ui.creator) and gameplay_ui.creator.phase!="closed":return false
-	return true
-func native_keyboard_enabled() -> bool:
-	# The old NetworkKeyboardInput.enabled callback is independent of the
-	# dialog, inventory and panel OrbitControls visibility callbacks.
-	return native_camera_keys_allowed() and is_instance_valid(world) and world.ready_for_control()
-func native_camera_orbit_allowed() -> bool:
-	return native_camera_keys_allowed()
-func native_camera_pointer_allowed(point: Vector2) -> bool:
-	return native_camera_keys_allowed() and (not is_instance_valid(gameplay_ui) or not is_instance_valid(gameplay_ui.desktop) or not gameplay_ui.desktop.blocks_pointer(point))
-func native_creator_capture(_captured: bool) -> void:
-	# CharacterFrontend.onCapture runs at both open and finish boundaries.
-	if is_instance_valid(keyboard):keyboard.stop()
-	if is_instance_valid(world_input):
-		world_input.left_press.clear()
-		world_input.pending_button=0
-		world_input.highlight_pointer_active=false
-	if is_instance_valid(gameplay_ui) and is_instance_valid(gameplay_ui.desktop):
-		gameplay_ui.desktop.retire_shortcut_context()
-func native_world_pointer_blocked(point: Vector2) -> bool:
-	if closing or graphics_pending or native_snapshot_transition_waiting():return true
-	if is_instance_valid(loading_screen) and loading_screen.blocks_input():return true
-	if not is_instance_valid(gameplay_ui) or not gameplay_ui.presentation_enabled:return true
-	if is_instance_valid(gameplay_ui.creator) and gameplay_ui.creator.phase!="closed":return true
-	if gameplay_ui.blocks_world_pointer_globally():return true
-	return gameplay_ui.blocks_pointer(point)
 func capture_preview() -> void:
 	await RenderingServer.frame_post_draw
 	if closing: return
@@ -1094,7 +742,7 @@ func profile_control(command: Dictionary) -> void:
 				elif mode!="no-actor-picking" and body.get_parent()!=mesh:
 					body.reparent(mesh,false); body.transform=body.get_meta("profile_local",Transform3D.IDENTITY); body.collision_layer=Registry.TARGET_LAYER
 	for child in world.get_children():
-		if child.get_script()==Lights: child.maximum=0 if mode=="no-point-shadows" else int(args.get("native-shadow-lights",3))
+		if child.get_script()==Lights: child.maximum=0 if mode=="no-point-shadows" else int(args.get("native-shadow-lights",1))
 	if mode=="capture": capture_preview.call_deferred()
 func fail(reason: String) -> void:
 	report.failure=reason; shutdown()
@@ -1105,22 +753,9 @@ func keyboard_context() -> Dictionary:
 	if closing or not is_instance_valid(world) or not world.ready_for_control() or not world.motion.objects.has(world.controlled_id): return {}
 	var state: Dictionary=world.motion.objects[world.controlled_id]
 	var object: Dictionary=world.desired.get(world.controlled_id,{}).get("object",{})
-	var replicated: Variant=object.get("replicated")
-	if not replicated is Dictionary:return {}
-	var position: Variant=replicated.get("position")
-	if not position is Array or position.size()!=3:return {}
-	for value in position:
-		if not (value is int or value is float) or not is_finite(float(value)):return {}
-	var orientation: Variant=replicated.get("orientation")
-	if orientation is Dictionary:
-		if orientation.get("vector") is Array:orientation=orientation.vector
-		elif (orientation.get("yaw") is int or orientation.get("yaw") is float) and is_finite(float(orientation.yaw)):
-			var angle:=float(orientation.yaw)*PI/180.0
-			orientation=[-sin(angle),cos(angle),0.0]
-	if not orientation is Array or orientation.size()<2:return {}
-	for value in orientation:
-		if not (value is int or value is float) or not is_finite(float(value)):return {}
-	return {"identity":"%s/%s/%s/%s/%s"%[world.get_instance_id(),epoch,world.area_id,world.controlled_id,state.lifetime],"id":world.controlled_id,"state":state,"position":state.render}
+	var position: Array=object.get("replicated",{}).get("position",[])
+	if position.size()<3: return {}
+	return {"identity":"%s/%s/%s"%[epoch,world.controlled_id,state.lifetime],"id":world.controlled_id,"state":state,"position":Vector3(position[0],position[1],position[2])}
 func player_command(value: Dictionary) -> void:
 	if is_instance_valid(loading_screen) and loading_screen.blocks_input(): return
 	if not is_instance_valid(world) or not world.ready_for_control(): return
@@ -1134,15 +769,6 @@ func object_name(source: Dictionary) -> String:
 	return {5:"Creature",6:"Item",9:"Object",10:"Door"}.get(int(source.objectType),"Object")
 func instance_ready(id: int,source: Dictionary,instance) -> void:
 	var began:=FrameProfile.begin(); _profile_instance_ready(id,source,instance); FrameProfile.finish("selection_registration_ms",began)
-func bind_scenery_picking()->void:
-	if not is_instance_valid(registry) or not is_instance_valid(world) or not is_instance_valid(world.terrain):return
-	var current_registry=registry
-	var current_terrain=world.terrain
-	for index in current_terrain.instances:
-		var tile: Variant=current_terrain.instances[index]
-		if tile is Node3D:current_registry.register_scenery("tile:"+str(index),tile)
-	current_terrain.tile_published.connect(func(index: int,instance):
-		if is_instance_valid(current_registry) and is_same(registry,current_registry) and is_instance_valid(world) and is_same(world.terrain,current_terrain) and instance is Node3D:current_registry.register_scenery("tile:"+str(index),instance))
 func _profile_instance_ready(id: int,source: Dictionary,instance) -> void:
 	# All visual sources, including non-interactable scenery, get only a small
 	# provenance stamp. Selection registry eligibility remains unchanged.
@@ -1156,10 +782,8 @@ func _profile_instance_ready(id: int,source: Dictionary,instance) -> void:
 	var row:={"eligible":false}
 	if not instance.has_meta("native_selection_scope"):
 		instance.set_meta("native_selection_scope",[world.get_instance_id(),world.generation,world.area_id,id,preload("res://systems/native_data/entity_presentation_lifetime.gd").token(source)])
-	if Interaction.eligible(source,world.area_id): row={"id":id,"name":object_name(source),"type":int(source.objectType),"eligible":true,"color":"#66ff99" if int(source.objectType)==5 else "#55ddff","source":source}
-	var changed: bool=registry.register_native(id,row,instance)
-	if is_instance_valid(registry) and instance is Node3D:registry.register_scenery("object:"+str(id),instance,id)
-	if changed: hud.queue_refresh_entities()
+	if Interaction.eligible(source,world.area_id): row={"id":id,"name":object_name(source),"type":int(source.objectType),"eligible":true,"color":"#66ff99" if int(source.objectType)==5 else "#55ddff"}
+	if registry.register_native(id,row,instance): hud.queue_refresh_entities()
 func native_text_connection() -> Variant:
 	# Offline/base entry has no admitted connection. The session entry supplies
 	# its accepted owner; a received text event can never choose this value.
@@ -1183,35 +807,31 @@ func native_script_floating_object_delta(id: int,witness: Array,scope: Array) ->
 	# This is the established nominal native movement clock. Special original
 	# timer-selection/time-stop state is not inferred from GUI frame seconds.
 	return world.motion.last_delta_ms if world.motion.last_delta_frame==Engine.get_process_frames() else null
-func bind_world_input() -> void:
-	world_input=InputOwner.new()
-	host.add_child(world_input)
-	world_input.configure(registry,camera,hud)
-	world_input.camera_controller=controller
-	world_input.player_id_query=func():return world.controlled_id if is_instance_valid(world) else -1
-	world_input.include_player_query=func():return is_instance_valid(gameplay_ui) and is_instance_valid(gameplay_ui.desktop) and not gameplay_ui.desktop.target.is_empty()
-	world_input.action=world_action
-	world_input.pointer_miss=gameplay_ui.desktop.world_pointer_miss
-
 func world_action(hit: Dictionary) -> void:
 	if is_instance_valid(loading_screen) and loading_screen.blocks_input(): return
 	if is_instance_valid(gameplay_ui) and is_instance_valid(gameplay_ui.desktop) and gameplay_ui.desktop.world_click(hit): return
 	if not is_instance_valid(world) or not world.ready_for_control(): return
-	var id:=int(hit.get("id",-1)); var base:={"generation":epoch,"areaId":world.area_id}
+	var id:=int(hit.get("id",-1)); var kind:=int(hit.get("entity",{}).get("type",0)); var base:={"generation":epoch,"areaId":world.area_id}
 	var selected_object: Dictionary=world.desired.get(id,{}).get("object",{})
 	if selected_object.is_empty() and is_instance_valid(transition_targets): selected_object=transition_targets.objects.get(id,{})
 	if id>=0 and not Interaction.eligible(selected_object,world.area_id): return
 	if id==world.controlled_id: return
-	if id>=0:
-		var action: Variant=ActionMenu.default_interaction(selected_object)
-		if action==null:
-			if is_instance_valid(gameplay_ui):gameplay_ui.chat.append_message({"system":true,"text":"No interaction is available"})
-			return
-		if str(action)=="item.pickup":base.merge({"kind":"item-action","itemId":id,"operation":"pickup"})
-		else:base.merge({"kind":"interact","targetId":id,"action":str(action),"run":bool(hit.get("run",not Input.is_key_pressed(KEY_SHIFT)))})
+	if id>=0 and kind in [5,9,10]:
+		var action:="conversation.start" if kind==5 else "object.use"
+		if kind==10:
+			var state: Dictionary=world.desired.get(id,{}).get("object",{}).get("replicated",{})
+			# Original SetOpenState140423230 / client creation796dd0.
+			var opened:=int(state.get("doorOpenState",{22:0,50:1,51:2,72:3}.get(int(state.get("animation",-1)),-1)))
+			if opened<0: return
+			action="door.transition" if opened>0 and bool(state.get("hasTransition",false)) else ("door.open" if opened==0 else "door.close")
+		base.merge({"kind":"interact","targetId":id,"action":action})
+	elif id>=0 and kind==6: base.merge({"kind":"pickup","targetId":id})
+	elif id>=0 and kind==7:
+		var destination: Variant=hit.get("entity",{}).get("destination")
+		if not destination is Array or destination.size()!=3: return
+		base.merge({"kind":"interact","action":"trigger.transition","targetId":id,"position":destination})
 	elif hit.has("position"):
-		var position: Vector3=hit.position; base.merge({"kind":"walk","position":[position.x,-position.z,position.y],"run":bool(hit.get("run",not Input.is_key_pressed(KEY_SHIFT)))})
-		walk_pointer_serial+=1; base.walkPointerRequestId=walk_pointer_serial
+		var position: Vector3=hit.position; base.merge({"kind":"walk","position":[position.x,-position.z,position.y]})
 	else: return
 	if is_instance_valid(keyboard): keyboard.stop()
 	report.pointer_commands=int(report.get("pointer_commands",0))+1; send(base)
@@ -1358,7 +978,6 @@ func application_exit_policy() -> bool: return false
 func retain_world_diagnostics(reason: String,connection: int=0) -> void:
 	if not is_instance_valid(world): return
 	var value:={"reason":reason,"connection":connection,"generation":world.generation,"area_id":world.area_id,"ticks_ms":Time.get_ticks_msec(),"world":world.snapshot(),"interactive":interactive,"controlled_distance":maximum_distance,"environment_accepted":report.get("environment_accepted",false)}
-	if is_instance_valid(world_input): value.pointer_attempts=world_input.pointer_attempts
 	if is_instance_valid(environment): value.environment=environment.snapshot(); value.environment_source=environment.source
 	if is_instance_valid(gamma_controller): value.gamma=gamma_controller.snapshot()
 	if is_instance_valid(native_output): value.native_scene_output=native_output.snapshot()
@@ -1399,16 +1018,9 @@ func accepted_bundle_shutdown_snapshot() -> Dictionary:
 func shutdown() -> void:
 	if closing: return
 	closing=true
-	finish_renderer_retirement()
-	area_graphics.release()
-	area_graphics.profile_provider=Callable()
-	_end_area_graphics_light_census()
-	if root.window_input.is_connected(toggle_performance_input):root.window_input.disconnect(toggle_performance_input)
-	if RenderingServer.frame_post_draw.is_connected(record_render_frame):RenderingServer.frame_post_draw.disconnect(record_render_frame)
 	if creation_runtime.enabled:creation_runtime.event("finish:shutdown-start",creation_runtime_values())
 	shutdown_stage("snapshot")
 	report.runtime_features=runtime_features_snapshot()
-	report.cpu_skin_deformation=preload("res://systems/native_data/skin_deformation.gd").compiled_status()
 	if report.has("performance_window"):
 		report.performance_window.elapsed_ms=Time.get_ticks_msec()-int(report.performance_window.started_at_ms)
 		report.performance_window.view_end=runtime_features_snapshot().presentation
@@ -1417,7 +1029,6 @@ func shutdown() -> void:
 	report.animation_validation={"compiled_available":preload("res://systems/native_data/packed_animation_keys.gd").native_available,"forced_gd":OS.get_cmdline_user_args().has("--animation-keys=gd"),"scope":"Read-only binary key finite/time/range validation; ASCII precision and playback channels unchanged"}
 	if is_instance_valid(loading_screen): report.loading_screen=loading_screen.snapshot()
 	if is_instance_valid(keyboard): report.keyboard=keyboard.stats.duplicate(); keyboard.stop(false)
-	if is_instance_valid(world_input): report.pointer_attempts=world_input.pointer_attempts.duplicate(true)
 	if is_instance_valid(world): report.world=world.snapshot()
 	report.accepted_render_bundle=accepted_bundle_shutdown_snapshot()
 	if is_instance_valid(environment): report.environment=environment.snapshot(); report.environment_source=environment.source.duplicate(true)

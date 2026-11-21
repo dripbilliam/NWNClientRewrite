@@ -44,9 +44,8 @@ func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	var close := Button.new()
 	close.text = "Close"
 	close.focus_mode = Control.FOCUS_NONE
-	close.pressed.connect(reset)
+	close.pressed.connect(hide)
 	content.add_child(close)
-	close_requested.connect(reset)
 	admission_notice=Label.new();add_child(admission_notice);admission_notice.position=Vector2(20,20);admission_notice.size=Vector2(520,64);admission_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;admission_notice.mouse_filter=Control.MOUSE_FILTER_IGNORE;admission_notice.hide()
 	reset()
 
@@ -103,27 +102,17 @@ func render_details(message: Dictionary) -> void:
 	body.add_theme_constant_override("separation",0 if original_body else 4)
 	if original_body: body.add_child(detail(message.nativeBody))
 	else:
-		for key in ["condition", "reaction"]:
+		for key in ["condition", "reaction", "description"]:
 			if message.has(key): body.add_child(detail(message[key]))
-		if message.get("type","")=="creature":
-			for row in message.get("facts", []):
-				body.add_child(detail({"text": str(row.name) + ":"}))
-				body.add_child(detail(row.rich))
-		if message.has("description"): body.add_child(detail(message.description))
-		if message.get("type","") not in ["creature","trap"]:
-			for row in message.get("facts", []):
-				body.add_child(detail({"text": str(row.name) + ":"}))
-				body.add_child(detail(row.rich))
-	for key in ["properties", "effects"]:
-		var values: Array = message.get(key, [])
-		if not values.is_empty() or key=="properties" and int(message.get("propertyCount",0))>0 or key=="effects" and int(message.get("effectCount",0))>0:
-			body.add_child(detail(message.get("propertyHeading",{"text":"Item properties"}) if key=="properties" else {"text":"Effects"}))
-			for value in values:
-				body.add_child(detail(value.rich if key == "properties" else value))
-	if not original_body and message.get("type","")=="trap":
 		for row in message.get("facts", []):
 			body.add_child(detail({"text": str(row.name) + ":"}))
 			body.add_child(detail(row.rich))
+	for key in ["properties", "effects"]:
+		var values: Array = message.get(key, [])
+		if not values.is_empty() or key=="properties" and int(message.get("propertyCount",0))>0:
+			body.add_child(detail(message.get("propertyHeading",{"text":"Item properties"}) if key=="properties" else {"text":"Effects"}))
+			for value in values:
+				body.add_child(detail(value.rich if key == "properties" else value))
 	for warning in message.get("warnings", []):
 		body.add_child(detail({"text": str(warning)}))
 	if native_skin!=null: native_skin.details_changed()
@@ -149,8 +138,3 @@ func set_portrait(message: Dictionary) -> bool:
 func set_native_portrait(texture: Texture2D,target_id: int,revision: int) -> bool:
 	if texture==null or not visible and not admission_pending or int(state.get("targetId",-1))!=target_id or int(state.get("revision",-1))!=revision: return false
 	portrait.texture=texture; portrait.show(); return true
-
-func _input(event: InputEvent) -> void:
-	if not visible or not modal_lease.admits() or not event is InputEventKey or not event.pressed or event.echo or event.keycode!=KEY_ESCAPE: return
-	reset()
-	get_viewport().set_input_as_handled()

@@ -1,5 +1,5 @@
 extends RefCounted
-const DEFAULTS={"width":720,"x":0,"bottom":0,"compact_prompt":false,"font_size":14,"opacity":1.0,"timestamps":false,"seconds":false,"autoscroll":true,"locked":false,"split":true,"history":200,"mask_combined":0xffffffff,"mask_left":0x74f,"mask_right":0x100000b0,"show_talk":true,"show_shout":true,"show_whisper":true,"show_tell":true,"show_party":true,"show_dm":true,"show_system":true,"ui.text-bubble-mode":2,"ui.large-font":true}
+const DEFAULTS={"width":720,"x":0,"bottom":0,"compact_prompt":false,"font_size":14,"opacity":1.0,"timestamps":false,"seconds":false,"autoscroll":true,"locked":false,"split":false,"history":200,"mask_combined":0xffffffff,"mask_left":0x74f,"mask_right":0x100000b0,"show_talk":true,"show_shout":true,"show_whisper":true,"show_tell":true,"show_party":true,"show_dm":true,"show_system":true,"ui.text-bubble-mode":2,"ui.large-font":true}
 static func clean(value: Dictionary) -> Dictionary:
 	var result:=DEFAULTS.duplicate()
 	for key in result:
@@ -11,7 +11,7 @@ static func clean(value: Dictionary) -> Dictionary:
 			if value[key] is bool: result[key]=value[key]
 		elif value[key] is int or value[key] is float:
 			if is_finite(float(value[key])): result[key]=value[key]
-	result.width=clampi(int(result.width),320,2040); result.font_size=clampi(int(result.font_size),10,28); result.opacity=clampf(float(result.opacity),0,1); result.history=200; result.split=true
+	result.width=clampi(int(result.width),320,2040); result.font_size=clampi(int(result.font_size),10,28); result.opacity=clampf(float(result.opacity),0,1); result.history=clampi(int(result.history),50,2000)
 	result.x=clampi(int(result.x),0,4096); result.bottom=clampi(int(result.bottom),0,4096)
 	for key in ["mask_combined","mask_left","mask_right"]: result[key]=clampi(int(result[key]),0,0xffffffff)
 	return result

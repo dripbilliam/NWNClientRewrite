@@ -1,0 +1,16 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {CombatDelivery} from './combat-delivery.mjs';import {parse2da} from '../../src/area.js';
+function fixture(){const objects=new Map(),actor={id:0xffffffff,objectType:5,areaId:9,appearance:{appearance:0,equipment:[]},replicated:{position:[1,2,0],animation:0,stats:{classes:[{id:10,level:15}]}}};objects.set(actor.id,actor);const world={areaId:9,registry:{objects,get:id=>objects.get(id)}},session={world,areaGeneration:1,closed:false},sent=[],diagnostics=[];let clock=100;
+ const rules={appearance:parse2da('2DA V2.0\n\nHITDIST PREFATCKDIST WEAPONSCALE TARGETHEIGHT ABORTONPARRY\n0 0.5 2 1 L 0'),baseitems:parse2da('2DA V2.0\n\nWeaponType\n')};
+ const delivery=new CombatDelivery({session,connection:3,active:()=>true,tables:async()=>rules,send:row=>sent.push(row),now:()=>clock,diagnose:(...args)=>diagnostics.push(args)});return{actor,objects,world,session,sent,diagnostics,delivery,advance:ms=>clock+=ms};}
+test('decoded cues are copied independently, retain unsigned identity and native arrival age, without canonical mutation',async()=>{
+ const f=fixture(),before=structuredClone(f.actor),event={action:'cast-animation',id:f.actor.id,animation:19,record:{type:4,spellId:100}};f.delivery.receive([event]);event.record.spellId=321;f.advance(7);await f.delivery.flush();const row=f.sent.find(x=>x.kind==='combat-events').events[0];assert.equal(row.record.spellId,100);assert.equal(row.ageMs,7);assert.equal(row.id,0xffffffff);assert.deepEqual(f.actor,before);assert.equal(f.sent[0].kind,'combat-actors');assert.equal(f.sent[0].actors[0].targetHeight,'L');
+});
+test('same numeric IDs cannot deliver old actors or old-area events through delayed rule work',async()=>{
+ for(const change of [f=>f.objects.set(f.actor.id,{...f.actor}),f=>f.session.areaGeneration++,f=>f.session.closed=true]){const f=fixture();let release;f.delivery.tables=()=>new Promise(r=>release=r);f.delivery.receive([{action:'attack-animation',id:f.actor.id,records:[{type:1}]}]);const work=f.delivery.flush();change(f);release({appearance:parse2da('2DA V2.0\n\nHITDIST\n0 1'),baseitems:parse2da('2DA V2.0\n\nName\n')});await work;assert.equal(f.sent.some(x=>x.kind==='combat-events'),false);}
+});
+test('unchanged metadata is not retransmitted, but original hit points and object lifetime changes are visible',async()=>{
+ const f=fixture();await f.delivery.flush();const identity=f.sent[0].actors[0].lifetime;await f.delivery.flush();assert.equal(f.sent.length,1);f.actor.replicated.hitPoints={current:6};await f.delivery.flush();assert.equal(f.sent.at(-1).actors[0].hitPoints,6);f.objects.set(f.actor.id,{...f.actor});await f.delivery.flush();assert.notEqual(f.sent.at(-1).actors[0].lifetime,identity);
+});
+test('a newly captured area remains buffered until its flush and an old in-flight scope cannot overwrite it',async()=>{
+ const f=fixture();f.delivery.receive([{action:'cast-animation',id:f.actor.id,animation:19,record:{type:4}}]);f.session.areaGeneration=2;f.delivery.receive([{action:'cast-animation',id:f.actor.id,animation:17,record:{type:4}}]);await f.delivery.flush();const rows=f.sent.find(x=>x.kind==='combat-events');assert.equal(rows.generation,2);assert.deepEqual(rows.events.map(x=>x.animation),[17]);assert.equal(f.delivery.pending.length,0);
+});

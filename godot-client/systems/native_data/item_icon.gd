@@ -9,8 +9,6 @@ static func number(value: Variant,fallback: int=0) -> int:
 	var text:=str(value)
 	if text.to_lower().begins_with("0x") and text.is_valid_hex_number(true): return text.hex_to_int()
 	return int(float(text)) if text.is_valid_float() else fallback
-static func part_value(parts: Array,index: int) -> int:
-	return number(parts[index]) if index>=0 and index<parts.size() else 0
 static func resource_ref(type: int,prefix: String,gender_specific: bool,part: int,id: int,gender: int) -> String:
 	var signed:=(id&65535)-65536 if id&32768 else id&65535
 	var suffix:="_"+"BMT"[part] if type==2 else ("_"+str(char(gender)) if gender_specific else "")
@@ -22,11 +20,13 @@ func plan(item: Dictionary,tables: Dictionary,gender: int=0) -> Dictionary:
 	var width:=number(original.get("InvSlotWidth")); var height:=number(original.get("InvSlotHeight")); var type:=number(original.get("ModelType"),-1)
 	if width<1 or height<1 or width>10 or height>10 or type not in [0,1,2,3]: failure="Original icon dimensions/type are unavailable"; return {}
 	var parts: Array=item.get("parts",[])
+	if parts.size()<(19 if type==3 else (3 if type==2 else 1)): failure="Original icon parts are incomplete"; return {}
 	var colors: Array=item.get("colors",[])
+	if type in [1,3] and colors.size()!=6: failure="Original icon palette is incomplete"; return {}
 	var palette:=[0,0,colors[4] if colors.size()>4 else 0,colors[5] if colors.size()>5 else 0,colors[2] if colors.size()>2 else 0,colors[3] if colors.size()>3 else 0,colors[0] if colors.size()>0 else 0,colors[1] if colors.size()>1 else 0,0,0]
 	var layers: Array=[]
 	if type==3:
-		var armor_parts:=[6,7,8,14,15,18]; var palette_parts:=[6,7,8,15,14,18]; var palettes: Array=[]; var robe:=part_value(parts,18)
+		var armor_parts:=[6,7,8,14,15,18]; var palette_parts:=[6,7,8,15,14,18]; var palettes: Array=[]; var robe:=int(parts[18])
 		for part in palette_parts:
 			var selected:=palette.duplicate(); var channels:=[6,7,4,5,2,3]; var overrides: Variant=item.get("partColors",[])
 			var overrides_row: Variant=overrides.get(str(part),overrides.get(part,[])) if overrides is Dictionary else (overrides[part] if overrides is Array and part<overrides.size() else [])
@@ -38,9 +38,9 @@ func plan(item: Dictionary,tables: Dictionary,gender: int=0) -> Dictionary:
 			if (index==5 and robe<3) or (index<5 and robe>=3 and (hidden==null or number(hidden)!=0)): layers.append(null); continue
 			var name:=str(row(tables,"capart",armor_parts[index]).get("MDLNAME",""))
 			if name in ["","****"]: failure="Original armor icon part is unavailable"; return {}
-			layers.append({"primary":("ip"+("f" if gender==1 else "m")+"_"+name+str(part_value(parts,armor_parts[index])).pad_zeros(3)).left(16).to_lower(),"type":6})
+			layers.append({"primary":("ip"+("f" if gender==1 else "m")+"_"+name+str(int(parts[armor_parts[index]])).pad_zeros(3)).left(16).to_lower(),"type":6})
 		return {"kind":"armor","width":2,"height":3,"palettes":palettes,"layers":layers,"fallback":"ipm_chest001"}
-	var id:=part_value(parts,0); var prefix:=str(original.get("ItemClass","")); var fallback:=str(original.get("DefaultIcon","")); var specific:=number(original.get("GenderSpecific",0))!=0
+	var id:=int(parts[0]); var prefix:=str(original.get("ItemClass","")); var fallback:=str(original.get("DefaultIcon","")); var specific:=number(original.get("GenderSpecific",0))!=0
 	if prefix=="****": prefix=""
 	if fallback=="****": fallback=""
 	if type==1 and base==80: id=number(row(tables,"cloakmodel",id).get("ICON"),id)
@@ -51,7 +51,7 @@ func plan(item: Dictionary,tables: Dictionary,gender: int=0) -> Dictionary:
 				var icon:=str(row(tables,"iprp_spells",int(property.subtype)).get("Icon",""))
 				if icon not in ["","****"]: primary=icon
 				break
-	for part in (3 if type==2 else 1): layers.append({"primary":resource_ref(type,prefix,specific,part,part_value(parts,part),70 if gender==1 else 77) if type==2 else primary,"fallback":fallback,"type":6 if type==1 else 3,"palette":palette if type==1 else null})
+	for part in (3 if type==2 else 1): layers.append({"primary":resource_ref(type,prefix,specific,part,int(parts[part]),70 if gender==1 else 77) if type==2 else primary,"fallback":fallback,"type":6 if type==1 else 3,"palette":palette if type==1 else null})
 	return {"kind":"layered" if type==1 else ("composite" if type==2 else "flat"),"width":width,"height":height,"layers":layers}
 func select(plan_data: Dictionary,catalog) -> Dictionary:
 	var layers: Array=[]

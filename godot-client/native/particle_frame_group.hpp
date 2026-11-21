@@ -13,7 +13,7 @@ bool valid_callable(const EngineVar& value){
 bool eligible(int64_t id,bool allow_boundary=true){
  bool result=false;if(allow_boundary&&particle_scene_boundary::eligible(id,result))return result;
  auto node=instance_from_id(static_cast<uint64_t>(id));if(!node||!cast_object(node,node_tag))return false;
- GDExtensionBool inside=false,process=false;ptrcall(inside_tree,node,nullptr,&inside);if(!inside)return false;ptrcall(can_process,node,nullptr,&process);return process!=0;
+ GDExtensionBool inside=false,visible=false,process=false;ptrcall(inside_tree,node,nullptr,&inside);if(!inside)return false;ptrcall(visible_in_tree,node,nullptr,&visible);if(!visible)return false;ptrcall(can_process,node,nullptr,&process);return process!=0;
 }
 // Render visibility is independent of whether the simulation tree can process.
 // Pausing retains the last picture; hiding an ancestor must still hide it.
@@ -22,7 +22,7 @@ bool visible(int64_t id){
  GDExtensionBool inside=false,shown=false;ptrcall(inside_tree,node,nullptr,&inside);if(!inside)return false;ptrcall(visible_in_tree,node,nullptr,&shown);return shown!=0;
 }
 struct Entry {
- int64_t id=0;EngineVar retained,input,providers,receiver,fallback,clock,part_provider,static_clip;
+ int64_t id=0;EngineVar retained,input,providers,receiver,fallback,clock,static_clip;
  resident::Owner* owner=nullptr;bool enabled=true,detonate=false;double elapsed=0,clip_length=0;int64_t frames=0;
 };
 struct Owner {
@@ -43,7 +43,6 @@ struct Owner {
    auto input=::get(config,"input");entry->input=::method(input,"duplicate",{EngineVar::boolean(true)});entry->static_clip=::has(input,"clip")?::get(input,"clip"):EngineVar::text("");entry->providers=::get(config,"providers");entry->receiver=::get(config,"receiver");
    if(!valid_callable(entry->receiver))throw std::runtime_error("Particle group requires its synchronous consumer");
    if(::has(config,"clock"))entry->clock=::get(config,"clock");
-   if(::has(config,"part_provider"))entry->part_provider=::get(config,"part_provider");
    entry->elapsed=::has(config,"elapsed")?::get(config,"elapsed").number():0;
    entry->clip_length=::has(config,"clip_length")?::get(config,"clip_length").number():0;
   }else{entry->fallback=::get(config,"fallback");if(!valid_callable(entry->fallback))throw std::runtime_error("Particle group fallback is not callable");}
@@ -88,7 +87,6 @@ struct Owner {
      ::set(entry->input,"clip",::has(clock,"clip")?::get(clock,"clip"):EngineVar::text(""));time=::has(clock,"time")?::get(clock,"time").number():0;
     }else{::set(entry->input,"clip",entry->static_clip);if(entry->clip_length>0){time=std::fmod(time,entry->clip_length);if(time<0)time+=entry->clip_length;}}
     ::set(entry->input,"time",EngineVar::number(time));::set(entry->input,"delta",EngineVar::number(delta));::set(entry->input,"profile",EngineVar::boolean(profile));::set(entry->input,"view",view);::set(entry->input,"detonate",EngineVar::boolean(entry->detonate));
-    if(valid_callable(entry->part_provider))::set(entry->input,"part_properties",::method(entry->part_provider,"call"));
     if(::has(input,"scene_indices"))::set(entry->input,"scene_indices",::get(input,"scene_indices"));else ::method(entry->input,"erase",{::key("scene_indices")});
     const auto dispatch=profile?Clock::now():Clock::time_point{};if(profile)prepare_ms=std::chrono::duration<double,std::milli>(dispatch-began).count();
     output=entry->owner->frame(entry->input,entry->providers);if(profile)dispatch_ms=std::chrono::duration<double,std::milli>(Clock::now()-dispatch).count();

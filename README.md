@@ -48,13 +48,12 @@ I will note at this time, this project is not *built* for use outside the dev en
 Windows/PowerShell development setup, from the repository root:
 
 ```powershell
+npm install
 .\godot-client\tools\setup.ps1
 .\godot-client\join-native.ps1
 ```
 
 Main Menu opens without automatically joining a server. Supply your own NWN:EE installation, valid CD key and required server content. This project does not distribute the base game or bypass the requirement to own it.
-
-`join-native.ps1` starts the Godot client; unsupported original-host diagnostic flags reject before startup. Run `godot-client\join-godot.ps1 -CheckOnly` for prerequisites or `godot-client\tools\nwn79\run-focused-tests.ps1` for the offline Godot/PowerShell checks. The remaining `src/` and `electron/` files are temporary behavior blueprints for active ports, not the client runtime.
 
 See the [native launch guide](godot-client/README.md) for the owned-local route, runtime flags and reference client.
 
@@ -71,7 +70,8 @@ Some development builds also use separately obtained third-party source checkout
 | Runtime ownership | [Architecture](docs/architecture.md) |
 | Setup and checks | [Development](docs/development.md) |
 | Native frontend | `godot-client/` |
-| Temporary original implementation blueprints (not launched) | `src/`, `electron/` |
+| Transitional protocol/services | `electron/`, `src/network_*.js` |
+| Reference Electron/Three.js client | `src/`, `electron/` |
 | Native extensions | [Build reference](godot-client/native/README.md) |
 | Entity inspection API | [Entity API](godot-client/ENTITY-API.md) |
 | Original binary and methods | [Research](docs/research.md) |

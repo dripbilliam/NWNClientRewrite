@@ -160,7 +160,6 @@ func run() -> void:
 	ui.conversation.present({"kind":"dialog-replies","entryId":53,"replies":[{"id":94,"available":true,"rich":{"text":"Continue after the multiline entry."}}]})
 	await inspect("multiline-no-portrait-125")
 	check(ui.conversation_skin.speaker_signature[2]=="po_hu_m_99_m","Absent speaker/portrait uses the production fallback resource")
-	check(ui.conversation_skin.fallback_portrait.texture!=null and not ui.conversation_skin.fallback_portrait.is_visible_in_tree(),"Preloaded fallback portrait has pixels and stays off the gameplay canvas")
 	check(ui.conversation.body.get_parsed_text().count("\n")==2 and ui.conversation.body.get_line_count()>=3,"Explicit newlines survive received-style rich spans")
 	# Actual Window resize exercises the containing desktop and NativeWindowLayers,
 	# rather than manually setting the RichTextLabel width.

@@ -1,0 +1,28 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawn} from 'node:child_process';
+const root=process.cwd(),run=path.resolve(process.argv[2]??'');
+const boundary=path.join(root,'godot-client/.cache/native-presentation-parity/render-agent')+path.sep;
+if(!run.startsWith(boundary)||fs.existsSync(run))throw Error('Fresh owned run required');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const descriptor=JSON.parse(fs.readFileSync(path.join(root,'godot-client/.cache/native-140fps/render-agent/engine-builtin-light-v2/engine-descriptor.json'),'utf8'));
+const engine=descriptor.engines.candidate;
+if(engine.sha256!=='ce2d36407d0a6107a3076a00faf7d9f9dae185c86994ccea8dfd7e450c50f12a'||sha(engine.path)!==engine.sha256)throw Error('Engine identity mismatch');
+const fixture=path.join(boundary,'tile-visibility-godot-reference-v2/fixture.json');
+if(sha(fixture)!=='561e312decf28278a47d899b1474b0c1f38c420d684cbc3e4aeec68414a2d8c3')throw Error('Reference fixture changed');
+const relatives=['systems/native_data/native_tile_visibility.gd','tests/native_tile_visibility_test.gd'];
+const project=path.join(run,'project'),pins=[];
+for(const relative of relatives){const source=path.join(root,'godot-client',relative),target=path.join(project,relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(source,target);pins.push({relative,sha256:sha(source)});}
+fs.mkdirSync(path.join(project,'.godot'),{recursive:true});fs.writeFileSync(path.join(project,'.godot/global_script_class_cache.cfg'),'list=[]\n');
+fs.writeFileSync(path.join(project,'project.godot'),'[application]\nconfig/name="Isolated native tile visibility kernel"\n\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');
+fs.writeFileSync(path.join(run,'sources.json'),JSON.stringify({engine,pins,fixture,fixtureSha256:sha(fixture),scope:'Two scripts and minimal project only; no autoload/extensions/assets/server/GPU'},null,2));
+const args=['--headless','--path',project,'--script','res://tests/native_tile_visibility_test.gd','--',`--report=${path.join(run,'checks.json')}`,`--fixture=${fixture}`];
+const start=performance.now(),child=spawn(engine.path,args,{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
+let stdout='',stderr='',timedOut=false,error=null;
+child.stdout.on('data',data=>stdout+=data);child.stderr.on('data',data=>stderr+=data);child.on('error',value=>error=String(value));
+const timer=setTimeout(()=>{timedOut=true;child.kill();},20000);
+const exit=await new Promise(resolve=>child.once('close',(code,signal)=>resolve({code,signal})));clearTimeout(timer);
+const receipt={...exit,pid:child.pid,timedOut,error,elapsedMs:performance.now()-start,engineSha256:engine.sha256,args,sourceChanged:pins.filter(pin=>sha(path.join(root,'godot-client',pin.relative))!==pin.sha256).map(pin=>pin.relative)};
+fs.writeFileSync(path.join(run,'process.json'),JSON.stringify(receipt,null,2));fs.writeFileSync(path.join(run,'stdout.log'),stdout);fs.writeFileSync(path.join(run,'stderr.log'),stderr);
+console.log(JSON.stringify(receipt));console.log(stdout);console.log(stderr);process.exitCode=exit.code??1;

@@ -92,7 +92,7 @@ var plan_prepare_peak_ms:=0.0
 var prepared_calls:=0
 var prepared_failures:=0
 
-func configure(data: Dictionary, source: Dictionary, rig_nodes: Array, manual: Dictionary = {}, gpu_meshes: Array = [], model_index: int = -1) -> void:
+func configure(data: Dictionary, source: Dictionary, rig_nodes: Array, manual: Dictionary = {}) -> void:
 	compiled_control_available=ClassDB.class_exists("NwnParticleKernel") and ClassDB.class_has_method("NwnParticleKernel","model_control")
 	bulk_available=compiled_control_available and ClassDB.class_has_method("NwnParticleKernel","model_hierarchy")
 	if compiled_controls and not compiled_control_available: compiled_control_failures+=1; diagnose("compiled model controller kernel unavailable")
@@ -120,13 +120,7 @@ func configure(data: Dictionary, source: Dictionary, rig_nodes: Array, manual: D
 		var object: Node3D = nodes[int(source.parts[index])]
 		var materials: Array = []
 		if original.type == "trimesh":
-			var visual_children: Array = object.get_children()
-			# Skeletal publication reparents rendered meshes beneath the rig root.
-			# Keep the physical model/part binding used by the old Part traversal.
-			for mesh in gpu_meshes:
-				if mesh is MeshInstance3D and int(mesh.get_meta("native_source_model_index", -1)) == model_index and int(mesh.get_meta("native_source_part_index", -1)) == index and not visual_children.has(mesh):
-					visual_children.append(mesh)
-			for child in visual_children:
+			for child in object.get_children():
 				if child is MeshInstance3D:
 					# A geometry-wide override wins over surface overrides. Animate
 					# a private copy of the binding that is actually drawn; leaving
@@ -134,21 +128,18 @@ func configure(data: Dictionary, source: Dictionary, rig_nodes: Array, manual: D
 					if child.material_override is StandardMaterial3D or child.material_override is EnhancedMaterial:
 						var unique=child.material_override.duplicate()
 						child.material_override=unique
-						materials.append(_material_record(unique,original.transparencyHint,child))
+						materials.append(_material_record(unique,original.transparencyHint))
 						continue
 					for surface in child.mesh.get_surface_count():
 						var material: Material = child.get_active_material(surface)
 						if material is StandardMaterial3D or material is EnhancedMaterial:
 							var unique=material.duplicate()
 							child.set_surface_override_material(surface, unique)
-							materials.append(_material_record(unique,original.transparencyHint,child))
+							materials.append(_material_record(unique,original.transparencyHint))
 		_parts.append({"_native_index":index,"source": original, "object": object, "id30": original.node.id34, "dirty60": 0, "field8c": int(original.properties.get("isdynamic", 0)), "owner50": null, "children38": [], "childCount40": original.children.size(), "view": storage, "fields": fields, "materials": materials})
 		if original.type=="light":
-			_parts.back().lights=[]
 			for child in object.get_children():
-				if child.has_method("publish_native_light"):
-					_parts.back().lights.append(child)
-					if not _parts.back().has("light"):_parts.back().light=child
+				if child.has_method("publish_native_light"): _parts.back().light=child; break
 	for part in _parts:
 		for index in part.source.children: part.children38.append(_parts[int(index)])
 		# Static node controllers initialize their Part before placement.
@@ -169,22 +160,13 @@ func configure(data: Dictionary, source: Dictionary, rig_nodes: Array, manual: D
 			native_failures+=1;diagnose("native model storage configuration failed: "+str(result.error));return
 		native_context=context;native_revision=int(result.revision);snapshot_revision=native_revision
 
-func _material_record(material,source_hint: bool,mesh: MeshInstance3D) -> Dictionary:
+func _material_record(material,source_hint: bool) -> Dictionary:
 	# A lazy Part owner can arrive after actor alpha/vector publication. Capture
 	# its raw Part input, not the already composed renderer colour/pass, or the
 	# factor would be applied twice and a temporary fade would become a hint.
 	if material.has_method("publish_actor_part_pose"):
-		return {"material":material,"mesh":mesh,"color":material.actor_part_color,"hint":source_hint,"standard":false}
-	return {"material":material,"mesh":mesh,"color":material.albedo_color,"hint":source_hint,"standard":material is StandardMaterial3D}
-
-func _publish_alpha_draw(row: Dictionary, alpha: float) -> void:
-	# Three.js stores this on each material. Actor construction gives each
-	# rendered mesh its own material binding, so the mesh draw gate is equivalent.
-	# The actor-alpha wrapper owns the composed presentation draw gate.
-	if row.material.has_method("publish_actor_part_pose"): return
-	row.mesh.visible=alpha>0.0
-	if row.standard:
-		row.material.depth_draw_mode=BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY if not row.hint and alpha>=1.0 else BaseMaterial3D.DEPTH_DRAW_DISABLED
+		return {"material":material,"color":material.actor_part_color,"hint":source_hint or material.actor_part_blended or material.actor_base_transparency!=BaseMaterial3D.TRANSPARENCY_DISABLED}
+	return {"material":material,"color":material.albedo_color,"hint":source_hint or material.transparency!=BaseMaterial3D.TRANSPARENCY_DISABLED}
 func _owned_index(part: Dictionary) -> int:
 	var index:=int(part.get("_native_index",-1))
 	return index if index>=0 and index<_parts.size() and is_same(part,_parts[index]) else -1
@@ -352,11 +334,10 @@ func flush(manual: Dictionary = {}) -> void:
 	var scoped: Variant=ColourScopes.selected(colour_scopes)
 	for index in _parts.size():
 		var part: Dictionary = _parts[index]
+		if manual.has(int(binding.parts[index])): continue
 		var position := read(part, 16, 3)
 		var q := read(part, 28, 4)
 		var scale_value: float = read(part, 44, 1)[0]
-		if (position+q+[scale_value]).any(func(value):return not is_finite(float(value))):
-			diagnose("native controller produced a non-finite scene pose");push_error("Native controller produced a non-finite scene pose");return
 		var object: Node3D = part.object
 		object.position = Vector3(position[0], position[2], -position[1])
 		object.quaternion = Quaternion(q[1], q[3], -q[2], q[0])
@@ -364,12 +345,9 @@ func flush(manual: Dictionary = {}) -> void:
 		if part.source.type == "trimesh":
 			var alpha := clampf(read(part, 168, 1)[0], 0.0, 1.0)
 			var color := read(part, 128, 3)
-			if color.any(func(value):return not is_finite(float(value))):
-				diagnose("native self-illumination controller produced a non-finite color");push_error("Native self-illumination controller produced a non-finite color");return
 			if scoped!=null: color=scoped
 			for row in part.materials:
 				var material=row.material
-				_publish_alpha_draw(row,alpha)
 				if material.has_method("publish_actor_part_pose"):
 					material.publish_actor_part_pose(Color(scoped[0],scoped[1],scoped[2],alpha) if scoped!=null else Color(row.color.r,row.color.g,row.color.b,alpha),Color(srgb(color[0]),srgb(color[1]),srgb(color[2])),row.hint or alpha<1.0);continue
 				material.albedo_color = Color(scoped[0],scoped[1],scoped[2],alpha) if scoped!=null else Color(row.color.r, row.color.g, row.color.b, alpha)
@@ -388,23 +366,17 @@ func _flush_direct(manual: Dictionary) -> void:
 	var scoped: Variant=ColourScopes.selected(colour_scopes)
 	for index in _parts.size():
 		var part: Dictionary=_parts[index]
+		if manual.has(int(binding.parts[index])): continue
 		var view: PackedByteArray=part.view; var object: Node3D=part.object
-		var px:=view.decode_float(16);var py:=view.decode_float(20);var pz:=view.decode_float(24)
-		var w:=view.decode_float(28);var x:=view.decode_float(32);var y:=view.decode_float(36);var z:=view.decode_float(40);var scale_value:=view.decode_float(44)
-		if not is_finite(px) or not is_finite(py) or not is_finite(pz) or not is_finite(w) or not is_finite(x) or not is_finite(y) or not is_finite(z) or not is_finite(scale_value):
-			diagnose("native controller produced a non-finite scene pose");push_error("Native controller produced a non-finite scene pose");return
-		object.position=Vector3(px,pz,-py)
-		object.quaternion=Quaternion(x,z,-y,w)
-		object.scale=Vector3.ONE*scale_value
+		object.position=Vector3(view.decode_float(16),view.decode_float(24),-view.decode_float(20))
+		object.quaternion=Quaternion(view.decode_float(32),view.decode_float(40),-view.decode_float(36),view.decode_float(28))
+		object.scale=Vector3.ONE*view.decode_float(44)
 		if part.source.type=="trimesh":
 			var alpha:=clampf(view.decode_float(168),0.0,1.0)
 			var red:=view.decode_float(128); var green:=view.decode_float(132); var blue:=view.decode_float(136)
-			if not is_finite(red) or not is_finite(green) or not is_finite(blue):
-				diagnose("native self-illumination controller produced a non-finite color");push_error("Native self-illumination controller produced a non-finite color");return
 			if scoped!=null: red=float(scoped[0]); green=float(scoped[1]); blue=float(scoped[2])
 			for row in part.materials:
 				var material=row.material
-				_publish_alpha_draw(row,alpha)
 				if material.has_method("publish_actor_part_pose"):
 					material.publish_actor_part_pose(Color(red,green,blue,alpha) if scoped!=null else Color(row.color.r,row.color.g,row.color.b,alpha),Color(srgb(red),srgb(green),srgb(blue)),row.hint or alpha<1.0);continue
 				material.albedo_color=Color(red,green,blue,alpha) if scoped!=null else Color(row.color.r,row.color.g,row.color.b,alpha)
@@ -414,11 +386,10 @@ func _flush_direct(manual: Dictionary) -> void:
 		elif part.source.type=="light": _publish_light(part)
 
 func _publish_light(part: Dictionary) -> void:
-	var lights: Array=part.get("lights",[])
-	if lights.is_empty(): diagnose("native animated-light renderer binding unavailable"); return
+	var light=part.get("light")
+	if not is_instance_valid(light): diagnose("native animated-light renderer binding unavailable"); return
 	var view: PackedByteArray=part.view
-	for light in lights:
-		if is_instance_valid(light):light.publish_native_light(Color(view.decode_float(104),view.decode_float(108),view.decode_float(112)),view.decode_float(116),view.decode_float(124),view.decode_float(128),view.decode_float(168))
+	light.publish_native_light(Color(view.decode_float(104),view.decode_float(108),view.decode_float(112)),view.decode_float(116),view.decode_float(124),view.decode_float(128),view.decode_float(168))
 
 func set_colour_scope(scope: int,rgb: Variant,manual: Dictionary={}) -> bool:
 	if not ColourScopes.set_colour(colour_scopes,scope,rgb): return false

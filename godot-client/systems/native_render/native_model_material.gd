@@ -3,8 +3,6 @@ const Policy=preload("res://systems/native_render/native_light_policy.gd")
 const Palette=preload("res://systems/native_render/native_light_palette.gd")
 const StandardLight=preload("res://systems/native_render/native_standard_light.gd")
 const SurfaceTransfer=preload("res://systems/native_render/native_surface_transfer.gd")
-const TargetPreview=preload("res://systems/native_render/native_target_preview_shader.gd")
-const CameraKeyhole=preload("res://systems/native_render/native_camera_keyhole.gd")
 const InstanceContract=preload("res://systems/native_render/native_material_contract.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 static var shaders: Dictionary={}
@@ -13,8 +11,6 @@ var _configuring_shader:=false
 	set(value): native_surface_output=value; set_meta("native_surface_output",value); refresh_shader()
 @export var native_tile_fog_enabled:=false:
 	set(value): native_tile_fog_enabled=value; set_meta("native_tile_fog_enabled",value); refresh_shader()
-@export var native_keyhole_enabled:=false:
-	set(value): native_keyhole_enabled=value; refresh_shader()
 @export var native_world_fog:=false:
 	set(value): native_world_fog=value; set_shader_parameter("native_world_fog",value)
 @export var standard_specular:=false:
@@ -61,22 +57,17 @@ static func variant_key(blended: bool,cutout: bool,filter_value: int,standard: b
 	# the existing key bytes and every filtering/quality/surface combination.
 	return str(blended)+str(cutout)+filtering_name(filter_value)+str(standard)+str(quality)+str(surface)+str(tile_fog)
 func shader_variant_key() -> String:
-	var key:=variant_key(transparency==BaseMaterial3D.TRANSPARENCY_ALPHA,scissor,filter_mode,standard_specular,standard_quality,native_surface_output,native_tile_fog_enabled)
-	return key+"|keyhole" if native_keyhole_enabled else key
+	return variant_key(transparency==BaseMaterial3D.TRANSPARENCY_ALPHA,scissor,filter_mode,standard_specular,standard_quality,native_surface_output,native_tile_fog_enabled)
 func refresh_shader() -> void:
 	if _configuring_shader:return
 	if native_surface_output: preload("res://systems/native_render/native_surface_state.gd").ensure()
-	TargetPreview.ensure()
-	if native_keyhole_enabled:CameraKeyhole.ensure()
 	var blended:=transparency==BaseMaterial3D.TRANSPARENCY_ALPHA
 	var filtering:=filtering_name(filter_mode)
-	# A later catalog load can replace the disabled target stub in this process.
-	# Keep the installed SHD source identity separate from the material policy.
-	var key:=shader_variant_key()+"|target:"+TargetPreview.source_identity()+("|keyhole-source:"+CameraKeyhole.source_identity() if native_keyhole_enabled else "")
+	var key:=shader_variant_key()
 	if not shaders.has(key):
 		var program_began:=Timing.begin()
 		var program:=Shader.new()
-		var shader_code: String="shader_type spatial;\nrender_mode diffuse_lambert,"+("" if standard_specular or native_surface_output else "specular_disabled,")+"ambient_light_disabled,cull_back"+(",depth_draw_never" if blended else "")+(",fog_disabled" if native_surface_output else "")+";\n"+Palette.shader_code()+(StandardLight.code(standard_quality) if standard_specular else "")+(SurfaceTransfer.code(native_tile_fog_enabled) if native_surface_output else "")+TargetPreview.code()+(CameraKeyhole.code() if native_keyhole_enabled else "")+"""
+		var shader_code: String="shader_type spatial;\nrender_mode diffuse_lambert,"+("" if standard_specular or native_surface_output else "specular_disabled,")+"ambient_light_disabled,cull_back"+(",depth_draw_never" if blended else "")+(",fog_disabled" if native_surface_output else "")+";\n"+Palette.shader_code()+(StandardLight.code(standard_quality) if standard_specular else "")+(SurfaceTransfer.code(native_tile_fog_enabled) if native_surface_output else "")+"""
 uniform sampler2D native_texture : repeat_enable,%s;
 uniform bool native_has_texture=false;
 uniform vec3 native_ambient=vec3(1.0);
@@ -84,7 +75,7 @@ uniform vec3 native_diffuse=vec3(1.0);
 uniform vec3 native_emission=vec3(0.0);
 uniform bool native_emission_enabled=false;
 uniform float native_alpha=1.0;
-void vertex(){nwn_world_vertex=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz; %s %s}
+void vertex(){nwn_world_vertex=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz; %s}
 void fragment(){
  vec4 texel=native_has_texture?texture(native_texture,UV):vec4(1.0);
  ALBEDO=sign(texel.rgb)*pow(abs(texel.rgb),vec3(2.2));
@@ -93,25 +84,17 @@ void fragment(){
  %s
  %s
  %s
- vec3 nwn_target_weight=nwn_target_overlay(nwn_world_vertex);
-	// The old hook blends the completed opaque pixel. Keep the target color
-	// out of the material's light input and add it as an unlit contribution.
-	ALBEDO*=vec3(1.0)-nwn_target_weight;
-	EMISSION=EMISSION*(vec3(1.0)-nwn_target_weight)+nwn_target_weight;
- %s
 }
 void light(){
  vec2 lighting=nwn_local_light(ATTENUATION,SPECULAR_AMOUNT,LIGHT_IS_DIRECTIONAL);
  float cosine=lighting.y>0.5?1.0:%s;
  float diffuse_cosine=cosine%s;
  vec3 response=lighting.y>0.5?native_ambient:native_diffuse;
- vec3 nwn_direct_keep=vec3(1.0)-nwn_target_overlay(nwn_world_vertex);
- %s
  %sLIGHT_COLOR*(lighting.x*diffuse_cosine/PI)*response%s;
  %s
  %s
 }
-""" % [filtering,(StandardLight.vertex_code() if standard_specular else "")+(SurfaceTransfer.vertex_code() if native_surface_output else ""),("nwn_keyhole_view_z=(MODELVIEW_MATRIX*vec4(VERTEX,1.0)).z;nwn_keyhole_offset=nwn_keyhole_setup();" if native_keyhole_enabled else ""),StandardLight.fragment_code() if standard_specular else "","(1.0-nwn_environment_specularity)" if standard_specular else "1.0","EMISSION+=nwn_specular_color*nwn_environment_rgb*nwn_native_ambient*native_ambient*nwn_standard_environment_scale();" if standard_specular else "",("ALPHA=nwn_effective_alpha;" if standard_specular else "ALPHA=texel.a*native_alpha;") if blended else ("if(texel.a<0.035)discard;" if scissor else ""),SurfaceTransfer.fragment_code() if native_surface_output else "","nwn_keyhole_apply(ALBEDO,EMISSION,FRAGCOORD.xy,nwn_world_vertex);" if native_keyhole_enabled else "","nwn_standard_cosine(dot(NORMAL,LIGHT))" if standard_specular else "max(dot(NORMAL,LIGHT),0.0)","+(lighting.y>0.5?0.0:nwn_standard_translucence(dot(NORMAL,LIGHT)))" if standard_specular else "","vec3 nwn_keyhole_direct_keep=vec3(1.0);vec3 nwn_keyhole_unused=vec3(1.0);nwn_keyhole_apply(nwn_keyhole_direct_keep,nwn_keyhole_unused,vec2(FRAGCOORD.x,VIEWPORT_SIZE.y-FRAGCOORD.y),nwn_world_vertex);nwn_direct_keep*=nwn_keyhole_direct_keep;" if native_keyhole_enabled and standard_specular else "","vec3 nwn_surface_diffuse=" if native_surface_output else "DIFFUSE_LIGHT+=","*(1.0-nwn_environment_specularity)" if standard_specular else "",(("vec3 nwn_surface_specular=" if native_surface_output else "SPECULAR_LIGHT+=")+"LIGHT_COLOR*(lighting.x/PI)*nwn_specular_color*(diffuse_cosine*response*nwn_environment_rgb*nwn_standard_environment_scale()+(lighting.y<0.5&&cosine>0.0?cosine*nwn_standard_specular(NORMAL,LIGHT,VIEW,max(dot(NORMAL,LIGHT),0.0)):0.0))*nwn_direct_keep;") if standard_specular else ("vec3 nwn_surface_specular=vec3(0.0);" if native_surface_output else ""),SurfaceTransfer.light_code() if native_surface_output else ""]
+""" % [filtering,(StandardLight.vertex_code() if standard_specular else "")+(SurfaceTransfer.vertex_code() if native_surface_output else ""),StandardLight.fragment_code() if standard_specular else "","(1.0-nwn_environment_specularity)" if standard_specular else "1.0","EMISSION+=nwn_specular_color*nwn_environment_rgb*nwn_native_ambient*native_ambient*nwn_standard_environment_scale();" if standard_specular else "",("ALPHA=nwn_effective_alpha;" if standard_specular else "ALPHA=texel.a*native_alpha;") if blended else ("if(texel.a<0.035)discard;" if scissor else ""),SurfaceTransfer.fragment_code() if native_surface_output else "","nwn_standard_cosine(dot(NORMAL,LIGHT))" if standard_specular else "max(dot(NORMAL,LIGHT),0.0)","+(lighting.y>0.5?0.0:nwn_standard_translucence(dot(NORMAL,LIGHT)))" if standard_specular else "","vec3 nwn_surface_diffuse=" if native_surface_output else "DIFFUSE_LIGHT+=","*(1.0-nwn_environment_specularity)" if standard_specular else "",(("vec3 nwn_surface_specular=" if native_surface_output else "SPECULAR_LIGHT+=")+"LIGHT_COLOR*(lighting.x/PI)*nwn_specular_color*(diffuse_cosine*response*nwn_environment_rgb*nwn_standard_environment_scale()+(lighting.y<0.5&&cosine>0.0?cosine*nwn_standard_specular(NORMAL,LIGHT,VIEW,max(dot(NORMAL,LIGHT),0.0)):0.0));") if standard_specular else ("vec3 nwn_surface_specular=vec3(0.0);" if native_surface_output else ""),SurfaceTransfer.light_code() if native_surface_output else ""]
 		program.code=shader_code
 		InstanceContract.register_program(program,shader_code,native_surface_output and native_tile_fog_enabled)
 		shaders[key]=program

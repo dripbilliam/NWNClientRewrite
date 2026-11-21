@@ -17,9 +17,9 @@ static func acquire(viewport: Viewport,path: String):
 func setup(path: String) -> void:
 	configure("Chat settings","chat-settings",Vector2(100,100),path)
 	var specs: Array=[]
-	for row in [["width","Chat width",320,2040,20],["x","Horizontal position",0,4096,10],["bottom","Bottom offset",0,4096,10],["font_size","Message text size",10,28,1],["opacity","Background opacity (%)",0,100,5]]:
+	for row in [["width","Chat width",320,2040,20],["x","Horizontal position",0,4096,10],["bottom","Bottom offset",0,4096,10],["font_size","Message text size",10,28,1],["opacity","Background opacity (%)",0,100,5],["history","History per pane",50,2000,50]]:
 		specs.append(D.control("row","",{},[D.label(row[1]),D.control("number",row[0],{"min_value":row[2],"max_value":row[3],"step":row[4],"size_flags_horizontal":Control.SIZE_EXPAND_FILL})]))
-	for row in [["compact_prompt","Fit the input strip to chat width"],["timestamps","Show local timestamps"],["seconds","Include seconds"],["autoscroll","Follow new messages when already at the bottom"],["locked","Lock chat position and size"]]: specs.append(D.check(row[0],row[1]))
+	for row in [["split","Separate chat and combat/server feedback"],["compact_prompt","Fit the input strip to chat width"],["timestamps","Show local timestamps"],["seconds","Include seconds"],["autoscroll","Follow new messages when already at the bottom"],["locked","Lock chat position and size"]]: specs.append(D.check(row[0],row[1]))
 	specs.append(D.control("row","",{},[D.label("Speech popups"),D.choice("ui.text-bubble-mode",[["Off",0],["Text only",1],["Full background",2]],{"size_flags_horizontal":Control.SIZE_EXPAND_FILL})]))
 	specs.append(D.check("ui.large-font","Large dialog font"))
 	specs.append(D.label("Visible messages"))

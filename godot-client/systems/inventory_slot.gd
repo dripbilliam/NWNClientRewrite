@@ -85,7 +85,7 @@ func refresh_row(value: Dictionary,view: int) -> void:
 	row=value; channel=str(row.get("channel","")); bound_view=view
 	update_tooltip(); disabled=bool(row.get("pending",false))
 	count.text=str(int(row.get("stack",1))) if int(row.get("stack",1))>1 else ""
-	caption.text=str(row.get("name",""))
+	caption.text=str(row.get("name","")).left(8)
 	add_theme_font_size_override("font_size",11)
 func update_tooltip() -> void:
 	tooltip_text="" if is_instance_valid(inventory.item_tooltips) and row.has("entryId") else str(row.get("name",""))
@@ -114,7 +114,7 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 func _get_drag_data(_position: Vector2) -> Variant:
-	if not current() or not row.has("entryId") or disabled: return null
+	if not current() or not row.has("entryId") or disabled or inventory.examine_mode: return null
 	if is_instance_valid(inventory.item_tooltips): inventory.item_tooltips.cancel()
 	if is_instance_valid(inventory.scene_host):
 		var binding: Dictionary=inventory.scene_icon_bindings.get(int(row.entryId),{})

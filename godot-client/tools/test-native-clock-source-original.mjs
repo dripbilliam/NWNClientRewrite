@@ -1,0 +1,72 @@
+// Actual private DLL -> retained original instructions. Orchestration only.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),workspace=path.dirname(project);
+const [mode,label,approval,...extra]=process.argv.slice(2);
+if(mode!=='--execute-approved'||!/^[a-z0-9-]{3,80}$/.test(label??'')||approval!=='root-approved-clock-source-original-v1'||extra.length)throw Error('Separate reviewed engine lane required: --execute-approved <fresh-label> root-approved-clock-source-original-v1');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),read=file=>JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,''));
+const pins=new Map();
+function pin(file,expected=null){file=path.resolve(file);const actual=sha(file);if(expected!==null&&actual!==expected)throw Error('Pinned input differs: '+file);const prior=pins.get(file);if(prior&&prior.sha256!==actual)throw Error('Input changed during pinning');pins.set(file,{file,sha256:actual});return actual;}
+const relative=(root,name)=>{const file=path.resolve(root,name);if(!file.startsWith(path.resolve(root)+path.sep))throw Error('Input escaped its declared root');return file;};
+const original=path.join(project,'.cache/native-clock-real-oracle/native-clock-real-original-v1');
+const oracleFile=path.join(original,'result.json'),oracleProofFile=path.join(original,'proof.json'),oracleAcceptanceFile=path.join(original,'acceptance.json');
+const oracleSha=pin(oracleFile,'2f2f5eaedd16b3fa8995dd3bfd4dc22bb9e22bed60583f2c12e118fe97e2ad1b');
+const oracleProofSha=pin(oracleProofFile,'81991816c92ce5ffa9cefe3c2998d11ee4ed69f61ef181937e1eeef7b24b16c2');
+const oracleAcceptanceSha=pin(oracleAcceptanceFile,'ea396bf67770d89b4b09f4896fb27d674f85983b41d8819362279abf0b94d901');
+const oracle=read(oracleFile),oracleProof=read(oracleProofFile);
+if(fs.statSync(oracleFile).size>512*1024||oracle.success!==true||oracle.method!=='original-instructions-unicorn'||oracleProof.success!==true||oracleProof.ownedChildClosed!==true||oracleProof.resultSha256!==oracleSha||oracleProof.binaryUnchanged!==true||oracleProof.dependencyGuardsValid!==true||oracleProof.configurations!==11||oracleProof.rows!==117||oracleProof.definedRows!==113||oracleProof.undefinedRows!==4||oracle.configurations.length!==11||oracle.rows.length!==117)throw Error('No complete accepted original-instruction oracle');
+if(oracle.rows.filter(r=>r.defined===true).length!==113||oracle.rows.filter(r=>r.defined===false&&r.result===null&&r.diagnosticOnly===true).length!==4)throw Error('Original defined/unavailable matrix differs');
+for(const key of ['changedInputs','changedCopies','changedOutputs','changedDependencies'])if(!Array.isArray(oracleProof[key])||oracleProof[key].length)throw Error('Original oracle guard failed: '+key);
+for(const row of oracleProof.inputs){pin(relative(workspace,row.path),row.sha256);pin(relative(path.join(original,'inputs'),row.path),row.sha256);}
+for(const row of oracle.dependencies)pin(relative(workspace,row.path),row.sha256);
+for(const row of oracleProof.nativeOutputs)pin(relative(project,row.path),row.sha256);
+if(oracle.guards?.binaryUnchanged!==true||oracle.guards.changedInputs.length||oracle.guards.changedDependencies.length)throw Error('Original result guards failed');
+const binary=path.resolve(workspace,'../FullDecomp/NwnRootInstall/bin/win32/nwmain.exe');
+pin(binary,'3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a');
+pin(oracleProof.interpreter.path,oracleProof.interpreter.sha256);
+const candidate=path.join(project,'.cache/native-clock-source-candidate-v1'),build=path.join(candidate,'builds/build-v1');
+const manifestFile=path.join(candidate,'manifest.json'),buildFile=path.join(build,'build-manifest.json');
+const candidateSha=pin(manifestFile,'779aab6051a30eb949517630344efdd9e4f58352cc192aeaa33b968109156f6f');
+const buildSha=pin(buildFile,'23a0e24994c71a7cef4ff12994dd78f6826c63ff2ce52d6468e54b4509d973d6');
+const manifest=read(manifestFile),buildProof=read(buildFile);
+const locate=row=>row.location==='candidate'?relative(candidate,row.path):row.location==='workspace'?relative(workspace,row.path):row.location==='absolute'?path.resolve(row.path):(()=>{throw Error('Unknown pin location');})();
+if(manifest.scope!=='native-direct-real-candidate-only'||buildProof.success!==true||buildProof.ownedCompilerClosed!==true||JSON.stringify(buildProof.reviewedPins)!==JSON.stringify([...manifest.inputs,...manifest.sharedGuards]))throw Error('Accepted DLL/source revision differs');
+for(const row of [...manifest.inputs,...manifest.sharedGuards])pin(locate(row),row.sha256);
+for(const row of [...buildProof.copiedInputs,...buildProof.outputs])pin(relative(build,row.path),row.sha256);
+const dll=path.join(build,'bin/nwn-clock-source.dll'),dllSha=pin(dll,'497e483e44595a7518b860f92c55e3ab3cef9cd372b15c53a2ac31dfd2498190');
+pin(path.join(candidate,'runs/clock-source-headless-v1/proof.json'),'831d4323f2aa8b263200ee12b7dba9be2d9c840ca1fd66567bf45c7c62326e1f');
+pin(path.join(candidate,'runs/clock-source-headless-v1/result.json'),'46c4d05db8605a1b926cc563453cfb49b1ef0755c65d6ce7b81ecc1c21773859');
+const entry=path.join(project,'tests/native_clock_source_original_test.gd');pin(entry);pin(fileURLToPath(import.meta.url));
+const engine=path.join(project,'.tools/Godot_v4.7.2-stable_win64.exe'),engineSha=pin(engine,'ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424');
+const directory=path.join(project,'.cache/native-clock-source-original',label),copy=path.join(directory,'project');
+if(fs.existsSync(directory))throw Error('Existing comparison evidence retained; use fresh label');
+fs.mkdirSync(copy,{recursive:true});
+const copied=[];
+for(const[file,name]of [[entry,'probe.gd'],[oracleFile,'original-oracle.json'],[dll,'nwn-clock-source.dll']]){const target=path.join(copy,name);fs.copyFileSync(file,target);const hash=sha(file);if(sha(target)!==hash)throw Error('Input changed during private copy');copied.push({name,sha256:hash});}
+fs.writeFileSync(path.join(copy,'project.godot'),'config_version=5\n[application]\nconfig/name="Private Clock Original Equality"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n');
+fs.writeFileSync(path.join(copy,'clock_source.gdextension'),'[configuration]\nentry_symbol="nwn_clock_source_candidate_init"\ncompatibility_minimum="4.7"\nreloadable=false\n[libraries]\nwindows.x86_64="res://nwn-clock-source.dll"\n');
+fs.mkdirSync(path.join(copy,'.godot'),{recursive:true});fs.writeFileSync(path.join(copy,'.godot/extension_list.cfg'),'res://clock_source.gdextension\n');
+for(const name of ['project.godot','clock_source.gdextension','.godot/extension_list.cfg'])copied.push({name,sha256:sha(path.join(copy,name))});
+const resultFile=path.join(directory,'result.json'),log=path.join(directory,'engine.log');
+const command=[engine,'--headless','--max-fps','60','--path',copy,'--log-file',log,'--script','res://probe.gd','--','--report='+resultFile,'--oracle='+path.join(copy,'original-oracle.json')];
+const sources=[...pins.values()];fs.writeFileSync(path.join(directory,'inventory.json'),JSON.stringify({sources,copied,oracleSha,oracleProofSha,oracleAcceptanceSha,candidateSha,buildSha,dllSha,engineSha,command,deadlineMs:35000,outputLimitBytes:2097152},null,2)+'\n');
+console.log(JSON.stringify({state:'copy-complete',label,directory,sourcePins:sources.length,configurations:11,defined:113,unavailable:4,headless:true,deadlineMs:35000}));
+const outcome=await new Promise(resolve=>{
+ const child=spawn(engine,command.slice(1),{cwd:copy,windowsHide:true,stdio:['ignore','pipe','pipe']});let stdout='',stderr='',failure=null,spawned=false,exited=false,closed=false;
+ const stop=reason=>{failure??=reason;if(!exited)child.kill();};
+ const consume=(stream,data)=>{if(stream==='stdout')stdout+=data.toString();else stderr+=data.toString();if(Buffer.byteLength(stdout)+Buffer.byteLength(stderr)>2097152){stdout=stdout.slice(-524288);stderr=stderr.slice(-524288);stop('Owned equality output exceeded2MiB');}if(/SCRIPT ERROR|Parse Error|^ERROR:/m.test(stdout+'\n'+stderr))stop('Owned equality engine error');};
+ child.stdout.on('data',data=>consume('stdout',data));child.stderr.on('data',data=>consume('stderr',data));child.once('spawn',()=>{spawned=true;});child.once('exit',()=>{exited=true;});child.once('error',error=>{failure??=error.message;});
+ const timer=setTimeout(()=>stop('Owned original equality case exceeded35s'),35000);
+ child.once('close',(code,signal)=>{closed=true;clearTimeout(timer);resolve({code,signal,failure,stdout,stderr,ownedPid:child.pid??null,spawned,exited,closed});});
+});
+fs.writeFileSync(path.join(directory,'stdout.log'),outcome.stdout);fs.writeFileSync(path.join(directory,'stderr.log'),outcome.stderr);
+let result=null,reportError=null;try{if(fs.existsSync(resultFile))result=read(resultFile);}catch(error){reportError=error.message;}
+const text=fs.existsSync(log)?fs.readFileSync(log,'utf8'):'';
+const cleanEngine=!/^(?:ERROR:|WARNING:)|SCRIPT ERROR|Parse Error|ObjectDB instances leaked|Leaked instance|still in use at exit/m.test(text+'\n'+outcome.stdout+'\n'+outcome.stderr);
+const changedPins=sources.filter(row=>!fs.existsSync(row.file)||sha(row.file)!==row.sha256).map(row=>row.file),changedCopies=copied.filter(row=>!fs.existsSync(path.join(copy,row.name))||sha(path.join(copy,row.name))!==row.sha256).map(row=>row.name);
+const ownedClosed=outcome.spawned&&outcome.exited&&outcome.closed,complete=result?.configurations===11&&result?.defined_rows===113&&result?.unavailable_rows===4;
+const proof={success:outcome.code===0&&!outcome.failure&&!reportError&&cleanEngine&&result?.success===true&&complete&&!changedPins.length&&!changedCopies.length&&ownedClosed,label,checks:result?.checks??0,failures:result?.failures??[],configurations:result?.configurations??0,definedRows:result?.defined_rows??0,unavailableRows:result?.unavailable_rows??0,complete,exitCode:outcome.code,error:outcome.failure,reportError,signal:outcome.signal,cleanEngine,changedPins,changedCopies,sources,copied,oracleSha,oracleProofSha,oracleAcceptanceSha,candidateSha,buildSha,dllSha,engineSha,ownedPid:outcome.ownedPid,ownedClosed,childLifecycle:{spawned:outcome.spawned,exitObserved:outcome.exited,closeObserved:outcome.closed},compilerRuns:0,network:0,profileReads:0,keyReads:0,userProcessActions:0,gpu:false,scope:result?.scope??'No accepted DLL-to-original result; rejected evidence retained.'};
+fs.writeFileSync(path.join(directory,'proof.json'),JSON.stringify(proof,null,2)+'\n');console.log(JSON.stringify({...proof,sources:sources.length,failures:proof.failures.length}));process.exitCode=proof.success?0:1;

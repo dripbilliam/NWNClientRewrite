@@ -1,0 +1,43 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const label=process.argv[2];if(!/^[a-z0-9-]+$/.test(label??''))throw Error('Fresh private stage label required');
+const stage=path.join(project,'.cache/particle-geometry-worker',label);
+const fixtureName=process.argv[3]??'fixture';if(!/^fixture(?:-[a-z0-9-]+)?$/.test(fixtureName))throw Error('Private fixture name required');
+const fixture=path.join(stage,fixtureName);
+if(fs.existsSync(fixture))throw Error('Private fixture already exists');
+fs.mkdirSync(fixture,{recursive:true});
+const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+const done=new Set(),pins=[];
+function copy(relative){
+ if(done.has(relative))return;done.add(relative);
+ const source=path.join(project,relative),bytes=fs.readFileSync(source),dest=path.join(fixture,relative);
+ fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);
+ pins.push({relative,sourceSha256:hash(bytes),fixtureSha256:hash(fs.readFileSync(dest))});
+ if(/\.(gd|gdshader|gdshaderinc)$/.test(relative))for(const match of bytes.toString('utf8').matchAll(/(?:preload|load)\(\s*["']res:\/\/([^"']+)["']|extends\s*["']res:\/\/([^"']+)["']|#include\s*["']res:\/\/([^"']+)["']/g))copy(match[1]??match[2]??match[3]);
+}
+copy('tools/particle-geometry-worker/geometry_worker_test.gd');
+copy('tools/particle-geometry-worker/strict_fallback_test.gd');
+copy('tests/native_particle_presentation_test.gd');
+copy('tests/native_particle_presentation_lifetime_test.gd');
+const chunkSource=fs.readFileSync(path.join(project,'tests/native_particle_presentation_test.gd'),'utf8');
+const chunkMarker='presentation.call("dispatch",1,{"delta":delta,"view":view})';
+if(chunkSource.split(chunkMarker).length!==2)throw Error('Particle chunk frame call changed');
+const chunkBytes=Buffer.from(chunkSource.replace(chunkMarker,'presentation.call("dispatch",1,{"delta":delta,"view":view,"geometry_worker":true})').replace('var stats: Dictionary=presentation.call("dispatch",7,{})','var stats: Dictionary=presentation.call("dispatch",7,{})\n\tcheck(int(stats.get("geometry_worker_frames",0))>0,"Opted-in geometry worker ran alongside scene-thread chunk callbacks")'));
+const chunkRelative='tests/geometry_worker_chunks_test.gd',chunkDest=path.join(fixture,chunkRelative);
+fs.mkdirSync(path.dirname(chunkDest),{recursive:true});fs.writeFileSync(chunkDest,chunkBytes);
+pins.push({relative:chunkRelative,sourceSha256:hash(Buffer.from(chunkSource)),fixtureSha256:hash(chunkBytes),derivedFrom:'tests/native_particle_presentation_test.gd'});
+copy('native/particle_kernel.gdextension');
+const binary=path.join(stage,'build/nwn-particle-kernel.dll'),target=path.join(fixture,'.cache/native-kernel/nwn-particle-kernel.dll');
+fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(binary,target);
+fs.mkdirSync(path.join(fixture,'.godot'),{recursive:true});
+fs.writeFileSync(path.join(fixture,'.godot/extension_list.cfg'),'res://native/particle_kernel.gdextension\n');
+fs.writeFileSync(path.join(fixture,'.godot/global_script_class_cache.cfg'),'list=[]\n');
+const cert=fs.readFileSync(path.join(project,'.cache/native-140fps/render-agent/engine-font-atlas-ownership-v1/source/thirdparty/certs/ca-bundle.crt'));
+fs.writeFileSync(path.join(fixture,'ca-bundle.crt'),cert);
+fs.writeFileSync(path.join(fixture,'project.godot'),'config_version=5\n[application]\nconfig/name="Private particle geometry worker fixture"\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n[network]\ntls/certificate_bundle_override="res://ca-bundle.crt"\n');
+fs.writeFileSync(path.join(stage,fixtureName+'-receipt.json'),JSON.stringify({fixture,binarySha256:hash(fs.readFileSync(binary)),pins,certificateSha256:hash(cert),sourceWritesOutsideStage:0},null,2)+'\n');
+console.log(JSON.stringify({fixture,files:pins.length,binarySha256:hash(fs.readFileSync(binary))}));

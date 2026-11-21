@@ -1,7 +1,7 @@
 extends RefCounted
 # Original895040/895340/895b20: source leftward list and layered effect icon.
 const Geometry=preload("res://systems/native_data/gui_model_geometry.gd")
-const Actor=preload("res://systems/native_data/binary_model.gd")
+const Actor=preload("res://systems/native_data/actor_model.gd")
 const Pose=preload("res://systems/native_data/gui_pose.gd")
 const RESOURCES=["pnl_ig_plr_state","ctl_ig_plreffect"]
 static func parse(source: Dictionary) -> Dictionary:
@@ -13,7 +13,7 @@ static func parse(source: Dictionary) -> Dictionary:
 	if not geometry.pnl_ig_plr_state.hooks.has("queue") or not geometry.ctl_ig_plreffect.hooks.has("nextlink"): return {"error":"Original effect bar attachment missing"}
 	var model: Dictionary=source.ctl_ig_plreffect; var transforms: Array[Transform3D]=[]; var parts: Array=[]
 	for node in model.nodes:
-		var p: Array=node.position; var q: Array=node.orientation; var parent:=int(node.get("parentIndex",node.get("parent",-1)))
+		var p: Array=node.position; var q: Array=node.orientation; var parent:=int(node.parent)
 		var pose:=Transform3D(Basis(Quaternion(q[0],q[1],q[2],q[3]).normalized()).scaled(Vector3.ONE*float(node.scale)),Vector3(p[0],p[1],p[2]))
 		if parent>=0: pose=transforms[parent]*pose
 		transforms.append(pose)

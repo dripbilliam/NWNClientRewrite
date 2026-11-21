@@ -1,0 +1,14 @@
+'use strict';
+// Revalidate a retained original-function dossier against fresh PE source
+// bytes. This does not start Ghidra, emulate code or measure performance.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const project=path.resolve(__dirname,'../..'),workspace=path.dirname(project),[label,name]=process.argv.slice(2);
+if(!/^[a-z0-9-]+$/.test(label??'')||!/^rea-[a-z0-9-]+\.json$/.test(name??''))throw Error('Explicit review and retained native dossier name required');
+const folder=path.join(project,'.cache/native-presentation-parity/root/fps-max-v1','movement-native-review-'+label),output=path.join(folder,name);if(fs.existsSync(output))throw Error('Existing native anchor preserved');
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex'),file=path.join(workspace,'backups/animations',name),data=fs.readFileSync(file),r=JSON.parse(data),e=r.structuredContent??r,n=e.normalized_result??e;
+const original=path.resolve(workspace,'../FullDecomp/NwnRootInstall/bin/win32/nwmain.exe'),image=fs.readFileSync(original),digest=sha(image);if(digest!=='3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a'||e.subject?.digest?.sha256!==digest||!n.procedure.body.available)throw Error('Original dossier/body identity differs');
+const pe=image.readUInt32LE(0x3c),optional=pe+24,imageBase=Number(image.readBigUInt64LE(optional+24)),table=optional+image.readUInt16LE(pe+20),sections=[];
+for(let i=0;i<image.readUInt16LE(pe+6);i++){const p=table+i*40;sections.push({name:image.subarray(p,p+8).toString('ascii').replace(/\0.*$/,''),rva:image.readUInt32LE(p+12),raw:image.readUInt32LE(p+20),bytes:image.readUInt32LE(p+16)});}
+const code=n.procedure.body.ranges.map(range=>{const first=parseInt(range.start,16),bytes=parseInt(range.end,16)-first+1,rva=first-imageBase,s=sections.find(s=>rva>=s.rva&&rva+bytes<=s.rva+s.bytes);if(!s||bytes<=0||bytes>512*1024)throw Error('Original body range is not bounded source-backed data');const fileOffset=s.raw+rva-s.rva;return {...range,section:s.name,fileOffset,bytes,sha256:sha(image.subarray(fileOffset,fileOffset+bytes))};});
+const result={source:{file,sha256:sha(data)},original:{file:original,sha256:digest},evidence_id:e.evidence_id,procedure:{address:n.procedure.address,name:n.procedure.name,body:n.procedure.body},code,pseudocode:n.pseudocode,callees:n.callees.map(c=>({address:c.address,name:c.name})),callers:n.callers.map(c=>({address:c.address,name:c.name})),limitations:e.limitations,scope:'Retained Ghidra function interpretation with exact current original-image and fresh source-body hashes. No new decompilation, native execution or runtime-cost claim.'};
+fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({output,address:n.procedure.address,name:n.procedure.name,bodyBytes:code.reduce((sum,r)=>sum+r.bytes,0),engineStarts:0,deepAnalysisStarts:0}));

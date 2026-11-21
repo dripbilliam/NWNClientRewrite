@@ -18,8 +18,7 @@ func configure(data: Dictionary,prepared: Dictionary={}) -> void:
 	native_geometry=null; native_attempted=false; bounds=AABB()
 	native_support_geometry=null; native_support_attempted=false
 	native_support_preparations=0; native_support_reason=""
-	vertices=prepared.hit_vertices if prepared.has("hit_vertices") and not prepared.hit_vertices.is_empty() else data.vertices
-	indices=data.get("collision_indices",data.indices); planes=data.get("native_planes",PackedFloat32Array()); surface_types=data.get("native_surface_types",PackedInt32Array())
+	vertices=data.vertices; indices=data.get("collision_indices",data.indices); planes=data.get("native_planes",PackedFloat32Array()); surface_types=data.get("native_surface_types",PackedInt32Array())
 	if not prepared.is_empty(): bounds=prepared.source_bounds; planes=prepared.planes; return
 	var has_bounds:=false
 	for i in range(0,vertices.size(),3):

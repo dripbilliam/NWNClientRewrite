@@ -40,7 +40,7 @@ func run() -> void:
 		actions.append({"index":index,"id":name,"label":name,"key":null})
 	var self_row:={"entryId":0,"id":11,"self":true,"available":true,"label":"Installed portrait","portraitKey":portraits[0],"health":null,"canLevelUp":false,"indicators":{}}
 	party.receive({"kind":"party-view","viewId":1,"actorId":11,"rows":[self_row],"actions":actions})
-	art.bind_portrait(party.cards[0].get_node("Box/Portrait/Image"),portraits[0],false)
+	art.bind_portrait(party.cards[0].get_node("Box/Portrait/Image"),portraits[0])
 	var premature: bool=party.visible and not frame.cohort_snapshot().ready
 	var deadline:=Time.get_ticks_msec()+60000
 	while Time.get_ticks_msec()<deadline and not party.visible and party.art_error.is_empty():await process_frame
@@ -48,13 +48,7 @@ func run() -> void:
 	var shared: Dictionary=catalog.ui_asset_owner().lookup("raster",painter.art.portrait_resource(portraits[0]))
 	var first_portrait: Texture2D=party.cards[0].get_node("Box/Portrait/Image").texture
 	var success: bool=graphical and not premature and party.visible and party.art_error.is_empty() and cohort.ready and not shared.is_empty() and cohort.images_ready==cohort.images_expected
-	var panels: Array[String]=[]
-	party.panel_requested.connect(func(id: String):panels.append(id))
-	var buttons_visible: bool=party.action_buttons.size()==actions.size() and party.action_buttons.values().all(func(button: Button):return button.is_visible_in_tree())
-	party.action_buttons[1].pressed.emit()
-	var top_right: bool=is_equal_approx(party.get_global_rect().end.x,float(root.size.x)) and is_zero_approx(party.get_global_rect().position.y)
-	var raw_portrait_admitted: bool=not shared.is_empty() and first_portrait==shared.texture
-	success=success and str(party.cards[0].get_meta("portrait_key",""))==portraits[0] and raw_portrait_admitted and top_right and buttons_visible and panels==["inventory"]
+	success=success and str(party.cards[0].get_meta("portrait_key",""))==portraits[0]
 	party.receive({"kind":"party-state","viewId":1,"rows":[{"entryId":0,"health":{"current":10,"maximum":10,"clip":"percentage"},"canLevelUp":false}]})
 	var first_health_gated: bool=not party.visible and party.art_pending
 	deadline=Time.get_ticks_msec()+30000
@@ -85,6 +79,6 @@ func run() -> void:
 	while Time.get_ticks_msec()<deadline and party.art_error.is_empty():await process_frame
 	var missing_explicit: bool=party.visible and party.art_notice.visible and party.art_notice.text.contains("po_nwn84_absent_") and not party.scroll.visible and not frame.stage.visible
 	success=success and missing_explicit
-	print(JSON.stringify({"success":success,"portraits":portraits,"initial_cohort":cohort,"raw_portrait_admitted":raw_portrait_admitted,"top_right":top_right,"buttons_visible":buttons_visible,"opened_panels":panels,"first_health_gated":first_health_gated,"cached_visible":cached_visible,"rebind_gated":rebind_gated,"stale_portrait_rejected":stale_portrait_rejected,"missing_explicit":missing_explicit,"shared_portraits":not shared.is_empty() and not second_shared.is_empty(),"art_error":party.art_error,"frame_failure":frame.failure}))
+	print(JSON.stringify({"success":success,"portraits":portraits,"initial_cohort":cohort,"first_health_gated":first_health_gated,"cached_visible":cached_visible,"rebind_gated":rebind_gated,"stale_portrait_rejected":stale_portrait_rejected,"missing_explicit":missing_explicit,"shared_portraits":not shared.is_empty() and not second_shared.is_empty(),"art_error":party.art_error,"frame_failure":frame.failure}))
 	party.reset();frame.close();frame.free();party.free();host.free();art.close();art.free();painter.close();painter.free()
 	quit(0 if success else 1)

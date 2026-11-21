@@ -31,13 +31,7 @@ func install_bundle(value: Dictionary,epoch: int) -> bool:
 	if retired or not is_inside_tree() or epoch!=generation or not bundle.is_empty(): return false
 	bundle=value; return true
 func ready() -> bool:
-	if retired or not failure.is_empty():return false
-	if no_model:return true
-	if bundle.is_empty() or not is_instance_valid(hub) or hub.closed or generation!=hub.generation:return false
-	if not bundle.value.nodes.any(func(part):return part.has("reference")):return true
-	var tree: Dictionary=hub.prefetch_tree(resource,bundle,self)
-	if tree.status=="failed":reject("Original chunk reference assets are unavailable: "+str(tree.reason));return false
-	return tree.status=="ready"
+	return not retired and failure.is_empty() and (no_model or not bundle.is_empty() and is_instance_valid(hub) and not hub.closed and generation==hub.generation)
 func reject(reason: String) -> void:
 	if retired: return
 	failure=reason; push_warning(reason)

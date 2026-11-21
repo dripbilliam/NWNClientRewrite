@@ -1,0 +1,23 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict'),{spawnSync}=require('node:child_process');
+const root=path.resolve(__dirname,'../..'),stage=path.join(root,'.cache/nwn62/small-recipe-f'),out=path.join(stage,'default-b');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const pins=JSON.parse(fs.readFileSync(path.join(stage,'source-receipt.json')));
+for(const p of [pins.template,pins.recipe]){assert.equal(sha(path.join(root,p.relative)),p.beforeSha256);assert.equal(sha(path.join(stage,p.relative)),p.afterSha256)}
+assert(!fs.existsSync(out));fs.mkdirSync(path.join(out,'user'),{recursive:true});
+let fixture=fs.readFileSync(path.join(stage,'tail-coverage-f.gd'),'utf8');
+const target='var expect_recipe: bool=["ttu01_a02_03","ttu01_h17_01","ttu01_v06_01","ttu01_w07_01","ttu01_l07_02"].has(name)';
+assert.equal(fixture.split(target).length,2);
+fixture=fixture.replace(target,'var expect_recipe: bool=false');
+const fixturePath=path.join(stage,'tail-coverage-f-default-b.gd');fs.writeFileSync(fixturePath,fixture,{flag:'wx'});
+const engine=path.join(root,'.tools/Godot_v4.7.2-stable_win64.exe'),report=path.join(out,'report.json');
+const install=path.resolve(root,'../../FullDecomp/NwnRootInstall');
+const args=['--headless','--path',root,'--script','res://.cache/nwn62/small-recipe-f/tail-coverage-f-default-b.gd','--','--publication-template-diagnose','--install='+install,'--report='+report];
+const run=spawnSync(engine,args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:90000,maxBuffer:4*1024*1024,env:{...process.env,APPDATA:path.join(out,'user'),LOCALAPPDATA:path.join(out,'user')}});
+fs.writeFileSync(path.join(out,'engine.log'),(run.stdout||'')+(run.stderr||''));
+const value=fs.existsSync(report)?JSON.parse(fs.readFileSync(report,'utf8')):null;
+const modes=(value?.rows||[]).map(row=>({model:row.model,mode:row.candidate?.mode,firstEqual:row.parity?.first_equal,cloneEqual:row.parity?.clone_equal}));
+const receipt={issue:'NWN-62',private:true,sourcePins:pins,fixtureSha256:sha(fixturePath),engineSha256:sha(engine),exit:run.status,error:run.error?.message||'',reportSha256:value?sha(report):null,success:run.status===0&&value?.success===true&&value?.rows?.length===10&&modes.every(row=>row.mode==='packed-scene'&&row.firstEqual===true&&row.cloneEqual===true),checks:value?.checks||0,failures:value?.failures||[],modes,scope:'No F flag: all ten original small models use accepted PackedScene mode and match first/clone graph oracle; no FPS.'};
+fs.writeFileSync(path.join(out,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');
+console.log(JSON.stringify({success:receipt.success,checks:receipt.checks,failures:receipt.failures,modes}));
+if(!receipt.success)process.exitCode=1;

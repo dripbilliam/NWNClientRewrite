@@ -1,0 +1,30 @@
+import * as T from 'three';import {RendererShadowTraversal} from '../src/renderer_shadow_traversal.js';import {RendererShadowAtlas} from '../src/renderer_shadow_atlas.js';
+const diff=(a,b)=>{let count=0,max=0,first=null;for(let i=0;i<a.length;i++){const d=Math.abs(a[i]-b[i]);if(d){count++;first??={offset:i,channel:i%4,before:[...a.subarray(i-i%4,i-i%4+4)],after:[...b.subarray(i-i%4,i-i%4+4)]};}max=Math.max(max,d);}return{count,max,...(first?{first}:{})};};
+window.runShadowAtlasFixture=async({multiDraw=true}={})=>{
+ const renderer=new T.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(768,512);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.info.autoReset=false;
+ const scene=new T.Scene(),camera=new T.PerspectiveCamera(48,1.5,.1,100),errors=[];renderer.debug.onShaderError=()=>errors.push('shader error');camera.position.set(8,12,22);camera.lookAt(0,1,0);scene.background=new T.Color('#182b31');scene.add(new T.AmbientLight(0x555555));
+ const floor=new T.Mesh(new T.PlaneGeometry(35,35),new T.MeshLambertMaterial({color:0x776655}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+ const alpha=new T.DataTexture(Uint8Array.from({length:64},(_,i)=>i%4===3?(i%12===3?0:255):128),4,4);alpha.needsUpdate=true;
+ const materials=[new T.MeshLambertMaterial({color:0xaa8844}),new T.MeshLambertMaterial({color:0xaabb88,map:alpha,alphaTest:.4})],meshes=[];
+ for(let i=0;i<36;i++){const geometry=i%2?new T.SphereGeometry(.4+i*.007,5+i%4,3+i%3):new T.BoxGeometry(.7+i*.003,1+i*.025,.6);if(i===2)geometry.setIndex(null);const mesh=new T.Mesh(geometry,materials[i%4===0?1:0]);mesh.position.set(i%6*1.6-4,1,Math.floor(i/6)*1.6-4);mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);meshes.push(mesh);}
+ const point=new T.PointLight(0xffddbb,30,25,1);point.position.set(2,9,4);point.castShadow=true;point.shadow.mapSize.set(64,64);scene.add(point);
+ const sun=new T.DirectionalLight(0xaaccff,1);sun.position.set(-5,10,5);sun.castShadow=true;sun.shadow.mapSize.set(64,64);sun.shadow.camera.left=-12;sun.shadow.camera.right=12;sun.shadow.camera.top=12;sun.shadow.camera.bottom=-12;scene.add(sun);const lights=[point,sun];
+ const adapter=new RendererShadowTraversal(renderer,{instances:true});adapter.instances.dispose();adapter.instances=new RendererShadowAtlas(renderer,{multiDraw});const maps={reference:[null,null],atlas:[null,null]},results=[];
+ const read=()=>{const gl=renderer.getContext(),pixels=new Uint8Array(768*512*4);gl.readPixels(0,0,768,512,gl.RGBA,gl.UNSIGNED_BYTE,pixels);return{pixels,shadows:lights.map(l=>{const map=l.shadow.map,p=new Uint8Array(map.width*map.height*4);renderer.readRenderTargetPixels(map,0,0,map.width,map.height,p);return p;})};};
+ const draw=mode=>{renderer.info.reset();renderer.shadowMap.render=mode==='reference'?adapter.original:adapter.wrapper;lights.forEach((l,i)=>{l.shadow.map=maps[mode][i];l.shadow.needsUpdate=true;});renderer.shadowMap.needsUpdate=true;renderer.render(scene,camera);maps[mode]=lights.map(l=>l.shadow.map);return{...read(),calls:renderer.info.render.calls,stats:adapter.snapshot()};};
+ const check=name=>{const beforeDraw=renderer.renderBufferDirect,beforeGL=renderer.getContext().drawElements,a=draw('reference'),b=draw('atlas'),pixels=diff(a.pixels,b.pixels),shadows=a.shadows.map((p,i)=>diff(p,b.shadows[i])),glError=renderer.getContext().getError();if(pixels.count||shadows.some(s=>s.count))throw Error(name+' mismatch '+JSON.stringify({pixels,shadows,glError}));if(renderer.renderBufferDirect!==beforeDraw||renderer.getContext().drawElements!==beforeGL)throw Error('Shadow hooks leaked');if(glError)throw Error('WebGL error '+name);results.push({name,pixels,shadows,beforeCalls:a.calls,afterCalls:b.calls,stats:b.stats});};
+ check('seed');check('different geometry');
+ meshes[1].position.x+=.6;check('rigid motion');meshes[3].rotation.set(.17,.31,.24);meshes[3].scale.set(1.4,.7,1.1);check('rotation scale');
+ meshes[7].visible=false;check('hide');meshes[7].visible=true;check('show');
+ point.position.x=-3;check('light motion');point.distance=14;check('light radius');point.distance=25;
+ meshes[8].geometry.setDrawRange(3,9);check('draw range');meshes[8].geometry.setDrawRange(0,Infinity);
+ const parent=new T.Group();parent.position.set(.3,.1,.2);parent.scale.set(1.1,.9,1.3);parent.rotation.z=.16;scene.add(parent);parent.add(meshes[5]);check('parent transform');
+ meshes[9].scale.x=-1;check('negative fallback');meshes[10].onBeforeShadow=()=>{};check('custom hook fallback');
+ meshes[11].geometry.attributes.position.setX(0,1.3);meshes[11].geometry.attributes.position.needsUpdate=true;meshes[11].geometry.computeBoundingSphere();check('mutable geometry fallback');
+ alpha.image.data[3]=255;alpha.needsUpdate=true;check('alpha edit');materials[1].alphaTest=.7;check('alpha threshold');
+ meshes[13].layers.set(2);check('layer change');meshes[13].layers.set(0);scene.remove(meshes[14]);check('remove');scene.add(meshes[14]);check('add');
+ materials[0].side=T.DoubleSide;check('side change');materials[0].shadowSide=T.FrontSide;check('explicit shadow side');
+ if(!results.some(r=>r.stats?.instances?.groups>0&&r.afterCalls<r.beforeCalls))throw Error('Atlas draw reduction was not exercised: '+JSON.stringify(results.slice(0,3)));if(errors.length)throw Error(errors.join(','));
+ const screenshot=renderer.domElement.toDataURL('image/png');adapter.dispose();if(adapter.instances.snapshot().bytes!==0)throw Error('Atlas resources survived disposal');
+ for(const rows of Object.values(maps))for(const map of rows)map?.dispose();const geometries=new Set([floor.geometry,...meshes.map(m=>m.geometry)]);for(const g of geometries)g.dispose();floor.material.dispose();for(const m of materials)m.dispose();alpha.dispose();renderer.dispose();return{passed:true,multiDraw,results,screenshot};
+};

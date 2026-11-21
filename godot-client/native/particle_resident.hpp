@@ -173,11 +173,7 @@ void randomize_frame(const Var& e,Var& part,const Var& p);
 Var invoke(const Var& p,const char* name,std::initializer_list<Var> arguments={}){
  if(!context||!context->state||!context->providers)throw std::runtime_error("Native owner callback outside frame");
  const auto arg=[&](size_t n)->Var{if(n>=arguments.size())throw std::runtime_error("Native owner callback argument absent");return *(arguments.begin()+n);};
- if(std::strcmp(name,"sourceFactor")==0){
-  const auto source=arg(0);const auto* value=source.type()==GDEXTENSION_VARIANT_TYPE_DICTIONARY?field_value(source,particle_field::adjustedScale):nullptr;
-  if(!value||(value->type()!=GDEXTENSION_VARIANT_TYPE_FLOAT&&value->type()!=GDEXTENSION_VARIANT_TYPE_INT)||!std::isfinite(value->number()))throw std::runtime_error("Native particle source adjusted scale is unavailable");
-  return Var::number(static_cast<float>(value->number()));
- }
+ if(std::strcmp(name,"sourceFactor")==0)return get(arg(0),particle_field::adjustedScale);
  if(std::strcmp(name,"globalTransform")==0){if(context->native_pose){auto out=Var::dictionary();set(out,particle_field::position,array(context->native_pose->position));set(out,particle_field::quaternion,array(context->native_pose->quaternion));return out;}return context->pose;}
  if(std::strcmp(name,"cameraPosition")==0&&context->camera)return array(*context->camera);
  if(std::strcmp(name,"wind")==0&&context->wind_token)return array(scene_wind::owner(context->wind_token).sample(values<3>(arg(0)),static_cast<float>(arg(1).number())));
@@ -202,7 +198,7 @@ Var invoke(const Var& p,const char* name,std::initializer_list<Var> arguments={}
  // Private chunk models are absent from the terrain/static collision indexes.
  // Custom scene services may still supply the original ignore-list callbacks.
  if((std::strcmp(name,"resetIgnoredHits")==0||std::strcmp(name,"addIgnoredHit")==0)&&!::has(*context->providers,name))return {};
-  if(std::strcmp(name,"clearHit")==0)return {};
+ if(std::strcmp(name,"clearHit")==0){auto hit=arg(0);set(hit,particle_field::normal,array(V3{}));return {};}
  if(std::strcmp(name,"collide")==0&&context->direct_scene){
   using Clock=std::chrono::steady_clock;const auto began=context->profile?Clock::now():Clock::time_point{};
   const auto start=values<3>(arg(0));auto goal=values<3>(arg(1));V3 normal{};bool found=false;
@@ -247,7 +243,7 @@ struct Channel {
  std::string property,target;std::vector<float> storage;
  int target_index=-1;
  uint16_t rows=0,time_base=0,value_base=0;uint8_t flags=0;int components=0;
-  bool constant=false,cached=false;Var cached_value,default_parameter,default_state;
+ bool constant=false,cached=false;Var cached_value;
  Var* state_value=nullptr;Var* parameter_value=nullptr;
  float read(size_t index)const{if(index>=storage.size())throw std::runtime_error("Native emitter controller value storage absent");return storage[index];}
  static float bezier(float a,float b,float c,float d,float time){const float u=static_cast<float>(1.0-static_cast<double>(time));const float middle=u*c+d*time,left=((u*a+c*time)*u)+middle*time,right=((u*d+b*time)*time)+middle*u;return left*u+right*time;}
@@ -281,7 +277,7 @@ std::vector<float> float_storage(EngineVar pool){
 struct Owner {
  GDExtensionObjectPtr object=nullptr;
  Var state,parameters=Var::dictionary();std::unordered_map<std::string,std::vector<Channel>> clips;
-  compact_particle::Emitter compact_state;compact_particle::Pool compact_pool;std::unordered_map<compact_particle::Particle*,compact_particle::Bridge::Extra> compact_extras;bool compact_records=false,typed_frame=false,typed_source_pose=false,typed_simulated=false;
+ compact_particle::Emitter compact_state;compact_particle::Pool compact_pool;std::unordered_map<compact_particle::Particle*,compact_particle::Bridge::Extra> compact_extras;bool compact_records=false,typed_frame=false,typed_source_pose=false,typed_simulated=false;
  ParticleStreams staging;int kind=-1;int64_t allocations=0,constant_hits=0,sampled_channels=0,missing_chunks=0;bool configured=false,use_parameters=false,cache_constants=true,field_keys=true;
  uint64_t pose_id=0,source_id=0;bool cache_engine_pose=true;particle_pose_cache::Conversion<EnginePose> pose_cache,source_cache;
  bool skip_empty_clip_lookups=false,has_any_clip_channels=true,empty_clip_map_sealed=false;uint64_t clip_configure_depth=0;
@@ -362,15 +358,6 @@ struct Owner {
     for(int64_t j=0;j<::size(source_channels);++j){auto source_channel=::at(source_channels,j),control=::get(source_channel,"controller");Channel channel;channel.property=engine_string(::get(source_channel,"property"));channel.target=binding(channel.property);channel.rows=static_cast<uint16_t>(::i(control,"rows4"));channel.time_base=static_cast<uint16_t>(::i(control,"timeIndex6"));channel.value_base=static_cast<uint16_t>(::i(control,"valueIndex8"));channel.flags=static_cast<uint8_t>(::i(control,"columnsA"));channel.components=static_cast<int>(::i(source_channel,"components"));if(channel.components!=1&&channel.components!=3)throw std::runtime_error("Unsupported native controller component width");channel.storage=float_storage(::get(::get(source_channel,"storage"),"values88"));channel.constant=channel.rows==1&&(channel.flags&240)!=16&&(channel.flags&15)==channel.components;target.push_back(std::move(channel));}
    }
   }
-   // ModelAnimator resets authored emitter fields before applying a new clip.
-   // Keep private copies after prepare_parameters, before any channel writes.
-   for(auto& clip:clips)for(auto& channel:clip.second){
-    const auto* source=field_value(parameters,channel.property.c_str());
-    channel.default_parameter=source?*source:!channel.target.empty()?get(state,channel.target.c_str()):Var::number(0);
-    channel.parameter_value=field_value(parameters,channel.property.c_str(),true);
-    if(!source)*channel.parameter_value=channel.default_parameter;
-    if(!channel.target.empty()){channel.state_value=field_value(state,channel.target.c_str(),true);channel.default_state=*channel.state_value;}
-   }
   compact_records=::has(config,"compactRecords")&&::get(config,"compactRecords").boolean();
   typed_frame=::has(config,"typedEmitter")&&::get(config,"typedEmitter").boolean();if(typed_frame&&!compact_records)throw std::runtime_error("Typed emitter frames require compact particle records");
   for(auto& clip:clips)for(auto& channel:clip.second)channel.target_index=field_index(channel.target.c_str());
@@ -390,10 +377,6 @@ struct Owner {
  }
  void sample(const std::string& clip,float time){
   clip_sample_calls.fetch_add(1,std::memory_order_relaxed);if(!configured)preconfigure_sample_calls.fetch_add(1,std::memory_order_relaxed);
-   for(auto& pair:clips)for(auto& channel:pair.second){
-    *channel.parameter_value=channel.default_parameter;
-    if(channel.state_value){*channel.state_value=channel.default_state;if(typed_frame)compact_particle::apply_emitter_field(compact_state,state,{channel.target.c_str(),channel.target_index});}
-   }
   if(configured&&empty_clip_map_sealed&&clip_configure_depth==0&&skip_empty_clip_lookups&&!has_any_clip_channels){empty_clip_lookup_skips.fetch_add(1,std::memory_order_relaxed);return;}
   clip_lookup_calls.fetch_add(1,std::memory_order_relaxed);
   auto found=clips.find(clip);if(found!=clips.end())for(auto& channel:found->second){
@@ -412,25 +395,12 @@ struct Owner {
    }
   }
  }
- void apply_part_properties(const EngineVar& properties){
-  if(properties.nil()||properties.type()!=GDEXTENSION_VARIANT_TYPE_DICTIONARY)return;
-  if(::has(properties,"detonate")&&::get(properties,"detonate").integer()!=0)throw std::runtime_error("Emitter detonate controller delivery is not implemented");
-  auto properties_copy=properties,names=::method(properties_copy,"keys");
-  for(int64_t n=0;n<::size(names);++n){
-   const auto name=engine_string(::at(names,n)),target=binding(name);
-   if(target.empty())continue;
-   auto value=Var(::get(properties,name.c_str()));
-   set(parameters,name.c_str(),value);set(state,target.c_str(),value);
-   if(typed_frame)compact_particle::apply_emitter_field(compact_state,state,{target.c_str(),field_index(target.c_str())});
-  }
- }
  EngineVar frame(const EngineVar& input,const EngineVar& providers){
   FieldKeyScope field_scope(field_keys);
   if(!configured)throw std::runtime_error("Native particle owner is not configured");
   const bool profile=::has(input,"profile")&&::get(input,"profile").boolean();using Clock=std::chrono::steady_clock;auto phase=profile?Clock::now():Clock::time_point{};double controls_ms=0,channels_ms=0,admission_ms=0,simulation_ms=0,vertices_ms=0,chunks_ms=0;
   const auto finish=[&](double& duration){if(profile){const auto now=Clock::now();duration=std::chrono::duration<double,std::milli>(now-phase).count();phase=now;}};
-  sample(engine_string(::get(input,"clip")),::f(input,"time"));
-  if(::has(input,"part_properties"))apply_part_properties(::get(input,"part_properties"));finish(controls_ms);
+  sample(engine_string(::get(input,"clip")),::f(input,"time"));finish(controls_ms);
   if(::has(input,"patch")){auto patch=::get(input,"patch"),names=::method(patch,"keys");for(int64_t n=0;n<::size(names);++n){const auto name=engine_string(::at(names,n));set(state,name.c_str(),Var(::get(patch,name.c_str())));if(typed_frame)compact_particle::apply_emitter_field(compact_state,state,{name.c_str(),field_index(name.c_str())});}}
   if(use_parameters&&parameter_has(hot_parameters::DETONATE)&&parameter_integer(hot_parameters::DETONATE)!=0){set(state,particle_field::detonate108,parameter_get(hot_parameters::DETONATE));if(typed_frame)compact_state.detonate108=static_cast<int32_t>(parameter_integer(hot_parameters::DETONATE));set_int(parameters,"detonate",0);}
   if(::has(input,"detonate")&&::get(input,"detonate").boolean()){set_int(state,particle_field::detonate108,1);if(typed_frame)compact_state.detonate108=1;}
@@ -441,6 +411,7 @@ struct Owner {
    if(typed_frame){if(!compact_state.source.present)throw std::runtime_error("Native owner record required");native_pose=pose;compact_state.source.position=source.position;compact_state.source.quaternion=source.quaternion;compact_state.source.adjustedScale=source.scale;typed_source_pose=true;}
    else{frame_pose=Var::dictionary();set(frame_pose,particle_field::position,array(pose.position));set(frame_pose,particle_field::quaternion,array(pose.quaternion));auto owner=get(state,particle_field::source50);set(owner,particle_field::position,array(source.position));set(owner,particle_field::quaternion,array(source.quaternion));set_num(owner,particle_field::adjustedScale,source.scale);}
   }else{set(state,particle_field::source50,Var(::get(input,"source")));if(typed_frame){compact_state.source=compact_particle::source_from(get(state,particle_field::source50));auto pose=::get(input,"pose");native_pose.position=::values<3>(::get(pose,particle_field::position));native_pose.quaternion=::values<4>(::get(pose,particle_field::quaternion));}else frame_pose=Var(::get(input,"pose"));frame_scale=::has(input,"scale")?::f(input,"scale"):1;}
+  if(std::abs(typed_frame?compact_state.birthRate:f(state,particle_field::birthRate))>32768||allocations>32768)throw std::runtime_error("Native particle instance exceeds explicit allocation limit");
   const View* camera=::has(input,"view")?&view(::get(input,"view")):nullptr;
   Context ctx{&state,&providers,frame_pose,&allocations,camera?&camera->position:nullptr};ContextScope scope(ctx);finish(channels_ms);channels_ms+=controls_ms;
   if(typed_frame)ctx.native_pose=&native_pose;
@@ -457,19 +428,15 @@ struct Owner {
   float admission_radius=0;const bool checked=known_wind&&!(typed_frame?compact_state.chunk:nonempty_text(get(state,particle_field::chunkName)))&&camera&&::has(input,"culling")&&::get(input,"culling").boolean()&&::i(input,"source_flags")>=0;
   const bool rejected=checked&&culled(*camera,typed_frame?native_pose.position:values<3>(get(ctx.pose,particle_field::position)),::i(input,"source_flags"),std::max(1.0f,frame_scale),admission_radius,wind?wind->wind:V3{});finish(admission_ms);
   auto streams=EngineVar::dictionary();
-  {auto p=compact_records?Var():Var::dictionary();std::optional<compact_particle::Bridge> compact_bridge;
+  if(!rejected){auto p=compact_records?Var():Var::dictionary();std::optional<compact_particle::Bridge> compact_bridge;
    if(compact_records){if(!typed_frame)compact_particle::read_emitter(compact_state,state);compact_bridge.emplace(state,compact_extras);compact_particle::animate(compact_state,compact_pool,::f(input,"delta"),typed_frame?native_pose.position:values<3>(get(frame_pose,particle_field::position)),typed_frame?native_pose.quaternion:values<4>(get(frame_pose,particle_field::quaternion)),kind,*compact_bridge);if(!typed_frame)compact_particle::store_emitter(state,compact_state,kind==0);else typed_simulated=true;}
    else animate(state,::f(input,"delta"),p,kind);finish(simulation_ms);
-   if(compact_records)compact_particle::advance_atlas(compact_state,compact_pool);else advance_atlas_clocks(state);
    const V3 frame_tint=::has(input,"tint")?::values<3>(::get(input,"tint")):V3{1,1,1};
    Var draw_input;if(!typed_frame){if(camera){draw_input=Var::dictionary();set(draw_input,particle_field::factor,get(get(state,particle_field::source50),particle_field::adjustedScale));set(draw_input,particle_field::camera,array(camera->camera));set(draw_input,particle_field::tint,array(frame_tint));}else draw_input=Var(::get(input,"draw"));}
    if(nonempty_text(get(state,particle_field::chunkName))){if(compact_records)compact_particle::render_chunks(compact_state,compact_pool,*compact_bridge);else render_chunks(state,p);finish(chunks_ms);staging.begin(0,::i(input,particle_field::capacity));streams=staging.finish(0).publish();}
-   else if(!rejected&&(!::has(input,"draw_enabled")||::get(input,"draw_enabled").boolean())&&::has(input,"defer_vertices")&&::get(input,"defer_vertices").boolean()){
-    staging.begin(0,::i(input,particle_field::capacity));streams=staging.finish(0).publish();::set(streams,"deferred_vertices",EngineVar::boolean(true));
-   }
-   else if(!rejected&&(!::has(input,"draw_enabled")||::get(input,"draw_enabled").boolean())){
-    if(compact_records){compact_particle::Draw draw;if(typed_frame){if(camera){if(!compact_state.source.present)throw std::runtime_error("Native owner record required");draw={compact_state.source.adjustedScale,camera->camera,frame_tint};}else{auto packet=::get(input,"draw");draw={::f(packet,particle_field::factor),::values<4>(::get(packet,particle_field::camera)),::values<3>(::get(packet,particle_field::tint))};}}else draw={f(draw_input,particle_field::factor),values<4>(get(draw_input,particle_field::camera)),values<3>(get(draw_input,particle_field::tint))};streams=compact_particle::build(compact_state,compact_pool,draw,&staging,::i(input,particle_field::capacity),true);}
-    else streams=build(state,draw_input,true,&staging,::i(input,particle_field::capacity)).publish();
+   else if(!::has(input,"draw_enabled")||::get(input,"draw_enabled").boolean()){
+    if(compact_records){compact_particle::Draw draw;if(typed_frame){if(camera){if(!compact_state.source.present)throw std::runtime_error("Native owner record required");draw={compact_state.source.adjustedScale,camera->camera,frame_tint};}else{auto packet=::get(input,"draw");draw={::f(packet,particle_field::factor),::values<4>(::get(packet,particle_field::camera)),::values<3>(::get(packet,particle_field::tint))};}}else draw={f(draw_input,particle_field::factor),values<4>(get(draw_input,particle_field::camera)),values<3>(get(draw_input,particle_field::tint))};streams=compact_particle::build(compact_state,compact_pool,draw,&staging,::i(input,particle_field::capacity));}
+    else streams=build(state,draw_input,false,&staging,::i(input,particle_field::capacity)).publish();
    }
    else{staging.begin(0,::i(input,particle_field::capacity));streams=staging.finish(0).publish();}finish(vertices_ms);
   }
@@ -485,30 +452,11 @@ struct Owner {
  }
  EngineVar snapshot()const{auto out=state.publish();if(compact_records){if(typed_frame){if(typed_simulated)compact_particle::publish_emitter(out,compact_state,kind==0);if(typed_source_pose){auto source=::get(out,particle_field::source50);::set(source,particle_field::position,::array(compact_state.source.position));::set(source,particle_field::quaternion,::array(compact_state.source.quaternion));::set(source,particle_field::adjustedScale,EngineVar::number(compact_state.source.adjustedScale));}}::set(out,particle_field::active188,compact_particle::publish_list(compact_pool.active,compact_pool.active_capacity,compact_extras));::set(out,particle_field::free130,compact_particle::publish_list(compact_pool.free,compact_pool.free_capacity,compact_extras));}return out;}
  EngineVar diagnostic_vertices(const EngineVar& input){if(!configured||!compact_records)throw std::runtime_error("Compact vertex diagnostic requires a configured compact owner");ParticleStreams::FormatScope format_scope{&staging};staging.instances=::has(input,"instances")&&::get(input,"instances").boolean();const compact_particle::Draw draw{::f(input,"factor"),::values<4>(::get(input,"camera")),::values<3>(::get(input,"tint"))};return compact_particle::build(compact_state,compact_pool,draw,&staging,::i(input,"capacity"));}
- EngineVar vertex_snapshot()const{
-  // The dense worker consumes active draw records only. Do not publish the
-  // resident free pool as the general diagnostic snapshot does.
-  auto out=state.publish();if(compact_records)::set(out,particle_field::active188,compact_particle::publish_list(compact_pool.active,compact_pool.active_capacity,compact_extras));
-  if(!compact_records||!typed_frame)return out;
-  const auto& e=compact_state;
-  const auto number=[&](const char* key,float value){::set(out,key,EngineVar::number(value));};
-  const auto integer=[&](const char* key,int64_t value){::set(out,key,EngineVar::integer(value));};
-  integer(particle_field::renderMode1a8,e.renderMode1a8);integer(particle_field::flags,e.flags);integer(particle_field::ageMode1cc,e.ageMode1cc);integer(particle_field::xGrid,e.xGrid);integer(particle_field::yGrid,e.yGrid);
-  ::set(out,particle_field::position1e0,::array(e.position1e0));::set(out,particle_field::quaternion1d0,::array(e.quaternion1d0));
-  number(particle_field::lifeExp,e.lifeExp);number(particle_field::elevationThreshold,e.elevationThreshold);number(particle_field::alphaStart,e.alphaStart);number(particle_field::alphaEnd,e.alphaEnd);
-  number(particle_field::sizeStart,e.sizeStart);number(particle_field::sizeEnd,e.sizeEnd);number(particle_field::sizeStartY,e.sizeStartY);number(particle_field::sizeEndY,e.sizeEndY);
-  number(particle_field::fps,e.fps);number(particle_field::frameStart,e.frameStart);number(particle_field::frameEnd,e.frameEnd);
-  ::set(out,particle_field::colorStart,::array(e.colorStart));::set(out,particle_field::colorEnd,::array(e.colorEnd));
-  const auto instance=[](const compact_particle::Instance& value){if(!value.present)return EngineVar();auto row=EngineVar::dictionary();::set(row,particle_field::fade,EngineVar::number(value.fade));::set(row,particle_field::height50,EngineVar::number(value.height50));::set(row,particle_field::opacity70,EngineVar::number(value.opacity70));return row;};
-  if(e.source.present){auto source=::get(out,particle_field::source50);if(source.nil())source=EngineVar::dictionary();::set(source,particle_field::adjustedScale,EngineVar::number(e.source.adjustedScale));::set(source,particle_field::opacity108,EngineVar::number(e.source.opacity108));::set(source,particle_field::instance,instance(e.source.instance));::set(out,particle_field::source50,source);}
-  ::set(out,particle_field::instance100,instance(e.instance));
-  return out;
- }
  EngineVar diagnostic_direct_vertices(const EngineVar& input){
   if(!configured||!compact_records)throw std::runtime_error("Direct vertex diagnostic requires a configured compact owner");
   const auto count=static_cast<int64_t>(compact_pool.active.size())-(compact_state.renderMode1a8==3?1:0);
   const bool faded=(compact_state.source.present&&compact_state.source.instance.present&&1>compact_state.source.instance.fade)||(compact_state.instance.present&&1>compact_state.instance.fade);
-  const auto vertices=count<1||compact_state.lifeExp==0||faded?0:count*6;if(vertices>2147483646LL)throw std::runtime_error("Particle vertex count exceeds Godot mesh index range");
+  const auto vertices=count<1||compact_state.lifeExp==0||faded?0:count*6;if(vertices>196608)throw std::runtime_error("Native compact vertex allocation limit");
   WritableBytes buffer(static_cast<size_t>(vertices)*24);::ParticleStreams::DirectRange target{buffer.data,vertices};::ParticleStreams::DirectScope scope(staging,target);
   const compact_particle::Draw draw{::f(input,"factor"),::values<4>(::get(input,"camera")),::values<3>(::get(input,"tint"))};compact_particle::build(compact_state,compact_pool,draw,&staging,0);
   if(target.written!=vertices)throw std::runtime_error("Direct vertex diagnostic has an incomplete range");auto out=EngineVar::dictionary();::set(out,"count",EngineVar::integer(vertices));::set(out,"buffer",buffer.publish());return out;
@@ -524,7 +472,7 @@ GDExtensionObjectPtr resident_create(void*,GDExtensionBool notify){
 void resident_free(void*,GDExtensionClassInstancePtr instance){auto* owner=static_cast<resident::Owner*>(instance);{std::lock_guard<std::mutex> guard(resident::owner_registry_mutex);resident::owner_registry.erase(owner->object);}delete owner;}
 void resident_call(void*,GDExtensionClassInstancePtr instance,const GDExtensionConstVariantPtr* args,GDExtensionInt count,GDExtensionVariantPtr result,GDExtensionCallError* error){
  error->error=GDEXTENSION_CALL_OK;if(count!=3){error->error=count<3?GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS:GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS;error->expected=3;new_nil(result);return;}
-  try{auto& owner=*static_cast<resident::Owner*>(instance);EngineVar operation(args[0]),input(args[1]),providers(args[2]);auto out=EngineVar::dictionary();switch(operation.integer()){case 0:owner.configure(input);break;case 1:out=owner.frame(input,providers);break;case 2:if(!owner.configured)throw std::runtime_error("Native owner snapshot before configure");out=owner.snapshot();break;case 3:out=owner.parameters.publish();break;case 4:owner.sample(engine_string(get(input,"clip")),f(input,"time"));out=owner.parameters.publish();break;case 5:if(!owner.configured)throw std::runtime_error("Native radius before configure");set(out,"radius",EngineVar::number(owner.radius(i(input,"source_flags"),values<3>(get(input,"wind")))));break;case 6:out=owner.diagnostic_vertices(input);break;case 7:out=owner.diagnostic_direct_vertices(input);break;case 8:out=owner.pose_diagnostics();break;case 9:out=owner.hot_parameter_info();break;case 10:out=owner.empty_clip_info();break;case 11:out=owner.vertex_snapshot();break;default:throw std::runtime_error("Unknown native owner operation");}new_copy(result,out.data);}catch(const std::exception& err){auto out=EngineVar::dictionary();set(out,"error",EngineVar::text(err.what()));new_copy(result,out.data);}
+  try{auto& owner=*static_cast<resident::Owner*>(instance);EngineVar operation(args[0]),input(args[1]),providers(args[2]);auto out=EngineVar::dictionary();switch(operation.integer()){case 0:owner.configure(input);break;case 1:out=owner.frame(input,providers);break;case 2:if(!owner.configured)throw std::runtime_error("Native owner snapshot before configure");out=owner.snapshot();break;case 3:out=owner.parameters.publish();break;case 4:owner.sample(engine_string(get(input,"clip")),f(input,"time"));out=owner.parameters.publish();break;case 5:if(!owner.configured)throw std::runtime_error("Native radius before configure");set(out,"radius",EngineVar::number(owner.radius(i(input,"source_flags"),values<3>(get(input,"wind")))));break;case 6:out=owner.diagnostic_vertices(input);break;case 7:out=owner.diagnostic_direct_vertices(input);break;case 8:out=owner.pose_diagnostics();break;case 9:out=owner.hot_parameter_info();break;case 10:out=owner.empty_clip_info();break;default:throw std::runtime_error("Unknown native owner operation");}new_copy(result,out.data);}catch(const std::exception& err){auto out=EngineVar::dictionary();set(out,"error",EngineVar::text(err.what()));new_copy(result,out.data);}
 }
 template<typename Property>void register_resident(const Property& property){
  Name name("NwnParticleOwner"),base("RefCounted"),method_name("dispatch"),empty(""),operation("operation"),input("input"),providers("providers");GDExtensionClassCreationInfo6 info{};info.is_exposed=true;info.is_runtime=true;info.create_instance_func=resident_create;info.free_instance_func=resident_free;register_class(library,name.data,base.data,&info);

@@ -1,5 +1,4 @@
 extends Node3D
-signal effect_completed(effect_id: int, outcome: String)
 
 const Resources = preload("res://systems/visual_resources.gd")
 const Runtime = preload("res://systems/visual_runtime.gd")
@@ -40,27 +39,6 @@ var next_model := 0
 var closed := false
 var diagnostics: Dictionary = {}
 var stats := {"reserved": 0, "started": 0, "removed": 0, "retired": 0, "canceled": 0, "failed": 0, "rebound": 0}
-var effect_receipt_watch: Dictionary={}
-var effect_receipt_outcomes: Dictionary={}
-var visual_phase_inflight:=false
-var immediate_zero_inflight:=false
-var immediate_zero_pending: Array=[]
-
-func watch_effect(effect_id: int) -> void:
-	if effect_id>0 and not closed:effect_receipt_watch[effect_id]=true
-
-func _complete_effect(effect_id: int,outcome: String) -> void:
-	if not effect_receipt_watch.has(effect_id) or effect_receipt_outcomes.has(effect_id):return
-	effect_receipt_outcomes[effect_id]=outcome
-	effect_completed.emit(effect_id,outcome)
-
-func wait_effect_outcome(effect_id: int) -> Dictionary:
-	if effect_id<=0:return {"effectId":effect_id,"outcome":"unavailable"}
-	watch_effect(effect_id)
-	while not effect_receipt_outcomes.has(effect_id) and not closed:await effect_completed
-	var outcome:=str(effect_receipt_outcomes.get(effect_id,"closed"))
-	effect_receipt_outcomes.erase(effect_id);effect_receipt_watch.erase(effect_id)
-	return {"effectId":effect_id,"outcome":outcome}
 
 func configure(owner) -> void:
 	client = owner
@@ -97,16 +75,16 @@ func receive(message: Dictionary) -> void:
 			# already finished or in cessation. Pending reservations participate.
 			for entry in _member_entries(int(message.actorId),0):
 				if message.has("effectId") and int(entry.id)!=int(message.effectId):continue
-				if entry.areaVisual or entry.privateToken != 0 or entry.actor != int(message.actorId) or entry.visual != int(message.visualId) or entry.removed:
+				if entry.privateToken != 0 or entry.actor != int(message.actorId) or entry.visual != int(message.visualId) or entry.removed:
 					continue
 				var runtime = entry.runtime
 				if runtime != null and (runtime.state.finishedF4 or runtime.phase.has_cessation()):
 					continue
 				entry.removed = true
 				stats.removed += 1
-				if runtime == null or not _bound(entry):
-					if runtime == null: stats.canceled += 1
-					_forget(entry.id, "canceled" if runtime == null else "retired")
+				if runtime == null:
+					stats.canceled += 1
+					_forget(entry.id, "canceled")
 				else:
 					detach_competing(entry)
 					runtime.clock.stop(1)
@@ -138,27 +116,17 @@ func _begin(entry: Dictionary) -> void:
 	if entry.areaVisual:
 		if entry.runtime != null or entry.definition.is_empty(): return
 		var runtime := AreaRuntime.new();add_child(runtime);entry.runtime = runtime
-		if not runtime.configure(self,entry.id,entry.definition):
-			_forget(entry.id,"failed");return
-		stats.started += 1;_status(entry,"started");return
-	if entry.runtime != null or entry.definition.is_empty() or not _bound(entry):
+		runtime.configure(self,entry.id,entry.definition);stats.started += 1;_status(entry,"started");return
+	if entry.runtime != null or entry.definition.is_empty() or not _bound(entry) or anchor(entry.actor,entry.privateToken,"root") == null:
 		return
 	var runtime := Runtime.new()
 	add_child(runtime)
 	entry.runtime = runtime
 	entry.binding = host(entry.actor,entry.privateToken)
 	runtime.configure(self, entry.id, entry.definition)
-	if not runtime.begin():
-		# The old part provider can reject a multi-root model only when a
-		# placement/Type4 query is made. Initial attach rejects this one load.
-		diagnose("visual.load-failed",runtime.take_part_query_failure(),int(entry.id))
-		_forget(int(entry.id),"failed")
-		return
+	runtime.begin()
 	stats.started += 1
-	entry.beginning=true
 	select_actor(entry.actor,entry.privateToken)
-	entry.erase("beginning")
-	if not entries.has(int(entry.id)):return
 	_status(entry, "started")
 
 func _index_effect(entry: Dictionary) -> void:
@@ -211,9 +179,7 @@ func _select_actor(actor: int,token: int) -> void:
 			return null
 		p={"programType": func(state): return int(state.programType10d) & 255,
 			"selectedObjectId1406ac1c0": func(): return client.controlled_id,
-			"viewGateUnavailable":true,
 			"viewGate1407dadb0": _selection_view_gate,
-			"partQueryFailed":func():return _part_query_failed_in(selected),
 			"attach": func(state): runtime_for.call(state).attach_models(),
 			"detach": func(state): runtime_for.call(state).detach_models(),
 			"start": func(state): runtime_for.call(state).clock.start(),
@@ -226,47 +192,15 @@ func _select_actor(actor: int,token: int) -> void:
 	SelectionTiming.finish("effect_selection_setup",setup)
 	for type in types:
 		var began:=SelectionTiming.begin()
-		var missing_gate:=_missing_view_gate(states,actor,int(type))
-		if compiled_selection and compiled_selection_available and not missing_gate:
+		if compiled_selection and compiled_selection_available:
 			compiled_selection_calls+=1
 			var result: Dictionary=ClassDB.class_call_static("NwnParticleKernel","visual_select",{"id":actor,"suppressed108":0,"visuals80":states},int(type),p)
 			_compiled_selection_result(result)
 		else:
-			if compiled_selection and not missing_gate: _compiled_selection_result({"error":"Native selector unavailable"})
-			var completed: bool=Selection.select({"id": actor, "suppressed108": 0, "visuals80": states}, type, p)
-			if not completed:
-				SelectionTiming.finish("effect_selection_core",began)
-				if reused_selection_setup:selection_contexts.pop_back()
-				for entry in selected:
-					if entries.has(int(entry.id)):_forget(int(entry.id),"failed")
-				diagnose("visual.selection-failed","Native visual selection provider viewGate1407dadb0 is unavailable",0,{"objectId":actor})
-				return
+			if compiled_selection: _compiled_selection_result({"error":"Native selector unavailable"})
+			Selection.select({"id": actor, "suppressed108": 0, "visuals80": states}, type, p)
 		SelectionTiming.finish("effect_selection_core",began)
-		if _part_query_failed_in(selected):break
-	# A later part query aborts the current attachment step without changing
-	# ownership of any previously active visual on this actor.
-	for entry in selected:
-		if entries.has(int(entry.id)) and entry.runtime!=null:
-			var query_error: String=entry.runtime.take_part_query_failure()
-			if not query_error.is_empty():
-				diagnose("visual.selection-failed",query_error,int(entry.id))
-				if bool(entry.get("beginning",false)):_forget(int(entry.id),"failed")
-				else:entry.part_query_failed=true
 	if reused_selection_setup: selection_contexts.pop_back()
-
-func _missing_view_gate(states: Array,actor: int,type: int) -> bool:
-	var chosen: Variant=null
-	var priority:=255
-	for state in states:
-		if state.finishedF4 or (int(state.programType10d)&255)!=type:continue
-		var visual:=int(state.visualF8)&65535
-		if (visual==182 or ((visual-242)&65535)<=2) and actor!=int(client.controlled_id):continue
-		var scope:=int(state.scope10c)&255
-		if scope==0:
-			if state.field110:return true
-		elif scope<=priority:
-			chosen=state;priority=scope
-	return chosen!=null and type==4 and bool(chosen.field110)
 
 func _selection_snapshot(_actor: int,_token: int) -> Dictionary:
 	# Custom owners/bound callbacks retain the general imperative setup path.
@@ -286,10 +220,6 @@ func _selection_states(selected: Array) -> Array:
 	var states: Array=[]
 	for entry in selected: states.append(entry.runtime.state)
 	return states
-func _part_query_failed_in(selected: Array) -> bool:
-	for entry in selected:
-		if entry.runtime!=null and not str(entry.runtime.part_query_failure).is_empty():return true
-	return false
 func _competing_entries(current: Dictionary) -> Array:
 	if not reused_selection_setup:
 		return _member_entries(int(current.actor),int(current.privateToken)).filter(func(entry): return not entry.areaVisual and entry.actor == current.actor and entry.privateToken == current.privateToken and entry.runtime != null and _bound(entry))
@@ -317,11 +247,8 @@ func _selection_detach_competing(state: Dictionary) -> void:
 		if is_same(entry.runtime.state,state): entry.runtime.detach_models(); return
 func _selection_ports() -> Dictionary:
 	if selection_ports.is_empty():
-		selection_ports={"programType":_selection_type,"selectedObjectId1406ac1c0":_selection_controlled,"viewGateUnavailable":true,"viewGate1407dadb0":_selection_view_gate,"partQueryFailed":_selection_part_query_failed,"attach":_selection_attach,"detach":_selection_detach,"start":_selection_start,"stop":_selection_stop}
+		selection_ports={"programType":_selection_type,"selectedObjectId1406ac1c0":_selection_controlled,"viewGate1407dadb0":_selection_view_gate,"attach":_selection_attach,"detach":_selection_detach,"start":_selection_start,"stop":_selection_stop}
 	return selection_ports
-
-func _selection_part_query_failed() -> bool:
-	return not selection_contexts.is_empty() and _part_query_failed_in(selection_contexts.back())
 
 func _compiled_selection_result(result: Dictionary) -> void:
 	if not result.has("error"): return
@@ -355,81 +282,9 @@ func detach_competing(current: Dictionary) -> void:
 	SelectionTiming.finish("effect_competing_selection",began)
 	if reused_selection_setup: selection_contexts.pop_back()
 
-func _immediate_scope_current(scope: Dictionary) -> bool:
-	return not closed and client!=null and client.has_method("immediate_visual_scope_current") and bool(client.immediate_visual_scope_current(scope))
-
-func immediate_loop_zero_update(scope: Dictionary) -> void:
-	if not _immediate_scope_current(scope):return
-	immediate_zero_pending.append(scope.duplicate(true))
-	_drain_immediate_zero_updates()
-
-func _drain_immediate_zero_updates() -> void:
-	if visual_phase_inflight or immediate_zero_inflight:return
-	while not immediate_zero_pending.is_empty() and not visual_phase_inflight and not closed:
-		var scope: Dictionary=immediate_zero_pending.pop_front()
-		if not _immediate_scope_current(scope):continue
-		immediate_zero_inflight=true
-		client.immediate_visual_before_step(scope)
-		if _immediate_scope_current(scope):
-			for retiring in [false,true]:
-				if not _immediate_scope_current(scope):break
-				for id in entries.keys():
-					if not _immediate_scope_current(scope):break
-					if not entries.has(id):continue
-					var entry: Dictionary=entries[id]
-					if bool(entry.areaVisual) or bool(entry.removed)!=retiring or entry.runtime==null:continue
-					if not client.immediate_visual_entry_current(entry):continue
-					_step_existing_visual(entry,0.0,retiring,false,scope)
-		immediate_zero_inflight=false
-
-func _step_existing_visual(entry: Dictionary,delta: float,retiring: bool,allow_rebind: bool,scope: Dictionary={}) -> void:
-	var runtime=entry.runtime
-	if closed or runtime==null or (not scope.is_empty() and not _immediate_scope_current(scope)):return
-	if not entries.has(int(entry.id)) or entry.runtime!=runtime:return
-	var current_binding=host(entry.actor,entry.privateToken)
-	if current_binding!=null and entry.binding!=current_binding:
-		if not allow_rebind:return
-		if runtime.state.attached114 and not runtime.attach_models():
-			diagnose("visual.rebind-failed",runtime.take_part_query_failure(),int(entry.id))
-			if client.has_method("fail_physical_visual"):client.fail_physical_visual(int(entry.id))
-			return
-		entry.binding=current_binding
-		stats.rebound+=1
-	if not scope.is_empty():
-		if not runtime.advance_owned_pose_zero():return
-		if closed or not entries.has(int(entry.id)) or entry.runtime!=runtime or not _immediate_scope_current(scope):return
-	runtime.refresh_bindings()
-	var binding_query_error: String=runtime.take_part_query_failure()
-	if not binding_query_error.is_empty():
-		diagnose("visual.update-failed",binding_query_error,int(entry.id))
-		if client.has_method("fail_physical_visual"):client.fail_physical_visual(int(entry.id))
-		return
-	if not scope.is_empty() and not _immediate_scope_current(scope):return
-	runtime.clock.advance(delta)
-	var phase_query_error: String=runtime.take_part_query_failure()
-	if not phase_query_error.is_empty():
-		diagnose("visual.update-failed",phase_query_error,int(entry.id))
-		if client.has_method("fail_physical_visual"):client.fail_physical_visual(int(entry.id))
-		return
-	if not scope.is_empty() and not _immediate_scope_current(scope):return
-	select_actor(entry.actor,entry.privateToken)
-	if not entries.has(int(entry.id)) or entry.runtime!=runtime:return
-	if bool(entry.get("part_query_failed",false)):
-		entry.erase("part_query_failed")
-		return
-	if not scope.is_empty() and not _immediate_scope_current(scope):return
-	_status(entry,"phase")
-	if (entry.transient or retiring) and runtime.phase.is_retired():
-		if entry.transient and runtime.state.durationFc==0:
-			detach_competing(entry)
-			select_actor(entry.actor,entry.privateToken)
-		_forget(int(entry.id),"retired")
-		select_actor(entry.actor,entry.privateToken)
-
 func _process(delta: float) -> void:
 	if closed:
 		return
-	visual_phase_inflight=true
 	# Match the retained local presenter: active entries first, retiring entries
 	# second; select after each individual phase update, preserving list order.
 	for retiring in [false, true]:
@@ -447,10 +302,22 @@ func _process(delta: float) -> void:
 				_forget(id, "retired")
 				continue
 			_begin(entry)
-			if closed or not entries.has(id):continue
-			_step_existing_visual(entry,delta,retiring,true)
-	visual_phase_inflight=false
-	_drain_immediate_zero_updates()
+			var runtime = entry.runtime
+			if runtime == null: continue
+			if entry.binding != host(entry.actor,entry.privateToken):
+				entry.binding = host(entry.actor,entry.privateToken)
+				if runtime.state.attached114: runtime.attach_models()
+				stats.rebound += 1
+			runtime.refresh_bindings()
+			runtime.clock.advance(delta)
+			select_actor(entry.actor,entry.privateToken)
+			_status(entry, "phase")
+			if (entry.transient or retiring) and runtime.phase.is_retired():
+				if entry.transient and runtime.state.durationFc == 0:
+					detach_competing(entry)
+					select_actor(entry.actor,entry.privateToken)
+				_forget(id, "retired")
+				select_actor(entry.actor,entry.privateToken)
 
 func _status(entry: Dictionary, stage: String) -> void:
 	var state: Dictionary = entry.runtime.state if entry.runtime != null else {}
@@ -458,7 +325,6 @@ func _status(entry: Dictionary, stage: String) -> void:
 	if stage == "phase" and signature == entry.signature: return
 	entry.signature = signature
 	client.command({"kind": "visual-status", "effectId": entry.id, "stage": stage, "visualId": entry.visual, "phase": state.get("phase184",state.get("programPhaseFa", 0)), "finished": state.get("retiring188",state.get("finishedF4", 0)), "attached": state.get("attached114", 0)})
-	if stage=="started":_complete_effect(int(entry.id),"started")
 
 func _forget(id: int, reason: String) -> void:
 	if not entries.has(id): return
@@ -468,7 +334,6 @@ func _forget(id: int, reason: String) -> void:
 	if entry.runtime != null: entry.runtime.close()
 	if reason == "retired": stats.retired += 1
 	if not closed: client.command({"kind": "visual-status", "effectId": id, "stage": reason, "visualId": entry.visual})
-	_complete_effect(id,reason)
 
 func create_model(effect_id: int, resource: String):
 	var model = cache.instantiate_model(resource, self)
@@ -496,16 +361,12 @@ func release_model(model) -> void:
 func model_for(id: int):
 	return models[id].model if models.has(id) and is_instance_valid(models[id].model) and not models[id].model.retired else null
 
-func diagnose(code: String, detail: String, id: int, data: Dictionary={}) -> void:
+func diagnose(code: String, detail: String, id: int) -> void:
 	var key := code + ":" + detail
-	if entries.has(id):
-		key = str(id) + ":" + code + ":" + JSON.stringify(data)
 	if diagnostics.has(key): return
 	diagnostics[key] = true
 	if diagnostics.size() <= 128:
-		var event: Dictionary={"kind": "visual-diagnostic", "effectId": id, "code": code, "detail": detail}
-		if not data.is_empty():event.data=data.duplicate(true)
-		client.command(event)
+		client.command({"kind": "visual-diagnostic", "effectId": id, "code": code, "detail": detail})
 
 func sample() -> Dictionary:
 	var native_animation := {"models": 0, "runs": 0, "diagnostics": []}
@@ -522,13 +383,11 @@ func close() -> void:
 	if closed: return
 	closed = true
 	set_process(false)
-	immediate_zero_pending.clear()
 	for id in entries.keys(): _forget(id, "retired")
 	actor_effects.clear()
 	for row in models.values().duplicate(): release_model(row.model)
 	models.clear()
 	cache.clear()
-	effect_receipt_watch.clear();effect_receipt_outcomes.clear()
 
 func _exit_tree() -> void:
 	close()

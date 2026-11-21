@@ -4,15 +4,15 @@ extends RefCounted
 const SECTION:="game.character-generation"
 const KEY:="show-pregenerated"
 var path:=""
-var show_pregenerated:=true
+var show_pregenerated:=false
 var failure:=""
 var writes:=0
 func open_file(value: String) -> void:
-	path=value; show_pregenerated=true; failure=""; writes=0
+	path=value; show_pregenerated=false; failure=""; writes=0
 	if path.is_empty() or not FileAccess.file_exists(path): return
 	var saved:=ConfigFile.new()
 	if saved.load(path)!=OK: failure="Could not read character-list preferences; the existing file was preserved."; return
-	var checked: Variant=saved.get_value(SECTION,KEY,true)
+	var checked: Variant=saved.get_value(SECTION,KEY,false)
 	if not checked is bool: failure="Saved pregenerated-character preference is not a boolean; the existing file was preserved."; return
 	show_pregenerated=checked
 func save(value: bool) -> bool:

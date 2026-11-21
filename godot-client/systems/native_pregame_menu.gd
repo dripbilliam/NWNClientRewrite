@@ -35,7 +35,6 @@ var failure:=""
 var closed:=false
 var button_audio_ready:=true
 var button_audio_failure:=""
-var placeholder_message:=""
 var catalog_stats: Dictionary={}
 var startup_status_cache: Dictionary={}
 var started_at:=0
@@ -103,12 +102,12 @@ func table_ready(_id: int,result: Dictionary) -> void:
 func scope() -> Array: return ["pregame",revision]
 func open() -> void:
 	if closed: return
-	revision+=1; wanted=true; page="main"; external_child=false; placeholder_message=""; show(); set_process(not bool(startup_status_cache.get("ready",false))); refresh(); move_to_front()
+	revision+=1; wanted=true; page="main"; external_child=false; show(); set_process(not bool(startup_status_cache.get("ready",false))); refresh(); move_to_front()
 func set_button_audio_status(ready: bool,reason: String="") -> void:
 	if closed:return
 	button_audio_ready=ready;button_audio_failure=reason;refresh()
 func dismiss() -> void:
-	wanted=false; external_child=false; placeholder_message=""; revision+=1
+	wanted=false; external_child=false; revision+=1
 	set_process(false)
 	for view in [main,options]:
 		if is_instance_valid(view): view.dismiss()
@@ -123,7 +122,6 @@ func refresh() -> void:
 	if not button_audio_failure.is_empty():status.text="Menu sound unavailable: "+button_audio_failure
 	elif not failure.is_empty(): status.text="Menu resources unavailable: "+failure
 	elif not button_audio_ready:status.text="Preparing menu sound…"
-	elif not placeholder_message.is_empty():status.text=placeholder_message
 	elif page in ["main","options"]:
 		var active=main if page=="main" else options
 		if is_instance_valid(active):
@@ -132,20 +130,20 @@ func refresh() -> void:
 			else: status.text="Preparing menu resources…"
 	if is_instance_valid(main):
 		var state:=Plan.main_state(main.layout_ready,false,true)
-		# The old New/Load buttons only opened the development area-file picker.
-		# Movies and News remain clickable availability notices, as in the old UI.
+		# Multiplayer-only client mode has no local New/Load workflow. Movies
+		# and repository/news remain explicitly unported, rather than inert clicks.
 		for tag in state.enabled:
-			state.enabled[tag]=state.enabled[tag] and tag in ["multibutton","optionsbutton","exitbutton","moviesbutton","reponewsbutton"]
+			state.enabled[tag]=state.enabled[tag] and tag in ["multibutton","optionsbutton","exitbutton"]
 			state.colors[tag]=Color.WHITE if state.enabled[tag] else Color(0.5,0.5,0.5,1)
 		main.set_context(scope(),state.enabled,state.colors)
 		for tag in main.buttons:
-			if tag in ["newbutton","loadbutton"]: main.buttons[tag].tooltip_text="Unavailable in this multiplayer client."
+			if tag not in ["multibutton","optionsbutton","exitbutton"]: main.buttons[tag].tooltip_text="Unavailable in this client build."
 		main.visible=wanted and page=="main" and bool(menu_status.get("ready",false)) and (button_audio_ready or not button_audio_failure.is_empty())
 	if is_instance_valid(options):
 		options.set_context(scope(),{"gamebutton":true,"videooptsbutton":is_instance_valid(video) and video.art_ready(),"controlbutton":is_instance_valid(keys) and keys.art_ready() and bindings.bindings_ready,"nwsyncbutton":false,"closebutton":true,"xbutton":true})
 		if options.buttons.has("nwsyncbutton"): options.buttons.nwsyncbutton.tooltip_text="Storage management is not available in this client build."
 		options.visible=wanted and page=="options" and options.art_ready() and (button_audio_ready or not button_audio_failure.is_empty())
-	status.visible=wanted and (not failure.is_empty() or not button_audio_failure.is_empty() or not button_audio_ready or not placeholder_message.is_empty() or not bool(menu_status.get("ready",false)) or page=="options" and not options.art_ready())
+	status.visible=wanted and (not failure.is_empty() or not button_audio_failure.is_empty() or not button_audio_ready or not bool(menu_status.get("ready",false)) or page=="options" and not options.art_ready())
 	if layout_ready_ms<0 and is_instance_valid(main) and main.layout_ready and is_instance_valid(options) and options.layout_ready: layout_ready_ms=(Time.get_ticks_usec()-started_at)/1000.0
 	place()
 func place() -> void:
@@ -153,16 +151,11 @@ func place() -> void:
 		if is_instance_valid(view) and view.layout_ready: view.position=((get_viewport_rect().size-view.size)*0.5).max(Vector2.ZERO)
 func main_action(tag: String) -> void:
 	if closed or not wanted or page!="main" or not button_audio_ready and button_audio_failure.is_empty(): return
-	if tag in ["optionsbutton","multibutton","exitbutton","moviesbutton","reponewsbutton"]: button_sound_requested.emit()
+	if tag in ["optionsbutton","multibutton","exitbutton"]: button_sound_requested.emit()
 	match tag:
 		"optionsbutton": revision+=1; page="options"; main.dismiss(); refresh()
 		"multibutton": dismiss(); multiplayer_requested.emit()
 		"exitbutton": dismiss(); exit_requested.emit()
-		"moviesbutton","reponewsbutton":
-			var action: String="Movies" if tag=="moviesbutton" else "News"
-			placeholder_message=action+" is not available yet."
-			push_warning("ui.frontend-unimplemented: "+action)
-			refresh()
 func options_action(tag: String,from_button: bool=true) -> void:
 	if closed or not wanted or page!="options" or not button_audio_ready and button_audio_failure.is_empty(): return
 	if tag=="videooptsbutton" and (not is_instance_valid(video) or not video.art_ready()): return
@@ -189,13 +182,9 @@ func escape() -> bool:
 	return true
 func snapshot() -> Dictionary:
 	var workers:=1 if is_instance_valid(loader) and loader.task>=0 else 0
-	var worker_jobs: Array=[]
 	for owner in find_children("*","Node",true,false):
-		if owner.get_script()==Assets:
-			workers+=owner.running.size()
-			for job in owner.jobs.values():
-				worker_jobs.append({"resource":str(job.get("name","")),"decoder":str(job.get("decoder","")),"age_ms":(Time.get_ticks_usec()-int(job.get("requested_us",0)))/1000.0})
-	return {"native_only":true,"wanted":wanted,"page":page,"failure":failure,"closed":closed,"workers_running":workers,"worker_jobs":worker_jobs,"catalog":catalog_stats,"icon_textures":{"mode":"on-demand","bulk_started":false},"shared_rasters":SharedRasters.snapshot(),"menu_startup":menu_startup_status(),"layout_ready_ms":layout_ready_ms,"main":main.snapshot() if is_instance_valid(main) else {},"options":options.snapshot() if is_instance_valid(options) else {},"keys":keys.snapshot() if is_instance_valid(keys) else {},"video":video.snapshot() if is_instance_valid(video) else {},"full_entry_menu_parity":false,"unported_actions":["New/Load campaign","Movies","repository/news","NWSync Storage","complete modern configuration"]}
+		if owner.get_script()==Assets: workers+=owner.running.size()
+	return {"native_only":true,"wanted":wanted,"page":page,"failure":failure,"closed":closed,"workers_running":workers,"catalog":catalog_stats,"icon_textures":{"mode":"on-demand","bulk_started":false},"shared_rasters":SharedRasters.snapshot(),"menu_startup":menu_startup_status(),"layout_ready_ms":layout_ready_ms,"main":main.snapshot() if is_instance_valid(main) else {},"options":options.snapshot() if is_instance_valid(options) else {},"keys":keys.snapshot() if is_instance_valid(keys) else {},"video":video.snapshot() if is_instance_valid(video) else {},"full_entry_menu_parity":false,"unported_actions":["New/Load campaign","Movies","repository/news","NWSync Storage","complete modern configuration"]}
 func close() -> void:
 	if closed: return
 	dismiss(); closed=true

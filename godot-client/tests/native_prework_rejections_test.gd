@@ -2,6 +2,7 @@ extends SceneTree
 const Controller=preload("res://systems/native_asset_prework.gd")
 const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Store=preload("res://systems/native_data/prework_store.gd")
+const Settings=preload("res://systems/native_render_settings.gd")
 var checks:=0
 var failures: Array=[]
 var folder:=""
@@ -43,7 +44,12 @@ func run() -> void:
 	check(first.failed==5 and first.saved+first.reused==1,"Rejected assets remain unavailable, never successful cache hits")
 	check(first.rejection_hits==(0 if cold else 5),"A fresh process reuses persisted failures only after the first run")
 	if not cold:
-		check(not str(first.get("last_error_model","")).is_empty() and not str(first.get("last_error_route","")).is_empty(),"The cached rejection identifies its model and route")
+		var settings:=Settings.new(); root.add_child(settings); settings.setup(folder.path_join("options.cfg"),""); settings.update_prework(first)
+		check(settings.prework_status.text.contains(first.last_error_model) and settings.prework_status.text.contains(first.last_error_route),"The UI attributes the retained issue to its own model and route")
+		root.size=Vector2i(1100,800); settings.tabs.current_tab=settings.tabs.get_tab_count()-1; settings.show(); await process_frame; await process_frame
+		check(settings.prework_folder.get_global_rect().end.y<=800 and settings.prework_status.get_parent().get_global_rect().end.y<=settings.prework_folder.global_position.y,"Issue text leaves file actions visible inside the viewport")
+		if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw; root.get_texture().get_image().save_png(str(args.report)+".png")
+		settings.queue_free()
 		write_model("parent",true)
 		var updated:=await prepare()
 		check(updated.failed==2 and updated.rejection_hits==2 and updated.saved==3 and updated.reused==1,"Changing a supermodel retries dependent failures and keeps unrelated failure memos")

@@ -2,10 +2,7 @@ extends RefCounted
 # Original LightManager::PrioritizeLights14007ff60. Executed original corpus
 # verifies the explicit float32 boundaries; this is not a renderer/view test.
 static func f(value: float) -> float:return Vector3(value,0,0).x
-static func signed32(value: int) -> int:
-	var bits:=value&0xffffffff
-	return bits-0x100000000 if bits>=0x80000000 else bits
-static func rank(properties: Dictionary,position: Array,focus: Array,override_value: int=0,only_owner: bool=false,default_priority: int=4) -> Dictionary:
+static func rank(properties: Dictionary,position: Array,focus: Array,override_value: int=0,only_owner: bool=false) -> Dictionary:
 	var d: Array=[]
 	for index in 3:d.append(f(f(position[index])-f(focus[index])))
 	var distance:=f(sqrt(f(f(f(d[1]*d[1])+f(d[0]*d[0]))+f(d[2]*d[2]))))
@@ -14,9 +11,9 @@ static func rank(properties: Dictionary,position: Array,focus: Array,override_va
 	if peak>0 and radius>0 and multiplier>0:
 		if only_owner:score=-1
 		else:
-			var priority:=signed32(override_value) if override_value!=0 else signed32(int(properties.get("lightpriority",default_priority)))
+			var priority:=override_value if override_value!=0 else int(properties.get("lightpriority",4))
 			var strength:=f(f(multiplier*radius)*peak) if float(properties.get("fadinglight",0))!=0 else 20.0
-			score=f(f(f(float(signed32(priority+1)))*distance)/f(f(float(signed32(int(properties.get("isdynamic",0)))+4))*f(strength+1)))
+			score=f(f(f(float(priority+1))*distance)/f(f(float(int(properties.get("isdynamic",0))+4))*f(strength+1)))
 	return {"distance":distance,"priority":score}
 static func casts(properties: Dictionary) -> bool:
 	# PrioritizeShadow1400801b0: raw positive RGB, shadow and nonambient.

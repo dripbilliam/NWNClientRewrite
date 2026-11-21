@@ -1,0 +1,10 @@
+const {app,BrowserWindow}=require('electron');const path=require('node:path'),fs=require('node:fs/promises');
+const profile=path.join(__dirname,'../backups','camera-command-fixture-'+process.pid);require('node:fs').mkdirSync(profile,{recursive:true});app.setPath('userData',profile);app.setPath('logs',profile);app.setPath('crashDumps',profile);
+app.whenReady().then(async()=>{try{
+ const window=new BrowserWindow({show:false,webPreferences:{contextIsolation:true,nodeIntegration:false,offscreen:true}});await window.loadFile(path.join(__dirname,'camera-command-fixture.html'));
+ const deadline=Date.now()+15000;while(!await window.webContents.executeJavaScript('typeof runCameraCommandFixture === "function"')){if(Date.now()>deadline)throw new Error('Fixture import timed out');await new Promise(r=>setTimeout(r,50));}
+ const fixture=JSON.parse(await fs.readFile(path.join(__dirname,'../backups/animations/native-camera-command-observations.json'),'utf8'));
+ const location=JSON.parse(await fs.readFile(path.join(__dirname,'../backups/animations/native-camera-location-observations.json'),'utf8'));
+ const attachment=JSON.parse(await fs.readFile(path.join(__dirname,'../backups/animations/native-camera-attachment-observations.json'),'utf8'));
+ const result=await window.webContents.executeJavaScript(`(async()=>{try{return{commands:await runCameraCommandFixture(${JSON.stringify(fixture)}),locations:await runCameraLocationFixture(${JSON.stringify(location)}),attachment:await runCameraAttachmentFixture(${JSON.stringify(attachment)}),clearView:await runCameraClearViewFixture(${JSON.stringify(attachment)}),collision:await runCameraCollisionFixture(${JSON.stringify(fixture)})}}catch(error){return{error:error.message,stack:error.stack}}})()`);if(result.error)throw new Error(result.error+'\n'+result.stack);if(process.argv[2]){await new Promise(resolve=>setTimeout(resolve,200));await fs.writeFile(process.argv[2],(await window.webContents.capturePage()).toPNG());}console.log(JSON.stringify(result));app.exit(0);
+ }catch(error){console.error(error.stack);app.exit(1);}});

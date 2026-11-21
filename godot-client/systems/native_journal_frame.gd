@@ -31,8 +31,6 @@ var notes_image: TextureRect
 var quest_scroll: ScrollContainer
 var tree: Control
 var notes_scroll: ScrollContainer
-var notes_content: VBoxContainer
-var server_notes: VBoxContainer
 var edit: TextEdit
 var note_notice: Label
 var sort_controls: Array=[]
@@ -172,9 +170,7 @@ func activate() -> void:
 		var button:=Button.new(); stage.add_child(button); var entry: Dictionary=definition.sort[["dateradio","nameradio","priorityradio"][at]]; frame.button(button,entry,stage,models,false,true); button.toggle_mode=true; button.pressed.connect(func():sort_by(at)); sort_controls.append(button)
 	for entry in definition.sort_labels:
 		var label: Label=frame.create_label(entry,stage); label.text=text_owner.raw({"strRef":int(entry.caption.get("Obj_StrRef",-1))}); sort_controls.append(label)
-	notes_scroll=scroller(stage,definition.notes_view); notes_content=VBoxContainer.new();notes_content.custom_minimum_size.x=definition.notes_view.size.x;notes_scroll.add_child(notes_content)
-	server_notes=VBoxContainer.new();notes_content.add_child(server_notes);server_notes.hide()
-	edit=TextEdit.new();notes_content.add_child(edit); edit.custom_minimum_size=Vector2(definition.notes_view.size.x,definition.notes_view.size.y); edit.size_flags_horizontal=Control.SIZE_EXPAND_FILL; edit.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY; edit.scroll_fit_content_height=true; edit.scroll_past_end_of_file=false
+	notes_scroll=scroller(stage,definition.notes_view); edit=TextEdit.new(); notes_scroll.add_child(edit); edit.custom_minimum_size=Vector2(definition.notes_view.size.x,definition.notes_view.size.y); edit.size_flags_horizontal=Control.SIZE_EXPAND_FILL; edit.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY; edit.scroll_fit_content_height=true; edit.scroll_past_end_of_file=false
 	for state in ["normal","focus","read_only"]: edit.add_theme_stylebox_override(state,StyleBoxEmpty.new())
 	edit.add_theme_color_override("font_color",Color.WHITE); edit.add_theme_color_override("caret_color",Color.WHITE); frame.font_style(edit,{"AurString_Font":Plan.FONT}); assign_notes()
 	edit.text_changed.connect(func():if not writing_notes: notes.edit(edit.text); note_deadline=Time.get_ticks_msec()+250)
@@ -190,7 +186,7 @@ func capture_notes() -> void:
 	if is_instance_valid(edit) and not writing_notes: notes.edit(edit.text)
 func caret_changed() -> void:
 	if not is_instance_valid(edit) or writing_notes: return
-	var caret: Vector2=edit.get_caret_draw_pos()+edit.position; var current: float=notes_scroll.scroll_vertical
+	var caret: Vector2=edit.get_caret_draw_pos(); var current: float=notes_scroll.scroll_vertical
 	if caret.y<current: notes_scroll.scroll_vertical=maxi(0,int(caret.y))
 	elif caret.y+edit.get_line_height()>current+notes_scroll.size.y: notes_scroll.scroll_vertical=int(caret.y+edit.get_line_height()-notes_scroll.size.y)
 func update_notice() -> void:
@@ -213,17 +209,7 @@ func render() -> void:
 	title.text=text_owner.raw({"strRef":10562}) if page!=3 else "Messages"
 	clear_rows()
 	if page==2:
-		for child in server_notes.get_children():server_notes.remove_child(child);child.queue_free()
-		var received: Array=panel.state.get("entries",[])
-		server_notes.visible=not received.is_empty()
-		if not received.is_empty():
-			var heading:=Text.label({"text":"Server notes"},definition.notes_view.size.x-12);server_notes.add_child(heading);frame.font_style(heading,{"AurString_Font":Plan.FONT})
-			for row in received:
-				var label:=Text.label(row.title,definition.notes_view.size.x-12);server_notes.add_child(label);frame.font_style(label,{"AurString_Font":Plan.FONT})
-				var detail:=Text.label(row.description,definition.notes_view.size.x-12);server_notes.add_child(detail);frame.font_style(detail,{"AurString_Font":Plan.FONT})
-				server_notes.add_child(HSeparator.new())
-		if last_page!=2 and received.is_empty(): edit.grab_focus()
-		notes_scroll.set_deferred("scroll_vertical",int(panel.positions.get(page,0)))
+		if last_page!=2: edit.grab_focus()
 	else:
 		var bound: int=panel.view_id
 		for row in panel.state.get("entries",[]):

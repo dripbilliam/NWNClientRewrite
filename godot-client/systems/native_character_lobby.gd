@@ -52,7 +52,7 @@ var detail_scroll: ScrollContainer
 var detail_bar
 var notice: Label
 var pregen: Button
-var show_pregenerated:=true
+var show_pregenerated:=false
 var layout_ready:=false
 var art_announced:=false
 var row_art_keys: Array=[]
@@ -324,12 +324,11 @@ func sync() -> void:
 	buttons.newcharbutton.disabled=not state.get("canCreate",false); buttons.playbutton.disabled=not state.get("canSelect",false) or state.get("selected")==null or not owner_ui.native_selection.is_empty()
 	buttons.cancelbutton.disabled=not state.get("connected",false)
 	buttons.deletecharbutton.disabled=not owner_ui.delete_reason().is_empty(); buttons.deletecharbutton.tooltip_text=owner_ui.delete_reason()
-	buttons.customcharbutton.disabled=not bool(state.get("localAllowed",false)); buttons.customcharbutton.tooltip_text="Choose a local .bic character file" if not buttons.customcharbutton.disabled else "This server requires characters from its vault."
-	button_captions.customcharbutton.text="Local Character…"
+	buttons.customcharbutton.disabled=true; buttons.customcharbutton.tooltip_text="Local character customization is not migrated yet."
 	mutation_notice.text=owner_ui.local_notice
 	for tag in buttons: button_captions[tag].modulate=Color(0.5,0.5,0.5) if buttons[tag].disabled else Color.WHITE
 	for index in tabs.size(): tabs[index].set_pressed_no_signal(index==page_index); tabs[index].disabled=index!=0 and not state.get("canLobbyPages",state.get("canSelect",false))
-	record.visible=page_index==0; extra_pages.present(page_index,player_page_state(),owner_ui.connection)
+	record.visible=page_index==0; extra_pages.present(page_index,state,owner_ui.connection)
 	var choices: Array=owner_ui.catalog_choices(text_owner); pregen.disabled=not owner_ui.local_catalog.ready() or owner_ui.needs_local_metadata() and not owner_ui.can_select() or choices.any(func(row):return row.get("source","")!="server" and not row.has("pregenerated")); pregen.tooltip_text="Local pregenerated metadata is not available yet." if pregen.disabled else ""; pregen.set_pressed_no_signal(show_pregenerated)
 	var next_signature:=JSON.stringify([owner_ui.connection,choices,show_pregenerated,text_owner.tables.get("classes",{}).size(),text_owner.revision])
 	if row_signature!=next_signature: rebuild_rows(choices); row_signature=next_signature
@@ -348,8 +347,6 @@ func sync() -> void:
 		record_tabs[index].tooltip_text=text_owner.raw({"strRef":[0x2940,0x147,0x146,0x145f][index]})
 	sync_record_page()
 	notice.text=owner_ui.failure_text(text_owner)
-	var export_status: Variant=state.get("exportStatus",{})
-	if notice.text.is_empty() and export_status is Dictionary and str(export_status.get("state","")) in ["pending","saved","failed"]:notice.text=str(export_status.get("text",""))
 	if notice.text.is_empty(): notice.text=icon_preload_notice
 	if notice.text.is_empty() and owner_ui.native_frontend and owner_ui.native_base_only: notice.text="Preparing character details…"
 	if notice.text.is_empty() and is_instance_valid(owner_ui.native_preview): notice.text=owner_ui.native_preview.error
@@ -363,20 +360,7 @@ func sync() -> void:
 		if owner_ui.delete_lease.get("refreshing",false): notice.text="Refreshing local characters…"
 	elif notice.text.is_empty() and owner_ui.needs_local_metadata() and not owner_ui.can_select() and state.get("canSelect",false): notice.text="Reading active character-list tables…"
 	if notice.text.is_empty() and not state.get("canSelect",false): notice.text="Waiting for the server…"
-	if notice.text.is_empty() and not owner_ui.saved_characters.is_empty():notice.text=str(owner_ui.saved_characters.size())+" saved character exports on this PC."
 	service_automatic_selection()
-func player_page_state()->Dictionary:
-	# PRE_PLAYMOD's player page expects a `players` field. Keep it separate from
-	# the selectable character catalog and resolve TLK names inside that page.
-	var projected: Dictionary=owner_ui.state.duplicate()
-	if str(projected.get("phase","")) not in ["character-selection","character-rejected"]:projected.players=[]
-	elif projected.has("lobbyPlayers"):projected.players=owner_ui.lobby_players.duplicate(true)
-	else:
-		# Existing Godot lobby snapshots use `players` for this same page. Once
-		# 49/3 supplies lobbyPlayers, that authoritative map wins.
-		var prior: Variant=projected.get("players",[])
-		projected.players=prior.duplicate(true) if prior is Array else []
-	return projected
 func rebuild_rows(choices: Array) -> void:
 	# Active-resource publication can invalidate row captions during the row's
 	# own gui_input signal. Detach immediately, then destroy after dispatch ends.
@@ -385,6 +369,7 @@ func rebuild_rows(choices: Array) -> void:
 		list_content.remove_child(row); row.queue_free()
 	rows.clear(); row_keys.clear()
 	var sorted: Array=choices.filter(func(row):return show_pregenerated or not row.get("pregenerated",false))
+	sorted.sort_custom(func(a,b):return str(a.label).nocasecmp_to(str(b.label))<0)
 	var model: Dictionary=definition.models.ctl_pre_btn_char
 	for data in sorted:
 		var offset: Vector2=definition.first+definition.row_next*rows.size(); var entry:=Sheet.entry(definition.models,"ctl_pre_btn_char",offset)
@@ -471,7 +456,6 @@ func invoke(tag: String) -> void:
 	elif tag=="newcharbutton":
 		if page_index!=0: select_page(0)
 		owner_ui.create_button.pressed.emit()
-	elif tag=="customcharbutton": owner_ui.open_local_file()
 	elif tag=="cancelbutton": owner_ui._send({"kind":"lobby-disconnect","saveCharacter":false})
 func art_ready() -> bool:
 	return layout_ready and not closed and failure.is_empty() and row_art_keys.all(func(key):return frame.art.textures.has(key)) and preload("res://systems/native_menu_builder.gd").source_ready(self,frame)

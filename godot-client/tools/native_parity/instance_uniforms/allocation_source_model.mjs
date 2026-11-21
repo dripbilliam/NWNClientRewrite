@@ -1,0 +1,34 @@
+// CPU source-derived state-machine proof only. Does not execute the renderer,
+// launch Godot, compile native output, access a server or mutate production.
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {fileURLToPath} from 'node:url';
+const source=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),base=path.join(source,'.cache/native-140fps/render-agent/engine-font-atlas-ownership-v1/source'),sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const files=['servers/rendering/instance_uniforms.cpp','servers/rendering/instance_uniforms.h','servers/rendering/renderer_rd/storage_rd/material_storage.cpp','servers/rendering/renderer_scene_cull.cpp','servers/rendering/shader_language.h','servers/rendering/rendering_server.cpp','servers/rendering/renderer_geometry_instance.cpp','servers/rendering/renderer_rd/forward_clustered/render_forward_clustered.cpp','servers/rendering/renderer_rd/forward_clustered/scene_shader_forward_clustered.cpp','servers/rendering/shader_compiler.cpp'];
+const pins=files.map(relative=>{const file=path.join(base,relative);return {relative,file,sha256:sha(fs.readFileSync(file))};}),read=r=>fs.readFileSync(path.join(base,r),'utf8');
+const storage=read(files[2]),uniforms=read(files[0]),header=read(files[1]);
+for(const text of ['instance_buffer_pos[p_instance] = pos; //save anyway','ERR_FAIL_COND_V_MSG(pos < 0','ERR_FAIL_COND_V(global_shader_uniforms.instance_buffer_pos.has(p_instance), -1)'])if(!storage.includes(text))throw Error('Allocator source structure differs');
+for(const text of ['inline bool is_allocated() const { return _location != -1; }','int32_t _location = -1;'])if(!header.includes(text))throw Error('Location sentinel source differs');
+for(const text of ['const bool should_alloc = !is_allocated();','_location = RSG::material_storage->global_shader_parameters_instance_allocate(p_self);','if (_parameters.is_empty())','kv.value.index = -1;'])if(!uniforms.includes(text))throw Error('Instance owner source differs');
+class Storage{
+ constructor(size){this.size=size;this.usage=Array(size).fill(0);this.positions=new Map();this.errors=[];}
+ allocate(rid){if(this.positions.has(rid)){this.errors.push('duplicate-allocation');return -1;}let pos=-1;for(let i=0;i+16<=this.size;){if(!this.usage[i]){let valid=true;for(let j=1;j<16;j++)if(this.usage[i+j]>0){i+=j+this.usage[i+j];valid=false;break;}if(valid){pos=i;break;}}else i+=this.usage[i];}this.positions.set(rid,pos);if(pos<0){this.errors.push('capacity-exhausted');return -1;}this.usage[pos]=16;return pos;}
+ free(rid){if(!this.positions.has(rid))throw Error('missing allocation');const pos=this.positions.get(rid);if(pos>=0)this.usage[pos]=0;this.positions.delete(rid);}
+}
+class Instance{
+ constructor(rid,storage){this.rid=rid;this.storage=storage;this.location=-1;this.parameters=new Map();this.offset=-1;}
+ materials(instanceUniform=true){for(const item of this.parameters.values())item.valid=false;if(instanceUniform)this.parameters.set('nwn_tile_fog_factor',{valid:true,value:1});if(!this.parameters.size){if(this.location!==-1){this.free();return true;}return false;}const shouldAlloc=this.location===-1;if(shouldAlloc)this.location=this.storage.allocate(this.rid);if(shouldAlloc)this.offset=this.location;return shouldAlloc;}
+ free(){if(this.location!==-1){this.storage.free(this.rid);this.location=-1;}for(const item of this.parameters.values())item.valid=false;}
+}
+let checks=0;const assert=(v,label)=>{checks++;if(!v)throw Error(label);};
+const tiny=new Storage(16),ok=new Instance('good',tiny),failed=new Instance('failed',tiny);
+assert(ok.materials()&&ok.location===0,'first allocation reserves16 slots');assert(failed.materials()&&failed.location===-1,'second allocation exceeds capacity');assert(tiny.positions.has('failed')&&tiny.positions.get('failed')===-1,'failure inserts RID with negative position');
+assert(tiny.errors.join(',')==='capacity-exhausted','first failure is capacity');failed.materials();assert(tiny.errors.join(',')==='capacity-exhausted,duplicate-allocation','later material refresh produces exact duplicate error');
+failed.free();assert(tiny.positions.has('failed'),'owner free skips failed allocation sentinel');ok.free();assert(!tiny.positions.has('good'),'successful allocation frees normally');
+failed.materials();assert(failed.location===-1&&tiny.errors.at(-1)==='duplicate-allocation','capacity recovery does not recover poisoned RID');
+failed.materials(false);assert(failed.parameters.size===1&&failed.location===-1&&tiny.errors.at(-1)==='duplicate-allocation','shader removal retains invalid item and duplicate route');
+assert((failed.offset>>>0)===0xffffffff,'invalid signed offset becomes shader uint0xffffffff');
+const defaultSize=new Storage(65536);defaultSize.usage[0]=1;let allocated=0;for(let id=0;id<4096;id++){const instance=new Instance(id,defaultSize);instance.materials();if(instance.location>=0)allocated++;}
+assert(allocated===4095&&defaultSize.errors[0]==='capacity-exhausted','one shared global slot lowers65536/16 capacity below4096');
+const control=new Storage(4096);for(let id=0;id<300;id++)new Instance(id,control).materials(false);assert(control.positions.size===0&&!control.errors.length,'no instance declaration/set value does not allocate per-geometry blocks');
+const swap=new Storage(4096),stable=new Instance('stable',swap);stable.materials();for(let i=0;i<50;i++)stable.materials(i%2===0);assert(!swap.errors.length&&swap.positions.size===1,'ordinary below-capacity shader swaps do not duplicate allocation');stable.free();assert(swap.positions.size===0,'normal RID cleanup releases ordinary swap allocation');
+const output=process.argv[2];if(!output)throw Error('Fresh report path required');const resolved=path.resolve(output),boundary=path.resolve(source,'.cache/native-presentation-parity/loading-agent');if(!resolved.startsWith(boundary+path.sep)||fs.existsSync(resolved))throw Error('Fresh owned report required');fs.mkdirSync(path.dirname(resolved),{recursive:true});const changed=pins.filter(p=>sha(fs.readFileSync(p.file))!==p.sha256).map(p=>p.relative);
+const result={success:!changed.length,checks,scope:'CPU source-derived control-flow model, not native renderer execution or live-session diagnosis',sourcePins:pins,sourceChanged:changed,modelSourceSha256:sha(fs.readFileSync(fileURLToPath(import.meta.url))),facts:{defaultSlots:65536,instanceSlots:16,maximumInstancesWithOneGlobal:allocated,firstFailure:tiny.errors[0],retryFailure:tiny.errors[1],failedRidRetainedAfterOwnerFree:tiny.positions.has('failed'),invalidShaderOffset:failed.offset>>>0},gpuDraws:0,nativeBuilds:0,engineLaunches:0,networkConnections:0};fs.writeFileSync(resolved,JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({success:result.success,checks,report:resolved,facts:result.facts}));

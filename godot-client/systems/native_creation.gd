@@ -2,13 +2,10 @@ extends Node
 # Native connection-owned creator; JavaScript receives only a finished BIC.
 signal request(message: Dictionary)
 signal closed
-signal capture_changed(captured: bool)
 const Rules=preload("res://systems/native_data/creation_rules.gd")
 const Builder=preload("res://systems/native_data/creation_bic.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const ClassMetadata=preload("res://systems/native_data/creation_class_metadata.gd")
-const PreviewRules=preload("res://systems/native_data/character_preview_rules.gd")
-const JS_CREATION_WIZARD=false
 const STEPS=["Gender","Race","Portrait","Class","Alignment","Package","Abilities","Domains & school","Skills","Feats","Spells","Appearance","Voice","Name","Review"]
 var rules:=Rules.new()
 var ui
@@ -23,22 +20,12 @@ var resource_queue: Array=[]
 var jobs: Dictionary={}
 var requested: Dictionary={}
 var resource_errors: Array=[]
-var optional_rule_reported: Dictionary={}
-var optional_phase_started:=false
-var optional_rule_index:=0
 var dependencies:=false
-var reference_queue: Array=[]
-var reference_index:=0
-var creation_extras_started:=false
 var status:=""
 var feat_kind:="bonus"
-var feat_group: Variant=null
 var filter:=""
 var show_unavailable:=false
 var portrait_page:=0
-var portrait_failures: Dictionary={}
-var portrait_failure_reported: Dictionary={}
-var active_palette: Variant=null
 var build_task:=-1
 var build_result: Dictionary={}
 var build_timings: Dictionary={}
@@ -63,8 +50,6 @@ var source_class_error:=""
 var source_table_sources: Dictionary={}
 var source_table_views: Dictionary={}
 var source_tables_revision:=-1
-var creator_resource_cache: Dictionary={}
-var current_creator_uses_cache:=false
 var skills_request:=0
 var feats_request:=0
 var source_feats:=preload("res://systems/native_data/creation_feat_state.gd").new()
@@ -81,22 +66,7 @@ var associate_work
 var associate_table_revision:=0
 const SummaryValues=preload("res://systems/native_data/creation_summary_values.gd")
 func summary_identity() -> Array: return [connection,draft_scope]
-func creator_layers() -> Array:
-	return ui.catalog.layers.map(func(row):return [row.get("kind"),row.get("serial"),row.get("binding_identity")])
-func creator_cache_current(scope: int) -> bool:
-	return not creator_resource_cache.is_empty() and int(creator_resource_cache.connection)==scope and creator_resource_cache.catalog==ui.catalog and int(creator_resource_cache.text_revision)==int(ui.text.revision) and creator_resource_cache.layers==creator_layers() and ui.tables_ready
-func remember_creator_resources() -> void:
-	var private_tables: Dictionary={}
-	for name in rules.tables:
-		if not ui.text.tables.has(name):private_tables[name]=rules.tables[name]
-	creator_resource_cache={"connection":connection,"catalog":ui.catalog,"text_revision":int(ui.text.revision),"layers":creator_layers(),"tables":private_tables,"palette_bytes":rules.palette_bytes.duplicate(true),"palette_sizes":rules.palette_sizes.duplicate(),"model_names":rules.model_names.duplicate()}
-func remember_creator_portraits() -> void:
-	if not rules.portrait_prepared or not rules.portrait_error.is_empty() or not creator_cache_current(connection):return
-	creator_resource_cache.custom_portraits=rules.custom_portraits.duplicate()
-	creator_resource_cache.available_portraits=rules.creation_available_portraits.duplicate()
-	creator_resource_cache.portrait_choices=rules.portrait_cache.duplicate(true)
 func configure_source(painter,text,base_catalog,cache_path: String) -> void:
-	if JS_CREATION_WIZARD:return
 	if dead or is_instance_valid(source_frontend): return
 	source_frontend=preload("res://systems/native_creation_frontend.gd").new(); add_child(source_frontend); source_frontend.configure(painter,text,base_catalog,cache_path)
 	source_frontend.finished.connect(source_finished)
@@ -131,7 +101,6 @@ func configure_source(painter,text,base_catalog,cache_path: String) -> void:
 	ui.modal_surfaces.bind_layer(source_frontend.associate.info_popup,source_frontend)
 	if phase!="closed": stage_source(); refresh_source()
 func try_enter_source() -> void:
-	if JS_CREATION_WIZARD:return
 	if dead or phase!="editing" or not is_instance_valid(source_frontend) or source_entered==summary_identity() or not source_frontend.main.layout_ready:return
 	var identity:=summary_identity();source_entered=identity.duplicate();source_fallback=false
 	# The generic wizard supplied placeholder names. The original chooser
@@ -139,7 +108,6 @@ func try_enter_source() -> void:
 	if rules.draft.get("familiarName")=="Familiar":rules.draft.familiarName=""
 	if rules.draft.get("companionName")=="Companion":rules.draft.companionName=""
 	refresh_source();view.reset()
-	remember_creator_portraits()
 	source_frontend.begin(identity,{"classBase":int(rules.draft.get("classId",-1))},rules.rows("classes"))
 func source_finished(cancelled: bool,identity: Array) -> void:
 	if dead or phase=="closed" or identity!=summary_identity() or source_entered!=identity:return
@@ -178,14 +146,9 @@ func summary_source(identity: Array,mask: int,prefix: String) -> Dictionary:
 	source.alignment=ui.text.raw({"strRef":112+law*3+good})
 	source["class"]=ui.text.raw({"strRef":rules.num(rules.cls(),"Name",4294967295)})+" (1)"
 	var scores:=rules.abilities()
-	for key in Rules.ABILITIES: source.scores.append(rules.typed_ability_score(scores[key])&255)
-	var native_ability_input:=true
-	for key in Rules.ABILITIES:
-		var raw: Variant=d.abilities.get(key,null)
-		if not (raw is int or raw is float) or not is_finite(float(raw)) or float(raw)<-9223372036854775808.0 or float(raw)>=9223372036854775808.0:native_ability_input=false;break
-	if native_ability_input:
-		var vitals:=Rules.Vitals.project({"classId":int(d.classId),"race":int(d.raceId),"abilities":d.abilities,"dexterityAdjustment":0},rules.tables,rules.creation_base_hp)
-		if vitals.ready: source.merge(vitals.fields)
+	for key in Rules.ABILITIES: source.scores.append(int(scores[key])&255)
+	var vitals:=Rules.Vitals.project({"classId":int(d.classId),"race":int(d.raceId),"abilities":d.abilities,"dexterityAdjustment":0},rules.tables,rules.creation_base_hp)
+	if vitals.ready: source.merge(vitals.fields)
 	var result:=SummaryValues.compose(source,mask,rules.tables)
 	result.scope=identity.duplicate(); result.draft_revision=serial; result.portrait=str(d.portrait)+"l" if not str(d.portrait).is_empty() else ""
 	result.lists=preload("res://systems/native_data/creation_summary_lists.gd").compose(rules,ui.desktop.rules)
@@ -200,9 +163,7 @@ func commit_source_portrait(base: String,identity: Array) -> bool:
 func commit_source_gender(selected: int,identity: Array) -> Dictionary:
 	if dead or phase!="editing" or identity!=summary_identity() or selected not in [-1,0,1]:return {}
 	var choice:=preload("res://systems/native_data/creation_gender_state.gd").new();choice.selected=selected
-	var result:=choice.result(int(rules.draft.gender));rules.draft.gender=int(result.gender)
-	if selected in [0,1]:rules.draft.portrait=""
-	render()
+	var result:=choice.result(int(rules.draft.gender));rules.draft.gender=int(result.gender);render()
 	result.accepted=true;return result
 func commit_source_race(selected: int,subrace_value: Variant,identity: Array) -> Dictionary:
 	if dead or phase!="editing" or identity!=summary_identity() or not (subrace_value==null or subrace_value is String):return {}
@@ -210,7 +171,7 @@ func commit_source_race(selected: int,subrace_value: Variant,identity: Array) ->
 	# an invalid list selection can therefore retain text without finishing.
 	if subrace_value is String:rules.draft.subrace=subrace_value
 	if not rules.select_race(selected,ui.text,subrace_value):render();return {"accepted":false,"subrace":str(rules.draft.subrace)}
-	if is_instance_valid(source_frontend) and source_frontend.flow.enabled.packages:rules.reset_js_choices()
+	if is_instance_valid(source_frontend) and source_frontend.flow.enabled.packages:rules.reset_choices()
 	render();return {"accepted":true,"race":selected,"subrace":str(rules.draft.subrace),"code":0x800a}
 func source_binding_needed(tag: String,active: String) -> bool:
 	if not active.is_empty() and active!=tag:return false
@@ -244,7 +205,7 @@ func refresh_source() -> void:
 	source_projection_stats.lastRefreshMs=(Time.get_ticks_usec()-began)/1000.0
 func commit_source_class(selected: int,identity: Array) -> Dictionary:
 	if dead or phase!="editing" or identity!=summary_identity() or not rules.commit_class(selected):return {}
-	if is_instance_valid(source_frontend) and source_frontend.flow.enabled.packages:rules.reset_js_choices()
+	if is_instance_valid(source_frontend) and source_frontend.flow.enabled.packages:rules.reset_choices()
 	render();return {"accepted":true,"classId":selected,"code":0x8004}
 func enter_source_packages(identity: Array) -> bool:
 	if dead or phase!="editing" or identity!=summary_identity():return false
@@ -541,10 +502,6 @@ func commit_source_alignment(selected: int,identity: Array) -> Dictionary:
 func configure(owner) -> void:
 	ui=owner; rules.tables=ui.text.tables.duplicate(); rules.catalog=ui.catalog;synchronize_source_tables()
 	view=preload("res://systems/server_creation.gd").new(); add_child(view); view.request.connect(input)
-	ui.desktop.art.loaded.connect(portrait_art_loaded)
-	ui.desktop.art.image_failed.connect(portrait_art_failed)
-	view.scroll.get_v_scroll_bar().value_changed.connect(func(_value):call_deferred("refresh_visible_portraits",serial))
-	view.scroll.resized.connect(func():call_deferred("refresh_visible_portraits",serial))
 	assets=Assets.new(); add_child(assets); assets.maximum_workers=2; assets.configure(ui.catalog); assets.cache_directory=ui.assets.cache_directory; assets.completed.connect(prepared)
 	preview=preload("res://systems/native_creation_preview.gd").new(); add_child(preview); preview.configure(ui,view.appearance_preview,assets)
 	voice=preload("res://systems/native_creation_voice.gd").new(); add_child(voice); voice.configure(ui.catalog,view.voice_audio)
@@ -575,23 +532,16 @@ func synchronize_source_tables() -> void:
 	source_tables_revision=int(ui.text.revision)
 func attribute_source_model(identity: Array) -> Dictionary:
 	if dead or phase!="editing" or identity!=summary_identity():return {"ready":false}
-	var points:=rules.point_balance()
-	for key in Rules.ABILITIES:
-		var raw: Variant=rules.draft.abilities.get(key,null)
-		if not (raw is int or raw is float) or not is_finite(float(raw)) or float(raw)<-9223372036854775808.0 or float(raw)>=9223372036854775808.0:return {"ready":false}
-	var values:=Rules.Vitals.effective({"classId":int(rules.draft.classId),"race":int(rules.draft.raceId),"abilities":rules.draft.abilities},rules.tables)
+	var values:=Rules.Vitals.effective({"classId":int(rules.draft.classId),"race":int(rules.draft.raceId),"abilities":rules.draft.abilities},rules.tables);var points:=rules.point_balance()
 	if not values.ready or points<0 or points>255:return {"ready":false}
-	var raw: Array=[];var source_scores: Array=[];var modifiers: Array=[];var racial: Array=[];var costs: Array=[];var limits: Dictionary={};var numeric=preload("res://systems/native_data/character_record_values.gd")
-	var projected: Dictionary=rules.abilities()
+	var raw: Array=[];var modifiers: Array=[];var racial: Array=[];var costs: Array=[];var limits: Dictionary={};var numeric=preload("res://systems/native_data/character_record_values.gd")
 	for index in 6:
-		var key: String=Rules.ABILITIES[index];raw.append(int(rules.draft.abilities[key])&255);source_scores.append(projected[key]);racial.append(numeric.signed8(rules.num(rules.race(),key+"Adjust")));costs.append(Rules.AbilityRules.cost(rules.tables,raw[-1]))
-		# The old creator presents Number totals; abilityModifier applies its
-		# native byte conversion after that sum, not to each table cell.
-		var modifier: Variant=numeric.modifier(rules.typed_ability_score(projected[key])&255,rules.tables)
+		var key: String=Rules.ABILITIES[index];raw.append(int(rules.draft.abilities[key])&255);racial.append(numeric.signed8(rules.num(rules.race(),key+"Adjust")));costs.append(Rules.AbilityRules.cost(rules.tables,raw[-1]))
+		var modifier: Variant=numeric.modifier(int(values.scores[index]),rules.tables)
 		if modifier==null:return {"ready":false}
 		modifiers.append(numeric.signed8(int(modifier)))
 	for pair in [["BASE_ABILITY_MIN",8],["BASE_ABILITY_MAX",18],["BASE_ABILITY_MIN_PRIMARY",11],["ABILITY_COST_INCREMENT2",14],["ABILITY_COST_INCREMENT3",16],["ABILITY_COST_INCREMENT4",255]]:limits[pair[0]]=rules.cfg(pair[0],pair[1])
-	return {"ready":true,"classId":int(rules.draft.classId),"raw":raw,"scores":values.scores.duplicate(),"sourceScores":source_scores,"gains":values.gains.duplicate(),"racial":racial,"modifiers":modifiers,"costs":costs,"points":points,"limits":limits,"primary":Rules.AbilityRules.primary(rules.cls()),"recommended":Rules.AbilityRules.recommended(rules.tables,rules.cls())}
+	return {"ready":true,"classId":int(rules.draft.classId),"raw":raw,"scores":values.scores.duplicate(),"gains":values.gains.duplicate(),"racial":racial,"modifiers":modifiers,"costs":costs,"points":points,"limits":limits,"primary":Rules.AbilityRules.primary(rules.cls()),"recommended":Rules.AbilityRules.recommended(rules.tables,rules.cls())}
 func edit_source_attributes(operation: String,index: int,identity: Array) -> Dictionary:
 	if dead or phase!="editing" or identity!=summary_identity() or not attribute_source_model(identity).get("ready",false):return {}
 	if operation=="recommend":
@@ -604,146 +554,50 @@ func commit_source_attributes(identity: Array) -> Dictionary:
 	if dead or phase!="editing" or identity!=summary_identity() or rules.point_balance()!=0:return {}
 	if is_instance_valid(source_frontend) and source_frontend.flow.enabled.packages:rules.reset_choices()
 	render();return {"accepted":true,"code":0x8003}
-func open(scope: int,module_label: String="Server",vault_error: String="") -> void:
+func open(scope: int) -> void:
 	if dead or phase!="closed": return
-	# Each New invocation owns a fresh rules/draft generation. Retired async
-	# reads must not publish into the next connection's choices.
-	resource_queue.clear();jobs.clear();requested.clear();resource_errors.clear();optional_rule_reported.clear();portrait_failures.clear();portrait_failure_reported.clear()
-	rules=Rules.new();rules.tables=ui.text.tables.duplicate();rules.catalog=ui.catalog
-	source_table_sources.clear();source_table_views.clear();source_tables_revision=-1;synchronize_source_tables()
-	var cached_resources: bool=creator_cache_current(scope)
-	current_creator_uses_cache=cached_resources
-	if cached_resources:
-		for name in creator_resource_cache.tables:rules.tables[name]=creator_resource_cache.tables[name]
-		rules.palette_bytes=creator_resource_cache.palette_bytes.duplicate(true)
-		rules.palette_sizes=creator_resource_cache.palette_sizes.duplicate()
-		rules.model_names=creator_resource_cache.model_names.duplicate()
-		if creator_resource_cache.has("available_portraits"):
-			rules.custom_portraits=creator_resource_cache.custom_portraits.duplicate()
-			rules.creation_available_portraits=creator_resource_cache.available_portraits.duplicate()
-			rules.portrait_cache=creator_resource_cache.portrait_choices.duplicate(true)
-			rules.portrait_prepared=true
-	draft_scope+=1; connection=scope; phase="loading"; step=0; feat_group=null; active_palette=null; optional_phase_started=false; optional_rule_index=0; dependencies=false; reference_queue.clear(); reference_index=0; creation_extras_started=false; status="Reading character choices…"
-	# Only a current catalog/text/connection scope may retain decoded feat
-	# definitions. Every New still starts with empty selections and model state.
-	if cached_resources:source_feats.reset_selection()
-	else:source_feats=preload("res://systems/native_data/creation_feat_state.gd").new()
-	source_post.reset();source_spells.close();spells_request+=1;spells_status={"ready":false};source_entered=[];source_fallback=JS_CREATION_WIZARD
-	if cached_resources:dependencies=true
-	if JS_CREATION_WIZARD:view.open(module_label,vault_error)
-	else:view.open_source_loading(module_label,vault_error)
-	capture_changed.emit(true)
+	draft_scope+=1; connection=scope; phase="loading"; step=0; dependencies=false; status="Reading character choices…";source_feats=preload("res://systems/native_data/creation_feat_state.gd").new();source_post.reset();source_spells.close();spells_request+=1;spells_status={"ready":false};source_entered=[];source_fallback=false; view.open()
 	stage_source()
 	request.emit({"kind":"native-creation-begin","connection":connection,"draft":draft_scope})
-	# The ordinary creator starts these seven tables and four palette uses
-	# together. Gameplay's shared rule owner prepares its own global set.
-	if not cached_resources:
-		for name in ["packages","appearance","gender","phenotype","soundset","chargenclothes","masterfeats"]:table(name)
-		for pair in [["skin","pal_skin01"],["hair","pal_hair01"],["tattoo1","pal_tattoo01"],["tattoo2","pal_tattoo01"]]:enqueue(str(pair[1]),3,"palette",str(pair[0]))
+	for name in ["packages","appearance","gender","phenotype","soundset","chargenclothes","masterfeats"]: table(name)
+	for pair in [["skin","pal_skin01"],["hair","pal_hair01"],["tattoo1","pal_tattoo01"],["tattoo2","pal_tattoo01"]]: enqueue(str(pair[1]),3,"palette",str(pair[0]))
 	render()
-func table(name: String,required_reference: bool=false) -> void:
-	var key:=name.to_lower()
-	# The source retries an optional table if a later required reference names
-	# it. A failed optional read alone remains nonfatal.
-	if required_reference and optional_rule_reported.has(key) and (not rules.tables.get(key) is Dictionary or not rules.tables[key].get("orderedRows") is Array):
-		requested.erase("table:"+key);rules.tables.erase(key);source_table_views.erase(key)
-	if rules.present(name) and not rules.tables.has(key):enqueue(key,2017,"table",key,required_reference)
-func enqueue(name: String,type: int,kind: String,key: String,required_reference: bool=false) -> void:
+func table(name: String) -> void:
+	if rules.present(name) and not rules.tables.has(name.to_lower()): enqueue(name.to_lower(),2017,"table",name.to_lower())
+func enqueue(name: String,type: int,kind: String,key: String) -> void:
 	var identity:=kind+":"+key
 	if requested.has(identity): return
-	requested[identity]=true; resource_queue.append({"name":name,"type":type,"kind":kind,"key":key,"required_reference":required_reference})
+	requested[identity]=true; resource_queue.append({"name":name,"type":type,"kind":kind,"key":key})
 func prepared(id: int,result: Dictionary) -> void:
 	if dead or not jobs.has(id): return
 	var job: Dictionary=jobs[id]; jobs.erase(id)
 	if not str(result.error).is_empty():
 		resource_errors.append(str(job.name)+": "+str(result.error))
-		if job.kind=="table" and PreviewRules.OPTIONAL.has(str(job.key)) and not job.get("required_reference",false):
-			publish_source_table(str(job.key),{})
-			report_optional_rule(str(job.name),str(result.error))
-			return
-		if JS_CREATION_WIZARD and phase in ["loading","recommending"]:
-			requested.erase(str(job.kind)+":"+str(job.key))
-			if phase=="loading":phase="error"
-			else:phase="editing"
-			status=str(job.name)+": "+str(result.error);render();return
 		if job.kind=="table":
 			if job.key=="ruleset":ui.text.publish_table(job.key,{});synchronize_source_tables()
 			else:publish_source_table(job.key,{})
-		if phase=="loading":phase="error";status=str(job.name)+": "+str(result.error);render()
-		elif phase=="recommending":phase="editing";status=str(job.name)+": "+str(result.error);render()
 		return
 	if job.kind=="table":
 		associate_table_revision+=1
 		if job.key=="ruleset":ui.text.publish_table(job.key,result.value);synchronize_source_tables()
 		else:publish_source_table(job.key,result.value)
-	elif job.kind=="palette":
-		rules.palette_sizes[job.key]=result.bytes.decode_u16(14) if result.bytes.size()>=18 else 0
-		rules.palette_bytes[job.key]=result.bytes
+	elif job.kind=="palette": rules.palette_sizes[job.key]=result.bytes.decode_u16(14) if result.bytes.size()>=18 else 0
 	elif job.kind=="associate":associate_templates[job.key]=result.value
 	if not associate_preview.is_empty():project_associate()
 	if phase=="editing" and job.kind=="table" and is_instance_valid(source_frontend) and source_frontend.child=="package-associate":refresh_source()
-func report_optional_rule(name: String,reason: String) -> void:
-	if optional_rule_reported.has(name):return
-	optional_rule_reported[name]=true
-	ui.text.diagnostics.append({"code":"rules.optional-table-unavailable","reason":name+".2da: "+reason,"resource":name,"outcome":optional_rule_outcome(name)})
-func optional_rule_outcome(name: String) -> String:
-	match name:
-		"savingthrowtypes":return "Native legacy save-immunity fallback selected"
-		"excitedduration":return "SetExcitedState is unavailable"
-		"damagehitvisual":return "Native on-hit visual lookup is unavailable"
-		"repadjust":return "Native combat reputation adjustments are unavailable"
-		"ranges":return "Native perception range initialization is unavailable"
-		"xptable":return "Native death experience lookup is unavailable"
-		"visualeffects":return "Native death visual preservation lookup is unavailable"
-	return "Native dependent rule table is unavailable"
 func package_tables() -> void:
 	var package:=rules.row("packages",int(rules.draft.packageId))
 	for key in ["SkillPref2DA","FeatPref2DA","SpellPref2DA","Equip2DA"]: table(str(rules.cell(package,key,"")))
-func next_optional_rule() -> bool:
-	# Each old optional await settles before the next name is requested.
-	while optional_rule_index<PreviewRules.OPTIONAL.size():
-		var name: String=PreviewRules.OPTIONAL[optional_rule_index]
-		optional_rule_index+=1
-		table(name)
-		if not jobs.is_empty() or not resource_queue.is_empty():return true
-	return false
-func next_referenced_rule() -> bool:
-	# The cost IDs precede class rows; duplicates reuse the published table.
-	while reference_index<reference_queue.size():
-		var entry: Dictionary=reference_queue[reference_index]
-		reference_index+=1
-		var name: String=str(entry.get("name",""))
-		if entry.has("cost_id") and not rules.present(name):
-			phase="error";status="Missing ability item property cost table "+str(entry.cost_id);render();return true
-		if name.to_lower()=="****":continue
-		# String(row[field] ?? '****') treats an authored empty class name
-		# as a lookup, which fails; only the literal sentinel is skipped.
-		if name.is_empty():enqueue("",2017,"table","",true)
-		else:table(name,true)
-		if not jobs.is_empty() or not resource_queue.is_empty():return true
-	return false
 func _process(_delta: float) -> void:
 	if dead: return
 	synchronize_source_tables()
 	try_enter_source()
 	if not associate_name_request.is_empty() and not associate_names.failure.is_empty():dispatch_associate_name()
 	if phase=="editing" and is_instance_valid(source_frontend) and source_text_revision!=int(ui.text.revision): refresh_source()
-	var admission_count: int=mini(4,resource_queue.size())
-	for count in admission_count:
-		if assets.pending.size()+assets.running.size()+assets.repairing.size()>=assets.maximum_pending:break
-		var job: Dictionary=resource_queue[0]
-		var id: int=assets.request(job.name,int(job.type),"2da" if job.kind=="table" else "gff" if job.kind=="associate" else "bytes")
-		if id<0:
-			resource_queue.pop_front()
-			resource_errors.append(str(job.name)+": "+assets.failure)
-			if phase=="loading" and job.kind=="table" and PreviewRules.OPTIONAL.has(str(job.key)) and not job.get("required_reference",false):
-				publish_source_table(str(job.key),{})
-				report_optional_rule(str(job.name),assets.failure)
-				continue
-			requested.erase(str(job.kind)+":"+str(job.key))
-			if phase=="loading":phase="error";status=str(job.name)+": "+assets.failure;render()
-			break
-		resource_queue.pop_front();jobs[id]=job
+	for count in mini(4,resource_queue.size()):
+		if assets.pending.size()+assets.running.size()>=32: break
+		var job: Dictionary=resource_queue.pop_front(); var id: int=assets.request(job.name,int(job.type),"2da" if job.kind=="table" else "gff" if job.kind=="associate" else "bytes")
+		if id>=0: jobs[id]=job
 	if build_task>=0 and WorkerThreadPool.is_task_completed(build_task):
 		WorkerThreadPool.wait_for_task_completion(build_task); build_task=-1
 		if phase=="preparing" and int(build_result.get("scope",-1))==draft_scope:
@@ -754,48 +608,20 @@ func _process(_delta: float) -> void:
 				request.emit({"kind":"native-creation-submit","connection":connection,"draft":draft_scope,"data":Marshalls.raw_to_base64(build_result.bytes)})
 		build_result.clear()
 	if phase not in ["loading","recommending"] or not ui.tables_ready or not jobs.is_empty() or not resource_queue.is_empty(): return
+	if phase=="loading" and not dependencies:
+		dependencies=true
+		for data in rules.rows("racialtypes"): table(str(rules.cell(data,"FeatsTable","")))
+		for data in rules.rows("classes"):
+			if rules.num(data,"PlayerClass")==0: continue
+			for field in ["PreReqTable","StatGainTable","SkillsTable","FeatsTable","BonusFeatsTable","SpellGainTable","SpellKnownTable","AttackBonusTable","SavingThrowTable"]: table(str(rules.cell(data,field,"")))
+		return
 	if phase=="loading":
-		# Gameplay publishes these shared tables before tables_ready, but a
-		# failed read also drains that queue. Do not initialize an empty draft.
-		for name in ["racialtypes","classes","skills","feat","spells","baseitems","portraits","ruleset"]:
-			if not rules.tables.get(name) is Dictionary or not rules.tables[name].get("orderedRows") is Array:
-				phase="error";status="Required character rule is unavailable: "+name;render();return
-		if not source_class_error.is_empty():phase="error";status=source_class_error;render();return
-		for name in ["packages","appearance","gender","phenotype","soundset","chargenclothes","masterfeats"]:
-			if not rules.tables.get(name) is Dictionary or not rules.tables[name].get("orderedRows") is Array:
-				phase="error";status="Required character rule is unavailable: "+name;render();return
-		if not dependencies:
-			dependencies=true
-			for data in rules.rows("racialtypes"):table(str(rules.cell(data,"FeatsTable","")),true)
-			for data in rules.rows("classes"):
-				if not rules.source_truthy(rules.source_num(data,"PlayerClass")):continue
-				for field in PreviewRules.CLASS_TABLE_FIELDS:table(str(rules.cell(data,field,"****")),true)
-			return
-		if rules.model_names.is_empty():rules.model_names=ui.catalog.resource_names(2002)
-		if not current_creator_uses_cache:
-			remember_creator_resources()
-		rules.initialize(); phase="editing"; status=""; render()
+		rules.model_names=ui.catalog.resource_names(2002); rules.initialize(); phase="editing"; status=""; render()
 		try_enter_source()
 	else: phase="editing"; status=rules.recommend(); render()
 func title(table_name: String,id: int,column: String="Name") -> String:
 	var data:=rules.row(table_name,id); var ref:=rules.num(data,column,-1); var label: String=ui.text.raw({"strRef":ref&0xffffffff}) if ref>=0 else ""
 	return label if not label.is_empty() else str(rules.cell(data,"Label",rules.cell(data,"NAME",table_name+" "+str(id))))
-func description(data: Dictionary) -> String:
-	var ref:=rules.num(data,"Description",-1)
-	return ui.text.raw({"strRef":ref&0xffffffff}) if ref>=0 else ""
-func palette_colors(key: String) -> Array:
-	if rules.palette_swatches.has(key):return rules.palette_swatches[key]
-	var bytes: PackedByteArray=rules.palette_bytes.get(key,PackedByteArray())
-	var raster:=preload("res://systems/native_data/texture_data.gd").new();var decoded: Dictionary=raster.parse(bytes,3)
-	var colors: Array=[]
-	if decoded.is_empty():resource_errors.append(key+": "+raster.failure)
-	else:
-		var width:=int(decoded.width);var height:=int(decoded.height);var pixels: PackedByteArray=decoded.mips[0].data
-		for index in mini(256,height):
-			var at:=(index*width+mini(160,width-1))*4
-			colors.append(Color8(pixels[at],pixels[at+1],pixels[at+2]).to_html(false))
-	rules.palette_swatches[key]=colors
-	return colors
 func add(items: Array,type: String,label: String,operation: String="",value: Variant=null,extra: Dictionary={}) -> void:
 	var id:=controls.size(); controls[id]={"operation":operation,"value":value,"type":type}; var entry:={"controlId":id,"type":type,"label":label,"disabled":phase!="editing"}; entry.merge(extra); controls[id].merge(entry); items.append(entry)
 func text(items: Array,label: String) -> void: items.append({"type":"text","label":label})
@@ -809,18 +635,15 @@ func render() -> void:
 	if phase=="closed" or dead: return
 	if source_entered==summary_identity() and not source_fallback:
 		controls.clear();serial+=1;refresh_source();source_frontend.set_phase(phase,status);return
-	if not JS_CREATION_WIZARD:
-		view.update_source_loading("Preparing character screen…" if phase=="editing" else status)
-		return
 	controls.clear(); serial+=1; var items: Array=[]; var d: Dictionary=rules.draft
 	if phase=="editing":
-		if rules.num(rules.cls(),"LearnScroll")!=0 and (JS_CREATION_WIZARD or (not d.get("sourceSpellChoices",false) and not d.get("packageSource",false) and (not is_instance_valid(source_frontend) or not source_frontend.wanted))):d.known[0]=rules.spell_options(0)
+		if rules.num(rules.cls(),"LearnScroll")!=0 and not d.get("sourceSpellChoices",false) and not d.get("packageSource",false) and (not is_instance_valid(source_frontend) or not source_frontend.wanted):d.known[0]=rules.spell_options(0)
 		match step:
 			0:
 				for id in mini(2,rules.rows("gender").size()): add(items,"button",title("gender",id,"NAME"),"gender",id,{"selected":int(d.gender)==id,"tag":"gender","value":id})
 			1:
-				for id in rules.rows("racialtypes").size():
-					if rules.source_truthy(rules.source_num(rules.row("racialtypes",id),"PlayerRace")): add(items,"button",title("racialtypes",id),"race",id,{"selected":int(d.raceId)==id,"tag":"race","value":id})
+				for id in range(rules.rows("racialtypes").size()&255):
+					if rules.num(rules.row("racialtypes",id),"PlayerRace")!=0: add(items,"button",title("racialtypes",id),"race",id,{"selected":int(d.raceId)==id,"tag":"race","value":id})
 				input_field(items,"Subrace","subrace")
 			2:
 				var images:=rules.portraits(); var pages:=maxi(1,ceili(images.size()/48.0)); portrait_page=mini(portrait_page,pages-1); text(items,"Portraits · "+str(portrait_page+1)+" / "+str(pages))
@@ -828,55 +651,45 @@ func render() -> void:
 				for name in images.slice(portrait_page*48,(portrait_page+1)*48): add(items,"portrait",name,"portrait",name,{"selected":d.portrait==name,"resource":name,"tag":"portrait"})
 			3:
 				for id in rules.rows("classes").size():
-					if not rules.source_truthy(rules.source_num(rules.row("classes",id),"PlayerClass")): continue
+					if rules.num(rules.row("classes",id),"PlayerClass")==0: continue
 					var reason:=rules.class_requirement(id); add(items,"button",title("classes",id),"class",id,{"selected":int(d.classId)==id,"disabled":not reason.is_empty(),"reason":reason,"tag":"class","value":id})
 			4:
 				for id in 9:
 					var a:=rules.alignment(id); add(items,"button",Rules.ALIGNMENTS[id],"alignment",id,{"selected":int(d.goodEvil)==int(a.goodEvil) and int(d.lawChaos)==int(a.lawChaos),"disabled":not rules.alignment_allowed(rules.cls(),int(a.goodEvil),int(a.lawChaos)),"tag":"alignment"})
 			5:
 				for id in rules.packages(): add(items,"button",title("packages",id),"package",id,{"selected":int(d.packageId)==id,"tag":"package"})
-				text(items,"A package supplies starting equipment, gold and recommendations. You can customize every choice.")
+				text(items,"Packages supply starting equipment and recommendations. Every choice can be customized.")
 			6:
-				text(items,"Ability points remaining: "+Rules.source_number_text(rules.point_balance())); var scores:=rules.abilities()
+				text(items,"Ability points remaining: "+str(rules.point_balance())); var scores:=rules.abilities()
 				for key in Rules.ABILITIES:
-					text(items,key+": "+str(d.abilities[key])+" · total "+Rules.source_number_text(scores[key]))
+					text(items,key+": "+str(d.abilities[key])+" · total "+str(scores[key]))
 					for delta in [-1,1]: add(items,"button","−" if delta<0 else "+","ability",[key,delta],{"disabled":not rules.can_decrease(key) if delta<0 else rules.point_cost(int(d.abilities[key])+1)-rules.point_cost(int(d.abilities[key]))>rules.point_balance(),"tag":"ability","delta":delta})
-				text(items,"Displayed totals include racial adjustments. Changing abilities clears skill, feat and spell choices.")
 			7:
 				if rules.num(rules.cls(),"PickDomains")!=0:
 					for index in 2: choices(items,"Domain "+str(index+1),"domains",range(rules.rows("domains").size()),int(d.domains[index]) if d.domains.size()>index else -1,"domain-"+str(index))
 				if rules.num(rules.cls(),"PickSchool")!=0: choices(items,"Spell school","spellschools",range(rules.rows("spellschools").size()),int(d.school),"school","StringRef")
-				if rules.num(rules.cls(),"PickDomains")==0 and rules.num(rules.cls(),"PickSchool")==0:text(items,"This class does not select domains or a spell school.")
 			8:
-				text(items,"Skill points remaining: "+str(rules.skill_balance())+" / "+str(rules.skill_budget()))
+				text(items,"Skill points remaining: "+str(rules.skill_balance()))
 				for id in rules.rows("skills").size():
 					var rule:=rules.skill_rule(id)
 					if not rule.allowed or rules.num(rules.row("skills",id),"HideFromLevelUp")!=0: continue
-					text(items,title("skills",id)+" · "+("class" if rule.classSkill else "cross-class")+" · "+str(rule.cost)+" point"+("" if int(rule.cost)==1 else "s")+"/rank · "+str(d.skills.get(id,0))+" / "+str(rule.max))
+					text(items,title("skills",id)+": "+str(d.skills.get(id,0))+" / "+str(rule.max)+" · "+str(rule.cost)+" points/rank")
 					for delta in [-1,1]: add(items,"button","−" if delta<0 else "+","skill",[id,delta],{"disabled":int(d.skills.get(id,0))<=0 if delta<0 else int(d.skills.get(id,0))>=int(rule.max) or rules.skill_balance()<int(rule.cost),"tag":"skill","delta":delta})
 			9: render_feats(items)
 			10:
-				var has_choices:=false
 				for level in 10:
 					var count:=rules.spell_count(level)
 					if count>0:
-						has_choices=true
 						text(items,"Level "+str(level)+" · "+str(d.known.get(level,[]).size())+" / "+str(count)+" known")
-						if level==0 and rules.num(rules.cls(),"LearnScroll")!=0:
-							var cantrips: Array=[]
-							for id in rules.spell_options(0):cantrips.append(title("spells",int(id)))
-							text(items,"Automatic cantrips: "+", ".join(cantrips))
-						else:
+						if level!=0 or rules.num(rules.cls(),"LearnScroll")==0:
 							for id in rules.spell_options(level):
-								var selected: bool=d.known.get(level,[]).has(id); add(items,"button",title("spells",id),"spell",[level,id],{"selected":selected,"disabled":not selected and d.known.get(level,[]).size()>=count,"tag":"spell","description":description(rules.row("spells",id))})
+								var selected: bool=d.known.get(level,[]).has(id); add(items,"button",title("spells",id),"spell",[level,id],{"selected":selected,"disabled":not selected and d.known.get(level,[]).size()>=count,"tag":"spell"})
 					if rules.num(rules.cls(),"MemorizesSpells")==0: continue
-					if rules.spell_slots(level)>0:text(items,"Prepare level "+str(level)+" spells")
 					for slot in rules.spell_slots(level):
 						var domain:=rules.num(rules.cls(),"PickDomains")!=0 and level>0 and slot==rules.spell_slots(level)-1; var ids: Array=[-1]+rules.prepared_options(level,domain); var labels: Array=["Unprepared"]
 						for id in ids.slice(1): labels.append(title("spells",id))
 						var prepared: Array=d.memorized.get(level,[]); var selected:=int(prepared[slot]) if slot<prepared.size() and prepared[slot]!=null else -1
 						add(items,"select","Level "+str(level)+" · "+("Domain" if domain else "Slot "+str(slot+1)),"prepared",[level,slot,ids],{"options":labels,"value":ids.find(selected),"tag":"prepared"})
-				if not has_choices:text(items,"This class receives its spell list automatically." if rules.num(rules.cls(),"SpellCaster")!=0 else "This class does not learn spells at first level.")
 			11:
 				choices(items,"Body type","phenotype",rules.phenotypes(),int(d.phenotype),"phenotype")
 				var heads:=rules.heads(); var labels: Array=[]
@@ -886,29 +699,18 @@ func render() -> void:
 				for id in clothing: labels.append("Clothing "+str(id+1))
 				add(items,"select","Clothing","clothing",clothing,{"options":labels,"value":clothing.find(int(d.clothes)),"disabled":clothing.is_empty(),"tag":"clothing"})
 				for key in ["skin","hair","tattoo1","tattoo2"]:
-					var swatches:=palette_colors(key);var selected_color:=str(swatches[int(d[key])]) if int(d[key])>=0 and int(d[key])<swatches.size() else ""
-					add(items,"button",key.capitalize()+" · Colour "+str(d[key]),"palette-open",key,{"tag":"palette-open","color":selected_color})
-					if active_palette==key:
-						for id in swatches.size():add(items,"colour","Colour "+str(id),"palette",[key,id],{"color":swatches[id],"selected":int(d[key])==id,"tag":"palette"})
+					labels=[]; var ids: Array=[]
+					for id in mini(256,int(rules.palette_sizes.get(key,176))): ids.append(id); labels.append("Colour "+str(id))
+					add(items,"select",key.capitalize(),"palette",[key,ids],{"options":labels,"value":int(d[key]),"tag":"palette"})
 			12:
-				text(items,"Double-click a voice to sample it. Repeat to hear the next line.")
-				for id in rules.voices():add(items,"voice-choice",title("soundset",int(id),"STRREF"),"voice-choice",int(id),{"selected":int(d.soundset)==int(id),"tag":"voice-choice"})
+				choices(items,"Voice","soundset",rules.voices(),int(d.soundset),"voice","STRREF")
+				add(items,"voice-sample","Play sample","voice-sample")
 			13:
 				for pair in [["First name","firstName"],["Last name","lastName"],["Age","age"],["Deity","deity"],["Biography","biography"]]: input_field(items,pair[0],pair[1],32768 if pair[1]=="biography" else 10 if pair[1]=="age" else 32,pair[1]=="biography")
 				for spec in [[303,"hen_familiar","familiar"],[199,"hen_companion","companion"]]:
 					if rules.granted_feats().has(spec[0]): choices(items,str(spec[2]).capitalize(),spec[1],range(rules.rows(spec[1]).size()),int(d[spec[2]]),spec[2],"STRREF"); input_field(items,str(spec[2]).capitalize()+" name",spec[2]+"Name")
 			14:
-				text(items,(str(d.firstName)+" "+str(d.lastName)).strip_edges()); text(items,title("racialtypes",int(d.raceId))+" · "+title("classes",int(d.classId))+" 1")
-				var ability_labels: Array=[]; var ability_scores: Dictionary=rules.abilities()
-				for key in Rules.ABILITIES:ability_labels.append(key+" "+Rules.source_number_text(ability_scores[key]))
-				text(items," · ".join(ability_labels))
-				var all_feats:=rules.granted_feats()
-				for choice in d.feats:all_feats.append(int(choice.id))
-				var feat_names: Array=[]
-				for id in all_feats:feat_names.append(title("feat",int(id),"FEAT"))
-				text(items,"Feats: "+", ".join(feat_names))
-				if rules.errors().is_empty():text(items,"Your character is ready. Play submits it to the connected server.")
-				else:text(items,"Complete these choices:")
+				text(items,(str(d.firstName)+" "+str(d.lastName)).strip_edges()); text(items,title("racialtypes",int(d.raceId))+" · "+title("classes",int(d.classId))+" 1"); text(items,str(rules.abilities())); text(items,"Play submits this character to the connected server.")
 	var problems: Array=rules.errors() if not d.is_empty() and phase=="editing" else []
 	view.receive({"kind":"creation-begin","viewId":serial,"step":step,"steps":STEPS,"phase":phase,"status":status,"errors":problems if step==14 else [],"canEdit":phase=="editing","canFinish":phase=="editing" and problems.is_empty(),"canRecommend":phase=="editing" and rules.default_package()>=0,"canCancel":phase!="waiting","count":items.size()})
 	view.receive({"kind":"creation-items","viewId":serial,"items":items}); view.receive({"kind":"creation-commit","viewId":serial})
@@ -917,100 +719,31 @@ func render() -> void:
 	else: preview.stop()
 	if step!=12 or phase!="editing": voice.reset()
 	else: view.voice_caption=title("soundset",int(d.soundset),"STRREF")
-	if step==2 and phase=="editing":call_deferred("refresh_visible_portraits",serial)
+	for id in controls:
+		if controls[id].type=="portrait" and view.controls.has(id):
+			var button: Button=view.controls[id]; ui.desktop.art.bind_portrait(button.get_meta("portrait"),str(controls[id].resource)+"m"); button.text=""
 	refresh_source()
-func refresh_visible_portraits(bound: int)->void:
-	if dead or phase!="editing" or step!=2 or serial!=bound or not is_instance_valid(view) or not is_instance_valid(view.scroll):return
-	var nearby: Rect2=view.scroll.get_global_rect().grow(200.0)
-	for id in controls:
-		if controls[id].type!="portrait" or not view.controls.has(id):continue
-		var button: Button=view.controls[id]
-		if not is_instance_valid(button) or bool(button.get_meta("portrait_requested",false)) or not nearby.intersects(button.get_global_rect()):continue
-		button.set_meta("portrait_requested",true)
-		var resource:=str(controls[id].resource)
-		button.text=resource
-		ui.desktop.art.bind_portrait(button.get_meta("portrait"),resource+"m")
-		if button.get_meta("portrait").texture!=null:button.text=""
-		else:check_portrait_failure(button,resource)
-func portrait_art_failed(key: String,reason: String)->void:
-	if dead or phase!="editing" or step!=2:return
-	var tracked:=false
-	for id in controls:
-		if controls[id].type!="portrait" or not view.controls.has(id):continue
-		var button: Button=view.controls[id]
-		if not is_instance_valid(button) or not bool(button.get_meta("portrait_requested",false)):continue
-		for candidate in ui.desktop.art.portrait_candidates(str(controls[id].resource)+"m"):
-			if candidate.to_lower()==key.to_lower():tracked=true;break
-		if tracked:break
-	if not tracked:return
-	portrait_failures[key.to_lower()]=reason
-	call_deferred("refresh_portrait_failures")
-func refresh_portrait_failures()->void:
-	if dead or phase!="editing" or step!=2 or not is_instance_valid(view):return
-	for id in controls:
-		if controls[id].type!="portrait" or not view.controls.has(id):continue
-		var button: Button=view.controls[id]
-		if is_instance_valid(button) and bool(button.get_meta("portrait_requested",false)):
-			check_portrait_failure(button,str(controls[id].resource))
-func check_portrait_failure(button: Button,resource: String)->void:
-	if not is_instance_valid(button) or not button.has_meta("portrait") or button.get_meta("portrait").texture!=null or portrait_failure_reported.has(resource):return
-	var candidates: Array[String]=ui.desktop.art.portrait_candidates(resource+"m")
-	if candidates.is_empty():return
-	for candidate in candidates:
-		if not ui.desktop.art.failed.has(candidate.to_lower()):return
-	portrait_failure_reported[resource]=true
-	var reason:=str(portrait_failures.get(candidates[-1].to_lower(),"Portrait image unavailable"))
-	button.tooltip_text="Portrait image unavailable: "+resource
-	ui.stats.errors.append({"code":"character.portrait-failed","reason":reason,"resref":resource})
-func portrait_art_loaded(_key: String,_texture: Texture2D,_bounds: Dictionary) -> void:
-	call_deferred("refresh_portrait_labels")
-func refresh_portrait_labels() -> void:
-	if phase!="editing" or step!=2:return
-	for id in controls:
-		if controls[id].type!="portrait" or not view.controls.has(id):continue
-		var button: Button=view.controls[id]
-		if button.get_meta("portrait").texture!=null:button.text=""
 func render_feats(items: Array) -> void:
 	var d: Dictionary=rules.draft; var slots:=rules.feat_slots(); var owned:=rules.granted_feats(); var counts:={"normal":0,"bonus":0}
-	text(items,"Automatic feats: "+", ".join(rules.granted_feats().map(func(id):return title("feat",int(id),"FEAT"))))
 	for index in d.feats.size():
-		var choice: Dictionary=d.feats[index]; owned.append(int(choice.id)); counts[choice.kind]+=1; add(items,"button",("Class bonus" if choice.kind=="bonus" else "General")+": "+title("feat",int(choice.id),"FEAT")+" · Remove","feat-remove",index)
+		var choice: Dictionary=d.feats[index]; owned.append(int(choice.id)); counts[choice.kind]+=1; add(items,"button",title("feat",int(choice.id),"FEAT")+" · Remove","feat-remove",index)
 	var kinds: Array=[]
 	for kind in ["bonus","normal"]:
 		if int(counts[kind])<int(slots[kind]): kinds.append(kind)
-	if kinds.is_empty(): text(items,"All feat slots filled."); return
+	if kinds.is_empty(): text(items,"All feat choices complete."); return
 	if not kinds.has(feat_kind): feat_kind=str(kinds[0])
-	var kind_labels: Array=[]
-	for kind in kinds:kind_labels.append(("Class bonus" if kind=="bonus" else "General")+" ("+str(int(slots[kind])-int(counts[kind]))+" remaining)")
-	add(items,"select","Feat slot","feat-kind",kinds,{"options":kind_labels,"value":kinds.find(feat_kind)})
+	add(items,"select","Feat slot","feat-kind",kinds,{"options":kinds,"value":kinds.find(feat_kind)})
 	add(items,"toggle","Show unavailable feats","feat-unavailable",null,{"value":show_unavailable})
 	add(items,"input","Filter feats","feat-filter",null,{"value":filter,"maxLength":128})
-	var entries: Array=[];var groups: Dictionary={}
 	for id in rules.rows("feat").size():
 		if not rules.feat_allowed(id,feat_kind): continue
-		var reason:=rules.feat_requirement(id,owned); var label:=title("feat",id,"FEAT");var group_id:=rules.num(rules.row("feat",id),"MASTERFEAT",-1);var group:=rules.row("masterfeats",group_id);var group_name:=title("masterfeats",group_id,"STRREF") if not group.is_empty() else ""
-		if not filter.is_empty() and not (label+" "+group_name).to_lower().contains(filter.to_lower()) or not show_unavailable and not reason.is_empty(): continue
-		var entry:={"id":id,"name":label,"reason":reason,"description":description(rules.row("feat",id))}
-		if group_id>=0 and not group.is_empty():
-			if not groups.has(group_id):groups[group_id]={"id":group_id,"name":group_name,"entries":[]}
-			groups[group_id].entries.append(entry)
-		else:entries.append(entry)
-	var visible: Array=[]
-	if feat_group!=null and groups.has(feat_group):
-		add(items,"button","‹ All feats","feat-group",null)
-		text(items,str(groups[feat_group].name));visible=groups[feat_group].entries
-	else:
-		visible=entries.duplicate()
-		for group in groups.values():visible.append({"id":group.id,"name":group.name,"group":true})
-	visible.sort_custom(func(a,b):return str(a.name).nocasecmp_to(str(b.name))<0)
-	for entry in visible:
-		if entry.get("group",false):add(items,"button",str(entry.name)+" ›","feat-group",int(entry.id))
-		else:add(items,"button",str(entry.name)+( " — "+str(entry.reason) if not str(entry.reason).is_empty() else ""),"feat",int(entry.id),{"disabled":not str(entry.reason).is_empty(),"tag":"feat","description":entry.description})
-	if visible.is_empty():text(items,"No feats match the current choices.")
+		var reason:=rules.feat_requirement(id,owned); var label:=title("feat",id,"FEAT")
+		if not filter.is_empty() and not label.to_lower().contains(filter.to_lower()) or not show_unavailable and not reason.is_empty(): continue
+		add(items,"button",label+(" · "+reason if not reason.is_empty() else ""),"feat",id,{"disabled":not reason.is_empty(),"tag":"feat"})
 func apply_texts(values: Array) -> void:
 	for entry in values:
 		var control: Dictionary=controls.get(int(entry.get("controlId",-1)),{})
-		if control.get("operation")=="field": rules.draft[str(control.value)]=rules.input_age(entry.value) if control.value=="age" else str(entry.value)
+		if control.get("operation")=="field": rules.draft[str(control.value)]=int(str(entry.value)) if control.value=="age" else str(entry.value)
 		elif control.get("operation")=="feat-filter": filter=str(entry.value).left(128)
 func input(message: Dictionary) -> void:
 	var operation:=str(message.get("operation",""))
@@ -1018,14 +751,7 @@ func input(message: Dictionary) -> void:
 	if phase!="editing" or int(message.get("viewId",-1))!=serial: return
 	if operation=="voice":
 		var control: Dictionary=controls.get(int(message.get("controlId",-1)),{})
-		if step==12 and control.get("operation") in ["voice-sample","voice-choice"]:
-			var selected:=int(control.value) if control.operation=="voice-choice" else int(rules.draft.soundset)
-			rules.draft.soundset=selected
-			voice.play(selected,str(rules.cell(rules.row("soundset",selected),"RESREF","")))
-		return
-	if operation=="voice-select" and step==12:
-		var selected: Dictionary=controls.get(int(message.get("controlId",-1)),{})
-		if selected.get("operation")=="voice-choice":rules.draft.soundset=int(selected.value);view.voice_caption=title("soundset",int(selected.value),"STRREF")
+		if step==12 and control.get("operation")=="voice-sample": voice.play(int(rules.draft.soundset),str(rules.cell(rules.row("soundset",int(rules.draft.soundset)),"RESREF","")))
 		return
 	apply_texts(message.get("texts",[])); var d: Dictionary=rules.draft; status=""
 	if operation=="page":
@@ -1047,20 +773,16 @@ func input(message: Dictionary) -> void:
 		if c.type=="select":
 			if not (value is int or value is float) or float(value)!=floor(float(value)) or int(value)<0 or int(value)>=c.options.size(): render(); return
 		match str(c.operation):
-			"gender":
-				d.gender=id; d.portrait=""
-				var voices_list:=rules.voices();d.soundset=int(voices_list[0]) if not voices_list.is_empty() else 0
-				var head_list:=rules.heads();d.head=int(head_list[0]) if not head_list.is_empty() else 1
-			"race": rules.select_race(id,ui.text)
+			"gender": d.gender=id; d.portrait=""
+			"race": rules.select_race(id,ui.text); rules.reset_choices()
 			"class": rules.select_class(id)
-			"alignment": d.merge(rules.alignment(id),true)
+			"alignment": d.merge(rules.alignment(id),true); rules.reset_choices()
 			"package": d.packageId=id
 			"portrait": d.portrait=c.value
 			"portrait-page": portrait_page+=id
-			"ability": d.abilities[c.value[0]]=int(d.abilities[c.value[0]])+int(c.value[1]); rules.reset_js_choices()
+			"ability": d.abilities[c.value[0]]=int(d.abilities[c.value[0]])+int(c.value[1]); rules.reset_choices()
 			"skill": d.skills[c.value[0]]=int(d.skills.get(c.value[0],0))+int(c.value[1]); d.feats=[]
 			"feat-kind": feat_kind=str(c.value[int(value)])
-			"feat-group": feat_group=c.value
 			"feat-unavailable": show_unavailable=bool(value)
 			"feat-filter": filter=str(value).left(128)
 			"feat": d.feats.append({"id":id,"kind":feat_kind})
@@ -1079,22 +801,19 @@ func input(message: Dictionary) -> void:
 				while d.domains.size()<2: d.domains.append(-1)
 				d.domains[int(str(c.operation).right(1))]=c.value[int(value)]; d.feats=[]
 			"head": d.head=c.value[int(value)]
-			"phenotype":
-				d.phenotype=c.value[int(value)]
-				var head_choices:=rules.heads();d.head=int(head_choices[0]) if not head_choices.is_empty() else 1
+			"phenotype": d.phenotype=c.value[int(value)]
 			"clothing": d.clothes=c.value[int(value)]
 			"voice": d.soundset=c.value[int(value)]; voice.reset()
 			"familiar","companion": d[c.operation]=c.value[int(value)]
-			"palette-open": active_palette=null if active_palette==c.value else c.value
-			"palette": d[c.value[0]]=int(c.value[1]);active_palette=null
-			"field": d[c.value]=rules.input_age(value) if c.value=="age" else str(value)
+			"palette": d[c.value[0]]=c.value[1][int(value)]
+			"field": d[c.value]=int(str(value)) if c.value=="age" else str(value)
 	render()
 func begin_build() -> void:
 	var requested_at:=Time.get_ticks_usec();var scope:=draft_scope
 	while not dead and phase=="preparing" and scope==draft_scope and (build_task>=0 or not jobs.is_empty() or not resource_queue.is_empty()): await get_tree().process_frame
 	if dead or phase!="preparing" or scope!=draft_scope: return
 	var capture_at:=Time.get_ticks_usec();build_timings={"scope":scope,"waitUsec":capture_at-requested_at}
-	var source:=Rules.new(); source.tables=rules.tables.duplicate(); source.catalog=rules.catalog.fork(); source.model_names=rules.model_names; source.palette_sizes=rules.palette_sizes; source.portrait_cache=rules.portrait_cache.duplicate(true);source.portrait_prepared=rules.portrait_prepared;source.custom_portraits=rules.custom_portraits.duplicate();source.creation_available_portraits=rules.creation_available_portraits.duplicate();source.portrait_error=rules.portrait_error; source.draft=rules.draft.duplicate(true); source.creation_point_budget=rules.creation_point_budget;source.creation_class_points=rules.creation_class_points;source.ability_points_snapshot=rules.ability_points_snapshot.duplicate()
+	var source:=Rules.new(); source.tables=rules.tables.duplicate(); source.catalog=rules.catalog.fork(); source.model_names=rules.model_names; source.palette_sizes=rules.palette_sizes; source.portrait_cache=rules.portrait_cache; source.draft=rules.draft.duplicate(true); source.creation_point_budget=rules.creation_point_budget;source.creation_class_points=rules.creation_class_points;source.ability_points_snapshot=rules.ability_points_snapshot.duplicate()
 	source.creation_base_hp=rules.creation_base_hp;source.creation_skill_points=rules.creation_skill_points;source.skill_points_snapshot=rules.skill_points_snapshot.duplicate()
 	source.creation_spell_slots=rules.creation_spell_slots.duplicate();source.creation_spell_selection=rules.creation_spell_selection.duplicate(true)
 	build_timings.rulesSnapshotUsec=Time.get_ticks_usec()-capture_at
@@ -1105,17 +824,15 @@ func begin_build() -> void:
 		source.creation_spell_text=frozen.text
 	build_timings.spellTextUsec=Time.get_ticks_usec()-text_at;build_timings.captureUsec=Time.get_ticks_usec()-capture_at
 	build_task=WorkerThreadPool.add_task(func():
-		var worker_at:=Time.get_ticks_usec();var builder:=Builder.new(); var bytes:=builder.build(source,true); build_result={"bytes":bytes,"error":builder.failure,"scope":scope,"workerUsec":Time.get_ticks_usec()-worker_at},false,"Native character BIC")
+		var worker_at:=Time.get_ticks_usec();var builder:=Builder.new(); var bytes:=builder.build(source); build_result={"bytes":bytes,"error":builder.failure,"scope":scope,"workerUsec":Time.get_ticks_usec()-worker_at},false,"Native character BIC")
 func observe(state: Dictionary) -> void:
 	if phase=="waiting" and str(state.get("phase",""))=="character-rejected": phase="editing"; step=14; status="The server rejected the character. Review your choices."; render()
 	elif phase=="waiting" and str(state.get("phase","")) in ["area-loading","playing"]: finish_view()
 func finish_view() -> void:
-	var was_captured:=phase!="closed"
 	if is_instance_valid(tail):tail.retire()
 	associate_name_request={};associate_name_jobs.clear();associate_preview={};associate_work.retire()
 	draft_scope+=1; phase="closed";spells_request+=1;source_spells.close();spells_status={"ready":false};source_entered=[];source_fallback=false; preview.stop(); voice.reset(); view.reset()
 	if is_instance_valid(source_frontend): source_frontend.dismiss()
-	if was_captured:capture_changed.emit(false)
 	closed.emit()
 func cancel() -> void:
 	request.emit({"kind":"native-creation-cancel","connection":connection,"draft":draft_scope}); finish_view()
@@ -1127,7 +844,6 @@ func result(message: Dictionary) -> void:
 	if not message.get("accepted",false): phase="editing" if not rules.draft.is_empty() else "loading"; status=str(message.get("text","Character creation failed.")); render()
 func close() -> void:
 	if dead: return
-	var was_captured:=phase!="closed"
 	dead=true
 	if is_instance_valid(tail):tail.close()
 	preview.close(); voice.close(); assets.close()
@@ -1137,5 +853,4 @@ func close() -> void:
 	if is_instance_valid(source_frontend): source_frontend.close()
 	if build_task>=0: WorkerThreadPool.wait_for_task_completion(build_task); build_task=-1
 	build_result.clear(); resource_queue.clear(); jobs.clear(); view.reset()
-	if was_captured:capture_changed.emit(false)
 func _exit_tree() -> void: close()

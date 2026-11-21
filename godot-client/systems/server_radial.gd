@@ -7,7 +7,6 @@ const Layout=preload("res://systems/native_data/radial_layout.gd")
 const Numbers=preload("res://systems/native_data/game_numbers.gd")
 const GuiIcons=preload("res://systems/native_item_icons.gd")
 const Bubble=preload("res://systems/native_data/radial_text.gd")
-const GameInput=preload("res://systems/native_data/game_input.gd")
 var stage: Control
 var art
 var key_bindings
@@ -42,7 +41,6 @@ var modal_owner_retire: Callable
 var modal_input=preload("res://systems/native_data/modal_lease.gd").new()
 var depth := 0
 var origin := Vector2.ZERO
-var wheel_scale:=1.0
 var gesture_start := Vector2.ZERO
 var dragged := false
 var initial_gesture := false
@@ -213,7 +211,6 @@ func art_ready(key: String,_texture: Texture2D,bounds: Dictionary) -> void:
 	for background in text_backgrounds.values():
 		if key==GuiIcons.model_key(str(background.get_meta("native_bubble_model","")),""): apply_text_bounds(background,bounds)
 	for button in buttons.values(): button.queue_redraw()
-	refresh_text()
 func apply_arrow_bounds(bounds: Dictionary) -> void:
 	var low: Array=bounds.get("min",[]); var high: Array=bounds.get("max",[])
 	if low.size()!=2 or high.size()!=2: return
@@ -325,15 +322,10 @@ func open_at(point: Vector2, target_id: Variant, position: Vector3, emit_request
 	gesture_start = point
 	dragged = false
 	initial_gesture = true
-	# radial_menu.js::open starts every new wheel in gesture mode. A short
-	# right release switches to click mode in _input.
-	click_mode = false
+	click_mode = not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
 	var size := get_viewport().get_visible_rect().size
-	wheel_scale=minf(1.0,minf((size.x-12.0)/320.0,(size.y-12.0)/320.0))
-	var margin:=155.0*wheel_scale
-	origin = size*0.5 if use_screen_center else point.clamp(Vector2(margin,margin), (size-Vector2(margin,margin)).max(Vector2(margin,margin)))
-	stage.scale=Vector2.ONE*wheel_scale
-	stage.position = origin-Vector2(155,155)*wheel_scale
+	origin = size*0.5 if use_screen_center else point.clamp(Vector2(155,155), (size-Vector2(156,156)).max(Vector2(155,155)))
+	stage.position = origin-Vector2(155,155)
 	title.text = "Loading actions…"
 	hint.text = "Esc: close · movement keys remain available"
 	center.text = "×"
@@ -384,7 +376,7 @@ func receive(message: Dictionary) -> void:
 			menu_id = int(message.menuId)
 			depth = int(message.depth)
 			pending = false
-			menu_art_pending=false;menu_art_failure="";stage.show()
+			menu_art_pending=true;menu_art_failure="";stage.hide()
 			center_resource="";center_image.texture=null
 			if is_instance_valid(art):art.bind(center_image,"")
 			# Reset owns this Array header. Never clear the caller's retained
@@ -420,7 +412,7 @@ func receive(message: Dictionary) -> void:
 				icons[int(message.slot)].texture = Images.png(str(message.image), 512)
 
 func choose(slot: int) -> void:
-	if not active or pending or not modal_admitted():
+	if not active or pending or menu_art_pending or not menu_art_failure.is_empty() or not modal_admitted():
 		return
 	for entry in entries:
 		if int(entry.slot) == slot and not entry.get("disabled", false):
@@ -429,7 +421,7 @@ func choose(slot: int) -> void:
 			return
 
 func can_shortcut(data: Dictionary) -> bool:
-	if not active or pending or not modal_admitted() or int(data.get("requestId", -1)) != request_id or int(data.get("menuId", -1)) != menu_id: return false
+	if not active or pending or menu_art_pending or not menu_art_failure.is_empty() or not modal_admitted() or int(data.get("requestId", -1)) != request_id or int(data.get("menuId", -1)) != menu_id: return false
 	for entry in entries:
 		if int(entry.slot) == int(data.get("slot", -1)):
 			return entry.get("canDrag", false) and not entry.get("submenu", false) and not entry.get("disabled", false)
@@ -466,14 +458,14 @@ func position_text(label: Label,slot: int) -> void:
 	var dimensions: Vector2=label.get_meta("native_bubble_dimensions",label.size)
 	var signature: Array=[anchor,dimensions,stage.position,screen,local_origin,slot,hide_icons,center_align_text,text_in_center,text_preview_mode]
 	if label.get_meta("radial_alignment_signature",[])==signature: return
-	var center_position:=stage.position+Vector2(155,155)*wheel_scale
+	var center_position:=stage.position+Vector2(155,155)
 	var alignment:=Bubble.alignment(slot,Vector2(center_position.x,screen.y-center_position.y),screen,dimensions,hide_icons,center_align_text or text_in_center,text_preview_mode)
 	var model_offset:=Bubble.root_offset(alignment,dimensions)
 	label.position=anchor+Vector2(model_offset.x,-model_offset.y)*100.0-local_origin
 	label.set_meta("radial_alignment_signature",signature)
 func refresh_text() -> void:
 	for slot in captions:
-		var label: Label=captions[slot]; label.visible=buttons[slot].visible and (text_preview_mode==2 or icons[slot].texture==null)
+		var label: Label=captions[slot]; label.visible=buttons[slot].visible and text_preview_mode==2
 		if label.visible:
 			fit_text(label); label.add_theme_color_override("font_color",Color.YELLOW if selected==slot else Color(1,1,1,0.4 if buttons[slot].disabled else 1.0)); position_text(label,slot)
 func preview_mode() -> int: return submenu_preview_mode if submenu_previews and not hide_icons else 0
@@ -512,24 +504,37 @@ func build_preview(entry: Dictionary) -> void:
 		art.bind(icon,"gui_icon_1x1mrng" if not resource.is_empty() else "gui_ra_multisub8","texture",true,"",false,{"gui_replace01":resource} if not resource.is_empty() else {})
 	preview_layer.show()
 func _process(_delta: float) -> void:
-	if active and DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_MINIMIZED:
-		emit_request({"kind":"radial-cancel","requestId":request_id});reset();return
+	if menu_art_pending:
+		var cohort: Dictionary=menu_art_snapshot()
+		if cohort.ready:
+			menu_art_pending=false;stage.show()
+		elif not cohort.failures.is_empty():
+			menu_art_pending=false;menu_art_failure=str(cohort.failures[0]);pending=true
+			for button in buttons.values():button.hide()
+			for arrow in arrows.values():arrow.hide()
+			hint.text="Original radial art unavailable: "+menu_art_failure
+			hint.position=Vector2(35,200);hint.show();stage.show()
 	if active and not pending and not click_mode and not get_viewport().gui_is_dragging() and hover_menu==menu_id and hover_slot>=0 and Time.get_ticks_usec()-hover_at>submenu_delay_usec:
 		var slot:=hover_slot; hover_slot=-1; choose(slot)
 
-static func hit(point: Vector2,scale: float=1.0) -> Dictionary:
-	var result: Dictionary=preload("res://systems/native_data/native_radial_actions.gd").radial_hit(point.x,point.y,scale)
-	return {"slot":int(result.get("octant",0)),"octant":result.get("octant"),"zone":result.get("zone","exit"),"radiusSquared":result.get("radiusSquared",0),"error":result.get("error","")}
+static func hit(point: Vector2) -> Dictionary:
+	var squared := floori(point.length_squared() + 0.5)
+	var slot := posmod(int(floor((PI / 2 - atan2(-point.y, point.x)) / TAU * 8 + 0.5)), 8)
+	return {"slot": slot, "zone": "center" if squared <= 400 else ("cancel" if squared <= 3136 else ("select" if squared <= 22500 else ("submenu" if squared <= 90000 else "exit")))}
 
 func clear_gui_activation_suppression() -> void:
 	suppress_gui_activation=false
 func on_button(point: Vector2) -> bool:
 	if center.get_global_rect().has_point(point): return true
 	for button in buttons.values():
-		if button.visible and button._has_point(button.get_global_transform_with_canvas().affine_inverse()*point): return true
+		if button.visible and button._has_point(point-button.global_position): return true
 	return false
 func _input(event: InputEvent) -> void:
 	if not active or not modal_admitted():
+		return
+	if menu_art_pending or not menu_art_failure.is_empty():
+		if event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_ESCAPE:
+			emit_request({"kind":"radial-cancel","requestId":request_id});reset();get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and is_instance_valid(key_bindings) and key_bindings.blocked(): return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not blocks_pointer(event.position):
@@ -555,14 +560,14 @@ func _input(event: InputEvent) -> void:
 			# Let Godot release its pressed button, but suppress its second action
 			# if the first selection synchronously replaced the submenu contents.
 			suppress_gui_activation=true; call_deferred("clear_gui_activation_suppression")
-			var hovered:=hit(event.position-origin,wheel_scale)
+			var hovered:=hit(event.position-origin)
 			if hovered.zone in ["select","submenu"]: choose(int(hovered.slot))
 			else: back()
 			return
 	if event is InputEventMouseMotion:
 		if get_viewport().gui_is_dragging(): hover_slot=-1; return
 		dragged = dragged or event.position.distance_to(gesture_start) > 5
-		var hovered := hit(event.position - origin,wheel_scale)
+		var hovered := hit(event.position - origin)
 		last_motion={"position":event.position,"origin":origin,"sector":hovered,"click_mode":click_mode,"menu_id":menu_id}
 		if hovered.zone in ["select", "submenu"]:
 			highlight(int(hovered.slot))
@@ -576,7 +581,7 @@ func _input(event: InputEvent) -> void:
 		# The original wheel accepts its angular sector between icon discs too.
 		# Let real Button clicks/drag-and-drop retain their normal Godot path.
 		if not on_button(event.position):
-			var hovered:=hit(event.position-origin,wheel_scale)
+			var hovered:=hit(event.position-origin)
 			if hovered.zone in ["select","submenu"]: choose(int(hovered.slot))
 			elif hovered.zone=="cancel": back()
 			get_viewport().set_input_as_handled()
@@ -584,7 +589,7 @@ func _input(event: InputEvent) -> void:
 		if event.pressed:
 			click_mode = false
 		else:
-			var hovered := hit(event.position - origin,wheel_scale)
+			var hovered := hit(event.position - origin)
 			if initial_gesture and not dragged:
 				click_mode = true
 			elif hovered.zone in ["select", "submenu"]:
@@ -593,39 +598,23 @@ func _input(event: InputEvent) -> void:
 				back()
 			initial_gesture = false
 		get_viewport().set_input_as_handled()
-	if event is InputEventKey and event.pressed:
+	if event is InputEventKey and event.pressed and not event.echo:
 		var focus := get_viewport().gui_get_focus_owner()
-		if GameInput.is_text_entry(focus):
+		if focus is LineEdit or focus is TextEdit:
 			return
-		# The old wheel leaves Shift and physical world-movement keys alone.
-		if event.keycode==KEY_SHIFT or event.physical_keycode in [KEY_W,KEY_A,KEY_S,KEY_D,KEY_Q,KEY_E]:return
 		if event.keycode == KEY_ESCAPE:
 			emit_request({"kind": "radial-cancel", "requestId": request_id})
 			reset()
 		elif event.keycode in [KEY_BACKSPACE, KEY_0]:
 			back()
-		elif event.keycode in [KEY_KP_8,KEY_KP_9,KEY_KP_6,KEY_KP_3,KEY_KP_2,KEY_KP_1,KEY_KP_4,KEY_KP_7]:
-			var keys: Array=[KEY_KP_8,KEY_KP_9,KEY_KP_6,KEY_KP_3,KEY_KP_2,KEY_KP_1,KEY_KP_4,KEY_KP_7]
-			choose(keys.find(event.keycode))
 		elif event.keycode >= KEY_1 and event.keycode <= KEY_8:
 			choose(int(event.keycode) - KEY_1)
-		elif event.keycode in [KEY_ENTER,KEY_KP_ENTER,KEY_SPACE]:
-			if selected>=0:choose(selected)
-		elif event.keycode in [KEY_RIGHT,KEY_DOWN,KEY_LEFT,KEY_UP]:
-			var available: Array=[]
-			for entry in entries:
-				if not bool(entry.get("disabled",false)):available.append(int(entry.get("slot",-1)))
-			available.sort()
-			if not available.is_empty():
-				var direction:=1 if event.keycode in [KEY_RIGHT,KEY_DOWN] else -1
-				var index:=available.find(selected)
-				if index<0:index=0 if direction>0 else available.size()-1
-				else:index=posmod(index+direction,available.size())
-				highlight(int(available[index]))
+		else:
+			return
 		get_viewport().set_input_as_handled()
 
 func blocks_pointer(point: Vector2) -> bool:
-	return active and modal_admitted() and point.distance_squared_to(origin) <= 155.0 * wheel_scale * 155.0 * wheel_scale
+	return active and modal_admitted() and point.distance_squared_to(origin) <= 155 * 155
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT and active:

@@ -1,0 +1,25 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict'),{spawnSync}=require('node:child_process');
+const root=path.resolve(__dirname,'../..'),stage=path.join(root,'.cache/nwn62/small-recipe-f');
+const source=JSON.parse(fs.readFileSync(path.join(stage,'source-receipt.json')));
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+for(const pin of [source.recipe,source.template]){assert.equal(sha(path.join(root,pin.relative)),pin.beforeSha256);assert.equal(sha(path.join(stage,pin.relative)),pin.afterSha256)}
+const out=path.join(stage,'correctness-a');assert(!fs.existsSync(out));fs.mkdirSync(path.join(out,'user'),{recursive:true});
+let fixture=fs.readFileSync(path.join(root,'tools/nwn62/small-recipe-tail-coverage.gd'),'utf8');
+const once=(old,next)=>{assert.equal(fixture.split(old).length,2,old);fixture=fixture.replace(old,next)};
+once('.cache/nwn62/small-recipe-b/systems/native_render/model_template.gd','.cache/nwn62/small-recipe-f/systems/native_render/model_template.gd');
+once('for name in ["ttu01_w07_01","ttu01_v06_01","gi_scrl"]:',`for name in ${JSON.stringify([...Object.keys(source.originalTailSha),'gi_scrl','plc_fungus1','px2_d06','plc_cndl03','ttu01_v07_01'])}:`);
+once('var control_pool: RefCounted=Pool.new();control_pool.cooperative_templates=true',`var expect_recipe: bool=${JSON.stringify(Object.keys(source.originalTailSha))}.has(name)\n\t\tcheck(RecipeTemplate.configured_tail_recipe(bundle)==expect_recipe,name+" selector")\n\t\tvar altered: Dictionary=bundle.duplicate();altered.sha256="not-the-original-sha"\n\t\tcheck(not RecipeTemplate.configured_tail_recipe(altered),name+" changed-source fallback")\n\t\tvar control_pool: RefCounted=Pool.new();control_pool.cooperative_templates=true`);
+once('if a.get("status")!="ready" or b.get("status")!="ready":failures.append(name+" build")',`if a.get("status")!="ready" or b.get("status")!="ready":failures.append(name+" build")\n\t\tcheck(b.get("mode","")== ("known-node-recipe" if expect_recipe else "packed-scene"),name+" route")`);
+const fixturePath=path.join(stage,'tail-coverage-f.gd');fs.writeFileSync(fixturePath,fixture,{flag:'wx'});
+const engine=path.join(root,'.tools/Godot_v4.7.2-stable_win64.exe'),report=path.join(out,'report.json');
+const install=path.resolve(root,'../../FullDecomp/NwnRootInstall');assert(fs.existsSync(install));
+const args=['--headless','--path',root,'--script','res://.cache/nwn62/small-recipe-f/tail-coverage-f.gd','--','--model-template=recipe-small-tail-f','--publication-template-diagnose','--install='+install,'--report='+report];
+const run=spawnSync(engine,args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:90000,maxBuffer:4*1024*1024,env:{...process.env,APPDATA:path.join(out,'user'),LOCALAPPDATA:path.join(out,'user')}});
+fs.writeFileSync(path.join(out,'engine.log'),(run.stdout||'')+(run.stderr||''));
+const value=fs.existsSync(report)?JSON.parse(fs.readFileSync(report,'utf8')):null;
+const selected=Object.fromEntries((value?.rows||[]).map(row=>[row.model,{mode:row.candidate?.mode,parity:row.parity?.first_equal===true&&row.parity?.clone_equal===true,controlMaxUs:row.control?.max_step_us,candidateMaxUs:row.candidate?.max_step_us}]));
+const receipt={issue:'NWN-62',private:true,accepted:false,sourcePins:source,engineSha256:sha(engine),fixtureSha256:sha(fixturePath),reportSha256:value?sha(report):null,exit:run.status,error:run.error?.message||'',success:run.status===0&&value?.success===true&&value?.rows?.length===10&&Object.values(selected).every(row=>row.parity),checks:value?.checks||0,failures:value?.failures||[],selected,scope:'Original installed model graph and first/clone parity, source-identity fallbacks, ten route checks; no GPU/FPS.'};
+fs.writeFileSync(path.join(out,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');
+console.log(JSON.stringify({success:receipt.success,exit:receipt.exit,checks:receipt.checks,failures:receipt.failures,selected,logTail:fs.readFileSync(path.join(out,'engine.log'),'utf8').slice(-450)}));
+if(!receipt.success)process.exitCode=1;

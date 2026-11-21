@@ -15,16 +15,12 @@ var help_title: Label
 var help_region
 var bars: Array=[]
 var row_buttons: Array=[]
-var row_icon_targets: Array=[]
 var signature:=""
 var help_refs: Array=[]
 var title: Label
 func configure(painter,text,catalog,cache_path: String) -> void:
-	art_gate_enabled=true
 	extra_models=["ctl_cg_btn_class","scrollbar_simple","pb_scrl_up","pb_scrl_down"]
 	super.configure(painter,text,catalog,cache_path)
-func art_icon_targets() -> Array:return row_icon_targets
-func art_scrollbars() -> Array:return bars
 func scroll(rect: Rect2) -> ScrollContainer:
 	var control:=ScrollContainer.new();add_child(control);control.position=rect.position;control.size=rect.size;control.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;control.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER;return control
 func add_bar(entry: Dictionary,target: ScrollContainer,step: float=14) -> void:
@@ -48,24 +44,18 @@ func bind_data(recommended: bool,active_text,art,value_scope: Array) -> void:
 	if is_instance_valid(help_region):help_region.invalidate()
 func refresh() -> void:
 	if closed or not layout_ready:return
-	var rows_changed: bool=signature!=JSON.stringify(state.entries)
-	if rows_changed:rebuild_rows()
+	if signature!=JSON.stringify(state.entries):rebuild_rows()
 	for index in row_buttons.size():row_buttons[index].set_pressed_no_signal(index==state.selected)
 	set_button_available("recommendbutton",can_recommend)
 	var next: Array=[state.help_title,state.help_description]
 	if next!=help_refs:
 		help_refs=next;var text=data_text if data_text!=null else text_owner
 		help_region.present(text,state.help_title,state.help_description)
-	if rows_changed and wanted:request_art_admission()
 func set_button_available(tag: String,enabled: bool) -> void:
 	var button: Button=buttons[tag];button.disabled=not enabled
 	var label: Label=button.get_child(button.get_child_count()-1);label.modulate=Color.WHITE if enabled else Color(.5,.5,.5,1)
 func rebuild_rows() -> void:
 	signature=JSON.stringify(state.entries);held.clear()
-	for entry in row_icon_targets:
-		var bound_art=entry.get("art")
-		if is_instance_valid(bound_art) and is_instance_valid(entry.get("target")):bound_art.unbind(entry.target)
-	row_icon_targets.clear()
 	for tag in buttons.keys():
 		if str(tag).begins_with(row_prefix):buttons[tag].free();buttons.erase(tag)
 	row_buttons.clear();var group:=ButtonGroup.new();var row: Dictionary=plan.row
@@ -74,11 +64,8 @@ func rebuild_rows() -> void:
 		var entry: Dictionary=state.entries[index];var rect: Rect2=row.bounds;rect.position+=offset
 		var button:=make_button(row_prefix+str(index),{"resource":"ctl_cg_btn_class","rect":rect,"offset":offset,"caption":plan.entries[list_tag].caption},body,true);button.button_group=group;row_buttons.append(button)
 		var label: Label=button.get_child(button.get_child_count()-1);label.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT);label.position=row.hooks.text0-row.bounds.position;label.size=(row.hooks.text1-row.hooks.text0).abs();label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;label.text=str(entry.name);label.modulate=Color.WHITE if entry.get("enabled",true) else Color(.5,.5,.5,1)
-		if not str(entry.icon).is_empty():
-			var icon: TextureRect
-			if is_instance_valid(data_art):
-				icon=TextureRect.new();button.add_child(icon);icon.position=row.hooks.icon-row.bounds.position-Vector2(16,16);icon.size=Vector2(32,32);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;data_art.bind(icon,str(entry.icon))
-			row_icon_targets.append({"target":icon,"resource":str(entry.icon),"art":data_art})
+		if data_art!=null and not str(entry.icon).is_empty():
+			var icon:=TextureRect.new();button.add_child(icon);icon.position=row.hooks.icon-row.bounds.position-Vector2(16,16);icon.size=Vector2(32,32);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;data_art.bind(icon,str(entry.icon))
 		offset+=row.hooks.next
 	body.custom_minimum_size=Vector2(plan.list.size.x,maxf(1,offset.y+row.bounds.position.y));body.size=body.custom_minimum_size
 func retire_input() -> void:

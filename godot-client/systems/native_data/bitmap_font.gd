@@ -1,74 +1,51 @@
 extends RefCounted
 # Original CAurFontInfo TXI metrics. Data only; GPU/font objects publish later.
-const ScriptBytes=preload("res://systems/native_data/native_script_string.gd")
+const F=preload("res://systems/native_render/particle_math.gd")
 var failure:=""
 func reject(reason: String) -> Dictionary: failure=reason; return {}
 func parse(text: String) -> Dictionary:
 	failure=""
-	var values: Dictionary={}; var coordinates: Dictionary={}; var lines: Array=[]; var cursor:=0
-	for source in text.replace("\r\n","\n").split("\n"):
-		var line:=str(source).strip_edges()
-		if not line.is_empty():lines.append(line)
+	if text.length()>8*1024*1024: return reject("Original bitmap-font metadata exceeds bounds")
+	var values: Dictionary={}; var coordinates: Dictionary={}; var lines:=text.replace("\r","").split("\n"); var cursor:=0
 	var regex:=RegEx.new(); regex.compile("\\s+")
 	while cursor<lines.size():
 		var line:=str(lines[cursor]).strip_edges(); cursor+=1
-		if line.is_empty(): continue
+		if line.is_empty() or line.begins_with("#") or line.begins_with("//"): continue
 		var words: PackedStringArray=preload("res://systems/native_data/binary_data.gd").ascii_tokens(line,regex); var key:=str(words[0]).to_lower()
 		if key in ["upperleftcoords","lowerrightcoords"]:
-			if words.size()<2 or not words[1].is_valid_int() or int(words[1])<1 or int(words[1])>65536: return reject("Invalid native font coordinate count")
+			if words.size()!=2 or not words[1].is_valid_int() or int(words[1])<1 or int(words[1])>65536: return reject("Invalid original bitmap-font coordinate count")
+			if coordinates.has(key): return reject("Duplicate original bitmap-font coordinate table")
 			var rows: Array=[]
 			for index in int(words[1]):
-				if cursor>=lines.size(): return reject("Invalid native font coordinate")
+				while cursor<lines.size() and (str(lines[cursor]).strip_edges().is_empty() or str(lines[cursor]).strip_edges().begins_with("#")): cursor+=1
+				if cursor>=lines.size(): return reject("Truncated original bitmap-font coordinates")
 				var row: PackedStringArray=preload("res://systems/native_data/binary_data.gd").ascii_tokens(str(lines[cursor]).strip_edges(),regex); cursor+=1
-				if row.size()!=3: return reject("Invalid native font coordinate")
+				if row.size()!=3: return reject("Invalid original bitmap-font coordinate shape")
 				var point: Array=[]
 				for component in row:
-					if not component.is_valid_float() or not is_finite(float(component)): return reject("Invalid native font coordinate")
-					point.append(float(component))
+					if not component.is_valid_float() or not is_finite(float(component)): return reject("Non-finite original bitmap-font coordinate")
+					point.append(F.f(float(component)))
 				rows.append(point)
 			coordinates[key]=rows
-		else:
-			values[key]=float(words[1]) if words.size()>1 and words[1].is_valid_float() else NAN
-	var count_value:=float(values.get("numchars",NAN))
-	if not is_finite(count_value) or count_value!=floorf(count_value) or count_value<1 or count_value>65536:return reject("Native font glyph metrics are incomplete")
-	var count:=int(count_value)
-	if coordinates.get("upperleftcoords",[]).size()!=count or coordinates.get("lowerrightcoords",[]).size()!=count: return reject("Native font glyph metrics are incomplete")
+		elif key in ["numchars","fontheight","baselineheight","texturewidth","spacingr","spacingb","caretindent","isdoublebyte"]:
+			if words.size()!=2 or not words[1].is_valid_float() or not is_finite(float(words[1])): return reject("Invalid original bitmap-font metric")
+			values[key]=F.f(float(words[1]))
+	var count:=int(values.get("numchars",0))
+	if count<1 or count>65536 or count!=values.get("numchars") or coordinates.get("upperleftcoords",[]).size()!=count or coordinates.get("lowerrightcoords",[]).size()!=count: return reject("Original bitmap-font glyph metrics are incomplete")
 	for key in ["fontheight","baselineheight","texturewidth"]:
-		if not values.has(key) or not is_finite(float(values[key])): return reject("Native font dimensions are unavailable")
-	if float(values.fontheight)<=0 or float(values.texturewidth)<=0: return reject("Native font dimensions are unavailable")
-	var spacing_r:=float(values.get("spacingr",0))*100.0; var spacing_b:=float(values.get("spacingb",0))*100.0
-	return {"count":count,"height":float(values.fontheight)*100.0,"baseline":float(values.baselineheight)*100.0,"width":float(values.texturewidth)*100.0,"spacingR":spacing_r,"spacingB":spacing_b,"spacing_r":spacing_r,"spacing_b":spacing_b,"upper":coordinates.upperleftcoords,"lower":coordinates.lowerrightcoords}
-func glyph(metrics: Dictionary,index: int,width: int,height: int) -> Dictionary:
-	var missing:=index>=int(metrics.count)
-	if missing:index=0
-	if index<0 or width<1 or height<1:return reject("Native font glyph is outside its atlas")
-	var upper: Array=metrics.upper[index];var lower: Array=metrics.lower[index]
-	var scale:=float(metrics.width)/float(width)
-	var sx:=int(floorf(float(upper[0])*width+0.5));var sy:=int(floorf((1.0-float(upper[1]))*height+0.5))
-	var sw:=int(floorf((float(lower[0])-float(upper[0]))*width+0.5));var sh:=int(floorf((float(upper[1])-float(lower[1]))*height+0.5))
-	if sw<0 or sh<0 or sx<0 or sy<0 or sx+sw>width or sy+sh>height:return reject("Native font glyph is outside its atlas")
-	return {"sx":sx,"sy":sy,"sw":sw,"sh":sh,"width":sw*scale,"height":sh*scale,"advance":sw*scale+float(metrics.get("spacingR",metrics.get("spacing_r",0.0))),"missing":missing}
+		if not values.has(key) or absf(float(values[key]))>327.68: return reject("Original bitmap-font dimensions are unavailable")
+	if float(values.fontheight)<=0 or float(values.texturewidth)<=0: return reject("Invalid original bitmap-font dimensions")
+	if values.get("isdoublebyte",0)!=0: return reject("Original double-byte bitmap-font mapping requires its separate atlas consumer")
+	return {"count":count,"height":F.f(float(values.fontheight)*100.0),"baseline":F.f(float(values.baselineheight)*100.0),"width":F.f(float(values.texturewidth)*100.0),"spacing_r":F.f(float(values.get("spacingr",0))*100.0),"spacing_b":F.f(float(values.get("spacingb",0))*100.0),"upper":coordinates.upperleftcoords,"lower":coordinates.lowerrightcoords}
 func glyphs(metrics: Dictionary,width: int,height: int) -> Array:
-	failure=""
+	if width<1 or height<1 or width>32768 or height>32768: failure="Invalid original bitmap-font atlas dimensions"; return []
 	var output: Array=[]
 	for index in int(metrics.count):
-		var item:=glyph(metrics,index,width,height)
-		if not failure.is_empty():return []
-		output.append({"rect":Rect2(item.sx,item.sy,item.sw,item.sh),"size":Vector2(item.width,item.height),"advance":float(item.advance)})
+		var upper: Array=metrics.upper[index]; var lower: Array=metrics.lower[index]
+		var left:=float(upper[0])*width; var top:=(1.0-float(upper[1]))*height; var w:=(float(lower[0])-float(upper[0]))*width; var h:=(float(upper[1])-float(lower[1]))*height
+		# Original TXIs round UVs to six decimals; accept only that subpixel
+		# representation error at an atlas edge, never a real out-of-range glyph.
+		if minf(left,top)<-0.01 or minf(w,h)<-0.01 or left+w>width+0.01 or top+h>height+0.01: failure="Original bitmap-font glyph exceeds its atlas"; return []
+		var glyph_width:=F.f(F.f(float(lower[0])-float(upper[0]))*F.f(float(metrics.width)))
+		output.append({"rect":Rect2(maxf(0,left),maxf(0,top),maxf(0,w),maxf(0,h)),"size":Vector2(glyph_width,float(metrics.height)),"advance":floorf(F.f(glyph_width+float(metrics.spacing_r))+0.5)})
 	return output
-func render(metrics: Dictionary,width: int,height: int,spans: Array,default_color: String="#ffffff") -> Dictionary:
-	failure=""
-	var entries: Array=[];var x:=0.0;var y:=0.0;var line_width:=0.0;var missing:=0
-	for span in spans:
-		var encoded: Dictionary=ScriptBytes.bytes(str(span.get("text","")))
-		if encoded.has("error"):return reject(str(encoded.error))
-		for byte in encoded.value:
-			if int(byte)==10:
-				line_width=maxf(line_width,x);x=0.0;y+=float(metrics.height)+float(metrics.spacingB);continue
-			var item:=glyph(metrics,int(byte),width,height)
-			if not failure.is_empty():return {}
-			if item.missing:missing+=1
-			item.x=x;item.y=y;item.color=default_color if span.get("color")==null else str(span.color)
-			entries.append(item);x+=float(item.advance)
-	line_width=maxf(line_width,x)
-	return {"glyphs":entries,"width":maxi(1,ceili(line_width)),"height":maxi(1,ceili(y+float(metrics.height))),"baseline":float(metrics.baseline),"missing":missing}

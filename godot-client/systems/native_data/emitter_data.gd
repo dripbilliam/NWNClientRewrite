@@ -20,19 +20,8 @@ static func flag(value: Variant) -> bool:
 	if value is bool: return value
 	if value is String:
 		if value=="true": return true
-		var source: String=value.strip_edges()
-		var lower:=source.to_lower()
-		if lower.begins_with("0x") and source.is_valid_hex_number(true):return source.hex_to_int()!=0
-		if (lower.begins_with("0b") or lower.begins_with("0o")) and source.length()>2:
-			var maximum:=49 if lower.begins_with("0b") else 55
-			var nonzero:=false
-			for offset in range(2,source.length()):
-				var digit:=source.unicode_at(offset)
-				if digit<48 or digit>maximum:return false
-				if digit!=48:nonzero=true
-			return nonzero
-		if not source.is_valid_float(): return false
-		return is_finite(source.to_float()) and source.to_float()!=0
+		if not value.is_valid_float(): return false
+		return is_finite(value.to_float()) and value.to_float()!=0
 	return (value is float or value is int) and is_finite(float(value)) and float(value)!=0
 static func resolve_flags(properties: Dictionary) -> int:
 	var value:=int(properties.get("flags",0))&0xffffffff

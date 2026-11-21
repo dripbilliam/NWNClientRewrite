@@ -91,17 +91,7 @@ func hover(value: bool) -> void:
 	if retired: return
 	if widget != null: manager.style(widget, kind, str(values.get("font", "(default)")), values.get("foreground_color"))
 	hovered = value; background.queue_redraw(); foreground.queue_redraw()
-func clear_pointer_press() -> void:
-	if pointer_button == -1: return
-	pointer_button = -1
-	if is_instance_valid(background): background.queue_redraw()
-	if is_instance_valid(foreground): foreground.queue_redraw()
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT: clear_pointer_press()
 func pointer(input: InputEvent, source: Control) -> void:
-	if (input is InputEventMouseButton or input is InputEventMouseMotion or input is InputEventScreenTouch or input is InputEventScreenDrag) and input.is_canceled():
-		clear_pointer_press()
-		return
 	if input is InputEventMouseButton:
 		var at: Vector2 = source.get_global_transform() * input.position
 		var position := {"x": at.x, "y": at.y}
@@ -140,8 +130,6 @@ func apply(row: Dictionary) -> void:
 				widget.text = str(values.get("label", "")); widget.horizontal_alignment = [HORIZONTAL_ALIGNMENT_CENTER, HORIZONTAL_ALIGNMENT_LEFT, HORIZONTAL_ALIGNMENT_RIGHT][clampi(int(values.get("text_halign", 0)), 0, 2)]; widget.vertical_alignment = [VERTICAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_TOP, VERTICAL_ALIGNMENT_BOTTOM][clampi(int(values.get("text_valign", 0)), 0, 2)]
 			"text":
 				if widget.text != str(values.get("label", "")): widget.text = str(values.get("label", ""))
-				widget.horizontal_alignment = [HORIZONTAL_ALIGNMENT_CENTER, HORIZONTAL_ALIGNMENT_LEFT, HORIZONTAL_ALIGNMENT_RIGHT][clampi(int(values.get("text_halign", 0)), 0, 2)]
-				widget.vertical_alignment = [VERTICAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_TOP, VERTICAL_ALIGNMENT_BOTTOM][clampi(int(values.get("text_valign", 0)), 0, 2)]
 				widget.scroll_active = int(values.get("scrollbars", 4)) in [2, 3, 4]
 			"combo":
 				if option_labels != values.get("options", []):

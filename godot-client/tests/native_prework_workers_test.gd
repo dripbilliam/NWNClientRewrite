@@ -2,6 +2,7 @@ extends SceneTree
 const Controller=preload("res://systems/native_asset_prework.gd")
 const Store=preload("res://systems/native_data/prework_store.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
+const Settings=preload("res://systems/native_render_settings.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
 var checks:=0
 var failures: Array=[]
@@ -61,6 +62,10 @@ func manifest(path: String) -> Dictionary:
 		var key:=filename.get_basename(); var entry:=store.cache.load_data(key,key,Store.REVISION)
 		if not entry.is_empty(): result[key]=Cache.digest(var_to_bytes(entry.data))
 	return result
+func click(control: Control) -> void:
+	var point:=control.get_global_rect().get_center(); var motion:=InputEventMouseMotion.new(); motion.position=point; motion.global_position=point; root.push_input(motion,true); await process_frame
+	for pressed in [true,false]:
+		var event:=InputEventMouseButton.new(); event.button_index=MOUSE_BUTTON_LEFT; event.pressed=pressed; event.position=point; event.global_position=point; root.push_input(event,true); await process_frame
 func run() -> void:
 	var report:=""
 	var existing_cache:=""
@@ -140,11 +145,17 @@ func run() -> void:
 	check(not location.save_entry(same_key,[],{"late":true},old_ticket),"Cleared-generation jobs cannot repopulate the folder")
 	check(location.save_entry(same_key,[],{"fresh":true},location.generation()),"New-generation publication works after Clear")
 	check(Store.publication_snapshot().entries==0 and Store.publication_snapshot().active.is_empty(),"All publication gates and active-write leases are released")
-	owner.set_workers(8)
-	check(owner.worker_count==8,"Preparation accepts an explicit supported worker count")
+	var settings:=Settings.new(); root.add_child(settings); settings.setup(folder.path_join("settings.cfg"),""); settings.set_prework_sources(["Installed game + local content"],false)
+	settings.prework_workers_changed.connect(owner.set_workers)
+	var index:=settings.prework_workers.get_item_index(8); settings.prework_workers.select(index); settings.prework_workers.item_selected.emit(index)
+	var restored:=Settings.new(); root.add_child(restored); restored.setup(folder.path_join("settings.cfg"),"")
+	check(restored.prework_worker_setting==8 and owner.worker_count==8,"Worker selection persists and updates the running controller")
 	var paths: Array=[]; owner.folder_opener=func(path: String) -> int: paths.append(path); return OK
-	owner.view_saved_files(folder.path_join("cache-4"))
-	check(paths.size()==1 and str(paths[0]).ends_with("/saved-prework-v1") and DirAccess.dir_exists_absolute(str(paths[0])),"The folder opener receives the generated folder")
-	owner.close(); owner.queue_free(); await process_frame; await process_frame
-	var result:={"success":failures.is_empty(),"checks":checks,"failures":failures,"public_connections":0,"compatible_existing_entries":compatible,"workers":states,"scope":"Authored actual model processing with 1/4 workers; exact output equality, actual worker threads, bounded concurrency, worker selection, cancellation/clear, independent and same-key write barriers, generation-safe concurrent flush, and View saved files routing. Timing samples are functional observations, not an Arelith speedup claim."}
+	settings.prework_folder_requested.connect(func():owner.view_saved_files(folder.path_join("cache-4")))
+	root.size=Vector2i(1100,800); settings.tabs.current_tab=settings.tabs.get_tab_count()-1; settings.show(); await process_frame; await process_frame
+	await click(settings.prework_folder)
+	check(paths.size()==1 and str(paths[0]).ends_with("/saved-prework-v1") and DirAccess.dir_exists_absolute(str(paths[0])),"View saved files routes an actual button click to the generated folder")
+	if DisplayServer.get_name()!="headless": await RenderingServer.frame_post_draw; root.get_texture().get_image().save_png(report+".png")
+	owner.close(); owner.queue_free(); settings.queue_free(); restored.queue_free(); await process_frame; await process_frame
+	var result:={"success":failures.is_empty(),"checks":checks,"failures":failures,"public_connections":0,"compatible_existing_entries":compatible,"workers":states,"scope":"Authored actual model processing with 1/4 workers; exact output equality, actual worker threads, bounded concurrency, live worker selection, cancellation/clear, independent and same-key write barriers, generation-safe concurrent flush, and View saved files routing. Timing samples are functional observations, not an Arelith speedup claim."}
 	write(report,JSON.stringify(result,"\t").to_utf8_buffer()); print(JSON.stringify({"success":result.success,"checks":checks,"failures":failures,"elapsed_ms":states.map(func(state):return state.elapsed_ms)})); quit(0 if failures.is_empty() else 1)

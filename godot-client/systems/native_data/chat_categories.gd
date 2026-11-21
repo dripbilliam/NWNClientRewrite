@@ -32,8 +32,8 @@ static func bits(row: Dictionary) -> int:
 static func mask(settings: Dictionary,index: int) -> int:
 	return int(settings["mask_right" if index==1 else "mask_left" if settings.split else "mask_combined"])
 static func menu(text,settings: Dictionary,index: int) -> Array:
-	var value:=mask(settings,index)
-	var result: Array=[]
+	var combined:=not bool(settings.split); var value:=mask(settings,index)
+	var result: Array=[{"slot":0,"icon":"ir_chatcombine" if combined else "ir_chatsplit","label":text.raw({"strRef":1405 if combined else 1406}),"bit":0}]
 	for source in ENTRIES:
 		var row: Dictionary=source.duplicate(); row.label=text.raw({"strRef":int(source.exclude) if value&int(source.bit) else int(source.include)}); result.append(row)
 	return result

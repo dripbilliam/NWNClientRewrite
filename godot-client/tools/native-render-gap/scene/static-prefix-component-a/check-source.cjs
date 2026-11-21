@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict'),P=require('./prepare.cjs');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),source=fs.readFileSync(path.join(__dirname,'benchmark.gd'),'utf8'),runner=fs.readFileSync(path.join(__dirname,'run-child.ps1'),'utf8');let checks=0;const check=(value,label)=>{assert(value,label);checks++;};
+const plan=P.sourcePlan();check(plan.base.pins.some(row=>row.relative==='systems/native_render/drive_collision_indexed.gd'&&row.sha256==='82bac2a28846e0413a1b55646d3ba71d9d0cc55dc67caccfbfd1de04feeb414f'),'Original real Collision source');
+const begin=source.indexOf('var begin_usec:='),end=source.indexOf('var elapsed_usec:=',begin),timed=source.slice(begin,end);
+check(source.includes('for warm in 16:')&&source.includes('for batch in 8:')&&timed.includes('for query in 64:'),'Bounded16warm8x64');
+check(timed.includes('results[query]=owner.static_candidates(')&&!timed.includes('var_to_bytes')&&!timed.includes('JSON')&&!timed.includes('component_check')&&!timed.includes('oracle_statistics'),'Only direct query/result-slot loop inside timer');
+check(source.indexOf('results.resize(64)')<begin,'Slots preallocated outside timer');
+check(source.indexOf('var_to_bytes(results[query])')>end,'All64result bytes checked outside timer');
+check(source.includes('Collision.new() if component_role=="baseline" else factory.create_owner()'),'Actual distinct baseline/candidate classes');
+check(source.includes('463*528')&&source.includes('==528'),'Actual native aggregate gates');
+check(runner.includes("$fixtureReadyTemp=$fixture.output.observerReady+'.tmp'")&&runner.includes('[IO.File]::Move($fixtureReadyTemp,$fixture.output.observerReady)'),'Atomic ready publication');
+check(!runner.includes('Set-Content -LiteralPath $fixture.output.observerReady'),'No directpartial ready write');
+const project=path.resolve(__dirname,'../../../..'),out=path.join(project,'.cache/native-render-gap/scene/static-prefix-component-source-a');fs.mkdirSync(out,{recursive:true});const receipt={version:1,success:true,kind:'synthetic-canonical463-component-source-check',checks,scope:'Source metadata/timer-placement/atomic-barrier checks only; GDScript/native unparsed and actual timing/semantics pending root-owned jobs.',sourceFiles:fs.readdirSync(__dirname).filter(name=>fs.statSync(path.join(__dirname,name)).isFile()).map(name=>({file:path.join(__dirname,name),sha256:sha(path.join(__dirname,name))})),nativeStarts:0,compilerStarts:0,fullClones:0,futurePrepare:{cwd:project,executable:process.execPath,arguments:['tools/native-render-gap/scene/static-prefix-component-a/prepare.cjs','--mode=prepare','--label=h-b7-component-a']}};const file=path.join(out,'receipt.json');fs.writeFileSync(file,JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({file,sha256:sha(file),checks,nativeStarts:0}));

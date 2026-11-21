@@ -19,7 +19,6 @@ var failure:=""
 var flashing: Array=[]
 var admission_pending:=false
 var tooltips
-var report: Callable
 func configure(target,owner,catalog,cache_path: String,tooltip_scope=null) -> void:
 	panel=target; panel.native_skin=self; panel.hide_tip(); panel.scroll.hide(); art=owner
 	tooltips=tooltip_scope
@@ -44,7 +43,7 @@ func _process(delta: float) -> void:
 	if not panel.is_visible_in_tree(): return
 	for button in flashing:
 		var icon: Control=button.get_node("Icon")
-		if icon.has_method("advance"):icon.call("advance",delta)
+		icon.advance(delta)
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var name: String=jobs[id]; jobs.erase(id)
@@ -61,7 +60,6 @@ func try_admit() -> void:
 	if closed or not admission_pending: return
 	for id in panel.buttons:
 		var icon=panel.buttons[id].get_node("Icon")
-		if str(panel.rows[id].get("resource","")).is_empty():continue
 		if icon.art_ready(): continue
 		var resource: String=str(panel.rows[id].resource).to_lower()
 		var border: String=""
@@ -69,8 +67,6 @@ func try_admit() -> void:
 			if part.resource!="gui_replace01": border=str(part.resource).to_lower()
 		if art.failed.has(resource) or (not border.is_empty() and art.failed.has(border)):
 			failure="Original effect icon unavailable: "+(resource if art.failed.has(resource) else border)
-			if art.failed.has(resource) and report.is_valid():
-				report.call("network.effect-icon-unavailable",failure,{"iconId":int(id),"resource":str(panel.rows[id].get("sourceResource",resource))})
 			panel.art_error=failure; admission_pending=false; stage.hide(); notice.text=failure; notice.show(); panel.show(); set_process(false); return
 		return
 	admission_pending=false; panel.art_error=""; failure=""; notice.hide(); stage.show(); panel.visible=not panel.rows.is_empty(); set_process(not flashing.is_empty()); place()
@@ -100,42 +96,28 @@ func retire(id: int) -> void:
 	if not panel.buttons.has(id): return
 	var button: Button=panel.buttons[id]; panel.buttons.erase(id); panel.images.erase(id)
 	if is_instance_valid(tooltips): tooltips.unregister_control(button)
-	var icon: Control=button.get_node("Icon")
-	if icon.has_method("close"):icon.call("close")
-	stage.remove_child(button); button.queue_free()
+	button.get_node("Icon").close(); stage.remove_child(button); button.queue_free()
 func present() -> void:
 	if closed or not layout_ready: return
 	panel.hide(); stage.hide(); notice.hide(); panel.art_error=""; failure=""; admission_pending=false
 	for id in panel.buttons.keys():
-		if not panel.rows.has(id) or str(panel.buttons[id].get_meta("resource"))!=str(panel.rows[id].resource): retire(int(id))
+		if not panel.rows.has(id) or int(panel.buttons[id].get_meta("serial",-1))!=int(panel.rows[id].get("serial",-1)) or str(panel.buttons[id].get_meta("resource"))!=str(panel.rows[id].resource): retire(int(id))
 	var index:=0; flashing.clear()
 	for id in panel.rows:
 		var row: Dictionary=panel.rows[id]; var rect:=Plan.slot(definition,index); index+=1
 		if not panel.buttons.has(id):
-			var button:=Button.new(); button.name="Effect%d"%id; button.focus_mode=Control.FOCUS_ALL; button.set_meta("serial",int(row.get("serial",-1))); button.set_meta("resource",str(row.resource)); stage.add_child(button); panel.buttons[id]=button
+			var button:=Button.new(); button.name="Effect%d"%id; button.focus_mode=Control.FOCUS_NONE; button.set_meta("serial",int(row.get("serial",-1))); button.set_meta("resource",str(row.resource)); stage.add_child(button); panel.buttons[id]=button
 			for name in ["normal","hover","pressed","disabled","focus"]: button.add_theme_stylebox_override(name,StyleBoxEmpty.new())
-			var icon: Control
-			if str(row.resource).is_empty():
-				var fallback:=Label.new();fallback.text="?";fallback.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;fallback.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;fallback.mouse_filter=Control.MOUSE_FILTER_IGNORE;icon=fallback
-			else:icon=Icon.new()
-			icon.name="Icon";button.add_child(icon)
-			if icon is Label:icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			else:icon.call("configure",definition,art,str(row.resource))
+			var icon:=Icon.new(); icon.name="Icon"; button.add_child(icon); icon.configure(definition,art,str(row.resource))
 			button.pressed.connect(selected.bind(int(id),button,epoch))
-			button.mouse_entered.connect(func(): panel.pinned=false;panel.pinned_id=-1;panel.show_tip(int(id)))
-			button.mouse_exited.connect(func(): if not panel.pinned and not button.has_focus():panel.hide_tip())
-			button.focus_entered.connect(func():panel.show_tip(int(id)))
-			button.focus_exited.connect(func():if not panel.pinned:panel.hide_tip())
+			if is_instance_valid(tooltips): tooltips.register_control(button)
 		var button: Button=panel.buttons[id]; var icon: Control=button.get_node("Icon"); stage.move_child(button,index-1)
-		button.position=rect.position; button.size=rect.size; button.tooltip_text=str(row.get("label",""))
-		if icon.has_method("set_state"):icon.call("set_state",bool(row.state))
-		if bool(row.state) and icon.has_method("advance"): flashing.append(button)
-	if panel.rows.is_empty():panel.hide_tip()
+		button.position=rect.position; button.size=rect.size; button.tooltip_text=str(row.get("label","")); icon.set_state(bool(row.state))
+		if bool(row.state): flashing.append(button)
 	admission_pending=not panel.rows.is_empty(); set_process(admission_pending); try_admit(); place()
 func selected(id: int,button: Button,captured_epoch: int) -> void:
 	if closed or epoch!=captured_epoch or panel.buttons.get(id)!=button or not panel.rows.has(id): return
-	if panel.pinned and panel.pinned_id==id:panel.hide_tip()
-	else:panel.pinned=true;panel.pinned_id=id;panel.show_tip(id)
+	panel.effect_selected.emit(id)
 func place() -> void:
 	if closed or not layout_ready or not is_instance_valid(panel.get_parent()) or not panel.get_parent() is Control: return
 	var viewport: Rect2=panel.get_viewport_rect(); var inverse: Transform2D=panel.get_parent().get_global_transform_with_canvas().affine_inverse()

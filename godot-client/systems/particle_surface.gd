@@ -2,7 +2,7 @@ extends MeshInstance3D
 
 # World-space packed quads from either the direct native simulator or the legacy
 # staged worker adapter. This GPU upload owner has no JS/worker dependency.
-const MAX_VERTICES := 2147483646 # Signed 32-bit mesh vertex count, rounded down to a whole quad.
+const MAX_VERTICES := 196608
 var capacity := 0
 var vertex_count := 0
 var epoch := -1
@@ -39,8 +39,9 @@ func _allocate(next_capacity: int) -> bool:
 	var vertices := PackedVector3Array()
 	var colors := PackedColorArray()
 	var uvs := PackedVector2Array()
-	if vertices.resize(next_capacity) != OK or colors.resize(next_capacity) != OK or uvs.resize(next_capacity) != OK:
-		return false
+	vertices.resize(next_capacity)
+	colors.resize(next_capacity)
+	uvs.resize(next_capacity)
 	colors.fill(Color(0, 0, 0, 0))
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_COLOR] = colors

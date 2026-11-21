@@ -96,11 +96,11 @@ func test_handoff()->void:
 	handoff_check(catalog_loader==null and origin_loader.task==-1 and origin_loader.serial>origin_loader_serial and not catalog_loading,"Reset cancels/joins the actual pending origin catalog before a new setup")
 	receive(setup_frame(4,fixture,"Destination pending catalog"))
 	var destination_loader=catalog_loader;destination_loader.set_process(false)
-	handoff_check(destination_loader!=origin_loader and catalog_loading,"Destination setup owns a distinct loader after reset")
+	handoff_check(destination_loader!=origin_loader and catalog_loading and current_prework_sources.get("marker")=="Destination pending catalog","Destination setup owns a distinct loader and descriptor after reset")
 	var late_catalog:=Catalog.new();origin_loader.completed.emit(origin_loader_serial,late_catalog,"",{"late":true})
 	await process_frame;await process_frame
 	handoff_check(catalog_loader==destination_loader and catalog_loading and not initialized and gameplay_ui==null and catalog!=late_catalog,"Old setup coroutine cannot install its late catalog or construct destination Gameplay")
-	handoff_check(outbound.is_empty() and module_name=="Destination pending catalog","Late catalog completion cannot emit catalogue-ready or overwrite destination metadata")
+	handoff_check(outbound.is_empty() and module_name=="Destination pending catalog" and current_prework_sources.get("marker")=="Destination pending catalog","Late catalog completion cannot emit catalogue-ready or overwrite destination metadata")
 	handoff_check(old_ui_ref.get_ref()==null and old_world_ref.get_ref()==null and world_retirement.snapshot().pending_worlds==0,"Actual UI/world retirement releases prior owners without a new retirement acknowledgement")
 	receive({"kind":"session-reset","connection":5})
 	handoff_check(destination_loader.task==-1 and catalog_loader==null and raw_world.is_empty() and accepted_raw_serial==-1 and raw_serial==next_serial,"Final reset joins the destination catalog and preserves clean raw ownership")

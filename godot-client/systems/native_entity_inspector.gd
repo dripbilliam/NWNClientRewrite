@@ -97,10 +97,8 @@ func _input(event: InputEvent) -> void:
 	var scope:=context();var world: Node=scope.get("world");var camera: Camera3D=scope.get("camera")
 	show();move_to_front()
 	if not is_instance_valid(world) or not is_instance_valid(camera):status.text="No active world/camera.";return
-	var start:=camera.project_ray_origin(event.position)
-	# Keep the projected float32 ray inside the diagnostic's 200-unit limit.
-	var end:=start+camera.project_ray_normal(event.position)*199.9
-	var request:=trace_request(world,scope,{"start":[start.x,start.y,start.z],"end":[end.x,end.y,end.z],"visible_only":true})
+	var start:=camera.project_ray_origin(event.position);var end:=start+camera.project_ray_normal(event.position)*200.0
+	var request:=trace_request(world,scope,{"start":[start.x,start.y,start.z],"end":[end.x,end.y,end.z]})
 	var value:=SceneryTrace.capture(world,camera,request)
 	value.kind="native-scenery-inspection";value.at_unix_ms=int(Time.get_unix_time_from_system()*1000)
 	write_export(value,"scenery")

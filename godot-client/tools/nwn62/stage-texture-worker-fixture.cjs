@@ -1,0 +1,16 @@
+'use strict';
+const fs=require('node:fs');
+const path=require('node:path');
+const crypto=require('node:crypto');
+const assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..');
+const stage=path.join(root,'.cache/nwn62/texture-worker-fixture-b');
+const source=path.join(root,'tools/nwn62/texture_worker_probe.gd');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+assert(!fs.existsSync(stage),'Preserve previous fixture stage');
+fs.mkdirSync(stage,{recursive:true});
+fs.copyFileSync(source,path.join(stage,'probe.gd'),fs.constants.COPYFILE_EXCL);
+fs.writeFileSync(path.join(stage,'project.godot'),'config_version=5\n[application]\nconfig/name="NWN62TextureWorkerFixture"\n[rendering]\nrenderer/rendering_method="forward_plus"\n',{flag:'wx'});
+const receipt={issue:'NWN-62',private:true,accepted:false,source:path.relative(root,source).replaceAll('\\','/'),sourceSha256:sha(source),project:stage,probeSha256:sha(path.join(stage,'probe.gd')),engine:'.tools/native-core/Godot_native_core_e_win64.exe',scope:'Standalone worker-created ImageTexture; no client code, NWN asset, network or FPS'};
+fs.writeFileSync(path.join(stage,'receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(receipt,null,2));

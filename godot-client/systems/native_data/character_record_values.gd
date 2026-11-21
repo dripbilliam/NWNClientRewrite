@@ -28,11 +28,7 @@ static func cfg(tables: Dictionary,label: String,fallback: int) -> int:
 	var owned:=RulesetCache.current(tables)
 	if owned!=null: return owned.integer(label,fallback)
 	# Explicit detached worker projections can supply the same native index.
-	if tables.get("_native_resolved_ruleset") is Dictionary:
-		# CreationTailSnapshot carries one already-resolved label/value scalar.
-		if tables._native_resolved_ruleset.has(label):return int(tables._native_resolved_ruleset[label])
-		var key: Dictionary=RulesetCache.hash_key(label)
-		return int(tables._native_resolved_ruleset.get(key.value,fallback)) if key.error.is_empty() else fallback
+	if tables.get("_native_resolved_ruleset") is Dictionary: return int(tables._native_resolved_ruleset.get(label,fallback))
 	return RulesetCache.from_source(tables,label,fallback)
 static func resolved_ruleset(tables: Dictionary) -> Dictionary:
 	return RulesetCache.compile(tables.get("ruleset",{}))

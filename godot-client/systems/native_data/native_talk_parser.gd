@@ -50,14 +50,6 @@ static func parse(input: PackedByteArray,state: Dictionary,providers: Dictionary
 			if int(state.suppression)==0:output.append_array(input.slice(segment,at+1))
 			at+=2;segment=at;changed=true;continue
 		if int(state.suppression)==0:output.append_array(input.slice(segment,at))
-		# NetworkText supplied the rich-text control boundary before looking for a
-		# token terminator; native ParseStr callers leave this provider unset.
-		var control: Variant=providers.get("controlLength")
-		if control is Callable and control.is_valid():
-			var width: int=int(control.call(input,at))
-			if width>0 and at+width<=end:
-				if int(state.suppression)==0:output.append_array(input.slice(at,at+width))
-				at+=width;segment=at;changed=true;continue
 		var close:=at+1
 		while close<end and input[close]!=62:close+=1
 		if close==end:return {"ready":false,"reason":"Native unterminated talk token has no certified string-buffer boundary."}

@@ -1,0 +1,25 @@
+'use strict';
+const assert=require('node:assert/strict');const {AggregateProbe}=require('./aggregate-probe.cjs');
+const {RawWorldDeltas}=require('../../raw-world-deltas.cjs');
+let checks=0;const ok=v=>{assert(v);checks++;},eq=(a,b)=>{assert.deepEqual(a,b);checks++;};
+const scope={connection:1,generation:2,window:'local-window-a'},identity={...scope,pid:123,createdFileTimeUtcExact:'134386338118207943'};
+let clocks=0;const disabled=new AggregateProbe({now:()=>{clocks++;throw Error('Must not run');}});eq(disabled.beginWindow(identity),false);eq(disabled.measure(0,scope,()=>7),7);eq(disabled.finishWindow(scope),null);eq(clocks,0);
+let tick=0;const p=new AggregateProbe({enabled:true,pid:123,maximum:2,now:()=>++tick});ok(p.beginWindow(identity));eq(p.begin(0,{...scope,generation:3}),0);eq(tick,0);
+const a=p.begin(0,scope);p.end(0,a,1829);eq(p.inspect().phases[0],{id:0,name:'registry_projection',count:1,sum_usec:1,maximum_usec:1,items:1829});
+const error=new Error('Original callback failure');assert.throws(()=>p.measure(1,scope,()=>{throw error;}),e=>e===error);checks++;eq(p.inspect().phases[1].count,1);
+p.measure(0,scope,()=>42);eq(p.begin(0,scope),0);eq(p.inspect().dropped,1);eq(p.finishWindow({...scope,window:'other'}),null);ok(p.finishWindow(scope));eq(p.begin(1,scope),0);
+assert.throws(()=>p.beginWindow(identity));checks++;
+assert.throws(()=>new AggregateProbe({enabled:true,pid:123}).beginWindow({...identity,pid:124}));checks++;
+assert.throws(()=>new AggregateProbe({enabled:true,pid:123}).beginWindow({...identity,createdFileTimeUtcExact:134386338118207943}));checks++;
+const q=new AggregateProbe({enabled:true,pid:123,now:()=>{throw Error('Clock failure');}});q.beginWindow(identity);eq(q.measure(0,scope,()=>99),99);eq(q.active,false);
+const r=new AggregateProbe({enabled:true,pid:123,now:()=>10});r.beginWindow(identity);const t=r.begin(0,scope);eq(r.begin(0,scope),0);r.end(0,t);eq(r.inspect().phases[0].count,1);eq(r.inspect().dropped,1);
+let largeTick=0;const overflow=new AggregateProbe({enabled:true,pid:123,now:()=>[0,Number.MAX_VALUE,0,Number.MAX_VALUE][largeTick++]});overflow.beginWindow(identity);overflow.measure(0,scope,()=>1);overflow.measure(0,scope,()=>2);eq(overflow.active,false);eq(overflow.inspect().phases[0].count,1);ok(Number.isFinite(overflow.inspect().phases[0].sum_usec));
+// Real planner: the same proxy + nested alias can change serialized transport.
+const planner=new RawWorldDeltas(),proxy={id:1,replicated:{position:{x:0}},nativeLifetime:1};
+const data={area:{id:2},objects:[proxy],ui:{party:[]}},plan=serial=>planner.plan({connection:1,generation:2,serial,data});
+eq(plan(1).bridgeMode,'full');eq(planner.acknowledge({connection:1,generation:2,serial:9}),false);assert.throws(()=>plan(2));checks++;ok(planner.acknowledge({connection:1,generation:2,serial:1}));eq(plan(2),null);
+const same=proxy;proxy.replicated.position.x=5;eq(proxy,same);eq(plan(3).objects.length,1);ok(planner.acknowledge({connection:1,generation:2,serial:3}));
+data.ui.party.push({id:4});eq(plan(4).objects.length,0);ok(planner.acknowledge({connection:1,generation:2,serial:4}));
+data.objects=[];eq(plan(5).removedObjectIds,[1]);ok(planner.acknowledge({connection:1,generation:2,serial:5}));data.objects=[{id:1,replicated:{position:{x:5}},nativeLifetime:2}];eq(plan(6).objects.length,1);ok(planner.acknowledge({connection:1,generation:2,serial:6}));
+const scoped=planner.plan({connection:2,generation:2,serial:7,data});eq(scoped.bridgeMode,'full');
+console.log(JSON.stringify({success:true,checks,scope:'Pure JS only; no traffic/client/process or production source edits',zeroDisabledClocks:clocks===0,realDeltaMutationAckCoverage:true}));

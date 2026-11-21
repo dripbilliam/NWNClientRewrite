@@ -12,7 +12,6 @@ var fonts: Dictionary = {}
 var images: Dictionary = {}
 var boxes: Dictionary = {}
 var native_skin_ids: Array=[]
-var resource_serial:=0
 var resources_dirty := false
 var retired_windows: Array = []
 var retired_resources: Array = []
@@ -23,43 +22,27 @@ func skin_ready() -> bool:
 	for id in images.values():
 		if not resources.get(int(id)) is Texture2D: return false
 	for row in fonts.values():
-		if not resources.get(int(row.get("resourceId", -1))) is Font: return false
+		if not resources.get(int(row.get("resourceId", -1))) is FontFile: return false
 	return true
-func reserve_resource_id() -> int:
-	for id in resources: resource_serial=maxi(resource_serial,int(id))
-	for transfer in transfers.values(): resource_serial=maxi(resource_serial,int(transfer.message.get("resourceId",0)))
-	resource_serial+=1
-	return resource_serial
 func install_native_skin(source: Dictionary,native_fonts: Dictionary,native_images: Dictionary) -> void:
 	# Local native preparation bypasses the legacy encoded resource protocol.
 	for id in native_skin_ids: resources.erase(id)
 	native_skin_ids.clear(); skin=source.tables.duplicate(true); fonts.clear(); images.clear(); boxes.clear()
-	var font_ids: Dictionary={}
+	var serial:=0; var font_ids: Dictionary={}
+	for id in resources: serial=maxi(serial,int(id))
 	for spec in source.fonts:
-		if not spec.get("name") is String or not spec.get("resref") is String: continue
 		var resref:=str(spec.get("resref",""))
 		if not native_fonts.has(resref): continue
-		var spacing:=preload("res://systems/native_data/nui_state.gd").number(spec.get("spacing_h"))
-		var spacing_pixels:=roundi(spacing)
-		var font_key:=JSON.stringify([resref,spacing_pixels])
-		if not font_ids.has(font_key):
-			var font: Font=native_fonts[resref]
-			if spacing_pixels!=0:
-				var variation:=FontVariation.new()
-				variation.base_font=font
-				variation.set_spacing(TextServer.SPACING_GLYPH,spacing_pixels)
-				font=variation
-			var id:=reserve_resource_id(); font_ids[font_key]=id; resources[id]=font; native_skin_ids.append(id)
-		var row: Dictionary=spec.duplicate(true); row.resourceId=font_ids[font_key]; fonts[str(row.name)]=row
-	for name in native_images:
-		var id:=reserve_resource_id(); images[name]=id; resources[id]=native_images[name]; native_skin_ids.append(id)
+		if not font_ids.has(resref): serial+=1; font_ids[resref]=serial; resources[serial]=native_fonts[resref]; native_skin_ids.append(serial)
+		var row: Dictionary=spec.duplicate(true); row.resourceId=font_ids[resref]; fonts[str(row.name)]=row
+	for name in native_images: serial+=1; images[name]=serial; resources[serial]=native_images[name]; native_skin_ids.append(serial)
 	statistics.resources=resources.size(); resources_dirty=true
 func reset() -> void:
 	json_packets.reset()
 	if not windows.is_empty(): retired_windows = windows.values().map(func(value): return weakref(value))
 	if not resources.is_empty(): retired_resources = (resources.values() + theming.derived.values()).map(func(value): return weakref(value))
 	for window in windows.values(): window.retire()
-	windows.clear(); resources.clear(); transfers.clear(); skin.clear(); fonts.clear(); images.clear(); boxes.clear(); native_skin_ids.clear(); resource_serial=0; theming.invalidate(); resources_dirty = false
+	windows.clear(); resources.clear(); transfers.clear(); skin.clear(); fonts.clear(); images.clear(); boxes.clear(); native_skin_ids.clear(); theming.invalidate(); resources_dirty = false
 func retired_state() -> Dictionary:
 	return {"windows": retired_windows.filter(func(value): return value.get_ref() != null).size(), "resources": retired_resources.filter(func(value): return value.get_ref() != null).size()}
 func accepts(id: int) -> bool: return windows.has(id) and windows[id].accepts()
@@ -128,25 +111,13 @@ func _process(_delta: float) -> void:
 	if resources_dirty:
 		resources_dirty = false; boxes.clear(); theming.invalidate()
 		for window in windows.values(): window.restyle(); window.layout()
-func font_row(name: String) -> Dictionary:
-	# NetworkNuiView.font chooses the requested font, then (default), then
-	# the first successfully loaded skin font in source order.
-	if fonts.has(name): return fonts[name]
-	if fonts.has("(default)"): return fonts["(default)"]
-	return fonts.values()[0] if not fonts.is_empty() else {}
 func font_for(name: String) -> Font:
-	var row: Dictionary = font_row(name); var font = resources.get(int(row.get("resourceId", -1)))
+	var row: Dictionary = fonts.get(name, fonts.get("(default)", {})); var font = resources.get(int(row.get("resourceId", -1)))
 	return font if font is Font else ThemeDB.fallback_font
-func font_size(name: String) -> int:
-	var value: Variant=font_row(name).get("font_size", 17)
-	var number: float=preload("res://systems/native_data/nui_state.gd").number(value)
-	# The old FontFace row uses Number(font_size)||17 before CSS pixels.
-	return 17 if number==0.0 else maxi(1,roundi(number))
+func font_size(name: String) -> int: return maxi(1, int(fonts.get(name, fonts.get("(default)", {})).get("font_size", 17)))
 func skin_color(table: String, key: String, fallback: Color) -> Color:
 	var value = skin.get(table, {}).get(key)
-	if not value is String: return fallback
-	var native_color:=RegEx.create_from_string("^#[0-9a-fA-F]{8}$")
-	return Color.html(value) if native_color.search(value)!=null else fallback
+	return Color.html(value) if value is String and value.begins_with("#") else fallback
 func box(table: String, key: String, fallback: Color) -> StyleBox:
 	var cache_key := table + "/" + key + "/" + fallback.to_html()
 	if boxes.has(cache_key): return boxes[cache_key]

@@ -3,7 +3,7 @@ extends Control
 # Current Godot/FreeType metrics are explicit; Win32 native glyph pixels and
 # nondefault GUI-scale/camera remapping are not claimed by this adapter.
 const Markup=preload("res://systems/native_data/script_floating_markup.gd")
-const FONT="fnt_galahad14"
+const FONT="ttf fnt_maintext 17"
 var fonts
 var resources
 var font_target: RichTextLabel

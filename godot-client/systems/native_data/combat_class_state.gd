@@ -1,6 +1,6 @@
 extends RefCounted
-# Private client presentation state only. The old network selector refuses a
-# middle-range melee choice until replicated.stats.classes is disclosed.
+# Private client presentation state only. CNWCCreatureStats7ea230 constructs
+# count1/class4 before class disclosure; selector80ffd0 therefore sees no5.
 # This never creates canonical class/level/stat fields or table entries.
 static func integer(value: Variant,minimum: int,maximum: int) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value)==floor(float(value)) and value>=minimum and value<=maximum
@@ -26,4 +26,4 @@ static func project(object: Dictionary,previous: Dictionary={}) -> Dictionary:
 	# projection only for the exact owned identity, including explicit unknown.
 	if previous.get("id") is int and previous.get("lifetime") is int and int(previous.id)==id and int(previous.lifetime)==lifetime and previous.get("known") is bool:
 		if (previous.known and previous.get("monk") is bool) or (not previous.known and previous.get("monk")==null): return previous.duplicate(true)
-	return unknown(id,lifetime,"undisclosed-classes")
+	return {"id":id,"lifetime":lifetime,"known":true,"monk":false,"source":"native-constructor-7ea230"}

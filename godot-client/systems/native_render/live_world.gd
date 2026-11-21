@@ -11,36 +11,23 @@ const CombatMotion=preload("res://systems/native_data/combat_motion.gd")
 const Surface=preload("res://systems/native_render/terrain_surface.gd")
 const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 const ParticleRandom=preload("res://systems/native_render/particle_random.gd")
-const ParticleSceneOrder=preload("res://systems/native_render/particle_scene_order.gd")
-const CameraFramePhase=preload("res://systems/native_render/camera_frame_phase.gd")
 const ReferenceAssets=preload("res://systems/native_render/reference_assets.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
-const PlaceableLights=preload("res://systems/native_render/placeable_lights.gd")
 const PointWind=preload("res://systems/native_render/scene_point_wind.gd")
 const ParticleMetrics=preload("res://systems/native_render/particle_metrics.gd")
 const SceneHit=preload("res://systems/native_render/projectile_scene.gd")
-const CameraSceneHit=preload("res://systems/native_render/camera_scene_query.gd")
 const Priority=preload("res://systems/native_render/stream_priority.gd")
 const BaseScenery=preload("res://systems/native_render/base_world_scenery.gd")
 const EntityLifetime=preload("res://systems/native_data/entity_presentation_lifetime.gd")
 const VerifiedSnapshot=preload("res://systems/native_data/world_snapshot_verified_packet.gd")
-const WorldSnapshotMetadata=preload("res://systems/native_data/world_snapshot_metadata.gd")
-const NetworkDriveGeometry=preload("res://systems/native_data/native_network_drive_geometry.gd")
-const ResourcePrefetch=preload("res://systems/native_data/resource_prefetch.gd")
 signal instance_ready(id: int,source: Dictionary,instance)
 signal instance_removed(id: int)
 signal instance_state_changed(id: int,source: Dictionary)
-signal drive_preview_resource_ready
-var camera_pre_motion: Callable
-var camera_post_motion: Callable
 var pool:=Pool.new()
 var owns_pool:=true
 var point_wind
 var particle_metrics:=ParticleMetrics.new()
 var particle_stream_group: Node
-var particle_scene_order: Node
-var camera_frame_phase: Node
-var particle_vertex_preparation: Node
 var catalog
 var terrain
 var borders
@@ -48,7 +35,6 @@ var borders_started:=false
 var tile_borders_enabled:=true
 var border_disabled: Variant=null
 var surface
-var ground_height_index
 var batches: Array=[]
 var desired: Dictionary={}
 # A single full-boundary sidecar, prepared only by the native session owner.
@@ -66,14 +52,6 @@ static func configured_verified_packet() -> bool:
 var received_metadata_stats:={"prepared_boundaries":0,"prepared_rows":0,"verified_staged":0,"full_staged":0,"rejected":0}
 var installed: Dictionary={}
 var instances: Dictionary={}
-class CreaturePoseInputs extends RefCounted:
-	var render: Vector3
-	var facing: Vector3
-	var target_yaw: float
-	var applied_position: Vector3
-	var applied_yaw: float
-var _creature_pose_inputs: Dictionary={}
-var _creature_pose_reuses:=0
 var static_collision_index=preload("res://systems/native_render/scene_query_index.gd").new()
 var direct_particle_collision_enabled:=true # Diagnostic callback-boundary A/B.
 var animations: Dictionary={}
@@ -88,31 +66,6 @@ func set_show_blockers(enabled: bool) -> void:
 		if is_instance_valid(instance) and instance.has_method("set_show_blockers"):instance.set_show_blockers(enabled)
 var motion:=Motion.new()
 var motion_revisions: Dictionary={}
-var pending_path_acceptance: Dictionary={}
-var inflight_path_geometry: Dictionary={}
-class PathAcceptanceTicket extends RefCounted:
-	signal finished
-	var done:=false
-	func complete()->void:
-		if done:return
-		done=true
-		finished.emit()
-var running_path_acceptance: Dictionary={}
-func settle_path_acceptance(id: int)->void:
-	inflight_path_geometry.erase(id)
-	if not running_path_acceptance.has(id):return
-	var ticket: PathAcceptanceTicket=running_path_acceptance[id]
-	running_path_acceptance.erase(id)
-	ticket.complete()
-var raw_object_lookup: Callable
-var raw_object_enumerate: Callable
-var preview_token: Callable
-var preview_completed: Callable
-var source_prefetch
-var live_object_table_bank: Dictionary={}
-var reuse_live_object_tables:=OS.get_cmdline_user_args().has("--benchmark-live-object-table-bank=true")
-var _source_prefetch_static_ready:=false
-var prefetch_lookahead:=OS.get_cmdline_user_args().has("--benchmark-prefetch-lookahead=true")
 var cache_path:=""
 var area_id:=-1
 var generation:=-1
@@ -121,7 +74,6 @@ var focus_lighting
 var model_environment
 var native_sky
 var placeable_lights
-var skip_placeable_light_motion_wakes:=not OS.get_cmdline_user_args().has("--placeable-light-motion-skip=false")
 var base_draw_merge
 var base_draw_merge_enabled:=OS.get_cmdline_user_args().has("--base-scenery-draw=merged")
 func invalidate_static_draw(id: int,reason: String) -> void:
@@ -150,7 +102,6 @@ func observe_facing_target(object: Dictionary) -> void:
 	var id:=int(object.id)
 	if int(object.objectType)==5 and motion.objects.has(id): motion.objects[id].facingTarget=int(object.get("replicated",{}).get("facingTarget",0x7f000000))
 var minutes_per_hour:=5
-var visual_world_timer: Variant=null
 var use_skeleton:=false
 var closed:=false
 var retiring:=false
@@ -171,40 +122,6 @@ var reuse_base_scenery_owner:=OS.get_cmdline_user_args().has("--base-scenery-own
 var retained_base_owner
 var retained_base_generation:=-1
 var base_scenery_population_known:=false
-var initial_shadow_sources: Dictionary={}
-var initial_shadow_capture_epoch:=-1
-func _generated_placeable_light(light: Node) -> bool:
-	var owner: Node=light
-	while owner!=null and owner!=self:
-		if owner.has_meta("native_generated_placeable_id"):return true
-		owner=owner.get_parent()
-	return false
-func _initial_shadow_source_matches(id: int,record: Dictionary) -> bool:
-	if not initial_shadow_sources.has(id) or record.is_empty():return false
-	var initial: Dictionary=initial_shadow_sources[id]
-	return str(record.get("key",""))==str(initial.key) and EntityLifetime.token(record.object)==initial.lifetime
-func capture_initial_shadow_membership(capture_epoch: int) -> void:
-	if closed or retiring or capture_epoch!=generation:return
-	initial_shadow_capture_epoch=capture_epoch
-	initial_shadow_sources.clear()
-	# The old setAreaLighting traverses the fully built root once. Terrain is
-	# already complete at this gate; tag its physical lights before later frames.
-	for light in get_tree().get_nodes_in_group("native_original_model_lights"):
-		if is_instance_valid(light) and is_ancestor_of(light) and not _generated_placeable_light(light) and light.get_meta("native_shadow_requested",false):
-			light.set_meta("native_initial_area_shadow_epoch",capture_epoch)
-	set_meta("native_initial_area_shadow_opacity",get_meta("native_area_model_shadow_opacity",1.0))
-	# A first full population can be known while its models are still staged.
-	# Preserve only those visual/lifetime identities, never later births.
-	if not base_scenery_population_known:return
-	for id in desired:
-		if instances.has(id) and is_instance_valid(instances[id]) and str(installed.get(id,""))==str(desired[id].key):continue
-		initial_shadow_sources[id]={"key":desired[id].key,"lifetime":EntityLifetime.token(desired[id].object)}
-func _stamp_initial_shadow_instance(id: int,key: String,instance: Node3D) -> void:
-	if not initial_shadow_sources.has(id):return
-	if initial_shadow_capture_epoch==generation and is_instance_valid(instance) and desired.has(id) and str(desired[id].key)==key and _initial_shadow_source_matches(id,desired[id]):
-		for light in instance.find_children("*","OmniLight3D",true,false):
-			if not _generated_placeable_light(light) and light.get_meta("native_shadow_requested",false):light.set_meta("native_initial_area_shadow_epoch",initial_shadow_capture_epoch)
-	initial_shadow_sources.erase(id)
 var base_scenery_progress_dirty:=true
 const BASE_SCENERY_PROGRESS_FIELDS=["expected","resolved","instances_resolved","hidden_resolved","failed","unknown_placeables","unresolved_static","omitted_static"]
 # Per-slot flags/reason live on the existing desired owner; only totals here.
@@ -246,7 +163,6 @@ var base_admission_allowance:=OS.get_cmdline_user_args().has("--base-scenery-adm
 var data_retirement
 var owns_data_retirement:=false
 var drive_collision
-var drive_geometry:=NetworkDriveGeometry.new()
 var drive_collision_configuration:=configured_drive_collision(OS.get_cmdline_user_args())
 var drive_spatial_enabled: bool=drive_collision_configuration.valid and drive_collision_configuration.requested=="indexed"
 var drive_collision_active_configuration: Dictionary={}
@@ -363,14 +279,11 @@ func _enter_tree() -> void:
 	set_meta("native_particle_random",ParticleRandom.new())
 	set_meta("native_particle_metrics",particle_metrics)
 	set_meta("native_particle_collision",collide_particle)
+	set_meta("native_particle_collision_indices",particle_collision_indices)
 	point_wind=PointWind.new(); add_child(point_wind); set_meta("native_point_wind_owner",point_wind)
-	particle_vertex_preparation=preload("res://systems/native_render/particle_vertex_preparation.gd").new(); add_child(particle_vertex_preparation); particle_vertex_preparation.configure(self)
 	if OS.get_cmdline_user_args().has("--particle-presentation=shared") or OS.get_environment("NWN_PARTICLE_PRESENTATION")=="shared":
 		particle_stream_group=preload("res://systems/native_render/particle_stream_group.gd").new(); add_child(particle_stream_group)
 		if not particle_stream_group.configure(self): stats.particle_stream_failure=particle_stream_group.failure
-	else:
-		particle_scene_order=ParticleSceneOrder.new(); particle_scene_order.configure(self); add_child(particle_scene_order)
-	camera_frame_phase=CameraFramePhase.new(); camera_frame_phase.configure(self); add_child(camera_frame_phase)
 	combat=preload("res://systems/native_render/combat_presentation.gd").new(); add_child(combat)
 func particle_collision_indices() -> Array:
 	if closed or retiring or not direct_particle_collision_enabled or not is_instance_valid(terrain): return []
@@ -380,11 +293,11 @@ func particle_collision_indices() -> Array:
 	return [tiles.native_owner.call("dispatch",5,{}) if not tiles.entries.is_empty() else 0,static_collision_index.native_owner.call("dispatch",5,{}) if not static_collision_index.entries.is_empty() else 0]
 func collide_particle(start: Array,end: Array,out: Array,hit: Dictionary) -> bool:
 	if closed or retiring: return false
-	var began:=FrameProfile.begin(); var result: Variant=CameraSceneHit.nearest_hit(self,start,end)
+	var began:=FrameProfile.begin(); var result:=SceneHit.trace(self,start,end,true)
 	FrameProfile.finish("native_particle_scene_collision",began)
 	stats.particle_scene_queries=int(stats.get("particle_scene_queries",0))+1
-	stats.particle_scene_hits=int(stats.get("particle_scene_hits",0))+int(result!=null)
-	if result==null: return false
+	stats.particle_scene_hits=int(stats.get("particle_scene_hits",0))+int(result.hit)
+	if not result.hit: return false
 	out.assign(result.position); hit.normal=result.normal; return true
 func open(source,area: Dictionary,epoch: int,cache_directory: String,shared_pool=null,entry: Dictionary={}) -> void:
 	if not bool(drive_collision_configuration.valid):
@@ -395,7 +308,6 @@ func open(source,area: Dictionary,epoch: int,cache_directory: String,shared_pool
 	pool.bind_publication_world(self)
 	set_meta("native_publication_pool",pool)
 	catalog=source; area_id=int(area.id); generation=epoch; cache_path=cache_directory
-	source_prefetch=ResourcePrefetch.new();add_child(source_prefetch);source_prefetch.configure(self,catalog,pool,cache_path)
 	if base_draw_merge_enabled:
 		base_draw_merge=preload("res://systems/native_render/base_static_draw_merge.gd").new();add_child(base_draw_merge)
 		var context: Variant=get_meta("native_static_draw_context_provider",Callable())
@@ -407,8 +319,7 @@ func open(source,area: Dictionary,epoch: int,cache_directory: String,shared_pool
 	references=ReferenceAssets.new(); add_child(references); references.configure(catalog,pool,cache_path); set_meta("native_reference_hub",references)
 	native_sky=preload("res://systems/native_render/sky_world.gd").new(); add_child(native_sky); native_sky.configure(self,catalog,pool,cache_path); set_meta("native_sky_owner",native_sky)
 	effects=preload("res://systems/native_render/effect_world.gd").new(); add_child(effects); effects.configure(self)
-	if is_instance_valid(combat):combat.configure_sound(effects)
-	placeable_lights=PlaceableLights.new(); add_child(placeable_lights); placeable_lights.configure(self,catalog,pool,cache_path,area.get("placeableLights",[]))
+	placeable_lights=preload("res://systems/native_render/placeable_lights.gd").new(); add_child(placeable_lights); placeable_lights.configure(self,catalog,pool,cache_path,area.get("placeableLights",[]))
 	# Selection shapes are lazy and instance eligibility is decided from the
 	# latest server state, independently of immutable shared render resources.
 	pool.picking=false
@@ -418,22 +329,11 @@ func open(source,area: Dictionary,epoch: int,cache_directory: String,shared_pool
 		set_priority_origin(Vector3(float(entry_position[0]),float(entry_position[2]),-float(entry_position[1])))
 	terrain.definition_ready.connect(func(value):
 		if is_instance_valid(model_environment): model_environment.receive_definition(value)
-		surface=Surface.new(); add_child(surface); surface.configure(catalog,value,cache_path,false,true)
-		ground_height_index=preload("res://systems/native_render/walkable_height_index.gd").new(); ground_height_index.configure(surface)
-		drive_geometry.configure(self)
+		surface=Surface.new(); add_child(surface); surface.configure(catalog,value,cache_path)
 		if has_priority_origin: surface.set_priority_origin(priority_origin)
-		motion.height_query=ground_height_index.height)
-	# NetworkScene.loadArea requests WOKs after its ordered tile attachments.
-	# Keep one cached WOK owner and start it at that same area-owned boundary.
-	terrain.finished.connect(func(state):
-		if bool(state.get("success",false)) and is_instance_valid(surface):surface.activate())
+		motion.height_query=surface.height)
 	terrain.open_network_area(catalog,area,pool,cache_path)
 	drive_collision=_new_drive_collision(); add_child(drive_collision); drive_collision.configure(self,catalog,cache_path)
-	drive_collision.assets.completed.connect(func(_request_id: int,_result: Dictionary)->void:
-		drive_preview_resource_ready.emit()
-		if not _source_prefetch_static_ready and is_instance_valid(source_prefetch) and drive_collision.tables.size()==4:
-			_source_prefetch_static_ready=true;source_prefetch.enqueue_objects())
-	drive_geometry.configure(self)
 static func border_disabled_from_network(area: Dictionary) -> Variant:
 	# Original received CNWCArea+10c, not Interior or a guessed default. Older
 	# packets can omit the field; that absence must remain explicit.
@@ -455,92 +355,50 @@ func start_area_border() -> void:
 	borders=preload("res://systems/native_render/area_border_stream.gd").new();add_child(borders)
 	if has_priority_origin:borders.set_priority_origin(priority_origin)
 	borders.open_network(catalog,terrain.definition,{"enabled":tile_borders_enabled,"disabled":border_disabled},pool,[get_instance_id(),generation,area_id],cache_path)
-func _drive_preview_current(id: int,state: Dictionary,object: Dictionary,preview_generation: int)->bool:
-	if id!=controlled_id or not ready_for_control() or not can_accept_paths() or not desired.has(id) or not motion.objects.has(id) or not is_same(motion.objects[id],state) or int(state.get("previewGeneration",0))!=preview_generation:return false
-	var current: Variant=raw_object_lookup.call(id) if raw_object_lookup.is_valid() else desired[id].object
-	if not current is Dictionary or not is_same(current,object) or bool(object.get("replicationRemoved",false)) or int(object.get("areaId",-1))!=area_id:return false
-	var raw: Dictionary=object.get("replicated",{})
-	var planner=preload("res://systems/native_data/drive_preview.gd")
-	return not planner.blocked(int(raw.get("animation",0))) and (not raw.has("field8D4") or (int(raw.field8D4)&2)!=0)
-func _drive_preview_pose(state: Dictionary,object: Dictionary)->Dictionary:
-	var appearance: Variant=object.get("appearance")
-	return {"position":state.position,"render":state.render,"orientation":state.orientation,"walkRate":state.walkRate,"runRate":state.runRate,"appearance":appearance.get("appearance") if appearance is Dictionary else null}
-func _drive_preview_pose_changed(state: Dictionary,object: Dictionary,pose: Dictionary)->bool:
-	return _drive_preview_pose(state,object)!=pose
-func _drive_preview_error(id: int,state: Dictionary,message: String)->void:
-	if str(state.get("previewFailure",""))!=message:
-		state.previewFailure=message
-		push_warning("network.drive-preview-unavailable: "+message+" for object "+str(id))
-func _continue_drive_preview(id: int,flags: int,heading: int,state: Dictionary,object: Dictionary,preview_generation: int,attempt: int,pose: Dictionary,token: Dictionary,captured_inputs: Variant)->void:
-	while _drive_preview_current(id,state,object,preview_generation):
-		await drive_preview_resource_ready
-		if not _drive_preview_current(id,state,object,preview_generation):return
-		var prepared: Dictionary=drive_geometry.query(object,false,captured_inputs)
-		if prepared.has("pending"):continue
-		var next_attempt:=attempt+1 if _drive_preview_pose_changed(state,object,pose) else attempt
-		var result: Dictionary=_drive_preview_path(id,flags,heading,state,object,preview_generation,next_attempt,null if next_attempt!=attempt else captured_inputs)
-		if result.get("deferred",false):return
-		if preview_completed.is_valid():preview_completed.call(token,result)
-		return
-func _drive_preview_path(id: int,flags: int,heading: int,state: Dictionary,object: Dictionary,preview_generation: int,first_attempt: int=0,captured_inputs: Variant=null)->Dictionary:
-	var planner=preload("res://systems/native_data/drive_preview.gd")
-	for attempt in range(first_attempt,3):
-		if not _drive_preview_current(id,state,object,preview_generation):return {}
-		var pose:=_drive_preview_pose(state,object)
-		var planned_orientation: Vector3=planner.wire_facing(heading) if heading>=0 else state.orientation
-		var plan: Dictionary=planner.plan(state.position,planned_orientation,float(state.walkRate),float(state.runRate),flags)
-		if plan.has("error"):_drive_preview_error(id,state,str(plan.error));return {}
-		# The area-owned query supplies one private collision projection to all
-		# direct, bisection and angular path checks in this input attempt.
-		var query_began:=FrameProfile.begin()
-		var prepared: Dictionary=drive_geometry.query(object,false,captured_inputs)
-		FrameProfile.finish("keyboard_preview_query",query_began)
-		if prepared.has("pending"):
-			var token: Dictionary=preview_token.call(flags) if preview_token.is_valid() else {}
-			_continue_drive_preview(id,flags,heading,state,object,preview_generation,attempt,pose,token,prepared.get("inputs",captured_inputs))
-			return {"deferred":true}
-		if prepared.has("error"):_drive_preview_error(id,state,str(prepared.error));return {}
-		var clear: Callable=prepared.get("clear",Callable())
-		if not clear.is_valid():return {}
-		var path_began:=FrameProfile.begin()
-		var path: Dictionary=planner.path(state.position,plan.target,state.render,clear,prepared.get("failure",{}))
-		FrameProfile.finish("keyboard_preview_path",path_began)
-		if prepared.has("failure") and not str(prepared.failure.error).is_empty():
-			_drive_preview_error(id,state,str(prepared.failure.error));return {}
-		if not _drive_preview_current(id,state,object,preview_generation):return {}
-		if _drive_preview_pose_changed(state,object,pose):captured_inputs=null;continue
-		if not path.is_empty():plan.factor=path.factor
-		motion.preview(id,plan,path.get("target"))
-		state.previewFailure=null
-		return path if not path.is_empty() else {"blocked":true}
-	return {}
-func preview_drive(id: int,flags: int,heading: int)->Dictionary:
-	if id!=controlled_id or not ready_for_control() or not motion.objects.has(id) or not desired.has(id):return {}
-	var state: Dictionary=motion.objects[id]
-	var object: Variant=raw_object_lookup.call(id) if raw_object_lookup.is_valid() else desired[id].object
-	if not object is Dictionary:return {}
-	var raw: Dictionary=object.get("replicated",{})
-	var planner=preload("res://systems/native_data/drive_preview.gd")
-	if planner.blocked(int(raw.get("animation",0))) or raw.has("field8D4") and (int(raw.field8D4)&2)==0:return {}
-	state.previewGeneration=int(state.get("previewGeneration",0))+1
-	state.driveHeld=true
-	if (flags&15)==0:
-		var turn: Vector3=planner.turn(state.orientation,flags)
-		motion.preview(id,{"target":state.position,"facing":turn,"animation":2,"factor":1},state.position)
-		return {"turn":true}
-	if not can_accept_paths():return {}
+func preview_drive(id: int,flags: int,heading: int) -> Dictionary:
+	if id!=controlled_id or not ready_for_control() or not motion.objects.has(id): return {}
 	var began:=FrameProfile.begin()
-	var result:=_drive_preview_path(id,flags,heading,state,object,int(state.previewGeneration))
+	var state: Dictionary=motion.objects[id]; var raw: Dictionary=desired[id].object.get("replicated",{})
+	var planner=preload("res://systems/native_data/drive_preview.gd")
+	if planner.blocked(int(raw.get("animation",0))) or raw.has("field8D4") and (int(raw.field8D4)&2)==0: return {}
+	if (flags&15)==0:
+		state.targetOrientation=planner.turn(state.orientation,flags)
+		return {"turn":true}
+	if not is_instance_valid(drive_collision): return {}
+	var query_began:=FrameProfile.begin()
+	var preview_plan: Dictionary={}
+	var clear: Callable
+	if drive_collision.has_method("query_preview"):
+		# Prepare against the planned heading without committing orientation before
+		# the original ready-query boundary. Authority queries stay unrestricted.
+		var planned_orientation: Vector3=planner.wire_facing(heading) if heading>=0 else state.orientation
+		preview_plan=planner.plan(state.position,planned_orientation,float(state.walkRate),float(state.runRate),flags)
+		clear=drive_collision.query_preview(id,state.position,preview_plan.target,state.render)
+	else:clear=drive_collision.query(id)
+	FrameProfile.finish("keyboard_preview_query",query_began)
+	if not clear.is_valid(): return {}
+	if heading>=0:
+		state.orientation=planner.wire_facing(heading); state.targetOrientation=state.orientation; state.previewFacing=state.orientation
+	var plan: Dictionary=preview_plan if not preview_plan.is_empty() else planner.plan(state.position,state.orientation,float(state.walkRate),float(state.runRate),flags)
+	var path_began:=FrameProfile.begin()
+	var path: Dictionary=planner.path(state.position,plan.target,state.render,clear)
+	FrameProfile.finish("keyboard_preview_path",path_began)
+	if not path.is_empty(): plan.factor=path.factor
+	motion.preview(id,plan,path.get("target"))
 	FrameProfile.finish("keyboard_preview",began)
-	return result
-func end_drive(id: int,lifetime: int=-1) -> void:
-	if not motion.objects.has(id):return
-	var state: Dictionary=motion.objects[id]
-	if lifetime>=0 and int(state.get("lifetime",-1))!=lifetime:return
-	state.previewGeneration=int(state.get("previewGeneration",0))+1
-	state.driveHeld=false
+	return path if not path.is_empty() else {"blocked":true}
+func end_drive(id: int) -> void:
+	if motion.objects.has(id): motion.objects[id].driveHeld=false
 func signature(object: Dictionary) -> String:
-	return WorldSnapshotMetadata.signature(object)
+	var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{}))
+	var appearance: Variant=object.get("appearance",{})
+	# Native creature P400 updates names/popups without marking the model dirty.
+	# Keep the received row intact for name/state consumers and retain all other
+	# opaque appearance/equipment bytes in the model key.
+	if int(object.get("objectType",0))==5 and appearance is Dictionary and appearance.has("name"):
+		appearance=appearance.duplicate(); appearance.erase("name")
+	var animated_placeable: bool=int(object.get("objectType",0))==9 and preload("res://systems/native_render/placeable_instance.gd").requires_animation(state)
+	return Cache.digest(var_to_bytes([EntityLifetime.token(object),animated_placeable,object.get("objectType"),appearance,object.get("item",state.get("item",{})),state.get("appearance",fixed.get("appearance")),state.get("doorType"),state.get("genericType")]))
 func retire_replaced_lifetime(object: Dictionary) -> void:
 	var id:=int(object.id)
 	if not desired.has(id) or not EntityLifetime.changed(desired[id].object,object):return
@@ -548,7 +406,7 @@ func retire_replaced_lifetime(object: Dictionary) -> void:
 	# instance. Pending jobs are fenced by signature at the existing adoption.
 	if is_instance_valid(combat):combat.forget(id,true)
 	remove_instance(id)
-	failed_objects.erase(id);motion.forget(id);motion_revisions.erase(id)
+	failed_objects.erase(id);motion.objects.erase(id);motion_revisions.erase(id)
 	stats.lifetime_replacements=int(stats.get("lifetime_replacements",0))+1
 func stage_received_metadata(objects: Array,metadata: Dictionary) -> bool:
 	_staged_received_objects=[];_staged_received_metadata={}
@@ -622,19 +480,12 @@ func _receive_base_scenery_boundary(objects: Array,controlled: int,prepared_rows
 	if continuous_base_stream:base_stream_schedule.clear()
 	if is_instance_valid(placeable_lights): placeable_lights.receive(objects,[],true)
 	controlled_id=controlled; var current: Dictionary={}
-	# NetworkScene.sync sorts the current player first before scanning the
-	# canonical object rows. Keep each staged metadata row at its source index.
-	var ordered_indices: Array[int]=[]
-	for index in objects.size():
-		if int(objects[index].get("id",-1))==controlled:ordered_indices.append(index)
-	for index in objects.size():
-		if int(objects[index].get("id",-1))!=controlled:ordered_indices.append(index)
 	var prior_omitted: Dictionary=base_scenery_omitted;var prior_unaddressable:=base_scenery_unaddressable_omitted
 	base_scenery_omitted={};base_scenery_unaddressable_omitted=false
-	var rows_began:=FrameProfile.begin()
-	for row_index in ordered_indices:
-		var object: Dictionary=objects[row_index]
+	var rows_began:=FrameProfile.begin();var row_index:=0
+	for object in objects:
 		var prepared: Dictionary=prepared_rows[row_index] if not prepared_rows.is_empty() else {}
+		row_index+=1
 		if not prepared.is_empty():_boundary_received_metadata[int(object.get("id",-1))]={"source":object,"value":prepared}
 		base_scenery_forget_omitted(int(object.get("id",-1)))
 		invalidate_static_draw(int(object.get("id",-1)),"received-full-state")
@@ -646,12 +497,11 @@ func _receive_base_scenery_boundary(objects: Array,controlled: int,prepared_rows
 		current[int(object.id)]={"object":object,"key":prepared.key if not prepared.is_empty() else signature(object)}
 		base_scenery_stamp_slot(int(object.id),current[int(object.id)])
 		base_stream_note_desired(int(object.id),current[int(object.id)])
-		if int(object.objectType)==5:
-			# Canonical proxy identity owns the local prediction lifetime. An
-			# unchanged proxy keeps its advanced path across full snapshots.
+		if int(object.objectType)==5 and not motion.objects.has(int(object.id)):
+			# Bootstrap from raw replication once. Repeated full registry snapshots
+			# must not restart a path already advanced by the native frame owner.
 			var state: Dictionary=object.get("replicated",{})
-			if motion.objects.has(int(object.id)):motion.ensure(int(object.id),state,object)
-			else:motion.observe(int(object.id),state,true,state,false,object)
+			motion.observe(int(object.id),state,true,state)
 		observe_facing_target(object)
 	FrameProfile.finish("world_receive_rows_ms",rows_began);rows_began=FrameProfile.begin()
 	for id in desired:
@@ -660,30 +510,24 @@ func _receive_base_scenery_boundary(objects: Array,controlled: int,prepared_rows
 	for id in current:
 		if not desired.has(id):base_scenery_note_population_change({},current[id])
 	if prior_omitted!=base_scenery_omitted or prior_unaddressable!=base_scenery_unaddressable_omitted:base_scenery_population_changed=true
-	for id in initial_shadow_sources.keys():
-		if not _initial_shadow_source_matches(int(id),current.get(id,{})):initial_shadow_sources.erase(id)
 	desired=current
 	base_scenery_population_known=true; base_live_revision+=1
-	if is_instance_valid(source_prefetch):source_prefetch.enqueue_objects()
 	FrameProfile.finish("world_receive_population_ms",rows_began);rows_began=FrameProfile.begin()
 	for id in instances:
-		if desired.has(id):
-			if is_instance_valid(instances[id]) and instances[id].has_method("sync_visual_transform"):instances[id].sync_visual_transform(desired[id].object,visual_world_timer)
-			sync_combat(int(id))
+		if desired.has(id): sync_combat(int(id))
 	if is_instance_valid(drive_collision):
 		var drive_publish_began:=FrameProfile.begin()
 		if drive_collision.has_method("sync_full"):drive_collision.sync_full()
 		else:drive_collision.warm_dirty=true
 		FrameProfile.finish("drive_publish_full",drive_publish_began)
 	FrameProfile.finish("world_receive_combat_and_drive_ms",rows_began);rows_began=FrameProfile.begin()
-	for row_index in ordered_indices:
-		var object: Dictionary=objects[row_index]
+	for object in objects:
 		var id:=int(object.id)
 		if instances.has(id) and current.has(id): instance_state_changed.emit(id,object)
 	for id in failed_objects.keys():
 		if not desired.has(id) or str(desired[id].key)!=str(failed_objects[id].key): failed_objects.erase(id)
 	for id in motion.objects.keys():
-		if not desired.has(id): motion.forget(id); motion_revisions.erase(id)
+		if not desired.has(id): motion.objects.erase(id); motion_revisions.erase(id)
 	for id in instances.keys():
 		if not desired.has(id): remove_instance(id); stats.removed+=1
 	for id in hidden.keys():
@@ -693,162 +537,42 @@ func _receive_base_scenery_boundary(objects: Array,controlled: int,prepared_rows
 	if is_instance_valid(base_draw_merge):
 		for id in instances:admit_static_draw(int(id))
 	FrameProfile.finish("world_receive_draw_admission_ms",rows_began)
-func observe_movement(records: Array) -> Array:
-	var pending: Array=[]
-	if closed or retiring: return pending
+func observe_movement(records: Array) -> void:
+	if closed or retiring: return
 	for row in records:
 		var id:=int(row.id); var revision:=int(row.revision)
 		if revision<=int(motion_revisions.get(id,-1)):
 			stats.stale_movement_records+=1; continue
 		motion_revisions[id]=revision
-		var changes: Dictionary=row.changes
-		var created:=bool(row.get("created",false))
-		var prior: Dictionary=motion.objects.get(id,{})
-		var stale:=not created and not prior.is_empty() and int(prior.get("script",0))!=0 and prior.has("driveSequence") and int(changes.get("actionFlag",0))!=0 and int(changes.actionFlag)!=int(prior.driveSequence)
-		var defer_path: bool=changes.get("path") is Array and not changes.path.is_empty()
-		motion.observe(id,changes,created,row.initial,defer_path,row.get("object",desired.get(id,{}).get("object")))
-		var state: Dictionary=motion.objects.get(id,{})
-		if state.is_empty():
-			pending_path_acceptance.erase(id)
-			if not inflight_path_geometry.has(id):settle_path_acceptance(id)
-			continue
-		if stale and (not changes.has("animation") or int(changes.animation) in [0,1] or Motion.path_animation(int(changes.animation))):continue
-		if not defer_path:
-			if changes.has("path") or changes.has("animation") and not Motion.path_animation(int(changes.animation)):
-				pending_path_acceptance.erase(id)
-				if not inflight_path_geometry.has(id):settle_path_acceptance(id)
-		else:
-			var server_position: Vector3=Motion.vector(changes.get("position",row.initial.get("position",state.position)))
-			pending_path_acceptance[id]={"object":row.get("object",desired.get(id,{}).get("object")),"state":state,"changes":changes.duplicate(true),"serverPosition":server_position,"revision":revision,"area":area_id,"generation":generation}
-			# The old running map returns the same actor task when a newer path
-			# replaces the pending request. Let that task consume the newest row.
-			if not running_path_acceptance.has(id):process_path_acceptance(id)
-			# The old observe task is awaited only when path acceptance was
-			# admitted and its resource query actually remained in flight.
-			if running_path_acceptance.has(id):pending.append({"id":id,"ticket":running_path_acceptance[id]})
+		var state: Dictionary=motion.objects.get(id,{}); var changes: Dictionary=row.changes; var deferred:=false
+		if id==controlled_id and not row.get("created",false) and not state.is_empty() and not changes.get("path",[]).is_empty() and Motion.path_animation(int(changes.get("animation",state.animation))) and is_instance_valid(drive_collision) and drive_collision.ready():
+			var clear: Callable=drive_collision.query(id,1.0/64)
+			if clear.is_valid():
+				deferred=true
+				var stale: bool=int(state.script)!=0 and state.has("driveSequence") and int(changes.get("actionFlag",0))!=0 and int(changes.actionFlag)!=int(state.driveSequence)
+				motion.observe(id,changes,false,row.initial,true)
+				if not stale:
+					var repair:=preload("res://systems/native_data/drive_preview.gd").repair({"render":state.render,"path":state.path,"cursor":state.cursor},changes.path,Motion.vector(changes.get("position",row.initial.get("position",state.position))),clear)
+					if not repair.is_empty(): motion.accept_path(id,repair,changes)
+		if not deferred: motion.observe(id,changes,bool(row.get("created",false)),row.initial)
 		stats.movement_records+=1
 		if is_instance_valid(drive_collision) and drive_collision.has_method("sync_motion_id"):drive_collision.sync_motion_id(id)
-	return pending
-func can_accept_paths()->bool:
-	return is_instance_valid(drive_collision) and drive_collision.ready() and drive_geometry!=null
-func drive_geometry_warning(message: String,detail: Dictionary)->void:
-	push_warning("geometry.tile-traversal-limit: "+message+" area "+str(area_id)+" "+JSON.stringify(detail))
-func acknowledgement_geometry(id: int)->Callable:
-	if not can_accept_paths():return Callable()
-	var actor: Variant=raw_object_lookup.call(id) if raw_object_lookup.is_valid() else desired.get(id,{}).get("object")
-	return drive_geometry.query(actor,true).get("clear",Callable()) if actor is Dictionary else Callable()
-func path_acceptance_current(id: int,request: Dictionary)->bool:
-	if closed or retiring or not pending_path_acceptance.has(id) or not is_same(pending_path_acceptance[id],request) or not motion.objects.has(id) or not is_same(motion.objects[id],request.state) or int(motion_revisions.get(id,-1))!=int(request.revision) or area_id!=int(request.area) or generation!=int(request.generation):return false
-	var object: Variant=raw_object_lookup.call(id) if raw_object_lookup.is_valid() else desired.get(id,{}).get("object")
-	if not object is Dictionary or not is_same(object,request.object) or int(object.get("objectType",0))!=5 or bool(object.get("replicationRemoved",false)) or int(object.get("areaId",-1))!=area_id:return false
-	var state: Dictionary=request.state
-	return Motion.path_animation(int(state.animation)) and not (int(state.get("script",0))!=0 and int(request.changes.get("actionFlag",0))!=0 and int(request.changes.actionFlag)!=int(state.get("driveSequence",0)))
-func process_path_acceptance(id: int)->void:
-	if not can_accept_paths():return
-	if not pending_path_acceptance.has(id) and not inflight_path_geometry.has(id):settle_path_acceptance(id);return
-	if not running_path_acceptance.has(id):running_path_acceptance[id]=PathAcceptanceTicket.new()
-	for attempt in range(3):
-		var prepared: Dictionary={}
-		if inflight_path_geometry.has(id):
-			# A pending old query keeps the original actor's task until its captured
-			# resource read settles. A replacement path then uses this same ticket.
-			var inflight: Dictionary=inflight_path_geometry[id]
-			prepared=drive_geometry.query(inflight.object,true,inflight.get("inputs"))
-			if prepared.has("pending"):
-				if prepared.has("inputs"):inflight.inputs=prepared.inputs
-				return
-			inflight_path_geometry.erase(id)
-			if not pending_path_acceptance.has(id):settle_path_acceptance(id);return
-			if not is_same(pending_path_acceptance[id],inflight.request):continue
-			if not prepared.has("error"):
-				var inflight_state: Dictionary=inflight.request.state
-				var current_pose: Array=[inflight_state.position,inflight_state.render,int(inflight_state.script),int(inflight_state.get("driveSequence",0)),int(inflight_state.cursor)]
-				if current_pose!=inflight.pose or not is_same(inflight_state.path,inflight.path):continue
-		if not pending_path_acceptance.has(id):settle_path_acceptance(id);return
-		var request: Dictionary=pending_path_acceptance[id]
-		if not path_acceptance_current(id,request):pending_path_acceptance.erase(id);settle_path_acceptance(id);return
-		var state: Dictionary=request.state
-		var prior: Array=state.path
-		var cursor:=int(state.cursor)
-		var position: Vector3=state.position
-		var render: Vector3=state.render
-		var script:=int(state.script)
-		var sequence:=int(state.get("driveSequence",0))
-		var geometry_pose: Array=[position,render,script,sequence,cursor]
-		if request.get("geometryPose",[])!=geometry_pose:
-			request.geometryPose=geometry_pose
-			request.erase("geometryInputs")
-		if prepared.is_empty():prepared=drive_geometry.query(request.object,true,request.get("geometryInputs"))
-		if prepared.has("pending"):
-			if prepared.has("inputs"):request.geometryInputs=prepared.inputs
-			inflight_path_geometry[id]={"request":request,"object":request.object,"inputs":request.get("geometryInputs"),"pose":geometry_pose.duplicate(),"path":prior}
-			return
-		if prepared.has("error"):
-			pending_path_acceptance.erase(id)
-			settle_path_acceptance(id)
-			push_warning("network.path-admission-unavailable: "+str(prepared.error)+" for object "+str(id))
-			return
-		var clear: Callable=prepared.get("clear",Callable())
-		if not clear.is_valid():
-			pending_path_acceptance.erase(id)
-			settle_path_acceptance(id)
-			push_warning("network.path-admission-unavailable: acknowledgement geometry query failed for object "+str(id))
-			return
-		var result: Dictionary=preload("res://systems/native_data/drive_preview.gd").repair({"area":true,"render":render,"path":prior,"cursor":cursor,"script":script,"lastSequence":sequence,"sequence":int(request.changes.get("actionFlag",0))},request.changes.path,request.serverPosition,clear,prepared.get("failure",{}))
-		if prepared.has("failure") and not str(prepared.failure.error).is_empty():
-			pending_path_acceptance.erase(id)
-			settle_path_acceptance(id)
-			push_warning("network.path-admission-unavailable: "+str(prepared.failure.error)+" for object "+str(id))
-			return
-		if result.has("reset") and not request.changes.path.is_empty():
-			var first: Vector3=Motion.vector(request.changes.path[0])
-			result.projected=[first.x,first.y,float(motion.height_query.call(first,first.z)) if motion.height_query.is_valid() else first.z]
-		if not path_acceptance_current(id,request):continue
-		if not is_same(state.path,prior) or int(state.cursor)!=cursor or state.position!=position or state.render!=render or int(state.script)!=script or int(state.get("driveSequence",0))!=sequence:continue
-		pending_path_acceptance.erase(id)
-		if not result.is_empty():motion.accept_path(id,result,request.changes)
-		settle_path_acceptance(id)
-		return
-	# The old process task settles after three changed-pose attempts; a later
-	# frame may start a new task for the still-current pending request.
-	settle_path_acceptance(id)
-func update_path_acceptance()->void:
-	var ids: Dictionary={}
-	for id in pending_path_acceptance:ids[id]=true
-	for id in inflight_path_geometry:ids[id]=true
-	for id in ids:process_path_acceptance(int(id))
 func receive_delta(objects: Array,removed: Array,controlled: int) -> void:
 	if closed or retiring:return
-	var base_boundary_began:=FrameProfile.begin()
 	base_scenery_begin_boundary(false)
-	FrameProfile.finish("snapshot_delta_base_begin_ms",base_boundary_began)
 	_receive_delta_base_scenery_boundary(objects,removed,controlled)
-	base_boundary_began=FrameProfile.begin()
 	base_scenery_end_boundary()
-	FrameProfile.finish("snapshot_delta_base_end_ms",base_boundary_began)
 func _receive_delta_base_scenery_boundary(objects: Array,removed: Array,controlled: int) -> void:
 	if closed or retiring: return
 	if not objects.is_empty() or not removed.is_empty():base_live_revision+=1
-	if is_instance_valid(placeable_lights):
-		var lights_began:=FrameProfile.begin()
-		if skip_placeable_light_motion_wakes and placeable_lights.get_script()==PlaceableLights:
-			placeable_lights.receive_snapshot_delta(objects,removed)
-		else:
-			placeable_lights.receive(objects,removed)
-		FrameProfile.finish("snapshot_delta_placeable_lights_ms",lights_began)
+	if is_instance_valid(placeable_lights): placeable_lights.receive(objects,removed)
 	var receive_began:=FrameProfile.begin()
 	controlled_id=controlled
-	var ordered_indices: Array[int]=[]
-	for index in objects.size():
-		if int(objects[index].get("id",-1))==controlled:ordered_indices.append(index)
-	for index in objects.size():
-		if int(objects[index].get("id",-1))!=controlled:ordered_indices.append(index)
 	if is_instance_valid(drive_collision) and not drive_collision.has_method("sync_delta") and (not removed.is_empty() or objects.any(func(object):return int(object.get("objectType",0)) in [9,10])):drive_collision.warm_dirty=true
 	var remove: Dictionary={}
 	for id in removed:
-		remove[int(id)]=true;initial_shadow_sources.erase(int(id));base_scenery_forget_omitted(int(id))
-	for row_index in ordered_indices:
-		var object: Dictionary=objects[row_index]
+		remove[int(id)]=true;base_scenery_forget_omitted(int(id))
+	for object in objects:
 		var id:=int(object.id)
 		base_scenery_forget_omitted(id)
 		invalidate_static_draw(id,"received-delta-state")
@@ -856,22 +580,16 @@ func _receive_delta_base_scenery_boundary(objects: Array,removed: Array,controll
 			note_omitted_base_scenery(object);remove[id]=true;continue
 		retire_replaced_lifetime(object)
 		var key:=signature(object); base_scenery_replace_desired(id,{"object":object,"key":key}); remove.erase(id)
-		if initial_shadow_sources.has(id) and not _initial_shadow_source_matches(id,desired[id]):initial_shadow_sources.erase(id)
-		if instances.has(id):
-			if is_instance_valid(instances[id]) and instances[id].has_method("sync_visual_transform"):instances[id].sync_visual_transform(desired[id].object,visual_world_timer)
-			sync_combat(id)
+		if instances.has(id): sync_combat(id)
 		if failed_objects.has(id) and str(failed_objects[id].key)!=key: failed_objects.erase(id)
-		if int(object.objectType)==5:
-			var state: Dictionary=object.get("replicated",{})
-			if motion.objects.has(id):motion.ensure(id,state,object)
-			else:motion.observe(id,state,true,state,false,object)
+		if int(object.objectType)==5 and not motion.objects.has(id):
+			var state: Dictionary=object.get("replicated",{}); motion.observe(id,state,true,state)
 		observe_facing_target(object)
 		apply_pose(id)
 		if instances.has(id): instance_state_changed.emit(id,object);admit_static_draw(id)
 	for id in remove:
-		initial_shadow_sources.erase(int(id))
 		combat.forget(int(id),true)
-		base_scenery_forget_desired(int(id)); failed_objects.erase(id); motion.forget(id); motion_revisions.erase(id)
+		base_scenery_forget_desired(int(id)); failed_objects.erase(id); motion.objects.erase(id); motion_revisions.erase(id)
 		if instances.has(id) or hidden.has(id): remove_instance(int(id)); stats.removed+=1
 	if is_instance_valid(drive_collision) and drive_collision.has_method("sync_delta"):
 		var drive_publish_began:=FrameProfile.begin()
@@ -899,7 +617,6 @@ func _remove_instance_base_scenery_boundary(id: int) -> void:
 		static_collision_index.erase(instance.get_instance_id()); instance.retire()
 		if is_instance_valid(data_retirement): data_retirement.defer_release(decoded)
 	instances.erase(id); installed.erase(id); animations.erase(id); hidden.erase(id)
-	_creature_pose_inputs.erase(id)
 	base_scenery_refresh_slot(id)
 	if had_instance and desired.has(id):base_stream_note_desired(id,desired[id])
 	FrameProfile.finish("entity_removal",removal_began)
@@ -911,54 +628,28 @@ func apply_poses(include_statics: bool=false) -> void:
 	# Native animation/effect owners still tick independently on those instances.
 	for id in instances if include_statics else motion.objects: apply_pose(int(id))
 func apply_pose(id: int) -> void:
-	var instance: Node3D=instances.get(id)
-	var wanted: Variant=desired.get(id)
-	if instance==null or wanted==null:return
-	var object: Dictionary=wanted.object
-	var state: Dictionary=object.get("replicated",{})
-	var creature: bool=int(object.objectType)==5
+	if not instances.has(id) or not desired.has(id): return
+	var object: Dictionary=desired[id].object; var state: Dictionary=object.get("replicated",{}); var creature: bool=int(object.objectType)==5
 	var movement: Dictionary={}
 	var position: Vector3
 	var rotation: float
-	var render: Vector3
-	var facing: Vector3
-	var inputs: CreaturePoseInputs
-	var reused:=false
 	if creature:
 		movement=motion.objects.get(id,{})
 		if movement.is_empty():return
-		render=movement.render
-		facing=movement.orientation
-		inputs=_creature_pose_inputs.get(id)
-		if inputs!=null and render==inputs.render and facing==inputs.facing:
-			# At the atan2 branch cut, equal facing vectors can hide a change
-			# between +0 and -0 and produce opposite half-turns.
-			var same_yaw:=facing.x!=0.0 or facing.y>0.0 or -atan2(facing.x,facing.y)==inputs.target_yaw
-			reused=same_yaw and instance.position==inputs.applied_position and instance.rotation.y==inputs.applied_yaw
-		if not reused:
-			position=Vector3(render.x,render.z,-render.y)
-			rotation=-atan2(facing.x,facing.y)
+		# NetworkMotion.pose is a pure coordinate conversion. Read its current
+		# state directly here, avoiding a temporary pose Dictionary per creature.
+		position=Vector3(movement.render.x,movement.render.z,-movement.render.y)
+		rotation=-atan2(movement.orientation.x,movement.orientation.y)
 	else:
 		var pose: Dictionary=object_pose(object)
 		if pose.is_empty():return
 		position=pose.position;rotation=float(pose.rotation)
+	var instance: Node3D=instances[id]
 	stats.pose_evaluations+=1
 	if not creature: stats.static_pose_evaluations+=1
-	if reused:
-		_creature_pose_reuses+=1
-	else:
-		if not instance.position.is_equal_approx(position) or not is_equal_approx(instance.rotation.y,rotation):
-			invalidate_static_draw(id,"world-pose-change")
-			instance.position=position; instance.rotation.y=rotation; stats.pose_updates+=1
-		if creature:
-			if inputs==null:
-				inputs=CreaturePoseInputs.new()
-				_creature_pose_inputs[id]=inputs
-			inputs.render=render
-			inputs.facing=facing
-			inputs.target_yaw=rotation
-			inputs.applied_position=instance.position
-			inputs.applied_yaw=instance.rotation.y
+	if not instance.position.is_equal_approx(position) or not is_equal_approx(instance.rotation.y,rotation):
+		invalidate_static_draw(id,"world-pose-change")
+		instance.position=position; instance.rotation.y=rotation; stats.pose_updates+=1
 	var node_id:=instance.get_instance_id()
 	if object.has("staticState"):
 		if not static_collision_index.entries.has(node_id) or static_collision_index.entries[node_id].pose!=instance.global_transform: static_collision_index.put(instance)
@@ -968,7 +659,6 @@ func apply_pose(id: int) -> void:
 		var playback_speed:=1.0
 		if movement.active and movement.has("gait"):
 			playback_speed=motion.gait_speed(id,instance.rigs.clip_length(id,code))
-			if not is_finite(playback_speed):return
 		var speed: float=playback_speed*float(state.get("animationSpeed",1.0))
 		var previous: Variant=animations.get(id)
 		if not (previous is Array and previous.size()==2 and previous[0]==code and previous[1]==speed):
@@ -981,7 +671,7 @@ func apply_pose(id: int) -> void:
 			elif movement.get("facingTurn")!=null and not movement.active: combat.movement_cue(id,{"animation":int(movement.facingTurn)})
 			movement.visualAnimation=combat.visual_animation(id,code)
 		else: instance.set_animation(code,speed)
-		if is_instance_valid(effects) and effects.casts!=null: effects.casts.observe(object,int(movement.get("visualAnimation",code)))
+		if is_instance_valid(effects) and effects.casts!=null: effects.casts.observe(object,code)
 		if is_instance_valid(effects) and effects.special_attacks!=null: effects.special_attacks.observe(object)
 		if is_instance_valid(effects) and effects.equipped_attacks!=null: effects.equipped_attacks.observe(object)
 	elif int(object.objectType)==10 and instance.has_method("observe_door"):
@@ -1001,9 +691,7 @@ func _process(delta: float) -> void:
 func _profile_process(delta: float) -> void:
 	FrameProfile.count("count_world_instances",instances.size()); FrameProfile.count("count_world_desired",desired.size()); FrameProfile.count("count_pending_batches",batches.size())
 	if closed or retiring: return
-	drive_geometry.advance_prewarm()
 	var phase_began:=FrameProfile.begin()
-	update_path_acceptance()
 	motion.collect_diagnostics=FrameProfile.enabled
 	motion.update(delta); stats.simulated_motion_frames+=1
 	FrameProfile.finish("world_motion_update_ms",phase_began)
@@ -1037,7 +725,7 @@ func _profile_process(delta: float) -> void:
 					owner.stats.object_failures.erase(id);release_base_reservation(batch,int(id))
 		if not actors:
 			for id in owner.invisible_ids:
-				if desired.has(id) and str(desired[id].key)==str(batch.keys.get(id,"")): initial_shadow_sources.erase(id);remove_instance(id); installed[id]=batch.keys[id]; hidden[id]=true; note_base_scenery_publication(int(id))
+				if desired.has(id) and str(desired[id].key)==str(batch.keys.get(id,"")): remove_instance(id); installed[id]=batch.keys[id]; hidden[id]=true; note_base_scenery_publication(int(id))
 				release_base_reservation(batch,int(id))
 			owner.invisible_ids.clear()
 		for id in prepared.keys():
@@ -1070,9 +758,6 @@ func _profile_process(delta: float) -> void:
 		prepared.erase(id)
 		failed_objects.erase(id)
 		instances[id]=instance; installed[id]=batch.keys[id]; stats.replacements+=1
-		_stamp_initial_shadow_instance(id,str(batch.keys[id]),instance)
-		if id==controlled_id and is_instance_valid(source_prefetch):source_prefetch.enqueue_objects()
-		if instance.has_method("sync_visual_transform"):instance.sync_visual_transform(desired[id].object,visual_world_timer)
 		combat.sync(id,desired[id].object,instance)
 		adopted+=1
 		if current_base_admission:
@@ -1118,7 +803,6 @@ func _profile_process(delta: float) -> void:
 	var pose_evaluations_before:=int(stats.pose_evaluations) if FrameProfile.enabled else 0
 	var pose_updates_before:=int(stats.pose_updates) if FrameProfile.enabled else 0
 	var animation_changes_before:=int(stats.animation_changes) if FrameProfile.enabled else 0
-	var pose_reuses_before:=_creature_pose_reuses
 	var pose_input_began:=FrameProfile.begin()
 	apply_poses()
 	FrameProfile.finish("world_pose_inputs_ms",pose_input_began)
@@ -1127,11 +811,8 @@ func _profile_process(delta: float) -> void:
 		FrameProfile.count("count_pose_evaluations",pose_evaluations_this_frame)
 		FrameProfile.count("count_pose_transform_updates",int(stats.pose_updates)-pose_updates_before)
 		FrameProfile.count("count_pose_unchanged_transforms",pose_evaluations_this_frame-(int(stats.pose_updates)-pose_updates_before))
-		FrameProfile.count("count_pose_inputs_reused",_creature_pose_reuses-pose_reuses_before)
 		FrameProfile.count("count_pose_animation_changes",int(stats.animation_changes)-animation_changes_before)
 	var combat_began:=FrameProfile.begin()
-	for instance in instances.values():
-		if is_instance_valid(instance) and instance.has_method("update_visual_transform"):instance.update_visual_transform()
 	combat.update(delta,desired)
 	FrameProfile.finish("world_combat_update_ms",combat_began)
 	var motion_finish_began:=FrameProfile.begin()
@@ -1140,9 +821,6 @@ func _profile_process(delta: float) -> void:
 		motion.finish_frame(id)
 	FrameProfile.finish("world_motion_finish_ms",motion_finish_began)
 	FrameProfile.finish("world_poses",phase_began)
-	# The entry camera anchor is needed by loading and can follow the world pose
-	# immediately. The moving camera/keyhole run after particles at priority 80.
-	if camera_pre_motion.is_valid(): camera_pre_motion.call(delta)
 	var readiness_began:=FrameProfile.begin()
 	if ready_for_admission() and not stats.has("terrain_admission_ms"): stats.terrain_admission_ms=(Time.get_ticks_usec()-opened_at)/1000.0
 	if desired.has(controlled_id) and not stats.has("controlled_received_ms"): stats.controlled_received_ms=(Time.get_ticks_usec()-opened_at)/1000.0
@@ -1206,17 +884,12 @@ func _profile_process(delta: float) -> void:
 		if not ready_for_control():
 			stats.entry_prefetch_batches=int(stats.get("entry_prefetch_batches",0))+1
 			stats.entry_prefetch_objects=int(stats.get("entry_prefetch_objects",0))+static_objects.size()
-		var owner:=Objects.new()
-		if reuse_live_object_tables:owner.live_table_bank=live_object_table_bank
-		owner.publication_keys=static_keys; owner.admission_parent=self; add_child(owner); owner.configure(catalog,pool,static_objects,area_id,cache_path); batches.append({"owner":owner,"actors":false,"keys":static_keys})
+		var owner:=Objects.new();owner.publication_keys=static_keys; owner.admission_parent=self; add_child(owner); owner.configure(catalog,pool,static_objects,area_id,cache_path); batches.append({"owner":owner,"actors":false,"keys":static_keys})
 		if has_priority_origin: owner.set_priority_origin(priority_origin)
 		FrameProfile.finish("world_static_owner_setup_ms",static_owner_began)
-	if prefetch_lookahead and plan.has("lookahead") and is_instance_valid(source_prefetch):
-		source_prefetch.prioritize_queued_models(plan.lookahead)
 func consume_stream_failure(batch: Dictionary,id: int,error: Dictionary) -> void:
 	if not desired.has(id) or str(desired[id].key)!=str(batch.keys.get(id,"")):
 		stats.stale_results+=1;return
-	initial_shadow_sources.erase(id)
 	var detached:=error.duplicate(true)
 	failed_objects[id]={"key":batch.keys[id],"error":detached};stats.failed_admissions+=1;note_base_scenery_state(id)
 	if stats.object_errors.size()<512:stats.object_errors.append(detached)
@@ -1341,7 +1014,6 @@ func pending_plan(inflight: Dictionary) -> Dictionary:
 		if group.size()>=limit or group.is_empty() and owner_slots<=0:continue
 		if group.is_empty():owner_slots-=1
 		group.append(entry.object)
-	if prefetch_lookahead:_record_live_lookahead(plan,live_candidates)
 	return plan
 func pending_continuous_plan(inflight: Dictionary,before_control: bool,owner_slots: int) -> Dictionary:
 	var plan:={"actors":[],"statics":[],"base_statics":[]}
@@ -1383,22 +1055,7 @@ func pending_continuous_plan(inflight: Dictionary,before_control: bool,owner_slo
 		if group.size()>=limit or group.is_empty() and owner_slots<=0:continue
 		if group.is_empty():owner_slots-=1
 		group.append(entry.object)
-	if prefetch_lookahead:_record_live_lookahead(plan,candidates)
 	return plan
-func _record_live_lookahead(plan: Dictionary,candidates: Array)->void:
-	if plan.actors.is_empty() and plan.statics.is_empty():return
-	var selected: Dictionary={}
-	for object in plan.actors:selected[int(object.id)]=true
-	for object in plan.statics:selected[int(object.id)]=true
-	var lookahead: Array[int]=[]
-	# These rows are already ordered by actual admission priority. The scan
-	# stops after the selected wave and a small prefix of remaining candidates.
-	for entry in candidates:
-		var id:=int(entry.object.id)
-		if selected.has(id):continue
-		lookahead.append(id)
-		if lookahead.size()>=ResourcePrefetch.LOOKAHEAD_KEYS:break
-	if not lookahead.is_empty():plan.lookahead=lookahead
 func base_scenery_contribution(id: int,wanted: Dictionary) -> Dictionary:
 	var prepared:=_received_row_metadata(wanted.object)
 	var classification: Dictionary=prepared.classification if not prepared.is_empty() else BaseScenery.classify(wanted.object,area_id);var flags:=0;var reason:=""
@@ -1536,7 +1193,7 @@ func ready_for_admission() -> bool:
 	return not closed and not retiring and is_instance_valid(terrain) and terrain.done and terrain.diagnostics.errors.is_empty() and is_instance_valid(surface) and surface.ready() and stats.errors.is_empty()
 func asset_owners() -> Array:
 	var owners: Array=[]
-	for owner in [source_prefetch,terrain,surface,references,drive_collision,effects,native_sky,placeable_lights,borders]:
+	for owner in [terrain,surface,references,drive_collision,effects,native_sky,placeable_lights,borders]:
 		if is_instance_valid(owner) and owner.get("assets") is Assets: owners.append(owner.assets)
 	if is_instance_valid(effects) and effects.creature_voices!=null and is_instance_valid(effects.creature_voices.assets): owners.append(effects.creature_voices.assets)
 	for batch in batches:
@@ -1545,8 +1202,6 @@ func asset_owners() -> Array:
 	return owners
 func worker_tasks() -> Array:
 	var tasks: Array=[]
-	var obstacle_task:=drive_geometry.worker_task()
-	if obstacle_task>=0:tasks.append(obstacle_task)
 	if is_instance_valid(base_draw_merge):tasks.append_array(base_draw_merge.worker_tasks())
 	for owner in asset_owners(): tasks.append_array(owner.running.values())
 	if is_instance_valid(terrain) and terrain.definition_task>=0: tasks.append(int(terrain.definition_task))
@@ -1559,8 +1214,6 @@ func worker_tasks() -> Array:
 	return tasks
 func begin_retirement() -> void:
 	cancel_received_snapshot()
-	if is_instance_valid(camera_frame_phase):camera_frame_phase.close()
-	if is_instance_valid(particle_scene_order):particle_scene_order.close()
 	preload("res://systems/native_render/native_surface_state.gd").retire(self)
 	if is_instance_valid(model_environment): model_environment.close()
 	if is_instance_valid(native_sky): native_sky.stop()
@@ -1605,7 +1258,6 @@ func snapshot(details: bool=true) -> Dictionary:
 	state.base_admission=base_admission_snapshot()
 	state.base_draw_merge=base_draw_merge.snapshot() if is_instance_valid(base_draw_merge) else {"enabled":false,"mode":"individual"}
 	state.continuous_base_stream={"enabled":continuous_base_stream,"mode":"continuous" if continuous_base_stream else "waves","reservation_limit":mini(64,mini(maximum_static_batch,maximum_base_static_batch)),"refills":int(stats.get("base_stream_refills",0)),"schedule":base_stream_schedule.snapshot()}
-	state.resource_prefetch=source_prefetch.snapshot() if is_instance_valid(source_prefetch) else {}
 	for field in stats:
 		if field=="base_scenery_progress":continue # Internal cached counts; state.base_scenery is the sole current view.
 		if not details and field in ["batches","admissions","object_errors"]: continue
@@ -1637,7 +1289,6 @@ func snapshot(details: bool=true) -> Dictionary:
 		state.native_particle_stream=particle_stream_group.snapshot()
 		if bool(state.native_particle_stream.get("geometry_worker",false)):
 			state.native_particle_stream.suppressed_unregistered=maxi(0,int(state.native_particles.emitters)-int(state.native_particle_stream.members))
-	if is_instance_valid(particle_vertex_preparation): state.native_particle_vertex_preparation=particle_vertex_preparation.snapshot()
 	state.static_collision_index=static_collision_index.snapshot()
 	state.data_retirement=data_retirement.snapshot() if is_instance_valid(data_retirement) else {}
 	state.ancestor_preparation=Assets.Ancestors.snapshot()
@@ -1650,7 +1301,6 @@ func snapshot(details: bool=true) -> Dictionary:
 	state.retirement_physics_scan=retirement_physics_scan
 	state.native_point_wind=point_wind.snapshot() if is_instance_valid(point_wind) else {}
 	state.drive_collision=drive_collision.snapshot() if is_instance_valid(drive_collision) else {}
-	state.drive_collision.obstacle_assembly=drive_geometry.assembly_snapshot()
 	state.received_metadata=received_metadata_stats.duplicate()
 	state.drive_collision_configuration=drive_collision_selection_snapshot()
 	state.drive_collision_route=str(state.drive_collision_configuration.effective)
@@ -1659,7 +1309,6 @@ func snapshot(details: bool=true) -> Dictionary:
 	state.streaming_priority={"player_centered":has_priority_origin,"origin":[priority_origin.x,priority_origin.y,priority_origin.z],"wave_limit":maximum_stream_wave,"base_scenery_wave_limit":mini(maximum_static_batch,maximum_base_static_batch),"entry_prefetch":{"enabled":entry_prefetch_enabled,"limit":entry_prefetch_limit,"radius":entry_prefetch_radius},"policy":"controlled actor first, then nearest ready placements across model groups"}
 	state.object_visuals_complete=failed_objects.is_empty() and stats.errors.is_empty() and instances.size()+hidden.size()==desired.size() and batches.is_empty() and base_scenery_omitted.is_empty() and not base_scenery_unaddressable_omitted
 	state.surface=surface.snapshot() if is_instance_valid(surface) else {}
-	state.ground_height_index=ground_height_index.snapshot() if ground_height_index!=null else {}
 	FrameProfile.finish("snapshot_scene_metadata",snapshot_began); snapshot_began=FrameProfile.begin()
 	state.preparation_cache=catalog.preparation_cache().snapshot() if catalog!=null and catalog.has_method("preparation_cache") else {}
 	state.decoded_cache=catalog.decoded_cache().snapshot() if catalog!=null and catalog.has_method("decoded_cache") else {}
@@ -1676,16 +1325,8 @@ func close() -> void:
 	if is_instance_valid(native_sky): native_sky.close()
 	if closed: return
 	closed=true
-	initial_shadow_sources.clear();initial_shadow_capture_epoch=-1
-	drive_preview_resource_ready.emit()
-	if is_instance_valid(source_prefetch):source_prefetch.close()
-	pending_path_acceptance.clear()
-	for id in running_path_acceptance.keys():settle_path_acceptance(int(id))
 	if is_instance_valid(focus_lighting): focus_lighting.close()
 	if is_instance_valid(particle_stream_group): particle_stream_group.close()
-	if is_instance_valid(particle_scene_order): particle_scene_order.close()
-	if is_instance_valid(camera_frame_phase): camera_frame_phase.close()
-	if is_instance_valid(particle_vertex_preparation): particle_vertex_preparation.close()
 	var close_began:=FrameProfile.begin()
 	if is_instance_valid(combat): combat.close()
 	if is_instance_valid(effects): effects.close()
@@ -1696,9 +1337,7 @@ func close() -> void:
 	if is_instance_valid(terrain): terrain.close()
 	if is_instance_valid(borders):borders.close()
 	if is_instance_valid(surface): surface.close()
-	if ground_height_index!=null:ground_height_index.close();ground_height_index=null
 	if is_instance_valid(drive_collision): drive_collision.close()
-	drive_geometry.configure(null)
 	FrameProfile.finish("retirement_terrain_close",close_began); close_began=FrameProfile.begin()
 	motion.height_query=Callable()
 	motion.facing_target_query=Callable()
@@ -1709,17 +1348,13 @@ func close() -> void:
 	for id in instances.keys(): remove_instance(id)
 	if is_instance_valid(point_wind): point_wind.close()
 	particle_metrics.close()
-	desired.clear(); installed.clear(); animations.clear(); failed_objects.clear(); motion.objects.clear(); motion.canonical_owners.clear(); motion_revisions.clear()
-	_creature_pose_inputs.clear()
+	desired.clear(); installed.clear(); animations.clear(); failed_objects.clear(); motion.objects.clear(); motion_revisions.clear()
 	_staged_received_objects=[];_staged_received_metadata={};_boundary_received_metadata={}
 	base_stream_schedule.clear()
 	static_collision_index.clear()
 	if owns_pool: pool.clear()
 	if is_instance_valid(data_retirement) and not retired_data.is_empty():
 		data_retirement.defer_release(retired_data); retired_data={}
-	if not live_object_table_bank.is_empty():
-		if is_instance_valid(data_retirement):data_retirement.retire({"live_object_tables":live_object_table_bank})
-		live_object_table_bank={}
 	if owns_data_retirement and is_instance_valid(data_retirement): data_retirement.close()
 	catalog=null
 	FrameProfile.finish("retirement_other_close",close_began)

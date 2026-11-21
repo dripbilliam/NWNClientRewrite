@@ -190,7 +190,7 @@ static func voices(table:Dictionary,gender:int,text)->Dictionary:
 		if not resource.ok or str(resource.value).is_empty():continue
 		var kind:=Tables.integer(table,id,"TYPE",lookup);var sex:=Tables.integer(table,id,"GENDER",lookup)
 		if not kind.ready or not sex.ready or not kind.ok or not sex.ok:return pending("A soundset type/gender conversion is unavailable.")
-		if (int(kind.value)&255)!=0 or (int(sex.value)&255)!=(gender&255):continue
+		if (int(kind.value)&255) not in [0,2] or (int(sex.value)&255)!=(gender&255):continue
 		var name:=Tables.integer(table,id,"STRREF",lookup)
 		if not name.ready or not name.ok:return pending("A soundset name reference is unavailable.")
 		result.append({"id":id,"name":text.raw({"strRef":int(name.value)&0xffffffff}),"resRef":resource_name(str(resource.value))})

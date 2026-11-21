@@ -1,0 +1,71 @@
+'use strict';
+// Coordinator only: run after every other worker has stopped timing work.
+// This measures a complete native shared-presenter call, not game FPS.
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const cp = require('node:child_process');
+const assert = require('node:assert/strict');
+const root = path.resolve(__dirname, '../..');
+const pairDir = path.join(root, '.cache/nwn64/duplicate-corners-b/timing-pair-a');
+const sha = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const json = file => JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
+const pairFile = path.join(pairDir, 'pair.json');
+assert.equal(sha(pairFile), 'af895bebf6f3c1038201a9a713e13c5c842a5a423f341fcee3eb181b6e124f77');
+const pair = json(pairFile);
+assert(pair.private && !pair.accepted && !pair.production && pair.views.length === 2);
+const sourceFile = path.join(root, '.cache/nwn64/duplicate-corners-b/manifest.json');
+const buildFile = path.join(root, '.cache/nwn64/duplicate-corners-b/kernel-build/build-receipt.json');
+assert.equal(sha(sourceFile), pair.sourceManifestSha256);
+assert.equal(sha(buildFile), pair.buildReceiptSha256);
+const build = json(buildFile);
+assert(build.success && build.arguments.includes('/DNWN_PARTICLE_DUPLICATE_CORNERS=1'));
+assert.equal(sha(build.binary), build.binarySha256);
+assert.equal(sha(path.join(root, '.cache/native-kernel/nwn-particle-kernel.dll')), '485741af15f0581a3c60c0f9a8ae738888eba08716c7a5c2c2d1bd550828963d');
+const engine = path.join(root, '.tools/native-core/Godot_native_core_e_win64.exe');
+assert.equal(sha(engine), pair.engineSha256);
+const descriptorFile = path.join(root, '.tools/native-core/accepted-core-e.json');
+assert.equal(sha(descriptorFile), '29b1c6adcdecb11eebc859730c770e879a108279dfaaf60792e4c11c00add78a');
+const descriptor = json(descriptorFile);
+assert.equal(descriptor.fullFunctionalFlags.length, 16);
+function verify(view) {
+  for (const pin of view.pins) assert.equal(sha(path.join(view.project, pin.relative)), pin.sha256, pin.relative);
+  for (const pin of view.oracles) assert.equal(sha(path.join(path.dirname(view.project), pin.relative)), pin.sha256, pin.relative);
+  assert.equal(sha(path.join(view.project, '.cache/native-kernel/nwn-particle-kernel.dll')), view.nativeBinarySha256);
+  assert.equal(sha(path.join(view.project, 'tests/nwn64_shared_clock_test.gd')), view.fixtureSha256);
+}
+const views = Object.fromEntries(pair.views.map(view => [view.mode, view]));
+verify(views.control); verify(views.candidate);
+const legs = ['control-a1', 'candidate-b1', 'candidate-b2', 'control-a2'];
+const selected = process.argv.find(value => value.startsWith('--leg='))?.slice('--leg='.length);
+if (selected) assert(legs.includes(selected));
+for (const leg of selected ? [selected] : legs) {
+  const mode = leg.startsWith('control') ? 'control' : 'candidate', view = views[mode];
+  const reportFile = path.join(pairDir, `${leg}.json`), logFile = path.join(pairDir, `${leg}.log`), receiptFile = path.join(pairDir, `${leg}-receipt.json`);
+  assert(!fs.existsSync(reportFile) && !fs.existsSync(logFile) && !fs.existsSync(receiptFile), 'Preserve earlier timing evidence');
+  const appdata = path.join(pairDir, `user-data-${leg}`), localdata = path.join(pairDir, `local-data-${leg}`);
+  fs.mkdirSync(appdata, { recursive: true }); fs.mkdirSync(localdata, { recursive: true });
+  const args = ['--headless', '--path', view.project, '--script', 'res://tests/nwn64_shared_clock_test.gd', '--', ...descriptor.fullFunctionalFlags, '--profile=false', '--benchmark=on', `--report=${reportFile}`];
+  const result = cp.spawnSync(engine, args, { env: { ...process.env, APPDATA: appdata, LOCALAPPDATA: localdata }, encoding: 'utf8', timeout: 180000, maxBuffer: 4 * 1024 * 1024, windowsHide: true });
+  const output = (result.stdout || '') + (result.stderr || '');
+  fs.writeFileSync(logFile, output, { flag: 'wx' });
+  verify(view);
+  assert.equal(result.status, 0, output.slice(-6000));
+  assert(!result.error && !/SCRIPT ERROR|(?:^|\n)ERROR:|ObjectDB instances leaked|resources still in use/.test(output), output.slice(-6000));
+  const report = json(reportFile), stats = report.component_call_us;
+  assert(report.success && report.failures.length === 0 && report.frames === 240);
+  assert.equal(report.actual_phase_packets, 0);
+  assert.equal(report.sources, 1750);
+  assert.equal(report.far_sources, 960);
+  assert.equal(report.last.prepared, 1750);
+  assert.equal(report.last.culled, 960);
+  assert.equal(report.last.scene_vertices, 0);
+  assert(report.positive_direct_frames > 0 && report.measured_direct_vertices > 0);
+  assert.equal(report.measured_direct_vertices % 6, 0);
+  assert.equal(report.derived_duplicate_copy_calls, report.measured_direct_vertices / 3);
+  assert.equal(report.copy_count_kind, 'derived from 2 copies per 6 direct vertices; not instrumented');
+  assert(stats.samples === 160 && stats.mean_us > 0 && stats.median_us > 0);
+  const receipt = { success: true, issue: 'NWN-64', leg, mode, report: reportFile, reportSha256: sha(reportFile), kernelSha256: view.nativeBinarySha256, sourceManifestSha256: pair.sourceManifestSha256, buildReceiptSha256: pair.buildReceiptSha256, fixtureSha256: view.fixtureSha256, profile: false, nativeSurfaceOutput: true, directVertices: report.measured_direct_vertices, positiveDirectFrames: report.positive_direct_frames, derivedCopyCalls: report.derived_duplicate_copy_calls, derivedOnly: true, packetDigest: report.packet_digest, rngState: report.rng_state, rngDraws: report.rng_draws, stats, arguments: args, scope: 'Complete native shared-presenter component timing; no renderer, game frame or FPS.' };
+  fs.writeFileSync(receiptFile, JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx' });
+  process.stdout.write(JSON.stringify({ leg, mode, meanUs: stats.mean_us, medianUs: stats.median_us, p95Us: stats.p95_us, directVertices: receipt.directVertices, derivedCopyCalls: receipt.derivedCopyCalls, packetDigest: receipt.packetDigest, reportSha256: receipt.reportSha256 }) + '\n');
+}

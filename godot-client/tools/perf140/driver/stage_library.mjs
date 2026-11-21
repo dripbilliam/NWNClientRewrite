@@ -1,0 +1,13 @@
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
+export const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+export function particleChanges(file){
+ const r=JSON.parse(fs.readFileSync(file));if(!r.isolatedBuildFinalized||hash(fs.readFileSync(r.baselineReceipt.file))!==r.baselineReceipt.sha256)throw Error('Particle finalization differs');const base=JSON.parse(fs.readFileSync(r.baselineReceipt.file));
+ return [...r.overrides.map(v=>v.relative),'.cache/native-kernel/nwn-particle-kernel.dll','.cache/native-kernel/build-manifest.json'].map(relative=>{const p=r.sourcePins.find(v=>v.relative===relative),b=base.sourcePins.find(v=>v.relative===relative);return {relative,before:b?.sha256??b?.finalSha256??null,after:p.sha256??p.finalSha256,from:path.join(r.sourceProject,relative)};});
+}
+export function stage(project,parentFile,label,changes,parents=[]){
+ if(!/^[a-z0-9-]+$/.test(label))throw Error('Invalid private label');const parent=JSON.parse(fs.readFileSync(parentFile)),folder=path.join(project,'.cache/native-140fps/root',label),copy=path.join(folder,'project');if(fs.existsSync(folder))throw Error('Existing derivative preserved');
+ const seen=new Set();for(const c of changes){if(seen.has(c.relative)||path.isAbsolute(c.relative)||c.relative.split(/[\\/]/).includes('..'))throw Error('Invalid overlapping override');seen.add(c.relative);if((parent.pins.find(p=>p.relative===c.relative)?.sha256??null)!==c.before||hash(fs.readFileSync(c.from))!==c.after)throw Error('Candidate guard differs: '+c.relative);}
+ fs.mkdirSync(copy,{recursive:true});const pins=[];for(const p of parent.pins){const bytes=fs.readFileSync(path.join(parent.project,p.relative));if(hash(bytes)!==p.sha256)throw Error('Frozen parent changed');const dest=path.join(copy,p.relative);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);pins.push({...p});}
+ for(const c of changes){const dest=path.join(copy,c.relative);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(c.from,dest);const pin=pins.find(p=>p.relative===c.relative);if(pin)pin.sha256=c.after;else pins.push({relative:c.relative,sha256:c.after});}
+ const receipt={version:1,label,project:copy,common:{file:parentFile,sha256:hash(fs.readFileSync(parentFile))},parents:parents.map(file=>({file,sha256:hash(fs.readFileSync(file))})),changes,pins,graphicsAcceptance:false,sharedNativeBuilds:0};const file=path.join(folder,'manifest.json');fs.writeFileSync(file,JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});return {file,project:copy,sha256:hash(fs.readFileSync(file))};
+}

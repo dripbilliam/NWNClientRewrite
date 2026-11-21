@@ -1,6 +1,3 @@
-#include <cmath>
-#include <cstdlib>
-
 // Worker-local 2DA scanner. Preserve the script decoder's complete public graph
 // and row/column identity while eliminating per-cell interpreted scanner loops.
 // The original binary's indexed CExoString matrix motivates future compact
@@ -23,16 +20,6 @@ struct TableStrings {
  }
 };
 bool table_space(char32_t c){return c==U' '||c==U'\t'||c==U'\r'||c==U'\n';}
-bool table_numeric_label(std::u32string_view label,int64_t& result){
- std::string ascii;ascii.reserve(label.size());
- for(const auto c:label){if(c>127)return false;ascii.push_back(static_cast<char>(c));}
- if(ascii.empty()){result=0;return true;}
- const auto hex=ascii.size()>2&&ascii[0]=='0'&&(ascii[1]=='x'||ascii[1]=='X');
- if(hex){for(size_t i=2;i<ascii.size();++i)if(!((ascii[i]>='0'&&ascii[i]<='9')||(ascii[i]>='a'&&ascii[i]<='f')||(ascii[i]>='A'&&ascii[i]<='F')))return false;}
- char* end=nullptr;const double value=std::strtod(ascii.c_str(),&end);
- if(end!=ascii.c_str()+ascii.size()||!std::isfinite(value)||std::floor(value)!=value||value<-9223372036854775808.0||value>=9223372036854775808.0)return false;
- result=static_cast<int64_t>(value);return true;
-}
 std::vector<std::u32string> table_tokens(std::u32string_view line){
  std::vector<std::u32string> out;size_t index=0;
  while(index<line.size()){
@@ -61,24 +48,25 @@ Var parse_two_da(const Var& input){
  }
  if(lines.empty()||lines[0].substr(0,5)!=U"2DA V")throw std::runtime_error("Unsupported 2DA header");
  size_t cursor=1;std::u32string default_value=U"****";
- for(size_t row=1;row<lines.size();++row){
-  const auto line=lines[row];bool is_default=line.size()>=8;constexpr char32_t prefix[]=U"DEFAULT:";
+ if(cursor<lines.size()){
+  const auto line=lines[cursor];bool is_default=line.size()>=8;constexpr char32_t prefix[]=U"DEFAULT:";
   for(size_t i=0;i<8&&is_default;++i){auto c=line[i];if(c>=U'a'&&c<=U'z')c-=32;is_default=c==prefix[i];}
-  if(is_default){auto tokens=table_tokens(line);if(tokens.size()>1)default_value=tokens[1];cursor=row+1;break;}
+  if(is_default){auto tokens=table_tokens(line);if(tokens.size()>1)default_value=tokens[1];++cursor;}
  }
  if(cursor==lines.size())throw std::runtime_error("Missing 2DA columns");
  const auto columns=table_tokens(lines[cursor++]);TableStrings pool;TableArray column_values(columns.size());
  std::vector<Var> column_keys;column_keys.reserve(columns.size());std::vector<bool> first;std::unordered_set<std::u32string> seen;
  for(size_t i=0;i<columns.size();++i){column_keys.emplace_back(pool.get(columns[i]));column_values.set(i,column_keys.back());first.push_back(seen.emplace(columns[i]).second);}
  const auto row_count=lines.size()-cursor;TableArray ordered(row_count),cells(row_count),labels(row_count);auto rows=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);
- const auto fallback=pool.get(default_value);
+ const auto fallback=pool.get(default_value);Name valid_int("is_valid_int"),to_int("to_int");
  for(size_t index=0;cursor<lines.size();++cursor,++index){
   const auto tokens=table_tokens(lines[cursor]);if(tokens.empty())throw std::runtime_error("Invalid empty 2DA row");
   auto row=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);TableArray physical(columns.size());
   for(size_t i=0;i<columns.size();++i){const auto& value=i+1<tokens.size()?pool.get(tokens[i+1]):fallback;physical.set(i,value);if(first[i])put(row,column_keys[i],value);}
   auto label=pool.get(tokens[0]);ordered.set(index,row);cells.set(index,physical.value);labels.set(index,label);
-  int64_t numeric=0;
-  if(table_numeric_label(tokens[0],numeric))put(rows,Var::integer(numeric),row);
+  Var valid;destroy(valid.data);GDExtensionCallError error{};variant_call(label.data,valid_int.data,nullptr,0,valid.data,&error);if(error.error!=GDEXTENSION_CALL_OK)throw std::runtime_error("2DA row validation failed");
+  GDExtensionBool numeric=false;to[GDEXTENSION_VARIANT_TYPE_BOOL](&numeric,valid.data);
+  if(numeric){Var number;destroy(number.data);variant_call(label.data,to_int.data,nullptr,0,number.data,&error);if(error.error!=GDEXTENSION_CALL_OK)throw std::runtime_error("2DA row conversion failed");put(rows,number,row);}
  }
  auto result=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);put(result,Var::text("defaultValue"),fallback);put(result,Var::text("columns"),column_values.value);put(result,Var::text("rows"),rows);put(result,Var::text("orderedRows"),ordered.value);put(result,Var::text("orderedCells"),cells.value);put(result,Var::text("rowLabels"),labels.value);return result;
 }

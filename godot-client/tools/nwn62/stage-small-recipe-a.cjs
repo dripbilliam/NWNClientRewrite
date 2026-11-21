@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..'),stage=path.join(root,'.cache/nwn62/small-recipe-a'),relative='systems/native_render/model_template.gd';
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+assert(!fs.existsSync(stage));
+const before=fs.readFileSync(path.join(root,relative));
+const anchor='if not configured_recipe() and physical_part_count<=64 and int(state.node_count)<=96:';
+const text=before.toString('utf8');assert.equal(text.split(anchor).length,2);
+const after=Buffer.from(text.replace(anchor,'if not configured_recipe() and not OS.get_cmdline_user_args().has("--model-template=recipe-small") and physical_part_count<=64 and int(state.node_count)<=96:'));
+const target=path.join(stage,relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,after,{flag:'wx'});
+const receipt={issue:'NWN-62',private:true,selection:'--model-template=recipe-small',source:relative,beforeSha256:sha(before),afterSha256:sha(after),scope:'Opt-in existing resumable Recipe capture for small graphs, with existing packed fallback. Accepted source untouched.'};
+fs.writeFileSync(path.join(stage,'source-receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({target,before:receipt.beforeSha256,after:receipt.afterSha256}));

@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex'),read=file=>fs.readFileSync(file),root=path.resolve(__dirname,'../..');
+const overlayFile=path.join(root,'.cache/nwn62/construction-attribution-b/manifest.json'),overlay=JSON.parse(read(overlayFile));assert.equal(hash(read(overlayFile)),'84bc1b0e3f2ce7410745e7962b63376718690a0f46be7ec4c50404320cc9ecd0');
+const parent=JSON.parse(read(overlay.parent.file));assert.equal(hash(read(overlay.parent.file)),overlay.parent.sha256);
+const directory=path.join(root,'.cache/nwn62/entry-pairs/entry62-attribution-b'),project=path.join(directory,'input');assert(!fs.existsSync(directory));
+const pins=new Map(parent.pins.candidate.map(pin=>[pin.file,pin.sha256]));
+for(const pin of parent.pins.candidate){const from=path.join(parent.candidate,pin.file),to=path.join(project,pin.file);assert.equal(hash(read(from)),pin.sha256);fs.mkdirSync(path.dirname(to),{recursive:true});if(/\.(exe|dll)$/.test(pin.file))fs.linkSync(from,to);else fs.writeFileSync(to,read(from),{flag:'wx'});}
+for(const pin of overlay.files){const bytes=read(path.join(overlay.directory,'overlay',pin.file));assert.equal(hash(bytes),pin.afterSHA256);fs.writeFileSync(path.join(project,pin.file),bytes);pins.set(pin.file,pin.afterSHA256);}
+const test='tests/nwn62_construction_attribution_test.gd',bytes=read(path.join(root,test));fs.writeFileSync(path.join(project,test),bytes,{flag:'wx'});pins.set(test,hash(bytes));
+const sourcePins=[...pins].map(([file,sha256])=>({file,sha256}));for(const pin of sourcePins)assert.equal(hash(read(path.join(project,pin.file))),pin.sha256);
+const manifest={version:1,ticket:'NWN-62',directory,project,overlay:{file:overlayFile,sha256:hash(read(overlayFile))},parent:overlay.parent,pins:sourcePins,preferences:parent.preferences,argv:parent.argv,settings:parent.settings,scope:'ONE private4ms attribution-only graphical run; before/after phase labels and final-only top8 existing staged maxima; no causal scheduling/driver/CPU claim',noLaunches:true};
+const file=path.join(directory,'input.json');fs.writeFileSync(file,JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});
+(async()=>{const helper=require(path.join(root,'tools/native-production-selection.cjs')),selected=await helper.stageProductionSelection({project,label:'entry62-attribution-b',argv:parent.argv,preferenceSeeds:JSON.parse(read(parent.preferences.file)),env:{}});fs.writeFileSync(path.join(directory,'staged.json'),JSON.stringify({input:file,inputSHA256:hash(read(file)),selection:{file:selected.file,sha256:selected.sha256},noLaunches:true},null,2)+'\n',{flag:'wx'});console.log(JSON.stringify({input:file,inputSHA256:hash(read(file)),selection:selected.file,selectionSHA256:selected.sha256,noLaunches:true},null,2));})().catch(e=>{console.error(e.stack);process.exitCode=1;});

@@ -1,0 +1,47 @@
+'use strict';
+// One saved trace per invocation; read-only CSV export, bounded reducer, no client.
+const fs=require('node:fs');
+const path=require('node:path');
+const crypto=require('node:crypto');
+const assert=require('node:assert/strict');
+const {spawn,execFile}=require('node:child_process');
+const root=path.resolve(__dirname,'../..');
+const mode=process.argv[2];
+assert(['control','candidate'].includes(mode));
+const base=path.join(root,'.cache/native-tracy/arelith-review-cache-a');
+const trace=path.join(base,mode==='control'?'control-live.tracy':'candidate-live-20261112.tracy');
+const out=path.join(root,'.cache/nwn71/live-worker-20261112-'+mode);
+assert(!fs.existsSync(out),'Preserve earlier export');
+const exporter=path.join(root,'.cache/native-tracy/vendor/windows-0.13.0/tracy-csvexport.exe');
+const selector=path.join(root,'tools/nwn71/select-live-labels.cjs');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+assert.equal(sha(exporter),'345f15cdeeadee9aeba5681c72af1af1129a611204971db1ee52e35bba93c519');
+const sourceHash=sha(selector),stat=fs.statSync(trace),started=Date.now();
+fs.mkdirSync(out,{recursive:true});
+const report=path.join(out,'worker.json');
+const exp=spawn(exporter,['-u','-f','NWNCapture/Worker/','-s','\t',trace],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
+const reduce=spawn(process.execPath,[selector,'--mode=worker','--report='+report],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe']});
+let bytes=0,errA='',errB='',stdout='',failure='',sampling=false;
+const peak={exporterPrivate:0,collectorPrivate:0};
+const stop=reason=>{failure||=reason;for(const child of [exp,reduce])if(child.exitCode===null&&!child.killed)child.kill();};
+exp.stdout.on('data',chunk=>{bytes+=chunk.length;if(bytes>1024*1024*1024)stop('CSV input exceeded 1 GiB');});
+exp.stdout.pipe(reduce.stdin);
+for(const [child,kind] of [[exp,'exporter'],[reduce,'collector']])child.stderr.on('data',chunk=>{if(kind==='exporter')errA=(errA+chunk).slice(-65536);else errB=(errB+chunk).slice(-65536);});
+reduce.stdout.on('data',chunk=>stdout=(stdout+chunk).slice(-65536));
+reduce.stdin.on('error',error=>stop('Pipe error '+error.code));
+const poll=()=>{if(sampling)return;sampling=true;const ids=[exp.pid,reduce.pid].filter(Number.isInteger);if(!ids.length){sampling=false;return;}
+ const cmd='@(Get-Process -Id '+ids.join(',')+' -ErrorAction SilentlyContinue | ForEach-Object { [pscustomobject]@{id=$_.Id;private=$_.PrivateMemorySize64} }) | ConvertTo-Json -Compress';
+ execFile('powershell.exe',['-NoProfile','-NonInteractive','-Command',cmd],{windowsHide:true,timeout:5000,maxBuffer:65536},(error,output)=>{sampling=false;if(error||!output.trim())return;try{const values=JSON.parse(output),rows=Array.isArray(values)?values:[values];for(const row of rows){if(row.id===exp.pid)peak.exporterPrivate=Math.max(peak.exporterPrivate,Number(row.private));if(row.id===reduce.pid)peak.collectorPrivate=Math.max(peak.collectorPrivate,Number(row.private));}if(peak.exporterPrivate>24*1024**3||peak.collectorPrivate>1024**3)stop('Private-memory bound');}catch(e){stop('Memory proof parser '+e.message);}});
+};
+const interval=setInterval(poll,3000),timer=setTimeout(()=>stop('300-second export bound'),300000);poll();
+const closed=child=>new Promise(resolve=>{child.once('error',error=>resolve({error:error.message}));child.once('close',(code,signal)=>resolve({code,signal}));});
+(async()=>{
+ const [a,b]=await Promise.all([closed(exp),closed(reduce)]);clearTimeout(interval);clearTimeout(timer);
+ fs.writeFileSync(path.join(out,'exporter.stderr.log'),errA,{flag:'wx'});
+ fs.writeFileSync(path.join(out,'collector.stderr.log'),errB,{flag:'wx'});
+ fs.writeFileSync(path.join(out,'collector.stdout.log'),stdout,{flag:'wx'});
+ const receipt={trace,traceBytes:stat.size,traceMtime:stat.mtime.toISOString(),exporterSha256:sha(exporter),selectorSha256:sourceHash,elapsedMs:Date.now()-started,exporter:a,collector:b,stdoutBytes:bytes,peak,failure,traceUnchanged:fs.statSync(trace).size===stat.size&&fs.statSync(trace).mtime.toISOString()===stat.mtime.toISOString(),selectorUnchanged:sha(selector)===sourceHash,report:fs.existsSync(report)?{file:report,sha256:sha(report)}:null,scope:'Read-only official Tracy0.13 CSV export from one existing Arelith trace to a bounded worker label reducer. No client, build, graphical or FPS run.'};
+ receipt.success=!failure&&a.code===0&&b.code===0&&receipt.traceUnchanged&&receipt.selectorUnchanged&&receipt.report!==null;
+ fs.writeFileSync(path.join(out,'receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+ console.log(JSON.stringify(receipt));if(!receipt.success)process.exitCode=1;
+})().catch(error=>{console.error(error.stack);process.exitCode=1;});

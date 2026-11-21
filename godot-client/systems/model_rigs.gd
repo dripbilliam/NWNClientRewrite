@@ -3,14 +3,6 @@ extends Node
 const NativeAnimation = preload("res://systems/model_native_animation.gd")
 const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 const SkinPreparation=preload("res://systems/native_data/skin_preparation.gd")
-const SkinDeformation=preload("res://systems/native_data/skin_deformation.gd")
-const GpuSkinPickPose=preload("res://systems/native_render/gpu_skin_pick_pose.gd")
-const SkinPickShapes=preload("res://systems/native_render/gpu_skin_pick_shapes.gd")
-const PickGeometry=preload("res://systems/native_render/pick_geometry.gd")
-const EventDispatcher=preload("res://systems/native_data/model_event_dispatcher.gd")
-const PackedKeys=preload("res://systems/native_data/packed_animation_keys.gd")
-const NativeVisualMaterial=preload("res://systems/native_render/native_model_material.gd")
-const NativeActorAlphaVisualMaterial=preload("res://tools/native_parity/ui/actor-alpha-enhanced.gd")
 static var scalar_values:=preload("res://systems/native_data/scalar_representation.gd").configured()
 
 signal animation_event(id: int, name: String, serial: int)
@@ -23,14 +15,6 @@ var registry
 static func configured_native_skin_publisher() -> bool:
 	return ClassDB.class_exists("NwnRigSkinPublisher") and OS.get_cmdline_user_args().has("--rig-skin-publisher=native")
 var use_native_skin_publisher: bool=configured_native_skin_publisher()
-var use_cpu_skin: bool=not OS.get_cmdline_user_args().has("--skin-deform=gpu")
-var use_dynamic_cpu_surfaces: bool=(not OS.get_cmdline_user_args().has("--cpu-skin-surfaces=rebuild")
-	and not OS.get_cmdline_user_args().has("--cpu-skin-normals=script")
-	and ClassDB.class_has_method(&"NwnParticleKernel", &"cpu_skin_pack_surface")
-	and RenderingServer.get_current_rendering_method()=="forward_plus"
-	and RenderingServer.get_current_rendering_driver_name()=="vulkan")
-var use_gpu_skin_pick: bool=OS.get_cmdline_user_args().has("--gpu-skin-pick=on-demand")
-var use_cpu_skin_pick: bool=OS.get_cmdline_user_args().has("--cpu-skin-pick=on-demand")
 var use_combined_skin_setter: bool=not OS.get_cmdline_user_args().has("--rig-script-skin-combined=off")
 var use_identity_skin_setter: bool=OS.get_cmdline_user_args().has("--rig-script-skin-identity=on")
 var use_skip_identity_skin_setter: bool=not OS.get_cmdline_user_args().has("--rig-script-skin-sparse-skip=off")
@@ -39,8 +23,6 @@ var skin_unchanged_setter_skips: int=0
 var native_skin_publishers: Dictionary={}
 var native_skin_reentrant_fallbacks: int=0
 var idle_suspended: bool=true
-var use_visual_default_reuse:=not OS.get_cmdline_user_args().has("--rig-visual-defaults=always-reset")
-var skip_fixed_track_noops:=not OS.get_cmdline_user_args().has("--rig-visual-fixed-track-reuse=false")
 var _event_batches: Array=[]
 var event_batch_counts:={"allocated":0,"reused":0}
 var event_batch_rows:=0
@@ -131,7 +113,7 @@ func _bind_animation_lifecycle(player: AnimationPlayer,source: Node=null) -> voi
 	if not player.animation_started.is_connected(started):player.animation_started.connect(started)
 
 func _publish_skin_native(id: int,entry: Dictionary) -> Variant:
-	if not use_native_skin_publisher or (use_cpu_skin and not construction_skeletal()):return 1
+	if not use_native_skin_publisher:return 1
 	var binding: Array=native_skin_publishers.get(id,[])
 	if binding.is_empty() or not is_same(binding[0],entry):
 		var publisher: RefCounted=ClassDB.instantiate("NwnRigSkinPublisher")
@@ -168,7 +150,7 @@ func native_skin_publication_snapshot() -> Dictionary:
 
 static func configured_prepared_clips() -> bool: return not OS.get_cmdline_user_args().has("--clip-preparation=main")
 var use_prepared_clips:=configured_prepared_clips()
-var stats := {"entities": 0, "nodes": 0, "players": 0, "clips": 0, "indexed_clip_models":0,"indexed_clip_metadata":0,"skin_meshes": 0, "skin_prepared_meshes":0,"skin_main_meshes":0,"rigid_meshes": 0, "skin_vertices": 0, "unsupported_channels": [], "pose_frames": 0, "missing_requested_clips": [], "unhandled_model_events":[], "missing_animation_nodes":[], "failures": []}
+var stats := {"entities": 0, "nodes": 0, "players": 0, "clips": 0, "indexed_clip_models":0,"indexed_clip_metadata":0,"skin_meshes": 0, "skin_prepared_meshes":0,"skin_main_meshes":0,"rigid_meshes": 0, "skin_vertices": 0, "unsupported_channels": [], "pose_frames": 0, "missing_requested_clips": [], "failures": []}
 
 var _configuration
 var configuration_steps:=0
@@ -203,37 +185,10 @@ func forget_entity(id: int) -> void:
 	native_skin_publishers.erase(id)
 	for model in entities[id].models:
 		if model.has("native_owner"): model.native_owner.close()
-		if model.has("event_dispatcher"): model.event_dispatcher.destroy()
 	for key in entities[id].get("counts", {}):
 		stats[key] -= entities[id].counts[key]
 	entities.erase(id)
 	_refresh_processing()
-
-func add_model_event_listener(id: int,model_index: int,pattern: String,callback: Callable,data: Variant=null) -> Dictionary:
-	if not entities.has(id) or model_index<0 or model_index>=entities[id].models.size():return {}
-	var model: Dictionary=entities[id].models[model_index]
-	return model.event_dispatcher.add(pattern,callback,data) if model.has("event_dispatcher") else {}
-
-func remove_model_event_listener(id: int,model_index: int,record: Dictionary) -> void:
-	if not entities.has(id) or model_index<0 or model_index>=entities[id].models.size():return
-	var model: Dictionary=entities[id].models[model_index]
-	if model.has("event_dispatcher"):model.event_dispatcher.remove(record)
-
-func set_visual_speed_provider(id: int,model_index: int,provider: Callable) -> void:
-	if not entities.has(id) or model_index<0 or model_index>=entities[id].models.size():return
-	var model: Dictionary=entities[id].models[model_index]
-	model.visual_speed_provider=provider
-	if not model.has("base_speed"):model.base_speed=float(model.get("speed",1.0))
-	if model.has("native_owner"):model.native_owner.visual_speed_provider=provider
-
-func set_visual_owner_pose(id: int,node_index: int,pose: Transform3D) -> void:
-	if not entities.has(id):return
-	var entry: Dictionary=entities[id]
-	if not entry.has("visual_owner_poses"):entry.visual_owner_poses={}
-	entry.visual_owner_poses[node_index]=pose
-
-func set_visual_body_scale(id: int,value: float) -> void:
-	if entities.has(id):entities[id].visual_body_scale=value
 
 func sync_attachments(id: int) -> void:
 	if not entities.has(id):return
@@ -247,8 +202,7 @@ func sync_attachments(id: int) -> void:
 			continue
 		if external:held.visible = bool(attachment.get("reference_visible",true))
 		var rotation: Quaternion = (held.global_basis if int(attachment.get("flags",0)) == 3 else anchor.global_basis).orthonormalized().get_rotation_quaternion()
-		var target:=Transform3D(Basis(rotation).scaled(_vec(attachment.scale)*float(entry.get("visual_body_scale",1.0))),anchor.global_position)
-		if entry.get("visual_owner_poses",{}).has(int(attachment.node)):target=target*entry.visual_owner_poses[int(attachment.node)]
+		var target:=Transform3D(Basis(rotation).scaled(_vec(attachment.scale)),anchor.global_position)
 		# Idle held objects often keep the exact same world transform. Avoid
 		# re-dirtying their subtree; still read the live transform so an external
 		# pose edit is corrected on the next rig update.
@@ -274,12 +228,6 @@ func playback_state(id: int,model_index: int) -> Dictionary:
 	var model: Dictionary=entities[id].models[model_index]
 	return {"clip":str(model.get("clip","")),"time":float(model.get("last_time",0.0)),"serial":int(model.get("play_serial",0))}
 
-func emitter_properties(id: int,model_index: int,rig_node: int) -> Dictionary:
-	if not entities.has(id) or model_index<0 or model_index>=entities[id].models.size(): return {}
-	var model: Dictionary=entities[id].models[model_index]
-	if not model.has("native_owner"): return {}
-	return model.native_owner.pose.emitter_properties(rig_node)
-
 func set_manual_pose(id: int, node: Node3D, position: Vector3, quaternion: Quaternion) -> bool:
 	if not entities.has(id) or not is_instance_valid(node):
 		return false
@@ -299,53 +247,16 @@ func play_native(id: int, model_index: int, clip: Variant, speed: float, flags: 
 	if not entities.has(id) or model_index < 0 or model_index >= entities[id].models.size(): return false
 	var entry: Dictionary = entities[id]
 	var model: Dictionary = entry.models[model_index]
-	if not is_finite(speed) or not is_finite(time):
-		stats.failures.append("Native model playback parameters are unavailable")
-		return false
-	# ModelAnimator.playNative uses the part before the first NUL for its
-	# presentation lookup; the native run owner receives the original value.
-	var clip_text:=str(clip) if clip!=null else ""
-	var terminator:=clip_text.find(String.chr(0))
-	if terminator>=0:clip_text=clip_text.substr(0,terminator)
-	var name:=clip_text.to_lower()
-	var clearing:=clip==null or name in ["","null"]
-	var native_asset: Dictionary=model.asset_source.get("nativeAnimation",{})
-	var native_clip: Dictionary=native_asset.get("clips",{}).get(name,{})
-	var source_clip: Dictionary={}
-	for candidate in model.asset_source.get("clips",[]):
-		if str(candidate.get("name","")).to_lower()==name:source_clip=candidate;break
-	var native_pose:=native_asset.has("root") and int(native_asset.root)>=0 and (source_clip.is_empty() or native_clip.has("root"))
-	if flags!=3 and not native_pose and not clearing:return false
-	if not clearing and (flags&256)!=0:return false
-	if not source_clip.is_empty() and not str(source_clip.get("inheritedFrom","")).is_empty():return false
-	if clearing and native_asset.is_empty():
-		if model.player!=null:model.player.stop()
-		return true
-	if native_clip.get("conventional_fallback",false) or not native_pose:
-		# Original ASCII animation parser admits up to 100k keys; native Part
-		# controllers have WORD row/pool fields. An unblended decoded-only model
-		# also uses the conventional pose when native node storage is absent.
-		if model.player==null or (not model.names.has(name) and _deferred_clip(model,name).is_empty()):return false
-		if model.has("native_owner"):
-			model.native_owner.close();model.erase("native_owner")
-		if flags&128:model.player.stop();return true
-		model.base_speed=speed
-		var visual_speed:=float(model.visual_speed_provider.call()) if model.get("visual_speed_provider",Callable()).is_valid() else 1.0
-		model.visual_speed=visual_speed
-		if not _report_unhandled_model_events(model,name):return false
-		_play(model,name,(flags&1)==0,speed*visual_speed,time,true)
-		return true
+	if not model.asset_source.get("nativeAnimation") is Dictionary: return false
 	if not model.has("native_owner"):
 		var native_owner := NativeAnimation.new()
-		native_owner.configure(model.asset_source, model.part_source, entry, model_index)
-		if model.get("visual_speed_provider",Callable()).is_valid():native_owner.visual_speed_provider=model.visual_speed_provider
+		native_owner.configure(model.asset_source, model.part_source, entry)
 		model["native_owner"] = native_owner
 		if entry.has("animated_models") and not entry.animated_models.has(model_index): entry.animated_models.append(model_index)
 		_refresh_processing()
 		if model.player != null: model.player.stop()
 	var result: bool = model.native_owner.play(clip, speed, flags, time)
 	if result:
-		if not _report_unhandled_model_events(model,name):return false
 		model.play_serial = int(model.get("play_serial", 0)) + 1
 		_native_clock(model)
 		_emit_native_events(id, model_index, model)
@@ -361,10 +272,9 @@ func set_model_colour_scope(id: int,model_index: int,scope: int,rgb: Variant) ->
 		# owner; this is a colour change, not another attack/animation event.
 		var playing: bool=model.player!=null and model.player.is_playing() and not model.player.current_animation.is_empty()
 		var at: float=model.player.current_animation_position if playing else float(model.get("last_time",0.0))
-		var owner:=NativeAnimation.new(); owner.configure(model.asset_source,model.part_source,entry,model_index)
-		if model.get("visual_speed_provider",Callable()).is_valid():owner.visual_speed_provider=model.visual_speed_provider
+		var owner:=NativeAnimation.new(); owner.configure(model.asset_source,model.part_source,entry)
 		if playing:
-			if not owner.play(model.clip,float(model.get("base_speed",model.speed)),0 if model.loop else 1,at): owner.close(); return false
+			if not owner.play(model.clip,float(model.speed),0 if model.loop else 1,at): owner.close(); return false
 			owner.events.clear()
 		model.native_owner=owner
 		if model.player!=null: model.player.stop()
@@ -373,64 +283,12 @@ func set_model_colour_scope(id: int,model_index: int,scope: int,rgb: Variant) ->
 		_native_clock(model)
 	return model.native_owner.pose.set_colour_scope(scope,rgb,entry.manual_poses)
 
-func _record_model_event_failure(reason: String) -> void:
-	if not stats.failures.has(reason):
-		stats.failures.append(reason)
-		push_error(reason)
-
-func _dispatch_model_event(model: Dictionary,event: String) -> bool:
-	if not model.has("event_dispatcher"):return true
-	if model.event_dispatcher.dispatch(event)>=0:return true
-	_record_model_event_failure(str(model.event_dispatcher.failure))
-	return false
-
 func _emit_native_events(id: int, model_index: int, model: Dictionary) -> void:
 	var pending: Array = model.native_owner.events.duplicate()
 	model.native_owner.events.clear()
 	for event in pending:
-		if not _dispatch_model_event(model,str(event)):return
 		model_event.emit(id, model_index, str(event), int(model.get("play_serial", 0)))
 		if model.get("event_source", false): animation_event.emit(id, str(event), int(model.get("play_serial", 0)))
-
-func _report_unhandled_model_events(model: Dictionary,name: String) -> bool:
-	if not model.has("event_dispatcher") or not model.has("asset_source"):return true
-	var source: Dictionary=model.asset_source
-	var clips: Array=source.get("clips",[])
-	var query:=name.to_lower()
-	var cached: Variant=model.get("event_clip_cache")
-	var clip: Dictionary={}
-	if cached!=null and cached.name==query and is_same(cached.clips,clips):
-		clip=cached.clip
-	else:
-		# Clip definitions are immutable for this binding. Keep the first
-		# case-insensitive match, then check the live event listeners below.
-		for row in clips:
-			if str(row.get("name","")).to_lower()==query:clip=row;break
-		model.event_clip_cache={"name":query,"clips":clips,"clip":clip}
-	if clip.is_empty():return true
-	var key:=str(clip.name)
-	for node in clip.get("missingNodes",[]):
-		var missing_key:=key+":"+str(node)
-		if model.get("reported_missing_events",[]).has(missing_key):continue
-		model.reported_missing_events.append(missing_key)
-		var missing_context:={"model":str(source.get("modelName",source.get("name",""))),"instance":str(model.get("event_instance","")),"clip":key,"node":str(node)}
-		stats.missing_animation_nodes.append(missing_context)
-		push_warning("animation.node-unavailable: Animation "+key+" has no binding for "+str(node)+" "+JSON.stringify(missing_context))
-	var missing: Array=[]
-	for row in clip.get("events",[]):
-		if not model.event_dispatcher.accepts(str(row.get("name",""))):
-			if not str(model.event_dispatcher.failure).is_empty():
-				_record_model_event_failure(str(model.event_dispatcher.failure))
-				return false
-			missing.append(row)
-	if missing.is_empty():return true
-	if model.get("reported_missing_events",[]).has(key):return true
-	if not model.has("reported_missing_events"):model.reported_missing_events=[]
-	model.reported_missing_events.append(key)
-	var context:={"model":str(source.get("modelName",source.get("name",""))),"instance":str(model.get("event_instance","")),"clip":key,"events":missing}
-	stats.unhandled_model_events.append(context)
-	push_warning("animation.event-handler-unavailable: Authored model events have no implemented engine handler "+JSON.stringify(context))
-	return true
 
 func _native_clock(model: Dictionary) -> void:
 	var runs: Array = model.native_owner.gob.runsE0
@@ -458,7 +316,7 @@ func adopt_entities(source, ids: Array) -> void:
 
 func _model(root: Node3D, nodes: Array[Node3D], source: Dictionary, asset: Dictionary) -> Dictionary:
 	if asset.clips.is_empty():
-		return {"player": null, "names": {}, "clip": "", "loop": false, "speed": 1.0, "event_dispatcher":EventDispatcher.new(root)}
+		return {"player": null, "names": {}, "clip": "", "loop": false, "speed": 1.0}
 	var player := AnimationPlayer.new()
 	root.add_child(player)
 	player.root_node = NodePath("..")
@@ -492,7 +350,7 @@ func _model(root: Node3D, nodes: Array[Node3D], source: Dictionary, asset: Dicti
 	for clip in ([] if indexed_lazy else asset.clips):
 		event_map[str(clip.name)] = clip.get("events", []).duplicate(true)
 		transitions[str(clip.name)] = float(clip.get("transition", 0.0))
-	var model := {"player": player, "names": names, "clip": "", "loop": false, "follow": source.get("follow", true), "speed": float(source.get("speed", 1.0)), "events": event_map, "transitions": transitions, "play_serial": 0, "last_time": float(source.get("time", 0.0)), "event_dispatcher":EventDispatcher.new(root), "event_instance":str(root.name), "reported_missing_events":[]}
+	var model := {"player": player, "names": names, "clip": "", "loop": false, "follow": source.get("follow", true), "speed": float(source.get("speed", 1.0)), "events": event_map, "transitions": transitions, "play_serial": 0, "last_time": float(source.get("time", 0.0))}
 	# Only a completion observed by this owner may suspend a formerly active
 	# AnimationPlayer. Externally stopped or never-started players retain the
 	# old callback policy, so their queued work is not silently reclassified.
@@ -553,154 +411,6 @@ func _deferred_clip(model: Dictionary,name: String) -> Dictionary:
 		return asset.clips[int(asset.clipIndex[name])] if asset.clipIndex.has(name) else {}
 	return model.get("deferred",{}).get(name,{})
 
-func _visual_bindings(id: int,entry: Dictionary,model: Dictionary,model_index: int) -> Dictionary:
-	if model.has("visual_bindings"):return model.visual_bindings
-	var used: Dictionary={}
-	for clip in model.asset_source.get("clips",[]):
-		for track in clip.get("visualTracks",[]):
-			var part:=int(track.part)
-			if not used.has(part):used[part]={"material":false,"light":false}
-			if str(track.property) in ["alpha","selfillumcolor"]:used[part].material=true
-			elif str(track.property).begins_with("light"):used[part].light=true
-	# ModelAnimator checks all authored clips for material controllers when it
-	# first binds a node, including clips whose duration later rejects playback.
-	for part_value in model.asset_source.get("animatedMaterialParts",[]):
-		var part:=int(part_value)
-		if not used.has(part):used[part]={"material":false,"light":false}
-		used[part].material=true
-	# ModelAnimator also owns material copies for static self-illumination
-	# controllers, even if no clip animates alpha or emissive colour.
-	var native_animation: Dictionary=model.asset_source.get("nativeAnimation",{})
-	for part in native_animation.get("parts",[]).size():
-		var node: Dictionary=native_animation.parts[part].get("node",{})
-		for controller in node.get("controllers78",[]):
-			if int(controller.get("displacement0",-1))==128 and (int(controller.get("columnsA",0))&15)==3:
-				if not used.has(part):used[part]={"material":false,"light":false}
-				used[part].material=true
-				break
-	var bindings: Dictionary={}
-	for part in used:
-		var source_parts: Array=model.part_source.get("parts",[])
-		if int(part)<0 or int(part)>=source_parts.size():continue
-		var physical:=int(source_parts[int(part)])
-		if physical<0 or physical>=entry.parents.size():continue
-		var node: Node3D=node_at(id,physical)
-		if node==null:continue
-		var materials: Array=[];var lights: Array=[]
-		var visual_children: Array=entry.get("gpu_meshes",[]).filter(func(mesh):return int(mesh.get_meta("native_source_model_index",-1))==model_index and (int(mesh.get_meta("native_source_part_index",-1))==int(part) or int(mesh.get_meta("native_material_owner_part_index",-1))==int(part))) if entry.has("gpu_meshes") else node.get_children()
-		if entry.has("gpu_meshes"): visual_children.append_array(node.get_children())
-		else:
-			# The ASCII decoder makes each contiguous bitmap run a child Part.
-			# The original one-mesh material array binds every run to the authored
-			# node's alpha/self-illumination controller.
-			for group in node.get_children():
-				if not group is Node3D or group is MeshInstance3D:continue
-				for child in group.get_children():
-					if child is MeshInstance3D and int(child.get_meta("native_source_model_index",-1))==model_index and int(child.get_meta("native_material_owner_part_index",-1))==int(part):visual_children.append(child)
-		for child in visual_children:
-			if child is MeshInstance3D and bool(used[part].material):
-				var material: Variant=child.material_override
-				if material is StandardMaterial3D or material!=null and material.has_method("publish_native_pose"):
-					var unique: Variant=material.duplicate()
-					child.material_override=unique
-					materials.append({"mesh":child,"material":unique,"color":unique.albedo_color,"emission":unique.emission,"enabled":unique.emission_enabled,"transparency":unique.transparency,"depth_draw":unique.depth_draw_mode if unique is StandardMaterial3D else -1,"hint":bool(child.get_meta("native_transparency_hint",false)),"visible":child.visible})
-				elif child.mesh!=null:
-					for surface in child.mesh.get_surface_count():
-						material=child.get_active_material(surface)
-						if material is StandardMaterial3D or material!=null and material.has_method("publish_native_pose"):
-							var unique: Variant=material.duplicate()
-							child.set_surface_override_material(surface,unique)
-							materials.append({"mesh":child,"material":unique,"color":unique.albedo_color,"emission":unique.emission,"enabled":unique.emission_enabled,"transparency":unique.transparency,"depth_draw":unique.depth_draw_mode if unique is StandardMaterial3D else -1,"hint":bool(child.get_meta("native_transparency_hint",false)),"visible":child.visible})
-			elif child is OmniLight3D and bool(used[part].light) and child.has_method("publish_native_light"):
-				lights.append({"light":child,"properties":child.native_properties.duplicate(true)})
-		bindings[int(part)]={"materials":materials,"lights":lights}
-	model.visual_bindings=bindings
-	return bindings
-
-static func _finite_visual_color(value: Color) -> bool:
-	return is_finite(value.r) and is_finite(value.g) and is_finite(value.b) and is_finite(value.a)
-
-static func _native_visual_default_snapshot(material: NativeVisualMaterial,recording: bool=false) -> PackedByteArray:
-	# Read the resource properties and owner-side uniforms. Record exact
-	# serialized output from the original setters, including signed zeros.
-	var color: Color=material.albedo_color
-	var emission: Color=material.emission
-	var diffuse: Variant=material.get_shader_parameter(&"native_diffuse")
-	var alpha: Variant=material.get_shader_parameter(&"native_alpha")
-	var emissive: Variant=material.get_shader_parameter(&"native_emission")
-	var enabled: Variant=material.get_shader_parameter(&"native_emission_enabled")
-	if recording and (not _finite_visual_color(color) or not _finite_visual_color(emission) or not diffuse is Vector3 or not diffuse.is_finite() or not emissive is Vector3 or not emissive.is_finite() or not alpha is float or not is_finite(alpha) or not enabled is bool):return PackedByteArray()
-	return var_to_bytes([color,emission,material.emission_enabled,diffuse,alpha,emissive,enabled])
-
-func _apply_visual_tracks(id: int,entry: Dictionary,model: Dictionary,model_index: int,time: float) -> void:
-	if not model.has("asset_source"):return
-	var bindings:=_visual_bindings(id,entry,model,model_index)
-	if bindings.is_empty():return
-	var reuse_defaults:=false
-	if use_visual_default_reuse:
-		var source: Dictionary=model.asset_source
-		var clip_index:=int(source.get("clipIndex",{}).get(str(model.get("clip","")),-1))
-		# Material tracks on a running clip retain their ordered reset/apply
-		# path. Even a numerically steady track can change its output next tick.
-		reuse_defaults=clip_index<0 or source.clips[clip_index].get("visualTracks",[]).is_empty()
-	var reused_defaults:=0
-	for binding in bindings.values():
-		for row in binding.materials:
-			var material: Variant=row.material
-			var native:=false
-			if reuse_defaults:
-				var script: Script=material.get_script()
-				# The exact ActorAlpha wrapper inherits all three default setters.
-				native=script==NativeVisualMaterial or script==NativeActorAlphaVisualMaterial
-			var recorded: bool=native and row.has("native_default_bytes") and row.native_default_shader==material.shader
-			var defaults: Variant=row.native_default_bytes if recorded else null
-			if recorded and not defaults.is_empty() and _native_visual_default_snapshot(material)==defaults:
-				reused_defaults+=1
-			else:
-				material.albedo_color=row.color;material.emission=row.emission;material.emission_enabled=row.enabled
-				if native and not recorded:
-					row.native_default_bytes=_native_visual_default_snapshot(material,true)
-					row.native_default_shader=material.shader
-			var may_skip_native_defaults:=skip_fixed_track_noops and native
-			if not may_skip_native_defaults or material.transparency!=row.transparency:material.transparency=row.transparency
-			if material is StandardMaterial3D:material.depth_draw_mode=row.depth_draw
-			if not may_skip_native_defaults or row.mesh.visible!=row.visible:row.mesh.visible=row.visible
-		for row in binding.lights:row.light.configure(row.properties)
-	if reused_defaults>0:FrameProfile.count("count_rig_visual_native_defaults_reused",reused_defaults)
-	# Material/visibility signals can replace the current clip mid-reset.
-	var asset: Dictionary=model.asset_source
-	if not asset.get("clipIndex",{}).has(str(model.get("clip",""))):return
-	var clip: Dictionary=asset.clips[int(asset.clipIndex[str(model.clip)])]
-	var tracks: Array=clip.get("visualTracks",[])
-	if skip_fixed_track_noops and tracks.is_empty():return
-	var light_values: Dictionary={}
-	for track in tracks:
-		var part:=int(track.part)
-		if not bindings.has(part):continue
-		var value: Array=PackedKeys.sample_track(track,time)
-		if value.is_empty():continue
-		var binding: Dictionary=bindings[part]
-		match str(track.property):
-			"alpha":
-				var alpha:=clampf(float(value[0]),0.0,1.0)
-				for row in binding.materials:
-					var color: Color=row.material.albedo_color;color.a=alpha;row.material.albedo_color=color
-					row.material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA if row.hint or alpha<1.0 else (BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR if int(row.transparency)==BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR else BaseMaterial3D.TRANSPARENCY_DISABLED)
-					if row.material is StandardMaterial3D:row.material.depth_draw_mode=BaseMaterial3D.DEPTH_DRAW_DISABLED if row.hint or alpha<1.0 else row.depth_draw
-					row.mesh.visible=alpha>0.0
-			"selfillumcolor":
-				if value.size()>=3:
-					var emissive:=Color(float(value[0]),float(value[1]),float(value[2])).srgb_to_linear()
-					for row in binding.materials:row.material.emission=emissive;row.material.emission_enabled=true
-			_:
-				var property: String={"lightColor":"color","lightRadius":"radius","lightShadowRadius":"shadowradius","lightVerticalDisplacement":"verticaldisplacement","lightMultiplier":"multiplier"}.get(str(track.property),"")
-				if property.is_empty():continue
-				for row in binding.lights:
-					var key: int=int(row.light.get_instance_id())
-					if not light_values.has(key):light_values[key]={"light":row.light,"properties":row.properties.duplicate(true)}
-					light_values[key].properties[property]=value.duplicate() if value.size()>1 else value[0]
-	for row in light_values.values():row.light.configure(row.properties)
-
 func _play(model: Dictionary, name: String, loop: bool, speed: float, time: float = 0.0, restart: bool = false) -> void:
 	var deferred_clip: Dictionary=_deferred_clip(model,name) if not model.names.has(name) else {}
 	if not model.names.has(name) and not deferred_clip.is_empty():
@@ -744,18 +454,7 @@ func clip_name(id: int, animation: int, side: int = -1) -> String:
 		return ""
 	var entry: Dictionary = entities[id]
 	var chosen := int(entry.side) if side < 0 else side
-	var name: String=str(entry.side_maps.get(str(chosen), entry.clip_map).get(str(animation), ""))
-	# The precomputed map covers 0..511. Native creature name selection accepts
-	# the full WORD and maps every unknown ID above 425 to the body pause.
-	if name.is_empty() and animation>=512 and animation<=65535:
-		var context: Dictionary=entry.get("context",{})
-		if context.has("fieldDE"):
-			var selected: Dictionary=context.duplicate()
-			selected.fieldE0=chosen
-			name=preload("res://systems/native_data/animation_lookup.gd").new().name_for(animation,selected)
-	if name.is_empty() and animation>=0 and animation<=65535 and int(entry.get("object_type",0)) in [9,10]:
-		name=preload("res://systems/native_data/object_animation.gd").name(int(entry.object_type),animation,int(entry.get("destroyed_model",0)))
-	return name
+	return str(entry.side_maps.get(str(chosen), entry.clip_map).get(str(animation), ""))
 
 func set_playback(id: int, animation: int, speed: float = 1.0, loop_override: Variant = null, restart: bool = false, side: int = -1) -> void:
 	if not entities.has(id):
@@ -766,11 +465,6 @@ func set_playback(id: int, animation: int, speed: float = 1.0, loop_override: Va
 	var name := clip_name(id, animation)
 	if name.is_empty():
 		return
-	if entry.has("relay_animation_source"):
-		var source_index:=int(entry.relay_animation_source)
-		if source_index<0 or source_index>=entry.models.size(): return
-		var source_model: Dictionary=entry.models[source_index]
-		if not source_model.get("names",{}).has(name) and _deferred_clip(source_model,name).is_empty(): return
 	var loop: bool = entry.loop_map.get(str(animation), animation not in [5, 6, 7, 8, 9]) if loop_override == null else bool(loop_override)
 	for model_index in entry.animated_models if entry.has("animated_models") else range(entry.models.size()):
 		var model: Dictionary=entry.models[int(model_index)]
@@ -780,18 +474,7 @@ func set_playback(id: int, animation: int, speed: float = 1.0, loop_override: Va
 			var missing := "%s/%s/%s" % [id, animation, name]
 			if not stats.missing_requested_clips.has(missing):
 				stats.missing_requested_clips.append(missing)
-		if not model.names.has(name) and _deferred_clip(model,name).is_empty():continue
-		if not _report_unhandled_model_events(model,name):continue
-		var visual_speed:=float(model.visual_speed_provider.call()) if model.get("visual_speed_provider",Callable()).is_valid() else 1.0
-		model.visual_speed=visual_speed
-		model.base_speed=speed
-		var playback_speed:=speed*visual_speed
-		var start_time:=clip_length(id,animation,side) if visual_speed<0.0 else 0.0
-		var pose_changed: bool=model.clip!=name or model.loop!=loop or restart
-		_play(model, name, loop, playback_speed, start_time, restart)
-		_apply_visual_tracks(id,entry,model,int(model_index),start_time)
-		if pose_changed and use_cpu_skin and not construction_skeletal() and entry.skins.all(func(skin):return bool(skin.get("cpu",false))):
-			_publish_source_cpu_skins(entry,int(model_index))
+		_play(model, name, loop, speed, 0.0, restart)
 	entry.animation = animation
 
 func clip_length(id: int, animation: int, side: int = -1) -> float:
@@ -799,14 +482,6 @@ func clip_length(id: int, animation: int, side: int = -1) -> float:
 		return 0.0
 	var entry: Dictionary = entities[id]
 	var name := clip_name(id, animation, side)
-	if entry.has("relay_animation_source"):
-		var source_index:=int(entry.relay_animation_source)
-		if source_index<0 or source_index>=entry.models.size(): return 0.0
-		var source_model: Dictionary=entry.models[source_index]
-		var deferred_source: Dictionary=_deferred_clip(source_model,name)
-		if not deferred_source.is_empty(): return maxf(0.001,float(deferred_source.length))
-		if source_model.get("names",{}).has(name): return source_model.player.get_animation(source_model.names[name]).length
-		return 0.0
 	for model in entry.models:
 		var deferred_clip: Dictionary=_deferred_clip(model,name) if model.get("follow",false) else {}
 		if not deferred_clip.is_empty(): return maxf(0.001, float(deferred_clip.length))
@@ -814,179 +489,7 @@ func clip_length(id: int, animation: int, side: int = -1) -> float:
 			return model.player.get_animation(model.names[name]).length
 	return 0.0
 
-func _cpu_skin(mesh: MeshInstance3D, source: Dictionary, parts: Array) -> Dictionary:
-	# The normal JS client deforms face-expanded vertices on the CPU, then
-	# recomputes flat face normals and the current mesh bound after each pose.
-	var count: int=int(source.position.size()/3)
-	if count<3 or count%3!=0 or source.position.size()%3!=0 or source.weights.size()!=count*4 or source.bones.size()!=count*4 or source.uv.size()!=count*2:
-		_fail("A native CPU skin source has mismatched vertex streams")
-		return {}
-	var bones: Array[int]=[]
-	var inverses: Array[Transform3D]=[]
-	var accumulated: Dictionary={}
-	var root_seen:=false
-	var stopped:=false
-	for slot in 64:
-		var part:=int(source.slots[slot]) if slot<source.slots.size() else -1
-		if stopped:part=-1
-		if part==0:
-			if root_seen:part=-1;stopped=true
-			else:root_seen=true
-		var inverse:=Transform3D.IDENTITY
-		if part>=0 and part<parts.size() and part<source.inverseQuaternions.size() and part<source.inversePositions.size():
-			var q: Array=source.inverseQuaternions[part]
-			var p: Array=source.inversePositions[part]
-			if q.size()<4 or p.size()<3:
-				_fail("A native skin inverse-bind bone is unavailable")
-				return {}
-			var step:=Transform3D(Basis(Quaternion(float(q[1]),float(q[3]),-float(q[2]),float(q[0]))),Vector3(float(p[0]),float(p[2]),-float(p[1])))
-			inverse=accumulated.get(part,Transform3D.IDENTITY)*step
-			accumulated[part]=inverse
-		bones.append(int(parts[part]) if part>=0 and part<parts.size() else -1)
-		inverses.append(inverse)
-	var positions:=PackedVector3Array()
-	var uv:=PackedVector2Array()
-	positions.resize(count);uv.resize(count)
-	for index in count:
-		positions[index]=Vector3(float(source.position[index*3]),float(source.position[index*3+1]),float(source.position[index*3+2]))
-		uv[index]=Vector2(float(source.uv[index*2]),float(source.uv[index*2+1]))
-		for component in 4:
-			var at:=index*4+component
-			if float(source.weights[at])<=0:continue
-			var slot:=int(source.bones[at])
-			if slot<0 or slot>=bones.size() or bones[slot]<0:
-				_fail("Native weighted skin slot is unavailable")
-				return {}
-	var groups: Array=source.groups if not source.groups.is_empty() else [{"start":0,"count":count,"materialIndex":0}]
-	var materials: Array=[]
-	var surface_uvs: Array[PackedVector2Array]=[]
-	for surface in groups.size():
-		materials.append(mesh.get_active_material(surface))
-		var group: Dictionary=groups[surface]
-		var start:=int(group.start);var length:=int(group.count)
-		if start<0 or length<0 or start+length>count or length%3!=0:
-			surface_uvs.append(PackedVector2Array())
-		else:
-			surface_uvs.append(uv if start==0 and length==count else uv.slice(start,start+length))
-	var first_corners:=SkinDeformation.corner_leaders(source,count)
-	# This instance owns its mutable hit resource. Shared source geometry and
-	# other instances must keep their original immutable pick triangles.
-	var pick:=PickGeometry.new()
-	var face_indices:=PackedInt32Array()
-	face_indices.resize(count)
-	for index in count:face_indices[index]=index
-	pick.vertices=positions;pick.indices=face_indices
-	var initial_bounds:=AABB(positions[0],Vector3.ZERO)
-	for index in range(1,count):initial_bounds=initial_bounds.expand(positions[index])
-	pick.bounds=initial_bounds
-	if use_cpu_skin_pick and not mesh.has_meta("collision_body"):
-		# The render AABB certifies pick misses only when the rendered groups
-		# cover every picking corner. Legacy collision bodies stay eager.
-		var covered:=0
-		for group in groups:
-			var group_count:=int(group.count)
-			if int(group.start)!=covered or group_count<=0 or group_count%3!=0:
-				break
-			covered+=group_count
-		if covered==count:
-			pick.set_meta(SkinPickShapes.CPU_REVISION,0)
-	mesh.set_meta("native_pick_geometry",pick)
-	mesh.set_meta("native_pick_shape",pick.get_shape())
-	mesh.set_meta("native_cpu_skin",true)
-	mesh.skin=null
-	mesh.skeleton=NodePath()
-	stats.skin_meshes+=1
-	stats.skin_vertices+=count
-	var skin := {"cpu":true,"mesh":mesh,"bones":bones,"inverse":inverses,"part":int(parts[int(source.part)]),"positions":positions,"surface_uvs":surface_uvs,"weights":source.weights,"indices":source.bones,"first_corners":first_corners,"groups":groups,"materials":materials,"pick":pick,"source":source,"physical_count":parts.size()}
-	SkinDeformation.bind_compiled(skin)
-	return skin
-
-func _publish_cpu_skin(skin: Dictionary,rigid: Array[Transform3D]) -> void:
-	var prepared:=SkinDeformation.prepare_pose(skin,rigid)
-	if prepared.has("error"):_fail(str(prepared.error));return
-	var vertices: Variant=SkinDeformation.deform(skin,prepared)
-	if vertices is String:_fail(vertices);return
-	var deformed: PackedVector3Array=vertices
-	var mesh: MeshInstance3D=skin.mesh
-	var bounds: AABB
-	var reused: Variant=null
-	if use_dynamic_cpu_surfaces and not skin.get("dynamic_surface_unsupported",false):
-		var began:=FrameProfile.begin()
-		reused=_update_resident_skin(skin,mesh,deformed)
-		FrameProfile.finish("actor_skin_dynamic_surface_ms",began)
-	if reused is AABB:
-		bounds=reused
-		# Region uploads alone do not invalidate cached point shadows.
-		# An identical custom AABB would bypass the MeshInstance3D setter.
-		if mesh.custom_aabb==bounds and mesh.cast_shadow!=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
-			RenderingServer.instance_set_custom_aabb(mesh.get_instance(),bounds)
-	else:
-		bounds=_rebuild_cpu_skin(skin,mesh,deformed)
-	mesh.custom_aabb=bounds
-	var pick: Resource=skin.pick
-	pick.vertices=deformed;pick.bounds=bounds
-	if pick.cached_shape!=null and (not use_cpu_skin_pick or not SkinPickShapes.defer_cpu_refit(pick)):
-		pick.cached_shape.set_faces(deformed)
-	mesh.set_meta("native_pick_bounds",pick.bounds)
-
-func _update_resident_skin(skin: Dictionary,mesh: MeshInstance3D,deformed: PackedVector3Array) -> Variant:
-	var resident: ArrayMesh=skin.get("dynamic_surface_mesh")
-	if resident==null or mesh.mesh!=resident or resident.get_surface_count()!=skin.groups.size():return null
-	var packets: Array[Dictionary]=[]
-	var bounds:=AABB()
-	for surface in skin.groups.size():
-		var group: Dictionary=skin.groups[surface]
-		var count:=int(group.count)
-		if resident.surface_get_array_len(surface)!=count:return null
-		var packet: Dictionary=ClassDB.class_call_static(&"NwnParticleKernel",&"cpu_skin_pack_surface",deformed,int(group.start),count)
-		if packet.has("error"):
-			skin.dynamic_surface_unsupported=true
-			FrameProfile.count("count_cpu_skin_dynamic_surface_rejections",1)
-			return null
-		bounds=packet.bounds if packets.is_empty() else bounds.merge(packet.bounds)
-		packets.append(packet)
-	if packets.is_empty():return null
-	# Every surface is ready before mutating the resident render object.
-	for surface in packets.size():
-		RenderingServer.mesh_surface_update_vertex_region(resident.get_rid(),surface,0,packets[surface].vertex_data)
-		if resident.surface_get_material(surface)!=skin.materials[surface]:resident.surface_set_material(surface,skin.materials[surface])
-	FrameProfile.count("count_cpu_skin_dynamic_surface_updates",packets.size())
-	return bounds
-
-func _rebuild_cpu_skin(skin: Dictionary,mesh: MeshInstance3D,deformed: PackedVector3Array) -> AABB:
-	var began:=FrameProfile.begin()
-	var rebuilt:=ArrayMesh.new()
-	var dynamic: bool=use_dynamic_cpu_surfaces and not bool(skin.get("dynamic_surface_unsupported",false))
-	for surface in skin.groups.size():
-		var group: Dictionary=skin.groups[surface]
-		var start:=int(group.start);var count:=int(group.count)
-		if start<0 or count<0 or start+count>deformed.size() or count%3!=0:continue
-		# Whole-mesh surfaces borrow the new pose array. Subgroups keep the
-		# same ordered corners and reuse their original authored UV snapshot.
-		var points:=deformed if start==0 and count==deformed.size() else deformed.slice(start,start+count)
-		var normals:=SkinDeformation.flat_normals(points)
-		var arrays: Array=[];arrays.resize(Mesh.ARRAY_MAX)
-		arrays[Mesh.ARRAY_VERTEX]=points;arrays[Mesh.ARRAY_NORMAL]=normals;arrays[Mesh.ARRAY_TEX_UV]=skin.surface_uvs[surface]
-		rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,[],{},Mesh.ARRAY_FLAG_USE_DYNAMIC_UPDATE if dynamic else 0)
-		if skin.materials[surface]!=null:rebuilt.surface_set_material(surface,skin.materials[surface])
-	mesh.mesh=rebuilt
-	if use_dynamic_cpu_surfaces:
-		skin.erase("dynamic_surface_mesh")
-		if dynamic and _dynamic_skin_layout(rebuilt,skin.groups.size()):skin.dynamic_surface_mesh=rebuilt
-	FrameProfile.finish("actor_skin_surface_rebuild_ms",began)
-	return rebuilt.get_aabb()
-
-func _dynamic_skin_layout(mesh: ArrayMesh,expected: int) -> bool:
-	if mesh.get_surface_count()!=expected:return false
-	for i in expected:
-		var count:=mesh.surface_get_array_len(i)
-		var format:=mesh.surface_get_format(i)
-		if RenderingServer.mesh_surface_get_format_vertex_stride(format,count)!=12 or RenderingServer.mesh_surface_get_format_normal_tangent_stride(format,count)!=8:return false
-		if RenderingServer.mesh_surface_get_format_offset(format,count,Mesh.ARRAY_VERTEX)!=0 or RenderingServer.mesh_surface_get_format_offset(format,count,Mesh.ARRAY_NORMAL)!=12*count or RenderingServer.mesh_surface_get_format_offset(format,count,Mesh.ARRAY_TANGENT)!=12*count+4:return false
-	return true
-
 func _skin(mesh: MeshInstance3D, source: Dictionary, parts: Array) -> Dictionary:
-	if use_cpu_skin and not construction_skeletal():return _cpu_skin(mesh,source,parts)
 	var skeleton := Skeleton3D.new()
 	mesh.get_parent().add_child(skeleton)
 	var bind := Skin.new()
@@ -1067,61 +570,12 @@ func _skin(mesh: MeshInstance3D, source: Dictionary, parts: Array) -> Dictionary
 		rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		rebuilt.surface_set_material(surface, mesh.get_active_material(surface))
 	mesh.mesh = rebuilt
-
 	mesh.skin = bind
 	mesh.skeleton = mesh.get_path_to(skeleton)
 	mesh.custom_aabb = rebuilt.get_aabb().grow(maxf(1.0, rebuilt.get_aabb().size.length()))
 	stats.skin_meshes += 1
 	stats.skin_vertices += vertex_count
-	var skin := {"mesh": mesh, "skeleton": skeleton, "bones": bones, "inverse": inverses, "part": int(parts[int(source.part)]), "source": source}
-	if use_gpu_skin_pick and not use_cpu_skin and not use_native_skin_publisher:
-		var pick_pose = _create_gpu_skin_pick_pose(skin, vertex_count, parts.size())
-		if pick_pose != null:
-			skin.pick_pose = pick_pose
-			mesh.set_meta("native_gpu_pick_provider", {"pose": Callable(pick_pose, "pose"), "faces": Callable(pick_pose, "faces")})
-	return skin
-
-func _create_gpu_skin_pick_pose(skin: Dictionary, count: int, physical_count: int):
-	var source: Dictionary = skin.source
-	if count < 3 or count % 3 != 0 or source.position.size() != count * 3 or source.weights.size() != count * 4 or source.bones.size() != count * 4:
-		return null
-	if source.inversePositions.is_empty() or source.inverseQuaternions.is_empty():
-		return null
-	var positions := PackedVector3Array()
-	var upload: Dictionary = source.get("native_upload", {})
-	if str(upload.get("revision", "")) == SkinPreparation.REVISION and upload.positions.size() == count:
-		positions = upload.positions
-	else:
-		positions.resize(count)
-		for index in count:
-			positions[index] = Vector3(source.position[3 * index], source.position[3 * index + 1], source.position[3 * index + 2])
-	return GpuSkinPickPose.new({"source": source, "part": skin.part, "bones": skin.bones, "inverse": skin.inverse,
-		"physical_count": physical_count, "positions": positions, "weights": source.weights, "indices": source.bones,
-		"first_corners": SkinDeformation.corner_leaders(source, count)})
-
-func _rigid_local_pose(entry: Dictionary) -> Array[Transform3D]:
-	var rigid: Array[Transform3D]=[]
-	for index in entry.nodes.size():
-		var node: Node3D=entry.nodes[index]
-		var local:=Transform3D(Basis(node.quaternion),node.position)
-		var parent:=int(entry.parents[index])
-		rigid.append(local if parent==-1 else rigid[parent]*local)
-	return rigid
-
-func _publish_source_cpu_skins(entry: Dictionary, model_index: int=-1, exclude_models: Dictionary={}) -> bool:
-	# Each skin retains the originating model index from its source mesh row.
-	# Native updateRoot publishes that model's skin after its run callbacks;
-	# conventional AnimationPlayer poses publish before their queued events.
-	var selected: Array=[]
-	for skin in entry.skins:
-		var source_model:=int(skin.get("source",{}).get("model",-1))
-		if model_index>=0 and source_model!=model_index:continue
-		if exclude_models.has(source_model):continue
-		selected.append(skin)
-	if selected.is_empty():return false
-	var rigid:=_rigid_local_pose(entry)
-	for skin in selected:_publish_cpu_skin(skin,rigid)
-	return true
+	return {"mesh": mesh, "skeleton": skeleton, "bones": bones, "inverse": inverses, "part": int(parts[int(source.part)]), "source": source}
 
 func _process(delta: float) -> void:
 	if not FrameProfile.enabled:
@@ -1141,7 +595,6 @@ func _exit_tree() -> void:
 	for entry in entities.values():
 		for model in entry.models:
 			if model.has("native_owner"): model.native_owner.close()
-			if model.has("event_dispatcher"): model.event_dispatcher.destroy()
 	FrameProfile.finish("rig_exit_close_ms",began)
 
 static func model_events(events: Array, from: float, to: float, flags: int = 0) -> Array:
@@ -1175,33 +628,12 @@ func _update(delta: float) -> void:
 		var entry: Dictionary = entities[id]
 		var phase_began:=FrameProfile.begin() if FrameProfile.enabled else 0
 		var emitted: Variant=null
-		var source_cpu_skin_before_events: bool=use_cpu_skin and not construction_skeletal() and not entry.skins.is_empty() and entry.skins.all(func(skin):return bool(skin.get("cpu",false)))
-		var native_skin_models: Dictionary={}
-		var early_skin_ms:=0.0
-		var entry_retired:=false
 		for model_index in entry.animated_models if entry.has("animated_models") else range(entry.models.size()):
 			var model: Dictionary = entry.models[model_index]
 			if model.has("native_owner"):
-				var native_owner: RefCounted=model.native_owner
-				native_owner.advance(delta)
+				model.native_owner.advance(delta)
 				_native_clock(model)
-				if source_cpu_skin_before_events and native_owner.root_committed:
-					# JS dispatches native run events before updateRoot/updateSkin.
-					# Dispatch after the run clock returns so a listener cannot free its
-					# provider dictionary while that clock is still iterating it.
-					_emit_native_events(int(id),int(model_index),model)
-					if not entities.has(id) or not is_same(entities[id],entry):
-						entry_retired=true
-						break
-					if not model.has("native_owner") or not is_same(model.native_owner,native_owner):continue
-					var native_skin_began:=FrameProfile.begin() if FrameProfile.enabled else 0
-					if _publish_source_cpu_skins(entry,int(model_index)):
-						native_skin_models[int(model_index)]=true
-						if native_skin_began>0:
-							var native_skin_ms:=(Time.get_ticks_usec()-native_skin_began)/1000.0
-							early_skin_ms+=native_skin_ms
-							FrameProfile.record("actor_skin",native_skin_ms)
-				var native_events: Array=native_owner.events
+				var native_events: Array=model.native_owner.events
 				if not native_events.is_empty():
 					for event in native_events:
 						if emitted==null:emitted=_event_batch()
@@ -1220,7 +652,6 @@ func _update(delta: float) -> void:
 				player.advance(delta)
 				var after: float = player.current_animation_position if player.is_playing() and not player.current_animation.is_empty() else (length if model.speed >= 0 else 0.0)
 				model.last_time = after
-				_apply_visual_tracks(int(id),entry,model,int(model_index),after)
 				# Read AFTER advance exactly as before: property callbacks can
 				# replace clip/event metadata while the player advances.
 				var source_events: Array=model.get("events",{}).get(model.clip,[])
@@ -1231,9 +662,6 @@ func _update(delta: float) -> void:
 						if emitted==null:emitted=_event_batch()
 						emitted.append(event);emitted.append(serial);emitted.append(model);emitted.append(model_index)
 						event_batch_rows+=1
-		if entry_retired:
-			if emitted!=null:_release_event_batch(emitted)
-			continue
 		# Native Part60 gates the entire part's control while its children still
 		# animate. Apply saved manual fields before events/attachments/skin work.
 		for index in entry.manual_poses:
@@ -1245,31 +673,20 @@ func _update(delta: float) -> void:
 			if node.position!=manual.position:node.position=manual.position
 			if node.quaternion!=manual.quaternion:node.quaternion=manual.quaternion
 			if node.scale!=manual.scale:node.scale=manual.scale
-		if source_cpu_skin_before_events:
-			var early_skin_began:=FrameProfile.begin() if FrameProfile.enabled else 0
-			var remaining_skins_published:=_publish_source_cpu_skins(entry,-1,native_skin_models)
-			if remaining_skins_published and early_skin_began>0:
-				var remaining_skin_ms:=(Time.get_ticks_usec()-early_skin_began)/1000.0
-				early_skin_ms+=remaining_skin_ms
-				FrameProfile.record("actor_skin",remaining_skin_ms)
 		if emitted!=null:
 			var event_index:=0
-			var failed_event_models: Dictionary={}
 			while event_index<emitted.size():
 				var event_model: Dictionary=emitted[event_index+2]
-				var event_model_index:=int(emitted[event_index+3])
-				if not failed_event_models.has(event_model_index) and int(event_model.get("play_serial",-1))==int(emitted[event_index+1]):
-					if not _dispatch_model_event(event_model,str(emitted[event_index])):failed_event_models[event_model_index]=true
-					else:
-						model_event.emit(int(id),event_model_index,str(emitted[event_index]),int(emitted[event_index+1]))
-						if event_model.get("event_source",false):animation_event.emit(int(id),str(emitted[event_index]),int(emitted[event_index+1]))
+				if int(event_model.get("play_serial",-1))==int(emitted[event_index+1]):
+					model_event.emit(int(id),int(emitted[event_index+3]),str(emitted[event_index]),int(emitted[event_index+1]))
+					if event_model.get("event_source",false):animation_event.emit(int(id),str(emitted[event_index]),int(emitted[event_index+1]))
 				event_index+=4
-		if phase_began>0:FrameProfile.record("actor_animation",maxf(0.0,(Time.get_ticks_usec()-phase_began)/1000.0-early_skin_ms))
+		if phase_began>0:FrameProfile.finish("actor_animation",phase_began)
 		if not entry.attachments.is_empty():
 			phase_began=FrameProfile.begin() if FrameProfile.enabled else 0
 			sync_attachments(int(id))
 			if phase_began>0:FrameProfile.finish("actor_attachments",phase_began)
-		if entry.skins.is_empty() or source_cpu_skin_before_events:
+		if entry.skins.is_empty():
 			if emitted!=null:_release_event_batch(emitted)
 			continue
 		phase_began=FrameProfile.begin() if FrameProfile.enabled else 0
@@ -1284,15 +701,17 @@ func _update(delta: float) -> void:
 		var skin_start: int=0
 		if native_skin_result is Dictionary:
 			rigid.assign(native_skin_result.rigid);skin_rows=native_skin_result.skins;skin_start=int(native_skin_result.start)
-		else:rigid=_rigid_local_pose(entry)
+		else:
+			for index in entry.nodes.size():
+				var node: Node3D = entry.nodes[index]
+				var local := Transform3D(Basis(node.quaternion), node.position)
+				var parent := int(entry.parents[index])
+				rigid.append(local if parent == -1 else rigid[parent] * local)
 		var skin_cursor: int=0
 		for skin in skin_rows:
 			if skin_cursor<skin_start:
 				skin_cursor+=1;continue
 			skin_cursor+=1
-			if skin.get("cpu",false):
-				_publish_cpu_skin(skin,rigid)
-				continue
 			var inverse: Transform3D = rigid[skin.part].affine_inverse()
 			var skeleton: Skeleton3D = skin.skeleton
 			for slot in skin.bones.size():
@@ -1326,7 +745,6 @@ func _update(delta: float) -> void:
 					skeleton.set_bone_pose_position(slot, transform.origin)
 					skeleton.set_bone_pose_rotation(slot, transform.basis.get_rotation_quaternion())
 				skeleton.set_bone_pose_scale(slot, Vector3.ONE)
-			if skin.has("pick_pose"): skin.pick_pose.commit(rigid)
 			skeleton.force_update_all_bone_transforms()
 		if phase_began>0:FrameProfile.finish("actor_skin",phase_began)
 		if emitted!=null:_release_event_batch(emitted)
@@ -1352,7 +770,7 @@ func diagnostic_sample(ids: Array = [],include_skins: bool=true) -> Dictionary:
 		if not include_skins: continue
 		for index in entry.skins.size():
 			var mesh: MeshInstance3D = entry.skins[index].mesh
-			var baked: Mesh=mesh.mesh if entry.skins[index].get("cpu",false) else mesh.bake_mesh_from_current_skeleton_pose()
+			var baked := mesh.bake_mesh_from_current_skeleton_pose()
 			var vertices := PackedVector3Array()
 			for surface in baked.get_surface_count():
 				vertices.append_array(baked.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX])

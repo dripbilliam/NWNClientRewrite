@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {stage,hash} from './stage_library.mjs';
+const project=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
+const parentFile=path.join(project,'.cache/native-140fps/root/drive-replay-fenced-v1/manifest.json');
+if(hash(fs.readFileSync(parentFile))!=='d7a9c7871d7dfe896ee8077370c57e39efd2ecc6b395bb443dfb2ba22f35046f')throw Error('Frozen movement replay parent differs');
+const sourceFile=path.join(project,'.cache/native-140fps/loading-agent/drive-preview-envelope-v1/manifest.json');
+if(hash(fs.readFileSync(sourceFile))!=='d83cb44f55efbad8b1d8b840675f1f202b6047bb3592e5aeb6a92479c5352458')throw Error('Frozen envelope source differs');
+const source=JSON.parse(fs.readFileSync(sourceFile));
+if(source.mode!=='envelope'||source.parent.sha256!=='9194c5c9ef2e4b9c0e87875c573e8de229ec2a0d0fd267c1e2aca5b78d17e2d2')throw Error('Envelope source lineage differs');
+const changes=source.changes.map(p=>({...p,from:path.join(source.project,p.relative)}));
+const expected=['systems/native_render/drive_collision_indexed.gd','systems/native_render/live_world.gd'].sort();
+if(JSON.stringify(changes.map(p=>p.relative).sort())!==JSON.stringify(expected))throw Error('Envelope source scope differs');
+console.log(JSON.stringify(stage(project,parentFile,'drive-envelope-fenced-v1',changes,[sourceFile])));

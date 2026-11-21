@@ -6,9 +6,6 @@ const Timing=preload("res://systems/native_render/frame_profile.gd")
 signal completed(serial: int, catalog: RefCounted, error: String, stats: Dictionary)
 const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Workshop=preload("res://systems/native_data/workshop_index.gd")
-const Extensions=preload("res://systems/native_data/resource_extensions.gd")
-const TalkTable=preload("res://systems/native_data/talk_table.gd")
-const ResourceAdmission=preload("res://systems/native_data/native_resource_admission.gd")
 const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 const ItemIconSources=preload("res://systems/native_data/item_icon_sources.gd")
 const SpellbookIconSources=preload("res://systems/native_data/spellbook_icon_sources.gd")
@@ -37,44 +34,6 @@ func progress() -> Dictionary:
 static func stopped(guard: Callable,catalog: RefCounted,began: int,phase: String) -> Dictionary:
 	if not guard.is_valid() or not guard.call(): return {}
 	return {"catalog":catalog,"error":"Native catalog preparation cancelled","stats":{"cancelled":true,"phase":phase,"mount_ms":(Time.get_ticks_usec()-began)/1000.0,"layers":catalog.layers.size(),"rendering_prepared":false}}
-static func validate_custom_tlk(source: Variant,catalog: RefCounted,profile: String="") -> Dictionary:
-	if not source is Dictionary or source.is_empty(): return {}
-	var name:=str(source.get("name","")).get_file().to_lower().trim_suffix(".tlk")
-	if name.is_empty(): return {"error":"Selected custom TLK name is invalid"}
-	var path:=str(source.path) if source.get("path") is String else ""
-	var table:=TalkTable.new()
-	var male_opened:=false
-	if path.is_empty():
-		var bytes: PackedByteArray=catalog.get_resource(name,2018)
-		if not catalog.failure.is_empty():
-			var repair: Dictionary=catalog.nwsync_repair_binding(name,2018)
-			return {"error":"Selected custom TLK read failed: "+catalog.failure,"repair":repair}
-		male_opened=table.open_bytes(bytes)
-	else:male_opened=table.open_file(path)
-	var reason:=table.failure;table.close()
-	if not male_opened:return {"error":"Selected custom TLK is invalid: "+reason}
-	var female_name:=name+"f"
-	var female_path: String=""
-	var indexes: Dictionary={}
-	if not path.is_empty():
-		var sibling:=ResourceAdmission.indexed_file(path.get_base_dir(),path.get_file().get_basename()+"f.tlk",indexes)
-		if sibling.has("error"):return sibling
-		female_path=str(sibling.get("path",""))
-	elif not catalog.has_resource(female_name,2018) and not profile.is_empty():
-		var profile_female:=ResourceAdmission.indexed_file(profile.path_join("tlk"),female_name+".tlk",indexes)
-		if profile_female.has("error"):return profile_female
-		female_path=str(profile_female.get("path",""))
-	if not female_path.is_empty() and FileAccess.file_exists(female_path):
-		var female_opened_file:=table.open_file(female_path);reason=table.failure;table.close()
-		if not female_opened_file:return {"error":"Selected custom female TLK is invalid: "+reason}
-	elif path.is_empty() and catalog.has_resource(female_name,2018):
-		var female_bytes: PackedByteArray=catalog.get_resource(female_name,2018)
-		if not catalog.failure.is_empty():
-			var female_repair: Dictionary=catalog.nwsync_repair_binding(female_name,2018)
-			return {"error":"Selected custom female TLK read failed: "+catalog.failure,"repair":female_repair}
-		var female_opened_bytes:=table.open_bytes(female_bytes);reason=table.failure;table.close()
-		if not female_opened_bytes:return {"error":"Selected custom female TLK is invalid: "+reason}
-	return {}
 static func prepare(sources: Dictionary,guard: Callable=Callable(),progress_callback: Callable=Callable()) -> Dictionary:
 	var began:=Time.get_ticks_usec(); var catalog:=Catalog.new(); var stop:=stopped(guard,catalog,began,"begin")
 	var phase_began:=began; var phases: Dictionary={}
@@ -118,7 +77,12 @@ static func prepare(sources: Dictionary,guard: Callable=Callable(),progress_call
 			if not catalog.mount_erf(path,29000000-local_haks): return {"catalog":catalog,"error":catalog.failure}
 			local_haks+=1
 	phases.workshop_archives_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
-	var seen: Dictionary={}; var manifest_layers: Dictionary={}; var index:=0
+	for archive in archives:
+		stop=stopped(guard,catalog,began,"session archive"); if not stop.is_empty(): return stop
+		if not archive is Dictionary or not str(archive.get("path","")).is_absolute_path(): return {"catalog":catalog,"error":"Invalid native archive descriptor"}
+		if not catalog.mount_erf(archive.path,int(archive.get("priority",30000000))): return {"catalog":catalog,"error":catalog.failure}
+	phases.session_archives_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
+	var seen: Dictionary={}; var index:=0
 	for manifest in manifests:
 		stop=stopped(guard,catalog,began,"manifest"); if not stop.is_empty(): return stop
 		if not manifest is Dictionary: return {"catalog":catalog,"error":"Invalid native NWSync descriptor"}
@@ -126,27 +90,8 @@ static func prepare(sources: Dictionary,guard: Callable=Callable(),progress_call
 		if seen.has(hash): continue
 		seen[hash]=true
 		if not catalog.mount_nwsync(hash,str(manifest.get("cacheDirectory","")),str(manifest.get("nativeDirectory","")),str(manifest.get("helper","")),40000000+index,str(sources.get("rawCacheDirectory",ProjectSettings.globalize_path("user://native-original-bytes-v1")))): return {"catalog":catalog,"error":catalog.failure}
-		for mounted in catalog.layers:
-			if str(mounted.get("binding_identity",""))=="nwsync:"+hash:manifest_layers[hash]=mounted;break
 		index+=1
 	phases.manifests_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
-	for archive in archives:
-		stop=stopped(guard,catalog,began,"session archive"); if not stop.is_empty(): return stop
-		if not archive is Dictionary:return {"catalog":catalog,"error":"Invalid native archive descriptor"}
-		var priority:=int(archive.get("priority",30000000))
-		if str(archive.get("source","file"))=="nwsync":
-			var archive_manifest_hash:=str(archive.get("manifest",""));var name:=str(archive.get("name",""));var kind:=str(archive.get("kind",""))
-			var type:=int(Extensions.TYPES.get(kind,-1));var key:=name.to_lower()+":"+str(type)
-			if not manifest_layers.has(archive_manifest_hash) or type<0:return {"catalog":catalog,"error":"NWSync archive manifest is not mounted"}
-			var layer: Dictionary=manifest_layers[archive_manifest_hash]
-			var entry: Dictionary=layer.entries.get(key,{})
-			if entry.is_empty() or str(entry.get("hash",""))!=str(archive.get("entry",{}).get("hash","")):return {"catalog":catalog,"error":"NWSync archive source differs from admission"}
-			if not catalog.mount_nwsync_erf(layer.store,entry,priority,name):
-				return {"catalog":catalog,"error":catalog.failure,"stats":{"repair":catalog.nested_archive_repair} if not catalog.nested_archive_repair.is_empty() else {}}
-		else:
-			if not str(archive.get("path","")).is_absolute_path():return {"catalog":catalog,"error":"Invalid native archive descriptor"}
-			if not catalog.mount_erf(archive.path,priority):return {"catalog":catalog,"error":catalog.failure}
-	phases.session_archives_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
 	var profile:=str(sources.get("profileDirectory","")); var portraits: Array=[]; var overrides: Array=[]
 	if not profile.is_empty():
 		if not profile.is_absolute_path(): return {"catalog":catalog,"error":"Native profile directory must be absolute"}
@@ -163,30 +108,6 @@ static func prepare(sources: Dictionary,guard: Callable=Callable(),progress_call
 		stop=stopped(guard,catalog,began,"overrides"); if not stop.is_empty(): return stop
 		if not catalog.mount_directory(str(overrides[number]),10000000-number): return {"catalog":catalog,"error":catalog.failure}
 	phases.overrides_ms=(Time.get_ticks_usec()-phase_began)/1000.0
-	phase_began=Time.get_ticks_usec()
-	var ambient_directories: Array[String]=[]
-	var music_directories: Array[String]=[]
-	if not profile.is_empty():
-		ambient_directories.append(profile.path_join("ambient"))
-		music_directories.append(profile.path_join("music"))
-	ambient_directories.append(install.path_join("data/amb"))
-	music_directories.append(install.path_join("data/mus"))
-	ambient_directories.append_array(workshop.directories_for(roots,"ambient"))
-	if not workshop.failure.is_empty(): return {"catalog":catalog,"error":workshop.failure}
-	music_directories.append_array(workshop.directories_for(roots,"music"))
-	if not workshop.failure.is_empty(): return {"catalog":catalog,"error":workshop.failure}
-	for number in ambient_directories.size():
-		stop=stopped(guard,catalog,began,"ambient fallback"); if not stop.is_empty(): return stop
-		if not catalog.mount_directory(ambient_directories[number],500000-number,[4]): return {"catalog":catalog,"error":catalog.failure}
-	for number in music_directories.size():
-		stop=stopped(guard,catalog,began,"music fallback"); if not stop.is_empty(): return stop
-		if not catalog.mount_directory(music_directories[number],500000-number,[8]): return {"catalog":catalog,"error":catalog.failure}
-	phases.loose_audio_ms=(Time.get_ticks_usec()-phase_began)/1000.0
-	stop=stopped(guard,catalog,began,"custom TLK"); if not stop.is_empty(): return stop
-	var custom_tlk_check: Dictionary=validate_custom_tlk(sources.get("customTlk"),catalog,profile)
-	if custom_tlk_check.has("error"):
-		var repair: Dictionary=custom_tlk_check.get("repair",{})
-		return {"catalog":catalog,"error":str(custom_tlk_check.error),"stats":{"repair":repair} if not repair.is_empty() else {}}
 	stop=stopped(guard,catalog,began,"resource index"); if not stop.is_empty(): return stop
 	var index_stats:=catalog.build_resource_index()
 	stop=stopped(guard,catalog,began,"publication"); if not stop.is_empty(): return stop

@@ -22,17 +22,14 @@ static func character_id(players: Array,name: String,text=null) -> int:
 		if pair is Array and pair.size()==2 and character_name(pair[1],text)==name: return int(pair[0])
 	return -1
 static func for_speaker(players: Array,id: int) -> int:
+	# Client player-list7a8c60 stores the first wire OBJECT_ID at+34:
+	# player.objectId (current controlled object). The character ID is+38.
 	for pair in players:
-		if not pair is Array or pair.size()!=2:continue
-		var entry: Dictionary=pair[1]
-		if int(entry.get("objectId",INVALID))==id or int(entry.get("character",{}).get("id",INVALID))==id:return int(pair[0])
+		if pair is Array and pair.size()==2 and int(pair[1].get("objectId",INVALID))==id: return int(pair[0])
 	return NO_PLAYER
 static func presentation(id: int,objects: Dictionary,players: Array,text) -> Dictionary:
 	var rules:=Rules.new(); rules.text=text; var owner:=for_speaker(players,id)
-	var object: Dictionary=objects.get(id,{})
-	var state: Variant=object.get("replicated")
-	if state==null and owner!=NO_PLAYER:state=player(players,owner).get("character")
-	if not state is Dictionary:return {}
-	var portrait:=rules.portrait({"replicated":state},1)
-	if portrait.is_empty():return {}
+	var source:=rules.presentation_object(objects,id,players.filter(func(pair):return pair is Array and pair.size()==2 and int(pair[0])==owner))
+	var portrait:=rules.portrait(source,1)
+	if not objects.has(id) and owner==NO_PLAYER: portrait="po_hu_m_99_t"
 	return {"player_id":owner,"portrait":portrait}

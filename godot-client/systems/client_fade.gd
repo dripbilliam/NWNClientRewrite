@@ -1,7 +1,6 @@
 extends RefCounted
 # CNWCObject765920 /762e40; provider calls retain native ordering. These are
 # presentation objects, never authoritative server effects or gameplay IDs.
-const WorldTimer=preload("res://systems/native_data/world_timer.gd")
 static func f(value: float) -> float: return PackedFloat32Array([value])[0]
 static func snapshot_milliseconds(value: int) -> int:
 	if value >= 0: return (value/1000)&0xffffffff
@@ -10,7 +9,7 @@ static func snapshot_milliseconds(value: int) -> int:
 
 static func set_fade(s: Dictionary,target: int,delay: int,duration: int,p: Dictionary) -> void:
 	if int(s.temporary) == 1 or int(s.blocked) != 0: return
-	s.fadeTarget = target&255;s.delayEnabled = WorldTimer.i32(delay);s.duration = duration&0xffffffff
+	s.fadeTarget = target&255;s.delayEnabled = delay;s.duration = duration&0xffffffff
 	if s.delayEnabled != 0: s.since = p.worldTime.call().duplicate()
 	var mode: int = int(p.mode.call())&255
 	if s.fadeTarget == 1:
@@ -31,9 +30,6 @@ static func update(s: Dictionary,p: Dictionary) -> int:
 	if (int(s.fadeState)&255) == (int(s.fadeTarget)&255):
 		if int(s.delayEnabled) != 0:
 			var elapsed: Dictionary = p.difference.call(p.worldTime.call(),s.since)
-			if not WorldTimer.integer(elapsed.get("time")):
-				push_error("Native client fade time subtraction did not produce a time")
-				return 0
 			if (int(s.duration)&0xffffffff) <= (int(elapsed.time)&0xffffffff): return 1
 	else:
 		var milliseconds := snapshot_milliseconds(int(p.snapshotDifference.call()))

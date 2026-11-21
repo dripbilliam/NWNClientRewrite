@@ -76,9 +76,6 @@ func start() -> void:
 			_call("clearProgram", [state])
 			_call("loadProgram", [state, _word(index)])
 			_call("startProgram", [state, _word(index)])
-			# A visual part query can reject a multi-root model at this exact
-			# callback. Do not publish the later phase/audio writes on that path.
-			if providers.has("partQueryFailed") and bool(_call("partQueryFailed")):return
 			state.programPhaseFa = index + 1
 			state.programType10d = int(_call("programType", [state, _word(index)])) & 255
 			break
@@ -153,7 +150,6 @@ func stop(requested: int = 1) -> void:
 		if (int(_call("programType", [state, _word(1)])) & 255) != 4 or (int(_call("programType", [state, _word(2)])) & 255) != 4:
 			_call("loadProgram", [state, _word(2)])
 		_call("startProgram", [state, _word(2)])
-		if providers.has("partQueryFailed") and bool(_call("partQueryFailed")):return
 	var render: Variant = _render()
 	var cessation := _visual_string("SoundCessation")
 	if render != null:
@@ -194,7 +190,6 @@ func update_milliseconds(delta: int) -> void:
 					state.programType10d = int(_call("programType", [state, _word(1)])) & 255
 					_call("loadProgram", [state, _word(1)])
 					_call("startProgram", [state, _word(1)])
-					if providers.has("partQueryFailed") and bool(_call("partQueryFailed")):return
 					if not state.attached114:
 						_call("detach", [state])
 			else:

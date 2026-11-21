@@ -47,8 +47,8 @@ struct Owner {
   return draws-before;
  }
  void add(const Var& input){
-  if(!configured)throw std::runtime_error("Native scene wind is not configured");
-  if(points.size()==capacity){if(capacity>points.max_size()/2)throw std::runtime_error("Native point-wind source capacity overflows the container");capacity=capacity==0?16:capacity*2;points.reserve(capacity);}
+  if(!configured)throw std::runtime_error("Native scene wind is not configured");if(points.size()>=32768)throw std::runtime_error("Native point-wind source allocation exceeds explicit limit");
+  if(points.size()==capacity){capacity=capacity==0?16:capacity*2;points.reserve(capacity);}
   const float duration=f(input,"duration");points.push_back({values<3>(get(input,"position")),f(input,"radius"),duration,duration,f(input,"strength")});
  }
  static size_t bucket(float value){const uint32_t shifted=static_cast<uint32_t>(cvtt(value))<<2;return static_cast<size_t>((shifted&0x80000000U?0U-shifted:shifted)&15U);}

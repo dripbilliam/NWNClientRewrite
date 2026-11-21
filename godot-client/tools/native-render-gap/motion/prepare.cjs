@@ -1,0 +1,16 @@
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const project=path.resolve(__dirname,'../../..'),stage=path.join(project,'.cache/native-render-gap/motion/facing-a'),dest=path.join(stage,'project');
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+if(fs.existsSync(stage))throw Error('Existing motion stage retained');fs.mkdirSync(path.join(dest,'systems'),{recursive:true});fs.mkdirSync(path.join(dest,'.godot'));
+const originalFile=path.join(project,'systems/network_motion.gd'),original=fs.readFileSync(originalFile,'utf8');let candidate=original;
+const once=(a,b)=>{if(candidate.split(a).length!==2)throw Error('Motion source anchor changed');candidate=candidate.replace(a,b);};
+once('extends RefCounted','extends RefCounted\nstatic var use_native_facing: bool=ClassDB.class_exists("NwnMotionNumeric") and OS.get_cmdline_user_args().has("--motion-facing=native")');
+const signature='static func facing_step(old: Vector3, target: Vector3, animation: int, dt: int, options: Dictionary = {}) -> Dictionary:';
+once(signature,signature+'\n\tif use_native_facing:\n\t\tvar result: Dictionary=ClassDB.class_call_static("NwnMotionNumeric","facing_step",old,target,animation,dt,options)\n\t\tif not result.is_empty():return result');
+fs.writeFileSync(path.join(dest,'frozen_network_motion.gd'),original,{flag:'wx'});fs.writeFileSync(path.join(dest,'systems/network_motion.gd'),candidate,{flag:'wx'});
+fs.copyFileSync(path.join(__dirname,'facing_oracle.gd'),path.join(dest,'oracle.gd'));
+const cert=path.join(project,'.cache/native-render-gap/engine/source/thirdparty/certs/ca-bundle.crt');
+fs.writeFileSync(path.join(dest,'project.godot'),'config_version=5\n[application]\nconfig/name="Motion Facing Differential Oracle"\n[network]\ntls/certificate_bundle_override='+JSON.stringify(cert.replaceAll('\\','/'))+'\n');
+fs.writeFileSync(path.join(dest,'.godot/global_script_class_cache.cfg'),'list=[]\n');
+const result={stage,project:dest,original:{file:originalFile,sha256:sha(original)},candidate:{file:path.join(dest,'systems/network_motion.gd'),sha256:sha(candidate)},oracle:{file:path.join(dest,'oracle.gd'),sha256:sha(fs.readFileSync(path.join(dest,'oracle.gd')))},certificate:{file:cert,sha256:sha(fs.readFileSync(cert))},sharedSourceWrites:0};
+fs.writeFileSync(path.join(stage,'preparation.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));

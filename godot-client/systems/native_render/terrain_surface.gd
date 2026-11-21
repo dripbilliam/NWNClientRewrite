@@ -21,11 +21,8 @@ var assets
 var definition: Dictionary={}
 var table: Dictionary={}
 var meshes: Dictionary={}
-var model_failures: Dictionary={}
 var requests: Dictionary={}
 var waiting: Array=[]
-var active:=false
-var source_serial:=false
 var closed:=false
 var done:=false
 var vertical_grid: Dictionary={}
@@ -33,43 +30,15 @@ var vertical_bounds: Dictionary={}
 var vertical_global: Array=[]
 var collision_meshes: Dictionary={}
 var stats:={"models":0,"cache_hits":0,"queries":0,"outside_queries":0,"worker_ms":0.0,"errors":[],"native_only":true,"complete_collision":false}
-func configure(catalog,source: Dictionary,cache_path: String,start_now: bool=true,serial_first_requests: bool=false) -> void:
+func configure(catalog,source: Dictionary,cache_path: String) -> void:
 	definition=source; waiting=source.models.keys()
-	source_serial=serial_first_requests
-	assets=Assets.new(); add_child(assets); assets.maximum_workers=1 if source_serial else 2; assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
-	if start_now:activate()
-func activate() -> void:
-	if active or closed:return
-	active=true
-	var id: int=assets.request("surfacemat",2017,"2da")
-	if id<0:
-		stats.errors.append({"resource":"@surfacemat","reason":str(assets.failure) if not str(assets.failure).is_empty() else "Native surface table request failed"})
-		waiting.clear();done=true
-	else:requests[id]="@surfacemat"
-func request_model(name: String) -> Dictionary:
-	if meshes.has(name):return {"status":"fulfilled","value":meshes[name]}
-	if model_failures.has(name):return {"status":"rejected","reason":model_failures[name]}
-	if not active or closed:return {"status":"pending"}
-	if requests.values().has(name):return {"status":"pending"}
-	waiting.erase(name)
-	var id: int=assets.request(name,2016,"tile-surface-v1")
-	if id<0:
-		var reason:=str(assets.failure) if not str(assets.failure).is_empty() else "Native WOK request failed"
-		var failure: Dictionary={"error":reason}
-		model_failures[name]=failure
-		stats.errors.append({"resource":name,"reason":reason})
-		return {"status":"rejected","reason":failure}
-	requests[id]=name
-	return {"status":"pending"}
+	assets=Assets.new(); add_child(assets); assets.maximum_workers=2; assets.configure(catalog); assets.cache_directory=cache_path; assets.completed.connect(prepared)
+	requests[assets.request("surfacemat",2017,"2da")]="@surfacemat"
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not requests.has(id): return
 	var name:=str(requests[id]); requests.erase(id)
 	stats.worker_ms+=float(result.worker_ms)
-	if not str(result.error).is_empty():
-		if name!="@surfacemat":model_failures[name]={"error":str(result.error)}
-		stats.errors.append({"resource":name,"reason":result.error})
-		if name=="@surfacemat":waiting.clear();done=true
-		return
+	if not str(result.error).is_empty(): stats.errors.append({"resource":name,"reason":result.error}); return
 	if result.cache_hit: stats.cache_hits+=1
 	if name=="@surfacemat": table=result.value
 	else: meshes[name]=result.value; stats.models+=1
@@ -78,18 +47,18 @@ func _process(_delta: float) -> void:
 	_profile_process(_delta)
 	Timing.finish("callback_walkmesh",began)
 func _profile_process(_delta: float) -> void:
-	if closed or done or not active: return
-	while not waiting.is_empty() and assets.pending.size()+assets.running.size()<mini(assets.maximum_pending,1 if source_serial else assets.maximum_workers*2):
-		request_model(str(waiting[0]))
+	if closed or done: return
+	while not waiting.is_empty() and assets.pending.size()+assets.running.size()<mini(assets.maximum_pending,assets.maximum_workers*2):
+		var name:=str(waiting.pop_front()); var id: int=assets.request(name,2016,"tile-surface-v1")
+		if id<0: stats.errors.append({"resource":name,"reason":assets.failure})
+		else: requests[id]=name
 	if waiting.is_empty() and requests.is_empty():
 		done=true
-		if not table.is_empty(): index_vertical_tiles()
+		if stats.errors.is_empty(): index_vertical_tiles()
 func index_vertical_tiles() -> void:
 	vertical_grid.clear(); vertical_bounds.clear(); vertical_global.clear()
 	for i in definition.tiles.size():
-		var tile: Dictionary=definition.tiles[i]
-		if not meshes.has(str(tile.model)):continue
-		var mesh: Dictionary=meshes[tile.model]; var low: Array=mesh.bounds_min; var high: Array=mesh.bounds_max; var minimum:=Vector2(INF,INF); var maximum:=Vector2(-INF,-INF); var origin:=tile_origin(i)
+		var tile: Dictionary=definition.tiles[i]; var mesh: Dictionary=meshes[tile.model]; var low: Array=mesh.bounds_min; var high: Array=mesh.bounds_max; var minimum:=Vector2(INF,INF); var maximum:=Vector2(-INF,-INF); var origin:=tile_origin(i)
 		for x in [low[0],high[0]]:
 			for y in [low[1],high[1]]:
 				var xy:=Surface.canonical([x,y],posmod(4-int(tile.orientation),4)); var p:=Vector2(xy[0]+origin.x,xy[1]+origin.y); minimum=minimum.min(p); maximum=maximum.max(p)
@@ -123,20 +92,19 @@ func collision_geometry(resource: String):
 		indices.append_array(PackedInt32Array(source.faces[index])); planes.append_array(PackedFloat32Array(source.normals[index]+[source.constants[index]]))
 	var geometry:=Geometry.new(); geometry.configure({"vertices":vertices,"indices":indices,"native_planes":planes,"native_surface_types":PackedInt32Array(source.materials)})
 	collision_meshes[resource]=geometry; return geometry
-func ready() -> bool: return done and not table.is_empty()
+func ready() -> bool: return done and stats.errors.is_empty() and not table.is_empty()
 func height(point: Vector3,previous: float) -> float:
 	if not ready(): return previous
 	stats.queries+=1
 	var x:=floori(point.x/10.0); var y:=floori(point.y/10.0)
 	if x<0 or y<0 or x>=int(definition.width) or y>=int(definition.height): stats.outside_queries+=1; return previous
 	var tile: Dictionary=definition.tiles[y*int(definition.width)+x]
-	if not meshes.has(str(tile.model)):return previous
 	var local:=Surface.canonical([Surface.f(Surface.f(point.x)-Surface.f(Surface.f(x)*10)),Surface.f(Surface.f(point.y)-Surface.f(Surface.f(y)*10))],int(tile.orientation))
 	return Surface.f(Surface.height(meshes[tile.model],table,local)+Surface.f(tile.position.y))
 func snapshot() -> Dictionary:
 	var state:=stats.duplicate(true); state.merge({"done":done,"ready":ready(),"pending":waiting.size()+requests.size(),"scope":"Original native tile WOK height only; adjacency, line collision, door/placeable obstacles and WASD prediction pending"}); return state
 func detach_prepared_data() -> Dictionary:
-	var payload:={"definition":definition.duplicate(),"table":table.duplicate(),"meshes":meshes.duplicate(),"model_failures":model_failures.duplicate(),"vertical_grid":vertical_grid.duplicate(),"vertical_bounds":vertical_bounds.duplicate(),"vertical_global":vertical_global.duplicate()}
+	var payload:={"definition":definition.duplicate(),"table":table.duplicate(),"meshes":meshes.duplicate(),"vertical_grid":vertical_grid.duplicate(),"vertical_bounds":vertical_bounds.duplicate(),"vertical_global":vertical_global.duplicate()}
 	definition={}; table={}; meshes={}; vertical_grid={}; vertical_bounds={}; vertical_global=[]
 	# Native scene-query owners in collision_meshes are not moved to workers.
 	return payload
@@ -144,7 +112,7 @@ func close() -> void:
 	if closed: return
 	closed=true
 	if is_instance_valid(assets): assets.close()
-	meshes.clear(); model_failures.clear(); requests.clear(); waiting.clear(); table.clear(); definition={}
+	meshes.clear(); requests.clear(); waiting.clear(); table.clear(); definition={}
 	vertical_grid.clear(); vertical_bounds.clear(); vertical_global.clear()
 	collision_meshes.clear()
 func _exit_tree() -> void: close()

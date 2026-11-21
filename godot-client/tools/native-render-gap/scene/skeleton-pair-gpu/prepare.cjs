@@ -1,0 +1,18 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{spawnSync}=require('node:child_process');
+const project=path.resolve(__dirname,'../../../..'),sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const id=process.argv[2]??'skeleton-pair-fixture-a';if(!/^[a-z0-9-]+$/.test(id))throw Error('Fresh fixture name required');
+const directory=path.join(project,'.cache/native-render-gap/scene',id),renderer=path.join(directory,'project');
+if(fs.existsSync(directory))throw Error('Existing fixture evidence is frozen');fs.mkdirSync(renderer,{recursive:true});
+const pins=[];function put(relative,bytes,origin){const file=path.join(renderer,relative);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes,{flag:'wx'});pins.push({relative,origin,sha256:sha(bytes)});}
+put('fixture.gd',fs.readFileSync(path.join(__dirname,'fixture.gd')),path.join(__dirname,'fixture.gd'));
+const cert=path.join(project,'.cache/native-140fps/render-agent/engine-font-atlas-ownership-v1/source/thirdparty/certs/ca-bundle.crt');put('fixture-ca.crt',fs.readFileSync(cert),cert);
+put('.godot/global_script_class_cache.cfg',Buffer.from('list=[]\n'),'Empty private script cache');
+put('project.godot',Buffer.from('config_version=5\n[application]\nconfig/name="Private skeleton pair fixture"\n[display]\nwindow/size/viewport_width=480\nwindow/size/viewport_height=360\nwindow/size/no_focus=true\nwindow/size/resizable=false\n[network]\ntls/certificate_bundle_override="res://fixture-ca.crt"\n[rendering]\nrenderer/rendering_method="forward_plus"\nrenderer/rendering_method.mobile="forward_plus"\n'),'Private isolated project, no autoloads/session');
+const witness=path.join(project,'.cache/native-render-gap/original/bounds-repair/audit-a.json');const witnessBytes=fs.readFileSync(witness),predicate=JSON.parse(witnessBytes);
+if(!predicate.cases?.every(c=>c.pass===true)||!predicate.cases.some(c=>c.name==='guard/signed zero uses exact numeric equality like AABB operator==')||predicate.cases.filter(c=>/^guard\/reject (local|transform|current|previous)\/(NaN|Infinity|-Infinity)$/.test(c.name)).length!==12)throw Error('Source predicate witness incomplete');
+const engine=path.join(project,'.tools/Godot_v4.7.2-stable_win64.exe'),args=['--headless','--path',renderer,'--script','res://fixture.gd','--check-only'];
+const appdata=path.join(directory,'parse-appdata'),localdata=path.join(directory,'parse-localappdata');fs.mkdirSync(appdata);fs.mkdirSync(localdata);
+const r=spawnSync(engine,args,{encoding:'utf8',windowsHide:true,timeout:30000,maxBuffer:1024*1024,env:{...process.env,APPDATA:appdata,LOCALAPPDATA:localdata}});fs.writeFileSync(path.join(directory,'parse.stdout.log'),r.stdout??'',{flag:'wx'});fs.writeFileSync(path.join(directory,'parse.stderr.log'),r.stderr??'',{flag:'wx'});
+const parse={success:r.status===0&&!/SCRIPT ERROR|ERROR:|Parse Error|Compile Error|leaked|still in use/.test((r.stdout??'')+(r.stderr??'')),code:r.status,engineSha256:sha(fs.readFileSync(engine)),gpu:false};
+const manifest={version:1,createdAtUtc:new Date().toISOString(),directory,renderer,pins,predicate:{file:witness,sha256:sha(witnessBytes),cases:predicate.cases.length},parse,scope:'Frozen source for same-v2-engine control/pair-only/upload-only/both GPU/RS fixture. Root schedules graphical slot; no FPS claim. Source predicate witness is separate from GPU tests.'};
+fs.writeFileSync(path.join(directory,'manifest.json'),JSON.stringify(manifest,null,2),{flag:'wx'});console.log(JSON.stringify({directory,parse,scriptSha256:pins[0].sha256},null,2));process.exitCode=parse.success?0:1;

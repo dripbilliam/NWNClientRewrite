@@ -1,0 +1,25 @@
+'use strict';
+// Isolate geometry production for the original aligned emitter in the private fixture.
+const fs=require('node:fs');
+const path=require('node:path');
+const crypto=require('node:crypto');
+const assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..');
+const from=path.join(root,'.cache/nwn64/mode-aligned-a');
+const to=path.join(root,'.cache/nwn64/mode-aligned-active-b');
+const relative='tests/geometry_worker_installed_models_test.gd';
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+assert(!fs.existsSync(to));
+fs.cpSync(from,to,{recursive:true});
+fs.rmSync(path.join(to,'mode-aligned-report.json'),{force:true});
+const file=path.join(to,relative);let body=fs.readFileSync(file,'utf8');
+const old='"culling":true}).has("error")';
+assert.equal(body.split(old).length,2);
+body=body.replace(old,'"culling":name!="c_jelly"}).has("error")');
+const marker='check(int(worker_stats.get("geometry_worker_frames",0))>0,"Original installed model fixture executed real geometry worker")';
+assert.equal(body.split(marker).length,2);
+body=body.replace(marker,marker+'\n\tcheck(int(worker_stats.get("geometry_worker_vertices",0))>41370,"Original c_jelly aligned emitter published additional worker geometry")');
+fs.writeFileSync(file,body);
+const receipt={from,to,sourceSha256:sha(file),candidateDllSha256:sha(path.join(to,'.cache/native-kernel/nwn-particle-kernel.dll')),change:'Disable fixture view culling only for original c_jelly to observe authored emitter geometry; require total worker vertices above the fixed eight-model 41,370 baseline.'};
+fs.writeFileSync(path.join(to,'active-receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(receipt));

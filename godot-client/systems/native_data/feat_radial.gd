@@ -14,9 +14,7 @@ static func binding(id: int,auxiliary: int=0) -> Dictionary:
 	return {"type":4,"intParam":signed32((id&65535)|((auxiliary&65535)<<16))}
 func context(actor: Dictionary,target_id: int,assignment: bool=false) -> Dictionary:
 	var owned: Dictionary={}
-	var player: Dictionary=actor.get("playerState",{})
-	for source in [player.get("feats",[]),player.get("bonusFeats",[])]:
-		for id in source:owned[int(id)&65535]=true
+	for id in rules.feats(actor): owned[int(id)&65535]=true
 	return {"actor":actor,"owned":owned,"controlled":int(actor.get("objectType",0))==5 and not actor.get("replicationRemoved",false),"self":int(actor.get("id",-1))==target_id,"targetId":target_id,"assignment":assignment,"familiar":{},"defensiveStance":0}
 func feat(id: int) -> Dictionary:
 	var row: Dictionary=rules.row("feat",id&65535)

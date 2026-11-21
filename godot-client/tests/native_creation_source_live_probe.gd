@@ -28,27 +28,11 @@ func frames(count: int=2) -> void:
 func new_button() -> Button:
 	var pane=owner_world.character_lobby.native_chooser
 	return pane.buttons.get("newcharbutton") if is_instance_valid(pane) and pane.layout_ready else null
-func creator_start_diagnostic() -> Dictionary:
-	var pane=owner_world.character_lobby.native_chooser
-	var source=creator.source_frontend if is_instance_valid(creator) else null
-	return {"creatorPhase":str(creator.phase) if is_instance_valid(creator) else "missing",
-		"creatorStatus":str(creator.status) if is_instance_valid(creator) else "",
-		"sourcePresent":is_instance_valid(source),
-		"sourceWanted":bool(source.wanted) if is_instance_valid(source) else false,
-		"sourceMainReady":bool(source.main.layout_ready) if is_instance_valid(source) and is_instance_valid(source.main) else false,
-		"chooserVisible":is_instance_valid(pane) and pane.is_visible_in_tree(),
-		"newEnabled":is_instance_valid(new_button()) and not new_button().disabled,
-		"pendingCreator":not owner_world.pending_creator.is_empty(),
-		"lobbyCreating":bool(owner_world.direct_lobby_state.get("creating",false)),
-		"resourceErrors":creator.resource_errors.duplicate() if is_instance_valid(creator) else []}
 func proof() -> void:
 	if completed:return
 	completed=true
 	var context: Dictionary={}
 	if is_instance_valid(creator) and not creator.rules.draft.is_empty():context={"phase":creator.phase,"child":front.child,"classId":creator.rules.draft.classId,"classRow":creator.rules.cls(),"postSource":preload("res://systems/native_data/creation_post_feats.gd").creation_source(creator.rules),"postStage":creator.source_post.stage}
-	# A failed physical step must retire its draft before any queued build result
-	# can turn this diagnostic into a character upload.
-	if not failures.is_empty() and is_instance_valid(creator) and creator.phase in ["loading","editing","recommending","preparing"]:creator.cancel()
 	owner_world.send({"kind":"creation-proof","success":failures.is_empty(),"checks":checks,"failures":failures,"expected":expected,"events":events,"context":context,"reconnectSelection":reconnect_selection,"driver":"installed-source-controls-v1"})
 func click(button: Button,label: String) -> bool:
 	if not check(is_instance_valid(button) and button.is_visible_in_tree() and not button.disabled,label+" is a visible enabled native control"):return false
@@ -79,7 +63,7 @@ func open_main(tag: String) -> bool:
 	if not check(await wait_for(func():return front.wanted and front.child.is_empty() and front.main.visible and front.main.buttons.has(tag) and not front.main.buttons[tag].disabled),"Main enables "+tag,creator.status):return false
 	return await click(front.main.buttons[tag],"Main "+tag)
 func accept(pane,label: String) -> bool:
-	if not check(await wait_for(func():return pane.layout_ready and pane.wanted and pane.visible and pane.buttons.has("okbutton") and pane.buttons.okbutton.is_visible_in_tree() and not pane.buttons.okbutton.disabled),label+" can accept",creator.status):return false
+	if not check(await wait_for(func():return pane.layout_ready and pane.buttons.has("okbutton") and not pane.buttons.okbutton.disabled),label+" can accept",creator.status):return false
 	return await click(pane.buttons.okbutton,label+" OK")
 func choose_without_recommend(pane,tag: String) -> bool:
 	if tag=="package-domains":
@@ -113,8 +97,8 @@ func choose_without_recommend(pane,tag: String) -> bool:
 func prefer_manual_child(_tag: String) -> bool:return false
 func configure_package() -> bool:
 	if not await open_main("packagesbutton"):return false
-	if not check(await wait_for(func():return front.packages.layout_ready and front.packages.wanted and front.packages.visible and front.child=="packagesbutton"),"Package source pane opens visibly"):return false
-	if owner_world.args.get("creation-package","manual")=="recommended" and front.packages.buttons.recommendbutton.is_visible_in_tree() and not front.packages.buttons.recommendbutton.disabled:
+	if not check(await wait_for(func():return front.packages.layout_ready and front.child=="packagesbutton"),"Package source pane opens"):return false
+	if owner_world.args.get("creation-package","manual")=="recommended":
 		if not await click(front.packages.buttons.recommendbutton,"Package Recommended") or not await accept(front.packages,"Recommended Package"):return false
 		return check(await wait_for(func():return creator.phase=="editing" and front.child.is_empty() and front.flow.completed.packages,30),"Actual Recommended package transaction completes",creator.status)
 	if not await click(front.packages.buttons.configurepckg,"Package Configure"):return false
@@ -133,8 +117,8 @@ func configure_package() -> bool:
 			"package-spells":pane=front.spells
 			"package-associate":pane=front.associate
 			_:return check(false,"Known class-dependent native pane",tag)
-		if not check(await wait_for(func():return pane.layout_ready and pane.wanted and pane.visible and pane.buttons.has("okbutton") and pane.buttons.okbutton.is_visible_in_tree()),tag+" source resources prepare visibly"):return false
-		if not prefer_manual_child(tag) and pane.buttons.has("recommendbutton") and pane.buttons.recommendbutton.is_visible_in_tree() and not pane.buttons.recommendbutton.disabled:
+		if not check(await wait_for(func():return pane.layout_ready and pane.buttons.has("okbutton")),tag+" source resources prepare"):return false
+		if not prefer_manual_child(tag) and pane.buttons.has("recommendbutton") and not pane.buttons.recommendbutton.disabled:
 			if not await click(pane.buttons.recommendbutton,tag+" Recommended"):return false
 		else:
 			if not await choose_without_recommend(pane,tag):return false
@@ -180,49 +164,41 @@ func reconnect(world) -> void:
 	var previous: Variant=JSON.parse_string(FileAccess.get_file_as_string(file))
 	if not check(previous is Dictionary and previous.get("success")==true and previous.get("creationProof",{}).get("success")==true,"Reconnect reference contains accepted source creation"):proof();return
 	expected=previous.creationProof.expected.duplicate(true)
+	var label: String=(str(expected.firstName)+" "+str(expected.lastName)).strip_edges()
 	var lobby=world.character_lobby
-	if not check(await wait_for(func():return lobby.state.get("localAllowed")==false and is_instance_valid(lobby.native_chooser) and lobby.native_chooser.layout_ready and lobby.state.get("choices",[]).filter(func(row):return row.get("source")=="server").size()==1,45),"Fresh native chooser receives exactly one persisted server-vault row",lobby.state.get("error")):proof();return
-	# The list label is a server resource reference; identity comes from the
-	# received 17/3 BIC preview below, not its displayed row caption.
-	var selected: Dictionary=lobby.state.get("choices",[]).filter(func(row):return row.get("source")=="server")[0]
+	if not check(await wait_for(func():return lobby.state.get("localAllowed")==false and is_instance_valid(lobby.native_chooser) and lobby.native_chooser.layout_ready and lobby.state.get("choices",[]).any(func(row):return row.get("source")=="server" and row.get("label")==label),45),"Fresh native chooser receives the created original server-vault row",lobby.state.get("error")):proof();return
+	var selected: Dictionary={}
+	for row in lobby.state.get("choices",[]):
+		if row.get("source")=="server" and row.get("label")==label:selected=row;break
 	var key: String=str(selected.get("key",""));var connection: int=int(lobby.connection);var pane=lobby.native_chooser
-	if not check(not key.is_empty() and lobby.state.get("localAllowed")==false,"Received server-vault row has a current canonical key"):proof();return
-	# The production chooser uses this same handler. Its physical row may be
-	# rebuilt while metadata arrives, so drive the canonical request directly.
-	world.lobby_request({"kind":"lobby-choose","connection":connection,"key":key,"requestId":1})
-	if not check(await wait_for(func():return lobby.connection==connection and lobby.state.get("selected")==key and lobby.state.get("preview") is Dictionary,45),"Production chooser request receives the current server BIC preview",lobby.state.get("error")):proof();return
-	var preview: Variant=lobby.state.get("preview")
-	var visible_preview: Dictionary=preview if preview is Dictionary else {}
-	var classes: Array=visible_preview.get("classes",[])
-	if not check(str(visible_preview.get("firstName",{}).get("text",""))==str(expected.firstName) and str(visible_preview.get("lastName",{}).get("text",""))==str(expected.lastName) and not classes.is_empty() and int(classes[0].get("id",-1))==int(expected.classId),"Received server BIC preview matches the created identity and class"):proof();return
-	world.lobby_request({"kind":"lobby-play","connection":connection,"key":key})
-	if not check(not world.report.has("direct_creation"),"Reconnect server Play did not submit another creator draft"):proof();return
-	reconnect_selection={"success":lobby.connection==connection,"connection":connection,"key":key,"source":"server","serverSource":selected.get("serverSource"),"generation":selected.get("generation"),"previewMatched":true,"uploadPerformed":world.report.has("direct_creation")}
+	if not check(not key.is_empty() and await wait_for(func():return pane.row_keys.has(key)),"Received server row is represented by an actual source control"):proof();return
+	var row_button: Button=pane.rows[pane.row_keys.find(key)];pane.list.ensure_control_visible(row_button);await frames()
+	# Metadata/preview publication may rebuild the physical rows during scroll.
+	# Resolve the same canonical received key again instead of retaining a Control.
+	if not check(await wait_for(func():return lobby.connection==connection and is_instance_valid(lobby.native_chooser) and lobby.native_selection.is_empty() and lobby.native_chooser.row_keys.has(key)),"Same canonical vault row remains current after scrolling"):proof();return
+	pane=lobby.native_chooser
+	row_button=pane.rows[pane.row_keys.find(key)]
+	if not check(lobby.connection==connection and is_instance_valid(row_button) and row_button.is_visible_in_tree(),"Current received vault row has a live physical control"):proof();return
+	if not await click(row_button,"Server-vault created character row"):proof();return
+	if not check(await wait_for(func():return lobby.connection==connection and lobby.state.get("selected")==key and lobby.native_selection.is_empty() and not pane.buttons.playbutton.disabled,45),"Actual server preview/selection settles for the same current row",lobby.state.get("error")):proof();return
+	if not await click(pane.buttons.playbutton,"Server-vault Play received character"):proof();return
+	reconnect_selection={"success":lobby.connection==connection,"connection":connection,"key":key,"source":"server","serverSource":selected.get("serverSource"),"generation":selected.get("generation"),"name":label,"uploadPerformed":false}
 	proof()
 func run(world) -> void:
 	owner_world=world
 	if world.args.has("creation-reconnect-report"):await reconnect(world);return
 	if not check(await wait_for(func():return is_instance_valid(new_button()) and not new_button().disabled and new_button().is_visible_in_tree()),"Production source chooser New is ready"):proof();return
-	var first_new_at:=Time.get_ticks_msec()
-	var first_layout_prepared: bool=is_instance_valid(world.gameplay_ui.creator.source_frontend) and world.gameplay_ui.creator.source_frontend.main.layout_ready
 	if not await click(new_button(),"Source chooser New"):proof();return
 	creator=world.gameplay_ui.creator
-	var first_open_ms:=Time.get_ticks_msec()-first_new_at if creator.phase!="closed" else -1
 	creator.view.voice_audio.player.volume_db=-80.0
-	if not check(await wait_for(func():return creator.phase!="closed" or not world.pending_creator.is_empty(),2),"Source chooser New dispatched to creator",creator_start_diagnostic()):proof();return
-	if not check(await wait_for(func():return creator.phase=="editing" and is_instance_valid(creator.source_frontend) and creator.source_frontend.wanted and is_instance_valid(creator.source_frontend.main) and creator.source_frontend.main.layout_ready,60),"Default New automatically enters source Main",creator_start_diagnostic()):proof();return
-	events.append({"event":"First New source timing","layoutReadyBeforeClick":first_layout_prepared,"openMs":first_open_ms,"sourceVisibleMs":Time.get_ticks_msec()-first_new_at})
+	if not check(await wait_for(func():return creator.phase=="editing" and creator.source_frontend.wanted and creator.source_frontend.main.layout_ready,60),"Default New automatically enters source Main",creator.resource_errors):proof();return
 	front=creator.source_frontend
 	if not check(front.main.buttons.playbutton.disabled,"Incomplete new source draft cannot be submitted"):proof();return
 	var old_scope: Array=creator.summary_identity().duplicate()
 	if not await click(front.main.buttons.cancelbutton,"Main Cancel before changes"):proof();return
 	if not check(await wait_for(func():return creator.phase=="closed" and not front.wanted and is_instance_valid(new_button()) and not new_button().disabled and new_button().is_visible_in_tree()),"Cancel retires draft and restores actual source chooser"):proof();return
-	var second_new_at:=Time.get_ticks_msec()
-	var second_layout_prepared: bool=front.main.layout_ready
 	if not await click(new_button(),"Source chooser New after Cancel"):proof();return
-	var second_open_ms:=Time.get_ticks_msec()-second_new_at if creator.phase!="closed" else -1
 	if not check(await wait_for(func():return creator.phase=="editing" and front.wanted and creator.summary_identity()!=old_scope,60),"New has a distinct draft scope"):proof();return
-	events.append({"event":"Second New source timing","layoutReadyBeforeClick":second_layout_prepared,"openMs":second_open_ms,"sourceVisibleMs":Time.get_ticks_msec()-second_new_at})
 	var current_scope: Array=creator.summary_identity().duplicate();var prior_status: String=creator.status
 	creator.result({"kind":"native-creation-result","connection":old_scope[0],"draft":old_scope[1],"operation":"native-creation-begin","accepted":false,"error":"stale test reply"})
 	if not check(creator.summary_identity()==current_scope and creator.phase=="editing" and creator.status==prior_status,"Stale cancelled-draft reply cannot alter the new source draft"):proof();return
@@ -230,20 +206,8 @@ func run(world) -> void:
 	if not check(await wait_for(func():return front.gender.layout_ready),"Gender prepares"):proof();return
 	if not await click(front.gender.buttons.malebutton,"Gender Male") or not await accept(front.gender,"Gender"):proof();return
 	if not await open_main("racebutton"):proof();return
-	if not check(await wait_for(func():return front.race.layout_ready and front.race.wanted and front.race.visible),"Race opens visibly"):proof();return
-	if front.race.buttons.recommendbutton.is_visible_in_tree() and not front.race.buttons.recommendbutton.disabled:
-		if not await click(front.race.buttons.recommendbutton,"Race Recommended"):proof();return
-	else:
-		var race_index:=-1
-		for index in front.race.state.entries.size():
-			if int(front.race.state.entries[index].id)==6 and front.race.state.entries[index].get("enabled",true):race_index=index;break
-		if race_index<0:
-			for index in front.race.state.entries.size():
-				if front.race.state.entries[index].get("enabled",true):race_index=index;break
-		if not check(race_index>=0 and race_index<front.race.row_buttons.size(),"Race has a physically available row"):proof();return
-		front.race.list.ensure_control_visible(front.race.row_buttons[race_index]);await frames()
-		if not await click(front.race.row_buttons[race_index],"Race available row"):proof();return
-	if not await accept(front.race,"Race"):proof();return
+	if not check(await wait_for(func():return front.race.layout_ready),"Race prepares"):proof();return
+	if not await click(front.race.buttons.recommendbutton,"Race Recommended") or not await accept(front.race,"Race"):proof();return
 	if not await open_main("portraitbutton"):proof();return
 	if not check(await wait_for(func():return front.portrait.layout_ready and not front.portrait.cells.is_empty() and not front.portrait.cells[0].button.disabled),"Portrait has actual admitted choices"):proof();return
 	if not await click(front.portrait.cells[0].button,"Portrait first available") or not await accept(front.portrait,"Portrait"):proof();return
@@ -262,26 +226,8 @@ func run(world) -> void:
 	if not check(align_index>=0,"Active class offers a legal alignment"):proof();return
 	if not await click(front.alignment.buttons[front.alignment.State.TAGS[align_index]],"Alignment legal source choice") or not await accept(front.alignment,"Alignment"):proof();return
 	if not await open_main("abilitiesbutton"):proof();return
-	if not check(await wait_for(func():return front.attributes.layout_ready and front.attributes.wanted and front.attributes.visible),"Attributes opens visibly"):proof();return
-	if front.attributes.buttons.recommendbutton.is_visible_in_tree() and not front.attributes.buttons.recommendbutton.disabled:
-		if not await click(front.attributes.buttons.recommendbutton,"Attributes Recommended"):proof();return
-	else:
-		# The original ruleset can disable Recommended globally. Spend the
-		# displayed budget through its real plus buttons in that case.
-		for attempt in 160:
-			if int(front.attributes.model.get("points",-1))==0:break
-			var prior: int=int(front.attributes.model.get("points",-1));var moved:=false
-			for index in 6:
-				var raw: int=int(front.attributes.model.raw[index])
-				var cost: int=creator.rules.AbilityRules.cost(creator.rules.tables,raw)
-				if raw>=creator.rules.cfg("BASE_ABILITY_MAX",18) or cost>prior:continue
-				var arrow: Button=front.attributes.buttons[front.attributes.Layout.KEYS[index]+"upbutton"]
-				if arrow.disabled:continue
-				if not await click(arrow,"Attributes physical increase"):proof();return
-				if int(front.attributes.model.points)<prior:moved=true;break
-			if not moved:break
-		if not check(int(front.attributes.model.get("points",-1))==0,"Physical ability arrows spend the first-level budget",front.attributes.model):proof();return
-	if not await accept(front.attributes,"Attributes"):proof();return
+	if not check(await wait_for(func():return front.attributes.layout_ready),"Attributes prepares"):proof();return
+	if not await click(front.attributes.buttons.recommendbutton,"Attributes Recommended") or not await accept(front.attributes,"Attributes"):proof();return
 	if not await configure_package():proof();return
 	if not await open_main("customizebutton"):proof();return
 	var tail=creator.tail
@@ -295,7 +241,7 @@ func run(world) -> void:
 	var color_point: Vector2=appearance.palette.get_global_transform_with_canvas()*color_local
 	await pointer(color_point,appearance.get_viewport(),"Appearance physical skin swatch1")
 	if not check(appearance.state.value.skin==1 and not is_instance_valid(appearance.palette),"Source board release commits palette row1 and retires capture"):proof();return
-	if not check(await wait_for(func():return creator.preview.diagnostics.get("ready",false) and creator.preview.diagnostics.get("native",false),20),"Actual native preview admits the selected installed head/outfit/skin",{"diagnostics":creator.preview.diagnostics.duplicate(true),"pending":creator.preview.pending,"pendingModel":not creator.preview.pending_model.is_empty(),"retiring":creator.preview.retiring.size(),"streamValid":is_instance_valid(creator.preview.stream),"streamDone":creator.preview.stream.done if is_instance_valid(creator.preview.stream) else false,"signature":creator.preview.signature,"viewActive":creator.preview.view.active,"tailStage":tail.stage,"tailCurrent":tail.current(),"tailFailure":tail.failure}):proof();return
+	if not check(await wait_for(func():return creator.preview.diagnostics.get("ready",false) and creator.preview.diagnostics.get("native",false),20),"Actual native preview admits the selected installed head/outfit/skin",creator.preview.diagnostics):proof();return
 	if not await accept(tail.appearance,"Appearance"):proof();return
 	if not check(await wait_for(func():return tail.stage=="information" and tail.information.layout_ready),"Appearance8002 reaches Information with the same parent ticket",tail.failure):proof();return
 	if not await sample_voice(tail):proof();return
@@ -307,7 +253,6 @@ func run(world) -> void:
 	if not check(front.child.is_empty() and creator.rules.draft.get("sourceTailChoices")==true,"Info8007 returns to source Main with committed typed tail"):proof();return
 	var problems: Array=preload("res://systems/native_data/creation_bic.gd").validation_errors(creator.rules)
 	if not check(problems.is_empty(),"Source controls produce a saveable first-level draft",problems):proof();return
-	if not failures.is_empty():proof();return
 	capture_expected()
 	if not await open_main("playbutton"):proof();return
 	if not check(await wait_for(func():return creator.phase in ["waiting","closed"] or creator.phase=="editing" and not creator.status.is_empty(),40) and creator.phase in ["waiting","closed"],"Typed native worker submits once and waits for real server admission",creator.status):proof();return

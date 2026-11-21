@@ -1,22 +1,24 @@
 # Architecture and ownership
 
-The supported client runs in native desktop Godot. Its normal launch path does not start Node or Electron. Historical JavaScript implementation files remain temporarily as read-only references while NWN-79 ports the remaining behavior.
+The active frontend is native desktop Godot. The Electron/Three.js client is retained for reference and regression work. The intended final application is fully native; transitional JavaScript services are unfinished migration work.
 
 ## Normal runtime
 
-`godot-client/join-native.ps1` forwards ordinary launches to `join-godot.ps1`, which starts `native_direct_session_world.gd` in Godot. Godot opens the Main Menu and owns server authentication, transport, resource admission and NWSync, replicated world state, gameplay UI and rendering. Native rendering constructs the world from original resources rather than converting an entire area to GLB.
+`godot-client/join-native.ps1` starts the protected bootstrap and session host. Godot opens Main Menu; the user chooses a server. Native rendering constructs the world from original resources rather than converting an entire area to GLB.
 
 | Owner | Responsibility |
 | --- | --- |
-| `godot-client/native_direct_session_world.gd` | Normal Godot session entry, server chooser, protocol lifecycle and world admission |
-| `godot-client/native_session_world.gd` | Shared session/world presentation services and accepted snapshots |
+| `godot-client/native_session_world.gd` | Session entry, accepted snapshots, menus and connection lifecycle |
 | `godot-client/native_live_world.gd` | Live frontend entry and native world integration |
-| `godot-client/systems/native_data/` | Original-server transport/session, resource catalogs and decoding, replicated state, table-driven rules and preparation |
+| `godot-client/systems/native_data/` | Catalogs, resource decoding, table-driven rules and preparation |
 | `godot-client/systems/native_render/` | World admission, models, animation, effects, collision and rendering |
 | `godot-client/systems/native_game_desktop.gd` | Gameplay UI, input and scoped action dispatch |
-| `godot-client/native/` and `tooling/native/` | Compiled extensions and native content, crypto and protected-settings helpers |
+| `godot-client/native/` | Compiled extensions and their ABI/build contracts |
+| `godot-client/tools/native-session-host.cjs` | Transitional host, transport and native process coordination |
+| `electron/network_game_session.mjs` | Original-server session, canonical replication and requests |
+| `electron/network_peer.mjs` | Authentication, encrypted transport and reliable delivery |
 
-Godot owns settings and calls a narrow Windows helper for current-user protected keys. Existing nonsecret settings import once; a legacy saved key may need re-entry. The Godot-only path is the normal runtime and has private acceptance evidence for authentication, character selection, NWSync, gameplay, travel and reconnect. NWN-79 remains open for full feature and public-server acceptance and retirement of obsolete source and delivery paths.
+Windowless Electron still unlocks Windows-protected settings and credentials. Node still owns protocol encoding/decoding, authentication, downloads and state transport. These dependencies do not mean presentation or creation rules are browser-rendered.
 
 ## Ownership rules
 

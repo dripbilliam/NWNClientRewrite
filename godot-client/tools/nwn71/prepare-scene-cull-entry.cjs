@@ -1,0 +1,44 @@
+'use strict';
+// Clone the already sealed original-entry diagnostic and replace only its private Tracy EXE and pins.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..');
+const label=process.argv.find(x=>x.startsWith('--label='))?.slice(8)??'a';
+assert(['a','c','d'].includes(label));
+const parentFile=path.join(root,'.cache/nwn71/viewport-entry-a/preparation.json');
+const parent=JSON.parse(fs.readFileSync(parentFile,'utf8'));
+const buildFile=path.join(root,label==='d'?'.cache/nwn71/incremental-rd-inner-b/build-receipt.json':`.cache/nwn71/incremental-scene-cull-${label==='a'?'b':'c'}/build-receipt.json`);
+const build=JSON.parse(fs.readFileSync(buildFile,'utf8'));
+const out=path.join(root,`.cache/nwn71/scene-cull-entry-${label}`),input=path.join(out,'input');
+const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+assert(!fs.existsSync(out));
+assert.equal(hash(parentFile),'debde1fb3d362fb63c7f52770777d3f61fb963272c13e201a6dc029fc9cf73db');
+assert(build.success&&build.expectedOnly&&build.sourceRestored&&build.protectedUnchanged&&build.exit===0);
+assert.equal(hash(build.binary.file),build.binary.sha256);
+assert.equal(hash(parent.runtime.engine),parent.runtime.engineSha256);
+fs.mkdirSync(out,{recursive:true});
+fs.cpSync(parent.input,input,{recursive:true,errorOnExist:true,force:false});
+const engineRelative=path.relative(parent.input,parent.runtime.engine),engine=path.join(input,engineRelative);
+const descriptorRelative='.tools/native-tracy/runtime.json',descriptorFile=path.join(input,descriptorRelative);
+const originalDescriptorFile=path.join(parent.input,descriptorRelative);
+const originalDescriptor=JSON.parse(fs.readFileSync(originalDescriptorFile,'utf8'));
+assert.equal(originalDescriptor.engineSha256,parent.runtime.engineSha256);
+const planFile=path.join(path.dirname(buildFile),'build-plan.json');
+const descriptor={...originalDescriptor,engineSha256:build.binary.sha256,engineBytes:build.binary.bytes,engineBuildProof:{latestDiagnosticBuild:{file:buildFile,sha256:hash(buildFile)},latestPlan:{file:planFile,sha256:hash(planFile)},baseDiagnosticProof:originalDescriptor.engineBuildProof,delta:label==='d'?'Tracy-only RD inner labels; source/scheduling unchanged.':'Tracy-only SceneCull occlusion/cull/RD call labels; source/scheduling unchanged.'}};
+fs.writeFileSync(descriptorFile,JSON.stringify(descriptor,null,2)+'\n');
+fs.copyFileSync(build.binary.file,engine);
+const runtimeRelative='tools/native-performance-runtime.cjs',runtimeFile=path.join(input,runtimeRelative);
+let runtime=fs.readFileSync(runtimeFile,'utf8');
+function once(before,after){assert.equal(runtime.split(before).length,2,before);runtime=runtime.replace(before,after);}
+once('const sha256="'+originalDescriptor.engineSha256+'",bytes='+originalDescriptor.engineBytes+';','const sha256="'+descriptor.engineSha256+'",bytes='+descriptor.engineBytes+';');
+once('proofSha256="'+hash(originalDescriptorFile)+'"','proofSha256="'+hash(descriptorFile)+'"');
+fs.writeFileSync(runtimeFile,runtime);
+const helper=require(path.join(root,'tools/native-production-selection.cjs'));
+(async()=>{
+ const selection=await helper.stageProductionSelection({project:input,label:`scene-cull-entry-${label}`,argv:['--performance-runtime=verified-native','--render-profile=gameplay','--detailed-profiling=off'],preferenceSeeds:parent.preferences,env:{}});
+ await helper.readProductionSelection(selection.file,selection.sha256);
+ assert.equal(selection.selection.runtime.executableSha256,build.binary.sha256);
+ assert.equal(selection.selection.renderCore.nativeKernelSha256,parent.runtime.dllSha256);
+ const result={schema:'nwn71-scene-cull-entry-selection-v1',parent:{file:parentFile,sha256:hash(parentFile)},out,input,build:{file:buildFile,sha256:hash(buildFile)},differencesFromParent:[engineRelative,descriptorRelative,runtimeRelative],selection:{file:selection.file,sha256:selection.sha256},runtime:{engine,engineSha256:build.binary.sha256,dllSha256:parent.runtime.dllSha256,flags:selection.selection.flags,profiling:selection.selection.profiling},preferences:parent.preferences,scope:'Exact prior original-entry source/input/preferences with only private Tracy engine, descriptor and runtime pins changed. No build or launch.'};
+ const file=path.join(out,'preparation.json');fs.writeFileSync(file,JSON.stringify(result,null,2)+'\n',{flag:'wx'});
+ console.log(JSON.stringify({file,sha256:hash(file),selection:result.selection,engineSha256:build.binary.sha256,launches:0}));
+})().catch(e=>{console.error(e.stack);process.exitCode=1});

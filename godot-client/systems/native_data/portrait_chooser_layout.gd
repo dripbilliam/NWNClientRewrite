@@ -6,7 +6,7 @@ const Pose=preload("res://systems/native_data/gui_pose.gd")
 static func bitmap(model: Dictionary) -> Dictionary:
 	var poses: Array[Transform3D]=[]; var vertices: Array=[]; var texcoords: Array=[]
 	for node in model.get("nodes",[]):
-		var parent:=int(node.get("parentIndex",node.get("parent",-1))); var p: Array=node.get("position",[]); var q: Array=node.get("orientation",[])
+		var parent:=int(node.get("parent",-1)); var p: Array=node.get("position",[]); var q: Array=node.get("orientation",[])
 		if p.size()!=3 or q.size()!=4 or parent < -1 or parent>=poses.size(): return {"error":"Invalid portrait bitmap hierarchy"}
 		var pose:=Transform3D(Basis(Quaternion(q[0],q[1],q[2],q[3])).scaled(Vector3.ONE*float(node.get("scale",1))),Vector3(p[0],p[1],p[2]))
 		if parent>=0: pose=poses[parent]*pose

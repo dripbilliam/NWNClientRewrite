@@ -23,12 +23,8 @@ func refresh(rules) -> void:
 	var d: Dictionary=rules.draft; var next:=JSON.stringify([d.raceId,d.gender,d.phenotype,d.head,d.clothes,d.skin,d.hair,d.tattoo1,d.tattoo2])
 	if signature==next: return
 	stop(true); signature=next; view.message.text="Preparing native appearance…"
-	var clothes_row: Dictionary=rules.row("chargenclothes",int(d.clothes))
-	var clothing:=str(rules.cell(clothes_row,"ItemResRef",""))
+	var clothing:=str(rules.cell(rules.row("chargenclothes",int(d.clothes)),"ItemResRef",""))
 	diagnostics={"draft":d.duplicate(true),"appearance":rules.num(rules.race(),"Appearance")}
-	if clothes_row.is_empty():
-		# The old loader uses its plain body-part defaults when this row is absent.
-		pending=-2;prepared(-2,{"error":"","value":{"root":{},"field_types":{}}});return
 	pending=assets.request(clothing,2025,"gff")
 	if pending<0: view.message.text=assets.failure
 func prepared(id: int,result: Dictionary) -> void:
@@ -66,7 +62,7 @@ func install_pending() -> void:
 	if dead or not view.active or value.signature!=signature:return
 	diagnostics=value.diagnostics
 	stream=Stream.new();view.pivot.add_child(stream);view.model=stream
-	stream.configure(owner_ui.catalog,pool,[value.object],0,assets.cache_directory,1,true)
+	stream.configure(owner_ui.catalog,pool,[value.object],0,assets.cache_directory,1)
 func drain_retired(wait: bool=false) -> void:
 	if retiring.is_empty():return
 	var prior: Dictionary=retiring[0]
@@ -84,13 +80,6 @@ func process_preview() -> void:
 	if retiring.is_empty() and not pending_model.is_empty():install_pending()
 	if dead or not is_instance_valid(stream) or not stream.done or diagnostics.has("ready"): return
 	diagnostics.ready=stream.actors.has(1); diagnostics.errors=stream.stats.errors.duplicate(true)
-	var missing_recorded: Dictionary={}
-	for warning in stream.stats.warnings:
-		if warning.get("code")!="character.preview-texture-unavailable" or not owner_ui.catalog.has_method("record_diagnostic"):continue
-		var name:=str(warning.texture)
-		if missing_recorded.has(name):continue
-		missing_recorded[name]=true
-		owner_ui.catalog.record_diagnostic("character.preview-texture-unavailable",str(warning.reason),{"resource":name})
 	if not diagnostics.ready: view.message.text=JSON.stringify(diagnostics.errors); return
 	var actor=stream.actors[1]; var bounds:=AABB(); var found:=false
 	for mesh in actor.meshes:

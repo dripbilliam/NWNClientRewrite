@@ -30,7 +30,7 @@ func directional(actor: Dictionary, target: Dictionary) -> int:
 		return int({5: 217, 7: 218, 8: 8, 6: 6}[base])
 	if int(target.objectType) != 5 or int(target.get("facingTarget", 0x7f000000)) == int(actor.id):
 		return 215
-	var direction := normalize(Vector3(Q.f(Q.f(actor.position.x)-Q.f(target.position.x)),Q.f(Q.f(actor.position.y)-Q.f(target.position.y)),Q.f(Q.f(actor.position.z)-Q.f(target.position.z))))
+	var direction := normalize(actor.position - target.position)
 	var orientation := normalize(target.orientation)
 	var dot := Q.f(Q.f(Q.f(Q.f(-direction.z) * Q.f(-orientation.z)) + Q.f(direction.x * orientation.x)) + Q.f(direction.y * orientation.y))
 	if dot >= Q.f(0.707):
@@ -43,11 +43,9 @@ func directional(actor: Dictionary, target: Dictionary) -> int:
 func range_class(actor: Dictionary, target: Dictionary, record: Dictionary) -> int:
 	if target.is_empty() or int(target.objectType) != 5:
 		return 2
-	if not (actor.position is Vector3) or not (target.position is Vector3) or not actor.position.is_finite() or not target.position.is_finite():
-		return 0
 	if target.get("hitDistance") == null or actor.get("preferredDistance") == null:
 		return 0
-	var difference := Vector3(Q.f(Q.f(actor.position.x)-Q.f(target.position.x)),Q.f(Q.f(actor.position.y)-Q.f(target.position.y)),Q.f(Q.f(actor.position.z)-Q.f(target.position.z)))
+	var difference: Vector3 = actor.position - target.position
 	var x := difference.x
 	var y := Q.f(-difference.z)
 	var z := difference.y
@@ -79,13 +77,8 @@ func select(actor: Dictionary, record: Dictionary) -> int:
 				var item := weapon(actor, int(record.weaponAttackType))
 				var travel := 0
 				if not item.is_empty():
-					if not (actor.position is Vector3) or not (target.position is Vector3) or not actor.position.is_finite() or not target.position.is_finite():return -1
-					# The old travel helper converts renderer XYZ to native XYZ first,
-					# then rounds each operand and difference before squaring.
-					var dx:=Q.f(Q.f(target.position.x)-Q.f(actor.position.x))
-					var dy:=Q.f(Q.f(-target.position.z)-Q.f(-actor.position.z))
-					var dz:=Q.f(Q.f(target.position.y)-Q.f(actor.position.y))
-					var squared := Q.f(Q.f(Q.f(dx*dx)+Q.f(dy*dy))+Q.f(dz*dz))
+					var d: Vector3 = target.position - actor.position
+					var squared := Q.f(Q.f(Q.f(d.x * d.x) + Q.f(d.z * d.z)) + Q.f(d.y * d.y))
 					var magnitude := Q.f(sqrt(squared)) if squared > 0 else 0.0
 					var base := int(item.baseItem)
 					var slow := base in [31, 59, 63]

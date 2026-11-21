@@ -44,26 +44,6 @@ static func frames(track: Dictionary) -> Array:
 				if frame.has(field): frame[field]=frame[field].map(func(value):return float(value)*scale)
 		output.append(frame)
 	return output
-static func sample_track(track: Dictionary,time: float) -> Array:
-	var keys: Array=frames(track)
-	if keys.is_empty():return []
-	if time<=float(keys[0].time):return keys[0].value.duplicate()
-	if time>=float(keys.back().time):return keys.back().value.duplicate()
-	var index:=1
-	while float(keys[index].time)<time:index+=1
-	var previous: Dictionary=keys[index-1];var following: Dictionary=keys[index]
-	var fraction:=(time-float(previous.time))/(float(following.time)-float(previous.time))
-	if str(track.get("interpolation",""))=="slerp":
-		var a: Array=previous.value;var b: Array=following.value
-		var value:=Quaternion(float(a[0]),float(a[1]),float(a[2]),float(a[3])).slerp(Quaternion(float(b[0]),float(b[1]),float(b[2]),float(b[3])),fraction).normalized()
-		return [value.x,value.y,value.z,value.w]
-	var result: Array=[]
-	for component in previous.value.size():
-		var start:=float(previous.value[component]);var end:=float(following.value[component])
-		if str(track.get("interpolation",""))!="bezier":result.append(start+(end-start)*fraction);continue
-		var a:=start+float(previous["out"][component]);var b:=end+float(following["in"][component]);var remaining:=1.0-fraction
-		result.append(remaining*remaining*remaining*start+3.0*remaining*remaining*fraction*a+3.0*remaining*fraction*fraction*b+fraction*fraction*fraction*end)
-	return result
 static func axis_angle(values: Array) -> Array:
 	# Same operation order and double precision as ActorModel.orientation.
 	# Defer trigonometry for clips/channels that may never be played.

@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../..'),stage=path.join(root,'.cache/nwn74/inner-phase-clock-a');
+const source=path.join(__dirname,'replay-inner-phase-tracy.mjs'),dest=path.join(__dirname,'replay-inner-phase-clock.mjs');
+const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+assert(!fs.existsSync(dest),'Preserve previous driver');
+const before=fs.readFileSync(source,'utf8');
+assert.equal(sha(Buffer.from(before)),'cae1cbd46451f47a29eaada0eaaaabcf29ec7a5403ffe485c36c4856fd2f45a4');
+let after=before.replace('.cache/nwn74/inner-phase-tracy-a/build-receipt.json','.cache/nwn74/inner-phase-clock-a/build-receipt.json').replaceAll('636c4f5f4be0aecae03f07116acadfb7cae13e73d8f0f4d40bbb5b57693ad64a','28e5d6e4c22ecbddab2a50dfe9e074041c7e6c524813d34cd42dfb7752738c17');
+assert.equal(after.split('.cache/nwn74/inner-phase-clock-a/build-receipt.json').length,2);
+assert(!after.includes('636c4f5f4be0aecae03f07116acadfb7cae13e73d8f0f4d40bbb5b57693ad64a'));
+fs.writeFileSync(dest,after,{flag:'wx'});
+const receipt={issue:'NWN-74',private:true,source,sourceSha256:sha(Buffer.from(before)),driver:dest,driverSha256:sha(Buffer.from(after)),diagnosticEngineSha256:'28e5d6e4c22ecbddab2a50dfe9e074041c7e6c524813d34cd42dfb7752738c17',fpsOutputDisabled:true,clockGate:'NWN74_INNER_PHASES=1'};
+fs.writeFileSync(path.join(stage,'driver-receipt.json'),JSON.stringify(receipt,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify(receipt));

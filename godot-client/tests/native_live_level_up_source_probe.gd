@@ -28,8 +28,7 @@ func record_presentation(stage: String) -> bool:
 	var pane=front.panes[stage];var owner=controller.source_runtime.source_owner
 	if is_instance_valid(owner_world) and owner_world.args.get("level-source-check","")=="true":
 		if not check(controller.source_runtime.enable_source_probe_diagnostics(identity+[controller.token]),"Opt-in diagnostic scope is the actual current source token"):return false
-	var physical: Dictionary={"wanted":pane.wanted,"visibleInTree":pane.is_visible_in_tree(),"layoutReady":pane.layout_ready,"paneTicket":pane.scope==front.ticket,"navigationTicket":front.scope==owner.navigation.ticket,"ownerCurrent":owner.current(front.ticket),"script":str(pane.get_script().resource_path)=="res://systems/"+str(PANES[stage])}
-	if not check(physical.values().all(func(value):return bool(value)),"Installed mode1 pane/ticket is physically current: "+stage,JSON.stringify(physical)):return false
+	if not check(pane.wanted and pane.is_visible_in_tree() and pane.layout_ready and pane.scope==front.ticket and front.scope==owner.navigation.ticket and owner.current(front.ticket) and str(pane.get_script().resource_path)=="res://systems/"+str(PANES[stage]),"Installed mode1 pane/ticket is physically current: "+stage):return false
 	if presentations.size()>=64:return check(false,"Finite source presentation evidence bound")
 	presentations.append({"sourceActive":true,"genericVisible":false,"runtimeOwns":true,"paneVisible":true,"wanted":true,"ready":true,"frontend":str(front.get_script().resource_path),"identity":identity.duplicate(),"navigationTicket":owner.navigation.ticket.duplicate(),"ticket":front.ticket.duplicate(),"token":controller.token,"stage":stage,"pane":str(pane.get_script().resource_path)})
 	return true
@@ -48,12 +47,7 @@ func ready_stage() -> bool:
 		if desktop.level_up.wanted and not desktop.level_up.source_active and controller.token>=0:return check(false,"Source level-up may not fall back to the generic editor",controller.status)
 		if source_current():
 			front=controller.source_runtime.frontend
-			if front.panes.has(front.stage) and front.panes[front.stage].layout_ready and front.panes[front.stage].wanted and pane_data_ready(front.stage,front.panes[front.stage]):
-				var stage: String=front.stage;var pane=front.panes[stage];var owner=controller.source_runtime.source_owner
-				# The authored class layout can publish before its parent becomes
-				# visible. Wait for the same physical/ticket predicate we assert below.
-				if await wait_for(func():return source_current() and front.stage==stage and pane.wanted and pane.is_visible_in_tree() and pane.layout_ready and pane.scope==front.ticket and front.scope==owner.navigation.ticket and owner.current(front.ticket),8):return record_presentation(stage)
-				return record_presentation(stage)
+			if front.panes.has(front.stage) and front.panes[front.stage].layout_ready and front.panes[front.stage].wanted and pane_data_ready(front.stage,front.panes[front.stage]):return record_presentation(front.stage)
 		await frames(1)
 	return check(false,"Current original pane prepares before its finite deadline",controller.status)
 func select_class(pane,class_id: int) -> bool:

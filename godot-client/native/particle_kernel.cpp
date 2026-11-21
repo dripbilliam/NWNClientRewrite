@@ -156,8 +156,6 @@ GDExtensionInterfaceObjectSetInstance set_instance;
 #include "animation_keys.hpp"
 #include "raster_conversion.hpp"
 #include "model_control.hpp"
-#include "cpu_skin_deformation.hpp"
-#include "cpu_skin_bind_matrices.hpp"
 #include "visual_selection.hpp"
 #include "model_plan.hpp"
 #include "model_hierarchy.hpp"
@@ -191,8 +189,6 @@ void initialize(void*,GDExtensionInitializationLevel level){
  animation_keys::register_validation(name,property);
  raster_conversion::register_conversion(name,property);
  model_control::register_methods(name,property);
- cpu_skin_deformation::register_numeric(name,property);
- cpu_skin_bind_matrices::register_method_for_class(name,property);
  model_plan::register_method_info(name,property);
  model_pose_storage::register_owner(property);
  light_history::register_owner(property);
@@ -220,7 +216,6 @@ extern "C" __declspec(dllexport) GDExtensionBool nwn_particle_kernel_init(GDExte
  if(!animation_keys::bind(address))return false;
  if(!raster_conversion::bind(address))return false;
  if(!visual_selection::bind(address))return false;
- cpu_skin_deformation::bind(address);
 
  init->minimum_initialization_level=GDEXTENSION_INITIALIZATION_SCENE;init->initialize=initialize;init->deinitialize=deinitialize;init->userdata=nullptr;return true;
 }

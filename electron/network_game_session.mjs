@@ -16,7 +16,7 @@ import {RESOURCE_TYPE} from '../src/resource_archive.js';
 import {availableCreationPortraits} from '../src/creation_portraits.js';
 import {isNativeAudioResourceRef} from '../src/native_audio.js';
 import {networkDoorClickState} from '../src/network_door.js';
-import {deviceEchoResponse,devicePropertyRequest,loginWaypointResponse} from '../src/network_runtime_messages.js';
+import {deviceEchoResponse,loginWaypointResponse} from '../src/network_runtime_messages.js';
 import {chatRequest} from '../src/network_chat_input.js';
 import {quickbarAssignmentRequest} from '../src/network_quickbar.js';
 import {emptyQuickbarButton} from '../src/quickbar.js';
@@ -51,7 +51,7 @@ import {walkToWaypointRequest,doorActionRequest,talkToRequest,useObjectRequest,a
 const clientFailureText=value=>typeof value==='string'?value.replace(/\b[A-Z0-9]{5}(?:-[A-Z0-9]{5}){6}\b/gi,'[protected key]').replace(/[\x00-\x1f\x7f]/g,' ').slice(0,384):'';
 export class NetworkGameSession extends EventEmitter {
  constructor({peer,identity,build,resources,language,openModule,onDiagnostic=()=>{},decodeMessage=decodeServerGameMessage,loadRules=loadNetworkObjectRules,loginWaypoint='',persistCharacter=null,characterExportTimeoutMs=15000,serverInfo=null,localVaultAllowed=true,preparePortal=null,portalTimeoutMs=15000}){
-  super();loginWaypointResponse(loginWaypoint);this.loginWaypoint=loginWaypoint;this.deviceEchoReplies=0;this.devicePropertyPackets=0;this.deviceProperties=null;this.devicePropertySent=Object.create(null);this.devicePropertyReady=false;this.devicePropertyQueue=Promise.resolve();this.loginWaypointRequests=0;this.tlkOverrideMessages=0;Object.assign(this,{peer,identity,build,resources,language,openModule,onDiagnostic,decodeMessage,loadRules});
+  super();loginWaypointResponse(loginWaypoint);this.loginWaypoint=loginWaypoint;this.deviceEchoReplies=0;this.loginWaypointRequests=0;this.tlkOverrideMessages=0;Object.assign(this,{peer,identity,build,resources,language,openModule,onDiagnostic,decodeMessage,loadRules});
   this.world=new NetworkWorld({onDiagnostic:d=>this.diagnose(d)});this.delivery=Promise.resolve();this.phase='new';this.closed=false;this.areaGeneration=0;this.objectRules={};this.movementSequences=new Map();this.persistCharacter=persistCharacter;this.characterExportTimeoutMs=characterExportTimeoutMs;
   resources.setProgress?.(progress=>{if(!this.closed){this.resourceProgress=progress;this.publish();}});
   this.serverInfo=serverInfo;this.localVaultAllowed=localVaultAllowed;this.serverCharacters=[];this.characterListGeneration=0;
@@ -68,37 +68,15 @@ export class NetworkGameSession extends EventEmitter {
   peer.on('closed',event=>{if(event?.reason)this.disconnectReason={...event.reason};if(event?.failed&&this.portalTransfer.pending){this.portalTransfer.fail('The old connection failed during its portal handoff');return;}if(event?.failed&&!this.closed&&!this.disconnectReason)this.clientFailure??={code:'network.peer-failed',reason:'The game connection was lost.',cause:{code:'network.peer-failed',reason:'Native network peer failed'},phase:this.phase,areaGeneration:this.areaGeneration};if(!this.portalTransfer.peerClosed())this.finish();});
  }
  diagnose(d){if(d.code==='network.object-import-failed')this.lastImportFailure={code:d.code,reason:clientFailureText(d.reason)};this.onDiagnostic(d);this.emit('diagnostic',d);}
- state(){return{phase:this.phase,closed:this.closed,...(this.disconnectReason?{disconnectReason:{...this.disconnectReason}}:{}),...(this.clientFailure?{clientFailure:structuredClone(this.clientFailure)}:{}),resourceProgress:this.resourceProgress??null,resourcesReady:Boolean(this.resourceResult?.ready&&this.resolver),characterUploaded:Boolean(this.characterUploaded),characterSubmitted:Boolean(this.characterSubmitted||this.characterUploaded),characterConfirmed:Boolean(this.characterConfirmed),localVaultAllowed:this.localVaultAllowed,serverInfo:this.serverInfo,areaGeneration:this.areaGeneration,areaReady:Boolean(this.areaReadySent),deviceEchoReplies:this.deviceEchoReplies,devicePropertyPackets:this.devicePropertyPackets,loginWaypointRequests:this.loginWaypointRequests,tlkOverrideMessages:this.tlkOverrideMessages,world:this.world.snapshot()};}
+ state(){return{phase:this.phase,closed:this.closed,...(this.disconnectReason?{disconnectReason:{...this.disconnectReason}}:{}),...(this.clientFailure?{clientFailure:structuredClone(this.clientFailure)}:{}),resourceProgress:this.resourceProgress??null,resourcesReady:Boolean(this.resourceResult?.ready&&this.resolver),characterUploaded:Boolean(this.characterUploaded),characterSubmitted:Boolean(this.characterSubmitted||this.characterUploaded),characterConfirmed:Boolean(this.characterConfirmed),localVaultAllowed:this.localVaultAllowed,serverInfo:this.serverInfo,areaGeneration:this.areaGeneration,areaReady:Boolean(this.areaReadySent),deviceEchoReplies:this.deviceEchoReplies,loginWaypointRequests:this.loginWaypointRequests,tlkOverrideMessages:this.tlkOverrideMessages,world:this.world.snapshot()};}
  publish(){if(!this.closed)this.emit('state',this.state());}
- setDeviceProperties(value){
-  if(this.closed)throw new Error('Native device properties belong to a closed session');
-  const names=['gui_scale','gui_width','gui_height'];
-  if(!value||typeof value!=='object'||names.some(key=>!Number.isInteger(value[key])||value[key]<(key==='gui_scale'?0:1)||value[key]>2147483647))throw new Error('Native device properties are unavailable');
-  this.deviceProperties=Object.freeze(Object.fromEntries(names.map(key=>[key,value[key]])));
-  return this.flushDeviceProperties();
- }
- flushDeviceProperties(){
-  if(!this.devicePropertyReady||this.closed||!this.deviceProperties)return Promise.resolve();
-  this.devicePropertyQueue=this.devicePropertyQueue.catch(()=>{}).then(async()=>{
-   if(this.closed||!this.devicePropertyReady)return;
-   const current=this.deviceProperties;
-   for(const key of ['gui_scale','gui_width','gui_height']){
-    if(this.closed)return;
-    const value=current[key];if(this.devicePropertySent[key]===value)continue;
-    await this.peer.sendGameMessage(devicePropertyRequest(key,value));
-    if(this.closed)return;this.devicePropertySent[key]=value;this.devicePropertyPackets++;
-   }
-   this.publish();
-  });
-  return this.devicePropertyQueue;
- }
  async connect(options){
   if(this.phase!=='new'||this.closed)throw new Error('Native game session has already started');
   // NetworkPeer.connect forwards metadata to NetworkLogin. A top-level
   // connectionType is not an effective handshake input and must not set role.
   if(options?.metadata?.connectionType===16)this.world.beginClientConnection(16);
   this.phase='connecting';this.publish();
-  try{const remote=await this.peer.connect(this.identity,options);if(this.closed)throw new Error('Native game session is closed');this.serverBuild=remote.build;this.devicePropertyReady=true;await this.flushDeviceProperties();if(this.closed)throw new Error('Native game session is closed');this.phase='resources';this.publish();await this.peer.sendGameMessage(serverStatusRequest());return remote;}
+  try{const remote=await this.peer.connect(this.identity,options);if(this.closed)throw new Error('Native game session is closed');this.serverBuild=remote.build;this.phase='resources';this.publish();await this.peer.sendGameMessage(serverStatusRequest());return remote;}
   catch(error){const failure=this.peer.connectionFailure??networkConnectionFailure(error,'session-connect');if(!this.peer.disconnecting)this.diagnose({code:'network.session-connect-failed',reason:'Native session connection failed',failure});await this.disconnect();throw new Error(networkConnectionFailureText(failure),{cause:error});}
  }
  async selectCharacter(bytes,{createOnServer=false}={}){

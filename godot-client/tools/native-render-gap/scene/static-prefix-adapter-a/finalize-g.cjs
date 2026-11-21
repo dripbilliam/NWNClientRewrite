@@ -1,0 +1,21 @@
+'use strict';
+// Finish unsealed G metadata; all earlier A-F inputs remain immutable.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const file=name=>path.join(__dirname,name);
+const fallback='First UNEXECUTED skipped key after transactional rollback; otherwise same current key. Sticky original-script remainder. Never replay completed admissions or queries.';
+let derive=fs.readFileSync(file('derive-g.cjs'),'utf8');
+const before="contract.ops[6]='Existing actual-use counters plus rollback_count,rolled_back_unexecuted_skips,fast_terminal_scans';";
+assert.equal(derive.split(before).length,2);
+derive=derive.replace(before,before+'contract.ops[2].fallback='+JSON.stringify(fallback)+';');
+fs.writeFileSync(file('derive-g.cjs'),derive);
+const contractFile=file('source-contract-g.json'),contract=JSON.parse(fs.readFileSync(contractFile));
+contract.ops[2].fallback=fallback;
+for(const pin of contract.sourcePins)pin.sha256=sha(pin.file);
+fs.writeFileSync(contractFile,JSON.stringify(contract,null,2)+'\n');
+const commandFile=file('future-command-g.json'),command=JSON.parse(fs.readFileSync(commandFile));
+command.contract.sha256=sha(contractFile);command.source.sha256=sha(command.source.file);
+command.buildRecipe={file:file('build-private-g.ps1'),sha256:sha(file('build-private-g.ps1'))};
+command.metadataFinalizer={file:__filename,sha256:sha(__filename)};
+fs.writeFileSync(commandFile,JSON.stringify(command,null,2)+'\n');
+console.log(JSON.stringify({source:command.source,contract:command.contract,build:command.buildRecipe,futureCommand:{file:commandFile,sha256:sha(commandFile)},nativeStarts:0,compilerStarts:0}));
