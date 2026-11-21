@@ -4,13 +4,23 @@ const Timing=preload("res://systems/native_render/frame_profile.gd")
 # would invoke their _exit_tree close while data workers are still running.
 var worlds: Array=[]
 var maximum_retained:=2
+var holds:=0
 var closed:=false
 var stats:={"retired":0,"released":0,"forced_drains":0,"peak_worlds":0,"peak_workers":0,"begin_ms":0.0,"max_begin_ms":0.0,"max_hide_ms":0.0,"max_disable_processing_ms":0.0}
+func begin() -> Callable:
+	if closed:return Callable()
+	holds+=1
+	var ended:=false
+	return func():
+		if ended:return
+		ended=true
+		holds=maxi(0,holds-1)
+		if holds==0:poll()
 func retire(world) -> void:
 	if not is_instance_valid(world) or worlds.has(world): return
 	if closed: world.close(); world.queue_free(); return
 	# A bounded overflow is drained safely rather than retaining unlimited areas.
-	while worlds.size()>=maxi(1,maximum_retained):
+	while holds==0 and worlds.size()>=maxi(1,maximum_retained):
 		stats.forced_drains+=1; release_world(worlds[0])
 	var began:=Time.get_ticks_usec()
 	world.begin_retirement(); worlds.append(world); stats.retired+=1
@@ -37,6 +47,7 @@ func release_world(world) -> void:
 		world.queue_free()
 	stats.released+=1
 func poll() -> void:
+	if holds>0:return
 	for world in worlds.duplicate():
 		if not is_instance_valid(world): worlds.erase(world); continue
 		if world.worker_tasks().all(func(task):return WorkerThreadPool.is_task_completed(int(task))):
@@ -52,9 +63,9 @@ func _process(_delta: float) -> void:
 func _profile_process(_delta: float) -> void:
 	if not closed: poll()
 func snapshot() -> Dictionary:
-	var value:=stats.duplicate(true); value.pending_worlds=worlds.size(); value.pending_workers=pending_workers(); return value
+	var value:=stats.duplicate(true); value.pending_worlds=worlds.size(); value.pending_workers=pending_workers(); value.holds=holds; return value
 func close() -> void:
 	if closed: return
-	closed=true
+	closed=true;holds=0
 	for world in worlds.duplicate(): release_world(world)
 func _exit_tree() -> void: close()

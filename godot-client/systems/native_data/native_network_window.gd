@@ -1,4 +1,5 @@
 extends RefCounted
+signal diagnostic_event(event: Dictionary)
 const Frames=preload("res://systems/native_data/native_network_frames.gd")
 var first:=0
 var next:=0
@@ -43,7 +44,9 @@ func load_queued(now: int)->Array[PackedByteArray]:
 
 func receive(bytes: PackedByteArray,now: int)->Dictionary:
 	var frame: Dictionary=Frames.read(bytes)
-	if frame.has("error"):return {"accepted":false,"send":[],"delivered":[]}
+	if frame.has("error"):
+		diagnostic_event.emit({"code":"network.frame-rejected","reason":"Malformed, unsupported or corrupt native reliable frame"})
+		return {"accepted":false,"send":[],"delivered":[]}
 	last_received=now
 	var kind: int=frame.kind;var sequence: int=frame.sequence;var acknowledgement: int=frame.acknowledgement
 	var send: Array[PackedByteArray]=[];var delivered: Array[PackedByteArray]=[]

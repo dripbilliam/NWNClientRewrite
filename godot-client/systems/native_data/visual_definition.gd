@@ -4,13 +4,15 @@ extends RefCounted
 const Phases=preload("res://systems/visual_phases.gd")
 const Numbers=preload("res://systems/native_data/combat_actor.gd")
 const Rules=preload("res://systems/native_data/game_ui_rules.gd")
+const ScriptString=preload("res://systems/native_data/native_script_string.gd")
+const SpellMetadata=preload("res://systems/native_data/spell_metadata.gd")
 var failure:=""
 static func query(table: Dictionary,index: int,column: String,kind: String) -> Dictionary:
+	if kind=="string":return SpellMetadata.native_string_entry(table,index,column)
 	var rows: Array=table.get("orderedRows",[]); var value: Variant=null
 	if index>=0 and index<rows.size(): value=Rules.cell(rows[index],column)
 	var valid:=value!=null; var text:=str(value) if valid else str(table.get("defaultValue","****"))
 	var found:=valid and text not in ["","****"]
-	if kind=="string": return {"found":found,"value":"" if text in ["","****"] else text}
 	if kind=="integer": return {"found":found,"value":Numbers.integer(table,index,column)}
 	var pattern:=RegEx.new(); pattern.compile("^\\s*[+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?")
 	var parsed:=pattern.search(text)
@@ -28,14 +30,25 @@ static func identity(map: Variant) -> bool:
 	for i in 10:
 		if channels[i].value!=(1 if i in [0,1,2,9] else 0) or channels[i].duration!=0: return false
 	return true
-static func prefix(model: Dictionary,type: int) -> String:
-	var name:=str(model.get("loadedName","")).to_lower()
-	return name.substr(4) if type==9 else name if type==10 else ""
+static func prefix(model: Dictionary,type: int) -> Dictionary:
+	if type not in [9,10]:return {"value":""}
+	var loaded:Variant=model.get("loadedName")
+	if loaded==null:return {"error":"Native visual loaded-model name is unavailable"}
+	var right:Dictionary=ScriptString.right(loaded,0x7fffffff)
+	if right.has("error"):return right
+	var name:String=right.value
+	var nul:int=name.find(String.chr(0))
+	if nul>=0:name=name.substr(0,nul)
+	return ScriptString.substring(name,4,-1) if type==9 else {"value":name if type==10 else ""}
 static func anchor(model: Dictionary,name: String) -> String:
 	return name if name=="root" or model.get("parts",[]).any(func(part):return str(part).to_lower()==name.to_lower()) else "root"
 func prepare(actor: Dictionary,record: Dictionary,tables: Dictionary,hosts: Dictionary,settings: Dictionary={"quality64":1,"violence40":2}) -> Dictionary:
 	failure=""
 	if not identity(record.get("networkTransform")): failure="Native nonidentity effect controller maps remain pending"; return {}
+	var transform: Variant=record.get("transform",{"scale":1,"translate":[0,0,0],"rotate":[0,0,0]})
+	if not transform is Dictionary or transform.get("scale")!=1 or not transform.get("translate") is Array or not transform.get("rotate") is Array or transform.translate.size()!=3 or transform.rotate.size()!=3 or (transform.translate+transform.rotate).any(func(value):return value!=0):
+		failure="Native visual transform-controller presentation is not implemented"
+		return {}
 	if int(record.get("bodyPart",0))!=0: failure="Native nondefault looping effect body-part routing remains pending"; return {}
 	var id:=int(actor.id); var type:=int(actor.objectType)
 	if type not in [5,9,10] or not hosts.has(id): failure="Original visual target model is unavailable"; return {}
@@ -75,7 +88,12 @@ func prepare(actor: Dictionary,record: Dictionary,tables: Dictionary,hosts: Dict
 	if visual==999: programs[0]={"found":true,"value":1100}
 	var delivery: Dictionary=record.get("delivery",{}); var source_part:=int(delivery.get("sourcePart",0))&255; var target_part:=int(delivery.get("targetPart",0))&255
 	var source: Dictionary=hosts.get(int(state.source58),{}); var target: Dictionary=hosts[id]
-	var from_type:=int(source.get("type",5)); var from_prefix:=prefix(source,from_type); var to_prefix:=prefix(target,type)
+	var from_type:=int(source.get("type",5))
+	var from_result: Dictionary=prefix(source,from_type); var to_result: Dictionary=prefix(target,type)
+	if from_result.has("error") or to_result.has("error"):
+		failure=str(from_result.get("error",to_result.get("error","Original visual model name is unavailable")))
+		return {}
+	var from_prefix: String=str(from_result.value); var to_prefix: String=str(to_result.value)
 	state.sourceAnchor28=from_prefix+(["_hand","_impact"][source_part] if source_part<2 else "_ground") if from_type==9 else from_prefix+("impc" if source_part<2 else "grnd") if from_type==10 else "handconjure" if source_part==0 else "impact" if source_part==1 else "monster"+str(source_part-2) if source_part<=11 else "root"
 	state.targetAnchor38=to_prefix+("_impact" if target_part<2 else "_ground") if type==9 else to_prefix+("impc" if target_part<2 else "grnd") if type==10 else "impact" if target_part<2 else "monster"+str(target_part-2) if target_part<=11 else "root"
 	if not source.is_empty(): state.sourceAnchor28=anchor(source,state.sourceAnchor28)
@@ -105,5 +123,11 @@ func prepare(actor: Dictionary,record: Dictionary,tables: Dictionary,hosts: Dict
 	for column in ["ShakeDuration","ShakeDelay"]: definition.visual.float[column]=query(table,visual,column,"float")
 	for column in ["SoundImpact","SoundDuration","SoundCessation","Type_FD"]: definition.visual.string[column]=query(table,visual,column,"string")
 	for actor_id in [id,int(state.source58)]:
-		if hosts.has(actor_id): definition.hosts[str(actor_id)]={"id":actor_id,"type":hosts[actor_id].type,"prefix":prefix(hosts[actor_id],int(hosts[actor_id].type)),"privateToken":int(hosts[actor_id].get("privateToken",0))}
+		if hosts.has(actor_id):
+			var host_type:=int(hosts[actor_id].type)
+			var host_prefix:=prefix(hosts[actor_id],host_type)
+			if host_prefix.has("error"):
+				failure=str(host_prefix.error)
+				return {}
+			definition.hosts[str(actor_id)]={"id":actor_id,"type":host_type,"prefix":str(host_prefix.value),"privateToken":int(hosts[actor_id].get("privateToken",0))}
 	return definition

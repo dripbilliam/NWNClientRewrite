@@ -10,7 +10,7 @@ static func choices(rules,text) -> Dictionary:
 	var values: Array=[]
 	for id in rules.rows("packages").size():
 		var row: Dictionary=rules.row("packages",id)
-		if id==255 or not present(Game.cell(row,"ClassID")) or not present(Game.cell(row,"PlayerClass")) or rules.num(row,"ClassID")!=int(rules.draft.classId) or rules.num(row,"PlayerClass")==0:continue
+		if not present(Game.cell(row,"ClassID")) or not present(Game.cell(row,"PlayerClass")) or rules.num(row,"ClassID")!=int(rules.draft.classId) or rules.num(row,"PlayerClass")==0:continue
 		var title: int=rules.num(row,"Name",0);var description: int=rules.num(row,"Description",0)
 		values.append({"id":id,"name":text.raw({"strRef":title&0xffffffff}),"title":title&0xffffffff,"description":description&0xffffffff,"icon":"","titleFound":text.fetch_reference(title&0xffffffff).found,"descriptionFound":text.fetch_reference(description&0xffffffff).found})
 	return {"entries":values,"default":rules.num(rules.cls(),"Package",-1),"classId":int(rules.draft.classId)}

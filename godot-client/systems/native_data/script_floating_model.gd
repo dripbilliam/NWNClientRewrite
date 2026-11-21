@@ -14,7 +14,7 @@ static func parse(model: Dictionary) -> Dictionary:
 	for index in nodes.size():
 		var node: Variant=nodes[index]
 		if not node is Dictionary or not finite_array(node.get("position"),3) or not finite_array(node.get("orientation"),4):return {"ready":false,"reason":"Native floaty hook transform is unavailable."}
-		var parent: Variant=node.get("parent");var scale: Variant=node.get("scale",1.0)
+		var parent: Variant=node.get("parentIndex",node.get("parent"));var scale: Variant=node.get("scale",1.0)
 		if not parent is int or parent< -1 or parent>=index or not (scale is int or scale is float) or not is_finite(float(scale)):return {"ready":false,"reason":"Native floaty model hierarchy is invalid."}
 		var p: Array=node.position;var q: Array=node.orientation;var rotation:=Quaternion(q[0],q[1],q[2],q[3])
 		if rotation.length_squared()==0:return {"ready":false,"reason":"Native floaty model rotation is invalid."}

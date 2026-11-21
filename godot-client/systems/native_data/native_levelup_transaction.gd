@@ -3,6 +3,7 @@ extends RefCounted
 # applied locally; only a later authoritative object update changes the actor.
 const Sender=preload("res://systems/native_data/native_network_levelup_request.gd")
 const Received=preload("res://systems/native_data/level_up_received_context.gd")
+const ReplyScope=preload("res://systems/native_data/level_up_reply_scope.gd")
 var pending: Dictionary={}
 var draft: Dictionary={}
 var uncertain:=false
@@ -13,20 +14,25 @@ static func actor_scope(actor: Dictionary,area_id: int)->Array:
 	return [area_id,int(actor.id),int(actor.nativeLifetime),int(actor.clientKnownLifetime)]
 
 static func build_feature(build: Dictionary)->bool:
-	return int(build.get("number",0))>8193 or int(build.get("number",0))==8193 and int(build.get("revision",0))>=35
+	if not build.has("number") or not build.has("revision") or not build.has("postfix"):return false
+	return int(build.number)>=8193 and (int(build.revision)>35 or int(build.revision)==35 and int(build.postfix)>=0)
 
 static func reply(request: Dictionary,accepted: bool,result: Dictionary={},reason: String="")->Dictionary:
-	return {"kind":"native-action-result","action":"native-level-up","operation":str(request.get("operation","")),"levelRequest":request.get("levelRequest",{}).duplicate(true),"accepted":accepted,"result":result.duplicate(true),"text":reason}
+	var answer: Dictionary={"kind":"native-action-result","action":"native-level-up","operation":str(request.get("operation","")),"accepted":accepted,"result":result.duplicate(true),"text":reason}
+	if request.get("levelRequest") is Dictionary:answer.levelRequest=request.levelRequest.duplicate(true)
+	return answer
 
 func request(value: Dictionary,actor: Dictionary,area_id: int,rules: RefCounted,build: Dictionary,now: int)->Dictionary:
+	var captured: Dictionary=ReplyScope.capture(value)
+	if captured.has("error"):return {"error":captured.error}
 	var scope:=actor_scope(actor,area_id)
 	if scope.is_empty():return {"error":"Level-up belongs to an old controlled creature"}
-	var meta: Variant=value.get("levelRequest")
-	if not meta is Dictionary or int(meta.get("areaId",-1))!=area_id or int(meta.get("actorId",-1))!=int(actor.id) or int(meta.get("nativeLifetime",-1))!=int(actor.nativeLifetime) or int(meta.get("knownLifetime",-1))!=int(actor.clientKnownLifetime):return {"error":"Level-up request identity is stale"}
+	var meta: Variant=captured.value
+	if meta is Dictionary and (int(meta.areaId)!=area_id or int(meta.actorId)!=int(actor.id) or int(meta.nativeLifetime)!=int(actor.nativeLifetime) or int(meta.knownLifetime)!=int(actor.clientKnownLifetime)):return {"error":"Level-up request identity is stale"}
 	var operation:=str(value.get("operation",""))
 	if operation=="cancel":
-		if not draft.is_empty() and draft.get("scope")==scope and pending.is_empty():draft.clear()
-		return {"packets":[Sender.cancel(build_feature(build))]}
+		var cancel_draft_token:=int(draft.get("token",-1)) if draft.get("scope")==scope and pending.is_empty() else -1
+		return {"packets":[Sender.cancel(build_feature(build))],"cancelDraftToken":cancel_draft_token,"cancelScope":scope}
 	if not pending.is_empty() or uncertain:return {"error":"Waiting for the previous server level-up reply"}
 	var packets: Array[PackedByteArray]=[]
 	if operation=="begin":
@@ -50,8 +56,15 @@ func request(value: Dictionary,actor: Dictionary,area_id: int,rules: RefCounted,
 		if encoded.has("error"):return encoded
 		packets=[encoded.bytes]
 	else:return {"error":"Invalid level-up operation"}
-	pending={"operation":operation,"scope":scope,"request":value.duplicate(true),"deadline":now+15000,"timedOut":false,"available":[]}
+	var stored_request: Dictionary=value.duplicate(true)
+	if meta is Dictionary:stored_request.levelRequest=meta.duplicate(true)
+	pending={"operation":operation,"scope":scope,"request":stored_request,"deadline":now+15000,"timedOut":false,"available":[],"classes_received":false}
 	return {"packets":packets}
+
+func complete_cancel(token: int,scope: Array)->void:
+	# The original session retired its draft only after the cancel packet sent
+	# and only if the same draft still belonged to the controlled creature.
+	if token>=0 and pending.is_empty() and int(draft.get("token",-1))==token and draft.get("scope")==scope:draft.clear()
 
 func send_failed()->Dictionary:
 	if pending.is_empty():return {}
@@ -69,7 +82,7 @@ func receive(message: Dictionary,actor: Dictionary,area_id: int,build: Dictionar
 		pending.clear();draft.clear();return stale
 	if message.kind=="level-up-classes":
 		if pending.operation!="begin":return {}
-		pending.available=message.available.duplicate()
+		pending.available=message.available.duplicate();pending.classes_received=true
 		return observe(actor,area_id,build)
 	var request_value: Dictionary=pending.request
 	var operation:=str(pending.operation)
@@ -78,7 +91,7 @@ func receive(message: Dictionary,actor: Dictionary,area_id: int,build: Dictionar
 	return reply(request_value,true,{"accepted":bool(message.accepted)})
 
 func observe(actor: Dictionary,area_id: int,build: Dictionary)->Dictionary:
-	if pending.is_empty() or pending.operation!="begin" or pending.available.is_empty():return {}
+	if pending.is_empty() or pending.operation!="begin" or not pending.get("classes_received",false):return {}
 	if pending.scope!=actor_scope(actor,area_id):
 		var stale:=reply(pending.request,false,{},"Level-up creature changed")
 		pending.clear();draft.clear();return stale

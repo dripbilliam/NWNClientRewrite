@@ -2,6 +2,7 @@ extends RefCounted
 # Original equipped7fd6b0 slotFB, driven by the same body model events as
 # unarmed specials. Models are private presentation owners, not registry Gobs.
 const State=preload("res://systems/native_data/equipped_attack_visual.gd")
+const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 var manager
 var combat
 var closed:=false
@@ -28,7 +29,16 @@ func valid(record: Dictionary) -> bool:
 	return not next.is_empty() and not next.get("pending",false) and next.signature==record.signature
 func observe(object: Dictionary) -> void:
 	if closed: return
-	var id:=int(object.id); var host=manager.host(id)
+	var id:=int(object.id)
+	if not records.has(id) and not warm.has(id):
+		var appearance: Variant=object.get("appearance",{})
+		if appearance is Dictionary:
+			var equipment: Variant=appearance.get("equipment",[])
+			# An actor without equipment has no model to warm or release.
+			if equipment is Array and equipment.is_empty():
+				FrameProfile.count("count_equipped_attack_empty_skips",1)
+				return
+	var host=manager.host(id)
 	if not ready(id,object,host): return
 	var info:=detail(object,host)
 	if info.is_empty() or info.get("pending",false):

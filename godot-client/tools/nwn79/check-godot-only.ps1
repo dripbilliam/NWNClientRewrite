@@ -19,6 +19,10 @@ if($defaultInventory){
   (Join-Path $client 'systems/native_data/godot_login_profile_controller.gd'),
   (Join-Path $client 'systems/native_data/godot_server_browser_store.gd'),
   (Join-Path $client 'tools/setup.ps1'),
+  (Join-Path $client 'tools/native-tracy/live/launch.ps1'),
+  (Join-Path $client 'tools/native-live-review/launch.ps1'),
+  (Join-Path $client 'tools/native-render-gap/transport/live/launch.ps1'),
+  (Join-Path $client 'tools/native_parity/performance/check_production_local.ps1'),
   (Join-Path $client 'tools/native-window-screen.ps1'),
   (Join-Path $client 'tools/nwn79/build-windows-profile.ps1'),
   (Join-Path $client 'tests/nwn79_run_levelup_private.ps1'),
@@ -35,6 +39,10 @@ if($defaultInventory){
  # The other tests/*.ps1 and tools/* subtrees are archived research fixtures;
  # they are not called by the supported NWN-79 launch/acceptance entrypoints.
  $SourcePaths+=@(Get-ChildItem -LiteralPath $client -Filter '*.ps1' -File|ForEach-Object FullName)
+ # These are the executable Godot sources and resources selected by clean
+ # staging and delivery. Archived browser fixtures under scripts/ are separate.
+ $SourcePaths+=@(Get-ChildItem -LiteralPath $client -Filter '*.gd' -File|ForEach-Object FullName)
+ $SourcePaths+=@(Get-ChildItem -LiteralPath (Join-Path $client 'systems') -Recurse -File|Where-Object {$_.Name -match '\.(?:gd|gdshader|tscn|tres)(?:\.uid)?$'}|ForEach-Object FullName)
  $SourcePaths+=@(Get-ChildItem -LiteralPath (Join-Path $client 'tools/nwn79') -Filter '*.ps1' -File|ForEach-Object FullName)
  $SourcePaths+=@(Get-ChildItem -LiteralPath (Join-Path $client 'tools') -Filter '*.ps1' -File|Where-Object {$_.Name -match '^(?:setup|build-[^\\/]+|ensure-[^\\/]+|resource-index-build-inputs|local-test-guard)\.ps1$'}|ForEach-Object FullName)
  $SourcePaths=@($SourcePaths|Sort-Object -Unique)
@@ -47,23 +55,70 @@ $forbidden=@(
  '(?i)\b(?:native-session-host|native-session-bootstrap)\.cjs\b',
  '(?i)\b(?:native-startup|godot-settings-proxy)\.mjs\b',
  '(?i)\b(?:require|import)\s*\(?\s*[\x27\x22]electron[\x27\x22]',
- '(?i)\b(?:Get-Command|Start-Process)\s+(?:node|electron|npm|npx)\b'
- ,'(?im)^\s*(?:&\s*)?(?:node|npm|npx)\b'
+ '(?i)\b(?:from|import)\s*(?:\(\s*)?[\x27\x22](?:electron|three)(?:/[^\x27\x22]*)?[\x27\x22]',
+ '(?i)\brequire\s*\(\s*[\x27\x22](?:electron|three)(?:/[^\x27\x22]*)?[\x27\x22]',
+ '(?i)<script\b[^>]*\bsrc\s*=\s*[\x27\x22][^\x27\x22]*(?:src/main\.js|electron|three)[^\x27\x22]*[\x27\x22]'
+)
+$shellForbidden=@(
+ '(?i)\b(?:Get-Command|Start-Process)\s+(?:node|electron|npm|npx)\b',
+ '(?im)^\s*(?:&\s*)?(?:node|npm|npx)(?=\s|$)'
 )
 foreach($source in $SourcePaths){
  $absolute=[IO.Path]::GetFullPath($source)
  if(-not$absolute.StartsWith($workspace+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw ('Godot-only guard source escaped workspace: '+$absolute)}
  if(-not(Test-Path -LiteralPath $absolute -PathType Leaf)){throw ('Godot-only guard source missing: '+$absolute)}
  $content=[IO.File]::ReadAllText($absolute)
- foreach($pattern in $forbidden){if([regex]::IsMatch($content,$pattern)){throw ('Electron/Node runtime reintroduced in '+$absolute)}}
+ $patterns=$forbidden
+ if($absolute.EndsWith('.ps1',[StringComparison]::OrdinalIgnoreCase)){$patterns=$forbidden+$shellForbidden}
+ foreach($pattern in $patterns){if([regex]::IsMatch($content,$pattern)){throw ('Electron/Node/Three runtime reintroduced in '+$absolute)}}
 }
 if($defaultInventory){
+ # The old root index.html booted the preserved Three frontend. Reject that
+ # entry while allowing unrelated HTML which has no such executable imports.
+ $browserEntries=@(Get-ChildItem -LiteralPath $workspace -Filter '*.html' -File)+@(Get-ChildItem -LiteralPath $client -Filter '*.html' -File)
+ foreach($entry in $browserEntries){
+  if($entry.Name -eq 'index.html'){throw ('Browser frontend entry reintroduced: '+$entry.FullName)}
+  $html=[IO.File]::ReadAllText($entry.FullName)
+  foreach($pattern in $forbidden){if([regex]::IsMatch($html,$pattern)){throw ('Electron/Three browser entry reintroduced: '+$entry.FullName)}}
+ }
+ $tracyWrapperPath=Join-Path $client 'tracy-client.ps1'
+ $tracyDirectPath=Join-Path $client 'tools/native-tracy/live/launch.ps1'
+ if($fullWorkspace -or (Test-Path -LiteralPath $tracyWrapperPath)){
+  $tracyWrapper=[IO.File]::ReadAllText($tracyWrapperPath)
+  if(-not$tracyWrapper.Contains("throw 'The legacy Electron Tracy client launcher is retired.") -or $tracyWrapper.Contains('source/launch.ps1')){throw 'Legacy Tracy wrapper can launch cached source'}
+ }
+ if($fullWorkspace -or (Test-Path -LiteralPath $tracyDirectPath)){
+  $tracyDirect=[IO.File]::ReadAllText($tracyDirectPath)
+  if(-not$tracyDirect.Contains("throw 'The legacy Electron Tracy launch path is retired.") -or [regex]::IsMatch($tracyDirect,'(?i)ProcessStartInfo|\$tracyConfig\.(?:node|electron)\b')){throw 'Legacy Tracy direct launcher can start Electron'}
+ }
+ foreach($legacy in @(
+  @{path='tools/native-live-review/launch.ps1';marker="throw 'The legacy Electron live-review launcher is retired."},
+  @{path='tools/native-render-gap/transport/live/launch.ps1';marker="throw 'The legacy Electron transport live launcher is retired."},
+  @{path='tools/native_parity/performance/check_production_local.ps1';marker="throw 'The legacy Electron production-local runner is retired."}
+ )){
+  $legacyPath=Join-Path $client $legacy.path
+  if(-not$fullWorkspace -and -not(Test-Path -LiteralPath $legacyPath)){continue}
+  $legacySource=[IO.File]::ReadAllText($legacyPath)
+  if(-not$legacySource.Contains($legacy.marker) -or [regex]::IsMatch($legacySource,'(?i)ProcessStartInfo|\$\w+Config\.(?:node|electron)\b|\$inputPlan\.runtimes\.electron|\[Diagnostics\.Process\]::Start|Start-Process')){throw ('Legacy Electron launch branch reintroduced: '+$legacyPath)}
+ }
+ $projectPath=Join-Path $client 'project.godot'
+ if(Test-Path -LiteralPath $projectPath){
+  $projectConfig=[IO.File]::ReadAllText($projectPath)
+  if([regex]::IsMatch($projectConfig,'(?m)^\s*run/main_scene\s*=')){throw 'Godot project default scene reintroduced; normal launchers must select their own entry'}
+ }
+ foreach($relative in @('tools/nwn79/stage-clean-source.ps1','tools/nwn79/prepare-clean-restage.ps1','tools/nwn79/build-godot-delivery.ps1')){
+  $selectionPath=Join-Path $client $relative
+  if(-not(Test-Path -LiteralPath $selectionPath)){continue}
+  $selection=[IO.File]::ReadAllText($selectionPath)
+  if(-not$selection.Contains('$file.Name -notin @(''main.gd'',''main.gd.uid'')') -or $selection.Contains("'main.tscn'")){throw ('Replay scene entered normal source or delivery selection: '+$relative)}
+ }
  $packagePath=Join-Path $workspace 'package.json'
  $lockPath=Join-Path $workspace 'package-lock.json'
  if((Test-Path -LiteralPath $packagePath) -or (Test-Path -LiteralPath $lockPath)){throw 'Root npm package or lockfile reintroduced into Godot-only client workspace'}
  $directPath=Join-Path $client 'join-godot.ps1'
  if(Test-Path -LiteralPath $directPath){
   $direct=[IO.File]::ReadAllText($directPath)
+  if(-not$direct.Contains("'--script','res://native_direct_session_world.gd'")){throw 'Normal Godot launcher no longer selects its direct-session script'}
   if(-not$direct.Contains('$engine=$desktop') -or -not$direct.Contains("if(`$Headless){`$arguments=@('--headless')+`$arguments}")){throw 'Headless Godot entry no longer uses the pinned desktop engine with --headless'}
   if($direct.Contains('$engine=if($Headless){$console}')){throw 'Broken Windows console wrapper became the supported headless engine'}
  }

@@ -26,10 +26,8 @@ static func initial_abilities(id: int,race: int,tables: Dictionary) -> Dictionar
 	if Skills.number(data,"SpellCaster")!=0:
 		var ability: int=KEYS.map(func(key):return str(key).to_upper()).find(str(Values.field(data,"SpellcastingAbil")).to_upper())
 		if ability>=0:
-			# Original sets the effective primary score to MIN_PRIMARY even when
-			# a racial/class increase already exceeds it; it does not max(0,delta).
-			var adjustment:=Values.signed8(Skills.number(Skills.row(tables,"racialtypes",race),KEYS[ability]+"Adjust"))+int(values.gains[ability])
-			abilities[KEYS[ability]]=(Values.cfg(tables,"CHARGEN_BASE_ABILITY_MIN_PRIMARY",11)-adjustment)&255
+			# The previous JS creator only raises the primary score when needed.
+			abilities[KEYS[ability]]+=maxi(0,Values.cfg(tables,"CHARGEN_BASE_ABILITY_MIN_PRIMARY",11)-int(values.scores[ability]))
 	return {"ready":true,"abilities":abilities}
 static func starting_hitdie(id: int,feats: Array,tables: Dictionary) -> Variant:
 	if not tables.has("classes") or id<0 or id>=(Skills.rows(tables,"classes").size()&255): return null

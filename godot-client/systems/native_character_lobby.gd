@@ -52,7 +52,7 @@ var detail_scroll: ScrollContainer
 var detail_bar
 var notice: Label
 var pregen: Button
-var show_pregenerated:=false
+var show_pregenerated:=true
 var layout_ready:=false
 var art_announced:=false
 var row_art_keys: Array=[]
@@ -324,7 +324,8 @@ func sync() -> void:
 	buttons.newcharbutton.disabled=not state.get("canCreate",false); buttons.playbutton.disabled=not state.get("canSelect",false) or state.get("selected")==null or not owner_ui.native_selection.is_empty()
 	buttons.cancelbutton.disabled=not state.get("connected",false)
 	buttons.deletecharbutton.disabled=not owner_ui.delete_reason().is_empty(); buttons.deletecharbutton.tooltip_text=owner_ui.delete_reason()
-	buttons.customcharbutton.disabled=true; buttons.customcharbutton.tooltip_text="Local character customization is not migrated yet."
+	buttons.customcharbutton.disabled=not bool(state.get("localAllowed",false)); buttons.customcharbutton.tooltip_text="Choose a local .bic character file" if not buttons.customcharbutton.disabled else "This server requires characters from its vault."
+	button_captions.customcharbutton.text="Local Character…"
 	mutation_notice.text=owner_ui.local_notice
 	for tag in buttons: button_captions[tag].modulate=Color(0.5,0.5,0.5) if buttons[tag].disabled else Color.WHITE
 	for index in tabs.size(): tabs[index].set_pressed_no_signal(index==page_index); tabs[index].disabled=index!=0 and not state.get("canLobbyPages",state.get("canSelect",false))
@@ -384,7 +385,6 @@ func rebuild_rows(choices: Array) -> void:
 		list_content.remove_child(row); row.queue_free()
 	rows.clear(); row_keys.clear()
 	var sorted: Array=choices.filter(func(row):return show_pregenerated or not row.get("pregenerated",false))
-	sorted.sort_custom(func(a,b):return str(a.label).nocasecmp_to(str(b.label))<0)
 	var model: Dictionary=definition.models.ctl_pre_btn_char
 	for data in sorted:
 		var offset: Vector2=definition.first+definition.row_next*rows.size(); var entry:=Sheet.entry(definition.models,"ctl_pre_btn_char",offset)
@@ -471,6 +471,7 @@ func invoke(tag: String) -> void:
 	elif tag=="newcharbutton":
 		if page_index!=0: select_page(0)
 		owner_ui.create_button.pressed.emit()
+	elif tag=="customcharbutton": owner_ui.open_local_file()
 	elif tag=="cancelbutton": owner_ui._send({"kind":"lobby-disconnect","saveCharacter":false})
 func art_ready() -> bool:
 	return layout_ready and not closed and failure.is_empty() and row_art_keys.all(func(key):return frame.art.textures.has(key)) and preload("res://systems/native_menu_builder.gd").source_ready(self,frame)

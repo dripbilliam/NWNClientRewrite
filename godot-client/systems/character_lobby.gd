@@ -57,6 +57,9 @@ var delete_lease: Dictionary={}
 var delete_serial:=0
 var post_delete_index:=-1
 var local_notice:=""
+var local_file_dialog: FileDialog
+var local_file_request: Dictionary={}
+var local_file_serial:=0
 
 func _ready() -> void:
 	local_catalog=preload("res://systems/native_local_character_catalog.gd").new(); add_child(local_catalog); local_catalog.completed.connect(func():
@@ -72,6 +75,13 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	local_file_dialog=FileDialog.new()
+	local_file_dialog.access=FileDialog.ACCESS_FILESYSTEM
+	local_file_dialog.file_mode=FileDialog.FILE_MODE_OPEN_FILE
+	local_file_dialog.add_filter("*.bic, *.BIC", "Neverwinter Nights character")
+	add_child(local_file_dialog)
+	local_file_dialog.file_selected.connect(_local_file_selected)
+	local_file_dialog.canceled.connect(func(): _retire_local_file(false))
 	panel = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(760, 550)
 	var style := StyleBoxFlat.new()
@@ -153,6 +163,37 @@ func _send(value: Dictionary) -> void:
 	value["connection"] = connection
 	request.emit(value)
 
+func open_local_file() -> void:
+	if connection<=0 or not panel.visible or not bool(state.get("localAllowed",false)) or str(state.get("phase","")) not in ["character-selection","character-rejected"]: return
+	local_file_serial+=1
+	local_file_request={"connection":connection,"token":local_file_serial}
+	local_file_dialog.popup_centered_ratio(0.7)
+
+func _local_file_current(capture: Dictionary) -> bool:
+	return not capture.is_empty() and capture==local_file_request and capture.get("connection")==connection and bool(state.get("localAllowed",false)) and str(state.get("phase","")) in ["character-selection","character-rejected"] and panel.visible
+
+func _retire_local_file(close_dialog: bool=true) -> void:
+	local_file_request.clear()
+	if close_dialog and is_instance_valid(local_file_dialog): local_file_dialog.hide()
+
+func _local_file_selected(path: String) -> void:
+	var capture: Dictionary=local_file_request.duplicate(true)
+	if not _local_file_current(capture): return
+	var bytes: PackedByteArray=FileAccess.get_file_as_bytes(path)
+	if not _local_file_current(capture):
+		bytes.fill(0)
+		return
+	if bytes.is_empty():
+		local_notice="Could not read the selected character file."
+		_retire_local_file(false)
+		sync_native()
+		return
+	var outbound: PackedByteArray=bytes.duplicate()
+	_send({"kind":"lobby-local-file-preview","token":int(capture.token),"name":path.get_file(),"bytes":outbound})
+	bytes.fill(0)
+	outbound.fill(0)
+	_retire_local_file(false)
+
 func _choose(index: int) -> void:
 	if index >= 0 and index < keys.size() and can_select():
 		_send({"kind": "lobby-choose", "key": keys[index]})
@@ -193,12 +234,14 @@ func present_saved_characters()->void:
 func apply_state(value: Dictionary) -> void:
 	var previous_phase := str(state.get("phase", ""))
 	if connection!=int(value.connection):
+		_retire_local_file()
 		native_selection.clear(); delete_lease={}; post_delete_index=-1
 		lobby_players.clear()
 		if is_instance_valid(saved_popup):saved_popup.hide()
 		if is_instance_valid(confirmation): confirmation.dismiss()
 	connection = int(value.connection)
 	state = value.state
+	if not bool(state.get("localAllowed",false)) or str(state.get("phase","")) not in ["character-selection","character-rejected"]: _retire_local_file()
 	present_saved_characters()
 	var next_phase: String=str(state.get("phase","menu"))
 	if next_phase not in ["character-selection","character-rejected"]:lobby_players.clear()
@@ -427,6 +470,7 @@ func finish_native_selection() -> void:
 	if is_instance_valid(picker): picker.sync()
 	if activate: _play()
 func close_native() -> void:
+	_retire_local_file()
 	delete_lease={}; post_delete_index=-1; local_notice=""
 	lobby_players.clear()
 	if is_instance_valid(confirmation): confirmation.close(); confirmation.queue_free()

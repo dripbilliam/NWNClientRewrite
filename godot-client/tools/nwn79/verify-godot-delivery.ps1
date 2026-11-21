@@ -24,7 +24,7 @@ foreach($relative in $actual){
  if($relative -match '(?i)(^|/)(electron|node_modules)(/|$)|\.(?:cjs|mjs|js)$|(^|/)(?:node|electron)\.exe$'){throw ('Legacy runtime entered Godot-only delivery: '+$relative)}
  if($Strict -and $relative -ne 'godot-client/godot-delivery-manifest.json' -and -not$seen.Contains($relative)){throw ('Unexpected delivery file: '+$relative)}
 }
-foreach($required in @('godot-client/project.godot','godot-client/join-godot.ps1','godot-client/native_direct_session_world.gd','godot-client/systems/native_install_selector.gd','godot-client/.tools/Godot_v4.7.2-stable_win64.exe','godot-client/.cache/native-kernel/nwn-particle-kernel.dll','godot-client/.cache/native-resource-index/nwn-resource-index.dll','godot-client/.cache/nwn79/windows-profile.exe','tooling/native/content-reader/nwn-content-reader.exe','tooling/native/nwn-network-crypto.exe')){
+foreach($required in @('godot-client/project.godot','godot-client/join-godot.ps1','godot-client/tools/native-runtime-selection.ps1','godot-client/native_direct_session_world.gd','godot-client/systems/native_install_selector.gd','godot-client/.tools/Godot_v4.7.2-stable_win64.exe','godot-client/.cache/native-kernel/nwn-particle-kernel.dll','godot-client/.cache/native-resource-index/nwn-resource-index.dll','godot-client/.cache/nwn79/windows-profile.exe','tooling/native/content-reader/nwn-content-reader.exe','tooling/native/nwn-network-crypto.exe')){
  if(-not$seen.Contains($required)){throw ('Required delivery component missing from manifest: '+$required)}
 }
 Write-Output ('Godot-only delivery verification PASS ('+$seen.Count+' files)')

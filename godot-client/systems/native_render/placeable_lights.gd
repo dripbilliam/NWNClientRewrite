@@ -1,6 +1,7 @@
 extends Node3D
 # CNWCArea::AddPlaceableObjectLight1407d8ed0 / CNWCPlaceable::LoadLight140870cc0.
 # The area packet's light list is independent of the ordinary static geometry.
+const FrameProfile=preload("res://systems/native_render/frame_profile.gd")
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const OriginalModel=preload("res://systems/native_render/effect_model.gd")
 const Objects=preload("res://systems/native_render/object_stream.gd")
@@ -47,15 +48,25 @@ func receive_area(lights: Array) -> void:
 		if light is Dictionary and light.has_all(["id","appearance","position"]): next[int(light.id)]=light
 	if next!=area_records: area_records=next.duplicate(true); dirty=true
 func receive(values: Array,deleted: Array=[],full: bool=false) -> void:
+	_receive(values,deleted,full,false)
+func receive_snapshot_delta(values: Array,deleted: Array) -> void:
+	# Canonical snapshot light rows are replaced on receive. Direct callers
+	# can still mutate a submitted row and wake its plan through receive().
+	_receive(values,deleted,false,true)
+func _receive(values: Array,deleted: Array,full: bool,skip_unrelated_deltas: bool) -> void:
 	if closed:return
+	var needs_refresh:=full or not skip_unrelated_deltas
 	if full: objects.clear()
-	for id in deleted: objects.erase(int(id))
+	for id in deleted:
+		if objects.erase(int(id)):needs_refresh=true
 	for object in values:
 		var id:=int(object.get("id",-1))
-		if int(object.get("areaId",-1))!=world.area_id or int(object.get("objectType",0))!=9 or object.get("replicationRemoved",false): objects.erase(id); continue
-		if object.get("replicated",{}).has("lightOn"):objects[id]=object
-		else:objects.erase(id)
-	dirty=true
+		if int(object.get("areaId",-1))==world.area_id and int(object.get("objectType",0))==9 and not object.get("replicationRemoved",false) and object.get("replicated",{}).has("lightOn"):
+			objects[id]=object
+			needs_refresh=true
+		elif objects.erase(id):needs_refresh=true
+	if needs_refresh:dirty=true
+	elif not dirty:FrameProfile.count("count_placeable_light_delta_wakes_avoided",1)
 func instance_ready(_id: int,_source: Dictionary,_instance) -> void: dirty=true
 func instance_removed(id: int) -> void:
 	if instances.has(id): instances[id].detach()
@@ -134,7 +145,9 @@ func erase(id: int) -> void:
 func _process(_delta: float) -> void:
 	if closed or not dirty or not requests.is_empty() or not tables.has_all(["placeables","lightcolor"]) or bundle.is_empty():return
 	dirty=false
+	var refresh_began:=FrameProfile.begin()
 	var desired:=plans()
+	FrameProfile.count("count_placeable_light_plan_refreshes",1)
 	for id in instances.keys():
 		if not desired.has(id):erase(id)
 	var began:=Time.get_ticks_usec();var count:=0
@@ -148,6 +161,7 @@ func _process(_delta: float) -> void:
 		if instances.has(id):apply(id,plan,ready_anchor);continue
 		if count>=8 or Time.get_ticks_usec()-began>=3000:dirty=true;break
 		install_light(id,plan);count+=1
+	FrameProfile.finish("placeable_light_refresh_ms",refresh_began)
 func snapshot() -> Dictionary:
 	var lights: Array=[]
 	for id in instances:

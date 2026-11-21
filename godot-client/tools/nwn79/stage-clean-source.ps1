@@ -7,6 +7,7 @@ if(-not$destination.StartsWith($workspace+[IO.Path]::DirectorySeparatorChar,[Str
  throw 'Clean source staging must be a new directory in the workspace, outside godot-client'
 }
 if(Test-Path -LiteralPath $destination){throw 'Clean source staging destination already exists'}
+& (Join-Path $PSScriptRoot 'check-godot-only.ps1') | Out-Null
 
 function Copy-Source([string]$source,[string]$relative){
  if(-not(Test-Path -LiteralPath $source -PathType Leaf)){throw ('Clean source input is missing: '+$source)}
@@ -15,12 +16,15 @@ function Copy-Source([string]$source,[string]$relative){
  Copy-Item -LiteralPath $source -Destination $target
 }
 New-Item -ItemType Directory -Path $destination -Force | Out-Null
-foreach($name in @('project.godot','runtime-lock.json','main.tscn','join-godot.ps1')){Copy-Source (Join-Path $client $name) ('godot-client/'+$name)}
+foreach($name in @('project.godot','runtime-lock.json','join-godot.ps1')){Copy-Source (Join-Path $client $name) ('godot-client/'+$name)}
 foreach($file in Get-ChildItem -LiteralPath $client -File){
- if($file.Name -match '\.gd(?:\.uid)?$'){Copy-Source $file.FullName ('godot-client/'+$file.Name)}
+ if($file.Name -match '\.gd(?:\.uid)?$' -and $file.Name -notin @('main.gd','main.gd.uid')){Copy-Source $file.FullName ('godot-client/'+$file.Name)}
 }
 foreach($folder in @('systems','data','native','tools')){
  foreach($file in Get-ChildItem -LiteralPath (Join-Path $client $folder) -Recurse -File){
+  # Conversion evidence stays in the checkout; the resource validation plan is
+  # the only NWN-79 JSON consumed by a supported staged tool.
+  if($folder -eq 'tools' -and $file.DirectoryName -eq (Join-Path $client 'tools/nwn79') -and $file.Extension -eq '.json' -and $file.Name -ne 'resource-install-validation.json'){continue}
   $allowed=switch($folder){
    'systems' {$file.Name -match '\.(?:gd|json|tscn|tres|gdshader)(?:\.uid)?$'}
    'data' {$file.Extension -eq '.json'}

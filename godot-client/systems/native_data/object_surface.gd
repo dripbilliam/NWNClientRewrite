@@ -2,21 +2,56 @@ extends RefCounted
 # Collision-only original ASCII PWK/DWK. Physical transforms carry between
 # trimeshes as in the original readers; decorative empty resources are valid.
 const Tile=preload("res://systems/native_data/tile_surface.gd")
+const NativeMath=preload("res://systems/native_data/native_math.gd")
 var failure:=""
 func reject(reason: String) -> Dictionary: failure=reason; return {}
+static func source_number(token: String) -> float:
+	var text:=token.strip_edges()
+	if text.is_empty():return 0.0
+	if text.length()>=2 and text[0]=="0" and text[1].to_lower() in ["x","b","o"]:
+		if text.length()==2:return NAN
+		var radix: int={"x":16,"b":2,"o":8}[text[1].to_lower()]
+		var number:=0.0
+		for at in range(2,text.length()):
+			var code:=text.unicode_at(at);var digit:=-1
+			if code>=48 and code<=57:digit=code-48
+			elif code>=65 and code<=70:digit=code-65+10
+			elif code>=97 and code<=102:digit=code-97+10
+			if digit<0 or digit>=radix:return NAN
+			number=number*radix+digit
+		return number
+	return float(text) if text.is_valid_float() else NAN
+func values(tokens: PackedStringArray,count: int,label: String,integer: bool=false) -> Variant:
+	if tokens.size()<count:return {"error":"Invalid native object mesh "+label}
+	var result: Array=[]
+	for index in count:
+		var text:=str(tokens[index])
+		var number:=source_number(text)
+		if not is_finite(number) or not is_finite(Tile.f(number)):return {"error":"Invalid native object mesh "+label}
+		if integer and number!=floorf(number):return {"error":"Invalid native object mesh "+label}
+		if integer:
+			# JS `v|0` retains the low signed 32 bits after Number.isInteger.
+			var word:=int(fmod(number,4294967296.0))
+			if word<0:word+=4294967296
+			result.append(word-4294967296 if word>=2147483648 else word)
+		else:result.append(Tile.f(number))
+	return result
 func parse(bytes: PackedByteArray,door: bool=false) -> Dictionary:
-	if bytes.size()>64*1024*1024 or bytes.has(0): return reject("Binary/oversized object walkmesh is unsupported")
+	if bytes.has(0): return reject("Native binary object mesh sections are not implemented")
 	var lines:=bytes.get_string_from_ascii().replace("\r","").split("\n"); var whitespace:=RegEx.new(); whitespace.compile("\\s+")
-	var states: Array=[{"vertices":[],"faces":[]},{"vertices":[],"faces":[]},{"vertices":[],"faces":[]}]; var active:=-1
+	var states: Array=[{"vertices":[],"faces":[],"materials":[]},{"vertices":[],"faces":[],"materials":[]},{"vertices":[],"faces":[],"materials":[]}]; var active:=-1
+	var tags: Array=[{}, {}, {}]
 	var offset:=Vector3.ZERO; var q: Array=[1.0,0.0,0.0,0.0]; var cursor:=0
 	while cursor<lines.size():
-		var tokens:=whitespace.sub(str(lines[cursor]).strip_edges()," ",true).split(" ",false); cursor+=1
+		var trimmed:=str(lines[cursor]).strip_edges(true,false)
+		if trimmed.length()>254:return reject("Native object mesh long-line parsing is not implemented")
+		var tokens:=whitespace.sub(trimmed.strip_edges()," ",true).split(" ",false); cursor+=1
 		if tokens.is_empty() or tokens[0].begins_with("#"): continue
 		if tokens[0]=="node":
 			active=-1
 			if tokens.size()>=3 and tokens[1]=="trimesh":
-				if not door: active=0
-				else:
+				if not door and trimmed.begins_with("node trimesh "): active=0
+				elif door:
 					var name:=str(tokens[2]).substr(2)
 					for index in 3:
 						if name.begins_with("_DWK_wg_"+["closed","open1","open2"][index]): active=index
@@ -24,28 +59,40 @@ func parse(bytes: PackedByteArray,door: bool=false) -> Dictionary:
 		if tokens[0]=="endnode": active=-1; continue
 		if active<0: continue
 		if tokens[0]=="position":
-			if tokens.size()<4: return reject("Truncated walkmesh position")
-			offset=Vector3(float(tokens[1]),float(tokens[2]),float(tokens[3]))
+			var position: Variant=values(tokens.slice(1),3,"position")
+			if position is Dictionary:return reject(str(position.error))
+			offset=Vector3(position[0],position[1],position[2])
 		elif tokens[0]=="orientation":
-			if tokens.size()<5: return reject("Truncated walkmesh orientation")
-			var axis:=Vector3(float(tokens[1]),float(tokens[2]),float(tokens[3])); var angle:=float(tokens[4]); var half:=Tile.f(angle*Tile.f(0.5)); var unit:=axis.normalized()*Tile.f(sin(half))
-			q=[Tile.f(cos(half)),unit.x,unit.y,unit.z] if axis.length_squared()>0 else [1.0,0.0,0.0,0.0]
+			var orientation: Variant=values(tokens.slice(1),4,"orientation")
+			if orientation is Dictionary:return reject(str(orientation.error))
+			var axis: Array=[orientation[0],orientation[1],orientation[2]]
+			var angle:=float(orientation[3]); var half:=Tile.f(angle*Tile.f(0.5)); var sine:=NativeMath.native_sinf(half); var cosine:=NativeMath.native_cosf(half)
+			if not is_finite(sine) or not is_finite(cosine):return reject("Original object walkmesh orientation is unavailable")
+			if axis[0]==0 and axis[1]==0 and axis[2]==0: q=[1.0,0.0,0.0,0.0]
+			else:
+				var unit:=Tile.normalize(axis)
+				q=[cosine,Tile.f(unit[0]*sine),Tile.f(unit[1]*sine),Tile.f(unit[2]*sine)]
 		elif tokens[0] in ["verts","vertices","faces"]:
-			if tokens.size()!=2 or not tokens[1].is_valid_int() or int(tokens[1])<0 or int(tokens[1])>2000000: return reject("Invalid object walkmesh section count")
+			var count_value:=source_number(tokens[1]) if tokens.size()>1 else NAN
+			if not is_finite(count_value) or count_value!=floor(count_value) or count_value<0 or count_value>2000000:return reject("Invalid native object mesh row count")
+			if tokens.size()>2:return reject("Native binary object mesh row sections are not implemented")
 			var faces:=tokens[0]=="faces"
-			if not states[active]["faces" if faces else "vertices"].is_empty(): return reject("Repeated walkmesh section")
-			for row in int(tokens[1]):
-				if cursor>=lines.size(): return reject("Truncated object walkmesh")
+			var tag: String="faces" if faces else "vertices"
+			if tags[active].has(tag):return reject("Repeated native object mesh "+tag+" section is not implemented")
+			tags[active][tag]=true
+			for row in int(count_value):
+				if cursor>=lines.size(): return reject("Truncated native object mesh rows")
 				var fields:=whitespace.sub(str(lines[cursor]).strip_edges()," ",true).split(" ",false); cursor+=1
-				if fields.size()<(8 if faces else 3): return reject("Truncated object walkmesh row")
-				for field in fields:
-					if not str(field).is_valid_float() or not is_finite(float(field)): return reject("Invalid object walkmesh number")
+				var parsed: Variant=values(fields,8 if faces else 3,"face" if faces else "vertex",faces)
+				if parsed is Dictionary:return reject(str(parsed.error))
 				if faces:
-					var face: Array=[]
-					for corner in 3:
-						if float(fields[corner])!=floor(float(fields[corner])) or int(fields[corner])<0 or int(fields[corner])>=states[active].vertices.size(): return reject("Invalid object walkmesh face")
-						face.append(int(fields[corner]))
-					states[active].faces.append(face)
+					states[active].faces.append(parsed.slice(0,3))
+					states[active].materials.append(parsed[7])
 				else:
-					var v:=Tile.rotate(q,[Tile.f(float(fields[0])),Tile.f(float(fields[1])),Tile.f(float(fields[2]))]); states[active].vertices.append(Vector3(v[0],v[1],v[2])+offset)
+					var v:=Tile.rotate(q,parsed)
+					states[active].vertices.append(Vector3(Tile.f(offset.x+v[0]),Tile.f(offset.y+v[1]),Tile.f(offset.z+v[2])))
+	for state in states:
+		for face in state.faces:
+			for index in face:
+				if index<0 or index>=state.vertices.size():return reject("Native object mesh negative or invalid indices are not implemented")
 	return {"states":states,"door":door}

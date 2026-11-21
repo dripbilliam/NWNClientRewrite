@@ -20,11 +20,11 @@ static func decode_packet(packet: PackedByteArray,format_mode: int=1)->Dictionar
 		message.kind="store-open"
 		message.panel=reader.byte();message.sellRate=reader.short();message.buyRate=reader.byte();message.blackMarketRate=reader.byte()
 		message.identifyPrice=reader.signed_dword();message.maxBuyPrice=reader.signed_dword();message.gold=reader.signed_dword()
-		message.blackMarket=int(reader.boolean());message.restricted=int(reader.boolean())
+		message.blackMarket=reader.boolean();message.restricted=reader.boolean()
 		var count: int=reader.signed_dword()
-		if count<0 or count>(reader.byte_size-reader.byte_cursor)/4:return {"error":"Invalid native store restriction count"}
+		if count>(reader.byte_size-reader.byte_cursor)/4:return {"error":"Invalid native store restriction count"}
 		var base_items: Array=[]
-		for _index in count:base_items.append(reader.signed_dword())
+		for _index in maxi(0,count):base_items.append(reader.signed_dword())
 		message.baseItems=base_items
 	if not reader.finished():return {"error":"Invalid native store fields: "+reader.error}
 	return message

@@ -5,6 +5,56 @@ const Requirements=preload("res://systems/native_data/native_resource_requiremen
 const Characters=preload("res://systems/native_data/native_server_characters.gd")
 const JOURNAL_MINORS=[1,2,3,4,5,6,7,8,9,12]
 const MAP_PIN_MINORS=[1,4,6]
+const INVALID:=0x7f000000
+
+static func valid_id(value: int)->bool:return value>=0 and value<=0xffffffff
+
+# Original HUD sender 6/13; rest admission and outcome belong to the server.
+static func rest_request()->PackedByteArray:return PackedByteArray([112,6,13])
+
+static func character_sheet_request(target_id: int,page: int)->Dictionary:
+	if not valid_id(target_id) or page< -128 or page>127:return {"error":"Invalid native character-sheet request"}
+	var bytes:=PackedByteArray([112,21,1,12,0,0,0]);bytes.resize(13)
+	bytes[7]=page&255;bytes.encode_u32(8,target_id);bytes[12]=0x60
+	return {"bytes":bytes}
+
+static func journal_window_request(opened: bool)->PackedByteArray:
+	return PackedByteArray([112,28,10 if opened else 11])
+
+static func gui_request(event_id: int,selection_id: int,target_id: int,include_position: bool)->PackedByteArray:
+	var size:=28 if include_position else 16
+	var bytes:=PackedByteArray([112,53,1]);bytes.resize(size)
+	bytes.encode_u32(3,size-1);bytes.encode_u16(7,event_id);bytes.encode_u16(9,selection_id);bytes.encode_u32(11,target_id)
+	# The versioned XYZ values are all zero; the resized byte stream retains
+	# their float32 representation without replacing them with other coordinates.
+	bytes[size-1]=0x60
+	return bytes
+
+static func skill_description_request(skill_id: int,target_id: int,include_position: bool)->Dictionary:
+	if skill_id<0 or skill_id>65535 or not valid_id(target_id):return {"error":"Invalid native skill-description GUI request"}
+	return {"bytes":gui_request(3,skill_id,target_id,include_position)}
+
+static func feat_description_request(feat_id: int,target_id: int,include_position: bool)->Dictionary:
+	if feat_id<0 or feat_id>65535 or not valid_id(target_id):return {"error":"Invalid native feat-description GUI request"}
+	return {"bytes":gui_request(4,feat_id,target_id,include_position)}
+
+static func effect_icon_request(effect_id: int,include_position: bool)->Dictionary:
+	if effect_id<0 or effect_id>65535:return {"error":"Invalid native effect-icon GUI request"}
+	return {"bytes":gui_request(5,effect_id,INVALID,include_position)}
+
+static func chat_focus_request(mode: int,focused: bool,include_position: bool)->Dictionary:
+	if mode<0 or mode>=5:return {"error":"Invalid native chat-focus GUI request"}
+	return {"bytes":gui_request(1 if focused else 2,mode,INVALID,include_position)}
+
+static func chat_reply_request(target_id: int,include_position: bool)->Dictionary:
+	if not valid_id(target_id):return {"error":"Invalid native chat-reply GUI request"}
+	return {"bytes":gui_request(27,0,target_id,include_position)}
+
+static func player_attitude_request(target_id: int,likes: bool)->Dictionary:
+	if not valid_id(target_id):return {"error":"Invalid native player attitude request"}
+	var bytes:=PackedByteArray([112,41,3,11,0,0,0]);bytes.resize(12)
+	bytes.encode_u32(7,target_id);bytes[11]=0x90 if likes else 0x80
+	return {"bytes":bytes}
 
 static func accepted(major: int,minor: int)->bool:
 	return major==28 and minor in JOURNAL_MINORS or major==48 and minor==1 or major==41 and minor==3 or major==32 and minor in MAP_PIN_MINORS

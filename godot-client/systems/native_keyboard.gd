@@ -4,13 +4,17 @@ const Timing=preload("res://systems/native_render/frame_profile.gd")
 # objects are never changed; preview geometry is supplied by the live world.
 const Driver=preload("res://systems/keyboard_drive.gd")
 const Motion=preload("res://systems/network_motion.gd")
+const GameInput=preload("res://systems/native_data/game_input.gd")
 var context_query: Callable
+var enabled_query: Callable
 var transmit: Callable
 var predict: Callable
 var end_prediction: Callable
 var held: Dictionary={}
 var walking:=false
 var owner_identity:=""
+var owner_id:=-1
+var owner_lifetime:=-1
 var moving:=false
 var last_flags:=0
 var last_sent:=-INF
@@ -33,6 +37,10 @@ var _last_input_flush_frame:=-1
 var _stop_generation:=0
 var _preview_request_at:=-INF
 var _completed_preview_serial:=-1
+func _ready() -> void:
+	get_viewport().gui_focus_changed.connect(_focus_changed)
+func _focus_changed(control: Control) -> void:
+	if GameInput.is_text_entry(control):stop()
 func preview_token(flags: int=-1) -> Dictionary:
 	# Captured only during predict.call after the request serial is assigned.
 	var current:=context()
@@ -45,8 +53,8 @@ func complete_async_preview(token: Dictionary,result: Dictionary) -> bool:
 	if result.is_empty() or result.get("deferred",false):return false
 	_completed_preview_serial=request_serial
 	stats.previews+=1
-	if result.has("resendFraction"):
-		last_sent=float(token.at_ms)-(500000-int(Motion.f(float(result.resendFraction))*500000))/1000.0
+	if (result.get("resendFraction") is int or result.get("resendFraction") is float) and is_finite(float(result.resendFraction)) and float(result.resendFraction)>=0.0 and float(result.resendFraction)<=1.0:
+		last_sent=Time.get_ticks_usec()/1000.0-(500000-int(Motion.f(float(result.resendFraction))*500000))/1000.0
 	return true
 func set_frame_input_admission(value: bool)->void:
 	if frame_input_admission==value:return
@@ -116,38 +124,42 @@ func context() -> Dictionary:
 	return context_query.call() if context_query.is_valid() else {}
 func enabled() -> bool:
 	var focus:=get_viewport().gui_get_focus_owner()
-	return (not is_instance_valid(key_bindings) or not key_bindings.blocked()) and (not require_focus or get_window().has_focus()) and not (focus is LineEdit or focus is TextEdit)
+	return (not enabled_query.is_valid() or bool(enabled_query.call())) and (not is_instance_valid(key_bindings) or not key_bindings.capturing) and (not require_focus or get_window().has_focus()) and not GameInput.is_text_entry(focus)
 func stop(send_stop: bool=true) -> void:
 	_stop_generation+=1
 	var current:=context()
-	if not current.is_empty() and str(current.identity)==owner_identity and end_prediction.is_valid(): end_prediction.call(current.id)
+	# The old clear() calls stopPreview with its retained owner even after
+	# context() has switched to a new area or actor.
+	if owner_id>=0 and end_prediction.is_valid(): end_prediction.call(owner_id,owner_lifetime)
 	if moving and send_stop and not current.is_empty() and str(current.identity)==owner_identity:
 		request(current,{"operation":"stop"}); stats.stop+=1
 	stats.admission_cancelled_events+=_admitted_events;_admitted_identity="";_admitted_events=0;_admitted_dirty=false
-	held.clear(); physical_held.clear(); walk_forward_held.clear(); walking=false; moving=false; last_flags=0; last_sent=-INF; preview_at=-INF; input_pending=false; owner_identity=""; accepted_serial=-1
+	held.clear(); physical_held.clear(); walk_forward_held.clear(); walking=false; moving=false; last_flags=0; last_sent=-INF; preview_at=-INF; input_pending=false; owner_identity=""; owner_id=-1; owner_lifetime=-1; accepted_serial=-1
 func request(current: Dictionary,value: Dictionary) -> void:
 	value.merge({"kind":"drive","actorId":current.id})
 	request_serial+=1; value.requestId=request_serial; value.lifetime=int(current.state.get("lifetime",0))
 	if transmit.is_valid(): transmit.call(value)
 func key(code: int,pressed: bool,modifiers: bool=false,admit_only: bool=false) -> bool:
 	if code==KEY_SHIFT:
-		walking=pressed; _update_from_event(admit_only); return false
-	if code not in [KEY_W,KEY_S,KEY_A,KEY_D,KEY_Q,KEY_E,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT]: return false
+		walking=pressed; return false
+	if not GameInput.is_world_move_key(code): return false
 	if not pressed:
 		if not held.has(code): return false
 		held.erase(code); _update_from_event(admit_only); return true
-	if modifiers or context().is_empty() or not enabled(): return false
+	var current:=context()
+	if modifiers or current.is_empty() or not enabled(): return false
 	var focus:=get_viewport().gui_get_focus_owner()
-	if code in [KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT] and (focus is BaseButton or focus is Range or focus is ItemList or focus is Tree or focus is TabBar): return false
+	if GameInput.is_control_arrow(code,focus): return false
+	# The old keydown clears a retired owner before admitting this first key.
+	# Clearing after insertion loses the first press on an area/actor change.
+	if not owner_identity.is_empty() and owner_identity!=str(current.identity):stop(false)
 	held[code]=true; input_pending=true; _update_from_event(admit_only)
 	return true
 func _input(event: InputEvent) -> void:
 	if not event is InputEventKey: return
-	if is_instance_valid(key_bindings):
-		if mapped_input(event,frame_input_admission): get_viewport().set_input_as_handled()
-		return
 	var code:=int(event.physical_keycode) if event.physical_keycode!=0 else int(event.keycode)
 	if event.pressed and code!=KEY_SHIFT: walking=event.shift_pressed
+	if event.pressed and get_viewport().is_input_handled():return
 	if key(code,event.pressed,event.ctrl_pressed or event.alt_pressed or event.meta_pressed,frame_input_admission): get_viewport().set_input_as_handled()
 func mapped_input(event: InputEventKey,admit_only: bool=false) -> bool:
 	var code: int=key_bindings.physical(event)
@@ -157,13 +169,15 @@ func mapped_input(event: InputEventKey,admit_only: bool=false) -> bool:
 		walking=event.shift_pressed; _update_from_event(admit_only); return true
 	if key_bindings.blocked() or not enabled(): return false
 	walking=event.shift_pressed
-	if code==KEY_SHIFT: _update_from_event(admit_only); return false
+	if code==KEY_SHIFT:return false
 	if not event.pressed or context().is_empty(): return false
 	var action: int=key_bindings.action(event,[87,88,89,90,91,92,93],true)
 	var canonical: int={87:KEY_Q,88:KEY_E,89:KEY_W,90:KEY_W,91:KEY_S,92:KEY_A,93:KEY_D}.get(action,0)
 	if canonical==0: return false
 	var focus:=get_viewport().gui_get_focus_owner()
-	if code in [KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT] and (focus is BaseButton or focus is Range or focus is ItemList or focus is Tree or focus is TabBar): return false
+	if GameInput.is_control_arrow(code,focus): return false
+	var current:=context()
+	if not owner_identity.is_empty() and owner_identity!=str(current.identity):stop(false)
 	physical_held[code]=canonical; held[canonical]=true
 	if action==89: walk_forward_held[code]=true
 	input_pending=true; _update_from_event(admit_only); return true
@@ -173,6 +187,7 @@ func update_input(now_ms: float=-1) -> void:
 	if not owner_identity.is_empty() and owner_identity!=str(current.identity): stats.stale_scopes+=1; stop(false); return
 	if owner_identity.is_empty(): minimum_serial=request_serial+1
 	owner_identity=str(current.identity)
+	owner_id=int(current.id);owner_lifetime=int(current.state.get("lifetime",0))
 	var stop_generation:=_stop_generation
 	var flags:=Driver.flags(held,walking or not walk_forward_held.is_empty())
 	if flags==0:
@@ -189,6 +204,7 @@ func update_input(now_ms: float=-1) -> void:
 	if send_due: last_sent=now
 	if turn_only:
 		if send_due:
+			if owner_id>=0 and end_prediction.is_valid():end_prediction.call(owner_id,owner_lifetime)
 			if moving:
 				request(current,{"operation":"stop"}); stats.stop+=1
 				if not _input_scope_continues(current,stop_generation):return
@@ -199,10 +215,15 @@ func update_input(now_ms: float=-1) -> void:
 			if predict.is_valid(): predict.call(int(current.id),flags,-1)
 	else:
 		var heading:=int(round(fposmod(atan2(forward.y,forward.x)*180.0/PI,360)*10))%3600
-		var position: Vector3=state.position
+		# The old keyboard context overlays NetworkScene.keyboardPose(), whose
+		# transmitted position is the displayed render pose, not canonical motion.
+		var position: Vector3=state.render
 		request(current,{"operation":"drive","position":[position.x,position.y],"heading":heading,"flags":flags,"transmit":send_due})
 		if not _input_scope_continues(current,stop_generation):return
-		if send_due: stats.drive+=1
+		if send_due:
+			var wire: Vector3=preload("res://systems/native_data/drive_preview.gd").wire_facing(heading)
+			state.orientation=wire;state.targetOrientation=wire;state.previewFacing=wire
+			stats.drive+=1
 		stats.preview_ticks+=1; moving=true
 		if predict.is_valid():
 			_preview_request_at=now
@@ -210,13 +231,14 @@ func update_input(now_ms: float=-1) -> void:
 			if not _input_scope_continues(current,stop_generation):return
 			if not result.is_empty() and not result.get("deferred",false):
 				stats.previews+=1
-				if result.has("resendFraction"): last_sent=now-(500000-int(Motion.f(float(result.resendFraction))*500000))/1000.0
+				if (result.get("resendFraction") is int or result.get("resendFraction") is float) and is_finite(float(result.resendFraction)) and float(result.resendFraction)>=0.0 and float(result.resendFraction)<=1.0:
+					last_sent=Time.get_ticks_usec()/1000.0-(500000-int(Motion.f(float(result.resendFraction))*500000))/1000.0
 	if not _input_scope_continues(current,stop_generation):return
 	last_flags=flags; input_pending=false
 	preview_at=now
 func result(message: Dictionary) -> void:
 	var current:=context()
-	if current.is_empty() or not moving or owner_identity!=str(current.identity) or int(message.get("actorId",-1))!=int(current.id) or int(message.get("lifetime",-1))!=int(current.state.get("lifetime",0)) or int(message.get("requestId",-1))<maxi(accepted_serial,minimum_serial):
+	if current.is_empty() or not owner_identity.is_empty() and owner_identity!=str(current.identity) or int(message.get("actorId",-1))!=int(current.id) or int(message.get("lifetime",-1))!=int(current.state.get("lifetime",0)) or int(message.get("requestId",-1))<maxi(accepted_serial,minimum_serial):
 		stats.stale_acks+=1; return
 	if message.has("sequence"):
 		current.state.driveSequence=int(message.sequence); accepted_serial=int(message.requestId); stats.acks+=1
@@ -225,6 +247,11 @@ func result(message: Dictionary) -> void:
 		if message.get("sent") is bool and message.sent:
 			current.state.driveSentSequence=int(message.sequence)
 			current.state.driveSentRequestId=int(message.requestId)
+func request_failed(reason: String) -> void:
+	# JS enqueue's rejection handler clears keys/lastFlags, then allows the
+	# existing ordered queue to continue for the still-current identity.
+	held.clear();physical_held.clear();walk_forward_held.clear();last_flags=0
+	push_warning("network.keyboard-input-failed: "+reason)
 func _process(_delta: float) -> void:
 	var began:=Timing.begin()
 	_profile_process(_delta)
@@ -232,4 +259,4 @@ func _process(_delta: float) -> void:
 func _profile_process(_delta: float) -> void:
 	if not frame_input_admission:update_input()
 func _notification(what: int) -> void:
-	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT: stop()
+	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT or what==NOTIFICATION_APPLICATION_FOCUS_OUT: stop()

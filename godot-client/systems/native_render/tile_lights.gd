@@ -1,17 +1,15 @@
 extends RefCounted
 # Original ProcessTilePart1400cb890 / SetTileLights1400d3e60. Palette values
 # come from physical LightColor rows, not TileColor or model-template edits.
+const MovementRate=preload("res://systems/native_data/native_movement_rate.gd")
 static func f(value: float) -> float: return PackedFloat32Array([value])[0]
 static func colors(indices: Array,table: Dictionary) -> Array:
-	var result: Array=[]; var rows: Array=table.get("orderedRows",[])
+	var result: Array=[]
 	for index in indices:
-		var physical:=int(index)&255; var row: Dictionary=rows[physical] if physical<rows.size() else {}; var rgb: Array=[]
+		var rgb: Array=[]
 		for column in ["RED","GREEN","BLUE"]:
-			var selected:=""
-			for key in table.get("columns",[]):
-				if str(key).to_upper()==column: selected=str(key); break
-			var value: String=str(table.get("defaultValue","****")) if row.is_empty() or selected.is_empty() else str(row.get(selected,"****"))
-			rgb.append(f(value.to_float()))
+			var entry: Dictionary=MovementRate.native_float_entry(table,int(index)&255,column)
+			rgb.append(f(float(entry.get("value",0.0))))
 		result.append(rgb)
 	return result
 static func apply(instance,model_name: String,palette: Array) -> Array:

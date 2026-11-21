@@ -28,6 +28,19 @@ func frames(count: int=2) -> void:
 func new_button() -> Button:
 	var pane=owner_world.character_lobby.native_chooser
 	return pane.buttons.get("newcharbutton") if is_instance_valid(pane) and pane.layout_ready else null
+func creator_start_diagnostic() -> Dictionary:
+	var pane=owner_world.character_lobby.native_chooser
+	var source=creator.source_frontend if is_instance_valid(creator) else null
+	return {"creatorPhase":str(creator.phase) if is_instance_valid(creator) else "missing",
+		"creatorStatus":str(creator.status) if is_instance_valid(creator) else "",
+		"sourcePresent":is_instance_valid(source),
+		"sourceWanted":bool(source.wanted) if is_instance_valid(source) else false,
+		"sourceMainReady":bool(source.main.layout_ready) if is_instance_valid(source) and is_instance_valid(source.main) else false,
+		"chooserVisible":is_instance_valid(pane) and pane.is_visible_in_tree(),
+		"newEnabled":is_instance_valid(new_button()) and not new_button().disabled,
+		"pendingCreator":not owner_world.pending_creator.is_empty(),
+		"lobbyCreating":bool(owner_world.direct_lobby_state.get("creating",false)),
+		"resourceErrors":creator.resource_errors.duplicate() if is_instance_valid(creator) else []}
 func proof() -> void:
 	if completed:return
 	completed=true
@@ -190,17 +203,26 @@ func run(world) -> void:
 	owner_world=world
 	if world.args.has("creation-reconnect-report"):await reconnect(world);return
 	if not check(await wait_for(func():return is_instance_valid(new_button()) and not new_button().disabled and new_button().is_visible_in_tree()),"Production source chooser New is ready"):proof();return
+	var first_new_at:=Time.get_ticks_msec()
+	var first_layout_prepared: bool=is_instance_valid(world.gameplay_ui.creator.source_frontend) and world.gameplay_ui.creator.source_frontend.main.layout_ready
 	if not await click(new_button(),"Source chooser New"):proof();return
 	creator=world.gameplay_ui.creator
+	var first_open_ms:=Time.get_ticks_msec()-first_new_at if creator.phase!="closed" else -1
 	creator.view.voice_audio.player.volume_db=-80.0
-	if not check(await wait_for(func():return creator.phase=="editing" and creator.source_frontend.wanted and creator.source_frontend.main.layout_ready,60),"Default New automatically enters source Main",creator.resource_errors):proof();return
+	if not check(await wait_for(func():return creator.phase!="closed" or not world.pending_creator.is_empty(),2),"Source chooser New dispatched to creator",creator_start_diagnostic()):proof();return
+	if not check(await wait_for(func():return creator.phase=="editing" and is_instance_valid(creator.source_frontend) and creator.source_frontend.wanted and is_instance_valid(creator.source_frontend.main) and creator.source_frontend.main.layout_ready,60),"Default New automatically enters source Main",creator_start_diagnostic()):proof();return
+	events.append({"event":"First New source timing","layoutReadyBeforeClick":first_layout_prepared,"openMs":first_open_ms,"sourceVisibleMs":Time.get_ticks_msec()-first_new_at})
 	front=creator.source_frontend
 	if not check(front.main.buttons.playbutton.disabled,"Incomplete new source draft cannot be submitted"):proof();return
 	var old_scope: Array=creator.summary_identity().duplicate()
 	if not await click(front.main.buttons.cancelbutton,"Main Cancel before changes"):proof();return
 	if not check(await wait_for(func():return creator.phase=="closed" and not front.wanted and is_instance_valid(new_button()) and not new_button().disabled and new_button().is_visible_in_tree()),"Cancel retires draft and restores actual source chooser"):proof();return
+	var second_new_at:=Time.get_ticks_msec()
+	var second_layout_prepared: bool=front.main.layout_ready
 	if not await click(new_button(),"Source chooser New after Cancel"):proof();return
+	var second_open_ms:=Time.get_ticks_msec()-second_new_at if creator.phase!="closed" else -1
 	if not check(await wait_for(func():return creator.phase=="editing" and front.wanted and creator.summary_identity()!=old_scope,60),"New has a distinct draft scope"):proof();return
+	events.append({"event":"Second New source timing","layoutReadyBeforeClick":second_layout_prepared,"openMs":second_open_ms,"sourceVisibleMs":Time.get_ticks_msec()-second_new_at})
 	var current_scope: Array=creator.summary_identity().duplicate();var prior_status: String=creator.status
 	creator.result({"kind":"native-creation-result","connection":old_scope[0],"draft":old_scope[1],"operation":"native-creation-begin","accepted":false,"error":"stale test reply"})
 	if not check(creator.summary_identity()==current_scope and creator.phase=="editing" and creator.status==prior_status,"Stale cancelled-draft reply cannot alter the new source draft"):proof();return
@@ -273,7 +295,7 @@ func run(world) -> void:
 	var color_point: Vector2=appearance.palette.get_global_transform_with_canvas()*color_local
 	await pointer(color_point,appearance.get_viewport(),"Appearance physical skin swatch1")
 	if not check(appearance.state.value.skin==1 and not is_instance_valid(appearance.palette),"Source board release commits palette row1 and retires capture"):proof();return
-	if not check(await wait_for(func():return creator.preview.diagnostics.get("ready",false) and creator.preview.diagnostics.get("native",false),20),"Actual native preview admits the selected installed head/outfit/skin",creator.preview.diagnostics):proof();return
+	if not check(await wait_for(func():return creator.preview.diagnostics.get("ready",false) and creator.preview.diagnostics.get("native",false),20),"Actual native preview admits the selected installed head/outfit/skin",{"diagnostics":creator.preview.diagnostics.duplicate(true),"pending":creator.preview.pending,"pendingModel":not creator.preview.pending_model.is_empty(),"retiring":creator.preview.retiring.size(),"streamValid":is_instance_valid(creator.preview.stream),"streamDone":creator.preview.stream.done if is_instance_valid(creator.preview.stream) else false,"signature":creator.preview.signature,"viewActive":creator.preview.view.active,"tailStage":tail.stage,"tailCurrent":tail.current(),"tailFailure":tail.failure}):proof();return
 	if not await accept(tail.appearance,"Appearance"):proof();return
 	if not check(await wait_for(func():return tail.stage=="information" and tail.information.layout_ready),"Appearance8002 reaches Information with the same parent ticket",tail.failure):proof();return
 	if not await sample_voice(tail):proof();return

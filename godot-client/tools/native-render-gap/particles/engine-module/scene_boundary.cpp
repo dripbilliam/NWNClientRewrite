@@ -25,11 +25,10 @@ int64_t NwnParticleSceneBoundary::eligibility_flags(int64_t p_id) {
  if(!node)return EXISTS;
  if(!node->is_effective_process_thread_group_main_thread())return EXISTS|NODE3D|UNSUPPORTED;
  int64_t result=EXISTS|NODE3D;
- // Keep short-circuit getter order identical to particle_frame_group::eligible.
+ // Simulation eligibility does not depend on render visibility.
  if(!node->is_inside_tree())return result;
  result|=INSIDE;
- if(!node->is_visible_in_tree())return result;
- result|=VISIBLE;
+ if(node->is_visible_in_tree())result|=VISIBLE;
  if(node->can_process())result|=PROCESSABLE;
  return result;
 }

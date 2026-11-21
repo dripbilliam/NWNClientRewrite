@@ -25,7 +25,7 @@ static func login_waypoint_response(value: String)->Dictionary:
 	if value.to_utf8_buffer().has(0):return {"error":"Invalid native login waypoint"}
 	if value.is_empty():return {"bytes":PackedByteArray()}
 	var encoded: Dictionary=Text.encode(value)
-	if encoded.has("error") or encoded.bytes.size()>4096:return {"error":"Native login waypoint cannot be encoded"}
+	if encoded.has("error") or encoded.bytes.size()>64*1024*1024:return {"error":"Native login waypoint cannot be encoded"}
 	var bytes:=PackedByteArray([112,2,13])
 	var header:=PackedByteArray();header.resize(8)
 	header.encode_u32(0,11+encoded.bytes.size())

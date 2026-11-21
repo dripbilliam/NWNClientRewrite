@@ -42,7 +42,7 @@ func _capture(service, pool, target_area: int) -> Dictionary:
 	return {"service":service,"service_epoch":service.epoch,"catalog":catalog,"catalog_script":catalog.get_script(),
 		"prepared":prepared,"prepared_generation":prepared_generation,
 		"source":source,"source_generation":source_generation,"explicit_scope":explicit_scope,"decoded":decoded,"decoded_generation":decoded_generation,"pool":pool,
-		"area":target_area,"cache_directory":str(service.cache_directory),
+		"area":target_area,"pool_template_prefix":pool.template_binding_key(""),"cache_directory":str(service.cache_directory),
 		"mesh_preparation":service.mesh_preparation_enabled,"skin_preparation":service.skin_preparation_enabled,
 		"policy":_policy(pool),"decoder":"static-model","options":{}}
 
@@ -105,15 +105,21 @@ func lookup(name: String) -> Dictionary:
 	return {"template":pool.templates[row.key],"warnings":row.warnings.duplicate(true)}
 
 func remember(name: String, key: String, warnings: Array) -> bool:
-	if not _valid() or key.is_empty() or maximum_entries <= 0 or maximum_metadata_bytes <= 0 or not scope.pool.templates.has(key): return false
+	if not _valid() or key.is_empty() or maximum_entries <= 0 or maximum_metadata_bytes <= 0: return false
+	var pool=scope.pool
+	# Pin the wave's area binding. A persistent pool can publish a newer world
+	# before this directory retires, but that must not transfer its template.
+	if pool.template_binding_key("")!=str(scope.pool_template_prefix):return false
+	var binding_key: String=str(scope.pool_template_prefix)+key
+	if not pool.templates.has(binding_key):return false
 	# Account this separate small directory once on an ordinary model miss;
 	# never serialize a complete bundle, scene, catalog or attempted hit.
-	var cost: int = name.to_utf8_buffer().size()+key.to_utf8_buffer().size()+var_to_bytes(warnings).size()+512
+	var cost: int = name.to_utf8_buffer().size()+binding_key.to_utf8_buffer().size()+var_to_bytes(warnings).size()+512
 	if cost > maximum_metadata_bytes: stats.metadata_oversize += 1; return false
 	if entries.has(name): metadata_bytes -= int(entries[name].bytes); entries.erase(name); order.erase(name)
 	while not order.is_empty() and (entries.size() >= maximum_entries or metadata_bytes+cost > maximum_metadata_bytes):
 		var oldest: String = order.pop_front(); metadata_bytes -= int(entries[oldest].bytes); entries.erase(oldest); stats.metadata_evictions += 1
-	entries[name] = {"key":key,"warnings":warnings.duplicate(true),"bytes":cost}; metadata_bytes += cost
+	entries[name] = {"key":binding_key,"warnings":warnings.duplicate(true),"bytes":cost}; metadata_bytes += cost
 	order.erase(name); order.append(name); stats.stores += 1
 	return true
 

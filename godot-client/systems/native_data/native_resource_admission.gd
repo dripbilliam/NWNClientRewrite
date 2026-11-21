@@ -22,7 +22,25 @@ static func manifest_hashes(requirements: Dictionary,language: int)->Dictionary:
 			elif int(entry.get("flags",0)) & 1: missing.append({"kind":"nwsync","name":"required additional manifest"})
 	return {"hashes":hashes,"manifests":manifests,"missing":missing}
 
-static func named_resource(kind: String,name: String,catalogs: Array[Dictionary],roots: Array[String],workshop_directories: Array[String]=[])->Dictionary:
+static func indexed_file(directory: String,filename: String,indexes: Dictionary)->Dictionary:
+	# installedNetworkResources.index cached a case-folded directory inventory,
+	# admitting regular files only; a wire name never became a direct path.
+	if not indexes.has(directory):
+		var folder:=DirAccess.open(directory)
+		if folder==null:
+			if DirAccess.dir_exists_absolute(directory):indexes[directory]={"error":"Selected resource directory cannot be read"}
+			else:indexes[directory]={"entries":{}}
+		else:
+			var entries: Dictionary={}
+			for entry in folder.get_files():
+				if not folder.is_link(entry):entries[entry.to_lower()]=directory.path_join(entry)
+			indexes[directory]={"entries":entries}
+	var index: Dictionary=indexes[directory]
+	if index.has("error"):return {"error":str(index.error)}
+	var path:=str(index.entries.get(filename.to_lower(),""))
+	return {"path":path} if not path.is_empty() else {}
+
+static func named_resource(kind: String,name: String,catalogs: Array[Dictionary],roots: Array[String],workshop_directories: Array[String]=[],indexes: Dictionary={})->Dictionary:
 	if name.is_empty() or name.length()>16 or name in [".",".."]:return {}
 	for character in name:
 		if character.unicode_at(0)<32 or character in ["/","\\",":"]:return {}
@@ -32,24 +50,27 @@ static func named_resource(kind: String,name: String,catalogs: Array[Dictionary]
 	for catalog in catalogs:
 		var entries: Dictionary=catalog.get("entries",{})
 		if entries.has(key): return {"kind":kind,"name":name,"source":"nwsync","entry":entries[key],"manifest":catalog.get("hash","")}
-	for root in roots:
+	for root_index in roots.size():
+		var root: String=roots[root_index]
 		if root.is_empty() or not root.is_absolute_path(): continue
-		# The profile and installed game use different archive layouts. Match
-		# the original installed-resource lookup instead of assuming kind(s)/.
-		var directories: Array[String]=[kind,kind+"s"]
-		match kind:
-			"nwm":directories.append("data/nwm")
-			"hak":directories.append_array(["data/hk","data/hak"])
-			"tlk":directories.append_array(["lang/en/data/tlk","data/tlk"])
+		var directories: Array[String]=[]
+		if root_index==0:directories.append(kind)
+		else:
+			match kind:
+				"nwm":directories.append("data/nwm")
+				"hak":directories.append_array(["data/hk","data/hak"])
+				"tlk":directories.append_array(["lang/en/data/tlk","data/tlk"])
 		for directory in directories:
-			var path:=root.path_join(directory).path_join(filename)
-			if FileAccess.file_exists(path): return {"kind":kind,"name":name,"source":"file","path":path}
+			var found:=indexed_file(root.path_join(directory),filename,indexes)
+			if found.has("error"):return found
+			if found.has("path"):return {"kind":kind,"name":name,"source":"file","path":found.path}
 	for directory in workshop_directories:
-		var path:=directory.path_join(filename)
-		if FileAccess.file_exists(path): return {"kind":kind,"name":name,"source":"file","path":path}
+		var found:=indexed_file(directory,filename,indexes)
+		if found.has("error"):return found
+		if found.has("path"):return {"kind":kind,"name":name,"source":"file","path":found.path}
 	return {}
 
-static func archive_tlk(name: String,selected: Array,store: RefCounted,roots: Array,workshop_haks: Array,workshop_overrides: Array)->Dictionary:
+static func archive_tlk(name: String,selected: Array,store: RefCounted,roots: Array,workshop_haks: Array,workshop_overrides: Array,indexes: Dictionary={})->Dictionary:
 	var resref:=name.to_lower().trim_suffix(".tlk")
 	if resref.is_empty() or resref.length()>16 or resref.contains("/") or resref.contains("\\") or resref.contains(":"):return {}
 	var key:=resref+":2018"
@@ -83,8 +104,9 @@ static func archive_tlk(name: String,selected: Array,store: RefCounted,roots: Ar
 	if roots.size()>1:override_directories.append_array([roots[1].path_join("ovr"),roots[1].path_join("override")])
 	override_directories.append_array(workshop_overrides)
 	for directory in override_directories:
-		var path:=directory.path_join(resref+".tlk")
-		if FileAccess.file_exists(path):return {"kind":"tlk","name":name,"source":"file","path":path}
+		var found:=indexed_file(directory,resref+".tlk",indexes)
+		if found.has("error"):return found
+		if found.has("path"):return {"kind":"tlk","name":name,"source":"file","path":found.path}
 	for root in roots:
 		for suffix in ["data/nwn_base.key","data/nwn_retail.key","lang/en/data/nwn_base_loc.key"]:
 			var path: String=str(root).path_join(suffix)
@@ -94,12 +116,14 @@ static func archive_tlk(name: String,selected: Array,store: RefCounted,roots: Ar
 			if index.get("entries",{}).has(key):return {"kind":"tlk","name":name,"source":"archive"}
 	return {}
 
-static func resolve_cached(requirements: Dictionary,store: RefCounted,language: int,roots: Array[String]=[],mods_directory: String="",disabled_mods: Array=[])->Dictionary:
+static func resolve_cached(requirements: Dictionary,store: RefCounted,language: int,roots: Array[String]=[],mods_directory: String="",disabled_mods: Array=[],on_diagnostic: Callable=Callable(),unavailable_manifests: Array[String]=[])->Dictionary:
+	var indexes: Dictionary={}
 	var selected: Dictionary=manifest_hashes(requirements,language)
 	var missing: Array[Dictionary]=selected.missing
 	var catalogs: Array[Dictionary]=[]
 	for selected_manifest in selected.manifests:
 		var hash: String=selected_manifest.hash
+		if hash in unavailable_manifests:continue
 		var manifest: Dictionary=store.manifest(hash)
 		if manifest.has("error"):
 			if selected_manifest.required:missing.append({"kind":"nwsync","name":hash,"reason":str(manifest.error)})
@@ -130,20 +154,29 @@ static func resolve_cached(requirements: Dictionary,store: RefCounted,language: 
 		if not workshop.failure.is_empty():return {"error":workshop.failure}
 	var module_name:=str(requirements.get("nwmResourceName",""))
 	if not module_name.is_empty():
-		var module:=named_resource("nwm",module_name,catalogs,roots,workshop_aliases.nwm)
-		if module.is_empty():missing.append({"kind":"nwm","name":module_name})
+		var module:=named_resource("nwm",module_name,catalogs,roots,workshop_aliases.nwm,indexes)
+		if module.has("error"):
+			if on_diagnostic.is_valid():on_diagnostic.call("network.resource-resolution-failed","Server resource lookup failed",{"kind":"nwm","name":module_name,"required":true})
+			missing.append({"kind":"nwm","name":module_name})
+		elif module.is_empty():missing.append({"kind":"nwm","name":module_name})
 		else:named.append(module)
 	for hak in requirements.get("haks",[]):
 		var name:=str(hak)
-		var found:=named_resource("hak",name,catalogs,roots,workshop_aliases.hak) if not name.is_empty() else {}
-		if found.is_empty(): missing.append({"kind":"hak","name":name})
+		var found:=named_resource("hak",name,catalogs,roots,workshop_aliases.hak,indexes) if not name.is_empty() else {}
+		if found.has("error"):
+			if on_diagnostic.is_valid():on_diagnostic.call("network.resource-resolution-failed","Server resource lookup failed",{"kind":"hak","name":name,"required":true})
+			missing.append({"kind":"hak","name":name})
+		elif found.is_empty(): missing.append({"kind":"hak","name":name})
 		else: named.append(found)
 	var tlk_name:=str(requirements.get("customTlk",""))
 	if not tlk_name.is_empty():
-		var tlk:=named_resource("tlk",tlk_name,catalogs,[],[])
-		if tlk.is_empty():tlk=archive_tlk(tlk_name,named,store,roots,workshop_aliases.hak,workshop_aliases["override"])
-		if tlk.has("error"):return tlk
-		if tlk.is_empty():tlk=named_resource("tlk",tlk_name,[],roots,workshop_aliases.tlk)
-		if tlk.is_empty():missing.append({"kind":"tlk","name":tlk_name})
+		var tlk:=named_resource("tlk",tlk_name,catalogs,[],[],indexes)
+		if tlk.is_empty():tlk=archive_tlk(tlk_name,named,store,roots,workshop_aliases.hak,workshop_aliases["override"],indexes)
+		if tlk.is_empty():tlk=named_resource("tlk",tlk_name,[],roots,workshop_aliases.tlk,indexes)
+		if tlk.has("repair"):return tlk
+		if tlk.has("error"):
+			if on_diagnostic.is_valid():on_diagnostic.call("network.resource-resolution-failed","Server resource lookup failed",{"kind":"tlk","name":tlk_name,"required":true})
+			missing.append({"kind":"tlk","name":tlk_name})
+		elif tlk.is_empty():missing.append({"kind":"tlk","name":tlk_name})
 		else:named.append(tlk)
 	return {"ready":missing.is_empty() and missing_blob_count==0,"catalogs":catalogs,"named":named,"missing":missing,"missing_blob_count":missing_blob_count,"missing_blob_samples":missing_blob_samples}

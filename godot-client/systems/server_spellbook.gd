@@ -88,13 +88,14 @@ func _fit_above_quickbar() -> void:
 func action_button(parent: Node, label: String, callback: Callable) -> Button:
 	var button := Button.new()
 	button.text = label
-	button.focus_mode = Control.FOCUS_NONE
+	button.focus_mode = Control.FOCUS_ALL
 	button.pressed.connect(callback)
 	parent.add_child(button)
 	return button
 
 func reset() -> void:
 	wanted = false
+	if is_instance_valid(native_skin) and native_skin.has_method("reset_view_state"): native_skin.reset_view_state()
 	pending_view.clear()
 	set_process(false)
 	view_id = -1
@@ -122,6 +123,7 @@ func open() -> void:
 	request.emit({"kind": "spellbook-open"})
 
 func query(change: Dictionary) -> void:
+	if change.has("classIndex") and int(change.classIndex)!=int(state.get("classIndex",0)) and is_instance_valid(native_skin): native_skin.memory_wanted=true
 	var value := {"kind": "spellbook-query", "classIndex": state.get("classIndex", 0), "level": state.get("level", 0), "metamagic": state.get("metamagic", 0)}
 	value.merge(change, true)
 	request.emit(value)
@@ -145,7 +147,7 @@ func receive(message: Dictionary) -> void:
 				present(message)
 
 func present(message: Dictionary) -> void:
-	if is_instance_valid(native_skin) and not native_skin.view_icons_ready(message):
+	if str(message.get("error","")).is_empty() and is_instance_valid(native_skin) and not native_skin.view_icons_ready(message):
 		pending_view=message
 		hide()
 		set_process(true)
@@ -186,7 +188,7 @@ func present(message: Dictionary) -> void:
 	cast.disabled = true
 	memorize.disabled = true
 	clear.disabled = true
-	notice.text = "Select a spell · Double-click or Cast to target · Drag to the quickbar"
+	notice.text = str(message.error) if not str(message.get("error","")).is_empty() else "This character has no class spellbooks." if message.classes.is_empty() else str(int(message.get("usesLeft",0)))+" casts remaining at this level" if not message.prepared else "Select a spell · Double-click or Cast to target · Drag to the quickbar"
 	var kept := false
 	for id in rows:
 		if not old_key.is_empty() and str(rows[id].get("key", "")) == old_key:
@@ -224,10 +226,11 @@ func make_list(parent: Node, caption: String, entries: Array, height: float = 22
 		var owner_view := view_id
 		rows[id] = row
 		var button := Slot.new()
-		if is_instance_valid(native_skin) and native_skin.layout_ready: button.right_click_activates=false
+		button.right_click_activates=false
 		var ready_text := (" · Ready" if row.ready else " · Used / rest required") if entries == state.get("memory", []) and int(row.spellId) >= 0 else ""
 		button.setup(str(row.label) + (" ›" if row.family else "") + ready_text + (" · waiting" if row.pending else ""), row.uses if int(row.spellId) >= 0 else null)
-		if row.canDrag and not row.pending:
+		button.focus_mode=Control.FOCUS_ALL
+		if int(row.spellId)>=0 and not row.pending:
 			button.payload = {"kind": "spell", "viewId": view_id, "entryId": id}
 		button.selected.connect(func():
 			if wanted and view_id == owner_view and widgets.get(id)==button:
@@ -236,8 +239,8 @@ func make_list(parent: Node, caption: String, entries: Array, height: float = 22
 			if not wanted or view_id != owner_view or widgets.get(id)!=button:
 				return
 			select_entry(id)
-			if not row.family:
-				operation("book-activate"))
+			if entries == state.get("memory", []) and int(row.spellId)>=0:
+				operation("book-clear"))
 		button.accepts = func(data): return wanted and view_id == owner_view and widgets.get(id)==button and data.get("kind") == "spell" and int(data.get("viewId", -2)) == owner_view and rows.has(int(data.get("entryId", -1))) and not row.pending and not rows[int(data.entryId)].pending and int(rows[int(data.entryId)].classIndex)==int(row.classIndex) and int(rows[int(data.entryId)].level)==int(row.level) and row.get("slot", -1) >= 0 and entries == state.get("memory", [])
 		button.dropped.connect(func(data):
 			if wanted and view_id == owner_view and widgets.get(id)==button:
@@ -254,6 +257,7 @@ func select_entry(id: int, restoring: bool = false) -> void:
 		return
 	if not restoring and id != selected_id:
 		details.clear()
+		if is_instance_valid(native_skin) and is_instance_valid(native_skin.help_window): native_skin.help_window.hide()
 	selected_id = id
 	var row: Dictionary = rows[id]
 	cast.disabled = not row.canCast or row.family or row.pending

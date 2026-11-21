@@ -1,4 +1,5 @@
 extends RefCounted
+const NativeMath=preload("res://systems/native_data/native_math.gd")
 
 # Immediate, detached logical-position batches for an explicitly bound owner.
 # Consumers must call position_change_is_current() inside the signal callback;
@@ -8,6 +9,7 @@ signal positions_changed(rows: Array)
 # Native frame owner for the established client movement rules. All simulation
 # vectors below use NWN coordinates; only pose() changes to Godot's axes.
 var objects: Dictionary = {}
+var canonical_owners: Dictionary = {}
 var next_lifetime := 1
 var remainder_ms := 0.0
 var last_delta_ms := 0 # Current nominal object-clock quantum; read-only consumers.
@@ -56,9 +58,20 @@ static func facing(value) -> Vector3:
 		return Vector3(-sin(angle), cos(angle), 0)
 	return vector(value)
 
-func ensure(id: int, state: Dictionary) -> Dictionary:
+func ensure(id: int, state: Dictionary, canonical: Variant=null) -> Dictionary:
 	if objects.has(id):
-		return objects[id]
+		var previous: Variant=canonical_owners.get(id)
+		var lifetime: Variant=canonical.get("nativeLifetime") if canonical is Dictionary else null
+		var previous_lifetime: Variant=previous.get("nativeLifetime") if previous is Dictionary else null
+		# Transactional receive replaces the row dictionary on updates. The
+		# receive lifetime stays fixed until the server actually replaces the actor.
+		var same_lifetime: bool=lifetime is int and previous_lifetime is int and lifetime==previous_lifetime
+		if canonical is Dictionary and previous is Dictionary and not is_same(previous,canonical) and not same_lifetime:
+			objects.erase(id)
+			canonical_owners.erase(id)
+		else:
+			if canonical is Dictionary:canonical_owners[id]=canonical
+			return objects[id]
 	if not state.has("position"):
 		return {}
 	var direction := facing(state.get("orientation", [1, 0, 0]))
@@ -69,11 +82,17 @@ func ensure(id: int, state: Dictionary) -> Dictionary:
 	_position_next_token+=1
 	next_lifetime += 1
 	objects[id] = entry
+	if canonical is Dictionary:canonical_owners[id]=canonical
 	return entry
+
+func forget(id: int) -> void:
+	objects.erase(id)
+	canonical_owners.erase(id)
 
 func configure(rows: Array) -> void:
 	_position_scope+=1
 	objects.clear()
+	canonical_owners.clear()
 	remainder_ms = 0.0
 	for row in rows:
 		var state: Dictionary = row.state
@@ -99,46 +118,20 @@ func adopt(rows: Array) -> void:
 			if source.has(key):
 				entry[key] = source[key]
 
-static func released_terminal_sequence_matches(state: Dictionary, changes: Dictionary) -> bool:
-	if bool(state.get("driveHeld",true)) or not state.has("driveSentSequence"):
-		return false
-	if int(changes.get("actionFlag",-1)) != int(state.driveSentSequence) or int(changes.get("animation",-1)) not in [0,1]:
-		return false
-	var path: Variant=changes.get("path")
-	if not path is Array or not path.is_empty():
-		return false
-	var position: Variant=changes.get("position")
-	if position is Vector3:
-		return position.is_finite()
-	if not position is Array or position.size()!=3:
-		return false
-	for value in position:
-		if not (value is int or value is float) or not is_finite(float(value)):
-			return false
-	return true
-
-func observe(id: int, changes: Dictionary, created: bool = false, initial: Dictionary = {}, defer_path: bool = false) -> void:
+func observe(id: int, changes: Dictionary, created: bool = false, initial: Dictionary = {}, defer_path: bool = false, canonical: Variant=null) -> void:
 	if created:
-		objects.erase(id)
-	var state := ensure(id, initial if not initial.is_empty() else changes)
+		forget(id)
+	var state := ensure(id, initial if not initial.is_empty() else changes,canonical)
 	if state.is_empty():
 		return
 	if changes.has("facingTarget"): state.facingTarget=int(changes.facingTarget)
 	var stale: bool = state.script != 0 and state.has("driveSequence") and int(changes.get("actionFlag", 0)) != 0 and int(changes.actionFlag) != int(state.driveSequence)
-	# A final unsent preview can advance the local sequence past the last wire
-	# request. After release, only that known wire request's complete idle reply
-	# may retire prediction; held input and other stale updates keep their guard.
-	var released_terminal: bool=stale and released_terminal_sequence_matches(state,changes)
-	if stale and not released_terminal:
+	if stale:
 		for key in ["walkRate", "runRate"]:
 			if changes.has(key):
 				state[key] = changes[key]
 		if not changes.has("animation") or int(changes.animation) in [0, 1, 2, 3, 4, 78, 79, 84, 85, 86, 87]:
 			return
-	if released_terminal:
-		state.script=0
-		state.releasedTerminalCorrections=int(state.get("releasedTerminalCorrections",0))+1
-		state.releasedTerminalSequence=int(changes.actionFlag)
 	if changes.has("animation") and not path_animation(int(changes.animation)):
 		state.previewBase = false
 		state.previewAnimationPending = false
@@ -209,6 +202,7 @@ func preview(id: int, plan: Dictionary, target = null) -> void:
 static func distance(state: Dictionary, dt: int) -> Dictionary:
 	var animation := int(state.animation) & 65535
 	var rate := f(1600.0001220703125) if animation in [78, 79] else f(float(state.walkRate if animation in [2, 3, 84, 85] else state.runRate))
+	if not is_finite(rate) or rate<0.0:return {"error":"Native client movement rate is unavailable"}
 	if state.script != 0:
 		return {"distance": f(f(f(float(dt)) * f(rate * f(float(state.factor)))) / f(1e6)), "acceleration": 1.0, "rate": rate}
 	var remaining := 0.0
@@ -225,7 +219,7 @@ static func distance(state: Dictionary, dt: int) -> Dictionary:
 	var half_second := f(f(rate * f(1000)) / f(2e6))
 	var limit := 1.0
 	if not half_second < remaining:
-		var ratio := f(remaining / half_second) if half_second != 0 else 0.0
+		var ratio := f(remaining / half_second) if half_second != 0 else NAN
 		limit = f((f(0.1) if ratio < f(0.01) else f(sqrt(ratio))) - f(f(float(dt)) / f(1000)))
 	var old := f(float(state.acceleration))
 	var next := limit
@@ -252,14 +246,13 @@ func step_path(state: Dictionary, amount: float) -> Dictionary:
 				position = point
 			else:
 				direction = normalized32(delta)
-				position += direction * amount
+				position = Vector3(f(f(amount*direction.x)+position.x),f(f(amount*direction.y)+position.y),f(f(amount*direction.z)+position.z))
 			if int(state.cursor) == path_count - 1:
 				done = length32(position - point) <= f(0.01)
 			break
 		amount = f(amount - size)
 		position = point
-		if size > f(0.01):
-			direction = normalized32(delta)
+		direction = state.orientation if size <= f(0.01) else normalized32(delta)
 		if int(state.cursor) == path_count - 1:
 			done = true
 			break
@@ -286,7 +279,10 @@ func step_path(state: Dictionary, amount: float) -> Dictionary:
 			else:
 				support_stats.malformed+=1; support_stats.last_reason="Malformed client support projection"
 	else:
-		position.z = f(float(height_query.call(position, state.position.z))) if height_query.is_valid() else state.position.z
+		if height_query.is_valid():
+			var projected:=f(float(height_query.call(position,state.position.z)))
+			if is_finite(projected):position.z=projected
+		else:position.z=state.position.z
 	return {"position": position, "direction": direction, "done": done}
 
 func support_snapshot() -> Dictionary:
@@ -294,7 +290,7 @@ func support_snapshot() -> Dictionary:
 
 static func correct(state: Dictionary, position: Vector3, dt: int) -> Vector3:
 	state.correctionCue = null
-	var timer := int(state.correction)
+	var timer := int(state.correction)&0xffffffff
 	if dt >= timer:
 		state.correction = 0
 		return position
@@ -312,31 +308,37 @@ static func correct(state: Dictionary, position: Vector3, dt: int) -> Vector3:
 		var cross := f(f(direction.x * forward.y) - f(direction.y * forward.x))
 		state.correctionCue = {"animation": (24 if dot >= f(0.707) else (25 if dot <= f(-0.707) else (27 if cross <= 0 else 26))), "type": 6, "duration": int(state.correction) & 65535}
 	var ratio := f(f(float(state.correction)) / f(float(dt + int(state.correction))))
-	return (state.render - position) * ratio + position
+	var render: Vector3=state.render
+	return Vector3(f(f(f(render.x-position.x)*ratio)+position.x),f(f(f(render.y-position.y)*ratio)+position.y),f(f(f(render.z-position.z)*ratio)+position.z))
 
 static func facing_step(old: Vector3, target: Vector3, animation: int, dt: int, options: Dictionary = {}) -> Dictionary:
 	var desired := normalized32(Vector3(target.x, target.y, 0))
+	var id:=animation&65535
 	var dot := f(f(f(old.y * desired.y) + f(old.x * desired.x)) + f(old.z * desired.z))
 	var sign := -1.0 if f(f(old.x * desired.y) - f(old.y * desired.x)) < 0 else 1.0
 	var requests: Array = []
-	if dot < 1 and animation in [0, 1, 53, 54]:
+	if dot < 1 and id in [0, 1, 53, 54]:
 		if dot >= f(0.99):
 			return {"orientation": old, "target": desired, "requests": requests}
-		var base := int(options.get("restored", 0)) if animation in [53, 54] else animation
+		var base := int(options.get("restored", 0)) if id in [53, 54] else id
 		if base == 0 and options.get("model", true) and int(options.get("modelType", 1)) == 1:
 			requests.append(80 if sign < 0 else 81)
 		elif base == 1:
 			requests.append(82 if sign < 0 else 83)
 	var speed := f(f(1 - dot) * 3)
-	if animation == 4:
+	if id == 4:
 		speed = f(speed + speed)
 	speed = f(0.55) if speed <= f(0.55) else minf(f(1.55), speed)
-	var angle := f(f(f(f(float(dt)) * speed) * 4000) / f(1e6))
+	var angle := f(f(f(f(float(dt&0xffffffff)) * speed) * 4000) / f(1e6))
 	var next := desired
-	if dot < f(cos(angle)):
+	var limit:=NativeMath.native_cosf(angle)
+	if not is_finite(limit):return {"orientation":old,"target":desired,"requests":[],"error":NativeMath.last_error}
+	if dot < limit:
 		var signed := f(angle * sign)
-		var cosine := f(cos(signed))
-		var sine := f(sin(signed))
+		var cosine := NativeMath.native_cosf(signed)
+		if not is_finite(cosine):return {"orientation":old,"target":desired,"requests":[],"error":NativeMath.last_error}
+		var sine := NativeMath.native_sinf(signed)
+		if not is_finite(sine):return {"orientation":old,"target":desired,"requests":[],"error":NativeMath.last_error}
 		next = Vector3(f(f(old.x * cosine) - f(old.y * sine)), f(f(old.x * sine) + f(old.y * cosine)), 0)
 	return {"orientation": normalized32(next), "target": desired, "requests": requests}
 
@@ -344,18 +346,23 @@ static func facing_orientation_no_request(old: Vector3, target: Vector3, animati
 	# The caller has excluded the four animations that can request turns.
 	# Keep every f32 rounding boundary and the original trig order.
 	var desired := normalized32(Vector3(target.x, target.y, 0))
+	var id:=animation&65535
 	var dot := f(f(f(old.y * desired.y) + f(old.x * desired.x)) + f(old.z * desired.z))
 	var sign := -1.0 if f(f(old.x * desired.y) - f(old.y * desired.x)) < 0 else 1.0
 	var speed := f(f(1 - dot) * 3)
-	if animation == 4:
+	if id == 4:
 		speed = f(speed + speed)
 	speed = f(0.55) if speed <= f(0.55) else minf(f(1.55), speed)
-	var angle := f(f(f(f(float(dt)) * speed) * 4000) / f(1e6))
+	var angle := f(f(f(f(float(dt&0xffffffff)) * speed) * 4000) / f(1e6))
 	var next := desired
-	if dot < f(cos(angle)):
+	var limit:=NativeMath.native_cosf(angle)
+	if not is_finite(limit):return old
+	if dot < limit:
 		var signed := f(angle * sign)
-		var cosine := f(cos(signed))
-		var sine := f(sin(signed))
+		var cosine := NativeMath.native_cosf(signed)
+		if not is_finite(cosine):return old
+		var sine := NativeMath.native_sinf(signed)
+		if not is_finite(sine):return old
 		next = Vector3(f(f(old.x * cosine) - f(old.y * sine)), f(f(old.x * sine) + f(old.y * cosine)), 0)
 	return normalized32(next)
 
@@ -403,18 +410,22 @@ func update(seconds: float) -> void:
 		if state.active and not state.path.is_empty() and path_animation(int(state.animation)):
 			var prior_position: Variant=state.position if notify else null
 			var gait := distance(state, dt)
-			var step := step_path(state, float(gait.distance))
-			state.position = step.position
-			state.render = correct(state, step.position, dt)
-			state.movementDirection = step.direction
-			state.gait = {"animation": state.animation, "rate": gait.rate, "script": state.script, "factor": state.factor, "acceleration": gait.acceleration}
-			if step.done:
+			if gait.has("error"):
 				state.active = false
-				state.acceleration = 0.0
-				state.script = 0
-				state.finished = true
-			if notify and state.position!=prior_position:
-				pending.append({"id":int(id),"state":state,"position":state.position})
+				push_warning("network.scene-movement-unavailable: "+str(gait.error)+" for object "+str(id))
+			else:
+				var step := step_path(state, float(gait.distance))
+				state.position = step.position
+				state.render = correct(state, step.position, dt)
+				state.movementDirection = step.direction
+				state.gait = {"animation": state.animation, "rate": gait.rate, "script": state.script, "factor": state.factor, "acceleration": gait.acceleration}
+				if step.done:
+					state.active = false
+					state.acceleration = 0.0
+					state.script = 0
+					state.finished = true
+				if notify and state.position!=prior_position:
+					pending.append({"id":int(id),"state":state,"position":state.position})
 		elif int(state.correction) != 0:
 			state.render = correct(state, state.position, dt)
 		# Most creatures have no live facing target. The resolver returns
@@ -447,21 +458,33 @@ func update(seconds: float) -> void:
 				continue
 			# Preserve the original idle/turn deadband, including its deliberate
 			# unchanged old orientation rather than snapping to the target.
-			if dot<1.0 and dot>=f(0.99) and int(state.get("visualAnimation",state.animation)) in [0,1,53,54]:
+			if dot<1.0 and dot>=f(0.99) and (int(state.get("visualAnimation",state.animation))&65535) in [0,1,53,54]:
 				state.facingTurn=null
 				if diagnostics:
 					settled+=1
 					deadband_rows+=1
 				continue
-		var animation:=int(state.get("visualAnimation", state.animation))
+		var animation:=int(state.get("visualAnimation", state.animation))&65535
 		if diagnostics:full_steps+=1
 		if animation not in [0,1,53,54]:
-			state.orientation=facing_orientation_no_request(state.orientation,target,animation,dt)
+			var next_orientation:=facing_orientation_no_request(state.orientation,target,animation,dt)
+			if not NativeMath.last_error.is_empty():
+				if str(state.get("facingFailure",""))!=NativeMath.last_error:push_warning("network.scene-facing-unavailable: "+NativeMath.last_error+" for object "+str(id))
+				state.facingFailure=NativeMath.last_error
+			else:
+				state.orientation=next_orientation
+				state.facingFailure=null
 			state.facingTurn=null
 		else:
 			var facing_result := facing_step(state.orientation,target,animation,dt,{"modelType":state.modelType,"restored":state.restingBase})
-			state.orientation = facing_result.orientation
-			state.facingTurn = null if facing_result.requests.is_empty() else facing_result.requests[0]
+			if facing_result.has("error"):
+				if str(state.get("facingFailure",""))!=str(facing_result.error):push_warning("network.scene-facing-unavailable: "+str(facing_result.error)+" for object "+str(id))
+				state.facingFailure=facing_result.error
+				state.facingTurn=null
+			else:
+				state.orientation=facing_result.orientation
+				state.facingTurn=null if facing_result.requests.is_empty() else facing_result.requests[0]
+				state.facingFailure=null
 	if diagnostics:
 		evaluation_stats.updates+=1
 		evaluation_stats.rows+=evaluated
@@ -524,7 +547,7 @@ func finish_frame(id: int) -> void:
 
 func gait_speed(id: int, clip_seconds: float) -> float:
 	var state: Dictionary = objects[id]
-	if not state.active or not state.has("gait") or clip_seconds <= 0:
+	if not state.active or not state.has("gait"):
 		return 1.0
 	var gait: Dictionary = state.gait
 	var animation:=int(state.animation)
@@ -532,9 +555,14 @@ func gait_speed(id: int, clip_seconds: float) -> float:
 	var rate := f(1600.0001220703125) if creep else f(float(gait.rate))
 	var scales := f(f(float(state.get("scale", 1))) * f(float(state.get("scale2", 1))))
 	var stride := f(0.8) if creep else f(scales * f(float(state.walkDistance if animation in [2, 3, 84, 85] else state.runDistance)))
+	# NetworkScene skips a nonpositive appearance distance before calling the
+	# source gait helper. A positive distance with invalid arithmetic is an error.
 	if stride <= 0:
 		return 1.0
 	var length_ms := f(f(clip_seconds) * 1000)
+	if not is_finite(rate) or not is_finite(stride) or not is_finite(length_ms) or length_ms <= 0:
+		push_error("Native movement gait parameters are unavailable")
+		return NAN
 	var effective := f(rate * f(float(gait.factor))) if gait.script != 0 else rate
 	var speed := f(f(effective / 1000) / f(f(stride * 1000) / length_ms))
 	return speed if gait.script != 0 else f(speed * f(float(gait.acceleration)))

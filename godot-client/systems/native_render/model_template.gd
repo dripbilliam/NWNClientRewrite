@@ -8,6 +8,8 @@ const Timing=preload("res://systems/native_render/frame_profile.gd")
 const StaticDrawInvalidation=preload("res://systems/native_render/static_draw_invalidation.gd")
 const Recipe=preload("res://systems/native_render/native_model_recipe.gd")
 const PlacementJob=preload("res://systems/native_render/model_placement_job.gd")
+const ModelVisualTransform=preload("res://systems/native_data/model_visual_transform.gd")
+const VisualDefinition=preload("res://systems/native_data/visual_definition.gd")
 static var _construction_counts: Dictionary={"templates_built":0,"recipe_capture_attempts":0,"recipe_templates_built":0,"recipe_capture_fallbacks":0,"recipe_clones":0,"packed_templates_built":0,"packed_clones":0,"first_root_reuses":0}
 static var _recipe_fallback_reasons: Dictionary={}
 static var _completion_diagnostics:=OS.get_cmdline_user_args().has("--publication-completion-diagnose")
@@ -20,6 +22,7 @@ static func callback_budget(pool,limit: int=3000) -> int:return int(pool.publica
 static func construction_totals() -> Dictionary:
 	var value:=_construction_counts.duplicate();value.recipe_fallback_reasons=_recipe_fallback_reasons.duplicate();value.scope="Process-cumulative actual native template build/create boundaries; no live owner references";return value
 var scene: PackedScene
+var _geometry_pool: WeakRef
 var recipe
 var recipe_capture_attempts:=0
 var recipe_capture_successes:=0
@@ -44,6 +47,17 @@ var staged_diagnostic_peak_step: Variant=null
 var staged_diagnostic_phase_max_us: Variant=null
 var physical_part_count:=0
 var small_native_packed:=false
+static func reference_row(source: Dictionary) -> Dictionary:
+	# Repeated placements need the physical reference header, not just its
+	# name and parent. Keep only the fields consumed by ReferenceGraph.
+	var row: Dictionary={"name":source.get("name",""),"parentIndex":source.get("parentIndex",source.get("parent",-1)),"type":source.get("type","")}
+	var native_node: Variant=source.get("nativeNode")
+	if native_node is Dictionary and native_node.has("flags98"):row.nativeNode={"flags98":native_node.flags98}
+	var reference: Variant=source.get("reference")
+	if reference is Dictionary:row.reference={"model":reference.get("model"),"reattachable":reference.get("reattachable")}
+	var properties: Variant=source.get("properties")
+	if properties is Dictionary:row.properties={"refmodel":properties.get("refmodel"),"reattachable":properties.get("reattachable")}
+	return row
 static func scene_surface_bounds(source,node) -> Dictionary:
 	var result:={"valid":false,"bounds":AABB()};var data=null
 	if node is MeshInstance3D:data=node.mesh.get_meta("native_scene_geometry",null)
@@ -67,12 +81,63 @@ static func scene_bounds(source) -> Dictionary:
 	return result
 class Placement:
 	extends Node3D
+	var _geometry_pool: WeakRef
+	var _geometry_leases: Array=[]
+	var geometry_failure:=""
+	func acquire_geometry(pool) -> bool:
+		if pool==null or not pool.has_method("acquire_model_geometry"):
+			for mesh in meshes:
+				if is_instance_valid(mesh) and mesh.has_meta("native_renderer_geometry_token"):geometry_failure="Native rigid geometry owner is unavailable";return false
+			return true
+		_geometry_pool=weakref(pool)
+		for mesh in meshes:
+			if not is_instance_valid(mesh) or not mesh.has_meta("native_renderer_geometry_token"):continue
+			if not pool.acquire_model_geometry(mesh):
+				geometry_failure=str(pool.failure) if not str(pool.failure).is_empty() else "Native rigid geometry publication failed"
+				release_geometry();return false
+			_geometry_leases.append(mesh.get_instance_id())
+		return true
+	func release_geometry() -> void:
+		var pool: Variant=_geometry_pool.get_ref() if _geometry_pool!=null else null
+		if pool!=null:
+			for owner_id in _geometry_leases:pool.release_model_geometry_id(int(owner_id))
+		_geometry_leases.clear();_geometry_pool=null
+	func _notification(what: int) -> void:
+		if what==NOTIFICATION_PREDELETE:release_geometry()
 	var parts: Array=[]
 	var meshes: Array=[]
 	var pick_surfaces: Array=[]
 	var limitations: Array=[]
 	var static_draw_proof: Dictionary={}
 	var renderer_alpha
+	var _visual_transform: ModelVisualTransform
+	var _model_bounds: Variant
+	func _ready() -> void:
+		set_process(false)
+	func sync_visual_transform(object: Dictionary, world_timer: Variant = null) -> void:
+		if retired or int(object.get("objectType", 0)) != 9: return
+		var input: Variant = object.get("replicated", {}).get("visualTransform")
+		if _visual_transform == null:
+			if VisualDefinition.identity(input): return
+			_visual_transform = ModelVisualTransform.new()
+			_visual_transform.configure(0, {}, world_timer)
+			# The template root owns the visual parts. The outer placement
+			# keeps the server coordinates for movement and collision.
+			_visual_transform.unit(0, get_child(0) as Node3D)
+			_model_bounds = get_meta("native_scene_bounds", null) if has_meta("native_scene_bounds") else null
+		elif is_same(input, _visual_transform.input_ref) and is_same(world_timer, _visual_transform.world_timer):
+			return
+		StaticDrawInvalidation.withdraw(self,"model-visual-transform")
+		_visual_transform.world_timer = world_timer
+		_visual_transform.sync(input)
+		_update_visual_bounds()
+		set_process(not _visual_transform.units[0].constant_pose)
+	func _process(_delta: float) -> void:
+		if _visual_transform.update(): _update_visual_bounds()
+	func _update_visual_bounds() -> void:
+		if _model_bounds is AABB:
+			var local_pose: Transform3D = _visual_transform.units[0].pose
+			set_meta("native_scene_bounds", local_pose * _model_bounds)
 	func _ensure_renderer_alpha() -> bool:
 		if retired:return false
 		if renderer_alpha!=null:return true
@@ -110,6 +175,11 @@ class Placement:
 		if retired: return
 		StaticDrawInvalidation.withdraw(self,"placement-retirement")
 		retired=true
+		set_process(false)
+		if _visual_transform != null:
+			_visual_transform.dispose()
+			_visual_transform = null
+		release_geometry()
 		if renderer_alpha!=null:renderer_alpha.close();renderer_alpha=null
 		for child in get_children(): child.free()
 		parts.clear(); meshes.clear(); pick_surfaces.clear(); reference_graph=null; random_part_model.clear(); queue_free()
@@ -124,12 +194,14 @@ static func identity(bundle: Dictionary, pool) -> String:
 	if pool.native_lighting: policy.append("native-enhanced-lighting-v1")
 	if pool.native_standard: policy.append("native-standard-retail-v1")
 	if pool.native_surface_output: policy.append("native-surface-gamma-v1")
+	if bool(bundle.get("tile_initial_skin",false)):policy.append("tile-initial-skin-v1")
 	if OS.get_cmdline_user_args().has("--base-scenery-draw=merged"):policy.append("base-static-draw-proof-v1")
 	if cooperative(pool):policy.append(Recipe.REVISION)
 	return Cache.digest(var_to_bytes(policy))
 func build(bundle: Dictionary, pool) -> bool:
 	if OS.get_thread_caller_id()!=OS.get_main_thread_id(): failure="Native scene publication requires main thread"; return false
 	if scene!=null or recipe!=null or is_instance_valid(_first_root) or not _build_progress.is_empty(): failure="Native template already prepared"; return false
+	_geometry_pool=weakref(pool) if pool!=null else null
 	small_native_packed=false
 	var began:=Time.get_ticks_usec() if _completion_diagnostics else Timing.begin(); var phase_began:=began
 	physical_part_count=bundle.value.nodes.size()
@@ -139,10 +211,12 @@ func build(bundle: Dictionary, pool) -> bool:
 	if OS.get_cmdline_user_args().has("--base-scenery-draw=merged") and bundle.get("static_draw_proof") is Dictionary:static_draw_proof=bundle.static_draw_proof.duplicate(true)
 	if began>0: preparation_timings.source_install_ms=(Time.get_ticks_usec()-phase_began)/1000.0; preparation_timings.install=source.install_timings.duplicate(); phase_began=Time.get_ticks_usec()
 	var collision_bounds:=scene_bounds(source)
+	for surface in source.meshes:
+		if surface.has_meta("native_renderer_geometry_token"):surface.mesh=null
 	if began>0: preparation_timings.bounds_ms=(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
 	limitations=source.limitations.duplicate()
 	if bundle.value.nodes.any(func(row):return row.has("reference")):
-		for row in bundle.value.nodes: reference_rows.append({"name":row.name,"parent":row.parent})
+		for row in bundle.value.nodes: reference_rows.append(reference_row(row))
 	var root_node:=Node3D.new()
 	if collision_bounds.valid: root_node.set_meta("native_scene_bounds",collision_bounds.bounds)
 	for part in source.parts:
@@ -204,6 +278,8 @@ func _placement_from_root(root_node: Node) -> Placement:
 	placement.meshes=root_node.find_children("*","MeshInstance3D",true,false)
 	placement.pick_surfaces=placement.parts.filter(func(part):return not part is MeshInstance3D and part.has_meta("native_pick_geometry"))
 	placement.limitations=limitations.duplicate()
+	var pool: Variant=_geometry_pool.get_ref() if _geometry_pool!=null else null
+	if not placement.acquire_geometry(pool):failure=placement.geometry_failure;placement.free();return null
 	if not reference_rows.is_empty():
 		placement.reference_graph=ReferenceGraph.new()
 		if not placement.reference_graph.configure(placement,reference_rows,placement.parts): placement.free(); return null
@@ -220,6 +296,7 @@ func begin_staged_build(bundle: Dictionary,pool) -> bool:
 	if OS.get_thread_caller_id()!=OS.get_main_thread_id():failure="Native scene publication requires main thread";return false
 	if not cooperative(pool):failure="Staged native templates require cooperative publication";return false
 	if scene!=null or recipe!=null or is_instance_valid(_first_root) or not _build_progress.is_empty():failure="Native template already prepared";return false
+	_geometry_pool=weakref(pool) if pool!=null else null
 	small_native_packed=false;physical_part_count=bundle.value.nodes.size();diagnose_staged=configured_staged_diagnostics()
 	if diagnose_staged:staged_diagnostic_peak_step={};staged_diagnostic_phase_max_us={}
 	var source:=Instance.new()
@@ -275,6 +352,7 @@ func staged_build_step(maximum_units: int=8,budget_us: int=1500) -> Dictionary:
 				var current:=scene_surface_bounds(source,state.surfaces[index])
 				if current.valid:
 					state.bounds.bounds=state.bounds.bounds.merge(current.bounds) if state.bounds.valid else current.bounds;state.bounds.valid=true
+				if state.surfaces[index] is MeshInstance3D and state.surfaces[index].has_meta("native_renderer_geometry_token"):state.surfaces[index].mesh=null
 				state.index=index+1;units+=1
 			"references":
 				# Most models have no reference graph. A single scan avoids building
@@ -294,7 +372,7 @@ func staged_build_step(maximum_units: int=8,budget_us: int=1500) -> Dictionary:
 					if diagnose_staged:_record_staged_phase(diagnostic_phase,diagnostic_began,diagnostic_phases)
 					continue
 				var row: Dictionary=state.bundle.value.nodes[index];state.has_references=state.has_references or row.has("reference")
-				state.reference_rows.append({"name":row.name,"parent":row.parent});state.index=index+1;units+=1
+				state.reference_rows.append(reference_row(row));state.index=index+1;units+=1
 			"move":
 				# Physical children of the source are precisely the roots to move.
 				# The old loop spent a publication unit on every descendant, even
@@ -423,7 +501,8 @@ func create_step(pending: Dictionary,maximum_nodes: int=8,budget_us: int=1500) -
 	var placement:=create()
 	return {"status":"ready" if placement!=null else "failed","instance":placement,"fallback":recipe_fallback_reason}
 func _begin_placement_job(root_node: Node3D,pending: Dictionary,clone_index: Dictionary={})->void:
-	var job:=PlacementJob.new();job.configure(root_node,Placement.new(),source_model_name,limitations,reference_rows,static_draw_proof,clone_index)
+	var pool: Variant=_geometry_pool.get_ref() if _geometry_pool!=null else null
+	var job:=PlacementJob.new();job.configure(root_node,Placement.new(),source_model_name,limitations,reference_rows,static_draw_proof,clone_index,pool)
 	pending.placement_job=job;pending.owner=get_instance_id();pending.recipe=recipe.get_instance_id()
 func _placement_job_step(pending: Dictionary,maximum_nodes: int,budget_us: int)->Dictionary:
 	var result: Dictionary=pending.placement_job.step(maximum_nodes,budget_us)

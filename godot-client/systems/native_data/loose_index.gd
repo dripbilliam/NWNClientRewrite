@@ -14,7 +14,11 @@ func scan(directory: String, types: Array=[]) -> Dictionary:
 	if folder==null:
 		if DirAccess.dir_exists_absolute(root): failure="Loose resource directory cannot be read"; return {}
 		return {"entries":{},"directory":root}
-	var names:=folder.get_files()
+	# The old looseResourceLayer admitted Dirent.isFile() entries only. A
+	# selected loose directory may contain links, which are not file entries.
+	var names:=PackedStringArray()
+	for filename in folder.get_files():
+		if not folder.is_link(filename):names.append(filename)
 	if names.size()>1000000: failure="Loose resource directory exceeds bound"; return {}
 	var cached:=Residency.index("loose-directory",[root,types,Extensions.REVISION],[var_to_bytes(names)],func():
 		return {"value":scan_names(root,names,types),"error":""})

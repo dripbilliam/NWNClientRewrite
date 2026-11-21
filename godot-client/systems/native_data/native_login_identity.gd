@@ -47,14 +47,23 @@ static func digest(parts: Array[PackedByteArray])->String:
 
 func respond(challenge: Dictionary)->Dictionary:
 	if disposed or key.is_empty() or challenge.get("kind","")!="challenge":return {"error":"Native login challenge is unavailable"}
-	var key_challenge: Dictionary=Text.encode(str(challenge.get("keyChallenge","")))
-	var community_challenge: Dictionary=Text.encode(str(challenge.get("communityChallenge","")))
-	var password_challenge: Dictionary=Text.encode(str(challenge.get("passwordChallenge","")))
-	if not key_challenge.has("bytes") or not community_challenge.has("bytes") or not password_challenge.has("bytes"):return {"error":"NWN login text encoding is unsupported"}
+	# The former encoded() provider rejected missing or non-string challenge
+	# fields rather than hashing a coerced value into a valid-looking proof.
+	for field in ["keyChallenge","communityChallenge"]:
+		if not challenge.get(field) is String:return {"error":"Native login text is unavailable"}
+	var key_challenge: Dictionary=Text.encode(challenge.keyChallenge)
+	var community_challenge: Dictionary=Text.encode(challenge.communityChallenge)
+	if not key_challenge.has("bytes") or not community_challenge.has("bytes"):return {"error":"NWN login text encoding is unsupported"}
+	var password_challenge: Dictionary={}
+	if challenge.get("passwordRequired",false) and not password.is_empty():
+		if not challenge.get("passwordChallenge") is String:return {"error":"Native login text is unavailable"}
+		password_challenge=Text.encode(challenge.passwordChallenge)
+		if not password_challenge.has("bytes"):return {"error":"NWN login text encoding is unsupported"}
 	var community_digest:=digest([community]).to_ascii_buffer()
 	var proof={"keyResponse":public_key+digest([key,key_challenge.bytes]),"communityResponse":digest([community_digest,community_challenge.bytes]),"passwordResponse":"","connectionError":3 if challenge.get("passwordRequired",false) and password.is_empty() else 0}
 	if challenge.get("passwordRequired",false) and not password.is_empty():proof.passwordResponse=digest([password,password_challenge.bytes])
 	community_digest.fill(0)
+	if proof.keyResponse.length()!=40 or proof.communityResponse.length()!=32 or challenge.get("passwordRequired",false) and not password.is_empty() and proof.passwordResponse.length()!=32:return {"error":"NWN login digest is unavailable"}
 	return proof
 
 func for_portal(server_password: String)->RefCounted:

@@ -5,6 +5,7 @@ extends RefCounted
 const Skills=preload("res://systems/native_data/pregame_skills.gd")
 const Values=preload("res://systems/native_data/character_record_values.gd")
 const Details=preload("res://systems/native_data/pregame_record_details.gd")
+const NativeGffFields=preload("res://systems/native_data/native_gff_fields.gd")
 static func signed16(value: int) -> int:
 	value&=65535
 	return value-65536 if value>=32768 else value
@@ -20,7 +21,7 @@ static func source(document: Dictionary,stats: Dictionary) -> Dictionary:
 	if types.get("Experience")==4: result.experience=int(root.Experience)&0xffffffff
 	for pair in [["GoodEvil","goodEvil"],["LawfulChaotic","lawChaos"]]:
 		if types.get(pair[0])==0: result[pair[1]]=mini(100,int(root[pair[0]])&255)
-	if types.get("Subrace")==10: result.subrace=str(root.Subrace)
+	if types.get("Subrace")==10: result.subrace=NativeGffFields.assigned_string(str(root.Subrace))
 	result.merge(Details.source(document))
 	return result
 static func compute(source_data: Dictionary,tables: Dictionary) -> Dictionary:

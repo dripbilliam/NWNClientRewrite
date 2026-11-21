@@ -13,6 +13,9 @@ var _ttf_pixel_height_active:=false
 var _ttf_pixel_height_diagnostics:={"attempted":0,"published":0,"fallbacks":0,"last_fallback":{}}
 var fonts: Dictionary={}
 var metrics: Dictionary={}
+var atlases: Dictionary={}
+var tints: Dictionary={}
+var tint_order: Dictionary={}
 var pending: Dictionary={}
 var failed: Dictionary={}
 var jobs: Dictionary={}
@@ -29,11 +32,11 @@ func request(name: String) -> void:
 	if parts.size()==3 and parts[0]=="ttf" and parts[2].is_valid_int() and int(parts[2])>0 and int(parts[2])<=512:
 		if not catalog.has_resource(parts[1],2074): fail(name,"Original explicit TTF font is unavailable"); return
 		pending[name]={"mode":"ttf","height":int(parts[2])}; job(name,parts[1],2074,"font-v1","ttf"); return
-	var location: Dictionary=catalog.raster_location(name)
-	if not catalog.has_resource(name,2022) or location.is_empty(): fail(name,"Original bitmap-font metadata or atlas is unavailable"); return
+	# NativeBitmapFont.load asks for TXI and TGA by explicit resource type.
+	if not catalog.has_resource(name,2022) or not catalog.has_resource(name,3): fail(name,"Original bitmap-font metadata or atlas is unavailable"); return
 	pending[name]={"mode":"bitmap"}
 	job(name,name,2022,"bitmap-font-v1","metrics")
-	if not failed.has(name): job(name,name,int(location.type),"raster","atlas")
+	if not failed.has(name): job(name,name,3,"raster","atlas")
 func job(name: String,resource: String,type: int,decoder: String,kind: String) -> void:
 	var id: int=assets.request(resource,type,decoder)
 	if id<0: fail(name,str(assets.failure)); return
@@ -84,6 +87,9 @@ func prepared(id: int,result: Dictionary) -> void:
 		image.flip_y()
 		var parser:=Metrics.new(); var glyphs:=parser.glyphs(data,image.get_width(),image.get_height())
 		if not parser.failure.is_empty(): fail(name,parser.failure); return
+		if glyphs.is_empty(): fail(name,"Original bitmap font has no usable glyphs"); return
+		atlases[name]=image
+		tints[name]={};tint_order[name]=[]
 		var height:=maxi(1,roundi(float(data.height))); var size:=Vector2i(height,0); var font:=FontFile.new()
 		font.font_name=name; font.fixed_size=height; font.fixed_size_scale_mode=TextServer.FIXED_SIZE_SCALE_DISABLE; font.allow_system_fallback=false; font.generate_mipmaps=false; font.multichannel_signed_distance_field=false; font.modulate_color_glyphs=true
 		font.antialiasing=TextServer.FONT_ANTIALIASING_NONE; font.subpixel_positioning=TextServer.SUBPIXEL_POSITIONING_DISABLED; font.hinting=TextServer.HINTING_NONE
@@ -103,6 +109,33 @@ func publish(name: String) -> void:
 		else: stats.stale+=1
 		bindings.erase(id)
 	loaded.emit(name)
+func render_bitmap(name: String,spans: Array,default_color: String="#ffffff") -> Dictionary:
+	if not atlases.has(name) or not metrics.has(name):return {"error":"Native bitmap font is unavailable"}
+	var image: Image=atlases[name]
+	var parser:=Metrics.new()
+	var result:=parser.render(metrics[name],image.get_width(),image.get_height(),spans,default_color)
+	if not parser.failure.is_empty():return {"error":parser.failure}
+	return result
+func tinted_atlas(name: String,color: String) -> Dictionary:
+	if not atlases.has(name):return {"error":"Native bitmap font is unavailable"}
+	var key:=color.to_lower()
+	if key.length()!=7 or not key.begins_with("#"):return {"error":"Native font tint is invalid"}
+	for i in range(1,7):
+		var code:=key.unicode_at(i)
+		if not (code>=48 and code<=57 or code>=97 and code<=102):return {"error":"Native font tint is invalid"}
+	if tints[name].has(key):return {"texture":tints[name][key]}
+	var rgb: Array=[]
+	for i in [1,3,5]:rgb.append(key.substr(i,2).hex_to_int())
+	var image: Image=atlases[name]
+	var pixels: PackedByteArray=image.get_data()
+	for at in range(0,pixels.size(),4):
+		for channel in 3:pixels[at+channel]=int(floorf(float(pixels[at+channel])*float(rgb[channel])/255.0+0.5))
+	var tinted:=Image.create_from_data(image.get_width(),image.get_height(),false,Image.FORMAT_RGBA8,pixels)
+	var texture:=ImageTexture.create_from_image(tinted)
+	var order: Array=tint_order[name]
+	if order.size()>=64:tints[name].erase(order.pop_front())
+	order.append(key);tint_order[name]=order;tints[name][key]=texture
+	return {"texture":texture}
 func apply(control: Control,name: String) -> void:
 	var font: FontFile=fonts[name]; var height:=maxi(1,roundi(float(metrics[name].height)))
 	control.set_meta("native_font_applied",name)
@@ -130,5 +163,5 @@ func close() -> void:
 	if closed: return
 	closed=true
 	if is_instance_valid(assets): assets.close()
-	fonts.clear(); metrics.clear(); pending.clear(); jobs.clear(); bindings.clear(); catalog=null
+	fonts.clear(); metrics.clear(); atlases.clear();tints.clear();tint_order.clear();pending.clear(); jobs.clear(); bindings.clear(); catalog=null
 func _exit_tree() -> void: close()

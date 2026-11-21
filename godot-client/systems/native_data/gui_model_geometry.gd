@@ -3,7 +3,7 @@ extends RefCounted
 static func model(value: Dictionary) -> Dictionary:
 	var poses: Array[Transform3D]=[]; var hooks: Dictionary={}; var bounds:=Rect2(); var drawn:=false
 	for node in value.get("nodes",[]):
-		var p: Array=node.get("position",[]); var q: Array=node.get("orientation",[]); var parent:=int(node.get("parent",-1)); var scale:=float(node.get("scale",1))
+		var p: Array=node.get("position",[]); var q: Array=node.get("orientation",[]); var parent:=int(node.get("parentIndex",node.get("parent",-1))); var scale:=float(node.get("scale",1))
 		if p.size()!=3 or q.size()!=4 or parent < -1 or parent>=poses.size() or not is_finite(scale): return {"error":"Invalid original GUI model hierarchy"}
 		var position:=Vector3(p[0],p[1],p[2]); var rotation:=Quaternion(q[0],q[1],q[2],q[3])
 		if not position.is_finite() or not rotation.is_finite() or rotation.length_squared()<0.000001: return {"error":"Invalid original GUI model transform"}
@@ -11,7 +11,8 @@ static func model(value: Dictionary) -> Dictionary:
 		if parent>=0: pose=poses[parent]*pose
 		poses.append(pose)
 		var name:=str(node.get("name","")).to_lower()
-		if hooks.has(name): return {"error":"Ambiguous original GUI model hook"}
+		# The original name map keeps the last matching group; physical parent
+		# indices still preserve each node when labels repeat.
 		hooks[name]=Vector2(pose.origin.x,-pose.origin.y)*100.0
 		var mesh: Dictionary=node.get("mesh",{})
 		if not mesh.get("render",false): continue

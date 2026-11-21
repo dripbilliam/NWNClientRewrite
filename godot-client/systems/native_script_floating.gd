@@ -83,6 +83,7 @@ func receive(message: Dictionary,transport_connection: Variant=null,transport_ge
 	var data: Variant=message.get("data")
 	if not data is Dictionary:return {"handled":true,"ready":false}
 	var target: Variant=slot(data,"objects",0);var type:=int(message.type)
+	if target==null:target=0x7f000000
 	if not Scope.integer(target,0,Scope.MAX_ID):return {"handled":true,"ready":false}
 	var current:=synchronize_scope();var connection: Variant=current_connection()
 	var explicit_transport: bool=transport_connection!=null or transport_generation!=null
@@ -91,6 +92,8 @@ func receive(message: Dictionary,transport_connection: Variant=null,transport_ge
 		if not Scope.integer(transport_connection,0,Scope.MAX_SAFE) or not Scope.integer(transport_generation,0,Scope.MAX_SAFE) or connection==null or int(transport_connection)!=int(connection):return {"handled":true,"ready":false,"accepted_transport":false,"reason":"Native script feedback transport is not current."}
 		accepted_transport=true
 	var show: Variant=slot(data,"integers",1 if type==93 else 0);var payload: Variant=slot(data,"integers",0) if type==93 else slot(data,"strings",0)
+	if show==null:show=0
+	if payload==null:payload=0 if type==93 else {"text":""}
 	if type==93 and not Scope.integer(payload,-2147483648,2147483647):return {"handled":true,"ready":false,"accepted_transport":false}
 	if type==94 and not (payload is String or payload is Dictionary and payload.get("text") is String):return {"handled":true,"ready":false,"accepted_transport":false}
 	if accepted_transport and (not Scope.integer(show,-2147483648,2147483647) or not message.get("color","") is String):return {"handled":true,"ready":false,"accepted_transport":false}
@@ -108,9 +111,19 @@ func receive(message: Dictionary,transport_connection: Variant=null,transport_ge
 			widget_allowed=false
 		last_serial=int(metadata.serial)
 	elif not accepted_transport:return {"handled":true,"ready":false}
-	else:widget_allowed=false
+	else:
+		# Ordinary 93/94 packets carry no nativeTextEvent. The old feedback
+		# presenter uses the received creature directly for its floating widget.
+		var actor: Dictionary=source(int(target))
+		var native_lifetime: Variant=actor.get("nativeLifetime")
+		var known_lifetime: Variant=actor.get("clientKnownLifetime")
+		if Scope.current_context(current) and int(current.generation)==int(transport_generation) and Scope.integer(actor.get("id"),0,Scope.MAX_ID) and int(actor.id)==int(target) and Scope.integer(actor.get("areaId"),0,Scope.MAX_ID) and int(actor.areaId)==int(current.areaId) and int(actor.get("objectType",0))==5 and not bool(actor.get("replicationRemoved",false)) and not bool(actor.get("destroyed",false)) and Scope.integer(native_lifetime,1,Scope.MAX_SAFE) and Scope.integer(known_lifetime,1,Scope.MAX_SAFE):
+			var event_source:={"id":int(target),"objectType":5,"areaId":int(current.areaId),"nativeLifetime":int(native_lifetime),"knownLifetime":int(known_lifetime)}
+			event={"ready":true,"anchor":true,"serial":-receipt_sequence-1,"scope":[int(current.connection),int(current.generation),int(current.areaId)],"source":event_source,"witness":[int(target),int(native_lifetime),int(known_lifetime)]}
+		else:widget_allowed=false
 	# One receipt serves the connection-owned echo and the separately scoped
-	# widget. A missing native event serial never acquires a synthetic one.
+	# widget. Packet-only widgets use a negative local receipt key so they cannot
+	# collide with the positive nativeTextEvent serial sequence.
 	var receipt:=TextReceipt.capture(type,payload,int(target),show==1,str(message.get("color","")),text,metadata if metadata is Dictionary else {})
 	receipt_sequence+=1;receipt.receipt_id=receipt_sequence;receipt.echo_independent=accepted_transport;receipt.echo_connection=int(connection) if accepted_transport else -1
 	if widget_allowed:

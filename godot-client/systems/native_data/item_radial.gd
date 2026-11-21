@@ -2,24 +2,31 @@ extends RefCounted
 # Original item wheel59d0/7ee0, equipment6af0, powers71a0/6450/5fe0.
 # Rule/text providers are native active-catalog projections, never JS models.
 const Rules=preload("res://systems/native_data/game_ui_rules.gd")
+const SpellMetadata=preload("res://systems/native_data/spell_metadata.gd")
 var rules
 var warnings: Array=[]
-func text(ref: int) -> String: return rules.text.raw({"strRef":ref})
+var resolved_text: Dictionary={}
+var resolved_only:=false
+var warning_report: Callable
+func text(ref: int) -> String:
+	var key:=ref&0xffffffff
+	if resolved_text.has(key):return str(resolved_text[key])
+	return "" if resolved_only else rules.text.raw({"strRef":ref})
 func row(slot: int,icon: String,ref: int,action: String,payload: int=0) -> Dictionary:
-	return {"slot":slot,"icon":icon.to_lower(),"label":text(ref),"action":action,"payload":payload,"disabled":false}
+	return {"slot":slot,"icon":icon,"label":text(ref),"action":action,"payload":payload,"disabled":false}
 func children(id: int) -> Array:
 	# The original compacts successful numeric reads, including negative IDs.
 	# Filtering missing spells or duplicates here changes the high-WORD variant.
-	var result: Array=[]; var spell: Dictionary=rules.row("spells",id)
-	for n in range(1,9):
-		var value:=Rules.number(Rules.cell(spell,"SubRadSpell"+str(n)),-2147483648)
-		if value!=-2147483648: result.append(value)
-	return result
+	var spell: Variant=SpellMetadata.talent_spell(rules.text.tables.get("spells",{}),id)
+	return spell.children if spell is Dictionary else []
 func property_spell(property: Dictionary) -> int:
-	return Rules.number(Rules.cell(rules.row("iprp_spells",int(property.get("subtype",-1))&65535),"SpellIndex"),-1) if int(property.get("type",-1))==15 else -1
+	return int(SpellMetadata._integer(rules.text.tables.get("iprp_spells",{}),int(property.get("subtype",-1))&65535,"SpellIndex").value) if int(property.get("type",-1))==15 else -1
 func cached_uses(item: Dictionary,index: int) -> int:
-	var values: Array=item.get("propertyUses",item.get("field351",[]))
-	return int(values[index] if values[index]!=null else 0)&65535 if index>=0 and index<mini(8,values.size()) else 0
+	if index<0 or index>=8:return 0
+	var primary: Variant=item.get("propertyUses")
+	if primary is Array and index<primary.size() and primary[index]!=null:return int(primary[index])&65535
+	var fallback: Variant=item.get("field351")
+	return int(fallback[index])&65535 if fallback is Array and index<fallback.size() and fallback[index]!=null else 0
 static func common(base: int) -> bool: return base in [49,54,75,104]
 func power(item: Dictionary,index: int,slot: int,assignment: bool=false,child: int=-1) -> Dictionary:
 	var properties: Array=item.get("properties",[])
@@ -32,10 +39,10 @@ func power(item: Dictionary,index: int,slot: int,assignment: bool=false,child: i
 	elif not variants.is_empty(): variant=0
 	var spell: Dictionary=rules.row("spells",id)
 	if spell.is_empty(): return {}
-	var icon:=str(Rules.cell(spell,"IconResRef",""))
+	var icon:=SpellMetadata.spell_string_entry(rules.text.tables.get("spells",{}),id,"IconResRef")
 	if icon.is_empty() or icon=="****": return {}
 	var ref:=67530 if assignment and not common(int(item.get("baseItem",-1))) else 554
-	var name_ref:=Rules.number(Rules.cell(spell,"Name"),-1) if child>=0 else Rules.number(Rules.cell(rules.row("iprp_spells",int(property.get("subtype",-1))),"Name"),-1)
+	var name_ref:=int(SpellMetadata._integer(rules.text.tables.get("spells",{}),id,"Name").value) if child>=0 else int(SpellMetadata._integer(rules.text.tables.get("iprp_spells",{}),int(property.get("subtype",-1))&65535,"Name").value)
 	var result:=row(slot,icon,ref,"variants" if child<0 and not variants.is_empty() else "use",index|(variant<<16))
 	result.label=text(ref)+" : "+text(name_ref); result.index=index; result.spellId=id
 	result.uses="*" if int(property.get("costValue",0))&65535 in [7,13] else str(cached_uses(item,index))
@@ -47,9 +54,10 @@ func powers(item: Dictionary,assignment: bool=false,learning: bool=false) -> Arr
 	var first: Dictionary=properties[0]; var special: Array={70:["IR_TRAP",285],55:["ISK_OLOCK",278],80:["IR_HEAL",273]}.get(int(first.get("type",-1))&65535,[])
 	if not special.is_empty():
 		var value:=row(3,str(special[0]),554,"use",16711680); value.label=text(554)+" : "+text(int(special[1])); value.index=0; return [value]
-	if Rules.number(Rules.cell(base,"Stacking"),0)&65535!=1 and not (properties.size()==1 and int(first.get("costValue",0))&65535 in [1,7,13]):
+	if int(SpellMetadata._integer(rules.text.tables.get("baseitems",{}),int(item.get("baseItem",-1)),"Stacking").value)&65535!=1 and not (properties.size()==1 and int(first.get("costValue",0))&65535 in [1,7,13]):
 		var warning:="Stackable items are only allowed to have single or infinite use properties on them."
 		if not warnings.has(warning): warnings.append(warning)
+		if warning_report.is_valid(): warning_report.call(warning)
 	var total:=properties.filter(func(property):return int(property.get("type",-1))&65535==15).size(); var ordinal:=0
 	for index in properties.size():
 		if int(properties[index].get("type",-1))&65535!=15: continue

@@ -25,21 +25,25 @@ static func default_mods(install: String,steam_directory: String)->Dictionary:
 		if parent==directory:break
 		directory=parent
 	var libraries:=steam_directory.path_join("steamapps/libraryfolders.vdf")
-	if FileAccess.file_exists(libraries):
-		var source:=FileAccess.open(libraries,FileAccess.READ)
-		if source==null:return {"error":"Steam workshop library file could not be read"}
+	var source:=FileAccess.open(libraries,FileAccess.READ)
+	if source!=null:
 		var text:=source.get_as_text()
 		source.close()
 		var pattern:=RegEx.create_from_string('"path"\\s*"([^"]+)"')
 		for row in pattern.search_all(text):
 			candidates.append(str(row.get_string(1)).replace("\\\\","\\").path_join("steamapps/workshop/content/704450"))
+	elif FileAccess.get_open_error()!=ERR_FILE_NOT_FOUND:return {"error":"Steam workshop library file could not be read"}
 	candidates.append(steam_directory.path_join("steamapps/workshop/content/704450"))
 	var seen: Dictionary={}
 	for candidate in candidates:
 		var path:=candidate.simplify_path()
-		if seen.has(path.to_lower()):continue
-		seen[path.to_lower()]=true
+		if seen.has(path):continue
+		seen[path]=true
 		if DirAccess.dir_exists_absolute(path):return {"directory":path}
+		if FileAccess.file_exists(path):continue
+		var probe:=FileAccess.open(path,FileAccess.READ)
+		if probe!=null:probe.close();continue
+		if FileAccess.get_open_error()!=ERR_FILE_NOT_FOUND:return {"error":"Steam workshop directory could not be inspected"}
 	return {"directory":""}
 
 static func direct_ticket(install: String,profile_override: String="",settings_override: String="")->Dictionary:

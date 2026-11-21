@@ -11,6 +11,7 @@ const CameraEffects=preload("res://systems/native_render/camera_effects.gd")
 var pooled_lighting:=OS.get_cmdline_user_args().has("--particle-lighting=pooled") or OS.get_environment("NWN_PARTICLE_LIGHTING")=="pooled"
 var geometry_worker:=OS.get_cmdline_user_args().has("--particle-geometry-worker=on")
 var animation_snapshot:=OS.get_cmdline_user_args().has("--particle-animation-snapshot=on")
+var early_async_particle_count:=not OS.get_cmdline_user_args().has("--particle-async-early-threshold=off")
 var native_surface_output:=false
 var scene_batches: Node
 var native: RefCounted
@@ -34,7 +35,7 @@ var fallback_reasons: Dictionary={}
 func suppressed_fallback_tick(_delta: float) -> void: pass
 var visibility_dirty:=false
 var visibility_publications:=0
-func _enter_tree() -> void: process_priority=20
+func _enter_tree() -> void: process_priority=70
 func configure(root_node: Node3D) -> bool:
 	if native!=null or closed or not ClassDB.class_exists("NwnParticleStreamRender") or RenderingServer.get_current_rendering_method()=="gl_compatibility": return false
 	var metrics=root_node.get_meta("native_particle_metrics",null)
@@ -71,6 +72,7 @@ func refresh_visibility() -> void:
 	visibility_publications+=1; Profile.finish("particle_visibility_publication",began)
 func reason(emitter: Node3D) -> String:
 	if emitter.native_owner==null or not emitter.native_pose_bound: return "reference/custom owner"
+	if emitter.providers.has("sineFloat") or emitter.providers.has("cosineFloat"): return "custom particle math"
 	if emitter.native_instance_streams: return "instance-stream rollback selected"
 	# Chunks retain their private model/rig rendering and exactly-once destroy
 	# services; their simulation and sorted pose publication use the shared owner.
@@ -94,7 +96,11 @@ func register(emitter: Node3D) -> bool:
 	var config:={"id":id,"enabled":emitter.particles_enabled}
 	if fast:
 		config.childless_chunk_admission=OS.get_cmdline_user_args().has("--particle-chunk-admission=childless")
-		config.merge({"owner":emitter.native_owner,"providers":emitter.providers,"source_flags":emitter.source_model_flags,"culling":emitter.frustum_enabled,"draw_enabled":emitter.original_texture!=null,"clip":emitter.static_clip,"clip_length":float(emitter.channels.clips.get(emitter.static_clip,{}).get("length",0.0)),"clock":emitter.clock_provider,"elapsed":emitter.elapsed})
+		config.merge({"owner":emitter.native_owner,"providers":emitter.providers,"source_flags":emitter.source_model_flags,"culling":emitter.frustum_enabled,"draw_enabled":emitter.original_texture!=null,"clip":emitter.static_clip,"clip_length":float(emitter.channels.clips.get(emitter.static_clip,{}).get("length",0.0)),"elapsed":emitter.elapsed})
+		# An absent provider skips native Callable validation on every frame.
+		# A non-null provider can become valid later, so keep the live check.
+		if not emitter.clock_provider.is_null(): config.clock=emitter.clock_provider
+		if not emitter.emitter_part_provider.is_null(): config.part_provider=emitter.emitter_part_provider
 		if is_instance_valid(emitter.chunk_models) and not emitter.chunk_models.ready(): config.ready=Callable(emitter,"shared_chunk_ready")
 		if emitter.original_texture!=null: config.merge({"texture":emitter.original_texture,"additive":int(emitter._state.get("blendMode68",0))!=0,"two_sided":bool(emitter._state.get("twoSided",false)),"lighting":(emitter.effective_flags()&8)!=0})
 		if is_instance_valid(emitter.native_wind_owner): config.wind_token=emitter.native_wind_owner.token
@@ -187,7 +193,8 @@ func step(delta: float) -> void:
 	if fast_members>0 and not fog_reason.is_empty(): Profile.finish("particle_frame_inputs_ms",phase); failure="Shared raster unsupported "+fog_reason+"; established particles restored"; close(); return
 	attach_camera(current)
 	var input:={"delta":delta,"view":Bounds.native_view(current,false),"profile":Profile.enabled,"fog":frame_fog(current,scope_root,native_surface_output),"scene_instances":pooled_lighting,"native_surface_output":native_surface_output}
-	if geometry_worker: input.geometry_worker=true
+	input.async_geometry=true
+	if not early_async_particle_count: input.early_async_particle_count=false
 	# This dictionary is local to this synchronous dispatch; callbacks cannot
 	# obtain it through the group while the native frame is running.
 	if animation_snapshot: input.animation_snapshot=true
@@ -209,6 +216,10 @@ func step(delta: float) -> void:
 	# construction. This span does not claim an exclusive simulation CPU cost.
 	Profile.finish("particle_frame_native_presentation_ms",phase)
 	if last.has("error"): failure=str(last.error); close(); return
+	for row in native.call("dispatch",23,{}).get("rows",[]):
+		var member: Dictionary=members.get(int(row.id),{})
+		var emitter: Object=member.get("emitter").get_ref() if member.has("emitter") else null
+		if is_instance_valid(emitter): emitter.fail(str(row.message))
 	if Profile.enabled:
 		for name in last.get("phases",{}): Profile.record(str(name),float(last.phases[name]))
 	if scene_batches!=null:

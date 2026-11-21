@@ -1,6 +1,7 @@
 extends PanelContainer
 const MenuBuilder=preload("res://systems/native_menu_builder.gd")
 const MenuStyle=preload("res://systems/native_client_menu_style.gd")
+const LEGACY_LAYOUT_KEYS={"local-dialog":"conversation","local-examine":"examine","spellbook":"spells-known"}
 
 signal close_requested
 
@@ -8,6 +9,9 @@ var title := ""
 var content: VBoxContainer
 var dragging := false
 var drag_offset := Vector2.ZERO
+var drag_start := Vector2.ZERO
+var drag_moved := false
+var drag_device := -1
 var settings_path := "user://native-menu-layout.cfg"
 var layout_key := ""
 var heading: Label
@@ -26,7 +30,7 @@ func set_caption(caption: String) -> void:
 
 func configure(caption: String, key: String, initial: Vector2, storage: String = "user://native-menu-layout.cfg") -> void:
 	title = caption
-	layout_key = key
+	layout_key = str(LEGACY_LAYOUT_KEYS.get(key,key))
 	settings_path = storage
 	position = initial
 	custom_minimum_size = Vector2(300, 140)
@@ -59,13 +63,62 @@ func configure(caption: String, key: String, initial: Vector2, storage: String =
 	if not settings_path.is_empty():
 		var config := ConfigFile.new()
 		if config.load(settings_path) == OK:
-			position = config.get_value("positions", layout_key, initial)
+			var saved: Variant=config.get_value("positions",layout_key,null) if config.has_section_key("positions",layout_key) else null
+			if saved==null and layout_key!=key:
+				saved=config.get_value("positions",key,null) if config.has_section_key("positions",key) else null
+				if saved is Vector2:
+					config.set_value("positions",layout_key,saved)
+					config.erase_section_key("positions",key)
+					config.save(settings_path)
+			if saved is Vector2:position=saved
 
 func _ready() -> void:
 	add_to_group("native_client_windows")
+	visibility_changed.connect(_window_visibility)
 	if is_instance_valid(close_button): apply_native_theme(MenuStyle.for_tree(get_tree()))
 	get_viewport().size_changed.connect(_clamp)
 	call_deferred("_clamp")
+	if is_visible_in_tree():raise_game_window()
+
+static func front_game_window(root: Control) -> Control:
+	if not is_instance_valid(root) or not root.is_inside_tree():return root
+	var front: Control=null
+	for candidate in root.get_tree().get_nodes_in_group("native_client_windows"):
+		if not candidate is Control or candidate.get_viewport()!=root.get_viewport() or not candidate.is_visible_in_tree() or candidate.get_global_rect().size.x<=0:continue
+		var layer:=window_layer(candidate)
+		var top_layer:=window_layer(front) if front!=null else -2147483648
+		if front==null or layer>top_layer or layer==top_layer and (candidate.z_index>front.z_index or candidate.z_index==front.z_index and candidate.get_index()>front.get_index()):front=candidate
+	return front
+
+static func window_layer(window: Control) -> int:
+	var node: Node=window
+	while node!=null:
+		if node is CanvasLayer:return node.layer
+		node=node.get_parent()
+	return 0
+
+func raise_game_window() -> void:
+	if not is_inside_tree():return
+	var tree:=get_tree()
+	var serial:=int(tree.get_meta("nwn_movable_window_order",20))+1
+	if serial>200:
+		var windows: Array=[]
+		for candidate in tree.get_nodes_in_group("native_client_windows"):
+			if candidate is Control and candidate.get_viewport()==get_viewport():windows.append(candidate)
+		windows.sort_custom(func(a,b):return a.z_index<b.z_index)
+		for index in windows.size():windows[index].z_index=index+20
+		serial=windows.size()+21
+	move_to_front()
+	z_index=serial
+	tree.set_meta("nwn_movable_window_order",serial)
+
+func _window_visibility() -> void:
+	if is_visible_in_tree():raise_game_window()
+	elif dragging:
+		dragging=false
+		drag_device=-1
+		if drag_moved:_save()
+		drag_moved=false
 
 func apply_native_theme(value: Theme) -> void:
 	pending_native_theme=null;pending_native_theme_source=0
@@ -95,18 +148,32 @@ func _apply_pending_native_theme() -> void:
 
 func _title_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		dragging = event.pressed
-		if dragging:
+		if event.pressed and not dragging:
+			dragging = true
+			drag_start = event.global_position
 			drag_offset = event.global_position - global_position
-			move_to_front()
+			drag_moved = false
+			drag_device = event.device
+			raise_game_window()
+			accept_event()
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and dragging:
-		global_position = event.position - drag_offset
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and is_visible_in_tree():
+		var hovered: Control=get_viewport().gui_get_hovered_control()
+		if hovered!=null and (hovered==self or is_ancestor_of(hovered)):raise_game_window()
+	if event is InputEventMouseMotion and dragging and event.device == drag_device:
+		if not drag_moved and event.global_position.distance_to(drag_start)<3.0:return
+		drag_moved = true
+		global_position = event.global_position - drag_offset
 		_clamp()
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and dragging:
+		get_viewport().set_input_as_handled()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and dragging and event.device == drag_device:
 		dragging = false
-		_save()
+		drag_device = -1
+		if drag_moved:
+			_save()
+			get_viewport().set_input_as_handled()
+		drag_moved = false
 
 func _clamp() -> void:
 	position = position.clamp(Vector2.ZERO, (get_viewport_rect().size - size.max(visual_extent)).max(Vector2.ZERO))
@@ -122,4 +189,6 @@ func _save() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT and dragging:
 		dragging = false
-		_save()
+		drag_device = -1
+		if drag_moved:_save()
+		drag_moved = false

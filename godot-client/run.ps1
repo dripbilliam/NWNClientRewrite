@@ -12,7 +12,7 @@ if(-not $Scene){
  $Scene=(Get-Content -LiteralPath $reference -Raw | ConvertFrom-Json).scene
  if(-not (Test-Path -LiteralPath $Scene)){throw 'The external capture was removed; export the room again or pass -Scene'}
 }
-$arguments=@('--path',$project,'--rendering-method','forward_plus','--rendering-driver','vulkan')
+$arguments=@('--path',$project,'--rendering-method','forward_plus','--rendering-driver','vulkan','--scene','res://main.tscn')
 if($Headless){$arguments+='--headless'}
 $arguments+='--'
 if($Scene){$arguments+='--scene='+[IO.Path]::GetFullPath($Scene)}

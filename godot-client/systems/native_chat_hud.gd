@@ -59,6 +59,10 @@ var static_art_keys: Array[String]=[]
 var art_pending:=true
 var art_error:=""
 var art_notice: Label
+var chat_request_id:=0
+var pending_chat: Dictionary={}
+func _notification(what: int) -> void:
+	if what==NOTIFICATION_WM_WINDOW_FOCUS_OUT:drag.clear()
 func configure(ui,catalog,cache_path: String,layout: String) -> void:
 	owner_ui=ui; panel=ui.chat; panel.native_skin=self; frame=ui.inventory.frame_skin; storage=layout
 	preferences=Preferences.load_settings(storage); split=bool(preferences.split); panel.history_limit=int(preferences.history)
@@ -67,7 +71,6 @@ func configure(ui,catalog,cache_path: String,layout: String) -> void:
 	frame.fonts.loaded.connect(font_loaded)
 	var saved:=ConfigFile.new()
 	if not storage.is_empty() and saved.load(storage)==OK:
-		split=bool(saved.get_value("chat-hud","split",false))
 		for index in 2: heights[index]=float(saved.get_value("chat-hud","height%d"%index,134.0)); expanded[index]=heights[index]
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	art_notice=Label.new(); panel.add_child(art_notice); art_notice.position=Vector2(80,24); art_notice.size=Vector2(600,48); art_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; art_notice.mouse_filter=Control.MOUSE_FILTER_IGNORE; art_notice.hide()
@@ -196,7 +199,7 @@ func activate() -> void:
 		phase_started=Time.get_ticks_usec();phases.pane_us=[]
 	for index in 2:
 		var container:=Control.new(); stage.add_child(container); container.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		var background:=Backdrop.new(); container.add_child(background); var handle:=Control.new(); container.add_child(handle); handle.mouse_filter=Control.MOUSE_FILTER_STOP; handle.mouse_default_cursor_shape=Control.CURSOR_VSIZE; handle.gui_input.connect(handle_input.bind(index))
+		var background:=Backdrop.new(); container.add_child(background); var handle:=Control.new(); container.add_child(handle); handle.mouse_filter=Control.MOUSE_FILTER_STOP; handle.focus_mode=Control.FOCUS_ALL; handle.mouse_default_cursor_shape=Control.CURSOR_VSIZE; handle.gui_input.connect(handle_input.bind(index))
 		var handle_image:=NinePatchRect.new(); handle.add_child(handle_image); handle_image.mouse_filter=Control.MOUSE_FILTER_IGNORE; handle_image.patch_margin_left=12; handle_image.patch_margin_right=12
 		var scroll:=ScrollContainer.new(); container.add_child(scroll); scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED; scroll.mouse_filter=Control.MOUSE_FILTER_STOP; scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
 		var body:=Control.new(); scroll.add_child(body); body.mouse_filter=Control.MOUSE_FILTER_PASS; body.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -217,11 +220,15 @@ func activate() -> void:
 	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
 	entry_clip=Control.new(); stage.add_child(entry_clip); entry_clip.clip_contents=true; entry_clip.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	panel.entry.reparent(entry_clip,false); panel.entry.placeholder_text=""; panel.entry.max_length=0; panel.entry.custom_minimum_size=Vector2.ZERO; panel.entry.add_theme_font_size_override("font_size",14)
+	panel.recipient.reparent(entry_clip,false); panel.recipient.custom_minimum_size=Vector2.ZERO; panel.recipient.add_theme_font_size_override("font_size",14); panel.recipient.hide()
 	for state in ["normal","focus","read_only"]: panel.entry.add_theme_stylebox_override(state,StyleBoxEmpty.new())
+	for state in ["normal","focus","read_only"]: panel.recipient.add_theme_stylebox_override(state,StyleBoxEmpty.new())
 	if chat_activation_probe:bind_started=Time.get_ticks_usec()
 	frame.fonts.bind(panel.entry,Plan.FONT)
+	frame.fonts.bind(panel.recipient,Plan.FONT)
 	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
 	panel.entry.minimum_size_changed.connect(place_entry)
+	panel.recipient.minimum_size_changed.connect(place_entry)
 	if chat_activation_probe:phases.prompt_entry_us=Time.get_ticks_usec()-phase_started;phase_started=Time.get_ticks_usec()
 	mode_button=Button.new(); stage.add_child(mode_button); var rect: Rect2=definition.models.ctl_btn_chatmode.bounds
 	if chat_activation_probe:bind_started=Time.get_ticks_usec()
@@ -236,7 +243,7 @@ func activate() -> void:
 	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
 	mode_label.modulate.a=0.65
 	popup=Control.new(); stage.add_child(popup); popup.mouse_filter=Control.MOUSE_FILTER_IGNORE; popup.hide()
-	popup_background=image("",popup); var popup_rect: Rect2=definition.models.ctl_lst_chatmode.bounds; popup_background.position=popup_rect.position; popup_background.size=popup_rect.size
+	popup_background=image("",popup); var popup_rect: Rect2=definition.models.ctl_lst_chatmode.bounds; popup_background.position=popup_rect.position; popup_background.size=popup_rect.size+Vector2(0,17)
 	if chat_activation_probe:bind_started=Time.get_ticks_usec()
 	frame.art.bind(popup_background,"ctl_lst_chatmode","texture",true,"")
 	if chat_activation_probe:direct_bind_us+=Time.get_ticks_usec()-bind_started
@@ -283,11 +290,13 @@ func activate() -> void:
 func refresh_modes() -> void:
 	if not layout_ready or closed: return
 	revision=int(owner_ui.text.revision)
-	for index in mode_options.size(): mode_options[index].text=owner_ui.text.raw({"strRef":int(Prompt.MODES[index].ref)})
-	mode_label.text=owner_ui.text.raw({"strRef":int(Prompt.MODES[mode].ref)})+":"
+	for index in mode_options.size(): mode_options[index].text=str(Prompt.MODES[index].get("label",owner_ui.text.raw({"strRef":int(Prompt.MODES[index].ref)})))
+	mode_label.text=str(Prompt.MODES[mode].get("label",owner_ui.text.raw({"strRef":int(Prompt.MODES[mode].ref)})))+":"
+	panel.recipient.visible=mode==5
+	place_entry()
 	if is_instance_valid(context) and context.active and not context.pending: fill_context()
 func set_split(value: bool) -> void:
-	if closed or split==value: return
+	if closed or not value or split==value: return
 	split=value
 	preferences.split=value
 	preferences.mask_combined=Categories.ALL; preferences.mask_left=Categories.LEFT; preferences.mask_right=Categories.RIGHT
@@ -444,31 +453,32 @@ func place_entry() -> void:
 	if closed or not is_instance_valid(entry_clip): return
 	# Preserve font pixels when the engine edit's intrinsic height exceeds the
 	# original16px text region; clip and center, never scale the glyphs.
-	panel.entry.size=Vector2(entry_clip.size.x,maxf(entry_clip.size.y,panel.entry.get_combined_minimum_size().y))
-	panel.entry.position=Vector2(0,(entry_clip.size.y-panel.entry.size.y)*0.5)
+	var recipient_width:=minf(160.0,maxf(0.0,entry_clip.size.x*0.4)) if mode==5 else 0.0
+	panel.recipient.position=Vector2.ZERO
+	panel.recipient.size=Vector2(recipient_width,maxf(entry_clip.size.y,panel.recipient.get_combined_minimum_size().y))
+	panel.entry.size=Vector2(maxf(1.0,entry_clip.size.x-recipient_width),maxf(entry_clip.size.y,panel.entry.get_combined_minimum_size().y))
+	panel.entry.position=Vector2(recipient_width,(entry_clip.size.y-panel.entry.size.y)*0.5)
 func restore_scroll() -> void:
 	var restore: Array=scroll_restore; scroll_restore=[]
 	if closed or restore.is_empty(): return
 	for index in 2:
 		var range_control: VScrollBar=panes[index].scroll.get_v_scroll_bar(); range_control.value=range_control.max_value if bool(restore[0][index]) else float(restore[1][index])
 func select_mode(index: int) -> void:
+	if not pending_chat.is_empty(): return
 	if closed or index<0 or index>=Prompt.MODES.size(): return
 	mode=index; popup.hide(); refresh_modes()
 func toggle_modes() -> void:
-	if closed: return
+	if closed or not pending_chat.is_empty(): return
 	popup.visible=not popup.visible
 func focused(active: bool) -> void:
 	if closed or not owner_ui.presentation_enabled: return
 	panel.request.emit({"kind":"native-panel","panel":"chat-focus","open":active,"mode":mode})
 func submit(value: String) -> void:
-	if closed or not owner_ui.presentation_enabled: return
-	var message:=Prompt.dispatch(value,mode,player_roster(),owner_ui.text)
-	# Original87b0d0 clears/releases before dispatch for every submitted line.
-	panel.entry.clear(); panel.entry.release_focus()
+	if closed or not owner_ui.presentation_enabled or not pending_chat.is_empty() or value.is_empty(): return
+	if not is_instance_valid(owner_ui.desktop) or not owner_ui.desktop.objects.has(owner_ui.desktop.actor_id): return
+	var message:=Prompt.dispatch(value,mode,player_roster(),owner_ui.text,panel.recipient.text)
 	if message.has("error") or message.has("error_ref"):
 		if message.has("error_ref"):
-			# Original87b0d0 clears/releases the prompt before dispatch; missing
-			# account lookup queues local combat feedback106/TLK61899.
 			var rich:=preload("res://systems/native_data/rich_text.gd").parse(owner_ui.text.raw({"strRef":int(message.error_ref)}))
 			panel.append_message({"system":true,"category":"combat-feedback","color":"#ffff01","rich":rich,"text":rich.text})
 			if is_instance_valid(notice): notice.hide()
@@ -476,7 +486,28 @@ func submit(value: String) -> void:
 		if is_instance_valid(notice): notice.text=str(message.error); notice.show()
 		return
 	if is_instance_valid(notice): notice.hide()
-	if not message.is_empty(): panel.request.emit(message)
+	if message.is_empty(): return
+	if message.get("kind","")!="chat":
+		panel.entry.clear(); panel.entry.release_focus(); panel.request.emit(message); return
+	chat_request_id+=1
+	message.requestId=chat_request_id
+	pending_chat={"requestId":chat_request_id,"generation":owner_ui.generation,"areaId":owner_ui.area_id,"actorId":owner_ui.controlled_id,"text":value}
+	panel.entry.editable=false
+	panel.recipient.editable=false
+	if is_instance_valid(mode_button):mode_button.disabled=true
+	panel.request.emit(message)
+func chat_result(message: Dictionary) -> bool:
+	if pending_chat.is_empty() or int(message.get("requestId",-1))!=int(pending_chat.requestId) or int(message.get("generation",-1))!=int(pending_chat.generation) or int(message.get("areaId",-1))!=int(pending_chat.areaId) or int(message.get("actorId",-1))!=int(pending_chat.actorId):return false
+	if message.get("accepted",false):panel.entry.clear()
+	elif is_instance_valid(notice):notice.text=str(message.get("text","Chat request could not be sent."));notice.show()
+	retire_pending_chat()
+	panel.entry.grab_focus()
+	return true
+func retire_pending_chat() -> void:
+	pending_chat.clear()
+	if is_instance_valid(panel) and is_instance_valid(panel.entry):panel.entry.editable=true
+	if is_instance_valid(panel) and is_instance_valid(panel.recipient):panel.recipient.editable=true
+	if is_instance_valid(mode_button):mode_button.disabled=false
 func prime_tell(name: String) -> void:
 	if closed or not owner_ui.presentation_enabled: return
 	var was_focused: bool=panel.entry.has_focus(); panel.entry.text='/t "'+name+'" '; panel.entry.grab_focus(); panel.entry.caret_column=panel.entry.text.length()
@@ -487,11 +518,17 @@ func prime_player(account: String) -> void:
 	if was_focused: focused(true)
 func entry_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
-		panel.entry.clear(); panel.entry.release_focus()
+		panel.entry.release_focus()
 		if is_instance_valid(popup): popup.hide()
 		panel.entry.accept_event()
 func handle_input(event: InputEvent,index: int) -> void:
 	if closed: return
+	if event is InputEventKey and event.pressed and event.keycode in [KEY_UP,KEY_DOWN]:
+		heights[index]=clampf(float(heights[index])+(16.0 if event.keycode==KEY_UP else -16.0),67.0,maxf(67.0,panel.size.y*0.65))
+		if heights[index]>67.1:expanded[index]=heights[index]
+		place();save();options_window.reflect(preferences)
+		panes[index].handle.accept_event()
+		return
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_RIGHT and event.pressed:
 		if event.shift_pressed: open_settings()
 		else: open_context(index,event.global_position)
@@ -539,7 +576,7 @@ func open_settings() -> void:
 func apply_preferences(value: Dictionary) -> void:
 	if closed: return
 	var prior_split:=split
-	preferences=Preferences.clean(value); split=bool(preferences.split); panel.history_limit=int(preferences.history); panel.trim_history(); scroll_restore.clear()
+	preferences=Preferences.clean(value); split=true; panel.history_limit=200; panel.trim_history(); scroll_restore.clear()
 	if split!=prior_split:
 		preferences.mask_combined=Categories.ALL; preferences.mask_left=Categories.LEFT; preferences.mask_right=Categories.RIGHT; save(); options_window.reflect(preferences)
 	drag.clear()
@@ -562,7 +599,7 @@ func jump_latest() -> void:
 	if not get_tree().process_frame.is_connected(restore_scroll): get_tree().process_frame.connect(restore_scroll,CONNECT_ONE_SHOT)
 func original_preset() -> void:
 	if closed: return
-	heights=[134.0,134.0]; expanded=heights.duplicate(); preferences=Preferences.DEFAULTS.duplicate(); split=false; panel.history_limit=200; panel.trim_history()
+	heights=[134.0,134.0]; expanded=heights.duplicate(); preferences=Preferences.DEFAULTS.duplicate(); split=true; panel.history_limit=200; panel.trim_history()
 	if layout_ready: rebuild_admission(); apply_message_font(); place(); render_history()
 	save()
 func _input(event: InputEvent) -> void:
@@ -583,6 +620,8 @@ func blocks_pointer(point: Vector2) -> bool:
 			if control.visible and control.get_global_rect().has_point(point): return true
 	return false
 func reset() -> void:
+	retire_pending_chat()
+	panel.entry.clear();panel.recipient.clear()
 	epoch+=1; drag.clear(); scroll_restore.clear(); mode=2
 	admitted=[{},{}]
 	if layout_ready: context.reset(); popup.hide(); notice.hide(); refresh_modes(); render_history()
@@ -594,6 +633,7 @@ func save() -> void:
 	config.save(storage)
 func close() -> void:
 	if closed: return
+	retire_pending_chat()
 	closed=true; epoch+=1; drag.clear()
 	art_pending=false
 	if is_instance_valid(art_notice):art_notice.hide()
@@ -609,7 +649,7 @@ func close() -> void:
 			for record in pane.replies.values(): record.button.close(); record.button.queue_free()
 			pane.replies.clear()
 			pane.bar.close(); pane.background.close(); frame.art.unbind(pane.handle_image); frame.fonts.unbind(pane.label)
-		for control in [panel.entry,mode_label,notice]+mode_options: frame.fonts.unbind(control)
+		for control in [panel.entry,panel.recipient,mode_label,notice]+mode_options: frame.fonts.unbind(control)
 		prompt_background.close(); frame.art.unbind(popup_background)
 		for pair in frame.button_geometry.get(mode_button.get_instance_id(),{}).get("styles",{}).values(): frame.art.unbind(pair[0])
 		if is_instance_valid(stage): stage.hide()

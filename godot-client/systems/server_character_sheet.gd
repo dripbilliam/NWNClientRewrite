@@ -11,6 +11,12 @@ var view_id := -1
 var page := 0
 var state: Dictionary = {}
 var tabs: Array = []
+var navigation: HBoxContainer
+var fallback_heading: Label
+var fallback_controls := false
+var tab_atlas_target: TextureRect
+var tab_atlas_art
+var tab_fallback_glyphs: Array=[]
 var body: VBoxContainer
 var image_nodes: Dictionary = {}
 var entry_nodes: Dictionary = {}
@@ -28,7 +34,7 @@ var selection_timings:={"count":0,"last_ms":0.0,"max_ms":0.0,"text_ms":0.0,"sele
 func setup(storage: String = "user://native-menu-layout.cfg") -> void:
 	configure("Character Record", "character-sheet", Vector2(110, 80), storage)
 	custom_minimum_size = Vector2(740, 650)
-	var navigation := HBoxContainer.new(); content.add_child(navigation)
+	navigation = HBoxContainer.new(); content.add_child(navigation)
 	for index in 3:
 		var button := Button.new(); button.text = ["Character", "Skills", "Feats"][index]; button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(func():
@@ -58,11 +64,82 @@ func present_if_ready() -> void:
 	if not wanted: hide(); return
 	if is_instance_valid(native_skin):
 		if not native_skin.failure.is_empty():
+			if not fallback_controls:
+				restore_fallback_controls()
+				if not state.is_empty(): render(); return
 			window_column.show()
 			if is_instance_valid(native_skin.stage): native_skin.stage.hide()
 			notice.text="Original character sheet unavailable: "+native_skin.failure
 		elif not native_skin.display_ready(): hide(); return
 	show(); move_to_front()
+
+func restore_fallback_controls() -> void:
+	if fallback_controls: return
+	fallback_controls=true
+	if is_instance_valid(native_skin.stage):
+		fallback_heading=Label.new(); fallback_heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL; title_bar.add_child(fallback_heading)
+		var fallback_close:=Button.new(); fallback_close.text="×"; fallback_close.focus_mode=Control.FOCUS_NONE; fallback_close.pressed.connect(close_sheet); title_bar.add_child(fallback_close)
+		if navigation.get_child_count()==0:
+			tabs.clear()
+			for index in 3:
+				var button:=Button.new(); button.text=["Character","Skills","Feats"][index]; button.focus_mode=Control.FOCUS_NONE
+				button.pressed.connect(func():
+					if view_id>=0: request.emit({"kind":"sheet-page","viewId":view_id,"page":index}))
+				navigation.add_child(button); tabs.append(button)
+			level_button=Button.new(); level_button.text="Level Up"; level_button.focus_mode=Control.FOCUS_NONE; level_button.pressed.connect(func():level_requested.emit()); navigation.add_child(level_button); level_button.hide()
+	request_tab_atlas()
+
+func request_tab_atlas() -> void:
+	if tab_atlas_target!=null or not is_instance_valid(native_skin) or not is_instance_valid(native_skin.frame) or not is_instance_valid(native_skin.frame.art): return
+	tab_atlas_art=native_skin.frame.art
+	tab_atlas_target=TextureRect.new(); tab_atlas_target.hide(); add_child(tab_atlas_target)
+	if not tab_atlas_art.loaded.is_connected(tab_atlas_loaded): tab_atlas_art.loaded.connect(tab_atlas_loaded)
+	if not tab_atlas_art.image_failed.is_connected(tab_atlas_failed): tab_atlas_art.image_failed.connect(tab_atlas_failed)
+	tab_atlas_art.bind(tab_atlas_target,"gui_char_icons")
+	if tab_atlas_target.texture!=null: tab_atlas_loaded("gui_char_icons",tab_atlas_target.texture,{})
+	elif tab_atlas_art.failed.has("gui_char_icons"): tab_atlas_failed("gui_char_icons",str(tab_atlas_art.failed["gui_char_icons"]))
+
+func tab_atlas_failed(key: String,_reason: String) -> void:
+	if key!="gui_char_icons" or not fallback_controls or not is_instance_valid(tab_atlas_art): return
+	var fallback_keys: Array=["ir_examine","ir_skillself","ir_attack"]
+	for index in mini(3,tabs.size()):
+		var button: Button=tabs[index]
+		if button.has_meta("record_tab_atlas") or index<tab_fallback_glyphs.size() and is_instance_valid(tab_fallback_glyphs[index]): continue
+		var glyph:=TextureRect.new(); glyph.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; glyph.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; glyph.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		button.add_child(glyph); glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		while tab_fallback_glyphs.size()<=index:tab_fallback_glyphs.append(null)
+		tab_fallback_glyphs[index]=glyph
+		tab_atlas_art.bind(glyph,fallback_keys[index])
+		if glyph.texture!=null:button.text=""
+
+func tab_atlas_loaded(key: String,texture: Texture2D,_bounds: Dictionary) -> void:
+	var fallback_keys: Array=["ir_examine","ir_skillself","ir_attack"]
+	var fallback_index:=fallback_keys.find(key)
+	if fallback_index>=0 and fallback_index<tabs.size() and fallback_index<tab_fallback_glyphs.size() and is_instance_valid(tab_fallback_glyphs[fallback_index]) and not tabs[fallback_index].has_meta("record_tab_atlas") and texture!=null:
+		tabs[fallback_index].text=""
+		return
+	if key!="gui_char_icons" or not fallback_controls or texture==null: return
+	var source:=texture.get_image()
+	if source==null or source.is_empty(): return
+	# The shared raster has its lower-left texture origin; recordImage exposed
+	# top-left canvas rows before the old tabImage crop and Skills rotation.
+	source.flip_y()
+	var regions: Array=[[0,0,80,25,false],[80,0,24,60,true],[0,25,80,14,false]]
+	for index in mini(3,tabs.size()):
+		var data: Array=regions[index]
+		var region:=Rect2i(roundi(float(data[0])*source.get_width()/128.0),roundi(float(data[1])*source.get_height()/64.0),roundi(float(data[2])*source.get_width()/128.0),roundi(float(data[3])*source.get_height()/64.0))
+		if region.end.x>source.get_width() or region.end.y>source.get_height() or region.size.x<=0 or region.size.y<=0: continue
+		var cropped:=source.get_region(region)
+		if bool(data[4]):
+			var rotated:=Image.create(cropped.get_height(),cropped.get_width(),false,Image.FORMAT_RGBA8)
+			for y in cropped.get_height():
+				for x in cropped.get_width(): rotated.set_pixel(y,cropped.get_width()-1-x,cropped.get_pixel(x,y))
+			cropped=rotated
+		var button: Button=tabs[index]
+		if button.has_meta("record_tab_atlas"): continue
+		if index<tab_fallback_glyphs.size() and is_instance_valid(tab_fallback_glyphs[index]):tab_fallback_glyphs[index].queue_free();tab_fallback_glyphs[index]=null
+		var glyph:=TextureRect.new(); glyph.texture=ImageTexture.create_from_image(cropped); glyph.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; glyph.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; glyph.mouse_filter=Control.MOUSE_FILTER_IGNORE; button.add_child(glyph); glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		button.text=""; button.set_meta("record_tab_atlas",true)
 
 func close_sheet() -> void:
 	save_scrolls(); wanted = false; hide(); request.emit({"kind": "sheet-close"})
@@ -85,6 +162,7 @@ func receive(message: Dictionary) -> void:
 			if not wanted or int(message.viewId) != view_id or not image_nodes.has(str(message.key)): return
 			var texture: Texture2D = Images.png(str(message.image), 1024)
 			if texture != null: image_nodes[str(message.key)].texture = texture; present_if_ready()
+			elif is_instance_valid(native_skin): native_skin.report_diagnostic("ui.character-record-icon-unavailable","Character record image could not be decoded",str(native_skin.current_icon_bindings().get(str(message.key),message.key)))
 		"sheet-description":
 			if not wanted or int(message.get("viewId",-1))!=view_id or int(message.get("page",-1))!=page: return
 			var id:=int(message.get("entryId",-1))
@@ -110,10 +188,11 @@ func render() -> void:
 	clear_body()
 	for row in state.get("entries",[]): entry_data[int(row.entryId)]=row
 	var model: Dictionary = state.model
-	if is_instance_valid(native_skin) and native_skin.layout_ready: native_skin.render()
+	if is_instance_valid(native_skin) and native_skin.layout_ready and native_skin.failure.is_empty(): native_skin.render()
 	else:
 		set_caption("Character Record, " + str(model.get("name", "—")))
-		for index in tabs.size(): tabs[index].disabled = index == page
+		if is_instance_valid(fallback_heading): fallback_heading.text=title
+		for index in tabs.size(): tabs[index].disabled = false
 		if page == 0: statistics(model)
 		else: entries()
 		level_button.visible = page == 0 and wanted and bool(state.get("canLevelUp", false))
@@ -127,7 +206,10 @@ func statistics(model: Dictionary) -> void:
 	var overview := HBoxContainer.new(); body.add_child(overview)
 	overview.add_child(picture("portrait", Vector2(128, 200)))
 	var right := VBoxContainer.new(); right.size_flags_horizontal = Control.SIZE_EXPAND_FILL; overview.add_child(right)
-	right.add_child(Text.label({"text": str(model.get("race", "")) + ", " + str(model.get("alignment", ""))}, 520))
+	var identity_parts: PackedStringArray=[]
+	for part in [model.get("race", ""),model.get("alignment", "")]:
+		if not str(part).is_empty(): identity_parts.append(str(part))
+	right.add_child(Text.label({"text": ", ".join(identity_parts) if not identity_parts.is_empty() else "—"}, 520))
 	for line in model.get("classes", []): right.add_child(Text.label({"text": str(line)}, 520))
 	var grid := GridContainer.new(); grid.columns = 4; right.add_child(grid)
 	for ability in model.abilities:
@@ -148,7 +230,10 @@ func statistics(model: Dictionary) -> void:
 	for row in model.details:
 		var spans: Array = [{"text": str(row.label).strip_edges().trim_suffix(":") + ": "}] if row.get("label", "") != "" else []
 		spans.append_array(row.get("parts", [{"text": value(row.get("value"))}]))
-		details.add_child(Text.label({"spans": spans}, 680))
+		var detail:=Text.label({"spans": spans}, 680)
+		if row.get("tone","")=="damage":
+			var inset:=MarginContainer.new(); inset.add_theme_constant_override("margin_left",20); details.add_child(inset); inset.add_child(detail)
+		else: details.add_child(detail)
 
 func entries() -> void:
 	var split := HBoxContainer.new(); body.add_child(split)

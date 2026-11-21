@@ -4,6 +4,7 @@ const ParticleEmitter=preload("res://systems/native_render/particle_emitter.gd")
 const ModelReference=preload("res://systems/native_render/model_reference.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const MeshProvenance=preload("res://tools/native_parity/visibility/mesh_provenance.gd")
+const Orientation=preload("res://systems/native_data/model_orientation.gd")
 static var _completion_diagnostics:=OS.get_cmdline_user_args().has("--publication-completion-diagnose")
 # Direct original-data scene assembly. Physical parts/instances stay private;
 # immutable mesh/texture/material resources are shared by the native pool.
@@ -61,7 +62,8 @@ func install_step(maximum_units: int=8,budget_us: int=1500) -> Dictionary:
 			installed=true;_installation.clear();_end_install_capture();return {"status":"ready","units":units}
 		state.index=index+1;units+=1
 		if state.phase=="parents":
-			if int(model.nodes[index].parent)>=0:state.parents[int(model.nodes[index].parent)]=true
+			var parent:=int(model.nodes[index].get("parentIndex",model.nodes[index].get("parent",-1)))
+			if parent>=0:state.parents[parent]=true
 			continue
 		if not _install_part(state.bundle,state.pool,model,index,state.parents,state.basis):
 			_installation.clear();_end_install_capture();return {"status":"failed","reason":failure,"units":units}
@@ -85,24 +87,24 @@ func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents:
 	var part: Node3D=MeshInstance3D.new() if compact else Node3D.new()
 	part.name = "part_"+str(index); part.set_meta("native_part_name",row.name); part.set_meta("native_part_index",index)
 	if not row.mesh.is_empty(): part.set_meta("native_mesh_source",MeshProvenance.capture(bundle,row,index))
-	part.set_meta("native_part_parent",int(row.parent)); part.set_meta("native_part_area",row.mesh.get("native_area") if (int(row.flags)&0x21)==0x21 or int(row.flags)==0 and not row.mesh.is_empty() else 0.0)
-	var parent := int(row.parent)
+	part.set_meta("native_part_parent",int(row.get("parentIndex",row.get("parent",-1)))); part.set_meta("native_part_area",row.mesh.get("native_area") if str(row.get("type",""))=="trimesh" else 0.0)
+	var parent := int(row.get("parentIndex",row.get("parent",-1)))
 	if parent >= index or parent < -1: part.free(); failure = "Invalid physical native model parent"; _clear_parts(); return false
 	if parent == -1: add_child(part)
 	else: parts[parent].add_child(part)
 	parts.append(part)
 	part.position = Vector3(row.position[0],row.position[2],-row.position[1])
-	var q := Quaternion(row.orientation[0],row.orientation[1],row.orientation[2],row.orientation[3])
-	if q.length_squared() < 1e-16: q = Quaternion.IDENTITY
-	part.quaternion = basis * q.normalized() * basis.inverse(); part.scale = Vector3.ONE * float(row.scale)
+	var decoded: Array=Orientation.decode(row.get("orientation"))
+	var q:=Quaternion(decoded[0],decoded[1],decoded[2],decoded[3])
+	part.quaternion = basis * q * basis.inverse(); part.scale = Vector3.ONE * float(row.scale)
 	for feature in row.features:
 		if not limitations.has(feature): limitations.append(feature)
 	if row.features.has("light") and not row.get("light",{}).is_empty():
-		var light:=ModelPointLight.new(); light.set_meta("native_enhanced_light",pool.native_lighting and not pool.unshaded); light.configure(row.light); part.add_child(light)
-	if row.has("reference"):
+		var light:=ModelPointLight.new(); light.set_meta("native_enhanced_light",pool.native_lighting and not pool.unshaded); light.set_meta("native_legacy_light",pool.native_legacy_lighting); light.configure(row.light); part.add_child(light)
+	if row.has("reference") and (not row.has("type") or str(row.type)=="reference"):
 		var reference:=ModelReference.new(); reference.name="native_reference"; reference.original_header=row.reference; reference.origin_resource=str(bundle.get("resource_name",model.name)); part.add_child(reference)
 	if row.has("emitter"):
-		var emitter:=ParticleEmitter.new(); emitter.name="native_emitter"; emitter.original_properties=row.emitter; emitter.channel_asset=model.get("rig_asset",{}); emitter.physical_part=index
+		var emitter:=ParticleEmitter.new(); emitter.name="native_emitter"; emitter.original_properties=row.emitter; emitter.channel_asset=model.get("rig_asset",{}); emitter.physical_part=index; emitter.authored_model_name=str(model.name); emitter.authored_node_name=str(row.name)
 		emitter.origin_resource=str(bundle.get("resource_name",model.name))
 		emitter.source_model_flags=int(model.get("classification_flags",-1))
 		var texture_name:=str(row.emitter.get("texture","")).to_lower(); var emitter_raster: Dictionary=bundle.get("emitter_textures",{}).get(texture_name,{})
@@ -112,8 +114,8 @@ func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents:
 		emitter.source_path=NodePath("../"+str(part.get_path_to(self))); part.add_child(emitter)
 	# Reference nodes are already constructed in source-index order; their
 	# parent emitter exists because physical parents always precede children.
-	if row.has("reference") and int(row.parent)>=0:
-		var parent_emitter=parts[int(row.parent)].get_node_or_null("native_emitter")
+	if row.has("reference") and (not row.has("type") or str(row.type)=="reference") and int(row.get("parentIndex",row.get("parent",-1)))>=0:
+		var parent_emitter=parts[int(row.get("parentIndex",row.get("parent",-1)))].get_node_or_null("native_emitter")
 		if parent_emitter!=null:parent_emitter.reference_paths.append(parent_emitter.get_path_to(part.get_node("native_reference")))
 	var data: Dictionary = row.mesh
 	if phase_began>0: install_timings.parts_ms=float(install_timings.get("parts_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
@@ -121,12 +123,17 @@ func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents:
 	if not data.render:
 		var hit=pool.hidden_geometry(str(bundle.sha256),index,data)
 		if phase_began>0: install_timings.hidden_ms=float(install_timings.get("hidden_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0
-		if hit==null: failure=pool.failure; _clear_parts(); return false
+		if hit==null:
+			# A hidden trimesh with no valid triangles has no pick surface in the
+			# original placeable path; the rest of its model remains available.
+			if pool.failure=="Native hidden hit geometry has no valid triangles":return true
+			failure=pool.failure; _clear_parts(); return false
 		# Retain hit data on the existing physical part: scenery does not
 		# need a new scene node just to support a possible later flag change.
 		part.set_meta("native_pick_geometry",hit); pick_surfaces.append(part)
 		return true
-	var mesh = pool.geometry(str(bundle.sha256),index,data)
+	var rigid_lease: bool=not bool(row.get("skinned",false)) and not row.features.has("skin") and pool.has_method("renderer_geometry_token") and pool.has_method("prepare_geometry")
+	var mesh = pool.prepare_geometry(str(bundle.sha256),index,data,false,false) if rigid_lease else pool.geometry(str(bundle.sha256),index,data)
 	if phase_began>0: install_timings.geometry_ms=float(install_timings.get("geometry_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0; phase_began=Time.get_ticks_usec()
 	if mesh == null: failure = pool.failure; _clear_parts(); return false
 	var raster := {}; var texture_names: Array = data.textures
@@ -143,6 +150,7 @@ func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents:
 	if not compact: geometry.name="mesh"
 	if binding_began>0: install_timings.node_create_ms=float(install_timings.get("node_create_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0; binding_began=Time.get_ticks_usec()
 	geometry.mesh=mesh
+	if rigid_lease:geometry.set_meta("native_renderer_geometry_token",pool.renderer_geometry_token(row,str(bundle.sha256),index,data))
 	if binding_began>0: install_timings.mesh_bind_ms=float(install_timings.get("mesh_bind_ms",0.0))+(Time.get_ticks_usec()-binding_began)/1000.0; binding_began=Time.get_ticks_usec()
 	geometry.material_override=material
 	geometry.set_meta("native_mesh_source",part.get_meta("native_mesh_source"))
@@ -150,7 +158,7 @@ func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents:
 	if mesh.has_meta("native_pick_shape"): geometry.set_meta("native_pick_shape",mesh.get_meta("native_pick_shape"))
 	geometry.set_meta("native_pick_geometry",mesh.get_meta("native_pick_geometry"))
 	geometry.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if data.shadow else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	geometry.visible = data.render and float(row.alpha)>0
+	geometry.visible = data.render and pool.model_material_options(row).visible
 	if not compact: part.add_child(geometry)
 	meshes.append(geometry)
 	if phase_began>0: install_timings.mesh_nodes_ms=float(install_timings.get("mesh_nodes_ms",0.0))+(Time.get_ticks_usec()-phase_began)/1000.0

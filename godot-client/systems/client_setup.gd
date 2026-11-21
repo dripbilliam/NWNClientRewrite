@@ -18,8 +18,16 @@ var save_button: Button
 var reload_button: Button
 var busy := false
 var picker: FileDialog
+var install_picker: FileDialog
+var install_folder: LineEdit
+var install_browse: Button
 
 func setup() -> void:
+	add_child(label("Neverwinter Nights installation"))
+	install_folder = LineEdit.new(); install_folder.editable = false; install_folder.focus_mode = Control.FOCUS_NONE; add_child(install_folder)
+	var install_actions := HBoxContainer.new(); add_child(install_actions)
+	install_browse = button(install_actions, "Choose installation…", func(): install_picker.popup_centered_ratio(0.7))
+	install_picker = FileDialog.new(); install_picker.title = "Neverwinter Nights installation"; install_picker.access = FileDialog.ACCESS_FILESYSTEM; install_picker.file_mode = FileDialog.FILE_MODE_OPEN_DIR; install_picker.use_native_dialog = true; install_picker.dir_selected.connect(select_install); add_child(install_picker)
 	add_child(label("Mods folder"))
 	folder = LineEdit.new(); folder.editable = false; folder.focus_mode = Control.FOCUS_NONE; folder.placeholder_text = "Select the NWN Workshop content folder"; add_child(folder)
 	var actions := HBoxContainer.new(); add_child(actions)
@@ -60,6 +68,10 @@ func scan(directory: String) -> void:
 	if not wanted or status.get("resourcesLocked", true): return
 	request_id += 1; scrub(); set_busy(true); notice.text = "Reading installed mods…"
 	request.emit({"kind":"client-settings","operation":"scan","requestId":request_id,"directory":directory})
+func select_install(directory: String) -> void:
+	if not wanted or busy or status.get("installLocked",true): return
+	request_id += 1; set_busy(true); notice.text = "Selecting installation…"
+	request.emit({"kind":"client-settings","operation":"choose-install","requestId":request_id,"directory":directory})
 func save_settings() -> void:
 	if view_id < 0 or save_button.disabled: return
 	var values: Dictionary = {}
@@ -80,14 +92,19 @@ func receive(message: Dictionary) -> void:
 	elif message.kind == "settings-commit" and int(message.viewId) == int(staged.get("id", -1)) and staged.rows.size() == int(staged.count):
 		view_id = int(staged.id); status = staged.status; rows = staged.rows; staged.clear(); render(); notice.text = "Disconnect to change mods." if status.resourcesLocked else "Settings ready."
 	elif message.kind == "settings-notice": notice.text = str(message.text); set_busy(false)
+	elif message.kind == "settings-install-selected":
+		status.installDirectory = str(message.directory); install_folder.text = str(message.directory); install_folder.tooltip_text = install_folder.text
+		notice.text = "Installation selected"; set_busy(false)
 func set_busy(value: bool) -> void:
 	busy = value; save_button.disabled = busy or view_id < 0; reload_button.disabled = busy
 	browse.disabled = busy or status.get("resourcesLocked", true); defaults.disabled = browse.disabled or str(status.get("defaultModsDirectory", "")).is_empty()
+	install_browse.disabled = busy or status.get("installLocked",true)
 	key.editable = not busy and status.get("protectedStorageAvailable", false) and not remove_key.button_pressed; remove_key.disabled = busy or not status.get("hasSavedCdKey", false)
 	if mods.get_root() != null:
 		for item in mods.get_root().get_children():
 			if item.get_metadata(0) != null: item.set_editable(0, not busy and not status.get("resourcesLocked", true))
 func render() -> void:
+	install_folder.text = str(status.get("installDirectory","")); install_folder.tooltip_text = install_folder.text; install_browse.disabled = bool(status.get("installLocked",true))
 	folder.text = str(status.modsDirectory); folder.tooltip_text = folder.text; browse.disabled = bool(status.resourcesLocked); defaults.disabled = browse.disabled or str(status.defaultModsDirectory).is_empty()
 	key_status.text = "CD key saved for this Windows user." if status.hasSavedCdKey else "No CD key saved."; remove_key.disabled = not status.hasSavedCdKey; scrub()
 	key.editable = bool(status.protectedStorageAvailable); key.placeholder_text = "Enter a replacement to change the saved key" if status.hasSavedCdKey else "Enter a CD key to save"

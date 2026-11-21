@@ -21,6 +21,8 @@ var requested:=false
 var closed:=false
 var failure:=""
 var stage: Control
+var status_line: Label
+var memory_reopen: Button
 var tab_root: Control
 var known_scroll: ScrollContainer
 var memory_scroll: ScrollContainer
@@ -45,7 +47,8 @@ var leaves: Dictionary={}
 var extras: Dictionary={}
 var expanded: Dictionary={}
 var memory_expanded: Dictionary={}
-var scroll_values: Dictionary={}
+var display_scrolls: Dictionary={}
+var display_key:=""
 var last_level:=""
 var last_family:=""
 var repainting:=false
@@ -175,8 +178,11 @@ func activate() -> void:
 	layout_ready=true; panel.window_column.hide(); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); panel.custom_minimum_size=definition.main_size; panel.size=definition.main_size
 	stage=control(panel,Rect2(Vector2.ZERO,definition.main_size)); image("pnl_spellbook",stage); heading(panel,stage,"pnl_spellbook"); tab_root=control(stage)
 	known_scroll=scroll(stage,definition.known_view); known_tree=control(known_scroll)
+	panel.meta.reparent(stage,false); panel.meta.position=Vector2(18,definition.main_size.y-108); panel.meta.size=Vector2(240,30)
+	status_line=Label.new(); stage.add_child(status_line); status_line.position=Vector2(18,definition.main_size.y-42); status_line.size=Vector2(definition.main_size.x-36,35); status_line.hide()
+	memory_reopen=Button.new(); stage.add_child(memory_reopen); memory_reopen.text="Memorize Spells"; memory_reopen.position=Vector2(18,definition.main_size.y-72); memory_reopen.pressed.connect(func(): memory_wanted=true; memory.show(); memory_reopen.hide()); memory_reopen.hide()
 	var item:=new_window(text_owner.raw({"strRef":0xd02a}),"spell-memorization",panel.position+Vector2(365,0)); memory=item.window
-	memory_stage=item.stage; memory_scroll=scroll(memory_stage,definition.memory_view); memory_tree=control(memory_scroll); memory.close_requested.connect(func():memory_wanted=false)
+	memory_stage=item.stage; memory_scroll=scroll(memory_stage,definition.memory_view); memory_tree=control(memory_scroll); memory.close_requested.connect(func():memory_wanted=false; memory_reopen.show())
 	item=new_window("Spell variants","spell-family",panel.position+Vector2(30,30)); family=item.window; family_stage=item.stage; family_scroll=scroll(family_stage,definition.memory_view); family_tree=control(family_scroll)
 	family.close_requested.connect(func():if panel.wanted: panel.request.emit({"kind":"book-family-close","viewId":panel.view_id}))
 	var back: Button=frame.create_button(Plan.entry(definition.models,"pb_scrl_up",Vector2(318,18)),item.stage,models); back.tooltip_text="Back to parent spell"; back.pressed.connect(func():if panel.wanted: panel.request.emit({"kind":"book-family-back","viewId":panel.view_id}))
@@ -198,12 +204,12 @@ func activate() -> void:
 func owner_visibility() -> void:
 	if not layout_ready or closed: return
 	if not panel.visible:
-		memory.hide(); family.hide(); help_window.hide(); action_window.hide(); memory_wanted=true
+		memory.hide(); family.hide(); help_window.hide(); action_window.hide(); memory_wanted=true; memory_reopen.hide()
 func clear(parent: Node) -> void:
 	for child in parent.get_children(): parent.remove_child(child); child.queue_free()
 func begin_render() -> void:
 	if closed or not layout_ready: return
-	scroll_values.known=known_scroll.scroll_vertical; scroll_values.memory=memory_scroll.scroll_vertical
+	if not display_key.is_empty(): display_scrolls[display_key]={"known":known_scroll.scroll_vertical,"memory":memory_scroll.scroll_vertical}
 	for bar in bars:
 		if is_instance_valid(bar): bar.close(); bar.queue_free()
 	bars.clear(); class_tabs.clear(); level_tabs.clear(); roots.clear(); leaves.clear(); extras.clear(); clear(tab_root); clear(known_tree); clear(memory_tree); clear(family_tree)
@@ -212,7 +218,7 @@ func make_bar(owner: ScrollContainer,resource: String,parent: Control,offset: Ve
 func tab(entry: Dictionary,parent: Control,selected: bool,icon: String) -> Button:
 	var button:=Button.new(); parent.add_child(button); var value:=entry.duplicate(true)
 	if not icon.is_empty(): value.overrides={"gui_replace01":icon}
-	frame.button(button,value,parent,models,false,true); button.toggle_mode=true; button.set_pressed_no_signal(selected); return button
+	frame.button(button,value,parent,models,false,true); button.focus_mode=Control.FOCUS_ALL; button.toggle_mode=true; button.set_pressed_no_signal(selected); return button
 func root_button(parent: Control,origin: Vector2,key: String,caption: String,icon: String,opened: bool,callback: Callable) -> Button:
 	var button:=tab(Plan.entry(definition.models,"ctl_treebtn_root",origin),parent,opened,icon); roots[key]=button
 	var label: Label=frame.create_label({"rect":Rect2(Vector2(74,6)-definition.models.ctl_treebtn_root.bounds.position,Vector2(250,34)),"caption":{"AurString_Font":Plan.FONT,"AurString_AlignV":0.5}},button); label.text=caption
@@ -223,6 +229,15 @@ func refresh_local() -> void:
 func render() -> void:
 	if closed or not layout_ready or panel.state.is_empty(): return
 	var state: Dictionary=panel.state; var view: int=panel.view_id; var selected_class: String=""
+	if not str(state.get("error","")).is_empty():
+		status_line.text=str(state.error); status_line.show(); tab_root.hide(); known_scroll.hide(); panel.meta.hide(); memory.hide(); memory_reopen.hide(); family.hide(); return
+	if state.classes.is_empty():
+		status_line.text="This character has no class spellbooks."; status_line.show(); tab_root.hide(); known_scroll.hide(); panel.meta.hide(); memory.hide(); memory_reopen.hide(); family.hide(); return
+	tab_root.show(); known_scroll.show()
+	panel.meta.visible=state.metas.size()>1
+	status_line.visible=not bool(state.prepared)
+	if status_line.visible: status_line.text=str(int(state.get("usesLeft",0)))+" casts remaining at this level"
+	memory_reopen.visible=bool(state.prepared) and not memory_wanted
 	for index in 8:
 		var cls: Dictionary=state.classes[index] if index<state.classes.size() else {}; var button:=tab(definition.class_tabs[index],tab_root,not cls.is_empty() and int(cls.index)==int(state.classIndex),str(cls.get("icon",""))); class_tabs[index]=button; button.disabled=cls.is_empty(); button.tooltip_text=str(cls.get("label",""))
 		if not cls.is_empty():
@@ -233,7 +248,9 @@ func render() -> void:
 		var button:=tab(definition.level_tabs[index],tab_root,index==int(state.level),Plan.LEVEL_ICONS[index]); level_tabs[index]=button; button.tooltip_text=text_owner.raw({"strRef":Plan.LEVEL_REFS[index]}); button.pressed.connect(func():if panel.wanted and panel.view_id==view and level_tabs.get(index)==button: panel.query({"level":index}))
 	var scope:=str(state.classIndex)+":"+str(state.level); var origin: Vector2=definition.known_tree-definition.known_view.position
 	for group in state.get("groups",[]):
-		var mask:=int(group.metamagic); var key:=scope+":"+str(mask); var open: bool=expanded.get(key,mask==0); var option: Dictionary={}
+		var mask:=int(group.metamagic)
+		if mask!=int(state.metamagic):continue
+		var key:=scope+":"+str(mask); var open: bool=expanded.get(key,true); var option: Dictionary={}
 		for row in Plan.META:
 			if int(row.mask)==mask: option=row; break
 		root_button(known_tree,origin,"known:"+key,text_owner.raw({"strRef":int(option.get("label",0x104b8))}),Plan.LEVEL_ICONS[int(state.level)] if mask==0 else str(option.get("icon","")),open,func(value):expanded[key]=value; refresh_local())
@@ -242,11 +259,9 @@ func render() -> void:
 			for index in group.entries.size(): leaf(group.entries[index],planned.rows[index],known_tree)
 		origin=planned.next_origin
 	known_tree.custom_minimum_size=Vector2(331,maxf(1,origin.y)); make_bar(known_scroll,"ctl_wizardpage",stage,definition.page_origin)
-	var level_key:=str(state.classIndex)+":"+str(state.level)
-	if last_level!=level_key: memory_expanded[level_key]=true; last_level=level_key
 	origin=definition.memory_tree-definition.memory_view.position
 	for group in state.get("memoryGroups",[]):
-		var level:=int(group.level); var key:=str(state.classIndex)+":"+str(level); var open: bool=memory_expanded.get(key,false)
+		var level:=int(group.level); var key:=str(level); var open: bool=memory_expanded.get(key,true)
 		root_button(memory_tree,origin,"memory:"+key,text_owner.raw({"strRef":Plan.LEVEL_REFS[level]}),Plan.LEVEL_ICONS[level],open,func(value):memory_expanded[key]=value; refresh_local())
 		var planned:=Plan.memory_slots(definition.models,group.entries.size() if open else 0,origin)
 		if open:
@@ -258,13 +273,20 @@ func render() -> void:
 	if not family_title.is_empty():
 		var plan:=Plan.known_rows(definition.models,state.family.size(),Vector2(-20,-32))
 		for index in state.family.size(): leaf(state.family[index],plan.rows[index],family_tree)
+		if state.family.is_empty():
+			var note:=Label.new(); family_tree.add_child(note); note.text="No valid variants are available in the current spell data."; note.position=Vector2(8,8); note.size=Vector2(300,56); note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		family_tree.custom_minimum_size=Vector2(331,maxf(1,plan.next_origin.y))
 		make_bar(family_scroll,"pnl_spellmemoriz",family_stage,Vector2.ZERO)
 		if last_family!=family_title: family.move_to_front()
 	last_family=family_title
-	known_scroll.set_deferred("scroll_vertical",int(scroll_values.get("known",0))); memory_scroll.set_deferred("scroll_vertical",int(scroll_values.get("memory",0))); select_entry()
+	display_key="%s:%s:%s"%[state.classIndex,state.level,state.metamagic]
+	var saved: Dictionary=display_scrolls.get(display_key,{})
+	known_scroll.set_deferred("scroll_vertical",int(saved.get("known",0))); memory_scroll.set_deferred("scroll_vertical",int(saved.get("memory",0))); select_entry()
+func reset_view_state() -> void:
+	display_scrolls.clear(); display_key=""
 func leaf(row: Dictionary,entry: Dictionary,parent: Control) -> void:
 	var id:=int(row.entryId); var button: Button=panel.widgets[id]; frame.button(button,entry,parent,models,false,true); button.toggle_mode=true; button.caption.show(); button.counter.hide(); button.secondary_image.hide(); leaves[id]={"button":button,"entry":entry}
+	button.focus_mode=Control.FOCUS_ALL
 	frame.font_style(button.caption,{"AurString_Font":Plan.FONT}); button.caption.autowrap_mode=TextServer.AUTOWRAP_OFF; button.caption.clip_text=true
 	button.caption.text=str(row.label)
 	var view: int=panel.view_id; var help: Button=frame.create_button(entry.help,parent,models); help.tooltip_text="Spell description"; help.pressed.connect(func():if panel.wanted and panel.view_id==view and panel.widgets.get(id)==button: show_description(id))
@@ -273,10 +295,11 @@ func leaf(row: Dictionary,entry: Dictionary,parent: Control) -> void:
 	extras[id]={"help":help,"prepare":prepare}; layout_leaf(id)
 func memory_slot(row: Dictionary,entry: Dictionary) -> void:
 	var id:=int(row.entryId); var button: Button=panel.widgets[id]; frame.button(button,entry,memory_tree,models,false); button.caption.hide(); button.counter.hide(); button.secondary_image.hide(); leaves[id]={"button":button,"entry":entry}; layout_leaf(id)
+	button.focus_mode=Control.FOCUS_ALL
 	button.image.modulate.a=1.0 if bool(row.ready) else 0.4
 	# The existing explicit action strip is available through the description.
 	var view: int=panel.view_id
-	button.context_requested.connect(func(_point):if panel.wanted and panel.view_id==view and panel.widgets.get(id)==button: show_actions(id))
+	button.context_requested.connect(func(_point):if panel.wanted and panel.view_id==view and panel.widgets.get(id)==button and int(row.spellId)>=0: panel.selected_id=id; panel.operation("book-clear"))
 func layout_leaf(id: int) -> void:
 	if not leaves.has(id): return
 	var item: Dictionary=leaves[id]; var button: Button=item.button; var entry: Dictionary=item.entry; var local: Vector2=entry.offset-button.position

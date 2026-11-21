@@ -7,7 +7,7 @@ static func sample(model: Dictionary,clip: String,time: float) -> Dictionary:
 	if not str(posed.error).is_empty(): return posed
 	var transforms: Array[Transform3D]=[]; var output: Dictionary={"error":"","faces":[],"resource":""}
 	for node in posed.model.get("nodes",[]):
-		var p: Array=node.get("position",[]); var q: Array=node.get("orientation",[]); var parent:=int(node.get("parent",-1))
+		var p: Array=node.get("position",[]); var q: Array=node.get("orientation",[]); var parent:=int(node.get("parentIndex",node.get("parent",-1)))
 		if p.size()!=3 or q.size()!=4 or parent < -1 or parent>=transforms.size(): return {"error":"Invalid original GUI quad hierarchy"}
 		var pose:=Transform3D(Basis(Quaternion(q[0],q[1],q[2],q[3]).normalized()).scaled(Vector3.ONE*float(node.get("scale",1))),Vector3(p[0],p[1],p[2]))
 		if parent>=0: pose=transforms[parent]*pose

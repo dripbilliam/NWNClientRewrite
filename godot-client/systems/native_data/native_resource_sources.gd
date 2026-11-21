@@ -29,7 +29,10 @@ static func build(resolution: Dictionary,install: String,profile: String,cache: 
 			var source_entry: Variant=row.get("entry")
 			var manifest_hash:=str(row.get("manifest",""))
 			if not source_entry is Dictionary or str(source_entry.get("hash","")).length()!=40 or manifest_hash.length()!=40:return {"error":"Admitted NWSync archive has no verified identity"}
-			var source_identity: String="nwsync:"+manifest_hash+":"+str(source_entry.hash)
+			# The old server context registers HAKs by the requested resource
+			# name. A later duplicate name rebuilds that table in place; it does
+			# not acquire another priority slot merely because its blob changed.
+			var source_identity: String="nwsync:"+kind+":"+str(row.get("name","")).to_lower()
 			if seen_paths.has(source_identity):continue
 			seen_paths[source_identity]=true
 			var source_order:=int(groups.get(base,0));groups[base]=source_order+1

@@ -34,13 +34,21 @@ var icon_catalog
 var ui_assets
 var icon_warm_targets: Array=[]
 var prewarmed_page_keys: Array=[]
+var reported_failures: Dictionary={}
+var failure_resource: String=""
+func report_diagnostic(code: String,reason: String,resource: String) -> void:
+	var key:=code+":"+resource+":"+reason
+	if reported_failures.has(key): return
+	reported_failures[key]=true
+	if text_owner!=null and text_owner.diagnostics is Array and text_owner.diagnostics.size()<100:
+		text_owner.diagnostics.append({"code":code,"reason":reason,"resource":resource})
 func configure(target,catalog,cache_path: String,text,painter) -> void:
 	panel=target; panel.native_skin=self; frame=painter; text_owner=text; icon_catalog=catalog; ui_assets=catalog.ui_asset_owner()
 	assets=Assets.new(); add_child(assets); assets.configure(catalog); assets.cache_directory=cache_path; assets.maximum_workers=2; assets.completed.connect(prepared)
 	panel.visibility_changed.connect(func():if not panel.visible: stop_resize())
 	for name in Plan.RESOURCES:
 		var id: int=assets.request(name,2002,"actor-model" if name=="scrollbar_simple" else "mdl-original")
-		if id<0: failure=str(assets.failure); return
+		if id<0: failure=str(assets.failure); failure_resource=name; report_diagnostic("ui.character-record-art-unavailable",failure,name); return
 		jobs[id]=name
 	if frame.fonts.has_method("request"):
 		for font in ["fnt_galahad14","ttf fnt_default 14"]: frame.fonts.request(font)
@@ -51,15 +59,16 @@ func _process(_delta: float) -> void:
 	if panel.wanted and not requested: requested=true
 	if panel.wanted and not panel.visible:
 		if failure.is_empty(): failure=art_failure()
+		if not failure.is_empty(): report_diagnostic("ui.character-record-art-unavailable",failure,failure_resource)
 		panel.present_if_ready()
 func prepared(id: int,result: Dictionary) -> void:
 	if closed or not jobs.has(id): return
 	var name: String=jobs[id]; jobs.erase(id)
-	if not str(result.get("error","")).is_empty(): failure=name+": "+str(result.error); return
+	if not str(result.get("error","")).is_empty(): failure=name+": "+str(result.error); failure_resource=name; report_diagnostic("ui.character-record-art-unavailable",str(result.error),name); return
 	models[name]=result.value
 	if not jobs.is_empty() or not failure.is_empty(): return
 	definition=Plan.parse(models)
-	if not str(definition.error).is_empty(): failure=str(definition.error); return
+	if not str(definition.error).is_empty(): failure=str(definition.error); failure_resource="character-sheet-layout"; report_diagnostic("ui.character-record-art-unavailable",failure,failure_resource); return
 	activate()
 func sheet_buttons() -> Array:
 	var result: Array=[panel.close_button,panel.level_button,footer]+panel.tabs+panel.entry_nodes.values()
@@ -81,25 +90,25 @@ func art_failure() -> String:
 	var font_failures: Variant=frame.fonts.get("failed")
 	if font_failures is Dictionary:
 		for name in ["fnt_galahad14","ttf fnt_default 14"]:
-			if font_failures.has(name): return "Original character-sheet font could not be prepared: "+name
+			if font_failures.has(name): failure_resource=name; return "Original character-sheet font could not be prepared: "+name
 	for key in prewarmed_page_keys:
-		if frame.art.failed.has(key): return "Original character-sheet page could not be prepared: "+str(key)
+		if frame.art.failed.has(key): failure_resource=str(key); return "Original character-sheet page could not be prepared: "+str(key)
 	for data in image_requests.values():
 		var target: Object=data.target.get_ref()
-		if is_instance_valid(target) and not target.is_queued_for_deletion() and frame.art.failed.has(data.key): return "Original character-sheet artwork could not be prepared: "+str(data.key)
+		if is_instance_valid(target) and not target.is_queued_for_deletion() and frame.art.failed.has(data.key): failure_resource=str(data.key); return "Original character-sheet artwork could not be prepared: "+str(data.key)
 	for button in sheet_buttons():
 		if not is_instance_valid(button) or button.is_queued_for_deletion(): continue
 		var geometry: Dictionary=frame.button_geometry.get(button.get_instance_id(),{})
 		for style in geometry.get("styles",{}).values():
 			var key: String=frame.art.models.model_key(str(geometry.resource),str(style[1]),geometry.overrides)
-			if frame.art.failed.has(key): return "Original character-sheet control could not be prepared: "+key
+			if frame.art.failed.has(key): failure_resource=key; return "Original character-sheet control could not be prepared: "+key
 	for bar in bars:
-		if is_instance_valid(bar) and not bar.failure.is_empty(): return "Original character-sheet scrollbar could not be prepared: "+bar.failure
+		if is_instance_valid(bar) and not bar.failure.is_empty(): failure_resource="scrollbar"; return "Original character-sheet scrollbar could not be prepared: "+bar.failure
 	if frame.art.get("ui_assets")!=null:
 		for name in current_icon_bindings().values():
-			if icon_catalog.raster_location(name).is_empty(): return "Original character-sheet icon is missing: "+name
+			if icon_catalog.raster_location(name).is_empty(): failure_resource=name; report_diagnostic("ui.character-record-icon-unavailable","Original character-sheet icon is missing",name); return "Original character-sheet icon is missing: "+name
 			var reason: String=ui_assets.failure("raster",name)
-			if not reason.is_empty(): return "Original character-sheet icon could not be prepared: "+name+": "+reason
+			if not reason.is_empty(): failure_resource=name; report_diagnostic("ui.character-record-icon-unavailable",reason,name); return "Original character-sheet icon could not be prepared: "+name+": "+reason
 	return ""
 func display_ready() -> bool:
 	if closed or not failure.is_empty() or not layout_ready or panel.state.is_empty(): return false
@@ -210,7 +219,10 @@ func statistics() -> void:
 	picture("portrait",Rect2(1,0,128,200),page_root)
 	# The shield is a separate original texture layer; never stretch the tall page.
 	image("pnl_chrsht_char",page_root,Rect2(3,211,32,32),"gui_shield",Rect2(3,211,32,32))
-	var lines: String=str(model.get("race",""))+", "+str(model.get("alignment",""))+"\n"
+	var identity_parts: PackedStringArray=[]
+	for part in [model.get("race",""),model.get("alignment","")]:
+		if not str(part).is_empty(): identity_parts.append(str(part))
+	var lines: String=(", ".join(identity_parts) if not identity_parts.is_empty() else "—")+"\n"
 	for item in model.get("classes",[]): lines+=str(item)+"\n"
 	label("race",lines,Plan.box(layout,"racealignclass0","racealignclass1"),page_root)
 	var names: Dictionary={"STR":["strength",0x87],"DEX":["dexterity",0x85],"CON":["constitution",0x84],"INT":["intelligence",0x86],"WIS":["wisdom",0x88],"CHA":["charisma",0x83]}
@@ -228,13 +240,15 @@ func statistics() -> void:
 	for pair in [["armorclass",panel.value(model.get("armorClass"))],["hitpoints",panel.value(model.get("currentHP"))+"/"+panel.value(model.get("maximumHP"))],["lac",text_owner.raw({"strRef":0x141})],["lhp",text_owner.raw({"strRef":0x140})],["experience",str(model.get("labels",{}).get("experience","Experience"))+": "+panel.value(model.get("experience"))],["nextlevel",str(model.get("labels",{}).get("nextLevel","Next level"))+": "+panel.value(model.get("nextExperience"))]]:
 		label(pair[0],pair[1],Plan.box(layout,pair[0]+"0",pair[0]+"1"),page_root)
 	var details:=scroll("details","ctl_chrsht_lstbx",page_root,layout.hooks.list,"ttf fnt_default 14",maxf(1,page_root.size.y-layout.hooks.list.y-PAGE_FOOTER_INSET))
-	var text:=Text.label({},details.size.x); details.add_child(text); text.custom_minimum_size.x=details.size.x; text.size_flags_horizontal=Control.SIZE_EXPAND_FILL; frame.font_style(text,{"AurString_Font":"ttf fnt_default 14"})
-	var spans: Array=[]
+	var rows:=VBoxContainer.new(); rows.add_theme_constant_override("separation",0); details.add_child(rows); rows.custom_minimum_size.x=details.size.x; rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	for row in model.get("details",[]):
-		if not spans.is_empty(): spans.append({"text":"\n"})
+		var spans: Array=[]
 		if str(row.get("label","")).length()>0: spans.append({"text":str(row.label).strip_edges().trim_suffix(":")+": "})
 		spans.append_array(row.get("parts",[{"text":panel.value(row.get("value"))}]))
-	Text.set_text(text,{"spans":spans})
+		var text:=Text.label({"spans":spans},details.size.x-(20 if row.get("tone","")=="damage" else 0)); text.size_flags_horizontal=Control.SIZE_EXPAND_FILL; frame.font_style(text,{"AurString_Font":"ttf fnt_default 14"})
+		if row.get("tone","")=="damage":
+			var inset:=MarginContainer.new(); inset.add_theme_constant_override("margin_left",20); rows.add_child(inset); inset.add_child(text)
+		else: rows.add_child(text)
 func entries() -> void:
 	var layout: Dictionary=definition.models.pnl_chrsht_skils
 	var description:=scroll("description","ctl_chrsht_desc",page_root,layout.hooks.description,"fnt_galahad14")

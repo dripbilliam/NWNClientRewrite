@@ -18,6 +18,7 @@ var epoch:=-1
 var active:=false
 var dismissed:=false
 var error:=""
+var fatal_graphics_error:=false
 var screen_id:=-1
 var chosen_row:=-1
 var art_resource:=""
@@ -101,13 +102,21 @@ func replace_image() -> void:
 	image=TextureRect.new(); image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED; image.mouse_filter=Control.MOUSE_FILTER_IGNORE; veil.add_child(image); veil.move_child(image,1)
 func begin(generation: int,area: String,entry: Dictionary={}) -> void:
 	modal_lease.retire()
-	epoch=generation; active=true; dismissed=false; error=""; milestones={}; started=Time.get_ticks_msec(); stats.shown+=1
+	epoch=generation; active=true; dismissed=false; error=""; fatal_graphics_error=false; milestones={}; started=Time.get_ticks_msec(); stats.shown+=1
 	# A new target makes delayed archive-image callbacks harmless on transition.
 	replace_image(); art_resource=""; art_key=""; art_error=table_error; chosen_row=-1; update_art_notice()
 	screen_id=int(entry.get("loadingScreen",-1)); heading.text="Loading "+area; status.text="Preparing terrain…"; details.text=""; progress.value=0; veil.show(); select_art()
 	modal_lease.activate([epoch])
+func show_error(generation: int,reason: String) -> void:
+	if generation!=epoch or not is_instance_valid(veil):return
+	if error.is_empty():stats.errors+=1
+	error=reason;fatal_graphics_error=true;active=true;dismissed=false
+	status.text="Unable to finish loading this area"
+	details.text=reason
+	veil.show();modal_lease.activate([epoch])
 func advance(generation: int,values: Dictionary) -> void:
 	if generation!=epoch or not active: return
+	if fatal_graphics_error:return
 	if milestones==values: return
 	milestones=values.duplicate(true)
 	var errors: Array=values.get("errors",[])
@@ -124,11 +133,11 @@ func advance(generation: int,values: Dictionary) -> void:
 		if history.size()<32: history.append({"generation":epoch,"elapsed_ms":Time.get_ticks_msec()-started,"dismissed_early":dismissed,"milestones":milestones.duplicate(true)})
 		modal_lease.retire();active=false; veil.hide()
 func dismiss_early() -> void:
-	if active and not dismissed: modal_lease.retire();dismissed=true; stats.early_dismissals+=1; veil.hide()
+	if active and not dismissed and not fatal_graphics_error: modal_lease.retire();dismissed=true; stats.early_dismissals+=1; veil.hide()
 func blocks_input() -> bool: return active and not dismissed
 func reset() -> void:
 	modal_lease.retire()
-	epoch=-1; active=false; dismissed=false; error=""; art_error=""; table_error=""; art_key=""; art_resource=""; veil.hide(); image.texture=null; art_notice.hide(); table_job=-1; ui=null; table={}
+	epoch=-1; active=false; dismissed=false; error=""; fatal_graphics_error=false; art_error=""; table_error=""; art_key=""; art_resource=""; veil.hide(); image.texture=null; art_notice.hide(); table_job=-1; ui=null; table={}
 func snapshot() -> Dictionary:
 	var result:=stats.duplicate(true); result.merge({"active":active,"generation":epoch,"dismissed":dismissed,"error":error,"art_error":art_error,"art_resource":art_resource,"art_key":art_key,"milestones":milestones.duplicate(true),"history":history.duplicate(true),"shortcut":"Ctrl+Shift+L"}); return result
 func _input(event: InputEvent) -> void:

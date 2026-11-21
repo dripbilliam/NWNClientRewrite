@@ -28,8 +28,9 @@ func receive(message: Dictionary,actor: Dictionary)->Dictionary:
 
 func prepare(ticket: Dictionary,actor: Dictionary,soundset: Dictionary)->Dictionary:
 	if not current(ticket,actor):return {"ready":false,"reason":"Creature voice request is stale."}
-	if not soundset.get("count") is int or not soundset.get("entries") is Array or int(soundset.count)<0 or int(soundset.count)>1000000 or soundset.entries.size()!=int(soundset.count):return {"ready":false,"reason":"Decoded SSF entries are unavailable."}
+	if not soundset.get("count") is int or not soundset.get("table") is int or not soundset.get("bytes") is PackedByteArray or int(soundset.count)<0 or int(soundset.count)>1000000 or int(soundset.table)<0 or int(soundset.table)>soundset.bytes.size() or int(soundset.count)*4>soundset.bytes.size()-int(soundset.table):return {"ready":false,"reason":"Decoded SSF entries are unavailable."}
 	var entry: Variant=Ssf.entry(soundset,int(ticket.code))
+	if entry is Dictionary and entry.has("error"):return {"ready":false,"reason":str(entry.error),"resourceError":true}
 	if not entry is Dictionary:return {"ready":true,"caption":{},"audio":{}}
 	var caption: Dictionary={}
 	var str_ref: int=int(entry.get("strRef",4294967295))

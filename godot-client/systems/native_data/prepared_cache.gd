@@ -2,10 +2,18 @@ extends RefCounted
 # Content-addressed native Variant data, never serialized Objects/scripts.
 # Runtime asset data is kept outside the source workspace.
 const REVISION := "native-assets-3"
-const MAX_BYTES := 256 * 1024 * 1024
+const MAX_BYTES := 256 * 1024 * 1024 - 48
+const MAX_DISK_BYTES := 2 * 1024 * 1024 * 1024
 static var publication_mutex:=Mutex.new()
 static var verified_publications: Dictionary={}
 static var path_publications: Dictionary={}
+static var disk_mutex:=Mutex.new()
+static var trim_mutex:=Mutex.new()
+static var disk_inventories: Dictionary={}
+static var disk_recent_hits: Dictionary={}
+static var disk_removed_paths: Dictionary={}
+static var source_mutex:=Mutex.new()
+static var source_fingerprint:=""
 var directory := ""
 var failure := ""
 var last_save: Dictionary={}
@@ -28,8 +36,48 @@ static func digest(bytes: PackedByteArray) -> String:
 	var context := HashingContext.new(); context.start(HashingContext.HASH_SHA256)
 	if not bytes.is_empty(): context.update(bytes)
 	return context.finish().hex_encode()
+static func processor_source_identity() -> String:
+	# The prepared model cache followed the transitive parser imports. Use the
+	# four current cache producers as roots, not unrelated UI/render scripts.
+	# PreworkStore also hashes source, but it preloads this cache.
+	source_mutex.lock()
+	if source_fingerprint.is_empty():
+		var sources: Array=[]
+		var pending: Array[String]=["res://systems/native_data/asset_service.gd","res://systems/native_data/palette_texture.gd","res://systems/native_data/gui_palette_texture.gd","res://systems/native_render/resource_pool.gd"]
+		var seen: Dictionary={}
+		var imports:=RegEx.create_from_string("(?:preload|load)\\s*\\(\\s*['\"](res://[^'\"]+\\.gd)['\"]\\s*\\)")
+		var unreadable:=false
+		while not pending.is_empty():
+			var path: String=pending.pop_back()
+			if seen.has(path):continue
+			seen[path]=true
+			var file:=FileAccess.open(path,FileAccess.READ)
+			if file==null:
+				unreadable=true;break
+			var length:=file.get_length()
+			var bytes:=file.get_buffer(length)
+			if bytes.size()!=length:
+				unreadable=true;break
+			sources.append([path,digest(bytes)])
+			for match_row in imports.search_all(bytes.get_string_from_utf8()):
+				var dependency:=match_row.get_string(1)
+				if not seen.has(dependency):pending.append(dependency)
+		var checkout_sources:=DirAccess.dir_exists_absolute(ProjectSettings.globalize_path("res://systems/native_data"))
+		if unreadable and (not sources.is_empty() or checkout_sources or OS.has_feature("editor")):
+			# In a source checkout, an unreadable dependency must not reuse an
+			# older prepared result. Exported PCKs can omit script source; their
+			# explicit decoder revisions and engine identity still select the key.
+			source_fingerprint="unreadable:"+str(OS.get_process_id())+":"+str(Time.get_ticks_usec())
+		elif unreadable:
+			source_fingerprint="packaged:"+REVISION
+		else:
+			sources.sort_custom(func(a,b):return str(a[0])<str(b[0]))
+			source_fingerprint=digest(var_to_bytes(sources))
+	var identity:=source_fingerprint
+	source_mutex.unlock()
+	return identity
 static func key(source_sha: String, decoder: String) -> String:
-	return (REVISION + ":" + str(Engine.get_version_info().hash) + ":" + decoder + ":" + source_sha).sha256_text()
+	return (REVISION + ":" + str(Engine.get_version_info().hash) + ":" + processor_source_identity() + ":" + decoder + ":" + source_sha).sha256_text()
 func filename(identity: String) -> String:
 	if directory.is_empty() or identity.length() != 64 or not identity.is_valid_hex_number(): return ""
 	return directory.path_join(identity + ".bin")
@@ -63,18 +111,39 @@ func load_data(identity: String, source_sha: String, decoder: String) -> Diction
 	failure = ""; var path := filename(identity)
 	if path.is_empty() or not FileAccess.file_exists(path): return {}
 	var file := FileAccess.open(path,FileAccess.READ)
-	if file == null: failure = "Cannot read prepared native data"; return {}
-	if file.get_length() < 48 or file.get_buffer(4).get_string_from_ascii() != "NWNC" or file.get_32() != 1: failure = "Invalid native cache header"; return {}
+	if file == null: return discard_bad_entry(path,"Cannot read prepared native data")
+	if file.get_length() < 48 or file.get_buffer(4).get_string_from_ascii() != "NWNC" or file.get_32() != 1: file.close(); return discard_bad_entry(path,"Invalid native cache header")
 	var size := int(file.get_64()); var checksum := file.get_buffer(32)
-	if size < 1 or size > MAX_BYTES or file.get_length() != size + 48: failure = "Invalid native cache length"; return {}
+	if size < 1 or size > MAX_BYTES or file.get_length() != size + 48: file.close(); return discard_bad_entry(path,"Invalid native cache length")
 	var payload := file.get_buffer(size)
-	if payload.size() != size or digest(payload).hex_decode() != checksum: failure = "Native cache checksum mismatch"; return {}
+	if payload.size() != size or digest(payload).hex_decode() != checksum: file.close(); return discard_bad_entry(path,"Native cache checksum mismatch")
 	var value: Variant = bytes_to_var(payload)
 	if not value is Dictionary or value.get("revision") != REVISION or value.get("source_sha") != source_sha or value.get("decoder") != decoder or not value.get("value") is Dictionary:
-		failure = "Prepared native data identity mismatch"; return {}
+		file.close(); return discard_bad_entry(path,"Prepared native data identity mismatch")
 	file.seek(0); var stamp:=file.get_buffer(48).hex_encode()+":"+str(file.get_length())
+	file.close()
 	publication_mutex.lock(); remember_publication(path,stamp,source_sha,decoder); publication_mutex.unlock()
+	# The validated value is independent of eviction accounting. A busy
+	# maintenance pass may miss this recency update without blocking the reader.
+	if disk_mutex.try_lock():
+		disk_recent_hits[path]=Time.get_unix_time_from_system()
+		disk_removed_paths.erase(path)
+		if disk_inventories.has(directory):
+			var inventory: Dictionary=disk_inventories[directory]
+			if inventory.has(path):
+				var entry: Dictionary=inventory[path]
+				entry.at=disk_recent_hits[path]
+		disk_mutex.unlock()
 	return value.value
+func discard_bad_entry(path: String,reason: String)->Dictionary:
+	failure=reason
+	DirAccess.remove_absolute(path)
+	disk_mutex.lock()
+	disk_recent_hits.erase(path)
+	if disk_inventories.has(directory):disk_inventories[directory].erase(path)
+	else:disk_removed_paths[path]=true
+	disk_mutex.unlock()
+	return {}
 func save_data(identity: String, source_sha: String, decoder: String, value: Dictionary) -> bool:
 	last_save={"serialization_ms":0.0,"checksum_ms":0.0,"write_ms":0.0,"flush_ms":0.0,"publication_ms":0.0,"bytes":0}
 	if not configured_writes_enabled(): failure="Optional prepared cache writes disabled for measurement"; last_save.skipped=true; return false
@@ -103,7 +172,52 @@ func save_data(identity: String, source_sha: String, decoder: String, value: Dic
 	# A concurrent repair must not delete a valid entry published after its
 	# earlier failed read. Serialize only the final repair/publication step;
 	# serialization, checksums and temporary-file writes remain concurrent.
-	began=Time.get_ticks_usec(); var result:=publish(temporary,path,identity,source_sha,decoder); last_save.publication_ms=(Time.get_ticks_usec()-began)/1000.0; return result
+	began=Time.get_ticks_usec(); var result:=publish(temporary,path,identity,source_sha,decoder); last_save.publication_ms=(Time.get_ticks_usec()-began)/1000.0
+	if result:trim(path)
+	return result
+func trim(published: String) -> void:
+	# The old PreparedModelCache scanned disk once, then accounted for each
+	# publication and evicted oldest modified entries beyond its 2 GiB budget.
+	# A cold directory scan can take much longer than an asset read. Serialize
+	# trims separately so readers can still record cache hits while it runs.
+	trim_mutex.lock()
+	disk_mutex.lock()
+	var needs_scan: bool=not disk_inventories.has(directory)
+	disk_mutex.unlock()
+	if needs_scan:
+		var entries: Dictionary={}
+		var folder:=DirAccess.open(directory)
+		if folder!=null:
+			for name in folder.get_files():
+				var stem:=str(name).trim_suffix(".bin")
+				if not str(name).ends_with(".bin") or stem.length()!=64 or stem.to_lower()!=stem or not stem.is_valid_hex_number():continue
+				var path:=directory.path_join(str(name))
+				var file:=FileAccess.open(path,FileAccess.READ)
+				if file!=null:entries[path]={"size":file.get_length(),"at":FileAccess.get_modified_time(path)}
+		disk_mutex.lock()
+		for path in entries.keys():
+			if disk_recent_hits.has(path):entries[path].at=disk_recent_hits[path]
+			if disk_removed_paths.has(path):entries.erase(path)
+		if not disk_inventories.has(directory):disk_inventories[directory]=entries
+		for path in disk_removed_paths.keys():
+			if str(path).begins_with(directory+"/"):disk_removed_paths.erase(path)
+	else:disk_mutex.lock()
+	var inventory: Dictionary=disk_inventories[directory]
+	var file:=FileAccess.open(published,FileAccess.READ)
+	if file!=null:inventory[published]={"size":file.get_length(),"at":Time.get_unix_time_from_system()}
+	disk_removed_paths.erase(published)
+	var total:=0
+	for entry in inventory.values():total+=int(entry.size)
+	if total>MAX_DISK_BYTES:
+		var oldest:=inventory.keys()
+		oldest.sort_custom(func(a,b):return float(inventory[a].at)<float(inventory[b].at))
+		for path in oldest:
+			if total<=MAX_DISK_BYTES:break
+			var size:=int(inventory[path].size)
+			DirAccess.remove_absolute(str(path))
+			inventory.erase(path);disk_recent_hits.erase(path);total-=size
+	disk_mutex.unlock()
+	trim_mutex.unlock()
 func publish(temporary: String, path: String, identity: String, source_sha: String, decoder: String) -> bool:
 	if not path_publication: return publish_locked(temporary,path,identity,source_sha,decoder,true)
 	# Only a single destination needs serial repair/rename. Protect the small

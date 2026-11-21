@@ -8,6 +8,15 @@ var rules
 var feats
 var errors: Array=[]
 var always_subradial:=false
+static func replicated_innate_error(actor: Dictionary) -> String:
+	# network_spell_menu.js::replicatedSpellActor rejects an absent ability
+	# before it publishes either the cast or special-ability radial provider.
+	var abilities: Variant=actor.get("playerState",{}).get("specialAbilities",[])
+	if abilities==null:return ""
+	if not abilities is Array:return "Replicated innate ability record is unavailable"
+	for ability in abilities:
+		if not ability is Dictionary:return "Replicated innate ability record is unavailable"
+	return ""
 func player_flags(actor: Dictionary) -> int:
 	return int(actor.get("playerState",{}).get("playerFlags",0))
 func activity(actor: Dictionary,id: int) -> Dictionary:
@@ -93,13 +102,21 @@ func class_page(ctx: Dictionary,index: int,start: int=0) -> Array:
 	if remaining>8: result.append({"slot":7,"next":(limit-reserved+start)&65535,"classIndex":index})
 	return result
 func innate_page(actor: Dictionary,start: int=0) -> Array:
-	var pool: Array=actor.get("playerState",{}).get("specialAbilities",[])
+	var invalid: String=replicated_innate_error(actor)
+	if not invalid.is_empty():
+		if not errors.has(invalid):errors.append(invalid)
+		return []
+	var ability_records: Variant=actor.get("playerState",{}).get("specialAbilities",[])
+	var pool: Array=ability_records if ability_records is Array else []
 	var result: Array=[]; var seen: Dictionary={}; var at:=maxi(0,start); var index:=0
 	while at<pool.size() and index<7:
+		if not pool[at] is Dictionary:
+			if not errors.has("Replicated innate ability record is unavailable"):errors.append("Replicated innate ability record is unavailable")
+			return []
 		var source: Dictionary=pool[at]; var id:=int(source.get("spell",-1))
 		if seen.has(id): at+=2; continue # Original duplicate branch advances twice.
 		seen[id]=true; var slot: int=INNATE_SLOTS[index]; index+=1; at+=1
-		if rules.row("spells",id).is_empty(): continue # Invalid physical slot stays empty.
+		if rules.casting_spell(id)==null: continue # Invalid physical slot stays empty.
 		var level:=int(source.get("level",0))&255; var uses:=0
 		for value in pool:
 			if int(value.get("spell",-1))==id and (int(value.get("level",0))&255)==level and Rules.flag(value.get("state",false)): uses=(uses+1)&255

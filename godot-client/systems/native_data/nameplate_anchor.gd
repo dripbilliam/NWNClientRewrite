@@ -12,7 +12,7 @@ static func model_height(model: Dictionary) -> float:
 	if defaults.size()!=nodes.size(): return height_for_head(false,0)
 	var poses: Array[Transform3D]=[]
 	for index in nodes.size():
-		var node: Dictionary=nodes[index]; var rest: Dictionary=defaults[index]; var parent:=int(node.parent)
+		var node: Dictionary=nodes[index]; var rest: Dictionary=defaults[index]; var parent:=int(node.get("parentIndex",node.get("parent",-1)))
 		if parent< -1 or parent>=poses.size(): return height_for_head(false,0)
 		var p: Array=rest.position; var q: Array=rest.quaternion; var s: Array=rest.scale
 		var pose:=Transform3D(Basis(Quaternion(q[0],q[1],q[2],q[3])).scaled(Vector3(s[0],s[1],s[2])),Vector3(p[0],p[1],p[2]))

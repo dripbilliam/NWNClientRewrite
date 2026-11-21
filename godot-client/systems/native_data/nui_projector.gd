@@ -1,10 +1,12 @@
 extends RefCounted
 const State=preload("res://systems/native_data/nui_state.gd")
+const Canvas=preload("res://systems/nui_canvas.gd")
 const TYPES=["row","col","group","list","spacer","button","button_image","button_select","check","label","text","image","combo","slider","sliderf","progress","textedit","color_picker","options","tabbar","chart"]
 var control_serial:=0
 var failure:=""
 var text_lookup: Callable
 var image_lookup: Callable
+var interaction_lookup: Callable
 var nodes: Array=[]
 var controls: Dictionary={}
 var by_path: Dictionary={}
@@ -17,14 +19,41 @@ func label(source: Variant,index: int=-1) -> String:
 static func color(value: Variant) -> Variant:
 	if not value is Dictionary: return null
 	var result: Dictionary={}
-	for key in ["r","g","b","a"]: result[key]=clampi(int(State.number(value.get(key,State.UNDEFINED),255)),0,255)
+	# nuiColor uses ?? 255 for every channel; an explicit null is white,
+	# not Number(null) == 0.
+	for key in ["r","g","b"]:
+		var channel: Variant=value.get(key,State.UNDEFINED)
+		result[key]=255.0 if channel==null or State.missing(channel) else State.number(channel,255)
+	var alpha: Variant=value.get("a",State.UNDEFINED)
+	result.a=clampf(255.0 if alpha==null or State.missing(alpha) else State.number(alpha,255),0,255)
 	return result
+static func chart_number(value: Variant) -> Variant:
+	# Chart bounds omit invalid Number(...) values, while each original SVG
+	# primitive keeps its own invalid point. Do not turn them into zero.
+	if State.missing(value):return null
+	if value==null:return 0.0
+	if value is bool:return 1.0 if value else 0.0
+	if value is int or value is float:return float(value) if is_finite(float(value)) else null
+	if value is String:
+		var source: String=value.strip_edges()
+		if source.is_empty():return 0.0
+		if source.is_valid_float():return float(source) if is_finite(float(source)) else null
+		return null
+	if value is Array:
+		if value.is_empty():return 0.0
+		if value.size()==1:return chart_number(value[0])
+	return null
 func image(value: Variant,region: Variant) -> int:
 	return int(image_lookup.call(value,region)) if image_lookup.is_valid() and value is String and not value.is_empty() and value!="****" else -1
 func draws(element: Dictionary,index: int) -> Array:
 	var source: Variant=State.at(window,element,"draw_list",index); var result: Array=[]
 	if not source is Array: return result
 	for item in source:
+		if item is Array:
+			# JSON arrays are objects in JS, but have no `type` property. They
+			# reach the old default/error branch at order 1.
+			result.append({"type":-1.0,"source_type":"undefined","order":1})
+			continue
 		if not item is Dictionary: continue
 		var count:=1
 		if State.truth(item.get("arrayBinds",false)):
@@ -35,9 +64,10 @@ func draws(element: Dictionary,index: int) -> Array:
 		for draw_index in count:
 			var sub:=draw_index if State.truth(item.get("arrayBinds",false)) else index
 			if State.strict_false(State.at(window,item,"enabled",sub)): continue
-			var type:=int(State.number(State.at(window,item,"type",sub),-1))
-			if type<0 or type>7: failure="Unsupported native NUI draw primitive"; return []
-			var row:={"type":type,"fill":State.truth(State.at(window,item,"fill",sub)),"color":color(State.at(window,item,"color",sub))}
+			# The SVG path checks type only after enabled/order/render filtering.
+			# Preserve unsupported and fractional types for draw-time admission.
+			var type: float=State.number(item.get("type",State.UNDEFINED),-1)
+			var row:={"type":type,"source_type":item.get("type","undefined"),"fill":State.truth(State.at(window,item,"fill",sub)),"color":color(State.at(window,item,"color",sub))}
 			for key in ["rect","a","b","c","ctrl0","ctrl1","points","radius","amin","amax","line_thickness","order","render","font","image_aspect"]:
 				var found: Variant=State.at(window,item,key,sub)
 				if not State.missing(found): row[key]=found
@@ -84,11 +114,28 @@ func visit(element: Variant,index: int=-1,parent: int=-1,path: String="root",anc
 		values.slots=[]; var slots: Variant=State.at(window,element,"value",index)
 		if slots is Array:
 			for slot in slots:
-				var points: Variant=State.at(window,slot,"data",index); var converted: Array=[]
+				if slot==null: failure="Cannot read properties of null (reading 'data')"; return -1
+				var chart_slot: Dictionary=slot if slot is Dictionary else {}
+				var points: Variant=State.at(window,chart_slot,"data",index); var converted: Array=[]
+				if not State.missing(points) and points!=null and not points is Array:
+					# Source nuiChart calls data.entries() for every slot. A JSON
+					# scalar is a render failure, not an empty chart series.
+					failure="data.entries is not a function"; return -1
 				if points is Array:
-					for point in points: converted.append(State.number(point))
-				values.slots.append({"type":State.number(State.at(window,slot,"type",index)),"color":color(State.at(window,slot,"color",index)),"data":converted})
+					for point in points: converted.append(chart_number(point))
+				values.slots.append({"type":State.number(State.at(window,chart_slot,"type",index)),"color":color(State.at(window,chart_slot,"color",index)),"data":converted})
 	values.draw_list=draws(element,index); values.draw_list_scissor=not State.strict_false(State.at(window,element,"draw_list_scissor",index))
+	if not failure.is_empty():return -1
+	# The old view builds both SVG layers during the synchronous view update.
+	# Reject only commands admitted by their current order/hover/button phase,
+	# before this projector can publish a replacement window transaction.
+	var interaction: Dictionary=interaction_lookup.call(int(record.id),id) if interaction_lookup.is_valid() else {}
+	var hovered: bool=bool(interaction.get("hover",false)); var pointer_button: int=int(interaction.get("button",-1))
+	for pass_order in [-1,1]:
+		for command in values.draw_list:
+			if command is Dictionary and Canvas.admitted(command,pass_order,hovered,pointer_button) and not Canvas.supported_type(command.get("type")):
+				failure=Canvas.unsupported_command(command)
+				return -1
 	if kind=="list":
 		var count_value: Variant=State.at(window,element,"row_count",index); var count: int=count_value.size() if count_value is Array else maxi(0,int(State.number(count_value)))
 		if count>1000000: failure="Native NUI list count exceeds capacity"; return -1
@@ -119,7 +166,7 @@ func project(source: Dictionary,target: Dictionary) -> Dictionary:
 	var geometry: Variant=State.at(window,window.layout,"geometry"); var collapsed: Variant=State.at(window,window.layout,"collapsed")
 	if not record.has("geometry_source") or not State.equal(record.geometry_source,geometry): record.geometry_source=State.copy_value(geometry); record.geometry=geometry if geometry is Dictionary else {}
 	if not record.has("collapsed_source") or not State.equal(record.collapsed_source,collapsed): record.collapsed_source=collapsed; record.collapsed=State.truth(collapsed)
-	var title_value: Variant=window.layout.get("title","Scripted Window"); var title:=label("" if State.strict_false(title_value) else title_value)
+	var title_value: Variant=window.layout.get("title","Scripted Window"); var title:=label("" if State.strict_false(State.value(window,title_value)) else title_value)
 	var frame:={"kind":"nui-frame","windowId":record.id,"version":window.version,"rootId":root_id,"title":title,"closable":not State.strict_false(State.at(window,window.layout,"closable")),"collapsible":not State.strict_false(window.layout.get("collapsed",State.UNDEFINED)),"collapsed":record.collapsed,"header":not title.is_empty() or not State.strict_false(window.layout.get("collapsed",State.UNDEFINED)) or not State.strict_false(State.at(window,window.layout,"closable")),"transparent":State.truth(State.at(window,window.layout,"transparent")),"border":not State.strict_false(State.at(window,window.layout,"border")),"acceptsInput":not State.strict_false(State.at(window,window.layout,"accepts_input")),"resizable":not State.strict_false(State.at(window,window.layout,"resizable")),"geometry":record.geometry,"sizeConstraint":State.at(window,window.layout,"size_constraint"),"edgeConstraint":State.at(window,window.layout,"edge_constraint"),"font":State.at(window,window.layout,"font")}
 	for key in ["sizeConstraint","edgeConstraint"]:
 		if not frame[key] is Dictionary: frame[key]={}

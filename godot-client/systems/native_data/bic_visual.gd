@@ -2,6 +2,7 @@ extends RefCounted
 # Read-only appearance data for a private picker viewport. No effects, scripts,
 # inventory ownership or serialized world IDs enter the preview actor.
 const Appearance=preload("res://systems/native_data/creature_appearance.gd")
+const NativeGffFields=preload("res://systems/native_data/native_gff_fields.gd")
 const ARMOR=["ArmorPart_RFoot","ArmorPart_LFoot","ArmorPart_RShin","ArmorPart_LShin","ArmorPart_LThigh","ArmorPart_RThigh","ArmorPart_Pelvis","ArmorPart_Torso","ArmorPart_Belt","ArmorPart_Neck","ArmorPart_RFArm","ArmorPart_LFArm","ArmorPart_RBicep","ArmorPart_LBicep","ArmorPart_RShoul","ArmorPart_LShoul","ArmorPart_RHand","ArmorPart_LHand","ArmorPart_Robe"]
 const COLORS=["Leather1Color","Leather2Color","Cloth1Color","Cloth2Color","Metal1Color","Metal2Color"]
 static func index_of(document: Dictionary,node: Dictionary) -> int:
@@ -9,10 +10,10 @@ static func index_of(document: Dictionary,node: Dictionary) -> int:
 		if is_same(document.records[id],node): return int(id)
 	return -1
 static func read(node: Dictionary,types: Dictionary,name: String,type: int,fallback: int=0) -> int:
-	var label:=name.left(16)
-	return int(node[label]) if types.get(label)==type and node.get(label) is int else fallback
+	var result: Dictionary=NativeGffFields.read(node,types,name,type,fallback)
+	return int(result.value) if result.status==1 and result.value is int else fallback
 static func extended(node: Dictionary,types: Dictionary,name: String) -> int:
-	var full:=("x"+name).left(16)
+	var full:=NativeGffFields.label("x"+name)
 	return read(node,types,full,2)&65535 if types.get(full)==2 else read(node,types,name,0)&255
 static func source(document: Dictionary) -> Dictionary:
 	var root: Dictionary=document.get("root",{}); var types: Dictionary=document.get("field_types",{}).get(0,{})

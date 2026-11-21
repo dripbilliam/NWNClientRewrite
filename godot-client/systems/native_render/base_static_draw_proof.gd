@@ -26,18 +26,18 @@ static func capture(bytes: PackedByteArray,model: Dictionary,source_sha: String)
 	var parts:={}
 	for index in model.nodes.size():
 		var row: Variant=model.nodes[index]
-		if not row is Dictionary or not row.get("mesh") is Dictionary or not row.get("features") is Array or not row.get("parent") is int:return unavailable("physical-part-graph-unavailable")
+		if not row is Dictionary or not row.get("mesh") is Dictionary or not row.get("features") is Array or not row.get("parentIndex",row.get("parent")) is int:return unavailable("physical-part-graph-unavailable")
 		if row.mesh.is_empty() or row.mesh.get("render")!=true:continue
 		var current: int=index;var supported:=true;var ancestors: Array=[]
 		while current>=0:
 			if current>=model.nodes.size() or ancestors.has(current):return unavailable("physical-part-cycle-or-range")
 			var parent: Variant=model.nodes[current]
-			if not parent is Dictionary or not parent.get("features") is Array or not parent.get("parent") is int:return unavailable("physical-part-ancestry-unavailable")
+			if not parent is Dictionary or not parent.get("features") is Array or not parent.get("parentIndex",parent.get("parent")) is int:return unavailable("physical-part-ancestry-unavailable")
 			ancestors.append(current)
 			for feature in parent.features:
 				if feature in FORBIDDEN_FEATURES or feature not in ["light","emitter"]:supported=false
 			if parent.has("reference") or parent.has("skin") or parent.has("animated_mesh"):supported=false
-			current=int(parent.parent)
+			current=int(parent.get("parentIndex",parent.get("parent",-1)))
 		if supported and not row.features.has("emitter") and not row.features.has("light"):
 			parts[index]={"index":index,"name":str(row.get("name","")),"ancestors":ancestors,"original_alpha":row.get("alpha"),"render":true}
 	return {"revision":REVISION,"available":true,"source_sha":source_sha.to_lower(),"own_animation_count":0,"supermodel":supermodel,"parts":parts,"source":"Original CreatePartBuckets owning Model own-animation exclusion; ordinary supported physical mesh ancestry"}

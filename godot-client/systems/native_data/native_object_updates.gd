@@ -18,6 +18,10 @@ static func at_least(build: Dictionary,revision: int,postfix: int=0)->bool:
 static func vector(reader: Requirements.Reader)->Array[float]:
 	return [reader.float32(),reader.float32(),reader.float32()]
 
+static func raw_resref(reader: Requirements.Reader)->PackedByteArray:
+	reader.expect_type(13)
+	return reader.raw(16)
+
 static func named(reader: Requirements.Reader)->Dictionary:
 	return Characters.localized(reader) if reader.boolean() else {"text":reader.string()}
 
@@ -52,9 +56,9 @@ static func visual_transform(reader: Requirements.Reader,build: Dictionary)->Dic
 static func item_appearance(reader: Requirements.Reader,build: Dictionary,providers: Dictionary)->Dictionary:
 	var base_item:=reader.dword()
 	var lookup: Callable=providers.get("baseItemModelType",Callable())
-	if not lookup.is_valid():return {"error":"Base-item model table is unavailable"}
+	if not lookup.is_valid():return {"unhandled":"Base-item model type %d is unavailable" % base_item}
 	var model_value: Variant=lookup.call(base_item)
-	if not model_value is int:return {"error":"Base-item model type is unavailable"}
+	if not model_value is int:return {"unhandled":"Base-item model type %d is unavailable" % base_item}
 	var model:=int(model_value)
 	var item: Dictionary={"baseItem":base_item,"modelType":model}
 	if model in [0,1,2,3]:
@@ -79,18 +83,19 @@ static func item_appearance(reader: Requirements.Reader,build: Dictionary,provid
 			item.partColors=part_colors
 	if model==2:item.field462=reader.byte()
 	item.visualTransform=visual_transform(reader,build)
+	if item.visualTransform.has("error"):return item.visualTransform
 	return item
 
 static func active_item(reader: Requirements.Reader,build: Dictionary,providers: Dictionary)->Dictionary:
 	var item: Dictionary=item_appearance(reader,build,providers)
-	if item.has("error"):return item
+	if item.has("error") or item.has("unhandled"):return item
 	if int(item.baseItem)==16:item.field35c=reader.short()
 	item.name=named(reader);item.identified=reader.boolean();item.cost=reader.dword()
 	item.field454=reader.dword();item.canUse=reader.boolean();item.field458=reader.boolean()
 	item.field450=reader.boolean();item.field468=reader.boolean()
 	if at_least(build,36,2):item.field2b8=reader.signed_dword();item.field2c0=reader.string()
 	var count:=reader.byte()
-	if not bounded(reader,count,7):return {"error":"Invalid native active-item properties"}
+	if not bounded(reader,count,7):return {"error":"Invalid native active-item property count"}
 	var properties: Array[Dictionary]=[]
 	for _index in range(count):properties.append({"type":reader.word(),"subtype":reader.word(),"costValue":reader.word(),"field9":reader.byte()})
 	item.properties=properties
@@ -101,15 +106,16 @@ static func active_item(reader: Requirements.Reader,build: Dictionary,providers:
 	return item
 
 static func inventory_entry(reader: Requirements.Reader,build: Dictionary,providers: Dictionary)->Dictionary:
-	var action:=char(reader.signed_byte() & 255);var entry: Dictionary={"action":action,"id":reader.dword(),"slot":reader.dword()}
+	var action:=char(reader.signed_byte() & 255);var entry: Dictionary={"action":action,"id":reader.object_id(),"slot":reader.dword()}
 	if action=="A":entry.item=active_item(reader,build,providers)
 	elif action=="U":entry.item={"field462":reader.byte(),"visualTransform":visual_transform(reader,build)}
-	elif action!="D":return {"error":"Unknown native equipment appearance action"}
-	if entry.has("item") and entry.item.has("error"):return entry.item
+	elif action!="D":return {"unhandled":"Inventory appearance action %s is unavailable" % action}
+	if entry.has("item") and entry.item.has("visualTransform") and entry.item.visualTransform.has("error"):return entry.item.visualTransform
+	if entry.has("item") and (entry.item.has("error") or entry.item.has("unhandled")):return entry.item
 	return entry
 
 static func creation(reader: Requirements.Reader,build: Dictionary,providers: Dictionary)->Dictionary:
-	var object_type:=reader.byte();var id:=reader.dword()
+	var object_type:=reader.byte();var id:=reader.object_id()
 	var state: Dictionary={};var record: Dictionary={"action":"create","objectType":object_type,"id":id,"state":state}
 	match object_type:
 		5:
@@ -120,11 +126,11 @@ static func creation(reader: Requirements.Reader,build: Dictionary,providers: Di
 			if int(state.doorType)==0:state.genericType=reader.dword()
 			state.visualTransform=visual_transform(reader,build);state.name=named(reader);state.reaction=reader.boolean()
 			state.animation=reader.word();state.field424=reader.boolean();state.field428=reader.boolean();state.fieldFC=reader.boolean();state.hasTransition=reader.boolean()
-		11:state.field30c=reader.signed_dword();state.creator=reader.dword()
+		11:state.field30c=reader.signed_dword();state.creator=reader.object_id()
 		9:
 			state.name=named(reader);state.field540=reader.byte();state.reaction=reader.boolean();state.appearance=reader.word();state.animation=reader.word()
 			state.field514=reader.boolean()
-			if state.field514:state.field510=reader.dword()
+			if state.field514:state.field510=reader.object_id()
 			for key in ["fieldFC","field264","field3BC","field500","field378","field4FC","hasDescription","lightOn"]:state[key]=reader.boolean()
 			state.visualTransform=visual_transform(reader,build)
 		7:
@@ -136,11 +142,13 @@ static func creation(reader: Requirements.Reader,build: Dictionary,providers: Di
 			var vertices: Array=[]
 			for _index in range(count):vertices.append(vector(reader))
 			state.vertices=vertices
-		_:return {"error":"Unknown native object creation type"}
+		_:return {"unhandled":"Object creation type %d is unavailable" % object_type}
+	if state.has("visualTransform") and state.visualTransform.has("error"):return state.visualTransform
+	if state.has("item") and (state.item.has("error") or state.item.has("unhandled")):return state.item
 	return record
 
 static func appearance(reader: Requirements.Reader,build: Dictionary,providers: Dictionary)->Dictionary:
-	var object_type:=reader.byte();var id:=reader.dword();var mask:=reader.word();var state: Dictionary={}
+	var object_type:=reader.byte();var id:=reader.object_id();var mask:=reader.word();var state: Dictionary={}
 	if object_type!=5:return {"error":"Invalid native creature appearance type"}
 	var record: Dictionary={"action":"appearance","objectType":object_type,"id":id,"mask":mask,"state":state}
 	if (mask & 0x400)!=0:state.name={"firstName":Characters.localized(reader),"lastName":Characters.localized(reader)} if reader.boolean() else {"text":reader.string()}
@@ -171,19 +179,21 @@ static func appearance(reader: Requirements.Reader,build: Dictionary,providers: 
 		var equipment: Array[Dictionary]=[]
 		for _index in range(count):
 			var item: Dictionary=inventory_entry(reader,build,providers)
-			if item.has("error"):return item
+			if item.has("error") or item.has("unhandled"):return item
 			equipment.append(item)
 		state.equipment=equipment
 	return record
 
 static func update(reader: Requirements.Reader,build: Dictionary,providers: Dictionary)->Dictionary:
-	var object_type:=reader.byte();var id:=reader.dword();var mask:=reader.dword();var state: Dictionary={}
+	var object_type:=reader.byte();var id:=reader.object_id();var mask:=reader.dword();var state: Dictionary={}
 	var record: Dictionary={"action":"update","objectType":object_type,"id":id,"mask":mask,"state":state}
 	if (mask & 1)!=0:state.position=[reader.float_scaled(100.0,16),reader.float_scaled(100.0,16),reader.float_range(-20.0,320.0,18)]
 	if (mask & 2)!=0:
 		state.orientation={"vector":[reader.float_range(-2.0,2.0,16),reader.float_range(-2.0,2.0,16),reader.float_range(-2.0,2.0,16)]} if reader.boolean() else {"yaw":reader.float_scaled(10.0,12)}
-		if object_type==5:state.facingTarget=reader.dword() if reader.boolean() else 0x7f000000
-	if (mask & 0x100000)!=0:state.visualTransform=visual_transform(reader,build)
+		if object_type==5:state.facingTarget=reader.object_id() if reader.boolean() else 0x7f000000
+	if (mask & 0x100000)!=0:
+		state.visualTransform=visual_transform(reader,build)
+		if state.visualTransform.has("error"):return state.visualTransform
 	if (mask & 0x200000)!=0:
 		var count:=reader.word()
 		if not bounded(reader,count,9):return {"error":"Invalid native shader uniform count"}
@@ -211,7 +221,7 @@ static func update(reader: Requirements.Reader,build: Dictionary,providers: Dict
 			var count:=reader.dword()
 			if not bounded(reader,count,32):return {"error":"Invalid native material override count"}
 			var pairs: Array=[]
-			for _index in range(count):pairs.append([reader.resref(),reader.resref()])
+			for _index in range(count):pairs.append([raw_resref(reader),raw_resref(reader)])
 			state[bit_and_name[1]]=pairs
 	if (mask & 4)!=0:
 		state.animationTime=reader.float32();state.animation=reader.word()
@@ -219,13 +229,13 @@ static func update(reader: Requirements.Reader,build: Dictionary,providers: Dict
 			if int(state.animation)==9:
 				var count:=reader.byte_bits(2);var attacks: Array[Dictionary]=[]
 				for _index in range(count):
-					attacks.append({"target":reader.dword(),"fieldA":reader.word(),"fieldC":reader.word(),"field2":reader.word(),"result":reader.byte_bits(4),"field7A":reader.word(),"damage":reader.word_bits(9),"field5C":reader.boolean(),"field68":reader.boolean(),"field56":reader.byte_bits(4)})
+					attacks.append({"target":reader.object_id(),"fieldA":reader.word(),"fieldC":reader.word(),"field2":reader.word(),"result":reader.byte_bits(4),"field7A":reader.word(),"damage":reader.word_bits(9),"field5C":reader.boolean(),"field68":reader.boolean(),"field56":reader.byte_bits(4)})
 				state.attacks=attacks
 			elif int(state.animation) in [15,16,17,18,19,20,61]:
-				var cast: Dictionary={"spell":reader.dword(),"casterTarget":reader.dword(),"silent":reader.boolean()}
+				var cast: Dictionary={"spell":reader.dword(),"casterTarget":reader.object_id(),"silent":reader.boolean()}
 				if int(state.animation) in [17,18,19,20,61]:
 					cast.targetType=reader.byte()
-					if int(cast.targetType)==1:cast.target=reader.dword()
+					if int(cast.targetType)==1:cast.target=reader.object_id()
 					elif int(cast.targetType)==2:cast.position=vector(reader)
 					else:return {"error":"Invalid native casting target type"}
 					cast.field220=reader.dword()
@@ -237,11 +247,13 @@ static func update(reader: Requirements.Reader,build: Dictionary,providers: Dict
 		var classify: Callable=providers.get("isBeam",Callable())
 		for _index in range(count):
 			var effect: Dictionary={"action":char(reader.byte()),"visualId":reader.word()}
-			if not classify.is_valid():return {"error":"Looping-effect beam table is unavailable"}
+			if not classify.is_valid():return {"unhandled":"Looping-effect beam classification %d is unavailable" % int(effect.visualId)}
 			var beam: Variant=classify.call(int(effect.visualId))
-			if not beam is bool:return {"error":"Looping-effect beam classification is unavailable"}
-			if beam:effect.target=reader.dword();effect.field8=reader.byte()
-			if at_least(build,14):effect.visualTransform=visual_transform(reader,build)
+			if not beam is bool:return {"unhandled":"Looping-effect beam classification %d is unavailable" % int(effect.visualId)}
+			if beam:effect.target=reader.object_id();effect.field8=reader.byte()
+			if at_least(build,14):
+				effect.visualTransform=visual_transform(reader,build)
+				if effect.visualTransform.has("error"):return effect.visualTransform
 			effects.append(effect)
 		state.visualEffects=effects
 	if (mask & 16)!=0:
@@ -255,9 +267,9 @@ static func update(reader: Requirements.Reader,build: Dictionary,providers: Dict
 			state.interactionFlags=flags
 		elif object_type==7:
 			var lookup: Callable=providers.get("objectState",Callable())
-			if not lookup.is_valid():return {"error":"Trigger creation state is unavailable"}
+			if not lookup.is_valid():return {"unhandled":"Trigger creation state is unavailable"}
 			var base: Variant=lookup.call(id)
-			if not base is Dictionary or not base.has("isTrap"):return {"error":"Trigger creation state is unavailable"}
+			if not (base is Dictionary) or not base.has("isTrap") or not (base.isTrap is bool):return {"unhandled":"Trigger creation state for update is unavailable"}
 			var flags: Array[bool]=[]
 			for _index in range(2 if bool(base.isTrap) else 1):flags.append(reader.boolean())
 			state.interactionFlags=flags
@@ -275,15 +287,15 @@ static func update(reader: Requirements.Reader,build: Dictionary,providers: Dict
 		state.path=path
 	if (mask & 64)!=0:
 		state.field8D4=reader.word();state.field8D6=reader.byte();state.field8E0=reader.word();state.reaction=reader.byte();state.field700=reader.boolean()
-		if int(state.field8D6)==2:state.field8D8=reader.dword()
+		if int(state.field8D6)==2:state.field8D8=reader.object_id()
 	if (mask & 256)!=0:state.walkRate=reader.float32();state.runRate=reader.float32()
-	if (mask & 0x40000)!=0:state.areaId=reader.dword()
+	if (mask & 0x40000)!=0:state.areaId=reader.object_id()
 	if (mask & 512)!=0:state.mapPosition=[reader.signed(10),reader.signed(10)]
 	if (mask & 1024)!=0:state.hitPoints={"current":reader.short(),"fieldE4":reader.short(),"fieldE8":reader.short(),"maximum":reader.short()}
 	if (mask & 0x10000)!=0:state.name={"firstName":Characters.localized(reader),"lastName":Characters.localized(reader)} if reader.boolean() else {"text":reader.string()}
 	if (mask & 0x4000)!=0:
 		var party: Dictionary={"player":reader.boolean(),"field8D4Bit6":reader.boolean(),"singleton":reader.boolean(),"leader":reader.boolean(),"field7DC":reader.boolean()}
-		if party.field7DC:party.field7D8=reader.dword();party.firstName=Characters.localized(reader);party.lastName=Characters.localized(reader)
+		if party.field7DC:party.field7D8=reader.object_id();party.firstName=Characters.localized(reader);party.lastName=Characters.localized(reader)
 		party.field8B4=reader.boolean();party.field8B0=reader.boolean();state.party=party
 	if (mask & 0x8000)!=0:state.visibility=[reader.boolean(),reader.boolean(),reader.boolean()]
 	if (mask & 0x20000)!=0:state.associateState=reader.word()
@@ -297,15 +309,15 @@ static func update(reader: Requirements.Reader,build: Dictionary,providers: Dict
 		var classify: Callable=providers.get("classInfo",Callable())
 		for _index in range(count):
 			var cls: Dictionary={"id":reader.byte(),"level":reader.byte()}
-			if not classify.is_valid():return {"error":"Creature class table is unavailable"}
+			if not classify.is_valid():return {"unhandled":"Creature class schema %d is unavailable" % int(cls.id)}
 			var schema: Variant=classify.call(int(cls.id))
-			if not schema is Dictionary:return {"error":"Creature class schema is unavailable"}
+			if not schema is Dictionary:return {"unhandled":"Creature class schema %d is unavailable" % int(cls.id)}
 			if bool(schema.get("pickSchool",false)):cls.school=reader.byte()
 			if bool(schema.get("pickDomains",false)):cls.domains=[reader.byte(),reader.byte()]
 			classes.append(cls)
 		stats.classes=classes;state.stats=stats
 	if (mask & 0x2000)!=0:
-		state.master=reader.dword();state.field908=reader.word();state.field910=reader.boolean();state.field914=reader.boolean()
+		state.master=reader.object_id();state.field908=reader.word();state.field910=reader.boolean();state.field914=reader.boolean()
 		if at_least(build,31):state.takesCommands=reader.boolean()
 	return record
 
@@ -316,20 +328,20 @@ static func gui_inventory(reader: Requirements.Reader,build: Dictionary,provider
 		var count:=reader.byte()
 		if not bounded(reader,count,9):return {"error":"Invalid native quickbar item-use count"}
 		var entries: Array[Dictionary]=[]
-		for _index in range(count):entries.append({"index":reader.byte(),"type":reader.byte(),"id":reader.dword(),"propertyIndex":reader.byte(),"count":reader.word()})
+		for _index in range(count):entries.append({"index":reader.byte(),"type":reader.byte(),"id":reader.object_id(),"propertyIndex":reader.byte(),"count":reader.word()})
 		return {"action":"item-use-counts","entries":entries}
 	if channel=="M":
 		var operation:=char(reader.signed_byte() & 255);var entry: Dictionary={"action":"inventory","channel":channel,"operation":operation}
 		if operation=="P":entry.pageCount=reader.byte();entry.panel=reader.byte();return entry
-		if operation=="D":entry.id=reader.dword();return entry
+		if operation=="D":entry.id=reader.object_id();return entry
 		if operation in ["A","U"]:
-			entry.x=reader.byte();entry.y=reader.byte();entry.id=reader.dword()
+			entry.x=reader.byte();entry.y=reader.byte();entry.id=reader.object_id()
 			if operation=="A":
 				entry.item=active_item(reader,build,providers)
-				if entry.item.has("error"):return entry.item
+				if entry.item.has("error") or entry.item.has("unhandled"):return entry.item
 			return entry
-		return {"error":"Unknown native merchant inventory operation"}
-	if channel not in ["R","r","A","B","C","c","I","i"]:return {"error":"Unknown native inventory channel"}
+		return {"unhandled":"Inventory M/%s is unavailable" % operation}
+	if channel not in ["R","r","A","B","C","c","I","i"]:return {"unhandled":"Inventory channel %s is unavailable" % channel}
 	var operation:=char(reader.signed_byte() & 255);var entry: Dictionary={"action":"inventory","channel":channel,"operation":operation}
 	var equipped:=channel in ["I","i"];var container:=channel in ["C","c"]
 	if operation=="P" and container:entry.pageCount=reader.byte();return entry
@@ -337,18 +349,21 @@ static func gui_inventory(reader: Requirements.Reader,build: Dictionary,provider
 	if operation=="A":
 		if equipped:entry.slot=reader.dword()
 		else:entry.x=reader.byte();entry.y=reader.byte()
-		entry.id=reader.dword();entry.item=active_item(reader,build,providers)
-		return entry.item if entry.item.has("error") else entry
+		entry.id=reader.object_id();entry.item=active_item(reader,build,providers)
+		return entry.item if entry.item.has("error") or entry.item.has("unhandled") else entry
 	if operation=="D":
 		if equipped:entry.slot=reader.dword()
-		else:entry.id=reader.dword()
+		else:entry.id=reader.object_id()
 		return entry
-	if operation=="U":entry.id=reader.dword();entry.stackSize=reader.dword();entry.field280=reader.dword();return entry
-	if operation=="M" and not equipped:entry.x=reader.byte();entry.y=reader.byte();entry.id=reader.dword();return entry
-	return {"error":"Unknown native inventory operation"}
+	if operation=="U":entry.id=reader.object_id();entry.stackSize=reader.dword();entry.field280=reader.dword();return entry
+	if operation=="M" and not equipped:entry.x=reader.byte();entry.y=reader.byte();entry.id=reader.object_id();return entry
+	return {"unhandled":"Inventory %s/%s is unavailable" % [channel,operation]}
 
 static func decode_packet(packet: PackedByteArray,build: Dictionary,providers: Dictionary)->Dictionary:
 	if packet.size()<8 or packet[0]!=80 or packet[1]!=5 or packet[2]!=1:return {"error":"Not a native object-update message"}
+	for field in ["number","revision","postfix"]:
+		var value: Variant=build.get(field)
+		if not (value is int or value is float and is_finite(value) and floor(value)==value):return {"error":"Native client build for object updates is unavailable"}
 	var reader:=Requirements.Reader.new()
 	if not reader.configure(packet.slice(3)):return {"error":reader.error}
 	var staged:=StagedState.new();staged.external=providers.get("objectState",Callable())
@@ -364,14 +379,15 @@ static func decode_packet(packet: PackedByteArray,build: Dictionary,providers: D
 			"I":record=PlayerState.decode(reader,build,scoped)
 			"G":record=gui_inventory(reader,build,scoped)
 			"D":
-				record={"action":"delete","objectType":reader.byte(),"id":reader.dword()}
+				record={"action":"delete","objectType":reader.byte(),"id":reader.object_id()}
 				if int(record.objectType) in [5,6,9]:record.remove=reader.boolean()
 			"W":record={"action":"work-remaining","completed":reader.byte(),"total":reader.byte()}
 			_:
 				return {"records":records,"complete":false,"unhandled":{"tag":tag,"reason":"Object update record "+tag+" is unavailable","cursor":cursor,"fragmentCursor":fragment_cursor,"bit":bit}}
-		if record.has("error"):
-			return {"records":records,"complete":false,"unhandled":{"tag":tag,"reason":str(record.error),"cursor":cursor,"fragmentCursor":fragment_cursor,"bit":bit}}
-		if not reader.error.is_empty():return {"error":reader.error}
+		if record.has("unhandled"):
+			return {"records":records,"complete":false,"unhandled":{"tag":tag,"reason":str(record.unhandled),"cursor":cursor,"fragmentCursor":fragment_cursor,"bit":bit}}
+		if record.has("error"):return {"error":str(record.error),"objectUpdate":{"tag":tag,"cursor":cursor,"fragmentCursor":fragment_cursor,"bit":bit}}
+		if not reader.error.is_empty():return {"error":reader.error,"objectUpdate":{"tag":tag,"cursor":cursor,"fragmentCursor":fragment_cursor,"bit":bit}}
 		records.append(record)
 		if record.has("state") and record.has("id"):
 			var current: Variant=staged.get_state(int(record.id))

@@ -23,7 +23,7 @@ struct Owner {
   // Scene-level extension initialization precedes singleton publication.
   // Configure runs on the main thread after the actual scene has started.
   if(!server.load(std::memory_order_acquire)){Name name("RenderingServer");auto singleton=global_singleton(name.data);if(!singleton){error.store(1000);return;}server.store(singleton,std::memory_order_release);}
-  if(!resource.nil()||get_type(value)!=GDEXTENSION_VARIANT_TYPE_OBJECT||vertices<0||vertices>196608||vertices%6){error.store(1001);return;}
+  if(!resource.nil()||get_type(value)!=GDEXTENSION_VARIANT_TYPE_OBJECT||vertices<0||vertices>2147483646LL||vertices%6){error.store(1001);return;}
   GDExtensionObjectPtr pointer=nullptr;to[GDEXTENSION_VARIANT_TYPE_OBJECT](&pointer,const_cast<void*>(value));
   if(!pointer||!cast_object(pointer,multimesh_tag)){error.store(1002);return;}
   ptrcall(resource_rid,pointer,nullptr,&mesh);if(!mesh){error.store(1003);return;}

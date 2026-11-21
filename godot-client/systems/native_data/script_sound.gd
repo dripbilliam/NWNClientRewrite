@@ -26,6 +26,6 @@ static func cue_bytes(bytes: PackedByteArray,positional: bool,point: Variant) ->
 		if not point is Array or point.size()!=3 or not point.all(func(v):return (v is int or v is float) and is_finite(float(v))): return {"error":"Positional script sound source has no valid pose"}
 	return {"resRef":name,"position":Sound.position(point,0) if positional else null,"priority":8,"volume":0,"delay":0,"height":0.0,"error":""}
 static func raw_position(source: Dictionary) -> Variant:
-	for field in ["replicated","staticState","lightState","state","mapPin"]:
+	for field in ["replicated","staticState","lightState","state"]:
 		if source.get(field) is Dictionary and source[field].has("position"): return source[field].position
 	return null

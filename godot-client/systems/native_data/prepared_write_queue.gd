@@ -27,6 +27,9 @@ class State:
 	var active:=false
 	var stats:={"submitted":0,"coalesced":0,"completed":0,"failed":0,"skipped_full":0,"skipped_closed":0,"peak_packets":0,"peak_estimated_bytes":0,"worker_ms":0.0,"max_worker_ms":0.0,"bytes_written":0,"threads":[],"errors":[]}
 	func enqueue(directory: String,key: String,source_sha: String,decoder: String,value: Dictionary,estimated_bytes: int) -> bool:
+		if estimated_bytes<0:
+			var cost:=Accounting.retained_cost(value,maximum_bytes)
+			estimated_bytes=int(cost.estimated_bytes) if cost.has("estimated_bytes") else var_to_bytes(value).size()
 		var identity:=directory+":"+key
 		return submit({"directory":directory,"key":key,"source_sha":source_sha,"decoder":decoder,"value":value.duplicate(),"identity":identity,"estimated_bytes":estimated_bytes},estimated_bytes)
 	func enqueue_raw(directory: String,key: String,bytes: PackedByteArray,disk_limit: int,entry_limit: int) -> bool:
@@ -118,7 +121,7 @@ static func release() -> void:
 	if state==null or state.owners<=0: service_mutex.unlock(); return
 	state.owners-=1; var last: bool=state.owners==0; service_mutex.unlock()
 	if last: state.close()
-static func enqueue(directory: String,key: String,source_sha: String,decoder: String,value: Dictionary,estimated_bytes: int) -> bool:
+static func enqueue(directory: String,key: String,source_sha: String,decoder: String,value: Dictionary,estimated_bytes: int=-1) -> bool:
 	service_mutex.lock(); var state=shared; var available: bool=state!=null and state.owners>0; service_mutex.unlock()
 	return state.enqueue(directory,key,source_sha,decoder,value,estimated_bytes) if available else false
 static func enqueue_raw(directory: String,key: String,bytes: PackedByteArray,disk_limit: int,entry_limit: int) -> bool:

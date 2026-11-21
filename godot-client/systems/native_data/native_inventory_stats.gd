@@ -35,11 +35,11 @@ static func decode(reader: Requirements.Reader,build: Dictionary,providers: Dict
 		combat.triplets=triplets;combat.field13=reader.byte_bits(4);combat.field14=reader.byte_bits(3);combat.field18=reader.boolean()
 		if combat.field18:combat.field3=reader.signed_byte();combat.field4=reader.signed_byte();combat.field1c=reader.byte_bits(4);combat.field1d=reader.byte_bits(3)
 		var count:=reader.byte()
-		if not bounded(reader,count):return {"error":"Invalid native combat information group0 count"}
+		if not bounded(reader,count):return {"error":"Invalid native inventory stats count"}
 		var first: Array[Dictionary]=[]
 		for _index in range(count):first.append(combat_node(reader,build,false))
 		count=reader.byte()
-		if not bounded(reader,count):return {"error":"Invalid native combat information group1 count"}
+		if not bounded(reader,count):return {"error":"Invalid native inventory stats count"}
 		var second: Array[Dictionary]=[]
 		for _index in range(count):second.append(combat_node(reader,build,true))
 		combat.group0=first;combat.group1=second;state.combatInformation=combat
@@ -47,7 +47,7 @@ static func decode(reader: Requirements.Reader,build: Dictionary,providers: Dict
 	if (mask & 0x800)!=0:state.field88=reader.short();state.field8a=reader.short()
 	if (mask & 128)!=0:
 		var skill_count: Variant=providers.get("skillCount")
-		if not skill_count is int or int(skill_count)<0 or int(skill_count)>32:return {"error":"Inventory skill schema is unavailable"}
+		if not skill_count is int or int(skill_count)<0 or int(skill_count)>255:return {"unhandled":"Inventory skill schema is unavailable"}
 		var bits:=reader.dword_bits(skill_count);var skills: Array[Dictionary]=[]
 		for index in range(skill_count):
 			if (bits & (1 << (index & 31)))!=0:skills.append({"index":index,"value":reader.signed_byte(),"flag":reader.boolean()})
@@ -55,27 +55,27 @@ static func decode(reader: Requirements.Reader,build: Dictionary,providers: Dict
 	if (mask & 256)!=0:
 		var wide:=Area.at_least(build,37,2)
 		var count:=reader.word() if wide else reader.byte()
-		if not bounded(reader,count,2 if wide else 1):return {"error":"Invalid native removed-feat count"}
+		if not bounded(reader,count,2 if wide else 1):return {"error":"Invalid native inventory stats count"}
 		var removed: Array[int]=[]
 		for _index in range(count):removed.append(reader.word() if wide else reader.byte())
 		count=reader.word() if wide else reader.byte()
-		if not bounded(reader,count,2 if wide else 1):return {"error":"Invalid native added-feat count"}
+		if not bounded(reader,count,2 if wide else 1):return {"error":"Invalid native inventory stats count"}
 		var added: Array[Dictionary]=[]
 		for _index in range(count):added.append({"id":reader.word() if wide else reader.byte(),"flag":reader.boolean()})
 		state.featsRemoved=removed;state.featsAdded=added
 	if (mask & 512)!=0:
 		var count:=reader.word()
-		if not bounded(reader,count,2):return {"error":"Invalid native field118 count"}
+		if not bounded(reader,count,2):return {"error":"Invalid native inventory stats count"}
 		var first: Array[int]=[]
 		for _index in range(count):first.append(reader.word())
 		count=reader.word()
-		if not bounded(reader,count,2):return {"error":"Invalid native field128 count"}
+		if not bounded(reader,count,2):return {"error":"Invalid native inventory stats count"}
 		var second: Array[int]=[]
 		for _index in range(count):second.append(reader.word())
 		state.fields118=first;state.fields128=second
 	if (mask & 0x1000)!=0:
 		var count:=reader.byte()
-		if not bounded(reader,count):return {"error":"Invalid native class-field count"}
+		if not bounded(reader,count):return {"error":"Invalid native inventory stats count"}
 		var fields: Array[int]=[]
 		for _index in range(count):fields.append(reader.byte())
 		state.fieldsClass=fields

@@ -13,6 +13,7 @@ const Template=preload("res://systems/native_render/model_template.gd")
 const Region=preload("res://systems/native_data/gui_render_region.gd")
 const GuiTextureInfo=preload("res://systems/native_data/gui_texture_info.gd")
 const GuiSampler=preload("res://systems/native_render/gui_sampler.gd")
+const StandardTargetMaterial=preload("res://systems/native_render/standard_keyhole_material.gd")
 var assets
 var catalog
 var ui_assets
@@ -143,6 +144,32 @@ func _profile_process(_delta: float) -> void:
 	pump_models()
 	if not closed and not active and not queue.is_empty(): draw_icon(queue.pop_front())
 	_refresh_processing()
+static func icon_source_material(source: Variant) -> StandardMaterial3D:
+	if source is StandardMaterial3D:return source
+	if not source is StandardTargetMaterial:return null
+	# The world wrapper carries the original StandardMaterial inputs. Rebuild
+	# the unshaded GUI inputs before layered selection and per-axis sampling.
+	var color: Variant=source.get_shader_parameter("original_color")
+	if color is Vector4:color=Color(color.x,color.y,color.z,color.w)
+	if not color is Color:return null
+	var texture: Texture2D
+	if source.get_shader_parameter("original_has_texture")==true:
+		var original_texture: Variant=source.get_shader_parameter("original_texture")
+		if not original_texture is Texture2D:return null
+		texture=original_texture
+	var result:=StandardMaterial3D.new()
+	result.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+	result.cull_mode=BaseMaterial3D.CULL_BACK
+	result.albedo_texture=texture
+	result.albedo_color=color
+	result.render_priority=source.render_priority
+	var emission: Variant=source.get_shader_parameter("original_emission")
+	var energy: Variant=source.get_shader_parameter("original_emission_energy")
+	if emission is Vector3 and (energy is float or energy is int) and energy>0:
+		result.emission_enabled=true
+		result.emission=Color(emission.x,emission.y,emission.z).linear_to_srgb()
+		result.emission_energy_multiplier=float(energy)
+	return result
 func draw_icon(job: Dictionary) -> void:
 	active=true
 	# A single GUI state can animate mesh UVs as well as transform hooks.
@@ -192,7 +219,8 @@ func draw_icon(job: Dictionary) -> void:
 		var raster: Dictionary=job.bundle.get("textures",{}).get(job.texture_layer,{})
 		if not raster.is_empty(): layer_texture=pool.texture(raster)
 	for mesh in model.meshes:
-		var original: StandardMaterial3D=mesh.get_meta("native_gui_source_material",mesh.material_override)
+		var original:=icon_source_material(mesh.get_meta("native_gui_source_material",mesh.material_override))
+		if original==null:finish(job.key,model,null,"Native icon model material has no authored GUI inputs");return
 		if not str(job.get("texture_layer","")).is_empty() and (layer_texture==null or original.albedo_texture!=layer_texture): mesh.hide(); continue
 		var box: AABB=mesh.global_transform*mesh.get_aabb(); bounds=bounds.merge(box) if has_bounds else box; has_bounds=true
 		if not reused:

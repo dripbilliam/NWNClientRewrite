@@ -12,8 +12,9 @@ static func release_last(e: Dictionary,p: Dictionary) -> void:
 		e.free130.capacity=capacity; Schedule.invoke(p,"reserveFree",[capacity])
 	e.free130.records.append(particle)
 static func fractal(e: Dictionary,middle: int,span: int,depth: int,first: Array,second: Array,factor: float,p: Dictionary) -> String:
-	if middle-span<0 or middle+span>=e.active188.records.size() or depth>64: return "Original lightning subdivision addresses unavailable particle storage"
 	var sign_value:=1 if (int(Schedule.invoke(p,"random"))&1)!=0 else -1
+	# The source consumes this sign draw before either indexed particle read.
+	if middle-span<0 or middle+span>=e.active188.records.size(): return "Original lightning subdivision addresses unavailable particle storage"
 	var left: Dictionary=e.active188.records[middle-span]; var right: Dictionary=e.active188.records[middle+span]; var position: Array=[]
 	for axis in 3: position.append(M.f(M.f(M.f(right.position10[axis])+M.f(left.position10[axis]))*0.5))
 	if M.f(e.lightningRadius)>=0.01:
@@ -50,7 +51,9 @@ static func update(e: Dictionary,delta: float,p: Dictionary) -> String:
 			if free_count-1<e.free130.records.size(): e.free130.records.remove_at(free_count-1)
 		else: particle=Schedule.invoke(p,"createParticle",[false,delta])
 		if int(e.flags)&32:
-			var difference:=M.cvtt(M.f(M.f(e.frameEnd)-M.f(e.frameStart))); var plus:=difference+1; var size:=plus if plus>=0 else ~difference
+			var difference:=M.cvtt(M.f(M.f(e.frameEnd)-M.f(e.frameStart))); var plus:=difference+1
+			if plus>2147483647: plus-=4294967296 # Old signed `(difference+1)|0`.
+			var size:=plus if plus>=0 else ~difference
 			if size!=0: particle.frame44=M.cvtt(M.f(M.f(int(Schedule.invoke(p,"random"))%size)+M.f(e.frameStart)))
 		Schedule.append(e,particle,p)
 	while e.active188.records.size()>count: release_last(e,p)

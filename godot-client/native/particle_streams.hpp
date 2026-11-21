@@ -18,8 +18,8 @@ struct ParticleStreams {
  bool first=true;
  void begin(int64_t count,int64_t retained){
   if(direct){if(count<0||count%6||count!=direct->vertices||(count&&!direct->data))throw std::runtime_error("Particle shared range count mismatch");capacity=count;first=true;minimum={};maximum={};return;}
-  if(retained<0||retained>196608||retained%6)throw std::runtime_error("Invalid retained particle surface capacity");
-  capacity=retained;if(count>capacity)capacity=std::min<int64_t>(196608,std::max<int64_t>(96,std::max<int64_t>(capacity*2,count)));
+  if(retained<0||retained>2147483646LL||retained%6||count<0||count>2147483646LL||count%6)throw std::runtime_error("Particle surface count exceeds Godot mesh index range");
+  capacity=retained;if(count>capacity)capacity=std::min<int64_t>(2147483646LL,std::max<int64_t>(96,std::max<int64_t>(capacity*2,count)));
   if(instances){if(count<0||count%6||count>capacity)throw std::runtime_error("Invalid active particle instance count");instance_bytes.emplace(static_cast<size_t>(count/6)*80);first=true;minimum={};maximum={};return;}
   positions.resize(static_cast<size_t>(capacity)*12);attributes.resize(static_cast<size_t>(capacity)*12);
   // Clear the unused capacity as well: ArrayMesh draws its allocated surface.

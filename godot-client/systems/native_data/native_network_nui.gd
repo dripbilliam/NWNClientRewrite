@@ -55,14 +55,9 @@ static func append_i32(bytes: PackedByteArray,value: int)->void:
 	var at:=bytes.size();bytes.resize(at+4);bytes.encode_s32(at,value)
 
 static func append_string(bytes: PackedByteArray,value: String)->Dictionary:
-	var encoded:=PackedByteArray()
-	for index in value.length():
-		var code:=value.unicode_at(index)
-		if code<=255:encoded.append(code)
-		else:
-			var one: Dictionary=Text.encode(char(code))
-			if one.has("error"):return one
-			encoded.append_array(one.bytes)
+	var result: Dictionary=preload("res://systems/native_data/native_script_string.gd").bytes(value)
+	if result.has("error"):return result
+	var encoded: PackedByteArray=result.value
 	if encoded.size()>MAX_MESSAGE-bytes.size()-8:return {"error":"Native NUI input text exceeds bound"}
 	append_i32(bytes,encoded.size());bytes.append_array(encoded)
 	return {}

@@ -10,6 +10,8 @@ var request_id:=-1
 var stage:=""
 var dead:=false
 var last: Dictionary={}
+var sets: Dictionary={}
+var streams: Dictionary={}
 func configure(catalog,player_owner) -> void:
 	audio=player_owner; assets=Assets.new(); add_child(assets); assets.maximum_workers=1; assets.configure(catalog); assets.completed.connect(prepared)
 func play(id: int,name: String) -> void:
@@ -20,9 +22,32 @@ func play(id: int,name: String) -> void:
 func play_sample(id: int,name: String,line: int) -> void:
 	# CG_CHAR_INFO owns its sample counter. Do not advance it a second time.
 	if dead or id<0 or id>65535 or line<0 or line>=49:return
-	stop();selected=id
-	last={"voice":id,"code":line,"native":true}; audio.status="Loading sample "+str(line+1)+"…"
-	stage="ssf"; request_id=assets.request(name,2060,"bytes")
+	request_id=-1;stage="";selected=id
+	if name.is_empty() or name=="****":return
+	last={"voice":id,"code":line,"native":true,"soundset":name}; audio.status="Loading sample "+str(line+1)+"…"
+	if sets.has(name):select_sample(sets[name],line);return
+	stage="ssf";request_id=assets.request(name,2060,"bytes")
+	if request_id<0:audio.status=str(assets.failure)
+
+func select_sample(bytes: PackedByteArray,line: int)->void:
+	if bytes.size()<40 or bytes.slice(0,8).get_string_from_ascii()!="SSF V1.0":audio.status="Unsupported soundset header.";return
+	var count:=int(bytes.decode_u32(8));var table:=int(bytes.decode_u32(12))
+	if count>1000000 or table>bytes.size() or count*4>bytes.size()-table:audio.status="Invalid soundset table.";return
+	var offset:=int(bytes.decode_u32(table+line*4)) if line<count else 0
+	if offset==0:audio.status="No line in sample "+str(line+1)+". Play sample advances to the next line.";return
+	if offset>bytes.size()-20:audio.status="Invalid soundset entry.";return
+	var name:=Binary.new(bytes).text(offset,16,true)
+	if name.is_empty():audio.status="This sample is empty. Play sample for the next line.";return
+	last.resource=name;stage="audio"
+	if streams.has(name.to_lower()):play_stream(streams[name.to_lower()]);return
+	request_id=assets.request(name,4,"bytes")
+	if request_id<0:audio.status=str(assets.failure)
+
+func play_stream(stream: AudioStream)->void:
+	if dead or stream==null:return
+	# GameAudio.replace retires the prior sample only after the new sample is ready.
+	audio.stop();audio.player.stream=stream;audio.player.play();audio.played+=1
+	audio.status="Playing sample "+str(int(last.code)+1)+".";last.seconds=stream.get_length();last.played=true
 func prepared(id: int,result: Dictionary) -> void:
 	if dead or id!=request_id: return
 	request_id=-1
@@ -30,15 +55,10 @@ func prepared(id: int,result: Dictionary) -> void:
 	var bytes: PackedByteArray=result.bytes
 	if stage=="ssf":
 		var line:=int(last.code)
-		if bytes.size()<40 or bytes.slice(0,8).get_string_from_ascii()!="SSF V1.0": audio.status="Unsupported soundset header."; return
-		var count:=int(bytes.decode_u32(8)); var table:=int(bytes.decode_u32(12))
-		if count>1000000 or table>bytes.size() or count*4>bytes.size()-table: audio.status="Invalid soundset table."; return
-		var offset:=int(bytes.decode_u32(table+line*4)) if line<count else 0
-		if offset==0: audio.status="No line in sample "+str(line+1)+". Play sample advances to the next line."; return
-		if offset>bytes.size()-20: audio.status="Invalid soundset entry."; return
-		var name:=Binary.new(bytes).text(offset,16,true)
-		if name.is_empty(): audio.status="This sample is empty. Play sample for the next line."; return
-		last.resource=name; stage="audio"; request_id=assets.request(name,4,"bytes"); return
+		if bytes.size()>=40 and bytes.slice(0,8).get_string_from_ascii()=="SSF V1.0":
+			var count:=int(bytes.decode_u32(8));var table:=int(bytes.decode_u32(12))
+			if count<=1000000 and table<=bytes.size() and count*4<=bytes.size()-table:sets[str(last.soundset)]=bytes
+		select_sample(bytes,line);return
 	var stream: AudioStream
 	var header:=bytes.slice(0,8).get_string_from_ascii() if bytes.size()>=8 else ""
 	if header=="BMU V1.0":
@@ -48,9 +68,9 @@ func prepared(id: int,result: Dictionary) -> void:
 	elif bytes.size()>=3 and (bytes.slice(0,3).get_string_from_ascii()=="ID3" or bytes[0]==255 and (bytes[1]&224)==224):
 		var mp3:=AudioStreamMP3.new(); mp3.data=bytes; stream=mp3
 	if stream==null or stream.get_length()<=0: audio.status="Native decoder could not open this voice sample."; return
-	audio.player.stream=stream; audio.player.play(); audio.played+=1; audio.status="Playing sample "+str(int(last.code)+1)+"."; last.seconds=stream.get_length(); last.played=true
+	streams[str(last.resource).to_lower()]=stream;play_stream(stream)
 func stop() -> void:
 	request_id=-1; stage=""
 	if is_instance_valid(audio): audio.stop()
-func reset() -> void: stop(); selected=-1; code=0
+func reset() -> void: stop(); selected=-1; code=0;sets.clear();streams.clear()
 func close() -> void: dead=true; reset(); assets.close()

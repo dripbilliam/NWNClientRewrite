@@ -57,12 +57,20 @@ static func nodes(model: Dictionary,poses: Array) -> Dictionary:
 				if not values.has(name): values[name]={}
 				values[name][str(track.property)]=value
 		if not found: return {"error":"Original GUI hook state animation is missing"}
+	# buildUiModel stores bindings in a Map keyed by lowercase node name;
+	# duplicate names replace earlier bindings, so only the last node is posed.
+	var source_nodes: Array=model.get("nodes",[])
+	var last_named_index: Dictionary={}
+	for index in source_nodes.size():last_named_index[str(source_nodes[index].name).to_lower()]=index
 	var rows: Array=[]
-	for row in model.get("nodes",[]):
+	for index in source_nodes.size():
+		var row: Dictionary=source_nodes[index]
 		var node: Dictionary=row.duplicate()
-		for property in values.get(str(row.name).to_lower(),{}):
-			var value: Array=values[str(row.name).to_lower()][property]
-			node[property]=value[0] if property=="scale" else value
+		var key:=str(row.name).to_lower()
+		if index==int(last_named_index[key]):
+			for property in values.get(key,{}):
+				var value: Array=values[key][property]
+				node[property]=value[0] if property=="scale" else value
 		rows.append(node)
 	var result:=model.duplicate(); result.nodes=rows
 	return {"error":"","model":result}

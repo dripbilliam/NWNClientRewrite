@@ -39,7 +39,7 @@ func _begin_entity()->void:
 		var skeleton:=Skeleton3D.new();skeleton.name="OriginalBones";rig.add_child(skeleton);entry.skeleton=skeleton;entry.bone_nodes={};entry.gpu_meshes=[];entry.conservative=AABB();entry.has_bounds=false
 	phase="nodes";index=0
 func _node()->bool:
-	var row: Dictionary=source.nodes[index];var parent:=int(row.parent)
+	var row: Dictionary=source.nodes[index];var parent:=int(row.get("parentIndex",row.get("parent",-1)))
 	if parent>=index or parent< -1:failure="Native rig construction contains an invalid physical parent";return false
 	if skeletal:
 		var skeleton: Skeleton3D=entry.skeleton;skeleton.add_bone("part_"+str(index));skeleton.set_bone_parent(index,parent);skeleton.set_bone_rest(index,Transform3D.IDENTITY)
@@ -60,7 +60,7 @@ func _bone_node(part: int)->Node3D:
 		var node:=BoneAttachment3D.new();node.bone_name="part_"+str(part);entry.skeleton.add_child(node);entry.bone_nodes[part]=node
 	return entry.bone_nodes[part]
 func _remember(mesh: MeshInstance3D)->void:
-	restores.append({"mesh":mesh,"parent":weakref(mesh.get_parent()) if mesh.get_parent()!=null else null,"transform":mesh.transform,"mesh_resource":mesh.mesh,"skin":mesh.skin,"skeleton":mesh.skeleton,"custom_aabb":mesh.custom_aabb,"anchor":mesh.get_meta("native_pick_anchor") if mesh.has_meta("native_pick_anchor") else null,"bounds":mesh.get_meta("native_pick_bounds") if mesh.has_meta("native_pick_bounds") else null})
+	restores.append({"mesh":mesh,"parent":weakref(mesh.get_parent()) if mesh.get_parent()!=null else null,"transform":mesh.transform,"mesh_resource":mesh.mesh,"skin":mesh.skin,"skeleton":mesh.skeleton,"custom_aabb":mesh.custom_aabb,"anchor":mesh.get_meta("native_pick_anchor") if mesh.has_meta("native_pick_anchor") else null,"bounds":mesh.get_meta("native_pick_bounds") if mesh.has_meta("native_pick_bounds") else null,"pick_geometry":mesh.get_meta("native_pick_geometry") if mesh.has_meta("native_pick_geometry") else null,"pick_shape":mesh.get_meta("native_pick_shape") if mesh.has_meta("native_pick_shape") else null,"cpu_skin":mesh.get_meta("native_cpu_skin") if mesh.has_meta("native_cpu_skin") else null})
 func _mesh()->void:
 	var row: Dictionary=metadata.get("meshes",[])[index];index+=1
 	if int(row.get("objectId",-1) if row.get("objectId")!=null else -1)!=int(source.id) or not row.has("rigNode") or not skeletal and row.get("particle",false):return
@@ -147,8 +147,8 @@ func cancel()->void:
 		node.transform=row.transform
 		if row.has("mesh"):
 			node.mesh=row.mesh_resource;node.skin=row.skin;node.skeleton=row.skeleton;node.custom_aabb=row.custom_aabb
-			for name in ["native_pick_anchor","native_pick_bounds"]:
-				var value: Variant=row.anchor if name=="native_pick_anchor" else row.bounds
+			for name in ["native_pick_anchor","native_pick_bounds","native_pick_geometry","native_pick_shape","native_cpu_skin"]:
+				var value: Variant={"native_pick_anchor":row.anchor,"native_pick_bounds":row.bounds,"native_pick_geometry":row.pick_geometry,"native_pick_shape":row.pick_shape,"native_cpu_skin":row.cpu_skin}[name]
 				if value!=null:node.set_meta(name,value)
 				elif node.has_meta(name):node.remove_meta(name)
 	restores.clear()

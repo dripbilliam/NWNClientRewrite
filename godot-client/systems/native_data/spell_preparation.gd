@@ -5,7 +5,7 @@ var context: Array=[]
 var pending: Dictionary={}
 var serial:=0
 var notice:=""
-var timeout_ms:=15000
+var timeout_ms:=5000
 static func key(row: Dictionary) -> String: return "%d:%d:%d"%[int(row.classIndex),int(row.level),int(row.slot)]
 static func command(row: Dictionary,id: int,meta: int,domain: bool,cost: Callable) -> Dictionary:
 	var base: int=(int(row.level)-(int(cost.call(meta)) if meta!=0 else 0))&255 if domain else 0
@@ -24,10 +24,8 @@ static func plan(source: Dictionary,destination: Dictionary,clear: bool,cost: Ca
 	# writes, including the displaced record; preserve that native rule.
 	if old>=0 and source_slot>=0: result.writes.append(command(source,old,int(destination.metamagic),domain,cost))
 	result.writes.append(command(destination,source_id,int(source.metamagic),domain,cost))
-	# Empty-target moves clear only after the destination write. Known-list
-	# sources copy and never erase a preparation. Occupied targets swap above.
-	if old<0 and source_slot>=0:
-		var write:=command(source,int(source.spellId),int(source.metamagic),domain,cost); write.clear=true; result.writes.append(write)
+	# The old drop callback sends only the destination write for an empty target.
+	# It sends the source write first only when the target held a spell.
 	return result
 static func slot(actor: Dictionary,row: Dictionary) -> Array:
 	var entries: Array=actor.get("playerState",{}).get("spellbooks",{}).get(str(int(row.classIndex)),{}).get("memorized",{}).get(str(int(row.level)),[])
@@ -36,13 +34,19 @@ static func slot(actor: Dictionary,row: Dictionary) -> Array:
 	var value: Variant=entries[at]
 	if not value is Dictionary or int(value.get("spell",-1))<0: return [-1,0,false,false]
 	return [int(value.spell),int(value.get("metamagic",0)),bool(value.get("domain",false)),bool(value.get("ready",false))]
+static func snapshot(actor: Dictionary,row: Dictionary) -> Variant:
+	var entries: Array=actor.get("playerState",{}).get("spellbooks",{}).get(str(int(row.classIndex)),{}).get("memorized",{}).get(str(int(row.level)),[])
+	var at:=int(row.slot)
+	if at<0 or at>=entries.size():return null
+	var value: Variant=entries[at]
+	return value.duplicate(true) if value is Dictionary else value
 func reset(scope: Array=[]) -> void: pending.clear(); context=scope.duplicate(); notice=""
 func observe(actor: Dictionary,scope: Array,now_ms: int) -> bool:
 	if scope!=context:
 		var had:=not pending.is_empty(); reset(scope); return had
 	var changed:=false
 	for name in pending.keys():
-		var claim: Dictionary=pending[name]; var actual:=slot(actor,claim.write)
+		var claim: Dictionary=pending[name]; var actual: Variant=snapshot(actor,claim.write)
 		if actual!=claim.before:
 			pending.erase(name); changed=true
 		elif now_ms-int(claim.at)>=timeout_ms:
@@ -60,7 +64,7 @@ func submit(actor: Dictionary,scope: Array,writes: Array,now_ms: int) -> Diction
 	var requests: Array=[]
 	for write in writes:
 		serial+=1; var request: Dictionary=write.duplicate(true); request.requestId=serial
-		pending[key(write)]={"requestId":serial,"write":write.duplicate(true),"before":slot(actor,write),"at":now_ms}; requests.append(request)
+		pending[key(write)]={"requestId":serial,"write":write.duplicate(true),"before":snapshot(actor,write),"at":now_ms}; requests.append(request)
 	if not requests.is_empty(): notice="Waiting for the server to update spell preparations…"
 	return {"requests":requests,"error":""}
 func reject(request_id: int,scope: Array,message: String) -> bool:

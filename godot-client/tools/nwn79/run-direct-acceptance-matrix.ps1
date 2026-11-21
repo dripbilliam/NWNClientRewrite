@@ -72,6 +72,7 @@ if($worldRows.Count){
  $worldTarget=Get-Content -LiteralPath $targetPath -Raw|ConvertFrom-Json
  $worldName=[string]$worldTarget.selected.name
  if($worldTarget.format -ne 'nwn79-nwsync-world-texture-target-v1' -or $worldTarget.success -ne $true -or $worldTarget.module -ne 'GodotFeedback1' -or $worldTarget.area -ne 'dense_a' -or $worldTarget.tileModel -ne 'ttr01_g01_01' -or $worldName -cnotmatch '^[a-z0-9_]{1,16}$' -or [int]$worldTarget.selected.indexReferences -lt 3 -or [string]$worldTarget.selected.originalSha256 -cnotmatch '^[0-9a-f]{64}$'){throw 'World texture target receipt does not identify an original rendered dense_a bitmap'}
+ if(-not(Get-Content -LiteralPath (Join-Path $project 'native_direct_session_world.gd') -Raw).Contains('direct-nwsync-world-material-check')){throw 'This Godot project lacks the ordinary-world NWSync test hook; use a reviewed source build or a newly sealed package'}
 }
 $travelSource=Join-Path $sourceClient '.cache/nwn79/travel-profile/nwm/GodotBuffs1.nwm'
 $travelTarget=Join-Path $serverHome 'nwm/GodotBuffs1.nwm'
@@ -101,6 +102,7 @@ function Validate-Receipt([string]$id,[string]$path,[int]$exitCode){
  Require ($r.direct_headless_check -and [int]$r.direct_headless_check.snapshots -ge 2 -and [int]$r.direct_headless_check.objects -ge 1 -and [int]$r.direct_headless_check.quickbar -eq 36) "$id admitted world, snapshots and quickbar"
  Require ($r.direct_headless_check.catalog_shared -eq $true -and [int]$r.direct_headless_check.ui_generation -ge 1) "$id shared catalog and UI generation"
  Require ($r.world.ready -eq $true -and [int]$r.received_snapshots -ge 2) "$id renderer world receipt"
+ if($id -in @('nwsync-world-control','nwsync-world-candidate')){Require ($null -ne $r.direct_nwsync_world_check) 'ordinary-world NWSync hook receipt exists'}
  switch($id){
   'browser-auth' {Require ($r.direct_browser_check.mismatched_profile_rejected -eq $true -and $r.direct_browser_check.invalid_temporary_key_rejected -eq $true -and $r.direct_browser_check.direct_tab -eq $true) 'Direct browser credential validation'}
   'manual-character' {Require ($r.direct_headless_check.manual_selected -eq $true -and $r.direct_headless_check.manual_played -eq $true) 'manual installed-character selection'}
@@ -130,6 +132,34 @@ function Validate-Receipt([string]$id,[string]$path,[int]$exitCode){
      Require ($different -ge 2) 'graphical local smoke frame contains rendered scene variation'
     }finally{$bitmap.Dispose()}
    }
+  }
+  {$_ -in @('nwsync-world-control','nwsync-world-candidate')} {
+   $world=$r.direct_nwsync_world_check
+   Require ($world.model -eq 'ttr01_g01_01' -and $world.textureName -eq $worldName -and $world.boundMaterial -eq $true -and [long]$world.area -gt 0 -and [int]$world.generation -ge 1 -and $null -ne $world.camera) 'actual dense_a tile material bound the selected original model texture'
+   Require ([string]$world.textureSha256 -cmatch '^[0-9a-f]{64}$') 'published tile texture has a source SHA256'
+   if($id -eq 'nwsync-world-control'){
+    Require ($world.sourceKind -ne 'nwsync' -and [int]$world.textureType -eq [int]$worldTarget.selected.type -and $world.textureSha256 -eq $worldTarget.selected.originalSha256) 'no-advertisement control bound the original installed tile bitmap'
+   }else{
+    $visual=$r.direct_nwsync_visual_check
+    Require ([int]$visual.resourcesVerified -eq 13 -and $visual.iconDecoded -eq $true -and $visual.iconPixel -eq $true -and $visual.worldReady -eq $true) 'world candidate mounted and decoded all thirteen NWSync resources'
+    $fixtureDirectory=Join-Path $output ($id+'-http')
+    $descriptor=Get-Content -LiteralPath (Join-Path $fixtureDirectory 'descriptor.json') -Raw|ConvertFrom-Json
+    $authored=@($descriptor.entries|Where-Object {$_.name -eq $worldName -and [int]$_.type -eq 3})
+    Require ($authored.Count -eq 1 -and $descriptor.worldTextureName -eq $worldName) 'world candidate descriptor names the selected tile bitmap'
+    $rawPath=Join-Path $fixtureDirectory ('zstd-input/'+[string]$authored[0].hash+'.bin')
+    Require (Test-Path -LiteralPath $rawPath -PathType Leaf) 'authored source TGA exists'
+    $authoredSha256=(Get-FileHash -LiteralPath $rawPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Require ($world.sourceKind -eq 'nwsync' -and [int]$world.textureType -eq 3 -and $world.textureSha256 -eq $authoredSha256) 'world candidate bound the authored NWSync TGA in its tile material'
+   }
+   $capture=[string]$world.visualCapture
+   Require ($capture -and (Test-Path -LiteralPath $capture -PathType Leaf)) 'ordinary world frame was captured without a fixture overlay'
+   Add-Type -AssemblyName System.Drawing
+   $bitmap=[System.Drawing.Bitmap]::new($capture)
+   try{
+    Require ($bitmap.Width -ge 640 -and $bitmap.Height -ge 480) 'ordinary world frame has viewport extent'
+    $variation=@($bitmap.GetPixel(20,20),$bitmap.GetPixel([int]($bitmap.Width/2),[int]($bitmap.Height/2)),$bitmap.GetPixel([int]($bitmap.Width-20),[int]($bitmap.Height-20))|ForEach-Object {$_.ToArgb()}|Select-Object -Unique).Count
+    Require ($variation -ge 2) 'ordinary world frame contains rendered scene variation'
+   }finally{$bitmap.Dispose()}
   }
   {$_ -in @('nwsync-visual-admission','nwsync-visual-graphical')} {
    $visual=$r.direct_nwsync_visual_check
@@ -205,6 +235,7 @@ function Invoke-NWSyncVisualPreflight([string]$fixtureDirectory){
  $descriptor=(Join-Path $fixtureDirectory 'descriptor.json').Replace([char]92,[char]47)
  Require (Test-Path -LiteralPath $descriptor -PathType Leaf) 'visual descriptor exists before server startup'
  $stem=Split-Path -Path $fixtureDirectory -Leaf
+ $report=(Join-Path $output ($stem+'-preflight.json')).Replace([char]92,[char]47)
  $stdout=Join-Path $output ($stem+'-preflight.stdout.log')
  $stderr=Join-Path $output ($stem+'-preflight.stderr.log')
  $userData=Join-Path $output ($stem+'-preflight-user-data')
@@ -339,12 +370,14 @@ try{
   $httpProcess=$null
   $nwsyncFixture=$null
   try{
-   if($spec.id -like 'nwsync*'){
+   if($spec.id -like 'nwsync*' -and $spec.id -ne 'nwsync-world-control'){
     $fixtureDirectory=Join-Path $output ($spec.id+'-http')
-    & $nwsyncFixtureScript -Directory $fixtureDirectory -Port 31879 -VisualCohort:($spec.id -in @('nwsync-visual-admission','nwsync-visual-graphical')) | Out-Null
+    $fixtureArgs=@{Directory=$fixtureDirectory;Port=31879;VisualCohort=($spec.id -in @('nwsync-visual-admission','nwsync-visual-graphical','nwsync-world-candidate'))}
+    if($spec.id -eq 'nwsync-world-candidate'){$fixtureArgs.WorldTextureName=$worldName}
+    & $nwsyncFixtureScript @fixtureArgs | Out-Null
     $descriptor=Get-Content -LiteralPath (Join-Path $fixtureDirectory 'descriptor.json') -Raw|ConvertFrom-Json
     $nwsyncFixture=[ordered]@{directory=$fixtureDirectory;url=$descriptor.url;manifestHash=$descriptor.manifestHash;resourceHash=$descriptor.resourceHash;entries=@($descriptor.entries)}
-    if($spec.id -in @('nwsync-visual-admission','nwsync-visual-graphical')){$script:nwsyncVisualPreflight=Invoke-NWSyncVisualPreflight $fixtureDirectory}
+    if($spec.id -in @('nwsync-visual-admission','nwsync-visual-graphical','nwsync-world-candidate')){$script:nwsyncVisualPreflight=Invoke-NWSyncVisualPreflight $fixtureDirectory}
     if($spec.id -eq 'nwsync-failure'){@{failBlob=$true;delayMilliseconds=0}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $fixtureDirectory 'control.json') -Encoding utf8}
     if($spec.id -eq 'nwsync-cancel'){@{failBlob=$false;delayMilliseconds=5000}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $fixtureDirectory 'control.json') -Encoding utf8}
     $httpStart=[Diagnostics.ProcessStartInfo]::new()
@@ -384,6 +417,12 @@ try{
     $results[$spec.id].visualCapture=(Get-Content -LiteralPath $results[$spec.id].report -Raw|ConvertFrom-Json).direct_nwsync_visual_check.visualCapture
     $results[$spec.id].screen=$graphicalScreen
    }
+   if($spec.id -eq 'nwsync-world-candidate'){
+    $requests=@(Get-Content -LiteralPath (Join-Path $fixtureDirectory 'requests.log'))
+    Require ($requests.Count -eq 14) 'ordinary-world candidate fetched one manifest and thirteen authored resources'
+    Require (@($requests|Where-Object {$_ -notlike '* 200 OK complete'}).Count -eq 0) 'ordinary-world candidate completed all loopback HTTP resource reads'
+    $results[$spec.id].httpRequests=$requests.Count
+   }
   }catch{
    $reason=$_.Exception.Message
    $results[$spec.id]=[ordered]@{status='fail';reason=$reason;report=(Join-Path $output ($spec.id+'.json'))}
@@ -399,6 +438,26 @@ try{
  if($current -and -not$results.Contains($current)){$results[$current]=[ordered]@{status='fail';reason=$failure}}
 }finally{
  if($serverStarted){& $serverScript -Action Stop -Port 5121 | Out-Null;$serverStarted=$false}
+ if($worldRows.Count -eq 2 -and $results.Contains('nwsync-world-control') -and $results.Contains('nwsync-world-candidate') -and $results['nwsync-world-control'].status -eq 'pass' -and $results['nwsync-world-candidate'].status -eq 'pass'){
+  try{
+   $control=(Get-Content -LiteralPath $results['nwsync-world-control'].report -Raw|ConvertFrom-Json).direct_nwsync_world_check
+   $candidate=(Get-Content -LiteralPath $results['nwsync-world-candidate'].report -Raw|ConvertFrom-Json).direct_nwsync_world_check
+   Require ($control.model -eq $candidate.model -and $control.textureName -eq $candidate.textureName -and [long]$control.area -eq [long]$candidate.area -and [int]$control.generation -eq [int]$candidate.generation) 'world control and candidate used the same tile, bitmap name, area and generation'
+   $controlCamera=$control.camera|ConvertTo-Json -Compress -Depth 6
+   $candidateCamera=$candidate.camera|ConvertTo-Json -Compress -Depth 6
+   Require ($controlCamera -eq $candidateCamera) 'world control and candidate used the same camera pose'
+   Require ($control.textureSha256 -ne $candidate.textureSha256 -and $control.sourceKind -ne $candidate.sourceKind) 'world candidate changed the actual tile material source'
+   $controlCaptureSha=(Get-FileHash -LiteralPath ([string]$control.visualCapture) -Algorithm SHA256).Hash.ToLowerInvariant()
+   $candidateCaptureSha=(Get-FileHash -LiteralPath ([string]$candidate.visualCapture) -Algorithm SHA256).Hash.ToLowerInvariant()
+   Require ($controlCaptureSha -ne $candidateCaptureSha) 'ordinary rendered world frame changed with the advertised material'
+   $results['nwsync-world-candidate'].matchedControl=[ordered]@{status='pass';textureName=$worldName;controlTextureSha256=[string]$control.textureSha256;candidateTextureSha256=[string]$candidate.textureSha256;controlCaptureSha256=$controlCaptureSha;candidateCaptureSha256=$candidateCaptureSha;sameCamera=$true;sameArea=$true}
+  }catch{
+   $reason='World-material paired comparison failed: '+$_.Exception.Message
+   $results['nwsync-world-candidate'].status='fail'
+   $results['nwsync-world-candidate'].reason=$reason
+   if(-not$failure){$failure=$reason}
+  }
+ }
  $nwsyncRow=if($results.Contains('nwsync')){$results['nwsync']}else{[ordered]@{status='pending';reason='Select the private-server NWSync scenario for an end-to-end receipt'}}
  $nwsyncVisualRow=if($results.Contains('nwsync-visual-admission')){$results['nwsync-visual-admission']}else{[ordered]@{status='pending';reason='Select the authored thirteen-resource private-server NWSync scenario'}}
  $summary=[ordered]@{format='nwn79-direct-private-matrix-v1';project=$project;engineSha256=(Get-FileHash -LiteralPath $engine -Algorithm SHA256).Hash.ToLowerInvariant();selected=@($selected|ForEach-Object {$_.id});results=$results;nwsyncPhases=$nwsyncPhases;nwsyncVisualPhases=$nwsyncVisualPhases;credentialImport=[ordered]@{status='pending';reason='First-launch one-time import, marker/backup, second launch without old source, and failed credential re-entry belong to the isolated credential fixture; this matrix consumes an already imported version-3 store'};nwsync=$nwsyncRow;nwsyncVisual=$nwsyncVisualRow;alternateContainer=[ordered]@{status='pending';reason='The self-inventory fixture receives inventory channels but does not emit server 13/1 alternate-container receipts'};publicServer='not-tested';graphicalParity='not-tested';fpsMeasurements=0;liveSettingsWrites=0;allSelectedPassed=($failure -eq '' -and @($results.Values|Where-Object {$_.status -ne 'pass'}).Count -eq 0);nwn79Complete=$false}

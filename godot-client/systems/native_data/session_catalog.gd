@@ -8,6 +8,7 @@ const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Workshop=preload("res://systems/native_data/workshop_index.gd")
 const Extensions=preload("res://systems/native_data/resource_extensions.gd")
 const TalkTable=preload("res://systems/native_data/talk_table.gd")
+const ResourceAdmission=preload("res://systems/native_data/native_resource_admission.gd")
 const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 const ItemIconSources=preload("res://systems/native_data/item_icon_sources.gd")
 const SpellbookIconSources=preload("res://systems/native_data/spellbook_icon_sources.gd")
@@ -54,8 +55,15 @@ static func validate_custom_tlk(source: Variant,catalog: RefCounted,profile: Str
 	if not male_opened:return {"error":"Selected custom TLK is invalid: "+reason}
 	var female_name:=name+"f"
 	var female_path: String=""
-	if not path.is_empty():female_path=path.get_base_dir().path_join(path.get_file().get_basename()+"f.tlk")
-	elif not catalog.has_resource(female_name,2018) and not profile.is_empty():female_path=profile.path_join("tlk").path_join(female_name+".tlk")
+	var indexes: Dictionary={}
+	if not path.is_empty():
+		var sibling:=ResourceAdmission.indexed_file(path.get_base_dir(),path.get_file().get_basename()+"f.tlk",indexes)
+		if sibling.has("error"):return sibling
+		female_path=str(sibling.get("path",""))
+	elif not catalog.has_resource(female_name,2018) and not profile.is_empty():
+		var profile_female:=ResourceAdmission.indexed_file(profile.path_join("tlk"),female_name+".tlk",indexes)
+		if profile_female.has("error"):return profile_female
+		female_path=str(profile_female.get("path",""))
 	if not female_path.is_empty() and FileAccess.file_exists(female_path):
 		var female_opened_file:=table.open_file(female_path);reason=table.failure;table.close()
 		if not female_opened_file:return {"error":"Selected custom female TLK is invalid: "+reason}

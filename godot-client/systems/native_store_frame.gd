@@ -95,7 +95,7 @@ func render(store: Dictionary) -> void:
 	if not built(): return
 	panel.size=definition.size; stage.size=definition.size
 	for index in 5:
-		panel.tabs[index].text=""; panel.tabs[index].tooltip_text=owner_inventory.text_owner.raw({"strRef":0xf85c+index})
+		panel.tabs[index].text=""; panel.tabs[index].tooltip_text=str(store.get("labels",[])[index]) if index<store.get("labels",[]).size() else ""
 		panel.tabs[index].set_pressed_no_signal(int(store.get("panel",0))==index); panel.tabs[index].disabled=store.get("navigationPending",false)
 	panel.pager.text="%s %d/%d"%[owner_inventory.text_owner.raw({"strRef":0xf85c+int(store.get("panel",0))}),int(store.get("page",0))+1,maxi(1,int(store.get("pageCount",1)))]
 	if hovered_item>=0 and panel.inventory.items.has(hovered_item): hover_item(hovered_item)

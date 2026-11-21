@@ -31,6 +31,7 @@ public:
   if(!complete||pending||stopping)throw std::runtime_error("Particle geometry worker is busy");
   operation=call;argument=input;failure=nullptr;complete=false;pending=true;ready.notify_one();
  }
+ bool done(){std::lock_guard<std::mutex> lock(mutex);return complete;}
  void wait(){
   std::unique_lock<std::mutex> lock(mutex);finished.wait(lock,[&]{return complete;});
   auto error=failure;lock.unlock();if(error)std::rethrow_exception(error);

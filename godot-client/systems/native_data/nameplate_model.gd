@@ -7,7 +7,7 @@ static func parse(model: Dictionary) -> Dictionary:
 	if not str(geometry.error).is_empty(): return geometry
 	var poses: Array[Transform3D]=[]; var parts: Array=[]
 	for node in model.get("nodes",[]):
-		var p: Array=node.position; var q: Array=node.orientation; var parent:=int(node.parent)
+		var p: Array=node.position; var q: Array=node.orientation; var parent:=int(node.get("parentIndex",node.get("parent",-1)))
 		var pose:=Transform3D(Basis(Quaternion(q[0],q[1],q[2],q[3]).normalized()).scaled(Vector3.ONE*float(node.get("scale",1))),Vector3(p[0],p[1],p[2]))
 		if parent>=0: pose=poses[parent]*pose
 		poses.append(pose)

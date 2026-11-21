@@ -5,41 +5,55 @@ static func word(bytes: PackedByteArray,value: int)->void:
 	byte(bytes,value);byte(bytes,value >> 8)
 static func dword(bytes: PackedByteArray,value: int)->void:
 	for shift in [0,8,16,24]:byte(bytes,value >> shift)
-static func string(bytes: PackedByteArray,value: Variant)->bool:
-	if not value is String:return false
+static func string_error(bytes: PackedByteArray,value: Variant)->String:
+	if not value is String:return "Native login string is unavailable"
 	var encoded: Dictionary=Text.encode(value)
-	if not encoded.has("bytes") or encoded.bytes.size()>255:return false
+	if encoded.has("error"):return str(encoded.error)
+	if encoded.bytes.size()>255:return "Native login string exceeds its wire length"
 	byte(bytes,encoded.bytes.size());bytes.append_array(encoded.bytes)
-	return true
-static func integer(value: Variant)->bool:
-	return (value is int or value is float) and is_finite(float(value)) and float(value)==floor(float(value))
+	return ""
+static func integer_error(value: Variant,label: String)->String:
+	if (value is int or value is float) and is_finite(float(value)) and float(value)==floor(float(value)):return ""
+	return "Native login "+label+" is unavailable"
 
 static func connect_request(input: Dictionary)->Dictionary:
 	var build: Variant=input.get("build")
 	if not build is Dictionary:return {"error":"Native login build is unavailable"}
-	for value in [input.get("port"),input.get("connectionType"),build.get("number"),input.get("language"),input.get("applicationId"),input.get("platformId"),build.get("revision"),build.get("postfix")]:
-		if not integer(value):return {"error":"Native login numeric field is unavailable"}
 	var bytes: PackedByteArray="BNCS".to_ascii_buffer()
-	word(bytes,int(input.port));byte(bytes,int(input.connectionType));dword(bytes,int(build.number))
-	word(bytes,3);byte(bytes,int(input.language));dword(bytes,int(input.applicationId))
+	for entry in [[input.get("port"),"port","word"],[input.get("connectionType"),"connection type","byte"],[build.get("number"),"build","dword"]]:
+		var error:=integer_error(entry[0],entry[1]);if not error.is_empty():return {"error":error}
+		match entry[2]:
+			"word":word(bytes,int(entry[0]))
+			"byte":byte(bytes,int(entry[0]))
+			_:dword(bytes,int(entry[0]))
+	word(bytes,3)
+	for entry in [[input.get("language"),"language","byte"],[input.get("applicationId"),"application ID","dword"]]:
+		var error:=integer_error(entry[0],entry[1]);if not error.is_empty():return {"error":error}
+		if entry[2]=="byte":byte(bytes,int(entry[0]))
+		else:dword(bytes,int(entry[0]))
 	for field in ["name","publicKey","legacyPublicKey"]:
-		if not string(bytes,input.get(field)):return {"error":"Native login "+field+" text is unavailable or exceeds its wire length"}
+		var error:=string_error(bytes,input.get(field));if not error.is_empty():return {"error":error}
+	var error:=integer_error(input.get("platformId"),"platform ID");if not error.is_empty():return {"error":error}
 	byte(bytes,int(input.platformId))
-	if not string(bytes,input.get("platformIdentifier")):return {"error":"Native login platform identity is unavailable"}
+	error=string_error(bytes,input.get("platformIdentifier"));if not error.is_empty():return {"error":error}
+	error=integer_error(build.get("revision"),"revision");if not error.is_empty():return {"error":error}
 	dword(bytes,int(build.revision))
-	if not string(bytes,build.get("commit")):return {"error":"Native login commit is unavailable"}
+	error=string_error(bytes,build.get("commit"));if not error.is_empty():return {"error":error}
+	error=integer_error(build.get("postfix"),"postfix");if not error.is_empty():return {"error":error}
 	dword(bytes,int(build.postfix))
 	return {"bytes":bytes}
 
 static func validation_response(input: Dictionary)->Dictionary:
 	for field in ["keyResponse","communityResponse","passwordResponse"]:
-		if not input.get(field) is String:return {"error":"Native validation response field is unavailable"}
+		if not input.get(field) is String:return {"error":"Native validation response fields are unavailable"}
 	var bytes: PackedByteArray="BNVS".to_ascii_buffer()
 	byte(bytes,80 if not input.passwordResponse.is_empty() else 86)
 	byte(bytes,1 if not input.keyResponse.is_empty() else 0)
-	if not input.keyResponse.is_empty() and not string(bytes,input.keyResponse):return {"error":"Invalid native key response"}
-	if not string(bytes,input.communityResponse):return {"error":"Invalid native community response"}
-	if not input.passwordResponse.is_empty() and not string(bytes,input.passwordResponse):return {"error":"Invalid native password response"}
+	if not input.keyResponse.is_empty():
+		var error:=string_error(bytes,input.keyResponse);if not error.is_empty():return {"error":error}
+	var error:=string_error(bytes,input.communityResponse);if not error.is_empty():return {"error":error}
+	if not input.passwordResponse.is_empty():
+		error=string_error(bytes,input.passwordResponse);if not error.is_empty():return {"error":error}
 	return {"bytes":bytes}
 
 static func read_string(bytes: PackedByteArray,at: int)->Dictionary:
@@ -50,7 +64,9 @@ static func read_string(bytes: PackedByteArray,at: int)->Dictionary:
 	return {"text":"" if value.size()>0 and value[0]==0 else Text.decode(value),"at":at+1+length}
 
 static func read_connect_response(bytes: PackedByteArray)->Dictionary:
-	if bytes.size()<8 or bytes.slice(0,4).get_string_from_ascii()!="BNCR":return {"error":"Truncated or unexpected native connection response"}
+	if bytes.size()<4:return {"error":"Truncated native login packet"}
+	if bytes.slice(0,4).get_string_from_ascii()!="BNCR":return {"error":"Unexpected native login packet type"}
+	if bytes.size()<8:return {"error":"Truncated native login packet"}
 	var port: int=bytes.decode_u16(4);var status: int=bytes[6]
 	if status==82:
 		var reason: int=bytes[7]
@@ -69,11 +85,13 @@ static func read_connect_response(bytes: PackedByteArray)->Dictionary:
 	return {"kind":"challenge","port":port,"passwordRequired":status==80,"passwordChallenge":password_challenge,"keyChallenge":key.text,"communityChallenge":community.text,"trailingBytes":bytes.size()-int(community.at)}
 
 static func read_validation_response(bytes: PackedByteArray)->Dictionary:
-	if bytes.size()<6 or bytes.slice(0,4).get_string_from_ascii()!="BNVR":return {"error":"Truncated or unexpected native validation response"}
+	if bytes.size()<4:return {"error":"Truncated native login packet"}
+	if bytes.slice(0,4).get_string_from_ascii()!="BNVR":return {"error":"Unexpected native login packet type"}
+	if bytes.size()<6:return {"error":"Truncated native login packet"}
 	var status: int=bytes[4]
 	if status==82:return {"kind":"rejected","connectionError":int(bytes[5])}
 	if status!=65:return {"error":"Unsupported native validation response status"}
-	if bytes.size()<9:return {"error":"Truncated native validation response"}
+	if bytes.size()<9:return {"error":"Truncated native login packet"}
 	var build: Dictionary={"number":0,"revision":0,"postfix":0}
 	if bytes.size()>=17:build.number=int(bytes.decode_u32(9));build.revision=int(bytes.decode_u32(13))
 	if bytes.size()>=21:build.postfix=int(bytes.decode_u32(17))
@@ -82,7 +100,8 @@ static func read_validation_response(bytes: PackedByteArray)->Dictionary:
 static func disconnect_request()->PackedByteArray:return "BNDM".to_ascii_buffer()
 
 static func read_disconnect_response(bytes: PackedByteArray)->Dictionary:
-	if bytes.size()<4 or bytes.slice(0,4).get_string_from_ascii()!="BNDP":return {"error":"Truncated or unexpected native disconnect response"}
+	if bytes.size()<4:return {"error":"Truncated native login packet"}
+	if bytes.slice(0,4).get_string_from_ascii()!="BNDP":return {"error":"Unexpected native login packet type"}
 	var result: Dictionary={"strRef":null,"text":""}
 	var at:=4
 	if bytes.size()>=8:result.strRef=int(bytes.decode_u32(4));at=8

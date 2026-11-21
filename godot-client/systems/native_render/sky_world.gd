@@ -3,6 +3,7 @@ extends "res://systems/area_sky.gd"
 # the inherited sky phase/material equations do not invoke its GLB installer.
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Profile=preload("res://systems/native_render/frame_profile.gd")
+const Orientation=preload("res://systems/native_data/model_orientation.gd")
 var assets
 var pool
 var closed:=false
@@ -91,13 +92,13 @@ func build_model(resource: String,bundle: Dictionary) -> Node3D:
 	var parts: Array=[]; var rows: Array=[]; var source: Dictionary=bundle.value
 	var basis:=Quaternion(Vector3.RIGHT,-PI/2)
 	for index in source.nodes.size():
-		var row: Dictionary=source.nodes[index]; var parent:=int(row.parent)
+		var row: Dictionary=source.nodes[index]; var parent:=int(row.get("parentIndex",row.get("parent",-1)))
 		if parent>=index or parent< -1: error="Invalid original sky hierarchy"; model.free(); return null
 		if row.features.any(func(feature):return feature in ["skin","animated-mesh","dangly","light","emitter","reference"]):
 			error="Original sky requires unsupported dynamic part: "+str(row.name); model.free(); return null
 		var part:=Node3D.new(); (model if parent<0 else parts[parent]).add_child(part); parts.append(part)
-		part.position=Vector3(row.position[0],row.position[2],-row.position[1]); var q:=Quaternion(row.orientation[0],row.orientation[1],row.orientation[2],row.orientation[3])
-		part.quaternion=basis*q.normalized()*basis.inverse() if q.length_squared()>1e-16 else Quaternion.IDENTITY; part.scale=Vector3.ONE*float(row.scale)
+		part.position=Vector3(row.position[0],row.position[2],-row.position[1]); var decoded: Array=Orientation.decode(row.get("orientation"));var q:=Quaternion(decoded[0],decoded[1],decoded[2],decoded[3])
+		part.quaternion=basis*q*basis.inverse(); part.scale=Vector3.ONE*float(row.scale)
 		var data: Dictionary=row.mesh
 		if data.is_empty() or not data.render or data.indices.is_empty(): continue
 		var mesh=pool.geometry(str(bundle.sha256),index,data)

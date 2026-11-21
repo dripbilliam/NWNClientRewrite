@@ -6,16 +6,24 @@ const TextEncoding=preload("res://systems/native_data/native_text_encoding.gd")
 var records: Array[Dictionary]=[]
 var revision: int=0
 
+static func _assigned(value: PackedByteArray) -> PackedByteArray:
+	return PackedByteArray() if not value.is_empty() and value[0]==0 else value.duplicate()
+
 func apply(id: int,value: PackedByteArray)->bool:
 	# The native setter receives a signed 32-bit ID. A negative ID is ignored;
 	# the script-only 0..9 guard is not part of this table or server receive path.
 	if id<0 or id>2147483647:return false
-	var owned: PackedByteArray=PackedByteArray() if not value.is_empty() and value[0]==0 else value.duplicate()
+	var owned: PackedByteArray=_assigned(value)
 	var at:=_index(id)
 	if at<records.size() and int(records[at].id)==id:
-		records[at]={"id":id,"bytes":owned}
+		var existing: Dictionary=records[at]
+		existing.bytes=owned
+		records[at]=existing
 	else:
-		records.insert(at,{"id":id,"bytes":owned})
+		var copied: Array[Dictionary]=[]
+		for record in records:copied.append({"id":int(record.id),"bytes":_assigned(record.bytes)})
+		copied.insert(at,{"id":id,"bytes":owned})
+		records=copied
 	revision+=1
 	return true
 

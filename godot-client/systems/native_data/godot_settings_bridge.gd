@@ -2,12 +2,19 @@ extends RefCounted
 const Store=preload("res://systems/native_data/client_settings_store.gd")
 const Workshop=preload("res://systems/native_data/workshop_index.gd")
 var store
+var owns_store:=false
 var send_result: Callable
 var client_setup_view:=0
 
 func open(directory: String,default_mods: String,send_callback: Callable)->bool:
-	store=Store.new();send_result=send_callback
+	store=Store.new();owns_store=true;send_result=send_callback
 	return store.open(directory,default_mods)
+
+func attach(existing_store,send_callback: Callable)->void:
+	# Direct sessions already own the settings file through their login profile
+	# controller. Share that owner so a folder selection cannot stale its writes.
+	store=existing_store;send_result=send_callback
+	owns_store=false
 
 func status()->Dictionary:return store.status() if store!=null else {}
 
@@ -15,7 +22,7 @@ func handle(message: Dictionary)->bool:
 	if message.get("kind")!="protected-settings-request":return false
 	var id: Variant=message.get("id")
 	var operation:=str(message.get("operation",""))
-	if not (id is int or id is float) or not is_finite(float(id)) or id<1 or float(id)!=floor(float(id)) or operation not in ["status","update","saveProfile","selectProfile","deleteProfile","cdKey"]:return true
+	if not (id is int or id is float) or not is_finite(float(id)) or id<1 or float(id)>9007199254740991.0 or float(id)!=floor(float(id)) or operation not in ["status","update","saveProfile","selectProfile","deleteProfile","cdKey"]:return true
 	id=int(id)
 	var value: Variant=message.get("value")
 	var result: Variant=null
@@ -45,7 +52,8 @@ func handle(message: Dictionary)->bool:
 	return true
 
 func close()->void:
-	if store!=null:store.close();store=null
+	if store!=null and owns_store:store.close()
+	store=null;owns_store=false
 func client_setup_notice(request_id: int,reason: String)->Array:
 	return [{"kind":"settings-notice","requestId":request_id,"text":reason}]
 
@@ -58,7 +66,7 @@ func client_setup_label(directory: String)->String:
 	if portraits!=null and not portraits.get_files().is_empty():return "Portraits"
 	return "Workshop mod"
 
-func client_setup(message: Dictionary,resources_locked: bool)->Array:
+func client_setup(message: Dictionary,resources_locked: bool,install_locked: bool=false)->Array:
 	var request_id:=int(message.get("requestId",-1))
 	if request_id<0:return []
 	var operation:=str(message.get("operation",""))
@@ -69,6 +77,13 @@ func client_setup(message: Dictionary,resources_locked: bool)->Array:
 	var saved:=false
 	match operation:
 		"open":pass
+		"choose-install":
+			if install_locked:return client_setup_notice(request_id,"Disconnect before choosing an installation")
+			var selected: Variant=message.get("directory")
+			if not selected is String or selected.is_empty() or selected.length()>4096 or selected.to_utf8_buffer().has(0) or not selected.is_absolute_path() or not DirAccess.dir_exists_absolute(selected):return client_setup_notice(request_id,"Select an installation folder.")
+			var absolute: String=selected.simplify_path()
+			if not store.update({"installDirectory":absolute}):return client_setup_notice(request_id,store.error)
+			return [{"kind":"settings-install-selected","requestId":request_id,"directory":absolute}]
 		"scan":
 			if resources_locked:return client_setup_notice(request_id,"Disconnect before changing mods.")
 			var choice: Variant=message.get("directory")
@@ -96,6 +111,7 @@ func client_setup(message: Dictionary,resources_locked: bool)->Array:
 		rows.append({"id":id,"directory":str(root.get("directory","")),"label":client_setup_label(str(root.get("directory",""))),"enabled":not disabled.has(id)})
 	status_value=status_value.duplicate(true)
 	status_value.resourcesLocked=resources_locked
+	status_value.installLocked=install_locked
 	status_value.modsDirectory=directory
 	client_setup_view+=1
 	var result: Array=[{"kind":"settings-begin","requestId":request_id,"viewId":client_setup_view,"status":status_value,"count":rows.size()},{"kind":"settings-mods","requestId":request_id,"viewId":client_setup_view,"rows":rows},{"kind":"settings-commit","requestId":request_id,"viewId":client_setup_view}]

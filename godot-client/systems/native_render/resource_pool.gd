@@ -3,12 +3,14 @@ extends RefCounted
 const Cache = preload("res://systems/native_data/prepared_cache.gd")
 const Template = preload("res://systems/native_render/model_template.gd")
 const PickGeometry=preload("res://systems/native_render/pick_geometry.gd")
+const RendererGeometryToken=preload("res://systems/native_render/renderer_geometry_token.gd")
 const SceneGeometry=preload("res://systems/native_render/scene_geometry.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const MeshPreparation=preload("res://systems/native_data/mesh_preparation.gd")
 const RasterUpload=preload("res://systems/native_data/raster_upload_preparation.gd")
 const NativeDrawCache=preload("res://systems/native_render/native_draw_cache_runtime.gd")
 const NativeDrawCodec=preload("res://systems/native_render/native_mesh_resource_cache.gd")
+const TargetPreview=preload("res://systems/native_render/native_target_preview_shader.gd")
 var native_draw_captures: Array=[]
 var use_prepared_geometry:=MeshPreparation.configured_enabled()
 var use_raster_upload_preparation:=RasterUpload.configured_enabled()
@@ -42,7 +44,34 @@ func _observe_scenery_budget(active: bool) -> void:
 	_scenery_budget_active=active
 	if active:_scenery_budget_activations+=1
 	else:_scenery_budget_clears+=1
-func bind_publication_world(world: Node) -> void:publication_world=weakref(world) if is_instance_valid(world) else null
+func bind_publication_world(world: Node) -> void:
+	publication_world=weakref(world) if is_instance_valid(world) else null
+	if JoinDiagnostics.enabled and is_instance_valid(world):JoinDiagnostics.bind_area(world,self)
+	if is_instance_valid(world) and world.has_meta("native_area_graphics_owner"):
+		var owner: Variant=world.get_meta("native_area_graphics_owner")
+		if owner!=null and owner.has_method("bind_area_resource_pool"):owner.bind_area_resource_pool(world,self)
+func _area_binding_prefix() -> String:
+	var world: Node=publication_world.get_ref() if publication_world!=null else null
+	return str(world.get_instance_id())+":" if is_instance_valid(world) and world.has_meta("native_area_graphics_owner") else ""
+func _area_binding_key(identity: String) -> String:
+	return _area_binding_prefix()+identity
+func template_binding_key(identity: String) -> String:
+	# The source identity is unchanged; only the authoritative pool binding is
+	# scoped to the publishing area when one owns this pool.
+	return _area_binding_key(identity)
+func release_area_bindings(area_id: int) -> void:
+	if area_id<=0:return
+	var prefix:=str(area_id)+":"
+	for key in ready_raster_order.duplicate():
+		if key.begins_with(prefix):_take_ready_raster(key)
+	for key in templates.keys():
+		if str(key).begins_with(prefix):templates.erase(key);template_order.erase(key)
+	for key in materials.keys():
+		if str(key).begins_with(prefix):materials.erase(key);resource_order.material.erase(key)
+	for key in textures.keys():
+		if str(key).begins_with(prefix):textures.erase(key);resource_order.texture.erase(key)
+	var current: Node=publication_world.get_ref() if publication_world!=null else null
+	if is_instance_valid(current) and current.get_instance_id()==area_id:publication_world=null
 func publication_budget_limit_us() -> int:
 	# The ordinary policy has no world-dependent allowance to resolve.
 	if entry_publication_budget_us<=publication_budget_us and scenery_publication_budget_us<=publication_budget_us:return publication_budget_us
@@ -76,9 +105,14 @@ var _completion_depth:=0
 var _completion_began:=0
 var _completion_priority:=false
 var cooperative_templates:=false
+const JoinDiagnostics=preload("res://systems/native_render/join_publication_diagnostics.gd")
+var _foreground_model_frame:=-1
+var foreground_model_delivery: Dictionary={}
 func _publication_frame() -> void:
 	var frame:=int(Engine.get_process_frames())
 	if publication_frame!=frame:
+		if JoinDiagnostics.enabled and publication_frame>=0 and JoinDiagnostics.owns_pool(self):
+			JoinDiagnostics.pool_frame(publication_us,completion_us,publications,construction_steps,completion_units)
 		publication_frame=frame;publication_us=0;publications=0;construction_steps=0;priority_publications=0;completion_units=0;completion_us=0
 func cooperative_publication() -> bool:return cooperative_templates
 func remaining_publication_us() -> int:
@@ -87,7 +121,30 @@ func remaining_publication_us() -> int:
 func can_consume_completion(priority: bool=false) -> bool:
 	_publication_frame()
 	var elapsed:=publication_us+(Time.get_ticks_usec()-_completion_began if _completion_depth>0 else 0)
-	return completion_units+_completion_depth<maximum_completion_units_per_frame and ((priority and priority_publications==0 and not _completion_priority) or _completion_depth==0 and completion_units==0 and publications==0 and construction_steps==0 or elapsed<publication_budget_limit_us())
+	if completion_units+_completion_depth>=maximum_completion_units_per_frame:
+		if JoinDiagnostics.enabled and JoinDiagnostics.owns_pool(self):JoinDiagnostics.pool_denied("completion-units")
+		return false
+	if (priority and priority_publications==0 and not _completion_priority) or _completion_depth==0 and completion_units==0 and publications==0 and construction_steps==0:return true
+	var available:=elapsed<publication_budget_limit_us()
+	if not available and JoinDiagnostics.enabled and JoinDiagnostics.owns_pool(self):JoinDiagnostics.pool_denied("completion-time")
+	return available
+func reserve_foreground_model_completion()->bool:
+	var frame:=int(Engine.get_process_frames())
+	if _foreground_model_frame==frame or not JoinDiagnostics.enabled or not JoinDiagnostics.owns_pool(self):return false
+	var world: Node=publication_world.get_ref() if publication_world!=null else null
+	if not is_instance_valid(world) or world.closed or world.retiring or not world.ready_for_control():return false
+	if not can_consume_completion():return false
+	_foreground_model_frame=frame
+	return true
+func record_foreground_model_delivery(decoder: String,prepared_us: int,early: bool)->void:
+	if prepared_us<=0 or not JoinDiagnostics.enabled or not JoinDiagnostics.owns_pool(self):return
+	var delay:=(Time.get_ticks_usec()-prepared_us)/1000.0
+	var stats: Dictionary=foreground_model_delivery.get_or_add(decoder,{"samples":0,"early":0,"totalMs":0.0,"maxMs":0.0,"over100ms":0})
+	stats.samples+=1
+	stats.early+=int(early)
+	stats.totalMs+=delay
+	stats.maxMs=maxf(float(stats.maxMs),delay)
+	stats.over100ms+=int(delay>100.0)
 func begin_completion_scope() -> void:
 	_publication_frame()
 	if _completion_depth==0:_completion_began=Time.get_ticks_usec();_completion_priority=false
@@ -105,7 +162,13 @@ func end_completion_scope() -> void:
 func can_publish(priority: bool=false) -> bool:
 	_publication_frame()
 	var elapsed:=publication_us+(Time.get_ticks_usec()-_completion_began if _completion_depth>0 else 0)
-	return (priority and priority_publications==0) or publications==0 and construction_steps==0 and completion_units==0 or elapsed<publication_budget_limit_us() and publications<maximum_publications_per_frame
+	if (priority and priority_publications==0) or publications==0 and construction_steps==0 and completion_units==0:return true
+	var time_available:=elapsed<publication_budget_limit_us()
+	var unit_available:=publications<maximum_publications_per_frame
+	if JoinDiagnostics.enabled and (not time_available or not unit_available) and JoinDiagnostics.owns_pool(self):
+		if not time_available:JoinDiagnostics.pool_denied("publication-time")
+		if not unit_available:JoinDiagnostics.pool_denied("publication-units")
+	return time_available and unit_available
 func construction_finished(began: int) -> void:
 	_publication_frame()
 	if _completion_depth==0:publication_us+=Time.get_ticks_usec()-began
@@ -123,6 +186,7 @@ var textures: Dictionary = {}
 var materials: Dictionary = {}
 var unshaded := false
 var native_lighting:=false
+var native_legacy_lighting:=false
 var native_standard:=false # Only after the active native shader profile matches.
 var native_surface_output:=false # Research carrier, never selected implicitly.
 var texture_filter := BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -153,6 +217,17 @@ class Recency:
 	func is_empty() -> bool:return links.is_empty()
 	func size() -> int:return links.size()
 	func clear() -> void:links.clear();first=null;last=null
+	func erase(key: String) -> void:
+		if not links.has(key):return
+		var row: Dictionary=links[key]
+		var previous: Variant=row.prev;var following: Variant=row.next
+		links.erase(key)
+		if previous==null:first=following
+		else:
+			var prior: Dictionary=links[previous];prior.next=following
+		if following==null:last=previous
+		else:
+			var next_row: Dictionary=links[following];next_row.prev=previous
 	func touch(key: String) -> void:
 		if links.has(key):
 			var old: Dictionary=links[key]
@@ -180,6 +255,56 @@ class Recency:
 		return key
 var resource_order:={"mesh":Recency.new(),"texture":Recency.new(),"material":Recency.new()}
 var stats := {"meshes_created":0,"textures_created":0,"materials_created":0,"mesh_hits":0,"texture_hits":0,"material_hits":0,"native_decompressions":0,"templates_created":0,"template_hits":0,"template_evictions":0,"mesh_evictions":0,"texture_evictions":0,"material_evictions":0,"prepared_mesh_uses":0,"main_mesh_preparations":0,"prepared_hidden_uses":0}
+var model_geometry_records: Dictionary={}
+var model_geometry_leases: Dictionary={}
+var model_geometry_stats: Dictionary={"created":0,"reused":0,"retired":0,"active":0,"owners":0}
+var model_geometry_sources: Array=[]
+func renderer_geometry_token(source: Dictionary,source_sha: String,index: int,data: Dictionary) -> Resource:
+	for row in model_geometry_sources:
+		if is_same(row.source,source):return row.token
+	var token:=RendererGeometryToken.new()
+	token.source_sha=source_sha;token.node_index=index;token.mesh_data=data
+	model_geometry_sources.append({"source":source,"token":token})
+	return token
+func acquire_model_geometry(object: MeshInstance3D) -> bool:
+	if not is_instance_valid(object):return false
+	var token: Variant=object.get_meta("native_renderer_geometry_token",null)
+	if token==null:return false
+	var owner_id:=object.get_instance_id()
+	if model_geometry_leases.has(owner_id):return true
+	failure=""
+	var id: int=int(token.get_instance_id())
+	if not model_geometry_records.has(id):
+		var resource: ArrayMesh=prepare_geometry(token.source_sha,token.node_index,token.mesh_data,false,false) if token.current==null else token.current
+		if resource==null:return false
+		token.current=resource
+		model_geometry_records[id]={"resource":resource,"token":token,"owners":0}
+		model_geometry_stats.created+=1;model_geometry_stats.active+=1
+	else:model_geometry_stats.reused+=1
+	object.mesh=model_geometry_records[id].resource
+	model_geometry_records[id].owners+=1;model_geometry_stats.owners+=1
+	model_geometry_leases[owner_id]={"object":weakref(object),"record":id}
+	return true
+func release_model_geometry(object: MeshInstance3D) -> bool:
+	if not is_instance_valid(object):return false
+	return release_model_geometry_id(object.get_instance_id())
+func release_model_geometry_id(owner_id: int) -> bool:
+	if not model_geometry_leases.has(owner_id):return false
+	var lease: Dictionary=model_geometry_leases[owner_id]
+	model_geometry_leases.erase(owner_id)
+	var id:=int(lease.record)
+	if not model_geometry_records.has(id):return false
+	var record: Dictionary=model_geometry_records[id]
+	var original: Mesh=record.resource
+	var object: MeshInstance3D=lease.object.get_ref()
+	var unchanged: bool=is_instance_valid(object) and object.mesh==original
+	if unchanged:object.mesh=null
+	record.owners-=1;model_geometry_stats.owners-=1
+	if int(record.owners)==0:
+		record.token.current=null
+		model_geometry_records.erase(id)
+		model_geometry_stats.retired+=1;model_geometry_stats.active-=1
+	return unchanged
 func touch(kind: String,key: String) -> void:
 	resource_order[kind].touch(key)
 func retain(kind: String,entries: Dictionary,key: String,value: Resource,limit: int) -> void:
@@ -196,11 +321,17 @@ func main_thread() -> bool:
 	return true
 func begin_native_model(bundle: Dictionary) -> Dictionary:
 	var context:=NativeDrawCache.begin_model(bundle)
+	if bool(bundle.get("tile_initial_skin",false)):
+		context.tile_initial_skin=true
+		context.tile_source_sha=str(bundle.get("sha256",""))
+		context.tile_model=bundle.value
+		context.tile_skins={}
 	if not context.is_empty():native_draw_captures.append(context)
 	return context
 func end_native_model(context: Dictionary) -> void:
 	if context.is_empty():return
-	native_draw_captures.erase(context);NativeDrawCache.end_model(context)
+	native_draw_captures.erase(context)
+	if context.has("facade"):NativeDrawCache.end_model(context)
 func suspend_native_model(context: Dictionary) -> void:
 	# A cooperative builder retains its ticket, never an active capture scope.
 	# Unrelated model publication between steps cannot enter that ticket.
@@ -208,7 +339,17 @@ func suspend_native_model(context: Dictionary) -> void:
 func resume_native_model(context: Dictionary) -> void:
 	if not context.is_empty() and not native_draw_captures.has(context):native_draw_captures.append(context)
 func capture_native_geometry(source_sha: String,index: int,rigid_skin: bool,mesh: ArrayMesh) -> void:
-	for context in native_draw_captures:NativeDrawCache.capture(context,source_sha,index,rigid_skin,mesh)
+	for context in native_draw_captures:
+		if context.has("facade"):NativeDrawCache.capture(context,source_sha,index,rigid_skin,mesh)
+func initial_tile_skin(source_sha: String,index: int) -> Dictionary:
+	for context in native_draw_captures:
+		if not bool(context.get("tile_initial_skin",false)) or str(context.get("tile_source_sha",""))!=source_sha:continue
+		var model: Dictionary=context.tile_model
+		if index<0 or index>=model.nodes.size() or not model.nodes[index].has("skin"):return {}
+		var skins: Dictionary=context.tile_skins
+		if not skins.has(index):skins[index]=MeshPreparation.initial_skin(model,index)
+		return skins[index]
+	return {}
 func model_template(bundle: Dictionary):
 	var began:=Time.get_ticks_usec() if completion_diagnose else Timing.begin()
 	var prior_hits:=int(stats.template_hits) if completion_diagnose else 0
@@ -227,7 +368,7 @@ func _record_completion_template(bundle: Dictionary,template,elapsed_us: int,cac
 func prepare_model_template(bundle: Dictionary):
 	if not main_thread(): return null
 	failure=""
-	var key:=Template.identity(bundle,self)
+	var key:=_area_binding_key(Template.identity(bundle,self))
 	if templates.has(key):
 		stats.template_hits+=1; template_order.erase(key); template_order.append(key)
 		return templates[key]
@@ -268,7 +409,7 @@ func model_template_step(bundle: Dictionary,pending: Dictionary,maximum_units: i
 	if not Template.cooperative(self):
 		var synchronous=model_template(bundle)
 		return {"status":"ready" if synchronous!=null else "failed","template":synchronous,"reason":failure}
-	var key:=Template.identity(bundle,self)
+	var key:=_area_binding_key(Template.identity(bundle,self))
 	# Each stream pins the request's source row until completion. A caller asking
 	# for another key must not receive this job's success or failure as its own.
 	if not pending.is_empty():
@@ -276,7 +417,7 @@ func model_template_step(bundle: Dictionary,pending: Dictionary,maximum_units: i
 		# The current source identity already includes any mutation to this exact
 		# Dictionary and current pool policy. A distinct request still needs its
 		# own pinned-source validation before it can resume or replace this job.
-		var pending_key: String=key if is_same(pending.bundle,bundle) else Template.identity(pending.bundle,self)
+		var pending_key: String=key if is_same(pending.bundle,bundle) else _area_binding_key(Template.identity(pending.bundle,self))
 		if pending_key!=str(pending.key):cancel_template_step(pending);return {"status":"pending","phase":"policy-invalidated","units":0}
 		if str(pending.key)!=key:return {"status":"pending","phase":"resume-original-source","active_key":str(pending.key),"requested_key":key,"units":0}
 		if templates.has(key):
@@ -312,15 +453,16 @@ func accept_raster_upload_sidecar(sidecar: Dictionary) -> int:
 	raster_upload_counts.worker_jobs+=1;raster_upload_counts.worker_rows+=rows.size();raster_upload_counts.worker_declined+=int(sidecar.stats.get("declined",0))
 	if not raster_upload_threads.has(int(sidecar.thread)) and raster_upload_threads.size()<64:raster_upload_threads.append(int(sidecar.thread))
 	var accepted:=0
-	for key in rows:
-		if not key is String or not rows[key] is Dictionary:raster_upload_counts.invalid_packets+=1;continue
+	for source_key in rows:
+		if not source_key is String or not rows[source_key] is Dictionary:raster_upload_counts.invalid_packets+=1;continue
+		var key:=_area_binding_key(source_key)
 		if textures.has(key):raster_upload_counts.cached_skips+=1;continue
 		if ready_raster_uploads.has(key):continue
-		var packet: Dictionary=rows[key]
-		if packet.get("source_sha256")!=key or not RasterUpload.packet_supported(packet) or RasterUpload.retained_size(packet)>MAX_READY_RASTER_BYTES:raster_upload_counts.invalid_packets+=1;continue
+		var packet: Dictionary=rows[source_key]
+		if packet.get("source_sha256")!=source_key or not RasterUpload.packet_supported(packet) or RasterUpload.retained_size(packet)>MAX_READY_RASTER_BYTES:raster_upload_counts.invalid_packets+=1;continue
 		var worker_texture: ImageTexture=null
-		if use_worker_texture_creation and gpu_rows.has(key) and gpu_rows[key] is ImageTexture:
-			var candidate: ImageTexture=gpu_rows[key]
+		if use_worker_texture_creation and gpu_rows.has(source_key) and gpu_rows[source_key] is ImageTexture:
+			var candidate: ImageTexture=gpu_rows[source_key]
 			if candidate.get_rid().is_valid() and candidate.get_width()==int(packet.width) and candidate.get_height()==int(packet.height) and candidate.get_format()==int(packet.format) and candidate.has_mipmaps()==bool(packet.mipmaps):worker_texture=candidate
 		var bytes: int=RasterUpload.retained_size(packet)+(packet.bytes.size() if worker_texture!=null else 0)
 		if bytes>MAX_READY_RASTER_BYTES:raster_upload_counts.invalid_packets+=1;continue
@@ -337,9 +479,35 @@ func _take_ready_raster(key: String) -> Dictionary:
 func texture(record: Dictionary) -> Texture2D:
 	var began:=Timing.begin(); var result:=prepare_texture(record)
 	Timing.finish("publication_texture_cpu_ms",began); return result
+static func complete_s3tc_mip_tail(mips: Array,format: String) -> PackedByteArray:
+	# Image.create_from_data needs a terminal 1x1 chain. Preserve every authored
+	# level verbatim; derive only missing levels from the last authored image.
+	if mips.is_empty() or format not in ["rgba8","dxt1_rgb","dxt1_rgba","dxt3","dxt5"]: return PackedByteArray()
+	var last: Dictionary=mips.back(); var width:=int(last.width); var height:=int(last.height)
+	var previous: PackedByteArray=last.data; var tail:=PackedByteArray()
+	while width>1 or height>1:
+		var next_width:=maxi(1,width>>1); var next_height:=maxi(1,height>>1)
+		var next:=PackedByteArray()
+		if format=="rgba8":
+			next.resize(next_width*next_height*4)
+			for y in next_height:
+				for x in next_width:
+					var source:=((mini(height-1,y*2)*width)+mini(width-1,x*2))*4; var dest:=(y*next_width+x)*4
+					for channel in 4: next[dest+channel]=previous[source+channel]
+		else:
+			var size:=8 if format in ["dxt1_rgb","dxt1_rgba"] else 16
+			var previous_columns:=(width+3)/4; var next_columns:=(next_width+3)/4; var next_rows:=(next_height+3)/4
+			next.resize(next_columns*next_rows*size)
+			for by in next_rows:
+				for bx in next_columns:
+					var source:=(mini((height+3)/4-1,by*2)*previous_columns+mini(previous_columns-1,bx*2))*size
+					var dest:=(by*next_columns+bx)*size
+					for index in size: next[dest+index]=previous[source+index]
+		tail.append_array(next); previous=next; width=next_width; height=next_height
+	return tail
 func prepare_texture(record: Dictionary) -> Texture2D:
 	if not main_thread(): return null
-	var key := str(record.sha256)
+	var key := _area_binding_key(str(record.sha256))
 	if textures.has(key):
 		stats.texture_hits += 1; touch("texture",key)
 		if use_raster_upload_preparation or use_worker_texture_creation:_take_ready_raster(key)
@@ -360,7 +528,8 @@ func prepare_texture(record: Dictionary) -> Texture2D:
 	var width := int(data.width); var height := int(data.height)
 	var image_format: int = {"rgba8":Image.FORMAT_RGBA8,"dxt1_rgb":Image.FORMAT_DXT1,"dxt1_rgba":Image.FORMAT_DXT1,"dxt3":Image.FORMAT_DXT3,"dxt5":Image.FORMAT_DXT5,"etc1":Image.FORMAT_ETC,"bc6h_signed":Image.FORMAT_BPTC_RGBF,"bc6h_unsigned":Image.FORMAT_BPTC_RGBFU}.get(data.format,-1)
 	if image_format < 0: failure = "Native upload format is unavailable"; return null
-	if mips.size() > 1 and (int(mips.back().width) != 1 or int(mips.back().height) != 1): failure = "Partial native mip chain needs completion before upload"; return null
+	var partial_chain:=mips.size()>1 and (int(mips.back().width)!=1 or int(mips.back().height)!=1)
+	if partial_chain and not bool(data.get("s3tc_source",false)): failure = "Partial native mip chain needs completion before upload"; return null
 	var image: Image=null
 	if use_raster_upload_preparation or use_worker_texture_creation:
 		var packet:=_take_ready_raster(key)
@@ -369,6 +538,10 @@ func prepare_texture(record: Dictionary) -> Texture2D:
 		if use_raster_upload_preparation or use_worker_texture_creation:raster_upload_counts.fallbacks+=1
 		var bytes := PackedByteArray()
 		for mip in mips: bytes.append_array(mip.data)
+		if partial_chain:
+			var tail:=complete_s3tc_mip_tail(mips,str(data.format))
+			if tail.is_empty(): failure="S3TC partial mip chain cannot be completed"; return null
+			bytes.append_array(tail)
 		image = Image.create_from_data(width,height,mips.size()>1,image_format,bytes)
 		if image == null or image.is_empty(): failure = "Native image construction failed"; return null
 		# Native desktop fallback avoids an unsupported compressed-format readback.
@@ -386,55 +559,45 @@ func prepare_texture(record: Dictionary) -> Texture2D:
 func geometry(source_sha: String, index: int, data: Dictionary, rigid_skin: bool=false) -> ArrayMesh:
 	var began:=Timing.begin(); var result:=prepare_geometry(source_sha,index,data,rigid_skin)
 	Timing.finish("publication_mesh_cpu_ms",began); return result
-func prepare_geometry(source_sha: String, index: int, data: Dictionary, rigid_skin: bool=false) -> ArrayMesh:
+func prepare_geometry(source_sha: String, index: int, data: Dictionary, rigid_skin: bool=false,retain_mesh: bool=true) -> ArrayMesh:
 	if not main_thread(): return null
-	var key := Cache.key(source_sha,"mesh:"+str(index)+("-rigid-skin" if rigid_skin else "")+("-pick" if picking else ""))
-	if meshes.has(key):
+	var tile_skin: Dictionary=initial_tile_skin(source_sha,index)
+	if not tile_skin.is_empty() and not str(tile_skin.get("error","")).is_empty():failure=str(tile_skin.error);return null
+	var tile_vertices: PackedVector3Array=tile_skin.get("vertices",PackedVector3Array())
+	var key := Cache.key(source_sha,"mesh:"+str(index)+("-rigid-skin" if rigid_skin else "")+("-tile-rest-skin-v1" if not tile_vertices.is_empty() else "")+("-pick" if picking else ""))
+	if retain_mesh and meshes.has(key):
 		stats.mesh_hits+=1;touch("mesh",key);capture_native_geometry(source_sha,index,rigid_skin,meshes[key]);return meshes[key]
 	var phase_began:=Timing.begin()
 	var vertices: PackedFloat32Array = data.vertices; var source_indices: PackedInt32Array = data.indices
 	if vertices.size() % 3 != 0 or source_indices.size() % 3 != 0: failure = "Invalid native mesh stream lengths"; return null
 	if vertices.is_empty() or source_indices.is_empty(): return null
-	var count := vertices.size()/3; var positions := PackedVector3Array(); var normals := PackedVector3Array(); var uv := PackedVector2Array(); var indices:=PackedInt32Array()
-	var prepared: Dictionary=data.get("native_upload",{}) if use_prepared_geometry else {}
-	if not prepared.is_empty():
-		if not valid_prepared(prepared,count,source_indices.size()): failure="Invalid prepared native geometry"; return null
-		positions=prepared.positions; normals=prepared.normals; uv=prepared.uv; indices=prepared.indices; stats.prepared_mesh_uses+=1
-	else:
+	var source_count := vertices.size()/3; var positions := PackedVector3Array(); var normals := PackedVector3Array(); var uv := PackedVector2Array(); var indices:=PackedInt32Array()
+	var prepared: Dictionary=data.get("native_upload",{}) if use_prepared_geometry and tile_vertices.is_empty() else {}
+	if prepared.is_empty():
 		stats.main_mesh_preparations+=1
-		positions.resize(count); normals.resize(count); uv.resize(count)
-		var authored_normals: PackedFloat32Array = data.normals
-		var authored_uv: PackedFloat32Array = data.uv[0] if not data.uv.is_empty() else PackedFloat32Array()
-		if not authored_normals.is_empty() and authored_normals.size() != vertices.size(): failure = "Native normal count does not match geometry"; return null
-		if not authored_uv.is_empty() and authored_uv.size() != count*2: failure = "Native UV count does not match geometry"; return null
-		for vertex in count:
-			positions[vertex] = point(vertices,vertex)
-			if not authored_normals.is_empty(): normals[vertex] = point(authored_normals,vertex)
-			if not authored_uv.is_empty(): uv[vertex] = Vector2(authored_uv[vertex*2],authored_uv[vertex*2+1])
-		indices=source_indices.duplicate()
-		for face in range(0,indices.size(),3):
-			var a := int(source_indices[face]); var b := int(source_indices[face+1]); var c := int(source_indices[face+2])
-			if mini(a,mini(b,c)) < 0 or maxi(a,maxi(b,c)) >= count: failure = "Native triangle exceeds vertices"; return null
-			# Godot's front-face convention is clockwise; source MDL is CCW.
-			indices[face+1] = c; indices[face+2] = b
-			if authored_normals.is_empty():
-				var normal := (positions[b]-positions[a]).cross(positions[c]-positions[a])
-				normals[a] += normal; normals[b] += normal; normals[c] += normal
-		if authored_normals.is_empty():
-			for vertex in count: normals[vertex] = normals[vertex].normalized()
+		prepared=MeshPreparation.prepare(data,tile_vertices)
+	else: stats.prepared_mesh_uses+=1
+	if not valid_prepared(prepared,source_count,source_indices.size()):
+		failure=str(prepared.get("error",""))
+		if failure.is_empty():failure="Invalid prepared native geometry"
+		return null
+	positions=prepared.draw_positions; normals=prepared.draw_normals; uv=prepared.draw_uv
+	# The old buildModelGeometry made non-indexed triangle corners. The indexed
+	# original stream remains in native_scene_geometry and native_pick_geometry.
+	var count:=positions.size()
 	var arrays: Array = []; arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = positions; arrays[Mesh.ARRAY_NORMAL] = normals; arrays[Mesh.ARRAY_TEX_UV] = uv; arrays[Mesh.ARRAY_INDEX] = indices
+	arrays[Mesh.ARRAY_VERTEX] = positions; arrays[Mesh.ARRAY_NORMAL] = normals; arrays[Mesh.ARRAY_TEX_UV] = uv
 	var original_colors: PackedByteArray=data.get("vertex_colors",PackedByteArray())
 	if not original_colors.is_empty():
-		if original_colors.size()!=count*4: failure="Native vertex color count does not match geometry"; return null
-		arrays[Mesh.ARRAY_COLOR]=prepared.colors if not prepared.is_empty() else MeshPreparation.colors(original_colors,count)
+		if original_colors.size()!=source_count*4: failure="Native vertex color count does not match geometry"; return null
+		arrays[Mesh.ARRAY_COLOR]=prepared.draw_colors
 	if rigid_skin:
 		var bones:=PackedInt32Array(); var weights:=PackedFloat32Array(); bones.resize(count*4); weights.resize(count*4); bones.fill(0); weights.fill(0)
 		for vertex in count: weights[vertex*4]=1.0
 		arrays[Mesh.ARRAY_BONES]=bones; arrays[Mesh.ARRAY_WEIGHTS]=weights
 	Timing.finish("publication_mesh_arrays_ms",phase_began); phase_began=Timing.begin()
 	var mesh: ArrayMesh=null
-	var native_buffers: Dictionary=data.get("native_draw_buffers",{}) if not rigid_skin else {}
+	var native_buffers: Dictionary=data.get("native_draw_buffers",{}) if not rigid_skin and tile_vertices.is_empty() else {}
 	if not native_buffers.is_empty() and NativeDrawCodec.valid_buffers(native_buffers) and native_buffers.surfaces.size()==1 and int(native_buffers.surfaces[0].vertex_count)==count and int(native_buffers.surfaces[0].get("index_count",-1))==indices.size():
 		mesh=NativeDrawCodec.new().restore_draw_buffers(native_buffers)
 		if mesh!=null:stats.native_draw_buffer_hits=int(stats.get("native_draw_buffer_hits",0))+1
@@ -444,27 +607,56 @@ func prepare_geometry(source_sha: String, index: int, data: Dictionary, rigid_sk
 	# retrieving them must not force a GPU buffer readback per placement.
 	if OS.get_cmdline_user_args().has("--static-scenery=merged") or OS.get_cmdline_user_args().has("--base-scenery-draw=merged"):mesh.set_meta("native_cpu_draw_streams",arrays)
 	Timing.finish("publication_mesh_submit_ms",phase_began); phase_began=Timing.begin()
-	var hit:=PickGeometry.new(); hit.vertices=positions; hit.indices=indices; hit.bounds=mesh.get_aabb(); mesh.set_meta("native_pick_geometry",hit)
+	var hit:=PickGeometry.new(); hit.vertices=prepared.positions; hit.indices=prepared.indices; hit.bounds=prepared.pick_bounds; mesh.set_meta("native_pick_geometry",hit)
 	var scene_faces:=SceneGeometry.new(); scene_faces.configure(data,prepared); mesh.set_meta("native_scene_geometry",scene_faces)
 	Timing.finish("publication_mesh_collision_ms",phase_began); phase_began=Timing.begin()
 	if picking:
 		mesh.set_meta("native_pick_shape",hit.get_shape())
 	Timing.finish("publication_mesh_pick_ms",phase_began); phase_began=Timing.begin()
-	retain("mesh",meshes,key,mesh,maximum_meshes)
-	if maximum_meshes>0 and picking: pick_shapes[key]=mesh.get_meta("native_pick_shape")
+	if retain_mesh:
+		retain("mesh",meshes,key,mesh,maximum_meshes)
+		if maximum_meshes>0 and picking: pick_shapes[key]=mesh.get_meta("native_pick_shape")
 	stats.meshes_created += 1
 	capture_native_geometry(source_sha,index,rigid_skin,mesh)
 	Timing.finish("publication_mesh_cache_ms",phase_began)
 	return mesh
 static func valid_prepared(value: Dictionary,count: int,indices: int) -> bool:
-	return value.get("revision")==MeshPreparation.REVISION and value.get("positions") is PackedVector3Array and value.positions.size()==count and value.get("normals") is PackedVector3Array and value.normals.size()==count and value.get("uv") is PackedVector2Array and value.uv.size()==count and value.get("indices") is PackedInt32Array and value.indices.size()==indices and value.get("pick_bounds") is AABB and value.get("source_bounds") is AABB and value.get("planes") is PackedFloat32Array
+	return value.get("revision")==MeshPreparation.REVISION and value.get("positions") is PackedVector3Array and value.positions.size()==count and value.get("normals") is PackedVector3Array and value.normals.size()==count and value.get("uv") is PackedVector2Array and value.uv.size()==count and value.get("indices") is PackedInt32Array and value.indices.size()==indices and value.get("draw_positions") is PackedVector3Array and value.draw_positions.size()==indices and value.get("draw_normals") is PackedVector3Array and value.draw_normals.size()==indices and value.get("draw_uv") is PackedVector2Array and value.draw_uv.size()==indices and value.get("draw_colors") is PackedColorArray and value.get("pick_bounds") is AABB and value.get("source_bounds") is AABB and value.get("planes") is PackedFloat32Array
 func hidden_geometry(source_sha: String,index: int,data: Dictionary) -> Resource:
 	if not main_thread(): return null
 	var key:=Cache.key(source_sha,"hidden-hit:"+str(index))
 	if hidden_hit_geometry.has(key): hidden_hit_order.erase(key); hidden_hit_order.append(key); return hidden_hit_geometry[key]
 	var vertices: PackedFloat32Array=data.vertices; var indices: PackedInt32Array=data.indices
 	if vertices.size()%3!=0 or indices.size()%3!=0: failure="Invalid native hidden hit geometry"; return null
+	# placeable_hit_mesh.js keeps the valid faces of an otherwise malformed
+	# hidden trimesh. Preserve their source order and omit only invalid faces.
+	var valid_faces:=PackedInt32Array(); var skipped_face:=false
+	for face in range(0,indices.size(),3):
+		var face_valid:=true
+		for corner in 3:
+			var vertex_index:=int(indices[face+corner])
+			if vertex_index<0 or vertex_index>=vertices.size()/3 or not point(vertices,vertex_index).is_finite(): face_valid=false; break
+		if face_valid:
+			for corner in 3: valid_faces.append(int(indices[face+corner]))
+		else: skipped_face=true
+	if valid_faces.is_empty(): failure="Native hidden hit geometry has no valid triangles"; return null
 	var hit:=PickGeometry.new(); var prepared: Dictionary=data.get("native_upload",{}) if use_prepared_geometry else {}
+	var scene_data: Dictionary=data
+	if skipped_face:
+		# Compact only this malformed hidden-pick stream. Stale prepared planes,
+		# bounds and collision indices still describe the rejected triangles.
+		prepared={}
+		var compact_vertices:=PackedFloat32Array()
+		var compact_indices:=PackedInt32Array()
+		for source_index in valid_faces:
+			var at:=int(source_index)*3
+			compact_vertices.append_array(PackedFloat32Array([vertices[at],vertices[at+1],vertices[at+2]]))
+			compact_indices.append(compact_indices.size())
+		scene_data=data.duplicate()
+		scene_data.vertices=compact_vertices
+		scene_data.indices=compact_indices
+		for name in ["collision_indices","native_planes","native_surface_types","native_upload"]: scene_data.erase(name)
+		vertices=compact_vertices; indices=compact_indices
 	if not prepared.is_empty():
 		if not valid_prepared(prepared,vertices.size()/3,indices.size()): failure="Invalid prepared native geometry"; return null
 		hit.vertices=prepared.positions; hit.indices=prepared.indices; hit.bounds=prepared.pick_bounds; stats.prepared_hidden_uses+=1
@@ -477,7 +669,7 @@ func hidden_geometry(source_sha: String,index: int,data: Dictionary) -> Resource
 			for corner in 3:
 				if int(hit.indices[face+corner])<0 or int(hit.indices[face+corner])>=hit.vertices.size(): failure="Native hidden triangle exceeds vertices"; return null
 			var second: int=hit.indices[face+1]; hit.indices[face+1]=hit.indices[face+2]; hit.indices[face+2]=second
-	var scene_faces:=SceneGeometry.new(); scene_faces.configure(data,prepared); hit.set_meta("native_scene_geometry",scene_faces)
+	var scene_faces:=SceneGeometry.new(); scene_faces.configure(scene_data,prepared); hit.set_meta("native_scene_geometry",scene_faces)
 	if maximum_meshes>0:
 		while hidden_hit_geometry.size()>=maximum_meshes and not hidden_hit_order.is_empty(): hidden_hit_geometry.erase(hidden_hit_order.pop_front())
 		hidden_hit_geometry[key]=hit; hidden_hit_order.append(key)
@@ -485,12 +677,26 @@ func hidden_geometry(source_sha: String,index: int,data: Dictionary) -> Resource
 func material(part: Dictionary, raster: Dictionary = {}) -> Material:
 	var began:=Timing.begin();var result:=prepare_material(part,raster)
 	Timing.finish("publication_material_cpu_ms",began);return result
+func model_material_options(part: Dictionary) -> Dictionary:
+	# src/model_material.js::modelMaterialOptions: the authored controller base
+	# applies even when no alpha animation track exists.
+	var properties: Dictionary=part.get("properties",{})
+	var raw_alpha: Variant=part.get("alpha")
+	if raw_alpha==null: raw_alpha=properties.get("alpha",1)
+	var authored_alpha:=float(raw_alpha)
+	var opacity:=clampf(authored_alpha,0.0,1.0) if is_finite(authored_alpha) else 1.0
+	var data: Dictionary=part.get("mesh",{})
+	var raw_hint: Variant=part.get("transparencyHint")
+	if raw_hint==null: raw_hint=data.get("transparency_hint",properties.get("transparencyhint",0))
+	var numeric_hint:=float(raw_hint)
+	var hint:=is_finite(numeric_hint) and numeric_hint!=0.0
+	return {"opacity":opacity,"visible":opacity>0.0,"hint":hint,"transparent":hint or opacity<1.0,"depth_write":not hint and opacity>=1.0}
 func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 	if not main_thread(): return null
-	var opacity := clampf(float(part.get("alpha",1)),0,1); var data: Dictionary = part.mesh
-	var diffuse: Array = data.get("diffuse",[1.0,1.0,1.0]); var emission: Array = part.get("selfillum",[0.0,0.0,0.0]); var hint: bool = data.get("transparency_hint",false)
+	var options:=model_material_options(part); var opacity: float=options.opacity; var data: Dictionary = part.mesh
+	var diffuse: Array = data.get("diffuse",[1.0,1.0,1.0]); var emission: Array = part.get("selfillum",[0.0,0.0,0.0]); var hint: bool = options.hint
 	var ambient: Array=data.get("ambient",diffuse)
-	var key := JSON.stringify([raster.get("sha256",""),diffuse,emission,opacity,hint,unshaded,texture_filter,native_lighting,ambient if native_lighting else [],native_standard,native_surface_output])
+	var key := _area_binding_key(JSON.stringify([raster.get("sha256",""),diffuse,emission,opacity,hint,unshaded,texture_filter,native_lighting,ambient if native_lighting else [],native_standard,native_surface_output,TargetPreview.source_identity()]))
 	if materials.has(key): stats.material_hits += 1; touch("material",key); return materials[key]
 	if native_lighting and not unshaded and texture_filter>=0 and texture_filter<BaseMaterial3D.TEXTURE_FILTER_MAX:
 		# Publish only the final ShaderMaterial. Avoid the unused StandardMaterial
@@ -502,7 +708,7 @@ func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 			original_texture=texture(raster)
 			if original_texture==null:return null
 		var alpha_mode:=BaseMaterial3D.TRANSPARENCY_DISABLED
-		if hint or opacity<1:alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA
+		if options.transparent:alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA
 		elif not raster.is_empty() and raster.value.format!="dxt1_rgb":alpha_mode=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 		var configure_began:=Timing.begin()
 		var corrected:=preload("res://systems/native_render/native_model_material.gd").new()
@@ -517,8 +723,8 @@ func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 	result.roughness = 1; result.metallic = 0; result.cull_mode = BaseMaterial3D.CULL_BACK
 	result.texture_repeat = true; result.texture_filter = texture_filter
 	if unshaded: result.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	if hint or opacity < 1:
-		result.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; result.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	if options.transparent: result.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	if not options.depth_write: result.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	if emission.any(func(value): return float(value)>0): result.emission_enabled = true; result.emission = Color(emission[0],emission[1],emission[2])
 	if not raster.is_empty():
 		result.albedo_texture = texture(raster)
@@ -531,6 +737,12 @@ func prepare_material(part: Dictionary, raster: Dictionary = {}) -> Material:
 		var corrected:=preload("res://systems/native_render/native_model_material.gd").new(); corrected.configure(result,ambient,emission,native_standard,2,native_surface_output); published=corrected
 		corrected.native_world_fog=native_surface_output
 		Timing.finish("publication_material_native_configure_ms",configure_began)
+	elif preload("res://systems/native_render/native_target_preview_shader.gd").loaded():
+		# The old root binder visits every native model mesh material, including
+		# unshaded and standard fallback surfaces. Give those the same target
+		# uniform stage without enabling the separate camera keyhole effect.
+		var target_material:=preload("res://systems/native_render/standard_keyhole_material.gd").new()
+		if target_material.configure(result,false):published=target_material
 	retain("material",materials,key,published,maximum_materials); stats.materials_created += 1
 	return published
 func snapshot() -> Dictionary:
@@ -540,11 +752,14 @@ func snapshot() -> Dictionary:
 	state.native_standard_materials=native_standard
 	state.native_surface_output=native_surface_output
 	state.retained={"templates":templates.size(),"meshes":meshes.size(),"textures":textures.size(),"materials":materials.size(),"pick_shapes":pick_shapes.size(),"hidden_hit_geometry":hidden_hit_geometry.size()}
+	state.model_geometry=model_geometry_stats.duplicate()
+	state.model_geometry.scope="Live rigid placement leases keyed by parsed source Part; templates retain a source token without draw geometry"
 	state.limits={"templates":maximum_templates,"meshes":maximum_meshes,"textures":maximum_textures,"materials":maximum_materials}
 	state.mesh_preparation={"enabled":use_prepared_geometry,"revision":MeshPreparation.REVISION,"policy":"Immutable worker upload data; main-thread ArrayMesh/scene publication with legacy fallback"}
 	var publication_owner: Node=publication_world.get_ref() if publication_world!=null else null
 	state.publication_budget={"frame":publication_frame,"used_us":publication_us,"units":publications,"completion_units":completion_units,"completion_us":completion_us,"budget_us":publication_budget_us,"effective_budget_us":publication_budget_limit_us(),"entry_budget_configured_us":entry_publication_budget_us,"scenery_budget_configured_us":scenery_publication_budget_us,"scenery_loading_active":is_instance_valid(publication_owner) and publication_owner.get_meta("native_publication_loading",false),"maximum_units":maximum_publications_per_frame,"cooperative_templates":cooperative_templates,"scope":"Shared completion callback and scene/GPU submission CPU budget with nested accounting; asynchronous GPU work and indivisible API calls remain separate"}
 	state.publication_budget.scenery_transitions={"activations":_scenery_budget_activations,"clears":_scenery_budget_clears,"active":_scenery_budget_active}
+	if not foreground_model_delivery.is_empty():state.foreground_model_delivery=foreground_model_delivery.duplicate(true)
 	state.raster_upload_preparation={"enabled":use_raster_upload_preparation,"counts":raster_upload_counts.duplicate(),"threads":raster_upload_threads.duplicate(),"ready_entries":ready_raster_uploads.size(),"ready_bytes":ready_raster_bytes,"maximum_ready_bytes":MAX_READY_RASTER_BYTES,"memo":RasterUpload.snapshot()}
 	if use_worker_texture_creation:state.worker_texture_creation={"enabled":true,"ready_entries":ready_worker_textures.size(),"memo":RasterUpload.worker_texture_snapshot()}
 	state.scope="Cumulative immutable GPU/template cache bindings; not live draw counts or a hard VRAM budget"
@@ -559,9 +774,14 @@ func clear() -> void:
 		print("NWN62_TEMPLATE_SUMMARY ",JSON.stringify({"top":completion_template_peaks}))
 		completion_template_peaks.clear();completion_template_max_us=0;completion_template_logged=0
 	ready_worker_textures.clear();ready_raster_uploads.clear();ready_raster_order.clear();ready_raster_bytes=0
-	for context in native_draw_captures:NativeDrawCache.end_model(context)
+	for context in native_draw_captures:
+		if context.has("facade"):NativeDrawCache.end_model(context)
 	native_draw_captures.clear()
 	templates.clear(); template_order.clear(); meshes.clear(); textures.clear(); materials.clear(); pick_shapes.clear()
+	model_geometry_stats.retired+=int(model_geometry_stats.active)
+	model_geometry_stats.active=0;model_geometry_stats.owners=0
+	for record in model_geometry_records.values():record.token.current=null
+	model_geometry_records.clear();model_geometry_leases.clear();model_geometry_sources.clear()
 	hidden_hit_geometry.clear(); hidden_hit_order.clear()
 	for order in resource_order.values(): order.clear()
 	if template_diagnostic_peaks!=null:template_diagnostic_peaks.clear();template_diagnostic_peaks=null

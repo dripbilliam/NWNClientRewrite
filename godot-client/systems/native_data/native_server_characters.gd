@@ -62,7 +62,7 @@ static func decode_packet(packet: PackedByteArray)->Dictionary:
 		var class_count:=reader.byte()
 		if class_count>(reader.byte_size-reader.byte_cursor)/5: return {"error":"Invalid server character classes"}
 		for _class_index in range(class_count): classes.append({"id":reader.signed_dword(),"level":reader.byte()})
-		if source not in [2,14,17] or resref.is_empty() or resref.length()>16 or "/" in resref or "\\" in resref or ":" in resref: return {"error":"Invalid server character reference"}
+		if reference_bytes(source,resref).has("error"): return {"error":"Invalid server character reference"}
 		characters.append({"firstName":first_name,"lastName":last_name,"resref":resref,"source":source,"portrait":portrait,"portraitRef":portrait_ref,"classes":classes})
 	if not reader.finished(): return {"error":reader.error if not reader.error.is_empty() else "Server character-list stream is incomplete"}
 	return {"characters":characters}

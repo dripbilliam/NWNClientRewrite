@@ -2,14 +2,18 @@ extends RefCounted
 const Requirements=preload("res://systems/native_data/native_resource_requirements.gd")
 const Characters=preload("res://systems/native_data/native_server_characters.gd")
 
-static func at_least(build: Dictionary,revision: int)->bool:
+static func at_least(build: Dictionary,revision: int,postfix: int=0)->bool:
 	var number:=int(build.get("number",0))
 	var current:=int(build.get("revision",0))
-	return number>8193 or number==8193 and current>=revision
+	var current_postfix:=int(build.get("postfix",0))
+	return number>=8193 and (current>revision or current==revision and current_postfix>=postfix)
 
 static func decode_packet(packet: PackedByteArray,build: Dictionary)->Dictionary:
 	if packet.size()<8 or packet[0]!=80 or packet[1]!=3 or packet[2]!=1:return {"error":"Not a native module-information message"}
-	if not build.has("number") or not build.has("revision") or not build.has("postfix"):return {"error":"Server build is unavailable"}
+	# moduleInfo rejects missing or non-integer build components before reading
+	# the message. Server build, not the installed client build, selects fields.
+	for field in ["number","revision","postfix"]:
+		if not build.get(field) is int:return {"error":"Native client build for module information is unavailable"}
 	var reader:=Requirements.Reader.new()
 	if not reader.configure(packet.slice(3)):return {"error":reader.error}
 	var resource_name:=reader.string()

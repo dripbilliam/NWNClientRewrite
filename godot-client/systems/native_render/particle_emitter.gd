@@ -20,15 +20,19 @@ const ChunkModels=preload("res://systems/native_render/chunk_models.gd")
 const Bounds=preload("res://systems/native_render/particle_bounds.gd")
 const FIELDS={"birthrate":"birthRate","lifeexp":"lifeExp","particlerot":"particleRot","blurlength":"blurLength","velocity":"velocity","randvel":"randomVelocity","framestart":"frameStart","frameend":"frameEnd","xsize":"xSize","ysize":"ySize","spread":"spread","mass":"mass","bounce_co":"bounceCoefficient","sizestart":"sizeStart","sizeend":"sizeEnd","sizestart_y":"sizeStartY","sizeend_y":"sizeEndY","alphastart":"alphaStart","alphaend":"alphaEnd","fps":"fps","deadspace":"deadspace","blastradius":"blastRadius","blastlength":"blastLength","lightningdelay":"lightningDelay","lightningradius":"lightningRadius","lightningscale":"lightningScale"}
 const MODES={"Normal":0,"Billboard_to_Local_Z":1,"Billboard_to_World_Z":2,"Linked":3,"Aligned_to_World_Z":4,"Aligned_to_Particle_Dir":5,"Motion_Blur":6}
+const FLAG_BITS={"p2p":1,"p2p_sel":2,"affectedbywind":4,"tinted":8,"bounce":16,"random":32,"inherit":64,"inheritvel":128,"inherit_local":256,"splat":512,"inherit_part":1024}
 @export var original_properties: Dictionary={}
 @export var channel_asset: Dictionary={}
 @export var physical_part: int=-1
 @export var source_path: NodePath
 @export var original_texture: Texture2D
 @export var origin_resource: String=""
+@export var authored_model_name: String=""
+@export var authored_node_name: String=""
 @export var source_model_flags: int=-1
 @export var reference_paths: Array[NodePath]=[]
 var clock_provider: Callable
+var emitter_part_provider: Callable
 var services: Dictionary={}
 var _state: Dictionary={}
 # Compatibility/debug view only. The native tick never exports particle state.
@@ -40,6 +44,8 @@ var state: Dictionary:
 var native_owner: RefCounted
 var native_frame_group: Node
 var native_stream_group: Node
+var native_scene_order: Node
+var vertex_preparation_owner: Node
 var native_stream_vertices:=0
 var native_group_identity: Dictionary={}
 var native_pose_bound:=false
@@ -52,6 +58,8 @@ var native_instance_streams:=false
 var queued_detonate:=false
 var force_reference:=false
 var parameters: Dictionary={}
+var animation_defaults: Dictionary={}
+var animated_properties: Array[String]=[]
 var providers: Dictionary={}
 var channels:=Channels.new()
 var rng:=Random.new()
@@ -99,7 +107,10 @@ var strict_geometry_worker:=OS.get_cmdline_user_args().has("--particle-geometry-
 var native_surface_world: WeakRef
 var native_light_reference: WeakRef
 func _ready() -> void:
-	process_priority=20; add_to_group("native_original_particle_emitters")
+	# The old scene advances model animators before ModelParticlePresentation.update.
+	# VisualModel rigs run at 60; ordinary emitters consume their current Part
+	# fields afterward. Native-surface output retains its later lighting pass.
+	process_priority=70; add_to_group("native_original_particle_emitters")
 	var lighting_ancestor:=get_parent()
 	while lighting_ancestor!=null:
 		if lighting_ancestor.has_meta("native_surface_output"):
@@ -119,6 +130,11 @@ func _ready() -> void:
 		if metrics_ancestor.has_meta("native_particle_metrics"):
 			metrics_owner=metrics_ancestor.get_meta("native_particle_metrics"); metrics_owner.register(self); break
 		metrics_ancestor=metrics_ancestor.get_parent()
+	var preparation_ancestor:=get_parent()
+	while preparation_ancestor!=null:
+		if preparation_ancestor.has_meta("native_particle_vertex_preparation"):
+			vertex_preparation_owner=preparation_ancestor.get_meta("native_particle_vertex_preparation"); vertex_preparation_owner.register(self); break
+		preparation_ancestor=preparation_ancestor.get_parent()
 	compiled_kernel=Kernel.enabled()
 	batched_phase_collection=not OS.get_cmdline_user_args().has("--particle-phase-collection=individual") and (OS.get_cmdline_user_args().has("--particle-phase-collection=batch") or OS.get_environment("NWN_PARTICLE_PHASE_COLLECTION")!="individual")
 	# The isolated C++ transfer is diagnostic-only: it did not improve the
@@ -148,7 +164,7 @@ func _ready() -> void:
 	if source==null or not get_parent() is Node3D: fail("Native particle transform/source owner is absent"); return
 	parameters=original_properties.duplicate(true); channels.configure(channel_asset,physical_part)
 	if not channels.failure.is_empty(): fail(channels.failure); return
-	var mode:=str(parameters.get("render","")); var update:=str(parameters.get("update","")); var flags:=int(parameters.get("flags",0)); var texture_name:=str(parameters.get("texture","")).to_lower()
+	var mode:=str(parameters.get("render","")); var update:=str(parameters.get("update","")); var flags:=effective_flags(); var texture_name:=str(parameters.get("texture","")).to_lower()
 	# PartEmitter60420 creates CHitInfo(mode1, maskFFFFFFFFBFFFFFFF, box0).
 	# Only collision emitters acquire this boundary; other streams retain their
 	# fused native owner. Native membership/BSP completeness is a separate gap.
@@ -171,11 +187,17 @@ func _ready() -> void:
 		chunk_models=ChunkModels.new(); chunk_models.resource=chunk_name; chunk_models.origin_resource=origin_resource; add_child(chunk_models)
 		if not chunk_models.failure.is_empty(): fail(chunk_models.failure); return
 		services.merge(chunk_models.services(),true)
-	state={"flags":flags,"chunkName":"","renderMode1a8":MODES[mode],"blendMode68":0 if str(parameters.get("blend",""))=="Normal" else 2,"spawnType":int(parameters.get("spawntype",0)),"loop":int(parameters.get("loop",0)),"xGrid":int(parameters.get("xgrid",0)),"yGrid":int(parameters.get("ygrid",0)),"ageMode1cc":1,"accumulator198":0.0,"remaining164":[0.0,0.0,0.0],"detonate108":0,"blastLatch1c8":0.0,"elevationThreshold":5.0,"hit1f0":{"normal":[0.0,0.0,0.0]},"twoSided":bool(parameters.get("twosidedtex",false)),"position1e0":[0.0,0.0,0.0],"quaternion1d0":[1.0,0.0,0.0,0.0],"previous19c":[0.0,0.0,0.0],"previousQuaternion178":[1.0,0.0,0.0,0.0],"reference10c":[0.0,0.0,0.0],"referenceQuaternion118":[1.0,0.0,0.0,0.0],"basis140":[1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0],"active188":{"records":[],"capacity":0},"free130":{"records":[],"capacity":0},"initialized208":0,"source50":{"position":[0.0,0.0,0.0],"quaternion":[1.0,0.0,0.0,0.0],"adjustedScale":1.0,"opacity108":1.0,"instance":null},"instance100":null}
-	providers={"random":rng.next,"cameraPosition":camera_position,"cosineDouble":func(value):return cos(value),"globalTransform":func(_e):return pose(get_parent()),"sourceFactor":func(value):return value.adjustedScale,"cameraQuaternion":camera_quaternion,"updateEmitter":update_emitter,"reserveActive":func(_capacity):pass,"reserveFree":func(_capacity):pass,"createParticle":create_particle,"initializeParticle":initialize_particle,"randomizeParticle":randomize_particle,"moveParticles":move_particles,"clearHit":func(hit):hit.normal=[0.0,0.0,0.0],"destroyParticle":func(_part,_flag):pass,"lightColor":light_color}
+	state={"flags":flags,"chunkName":"","renderMode1a8":MODES[mode],"blendMode68":0 if str(parameters.get("blend",""))=="Normal" else 2,"spawnType":int(parameters.get("spawntype",0)),"loop":int(parameters.get("loop",0)),"xGrid":int(parameters.get("xgrid",0)),"yGrid":int(parameters.get("ygrid",0)),"ageMode1cc":1,"accumulator198":0.0,"remaining164":[0.0,0.0,0.0],"detonate108":0,"blastLatch1c8":0.0,"elevationThreshold":5.0,"hit1f0":{"normal":[0.0,0.0,0.0]},"twoSided":flag(parameters.get("twosidedtex",false)),"position1e0":[0.0,0.0,0.0],"quaternion1d0":[1.0,0.0,0.0,0.0],"previous19c":[0.0,0.0,0.0],"previousQuaternion178":[1.0,0.0,0.0,0.0],"reference10c":[0.0,0.0,0.0],"referenceQuaternion118":[1.0,0.0,0.0,0.0],"basis140":[1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0],"active188":{"records":[],"capacity":0},"free130":{"records":[],"capacity":0},"initialized208":0,"source50":{"position":[0.0,0.0,0.0],"quaternion":[1.0,0.0,0.0,0.0],"adjustedScale":1.0,"opacity108":1.0,"instance":null},"instance100":null}
+	providers={"random":rng.next,"cameraPosition":camera_position,"cosineDouble":func(value):return cos(value),"globalTransform":func(_e):return pose(get_parent()),"sourceFactor":source_factor,"cameraQuaternion":camera_quaternion,"updateEmitter":update_emitter,"reserveActive":func(_capacity):pass,"reserveFree":func(_capacity):pass,"createParticle":create_particle,"initializeParticle":initialize_particle,"randomizeParticle":randomize_particle,"moveParticles":move_particles,"clearHit":func(_hit):pass,"destroyParticle":func(_part,_flag):pass,"lightColor":light_color}
 	# Keep authored flags/services intact so the preference is reversible.
 	_state.flags=effective_flags()
 	providers.merge(services,true)
+	# fountainParticleProviders overwrites these service slots after spreading
+	# the caller's services; only sourceFactor/reserve* remain caller defaults.
+	providers.createParticle=create_particle
+	providers.initializeParticle=initialize_particle
+	providers.randomizeParticle=randomize_particle
+	providers.moveParticles=move_particles
 	providers.baseCreate=base_create; providers.baseInitialize=base_initialize
 	if not chunk_name.is_empty():
 		state.chunkName=chunk_name
@@ -187,6 +209,11 @@ func _ready() -> void:
 		Target.initialize_lightning(state,{"baseInitialize":func(_e):pass,"listen":func(_source,_callback,_event,_owner):target_listener_active=true; return 1})
 		parameters.lifeexp=state.lifeExp
 		limitations.append("Reference target notification is projected after bounded native model publication; complete Gob event order/reattachment remain incomplete")
+	animation_defaults=parameters.duplicate(true)
+	for clip in channels.clips.values():
+		for channel in clip.channels:
+			var property:=str(channel.property)
+			if not animated_properties.has(property):animated_properties.append(property)
 	if flags&8 and not native_surface_output: limitations.append("Particle tint uses Godot scene lighting; original point-sampled tint/fog/soft depth remain incomplete")
 	limitations.append("Local visual RNG seed/draw ordering and instance opacity/fade bindings remain incomplete")
 	for candidate in ["pause","default"]:
@@ -227,10 +254,24 @@ func _ready() -> void:
 		if is_instance_valid(surface): surface.retire()
 		set_process(false)
 		limitations.append("Geometry worker opt-in suppressed an emitter outside the shared presentation")
+	elif not is_instance_valid(native_frame_group) and not is_instance_valid(native_stream_group):
+		var order_ancestor:=get_parent()
+		while order_ancestor!=null:
+			if order_ancestor.has_meta("native_particle_scene_order"):
+				var owner=order_ancestor.get_meta("native_particle_scene_order")
+				if is_instance_valid(owner):owner.register(self)
+				break
+			order_ancestor=order_ancestor.get_parent()
 static func pose(node: Node3D) -> Dictionary:
 	var transform:=node.global_transform; var q:=transform.basis.orthonormalized().get_rotation_quaternion()
 	# Conjugation by the MDL Z-up -> Godot Y-up basis.
 	return {"position":[transform.origin.x,-transform.origin.z,transform.origin.y],"quaternion":[q.w,q.x,-q.z,q.y]}
+func source_factor(value: Variant) -> float:
+	var scale_value: Variant=value.get("adjustedScale") if value is Dictionary else null
+	if typeof(scale_value) not in [TYPE_FLOAT,TYPE_INT] or not is_finite(float(scale_value)):
+		fail("Native particle source adjusted scale is unavailable")
+		return NAN
+	return M.f(float(scale_value))
 func light_color(point: Array) -> Array:
 	if not native_surface_output: return [1.0,1.0,1.0]
 	var owner=native_light_reference.get_ref() if native_light_reference!=null else null
@@ -312,6 +353,7 @@ func detonate() -> void:
 		if is_instance_valid(native_stream_group): native_stream_group.control(self,{"detonate":true})
 func fail(reason: String) -> void:
 	failure=reason; set_process(false)
+	if is_instance_valid(native_scene_order):native_scene_order.unregister(self,false)
 	if is_instance_valid(native_frame_group): native_frame_group.control(self,{"enabled":false})
 	if is_instance_valid(native_stream_group): native_stream_group.control(self,{"enabled":false})
 	if is_instance_valid(surface): surface.visible=false
@@ -363,7 +405,8 @@ func shared_chunk_ready() -> bool:
 	return chunk_models.ready()
 func tick(delta: float,shared_frame: bool=false) -> void:
 	if strict_geometry_worker: return
-	if not particles_enabled or retired or not failure.is_empty() or _state.is_empty() or not is_instance_valid(source) or not is_visible_in_tree() or get_viewport().get_camera_3d()==null: return
+	if not particles_enabled or retired or not failure.is_empty() or _state.is_empty() or not is_instance_valid(source) or get_viewport().get_camera_3d()==null: return
+	var preparation: Dictionary=vertex_preparation_owner.plan(self) if is_instance_valid(vertex_preparation_owner) and native_owner==null and not is_instance_valid(native_frame_group) and not is_instance_valid(native_stream_group) else {"enabled":false,"collect":false}
 	if native_surface_output and native_surface_world!=null:
 		var owner=native_surface_world.get_ref()
 		if is_instance_valid(owner): preload("res://systems/native_render/native_surface_state.gd").publish_camera(owner,preload("res://systems/native_render/particle_stream_fog.gd").sample(get_viewport().get_camera_3d(),true))
@@ -375,16 +418,26 @@ func tick(delta: float,shared_frame: bool=false) -> void:
 	var phase:=Profile.begin()
 	var clip:=str(clock.get("clip","")); var time:=float(clock.get("time",0.0))
 	if not clock_provider.is_valid() and channels.clips.has(clip) and float(channels.clips[clip].length)>0: time=fposmod(time,float(channels.clips[clip].length))
-	if not channels.sample(clip,time,parameters): fail(channels.failure); return
+	for property in animated_properties:
+		if animation_defaults.has(property):
+			var value: Variant=animation_defaults[property]
+			parameters[property]=value.duplicate(true) if value is Array or value is Dictionary else value
+		else:parameters.erase(property)
+	var part_properties: Dictionary=emitter_part_provider.call() if emitter_part_provider.is_valid() else {}
+	if int(part_properties.get("detonate",0))!=0: fail("Emitter detonate controller delivery is not implemented"); return
+	if not part_properties.is_empty(): parameters.merge(part_properties,true)
+	elif not channels.sample(clip,time,parameters): fail(channels.failure); return
 	if native_parameter_transfer:
 		apply_kernel("parameters",0.0,parameters)
 		if not failure.is_empty(): return
 	else:
-		for name in FIELDS: state[FIELDS[name]]=M.f(parameters.get(name,1.0 if name=="blurlength" else 0.0))
-		state.colorStart=M.values(parameters.get("colorstart",[0.0,0.0,0.0])); state.colorEnd=M.values(parameters.get("colorend",[0.0,0.0,0.0]))
-	# Do not hide a resource overflow by silently dropping births/draws.
-	if absf(state.birthRate)>32768 or allocated>32768: fail("Native particle instance exceeds explicit allocation limit"); return
-	if state.renderMode1a8==6 and state.blurLength==0: fail("Original particle blur length is zero"); return
+		for name in FIELDS:
+			var field_value: Variant=parameters.get(name)
+			state[FIELDS[name]]=M.f(1.0 if name=="blurlength" else 0.0) if field_value==null else M.f(float(field_value))
+		var color_start: Variant=parameters.get("colorstart")
+		var color_end: Variant=parameters.get("colorend")
+		state.colorStart=M.values([0.0,0.0,0.0] if color_start==null else color_start)
+		state.colorEnd=M.values([0.0,0.0,0.0] if color_end==null else color_end)
 	if str(original_properties.get("update",""))=="Explosion" and state.blastRadius!=0 and not providers.has("addPointSourceWind"): fail("Native explosion point-wind registration is pending"); return
 	if int(parameters.get("detonate",0))!=0: state.detonate108=int(parameters.detonate); parameters.detonate=0
 	var source_pose:=pose(source); state.source50.position=source_pose.position; state.source50.quaternion=source_pose.quaternion; state.source50.adjustedScale=M.f(source.global_basis.get_scale().x)
@@ -392,37 +445,47 @@ func tick(delta: float,shared_frame: bool=false) -> void:
 	Profile.finish("native_particle_channels_pose",phase); phase=Profile.begin()
 	last_culled=outside_view(get_viewport().get_camera_3d())
 	Profile.finish("native_particle_admission",phase)
-	if is_instance_valid(surface): surface.visible=not last_culled
-	if last_culled:
-		culled_frames+=1
-		update_metrics()
-		Profile.finish("native_particles",began); return
+	if is_instance_valid(surface): surface.visible=is_visible_in_tree() and not last_culled
+	if last_culled: culled_frames+=1
 	phase=Profile.begin()
 	if compiled_kernel: apply_kernel("animate_"+str(original_properties.update).to_lower() if fused_dispatch else "animate",delta)
 	else: Schedule.animate(state,delta,providers)
 	Profile.finish("native_particle_simulation",phase)
 	if not failure.is_empty(): return
+	# Atlas clocks advance with simulation, including frames whose quads are culled.
+	Vertices.advance_atlas(state)
 	if not str(state.chunkName).is_empty():
 		phase=Profile.begin(); Chunks.render(state,providers); Profile.finish("native_particle_chunk_poses",phase)
-	elif not original_texture==null:
+	elif not last_culled and not original_texture==null:
 		phase=Profile.begin()
-		var output:=Kernel.build_streams(state,providers,surface.capacity) if compiled_kernel and Kernel.streams_enabled() else Kernel.build(state,providers) if compiled_kernel else Vertices.build(state,providers)
-		Profile.finish("native_particle_vertices",phase)
-		if output.has("error"): fail(output.error); return
-		phase=Profile.begin()
-		if not upload(output): fail("Native particle surface publication rejected"); return
-		Profile.finish("native_particle_upload",phase)
+		if preparation.enabled:
+			if Vertices.draw_count(state)==0:
+				if not upload({"count":0}): fail("Native particle empty prepared surface publication rejected"); return
+			elif preparation.collect:
+				var tint: Array=M.values(Schedule.invoke(providers,"lightColor",[state.position1e0.duplicate()])) if int(state.flags)&8 else [1.0,1.0,1.0]
+				vertex_preparation_owner.capture(self,state,float(state.source50.adjustedScale),M.values(camera_quaternion()),tint)
+			Profile.finish("native_particle_vertices",phase)
+		else:
+			var output:=Kernel.build_streams(state,providers,surface.capacity,true) if compiled_kernel and Kernel.streams_enabled() else Kernel.build(state,providers,true) if compiled_kernel else Vertices.build(state,providers,true)
+			Profile.finish("native_particle_vertices",phase)
+			if output.has("error"): fail(output.error); return
+			phase=Profile.begin()
+			if not upload(output): fail("Native particle surface publication rejected"); return
+			Profile.finish("native_particle_upload",phase)
 	frames+=1; peak_active=maxi(peak_active,state.active188.records.size()); Profile.finish("native_particles",began)
 	update_metrics()
 func tick_native(delta: float,shared_frame: bool) -> void:
 	if not particles_enabled or retired or not failure.is_empty(): return
+	var preparation: Dictionary=vertex_preparation_owner.plan(self) if is_instance_valid(vertex_preparation_owner) and not is_instance_valid(native_frame_group) and not is_instance_valid(native_stream_group) else {"enabled":false,"collect":false}
 	var began:=Profile.begin(); var phase:=Profile.begin(); elapsed+=delta
 	var clock: Dictionary=clock_provider.call() if clock_provider.is_valid() else {"clip":static_clip,"time":elapsed}
 	var clip:=str(clock.get("clip","")); var time:=float(clock.get("time",0.0))
 	if not clock_provider.is_valid() and channels.clips.has(clip) and float(channels.clips[clip].length)>0: time=fposmod(time,float(channels.clips[clip].length))
 	var input:={"delta":delta,"clip":clip,"time":time,"view":Bounds.native_view(get_viewport().get_camera_3d(),not shared_frame),"capacity":surface.capacity,"source_flags":source_model_flags,"culling":frustum_enabled,"detonate":queued_detonate,"profile":Profile.enabled,"draw_enabled":original_texture!=null}
+	if preparation.enabled: input.defer_vertices=true
+	if emitter_part_provider.is_valid(): input.part_properties=emitter_part_provider.call()
 	if native_surface_output and effective_flags()&8: input.tint=M.values(Schedule.invoke(providers,"lightColor",[pose(get_parent()).position]))
-	if int(original_properties.get("flags",0))&4:
+	if effective_flags()&4:
 		if not is_instance_valid(native_wind_owner) or native_wind_owner.token==0: fail("Native scene wind token is retired"); return
 		input.wind_token=native_wind_owner.token
 	if collision_flags_pending: input.patch={"flags":effective_flags()}
@@ -437,6 +500,14 @@ func tick_native(delta: float,shared_frame: bool) -> void:
 	phase=Profile.begin()
 	var output: Dictionary=native_owner.call("dispatch",1,input,providers); queued_detonate=false
 	complete_native_frame(output,began,phase)
+	if preparation.enabled and failure.is_empty() and output.get("deferred_vertices",false) and not bool(output.get("culled",false)):
+		var snapshot: Dictionary=native_owner.call("dispatch",11,{},{})
+		if Vertices.draw_count(snapshot)==0:
+			if not upload({"count":0}): fail("Native particle empty prepared surface publication rejected")
+		elif preparation.collect:
+			var source_state: Dictionary=snapshot.get("source50",{})
+			var tint: Array=input.get("tint",[1.0,1.0,1.0])
+			vertex_preparation_owner.capture(self,snapshot,float(source_state.get("adjustedScale",1.0)),M.values(input.view.camera),M.values(tint))
 func complete_native_frame(output: Dictionary,began: int,phase: int) -> void:
 	Profile.finish("native_particle_dispatch",phase); phase=Profile.begin()
 	if output.has("error"): fail(output.error); return
@@ -457,11 +528,13 @@ func complete_native_frame(output: Dictionary,began: int,phase: int) -> void:
 	last_culled=bool(output.culled); last_radius=float(output.radius)
 	if bool(output.culling_checked): culling_checks+=1
 	elif frustum_enabled: culling_fallbacks+=1
+	frames+=1; peak_active=maxi(peak_active,native_active)
 	if last_culled: culled_frames+=1; surface.visible=false
-	else:
+	elif not bool(output.get("deferred_vertices",false)):
 		phase=Profile.begin()
 		if not upload(output): fail("Native particle surface publication rejected"); return
-		Profile.finish("native_particle_upload",phase); frames+=1; peak_active=maxi(peak_active,native_active)
+		Profile.finish("native_particle_upload",phase)
+	if is_instance_valid(surface) and not is_visible_in_tree(): surface.visible=false
 	Profile.finish("native_particles",began)
 	update_metrics()
 func receive_group_frame(output: Dictionary,group_elapsed: float,prepare_ms: float,dispatch_ms: float) -> bool:
@@ -472,6 +545,11 @@ func receive_group_frame(output: Dictionary,group_elapsed: float,prepare_ms: flo
 	if Profile.enabled: Profile.record("native_particles",prepare_ms+dispatch_ms+(Time.get_ticks_usec()-began)/1000.0)
 	return failure.is_empty() and not retired
 func grouped_fallback_tick(delta: float) -> void: tick(delta,true)
+func receive_prepared_vertices(output: Dictionary) -> bool:
+	if retired or not failure.is_empty() or not is_instance_valid(surface): return false
+	if not upload(output): return false
+	surface.visible=is_visible_in_tree() and not last_culled
+	return true
 func update_metrics() -> void:
 	if metrics_owner==null: return
 	var began:=Profile.begin(); metrics_owner.update(self); Profile.finish("native_particle_metrics",began)
@@ -490,7 +568,10 @@ func upload(output: Dictionary) -> bool:
 		return surface.apply_frame(1,sequence,int(output.count),int(output.capacity),output.positions,output.attributes,AABB(Vector3(box[0],box[1],box[2]),Vector3(box[3],box[4],box[5])))
 	var count:=int(output.get("count",0)); var capacity: int=surface.capacity
 	if count>capacity: capacity=mini(Vertices.MAX_VERTICES,maxi(96,maxi(capacity*2,count)))
-	var positions:=PackedByteArray(); var attributes:=PackedByteArray(); positions.resize(capacity*12); attributes.resize(capacity*12); var bounds:=AABB(); var first:=true
+	if count>capacity: return false
+	var positions:=PackedByteArray(); var attributes:=PackedByteArray()
+	if positions.resize(capacity*12)!=OK or attributes.resize(capacity*12)!=OK: return false
+	var bounds:=AABB(); var first:=true
 	var bytes: PackedByteArray=output.get("buffer",PackedByteArray())
 	for index in count:
 		var at:=index*24; var point:=Vector3(bytes.decode_float(at+4),bytes.decode_float(at+12),-bytes.decode_float(at+8)); var u:=bytes.decode_float(at+16); var v:=bytes.decode_float(at+20)
@@ -501,7 +582,7 @@ func upload(output: Dictionary) -> bool:
 	sequence+=1
 	return surface.apply_frame(1,sequence,count,capacity,positions,attributes,bounds)
 func _process(delta: float) -> void:
-	if strict_geometry_worker: return
+	if strict_geometry_worker or is_instance_valid(native_scene_order): return
 	var began:=Profile.begin()
 	if is_instance_valid(native_frame_group) and native_frame_group.engine_ordered:
 		var result: Dictionary=native_frame_group.native.call("dispatch",8,native_group_identity)
@@ -510,7 +591,22 @@ func _process(delta: float) -> void:
 	Profile.finish("callback_particles",began)
 func effective_flags() -> int:
 	var authored:=int(original_properties.get("flags",0))
+	for name in FLAG_BITS:
+		if original_properties.has(name):
+			if flag(original_properties[name]): authored|=int(FLAG_BITS[name])
+			else: authored&=~int(FLAG_BITS[name])
 	return authored if collision_enabled else authored & ~16
+static func flag(value: Variant) -> bool:
+	if value is bool: return value
+	if value is int or value is float:return is_finite(float(value)) and float(value)!=0.0
+	if value is String:
+		var text_value: String=value.strip_edges()
+		if text_value=="true":return true
+		if text_value.is_valid_float():return is_finite(text_value.to_float()) and text_value.to_float()!=0.0
+		if text_value.to_lower().begins_with("0x"):
+			var digits: String=text_value.substr(2)
+			return digits.is_valid_hex_number() and digits.hex_to_int()!=0
+	return false
 func set_collision_enabled(value: bool) -> void:
 	if collision_enabled==value: return
 	collision_enabled=value
@@ -523,7 +619,7 @@ func set_collision_enabled(value: bool) -> void:
 func set_particles_enabled(value: bool) -> void:
 	particles_enabled=value; visible=value
 	process_mode=Node.PROCESS_MODE_INHERIT if value else Node.PROCESS_MODE_DISABLED
-	set_process(value and not strict_geometry_worker and not retired and failure.is_empty() and (not is_instance_valid(native_frame_group) or native_frame_group.engine_ordered))
+	set_process(value and not strict_geometry_worker and not retired and failure.is_empty() and not is_instance_valid(native_scene_order) and (not is_instance_valid(native_frame_group) or native_frame_group.engine_ordered))
 	if is_instance_valid(native_frame_group): native_frame_group.control(self,{"enabled":value})
 	if is_instance_valid(native_stream_group):
 		native_stream_group.control(self,{"enabled":value}); set_process(false)
@@ -540,9 +636,11 @@ func snapshot() -> Dictionary:
 	# Native state exports only when explicitly requested, never in HUD totals.
 	sync_stream_diagnostics()
 	var shared: bool=is_instance_valid(native_stream_group) and native_stream_group.members.get(get_instance_id(),{}).get("fast",false)
-	return {"direct_scene_queries":direct_scene_queries,"direct_scene_hits":direct_scene_hits,"backend":"resident" if native_owner!=null else "compiled" if compiled_kernel else "gd","compact_records":native_compact_records,"instance_streams":native_instance_streams,"fused_dispatch":fused_dispatch,"native_parameter_transfer":native_parameter_transfer,"channel_cache":channels.snapshot(),"frustum_enabled":frustum_enabled,"source_model_flags":source_model_flags,"culling_checks":culling_checks,"culling_fallbacks":culling_fallbacks,"culled_frames":culled_frames,"culled":last_culled,"admission_radius":last_radius,"failure":failure,"frames":frames,"active":active_count(),"free":native_free if native_owner!=null else _state.get("free130",{}).get("records",[]).size(),"allocated":allocated,"peak_active":peak_active,"vertices":native_stream_vertices if shared else surface.vertex_count if is_instance_valid(surface) else 0,"missing_chunk_models":missing_chunk_models,"chunks":chunk_models.snapshot() if is_instance_valid(chunk_models) else {},"rng_draws":rng.draws,"rng_scope":rng_scope,"static_clip":static_clip,"available_clips":channels.clips.keys(),"target_status":target_status,"limitations":limitations.duplicate()}
+	return {"model":authored_model_name,"node":authored_node_name,"failed":not failure.is_empty(),"direct_scene_queries":direct_scene_queries,"direct_scene_hits":direct_scene_hits,"backend":"resident" if native_owner!=null else "compiled" if compiled_kernel else "gd","compact_records":native_compact_records,"instance_streams":native_instance_streams,"fused_dispatch":fused_dispatch,"native_parameter_transfer":native_parameter_transfer,"channel_cache":channels.snapshot(),"frustum_enabled":frustum_enabled,"source_model_flags":source_model_flags,"culling_checks":culling_checks,"culling_fallbacks":culling_fallbacks,"culled_frames":culled_frames,"culled":last_culled,"admission_radius":last_radius,"failure":failure,"frames":frames,"active":active_count(),"free":native_free if native_owner!=null else _state.get("free130",{}).get("records",[]).size(),"allocated":allocated,"peak_active":peak_active,"vertices":native_stream_vertices if shared else surface.vertex_count if is_instance_valid(surface) else 0,"missing_chunk_models":missing_chunk_models,"chunks":chunk_models.snapshot() if is_instance_valid(chunk_models) else {},"rng_draws":rng.draws,"rng_scope":rng_scope,"static_clip":static_clip,"available_clips":channels.clips.keys(),"target_status":target_status,"limitations":limitations.duplicate()}
 func retire() -> void:
 	if retired: return
+	if is_instance_valid(native_scene_order): native_scene_order.unregister(self,false)
+	if is_instance_valid(vertex_preparation_owner): vertex_preparation_owner.unregister(self); vertex_preparation_owner=null
 	if is_instance_valid(native_stream_group): native_stream_group.unregister(self)
 	if is_instance_valid(native_frame_group): native_frame_group.unregister(self)
 	if is_instance_valid(visibility_owner): visibility_owner.unregister(self); visibility_owner=null

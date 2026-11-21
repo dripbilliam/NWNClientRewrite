@@ -2,9 +2,9 @@ extends RefCounted
 
 # Original140761d90..140761ff7 and140762c10..140762ccf. Physical list order and
 # state identity matter: equal priorities choose the LAST eligible entry.
-static func select(actor: Dictionary, type: int, p: Dictionary) -> void:
+static func select(actor: Dictionary, type: int, p: Dictionary) -> bool:
 	if actor.suppressed108:
-		return
+		return true
 	type &= 255
 	var selected: Variant = null
 	var priority := 255
@@ -16,12 +16,14 @@ static func select(actor: Dictionary, type: int, p: Dictionary) -> void:
 			continue
 		var scope := int(effect.scope10c) & 255
 		if scope == 0:
+			if effect.field110 and p.get("viewGateUnavailable",false):return false
 			if effect.field110 and not p.viewGate1407dadb0.call():
 				if effect.attached114:
 					p.detach.call(effect)
 				continue
 			if not effect.attached114:
 				p.attach.call(effect)
+				if p.has("partQueryFailed") and p.partQueryFailed.call():return true
 		elif scope <= priority:
 			selected = effect
 			priority = scope
@@ -30,16 +32,20 @@ static func select(actor: Dictionary, type: int, p: Dictionary) -> void:
 			continue
 		if is_same(effect, selected):
 			if p.programType.call(effect) == 4:
+				if effect.field110 and p.get("viewGateUnavailable",false):return false
 				if effect.field110 and not p.viewGate1407dadb0.call():
 					if effect.attached114 and not effect.closedEc:
 						p.stop.call(effect, 0)
 					continue
 				if effect.closedEc:
 					p.start.call(effect)
+					if p.has("partQueryFailed") and p.partQueryFailed.call():return true
 			if not effect.attached114:
 				p.attach.call(effect)
+				if p.has("partQueryFailed") and p.partQueryFailed.call():return true
 		elif effect.attached114:
 			p.detach.call(effect)
+	return true
 
 static func detach_competing(actor: Dictionary, current: Dictionary, p: Dictionary) -> void:
 	for index in range(actor.visuals80.size() - 1, -1, -1):

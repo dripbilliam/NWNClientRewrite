@@ -29,7 +29,9 @@ static func choose(model: Dictionary,random: Callable) -> Variant:
 	var total:=float(model.get("partArea",-1))
 	if total==-1: total=area(model.root); model.partArea=total
 	if total==0: return null
-	var draw:=int(random.call()); var remaining: Array=[M.f(M.f(M.f(draw%10000)*M.f(total))/10000.0)]
+	var drawn: Variant=random.call()
+	if not drawn is int or int(drawn)<0 or int(drawn)>32767:return {"error":"Native model-part CRT draw is unavailable"}
+	var draw:=int(drawn); var remaining: Array=[M.f(M.f(M.f(draw%10000)*M.f(total))/10000.0)]
 	if model.root==null: model.partArea=0.0; return null
 	var found: Variant=select(model.root,remaining)
 	return str(found.name) if found!=null else str(model.root.name)

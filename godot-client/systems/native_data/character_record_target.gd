@@ -3,11 +3,15 @@ extends RefCounted
 # data view leaves this helper. Production Desktop binding is a separate hook.
 const Base=preload("res://systems/native_data/creature_radial.gd")
 const Identity=preload("res://systems/native_data/player_identity.gd")
+static func client_id(value: Variant)->bool:
+	return Base.integer(value,4294967295) and int(value)!=Base.INVALID
+static func valid_lifetime(value: Variant)->bool:
+	return Base.integer(value,9007199254740991) and value>0
 static func lifetime(objects:Dictionary,id:int,area:int) -> Variant:
 	var value:Variant=objects.get(id)
 	if not value is Dictionary or value.get("id")!=id or value.get("objectType")!=5 or value.get("areaId")!=area or value.get("replicationRemoved")==true or value.get("destroyed")==true:return null
 	var token:Variant=value.get("clientKnownLifetime")
-	return int(token) if Base.integer(token,9007199254740991) and token>0 else null
+	return int(token) if valid_lifetime(token) else null
 static func capture(owner_id:int,generation:int,area:int,actor_id:int,target_id:int,objects:Dictionary) -> Dictionary:
 	if generation<0 or not Base.integer(area,4294967295) or area==Base.INVALID or not Base.integer(actor_id,4294967295) or actor_id==Base.INVALID or not Base.integer(target_id,4294967295) or target_id==Base.INVALID or target_id==actor_id:return {}
 	var actor_lifetime:Variant=lifetime(objects,actor_id,area);var target_lifetime:Variant=lifetime(objects,target_id,area)
@@ -24,7 +28,7 @@ static func admission(actor_id:int,target_id:int,objects:Dictionary,header:Dicti
 	var actor:Variant=objects.get(actor_id)
 	if not actor is Dictionary or actor.get("id")!=actor_id or actor.get("objectType")!=5 or actor.get("replicationRemoved")==true or actor.get("destroyed")==true:missing.append("controlled.creature")
 	var target:Variant=objects.get(target_id)
-	if not target is Dictionary or target.get("id")!=target_id or target.get("objectType")!=5:missing.append("displayed.creature")
+	if not target is Dictionary or target.get("id")!=target_id or target.get("objectType")!=5 or target.get("replicationRemoved")==true or target.get("destroyed")==true:missing.append("displayed.creature")
 	var source:Variant=target.get("replicated") if target is Dictionary else null
 	if not source is Dictionary:missing.append("displayed.replicated")
 	else:

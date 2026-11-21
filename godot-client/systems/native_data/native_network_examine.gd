@@ -51,7 +51,7 @@ static func decode_item(reader: Requirements.Reader,message: Dictionary)->void:
 	if reader.boolean():message.value=reader.dword()
 	if message.identified:
 		var count:=reader.word()
-		if count>int((reader.byte_size-reader.byte_cursor)/7):message.error="Invalid native examination property count";return
+		if count>int((reader.byte_size-reader.byte_cursor)/7):message.error="Invalid native examination list count";return
 		var properties: Array[Dictionary]=[]
 		for _index in range(count):properties.append({"type":reader.word(),"subtype":reader.word(),"costValue":reader.word(),"uses":reader.byte(),"usable":int(reader.boolean())})
 		message.properties=properties
@@ -70,7 +70,7 @@ static func decode_creature(reader: Requirements.Reader,build: Dictionary,messag
 		var wide:=Area.at_least(build,37,2)
 		var count:=reader.word() if wide else reader.byte()
 		if count>int((reader.byte_size-reader.byte_cursor)/(2 if wide else 1)):
-			message.error="Invalid native examination effect count";return
+			message.error="Invalid native examination list count";return
 		var effects: Array[int]=[]
 		for _index in range(count):effects.append(reader.word() if wide else reader.byte())
 		message.effects=effects

@@ -39,9 +39,9 @@ static func request(operation: String,target_id: int=INVALID,item_id: int=INVALI
 	var minor:=int(REQUEST_MINORS[operation])
 	var bytes:=PackedByteArray([112,35,minor])
 	if operation=="start":
-		bytes.resize(16);bytes.encode_u32(3,15);bytes.encode_u32(7,target_id);bytes.encode_u32(11,item_id);bytes[15]=0x65
+		bytes.resize(16);bytes.encode_u32(3,15);bytes.encode_u32(7,target_id);bytes.encode_u32(11,item_id);bytes[15]=0x60
 	elif operation in ["add","remove","move"]:
-		bytes.resize(14);bytes.encode_u32(3,13);bytes.encode_u32(7,item_id);bytes[11]=x;bytes[12]=y;bytes[13]=0x65
+		bytes.resize(14);bytes.encode_u32(3,13);bytes.encode_u32(7,item_id);bytes[11]=x;bytes[12]=y;bytes[13]=0x60
 	else:
-		bytes.resize(8);bytes.encode_u32(3,7);bytes[7]=0x95 if operation=="close" or value else 0x85
+		bytes.resize(8);bytes.encode_u32(3,7);bytes[7]=0x90 if operation=="close" or value else 0x80
 	return {"bytes":bytes}

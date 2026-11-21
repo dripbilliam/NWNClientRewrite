@@ -3,6 +3,7 @@ signal action_requested(operation: String,index: int,ticket: Array)
 signal finished(accepted: bool,ticket: Array)
 const Layout=preload("res://systems/native_data/creation_attributes_layout.gd")
 const Repeat=preload("res://systems/native_data/gui_repeat.gd")
+const Rules=preload("res://systems/native_data/creation_rules.gd")
 const HELP=[[473,459],[474,460],[475,461],[477,463],[476,462],[479,478],[261,457]]
 var model: Dictionary={}
 var data_text
@@ -70,7 +71,7 @@ func refresh() -> void:
 	for button in buttons.values():button.disabled=not ready
 	if not ready:return
 	for index in 6:
-		var modifier: int=model.modifiers[index];values[index].text=str(int(model.scores[index]))+" ("+("+" if modifier>=0 else "")+str(modifier)+")"
+		var modifier: int=model.modifiers[index];values[index].text=Rules.source_number_text(model.get("sourceScores",model.scores)[index])+" ("+("+" if modifier>=0 else "")+str(modifier)+")"
 	points.text=str(int(model.points));buttons.okbutton.disabled=int(model.points)!=0;buttons.okbutton.get_child(0).modulate=Color.WHITE if int(model.points)==0 else Color(.5,.5,.5,1)
 	buttons.recommendbutton.disabled=not can_recommend;buttons.recommendbutton.get_child(0).modulate=Color.WHITE if can_recommend else Color(.5,.5,.5,1)
 	var index:=6 if help_index<0 else help_index;help.present_content(data_text if data_text!=null else text_owner,HELP[index][0],HELP[index][1],help_prefix)
@@ -78,8 +79,8 @@ func show_help(index: int) -> void:
 	if index<0 or index>6 or not model.get("ready",false):return
 	help_index=index;help_prefix="";var text=data_text if data_text!=null else text_owner
 	if index<6:
-		var raw: int=model.raw[index];var racial: int=model.racial[index];var gain: int=model.gains[index];var score: int=model.scores[index];var modifier: int=model.modifiers[index]
-		var parts: Array=[[61919,str(raw)],[6273,("+" if racial>=0 else "")+str(racial)],[144,str(gain)],[6275,str(score)],[6274,("+" if modifier>=0 else "")+str(modifier)]]
+		var raw: int=model.raw[index];var racial: int=model.racial[index];var gain: int=model.gains[index];var score: Variant=model.get("sourceScores",model.scores)[index];var modifier: int=model.modifiers[index]
+		var parts: Array=[[61919,str(raw)],[6273,("+" if racial>=0 else "")+str(racial)],[144,str(gain)],[6275,Rules.source_number_text(score)],[6274,("+" if modifier>=0 else "")+str(modifier)]]
 		for item in parts:help_prefix+=text.raw({"strRef":item[0]})+": "+str(item[1])+"\n"
 		help_prefix+="\n";cost.text=str(int(model.costs[index]))
 	else:cost.text="0"

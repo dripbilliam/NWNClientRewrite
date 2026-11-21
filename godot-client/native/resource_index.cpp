@@ -13,6 +13,7 @@
 #include <vector>
 #include <limits>
 #include <filesystem>
+#include <cmath>
 namespace {
 GDExtensionClassLibraryPtr library;
 GDExtensionInterfaceVariantNewNil new_nil;
@@ -65,8 +66,10 @@ struct Var{
  static Var text(const std::string& value){alignas(8) uint8_t raw[8];string_new(raw,value.c_str());Var v;destroy(v.data);from[GDEXTENSION_VARIANT_TYPE_STRING](v.data,raw);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(raw);return v;}
  static Var name(const char* value){Name raw(value);Var v;destroy(v.data);from[GDEXTENSION_VARIANT_TYPE_STRING_NAME](v.data,raw.data);return v;}
  static Var integer(int64_t value){Var v;destroy(v.data);from[GDEXTENSION_VARIANT_TYPE_INT](v.data,&value);return v;}
+ static Var real(double value){Var v;destroy(v.data);from[GDEXTENSION_VARIANT_TYPE_FLOAT](v.data,&value);return v;}
  static Var container(GDExtensionVariantType type){Var v;destroy(v.data);GDExtensionCallError error{};construct(type,v.data,nullptr,0,&error);if(error.error!=GDEXTENSION_CALL_OK)throw std::runtime_error("Native resource container construction failed");return v;}
  int64_t integer()const{if(get_type(data)!=GDEXTENSION_VARIANT_TYPE_INT)throw std::runtime_error("Native resource integer required");int64_t value;to[GDEXTENSION_VARIANT_TYPE_INT](&value,const_cast<uint8_t*>(data));return value;}
+ double real()const{if(get_type(data)!=GDEXTENSION_VARIANT_TYPE_FLOAT)throw std::runtime_error("Native float required");double value;to[GDEXTENSION_VARIANT_TYPE_FLOAT](&value,const_cast<uint8_t*>(data));return value;}
  std::string text()const{if(get_type(data)!=GDEXTENSION_VARIANT_TYPE_STRING)throw std::runtime_error("Native resource string required");alignas(8) uint8_t raw[8];to[GDEXTENSION_VARIANT_TYPE_STRING](raw,const_cast<uint8_t*>(data));const auto length=string_utf8(raw,nullptr,0);std::string value(static_cast<size_t>(length),'\0');string_utf8(raw,value.data(),length);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(raw);return value;}
 };
 void put(Var& dict,const Var& key,const Var& value){GDExtensionBool valid=0;set_keyed(dict.data,key.data,value.data,&valid);if(!valid)throw std::runtime_error("Native resource dictionary assignment failed");}
@@ -150,9 +153,9 @@ void call_cost(void*,GDExtensionClassInstancePtr,const GDExtensionConstVariantPt
  try{Var maximum(args[1]);const auto limit=maximum.integer();if(limit<1||limit>int64_t(1)<<40)throw std::runtime_error("Invalid resource accounting budget");Cost cost(static_cast<uint64_t>(limit));cost.add(96);cost.visit(args[0]);auto out=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);put(out,Var::text("estimated_bytes"),Var::integer(static_cast<int64_t>(cost.bytes)));put(out,Var::text("visited"),Var::integer(static_cast<int64_t>(cost.nodes)));put(out,Var::text("shared"),Var::integer(static_cast<int64_t>(cost.shared)));put(out,Var::text("bounded"),Var::integer(cost.bounded?1:0));new_copy(result,out.data);}catch(const std::exception& failure){auto out=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);put(out,Var::text("error"),Var::text(failure.what()));new_copy(result,out.data);}
 }
 constexpr uint32_t high[]={0x20ac,0x81,0x201a,0x192,0x201e,0x2026,0x2020,0x2021,0x2c6,0x2030,0x160,0x2039,0x152,0x8d,0x17d,0x8f,0x90,0x2018,0x2019,0x201c,0x201d,0x2022,0x2013,0x2014,0x2dc,0x2122,0x161,0x203a,0x153,0x9d,0x17e,0x178};
-std::string text(const Bytes& bytes,size_t offset,size_t count,bool strict=false){
+std::string text(const Bytes& bytes,size_t offset,size_t count,bool strict=false,bool latin1=false){
  const auto* p=bytes.at(offset,count);std::string out;
- for(size_t i=0;i<count&&p[i];++i){uint32_t c=p[i];if(strict&&(c<32||c=='/'||c=='\\'||c==':'))throw std::runtime_error("Invalid native NWSync resource reference");if(c>=128&&c<160)c=high[c-128];if((c>='A'&&c<='Z')||(c>=0xc0&&c<=0xde&&c!=0xd7))c+=32;else if(c==0x178)c=0xff;else if(c==0x152||c==0x160||c==0x17d)c++;
+ for(size_t i=0;i<count&&p[i];++i){uint32_t c=p[i];if(strict&&(c<32||c=='/'||c=='\\'||c==':'))throw std::runtime_error("Invalid native NWSync resource reference");if(!latin1&&c>=128&&c<160)c=high[c-128];if((c>='A'&&c<='Z')||(c>=0xc0&&c<=0xde&&c!=0xd7))c+=32;else if(c==0x178)c=0xff;else if(c==0x152||c==0x160||c==0x17d)c++;
   if(c<128)out.push_back(static_cast<char>(c));else if(c<2048){out.push_back(static_cast<char>(0xc0|(c>>6)));out.push_back(static_cast<char>(0x80|(c&63)));}else{out.push_back(static_cast<char>(0xe0|(c>>12)));out.push_back(static_cast<char>(0x80|((c>>6)&63)));out.push_back(static_cast<char>(0x80|(c&63)));}
  }if(strict&&out.empty())throw std::runtime_error("Invalid native NWSync resource reference");return out;
 }
@@ -172,8 +175,8 @@ Var parse(const std::string& kind,const Bytes& table,const Bytes& other,const Va
   Var files;if(kind=="key")files=get(options,Var::text("filenames"));
   for(int64_t index=0;index<count;++index){const auto at=static_cast<size_t>(index*stride);auto row=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);uint32_t type=0;
    if(kind=="key"){type=table.u16(at+16);const auto id=table.u32(at+18),bif=(stride==26?table.u32(at+22):id)>>20;put(row,f.bif,indexed(files,bif));put(row,f.slot,Var::integer(id&0xfffff));}
-   else{const auto cursor=kind=="erf"?static_cast<size_t>(index)*8:at+(stride==20?8:4);const auto& source=kind=="erf"?other:table;const auto offset=source.u32(cursor),size=source.u32(cursor+4);if(source_size<0||offset>static_cast<uint64_t>(source_size)||size>static_cast<uint64_t>(source_size)-offset)throw std::runtime_error(kind=="erf"?"ERF payload exceeds archive bounds":"BIF payload exceeds archive bounds");put(row,f.offset,Var::integer(offset));put(row,f.size,Var::integer(size));type=kind=="erf"?table.u16(at+static_cast<size_t>(name_size)+4):table.u32(cursor+8);}
-   put(row,f.type,Var::integer(type));if(kind=="bif")append(entries,row);else put(entries,Var::text(text(table,at,static_cast<size_t>(name_size))+":"+std::to_string(type)),row);
+   else{const auto cursor=kind=="erf"?static_cast<size_t>(index)*8:at+(stride==20?8:4);const auto& source=kind=="erf"?other:table;const auto offset=source.u32(cursor),size=source.u32(cursor+4);if(source_size<0||offset>static_cast<uint64_t>(source_size)||size>static_cast<uint64_t>(source_size)-offset)throw std::runtime_error(kind=="erf"?"Resource exceeds archive bounds":"BIF payload exceeds archive bounds");put(row,f.offset,Var::integer(offset));put(row,f.size,Var::integer(size));type=kind=="erf"?table.u16(at+static_cast<size_t>(name_size)+4):table.u32(cursor+8);}
+   put(row,f.type,Var::integer(type));if(kind=="bif")append(entries,row);else put(entries,Var::text(text(table,at,static_cast<size_t>(name_size),false,false)+":"+std::to_string(type)),row);
   }
  }else if(kind=="installed-manifest"||kind=="manifest"){
   const bool installed=kind=="installed-manifest";const auto count=table.u32(installed?0:8),aliases=installed?0:table.u32(12);if(count<1||uint64_t(count)+aliases>1000000||table.length!=(installed?4+uint64_t(count)*58:16+uint64_t(count)*42+uint64_t(aliases)*22))throw std::runtime_error("Invalid native NWSync manifest length");
@@ -182,7 +185,7 @@ Var parse(const std::string& kind,const Bytes& table,const Bytes& other,const Va
   // identity as well as equivalent dictionary lookup/value semantics.
   const auto size_key=Var::name("size");std::vector<Var> base;std::unordered_map<std::string,uint32_t> sizes;std::unordered_map<std::string,bool> seen;
   if(!installed)base.reserve(count);seen.reserve(static_cast<size_t>(count)+aliases);
-  for(uint32_t index=0;index<count+aliases;++index){size_t offset=installed?4+static_cast<size_t>(index)*58:16+(index<count?static_cast<size_t>(index)*42:static_cast<size_t>(count)*42+static_cast<size_t>(index-count)*22);size_t name_offset=installed?offset:offset+(index<count?24:4);const auto name=text(table,name_offset,16,true);const auto type=table.u16(name_offset+16);auto row=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);put(row,f.name,Var::text(name));put(row,f.type,Var::integer(type));
+  for(uint32_t index=0;index<count+aliases;++index){size_t offset=installed?4+static_cast<size_t>(index)*58:16+(index<count?static_cast<size_t>(index)*42:static_cast<size_t>(count)*42+static_cast<size_t>(index-count)*22);size_t name_offset=installed?offset:offset+(index<count?24:4);const auto name=text(table,name_offset,16,true,installed);const auto type=table.u16(name_offset+16);if(type==0)throw std::runtime_error(installed?"Invalid installed NWSync reference":"Invalid native NWSync resource reference");auto row=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);put(row,f.name,Var::text(name));put(row,f.type,Var::integer(type));
    if(installed){const auto* bytes=table.at(offset+18,40);std::string hash(reinterpret_cast<const char*>(bytes),40);for(const auto c:hash)if(!((c>='0'&&c<='9')||(c>='a'&&c<='f')))throw std::runtime_error("Invalid installed NWSync reference");put(row,f.hash,Var::text(hash));put(row,size_key,Var::integer(-1));}
    else if(index<count){const auto hash=hex(table,offset,20);const auto size=table.u32(offset+20);const auto old=sizes.find(hash);if(size>256*1024*1024||(old!=sizes.end()&&old->second!=size))throw std::runtime_error("Invalid native NWSync resource size");sizes[hash]=size;put(row,f.hash,Var::text(hash));put(row,size_key,Var::integer(size));}
    else{const auto source=table.u32(offset);if(source>=count)throw std::runtime_error("Invalid native NWSync alias");put(row,f.hash,get(base[source],f.hash));put(row,size_key,get(base[source],size_key));}
@@ -207,6 +210,15 @@ void call_file_stamp(void*,GDExtensionClassInstancePtr,const GDExtensionConstVar
   new_copy(result,out.data);
  }catch(const std::exception& failure){auto out=Var::container(GDEXTENSION_VARIANT_TYPE_DICTIONARY);put(out,Var::text("error"),Var::text(failure.what()));new_copy(result,out.data);}
 }
+// Native CRT dispatch comparison uses one correctly rounded binary64
+// multiply-add. std::fma is the direct finite equivalent of the historical
+// BigInt exact-product/nearest-even helper, before its final float32 cast.
+void call_native_fma64(void*,GDExtensionClassInstancePtr,const GDExtensionConstVariantPtr* args,GDExtensionInt count,GDExtensionVariantPtr result,GDExtensionCallError* error){
+ error->error=GDEXTENSION_CALL_OK;
+ if(count!=3){error->error=count<3?GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS:GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS;error->expected=3;new_nil(result);return;}
+ if(get_type(args[0])!=GDEXTENSION_VARIANT_TYPE_FLOAT||get_type(args[1])!=GDEXTENSION_VARIANT_TYPE_FLOAT||get_type(args[2])!=GDEXTENSION_VARIANT_TYPE_FLOAT){error->error=GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT;new_nil(result);return;}
+ Var a(args[0]),b(args[1]),c(args[2]);auto out=Var::real(std::fma(a.real(),b.real(),c.real()));new_copy(result,out.data);
+}
 void free_instance(void*,GDExtensionClassInstancePtr){}
 void initialize(void*,GDExtensionInitializationLevel level){
  if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;
@@ -218,8 +230,16 @@ void initialize(void*,GDExtensionInitializationLevel level){
  Name cost_method("retained_cost"),value("value"),maximum("maximum_bytes");string_new(hint,"");GDExtensionPropertyInfo cost_args[]={property(GDEXTENSION_VARIANT_TYPE_NIL,value),property(GDEXTENSION_VARIANT_TYPE_INT,maximum)};cost_args[0].usage|=131072;/* PROPERTY_USAGE_NIL_IS_VARIANT in pinned API dump */GDExtensionClassMethodArgumentMetadata cost_metadata[2]{};m.name=cost_method.data;m.call_func=call_cost;m.argument_count=2;m.arguments_info=cost_args;m.arguments_metadata=cost_metadata;register_method(library,name.data,&m);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
  Name table_method("two_da"),source("source");string_new(hint,"");GDExtensionPropertyInfo table_args[]={property(GDEXTENSION_VARIANT_TYPE_STRING,source)};GDExtensionClassMethodArgumentMetadata table_metadata[1]{};m.name=table_method.data;m.call_func=call_two_da;m.argument_count=1;m.arguments_info=table_args;m.arguments_metadata=table_metadata;register_method(library,name.data,&m);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
  Name stamp_method("file_stamp"),filename("filename");string_new(hint,"");GDExtensionPropertyInfo stamp_args[]={property(GDEXTENSION_VARIANT_TYPE_STRING,filename)};GDExtensionClassMethodArgumentMetadata stamp_metadata[1]{};m.name=stamp_method.data;m.call_func=call_file_stamp;m.argument_count=1;m.arguments_info=stamp_args;m.arguments_metadata=stamp_metadata;register_method(library,name.data,&m);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
+ Name math_name("NwnNativeMath"),fma_method("fma64"),a("a"),b("b"),c("c");
+ register_class(library,math_name.data,base.data,&info);
+ string_new(hint,"");
+ GDExtensionPropertyInfo math_args[]={property(GDEXTENSION_VARIANT_TYPE_FLOAT,a),property(GDEXTENSION_VARIANT_TYPE_FLOAT,b),property(GDEXTENSION_VARIANT_TYPE_FLOAT,c)};
+ GDExtensionClassMethodArgumentMetadata math_metadata[3]{};
+ ret=property(GDEXTENSION_VARIANT_TYPE_FLOAT,empty);
+ GDExtensionClassMethodInfo math_method{};math_method.name=fma_method.data;math_method.call_func=call_native_fma64;math_method.method_flags=GDEXTENSION_METHOD_FLAG_NORMAL|GDEXTENSION_METHOD_FLAG_STATIC;math_method.has_return_value=true;math_method.return_value_info=&ret;math_method.argument_count=3;math_method.arguments_info=math_args;math_method.arguments_metadata=math_metadata;
+ register_method(library,math_name.data,&math_method);destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
 }
-void deinitialize(void*,GDExtensionInitializationLevel level){if(level==GDEXTENSION_INITIALIZATION_SCENE){Name name("NwnResourceIndex");unregister_class(library,name.data);}}
+void deinitialize(void*,GDExtensionInitializationLevel level){if(level==GDEXTENSION_INITIALIZATION_SCENE){Name math_name("NwnNativeMath"),name("NwnResourceIndex");unregister_class(library,math_name.data);unregister_class(library,name.data);}}
 }
 extern "C" __declspec(dllexport) GDExtensionBool nwn_resource_index_init(GDExtensionInterfaceGetProcAddress api,GDExtensionClassLibraryPtr lib,GDExtensionInitialization* init){
  library=lib;

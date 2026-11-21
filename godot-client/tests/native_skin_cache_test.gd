@@ -11,7 +11,7 @@ func check(ok: bool,label: String) -> void:
 func same(a: Variant,b: Variant) -> bool: return Cache.digest(var_to_bytes(a))==Cache.digest(var_to_bytes(b))
 func _initialize() -> void: call_deferred("run")
 func source() -> PackedByteArray:
-	return ("newmodel authored\nsetsupermodel authored NULL\nbeginmodelgeom authored\nnode dummy root\nparent NULL\nendnode\nnode dummy hip\nparent root\nposition 0 0 1\nendnode\nnode skin cloth\nparent root\nverts 3\n0 0 0\n1 0 0\n0 0 1\ntverts 3\n0 0 0\n1 0 0\n0 1 0\nfaces 1\n0 1 2 1 0 1 2 0\nweights 3\nhip 0.7 root 0.3\nhip 1\nroot 0\nendnode\nendmodelgeom authored\n").to_utf8_buffer()
+	return ("# ASCII MDL fixture\nnewmodel authored\nsetsupermodel authored NULL\nbeginmodelgeom authored\nnode dummy root\nparent NULL\nendnode\nnode dummy hip\nparent root\nposition 0 0 1\nendnode\nnode skin cloth\nparent root\nverts 3\n0 0 0\n1 0 0\n0 0 1\ntverts 3\n0 0 0\n1 0 0\n0 1 0\nfaces 1\n0 1 2 1 0 1 2 0\nweights 3\nhip 0.7 root 0.3\nhip 1\nroot 0\nendnode\nendmodelgeom authored\n").to_utf8_buffer()
 func decoded(service,bytes: PackedByteArray,directory: String,store) -> Dictionary:
 	var thread:=Thread.new(); thread.start(service.decode.bind(bytes,2002,"mdl-actor-packed-v3",directory,store))
 	while thread.is_alive(): await process_frame

@@ -33,14 +33,16 @@ func run() -> void:
 		var empty: Array=parser.headers.filter(func(row):return row.vertices==0 and row.faces==0 and row.textures==0 and row.draws==0)
 		check(not empty.is_empty(),"Fixture contains an actual empty serialized mesh")
 		if empty.is_empty(): continue
-		for mode in [0,3,72,98,208,255]:
-			var changed:=bytes.duplicate(); changed.encode_u8(int(empty[0].at)+436,mode); var decoder:=Model.new(); var decoded:=decoder.parse(changed)
+		for mode in [0,3,72,98,208,255,0x11ce6e48,0xbec7c862]:
+			var changed:=bytes.duplicate(); changed.encode_u32(int(empty[0].at)+436,mode); var decoder:=Model.new(); var decoded:=decoder.parse(changed)
 			check(decoder.failure.is_empty() and decoded.get("nodes",[]).size()==value.nodes.size(),"Unused mode on empty mesh retains node: "+str(mode))
 		var nonempty: Array=parser.headers.filter(func(row):return row.vertices>0 and row.faces>0)
 		check(not nonempty.is_empty(),"Fixture also contains drawn geometry")
 		if not nonempty.is_empty():
 			var at:=int(nonempty[0].at); var changed:=bytes.duplicate(); changed.encode_u8(at+436,208); var decoder:=Model.new(); decoder.parse(changed)
 			check(not decoder.failure.is_empty(),"Nonempty unsupported primitive mode is still rejected")
+			changed=bytes.duplicate(); changed.encode_u32(at+436,0x10003); decoder=Model.new(); decoder.parse(changed)
+			check(not decoder.failure.is_empty(),"Nonempty primitive mode validates the full 32-bit field")
 			changed=bytes.duplicate(); var face:=12+int(changed.decode_u32(at+8)); changed.encode_u16(face+26,int(nonempty[0].vertices)); decoder=Model.new(); decoder.parse(changed)
 			check(decoder.failure.contains("index exceeds"),"Out-of-range geometry indices are still rejected")
 		var truncated:=Model.new(); truncated.parse(bytes.slice(0,bytes.size()-1)); check(not truncated.failure.is_empty(),"Truncated model payload is rejected")

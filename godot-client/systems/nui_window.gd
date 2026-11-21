@@ -40,7 +40,10 @@ func request(message: Dictionary) -> void:
 	if not retired: manager.request.emit({"kind": "nui-input", "windowId": window_id}.merged(message))
 func accepts() -> bool: return not retired and state.get("acceptsInput", true)
 func commit() -> void:
-	var first := state.is_empty(); state = staged_state.duplicate(true)
+	var first := state.is_empty()
+	if not first and state.get("geometry")!=staged_state.get("geometry"):
+		spawn_pointer=get_viewport().get_mouse_position()
+	state = staged_state.duplicate(true)
 	for id in nodes.keys():
 		if not staged.has(id):
 			var node = nodes[id]; node.retire()

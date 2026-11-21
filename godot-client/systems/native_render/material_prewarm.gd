@@ -6,7 +6,9 @@ const Pool=preload("res://systems/native_render/resource_pool.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const NativeMaterial=preload("res://systems/native_render/native_model_material.gd")
+const ProgramLease=preload("res://systems/native_render/material_program_lease.gd")
 var pool:=Pool.new()
+var program_lease:=ProgramLease.new()
 var recipes: Array=[]
 var materials: Array=[]
 var policy: Dictionary={}
@@ -31,8 +33,9 @@ func configure_policy(value: Dictionary) -> bool:
 	if enabled:
 		_reset_owned();stats.policy_resets+=1;_enqueue();set_process(true)
 	return true
-func _reset_owned(reset_progress: bool=true) -> void:
+func _reset_owned(reset_progress: bool=true,reset_lease: bool=true) -> void:
 	set_process(false);recipes.clear();materials.clear();native_family_keys.clear();pool.clear()
+	if reset_lease:program_lease.clear()
 	stats.retained_materials=0;stats.retained_textures=0
 	if reset_progress:stats.prepared=0;stats.native_families_prepared=0;stats.native_family_keys=[];stats.done=false
 func raster(opaque: bool) -> Dictionary:
@@ -82,6 +85,7 @@ func step() -> void:
 	stats.shader_request_ms+=(Time.get_ticks_usec()-at)/1000.0
 	if not rid.is_valid(): stats.failures.append("Material shader warmup returned an invalid native RID"); set_process(false); return
 	materials.append(material); stats.prepared+=1
+	if bool(row.native):program_lease.adopt(material,program_lease.epoch)
 	if bool(row.native):native_family_keys[row.family_key]=true;stats.native_families_prepared=native_family_keys.size();stats.native_family_keys=native_family_keys.keys()
 	stats.retained_materials=materials.size(); stats.retained_textures=pool.textures.size()
 	stats.maximum_step_ms=maxf(float(stats.maximum_step_ms),(Time.get_ticks_usec()-began)/1000.0)
@@ -89,10 +93,16 @@ func step() -> void:
 func _process(_delta: float) -> void:
 	var began:=Timing.begin(); step(); Timing.finish("material_shader_warmup_ms",began); Timing.finish("callback_material_prewarm",began)
 func snapshot() -> Dictionary:
-	return {"enabled":enabled,"done":not enabled or recipes.is_empty(),"prepared":stats.prepared,"expected":stats.expected,"pending":recipes.size(),"material_ms":stats.material_ms,"shader_request_ms":stats.shader_request_ms,"maximum_step_ms":stats.maximum_step_ms,"failures":stats.failures.duplicate(),"retained_materials":materials.size(),"retained_textures":pool.textures.size(),"closed":closed,"policy":policy.duplicate(),"policy_failure":stats.policy_failure,"policy_resets":stats.policy_resets,"native_families_prepared":stats.native_families_prepared,"native_family_keys":stats.native_family_keys.duplicate(),"scope":"At most20 legacy materials plus3 unique final native shader families for the copied verified production policy; authored white resources never replace or render world assets. Main-thread requests can exceed one frame; no GPU completion guarantee."}
+	return {"enabled":enabled,"done":not enabled or recipes.is_empty(),"prepared":stats.prepared,"expected":stats.expected,"pending":recipes.size(),"material_ms":stats.material_ms,"shader_request_ms":stats.shader_request_ms,"maximum_step_ms":stats.maximum_step_ms,"failures":stats.failures.duplicate(),"retained_materials":materials.size(),"retained_textures":pool.textures.size(),"closed":closed,"policy":policy.duplicate(),"policy_failure":stats.policy_failure,"policy_resets":stats.policy_resets,"native_families_prepared":stats.native_families_prepared,"native_family_keys":stats.native_family_keys.duplicate(),"program_lease":program_lease.snapshot(),"scope":"At most20 legacy materials plus3 unique final native shader families for the copied verified production policy; authored white resources never replace or render world assets. Main-thread requests can exceed one frame; no GPU completion guarantee."}
+func area_gate() -> Dictionary:
+	if not enabled:return {"ready":true}
+	if closed:return {"ready":false,"error":"Native material preparation owner retired"}
+	if not str(stats.policy_failure).is_empty():return {"ready":false,"error":str(stats.policy_failure)}
+	if not stats.failures.is_empty():return {"ready":false,"error":str(stats.failures[0])}
+	return {"ready":bool(stats.done)}
 func close() -> void:
 	if closed: return
 	# Keep completed/requested diagnostic counts after releasing every owner.
-	closed=true;_reset_owned(false)
+	closed=true;_reset_owned(false,false);program_lease.dispose()
 	stats.closed=true;stats.done=true; stats.retained_materials=0; stats.retained_textures=0
 func _exit_tree() -> void: close()

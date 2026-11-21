@@ -6,12 +6,17 @@ signal ability_selected(binding: Dictionary)
 const Radial=preload("res://systems/server_radial.gd")
 const Rules=preload("res://systems/native_data/game_ui_rules.gd")
 const Policy=preload("res://systems/native_data/item_radial.gd")
+const ActionMenu=preload("res://systems/native_data/native_network_action_menu.gd")
+const NetworkItemMenu=preload("res://systems/native_data/native_network_item_menu.gd")
+const AbilityRadial=preload("res://systems/native_data/ability_radial.gd")
 var inventory
 var wheel
 var policy:=Policy.new()
 var rules:=Rules.new()
 var spell_entries: Callable
 var spell_menu: Callable
+var spell_build_failed: Callable
+var ability_menu: Callable
 var selection: Dictionary={}
 var trade
 var lifetime: Array=[]
@@ -25,6 +30,7 @@ var quickbar_clear:=Callable()
 var quickbar_owned:=false
 var quickbar_binding: Dictionary={}
 var quickbar_texture: Texture2D
+var network_item_menu
 func configure(owner) -> void:
 	inventory=owner; rules.text=owner.text_owner; policy.rules=rules
 	wheel=Radial.new(); add_child(wheel); wheel.shortcut_kind="item-radial-entry"; wheel.configure_art(inventory.frame_skin.art); wheel.request.connect(input); wheel.preview_provider=preview
@@ -33,6 +39,7 @@ func cancel() -> void:
 	if is_instance_valid(wheel): wheel.reset()
 	selection.clear(); lifetime.clear(); history.clear(); entries.clear(); trade=null; trade_lock.clear()
 	quickbar_valid=Callable();quickbar_clear=Callable();quickbar_owned=false;quickbar_binding.clear();quickbar_texture=null
+	network_item_menu=null
 func item() -> Dictionary: return inventory.objects.get(int(selection.get("entryId",-1)),{}).get("item",{})
 func current_row() -> Dictionary:
 	if closed or selection.is_empty() or lifetime!=[inventory.generation,inventory.area_id,inventory.controlled_id]: return {}
@@ -52,8 +59,18 @@ func open_inventory(id: int,point: Vector2,powers_only: bool=false) -> void:
 	cancel()
 	selection={"entryId":id,"viewId":inventory.view_serial,"storeGeneration":inventory.store.get("generation",-1)}; lifetime=[inventory.generation,inventory.area_id,inventory.controlled_id]
 	if current_row().is_empty(): cancel(); return
+	var actor: Dictionary=inventory.objects.get(inventory.controlled_id,{})
+	var invalid_innate: String=AbilityRadial.replicated_innate_error(actor)
+	if not invalid_innate.is_empty():
+		inventory.notice_text=invalid_innate;inventory.ui.notice.text=invalid_innate
+		cancel();return
+	network_item_menu=NetworkItemMenu.new()
+	var prepared: Dictionary=network_item_menu.prepare(inventory,id,rules)
+	if not prepared.get("ok",false):
+		inventory.notice_text=str(prepared.get("error","Item menu is unavailable"));inventory.ui.notice.text=inventory.notice_text
+		cancel();return
 	inventory.ui.select_item(id); opened.emit(); wheel.open_at(point,id,Vector3.ZERO,false)
-	history=[{"kind":"powers" if powers_only else "root"}]; refresh()
+	history=[{"kind":"powers" if powers_only else "network-root"}]; refresh()
 func open_quickbar(id: int,point: Vector2,valid: Callable,clear_slot: Callable,binding: Dictionary={},texture: Texture2D=null) -> void:
 	if not valid.is_valid() or not valid.call():return
 	cancel();quickbar_owned=true;quickbar_valid=valid;quickbar_clear=clear_slot;quickbar_binding=binding.duplicate(true);quickbar_texture=texture
@@ -82,6 +99,13 @@ func refresh() -> void:
 	if row.is_empty() or history.is_empty(): cancel(); return
 	var page: Dictionary=history[-1]; var values: Array=[]; var source:=item(); var ctx:=context(row)
 	match str(page.kind):
+		"network-root":
+			var item_object: Dictionary=inventory.objects.get(int(row.itemId),{})
+			var actor: Dictionary=inventory.objects.get(inventory.controlled_id,{})
+			var options: Dictionary={"castMenu":func():return cast_menu(),"abilityMenu":ability_menu,"itemUseEntries":func():return network_item_menu.entries() if network_item_menu!=null else []}
+			var menu: Dictionary=ActionMenu.network_radial_actions(item_object,actor,options)
+			values=menu.entries
+		"network-child":values=page.menu.get("entries",[])
 		"root":
 			if quickbar_owned:
 				# Native9a59d0 bit0x10 replaces Drop with Clear and keeps the
@@ -102,17 +126,34 @@ func refresh() -> void:
 		"spells": values=spell_entries.call() if spell_entries.is_valid() else []
 		"spell-menu": values=spell_menu.call(page.menu) if spell_menu.is_valid() else []
 		"children": values=page.values
+	if (str(page.kind)=="network-child" and bool(page.menu.get("spellBuildFailed",false))) or (str(page.kind) in ["spells","spell-menu"] and spell_build_failed.is_valid() and bool(spell_build_failed.call())):
+		# Keep the current ring when a spell-use lookup rejects. A valid empty
+		# submenu still publishes normally.
+		if history.size()>1: history.pop_back()
+		return
 	if values.size()>8:
 		var rest:=values.slice(7); values=values.slice(0,7)
 		var more:=policy.row(7,"IR_USE",554,"children"); more.children=rest; values.append(more)
 	entries.clear(); serial+=1
 	for value in values:
+		if value.has("children") and value.children is Callable:
+			value.networkAction=value.get("action")
+			value.action="network-children"
+		elif value.has("system"):
+			var old_action: String=str(value.get("action",""))
+			value.networkAction=old_action
+			value.action={"object.examine":"examine","item.use":"network-activate","item.drop":"drop","item.pickup":"pickup","item.split":"split"}.get(old_action,"network-unsupported")
+		elif value.get("action")=="item.use":
+			value.networkBinding=value.get("binding",{})
+			value.binding=value.get("quickbarBinding",{})
+			value.action="use"
+		elif value.get("action")=="item.learn":value.action="learn"
 		if value.has("menu"): value.action="spell-menu"
-		if value.has("children"): value.action="children"
+		if value.has("children") and not (value.children is Callable): value.action="children"
 		if value.action=="use": value.binding={"type":1,"itemId":int(row.itemId),"intParam":int(value.payload),"spellId":int(value.get("spellId",-1))}; value.canDrag=true
-		value.submenu=value.action in ["more","variants","spells","children","spell-menu"]
+		value.submenu=value.action in ["more","variants","spells","children","spell-menu","network-children"]
 		entries[int(value.slot)]=value
-	wheel.receive({"kind":"action-menu","requestId":wheel.request_id,"menuId":serial,"depth":history.size()-1,"title":str(row.name),"entries":values})
+	wheel.receive({"kind":"action-menu","requestId":wheel.request_id,"menuId":serial,"depth":history.size()-1,"title":str(page.get("menu",{}).get("title",row.name)),"entries":values})
 	wheel.set_center("ir_use")
 	var texture: Texture2D=inventory.ui.textures.get(int(row.entryId))
 	if quickbar_owned:texture=quickbar_texture
@@ -120,19 +161,28 @@ func refresh() -> void:
 	if texture!=null:
 		inventory.frame_skin.art.bind(wheel.center_image,""); wheel.center_image.texture=texture; wheel.center_image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	for slot in entries: inventory.frame_skin.art.bind(wheel.icons[int(slot)],str(entries[slot].icon))
+func cast_menu() -> Dictionary:
+	var values: Array=spell_entries.call() if spell_entries.is_valid() else []
+	return {"title":"Spell","entries":values,"spellBuildFailed":spell_build_failed.is_valid() and bool(spell_build_failed.call())}
 func can_shortcut(data: Dictionary) -> bool:
 	return data.get("kind","")=="item-radial-entry" and not current_row().is_empty() and wheel.can_shortcut(data) and entries.has(int(data.get("slot",-1))) and entries[int(data.slot)].has("binding")
 func preview(slot: int,request_id: int,menu_id: int) -> Array:
 	if request_id!=wheel.request_id or menu_id!=wheel.menu_id or not entries.has(slot) or current_row().is_empty(): return []
 	var value: Dictionary=entries[slot]; var source:=item(); var ctx:=context(current_row()); var result: Array=[]
 	match str(value.action):
+		"network-children":
+			var child: Variant=value.children.call() if value.children is Callable else null
+			result=child.get("entries",[]) if child is Dictionary else []
 		"powers": result=policy.powers(source,false,bool(ctx.learning))
 		"more": result=policy.page(source,int(value.payload))
 		"variants": result=policy.variants(source,int(value.index))
 		"spells": result=spell_entries.call() if spell_entries.is_valid() else []
 		"spell-menu": result=spell_menu.call(value.menu) if spell_menu.is_valid() else []
 		"children": result=value.get("children",[])
-	return result.slice(0,8)
+	var preview_rows: Array=result.slice(0,8)
+	for preview_row in preview_rows:
+		if preview_row is Dictionary and preview_row.has("children"):preview_row.submenu=true
+	return preview_rows
 func binding(data: Dictionary) -> Dictionary:
 	return entries[int(data.slot)].binding.duplicate(true) if can_shortcut(data) else {}
 func input(message: Dictionary) -> void:
@@ -148,6 +198,10 @@ func input(message: Dictionary) -> void:
 	var value: Dictionary=entries[int(message.slot)]
 	if value.get("disabled",false): refresh(); return
 	match str(value.action):
+		"network-children":
+			var child: Variant=value.children.call() if value.children is Callable else null
+			if child is Dictionary:history.append({"kind":"network-child","menu":child});refresh()
+			return
 		"quickbar-clear":
 			if quickbar_clear.is_valid():quickbar_clear.call()
 			cancel();return
@@ -160,6 +214,12 @@ func input(message: Dictionary) -> void:
 			# Spell-on-item submenu from the native desktop, with its active rules.
 			ability_selected.emit(value.binding.merged({"itemTarget":int(selection.entryId)})); cancel(); return
 		"use": ability_selected.emit(value.binding.duplicate(true)); cancel(); return
+		"network-activate":inventory.input_request({"kind":"inventory-action","viewId":selection.viewId,"entryId":selection.entryId,"operation":"activate"});cancel();return
+		"network-unsupported":
+			if is_instance_valid(inventory.text_owner) and inventory.text_owner.diagnostics.size()<100:
+				inventory.text_owner.diagnostics.append({"code":"network.interaction-unimplemented","reason":"Native interaction handler is not connected","action":str(value.get("networkAction","")),"objectId":int(selection.entryId)})
+			if is_instance_valid(inventory.ui) and is_instance_valid(inventory.ui.notice):inventory.ui.notice.text=str(value.get("label","Action"))+" is not connected yet"
+			cancel();return
 		"barter-remove":
 			if is_instance_valid(trade): trade.remove_item(int(selection.entryId))
 		"examine":

@@ -1,10 +1,13 @@
 extends RefCounted
 const SOURCE_DECODER:="mdl-actor-packed-ascii-native-v5"
+const BINARY_LIGHT_CHANNELS={76:["lightColor",3],88:["lightRadius",1],96:["lightShadowRadius",1],100:["lightVerticalDisplacement",1],140:["lightMultiplier",1]}
+const ASCII_LIGHT_CHANNELS={"color":["lightColor",3],"radius":["lightRadius",1],"shadowradius":["lightShadowRadius",1],"verticaldisplacement":["lightVerticalDisplacement",1],"multiplier":["lightMultiplier",1]}
 # Original MDL geometry plus original clips, controller storage and skin arrays.
 # Data only: safe on workers. Physical node order is retained for bone slots.
 const Binary=preload("res://systems/native_data/binary_data.gd")
 const BinaryModel=preload("res://systems/native_data/binary_model.gd")
 const AsciiModel=preload("res://systems/native_data/ascii_model.gd")
+const Orientation=preload("res://systems/native_data/model_orientation.gd")
 const AsciiNative=preload("res://systems/native_data/ascii_native_animation.gd")
 const Emitter=preload("res://systems/native_data/emitter_data.gd")
 const PackedKeys=preload("res://systems/native_data/packed_animation_keys.gd")
@@ -17,6 +20,7 @@ var model_end:=0
 var raw_start:=0
 var physical:=0
 var visited: Dictionary={}
+var animation_nodes_parsed:=0
 static var binary_clip_budget_mutex:=Mutex.new()
 # One clip helper globally. AncestorPreparation can own two independent
 # speculative helpers, so nested source parsing adds at most one more.
@@ -44,7 +48,7 @@ static func _binary_clip_half(bytes: PackedByteArray,packed: bool,first: int,las
 	parser.reader=Binary.new(bytes);parser.model_end=12+parser.reader.u32(4)
 	parser.raw_start=parser.model_end;parser.packed_keys=packed
 	var clips: Array=parser.binary_animations(first,last)
-	return {"clips":clips,"failure":parser.failure,"read_failure":parser.reader.failure}
+	return {"clips":clips,"failure":parser.failure,"read_failure":parser.reader.failure,"nodes":parser.animation_nodes_parsed}
 func _parallel_binary_animations(bytes: PackedByteArray) -> Array:
 	var count:=int(reader.u32(12+124));var table:=int(reader.u32(12+120))
 	# Keep small, >8 MiB, malformed, or contended sources on the exact serial
@@ -71,6 +75,7 @@ func _parallel_binary_animations(bytes: PackedByteArray) -> Array:
 	# reader errors are observed only after the whole animation pass.
 	if not str(first.failure).is_empty():reject(str(first.failure))
 	elif not str(second.failure).is_empty():reject(str(second.failure))
+	elif int(first.get("nodes",0))+int(second.get("nodes",0))>100000:reject("Invalid MDL animation node hierarchy.")
 	elif not reader.failure.is_empty():reject(reader.failure)
 	elif not str(first.read_failure).is_empty():reject(str(first.read_failure))
 	elif not str(second.read_failure).is_empty():reject(str(second.read_failure))
@@ -89,26 +94,54 @@ func finite(at: int) -> float:
 func parse(bytes: PackedByteArray) -> Dictionary:
 	failure=""; reader=Binary.new(bytes); visited={}; physical=0
 	var model: Dictionary={}
-	if bytes.size()>=4 and bytes.decode_u32(0)==0:
-		var parser:=BinaryModel.new(); model=parser.parse(bytes)
+	if not AsciiModel.is_ascii_mdl(bytes):
+		var parser=BinaryModel.new(); model=parser.parse(bytes)
 		if not parser.failure.is_empty(): reject(parser.failure); return {}
 		model_end=12+reader.u32(4); raw_start=model_end
 		if not bounded(12,232): return {}
-		model.supermodel=reader.text(12+168,64,true).to_lower(); model.animation_scale=finite(12+164)
+		model.supermodel=reader.text(12+168,64,true); model.animation_scale=reader.f32(12+164)
 		binary_parts(reader.u32(84),model.nodes,0)
-		model.animations=_parallel_binary_animations(bytes) if configured_parallel_binary_clips() else binary_animations()
+		if not reader.failure.is_empty(): reject(reader.failure)
+		if not failure.is_empty(): return {}
+		if is_finite(float(model.animation_scale)):
+			model.animations=_parallel_binary_animations(bytes) if configured_parallel_binary_clips() else binary_animations()
+		else:
+			model.animations=[];reject("Non-finite MDL animation value.")
+		if not reader.failure.is_empty(): reject(reader.failure)
+		if not failure.is_empty():
+			# The old parser catches an animation-only failure and keeps the
+			# already decoded model geometry available to the renderer.
+			model.unsupportedAnimations=[failure]; model.animations=[]; model.animation_scale=1.0
+			failure="";reader.failure=""
+		else:model.unsupportedAnimations=unsupported_animation_messages(model.animations)
 	else:
 		var parser:=AsciiModel.new(); var text: String=reader.text(0,bytes.size()); model=parser.parse(text)
 		if not parser.failure.is_empty(): reject(parser.failure); return {}
 		ascii_skins(text,model,parser.source_nodes)
+		if not failure.is_empty():return {}
 		model.animations=ascii_animations(text)
+		var animation_failed:=not failure.is_empty()
+		if failure.is_empty() and model.has("animation_scale_error"):reject(str(model.animation_scale_error))
+		if not is_finite(float(model.get("animation_scale",1.0))) or float(model.get("animation_scale",1.0))<0:reject("Invalid ASCII animation scale.")
+		if failure.is_empty():
+			for animation in model.animations:
+				for event in animation.get("events",[]):
+					if not is_finite(float(event.time)) or float(event.time)<0 or str(event.name).is_empty():
+						reject("Invalid ASCII animation event.")
+						break
+				if not failure.is_empty():break
+		if not failure.is_empty():
+			animation_failed=true
+			model.unsupportedAnimations=[failure];model.animations=[];model.supermodel="";model.animation_scale=1.0
+			failure=""
+		else:model.unsupportedAnimations=unsupported_animation_messages(model.animations)
 		model.native_ascii_preparation=AsciiNative.new().prepare(text,model,parser.source_nodes)
-		if parser.source_nodes.any(func(node):return node.kind=="animmesh"):
+		if not animation_failed and parser.source_nodes.any(func(node):return node.kind=="animmesh"):
 			var decoder:=preload("res://systems/native_data/animated_mesh.gd").new(); decoder.ascii_tracks(text,model,parser.source_nodes)
 			if not decoder.failure.is_empty(): reject(decoder.failure); return {}
 	if not reader.failure.is_empty(): reject(reader.failure)
-	if not is_finite(float(model.get("animation_scale",1.0))) or float(model.get("animation_scale",1.0))<0: reject("Original actor animation scale is invalid")
 	if not failure.is_empty(): return {}
+	model.animationScale=model.animation_scale
 	model.behavior_version=2
 	return model
 func ascii_skins(text: String,model: Dictionary,sources: Array) -> void:
@@ -141,7 +174,7 @@ func ascii_skins(text: String,model: Dictionary,sources: Array) -> void:
 	var names: Dictionary={}; var rests: Array=[]
 	for part in model.nodes.size():
 		var node: Dictionary=model.nodes[part]; names[str(node.name).to_lower()]=part
-		var q:=Quaternion(node.orientation[0],node.orientation[1],node.orientation[2],node.orientation[3]); var local:=Transform3D(Basis(q),Vector3(node.position[0],node.position[1],node.position[2])); var parent:=int(node.parent)
+		var q:=Quaternion(node.orientation[0],node.orientation[1],node.orientation[2],node.orientation[3]); var local:=Transform3D(Basis(q),Vector3(node.position[0],node.position[1],node.position[2])); var parent:=int(node.get("parentIndex",node.get("parent",-1)))
 		rests.append(local if parent<0 else rests[parent]*local)
 	var group_indices: Dictionary={}
 	for part in model.nodes.size():
@@ -183,34 +216,29 @@ func binary_parts(offset: int,nodes: Array,depth: int) -> void:
 	if depth>128 or visited.has(offset) or physical>=nodes.size() or not bounded(at,112): reject("Original actor physical hierarchy is invalid"); return
 	visited[offset]=true; var index:=physical; physical+=1
 	var row: Dictionary=nodes[index]; var flags: int=reader.u32(at+108)
-	row.controller_storage=storage(at)
+	row.controller_storage=row.nativeNode if row.has("nativeNode") else storage(at)
 	var cursor:=at+112+(92 if flags&2 else 0)+(216 if flags&4 else 0)+(68 if flags&16 else 0)+(512 if flags&32 else 0)
-	if flags&64: row.skin=skin(cursor,int(row.mesh.get("vertices",PackedFloat32Array()).size()/3))
+	if flags&64:
+		row.skin=skin(cursor,int(row.mesh.get("vertices",PackedFloat32Array()).size()/3))
+		var old_skin: Dictionary=row.skin.duplicate()
+		old_skin.weights=[];old_skin.boneIndices=[];old_skin.boneConstantSlots=[]
+		var flat_weights: PackedFloat32Array=row.skin.get("weights",PackedFloat32Array())
+		var flat_indices: PackedInt32Array=row.skin.get("boneIndices",PackedInt32Array())
+		for vertex in int(flat_weights.size()/4):
+			old_skin.weights.append([flat_weights[vertex*4],flat_weights[vertex*4+1],flat_weights[vertex*4+2],flat_weights[vertex*4+3]])
+			old_skin.boneIndices.append([flat_indices[vertex*4],flat_indices[vertex*4+1],flat_indices[vertex*4+2],flat_indices[vertex*4+3]])
+		for slot in row.skin.get("boneConstantSlots",PackedInt32Array()):old_skin.boneConstantSlots.append(slot)
+		row.skinData=old_skin
 	if flags&128:
 		var decoder:=preload("res://systems/native_data/animated_mesh.gd").new(); row.vertex_animation=decoder.binary(reader,model_end,at)
 		if not decoder.failure.is_empty(): reject(decoder.failure); return
 	var children: int=reader.u32(at+72); var count: int=reader.u32(at+76)
 	if not bounded(12+children,count*4): return
 	for child in count: binary_parts(reader.u32(12+children+child*4),nodes,depth+1)
-static func remap_controller(value: int,flags: int) -> int:
-	flags&=255
-	if (flags&5)==5:
-		for pair in [[436,84],[392,64],[356,56],[328,48],[276,44],[228,36],[76,28]]:
-			if value>=int(pair[0]): return value+int(pair[1])
-	elif (flags&33)==33:
-		for pair in [[128,40],[116,36],[76,28]]:
-			if value>=int(pair[0]): return value+int(pair[1])
-	elif (flags&3)==3 and value>=76: return value+28
-	return value+24 if value>=72 else (value+8 if value>=8 else value)
 func storage(at: int) -> Dictionary:
-	var keys: int=12+reader.u32(at+84); var count: int=reader.u32(at+88); var values: int=12+reader.u32(at+96); var value_count: int=reader.u32(at+100); var flags: int=reader.u32(at+108)
-	if count>1000000 or value_count>16000000 or not bounded(keys,count*12) or not bounded(values,value_count*4): reject("Original actor controller storage is invalid"); return {}
-	var controllers: Array=[]; var pool:=PackedFloat32Array()
-	for index in count:
-		var key:=keys+index*12
-		controllers.append({"displacement0":remap_controller(reader.i32(key),flags),"rows4":reader.u16(key+4),"timeIndex6":reader.u16(key+6),"valueIndex8":reader.u16(key+8),"columnsA":reader.u8(key+10),"paddingB":reader.u8(key+11)})
-	pool=reader.data.slice(values,values+value_count*4).to_float32_array()
-	return {"id34":reader.i32(at+28),"flags98":flags,"controllers78":controllers,"controllerCount80":count,"values88":pool,"valueCount90":value_count}
+	var result: Dictionary=BinaryModel.controller_storage(reader,at,model_end)
+	if result.has("error"):reject(str(result.error));return {}
+	return result
 func skin(at: int,count: int) -> Dictionary:
 	if not bounded(at,192): return {}
 	var weights_at: int=raw_start+reader.u32(at+12); var bones_at: int=raw_start+reader.u32(at+16)
@@ -233,6 +261,8 @@ func skin(at: int,count: int) -> Dictionary:
 	return result
 func binary_animations(first_index: int=0,last_index: int=-1) -> Array:
 	var clips: Array=[]; var array: int=12+reader.u32(12+120); var count: int=reader.u32(12+124)
+	var total_nodes:=0
+	animation_nodes_parsed=0
 	if count>100000 or not bounded(array,count*4): reject("Original animation table is invalid"); return []
 	var indices: Variant=count if first_index==0 and last_index<0 else range(first_index,last_index)
 	for index in indices:
@@ -240,17 +270,16 @@ func binary_animations(first_index: int=0,last_index: int=-1) -> Array:
 		if not bounded(at,196): return []
 		var clip:={"name":reader.text(at+8,64,true).to_lower(),"length":finite(at+112),"transition":finite(at+116),"root":reader.text(at+120,64,true),"tracks":[],"emitter_tracks":[],"events":[],"unsupported":[],"controller_nodes":[]}
 		if float(clip.length)<0 or float(clip.transition)<0:
-			# Stock plc_s03a has a negative damage length. Retain that literal
-			# header as unavailable playback instead of rejecting valid geometry,
-			# other clips, skins and emitter data or inventing a positive duration.
-			clip.deferred_invalid_duration=true; clip.deferred_source={"offset":at-12,"root":reader.u32(at+72),"nodes":reader.u32(at+76)}; clips.append(clip); continue
+			reject("Invalid MDL animation duration.");return []
 		var events: int=12+reader.u32(at+184); var event_count: int=reader.u32(at+188)
 		if event_count>100000 or not bounded(events,event_count*36): reject("Original animation events are invalid"); return []
 		for event in event_count: clip.events.append({"time":finite(events+event*36),"name":reader.text(events+event*36+4,32,true)})
 		var seen: Dictionary={}; var pending: Array=[reader.u32(at+72)]; var declared: int=reader.u32(at+76)
 		while not pending.is_empty():
 			var offset:=int(pending.pop_back()); var node:=12+offset
-			if seen.has(offset) or seen.size()>=declared or seen.size()>=100000 or not bounded(node,112): reject("Original animation hierarchy is invalid"); return []
+			total_nodes+=1
+			animation_nodes_parsed=total_nodes
+			if seen.has(offset) or seen.size()>=declared or total_nodes>100000 or not bounded(node,112): reject("Original animation hierarchy is invalid"); return []
 			seen[offset]=true; var flags: int=reader.u32(node+108); var name: String=reader.text(node+32,32,true)
 			if flags&128:
 				var decoder:=preload("res://systems/native_data/animated_mesh.gd").new(); var data:=decoder.binary(reader,model_end,node)
@@ -261,18 +290,26 @@ func binary_animations(first_index: int=0,last_index: int=-1) -> Array:
 			if not bounded(children,child_count*4): return []
 			var child_offsets: Array=[]
 			for child in child_count: child_offsets.append(reader.u32(children+child*4))
-			clip.controller_nodes.append({"offset":offset,"name":name,"storage":storage(node),"children":child_offsets})
+			var native_node:=storage(node);native_node.name=name
+			clip.controller_nodes.append({"offset":offset,"name":name,"storage":native_node,"children":child_offsets})
 			for child in child_count: pending.append(reader.u32(children+child*4))
 			var keys: int=12+reader.u32(node+84); var key_count: int=reader.u32(node+88); var values: int=12+reader.u32(node+96); var value_count: int=reader.u32(node+100)
 			if key_count>1000000 or value_count>16000000 or not bounded(keys,key_count*12) or not bounded(values,value_count*4): return []
 			for key in key_count:
 				var entry:=keys+key*12; var type: int=reader.u32(entry); var rows: int=reader.u16(entry+4); var times: int=reader.u16(entry+6); var first: int=reader.u16(entry+8); var columns: int=reader.u8(entry+10)
-				if rows in [0,65535]: continue
-				var components: int={8:3,20:4,36:1}.get(type,0); var property: String={8:"position",20:"orientation",36:"scale"}.get(type,"")
+				if rows in [0,65535]:
+					if rows==65535:clip.unsupported.append({"node":name,"controller":type,"reason":"sentinel rows"})
+					continue
+				var components: int={8:3,20:4,36:1,100:3,128:1}.get(type,0); var property: String={8:"position",20:"orientation",36:"scale",100:"selfillumcolor",128:"alpha"}.get(type,"")
 				var emitter_channel:=Emitter.channel(type) if flags&4 else {}
 				if not emitter_channel.is_empty(): components=int(emitter_channel.components); property=str(emitter_channel.property)
-				if components==0: clip.unsupported.append({"node":name,"controller":type,"flags":flags}); continue
-				if (columns&15)!=components or (columns&240)>16 or (type==20 and columns!=4): reject("Original transform controller shape is invalid"); return []
+				elif flags&2:
+					var light_channel: Array=BINARY_LIGHT_CHANNELS.get(type,[])
+					if not light_channel.is_empty():property=str(light_channel[0]);components=int(light_channel[1])
+				if property in ["selfillumcolor","alpha"] and (flags&32)==0:components=0;property=""
+				if components==0: clip.unsupported.append({"node":name,"controller":type,"flags":flags,"columns":columns}); continue
+				if (columns&15)!=components or (columns&240)>16 or (type==20 and columns!=4):
+					clip.unsupported.append({"node":name,"controller":type,"columns":columns,"reason":"unsupported shape"});continue
 				var bezier: bool=(columns&240)==16; var stride:=components*(3 if bezier else 1)
 				if times+rows>value_count or first+rows*stride>value_count: reject("Original transform keys exceed value pool"); return []
 				if packed_keys:
@@ -296,6 +333,14 @@ func binary_animations(first_index: int=0,last_index: int=-1) -> Array:
 				var track:={"node":name,"property":property,"interpolation":"bezier" if bezier else ("slerp" if property=="orientation" else "linear"),"frames":frames}
 				if not emitter_channel.is_empty(): track.nativeControllerIndex=key; track.nativeNode=clip.controller_nodes.size()-1
 				target.append(track)
+		var native_nodes: Dictionary={}
+		for row in clip.controller_nodes:
+			var native: Dictionary=row.storage
+			native.children68=[];native.childCount70=row.children.size()
+			native_nodes[int(row.offset)]=native
+		for row in clip.controller_nodes:
+			for child in row.children:native_nodes[int(row.offset)].children68.append(native_nodes[int(child)])
+		clip.nativeRoot=native_nodes[int(reader.u32(at+72))]
 		clips.append(clip)
 	return clips
 func ordered(frames: Array) -> bool:
@@ -305,13 +350,23 @@ func ordered(frames: Array) -> bool:
 		previous=float(frame.time)
 	return true
 func orientation(values: Array,axis_angle: bool) -> Array:
-	if axis_angle:
-		var length:=sqrt(float(values[0])*float(values[0])+float(values[1])*float(values[1])+float(values[2])*float(values[2]))
-		if length<1e-8 or absf(float(values[3]))<1e-8: return [0.0,0.0,0.0,1.0]
-		var factor:=sin(float(values[3])*0.5)/length
-		return [float(values[0])*factor,float(values[1])*factor,float(values[2])*factor,cos(float(values[3])*0.5)]
-	var length:=sqrt(float(values[0])*float(values[0])+float(values[1])*float(values[1])+float(values[2])*float(values[2])+float(values[3])*float(values[3]))
-	return values.map(func(value): return float(value)/length) if length>=1e-8 else [0.0,0.0,0.0,1.0]
+	return Orientation.decode(values,"axis-angle" if axis_angle else "quaternion")
+func ascii_js_number(token: String) -> float:
+	# The old ASCII parser used JavaScript Number, including unsigned radix forms.
+	var value:=token.strip_edges()
+	if value.is_empty():return 0.0
+	if value.length()>2 and value[0]=="0" and value[1].to_lower() in ["x","b","o"]:
+		var radix: int={"x":16,"b":2,"o":8}[value[1].to_lower()]
+		var number:=0.0
+		for at in range(2,value.length()):
+			var code:=value.unicode_at(at);var digit:=-1
+			if code>=48 and code<=57:digit=code-48
+			elif code>=65 and code<=70:digit=code-65+10
+			elif code>=97 and code<=102:digit=code-97+10
+			if digit<0 or digit>=radix:return NAN
+			number=number*radix+digit
+		return number
+	return float(value) if value.is_valid_float() else NAN
 func ascii_animations(text: String) -> Array:
 	var clips: Array=[]; var clip: Dictionary={}; var node:=""; var node_type:=""; var lines:=text.replace("\r","").split("\n"); var regex:=RegEx.new(); regex.compile("\\s+"); var index:=0
 	while index<lines.size():
@@ -324,25 +379,32 @@ func ascii_animations(text: String) -> Array:
 		if command=="doneanim": clip={}; node=""; continue
 		if clip.is_empty(): continue
 		if command in ["length","transtime"]:
-			if tokens.size()<2 or not tokens[1].is_valid_float() or not is_finite(float(tokens[1])) or float(tokens[1])<0: reject("Invalid ASCII animation duration"); return []
-			clip["length" if command=="length" else "transition"]=float(tokens[1]); continue
+			var duration:=ascii_js_number(tokens[1]) if tokens.size()>1 else NAN
+			if not is_finite(duration) or duration<0: reject("Invalid ASCII animation duration"); return []
+			clip["length" if command=="length" else "transition"]=duration; continue
 		if command=="animroot" and tokens.size()>1: clip.root=tokens[1]; continue
-		if command=="event" and tokens.size()>2:
-			if not tokens[1].is_valid_float() or not is_finite(float(tokens[1])) or float(tokens[1])<0: reject("Invalid ASCII animation event"); return []
-			clip.events.append({"time":float(tokens[1]),"name":" ".join(tokens.slice(2))}); continue
-		if command=="node" and tokens.size()>2: node=tokens[2]; node_type=tokens[1].to_lower(); continue
+		if command=="event":
+			clip.events.append({"time":ascii_js_number(tokens[1]) if tokens.size()>1 else NAN,"name":" ".join(tokens.slice(2))})
+			continue
+		if command=="node": node=tokens[2] if tokens.size()>2 else ""; node_type=tokens[1].to_lower() if tokens.size()>1 else ""; continue
 		if command=="endnode": node=""; node_type=""; continue
 		if node.is_empty(): continue
 		var bezier:=command.ends_with("bezierkey"); var keyed:=command.ends_with("key"); var property:=command.trim_suffix("bezierkey") if bezier else command.trim_suffix("key")
-		var components: int={"position":3,"orientation":4,"scale":1}.get(property,0)
+		var components: int={"position":3,"orientation":4,"scale":1,"alpha":1,"selfillumcolor":3}.get(property,0)
 		var emitter_components:=Emitter.components(property) if node_type=="emitter" else 0
 		if emitter_components>0: components=emitter_components
+		var light_channel: Array=ASCII_LIGHT_CHANNELS.get(property,[])
+		if not light_channel.is_empty():
+			if node_type!="light":clip.unsupported.append({"node":node,"controller":command});continue
+			property=str(light_channel[0]);components=int(light_channel[1])
+		if property=="selfillumcolor" and node_type not in ["trimesh","skin","danglymesh","animmesh","aabb"]:clip.unsupported.append({"node":node,"controller":command});continue
 		if components==0:
 			if keyed: clip.unsupported.append({"node":node,"controller":command})
 			continue
-		if bezier and property=="orientation": reject("ASCII quaternion Bezier controller is unsupported"); return []
-		if keyed and tokens.size()>1 and (tokens.size()!=2 or not tokens[1].is_valid_int()): reject("ASCII animation key count is invalid"); return []
-		var uncounted:=keyed and tokens.size()==1; var count:=100000 if uncounted else (int(tokens[1]) if keyed else 1)
+		if bezier and property=="orientation":clip.unsupported.append({"node":node,"controller":command});continue
+		var count_number:=ascii_js_number(tokens[1]) if keyed and tokens.size()==2 else NAN
+		if keyed and tokens.size()>1 and (tokens.size()!=2 or not is_finite(count_number) or count_number<0 or count_number>100000 or count_number!=floorf(count_number)): reject("ASCII animation key count is invalid"); return []
+		var uncounted:=keyed and tokens.size()==1; var count:=100000 if uncounted else (int(count_number) if keyed else 1)
 		if count<0 or count>100000: reject("ASCII animation key count exceeds bound"); return []
 		var frames: Array=[]; var ended:=false
 		# ASCII keeps its existing double precision and axis-angle conversion.
@@ -371,8 +433,7 @@ func ascii_animations(text: String) -> Array:
 				var time:=0.0; var first:=packed_count*stride
 				for component in values.size():
 					var value: String=values[component]
-					if not value.is_valid_float(): reject("Non-finite ASCII animation key"); return []
-					var number:=float(value)
+					var number:=ascii_js_number(value)
 					if not is_finite(number): reject("Non-finite ASCII animation key"); return []
 					if component==0: time=number
 					else: packed_values[first+component-1]=number
@@ -383,8 +444,9 @@ func ascii_animations(text: String) -> Array:
 				continue
 			var numbers: Array=[]
 			for value in values:
-				if not value.is_valid_float() or not is_finite(float(value)): reject("Non-finite ASCII animation key"); return []
-				numbers.append(float(value))
+				var number:=ascii_js_number(value)
+				if not is_finite(number): reject("Non-finite ASCII animation key"); return []
+				numbers.append(number)
 			if packed_keys:
 				if float(numbers[0])<0 or float(numbers[0])<previous_time: reject("Original animation times are unordered/negative"); return []
 				previous_time=float(numbers[0]); packed_times.append(previous_time)
@@ -406,26 +468,74 @@ func ascii_animations(text: String) -> Array:
 			target.append({"node":node,"property":property,"interpolation":"bezier" if bezier else ("slerp" if property=="orientation" else "linear"),"frames":frames})
 	if not clip.is_empty(): reject("ASCII animation is missing doneanim"); return []
 	return clips
+func unsupported_animation_messages(clips: Array) -> Array:
+	var messages: Array=[]
+	for clip in clips:
+		for entry in clip.get("unsupported",[]):
+			var controller:=str(entry.get("controller",""));var message:=controller
+			if entry.get("reason")=="sentinel rows":message="controller "+controller+": sentinel rows"
+			elif entry.has("columns"):message="controller "+controller+" ("+str(entry.columns)+" columns)"
+			if not messages.has(message):messages.append(message)
+	return messages
 func render_point(value: Array) -> Array: return [float(value[0]),float(value[2]),-float(value[1])]
 func render_quaternion(value: Array) -> Array:
-	var basis:=Quaternion(Vector3.RIGHT,-PI/2); var q:=Quaternion(value[0],value[1],value[2],value[3])
-	q=basis*(q.normalized() if q.length_squared()>1e-16 else Quaternion.IDENTITY)*basis.inverse()
+	var basis:=Quaternion(Vector3.RIGHT,-PI/2);var decoded: Array=Orientation.decode(value)
+	var q:=basis*Quaternion(decoded[0],decoded[1],decoded[2],decoded[3])*basis.inverse()
 	return [q.x,q.y,q.z,q.w]
 func rig_asset(model: Dictionary) -> Dictionary:
 	var defaults: Array=[]; var names: Dictionary={}; var clips: Array=[]; var unsupported: Array=[]; var controlled: Dictionary={}; var clip_indices: Dictionary={}
+	var node_name_counts: Dictionary={}
 	for index in model.nodes.size():
-		var row: Dictionary=model.nodes[index]; names[str(row.name).to_lower()]=index
+		var row: Dictionary=model.nodes[index]; var authored_name:=str(row.name)
+		node_name_counts[authored_name]=int(node_name_counts.get(authored_name,0))+1
 		defaults.append({"position":render_point(row.position),"quaternion":render_quaternion(row.orientation),"scale":[row.scale,row.scale,row.scale]})
+	# ModelAnimator binds the first matching scene object visited by
+	# root.traverse, not necessarily the first decoded index. A later declared
+	# sibling can follow an earlier sibling's child in that physical walk.
+	var children: Array=[]; var roots: Array[int]=[]
+	for index in model.nodes.size():children.append([])
+	for index in model.nodes.size():
+		var row: Dictionary=model.nodes[index]
+		var parent:=int(row.get("parentIndex",row.get("parent",-1)))
+		if parent<0 or parent>=model.nodes.size():roots.append(index)
+		else:children[parent].append(index)
+	var pending: Array[int]=[]
+	for index in range(roots.size()-1,-1,-1):pending.append(roots[index])
+	while not pending.is_empty():
+		var index: int=pending.pop_back()
+		var lower_name:=str(model.nodes[index].name).to_lower()
+		if not names.has(lower_name):names[lower_name]=index
+		var descendants: Array=children[index]
+		for child in range(descendants.size()-1,-1,-1):pending.append(int(descendants[child]))
+	var ambiguous: Array=[]
+	var animated_material_parts: Array=[]
+	for animation in model.animations:
+		for track in animation.get("tracks",[]):
+			var authored_name:=str(track.node)
+			if int(node_name_counts.get(authored_name,0))>1 and not ambiguous.has(authored_name):ambiguous.append(authored_name)
+			var binding_name:=authored_name.to_lower()
+			if str(track.property) in ["alpha","selfillumcolor"] and names.has(binding_name) and not animated_material_parts.has(int(names[binding_name])):animated_material_parts.append(int(names[binding_name]))
+	if not ambiguous.is_empty():push_warning("animation.duplicate-node-binding-unimplemented: Native animation track resolution for duplicate node names is not implemented "+JSON.stringify({"model":model.name,"nodes":ambiguous}))
 	for original in model.animations:
 		if original.get("deferred_invalid_duration",false):
 			unsupported.append("Original clip playback unavailable: "+str(original.name)+" has negative length/transition"); continue
-		var clip:={"name":original.name,"length":original.length,"transition":original.transition,"events":original.events,"tracks":[],"emitterTracks":[],"emitterStorage":[],"meshTracks":[]}
+		var clip:={"name":original.name,"length":original.length,"transition":original.transition,"events":original.events,"tracks":[],"visualTracks":[],"missingNodes":[],"emitterTracks":[],"emitterStorage":[],"meshTracks":[],"inheritedFrom":original.get("inheritedFrom","")}
 		for track in original.get("mesh_tracks",[]):
 			if names.has(str(track.node).to_lower()): clip.meshTracks.append({"part":names[str(track.node).to_lower()],"data":track.data})
 		var emitter_storage: Dictionary={}
 		for track in original.tracks:
+			# This Godot Animation owner admits transforms only. Original light,
+			# alpha and self-illumination tracks remain in model.animations for the
+			# native part controller owner; never reinterpret them as scale tracks.
+			if str(track.property) not in ["position","orientation","scale"]:
+				var visual_name:=str(track.node).to_lower()
+				if names.has(visual_name):clip.visualTracks.append({"part":names[visual_name],"property":track.property,"interpolation":track.interpolation,"frames":PackedKeys.frames(track)})
+				elif not clip.missingNodes.has(str(track.node)):clip.missingNodes.append(str(track.node))
+				continue
 			var name:=str(track.node).to_lower()
-			if not names.has(name): continue
+			if not names.has(name):
+				if not clip.missingNodes.has(str(track.node)):clip.missingNodes.append(str(track.node))
+				continue
 			var property: String="quaternion" if str(track.property)=="orientation" else str(track.property); var keys: Array=[]
 			if track.has("packed_frames"):
 				clip.tracks.append({"part":names[name],"property":property,"source_property":str(track.property),"native_keys":track.packed_frames,"position_scale":float(track.get("position_scale",1.0)),"sourceInterpolation":track.interpolation})
@@ -455,7 +565,7 @@ func rig_asset(model: Dictionary) -> Dictionary:
 		for record in original.get("unsupported",[]):
 			var label:="deferred controller "+str(record.get("controller"))+" on "+str(record.get("node"))
 			if not unsupported.has(label): unsupported.append(label)
-	var result:={"name":model.name,"defaults":defaults,"clips":clips,"unsupported":unsupported,"controlled":controlled,"lazyClips":true,"clipIndex":clip_indices}
+	var result:={"name":model.name,"defaults":defaults,"clips":clips,"unsupported":unsupported,"controlled":controlled,"lazyClips":true,"clipIndex":clip_indices,"animatedMaterialParts":animated_material_parts}
 	var native:=native_animation(model)
 	if not native.is_empty(): result.nativeAnimation=native
 	return result
@@ -464,7 +574,8 @@ func native_animation(model: Dictionary) -> Dictionary:
 		var prepared: Dictionary=model.native_ascii_preparation
 		if prepared.get("available",false):return prepared.value
 		var unavailable: Dictionary={}
-		for clip in model.animations:unavailable[clip.name]={"unavailable":str(prepared.get("reason","Native ASCII controller preparation unavailable"))}
+		var reason:=str(prepared.get("reason","Native ASCII controller preparation unavailable"))
+		for clip in model.animations:unavailable[clip.name]={"unavailable":reason,"conventional_fallback":reason.contains("WORD bounds")}
 		return {"version":1,"root":-1,"parts":[],"clips":unavailable,"emitterFields":Emitter.FIELDS}
 	# Preserve original binary controller storage/IDs and physical child order.
 	# ASCII and inherited-clip native run reconstruction remain separate work.
@@ -475,18 +586,13 @@ func native_animation(model: Dictionary) -> Dictionary:
 		parts.append({"type":type,"properties":row.get("emitter",row.get("light",{})),"transparencyHint":float(row.get("alpha",1.0))<1.0,"node":row.controller_storage,"children":[]})
 	var root:=-1
 	for index in model.nodes.size():
-		var parent:=int(model.nodes[index].parent)
+		var parent:=int(model.nodes[index].get("parentIndex",model.nodes[index].get("parent",-1)))
 		if parent<0: root=index
 		else: parts[parent].children.append(index)
 	if root<0: return {}
 	var clips: Dictionary={}
 	for clip in model.animations:
-		if clip.has("inheritedFrom") or clip.get("controller_nodes",[]).is_empty():
+		if clip.has("inheritedFrom") or not clip.has("nativeRoot"):
 			clips[clip.name]={"unavailable":"Native inherited/ASCII animation controller reconstruction pending"}; continue
-		var nodes: Dictionary={}
-		for row in clip.controller_nodes:
-			var data: Dictionary=row.storage.duplicate(); data.children68=[]; data.childCount70=row.children.size(); nodes[int(row.offset)]=data
-		for row in clip.controller_nodes:
-			for child in row.children: nodes[int(row.offset)].children68.append(nodes[int(child)])
-		clips[clip.name]={"root":nodes[int(clip.controller_nodes[0].offset)]}
+		clips[clip.name]={"root":clip.nativeRoot}
 	return {"version":1,"root":root,"parts":parts,"clips":clips,"emitterFields":Emitter.FIELDS}

@@ -37,7 +37,7 @@ static func prepare(receipt: Dictionary,text) -> Dictionary:
 	if program.is_empty():program=Markup.compile(body)
 	if not program.get("ready",false):return program
 	receipt.bodyReady=true;receipt.body=body
-	receipt.model={"raw":body,"program":program,"font":"ttf fnt_maintext 17","rgb":Color.WHITE,"shadow":false,"depth":Frame.DEPTH}
+	receipt.model={"raw":body,"program":program,"font":"fnt_galahad14","rgb":Color.WHITE,"shadow":false,"depth":Frame.DEPTH}
 	return {"ready":true}
 static func take_log(receipt: Dictionary) -> Dictionary:
 	if not receipt.get("bodyReady",false) or receipt.get("logged",false):return {}
@@ -45,4 +45,5 @@ static func take_log(receipt: Dictionary) -> Dictionary:
 	if not receipt.showChat or str(receipt.body).is_empty():return {}
 	var prefix: String=receipt.prefix if not str(receipt.prefix).is_empty() else "<c"+String.chr(255)+String.chr(255)+String.chr(1)+">"
 	var rendered: String=receipt.model.program.rendered
-	return {"system":true,"category":"script-feedback","type":receipt.type,"flags":128,"chat_mask":128,"rich":Rich.parse(prefix+rendered+"</c>"),"text":Rich.parse(rendered).text,"raw":prefix+str(receipt.body)+"</c>"}
+	var rich: Dictionary=Rich.parse(prefix+rendered+"</c>")
+	return {"system":true,"category":"script-feedback","type":receipt.type,"flags":128,"chat_mask":128,"rich":rich,"richText":rich.spans,"text":rich.text,"raw":prefix+str(receipt.body)+"</c>"}

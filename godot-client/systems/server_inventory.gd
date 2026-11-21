@@ -6,6 +6,7 @@ const Slot = preload("res://systems/inventory_slot.gd")
 const Repository = preload("res://systems/inventory_repository.gd")
 const Images = preload("res://systems/runtime_image.gd")
 const SceneHost = preload("res://systems/native_item_icon_panel_host.gd")
+const Draggable = preload("res://systems/draggable_panel.gd")
 var state: Dictionary = {}
 var items: Dictionary = {}
 var buttons: Dictionary = {}
@@ -18,6 +19,7 @@ var scene_icon_sealed:=false
 var scene_icon_failure:=""
 var view_id := -1
 var wanted := false
+var close_pending := false
 var native_icon_gate := false
 var item_commands_enabled:=true
 var selected := -1
@@ -45,6 +47,7 @@ var native_frame
 var gold_owner
 var barter_owner
 var item_tooltips
+var drag_source_admission:=Callable()
 var structural_key: Variant=null
 var equipment_controls: Dictionary={}
 var repository_controls: Dictionary={}
@@ -107,8 +110,9 @@ func setup(storage: String = "user://native-menu-layout.cfg",window_key: String=
 		var button := Button.new()
 		button.text = entry[0]
 		button.focus_mode = Control.FOCUS_NONE
+		button.toggle_mode = entry[1]=="examine"
 		button.pressed.connect(func():
-			if entry[1]=="examine" and native_frame!=null and native_frame.layout_ready:
+			if entry[1]=="examine":
 				examine_mode=not examine_mode; button.set_pressed_no_signal(examine_mode); return
 			if selected >= 0: operation(selected, entry[1]))
 		actions.add_child(button)
@@ -123,7 +127,9 @@ func setup(storage: String = "user://native-menu-layout.cfg",window_key: String=
 
 func reset() -> void:
 	view_id = -1; selected = -1; wanted = false
+	close_pending=false
 	examine_mode=false
+	if item_controls.has("examine"): item_controls.examine.set_pressed_no_signal(false)
 	blocked_container_serial = -1
 	blocked_store_generation = -1
 	if is_instance_valid(store_panel): store_panel.reset()
@@ -146,6 +152,7 @@ func wipe(node: Node) -> void:
 		child.queue_free()
 
 func open() -> void:
+	if close_pending:return
 	wanted = true
 	if not native_icon_gate: show(); move_to_front()
 	notice.text = "Waiting for server inventory…"
@@ -153,21 +160,33 @@ func open() -> void:
 
 func present_received(opened: bool) -> void:
 	# Server13/1 is a visibility instruction, not a user input to echo back.
+	close_pending=false
 	wanted=opened
 	if opened and not native_icon_gate:show();move_to_front()
 	else:
 		if not opened: retire_scene_icons()
-		examine_mode=false;hide()
+		examine_mode=false
+		if item_controls.has("examine"): item_controls.examine.set_pressed_no_signal(false)
+		hide()
 
 func close_inventory() -> void:
+	if close_pending:return
+	close_pending=true
+	notice.text=""
+	request.emit({"kind": "inventory-close"})
+
+func finish_close(accepted: bool) -> void:
+	if not close_pending:return
+	close_pending=false
+	if not accepted:return
 	examine_mode=false
+	if item_controls.has("examine"): item_controls.examine.set_pressed_no_signal(false)
 	blocked_container_serial = int(state.get("container", {}).get("serial", -1))
 	blocked_store_generation = int(state.get("store", {}).get("generation", -1))
 	if is_instance_valid(store_panel): store_panel.hide()
 	wanted = false
 	retire_scene_icons()
 	hide()
-	request.emit({"kind": "inventory-close"})
 
 func receive(message: Dictionary) -> void:
 	match message.kind:
@@ -287,8 +306,17 @@ func render() -> void:
 		if native_store!=null: native_store.attach(store_panel)
 	if is_instance_valid(store_panel): store_panel.render(store)
 	var summary: Dictionary = state.summary
-	footer.text = "%s / %s lbs.                  GP: %s" % [str(int(summary.weight)) if summary.weight != null else "—", str(int(summary.capacity)) if summary.capacity != null else "—", str(int(summary.gold)) if summary.gold != null else "—"]
-	notice.text = "Click or drag an item to select Buy / Sell." if store.get("open", false) else "Double-click: use / equip · Drag: move / equip · Right-click: actions"
+	var weight_text:=str(int(summary.weight)) if summary.weight != null else "—"
+	var capacity_text:="" if summary.capacity == null else " / " + str(summary.capacity)
+	footer.text = "%s%s lbs.                  GP: %s" % [weight_text, capacity_text, str(int(summary.gold)) if summary.gold != null else "—"]
+	# src/network_inventory_view.js:71-72 clears its waiting notice once the
+	# replicated R/I inventory exists, including when that inventory is empty.
+	if notice.text.is_empty() or notice.text in ["Waiting for server inventory…", "Waiting for inventory…", "Double-click: use / equip · Drag: move / equip · Right-click: actions", "Click or drag an item to select Buy / Sell."]:
+		var channels: Array=state.get("inventoryChannels",[])
+		if items.is_empty() and not (channels.has("I") or channels.has("R")):
+			notice.text="Waiting for inventory…"
+		else:
+			notice.text="Click or drag an item to select Buy / Sell." if store.get("open", false) else "Double-click: use / equip · Drag: move / equip · Right-click: actions"
 	if native_frame!=null: native_frame.refresh()
 	if not item_commands_enabled:
 		for control in item_controls.values():control.disabled=true
@@ -380,7 +408,7 @@ func try_admit_scene_icons() -> void:
 
 func select_item(id: int) -> void:
 	if examine_mode and items.has(id):
-		examine_mode=false; item_controls.examine.set_pressed_no_signal(false); operation(id,"examine"); return
+		operation(id,"examine"); return
 	selected = id
 	if items.has(id): notice.text = str(items[id].name)
 	if is_instance_valid(store_panel) and state.get("store", {}).get("open", false): store_panel.select_item(id)
@@ -396,6 +424,7 @@ func operation(id: int, action: String, fields: Dictionary = {}) -> void:
 func item_menu(id: int, point: Vector2) -> void:
 	if not item_commands_enabled:return
 	select_item(id)
+	if state.get("store", {}).get("open", false):return
 	menu_requested.emit(id, point)
 
 func can_drop(data: Variant, slot: int) -> bool:
@@ -403,7 +432,7 @@ func can_drop(data: Variant, slot: int) -> bool:
 	if not data is Dictionary or data.get("kind") != "native-inventory-item" or int(data.get("viewId", -1)) != view_id or not items.has(int(data.get("entryId", -1))): return false
 	var item: Dictionary = items[int(data.entryId)]
 	if state.get("store", {}).get("open", false) and slot != 0: return false
-	return not item.pending and (slot == 0 or (int(item.slotMask) & slot) != 0)
+	return not item.pending and (slot == 0 or (int(item.slotMask) & slot) != 0) and (not drag_source_admission.is_valid() or drag_source_admission.call(data))
 
 func can_shortcut(data: Dictionary) -> bool:
 	if not item_commands_enabled:return false
@@ -419,3 +448,10 @@ func _exit_tree() -> void:
 
 func blocks_pointer(point: Vector2) -> bool:
 	return (visible and get_global_rect().has_point(point)) or (is_instance_valid(store_panel) and store_panel.blocks_pointer(point))
+
+func is_front_game_window() -> bool:
+	# src/movable_windows.js::isFrontGameWindow includes every visible game
+	# window in this viewport, including windows under another parent.
+	if not is_visible_in_tree():return false
+	var front: Control=Draggable.front_game_window(self)
+	return front==self or front!=null and is_ancestor_of(front)

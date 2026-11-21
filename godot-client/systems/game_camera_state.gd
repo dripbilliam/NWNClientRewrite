@@ -3,6 +3,7 @@ extends RefCounted
 # NWN coordinates and w,x,y,z quaternion order until presentation conversion.
 # Keep original single-precision operation boundaries without per-frame JS IO.
 const WALKING = [2,3,4,78,79,84,85,86,87]
+const CameraCollision=preload("res://systems/native_data/camera_collision.gd")
 const RAD := 0.017453292
 const DEG := 57.295776
 const DEFAULT_LIMITS := {"minPitch":1.0,"maxPitch":89.0,"minDist":1.0,"maxDist":25.0}
@@ -148,7 +149,7 @@ static func find_clear_view(s: Dictionary, position: Array, facing: float, secon
 
 func reset(mode: int = 1,height: float = 1,position: Variant = null,yaw: float = 0) -> void:
 	state = {"mode":mode,"appearanceHeight":height,"yaw":f(yaw),"pitch":50.0,"distance":20.0,"spring":750.0,"clampPitch":1,"minPitch":1.0,"maxPitch":89.0,"clampDist":1,"minDist":1.0,"maxDist":25.0,"clampYaw":0,"minYaw":0.0,"maxYaw":360.0,"turn":0.0,"tilt":0.0,"speed":0.0,"turnDelta":0.0,"tiltDelta":0.0,"zoomImpulse":0.0,"manual":0,"manualLatch":0,"turning":0,"wasIdle":1,"flags":0,"predictionInputs":null,"yawEvent":0,"zoomEvent":0}
-	state.merge({"heightOverride":null,"modeAppearanceHeight":null,"rawLimits":{"minPitch":-1.0,"maxPitch":-1.0,"minDist":-1.0,"maxDist":-1.0},"effectiveLimits":DEFAULT_LIMITS.duplicate(),"locks":{"pitch":false,"distance":false,"yaw":false},"savedCamera":null,"scriptLocation":null,"rememberedPose":null,"findClearView":false})
+	state.merge({"heightOverride":null,"modeAppearanceHeight":null,"rawLimits":{"minPitch":-1.0,"maxPitch":-1.0,"minDist":-1.0,"maxDist":-1.0},"effectiveLimits":DEFAULT_LIMITS.duplicate(),"locks":{"pitch":false,"distance":false,"yaw":false},"savedCamera":null,"scriptLocation":null,"rememberedPose":null,"findClearView":false,"clearViewResult":null,"clearViewFocus":null,"collisionState":CameraCollision.state()})
 	set_height(height)
 	state.quaternion = quaternion(state.yaw,state.pitch)
 	state.focus = null if position == null else [add(position[0],state.offset[0]),add(position[1],state.offset[1]),add(position[2],state.offset[2])]
@@ -268,13 +269,25 @@ func attach(position: Array,height: float = 1,creature: bool = true,find_clear: 
 	if not creature: state.defaultHeight = 1.0; state.height = 1.0; state.offset = [0.0,0.0,1.0]
 	state.merge({"focus":position.map(func(v): return f(v)),"distance":8.0,"yaw":0.0,"pitch":state.effectiveLimits.maxPitch,"spring":750.0,"turn":0.0,"tilt":0.0,"speed":0.0,"turnDelta":0.0,"tiltDelta":0.0,"zoomImpulse":0.0,"clampYaw":0,"minYaw":0.0,"maxYaw":360.0,"clampPitch":int(clamps_enabled),"minPitch":0.0 if state.locks.pitch else state.effectiveLimits.minPitch,"maxPitch":360.0 if state.locks.pitch else state.effectiveLimits.maxPitch,"clampDist":int(clamps_enabled),"minDist":0.0 if state.locks.distance else state.effectiveLimits.minDist,"maxDist":10.0 if state.locks.distance else state.effectiveLimits.maxDist,"findClearView":find_clear},true)
 	if pose != null and pose.distance != 0: state.merge(pose,true)
+	state.clearViewFocus = state.focus.duplicate()
+	state.clearViewResult = null
 
 func input(values: Dictionary) -> void:
 	if values.has("yaw"): rate(state,"yaw",values.yaw,true)
 	if values.has("pitch"): rate(state,"pitch",values.pitch,true)
 	if values.has("zoom"): state.zoomImpulse = add(state.get("zoomImpulse",0),values.zoom)
 
-func update(actor: Dictionary,seconds: float,clear_view_query: Callable = Callable()) -> bool:
+func collision_prediction(focus: Array,speed: float,position: Array,seconds: float)->Dictionary:
+	var predicted: Dictionary=state.duplicate(true)
+	if state.get("predictionInputs") is Dictionary:predicted.merge(state.predictionInputs,true)
+	predicted.focus=focus.duplicate();predicted.quaternion=state.quaternion.duplicate();predicted.offset=[0.0,0.0,1.0]
+	predicted.speed=speed;predicted.spring=750.0;predicted.clampYaw=0
+	predicted.clampPitch=1;predicted.minPitch=state.effectiveLimits.minPitch;predicted.maxPitch=state.effectiveLimits.maxPitch
+	predicted.clampDist=1;predicted.minDist=state.effectiveLimits.minDist;predicted.maxDist=state.effectiveLimits.maxDist
+	follow(predicted,seconds,position)
+	return {"focus":predicted.focus,"position":predicted.position}
+
+func update(actor: Dictionary,seconds: float,clear_view_query: Callable = Callable(),collision: Dictionary={}) -> bool:
 	if not actor.get("position") is Array or not is_finite(seconds) or seconds < 0: return false
 	if state.get("focus") == null: state.focus = [add(actor.position[0],state.offset[0]),add(actor.position[1],state.offset[1]),add(actor.position[2],state.offset[2])]
 	rate(state,"yaw",0); rate(state,"pitch",0)
@@ -283,6 +296,12 @@ func update(actor: Dictionary,seconds: float,clear_view_query: Callable = Callab
 		if location(state,seconds,bool(actor.get("paused",false))) and state.scriptLocation != null: state.scriptLocation.rate = 0
 		state.rememberedPose = {"distance":state.distance,"yaw":state.yaw,"pitch":state.pitch}
 	var zoom: float = state.get("zoomImpulse",0); state.zoomImpulse = 0.0
+	var collision_query: Variant=collision.get("query")
+	if collision_query is Callable and collision_query.is_valid() and (not bool(collision.get("keyholeActive",true)) or collision.get("disableWithKeyhole") == false or (int(state.flags)&1)!=0):
+		var predict:=func(focus: Array,speed: float)->Dictionary:return collision_prediction(focus,speed,collision.position,seconds)
+		var context: Dictionary=collision.duplicate()
+		context.flags=state.flags
+		zoom=CameraCollision.step(state,state.collisionState,context,seconds,zoom,collision_query,predict)
 	if absf(zoom) > f(0.0001): rate(state,"zoom",zoom)
 	if state.findClearView:
 		state.clearViewResult = find_clear_view(state, actor.position, float(actor.get("clearViewFacing", actor.get("facing",0))), seconds, clear_view_query) if clear_view_query.is_valid() else {"selected":false,"queries":0,"unavailable":true}
@@ -290,3 +309,7 @@ func update(actor: Dictionary,seconds: float,clear_view_query: Callable = Callab
 		state.findClearView = false
 	follow(state,seconds,actor.position); state.manual = 0
 	return true
+
+func snapshot() -> Dictionary:
+	# GameCamera.snapshot in the old network canvas diagnostic path.
+	return {"mode":state.mode,"yaw":state.yaw,"pitch":state.pitch,"distance":state.distance,"height":state.height,"focus":state.focus.duplicate() if state.focus is Array else null,"position":state.position.duplicate() if state.position is Array else null,"quaternion":state.quaternion.duplicate(),"locks":state.locks.duplicate(true),"limits":state.rawLimits.duplicate(true),"savedCamera":state.savedCamera.duplicate(true) if state.savedCamera is Dictionary else null,"scriptLocation":state.scriptLocation.duplicate(true) if state.scriptLocation is Dictionary else null,"findClearView":state.findClearView,"clearView":state.clearViewResult.duplicate(true) if state.clearViewResult is Dictionary else null,"flags":state.flags,"collision":state.collisionState.duplicate(true)}

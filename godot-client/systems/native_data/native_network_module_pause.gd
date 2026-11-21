@@ -11,7 +11,7 @@ static func decode_packet(packet: PackedByteArray)->Dictionary:
 		return {"error":"Invalid native module-pause envelope"}
 	var reader:=Requirements.Reader.new()
 	if not reader.configure(packet.slice(3)):
-		return {"error":"Invalid native module-pause stream: "+reader.error}
+		return {"error":"Invalid native module-pause streams"}
 	var mask: int=reader.byte_bits(2)
 	var value: int=1 if reader.boolean() else 0
 	var count: int=reader.word_bits(16)
@@ -21,5 +21,5 @@ static func decode_packet(packet: PackedByteArray)->Dictionary:
 	for _index in count:
 		exclusion_ids.append(reader.object_id())
 	if not reader.finished():
-		return {"error":"Invalid native module-pause fields: "+(reader.error if not reader.error.is_empty() else "stream incomplete")}
+		return {"error":"Invalid native module-pause fields"}
 	return {"kind":"module-pause-state","major":3,"minor":9,"mask":mask,"value":value,"exclusionIds":exclusion_ids}

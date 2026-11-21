@@ -17,16 +17,43 @@ static func digest(bytes: PackedByteArray) -> String:
 	if not bytes.is_empty(): context.update(bytes)
 	return context.finish().hex_encode()
 
+static func signature_value(value: Variant) -> Variant:
+	# network_scene.js::objectRenderSignature's JSON replacer omits this field
+	# recursively, including within item/appearance dictionaries.
+	if value is Dictionary:
+		var output: Dictionary={}
+		for key in value:
+			if str(key)=="visualTransform":continue
+			output[key]=signature_value(value[key])
+		return output
+	if value is Array:
+		var output: Array=[]
+		for entry in value:output.append(signature_value(entry))
+		return output
+	return value
 static func signature(object: Dictionary) -> String:
-	var state: Dictionary=object.get("replicated",{}); var fixed: Dictionary=object.get("staticState",object.get("lightState",{}))
-	var appearance: Variant=object.get("appearance",{})
-	# Native creature P400 updates names/popups without marking the model dirty.
-	# Keep the received row intact for name/state consumers and retain all other
-	# opaque appearance/equipment bytes in the model key.
-	if int(object.get("objectType",0))==5 and appearance is Dictionary and appearance.has("name"):
-		appearance=appearance.duplicate(); appearance.erase("name")
-	var animated_placeable: bool=int(object.get("objectType",0))==9 and requires_animation(state)
-	return digest(var_to_bytes([EntityLifetime.token(object),animated_placeable,object.get("objectType"),appearance,object.get("item",state.get("item",{})),state.get("appearance",fixed.get("appearance")),state.get("doorType"),state.get("genericType")]))
+	var state: Dictionary=object.get("replicated",{})
+	var kind:=int(object.get("objectType",0))
+	var parts: Array=[]
+	if kind==5:
+		var stats_value: Variant=state.get("stats",{})
+		var stats: Dictionary=stats_value if stats_value is Dictionary else {}
+		var racial: Variant=stats.get("racialType")
+		if racial==null:racial=stats.get("fieldD20")
+		parts=[object.get("appearance"),racial]
+	elif kind==6:
+		var item: Variant=object.get("item")
+		if item==null:item=state.get("item")
+		parts=[item]
+	else:
+		var fixed: Variant=object.get("staticState")
+		if fixed==null:fixed=object.get("lightState",{})
+		var fixed_state: Dictionary=fixed if fixed is Dictionary else {}
+		var light_value: Variant=object.get("lightState",{})
+		var light: Dictionary=light_value if light_value is Dictionary else {}
+		parts=[state.get("appearance"),state.get("doorType"),state.get("genericType"),fixed_state.get("appearance"),light.get("appearance")]
+	# The metadata worker and main owner must produce the same fixed-width key.
+	return digest(JSON.stringify(signature_value(parts),"",false,true).to_utf8_buffer())
 
 static func creature_pose(object: Dictionary) -> Dictionary:
 	var state: Dictionary=object.get("replicated",{}); var position: Variant=state.get("position")

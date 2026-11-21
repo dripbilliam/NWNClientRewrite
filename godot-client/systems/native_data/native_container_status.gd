@@ -18,5 +18,5 @@ static func request(operation: String,target_id: int=INVALID)->Dictionary:
 	if operation=="previous":return {"bytes":PackedByteArray([112,25,3])}
 	if operation!="close" or target_id<0 or target_id>0xffffffff:return {"error":"Invalid native container request"}
 	var bytes:=PackedByteArray([112,25,1,11,0,0,0]);bytes.resize(12)
-	bytes.encode_u32(7,target_id);bytes[11]=0x65
+	bytes.encode_u32(7,target_id);bytes[11]=0x60
 	return {"bytes":bytes}

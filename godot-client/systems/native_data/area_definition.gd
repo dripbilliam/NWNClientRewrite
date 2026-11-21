@@ -3,6 +3,7 @@ extends RefCounted
 const Gff = preload("res://systems/native_data/gff_document.gd")
 const Binary = preload("res://systems/native_data/binary_data.gd")
 const Cache = preload("res://systems/native_data/prepared_cache.gd")
+const ResRef = preload("res://systems/native_data/visual_type10.gd")
 const MAX_TILES := 65536
 var failure := ""
 func reject(message: String) -> Dictionary:
@@ -11,25 +12,44 @@ func whole(value: Variant, minimum: int, maximum: int) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and float(value) == floor(float(value)) and float(value) >= minimum and float(value) <= maximum
 func parse_set(text: String) -> Dictionary:
 	failure = ""
+	# The old drive resource owner checks this token before parsing the SET.
+	# Keep the flag separate: general area rendering accepts a missing token.
+	var transition_entry:=RegEx.create_from_string("(?im)^\\s*Transition\\s*=").search(text)!=null
 	var sections := {}; var section := ""
+	var heading:=RegEx.new();heading.compile("^\\[([^\\]]+)\\]$")
 	for source_line in text.replace("\r", "").split("\n"):
 		var line := source_line.strip_edges()
 		if line.is_empty() or line.begins_with(";"): continue
-		if line.begins_with("[") and line.ends_with("]"):
-			section = line.substr(1,line.length()-2).to_upper()
+		var title:=heading.search(line)
+		if title!=null:
+			section = title.get_string(1).to_upper()
 			if not sections.has(section): sections[section] = {}
 			continue
 		var split := line.find("=")
 		if split > 0 and not section.is_empty(): sections[section][line.left(split).strip_edges()] = line.substr(split+1).strip_edges()
 	var count_text := str(sections.get("TILES",{}).get("Count",""))
-	if not count_text.is_valid_int() or not whole(count_text.to_int(),1,MAX_TILES): return reject("Invalid SET tile count")
+	var count_numeric:=float(count_text.hex_to_int()) if count_text.to_lower().begins_with("0x") and count_text.is_valid_hex_number(true) else count_text.to_float()
+	if not count_text.is_valid_float() and not (count_text.to_lower().begins_with("0x") and count_text.is_valid_hex_number(true)) or not whole(count_numeric,1,MAX_TILES): return reject("Invalid SET tile count")
 	var transition_text := str(sections.get("GENERAL",{}).get("Transition","1"))
-	if not transition_text.is_valid_float() or not is_finite(transition_text.to_float()) or transition_text.to_float()<0: return reject("Invalid SET height transition")
+	# parseTileset used Number(value): a present blank Transition is zero.
+	var transition_value:=0.0 if transition_text.is_empty() else float(transition_text.hex_to_int()) if transition_text.to_lower().begins_with("0x") and transition_text.is_valid_hex_number(true) else transition_text.to_float()
+	if not transition_text.is_empty() and not transition_text.is_valid_float() and not (transition_text.to_lower().begins_with("0x") and transition_text.is_valid_hex_number(true)) or not is_finite(transition_value) or transition_value<0:return reject("Invalid SET height transition")
 	var tiles: Array = []
-	for index in count_text.to_int():
+	for index in int(count_numeric):
 		var row: Dictionary = sections.get("TILE"+str(index),{})
-		tiles.append({"model":str(row.get("Model","")).to_lower(),"fields":row.duplicate(true)})
-	return {"transition":transition_text.to_float(),"tiles":tiles,"sections":sections}
+		var source: Variant=row.get("ImageMap2D","")
+		if not source is String:return reject("Native tile ImageMap2D string is unavailable")
+		var raster: String=source
+		var terminator:=raster.find(String.chr(0))
+		if terminator>=0:raster=raster.left(terminator)
+		if raster.is_empty():raster="MIDE01_A09"
+		var image: Dictionary=ResRef.object_template_resref(raster)
+		if image.has("error"):return reject(str(image.error))
+		var path_node_fields: Dictionary={}
+		for key in ["PathNode","Orientation","VisibilityNode","VisibilityOrientation","DoorVisibilityNode","DoorVisibilityOrientation","Doors"]:
+			path_node_fields[key]=row.get(key)
+		tiles.append({"model":str(row.get("Model","")).to_lower(),"mapImage":str(image.value),"pathNodeFields":path_node_fields,"fields":row.duplicate(true)})
+	return {"transition":transition_value,"transition_entry":transition_entry,"tiles":tiles,"sections":sections}
 func compose(area: Dictionary, tileset: Dictionary, signed_heights: bool=false) -> Dictionary:
 	failure = ""
 	if not whole(area.get("Width"),1,MAX_TILES) or not whole(area.get("Height"),1,MAX_TILES): return reject("Invalid ARE dimensions")

@@ -16,15 +16,9 @@ var protected_settings_bridge
 var client_setup
 var login_profiles_layer
 var window_settings
-var ui_preload
 var render_settings_layer: CanvasLayer
 var particle_visibility
 var material_prewarm
-var asset_prework
-var prework_discovery
-var prework_choices: Array=[]
-var prework_sources_configured:=false
-var current_prework_sources: Dictionary={}
 var settings_at:=0
 var server_browser
 var character_lobby
@@ -103,6 +97,11 @@ func native_clock_prefix()->void:
 	if native_clock_runtime!=null:native_clock_runtime.prefix(Engine.get_process_frames())
 func native_material_policy_ready() -> void:
 	if is_instance_valid(material_prewarm):material_prewarm.configure_policy(MaterialPrewarm.policy_from_pool(render_pool))
+func native_area_graphics_gate() -> Dictionary:
+	# The old network area gate waits for this area's submitted variants;
+	# generic recipe warmup is independent and cannot hold area admission.
+	if is_instance_valid(material_prewarm):area_graphics.bind_program_lease(material_prewarm.program_lease)
+	return super.native_area_graphics_gate()
 func snapshot_preparation_scope(snapshot: Dictionary) -> Array:
 	return [int(snapshot.get("connection",session_connection)),int(snapshot.generation),int(snapshot.serial),int(snapshot.data.get("area",{}).get("id",-1))]
 func snapshot_preparation_choice() -> String:
@@ -300,6 +299,8 @@ func run() -> void:
 	login_profiles=preload("res://systems/native_login_profiles.gd").new(); login_profiles_layer.add_child(login_profiles); login_profiles.setup(str(args.get("menu-layout","user://native-menu-layout.cfg"))); login_profiles.request.connect(send)
 	render_settings=RenderSettings.new(); render_settings_layer.add_child(render_settings)
 	render_settings.setup(str(args.get("render-preferences","user://native-options.cfg")),str(args.get("menu-layout","user://native-menu-layout.cfg")),args.get("profile","")=="true",str(args.get("static-parts","")),str(args.get("profile","")))
+	args["native-shadow-lights"]=render_settings.shadow_lights
+	root.debug_draw=Viewport.DEBUG_DRAW_WIREFRAME if render_settings.wireframe else Viewport.DEBUG_DRAW_DISABLED
 	client_setup=preload("res://systems/client_setup.gd").new();client_setup.name="Mods and CD key";render_settings.tabs.add_child(client_setup);client_setup.setup()
 	client_setup.request.connect(client_setup_request)
 	render_settings.tabs.tab_changed.connect(func(_tab):sync_client_setup())
@@ -309,27 +310,6 @@ func run() -> void:
 		fail("Native gamma settings binding is unavailable"); return
 	window_settings=preload("res://systems/native_window_settings.gd").new(); host.add_child(window_settings); window_settings.configure(root,str(args.get("render-preferences","user://native-options.cfg")))
 	window_settings.changed.connect(publish_device_properties)
-	asset_prework=preload("res://systems/native_prework_process.gd").new(); host.add_child(asset_prework); asset_prework.changed.connect(render_settings.update_prework)
-	ui_preload=preload("res://systems/native_ui_preload.gd").new(); host.add_child(ui_preload); ui_preload.changed.connect(render_settings.update_ui_preload)
-	render_settings.ui_preload_requested.connect(start_ui_preload)
-	render_settings.ui_preload_cancel_requested.connect(ui_preload.cancel)
-	asset_prework.set_workers(render_settings.prework_worker_setting)
-	render_settings.prework_workers_changed.connect(asset_prework.set_workers)
-	render_settings.prework_folder_requested.connect(func():
-		var path:=ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2")))
-		asset_prework.view_saved_files(path))
-	render_settings.prework_requested.connect(start_asset_prework)
-	render_settings.prework_cancel_requested.connect(asset_prework.cancel)
-	render_settings.prework_clear_requested.connect(func():
-		if ui_preload.state.active: return
-		var path:=ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2")))
-		asset_prework.clear_saved(path))
-	prework_discovery=preload("res://systems/native_data/prework_sources.gd").new(); host.add_child(prework_discovery)
-	prework_discovery.completed.connect(func(choices: Array,error: String):
-		prework_choices=choices; refresh_prework_sources()
-		if not error.is_empty() and not asset_prework.state.active: render_settings.prework_status.text=error)
-	prework_sources_configured=ticket.has("preworkSources")
-	prework_discovery.start(ticket.get("preworkSources",{}))
 	render_settings.particles_changed.connect(particle_visibility.set_enabled)
 	render_settings.show_blockers_changed.connect(func(enabled):
 		if is_instance_valid(world):world.set_show_blockers(enabled))
@@ -338,8 +318,19 @@ func run() -> void:
 	render_settings.particle_collision_changed.connect(particle_visibility.set_collision_enabled)
 	host.set_meta("native_gore",render_settings.gore)
 	render_settings.gore_changed.connect(func(value):host.set_meta("native_gore",value))
+	render_settings.shadow_lights_changed.connect(func(value):
+		args["native-shadow-lights"]=value
+		if is_instance_valid(world):
+			var reference: Variant=world.get_meta("native_point_shadow_budget",null)
+			var budget: Variant=reference.get_ref() if reference is WeakRef else null
+			if is_instance_valid(budget): budget.maximum=value)
+	render_settings.wireframe_changed.connect(func(on):root.debug_draw=Viewport.DEBUG_DRAW_WIREFRAME if on else Viewport.DEBUG_DRAW_DISABLED)
+	render_settings.camera_mode_changed.connect(func(value):
+		if is_instance_valid(controller):controller.set_follow_mode(value))
 	render_settings.creature_slots_changed.connect(func(on):
 		if is_instance_valid(gameplay_ui): gameplay_ui.inventory.ui.creature_slots=on; gameplay_ui.inventory.signature="")
+	render_settings.feedback_options_changed.connect(func(enabled: bool,total_only: bool):
+		if is_instance_valid(gameplay_ui):gameplay_ui.set_feedback_options(enabled,total_only))
 	render_settings.radial_preferences_changed.connect(func(value):
 		if is_instance_valid(gameplay_ui): gameplay_ui.set_radial_preferences(value))
 	particle_visibility.set_enabled(render_settings.particles_enabled)
@@ -350,6 +341,7 @@ func run() -> void:
 	render_settings.entity_inspector_requested.connect(open_entity_inspector)
 	set_profiling(render_settings.profiling_enabled)
 	material_prewarm=MaterialPrewarm.new(); host.add_child(material_prewarm)
+	area_graphics.bind_program_lease(material_prewarm.program_lease)
 	material_prewarm.configure_policy(MaterialPrewarm.policy_from_pool(render_pool))
 	material_prewarm.start(str(args.get("material-prewarm","true"))=="true" and DisplayServer.get_name()!="headless")
 	report.material_prewarm=material_prewarm.stats
@@ -366,7 +358,7 @@ func run() -> void:
 		if is_instance_valid(entity_inspector) and entity_inspector.visible: entity_inspector.hide(); return true
 		if render_settings.visible: render_settings.hide(); return true
 		if is_instance_valid(server_browser) and server_browser.wanted: return server_browser.escape()
-		if is_instance_valid(character_lobby) and (character_lobby.state.get("canCancelJoin",false) or loading_announced): cancel_loading(); return true
+		if is_instance_valid(character_lobby) and (character_lobby.state.get("canCancelJoin",false) or loading_announced or str(character_lobby.state.get("phase","")) in ["character-selection","character-rejected"] and character_lobby.state.get("connected",false)): cancel_loading(); return true
 		return false
 	render_menu.options_requested.connect(open_render_settings)
 	render_menu.client_settings_requested.connect(open_client_settings)
@@ -418,7 +410,18 @@ func open_pending_creation() -> void:
 		pending_creator.clear();return
 	if not is_instance_valid(gameplay_ui):return
 	pending_creator.clear()
-	if gameplay_ui.creator.phase=="closed":gameplay_ui.creator.open(int(request.connection))
+	var module_label:="Server"
+	var vault_error:=""
+	var info: Variant=character_lobby.state.get("serverInfo")
+	for property in get_property_list():
+		if str(property.get("name",""))!="direct_session":continue
+		var direct: Variant=get("direct_session")
+		if is_instance_valid(direct):
+			if not info is Dictionary:info=direct.get("server_info_snapshot")
+			vault_error=str(direct.get("character_vault_error"))
+		break
+	if info is Dictionary and info.has("moduleName"):module_label=str(info.moduleName)
+	if gameplay_ui.creator.phase=="closed":gameplay_ui.creator.open(int(request.connection),module_label,vault_error)
 func open_chat_settings() -> void:
 	var window=preload("res://systems/native_chat_options.gd").acquire(host.get_viewport(),str(args.get("menu-layout","user://native-menu-layout.cfg")))
 	window.open_settings()
@@ -437,23 +440,54 @@ func open_startup_menu() -> void:
 	if is_instance_valid(world): return
 	if server_browser.wanted: server_browser.close()
 	character_lobby.panel.hide(); render_menu.open(false); label.text=""
-	var ui=render_menu.pregame; var deadline:=Time.get_ticks_msec()+30000;var graphical:=DisplayServer.get_name()!="headless"
-	while not closing and Time.get_ticks_msec()<deadline and is_instance_valid(ui) and ui.failure.is_empty() and (not is_instance_valid(ui.main) or not ui.main.layout_ready or graphical and (not ui.main.art_ready() or not ui.menu_startup_status().ready or not ui.button_audio_ready and ui.button_audio_failure.is_empty())): await process_frame
+	var ui=render_menu.pregame; var started_ms:=Time.get_ticks_msec(); var absolute_deadline:=started_ms+180000; var last_progress_ms:=started_ms; var next_sample_ms:=started_ms; var progress_units:=-1; var wait_reason:=""; var graphical:=DisplayServer.get_name()!="headless"
+	while not closing and is_instance_valid(ui):
+		var now_ms:=Time.get_ticks_msec()
+		if now_ms>=next_sample_ms:
+			next_sample_ms=now_ms+250
+			var preload_state: Dictionary=ui.menu_startup_status()
+			var units:=int(preload_state.get("completed",0))*10000
+			for owner in [ui.main,ui.options,ui.keys,ui.video]:
+				if is_instance_valid(owner) and owner.has_method("cohort_snapshot"):
+					var cohort: Dictionary=owner.cohort_snapshot()
+					units+=int(cohort.get("models_ready",0))+int(cohort.get("images_ready",0))+int(cohort.get("fonts_ready",0))
+			if is_instance_valid(ui.main) and ui.main.layout_ready:units+=1
+			if ui.button_audio_ready:units+=1
+			if units>progress_units:progress_units=units;last_progress_ms=now_ms
+			if not ui.failure.is_empty():wait_reason=ui.failure;break
+			if not preload_state.get("failures",[]).is_empty():wait_reason=str(preload_state.failures[0]);break
+			if not ui.button_audio_failure.is_empty():wait_reason=ui.button_audio_failure;break
+			if is_instance_valid(ui.main) and ui.main.layout_ready and (not graphical or ui.main.art_ready() and bool(preload_state.get("ready",false)) and ui.button_audio_ready):break
+			if now_ms>=absolute_deadline:wait_reason="Menu preload exceeded 180 seconds";break
+			if now_ms-last_progress_ms>=30000:wait_reason="Menu preload made no progress for 30 seconds";break
+		await process_frame
 	if closing: return
 	if is_instance_valid(ui): ui.refresh()
-	var ready: bool=is_instance_valid(ui) and ui.failure.is_empty() and is_instance_valid(ui.main) and ui.main.layout_ready and (not graphical or ui.main.art_ready() and ui.menu_startup_status().ready)
+	var ready: bool=is_instance_valid(ui) and ui.failure.is_empty() and is_instance_valid(ui.main) and ui.main.layout_ready and (not graphical or ui.main.art_ready() and ui.menu_startup_status().ready and ui.button_audio_ready)
 	var preload_status: Dictionary=ui.menu_startup_status() if is_instance_valid(ui) else {}
-	report.startup_menu={"ready":ready,"mainVisible":ready and ui.main.is_visible_in_tree(),"browserHidden":not server_browser.wanted,"lobbyHidden":not character_lobby.panel.visible,"preload":{"ready":preload_status.get("ready",false),"completed":preload_status.get("completed",0),"total":preload_status.get("total",0),"failures":preload_status.get("failures",[])},"buttonAudioReady":is_instance_valid(ui) and ui.button_audio_ready,"buttonAudioFailed":is_instance_valid(ui) and not ui.button_audio_failure.is_empty()}
+	var pending: Array=[]
+	if is_instance_valid(ui):
+		for owner in [ui.main,ui.options,ui.keys,ui.video]:
+			if is_instance_valid(owner) and owner.has_method("cohort_snapshot"):
+				var cohort: Dictionary=owner.cohort_snapshot()
+				for item in cohort.get("pending",[]):
+					if pending.size()<16:pending.append(str(cohort.get("scope","menu"))+":"+str(item))
+	report.startup_menu={"ready":ready,"mainVisible":ready and ui.main.is_visible_in_tree(),"browserHidden":not server_browser.wanted,"lobbyHidden":not character_lobby.panel.visible,"preload":{"ready":preload_status.get("ready",false),"completed":preload_status.get("completed",0),"total":preload_status.get("total",0),"failures":preload_status.get("failures",[]),"pending":pending,"waitReason":wait_reason,"elapsedMs":Time.get_ticks_msec()-started_ms},"buttonAudioReady":is_instance_valid(ui) and ui.button_audio_ready,"buttonAudioFailed":is_instance_valid(ui) and not ui.button_audio_failure.is_empty()}
 	send({"kind":"main-menu-observed","ready":ready,"mainVisible":report.startup_menu.mainVisible,"browserHidden":report.startup_menu.browserHidden,"lobbyHidden":report.startup_menu.lobbyHidden,"runtimeFeatures":runtime_features_snapshot()})
 	if ready: print("NATIVE_STARTUP_MAIN_MENU_READY")
 func client_settings_locked() -> bool:
 	return closing or initialized or is_instance_valid(world) or is_instance_valid(character_lobby) and (bool(character_lobby.state.get("connected",false)) or bool(character_lobby.state.get("canCancelJoin",false)))
+func install_change_locked() -> bool:
+	if has_method("direct_install_choice_locked"):return bool(call("direct_install_choice_locked"))
+	return closing or is_instance_valid(world) or is_instance_valid(character_lobby) and (bool(character_lobby.state.get("connected",false)) or bool(character_lobby.state.get("canCancelJoin",false)))
 func client_setup_request(message: Dictionary) -> void:
 	if not is_instance_valid(client_setup):return
 	if protected_settings_bridge==null:
 		client_setup.receive({"kind":"settings-notice","requestId":int(message.get("requestId",-1)),"text":"Saved settings are unavailable."})
 		return
-	for response in protected_settings_bridge.client_setup(message,client_settings_locked()):client_setup.receive(response)
+	for response in protected_settings_bridge.client_setup(message,client_settings_locked(),install_change_locked()):
+		if response.get("kind")=="settings-install-selected" and has_method("direct_install_selected"):call("direct_install_selected",str(response.directory))
+		client_setup.receive(response)
 func sync_client_setup() -> void:
 	if not is_instance_valid(client_setup) or not is_instance_valid(render_settings):return
 	var selected: bool=render_settings.visible and render_settings.tabs.current_tab==client_setup.get_index()
@@ -465,37 +499,10 @@ func open_client_settings() -> void:
 	render_settings.tabs.current_tab=client_setup.get_index()
 	sync_client_setup()
 func open_render_settings() -> void:
-	refresh_prework_sources()
 	render_settings.show(); render_settings.move_to_front()
 func open_game_options() -> void:
 	if render_settings.visible: render_settings.hide()
 	render_menu.open(is_instance_valid(world))
-func refresh_prework_sources() -> void:
-	render_settings.set_prework_sources(prework_choices.map(func(choice):return str(choice.label)),initialized and not closing)
-func start_asset_prework() -> void:
-	if closing or ui_preload.state.active: return
-	refresh_prework_sources()
-	var selected: int=render_settings.prework_content.selected
-	var cache_path:=ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2")))
-	var all_models: bool=render_settings.prework_scope.selected==1
-	asset_prework.model_limit=int(args.get("prework-check-limit",0))
-	asset_prework.extra_variants=preload("res://systems/native_data/prework_store.gd").known_requests(catalog) if initialized else []
-	if initialized and selected==0:
-		if not current_prework_sources.is_empty(): asset_prework.start_sources(current_prework_sources,cache_path,all_models)
-		return
-	var index: int=selected-(1 if initialized else 0)
-	if index>=0 and index<prework_choices.size(): asset_prework.start_sources(prework_choices[index].sources,cache_path,all_models)
-func start_ui_preload() -> void:
-	if closing or asset_prework.state.active: return
-	refresh_prework_sources()
-	var selected: int=render_settings.ui_preload_content.selected
-	var cache_path:=ProjectSettings.globalize_path(str(args.get("prepared-cache","user://native-prepared-v2")))
-	ui_preload.capture_opened=initialized and selected==0
-	if initialized and selected==0:
-		if not current_prework_sources.is_empty(): ui_preload.start_sources(current_prework_sources,cache_path)
-		return
-	var index:=selected-(1 if initialized else 0)
-	if index>=0 and index<prework_choices.size(): ui_preload.start_sources(prework_choices[index].sources,cache_path)
 func open_entity_inspector() -> void:
 	render_settings.hide(); render_menu.panel.hide()
 	entity_inspector.theme=render_settings.theme; entity_inspector.open()
@@ -546,17 +553,19 @@ func _profile_tick() -> void:
 	if args.get("offline-replay","")=="true":
 		for input_owner in [keyboard,world_input]:
 			if is_instance_valid(input_owner): input_owner.process_mode=Node.PROCESS_MODE_DISABLED
-	if not pending_creator.is_empty():open_pending_creation()
-	# Pregame source readiness may arrive after the first creation request.
-	if not closing and is_instance_valid(gameplay_ui) and gameplay_ui.creator.phase!="closed" and not is_instance_valid(gameplay_ui.creator.source_frontend) and is_instance_valid(render_menu):
+	# Build the existing native wizard while a connected character chooser is
+	# visible. Its source layout and art can settle before Create is pressed;
+	# the draft/rule stage still begins only in creator.open().
+	var creator_chooser_ready: bool=is_instance_valid(character_lobby) and str(character_lobby.state.get("phase","")) in ["character-selection","character-rejected"] and bool(character_lobby.state.get("connected",false)) and bool(character_lobby.state.get("canCreate",false))
+	if not closing and is_instance_valid(gameplay_ui) and (creator_chooser_ready or gameplay_ui.creator.phase!="closed") and not is_instance_valid(gameplay_ui.creator.source_frontend) and is_instance_valid(render_menu):
 		var pregame=render_menu.pregame
 		if is_instance_valid(pregame) and is_instance_valid(pregame.painter) and pregame.catalog!=null: gameplay_ui.creator.configure_source(pregame.painter,pregame.text,pregame.catalog,pregame.cache_path)
+	if not pending_creator.is_empty():open_pending_creation()
 	if not closing and is_instance_valid(gameplay_ui) and gameplay_ui.desktop.level_owner!=null and not gameplay_ui.desktop.level_owner.source_configured and is_instance_valid(render_menu):
 		var level_pregame=render_menu.pregame
 		if is_instance_valid(level_pregame) and is_instance_valid(level_pregame.painter) and level_pregame.catalog!=null:gameplay_ui.desktop.level_owner.configure_source(level_pregame.painter,level_pregame.text,level_pregame.catalog,level_pregame.cache_path)
 	if is_instance_valid(render_settings) and render_settings.visible and Time.get_ticks_msec()-settings_at>=500:
 		settings_at=Time.get_ticks_msec(); var began:=FrameProfile.begin()
-		refresh_prework_sources()
 		render_settings.update_performance(frame_profile.snapshot() if is_instance_valid(frame_profile) else {})
 		FrameProfile.finish("settings_update",began)
 func expose_local_fixture(chooser,connection: int) -> void:
@@ -622,7 +631,6 @@ func receive_profiled(message: Dictionary) -> void:
 		# its first game-server connection, even if startup changed was too early.
 		device_metrics_hello_ready=true
 		publish_device_properties()
-		if message.get("resourceSources") is Dictionary: current_prework_sources=message.resourceSources.duplicate(true)
 	match str(message.get("kind","")):
 		"test-lobby-participant-status":
 			if args.get("lobby-pages-check","")=="true" and args.get("actions-check","")=="true": test_lobby_participant=message.get("value",{}).duplicate(true)
@@ -830,52 +838,8 @@ func receive_profiled(message: Dictionary) -> void:
 			record_menu_check_stage("entry_begin")
 			var pregame_ready:=await probe_pregame_entry()
 			record_menu_check_stage("entry_ready")
-			var prework_ready:=true
-			if prework_sources_configured:
-				var deadline:=Time.get_ticks_msec()+10000
-				while prework_discovery.task>=0 and Time.get_ticks_msec()<deadline: await process_frame
-				open_render_settings(); render_settings.tabs.current_tab=render_settings.prework_prepare.get_parent().get_index()
-				record_menu_check_stage("content_ready")
-				prework_ready=not initialized and not render_settings.prework_prepare.disabled and not prework_choices.is_empty()
-				if prework_ready:
-					render_settings.prework_prepare.pressed.emit()
-					record_menu_check_stage("model_start")
-					while asset_prework.state.active and asset_prework.child_pid<0 and Time.get_ticks_msec()<deadline: await process_frame
-					prework_ready=asset_prework.state.active and asset_prework.child_pid>0
-					var corpus_limit:=int(args.get("prework-check-limit",0))
-					if corpus_limit>0:
-						deadline=Time.get_ticks_msec()+220000
-						var trace:=FileAccess.open(str(args.report)+".prework-progress.jsonl",FileAccess.WRITE); var traced_at:=0
-						while asset_prework.state.active and Time.get_ticks_msec()<deadline:
-							if Time.get_ticks_msec()-traced_at>=1000: trace.store_line(JSON.stringify(asset_prework.state)); trace.flush(); traced_at=Time.get_ticks_msec()
-							await process_frame
-						trace.close()
-						prework_ready=prework_ready and not asset_prework.state.active and int(asset_prework.state.completed)==int(asset_prework.state.total) and int(asset_prework.state.total)>0
-					else:
-						render_settings.prework_cancel.pressed.emit()
-						record_menu_check_stage("model_cancel_requested")
-						while asset_prework.state.active and Time.get_ticks_msec()<deadline: await process_frame
-						prework_ready=prework_ready and not asset_prework.state.active and not render_settings.prework_prepare.disabled
-				report.offline_prework={"ready":prework_ready,"connected":initialized,"choices":prework_choices.map(func(choice):return str(choice.label)),"state":asset_prework.state.duplicate(true)}
-				record_menu_check_stage("model_cancel_finished")
-				if DisplayServer.get_name()!="headless":
-					await RenderingServer.frame_post_draw; root.get_texture().get_image().save_png(str(args.report)+".prework.png")
-				var ui_ready: bool=not render_settings.ui_preload_prepare.disabled and render_settings.ui_preload_content.item_count>0
-				if ui_ready:
-					render_settings.tabs.current_tab=render_settings.ui_preload_prepare.get_parent().get_index()
-					render_settings.ui_preload_prepare.pressed.emit()
-					record_menu_check_stage("ui_start")
-					ui_ready=ui_preload.state.active and not render_settings.ui_preload_cancel.disabled and render_settings.prework_prepare.disabled
-					render_settings.ui_preload_cancel.pressed.emit()
-					record_menu_check_stage("ui_cancel_requested")
-					deadline=Time.get_ticks_msec()+15000
-					while ui_preload.state.active and Time.get_ticks_msec()<deadline: await process_frame
-					ui_ready=ui_ready and not ui_preload.state.active and ui_preload.state.get("cancelled",false) and not render_settings.ui_preload_prepare.disabled
-				report.offline_ui_preload={"ready":ui_ready,"connected":initialized,"state":ui_preload.state.duplicate(true)}
-				record_menu_check_stage("ui_cancel_finished")
-				prework_ready=prework_ready and ui_ready
 			report.merge({"success":true,"native_rendering":true,"network_connections":0,"browser_ready":server_browser.view_id>=0,"full_migration":false,"scope":"Browser startup only; not world/rendering acceptance"},true)
-			report.success=prework_ready and report.browser_ready and pregame_ready
+			report.success=report.browser_ready and pregame_ready
 			if is_instance_valid(server_browser): server_browser.close_native()
 			if is_instance_valid(render_menu): render_menu.close_pregame(); report.pregame_cleanup=render_menu.pregame_cleanup
 			if DisplayServer.get_name()!="headless": report.final_window={"screen":root.current_screen,"primary":DisplayServer.get_primary_screen(),"screens":DisplayServer.get_screen_count(),"unfocusable":root.unfocusable,"focused":root.has_focus(),"mouse_mode":Input.mouse_mode}
@@ -885,7 +849,7 @@ func receive_profiled(message: Dictionary) -> void:
 func record_menu_check_stage(stage: String) -> void:
 	var now:=Time.get_ticks_msec()
 	if not report.has("menu_check_stages"): report.menu_check_stages=[]; report.menu_check_started_ms=now
-	var row: Dictionary={"stage":stage,"elapsed_ms":now-int(report.menu_check_started_ms),"model_active":asset_prework.state.active,"ui_active":ui_preload.state.active}
+	var row: Dictionary={"stage":stage,"elapsed_ms":now-int(report.menu_check_started_ms)}
 	report.menu_check_stages.append(row)
 	var path:=str(args.report)+".menu-stages.jsonl"; var file:=FileAccess.open(path,FileAccess.READ_WRITE if FileAccess.file_exists(path) else FileAccess.WRITE)
 	if file!=null: file.seek_end(); file.store_line(JSON.stringify(row)); file.close()
@@ -1005,6 +969,8 @@ func save_last_seen_appearance() -> void:
 func reset_session() -> void:
 	last_device_metrics=[]
 	cancel_snapshot_preparation()
+	finish_renderer_retirement()
+	area_graphics.reset_programs()
 	camera_fov_binding.unbind()
 	if native_visibility_runtime!=null:
 		report.native_scene_visibility=native_visibility_runtime.snapshot()
@@ -1015,9 +981,7 @@ func reset_session() -> void:
 	if is_instance_valid(login_profiles): login_profiles.reset()
 	save_last_seen_appearance()
 	if is_instance_valid(character_lobby): character_lobby.close_native()
-	if is_instance_valid(asset_prework): asset_prework.close()
 	preload("res://systems/native_data/prework_store.gd").forget(catalog)
-	current_prework_sources={}
 	pending_combat.clear(); pending_visual.clear(); pending_voice.clear(); pending_script_sounds.clear()
 	pending_creator.clear()
 	loading_announced=false
@@ -1068,9 +1032,6 @@ func shutdown() -> void:
 	if is_instance_valid(render_menu) and is_instance_valid(render_menu.pregame):
 		report.pregame_ui=render_menu.pregame.snapshot(); render_menu.close_pregame(); report.pregame_cleanup=render_menu.pregame_cleanup
 	if is_instance_valid(window_settings): report.window_settings=window_settings.snapshot(); window_settings.close()
-	if is_instance_valid(prework_discovery): prework_discovery.close()
-	if is_instance_valid(ui_preload): ui_preload.close(); report.ui_preload=ui_preload.state.duplicate(true)
-	if is_instance_valid(asset_prework): asset_prework.close(); report.asset_prework=asset_prework.state.duplicate(true)
 	if is_instance_valid(client_setup):client_setup.close()
 	if protected_settings_bridge!=null:protected_settings_bridge.close();protected_settings_bridge=null
 	super.shutdown()
@@ -1271,6 +1232,7 @@ func entry_snapshot_tail_unit(state: Dictionary,tail: Dictionary) -> Dictionary:
 			entry_snapshot_tail_next(state,tail,"creature_slots")
 		"creature_slots":
 			gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
+			gameplay_ui.set_feedback_options(render_settings.floating_feedback,render_settings.damage_totals_only)
 			entry_snapshot_tail_next(state,tail,"radial")
 		"radial":
 			if is_instance_valid(gameplay_ui):gameplay_ui.set_radial_preferences(render_settings.radial_preferences)
@@ -1337,6 +1299,7 @@ func ensure_native_gameplay_menu(current: Callable) -> bool:
 	creation_trace("raw-world:menu-configure-after")
 	gameplay_ui.options_requested.connect(open_game_options)
 	gameplay_ui.inventory.ui.creature_slots=render_settings.creature_slots
+	gameplay_ui.set_feedback_options(render_settings.floating_feedback,render_settings.damage_totals_only)
 	return true
 func finish_raw_snapshot_tail(snapshot: Dictionary,context: Dictionary) -> void:
 	var entry_began:=FrameProfile.begin()

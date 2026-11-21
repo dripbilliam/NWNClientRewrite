@@ -40,7 +40,9 @@ static func start(s: Dictionary,refs: Array,sounds: Array,source: Dictionary,p: 
 				p.attach.call(model,p.sourceModel.call(source,255,1),["headconjure","handconjure","root"][i],0)
 				p.play.call(s.conjure[i],"conjure01",1.0,0,0)
 	var position: Array=[0.0,0.0,0.0]; var q: Array=[1.0,0.0,0.0,0.0]; var model: Variant=p.sourceModel.call(source,255,1)
-	if model==null or int(p.nodePose.call(model,"handconjure",position,q))==0: position.assign(source.position)
+	var pose_result:=int(p.nodePose.call(model,"handconjure",position,q)) if model!=null else 0
+	if pose_result<0:s.partQueryError=str(p.partQueryFailure.call());return -1
+	if pose_result==0: position.assign(source.position)
 	for sound in sounds:
 		if not text(sound).is_empty(): p.oneShot.call(text(sound),position.duplicate(),11,1.5)
 	return 1
@@ -74,7 +76,8 @@ static func drive(actor: Dictionary,elapsed: int,p: Dictionary) -> void:
 			if int(actor.suppressSound)==0:
 				if int(actor.race)>=0 and int(actor.race)<=6: sounds[0]=spell.conjureSoundFemale if int(actor.gender)==1 else spell.conjureSoundMale
 				sounds[1]=spell.conjureSound
-			clear(s,"conjure",p); clear(s,"cast",p); start(s,spell.conjure,sounds,actor.source,p)
+			clear(s,"conjure",p); clear(s,"cast",p)
+			if start(s,spell.conjure,sounds,actor.source,p)<0:return
 			s.conjureTime=5000; s.castTime=5000; s.released=0
 	elif int(actor.previousCasting)==1:
 		if int(s.released)==0: clear(s,"conjure",p); clear(s,"cast",p)

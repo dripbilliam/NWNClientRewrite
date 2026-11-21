@@ -7,19 +7,23 @@ static func encode(value: String)->Dictionary:
 		var code:=value.unicode_at(index)
 		if code>=128 and code<160:
 			var mapped:=HIGH.find(code)
-			if mapped<0:return {"error":"Unsupported NWN Western text character"}
+			if mapped<0:return {"error":"Character "+String.chr(code)+" cannot be saved in a Western NWN character file"}
 			code=mapped+128
 		elif code>=160:
 			if code>255:
 				var mapped:=HIGH.find(code)
-				if mapped<0:return {"error":"Unsupported NWN Western text character"}
+				if mapped<0:return {"error":"Character "+String.chr(code)+" cannot be saved in a Western NWN character file"}
 				code=mapped+128
 		output.append(code)
 	return {"bytes":output}
 
 static func decode(bytes: PackedByteArray)->String:
-	var output: Array[String]=[]
-	for value in bytes:
-		var code: int=HIGH[value-128] if value>=128 and value<160 else value
-		output.append(char(code))
-	return "".join(output)
+	var output:=""
+	for start in range(0,bytes.size(),8192):
+		var chunk: Array[String]=[]
+		for index in range(start,mini(start+8192,bytes.size())):
+			var value:=int(bytes[index])
+			var code: int=HIGH[value-128] if value>=128 and value<160 else value
+			chunk.append(String.chr(code))
+		output+="".join(chunk)
+	return output

@@ -23,6 +23,7 @@ func consume(frame: Dictionary) -> bool:
 			surface=Surface.new(); add_child(surface); surface.configure(row.texture,1,bool(row.additive),bool(row.two_sided),true); surfaces[key]=surface
 		var count:=int(row.count); var capacity:=maxi(surface.capacity,maxi(96,count))
 		if count>surface.capacity: capacity=mini(Surface.MAX_VERTICES,maxi(capacity,surface.capacity*2)); capacity=ceili(float(capacity)/6.0)*6
+		if count>capacity: failure="Native scene particle vertex count exceeds Godot mesh index range"; return false
 		var b: Array=row.bounds
 		if not surface.apply_instances(1,generation,count,capacity,row.buffer,AABB(Vector3(b[0],b[1],b[2]),Vector3(b[3],b[4],b[5]))): failure="Native scene particle instance upload rejected"; return false
 		# Native sorted runs retain their order inside each GPU batch. Godot has

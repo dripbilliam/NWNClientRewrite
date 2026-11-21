@@ -22,6 +22,14 @@ var groups: Dictionary={}
 var waiting: Array=[]
 var requests: Dictionary={}
 var bundles: Dictionary={}
+var reference_admissions: Dictionary={}
+func reference_token(name: String) -> String:return "border:"+str(get_instance_id())+":"+name
+func release_reference_name(name: String) -> void:
+	var token:=reference_token(name)
+	if not reference_admissions.has(token):return
+	var hub=get_parent().get_meta("native_reference_hub") if get_parent()!=null and get_parent().has_meta("native_reference_hub") else null
+	if is_instance_valid(hub):hub.release_admission(str(reference_admissions[token]),token)
+	reference_admissions.erase(token)
 var templates: Dictionary={}
 var ready_models: Array=[]
 var instances: Dictionary={}
@@ -112,6 +120,7 @@ func model_prepared(id: int,result: Dictionary)->void:
 	else:bundles[name]=result;ready_models.append(name);stats.models_prepared+=1;priority_dirty=true
 	update_processing()
 func reject_model(name: String,reason: String)->void:
+	release_reference_name(name)
 	stats.failed+=groups.get(name,[]).size();groups.erase(name);bundles.erase(name);templates.erase(name);ready_models.erase(name)
 	if stats.errors.size()<32:stats.errors.append({"model":name,"reason":reason})
 func next_model()->String:
@@ -130,6 +139,12 @@ func publish()->void:
 		var name:=next_model()
 		if name.is_empty():break
 		var unit:=Time.get_ticks_usec();count+=1
+		if bundles[name].value.nodes.any(func(part):return part.has("reference")):
+			var reference_hub=get_parent().get_meta("native_reference_hub") if get_parent()!=null and get_parent().has_meta("native_reference_hub") else null
+			var token:=reference_token(name);reference_admissions[token]=name
+			var tree: Dictionary=reference_hub.prefetch_tree(name,bundles[name],null,token) if is_instance_valid(reference_hub) else {"status":"failed","reason":"Native reference preparation scope is unavailable"}
+			if tree.status=="pending":break
+			if tree.status=="failed":reject_model(name,"Original decorative reference assets are unavailable: "+str(tree.reason));continue
 		if not templates.has(name):
 			var prepared=pool.model_template(bundles[name])
 			if prepared==null:
@@ -140,10 +155,18 @@ func publish()->void:
 		var index: int=groups[name].pop_back();var row: Dictionary=plans[index];var instance=templates[name].create()
 		if not is_instance_valid(instance):stats.failed+=1
 		else:
-			add_child(instance);instance.position=row.position;instance.rotation.y=float(row.orientation)*PI/2
-			instance.set_meta("native_area_border_index",index);instance.set_meta("native_area_border_scope",scope.duplicate());instances[index]=instance;stats.published+=1
+			add_child(instance)
+			var reference_hub=get_parent().get_meta("native_reference_hub") if get_parent()!=null and get_parent().has_meta("native_reference_hub") else null
+			var constructed: Dictionary=reference_hub.publish_prefetched_tree(instance) if is_instance_valid(reference_hub) else {"status":"ready"}
+			if constructed.status=="failed":
+				stats.failed+=1;stats.errors.append({"model":name,"reason":str(constructed.reason)})
+				instance.retire()
+			else:
+				instance.position=row.position;instance.rotation.y=float(row.orientation)*PI/2
+				instance.set_meta("native_area_border_index",index);instance.set_meta("native_area_border_scope",scope.duplicate());instances[index]=instance;stats.published+=1
 		if pool.has_method("publication_finished"):pool.publication_finished(unit)
 		if groups[name].is_empty():ready_models.erase(name);groups.erase(name);bundles.erase(name);templates.erase(name)
+		release_reference_name(name)
 	if count>0:stats.publication_frames+=1;stats.max_publish_ms=maxf(float(stats.max_publish_ms),(Time.get_ticks_usec()-began)/1000.0)
 func _process(delta: float)->void:
 	var began:=Timing.begin();tick(delta);Timing.finish("callback_area_border",began)
@@ -160,6 +183,7 @@ func complete()->void:
 	if is_instance_valid(assets):assets.set_process(false)
 	finished.emit(snapshot())
 func fail(reason: String)->void:
+	for token in reference_admissions.keys():release_reference_name(str(reference_admissions[token]))
 	failure=reason
 	if stats.errors.size()<32:stats.errors.append({"reason":reason})
 	complete()
@@ -170,6 +194,7 @@ func worker_tasks()->Array:
 	return tasks
 func begin_retirement()->void:
 	if retiring:return
+	for token in reference_admissions.keys():release_reference_name(str(reference_admissions[token]))
 	retiring=true;generation+=1;hide();set_process(false);waiting.clear();requests.clear();ready_models.clear()
 	if is_instance_valid(loader):loader.retire_scope()
 	if is_instance_valid(assets):assets.retire_scope();assets.set_process(false)

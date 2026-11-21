@@ -8,6 +8,32 @@ var received_speed: Variant = null
 var identified_blocker:=false
 var show_blocker:=false
 var placeable_stats := {"updates": 0, "plays": 0, "unchanged": 0, "missing_clips": [], "unavailable": [], "transient_rest_policy": "server_code_only"}
+var pick_surfaces: Array=[]
+var _pick_bundle: Dictionary={}
+var _pick_pool
+
+func attach_hidden_pick_surfaces(bundle: Dictionary,shared_pool) -> void:
+	if retired or not is_instance_valid(rigs) or not rigs.entities.has(object_id):return
+	var parts: Array=rigs.entities[object_id].model_parts[0]
+	for index in bundle.get("value",{}).get("nodes",[]).size():
+		var row: Dictionary=bundle.value.nodes[index]
+		var data: Dictionary=row.get("mesh",{})
+		if str(row.get("type","trimesh"))!="trimesh" or data.is_empty() or data.get("render",true) or data.get("indices",PackedInt32Array()).is_empty() or index>=parts.size():continue
+		var anchor: Node3D=rigs.node_at(object_id,int(parts[index]))
+		if not is_instance_valid(anchor):continue
+		var geometry: Resource=shared_pool.hidden_geometry(str(bundle.get("sha256","")),index,data)
+		if geometry==null:
+			placeable_stats.unavailable.append("hidden-pick:"+str(index))
+			continue
+		var surface:=Node3D.new()
+		surface.name="hidden_pick_"+str(index)
+		# The original invisible hit mesh is selectable only through its owned
+		# placeable; it is never scenery or a visible model triangle.
+		surface.set_meta("native_object_hit_mesh",true)
+		surface.set_meta("native_pick_geometry",geometry)
+		surface.set_meta("native_pick_bounds",geometry.bounds)
+		anchor.add_child(surface)
+		pick_surfaces.append(surface)
 
 static func requires_animation(state: Dictionary) -> bool:
 	if not state.has("animation"): return false
@@ -24,8 +50,13 @@ func begin_install_placeable(bundle: Dictionary,shared_pool,id: int,state: Dicti
 	var map: Dictionary={}
 	for code in CODES:map[str(code)]=Names.name(9,code)
 	var initial:=int(source_animation);map[str(initial)]=Names.name(9,initial)
-	return begin_install([{"bundle":bundle,"anchor":"","follow":true}],shared_pool,id,{"0":map},initial)
-func finish_install_placeable(state: Dictionary) -> void:observe_placeable(state)
+	var accepted: bool=begin_install([{"bundle":bundle,"anchor":"","follow":true}],shared_pool,id,{"0":map},initial)
+	if accepted:_pick_bundle=bundle;_pick_pool=shared_pool
+	return accepted
+func finish_install_placeable(state: Dictionary) -> void:
+	if not _pick_bundle.is_empty():attach_hidden_pick_surfaces(_pick_bundle,_pick_pool)
+	_pick_bundle={};_pick_pool=null
+	observe_placeable(state)
 
 func install_placeable(bundle: Dictionary, shared_pool, id: int, state: Dictionary) -> bool:
 	actor_alpha_enabled=true
@@ -41,8 +72,13 @@ func install_placeable(bundle: Dictionary, shared_pool, id: int, state: Dictiona
 	# ActorInstance selects and samples this original clip while configuring
 	# the physical rig, before ObjectStream publishes or reveals the instance.
 	if not install([{"bundle": bundle, "anchor": "", "follow": true}], shared_pool, id, {"0": map}, initial): return false
+	attach_hidden_pick_surfaces(bundle,shared_pool)
 	observe_placeable(state)
 	return true
+
+func retire() -> void:
+	_pick_bundle={};_pick_pool=null;pick_surfaces.clear()
+	super.retire()
 
 func observe_placeable(state: Dictionary) -> void:
 	if retired or not is_instance_valid(rigs) or not state.has("animation"): return

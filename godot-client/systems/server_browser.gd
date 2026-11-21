@@ -521,7 +521,8 @@ func receive(message: Dictionary) -> void:
 	for tab in tab_buttons: tab_buttons[tab].set_pressed_no_signal(tab == message.tab)
 	filter_edit.text = str(message.get("filter", "")); sort_edit.select(["Name", "Module", "Players", "Latency"].find(str(message.get("sort", "Players"))))
 	for key in filters: filters[key].set_pressed_no_signal(bool(message.get("filters", {}).get(key, true)))
-	policy_label.text = "Local testing: only 127.0.0.1:5121 is enabled. Internet discovery is off." if message.get("localOnly", true) and not message.get("canDiscover", false) else "Only servers enabled for this session can be queried or joined."
+	var local_port:=int(message.get("localAllowedPort",5121))
+	policy_label.text = "Local testing: 127.0.0.1:5121"+(" and 127.0.0.1:"+str(local_port) if local_port!=5121 else "")+(" are enabled. Internet discovery is off." if local_port!=5121 else " is enabled. Internet discovery is off.") if message.get("localOnly", false) else "Public servers can be queried and joined."
 	key_edit.placeholder_text = "Saved protected key will be used; enter only to replace for this login" if message.get("hasSavedCdKey", false) else "No saved key — enter a key or save one in Options"
 	entries.clear(); selected = -1
 	var fallback: bool=not (entry_context and is_instance_valid(native_browser) and native_browser.layout_ready and str(message.tab) in ["Internet","History","Favorites"])

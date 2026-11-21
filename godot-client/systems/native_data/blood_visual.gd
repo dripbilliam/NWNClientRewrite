@@ -2,7 +2,6 @@ extends RefCounted
 # Original SpawnHitVisuals14080bb10 mode1 and its distinct three model slots.
 # Native row numbers select categories; active tables supply all resource names.
 const M=preload("res://systems/native_render/particle_math.gd")
-const Trig=preload("res://systems/native_data/projectile_orientation.gd")
 const ROWS={"R":[109,112,115],"G":[110,113,116],"Y":[111,114,117],"W":[237,238,239]}
 static func signed16(value: int) -> int:
 	value&=65535
@@ -33,7 +32,7 @@ static func slot(slots: Array,p: Dictionary) -> int:
 			p.destroy.call(slots[i]); slots[i]=null; return i
 	return -1
 static func play_info(runs: Array,name: String) -> float:
-	var key:=name.to_lower()
+	var key:=name.split(String.chr(0))[0].to_lower()
 	for run in runs:
 		if str(run.clip0.name).to_lower()==key: return M.f(float(run.time14))
 	return -1.0
@@ -75,5 +74,5 @@ static func orientation(facing: Array,direction: Array,animation: int,weapon_typ
 		if (animation&65535)==201: offset=-offset
 		if offset!=0: angle=M.f(angle+M.f(offset*M.f(PI/4)))
 	if not negative: angle=M.f(-angle)
-	var half:=M.f(angle*M.f(0.5)); var cx:=Trig.trig(M.f(0.5),true); var sx:=Trig.trig(M.f(0.5),false); var cz:=Trig.trig(half,true); var sz:=Trig.trig(half,false)
+	var half:=M.f(angle*M.f(0.5)); var cx:=M.f(cos(M.f(0.5))); var sx:=M.f(sin(M.f(0.5))); var cz:=M.f(cos(half)); var sz:=M.f(sin(half))
 	return [M.f(cz*cx),M.f(sx*cz),M.f(sz*sx),M.f(sz*cx)]

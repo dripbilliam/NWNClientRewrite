@@ -20,10 +20,12 @@ if($archiveHash -ne $lock.sha256){throw 'Offline Godot archive does not match th
 # This matches the source inputs selected by stage-clean-source.ps1. Recompute
 # immediately after staging; a changed seal means the copy straddled an edit.
 $inputs=[Collections.Generic.List[string]]::new()
-foreach($name in @('project.godot','runtime-lock.json','main.tscn','join-godot.ps1')){$inputs.Add((Join-Path $client $name))}
-foreach($file in Get-ChildItem -LiteralPath $client -File){if($file.Name -match '\.gd(?:\.uid)?$'){$inputs.Add($file.FullName)}}
+foreach($name in @('project.godot','runtime-lock.json','join-godot.ps1')){$inputs.Add((Join-Path $client $name))}
+foreach($file in Get-ChildItem -LiteralPath $client -File){if($file.Name -match '\.gd(?:\.uid)?$' -and $file.Name -notin @('main.gd','main.gd.uid')){$inputs.Add($file.FullName)}}
 foreach($folder in @('systems','data','native','tools')){
  foreach($file in Get-ChildItem -LiteralPath (Join-Path $client $folder) -Recurse -File){
+  # Mirror stage-clean-source.ps1 exactly for the source seal.
+  if($folder -eq 'tools' -and $file.DirectoryName -eq (Join-Path $client 'tools/nwn79') -and $file.Extension -eq '.json' -and $file.Name -ne 'resource-install-validation.json'){continue}
   $include=switch($folder){
    'systems' {$file.Name -match '\.(?:gd|json|tscn|tres|gdshader)(?:\.uid)?$'}
    'data' {$file.Extension -eq '.json'}

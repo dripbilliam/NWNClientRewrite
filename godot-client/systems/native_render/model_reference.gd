@@ -13,7 +13,10 @@ var revision:=0
 var generation:=-1
 var external_anchor: WeakRef
 func _ready() -> void:
-	process_priority=10; add_to_group("native_original_model_references")
+	# The old scene advances model animation before reference attachments.
+	# VisualModel rigs run at 60; projectile owners override this to 52 after
+	# their own rigs at 51.
+	process_priority=61; add_to_group("native_original_model_references")
 	set_meta("native_reference_origin",origin_resource.to_lower())
 	var ancestor:=get_parent(); var ancestors: Array=[origin_resource.to_lower()]; var depth:=0
 	while ancestor!=null:

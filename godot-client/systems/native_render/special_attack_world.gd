@@ -4,6 +4,8 @@ extends RefCounted
 const State=preload("res://systems/native_data/special_attack_visual.gd")
 const Init=preload("res://systems/native_data/special_initialization.gd")
 const Rules=preload("res://systems/native_data/game_ui_rules.gd")
+const EMPTY_FIELDS := {}
+const NO_CLASSES := []
 var manager
 var combat
 var records: Dictionary={}
@@ -16,9 +18,23 @@ var stats:={"events":0,"created":0,"loaded":0,"destroyed":0,"failed":0,"stale":0
 func configure(owner) -> void:
 	manager=owner; combat=manager.world.get("combat")
 	if is_instance_valid(combat): combat.engine.presentation_event.connect(combat_event)
+static func _can_skip_unowned_actor(object: Dictionary) -> bool:
+	var replicated: Variant=object.get("replicated",EMPTY_FIELDS)
+	if not replicated is Dictionary:return false
+	var character_stats: Variant=replicated.get("stats",EMPTY_FIELDS)
+	if not character_stats is Dictionary:return false
+	var classes: Variant=character_stats.get("classes",NO_CLASSES)
+	if not classes is Array:return false
+	for entry in classes:
+		if not entry is Dictionary or (int(entry.get("type",entry.get("id",255)))&255)==5:return false
+	return true
 func observe(object: Dictionary) -> void:
 	if closed: return
-	var id:=int(object.get("id",-1)); var host=manager.host(id)
+	var id:=int(object.get("id",-1))
+	# Both initialization modes require a monk class. The controlled actor
+	# also warms owned feats, and combat can create records without a monk.
+	if id!=int(manager.world.controlled_id) and not records.has(id) and _can_skip_unowned_actor(object):return
+	var host=manager.host(id)
 	if records.has(id) and not valid(records[id]): forget(id); stats.stale+=1
 	if is_instance_valid(host) and not host.retired and manager.world.desired.has(id) and str(manager.world.installed.get(id,""))==str(manager.world.desired[id].key):
 		var feats:=Rules.collect_feats(object); var classes: Array=object.get("replicated",{}).get("stats",{}).get("classes",[])

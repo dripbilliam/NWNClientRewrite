@@ -2,6 +2,7 @@ extends "res://systems/native_render/actor_instance.gd"
 # Private animated physical Parts for received door state. No optimistic open
 # state or local rule result is written back into the authoritative object.
 const Names=preload("res://systems/native_data/object_animation.gd")
+const NetworkDoor=preload("res://systems/native_data/native_network_door.gd")
 var _door_regions=preload("res://tools/native_parity/doors/door_pick_regions.gd").new()
 var received_state:=-1
 var received_animation:=-1
@@ -10,10 +11,53 @@ var remaining:=0.0
 var _transition_hover_active:=false
 var transition_hover_unavailable:=""
 var door_stats:={"updates":0,"transitions":0,"missing_clips":[]}
+var animation_warning: Callable
+var legacy_dwk_points: Array[Vector3]=[]
+func configure_legacy_dwk(surface: Dictionary) -> void:
+	legacy_dwk_points.clear()
+	if surface.has("pick_points"):
+		for point in surface.pick_points:
+			if point is Array and point.size()>=3:legacy_dwk_points.append(Vector3(float(point[0]),float(point[1]),float(point[2])))
+		return
+	var states: Array=surface.get("states",[])
+	if states.is_empty():return
+	var closed: Dictionary=states[0]
+	var vertices: Array=closed.get("vertices",[])
+	for face in closed.get("faces",[]):
+		for index in face:
+			if int(index)<0 or int(index)>=vertices.size():continue
+			var point: Vector3=vertices[int(index)]
+			legacy_dwk_points.append(Vector3(point.x,point.z,-point.y))
+func legacy_dwk_pick(origin: Vector3,end: Vector3) -> Dictionary:
+	if retired or not is_inside_tree() or not is_visible_in_tree() or legacy_dwk_points.is_empty():return {}
+	var low:=Vector3(INF,INF,INF)
+	var high:=Vector3(-INF,-INF,-INF)
+	for point in legacy_dwk_points:
+		var world_point: Vector3=global_transform*point
+		low=low.min(world_point);high=high.max(world_point)
+	low-=Vector3.ONE*0.04;high+=Vector3.ONE*0.04
+	var direction:=end-origin
+	var enter: float=-INF
+	var leave: float=INF
+	for axis in 3:
+		var position: float=origin[axis]
+		var velocity: float=direction[axis]
+		if absf(velocity)<0.0000001:
+			if position<low[axis] or position>high[axis]:return {}
+			continue
+		var first: float=(low[axis]-position)/velocity
+		var second: float=(high[axis]-position)/velocity
+		enter=maxf(enter,minf(first,second));leave=minf(leave,maxf(first,second))
+		if enter>leave:return {}
+	var distance_fraction: float=enter if enter>=0 else leave
+	if distance_fraction<0 or distance_fraction>1:return {}
+	var point:=origin+direction*distance_fraction
+	return {"position":point,"distance":origin.distance_to(point)}
 func begin_install_door(bundle: Dictionary,shared_pool,id: int,state: Dictionary) -> bool:
 	actor_alpha_enabled=true
 	var map: Dictionary={}
 	for code in [0,14,22,50,51,72,77,99,100,213,214,215,216,300,301,302,303,304]:map[str(code)]=Names.name(10,code,int(state.get("destroyedModel",0)))
+	map["72"]="dead";map["305"]="opening3"
 	var initial:=int(state.get("animation",{0:22,1:50,2:51,3:72}.get(Names.door_state(state),22)))
 	return begin_install([{"bundle":bundle,"anchor":"","follow":true}],shared_pool,id,{"0":map},initial)
 func finish_install_door(bundle: Dictionary,state: Dictionary) -> void:
@@ -23,6 +67,7 @@ func install_door(bundle: Dictionary,shared_pool,id: int,state: Dictionary) -> b
 	actor_alpha_enabled=true
 	var map: Dictionary={}
 	for code in [0,14,22,50,51,72,77,99,100,213,214,215,216,300,301,302,303,304]: map[str(code)]=Names.name(10,code,int(state.get("destroyedModel",0)))
+	map["72"]="dead";map["305"]="opening3"
 	var initial:=int(state.get("animation",{0:22,1:50,2:51,3:72}.get(Names.door_state(state),22)))
 	if not install([{"bundle":bundle,"anchor":"","follow":true}],shared_pool,id,{"0":map},initial): return false
 	_door_regions.configure(self,bundle,rigs,id)
@@ -33,10 +78,29 @@ func retire() -> void:
 	_transition_hover_active=false # Actor retirement closes all native runs.
 	_door_regions.retire()
 	super.retire()
+func door_clip_available(code: int) -> bool:
+	if rigs==null or not rigs.entities.has(object_id):return false
+	var name: String=rigs.clip_name(object_id,code)
+	if name.is_empty():return false
+	for model in rigs.entities[object_id].models:
+		if model.get("follow",false) and (model.get("names",{}).has(name) or not rigs._deferred_clip(model,name).is_empty()):return true
+	return false
+func door_clip_length(code: int) -> float:
+	if rigs==null or not rigs.entities.has(object_id):return 0.0
+	var name: String=rigs.clip_name(object_id,code)
+	for model in rigs.entities[object_id].models:
+		if not model.get("follow",false):continue
+		var deferred: Dictionary=rigs._deferred_clip(model,name)
+		if not deferred.is_empty():return float(deferred.length)
+		if model.get("names",{}).has(name):return float(model.player.get_animation(model.names[name]).length)
+	return 0.0
+func warn_animation(code: String,animation: int) -> void:
+	if animation_warning.is_valid():animation_warning.call(code,animation)
 func play_door(code: int,loop: bool) -> float:
-	var length: float=rigs.clip_length(object_id,code)
-	if length<=0:
-		var clip:=Names.name(10,code)
+	var available:=door_clip_available(code)
+	var length: float=door_clip_length(code)
+	if not available:
+		var clip: String=str(rigs.clip_name(object_id,code))
 		if not door_stats.missing_clips.has(clip): door_stats.missing_clips.append(clip)
 		return 0
 	if rigs.entities.has(object_id) and rigs.entities[object_id].models[0].has("native_owner"):
@@ -45,6 +109,19 @@ func play_door(code: int,loop: bool) -> float:
 		if not rigs.play_native(object_id,0,rigs.clip_name(object_id,code),1.0,0 if loop else 1,0.0): return 0
 	else: rigs.set_playback(object_id,code,1.0,loop,true)
 	return length
+func pose_door(code: int) -> bool:
+	if not door_clip_available(code):return false
+	var length: float=door_clip_length(code)
+	var model: Dictionary=rigs.entities[object_id].models[0]
+	if model.has("native_owner"):
+		if not rigs.play_native(object_id,0,rigs.clip_name(object_id,code),0.0,1,length):return false
+		rigs._update(0.0)
+	else:
+		rigs.set_playback(object_id,code,0.0,false,true)
+		if model.player!=null:
+			model.player.seek(length,true)
+			model.player.stop(true)
+	return true
 func begin_transition_hover() -> bool:
 	if retired or rigs==null or not rigs.entities.has(object_id) or received_state not in [1,2,3]: return false
 	if _transition_hover_active: return true
@@ -102,20 +179,25 @@ func snapshot_transition_hover() -> Dictionary:
 	return {"active":_transition_hover_active,"retired":retired,"object_id":object_id,"received_state":received_state,"received_animation":received_animation,"pending_rest":pending_rest,"runs":runs,"unavailable":transition_hover_unavailable}
 func observe_door(state: Dictionary) -> void:
 	if retired or rigs==null: return
-	var next:=Names.door_state(state); var animation:=int(state.get("animation",-1))
+	var visual_state:Variant=NetworkDoor.state(state.get("animation"))
+	var next:int=int(visual_state) if visual_state!=null else -1
+	var animation:=int(state.get("animation",-1))
 	if next==received_state and animation==received_animation: return
 	var previous:=received_state; received_state=next; received_animation=animation; door_stats.updates+=1
-	if animation in [300,301,302,303,304]:
-		pending_rest={300:50,301:51,302:22,303:22,304:72}[animation]; remaining=play_door(animation,false); return
-	if next<0: return
+	if next<0:
+		warn_animation("network.scene-object-animation-unhandled",animation)
+		return
 	var rest: int={0:22,1:50,2:51,3:72}[next]
-	if previous>=0 and previous!=next and next in [0,1,2] and previous in [0,1,2]:
-		var transition: int=(303 if previous==2 else 302) if next==0 else (301 if next==2 else 300)
+	if not door_clip_available(rest):
+		warn_animation("network.scene-animation-unavailable",animation)
+		return
+	if previous>=0:
+		var transition: int=(303 if previous==2 else 302) if next==0 else (305 if next==3 else (301 if next==2 else 300))
 		remaining=play_door(transition,false); pending_rest=rest; door_stats.transitions+=1
 		if remaining>0: return
-	pending_rest=-1; play_door(rest,true)
+	pending_rest=-1; pose_door(rest)
 func _process(delta: float) -> void:
 	if retired or pending_rest<0: return
 	remaining-=delta
 	if remaining<=0:
-		var rest:=pending_rest; pending_rest=-1; play_door(rest,true)
+		var rest:=pending_rest; pending_rest=-1; pose_door(rest)

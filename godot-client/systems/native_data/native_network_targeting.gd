@@ -8,9 +8,15 @@ const TARGET_KINDS=[5,6,7,10,11,12,9,14,13,2]
 static func valid_uint(value: Variant)->bool:
 	return (value is int or value is float) and is_finite(float(value)) and floor(float(value))==float(value) and value>=0 and value<=0xffffffff
 
+static func kinds(mask: int)->Array:
+	# network_script_targeting.js:scriptTargetKinds preserves this exact bit order.
+	var result: Array=[]
+	for bit in TARGET_KINDS.size():
+		if (mask&(1<<bit))!=0:result.append(TARGET_KINDS[bit])
+	return result
+
 static func allowed(mode: Dictionary,object_type: int)->bool:
-	var bit:=TARGET_KINDS.find(object_type)
-	return bit>=0 and (int(mode.get("objectMask",0))&(1<<bit))!=0
+	return kinds(int(mode.get("objectMask",0))).has(object_type)
 
 static func selection_request(target_id: Variant,position: Variant)->Dictionary:
 	# Original client 7c0110 sends 112/6/37 with raw client OBJECT_ID and
@@ -18,7 +24,7 @@ static func selection_request(target_id: Variant,position: Variant)->Dictionary:
 	if not valid_uint(target_id) or not position is Array or position.size()!=3:return {"error":"Invalid native script target selection"}
 	for value in position:
 		if not (value is int or value is float) or not is_finite(float(value)) or not is_finite(float(PackedFloat32Array([float(value)])[0])):
-			return {"error":"Invalid native script target position"}
+			return {"error":"Invalid native script target selection"}
 	var bytes:=PackedByteArray([112,6,37]);bytes.resize(24)
 	bytes.encode_u32(3,23)
 	bytes.encode_u32(7,int(target_id))

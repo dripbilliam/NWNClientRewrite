@@ -13,7 +13,7 @@ static func requires_encryption(bytes: PackedByteArray)->bool:
 func encode(plain: PackedByteArray)->Dictionary:
 	if identity<0 or identity>0xffffffff:return {"error":"Invalid native cryptographic identity"}
 	if not requires_encryption(plain):return {"bytes":plain.duplicate()}
-	var result: Dictionary=crypto.seal(plain)
+	var result: Dictionary=await crypto.seal(plain)
 	if not result.has("bytes"):return result
 	var wire:=PackedByteArray();wire.resize(5);wire[0]=73;wire.encode_u32(1,identity);wire.append_array(result.bytes)
 	return {"bytes":wire}
@@ -21,4 +21,4 @@ func encode(plain: PackedByteArray)->Dictionary:
 func decode(wire: PackedByteArray)->Dictionary:
 	if wire.size()<41 or wire[0]!=73:return {"error":"Invalid native encrypted peer envelope"}
 	if int(wire.decode_u32(1))!=identity:return {"error":"Native encrypted peer identity mismatch"}
-	return crypto.unseal(wire.slice(5))
+	return await crypto.unseal(wire.slice(5))

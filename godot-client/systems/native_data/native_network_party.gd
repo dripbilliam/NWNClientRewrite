@@ -2,6 +2,30 @@ extends RefCounted
 # Original party roster and invitation packets. Membership only reports raw
 # server object IDs; it never creates, removes, or owns replicated creatures.
 const Requirements=preload("res://systems/native_data/native_resource_requirements.gd")
+const PARTY_INPUT_MINORS={"list":2,"leave":6,"kick":7,"transfer":8,"invite":9,"ignore":10,"accept":11,"reject":12}
+
+static func valid_target(value: Variant)->bool:
+	return (value is int or value is float) and is_finite(float(value)) and float(value)==floor(float(value)) and value>=0 and value<=0xffffffff
+
+static func party_request(operation: String,target_id: Variant=null)->Dictionary:
+	if not PARTY_INPUT_MINORS.has(operation):return {"error":"Invalid native party operation"}
+	if operation=="list":
+		if target_id!=null:return {"error":"A party-list refresh has no target"}
+		return {"bytes":PackedByteArray([112,14,2])}
+	if not valid_target(target_id):return {"error":"Invalid native party target"}
+	var bytes:=PackedByteArray([112,14,int(PARTY_INPUT_MINORS[operation]),11,0,0,0]);bytes.resize(12)
+	bytes.encode_u32(7,int(target_id));bytes[11]=0x60
+	return {"bytes":bytes}
+
+static func player_list_gui_request(operation: String,target_id: Variant,include_position: bool)->Dictionary:
+	var event:=12 if operation=="select" else 28 if operation=="tell" else -1
+	if event<0 or not valid_target(target_id):return {"error":"Invalid native player-list GUI request"}
+	var size:=28 if include_position else 16
+	var bytes:=PackedByteArray([112,53,1]);bytes.resize(size)
+	bytes.encode_u32(3,size-1);bytes.encode_u16(7,event);bytes.encode_u16(9,0);bytes.encode_u32(11,int(target_id))
+	# The optional versioned XYZ floats are zero in the original sender.
+	bytes[size-1]=0x60
+	return {"bytes":bytes}
 
 static func accepted(major: int,minor: int)->bool:
 	return major==14 and minor in [1,3,4] or major==36 and minor==3

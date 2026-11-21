@@ -13,8 +13,8 @@ static func prepared_budget() -> int:
 	# from the old serialized-byte charge. This is an eviction threshold, not a
 	# reservation; preserve the prior working set under the new conservative units.
 	return clampi(int(requested),64,4096)*1024*1024 if requested.is_valid_int() else (2048 if Accounting.accounting_available() else 512)*1024*1024
-static func make_store(budget: int,limit: int):
-	var store:=Store.new(); store.maximum_bytes=budget; store.maximum_entries=limit; return store
+static func make_store(budget: int,_limit: int):
+	var store:=Store.new(); store.maximum_bytes=budget; return store
 static func freeze_index(value: Variant) -> void:
 	if value is Dictionary:
 		for item in value.values(): freeze_index(item)

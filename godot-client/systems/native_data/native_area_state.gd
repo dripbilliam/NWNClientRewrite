@@ -8,7 +8,7 @@ static func at_least(build: Dictionary,revision: int,postfix: int=0)->bool:
 	var number:=int(build.get("number",0))
 	var current:=int(build.get("revision",0))
 	var current_postfix:=int(build.get("postfix",0))
-	return number>8193 or number==8193 and (current>revision or current==revision and current_postfix>=postfix)
+	return number>=8193 and (current>revision or current==revision and current_postfix>=postfix)
 
 static func vector(reader: Requirements.Reader)->Array[float]:
 	return [reader.float32(),reader.float32(),reader.float32()]
@@ -33,7 +33,7 @@ static func sound_state(reader: Requirements.Reader)->Dictionary:
 	fields(reader,[0x330,0x334],"float32",value)
 	sound.position=vector(reader)
 	var count:=reader.word()
-	if not bounded_count(reader,count,16):return {"error":"Invalid native sound references"}
+	if not bounded_count(reader,count,16):return {"error":"Invalid native sound-reference count"}
 	var refs: Array[String]=[]
 	for _index in range(count):refs.append(reader.resref())
 	sound.refs=refs
@@ -89,7 +89,7 @@ static func decode_packet(packet: PackedByteArray,build: Dictionary)->Dictionary
 			grass.append(entry)
 	area.grass=grass
 	if at_least(build,36,5):fields(reader,[0x10c],"boolean",f)
-	if int(area.width)<0 or int(area.height)<0 or int(area.width)>100000 or int(area.height)>100000:return {"error":"Invalid native area dimensions"}
+	if int(area.width)<0 or int(area.height)<0:return {"error":"Invalid native area dimensions"}
 	var tile_count:=int(area.width)*int(area.height)
 	if not bounded_count(reader,tile_count,16):return {"error":"Invalid native area tile count"}
 	var tiles: Array[Dictionary]=[]

@@ -21,6 +21,36 @@ static func valid(view: Variant) -> bool:
 	if view.has("override") and (not integer(view.override,0) or view.overrideSource!=OVERRIDE_SOURCE):return false
 	var known:=int(view.knownMask)
 	return view.get("mask")==null if known==0 else integer(view.get("mask"),4294967295) and (int(view.mask)&(~known&0xffffffff))==0
+static func merge(current: Variant,changes: Variant,source: Variant) -> Dictionary:
+	if current!=null and not valid(current):return {"ok":false,"error":"Invalid native skill-admission view"}
+	if not changes is Dictionary or (source!="player" and source!="inventory" and source!="permission"):
+		return {"ok":false,"error":"Invalid native skill-admission input"}
+	var value:Dictionary=current.duplicate(false) if current is Dictionary else {"version":1,"source":SOURCE,"mask":null,"knownMask":0,"playerUpdateSeen":false,"inventoryUpdateSeen":false}
+	var bits:int=0 if value.mask==null else int(value.mask)
+	var known:int=int(value.knownMask)
+	if source=="player" and changes.has("skillFlags"):
+		if not integer(changes.skillFlags,4294967295):return {"ok":false,"error":"Native player skill flags must be a DWORD"}
+		bits=int(changes.skillFlags)
+		known=0xffffffff
+		value.playerUpdateSeen=true
+	elif source=="inventory" and changes.has("skills"):
+		if not changes.skills is Array:return {"ok":false,"error":"Native inventory skill changes are unavailable"}
+		for row in changes.skills:
+			if not row is Dictionary or not integer(row.get("index"),254) or not boolean(row.get("flag")):
+				return {"ok":false,"error":"Invalid native inventory skill flag"}
+			if row.flag==true or (not row.flag is bool and int(row.flag)==1):
+				var bit:int=1<<(int(row.index)&31)
+				bits=(bits|bit)&0xffffffff
+				known=(known|bit)&0xffffffff
+		value.inventoryUpdateSeen=true
+	elif source=="permission" and changes.has("permission"):
+		if not integer(changes.permission,1):return {"ok":false,"error":"Native permission BOOL is unavailable"}
+		if int(changes.permission)==0:
+			value.override=0
+			value.overrideSource=OVERRIDE_SOURCE
+	value.knownMask=known
+	value.mask=null if known==0 else bits
+	return {"ok":true,"value":value}
 static func override_value(view:Variant)->Variant:
 	return 0 if valid(view) and view.has("override") else null
 static func unknown(reason: String) -> Dictionary:return {"available":false,"value":null,"nativeResult":null,"reason":reason}

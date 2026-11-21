@@ -103,6 +103,19 @@ func run() -> void:
 	terrain.collision_index.entries.clear();world.static_collision_index.entries[owner.get_instance_id()]={"node":weakref(owner)};owner.set_meta("world_object_id",91)
 	pointer=Pointer.capture(world,null,ray)
 	check(pointer.hit!=null and pointer.hit.object_id==91,"published static placeable Part can be inspected too")
+	ray.visible_only=true
+	check(Pointer.capture(world,null,ray).hit==null,"Visible scenery inspection skips a collision-only helper")
+	var table_mesh:=MeshInstance3D.new();table_mesh.mesh=BoxMesh.new();owner.add_child(table_mesh)
+	table_mesh.set_meta("native_mesh_source",facts)
+	owner.get_meta("native_scene_parts").append({"node":table_mesh,"data":Geometry.new()})
+	world.desired[91]={"object":{"staticState":{"position":[1,2,3]},"replicated":{"position":[1,2,4]}}}
+	pointer=Pointer.capture(world,null,ray)
+	check(pointer.hit!=null and pointer.hit.part_instance_id==str(table_mesh.get_instance_id()),"Visible scenery inspection selects the visible mesh on the same ray")
+	check(pointer.hit!=null and pointer.hit.placement.static_position.value==[1,2,3] and pointer.hit.placement.replicated_position.value==[1,2,4],"Scenery export preserves both kinds of received positions: "+str(pointer.hit))
+	check(pointer.hit!=null and pointer.hit.placement.owner_position.value==[0.0,0.0,0.0],"Scenery export independently reports the rendered owner position")
+	table_mesh.hide()
+	check(Pointer.capture(world,null,ray).hit==null,"Visible scenery inspection skips hidden render meshes")
+	ray.visible_only=false
 	world.static_collision_index.entries[owner.get_instance_id()].bounds=AABB(Vector3(10,10,10),Vector3.ONE)
 	check(Pointer.capture(world,null,ray).hit==null,"retained broad-phase bounds reject distant scenery")
 	ray.end=[1000,0,0];check(Pointer.capture(world,null,ray).status=="unavailable","ray bound enforced")

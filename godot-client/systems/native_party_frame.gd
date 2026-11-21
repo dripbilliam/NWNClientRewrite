@@ -102,6 +102,7 @@ func update_card(row: Dictionary) -> void:
 			var level: Button=box.get_node("Level"); frame.button(level,definition.level,box,models,false); level.tooltip_text=text_owner.raw({"strRef":0x209a})
 	box.get_node("Health").hide()
 	var portrait: Button=box.get_node("Portrait"); portrait.tooltip_text=str(row.label)+( " %d/%d"%[row.health.current,row.health.maximum] if row.health is Dictionary else "")
+	portrait.add_theme_font_size_override("font_size",24 if str(row.portraitKey).is_empty() else 1)
 	if is_instance_valid(frame.tooltips): frame.tooltips.register_control(portrait)
 	box.get_node("NativeHealth").set_health(row.health)
 	if row.self: box.get_node("Name").hide()
@@ -191,9 +192,10 @@ func cohort_snapshot() -> Dictionary:
 			var portrait_key: String=frame.art.portrait_resource(portrait_resource).to_lower()
 			var portrait: TextureRect=box.get_node("Portrait/Image")
 			var resident: Dictionary=shared.lookup("raster",portrait_key)
-			var displayed: AtlasTexture=portrait.texture as AtlasTexture
+			var displayed: Texture2D=portrait.texture
+			if displayed is AtlasTexture: displayed=displayed.atlas
 			result.images_expected+=1
-			if not resident.is_empty() and displayed!=null and displayed.atlas==resident.texture:result.images_ready+=1
+			if not resident.is_empty() and displayed==resident.texture:result.images_ready+=1
 			elif not shared.failure("raster",portrait_key).is_empty():result.failures.append("Party portrait "+portrait_key+": "+shared.failure("raster",portrait_key))
 			else:result.pending.append("portrait:"+portrait_key)
 		var status: Node=box.get_node("NativeHealth")

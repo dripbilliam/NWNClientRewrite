@@ -20,9 +20,21 @@ static func refresh(material) -> void:
 		# Native GetIsOpaque tests Part and Gob alpha independently. A Part .5
 		# with global2 remains blended even though its product equals1.
 		var blend: bool=material.actor_part_blended or color.a<1.0 or context.colour_shift_active and context.alpha<1.0
-		material.albedo_color=Color(color.r*vector.x,color.g*vector.y,color.b*vector.z,alpha)
-		if changed(material,context,generation,local_revision):continue
+		var composed_color:=Color(color.r*vector.x,color.g*vector.y,color.b*vector.z,alpha)
 		var addition: Vector3=context.selected_emission
+		var alpha_mode: int=BaseMaterial3D.TRANSPARENCY_ALPHA if blend else material.actor_base_transparency
+		if material.has_method("publish_actor_standard_material"):
+			var glow: Color=material.actor_part_emission
+			if addition!=Vector3.ZERO:
+				var raw:=glow.linear_to_srgb()
+				glow=Color(raw.r+addition.x,raw.g+addition.y,raw.b+addition.z).srgb_to_linear()
+			material.publish_actor_standard_material(composed_color,glow,material.actor_part_emission_enabled or addition!=Vector3.ZERO,alpha_mode)
+			if changed(material,context,generation,local_revision):continue
+			if material.actor_alpha_endpoint!=null:material.actor_alpha_endpoint.publish(material,draw)
+			if changed(material,context,generation,local_revision):continue
+			break
+		material.albedo_color=composed_color
+		if changed(material,context,generation,local_revision):continue
 		material.emission_enabled=material.actor_part_emission_enabled or addition!=Vector3.ZERO
 		if changed(material,context,generation,local_revision):continue
 		# RefreshHilite publishes the chosen vector twice: multiplicative diffuse
@@ -40,7 +52,7 @@ static func refresh(material) -> void:
 				if changed(material,context,generation,local_revision):continue
 				material.set_shader_parameter("native_emission",NativeLightPolicy.linear_rgb([sum.r,sum.g,sum.b]))
 		if changed(material,context,generation,local_revision):continue
-		material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA if blend else material.actor_base_transparency
+		material.transparency=alpha_mode
 		if changed(material,context,generation,local_revision):continue
 		if material is StandardMaterial3D:material.depth_draw_mode=BaseMaterial3D.DEPTH_DRAW_DISABLED if blend else material.actor_base_depth_draw
 		if changed(material,context,generation,local_revision):continue

@@ -73,15 +73,14 @@ static func subtract_world_times(a: Dictionary,b: Dictionary,length_value: Varia
 	if result_time>=length:result_day=(result_day-1)&U32;result_time=(result_time+length)&U32
 	return {"ready":true,"status":0,"outputsDefined":true,"day":result_day,"time":result_time}
 static func f32(value: float)->float:return PackedFloat32Array([value])[0]
-static func seconds_to_world_delta(value: float,length_value: Variant,iteration_bound: int=1000000)->Dictionary:
+static func seconds_to_world_delta(value: float,length_value: Variant)->Dictionary:
 	if not integer(length_value):return unavailable("Native seconds-per-day is unknown.")
-	var seconds:=f32(value);var length:=f32(float(u32(length_value)));var day:=0;var iterations:=0
+	var seconds:=f32(value);var length:=f32(float(u32(length_value)));var day:=0
 	if length==0.0:return unavailable("Native FLOAT subtraction would not advance.")
 	while seconds>=length:
-		if iterations>=iteration_bound:return unavailable("Explicit finite component conversion bound reached; no native output is invented.")
 		var next:=f32(seconds-length)
 		if next==seconds:return unavailable("Native FLOAT subtraction would not advance.")
-		seconds=next;day=(day+1)&U32;iterations+=1
+		seconds=next;day=(day+1)&U32
 	if seconds<0.0:return {"ready":true,"day":day,"time":0}
 	var scaled:=f32(seconds*1000.0)
 	# CVTTSS2SI indefinite INT64 has lowDWORD0, including unordered NaN.

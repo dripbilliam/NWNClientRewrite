@@ -5,6 +5,10 @@ const MAX_SIZE:=64*1024*1024
 const MAX_DEPTH:=512
 const NUMBER_MARKERS:=[85,105,73,108,76,100,68]
 const CONTAINER_TYPES:=[90,84,70,85,105,73,108,76,100,68,67,83,72,91,123]
+class BigInteger:
+	extends RefCounted
+	var decimal: String
+	func _init(value: String)->void:decimal=value
 var data:=PackedByteArray()
 var cursor:=0
 var nodes:=0
@@ -98,10 +102,10 @@ func read_value(known_marker: int=-1,depth: int=0)->Variant:
 				var digits:=source.substr(1) if source.begins_with("-") else source
 				var limit:="9223372036854775808" if source.begins_with("-") else "9223372036854775807"
 				if digits.length()<limit.length() or (digits.length()==limit.length() and digits<=limit):return int(source)
-				return {"native64":source}
+				return BigInteger.new(source)
 			if source.contains(".") or source.contains("e") or source.contains("E"):
 				var decimal:=float(source);return decimal if is_finite(decimal) else null
-			return {"native64":source}
+			return BigInteger.new(source)
 		91,123:return read_container(kind,depth)
 		_:return number(kind)
 
@@ -179,6 +183,10 @@ func write_value(value: Variant,depth: int)->void:
 	if depth>MAX_DEPTH:failure="NUI UBJSON nesting limit";return
 	if value==null:append_byte(90);return
 	if value is bool:append_byte(84 if value else 70);return
+	if value is BigInteger:
+		var source: String=str(value.decimal)
+		if RegEx.create_from_string("^-?(?:0|[1-9][0-9]*)$").search(source)==null:failure="Invalid NUI high-precision number";return
+		append_byte(72);write_string(source);return
 	if value is int:write_integer(value);return
 	if value is float:
 		if not is_finite(value):append_byte(90);return
@@ -194,10 +202,6 @@ func write_value(value: Variant,depth: int)->void:
 		append_byte(93)
 		return
 	if value is Dictionary:
-		if value.size()==1 and value.get("native64") is String:
-			var source:=str(value.native64)
-			if RegEx.create_from_string("^-?(?:0|[1-9][0-9]*)$").search(source)==null:failure="Invalid NUI high-precision number";return
-			append_byte(72);write_string(source);return
 		append_byte(123)
 		var keys: Array=value.keys();keys.sort()
 		for key in keys:

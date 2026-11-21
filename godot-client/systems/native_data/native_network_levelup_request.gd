@@ -2,7 +2,7 @@ extends RefCounted
 # Original client 112/29/4 begin and 112/29/0 proposal. The residual byte's
 # lower five bits are native allocator residue; only its upper Create bits are
 # defined. This writer zeroes the undefined bits.
-const Western=preload("res://systems/native_data/native_gff_text.gd")
+const ScriptString=preload("res://systems/native_data/native_script_string.gd")
 
 static func begin()->PackedByteArray:return PackedByteArray([112,29,4])
 
@@ -19,14 +19,9 @@ static func whole(value: Variant,minimum: int,maximum: int)->bool:
 
 static func western_bytes(value: Variant)->Dictionary:
 	if not value is String:return {"error":"Invalid native level-up text"}
-	var bytes:=PackedByteArray()
-	for index in value.length():
-		var code: int=value.unicode_at(index)
-		if code<=255:bytes.append(code)
-		else:
-			var encoded: Dictionary=Western.encode(char(code))
-			if encoded.has("error"):return encoded
-			bytes.append_array(encoded.bytes)
+	var encoded: Dictionary=ScriptString.bytes(value)
+	if encoded.has("error"):return encoded
+	var bytes: PackedByteArray=encoded.value
 	if bytes.size()>255:return {"error":"Native level-up text exceeds bound"}
 	return {"bytes":bytes}
 

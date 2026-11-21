@@ -79,7 +79,7 @@ function Run-Client([string]$report,[string]$fixtureFlag,[string]$phase) {
  $start.CreateNoWindow=$true;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
  $start.Environment['APPDATA']=$userData;$start.Environment['LOCALAPPDATA']=$userData
  foreach($argument in @('--screen',[string]$Screen,'--path',$project,'--script','res://native_direct_session_world.gd','--',
-   '--direct-session',('--direct-install='+$install),('--direct-profile='+$profile),('--direct-settings='+$settings),
+   '--direct-session','--settings-check=true','--direct-local-only=true',('--direct-install='+$install),('--direct-profile='+$profile),('--direct-settings='+$settings),
    ('--report='+$report),'--direct-headless-check=true','--direct-host=127.0.0.1','--direct-port=5121',$fixtureFlag)){$start.ArgumentList.Add($argument)}
  if($phase -eq 'reconnect'){
   $start.ArgumentList.Add('--creation-reconnect-report='+$phase1Report)

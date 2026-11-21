@@ -1,11 +1,35 @@
 extends RefCounted
 const Tables=preload("res://systems/native_data/animation_lookup_tables.gd")
+const ScriptString=preload("res://systems/native_data/native_script_string.gd")
+const ResRef=preload("res://systems/native_data/visual_type10.gd")
 var failure:=""
+static func _atoi(value: Variant) -> int:
+	var expression:=RegEx.new()
+	expression.compile("^\\s*([+-]?\\d+)")
+	var found:=expression.search(str(value) if value!=null else "")
+	return _int32(int(found.get_string(1))) if found!=null else 0
+static func _int32(value: int) -> int:
+	var narrowed:=value&0xffffffff
+	return narrowed-0x100000000 if narrowed>0x7fffffff else narrowed
 func field(tables: Dictionary,name: String,index: int,key: String) -> int:
-	var rows: Array=tables.get(name,{}).get("orderedRows",[])
-	if index<0 or index>=rows.size(): return 0
-	var text:=str(rows[index].get(key,""))
-	return int(text) if text.is_valid_int() else 0
+	var table: Dictionary=tables.get(name,{})
+	var rows: Array=table.get("orderedRows",[])
+	var row: Variant=null
+	if table.has("orderedRows"):
+		if index>=0 and index<rows.size():row=rows[index]
+	else:row=table.get("rows",{}).get(index)
+	if not row is Dictionary:return _atoi(table.get("defaultValue"))
+	var cell: Variant=null
+	var found:=false
+	for column in row:
+		if str(column).to_lower()==key.to_lower():cell=row[column];found=true;break
+	if not found:return _atoi(table.get("defaultValue"))
+	var text:=str(cell)
+	if text.is_empty() or text=="****":return 0
+	var expression:=RegEx.new()
+	expression.compile("(?i)^0x[0-9a-f]+")
+	var hex:=expression.search(text)
+	return _int32(hex.get_string().hex_to_int()) if hex!=null else _atoi(text)
 func equipped(object: Dictionary,slot: int) -> Dictionary:
 	for entry in object.get("appearance",{}).get("equipment",[]):
 		if int(entry.slot)==slot: return entry.get("item",{})
@@ -42,14 +66,22 @@ func name_for(code: int,state: Dictionary,overrides: Array=[]) -> String:
 	if not Tables.CONTEXTS.has(key) or int(state.get("fieldEC",0))!=0 or int(state.get("fieldE8",0))!=0: failure="Original animation context is unsupported"; return ""
 	var chosen: String=("pause1" if body==1 else "cpause1") if code>425 else Tables.NAMES[Tables.ROWS[int(Tables.CONTEXTS[key])][code]]
 	for replacement in overrides:
-		if resref(str(replacement.get("old","")))==chosen.to_lower(): chosen=resref(str(replacement.get("replacement",""))); break
-	return chosen.to_lower()
+		var old_lower:Dictionary=ScriptString.change_case(resref(str(replacement.get("old",""))))
+		if not failure.is_empty():return ""
+		if old_lower.has("error"):failure=old_lower.error;return ""
+		var chosen_lower:Dictionary=ScriptString.change_case(chosen)
+		if chosen_lower.has("error"):failure=chosen_lower.error;return ""
+		if old_lower.value==chosen_lower.value:
+			chosen=resref(str(replacement.get("replacement","")))
+			if not failure.is_empty():return ""
+			break
+	var result:Dictionary=ScriptString.change_case(chosen)
+	if result.has("error"):failure=result.error;return ""
+	return result.value
 func resref(value: String) -> String:
-	var output:=""
-	for index in mini(value.length(),16):
-		if value.unicode_at(index)==0: break
-		output+=value[index]
-	return output.to_lower()
+	var reference:Dictionary=ResRef.object_template_resref(value)
+	if reference.has("error"):failure=str(reference.error);return ""
+	return str(reference.value)
 func maps(state: Dictionary) -> Dictionary:
 	var output: Dictionary={}
 	for side in 3:

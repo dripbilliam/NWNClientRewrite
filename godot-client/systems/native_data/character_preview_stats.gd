@@ -3,7 +3,9 @@ extends RefCounted
 # network_character_preview.js -> characterStats. This is display data only;
 # no creature, world object, item owner, script, or effect is instantiated.
 const Rules=preload("res://systems/native_data/character_preview_rules.gd")
+const RulesetCache=preload("res://systems/native_data/ruleset_cache.gd")
 const Visual=preload("res://systems/native_data/bic_visual.gd")
+const ObjectRules=preload("res://systems/native_data/native_object_rules.gd")
 const ABILITIES=["Str","Dex","Con","Int","Wis","Cha"]
 const SAVE_FEATS={"fortitude":[[14,"GREAT_FORTITUDE_SAVE_BONUS",2],[248,"LUCKY_SAVE_BONUS",1],[388,"STRONG_SOUL_SAVE_BONUS",1],[583,"EPIC_FORTITUDE_SAVE_BONUS",4]],"reflex":[[24,"LIGHTNING_REFLEXES_SAVE_BONUS",2],[248,"LUCKY_SAVE_BONUS",1],[386,"SNAKE_BLOOD_REFLEX_BONUS",1],[585,"EPIC_REFLEXES_REFLEX_BONUS",4]],"will":[[22,"IRON_WILL_SAVE_BONUS",2],[248,"LUCKY_SAVE_BONUS",1],[380,"BULLHEADED_WILL_SAVE_BONUS",1],[388,"STRONG_SOUL_SAVE_BONUS",1],[695,"EPIC_WILL_SAVE_BONUS",4]]}
 const SAVE_COLUMNS={"fortitude":"FortSave","reflex":"RefSave","will":"WillSave"}
@@ -16,6 +18,7 @@ static func _field(row: Dictionary,name: String)->Variant:
 	return null
 static func _number(value: Variant,fallback: int=0)->int:
 	if value==null or str(value) in ["","****"]:return fallback
+	if value is String and str(value).strip_edges().to_lower().begins_with("0x") and str(value).strip_edges().is_valid_hex_number(true):return str(value).strip_edges().hex_to_int()
 	return int(value)
 static func _row(table: Dictionary,index: int)->Dictionary:
 	var ordered: Variant=table.get("orderedRows",[])
@@ -24,19 +27,17 @@ static func _row(table: Dictionary,index: int)->Dictionary:
 	return rows.get(index,{}) if rows is Dictionary else {}
 static func _int_entry(table: Dictionary,index: int,column: String)->Dictionary:
 	var row:=_row(table,index)
-	var value: Variant=_field(row,column)
-	if row.is_empty() or value==null:return {"found":false,"value":_number(table.get("defaultValue","0"))}
+	var value: Variant=null;var present:=false
+	for key in row:
+		if str(key).to_lower()==column.to_lower():value=row[key];present=true;break
+	if not present:return {"found":false,"value":ObjectRules.atoi(table.get("defaultValue"))}
 	if str(value) in ["","****"]:return {"found":false,"value":0}
 	var text:=str(value)
-	return {"found":true,"value":text.hex_to_int() if text.to_lower().begins_with("0x") else int(text)}
+	var hex:=RegEx.create_from_string("^0[xX][0-9a-fA-F]+").search(text)
+	return {"found":true,"value":ObjectRules.signed32(hex.get_string().hex_to_int() if hex!=null else ObjectRules.atoi(text))}
 static func _rule(tables: Dictionary,label: String,fallback: int)->int:
-	var ruleset: Dictionary=tables.get("ruleset",{})
-	var found:=false;var value:=fallback
-	for row in ruleset.get("orderedRows",[]):
-		if not row is Dictionary:continue
-		if str(_field(row,"Label"))==label and str(_field(row,"Value")) not in ["","****"]:
-			found=true;value=_number(_field(row,"Value"))
-	return value if found else fallback
+	var key: Dictionary=RulesetCache.hash_key(label)
+	return int(tables.get("_native_resolved_ruleset",{}).get(key.get("value",""),fallback)) if key.error.is_empty() else fallback
 static func _modifier(score: int,tables: Dictionary)->Dictionary:
 	var neutral:=_rule(tables,"CHARGEN_ABILITY_NEUTRAL_VALUE",10)
 	var increment:=_rule(tables,"CHARGEN_ABILITY_MODIFIER_INCREMENT",2)
@@ -63,20 +64,43 @@ static func _equipment(document: Dictionary)->Dictionary:
 		items.append({"data":item,"slot":int(document.struct_types[index]),"source":"equipped:"+str(at)})
 	return {"items":items}
 static func _ability_effect_bonus(items: Array,tables: Dictionary,ability: int)->Dictionary:
-	var up_sum:=0;var down_sum:=0;var up_slots:=0;var down_slots:=0
+	var pools: Array=[[],[]]
+	for pool in pools:
+		for slot in 50:pool.append({"amount":-1,"item":""})
 	for item in items:
-		var up:=0;var down:=0;var has_up:=false;var has_down:=false
 		for prop in item.data.get("PropertiesList",[]):
 			if not prop is Dictionary or int(prop.get("PropertyName",-1)) not in [0,27] or int(prop.get("Subtype",-1))!=ability:continue
 			var increase:=int(prop.PropertyName)==0;var cost_id:=1 if increase else 21
 			var cost: Dictionary=tables.itemCosts.get(cost_id,{})
 			var row: Dictionary=cost.get("rows",{}).get(int(prop.get("CostValue",-1)),{})
-			if row.is_empty() or _field(row,"Value")==null:return {"error":"Unknown equipment ability modifier cost value."}
-			var amount:=maxi(0,_number(_field(row,"Value")))
-			if increase:up=maxi(up,amount);has_up=true
-			else:down=maxi(down,amount);has_down=true
-		if has_up and up_slots<50:up_sum+=up;up_slots+=1
-		if has_down and down_slots<50:down_sum+=down;down_slots+=1
+			var value: Variant=_field(row,"Value")
+			if row.is_empty() or value==null:return {"error":"Unknown equipment ability modifier cost value."}
+			var text:=str(value).strip_edges()
+			var hexadecimal:=text.to_lower().begins_with("0x")
+			if hexadecimal:
+				if text.length()<=2:return {"error":"Unknown equipment ability modifier cost value."}
+				for digit in text.substr(2):
+					if not "0123456789abcdef".contains(str(digit).to_lower()):return {"error":"Unknown equipment ability modifier cost value."}
+			elif not text.is_empty() and not text.is_valid_float():return {"error":"Unknown equipment ability modifier cost value."}
+			var numeric:=0.0 if text.is_empty() else float(text.hex_to_int()) if hexadecimal else float(text)
+			if not is_finite(numeric):return {"error":"Unknown equipment ability modifier cost value."}
+			var amount:=ObjectRules.signed32(maxi(0,int(numeric)))
+			var pool: Array=pools[0 if increase else 1]
+			var source: String=str(item.get("source",""))
+			var matched: Dictionary={}
+			for slot in pool:
+				if str(slot.item)==source:matched=slot;break
+			if not matched.is_empty():
+				if int(matched.amount)<amount:matched.amount=amount
+			else:
+				for slot in pool:
+					if int(slot.amount)==-1:
+						slot.item=source;slot.amount=amount;break
+	var up_sum:=0;var down_sum:=0
+	for slot in pools[0]:
+		if int(slot.amount)!=-1:up_sum=ObjectRules.signed32(up_sum+int(slot.amount))
+	for slot in pools[1]:
+		if int(slot.amount)!=-1:down_sum=ObjectRules.signed32(down_sum+int(slot.amount))
 	return {"value":mini(up_sum,12)-mini(down_sum,30)}
 static func _abilities(root: Dictionary,tables: Dictionary,items: Array)->Dictionary:
 	var race: Dictionary=tables.racialtypes.get("rows",{}).get(int(root.get("Race",-1)),{})
@@ -127,47 +151,65 @@ static func _hit_points(root: Dictionary,tables: Dictionary,constitution: int,fe
 	elif current<base or base+constitution*level>level:current=_i16(maximum+current-base)
 	else:current=maximum
 	return {"maximum":maximum,"current":current}
-static func _pre_epic(root: Dictionary)->Array:
+static func _js_integer(value: Variant)->bool:
+	return typeof(value)==TYPE_INT or typeof(value)==TYPE_FLOAT and is_finite(value) and floorf(value)==value
+static func _pre_epic(root: Dictionary)->Dictionary:
 	var classes: Array=root.get("ClassList",[]);var total:=0
 	for cls in classes:total+=int(cls.get("ClassLevel",0))
 	total&=255
 	var history: Array=root.get("LvlStatList",[]);var result: Array=[]
 	if history.size()==total:
+		for row in history:
+			if not row is Dictionary or not _js_integer(row.get("LvlStatClass",0) if row.get("LvlStatClass")!=null else 0) or not _js_integer(row.get("EpicLevel",0) if row.get("EpicLevel")!=null else 0):return {"error":"Invalid combat level history attribution"}
 		for cls in classes:
 			var count:=0
 			for row in history:
 				if (int(row.get("LvlStatClass",0))&255)==int(cls.get("Class",-1)) and int(row.get("EpicLevel",0))==0:count+=1
 			result.append(count)
-		return result
+		return {"levels":result}
 	var allocated:=0
 	for cls in classes:
 		var count:=mini(int(cls.get("ClassLevel",0)),20-allocated);allocated+=count;result.append(count)
-	return result
+	return {"levels":result}
 static func _table_bonus(table: Dictionary,levels: int,column: String,require_found: bool=false)->int:
 	if table.is_empty() or levels<1 or levels>60:return 0
 	var entry:=_int_entry(table,(levels&255)-1,column)
 	return (0 if require_found and not entry.found else int(entry.value))&255
 static func _base_combat(root: Dictionary,tables: Dictionary,feats: Dictionary,charisma: int)->Dictionary:
-	var classes: Array=root.get("ClassList",[]);var pre_epic:=_pre_epic(root)
-	var class_attack:=0;var class_saves: Dictionary={"fortitude":0,"reflex":0,"will":0};var level:=0
+	if not tables.has("classTables") or not tables.has("epicattacks") or not tables.has("epicsaves") or not tables.has("ruleset"):return {"error":"Combat rules are not loaded"}
+	if charisma < -128 or charisma > 127:return {"error":"Combat requires the live signed-byte Charisma modifier"}
+	var classes: Array=root.get("ClassList",[]);var history:=_pre_epic(root)
+	if history.has("error"):return history
+	var pre_epic: Array=history.levels
+	var contributions: Array=[];var class_attack:=0;var class_saves: Dictionary={"fortitude":0,"reflex":0,"will":0};var level:=0
 	for at in classes.size():
 		var cls: Dictionary=classes[at];level+=int(cls.get("ClassLevel",0))
 		var row:=_row(tables.classes,int(cls.get("Class",-1)))
-		if row.is_empty():return {"error":"Combat class rules are unavailable."}
+		if row.is_empty():return {"error":"Combat class %s rules are unavailable" % str(cls.get("Class",-1))}
 		var attack: Dictionary=tables.classTables.get(str(row.get("AttackBonusTable","")).to_lower(),{})
 		var saves: Dictionary=tables.classTables.get(str(row.get("SavingThrowTable","")).to_lower(),{})
-		if attack.is_empty() or saves.is_empty():return {"error":"Combat class bonus rules are unavailable."}
-		class_attack+=_table_bonus(attack,int(pre_epic[at]),"BAB",true)
-		for name in SAVE_COLUMNS:class_saves[name]+= _table_bonus(saves,int(pre_epic[at]),str(SAVE_COLUMNS[name]))
+		if attack.is_empty():return {"error":"Combat BAB table is unavailable"}
+		var attack_value:=_table_bonus(attack,int(pre_epic[at]),"BAB",true)
+		class_attack+=attack_value
+		var contribution_saves: Dictionary={}
+		for name in SAVE_COLUMNS:
+			if saves.is_empty():return {"error":"Combat %s table is unavailable" % str(SAVE_COLUMNS[name])}
+			var save_value:=_table_bonus(saves,int(pre_epic[at]),str(SAVE_COLUMNS[name]))
+			class_saves[name]+=save_value;contribution_saves[name]=save_value
+		contributions.append({"classId":cls.get("Class",-1),"preEpicLevels":pre_epic[at],"attack":attack_value,"saves":contribution_saves})
 	var epic:=maxi(0,(level&255)-20)
-	var base: Dictionary={}
+	var epic_attack:=_table_bonus(tables.epicattacks,epic,"BAB")
+	var base: Dictionary={};var save_breakdown: Dictionary={}
 	var divine_grace:=maxi(0,charisma) if feats.has(217) else 0
 	for name in SAVE_COLUMNS:
-		var bonus:=0
+		var bonus:=0;var feat_bonuses: Array=[]
 		for entry in SAVE_FEATS[name]:
-			if feats.has(int(entry[0])):bonus+=_rule(tables,str(entry[1]),int(entry[2]))
-		base[name]=_i8(_i8(int(class_saves[name]))+_table_bonus(tables.epicsaves,epic,str(SAVE_COLUMNS[name]))+divine_grace+bonus)
-	return {"baseAttackBonus":class_attack+_table_bonus(tables.epicattacks,epic,"BAB"),"baseSaves":base}
+			if feats.has(int(entry[0])):
+				var value:=_rule(tables,str(entry[1]),int(entry[2]));bonus+=value;feat_bonuses.append({"feat":int(entry[0]),"value":value})
+		var class_bonus:=_i8(int(class_saves[name]));var epic_bonus:=_table_bonus(tables.epicsaves,epic,str(SAVE_COLUMNS[name]))
+		var total:=_i8(class_bonus+epic_bonus+divine_grace+bonus)
+		base[name]=total;save_breakdown[name]={"classBonus":class_bonus,"epicBonus":epic_bonus,"divineGrace":divine_grace,"featBonuses":feat_bonuses,"total":total}
+	return {"baseAttackBonus":class_attack+epic_attack,"baseAttackBonusWithoutEpic":class_attack,"baseSaves":base,"breakdown":{"classes":contributions,"epicLevels":epic,"epicAttack":epic_attack,"overrideBaseAttackBonus":0,"saves":save_breakdown}}
 static func _base_item(item: Dictionary,tables: Dictionary)->Dictionary:
 	return _row(tables.baseitems,int(item.get("data",{}).get("BaseItem",-1))) if not item.is_empty() else {}
 static func _item_armor(item: Dictionary,tables: Dictionary)->Dictionary:
@@ -256,6 +298,7 @@ static func _natural(root: Dictionary,tables: Dictionary,modifiers: Dictionary,f
 		var row:=_row(tables.classes,id)
 		var table: Dictionary=tables.classTables.get(str(row.get("StatGainTable","")).to_lower(),{})
 		if table.is_empty():continue
+		if (int(cls.get("ClassLevel",0))&255)>60:return {"error":"Native natural AC gain beyond the 60-entry class table is not supported"}
 		var gain:=0
 		for level in int(cls.get("ClassLevel",0))&255:gain+=int(_int_entry(table,level,"NaturalAC").value)
 		total+=_i8(gain)
@@ -272,6 +315,7 @@ static func _armor(root: Dictionary,tables: Dictionary,modifiers: Dictionary,fea
 	if shield_armor.has("error"):return shield_armor
 	var armor:=int(chest_armor.value);var shield:=int(shield_armor.value)
 	var natural:=_natural(root,tables,modifiers,feats,armor,left)
+	if natural.has("error"):return natural
 	var dexterity:=int(modifiers.Dex)
 	if armor>0:
 		var cap:=int(_int_entry(tables.armor,armor,"dexbonus").value)
@@ -301,6 +345,9 @@ static func project(document: Dictionary,snapshot: Dictionary)->Dictionary:
 	var parsed:=Rules.decode(snapshot)
 	if not parsed.get("ready",false):return {"error":str(parsed.get("error","Character preview rules are unavailable."))}
 	var tables: Dictionary=parsed.tables;var root: Dictionary=document.root
+	var compiled_ruleset: Dictionary=RulesetCache.compile_checked(tables.ruleset)
+	if not compiled_ruleset.error.is_empty():return {"error":str(compiled_ruleset.error)}
+	tables["_native_resolved_ruleset"]=compiled_ruleset.values
 	var equipped:=_equipment(document)
 	if equipped.has("error"):return equipped
 	var items: Array=equipped.items;var feats:=_feats(root)
@@ -318,4 +365,7 @@ static func project(document: Dictionary,snapshot: Dictionary)->Dictionary:
 	for cls in root.ClassList:level+=int(cls.get("ClassLevel",0))
 	var xp_row: Dictionary=tables.exptable.get("rows",{}).get(level,{})
 	var xp: Variant=_field(xp_row,"XP")
+	# characterStats calls importCreatureGender before returning its preview;
+	# the displayed network Gender remains the unmodified authored field.
+	if root.has("Gender") and not (root.Gender is int or root.Gender is float and is_finite(root.Gender) and floorf(root.Gender)==root.Gender):return {"error":"Native appearance stats genderA4 is unavailable."}
 	return {"ready":true,"abilities":abilities.values,"abilityModifiers":abilities.modifiers,"hitPoints":hp.maximum,"currentHitPoints":hp.current,"nextExperience":_number(xp) if xp!=null and str(xp)!="****" else null,"armorClass":armor.value,"saves":saves,"baseAttackBonus":base.baseAttackBonus}

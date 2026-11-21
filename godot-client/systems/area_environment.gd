@@ -15,6 +15,10 @@ var sample: Dictionary = {}
 var range_state: Dictionary = {}
 var updates := 0
 var colors: Dictionary = {}
+var area_light_period: String = ""
+var area_light_ambient: Array = []
+var area_light_diffuse: Array = []
+var area_light_fields: Dictionary = {}
 var phase_updates := 0
 var sky
 var weather = preload("res://systems/weather_state.gd").new()
@@ -66,6 +70,7 @@ func receive_sky(message: Dictionary) -> bool:
 	return true
 
 func configure(metadata: Dictionary,room: Node) -> void:
+	area_light_period=""; area_light_ambient.clear(); area_light_diffuse.clear(); area_light_fields.clear()
 	lighting_world=weakref(room)
 	native_enhanced_lighting=room.get_meta("native_enhanced_lighting",false)
 	native_surface_output=room.get_meta("native_surface_output",false)
@@ -94,6 +99,10 @@ func configure(metadata: Dictionary,room: Node) -> void:
 static func rgb(v: Array) -> Color: return Color(float(v[0]),float(v[1]),float(v[2]))
 static func packed(value: int) -> Array:
 	return [Core.f(float(value&255)/255.0),Core.f(float((value>>8)&255)/255.0),Core.f(float((value>>16)&255)/255.0)]
+static func has_light_energy(channels: Array) -> bool:
+	for channel in channels:
+		if float(channel)>0.0: return true
+	return false
 
 func receive(message: Dictionary) -> bool:
 	var next := int(message.get("revision",-1))
@@ -106,8 +115,23 @@ func receive(message: Dictionary) -> bool:
 	var period := int(state.time.get("timeOfDay",-1))
 	if period < 0 or period > 4: return false
 	source = state.duplicate(true); elapsed = Core.f(state.elapsed); revision = next
+	# setAreaLighting configures every authored shadow-casting child from the
+	# area's raw ShadowOpacity. Model-light admission consumes this per-world
+	# value independently of the phase-sampled directional sunlight.
+	var room=lighting_world.get_ref() if lighting_world!=null else null
+	if is_instance_valid(room): room.set_meta("native_area_model_shadow_opacity",clampf(float(fields["104"])/255.0,0.0,1.0))
 	if is_instance_valid(sky) and sky.has_method("select_sky"): sky.select_sky(int(fields.e0))
 	colors = {"moonAmbient":packed(int(fields["98"])),"moonDiffuse":packed(int(fields["9c"])),"moonFog":packed(int(fields.a0)),"sunAmbient":packed(int(fields.b8)),"sunDiffuse":packed(int(fields.bc)),"sunFog":packed(int(fields.c0))}
+	# NetworkScene.lighting() is applied once when the old client enters an
+	# area. Its sun-first selection does not change with later time headers.
+	if area_light_period.is_empty():
+		var sun_has_light:=has_light_energy(colors.sunAmbient) or has_light_energy(colors.sunDiffuse)
+		var moon_has_light:=has_light_energy(colors.moonAmbient) or has_light_energy(colors.moonDiffuse)
+		area_light_period="sun" if sun_has_light else "moon" if moon_has_light else "unlit"
+		var selected: String="sun" if sun_has_light else "moon"
+		area_light_ambient=colors[selected+"Ambient"].duplicate()
+		area_light_diffuse=colors[selected+"Diffuse"].duplicate()
+		for key in ["a8","ac","b0","b4","c8","cc","d0","d4","104"]: area_light_fields[key]=fields.get(key,0)
 	sample.clear()
 	environment.fog_enabled = not native_surface_output
 	environment.fog_mode = Environment.FOG_MODE_DEPTH
@@ -144,10 +168,10 @@ func advance(delta: float) -> void:
 		# Godot decodes the color property into its linear framebuffer. The
 		# candidate framebuffer instead carries native gamma-space values.
 		environment.background_color = fog.linear_to_srgb() if native_surface_output else fog
-		environment.ambient_light_color = rgb(sample.ambient)
-		if native_enhanced_lighting: preload("res://systems/native_render/native_light_palette.gd").ambient(preload("res://systems/native_render/native_light_policy.gd").linear_rgb(sample.ambient))
+		environment.ambient_light_color = rgb(area_light_ambient)
+		if native_enhanced_lighting: preload("res://systems/native_render/native_light_palette.gd").ambient(preload("res://systems/native_render/native_light_policy.gd").linear_rgb(area_light_ambient))
 		environment.fog_light_color = fog
-		_apply_sun(fields)
+		_apply_sun()
 		phase_updates += 1
 	var room=lighting_world.get_ref() if lighting_world!=null else null
 	var reference: WeakRef=room.get_meta("native_focus_light_owner") if is_instance_valid(room) and room.has_meta("native_focus_light_owner") else null
@@ -157,7 +181,7 @@ func advance(delta: float) -> void:
 	var geometry_fog:=Color.BLACK if is_instance_valid(focus_owner) and focus_owner.only_light_owner()!=0 else rgb(sample.fog)
 	if environment.fog_light_color!=geometry_fog: environment.fog_light_color=geometry_fog
 	if is_instance_valid(focus_owner):
-		focus_owner.set_area(sample.ambient,sample.diffuse)
+		focus_owner.set_area(area_light_ambient,area_light_diffuse)
 		focus_owner.history_camera=weakref(camera); focus_owner.history_environment=weakref(self)
 		if is_instance_valid(controller): focus_owner.focus=controller.target
 	var distance: float = float(controller.distance) if is_instance_valid(controller) else 20.0
@@ -184,20 +208,22 @@ func apply_native_area_light(ambient: Vector3,diffuse: Vector3) -> void:
 	preload("res://systems/native_render/native_light_palette.gd").ambient(ambient)
 	if is_instance_valid(sunlight): sunlight.light_color=Color(diffuse.x,diffuse.y,diffuse.z).linear_to_srgb()
 
-func _apply_sun(fields: Dictionary) -> void:
-	var moon: bool = sample.isNight
-	var direction := Vector3(float(fields.get("ac" if moon else "cc",0)),float(fields.get("b4" if moon else "d4",0)),-float(fields.get("b0" if moon else "d0",0)))
-	if not direction.is_zero_approx():
-		var z := direction.normalized()
-		sunlight.global_basis = Basis.looking_at(-z,Vector3.RIGHT if absf(z.dot(Vector3.UP)) > .999 else Vector3.UP)
-	# No guessed light direction for old packets that omit the direction.
-	sunlight.light_color = rgb(sample.diffuse)
+func _apply_sun() -> void:
+	var moon: bool = area_light_period!="sun"
+	var direction := Vector3(float(area_light_fields.get("ac" if moon else "cc",0)),float(area_light_fields.get("b4" if moon else "d4",0)),-float(area_light_fields.get("b0" if moon else "d0",0)))
+	# setAreaLighting accepts an authored axis only when some native component
+	# exceeds 1e-6. With diffuse energy but no axis it uses this preview vector.
+	var authored:=absf(direction.x)>0.000001 or absf(direction.y)>0.000001 or absf(direction.z)>0.000001
+	var z:=direction.normalized() if authored else Vector3(-0.35,1.0,0.45).normalized()
+	sunlight.global_basis = Basis.looking_at(-z,Vector3.RIGHT if absf(z.dot(Vector3.UP)) > .999 else Vector3.UP)
+	sunlight.light_color = rgb(area_light_diffuse)
 	if native_enhanced_lighting:
-		var value: Vector3=preload("res://systems/native_render/native_light_policy.gd").linear_rgb(sample.diffuse)
+		var value: Vector3=preload("res://systems/native_render/native_light_policy.gd").linear_rgb(area_light_diffuse)
 		sunlight.light_color=Color(value.x,value.y,value.z).linear_to_srgb()
-	sunlight.light_energy = 1.0 if not direction.is_zero_approx() else 0.0
-	sunlight.shadow_enabled = bool(fields.a8 if moon else fields.c8)
-	sunlight.shadow_opacity = sample.shadow
+	var has_diffuse:=has_light_energy(area_light_diffuse)
+	sunlight.light_energy = 1.0 if has_diffuse else 0.0
+	sunlight.shadow_enabled = has_diffuse and float(area_light_fields.a8 if moon else area_light_fields.c8)>0.0
+	sunlight.shadow_opacity = clampf(float(area_light_fields["104"])/255.0,0.0,1.0)
 
 func snapshot() -> Dictionary:
 	return {"revision":revision,"updates":updates,"phaseUpdates":phase_updates,"elapsed":elapsed,"sample":sample.duplicate(true),"range":range_state.duplicate(true),"fog":environment.fog_enabled,"native_surface_output":native_surface_output,"native_fog":preload("res://systems/native_render/native_surface_state.gd").snapshot() if native_surface_output else {},"background":[environment.background_color.r,environment.background_color.g,environment.background_color.b],"sky":sky.snapshot() if is_instance_valid(sky) else null,"weather":weather.snapshot() if weather_revision >= 0 else null}

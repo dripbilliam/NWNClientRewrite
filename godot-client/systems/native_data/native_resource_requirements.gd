@@ -2,6 +2,7 @@ extends RefCounted
 const Text=preload("res://systems/native_data/native_gff_text.gd")
 class Reader extends RefCounted:
 	const Western=preload("res://systems/native_data/native_gff_text.gd")
+	static func f(value: float)->float:return Vector3(value,0.0,0.0).x
 	var bytes:=PackedByteArray()
 	var byte_size:=0
 	var byte_cursor:=0
@@ -55,7 +56,7 @@ class Reader extends RefCounted:
 		expect_type(7)
 		return sized_unsigned(bits)
 	func sized_unsigned(bits: int)->int:
-		if bits<0 or bits>32:error="Invalid native unsigned width";return 0
+		if bits<0 or bits>64:error="Invalid native unsigned width";return 0
 		var result:=0;var left:=bits
 		for size in [4,2,1]:
 			while left>=size*8:
@@ -63,9 +64,9 @@ class Reader extends RefCounted:
 				var part:=raw(size)
 				if part.size()!=size:return 0
 				var value:=part.decode_u32(0) if size==4 else part.decode_u16(0) if size==2 else int(part[0])
-				result=(result << (size*8)) | value
+				result=((result << (size*8)) | value) & 0xffffffff
 				left-=size*8
-		if left>0:result=(result << left) | unsigned(left)
+		if left>0:result=((result << left) | unsigned(left)) & 0xffffffff
 		return result
 	func signed(bits: int)->int:
 		if bits<2 or bits>32:error="Invalid native signed width";return 0
@@ -107,12 +108,13 @@ class Reader extends RefCounted:
 	func float_scaled(scale: float,bits: int)->float:
 		if bits==32 and scale==1.0:return float32()
 		expect_type(11)
-		return float(sized_unsigned(bits))/scale
+		return f(float(sized_unsigned(bits))/f(scale))
 	func float_range(minimum: float,maximum: float,bits: int)->float:
 		if bits==32:return float32()
 		expect_type(11)
-		var denominator: float=float((1 << bits)-1)
-		return float(sized_unsigned(bits))*(maximum-minimum)/denominator+minimum
+		minimum=f(minimum);maximum=f(maximum)
+		var denominator: float=f(float((1 << bits)-1))
+		return f(float(sized_unsigned(bits))*f(f(maximum-minimum)/denominator)+minimum)
 	func string()->String:
 		expect_type(14);expect_type(8)
 		var size_bytes:=raw(4)

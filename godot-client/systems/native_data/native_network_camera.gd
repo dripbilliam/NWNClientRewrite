@@ -12,7 +12,7 @@ static func decode_packet(packet: PackedByteArray)->Dictionary:
 	var minor:=int(packet[2])
 	var reader:=Requirements.Reader.new()
 	if not reader.configure(packet.slice(3)):
-		return {"error":"Invalid native camera stream: "+reader.error}
+		return {"error":"Invalid native module-time bit streams"}
 	var message: Dictionary={"major":16,"minor":minor}
 	match minor:
 		1:
@@ -30,5 +30,5 @@ static func decode_packet(packet: PackedByteArray)->Dictionary:
 		10:message.kind="camera-attach";message.objectId=reader.object_id();message.findClearView=reader.boolean()
 		12:message.kind="camera-flags";message.flags=reader.signed_dword()
 	if not reader.finished():
-		return {"error":"Invalid native camera fields: "+(reader.error if not reader.error.is_empty() else "stream incomplete")}
+		return {"error":"Invalid native camera fields"}
 	return message

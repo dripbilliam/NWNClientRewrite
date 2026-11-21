@@ -57,8 +57,6 @@ func setup(owner, storage: String) -> void:
 	identify.pressed.connect(func(): transact("identify")); actions.add_child(identify)
 	examine = Button.new(); examine.text = "Examine"; examine.focus_mode = Control.FOCUS_NONE
 	examine.pressed.connect(func():
-		if native_skin!=null and native_skin.built():
-			inventory.examine_mode=not inventory.examine_mode; examine.set_pressed_no_signal(inventory.examine_mode); return
 		var id := entry()
 		if id >= 0: inventory.operation(id, "examine"))
 	actions.add_child(examine)
@@ -91,6 +89,9 @@ func entry() -> int:
 		if int(inventory.items[id].itemId) == selected_item: return id
 	return -1
 
+func store_pending(id: int) -> bool:
+	return native_skin!=null and native_skin.owner_inventory!=null and native_skin.owner_inventory.store_pending_ids.has(id)
+
 func render(store: Dictionary) -> void:
 	if not store.get("open", false) or not inventory.wanted: reset(); return
 	var first := not visible
@@ -105,7 +106,7 @@ func render(store: Dictionary) -> void:
 		if not button.position.is_equal_approx(repository.item_position(row)) or not button.size.is_equal_approx(repository.item_size(row)): retire_stock(int(id))
 	for index in tabs.size():
 		tabs[index].text = str(store.labels[index]) if index < store.get("labels", []).size() else str(index + 1)
-		tabs[index].disabled = int(store.panel) == index or store.get("navigationPending", false)
+		tabs[index].disabled = store.get("navigationPending", false)
 	pager.text = "%s / %s" % [int(store.page) + 1, int(store.pageCount)]
 	previous.disabled = int(store.pageCount) <= 1 or store.get("navigationPending", false); next.disabled = previous.disabled
 	gold.text = "Store gold: %s" % int(store.gold) if int(store.gold) != -1 else ""
@@ -129,7 +130,7 @@ func render(store: Dictionary) -> void:
 				if native_skin!=null: native_skin.clear_hover(id))
 		inventory.register_button(row, button)
 	var id := entry()
-	if id < 0 or selected_generation != int(store.generation) or selected_price != int(inventory.items[id].get("price", -1)) or selected_channel != str(inventory.items[id].channel):
+	if id < 0 or selected_generation != int(store.generation) or selected_channel != str(inventory.items[id].channel):
 		clear_selection()
 	elif id >= 0: select_item(id, false)
 	if native_skin!=null: native_skin.render(store)
@@ -139,23 +140,25 @@ func select_item(id: int, raise_window: bool = true) -> void:
 	if not inventory.items.has(id): return
 	var row: Dictionary = inventory.items[id]
 	if row.channel not in ["M", "R", "I"]: return
+	if row.channel in ["R", "I"] and native_skin!=null:
+		var owner= native_skin.owner_inventory
+		var location: Dictionary=owner.objects.get(int(row.itemId),{}).get("inventoryLocation",{}) if owner!=null else {}
+		if owner==null or int(location.get("ownerId",-1))!=int(owner.controlled_id):return
 	var store: Dictionary = inventory.state.get("store", {})
 	if not store.get("open", false): return
 	selected_item = int(row.itemId); selected_price = int(row.price); selected_generation = int(store.generation)
 	selected_channel = str(row.channel)
 	var buy: bool = row.channel == "M"
-	prompt.text = "%s — %s for %s gold?" % [str(row.name), "Buy" if buy else "Sell", selected_price]
-	confirm.text = "Buy" if buy else "Sell"; confirm.disabled = row.pending
-	identify.visible = row.get("canIdentify", false)
-	identify.text = "Identify (%s gold)" % int(store.identifyPrice); identify.disabled = row.pending
+	prompt.text = "%s for %s gold?" % ["Buy" if buy else "Sell", selected_price]
+	confirm.text = "Buy" if buy else "Sell"; confirm.disabled = row.pending or store_pending(int(row.itemId))
+	identify.visible = not buy and row.get("canIdentify", false)
+	identify.text = "Identify (%s gold)" % int(store.identifyPrice); identify.disabled = row.pending or store_pending(int(row.itemId))
 	selection.show()
 	if raise_window: show(); move_to_front()
 	if native_skin!=null: native_skin.selection_changed(raise_window)
 
 func command(operation: String, fields: Dictionary = {}) -> void:
 	if not inventory.wanted or not inventory.state.get("store", {}).get("open", false): return
-	if operation=="panel" and int(fields.get("panel",-1))==int(inventory.state.store.get("panel",-2)): return
-	clear_selection()
 	var message := {"kind": "inventory-store", "viewId": inventory.view_id, "operation": operation}
 	message.merge(fields)
 	inventory.request.emit(message)
@@ -170,7 +173,7 @@ func transact(operation: String = "") -> void:
 	if id < 0: return
 	var row: Dictionary = inventory.items[id]
 	var store: Dictionary = inventory.state.get("store", {})
-	if row.pending or selected_generation != int(store.get("generation", -1)) or selected_price != int(row.get("price", -1)): return
+	if row.pending or store_pending(int(row.itemId)) or selected_generation != int(store.get("generation", -1)): return
 	command(operation if not operation.is_empty() else ("buy" if row.channel == "M" else "sell"), {"entryId": id})
 func blocks_pointer(point: Vector2) -> bool:
 	return visible and get_global_rect().has_point(point) or native_skin!=null and native_skin.selection_blocks(point)

@@ -3,8 +3,10 @@ extends RefCounted
 # Color row zero is therefore TGA row zero, without a second texture flip.
 const Raster=preload("res://systems/native_data/texture_data.gd")
 const Cache=preload("res://systems/native_data/prepared_cache.gd")
+const CacheWrites=preload("res://systems/native_data/prepared_write_queue.gd")
 const Conversion=preload("res://systems/native_data/raster_conversion.gd")
 const NAMES=["pal_skin01","pal_hair01","pal_armor01","pal_armor02","pal_cloth01","pal_cloth01","pal_leath01","pal_leath01","pal_tattoo01","pal_tattoo01"]
+const WORKER_TIMEOUT_ERROR:="Resource worker task timed out"
 var failure:=""
 var use_native:=Conversion.configured_enabled()
 var stats:={"native_pixels":0,"gd_pixels":0,"palette_coalesced":0}
@@ -31,13 +33,14 @@ func header(bytes: PackedByteArray) -> Dictionary:
 			var layer:=mini(bytes[25+pixel*2],NAMES.size()-1); mask|=1<<layer
 			if not used.has(NAMES[layer]): used.append(NAMES[layer])
 	return {"width":width,"height":height,"palettes":used,"layer_mask":mask}
-func decode(bytes: PackedByteArray, palettes: Dictionary, color_rows: Array=[]) -> Dictionary:
+func decode(bytes: PackedByteArray, palettes: Dictionary, color_rows: Array=[],worker_fallback: bool=false) -> Dictionary:
 	stats.native_pixels=0; stats.gd_pixels=0
 	var info:=header(bytes)
 	if info.is_empty(): return {}
 	for name in info.palettes:
 		var palette: Dictionary=palettes.get(name,{})
-		if palette.get("format")!="rgba8" or int(palette.get("width",0))!=256 or int(palette.get("height",0))<1 or palette.get("mips",[]).is_empty(): return reject("Original PLT palette is invalid: "+name)
+		if palette.get("format")!="rgba8" or int(palette.get("width",0))!=256 or int(palette.get("height",0))<1 or palette.get("mips",[]).is_empty():
+			return reject("BioWare PLT palette "+name+" is unavailable or invalid." if worker_fallback else "Original PLT palette is invalid: "+name)
 		if not palette.mips[0].get("data") is PackedByteArray or palette.mips[0].data.size()!=int(palette.height)*256*4: return reject("Original PLT palette pixels are invalid: "+name)
 	if use_native and Conversion.available:
 		var lookup:=PackedByteArray(); lookup.resize(NAMES.size()*256*4)
@@ -70,39 +73,53 @@ func decode(bytes: PackedByteArray, palettes: Dictionary, color_rows: Array=[]) 
 func parse_palette(raw: PackedByteArray) -> Dictionary:
 	var parser:=Raster.new(); parser.use_native=use_native; var data:=parser.parse(raw,3)
 	return {"value":data,"error":parser.failure,"conversion":parser.stats.duplicate()}
-func palette_data(raw: PackedByteArray,store) -> Dictionary:
+func palette_data(raw: PackedByteArray,store,worker_timeout_ms: int=0) -> Dictionary:
 	var generation: int=store.generation() if store!=null else -1
 	var request_key:="palette-tga-2:"+Cache.digest(raw)
 	var lease: Dictionary=store.begin_data(request_key,generation,false) if store!=null else {"owner":true}
 	if not lease.owner:
-		return {"value":lease.value.value,"error":lease.value.error,"decoded":false,"coalesced":int(lease.wait_us)>0,"wait_ms":int(lease.wait_us)/1000.0}
+		var coalesced:=int(lease.wait_us)>0
+		var expired:=coalesced and worker_timeout_ms>0 and int(lease.value.get("decode_us",0))>=worker_timeout_ms*1000
+		return {"value":{} if expired else lease.value.value,"error":WORKER_TIMEOUT_ERROR if expired else lease.value.error,"decoded":false,"coalesced":coalesced,"wait_ms":int(lease.wait_us)/1000.0}
+	var began:=Time.get_ticks_usec()
 	var parsed:=parse_palette(raw); var data: Dictionary=parsed.value
-	var value:={"value":data,"error":parsed.error}
+	var decode_us:=Time.get_ticks_usec()-began
+	var expired:=worker_timeout_ms>0 and decode_us>=worker_timeout_ms*1000
+	var value:={"value":data,"error":parsed.error,"decode_us":decode_us}
 	# Palette source graphs are immutable to all consumers. Publish once without
 	# duplicating the pixel graph; followers cannot race a second cold decode.
 	if store!=null:
-		if str(parsed.error).is_empty(): store.save_data(request_key,request_key,value,generation,data.mips[0].data.size()+2048,true)
+		if not expired and str(parsed.error).is_empty(): store.save_data(request_key,request_key,value,generation,data.mips[0].data.size()+2048,true)
+		# A coalesced caller applies its own deadline. GUI callers can use the
+		# parse result even when a worker caller rejects it for elapsed time.
 		store.finish_data(request_key,generation,value)
-	return {"value":data,"error":parsed.error,"decoded":true,"coalesced":false,"wait_ms":0.0,"conversion":parsed.conversion}
-func prepare(catalog, name: String, color_rows: Array, cache_path: String="",icon_metal: bool=false) -> Dictionary:
+	return {"value":{} if expired else data,"error":WORKER_TIMEOUT_ERROR if expired else parsed.error,"decoded":true,"coalesced":false,"wait_ms":0.0,"conversion":parsed.conversion}
+func prepare(catalog, name: String, color_rows: Array, cache_path: String="",icon_metal: bool=false,source_bytes: Variant=null,worker_timeout_ms: int=0,report_failure: Callable=Callable(),defer_write: bool=false) -> Dictionary:
 	stats={"native_pixels":0,"gd_pixels":0,"palette_coalesced":0}
-	var began:=Time.get_ticks_usec(); var bytes: PackedByteArray=catalog.get_resource(name,6)
+	# The scene caller has already selected the first readable PLT candidate.
+	# Reuse those exact bytes while keeping all palette reads and cache identity.
+	var began:=Time.get_ticks_usec(); var bytes: PackedByteArray=source_bytes if source_bytes is PackedByteArray else catalog.get_resource(name,6)
 	var info:=header(bytes) if catalog.failure.is_empty() else {}
 	if info.is_empty(): return {"error":catalog.failure if not catalog.failure.is_empty() else failure}
+	var worker_fallback:=worker_timeout_ms>0
 	var palettes: Dictionary={}; var palette_sources: Dictionary={}; var dependencies: Array=[]; var rows: Array=[]
 	for layer in NAMES.size(): rows.append(color_rows[layer] if layer<color_rows.size() else 0)
 	for palette_name in info.palettes:
 		# Original UpdateIcons uses palette type3 for both metal icon channels.
 		var selected_name: String="pal_armor02" if icon_metal and palette_name=="pal_armor01" else palette_name
 		var raw: PackedByteArray=catalog.get_resource(selected_name,3)
-		if not catalog.failure.is_empty(): return {"error":catalog.failure}
+		if not catalog.failure.is_empty():
+			if not worker_fallback: return {"error":catalog.failure}
+			if report_failure.is_valid():report_failure.call("texture.palette-unavailable",catalog.failure,{"resRef":selected_name},"error")
+			catalog.failure=""
+			continue
 		palette_sources[palette_name]=raw; dependencies.append([palette_name,Cache.digest(raw)])
 	# A palette edit, per-part color change or PLT edit creates a new identity.
 	# Pool texture keys and the persistent cache cannot alias two color sets.
 	var source_sha:=Cache.digest(bytes); var identity:=Cache.digest(var_to_bytes(["plt-original-1",source_sha,dependencies,rows]))
 	var cache:=Cache.new(); var cached:=not cache_path.is_empty() and cache.configure(cache_path)
 	var decoder:="plt-original"; var key:=Cache.key(identity,decoder)
-	if cached:
+	if cached and palette_sources.size()==info.palettes.size():
 		var saved:=cache.load_data(key,identity,decoder)
 		if not saved.is_empty(): return {"value":saved,"error":"","sha256":identity,"source_sha256":source_sha,"cache_hit":true,"palette_dependencies":dependencies,"prepare_ms":(Time.get_ticks_usec()-began)/1000.0}
 	# Dependency bytes must still be hashed before lookup, so edits invalidate
@@ -110,15 +127,30 @@ func prepare(catalog, name: String, color_rows: Array, cache_path: String="",ico
 	var palette_decodes:=0
 	var palette_timings: Array=[]
 	for palette_name in info.palettes:
+		if not palette_sources.has(palette_name):continue
 		var raw: PackedByteArray=palette_sources[palette_name]
 		var store=catalog.preparation_cache() if catalog.has_method("preparation_cache") else null
-		var prepared:=palette_data(raw,store)
+		var prepared:=palette_data(raw,store,worker_timeout_ms)
 		palette_timings.append({"name":palette_name,"decoded":prepared.decoded,"coalesced":prepared.coalesced,"wait_ms":prepared.wait_ms,"conversion":prepared.get("conversion",{})})
-		if not str(prepared.error).is_empty(): return {"error":palette_name+": "+str(prepared.error)}
+		if not str(prepared.error).is_empty():
+			if not worker_fallback: return {"error":palette_name+": "+str(prepared.error)}
+			if report_failure.is_valid():report_failure.call("texture.palette-unavailable",str(prepared.error),{"resRef":palette_name},"error")
+			continue
 		if prepared.decoded: palette_decodes+=1
 		if prepared.coalesced: stats.palette_coalesced+=1
 		palettes[palette_name]=prepared.value
-	var value:=decode(bytes,palettes,rows)
+	# A failed image is absent from the palette map. The PLT decode determines
+	# whether an authored layer needs it and owns the caller-visible error.
+	var decode_began:=Time.get_ticks_usec() if worker_fallback else 0
+	var value:=decode(bytes,palettes,rows,worker_fallback)
+	if worker_fallback and Time.get_ticks_usec()-decode_began>=worker_timeout_ms*1000:return {"error":WORKER_TIMEOUT_ERROR}
 	if not failure.is_empty(): return {"error":failure}
-	if cached: cache.save_data(key,identity,decoder,value)
+	if cached and Cache.configured_writes_enabled():
+		if defer_write:
+			# The decoded texture is ready. A declined optional cache packet
+			# must never send this model worker back through disk trim.
+			var pixel_bytes: PackedByteArray=value.mips[0].data
+			CacheWrites.enqueue(cache.directory,key,identity,decoder,value.duplicate(true),pixel_bytes.size()+2048)
+		else:
+			cache.save_data(key,identity,decoder,value)
 	return {"value":value,"error":"","sha256":identity,"source_sha256":source_sha,"cache_hit":false,"palette_dependencies":dependencies,"palette_decodes":palette_decodes,"palette_timings":palette_timings,"conversion":stats.duplicate(),"prepare_ms":(Time.get_ticks_usec()-began)/1000.0}

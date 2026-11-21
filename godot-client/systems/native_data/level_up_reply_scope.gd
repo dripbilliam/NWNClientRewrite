@@ -37,6 +37,17 @@ static func metadata(value: Variant) -> Dictionary:
 	if result.is_empty():return {}
 	result.merge({"version":1,"owner":value.owner,"entry":int(value.entry),"request":int(value.request),"operation":value.operation,"token":int(value.token)})
 	return result
+static func capture(command: Variant) -> Dictionary:
+	# The original host captured this before levelUp() and echoed only this copy.
+	# A missing field is valid for older non-UI commands; a malformed present
+	# field must refuse dispatch without exposing its content in the error.
+	if not command is Dictionary:return {"error":"Invalid local level-up reply scope"}
+	if not command.has("levelRequest"):return {"ready":true,"value":null}
+	var value: Dictionary=metadata(command.levelRequest)
+	if value.is_empty():return {"error":"Invalid local level-up reply scope"}
+	for key in ["operation","generation","areaId","actorId"]:
+		if not command.has(key) or command[key]!=value[key]:return {"error":"Invalid local level-up reply scope"}
+	return {"ready":true,"value":value}
 func open(value: Dictionary,entry: int) -> bool:
 	retire()
 	var scoped:=context(value)
