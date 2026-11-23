@@ -65,6 +65,8 @@ func configure(owner, id: int, data: Dictionary) -> bool:
 	clock = Clock.new()
 	add_child(clock)
 	clock.configure(phase)
+	if ClassDB.class_exists("NwnParticleKernel") and ClassDB.class_has_method("NwnParticleKernel","advance_quiet_visual_clock"):
+		clock.quiet_host_available=_phase_host_available
 	clock.set_process(false) # The physical effect list advances clocks in order.
 	return true
 
@@ -102,6 +104,10 @@ func _view(id: int) -> Variant:
 	if pivot == null: return null
 	var position: Vector3 = pivot.global_position
 	return {"id": id, "privateToken":token, "type": int(row.get("type", 5)), "prefix": str(row.get("prefix", "")), "position38": [position.x, -position.z, position.y]}
+
+func _phase_host_available(id: int) -> bool:
+	var row: Dictionary = definition.get("hosts", {}).get(str(id), {})
+	return manager.host(id,int(row.get("privateToken",0)))!=null
 
 func _anchor(view: Dictionary, name: String) -> Node3D:
 	return manager.anchor(int(view.id),int(view.get("privateToken",0)),name)

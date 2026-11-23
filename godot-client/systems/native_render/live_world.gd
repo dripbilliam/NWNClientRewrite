@@ -84,6 +84,7 @@ func admit_static_draw(id: int) -> void:
 	if is_instance_valid(base_draw_merge) and instances.has(id):base_draw_merge.consider_instance(id,instances[id])
 func _init() -> void:
 	motion.facing_target_query=motion_target_position
+	motion.use_native_batch=ClassDB.class_exists("NwnParticleKernel") and ClassDB.class_has_method("NwnParticleKernel","advance_world_motion")
 func motion_target_position(id: int) -> Variant:
 	if closed or retiring or not desired.has(id): return null
 	var source: Dictionary=desired[id].object
@@ -710,6 +711,9 @@ func _profile_process(delta: float) -> void:
 		FrameProfile.count("count_motion_active",int(motion.evaluation_stats.last_active))
 		FrameProfile.count("count_motion_facing_steps",int(motion.evaluation_stats.last_facing_steps))
 		FrameProfile.count("count_motion_targeted",int(motion.evaluation_stats.last_targeted))
+		if motion.use_native_batch:
+			FrameProfile.count("count_motion_native_settled",motion.native_batch_counts.x)
+			FrameProfile.count("count_motion_native_paths",motion.native_batch_counts.y)
 		var controlled_motion: Dictionary=motion.objects.get(controlled_id,{})
 		FrameProfile.count("count_controlled_motion_active",int(controlled_motion.get("active",false)))
 		FrameProfile.count("count_controlled_drive_held",int(controlled_motion.get("driveHeld",false)))

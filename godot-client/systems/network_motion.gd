@@ -27,6 +27,8 @@ var _position_emission_states: Dictionary={}
 # collection when its detailed frame profiler is off; direct diagnostics retain
 # the historical default and the motion result is identical either way.
 var collect_diagnostics:=true
+var use_native_batch:=false
+var native_batch_counts:=Vector2i.ZERO
 var evaluation_stats:={"updates":0,"rows":0,"stationary_settled":0,"stationary_cardinal":0,"stationary_deadband":0,"facing_steps":0,"last_rows":0,"last_stationary_settled":0,"last_facing_steps":0,"last_active":0,"last_correcting":0,"last_targeted":0}
 func evaluation_snapshot() -> Dictionary:return evaluation_stats.duplicate()
 
@@ -270,6 +272,9 @@ func step_path(state: Dictionary, amount: float) -> Dictionary:
 		if remaining <= 1 and f(f(direction.x * state.orientation.x) + f(direction.y * state.orientation.y)) < f(-0.707):
 			direction = -direction
 			state.animation = 3
+	return {"position": _resolve_path_support(state,position), "direction": direction, "done": done}
+
+func _resolve_path_support(state: Dictionary,position: Vector3) -> Vector3:
 	if support_query.is_valid():
 		support_stats.queries+=1
 		var support: Variant=support_query.call(position,state.position.z)
@@ -287,7 +292,7 @@ func step_path(state: Dictionary, amount: float) -> Dictionary:
 				support_stats.malformed+=1; support_stats.last_reason="Malformed client support projection"
 	else:
 		position.z = f(float(height_query.call(position, state.position.z))) if height_query.is_valid() else state.position.z
-	return {"position": position, "direction": direction, "done": done}
+	return position
 
 func support_snapshot() -> Dictionary:
 	return support_stats.duplicate()
@@ -391,77 +396,30 @@ func update(seconds: float) -> void:
 	var notify_update:=_position_update
 	var diagnostics:=collect_diagnostics
 	var evaluated:=0;var settled:=0;var cardinal_rows:=0;var deadband_rows:=0;var full_steps:=0;var active_rows:=0;var correcting:=0;var targeted:=0
-	for id in objects:
-		var state: Dictionary = objects[id]
+	if use_native_batch:
+		var step:=_advance_row.bind(dt,pending)
+		var totals: Dictionary=ClassDB.class_call_static("NwnParticleKernel","advance_world_motion",objects,step,diagnostics,dt)
+		if not totals.completed:
+			push_error("Native world motion batch stopped before completing")
 		if diagnostics:
-			evaluated+=1
-			if state.active:active_rows+=1
-			if int(state.correction)!=0:correcting+=1
-		var facing_target:=int(state.get("facingTarget",0x7f000000))
-		if diagnostics and facing_target!=0x7f000000 and facing_target!=int(id):targeted+=1
-		state.correctionCue = null
-		if state.active and not state.path.is_empty() and path_animation(int(state.animation)):
-			var prior_position: Variant=state.position if notify else null
-			var gait := distance(state, dt)
-			var step := step_path(state, float(gait.distance))
-			state.position = step.position
-			state.render = correct(state, step.position, dt)
-			state.movementDirection = step.direction
-			state.gait = {"animation": state.animation, "rate": gait.rate, "script": state.script, "factor": state.factor, "acceleration": gait.acceleration}
-			if step.done:
-				state.active = false
-				state.acceleration = 0.0
-				state.script = 0
-				state.finished = true
-			if notify and state.position!=prior_position:
-				pending.append({"id":int(id),"state":state,"position":state.position})
-		elif int(state.correction) != 0:
-			state.render = correct(state, state.position, dt)
-		# Most creatures have no live facing target. The resolver returns
-		# immediately for those rows; avoid its second Dictionary lookup and call.
-		if facing_target!=0x7f000000 and facing_target!=int(id):
-			update_facing_target(int(id),state)
-		var target: Vector3 = state.targetOrientation
-		if state.active and path_animation(int(state.animation)):
-			target = state.get("previewFacing", state.orientation) if state.script != 0 and state.get("previewBase", false) else state.get("movementDirection", state.targetOrientation)
-		# Exact native-math fixed bearing. General inputs keep f32 normalization: a
-		# numerically equal input can still change by one float step, or carry
-		# signed zero. No vector cache/approximate comparison masks that work.
-		# For dot==1, the original turn branch cannot run (cos(angle)<=1),
-		# and no animation requests are generated for any animation/dt.
-		if not state.active:
-			var old: Vector3=state.orientation
-			# Unit cardinal inputs have length1 exactly in the original f32
-			# arithmetic. Copy the *target's* zero signs, not the old facing's.
-			if old.is_finite() and (absf(target.x)==1.0 and target.y==0.0 and old.x==target.x or absf(target.y)==1.0 and target.x==0.0 and old.y==target.y):
-				state.orientation=Vector3(target.x,target.y,0);state.facingTurn=null
-				if diagnostics:
-					settled+=1
-					cardinal_rows+=1
-				continue
-			var desired:=normalized32(Vector3(target.x,target.y,0))
-			var dot:=f(f(f(old.y*desired.y)+f(old.x*desired.x))+f(old.z*desired.z))
-			if dot==1.0:
-				state.orientation=normalized32(desired);state.facingTurn=null
-				if diagnostics:settled+=1
-				continue
-			# Preserve the original idle/turn deadband, including its deliberate
-			# unchanged old orientation rather than snapping to the target.
-			if dot<1.0 and dot>=f(0.99) and int(state.get("visualAnimation",state.animation)) in [0,1,53,54]:
-				state.facingTurn=null
-				if diagnostics:
-					settled+=1
-					deadband_rows+=1
-				continue
-		var animation:=int(state.get("visualAnimation", state.animation))
-		if diagnostics:full_steps+=1
-		if animation not in [0,1,53,54]:
-			state.orientation=facing_orientation_no_request(state.orientation,target,animation,dt)
-			state.facingTurn=null
-		else:
-			var facing_result := facing_step(state.orientation,target,animation,dt,{"modelType":state.modelType,"restored":state.restingBase})
-			state.orientation = facing_result.orientation
-			state.facingTurn = null if facing_result.requests.is_empty() else facing_result.requests[0]
+			evaluated=totals.rows; active_rows=totals.active; correcting=totals.correcting; targeted=totals.targeted
+			settled=totals.settled; cardinal_rows=totals.cardinal; deadband_rows=totals.deadband; full_steps=totals.full
+			native_batch_counts=Vector2i(int(totals.native_settled),int(totals.native_paths))
+	else:
+		for id in objects:
+			var state: Dictionary = objects[id]
+			if diagnostics:
+				evaluated+=1
+				if state.active:active_rows+=1
+				if int(state.correction)!=0:correcting+=1
+			var facing_target:=int(state.get("facingTarget",0x7f000000))
+			if diagnostics and facing_target!=0x7f000000 and facing_target!=int(id):targeted+=1
+			var branch:=_advance_row(int(id),state,null,dt,pending)
+			if diagnostics:
+				if branch!=0: settled+=1
+				if branch==1: cardinal_rows+=1
+				if branch==3: deadband_rows+=1
+				if branch==0: full_steps+=1
 	if diagnostics:
 		evaluation_stats.updates+=1
 		evaluation_stats.rows+=evaluated
@@ -477,6 +435,80 @@ func update(seconds: float) -> void:
 		evaluation_stats.last_targeted=targeted
 	if notify and not pending.is_empty():
 		_publish_positions(pending,notify_scope,notify_update)
+
+# Return the settled-facing branch for the frame counters. Active path and
+# support callbacks execute at the original row boundary in either loop.
+func _advance_row(id: int,state: Dictionary,native_path: Variant,dt: int,pending: Variant) -> int:
+	var facing_target:=int(state.get("facingTarget",0x7f000000))
+	state.correctionCue = null
+	var notify: bool=pending!=null
+	if state.active and not state.path.is_empty() and path_animation(int(state.animation)):
+		var prior_position: Variant=state.position if notify else null
+		var gait: Dictionary
+		var step: Dictionary
+		var position: Vector3
+		if native_path is Dictionary:
+			gait=native_path
+			step=native_path
+			if state.script==0: state.acceleration=gait.acceleration
+			if state.cursor!=step.cursor: state.cursor+=int(step.cursor)-int(state.cursor)
+			if state.animation!=step.animation: state.animation=step.animation
+			position=_resolve_path_support(state,step.position)
+		else:
+			gait=distance(state,dt)
+			step=step_path(state,float(gait.distance))
+			position=step.position
+		state.position = position
+		state.render = correct(state, position, dt)
+		state.movementDirection = step.direction
+		state.gait = {"animation": state.animation, "rate": gait.rate, "script": state.script, "factor": state.factor, "acceleration": gait.acceleration}
+		if step.done:
+			state.active = false
+			state.acceleration = 0.0
+			state.script = 0
+			state.finished = true
+		if notify and state.position!=prior_position:
+			pending.append({"id":int(id),"state":state,"position":state.position})
+	elif int(state.correction) != 0:
+		state.render = correct(state, state.position, dt)
+	# Most creatures have no live facing target. The resolver returns
+	# immediately for those rows; avoid its second Dictionary lookup and call.
+	if facing_target!=0x7f000000 and facing_target!=int(id):
+		update_facing_target(int(id),state)
+	var target: Vector3 = state.targetOrientation
+	if state.active and path_animation(int(state.animation)):
+		target = state.get("previewFacing", state.orientation) if state.script != 0 and state.get("previewBase", false) else state.get("movementDirection", state.targetOrientation)
+	# Exact native-math fixed bearing. General inputs keep f32 normalization: a
+	# numerically equal input can still change by one float step, or carry
+	# signed zero. No vector cache/approximate comparison masks that work.
+	# For dot==1, the original turn branch cannot run (cos(angle)<=1),
+	# and no animation requests are generated for any animation/dt.
+	if not state.active:
+		var old: Vector3=state.orientation
+		# Unit cardinal inputs have length1 exactly in the original f32
+		# arithmetic. Copy the *target's* zero signs, not the old facing's.
+		if old.is_finite() and (absf(target.x)==1.0 and target.y==0.0 and old.x==target.x or absf(target.y)==1.0 and target.x==0.0 and old.y==target.y):
+			state.orientation=Vector3(target.x,target.y,0);state.facingTurn=null
+			return 1
+		var desired:=normalized32(Vector3(target.x,target.y,0))
+		var dot:=f(f(f(old.y*desired.y)+f(old.x*desired.x))+f(old.z*desired.z))
+		if dot==1.0:
+			state.orientation=normalized32(desired);state.facingTurn=null
+			return 2
+		# Preserve the original idle/turn deadband, including its deliberate
+		# unchanged old orientation rather than snapping to the target.
+		if dot<1.0 and dot>=f(0.99) and int(state.get("visualAnimation",state.animation)) in [0,1,53,54]:
+			state.facingTurn=null
+			return 3
+	var animation:=int(state.get("visualAnimation", state.animation))
+	if animation not in [0,1,53,54]:
+		state.orientation=facing_orientation_no_request(state.orientation,target,animation,dt)
+		state.facingTurn=null
+	else:
+		var facing_result := facing_step(state.orientation,target,animation,dt,{"modelType":state.modelType,"restored":state.restingBase})
+		state.orientation = facing_result.orientation
+		state.facingTurn = null if facing_result.requests.is_empty() else facing_result.requests[0]
+	return 0
 
 func _publish_positions(pending: Array,scope: int,revision: int) -> void:
 	if scope!=_position_scope or revision!=_position_update:return

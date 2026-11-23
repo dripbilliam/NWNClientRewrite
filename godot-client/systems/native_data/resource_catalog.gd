@@ -28,7 +28,7 @@ func _init() -> void:
 	prepared_store.maximum_bytes=Residency.prepared_budget(); prepared_store.maximum_entries=2048
 var bif_store := BifStore.new()
 var bifs: Dictionary = bif_store.entries # Read-only view outside get_resource.
-var stats := {"index_bytes":0,"payload_bytes":0,"reads":0,"lookup_us":0,"lookups":0,"loose_read_us":0,"archive_read_us":0,"bif_index_wait_us":0,"nwsync_read_us":0,"nwsync_wait_us":0,"nwsync_pipe_us":0,"nwsync_decode_us":0,"source_memory_hits":0,"source_coalesced_wait_us":0,"source_requests":0}
+var stats := {"index_bytes":0,"payload_bytes":0,"reads":0,"lookup_us":0,"lookups":0,"loose_read_us":0,"archive_read_us":0,"bif_index_wait_us":0,"nwsync_read_us":0,"nwsync_wait_us":0,"nwsync_pipe_us":0,"nwsync_decode_us":0,"nwsync_manifest_bytes":0,"nwsync_manifest_generation_hits":0,"source_memory_hits":0,"source_coalesced_wait_us":0,"source_requests":0}
 func count_source_cache(timing: Dictionary) -> void:
 	for name in ["cache_read_us","cache_save_us","cache_prune_us","raw_cache_us"]:
 		var key: String="nwsync_"+str(name); stats[key]=int(stats.get(key,0))+int(timing.get(name,0))
@@ -106,6 +106,8 @@ func mount_nwsync(manifest_hash: String, cache_directory: String, native_directo
 	if not store.configure(cache_directory,native_directory,helper,raw_cache_directory): failure="Native NWSync store is unavailable"; return false
 	var manifest:=store.manifest(manifest_hash)
 	if manifest.has("error"): failure=manifest.error; store.close(); return false
+	stats.nwsync_manifest_bytes+=int(manifest.get("installed_manifest_export_bytes",0))
+	stats.nwsync_manifest_generation_hits+=int(manifest.get("installed_manifest_generation_hit",false))
 	layers.append({"kind":"nwsync","priority":priority,"serial":layers.size(),"storage_class":5,"store":store,"entries":manifest.entries,"binding_identity":"nwsync:"+str(manifest.identity)})
 	invalidate()
 	layers.sort_custom(func(a,b): return a.priority>b.priority or (a.priority==b.priority and a.serial<b.serial))

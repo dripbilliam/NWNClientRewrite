@@ -22,6 +22,8 @@ static unsigned *hash_order;
 static unsigned location_count;
 static int index_state;
 static HANDLE cache_change=INVALID_HANDLE_VALUE;
+static uint64_t meta_generation=1;
+static sqlite3_int64 meta_data_version=-1;
 static char *root;
 static uint32_t word(const unsigned char *p){return (uint32_t)p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24;}
 static void putword(unsigned char *p,uint32_t n){p[0]=(unsigned char)n;p[1]=(unsigned char)(n>>8);p[2]=(unsigned char)(n>>16);p[3]=(unsigned char)(n>>24);}
@@ -51,7 +53,27 @@ static void refresh_changed_cache(void){
  if(changed!=WAIT_OBJECT_0||!FindNextChangeNotification(cache_change)){
   FindCloseChangeNotification(cache_change);cache_change=INVALID_HANDLE_VALUE;
  }
+ meta_generation++;
+ meta_data_version=-1;
  release_databases();
+}
+/* The token is only valid for the lifetime of this helper and its directory
+   watch. SQLite's connection-local data_version also observes committed WAL
+   writes without relying on file timestamp resolution. */
+static int installed_manifest_generation(void){
+ if(cache_change==INVALID_HANDLE_VALUE||!ensure_meta())return response(2,NULL,0);
+ sqlite3_stmt *q=NULL;
+ if(sqlite3_prepare_v2(meta,"pragma data_version",-1,&q,NULL)!=SQLITE_OK)return response(2,NULL,0);
+ int rc=sqlite3_step(q);
+ sqlite3_int64 version=rc==SQLITE_ROW?sqlite3_column_int64(q,0):-1;
+ sqlite3_finalize(q);
+ if(version<0)return response(2,NULL,0);
+ if(meta_data_version>=0&&meta_data_version!=version)meta_generation++;
+ meta_data_version=version;
+ unsigned char generation[8];
+ putword(generation,(uint32_t)meta_generation);
+ putword(generation+4,(uint32_t)(meta_generation>>32));
+ return response(0,generation,sizeof(generation));
 }
 static int manifest_inventory(void){
  if(!ensure_meta())return response(1,NULL,0);
@@ -215,7 +237,7 @@ int wmain(int argc,wchar_t **argv){
  _setmode(_fileno(stdin),_O_BINARY);_setmode(_fileno(stdout),_O_BINARY);
  unsigned char header[4];while(fread(header,1,4,stdin)==4){unsigned n=word(header);if(!n||n>LIMIT)break;unsigned char *p=malloc(n);if(!p)break;if(fread(p,1,n,stdin)!=n){free(p);break;}
   if(p[0]!=3)refresh_changed_cache();
-  int ok=p[0]==1?manifest(p+1,n-1):p[0]==2?blob(p+1,n-1):p[0]==3?decompress(p+1,n-1):p[0]==4&&n==1?inventory():p[0]==5&&n==1?manifest_inventory():response(2,NULL,0);free(p);if(!ok)break;
+  int ok=p[0]==1?manifest(p+1,n-1):p[0]==2?blob(p+1,n-1):p[0]==3?decompress(p+1,n-1):p[0]==4&&n==1?inventory():p[0]==5&&n==1?manifest_inventory():p[0]==6&&n==1?installed_manifest_generation():response(2,NULL,0);free(p);if(!ok)break;
  }
  if(cache_change!=INVALID_HANDLE_VALUE)FindCloseChangeNotification(cache_change);
  release_databases();free(root);return 0;

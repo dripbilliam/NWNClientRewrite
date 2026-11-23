@@ -5,11 +5,14 @@ var effect_id := 0
 var definition: Dictionary
 var state: Dictionary
 var closed := false
+var native_clock:=false
+var last_native_clock:=false
 var providers: Dictionary
 var clips := ["","impact","duration","cessation"]
 
 func configure(owner,id: int,data: Dictionary) -> void:
 	manager = owner;effect_id = id;definition = data;state = data.state.duplicate(true)
+	native_clock=ClassDB.class_exists("NwnParticleKernel") and ClassDB.class_has_method("NwnParticleKernel","advance_area_visual_clock")
 	state.model = manager.create_model(id,str(state.model.resource)) if state.model != null else null
 	state.since = manager.client.client_dummies._world_time()
 	var clock: Dictionary = manager.client.client_dummies._providers(0)
@@ -34,7 +37,16 @@ func configure(owner,id: int,data: Dictionary) -> void:
 
 func _diagnose(code: String,detail: String) -> void: manager.diagnose(code,detail,effect_id)
 func advance() -> void:
-	if not closed: Core.advance(state,providers)
+	last_native_clock=false
+	if closed or state.suppressed18c: return
+	if not native_clock:
+		Core.advance(state,providers)
+		return
+	var now: Dictionary=providers.now.call()
+	var advanced: int=ClassDB.class_call_static("NwnParticleKernel","advance_area_visual_clock",state,now)
+	last_native_clock=advanced!=0
+	if advanced==2: Core.advance_after_clock(state,providers)
+	elif advanced==0: Core.advance_at(state,providers,now)
 func close() -> void:
 	if closed: return
 	closed = true

@@ -21,6 +21,10 @@ a compatible Node.js installation, MSVC x64/Windows SDK tools, and an owned
 NWN:EE installation. The engine inputs are in `client-runtime-lock.json` and
 the editor version is in `runtime-lock.json`.
 
+Setup also refreshes the installed NWSync reader when the SQLite and Zstandard
+source trees used by `scripts/build-content-reader.ps1` are available. The
+reader then validates and reuses an already-resident installed manifest.
+
 ## Launch routes
 
 | Route | Purpose |

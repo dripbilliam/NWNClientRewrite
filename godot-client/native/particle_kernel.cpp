@@ -166,6 +166,8 @@ GDExtensionInterfaceObjectSetInstance set_instance;
 #include "model_hierarchy.hpp"
 #include "model_pose_storage.hpp"
 #include "light_history.hpp"
+#include "world_motion_batch.hpp"
+#include "visual_clock_batch.hpp"
 bool bind_pose_api(){ {Name node("Node3D"),global("get_global_transform"),ortho("orthonormalized"),quaternion("get_rotation_quaternion"),scale("get_scale"),basis("basis"),origin("origin"),x("x"),y("y"),z("z");
  node_transform=class_method(node.data,global.data,3229777777);node_tag=class_tag(node.data);basis_orthonormal=builtin_method(GDEXTENSION_VARIANT_TYPE_BASIS,ortho.data,594669093);basis_quaternion=builtin_method(GDEXTENSION_VARIANT_TYPE_BASIS,quaternion.data,4274879941);basis_scale=builtin_method(GDEXTENSION_VARIANT_TYPE_BASIS,scale.data,1776574132);transform_basis=member_getter(GDEXTENSION_VARIANT_TYPE_TRANSFORM3D,basis.data);transform_origin=member_getter(GDEXTENSION_VARIANT_TYPE_TRANSFORM3D,origin.data);basis_columns[0]=member_getter(GDEXTENSION_VARIANT_TYPE_BASIS,x.data);basis_columns[1]=member_getter(GDEXTENSION_VARIANT_TYPE_BASIS,y.data);basis_columns[2]=member_getter(GDEXTENSION_VARIANT_TYPE_BASIS,z.data);
  if(!node_transform||!node_tag||!basis_orthonormal||!basis_quaternion||!basis_scale||!transform_basis||!transform_origin||!basis_columns[0]||!basis_columns[1]||!basis_columns[2])return false;}return true;}
@@ -200,6 +202,8 @@ void initialize(void*,GDExtensionInitializationLevel level){
  light_history::register_owner(property);
  model_hierarchy::register_method_info(name,property);
  visual_selection::register_methods(name,property);
+ world_motion_batch::register_methods(name,property);
+ visual_clock_batch::register_method_info(name,property);
  Name stream_method("streams"),capacity_arg("retained_capacity");
  GDExtensionPropertyInfo stream_args[]={args[0],args[1],args[2],property(GDEXTENSION_VARIANT_TYPE_INT,capacity_arg)};
  GDExtensionClassMethodArgumentMetadata stream_metadata[4]{};m.name=stream_method.data;m.call_func=call_streams;m.argument_count=4;m.arguments_info=stream_args;m.arguments_metadata=stream_metadata;register_method(library,name.data,&m);
@@ -213,6 +217,9 @@ extern "C" __declspec(dllexport) GDExtensionBool nwn_particle_kernel_init(GDExte
  API(new_nil,GDExtensionInterfaceVariantNewNil,"variant_new_nil");API(new_copy,GDExtensionInterfaceVariantNewCopy,"variant_new_copy");API(destroy,GDExtensionInterfaceVariantDestroy,"variant_destroy");API(get_type,GDExtensionInterfaceVariantGetType,"variant_get_type");API(get_keyed,GDExtensionInterfaceVariantGetKeyed,"variant_get_keyed");API(get_indexed,GDExtensionInterfaceVariantGetIndexed,"variant_get_indexed");API(set_keyed,GDExtensionInterfaceVariantSetKeyed,"variant_set_keyed");API(variant_call,GDExtensionInterfaceVariantCall,"variant_call");API(construct,GDExtensionInterfaceVariantConstruct,"variant_construct");API(from_type,GDExtensionInterfaceGetVariantFromTypeConstructor,"get_variant_from_type_constructor");API(to_type,GDExtensionInterfaceGetVariantToTypeConstructor,"get_variant_to_type_constructor");API(ptr_constructor,GDExtensionInterfaceVariantGetPtrConstructor,"variant_get_ptr_constructor");API(ptr_destructor,GDExtensionInterfaceVariantGetPtrDestructor,"variant_get_ptr_destructor");API(builtin_method,GDExtensionInterfaceVariantGetPtrBuiltinMethod,"variant_get_ptr_builtin_method");API(packed_index,GDExtensionInterfacePackedByteArrayOperatorIndex,"packed_byte_array_operator_index");API(packed_bytes_read,GDExtensionInterfacePackedByteArrayOperatorIndexConst,"packed_byte_array_operator_index_const");API(name_new,GDExtensionInterfaceStringNameNewWithUtf8Chars,"string_name_new_with_utf8_chars");API(string_new,GDExtensionInterfaceStringNewWithUtf8Chars,"string_new_with_utf8_chars");API(register_class,GDExtensionInterfaceClassdbRegisterExtensionClass6,"classdb_register_extension_class6");API(register_method,GDExtensionInterfaceClassdbRegisterExtensionClassMethod,"classdb_register_extension_class_method");API(unregister_class,GDExtensionInterfaceClassdbUnregisterExtensionClass,"classdb_unregister_extension_class");
  API(construct_object,GDExtensionInterfaceClassdbConstructObject3,"classdb_construct_object3");API(set_instance,GDExtensionInterfaceObjectSetInstance,"object_set_instance");API(string_utf8,GDExtensionInterfaceStringToUtf8Chars,"string_to_utf8_chars");
  API(global_singleton,GDExtensionInterfaceGlobalGetSingleton,"global_get_singleton");
+ API(world_motion_batch::iter_init,GDExtensionInterfaceVariantIterInit,"variant_iter_init");
+ API(world_motion_batch::iter_next,GDExtensionInterfaceVariantIterNext,"variant_iter_next");
+ API(world_motion_batch::iter_get,GDExtensionInterfaceVariantIterGet,"variant_iter_get");
  API(particle_counters::packed_write,GDExtensionInterfacePackedInt64ArrayOperatorIndex,"packed_int64_array_operator_index");API(particle_counters::packed_read,GDExtensionInterfacePackedInt64ArrayOperatorIndexConst,"packed_int64_array_operator_index_const");
  API(instance_from_id,GDExtensionInterfaceObjectGetInstanceFromId,"object_get_instance_from_id");API(class_method,GDExtensionInterfaceClassdbGetMethodBind,"classdb_get_method_bind");API(ptrcall,GDExtensionInterfaceObjectMethodBindPtrcall,"object_method_bind_ptrcall");API(class_tag,GDExtensionInterfaceClassdbGetClassTag,"classdb_get_class_tag");API(cast_object,GDExtensionInterfaceObjectCastTo,"object_cast_to");API(member_getter,GDExtensionInterfaceVariantGetPtrGetter,"variant_get_ptr_getter");
  API(operator_evaluator,GDExtensionInterfaceVariantGetPtrOperatorEvaluator,"variant_get_ptr_operator_evaluator");

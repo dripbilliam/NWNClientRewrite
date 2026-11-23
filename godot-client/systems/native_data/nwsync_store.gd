@@ -10,6 +10,73 @@ const Writes=preload("res://systems/native_data/prepared_write_queue.gd")
 const Backend=preload("res://systems/native_data/resource_index_backend.gd")
 const LIMIT:=256*1024*1024
 const MANIFEST_LIMIT:=64*1024*1024
+
+# Share the installed manifest reader across catalog mounts from the same
+# source. The reader's token is never compared across its process lifetime.
+# Keep manifest identities here and let the existing residency tier evict data.
+class InstalledSource:
+	extends RefCounted
+	var reader=Reader.new()
+	var mutex:=Mutex.new()
+	var generation:=0
+	var identities: Dictionary={}
+	func available() -> bool:
+		mutex.lock()
+		var ready: bool=not reader.closed
+		mutex.unlock()
+		return ready
+	func manifest(hash: String,decode: Callable) -> Dictionary:
+		mutex.lock()
+		var result:=_manifest(hash,decode)
+		mutex.unlock()
+		return result
+	func _source_generation() -> int:
+		var probe: Dictionary=reader.request(6,PackedByteArray())
+		var bytes: PackedByteArray=probe.get("bytes",PackedByteArray())
+		return bytes.decode_s64(0) if bytes.size()==8 else 0
+	func _manifest(hash: String,decode: Callable) -> Dictionary:
+		var current:=_source_generation()
+		if current!=generation:
+			generation=current
+			identities.clear()
+		if generation!=0 and identities.has(hash):
+			var key: String=identities[hash]
+			var cached: Dictionary=Residency.indexes.load_data(key,Residency.indexes.generation(),false)
+			if not cached.is_empty():
+				return cached.value.merged({"identity":key,"installed_manifest_export_bytes":0,"installed_manifest_generation_hit":true})
+			identities.erase(hash)
+		var response: Dictionary=reader.request(1,hash.to_ascii_buffer())
+		if response.has("error"): return response
+		if response.get("missing",false): return {"error":"Installed NWSync manifest is absent"}
+		var bytes: PackedByteArray=response.bytes
+		var index:=Residency.index("nwsync-installed-manifest",[hash],[bytes],func():
+			var value: Dictionary=decode.call(bytes)
+			return {"value":value,"error":str(value.get("error",""))})
+		if generation!=0 and not index.value.has("error") and _source_generation()==generation:
+			if identities.size()>=Residency.indexes.maximum_entries and not identities.has(hash):
+				identities.erase(identities.keys().front())
+			identities[hash]=index.identity
+		return index.value.merged({"identity":index.identity,"installed_manifest_export_bytes":bytes.size(),"installed_manifest_generation_hit":false})
+
+static var installed_source: InstalledSource
+static var installed_source_key: Array[String]=[]
+static var installed_source_mutex:=Mutex.new()
+
+static func shared_installed_source(helper: String,native_directory: String) -> InstalledSource:
+	var key: Array[String]=[helper.simplify_path(),native_directory.simplify_path()]
+	installed_source_mutex.lock()
+	var source:=installed_source
+	if source==null or installed_source_key!=key or not source.available():
+		source=InstalledSource.new()
+		if source.reader.open(helper,native_directory):
+			installed_source=source
+			installed_source_key=key
+		else:
+			source.reader.close()
+			source=null
+	installed_source_mutex.unlock()
+	return source
+
 var directory:=""
 var reader
 var source_cache
@@ -29,9 +96,8 @@ func configure(cache_directory: String, native_directory: String="", helper: Str
 		if candidate.configure(raw_cache_directory): source_cache=candidate
 	if not native_directory.is_empty():
 		self.native_directory=native_directory; helper_executable=helper
-		reader=Reader.new()
-		if not reader.open(helper,native_directory): reader.close(); reader=null; return false
-		readers.append(reader); available.append(reader)
+		reader=shared_installed_source(helper,native_directory)
+		if reader==null: return false
 		for index in maximum_readers: reader_slots.post()
 	return true
 func read_native(operation: int,payload: PackedByteArray) -> Dictionary:
@@ -95,14 +161,7 @@ func manifest(hash: String) -> Dictionary:
 		if file==null or file.get_length()>MANIFEST_LIMIT: return {"error":"Native NWSync manifest exceeds bound"}
 		return decode_manifest(file.get_buffer(file.get_length()),hash).merged({"identity":hash})
 	if reader==null: return {"error":"Native NWSync manifest is not cached"}
-	var response: Dictionary=reader.request(1,hash.to_ascii_buffer())
-	if response.has("error"): return response
-	if response.get("missing",false): return {"error":"Installed NWSync manifest is absent"}
-	var bytes: PackedByteArray=response.bytes
-	var index := Residency.index("nwsync-installed-manifest",[hash],[bytes],func():
-		var value:=decode_installed_manifest(bytes)
-		return {"value":value,"error":str(value.get("error",""))})
-	return index.value.merged({"identity":index.identity})
+	return reader.manifest(hash,decode_installed_manifest)
 static func decode_installed_manifest(bytes: PackedByteArray) -> Dictionary:
 	if Backend.available(): return Backend.parse("installed-manifest",bytes)
 	if bytes.size()<4: return {"error":"Invalid installed NWSync catalog"}

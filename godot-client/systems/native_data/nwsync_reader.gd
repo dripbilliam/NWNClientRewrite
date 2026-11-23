@@ -28,7 +28,7 @@ func request(operation: int, payload: PackedByteArray) -> Dictionary:
 	return result
 func _request(operation: int, payload: PackedByteArray) -> Dictionary:
 	if closed or child.is_empty(): return {"error":"Native NWSync reader is closed"}
-	if operation not in [1,2,4,5] or payload.size()>40: return {"error":"Invalid native NWSync request"}
+	if operation not in [1,2,4,5,6] or payload.size()>40: return {"error":"Invalid native NWSync request"}
 	var pipe: FileAccess=child.stdio
 	var frame:=PackedByteArray(); frame.resize(5); frame.encode_u32(0,payload.size()+1); frame[4]=operation; frame.append_array(payload)
 	pipe.store_buffer(frame)

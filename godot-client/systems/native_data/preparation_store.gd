@@ -51,11 +51,11 @@ func clear() -> void:
 	# Recursive Variant destruction can take seconds for expanded model graphs.
 	# Never hold the shared catalog lock while releasing those graphs.
 	detached.clear()
-func load_data(request: String,expected: int) -> Dictionary:
+func load_data(request: String,expected: int,private_graph: bool=true) -> Dictionary:
 	mutex.lock()
 	if expected!=epoch or not requests.has(request) or not entries.has(requests[request]): misses+=1; mutex.unlock(); return {}
 	var value: Dictionary=entries[requests[request]].value; hits+=1; mutex.unlock()
-	return value.duplicate(true)
+	return value.duplicate(true) if private_graph else value
 func save_data(request: String,identity: String,value: Dictionary,expected: int,size_hint: int=-1,retain_immutable: bool=false,alias: String="") -> void:
 	var began:=Time.get_ticks_usec(); var cost:=Accounting.retained_cost(value,maximum_bytes) if size_hint<0 else {}
 	var measured: bool=cost.has("estimated_bytes"); var size:=size_hint if size_hint>=0 else (int(cost.estimated_bytes) if measured else var_to_bytes(value).size())

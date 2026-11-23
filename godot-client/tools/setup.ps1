@@ -20,6 +20,11 @@ try{
 }finally{$zip.Dispose()}
 & (Join-Path $PSScriptRoot 'ensure-client-runtime.ps1') | Out-Host
 & (Join-Path $PSScriptRoot 'build-window-modes.ps1') -ProfileOnly | Out-Host
+$workspace=Split-Path -Parent $project
+if ((Test-Path -LiteralPath (Join-Path $workspace 'references/nwnxee-unified/NWNXLib/External/sqlite3/sqlite3.c')) -and
+    (Test-Path -LiteralPath (Join-Path $workspace 'references/neverwinter.nim/neverwinter/private/zstd/lib/decompress/zstd_decompress.c'))) {
+ & (Join-Path $workspace 'scripts/build-content-reader.ps1') -IfNeeded | Out-Host
+}
 Get-ChildItem -LiteralPath $tools -Filter '*.exe' | ForEach-Object {
  [pscustomobject]@{file=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant();signature=(Get-AuthenticodeSignature -LiteralPath $_.FullName).Status.ToString()}
 } | ConvertTo-Json

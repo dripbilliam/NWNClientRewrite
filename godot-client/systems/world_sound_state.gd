@@ -1,5 +1,5 @@
 extends RefCounted
-static func f(v: float) -> float:return PackedFloat32Array([v])[0]
+static func f(v: float) -> float:return Color(v,0,0,0).r
 static func listener(player: Array,camera: Array,q: Array) -> Dictionary:
 	var p := player.map(func(v):return f(v));var c := camera.map(func(v):return f(v));p[2] = f(p[2]+f(1.8))
 	var position: Array = [0,1,2].map(func(i):return f(p[i]+f(f(c[i]-p[i])*f(1.0/6.0))))

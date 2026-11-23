@@ -303,6 +303,7 @@ func _process(delta: float) -> void:
 				entry.runtime.advance()
 				if profiling:
 					SelectionTiming.finish("effect_visual_clock_ms", phase_started)
+					if entry.runtime.last_native_clock: SelectionTiming.count("count_effect_native_area_clocks",1)
 					phase_started = SelectionTiming.begin()
 				_status(entry, "phase")
 				if profiling: SelectionTiming.finish("effect_visual_status_ms", phase_started)
@@ -327,7 +328,9 @@ func _process(delta: float) -> void:
 				SelectionTiming.finish("effect_visual_bindings_ms", phase_started)
 				phase_started = SelectionTiming.begin()
 			runtime.clock.advance(delta)
-			if profiling: SelectionTiming.finish("effect_visual_clock_ms", phase_started)
+			if profiling:
+				SelectionTiming.finish("effect_visual_clock_ms", phase_started)
+				if runtime.clock.last_native_quiet: SelectionTiming.count("count_effect_native_quiet_clocks",1)
 			select_actor(entry.actor,entry.privateToken)
 			if profiling: phase_started = SelectionTiming.begin()
 			_status(entry, "phase")

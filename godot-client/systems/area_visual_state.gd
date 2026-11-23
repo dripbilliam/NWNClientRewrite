@@ -21,7 +21,13 @@ static func start(e: Dictionary,phase: int,p: Dictionary) -> void:
 static func advance(e: Dictionary,p: Dictionary) -> void:
 	if e.suppressed18c: return
 	var now: Dictionary = p.now.call()
+	advance_at(e,p,now)
+
+static func advance_at(e: Dictionary,p: Dictionary,now: Dictionary) -> void:
 	e.elapsed58 = int(p.difference.call(now,e.since).time)&0xffffffff;e.since = now.duplicate()
+	advance_after_clock(e,p)
+
+static func advance_after_clock(e: Dictionary,p: Dictionary) -> void:
 	if e.sound170 != null: p.updateSound.call(e.sound170,e.position.duplicate(),1.5)
 	if e.remaining17c:
 		if e.elapsed58 < e.remaining17c: e.remaining17c = (int(e.remaining17c)-int(e.elapsed58))&0xffffffff
