@@ -35,6 +35,6 @@ static func apply(instance,model_name: String,palette: Array) -> Array:
 			if f(float(color_value[channel])*float(properties.get("multiplier",1)))!=f(float(desired[channel])): changed=true
 		if changed:
 			properties.merge({"color":desired.duplicate(),"multiplier":1.0,"shadow":1,"affectdynamic":1,"radius":10.0 if index==0 else 5.0,"shadowradius":12.0 if index==0 else 8.0},true)
-			light.configure(properties); light.set_meta("native_light_priority",4)
+			light.configure(properties); light.set_native_light_priority(4)
 		result.append({"present":true,"changed":changed,"color":properties.color.duplicate(),"radius":properties.get("radius",0),"shadowRadius":properties.get("shadowradius",0),"shadow":properties.get("shadow",0),"affectDynamic":properties.get("affectdynamic",0),"priority":light.get_meta("native_light_priority",properties.get("lightpriority",0))})
 	return result

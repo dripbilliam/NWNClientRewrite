@@ -1,13 +1,16 @@
+param([switch]$ProfileOnly)
 $ErrorActionPreference='Stop'
 $project=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$source=Join-Path $project 'native/window_modes.c'
-$output=Join-Path $project '.cache/native-window'
-$target=Join-Path $output 'nwn-window-modes.exe'
+$name=if($ProfileOnly){'nwn-windows-profile'}else{'nwn-window-modes'}
+$source=Join-Path $project $(if($ProfileOnly){'native/windows_profile.c'}else{'native/window_modes.c'})
+$output=Join-Path $project $(if($ProfileOnly){'.tools/native-profile'}else{'.cache/native-window'})
+$target=Join-Path $output ($name+'.exe')
+$library=if($ProfileOnly){'crypt32.lib'}else{'user32.lib'}
 $manifest=Join-Path $output 'build-manifest.json'
 $identity=@{source=(Get-FileHash -LiteralPath $source).Hash.ToLowerInvariant();builder=(Get-FileHash -LiteralPath $PSCommandPath).Hash.ToLowerInvariant()}
 if((Test-Path -LiteralPath $manifest)-and(Test-Path -LiteralPath $target)){
  $saved=Get-Content -LiteralPath $manifest -Raw|ConvertFrom-Json
- if($saved.source-eq$identity.source-and$saved.builder-eq$identity.builder-and$saved.binary-eq(Get-FileHash -LiteralPath $target).Hash.ToLowerInvariant()){Write-Output 'Native window-mode query already built';return}
+ if($saved.source-eq$identity.source-and$saved.builder-eq$identity.builder-and$saved.binary-eq(Get-FileHash -LiteralPath $target).Hash.ToLowerInvariant()){Write-Output "$name already built";return}
 }
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 $visual=@(& $vswhere -all -prerelease -products '*' -property installationPath)|Where-Object {Test-Path -LiteralPath (Join-Path $_ 'VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt')}|Select-Object -First 1
@@ -23,8 +26,8 @@ try{
  $env:LIB=((Join-Path $tools 'lib/x64'),(Join-Path $sdk ('Lib/'+$include.Name+'/ucrt/x64')),(Join-Path $sdk ('Lib/'+$include.Name+'/um/x64')))-join';'
  New-Item -ItemType Directory -Path $output -Force|Out-Null
  Push-Location $output
- try{& (Join-Path $tools 'bin/Hostx64/x64/cl.exe') /nologo /O2 /W4 /WX /TC /MD $source /Fe:nwn-window-modes.exe /link user32.lib /INCREMENTAL:NO;if($LASTEXITCODE-ne0){throw 'Native window-mode query build failed'}}finally{Pop-Location}
+ try{& (Join-Path $tools 'bin/Hostx64/x64/cl.exe') /nologo /O2 /W4 /WX /TC /MD $source ("/Fe:"+$name+'.exe') /link $library /INCREMENTAL:NO;if($LASTEXITCODE-ne0){throw "$name build failed"}}finally{Pop-Location}
  $identity.binary=(Get-FileHash -LiteralPath $target).Hash.ToLowerInvariant();$identity.compiler=$version
  $identity|ConvertTo-Json|Set-Content -LiteralPath $manifest -Encoding utf8
 }finally{$env:INCLUDE=$oldInclude;$env:LIB=$oldLib}
-Write-Output 'Native window-mode query built'
+Write-Output "$name built"

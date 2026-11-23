@@ -93,15 +93,16 @@ func manifest(hash: String) -> Dictionary:
 	if FileAccess.file_exists(path):
 		var file:=FileAccess.open(path,FileAccess.READ)
 		if file==null or file.get_length()>MANIFEST_LIMIT: return {"error":"Native NWSync manifest exceeds bound"}
-		return decode_manifest(file.get_buffer(file.get_length()),hash)
+		return decode_manifest(file.get_buffer(file.get_length()),hash).merged({"identity":hash})
 	if reader==null: return {"error":"Native NWSync manifest is not cached"}
 	var response: Dictionary=reader.request(1,hash.to_ascii_buffer())
 	if response.has("error"): return response
 	if response.get("missing",false): return {"error":"Installed NWSync manifest is absent"}
 	var bytes: PackedByteArray=response.bytes
-	return Residency.index("nwsync-installed-manifest",[hash],[bytes],func():
+	var index := Residency.index("nwsync-installed-manifest",[hash],[bytes],func():
 		var value:=decode_installed_manifest(bytes)
-		return {"value":value,"error":str(value.get("error",""))}).value
+		return {"value":value,"error":str(value.get("error",""))})
+	return index.value.merged({"identity":index.identity})
 static func decode_installed_manifest(bytes: PackedByteArray) -> Dictionary:
 	if Backend.available(): return Backend.parse("installed-manifest",bytes)
 	if bytes.size()<4: return {"error":"Invalid installed NWSync catalog"}

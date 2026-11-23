@@ -212,7 +212,10 @@ class Inputs:
 		rows["exists:"+name.to_lower()+":"+str(type)]={"operation":"exists","name":name.to_lower(),"type":type,"present":present}; return present
 	func raster_location(name: String) -> Dictionary:
 		var selected: Dictionary=source.raster_location(name)
-		rows["raster:"+name.to_lower()]={"operation":"raster","name":name.to_lower(),"selected":selected}; return selected
+		remember_raster(name,selected)
+		return selected
+	func remember_raster(name: String,selected: Dictionary) -> void:
+		rows["raster:"+name.to_lower()]={"operation":"raster","name":name.to_lower(),"selected":selected}
 	func recorded_texture_miss(name: String) -> bool:
 		var missing: bool=source.has_method("recorded_texture_miss") and source.recorded_texture_miss(name)
 		rows["missing:"+name.to_lower()]={"operation":"missing","name":name.to_lower(),"missing":missing}; return missing

@@ -9,6 +9,7 @@
 #include <cmath>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -122,6 +123,8 @@ struct WritableBytes {
 Var byte_array(const std::vector<uint8_t>& bytes){WritableBytes out(bytes.size());if(!bytes.empty())std::memcpy(out.data,bytes.data(),bytes.size());return out.publish();}
 #include "particle_field_keys.hpp"
 #include "particle_simulation.hpp"
+#include "cx_particle_record.hpp"
+#include "cx_particle_random.hpp"
 #include "particle_streams.hpp"
 void vertex(std::vector<uint8_t>& bytes,int64_t index,uint32_t color,const V3& position,float u,float v,ParticleStreams* streams=nullptr){if(streams){streams->write(index,color,position,u,v);return;}const auto offset=static_cast<size_t>(index)*24;std::memcpy(bytes.data()+offset,&color,4);std::memcpy(bytes.data()+offset+4,position.data(),12);std::memcpy(bytes.data()+offset+16,&u,4);std::memcpy(bytes.data()+offset+20,&v,4);}
 #include "particle_vertices.hpp"
@@ -149,10 +152,12 @@ GDExtensionInterfaceObjectSetInstance set_instance;
 #include "emitter_lighting.hpp"
 #include "particle_geometry_worker.hpp"
 #include "particle_presentation.hpp"
+#include "cx_particle_draw_order.hpp"
 #include "particle_stream_render.hpp"
 #include "scene_geometry.hpp"
 #include "scene_model.hpp"
 #include "scene_index.hpp"
+#include "fixed_terrain_support.hpp"
 #include "animation_keys.hpp"
 #include "raster_conversion.hpp"
 #include "model_control.hpp"
@@ -186,6 +191,7 @@ void initialize(void*,GDExtensionInitializationLevel level){
  register_scene_geometry(property);
  register_scene_model(property);
  register_scene_index(property);
+ fixed_terrain_support::register_owner(property);
  animation_keys::register_validation(name,property);
  raster_conversion::register_conversion(name,property);
  model_control::register_methods(name,property);
@@ -199,7 +205,7 @@ void initialize(void*,GDExtensionInitializationLevel level){
  GDExtensionClassMethodArgumentMetadata stream_metadata[4]{};m.name=stream_method.data;m.call_func=call_streams;m.argument_count=4;m.arguments_info=stream_args;m.arguments_metadata=stream_metadata;register_method(library,name.data,&m);
  ptr_destructor(GDEXTENSION_VARIANT_TYPE_STRING)(hint);
 }
-void deinitialize(void*,GDExtensionInitializationLevel level){if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;light_history::unregister_owner();model_pose_storage::unregister_owner();keys.clear();particle_stream_render::unregister_owner();particle_presentation::unregister_owner();particle_frame_group::unregister_owner();particle_counters::unregister_owner();particle_upload::unregister_owner();Name wind("NwnWindManager");unregister_class(library,wind.data);Name index("NwnSceneIndex");unregister_class(library,index.data);Name scene("NwnSceneModel");unregister_class(library,scene.data);Name geometry("NwnSceneGeometry");unregister_class(library,geometry.data);Name owner("NwnParticleOwner");unregister_class(library,owner.data);Name name("NwnParticleKernel");unregister_class(library,name.data);}
+void deinitialize(void*,GDExtensionInitializationLevel level){if(level!=GDEXTENSION_INITIALIZATION_SCENE)return;light_history::unregister_owner();model_pose_storage::unregister_owner();keys.clear();particle_stream_render::unregister_owner();particle_presentation::unregister_owner();particle_frame_group::unregister_owner();particle_counters::unregister_owner();particle_upload::unregister_owner();Name wind("NwnWindManager");unregister_class(library,wind.data);fixed_terrain_support::unregister_owner();Name index("NwnSceneIndex");unregister_class(library,index.data);Name scene("NwnSceneModel");unregister_class(library,scene.data);Name geometry("NwnSceneGeometry");unregister_class(library,geometry.data);Name owner("NwnParticleOwner");unregister_class(library,owner.data);Name name("NwnParticleKernel");unregister_class(library,name.data);}
 }
 extern "C" __declspec(dllexport) GDExtensionBool nwn_particle_kernel_init(GDExtensionInterfaceGetProcAddress address,GDExtensionClassLibraryPtr lib,GDExtensionInitialization* init){
  library=lib;particle_scene_boundary::direct_address=address;

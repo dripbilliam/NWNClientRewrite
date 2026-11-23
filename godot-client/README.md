@@ -10,7 +10,16 @@ npm install
 .\godot-client\join-native.ps1
 ```
 
-A compatible Node.js installation, MSVC x64/Windows SDK tools and an owned NWN:EE install/content are needed. The pinned Godot runtime is specified in `runtime-lock.json`.
+Setup builds and verifies the Windows client engine, including the rig pose
+optimization and render-thread shutdown fix, from pinned sources. The first
+build takes several minutes. Ordinary launches and prepared release packs use
+that engine automatically. Godot's official editor remains available for
+development.
+
+Setup requires PowerShell 7 and Git for Windows. Running the client also requires
+a compatible Node.js installation, MSVC x64/Windows SDK tools, and an owned
+NWN:EE installation. The engine inputs are in `client-runtime-lock.json` and
+the editor version is in `runtime-lock.json`.
 
 ## Launch routes
 

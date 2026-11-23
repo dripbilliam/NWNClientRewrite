@@ -101,6 +101,7 @@ var plans: Array=[]
 var done:=false
 var use_skeleton:=false
 var admission_parent: Node3D
+var entry_publication_allowed: Callable
 var closed:=false
 var stats:={"planned_creatures":0,"rendered_creatures":0,"planned_items":0,"rendered_items":0,"model_jobs":0,"skin_meshes":0,"skin_prepared_meshes":0,"skin_main_meshes":0,"meshes":0,"publication_ms":0.0,"max_publication_ms":0.0,"publications":[],"errors":[],"scope_errors":[],"object_failures":{},"warnings":[],"memory_hits":0,"worker_ms":0.0,"jobs":[]}
 func object_failed(id: int,reason: String,model: String="",causes: Array=[]) -> void:
@@ -246,12 +247,16 @@ func _profile_process(_delta: float) -> void:
 	# Publish one ready actor per frame; never attach a half-prepared skeleton.
 	for index in plans.size():
 		var plan: Dictionary=plans[index]; var ready:=true; var failures: Array=[]
+		if not publication_current(int(plan.id)):
+			plans.remove_at(index); stats.stale_publications=int(stats.get("stale_publications",0))+1
+			break
 		for piece in plan.pieces:
 			if not bundles.has(piece.key): ready=false; continue
 			if not str(bundles[piece.key].error).is_empty(): failures.append({"model":model_specs[piece.key].name,"reason":bundles[piece.key].error})
 		if not failures.is_empty():
 			object_failed(int(plan.id),str(failures[0].reason),str(failures[0].model),failures); plans.remove_at(index); break
 		if not ready: continue
+		if entry_publication_allowed.is_valid() and not entry_publication_allowed.call(int(plan.id)):continue
 		if pool.has_method("can_publish") and not pool.can_publish(int(plan.id)==controlled_priority): break
 		plans.remove_at(index)
 		var began:=Time.get_ticks_usec()

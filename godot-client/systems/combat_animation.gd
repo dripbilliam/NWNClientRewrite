@@ -7,6 +7,7 @@ const MovementCue=preload("res://systems/native_data/movement_cue.gd")
 const RELEASE = {17: 250, 18: 251, 19: 252, 20: 253, 61: 261}
 const GAITS = [2, 3, 4, 78, 79, 84, 85, 86, 87]
 var rigs
+var _can_check_playback := false
 var pivots: Dictionary = {}
 var actors: Dictionary = {}
 var states: Dictionary = {}
@@ -46,6 +47,7 @@ static func clock(ms: int) -> Dictionary:
 func configure(value, roots: Dictionary) -> void:
 	reset()
 	rigs = value
+	_can_check_playback = is_instance_valid(rigs) and rigs.has_method("has_current_playback")
 	pivots = roots
 	last_ms = now()
 	if is_instance_valid(rigs) and not rigs.animation_event.is_connected(model_event):
@@ -57,6 +59,7 @@ func reset() -> void:
 	if is_instance_valid(rigs) and rigs.animation_event.is_connected(model_event):
 		rigs.animation_event.disconnect(model_event)
 	rigs = null
+	_can_check_playback = false
 	pivots = {}
 	actors.clear()
 	states.clear()
@@ -123,13 +126,15 @@ func receive(message: Dictionary) -> void:
 			if pending.size() < 512:
 				pending.append({"row": row, "received": now()})
 
-func base_frame(id: int, animation: int, speed: float = 1.0) -> void:
+func base_frame(id: int, animation: int, speed: float = 1.0, remaining_path: Variant = null, observes_motion: bool = false) -> void:
 	var s := ensure(id)
 	if s.is_empty():
 		if is_instance_valid(rigs):
 			if animation != 9:
 				rigs.set_animation(id, int(RELEASE.get(animation, animation)), speed)
 		return
+	if observes_motion:
+		_record_motion_path(s, remaining_path)
 	if pivots.has(id):
 		actors[id].position = pivots[id].global_position
 		var rotation: float = pivots[id].rotation.y
@@ -138,7 +143,12 @@ func base_frame(id: int, animation: int, speed: float = 1.0) -> void:
 		if animation in GAITS and s.has("motionPathActive") and not s.motionPathActive:
 			return
 		if s.current.is_empty() and s.queue.entries.is_empty() and animation != 9 and not RELEASE.has(animation):
-			play(id, animation, speed, bool(rigs.entities[id].loop_map.get(str(animation), base_loop(int(actors[id].objectType),animation))), false)
+			var loop := bool(rigs.entities[id].loop_map.get(str(animation), base_loop(int(actors[id].objectType), animation)))
+			# The playback owner can prove this request would have no effect
+			# even after an external player write or a follower replacement.
+			if _can_check_playback and int(s.visual) == animation and float(s.speed) == speed and rigs.has_current_playback(id, animation, speed, loop, int(s.context.get("fieldE0", 0))):
+				return
+			play(id, animation, speed, loop, false)
 		return
 	s.observed = animation
 	if RELEASE.has(animation):
@@ -166,6 +176,9 @@ func base_frame(id: int, animation: int, speed: float = 1.0) -> void:
 func motion_frame(id: int,remaining_path: Variant) -> void:
 	var s:=ensure(id)
 	if s.is_empty(): return
+	_record_motion_path(s, remaining_path)
+
+func _record_motion_path(s: Dictionary, remaining_path: Variant) -> void:
 	if remaining_path is bool: s.motionPathActive=remaining_path
 	else: s.erase("motionPathActive")
 

@@ -2,6 +2,39 @@ extends Node
 signal control(command: Dictionary)
 const RenderThreadInfo=preload("res://systems/native_render/render_thread_info.gd")
 const SummaryJob=preload("res://systems/native_render/frame_summary_job.gd")
+
+class ViewportTiming extends RefCounted:
+	var pending := false
+	var generation := 0
+	var latest: Dictionary = {}
+
+	func request(viewport_rid: RID) -> void:
+		if pending:
+			return
+		pending = true
+		# Retain the sampler through the render command without holding a
+		# viewport Node or accessing the scene tree on the render thread.
+		RenderingServer.call_on_render_thread(_read.bind(viewport_rid, generation, self))
+
+	func _read(viewport_rid: RID, request_generation: int, _keep_alive: RefCounted) -> void:
+		var cpu := RenderingServer.viewport_get_measured_render_time_cpu(viewport_rid)
+		var gpu := RenderingServer.viewport_get_measured_render_time_gpu(viewport_rid)
+		_publish.call_deferred(request_generation, cpu, gpu)
+
+	func _publish(request_generation: int, cpu: float, gpu: float) -> void:
+		pending = false
+		if request_generation == generation:
+			latest = {"render_cpu_ms": cpu, "render_gpu_ms": gpu}
+
+	func take() -> Dictionary:
+		var value := latest
+		latest = {}
+		return value
+
+	func reset() -> void:
+		generation += 1
+		latest = {}
+
 # Callback totals are disjoint owners. Detailed child spans, render CPU/GPU,
 # physics and profiler self-time overlap and must not be added to that total.
 const CALLBACKS=["callback_root","callback_world","callback_rigs","callback_particles","callback_effects","callback_dummies","callback_projectiles","callback_audio","callback_terrain","callback_area_border","callback_objects","callback_creatures","callback_references","callback_reference_poses","callback_wind","callback_lights","callback_light_history","callback_focus_lighting","callback_native_lighting","callback_walkmesh","callback_drive_geometry","callback_retirement","callback_data_retirement","callback_assets","callback_catalog","callback_ui","callback_overhead_text","callback_overhead_layout","callback_script_floating","callback_inventory","callback_icons","callback_fonts","callback_keyboard","callback_selection","callback_mouse_cursor","callback_camera","callback_environment","callback_material_prewarm"]
@@ -27,6 +60,7 @@ var mode:="baseline"
 var pipeline_monitors: Dictionary={}
 var previous_pipeline_counts: Dictionary={}
 var render_thread_info:=RenderThreadInfo.new()
+var viewport_timing := ViewportTiming.new()
 var render_started:=0
 var render_boundary_count:=0
 var worker_statistics:=not OS.get_cmdline_user_args().has("--profile-summary=main")
@@ -81,6 +115,7 @@ func set_enabled(value: bool) -> void:
 	enabled=value; rows.clear(); last_summary={}; previous=0; frame_started=0; started_frame=-1; summary_at=0; phases={}; phase_frame=-1; record_usec=0
 	collected_frame=-1; postdraw_phases={}; postdraw_record_usec=0
 	previous_pipeline_counts={}
+	viewport_timing.reset()
 	render_started=0
 	render_boundary_count=0
 	if is_instance_valid(viewport): RenderingServer.viewport_set_measure_render_time(viewport.get_viewport_rid(),value)
@@ -115,8 +150,10 @@ func collect(now: int) -> Dictionary:
 	row.profiler_record_ms=record_usec/1000.0
 	row.process_ms=Performance.get_monitor(Performance.TIME_PROCESS)*1000.0
 	row.physics_ms=Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0
-	row.render_cpu_ms=RenderingServer.viewport_get_measured_render_time_cpu(viewport.get_viewport_rid())
-	row.render_gpu_ms=RenderingServer.viewport_get_measured_render_time_gpu(viewport.get_viewport_rid())
+	# Viewport timing describes completed render work, which can arrive
+	# later than the game frame. Include each completed sample once.
+	row.merge(viewport_timing.take())
+	viewport_timing.request(viewport.get_viewport_rid())
 	row.render_setup_cpu_ms=RenderingServer.get_frame_setup_time_cpu()
 	row.draws=Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 	row.triangles=Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
@@ -142,7 +179,7 @@ func _process(_delta: float) -> void:
 		if FileAccess.file_exists(control_file):
 			var command: Variant=JSON.parse_string(FileAccess.get_file_as_string(control_file))
 			if command is Dictionary and int(command.get("serial",-1))>control_serial:
-				control_serial=int(command.serial); mode=str(command.get("mode","baseline")); summary_generation+=1; rows.clear(); last_summary={}; summary_at=0; control.emit(command)
+				control_serial=int(command.serial); mode=str(command.get("mode","baseline")); summary_generation+=1; rows.clear(); last_summary={}; summary_at=0; viewport_timing.reset(); control.emit(command)
 	if not enabled: return
 	var now:=Time.get_ticks_usec(); var row:=collect(now)
 	row.profiler_collect_ms=(Time.get_ticks_usec()-began)/1000.0
@@ -194,6 +231,7 @@ func _exit_tree() -> void:
 	if RenderingServer.frame_pre_draw.is_connected(start_render): RenderingServer.frame_pre_draw.disconnect(start_render)
 	if RenderingServer.frame_post_draw.is_connected(finish_render): RenderingServer.frame_post_draw.disconnect(finish_render)
 	render_started=0
+	viewport_timing.reset()
 	if is_instance_valid(viewport): RenderingServer.viewport_set_measure_render_time(viewport.get_viewport_rid(),false)
 	enabled=false; phases={}; phase_frame=-1
 	collected_frame=-1; postdraw_phases={}; postdraw_record_usec=0

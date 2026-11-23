@@ -13,6 +13,8 @@ const Template=preload("res://systems/native_render/model_template.gd")
 const Region=preload("res://systems/native_data/gui_render_region.gd")
 const GuiTextureInfo=preload("res://systems/native_data/gui_texture_info.gd")
 const GuiSampler=preload("res://systems/native_render/gui_sampler.gd")
+const GuiSnapshot=preload("res://systems/native_render/gui_art_snapshot.gd")
+const MAX_PENDING_GUI_SNAPSHOTS:=2
 var assets
 var catalog
 var ui_assets
@@ -30,11 +32,13 @@ var camera: Camera3D
 var image_bounds: Dictionary={}
 var active:=false
 var pending_draw: Dictionary={}
+var pending_gui_snapshots: Dictionary={}
 var render_fence: CompositorEffect
 var render_fence_compositor: Compositor
 var render_epoch := 0
 var closed:=false
 var reuse_models_enabled:=not OS.get_cmdline_user_args().has("--icon-model-reuse=false")
+var keep_model_textures_on_gpu:=false
 var maximum_cached_models:=32
 var cached_models: Dictionary={}
 var cache_directory:=""
@@ -141,7 +145,7 @@ func _process(_delta: float) -> void:
 	Timing.finish("callback_icons",began)
 func _profile_process(_delta: float) -> void:
 	pump_models()
-	if not closed and not active and not queue.is_empty(): draw_icon(queue.pop_front())
+	if not closed and not active and not queue.is_empty() and pending_gui_snapshots.size()<MAX_PENDING_GUI_SNAPSHOTS: draw_icon(queue.pop_front())
 	_refresh_processing()
 func draw_icon(job: Dictionary) -> void:
 	active=true
@@ -251,26 +255,59 @@ func frame_rendered() -> void:
 	if render_fence != null and int(pending_draw.get("completed_epoch", 0)) != int(pending_draw.get("render_epoch", -1)):
 		return
 	var draw: Dictionary=pending_draw; pending_draw={}
-	var job: Dictionary=draw.job; var model=draw.model
 	Timing.finish("icon_render_wait_ms",int(draw.wait_began))
+	var key:=str(draw.job.key)
+	if keep_model_textures_on_gpu and render_fence!=null and not assets.prework_write and key.begins_with("gui:"):
+		var epoch:=int(draw.render_epoch)
+		pending_gui_snapshots[epoch]={"key":key,"began":Timing.begin()}
+		remember_prework(draw.job)
+		# Both texture transfer and any fallback run in this render command.
+		# Later viewport resizes and draws are queued after it, so the producer
+		# can reuse the viewport without waiting a frame for main-thread delivery.
+		RenderingServer.call_on_render_thread(GuiSnapshot.deliver.bind(viewport.get_viewport_rid(),viewport.size,epoch,Callable(self,"snapshot_ready")))
+		finish_model(key,draw.model,true)
+		active=false
+		return
+	publish_readback(draw)
+
+func snapshot_ready(epoch: int,texture: Texture2D,fallback_spans: Dictionary) -> void:
+	if closed or not pending_gui_snapshots.has(epoch):
+		return
+	var snapshot: Dictionary=pending_gui_snapshots[epoch]
+	pending_gui_snapshots.erase(epoch)
+	Timing.finish("icon_gpu_snapshot_wait_ms",int(snapshot.began))
+	if fallback_spans.is_empty():
+		stats.gpu_snapshots=int(stats.get("gpu_snapshots",0))+1
+	else:
+		Timing.record_batch(fallback_spans)
+		stats.gpu_snapshot_fallbacks=int(stats.get("gpu_snapshot_fallbacks",0))+1
+		stats.cpu_readbacks=int(stats.get("cpu_readbacks",0))+1
+	publish_texture(snapshot.key,texture,"" if texture!=null else "Native icon viewport did not produce pixels")
+
+func publish_readback(draw: Dictionary) -> void:
+	var job: Dictionary=draw.job; var model=draw.model
 	var postdraw_began:=Timing.begin()
 	var readback_began:=Timing.begin()
 	var image:=viewport.get_texture().get_image()
 	Timing.finish("icon_gpu_readback_ms",readback_began)
+	stats.cpu_readbacks=int(stats.get("cpu_readbacks",0))+1
 	if image==null or image.is_empty():
 		finish(job.key,model,null,"Native icon viewport did not produce pixels")
 		Timing.finish("icon_postdraw_cpu_ms",postdraw_began); return
 	var texture_began:=Timing.begin()
 	var texture:=ImageTexture.create_from_image(image)
 	Timing.finish("icon_texture_upload_ms",texture_began)
-	if not str(job.bundle.get("prework_icon_key","")).is_empty() and job.bundle.has("prework_inputs"):
-		prework_records[str(job.key)]={"key":job.bundle.prework_icon_key,"inputs":job.bundle.prework_inputs}
+	remember_prework(job)
 	finish(job.key,model,texture,"")
 	Timing.finish("icon_postdraw_cpu_ms",postdraw_began)
-func finish(key: String,model,texture: Texture2D,error: String) -> void:
+
+func remember_prework(job: Dictionary) -> void:
+	if not str(job.bundle.get("prework_icon_key","")).is_empty() and job.bundle.has("prework_inputs"):
+		prework_records[str(job.key)]={"key":job.bundle.prework_icon_key,"inputs":job.bundle.prework_inputs}
+func finish_model(key: String,model,success: bool) -> void:
 	var cleanup_began:=Timing.begin()
 	if is_instance_valid(model):
-		if error.is_empty() and model.has_meta("native_icon_cache_key"): model.hide()
+		if success and model.has_meta("native_icon_cache_key"): model.hide()
 		else:
 			if model.has_meta("native_icon_cache_key"): cached_models.erase(str(model.get_meta("native_icon_cache_key")))
 			model.free()
@@ -280,7 +317,12 @@ func finish(key: String,model,texture: Texture2D,error: String) -> void:
 		if cleanup_ms>5.0:
 			stats.slow_cleanup.append({"key":key,"ms":cleanup_ms})
 			if stats.slow_cleanup.size()>16: stats.slow_cleanup.pop_front()
-	pending.erase(key); active=false
+func finish(key: String,model,texture: Texture2D,error: String) -> void:
+	finish_model(key,model,error.is_empty())
+	active=false
+	publish_texture(key,texture,error)
+func publish_texture(key: String,texture: Texture2D,error: String) -> void:
+	pending.erase(key)
 	if texture!=null:
 		textures[key]=texture; stats.rendered+=1
 		var owner=session_ui_owner()
@@ -298,7 +340,7 @@ func model_cache_key(job: Dictionary) -> String:
 	for name in job.bundle.get("textures",{}): samplers[name]=job.bundle.textures[name].get("gui_sampler",{})
 	return Cache.digest(var_to_bytes([Template.identity(job.bundle,pool),int(job.get("turn",0)),str(job.get("texture_layer","")),samplers]))
 func snapshot() -> Dictionary:
-	var state:=stats.duplicate(true); state.merge({"pending":pending.size(),"failed":failed.size(),"deferred_models":deferred_models.size(),"textures":textures.size(),"active":active,"model_reuse_enabled":reuse_models_enabled,"cached_models":cached_models.size(),"maximum_cached_models":maximum_cached_models}); return state
+	var state:=stats.duplicate(true); state.merge({"pending":pending.size(),"failed":failed.size(),"deferred_models":deferred_models.size(),"textures":textures.size(),"active":active,"pending_gui_snapshots":pending_gui_snapshots.size(),"model_reuse_enabled":reuse_models_enabled,"cached_models":cached_models.size(),"maximum_cached_models":maximum_cached_models}); return state
 func close() -> void:
 	if closed: return
 	closed=true;set_process(false)
@@ -311,6 +353,7 @@ func close() -> void:
 	cached_models.clear()
 	if not pending_draw.is_empty() and is_instance_valid(pending_draw.model): pending_draw.model.free()
 	pending_draw.clear(); active=false
+	pending_gui_snapshots.clear()
 	if is_instance_valid(assets): assets.close()
 	queue.clear(); deferred_models.clear(); requests.clear(); pending.clear(); textures.clear(); prework_records.clear(); pool.clear(); catalog=null; ui_assets=null
 func _exit_tree() -> void: close()

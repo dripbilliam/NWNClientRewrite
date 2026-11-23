@@ -128,6 +128,7 @@ func configure(data: Dictionary, source: Dictionary, rig_nodes: Array, manual: D
 					if child.material_override is StandardMaterial3D or child.material_override is EnhancedMaterial:
 						var unique=child.material_override.duplicate()
 						child.material_override=unique
+						preload("res://systems/native_render/actor_shadow_mesh.gd").invalidate(child)
 						materials.append(_material_record(unique,original.transparencyHint))
 						continue
 					for surface in child.mesh.get_surface_count():
@@ -155,7 +156,7 @@ func configure(data: Dictionary, source: Dictionary, rig_nodes: Array, manual: D
 		if not ClassDB.class_exists("NwnModelPoseStorage"):
 			native_failures+=1;diagnose("native model storage prerequisites unavailable");return
 		var context: RefCounted=ClassDB.instantiate("NwnModelPoseStorage")
-		var result: Dictionary=context.call("dispatch",0,{"parts":_parts,"binding":source.parts,"root":data.root,"emitter_fields":data.emitterFields})
+		var result: Dictionary=context.call("dispatch",0,{"parts":_parts,"binding":source.parts,"root":data.root,"emitter_fields":data.emitterFields,"sparse_channels":OS.get_environment("NWN_MODEL_SPARSE_CHANNELS")=="1"})
 		if result.has("error"):
 			native_failures+=1;diagnose("native model storage configuration failed: "+str(result.error));return
 		native_context=context;native_revision=int(result.revision);snapshot_revision=native_revision

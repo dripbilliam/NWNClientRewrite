@@ -4,8 +4,9 @@ const {app,safeStorage}=require('electron'),path=require('node:path'),fs=require
 app.setName('nwn-model-viewer-research');
 app.whenReady().then(async()=>{
  const {ClientSettings,defaultModsDirectory}=await import('../../electron/client_settings.mjs');
+ const {windowsProfileProtection}=await import('../../electron/windows_profile_protection.mjs');
  const project=path.resolve(__dirname,'..'),root=path.dirname(project),settingsDirectory=app.getPath('userData'),install=path.resolve(root,'../FullDecomp/NwnRootInstall');
- const settings=new ClientSettings({directory:settingsDirectory,encryption:safeStorage,modsDirectory:await defaultModsDirectory(install)});
+ const settings=new ClientSettings({directory:settingsDirectory,encryption:safeStorage,windowsProtection:windowsProfileProtection(path.join(project,'.tools/native-profile/nwn-windows-profile.exe')),modsDirectory:await defaultModsDirectory(install)});
  const loginPipe=process.argv.find(value=>value.startsWith('--private-login-pipe='))?.slice(21);
  let privateTestKey='';
  if(loginPipe){
@@ -27,4 +28,7 @@ app.whenReady().then(async()=>{
  const removeBroker=require('./settings-broker.cjs').installSettingsBroker(child,settings);child.once('exit',removeBroker);
  child.once('error',()=>app.exit(1));child.once('exit',code=>app.exit(code??1));
  const bytes=Buffer.from(JSON.stringify({settingsDirectory,userDirectory,settings:status,cdKey,barterPeerCdKey}));cdKey='';barterPeerCdKey='';child.stdin.end(bytes,()=>bytes.fill(0));
-}).catch(()=>app.exit(1));
+}).catch(error=>{
+ console.error('Native client startup failed:',error instanceof Error?error.message:'Unknown startup error');
+ app.exit(1);
+});

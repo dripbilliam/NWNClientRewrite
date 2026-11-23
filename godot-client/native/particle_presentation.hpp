@@ -7,55 +7,90 @@ using NativeOwner=resident::Owner;
 using Clock=std::chrono::steady_clock;
 #include "particle_frame_sampler.hpp"
 bool registered=false;
-struct Material {EngineVar texture;uint64_t rid=0;bool additive=false,two_sided=false,lighting=false;};
+struct Material {EngineVar texture;uint64_t rid=0;bool additive=false,two_sided=false,lighting=false,punch_through=false;};
 struct Owner;
 std::mutex registry_mutex;std::unordered_map<GDExtensionObjectPtr,Owner*> registry;
 struct Controls {
  std::string clip;float time=0,delta=0;int64_t source_flags=-1;
- bool culling=true,draw_enabled=true,detonate=false,profile=false,original_admission=false,animate=true,childless_chunk_admission=false;
+ bool culling=true,draw_enabled=true,detonate=false,profile=false,original_admission=false,animate=true,childless_chunk_admission=false,wind_service=false;
  uint64_t wind_token=0,terrain_index=0,static_index=0;bool direct_scene=false;
  EngineVar patch;float explicit_radius=-1;
 };
 struct Step {
  NativeOwner* owner=nullptr;const EngineVar* providers=nullptr;Controls controls;EnginePose pose;
+ cx_particle::Random* cx_random=nullptr;
  std::optional<NativeOwner::View> camera;
- bool prepared=false,culled=false,checked=false,animation_invoked=false,updated=false;float radius=0;int chunk_proof=0;
+ bool prepared=false,culled=false,early_culled=false,checked=false,animation_invoked=false,updated=false;float radius=0;int chunk_proof=0;
  uint64_t direct_queries=0,direct_hits=0;double controls_ms=0,pose_ms=0,admission_ms=0,simulation_ms=0,geometry_ms=0,collision_ms=0;
  void context(resident::Context& value){
   value.state=&owner->state;value.providers=providers;value.allocations=&owner->allocations;value.camera=camera?&camera->position:nullptr;value.native_pose=&pose;
-  value.profile=controls.profile;value.missing_chunks=&owner->missing_chunks;value.wind_token=(owner->compact_state.flags&4)?controls.wind_token:0;value.direct_scene=controls.direct_scene;value.terrain_index=controls.terrain_index;value.static_index=controls.static_index;
+  value.cx_random=cx_random;
+  value.profile=controls.profile;value.missing_chunks=&owner->missing_chunks;value.wind_token=(owner->kind!=3&&(owner->compact_state.flags&4))?controls.wind_token:0;value.direct_scene=controls.direct_scene;value.terrain_index=controls.terrain_index;value.static_index=controls.static_index;
  }
- void advance(NativeOwner& value,const EngineVar& services,const std::optional<NativeOwner::View>& view,size_t& reject_plane){
+ void test_view(size_t& reject_plane,const V3& wind){
+  checked=true;
+  const auto scale=std::max(1.0f,pose.maximum_scale);
+  if(!controls.original_admission){
+   culled=owner->culled(*camera,pose.position,controls.source_flags,scale,radius,wind);
+   return;
+  }
+  radius=controls.explicit_radius>=0?controls.explicit_radius:owner->radius(controls.source_flags,wind)*scale;
+  // The native leaf tries the previous rejecting plane first.
+  if(!std::isfinite(radius)||radius<0)return;
+  const V3 point{pose.position[0],pose.position[2],-pose.position[1]};
+  for(size_t n=0;n<6;++n){
+   const auto index=(reject_plane+n)%6,at=index*4;const auto& p=camera->planes;
+   const float distance=((point[0]*p[at]-p[at+3])+point[1]*p[at+1])+point[2]*p[at+2];
+   if(distance-radius>0){culled=true;reject_plane=index;break;}
+  }
+ }
+ void advance(NativeOwner& value,const EngineVar& services,const std::optional<NativeOwner::View>& view,size_t& reject_plane,const EngineVar& target_provider){
   if(!value.configured||!value.compact_records||!value.typed_frame||!value.pose_id)throw std::runtime_error("Native presentation requires a configured typed owner with native poses");
-  owner=&value;providers=&services;camera=view;prepared=false;culled=false;checked=false;animation_invoked=false;updated=false;radius=0;chunk_proof=0;direct_queries=direct_hits=0;controls_ms=pose_ms=admission_ms=simulation_ms=geometry_ms=collision_ms=0;
+  owner=&value;providers=&services;camera=view;prepared=false;culled=false;early_culled=false;checked=false;animation_invoked=false;updated=false;radius=0;chunk_proof=0;direct_queries=direct_hits=0;controls_ms=pose_ms=admission_ms=simulation_ms=geometry_ms=collision_ms=0;
   resident::FieldKeyScope fields(owner->field_keys);auto phase=controls.profile?Clock::now():Clock::time_point{};
   const auto finish=[&](double& duration){if(controls.profile){const auto now=Clock::now();duration=std::chrono::duration<double,std::milli>(now-phase).count();phase=now;}};
+  auto& emitter=owner->compact_state;
+  // A sealed, channel-free emitter has the same bounds before and after sampling.
+  // Animated bounds, wind, chunks and pending writes keep their full update order.
+  if(camera&&controls.culling&&controls.source_flags>=0&&!owner->cx_target_motion&&!emitter.chunk&&!(emitter.flags&4)
+    &&owner->empty_clip_map_sealed&&!owner->has_any_clip_channels
+    &&controls.patch.nil()&&!controls.detonate&&emitter.source.present
+    &&!(owner->use_parameters&&owner->parameter_has(resident::hot_parameters::DETONATE)&&owner->parameter_integer(resident::hot_parameters::DETONATE)!=0)){
+   pose=owner->read_pose();
+   finish(pose_ms);
+   test_view(reject_plane,{});
+   finish(admission_ms);
+   if(culled){
+    if(std::abs(emitter.birthRate)>32768||owner->allocations>32768)throw std::runtime_error("Native particle instance exceeds explicit allocation limit");
+    prepared=true;early_culled=true;
+    return;
+   }
+  }
   owner->sample(controls.clip,controls.time);finish(controls_ms);
   if(!controls.patch.nil()){
    auto names=::method(controls.patch,"keys");for(int64_t n=0;n<::size(names);++n){const auto name=engine_string(::at(names,n));resident::set(owner->state,name.c_str(),resident::Var(::get(controls.patch,name.c_str())));resident::compact_particle::apply_emitter_field(owner->compact_state,owner->state,{name.c_str(),resident::field_index(name.c_str())});}
   }
   if(owner->use_parameters&&owner->parameter_has(resident::hot_parameters::DETONATE)&&owner->parameter_integer(resident::hot_parameters::DETONATE)!=0){resident::set(owner->state,particle_field::detonate108,owner->parameter_get(resident::hot_parameters::DETONATE));owner->compact_state.detonate108=static_cast<int32_t>(owner->parameter_integer(resident::hot_parameters::DETONATE));resident::set_int(owner->parameters,"detonate",0);}
   if(controls.detonate){resident::set_int(owner->state,particle_field::detonate108,1);owner->compact_state.detonate108=1;}
-  pose=owner->read_pose();const auto source=owner->source_id==owner->pose_id?pose:owner->read_pose(true);
-  auto& emitter=owner->compact_state;if(!emitter.source.present)throw std::runtime_error("Native owner record required");
+  if(!checked)pose=owner->read_pose();
+  const auto source=owner->source_id==owner->pose_id?pose:owner->read_pose(true);
+  if(!emitter.source.present)throw std::runtime_error("Native owner record required");
   emitter.source.position=source.position;emitter.source.quaternion=source.quaternion;emitter.source.adjustedScale=source.scale;owner->typed_source_pose=true;
-  if(std::abs(emitter.birthRate)>32768||owner->allocations>32768)throw std::runtime_error("Native particle instance exceeds explicit allocation limit");finish(pose_ms);
+  if(owner->cx_target_motion)owner->update_cx_target(target_provider,pose);
+  if(std::abs(emitter.birthRate)>32768||owner->allocations>32768)throw std::runtime_error("Native particle instance exceeds explicit allocation limit");
+  double source_pose_ms=0;finish(source_pose_ms);pose_ms+=source_pose_ms;
   resident::Context ctx;context(ctx);resident::ContextScope scope(ctx);
-  if((emitter.flags&4)&&!controls.wind_token)throw std::runtime_error("Native scene wind token is absent");
+  const bool takes_wind=owner->kind!=3&&(emitter.flags&4);
+  if(takes_wind&&!controls.wind_token&&!controls.wind_service)throw std::runtime_error("Particle scene wind binding is absent");
   const auto* wind=ctx.wind_token?&scene_wind::owner(ctx.wind_token):nullptr;
-  const bool known_wind=!wind||wind->points.empty();
+  const bool known_wind=!takes_wind||(wind&&wind->points.empty());
   if(controls.childless_chunk_admission&&emitter.chunk&&known_wind&&camera&&controls.culling&&controls.source_flags>=0)chunk_proof=owner->childless_chunk_proof();
   const bool childless=chunk_proof==1||chunk_proof==2;
-  checked=known_wind&&(!emitter.chunk||childless)&&camera&&controls.culling&&controls.source_flags>=0;
-  if(checked){
-   if(controls.original_admission){
-    radius=controls.explicit_radius>=0?controls.explicit_radius:owner->radius(controls.source_flags,wind?wind->wind:V3{})*std::max(1.0f,pose.maximum_scale);
-    // Native leaf admission tests cached radius+20c and tries the previous
-    // rejecting plane first. The caller owns broad-phase leaf membership.
-    if(std::isfinite(radius)&&radius>=0){const V3 point{pose.position[0],pose.position[2],-pose.position[1]};for(size_t n=0;n<6;++n){const auto index=(reject_plane+n)%6,at=index*4;const auto& p=camera->planes;const float distance=((point[0]*p[at]-p[at+3])+point[1]*p[at+1])+point[2]*p[at+2];if(distance-radius>0){culled=true;reject_plane=index;break;}}}
-   }else culled=owner->culled(*camera,pose.position,controls.source_flags,std::max(1.0f,pose.maximum_scale),radius,wind?wind->wind:V3{});
-  }
-  finish(admission_ms);
+  // A radius derived for ballistic particles cannot cover an arbitrary
+  // reference endpoint and its animated Bezier control points.
+  if(!checked&&!owner->cx_target_motion&&known_wind&&(!emitter.chunk||childless)&&camera&&controls.culling&&controls.source_flags>=0)
+   test_view(reject_plane,wind?wind->wind:V3{});
+  double remaining_admission_ms=0;finish(remaining_admission_ms);admission_ms+=remaining_admission_ms;
   if(!culled&&controls.animate){
    animation_invoked=true;updated=!((emitter.source.present&&emitter.source.instance.present&&1>emitter.source.instance.fade)||(emitter.instance.present&&1>emitter.instance.fade));
    resident::compact_particle::Bridge bridge(owner->state,owner->compact_extras);
@@ -75,16 +110,21 @@ struct Step {
   if(owner->compact_state.chunk){resident::compact_particle::Bridge bridge(owner->state,owner->compact_extras);resident::compact_particle::render_chunks(owner->compact_state,owner->compact_pool,bridge);}
   else{
    const resident::compact_particle::Draw draw{owner->compact_state.source.adjustedScale,camera?camera->camera:Q4{1,0,0,0},tint};
-   ::ParticleStreams::DirectScope range(owner->staging,target);resident::compact_particle::build(owner->compact_state,owner->compact_pool,draw,&owner->staging,0);
+   ::ParticleStreams::DirectScope range(owner->staging,target);
+   if(target.cx_records)resident::compact_particle::build<true>(owner->compact_state,owner->compact_pool,draw,&owner->staging,0);
+   else resident::compact_particle::build(owner->compact_state,owner->compact_pool,draw,&owner->staging,0);
   }
   if(controls.profile)geometry_ms=std::chrono::duration<double,std::milli>(Clock::now()-began).count();
  }
 };
 struct Entry {
- int64_t id=0;EngineVar retained,providers,clock,fallback,readiness;uint8_t clock_route=0;NativeOwner* owner=nullptr;Controls controls;Step step;
+ int64_t id=0;EngineVar retained,providers,clock,fallback,readiness,target_provider;uint8_t clock_route=0;NativeOwner* owner=nullptr;Controls controls;Step step;
  std::unique_ptr<particle_clock_binding::Binding> clock_binding;
+ cx_particle::Random random;
  std::shared_ptr<const Material> material;
- bool enabled=true,source_animating=false;double elapsed=0,clip_length=0;std::string static_clip;uint64_t source_key=0;int16_t node_order=0;float distance=0;
+ bool enabled=true,source_animating=false,use_world_collision=true;double elapsed=0,clip_length=0;std::string static_clip;uint64_t source_key=0;int16_t node_order=0;float distance=0;
+ // -1 uses live scene queries for callers without Node3D notifications.
+ int8_t scene_status=-1;
  int64_t frames=0,culling_checks=0,culled_frames=0,culling_fallbacks=0,peak_active=0,published_vertices=0,direct_queries=0,direct_hits=0;
 };
 struct GeometryJob {
@@ -107,13 +147,26 @@ struct SceneBytes {
  SceneBytes(const SceneBytes&)=delete;
 };
 struct SceneBatch {EngineVar instances;std::shared_ptr<const Material> material;std::vector<SceneSpan> spans;int64_t count=0;V3 minimum{},maximum{};};
-struct Packet {EngineVar vertices;std::vector<Range> ranges;std::vector<SceneBatch> scene_batches;int64_t count=0,generation=0,vertex_generation=0,visible_vertices=0,scene_vertices=0;bool native_surface_output=false;std::array<float,8> fog{0,0,0,0,0,1,1,0};};
+struct Packet {
+ EngineVar vertices;
+ EngineVar cx_lighting;
+ std::vector<Range> ranges;
+ std::vector<SceneBatch> scene_batches;
+ int64_t count=0,generation=0,vertex_generation=0,visible_vertices=0,scene_vertices=0;
+ bool native_surface_output=false,cx_records=false;
+ std::array<float,8> fog{0,0,0,0,0,1,1,0};
+ std::array<float,20> cx_fog{};
+ size_t raster_bytes(int64_t vertices_count)const{
+  return cx_records?cx_particle::bytes_for_vertices(vertices_count):static_cast<size_t>(vertices_count)*24;
+ }
+};
 // Read at the original per-emitter boundary: a preceding callback can mutate
 // this Dictionary. One keyed read preserves absent versus explicit nil.
 bool animation_enabled(const EngineVar& common,const EngineVar* bound_key=nullptr){
  EngineVar value;destroy(value.data);GDExtensionBool present=false;get_keyed(common.data,bound_key ? bound_key->data : ::key("animating").data,value.data,&present);return !present||value.boolean();
 }
 struct Owner {
+ static constexpr int8_t scene_visible=1,scene_processable=2,scene_eligible=scene_visible|scene_processable;
  std::unique_ptr<particle_geometry_worker::Worker> geometry_worker;
  uint64_t geometry_worker_frames=0,geometry_worker_vertices=0;
  FrameSampler sampler;FrameSampler::Invocation* sampling_context=nullptr;bool setup_boundary=false;uint64_t animating_key_binds=0,clock_validity_dispatches=0,static_noncallable_uses=0,static_null_callable_uses=0,clock_native_reads=0,clock_native_fallbacks=0;
@@ -125,19 +178,37 @@ struct Owner {
  }std::shared_ptr<const Packet> packet,canonical_packet;
  EngineVar retained_counters;particle_counters::Owner* counters=nullptr;
  bool closed=false,running=false;int64_t generation=0;size_t reject_plane=0;int64_t prepared=0,culled=0,active=0,fallbacks=0;
+ bool cx_records=false;
+ void enable_cx_records(){
+  if(closed||running||generation||!entries.empty())
+   throw std::runtime_error("CX particle format must be selected before registering emitters");
+  cx_records=true;
+ }
  void bind_counters(const EngineVar& input){
   if(running||closed)throw std::runtime_error("Native counter binding requires an open frame boundary");auto value=::get(input,"counters");if(value.type()!=GDEXTENSION_VARIANT_TYPE_OBJECT)throw std::runtime_error("Native presentation requires native counters");GDExtensionObjectPtr pointer=nullptr;to[GDEXTENSION_VARIANT_TYPE_OBJECT](&pointer,value.data);std::lock_guard<std::mutex> lock(particle_counters::registry_mutex);auto found=particle_counters::registry.find(pointer);if(found==particle_counters::registry.end())throw std::runtime_error("Native particle counters are absent");retained_counters=value;counters=found->second;
  }
  void add(const EngineVar& config){
   if(closed||running)throw std::runtime_error("Native presentation registration requires an open frame boundary");const auto id=::get(config,"id").integer();if(entries.find(id)!=entries.end())throw std::runtime_error("Native presentation identity is already registered");
   order_dirty=true;auto entry=std::make_unique<Entry>();entry->id=id;
+  if(cx_records){entry->random.seed(static_cast<uint64_t>(id));entry->step.cx_random=&entry->random;}
   if(!::has(config,"owner")||::get(config,"owner").nil()){
+   if(cx_records)throw std::runtime_error("CX particle mode requires a native emitter owner");
    entry->fallback=::get(config,"fallback");if(!particle_frame_group::valid_callable(entry->fallback))throw std::runtime_error("Native presentation fallback requires a callable");entries.emplace(id,std::move(entry));order.push_back(id);control(config);return;
   }
   entry->retained=::get(config,"owner");entry->providers=::get(config,"providers");
   if(entry->retained.type()!=GDEXTENSION_VARIANT_TYPE_OBJECT)throw std::runtime_error("Native presentation owner is not an object");GDExtensionObjectPtr object=nullptr;to[GDEXTENSION_VARIANT_TYPE_OBJECT](&object,entry->retained.data);
   {std::lock_guard<std::mutex> guard(resident::owner_registry_mutex);auto found=resident::owner_registry.find(object);if(found!=resident::owner_registry.end())entry->owner=found->second;}
   if(!entry->owner||!entry->owner->configured||!entry->owner->compact_records||!entry->owner->typed_frame||!entry->owner->pose_id)throw std::runtime_error("Native presentation requires a configured typed owner with native poses");
+  if(cx_records&&::has(config,"scene_status")){
+   const auto status=::get(config,"scene_status").integer();
+   if(status<0||status>scene_eligible)throw std::runtime_error("CX particle scene status is invalid");
+   entry->scene_status=static_cast<int8_t>(status);
+  }
+  if(entry->owner->cx_target_motion){
+   if(!cx_records||!::has(config,"target"))throw std::runtime_error("CX target-linked presentation requires a reference binding");
+   entry->target_provider=::get(config,"target");
+   if(!particle_frame_group::valid_callable(entry->target_provider))throw std::runtime_error("CX target binding must be callable");
+  }
   for(const auto& current:entries)if(current.second->owner==entry->owner)throw std::runtime_error("Native presentation requires private emitter owners");
   entry->source_key=entry->owner->source_id;if(::has(config,"source_key"))entry->source_key=static_cast<uint64_t>(::get(config,"source_key").integer());
   if(::has(config,"node_order"))entry->node_order=static_cast<int16_t>(::get(config,"node_order").integer());
@@ -146,10 +217,19 @@ struct Owner {
   if(::has(config,"ready")){entry->readiness=::get(config,"ready");if(!particle_frame_group::valid_callable(entry->readiness))throw std::runtime_error("Native particle readiness requires a callable");}
   if(::has(config,"elapsed"))entry->elapsed=::get(config,"elapsed").number();entries.emplace(id,std::move(entry));order.push_back(id);control(config);
  }
+ void update_scene_status(int64_t id,int64_t status){
+  // Notifications from reference and chunk callbacks can arrive while the
+  // frame is running. Updating these bits leaves entry/order ownership intact.
+  if(closed||status<0||status>scene_eligible)return;
+  auto found=entries.find(id);
+  if(found!=entries.end()&&found->second->scene_status>=0)found->second->scene_status=static_cast<int8_t>(status);
+ }
  void control(const EngineVar& config){
   if(running)throw std::runtime_error("Native presentation controls require a frame boundary");auto found=entries.find(::get(config,"id").integer());if(found==entries.end())return;auto& entry=*found->second;auto& c=entry.controls;
   if(::has(config,"enabled"))entry.enabled=::get(config,"enabled").boolean();if(::has(config,"culling"))c.culling=::get(config,"culling").boolean();if(::has(config,"draw_enabled"))c.draw_enabled=::get(config,"draw_enabled").boolean();
   if(::has(config,"childless_chunk_admission"))c.childless_chunk_admission=::get(config,"childless_chunk_admission").boolean();
+  if(::has(config,"wind_service"))c.wind_service=::get(config,"wind_service").boolean();
+  if(::has(config,"use_world_collision"))entry.use_world_collision=::get(config,"use_world_collision").boolean();
   if(::has(config,"source_flags"))c.source_flags=::get(config,"source_flags").integer();if(::has(config,"wind_token"))c.wind_token=static_cast<uint64_t>(::get(config,"wind_token").integer());
   if(::has(config,"patch")){auto patch=::get(config,"patch");c.patch=::method(patch,"duplicate",{EngineVar::boolean(true)});}if(::has(config,"detonate")&&::get(config,"detonate").boolean())c.detonate=true;
   if(::has(config,"original_admission"))c.original_admission=::get(config,"original_admission").boolean();if(::has(config,"admission_radius"))c.explicit_radius=::f(config,"admission_radius");
@@ -161,7 +241,13 @@ struct Owner {
    GDExtensionObjectPtr texture=nullptr;to[GDEXTENSION_VARIANT_TYPE_OBJECT](&texture,material->texture.data);Name texture_name("Texture2D");
    if(!texture||!cast_object(texture,class_tag(texture_name.data)))throw std::runtime_error("Particle draw material requires a Texture2D");
    auto rid=::method(material->texture,"get_rid");to[GDEXTENSION_VARIANT_TYPE_RID](&material->rid,rid.data);
-   material->additive=::has(config,"additive")&&::get(config,"additive").boolean();material->two_sided=::has(config,"two_sided")&&::get(config,"two_sided").boolean();material->lighting=::has(config,"lighting")&&::get(config,"lighting").boolean();entry.material=std::move(material);
+   material->additive=::has(config,"additive")&&::get(config,"additive").boolean();
+   material->two_sided=::has(config,"two_sided")&&::get(config,"two_sided").boolean();
+   material->lighting=::has(config,"lighting")&&::get(config,"lighting").boolean();
+   material->punch_through=::has(config,"punch_through")&&::get(config,"punch_through").boolean();
+   if(material->punch_through&&(!cx_records||material->additive))
+    throw std::runtime_error("Punch-through requires a CX particle material with alpha blending");
+   entry.material=std::move(material);
   }
  }
  void erase(int64_t id){if(running)throw std::runtime_error("Native presentation removal requires a frame boundary");order_dirty=true;frame_entries.clear();entries.erase(id);order.erase(std::remove(order.begin(),order.end(),id),order.end());}
@@ -176,13 +262,14 @@ struct Owner {
  EngineVar frame(const EngineVar& common){
   if(closed||running)throw std::runtime_error("Native presentation is closed or already running");struct Scope{bool& value;explicit Scope(bool& next):value(next){value=true;}~Scope(){value=false;}}scope(running);
   const bool native_surface_output=::has(common,"native_surface_output")&&::get(common,"native_surface_output").boolean();
-  emitter_lighting::Snapshot lighting;const bool sampled_lighting=native_surface_output&&::has(common,"lighting");if(sampled_lighting)lighting.load(::get(common,"lighting"));if(sampler.coarse_phases&&sampling_context)sampling_context->lighting_rows=static_cast<uint64_t>(lighting.lights.size());
+  if(cx_records&&!native_surface_output)throw std::runtime_error("CX particle records require native surface output");
+  emitter_lighting::Snapshot lighting;const bool sampled_lighting=native_surface_output&&!cx_records&&::has(common,"lighting");if(sampled_lighting)lighting.load(::get(common,"lighting"));if(sampler.coarse_phases&&sampling_context)sampling_context->lighting_rows=static_cast<uint64_t>(lighting.lights.size());
   packet.reset();prepared=culled=active=fallbacks=0;const auto delta=::get(common,"delta").number();const bool profile=::has(common,"profile")&&::get(common,"profile").boolean();if(sampling_context){sampling_context->profile_seen=true;sampling_context->profile=profile;}
   if(::has(common,"initial_reject_plane")){const auto index=::get(common,"initial_reject_plane").integer();if(index<0||index>=6)throw std::runtime_error("Native presentation reject plane is invalid");reject_plane=static_cast<size_t>(index);}
   std::optional<NativeOwner::View> camera;if(::has(common,"view"))camera=NativeOwner::view(::get(common,"view"));if(!camera)throw std::runtime_error("Native presentation requires a complete camera packet");
   bool direct_scene=false;uint64_t terrain=0,statics=0;if(::has(common,"scene_indices")){auto ids=::get(common,"scene_indices");if(::size(ids)!=2)throw std::runtime_error("Native particle scene requires two group identities");terrain=static_cast<uint64_t>(::at(ids,0).integer());statics=static_cast<uint64_t>(::at(ids,1).integer());direct_scene=true;}
   sparse_phase(0);
-  std::array<double,3> boundary_ms{};
+  std::array<double,3> boundary_ms{};int64_t early_culled=0;
   std::array<double,7> phases{};const auto loop_begin=profile?Clock::now():Clock::time_point{};
   // The caller may promise that its frame-local dictionary cannot be changed
   // by an emitter callback. Keep the live per-entry read for all other callers.
@@ -191,11 +278,14 @@ struct Owner {
   const EngineVar* animating_key=nullptr;
   refresh_order();std::vector<Entry*> drawing;drawing.reserve(entries.size());
   for(auto* current:frame_entries){auto& entry=*current;const auto id=entry.id;
-   const auto eligibility_begin=profile?Clock::now():Clock::time_point{};
+   const bool published_status=entry.scene_status>=0;
+   const bool time_eligibility=profile&&!published_status;
+   const auto eligibility_begin=time_eligibility?Clock::now():Clock::time_point{};
    bool direct_eligible=false,direct_source_exists=false,bypass_boundary=false;
-   const bool fused=!profile&&entry.enabled&&entry.owner&&particle_scene_boundary::eligible_source(id,entry.owner->source_id,direct_eligible,direct_source_exists,bypass_boundary);
-   if(!entry.enabled||!(fused?direct_eligible:particle_frame_group::eligible(id,!bypass_boundary))){if(profile)boundary_ms[0]+=std::chrono::duration<double,std::milli>(Clock::now()-eligibility_begin).count();continue;}
-   if(profile)boundary_ms[0]+=std::chrono::duration<double,std::milli>(Clock::now()-eligibility_begin).count();
+   const bool fused=!published_status&&!profile&&entry.enabled&&entry.owner&&particle_scene_boundary::eligible_source(id,entry.owner->source_id,direct_eligible,direct_source_exists,bypass_boundary);
+   const bool eligible=entry.enabled&&(published_status?entry.scene_status==scene_eligible:(fused?direct_eligible:particle_frame_group::eligible(id,!bypass_boundary)));
+   if(time_eligibility)boundary_ms[0]+=std::chrono::duration<double,std::milli>(Clock::now()-eligibility_begin).count();
+   if(!eligible)continue;
    if(!entry.owner){if(sampler.coarse_phases&&sampling_context)++sampling_context->fallbacks;::method(entry.fallback,"call",{EngineVar::number(delta)});++fallbacks;continue;}
    const auto source_begin=profile?Clock::now():Clock::time_point{};
    const bool source_exists=fused?direct_source_exists:instance_from_id(entry.owner->source_id)!=nullptr;
@@ -211,12 +301,12 @@ struct Owner {
    if(actor_clock){if(sampler.coarse_phases&&sampling_context)++sampling_context->clocks;if(entry.clock_binding&&particle_clock_binding::read(*entry.clock_binding,next.clip,time))++clock_native_reads;else{if(entry.clock_binding)++clock_native_fallbacks;auto sampled=::method(entry.clock,"call");if(sampled.type()!=GDEXTENSION_VARIANT_TYPE_DICTIONARY)throw std::runtime_error("Native presentation clock must return a dictionary");next.clip=::has(sampled,"clip")?engine_string(::get(sampled,"clip")):"";time=::has(sampled,"time")?::get(sampled,"time").number():0;}}
    else if(entry.clip_length>0){time=std::fmod(time,entry.clip_length);if(time<0)time+=entry.clip_length;}
    if(profile)boundary_ms[2]+=std::chrono::duration<double,std::milli>(Clock::now()-clock_begin).count();
-   next.time=static_cast<float>(time);next.direct_scene=direct_scene;next.terrain_index=terrain;next.static_index=statics;
-   entry.step.advance(*entry.owner,entry.providers,camera,reject_plane);entry.controls.patch=EngineVar();entry.controls.detonate=false;++prepared;
+   next.time=static_cast<float>(time);next.direct_scene=direct_scene&&entry.use_world_collision;next.terrain_index=terrain;next.static_index=statics;
+   entry.step.advance(*entry.owner,entry.providers,camera,reject_plane,entry.target_provider);entry.controls.patch=EngineVar();entry.controls.detonate=false;++prepared;
    if(profile){phases[1]+=entry.step.controls_ms;phases[2]+=entry.step.pose_ms;phases[3]+=entry.step.admission_ms;phases[4]+=entry.step.simulation_ms;}
    entry.direct_queries+=static_cast<int64_t>(entry.step.direct_queries);entry.direct_hits+=static_cast<int64_t>(entry.step.direct_hits);
    if(entry.step.checked)++entry.culling_checks;else if(next.culling)++entry.culling_fallbacks;
-   if(entry.step.culled){++entry.culled_frames;++culled;continue;}++entry.frames;entry.published_vertices=entry.step.vertices();
+   if(entry.step.culled){++entry.culled_frames;++culled;early_culled+=entry.step.early_culled;continue;}++entry.frames;entry.published_vertices=entry.step.vertices();
    active+=static_cast<int64_t>(entry.owner->compact_pool.active.size());entry.peak_active=std::max(entry.peak_active,static_cast<int64_t>(entry.owner->compact_pool.active.size()));
    if(!entry.owner->compact_pool.active.empty()){const auto& point=entry.source_key?entry.owner->compact_state.source.position:entry.step.pose.position;const auto d=subtract(camera->position,point);entry.distance=(d[0]*d[0]+d[1]*d[1])+d[2]*d[2];drawing.push_back(&entry);}
   }
@@ -227,9 +317,21 @@ struct Owner {
   particle_native_sort::sort(drawing,less);
   const bool scene_instances=!native_surface_output&&::has(common,"scene_instances")&&::get(common,"scene_instances").boolean();
   int64_t total=0,all_vertices=0;for(const auto* entry:drawing){const auto count=entry->step.vertices();if(count>16777216-all_vertices)throw std::runtime_error("Native shared particle frame exceeds explicit allocation limit");all_vertices+=count;if(!scene_instances||!entry->material||!entry->material->lighting)total+=count;}
-  WritableBytes bytes(static_cast<size_t>(total)*24);auto next=std::make_shared<Packet>();next->count=total;next->visible_vertices=total;next->generation=++generation;next->vertex_generation=next->generation;next->ranges.reserve(drawing.size());int64_t offset=0;
-  next->native_surface_output=native_surface_output;
+  auto next=std::make_shared<Packet>();next->count=total;next->visible_vertices=total;next->generation=++generation;next->vertex_generation=next->generation;next->ranges.reserve(drawing.size());int64_t offset=0;
+  next->native_surface_output=native_surface_output;next->cx_records=cx_records;
+  if(cx_records&&::has(common,"cx_lighting"))next->cx_lighting=::get(common,"cx_lighting");
+  WritableBytes bytes(next->raster_bytes(total));
   if(::has(common,"fog")){auto fog=::get(common,"fog");if(::size(fog)!=8)throw std::runtime_error("Native particle fog requires eight finite scene values");for(int64_t n=0;n<8;++n){const auto value=static_cast<float>(::at(fog,n).number());if(!std::isfinite(value))throw std::runtime_error("Native particle fog contains a nonfinite scene value");next->fog[static_cast<size_t>(n)]=value;}const float mode=next->fog[7];if(next->native_surface_output?(mode!=0&&mode!=3):(mode!=0&&mode!=1&&mode!=2))throw std::runtime_error("Native particle fog mode does not match its color carrier");}
+  if(cx_records&&::has(common,"cx_fog")){
+   auto fields=::get(common,"cx_fog");
+   if(::size(fields)!=static_cast<int64_t>(next->cx_fog.size()))
+    throw std::runtime_error("CX particle fog requires twenty scene values");
+   for(size_t n=0;n<next->cx_fog.size();++n){
+    const auto value=static_cast<float>(::at(fields,n).number());
+    if(!std::isfinite(value))throw std::runtime_error("CX particle fog contains a nonfinite scene value");
+    next->cx_fog[n]=value;
+   }
+  }
   // Preserve sorted range order. Only consecutive equal scene materials are
   // combined, with a new shard before the existing MultiMesh capacity limit.
   std::vector<int64_t> scene_for_entry(drawing.size(),-1);int64_t current_scene=-1;
@@ -246,14 +348,14 @@ struct Owner {
   if(parallel_geometry){
    std::vector<GeometryJob> jobs;jobs.reserve(drawing.size());
    for(size_t n=0;n<drawing.size();++n){auto* entry=drawing[n];const auto count=entry->step.vertices();if(!entry->owner->compact_state.chunk&&!entry->controls.draw_enabled)continue;
-    V3 tint{1,1,1};if(native_surface_output&&count&&((entry->owner->compact_state.flags&8)!=0)){if(!sampled_lighting)throw std::runtime_error("Original lit particles require a CPU lighting snapshot");tint=lighting.sample(entry->owner->compact_state.position1e0);}
+    V3 tint{1,1,1};if(native_surface_output&&!cx_records&&count&&((entry->owner->compact_state.flags&8)!=0)){if(!sampled_lighting)throw std::runtime_error("Original lit particles require a CPU lighting snapshot");tint=lighting.sample(entry->owner->compact_state.position1e0);}
     if(entry->owner->compact_state.chunk){
      ::ParticleStreams::DirectRange target{nullptr,0};entry->step.geometry(target,tint);if(profile){phases[5]+=entry->step.geometry_ms;chunk_geometry_ms+=entry->step.geometry_ms;}
      next->ranges.push_back(Range{entry->id,offset,count,entry->distance,entry->owner->staging.minimum,entry->owner->staging.maximum,true,entry->material});continue;
     }
     GeometryJob job;job.entry=entry;job.tint=tint;
     if(scene_for_entry[n]>=0){const auto index=static_cast<size_t>(scene_for_entry[n]);auto& batch=next->scene_batches[index];auto& written=scene_offsets[index];job.scene=static_cast<int64_t>(index);job.target={scene_bytes[index]->data+static_cast<size_t>(written/6)*80,count,0,true};batch.spans.push_back({entry->id,written,count});written+=count;}
-    else{job.target={count?bytes.data+static_cast<size_t>(offset)*24:nullptr,count};job.range=static_cast<int64_t>(next->ranges.size());next->ranges.push_back(Range{entry->id,offset,count,entry->distance,{},{},false,entry->material});offset+=count;}
+    else{job.target={count?bytes.data+next->raster_bytes(offset):nullptr,count,0,false,cx_records};job.range=static_cast<int64_t>(next->ranges.size());next->ranges.push_back(Range{entry->id,offset,count,entry->distance,{},{},false,entry->material});offset+=count;}
     jobs.push_back(std::move(job));
    }
    int64_t job_vertices=0;for(const auto& job:jobs)job_vertices+=job.target.vertices;
@@ -278,11 +380,11 @@ struct Owner {
    }
    if(profile&&geometry_worker_used){geometry_worker_cpu_ms=phases[5];phases[5]=chunk_geometry_ms+geometry_worker_wall_ms;}
   }else for(size_t n=0;n<drawing.size();++n){auto* entry=drawing[n];const auto count=entry->step.vertices();if(!entry->owner->compact_state.chunk&&!entry->controls.draw_enabled)continue;
-   V3 tint{1,1,1};if(native_surface_output&&count&&((entry->owner->compact_state.flags&8)!=0)){if(!sampled_lighting)throw std::runtime_error("Original lit particles require a CPU lighting snapshot");tint=lighting.sample(entry->owner->compact_state.position1e0);}
+   V3 tint{1,1,1};if(native_surface_output&&!cx_records&&count&&((entry->owner->compact_state.flags&8)!=0)){if(!sampled_lighting)throw std::runtime_error("Original lit particles require a CPU lighting snapshot");tint=lighting.sample(entry->owner->compact_state.position1e0);}
    if(scene_for_entry[n]>=0){const auto index=static_cast<size_t>(scene_for_entry[n]);auto& batch=next->scene_batches[index];auto& written=scene_offsets[index];::ParticleStreams::DirectRange target{scene_bytes[index]->data+static_cast<size_t>(written/6)*80,count,0,true};entry->step.geometry(target);if(profile)phases[5]+=entry->step.geometry_ms;if(target.written!=count)throw std::runtime_error("Native scene instance range is incomplete");
     const auto& a=entry->owner->staging.minimum;const auto& b=entry->owner->staging.maximum;if(!written){batch.minimum=a;batch.maximum=b;}else for(size_t axis=0;axis<3;++axis){batch.minimum[axis]=std::min(batch.minimum[axis],a[axis]);batch.maximum[axis]=std::max(batch.maximum[axis],b[axis]);}batch.spans.push_back({entry->id,written,count});written+=count;continue;
    }
-   ::ParticleStreams::DirectRange target{count?bytes.data+static_cast<size_t>(offset)*24:nullptr,count};entry->step.geometry(target,tint);if(profile)phases[5]+=entry->step.geometry_ms;
+   ::ParticleStreams::DirectRange target{count?bytes.data+next->raster_bytes(offset):nullptr,count,0,false,cx_records};entry->step.geometry(target,tint);if(profile)phases[5]+=entry->step.geometry_ms;
    if(!entry->owner->compact_state.chunk&&target.written!=count)throw std::runtime_error("Native shared particle range is incomplete");
    Range range{entry->id,offset,count,entry->distance,entry->owner->staging.minimum,entry->owner->staging.maximum,entry->owner->compact_state.chunk,entry->material};next->ranges.push_back(range);offset+=count;
   }
@@ -294,7 +396,14 @@ struct Owner {
    // removal is deferred, while its fixed counter record is removed now.
    if(!counters->store_if_present(id,[&entry]{const auto simulated=static_cast<int64_t>(entry.frames>0);return std::array<int64_t,particle_counters::fields>{simulated,static_cast<int64_t>(entry.owner->compact_pool.active.size()),entry.published_vertices,0,simulated,0,simulated,0,entry.owner->constant_hits,entry.owner->sampled_channels,entry.culling_checks,entry.culled_frames,static_cast<int64_t>(entry.culled_frames>0),static_cast<int64_t>(entry.step.culled),entry.culling_fallbacks};}))throw std::runtime_error("Native presentation counters are closed");}
   sparse_phase(3);
-  auto result=summary();if(animation_snapshot){::set(result,"animation_snapshot_reads",EngineVar::integer(frame_animation_read?1:0));::set(result,"animation_snapshot_prepared",EngineVar::integer(prepared));}if(profile){auto measured=EngineVar::dictionary();
+  auto result=summary();
+  if(cx_records){
+   const bool lit_draw=packet&&std::any_of(packet->ranges.begin(),packet->ranges.end(),[](const Range& range){
+    return range.count&&range.material&&!range.material->additive&&!range.material->punch_through;
+   });
+   ::set(result,"cx_lit_draw",EngineVar::boolean(lit_draw));
+  }
+  ::set(result,"early_culled",EngineVar::integer(early_culled));if(animation_snapshot){::set(result,"animation_snapshot_reads",EngineVar::integer(frame_animation_read?1:0));::set(result,"animation_snapshot_prepared",EngineVar::integer(prepared));}if(profile){auto measured=EngineVar::dictionary();
    const std::array<const char*,7> names{"particle_native_eligibility_clock_ms","particle_native_controls_ms","particle_native_pose_ms","particle_native_admission_ms","particle_native_simulation_ms","particle_native_geometry_ms","particle_native_pack_sort_ms"};
    phases[6]=std::chrono::duration<double,std::milli>(counters_begin-packing_begin).count()-phases[5];
    for(size_t n=0;n<phases.size();++n)::set(measured,names[n],EngineVar::number(phases[n]));
@@ -306,16 +415,24 @@ struct Owner {
    ::set(measured,"particle_native_counters_summary_ms",EngineVar::number(std::chrono::duration<double,std::milli>(Clock::now()-counters_begin).count()));::set(result,"phases",measured);
   }return result;
  }
- EngineVar summary()const{auto out=EngineVar::dictionary();::set(out,"registered",EngineVar::integer(static_cast<int64_t>(entries.size())));::set(out,"prepared",EngineVar::integer(prepared));::set(out,"fallbacks",EngineVar::integer(fallbacks));::set(out,"culled",EngineVar::integer(culled));::set(out,"active",EngineVar::integer(active));::set(out,"vertices",EngineVar::integer(packet?packet->visible_vertices+packet->scene_vertices:0));::set(out,"scene_vertices",EngineVar::integer(packet?packet->scene_vertices:0));::set(out,"scene_batches",EngineVar::integer(packet?static_cast<int64_t>(packet->scene_batches.size()):0));::set(out,"bytes",EngineVar::integer(packet?packet->count*24+packet->scene_vertices/6*80:0));::set(out,"draws",EngineVar::integer(packet?static_cast<int64_t>(packet->ranges.size()+packet->scene_batches.size()):0));::set(out,"geometry_worker_frames",EngineVar::integer(static_cast<int64_t>(geometry_worker_frames)));::set(out,"geometry_worker_vertices",EngineVar::integer(static_cast<int64_t>(geometry_worker_vertices)));::set(out,"generation",EngineVar::integer(generation));::set(out,"closed",EngineVar::boolean(closed));return out;}
+ EngineVar summary()const{auto out=EngineVar::dictionary();::set(out,"registered",EngineVar::integer(static_cast<int64_t>(entries.size())));::set(out,"prepared",EngineVar::integer(prepared));::set(out,"fallbacks",EngineVar::integer(fallbacks));::set(out,"culled",EngineVar::integer(culled));::set(out,"active",EngineVar::integer(active));::set(out,"vertices",EngineVar::integer(packet?packet->visible_vertices+packet->scene_vertices:0));::set(out,"scene_vertices",EngineVar::integer(packet?packet->scene_vertices:0));::set(out,"scene_batches",EngineVar::integer(packet?static_cast<int64_t>(packet->scene_batches.size()):0));::set(out,"bytes",EngineVar::integer(packet?static_cast<int64_t>(packet->raster_bytes(packet->count))+packet->scene_vertices/6*80:0));::set(out,"cx_records",EngineVar::boolean(cx_records));::set(out,"draws",EngineVar::integer(packet?static_cast<int64_t>(packet->ranges.size()+packet->scene_batches.size()):0));::set(out,"geometry_worker_frames",EngineVar::integer(static_cast<int64_t>(geometry_worker_frames)));::set(out,"geometry_worker_vertices",EngineVar::integer(static_cast<int64_t>(geometry_worker_vertices)));::set(out,"generation",EngineVar::integer(generation));::set(out,"closed",EngineVar::boolean(closed));return out;}
  EngineVar refresh_visibility(){
   if(closed||running)throw std::runtime_error("Native visibility publication requires an open main-thread frame boundary");
   if(!canonical_packet)return summary();
   // Borrow immutable geometry from the last complete simulation frame. Never
   // sample controls, advance clocks/RNG/physics, or invoke geometry callbacks.
   const auto& source=*canonical_packet;auto next=std::make_shared<Packet>();
-  next->vertices=source.vertices;next->count=source.count;next->vertex_generation=source.vertex_generation;next->fog=source.fog;next->native_surface_output=source.native_surface_output;
+  next->vertices=source.vertices;next->count=source.count;next->vertex_generation=source.vertex_generation;next->fog=source.fog;next->native_surface_output=source.native_surface_output;next->cx_records=source.cx_records;
+  next->cx_lighting=source.cx_lighting;
+  next->cx_fog=source.cx_fog;
   std::unordered_map<int64_t,bool> visibility;
-  const auto shown=[&](int64_t id){auto cached=visibility.find(id);if(cached!=visibility.end())return cached->second;const auto entry=entries.find(id);const bool value=entry!=entries.end()&&entry->second->enabled&&particle_frame_group::visible(id);visibility.emplace(id,value);return value;};
+  const auto shown=[&](int64_t id){
+   auto cached=visibility.find(id);if(cached!=visibility.end())return cached->second;
+   const auto entry=entries.find(id);
+   const bool value=entry!=entries.end()&&entry->second->enabled&&
+    (entry->second->scene_status>=0?(entry->second->scene_status&scene_visible)!=0:particle_frame_group::visible(id));
+   visibility.emplace(id,value);return value;
+  };
   for(const auto& range:source.ranges)if(shown(range.id)){next->ranges.push_back(range);next->visible_vertices+=range.count;}
   for(const auto& batch:source.scene_batches){
    int64_t count=0;for(const auto& span:batch.spans)if(shown(span.id))count+=span.count;if(!count)continue;
@@ -367,6 +484,10 @@ struct Owner {
  }
  EngineVar entry_info(int64_t id)const{
   auto out=EngineVar::dictionary();auto found=entries.find(id);if(found==entries.end())return out;const auto& e=*found->second;::set(out,"fast",EngineVar::boolean(e.owner!=nullptr));if(!e.owner)return out;
+  if(cx_records){
+   ::set(out,"cx_rng_state",EngineVar::integer(e.random.state));
+   ::set(out,"cx_rng_draws",EngineVar::integer(static_cast<int64_t>(e.random.draws)));
+  }
   const auto number=[&](const char* name,int64_t value){::set(out,name,EngineVar::integer(value));};number("frames",e.frames);number("active",static_cast<int64_t>(e.owner->compact_pool.active.size()));number("free",static_cast<int64_t>(e.owner->compact_pool.free.size()));number("allocated",e.owner->allocations);number("constant_hits",e.owner->constant_hits);number("sampled_channels",e.owner->sampled_channels);number("vertices",e.published_vertices);number("peak_active",e.peak_active);number("culling_checks",e.culling_checks);number("culled_frames",e.culled_frames);number("culling_fallbacks",e.culling_fallbacks);number("direct_scene_queries",e.direct_queries);number("direct_scene_hits",e.direct_hits);::set(out,"culled",EngineVar::boolean(e.step.culled));::set(out,"radius",EngineVar::number(e.step.radius));::set(out,"elapsed",EngineVar::number(e.elapsed));::set(out,"pending_detonate",EngineVar::boolean(e.controls.detonate));::set(out,"pending_patch",EngineVar::boolean(!e.controls.patch.nil()));::set(out,"childless_chunk_admission",EngineVar::boolean(e.controls.childless_chunk_admission));::set(out,"chunk_proof",EngineVar::integer(e.step.chunk_proof));return out;
  }
  EngineVar inspect()const{
@@ -420,7 +541,7 @@ struct Owner {
    if(emitter.chunk){for(auto* particle:owner.compact_pool.active){const auto found=owner.compact_extras.find(particle);if(found==owner.compact_extras.end()){chunk_proof=3;break;}if(!found->second.native_chunk){chunk_proof=4;break;}if(!found->second.child.nil()){chunk_proof=5;break;}chunk_proof=2;}}
    integer("current_chunk_proof",chunk_proof);
    const bool child_geometry_known=!emitter.chunk||chunk_proof==1||chunk_proof==2;
-   const bool can_compare=step.prepared&&step.camera&&step.controls.source_flags>=0&&known_wind&&child_geometry_known;
+   const bool can_compare=step.prepared&&step.camera&&step.controls.source_flags>=0&&known_wind&&child_geometry_known&&!owner.cx_target_motion;
    boolean("policy_comparable",can_compare);
    if(can_compare){
     resident::FieldKeyScope fields(owner.field_keys);
@@ -449,10 +570,21 @@ void call(void*,GDExtensionClassInstancePtr instance,const GDExtensionConstVaria
  if(!particle_upload::count_ok(count,2,result,error))return;
  try{auto& owner=*static_cast<Owner*>(instance);EngineVar operation(args[0]),input(args[1]);auto out=EngineVar::dictionary();switch(operation.integer()){case 0:owner.add(input);break;case 1:out=owner.timed_frame(input);break;case 2:out=owner.inspect();break;case 3:owner.erase(::get(input,"id").integer());break;case 4:owner.control(input);break;case 5:owner.close();break;case 6:owner.set_order(input);break;case 7:out=owner.summary();break;case 8:owner.bind_counters(input);break;case 9:out=owner.scene_frame();break;case 10:out=owner.entry_info(::get(input,"id").integer());break;case 11:out=owner.refresh_visibility();break;case 12:out=emitter_lighting::inspect(input);break;case 13:out=particle_scene_boundary::inspect();break;case 14:out=owner.chunk_census();break;case 15:owner.configure_sampler(input);out=owner.sampler_info();break;case 16:out=owner.sampler_info();break;case 17:out=owner.admission_policy_survey();break;case 18:{auto rows=::array_empty();for(const auto& pair:owner.entries)if(pair.second->owner){auto row=pair.second->owner->hot_parameter_info();::set(row,"id",EngineVar::integer(pair.first));::method(rows,"append",{row});}::set(out,"owners",rows);break;}case 19:out=resident::hot_parameters::component_oracle();break;case 20:out=resident::resident_text::component_oracle();break;case 21:out=resident::resident_text::inspect();break;case 22:{auto rows=::array_empty();for(const auto& pair:owner.entries)if(pair.second->owner){auto row=pair.second->owner->empty_clip_info();::set(row,"id",EngineVar::integer(pair.first));::method(rows,"append",{row});}::set(out,"owners",rows);break;}default:throw std::runtime_error("Unknown native particle presentation operation");}new_copy(result,out.data);}catch(const std::exception& failure){auto out=EngineVar::dictionary();::set(out,"error",EngineVar::text(failure.what()));new_copy(result,out.data);}
 }
+void scene_status_call(void*,GDExtensionClassInstancePtr instance,const GDExtensionConstVariantPtr* args,GDExtensionInt count,GDExtensionVariantPtr result,GDExtensionCallError* error){
+ if(!particle_upload::count_ok(count,2,result,error))return;
+ int64_t id=0,status=0;
+ to[GDEXTENSION_VARIANT_TYPE_INT](&id,const_cast<uint8_t*>(static_cast<const uint8_t*>(args[0])));
+ to[GDEXTENSION_VARIANT_TYPE_INT](&status,const_cast<uint8_t*>(static_cast<const uint8_t*>(args[1])));
+ static_cast<Owner*>(instance)->update_scene_status(id,status);
+ new_nil(result);
+}
 template<typename Property>void register_owner(const Property& property){
  setup_clock_route::bind();
  Name name("NwnParticlePresentation"),base("RefCounted"),method_name("dispatch"),empty(""),operation("operation"),input("input");GDExtensionClassCreationInfo6 info{};info.is_exposed=true;info.is_runtime=true;info.create_instance_func=create;info.free_instance_func=free;register_class(library,name.data,base.data,&info);registered=true;
  auto ret=property(GDEXTENSION_VARIANT_TYPE_DICTIONARY,empty);GDExtensionPropertyInfo args[]={property(GDEXTENSION_VARIANT_TYPE_INT,operation),property(GDEXTENSION_VARIANT_TYPE_DICTIONARY,input)};GDExtensionClassMethodArgumentMetadata metadata[2]{};GDExtensionClassMethodInfo method{};method.name=method_name.data;method.call_func=call;method.method_flags=GDEXTENSION_METHOD_FLAG_NORMAL;method.has_return_value=true;method.return_value_info=&ret;method.argument_count=2;method.arguments_info=args;method.arguments_metadata=metadata;register_method(library,name.data,&method);
+ Name scene_method("update_scene_status"),emitter_id("emitter_id"),status("status");
+ GDExtensionPropertyInfo scene_args[]={property(GDEXTENSION_VARIANT_TYPE_INT,emitter_id),property(GDEXTENSION_VARIANT_TYPE_INT,status)};
+ method.name=scene_method.data;method.call_func=scene_status_call;method.has_return_value=false;method.return_value_info=nullptr;method.arguments_info=scene_args;register_method(library,name.data,&method);
 }
 void unregister_owner(){if(registered){Name name("NwnParticlePresentation");unregister_class(library,name.data);registered=false;}}
 } // namespace particle_presentation

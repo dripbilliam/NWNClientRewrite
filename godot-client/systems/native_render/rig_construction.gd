@@ -80,6 +80,7 @@ func _mesh()->void:
 		else:
 			var bind:=Skin.new();bind.add_bind(part,Transform3D.IDENTITY);mesh.skin=bind;owner.stats.rigid_meshes+=1
 		mesh.skeleton=mesh.get_path_to(skeleton);entry.gpu_meshes.append(mesh)
+		preload("res://systems/native_render/actor_shadow_mesh.gd").invalidate(mesh)
 		if mesh.has_meta("native_pick_shape") or mesh.has_meta("native_pick_geometry"):mesh.set_meta("native_pick_anchor",_bone_node(part));mesh.set_meta("native_pick_bounds",mesh.get_aabb())
 	else:
 		var target: Node3D=entry.nodes[part];mesh.reparent(target,false);mesh.position=owner._vec(row.rigLocal.position);mesh.quaternion=owner._quat(row.rigLocal.quaternion);mesh.scale=owner._vec(row.rigLocal.scale)
@@ -147,6 +148,7 @@ func cancel()->void:
 		node.transform=row.transform
 		if row.has("mesh"):
 			node.mesh=row.mesh_resource;node.skin=row.skin;node.skeleton=row.skeleton;node.custom_aabb=row.custom_aabb
+			preload("res://systems/native_render/actor_shadow_mesh.gd").invalidate(node)
 			for name in ["native_pick_anchor","native_pick_bounds"]:
 				var value: Variant=row.anchor if name=="native_pick_anchor" else row.bounds
 				if value!=null:node.set_meta(name,value)

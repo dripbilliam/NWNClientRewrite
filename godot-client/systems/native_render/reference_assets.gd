@@ -43,7 +43,7 @@ var publication: Array=[]
 var maximum_names:=4096
 var maximum_cached:=64
 var maximum_publications:=2
-var stats:={"requested":0,"jobs":0,"cache_hits":0,"published":0,"bundles_published":0,"chunk_models":0,"stale":0,"failed":0,"missing_root_requests":0,"errors":[],"worker_ms":0.0,"max_publication_ms":0.0}
+var stats:={"requested":0,"jobs":0,"cache_hits":0,"published":0,"bundles_published":0,"chunk_models":0,"stale":0,"failed":0,"missing_root_requests":0,"missing_chunk_sources":{},"errors":[],"worker_ms":0.0,"max_publication_ms":0.0}
 func _init() -> void: set_process(false)
 func _ready() -> void: _refresh_processing()
 func _refresh_processing() -> void:
@@ -53,9 +53,9 @@ func configure(catalog,shared_pool,cache_path: String="") -> void:
 	_refresh_processing()
 func request_reference(reference: Node3D,resource: String) -> void:
 	request_model(reference,resource,"reference")
-func request_bundle(owner: Node3D,resource: String) -> void:
-	request_model(owner,resource,"bundle")
-func request_model(reference: Node3D,resource: String,kind: String) -> void:
+func request_bundle(owner: Node3D,resource: String,allow_absent: bool=false) -> void:
+	request_model(owner,resource,"bundle",allow_absent)
+func request_model(reference: Node3D,resource: String,kind: String,allow_absent: bool=false) -> void:
 	if closed or not is_instance_valid(assets): reference.reject("Native reference preparation scope is closed"); return
 	if not requests.has(resource) and requests.size()+jobs.size()>maximum_names: reference.reject("Native reference preparation exceeds name bound"); return
 	stats.requested+=1; reference.generation=generation
@@ -68,9 +68,14 @@ func request_model(reference: Node3D,resource: String,kind: String) -> void:
 	# for every new physical owner of the same absent chunk/reference. Do not
 	# cache a failure here: a later catalog mount must be visible immediately,
 	# and a present but malformed/unreadable resource keeps its existing path.
-	if not assets.catalog.has_resource(resource,2002):
+	if assets.catalog.has_method("has_resource") and not assets.catalog.has_resource(resource,2002):
+		stats.missing_root_requests+=1
+		if allow_absent and reference.accept_missing_model(generation):
+			var missing: Dictionary=stats.missing_chunk_sources
+			if missing.size()<512 or missing.has(resource): missing[resource]=int(missing.get(resource,0))+1
+			return
 		var reason:="Resource not found: "+resource+":2002"
-		stats.failed+=1; stats.missing_root_requests+=1
+		stats.failed+=1
 		# Owner failures remain explicit; bound repetitive diagnostic samples.
 		if stats.errors.size()<512: stats.errors.append({"resource":resource,"reason":reason})
 		reference.reject("Original referenced model unavailable: "+resource+": "+reason); return

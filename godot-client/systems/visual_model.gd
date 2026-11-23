@@ -211,16 +211,7 @@ func clip_length(clip: String) -> float:
 	return 0.0
 
 func sample_weather_clip(clip: String,fraction: float) -> bool:
-	# Original weather setter: delete same run, play at intensity/100,
-	# externally advance by original clip length, freeze by setting speed0.
-	var length := clip_length(clip)
-	if length <= 0 or not metadata.rigs.assets[int(metadata.rigs.entities[0].models[0].asset)].get("nativeAnimation") is Dictionary: return false
-	play_effect_clip(clip,0,128,0)
-	if not play_effect_clip(clip,fraction,0,0): return false
-	var model: Dictionary = rigs.entities[0].models[0]
-	model.native_owner.advance(length)
-	rigs._native_clock(model)
-	return play_effect_clip(clip,0,0,0)
+	return installed and not retired and rigs.sample_native_clip_fraction(0,0,clip,fraction)
 
 func set_part_local_pose(part_name: String, position_value: Array, quaternion_value: Array) -> bool:
 	var node := node_for(0, part_name)

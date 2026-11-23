@@ -262,6 +262,24 @@ func play_native(id: int, model_index: int, clip: Variant, speed: float, flags: 
 		_emit_native_events(id, model_index, model)
 	return result
 
+func sample_native_clip_fraction(id: int,model_index: int,clip: String,fraction: float) -> bool:
+	if not entities.has(id) or model_index<0 or model_index>=entities[id].models.size(): return false
+	var model: Dictionary=entities[id].models[model_index]
+	if not model.asset_source.get("nativeAnimation") is Dictionary: return false
+	var length:=0.0
+	for source in model.asset_source.get("clips",[]):
+		if str(source.name).to_lower()==clip.to_lower():
+			length=float(source.length)
+			break
+	if length<=0.0: return false
+	# Original weather setter removes the previous run, advances externally
+	# by the clip length at intensity speed, then freezes that same run.
+	play_native(id,model_index,clip,0,128,0)
+	if not play_native(id,model_index,clip,fraction,0,0): return false
+	model.native_owner.advance(length)
+	_native_clock(model)
+	return play_native(id,model_index,clip,0,0,0)
+
 func set_model_colour_scope(id: int,model_index: int,scope: int,rgb: Variant) -> bool:
 	if not entities.has(id) or model_index<0 or model_index>=entities[id].models.size(): return false
 	var entry: Dictionary=entities[id]; var model: Dictionary=entry.models[model_index]
@@ -318,6 +336,8 @@ func _model(root: Node3D, nodes: Array[Node3D], source: Dictionary, asset: Dicti
 	if asset.clips.is_empty():
 		return {"player": null, "names": {}, "clip": "", "loop": false, "speed": 1.0}
 	var player := AnimationPlayer.new()
+	if has_meta("_nwn_rig_phase_owner"):
+		player.set_meta("_nwn_rig_phase_player", true)
 	root.add_child(player)
 	player.root_node = NodePath("..")
 	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
@@ -362,6 +382,8 @@ func _model(root: Node3D, nodes: Array[Node3D], source: Dictionary, asset: Dicti
 	_play(model, str(source.get("clip", "")), bool(source.get("loop", true)), model.speed, float(source.get("time", 0.0)))
 	return model
 
+const ClipKeyCache = preload("res://systems/native_render/clip_key_cache.gd")
+
 func _clip_resource(root: Node3D, nodes: Array[Node3D], source: Dictionary, defaults: Array, controlled: Dictionary, clip: Dictionary) -> Animation:
 	var animation := Animation.new()
 	animation.length = maxf(0.001, float(clip.length))
@@ -380,8 +402,8 @@ func _clip_resource(root: Node3D, nodes: Array[Node3D], source: Dictionary, defa
 			var node: Node3D = nodes[int(source.parts[part])]
 			target_path=str(root.get_path_to(node)); property_path=target_path+":"+property
 		var channel: Dictionary = channels.get(channel_key, {"keys": [{"time": 0.0, "value": defaults[part][property]}], "sourceInterpolation": "linear"})
-		var keys: Array = preload("res://systems/native_data/packed_animation_keys.gd").keys(channel)
 		if controlled[channel_key].bezier and property != "quaternion":
+			var keys: Array = ClipKeyCache.keys(channel)
 			for axis in 3:
 				var track := animation.add_track(Animation.TYPE_BEZIER)
 				animation.track_set_path(track, NodePath(property_path + ":" + ["x", "y", "z"][axis]))
@@ -400,9 +422,7 @@ func _clip_resource(root: Node3D, nodes: Array[Node3D], source: Dictionary, defa
 					animation.bezier_track_insert_key(track, time, value_at_key, incoming, outgoing)
 			continue
 		var type := Animation.TYPE_POSITION_3D if property == "position" else (Animation.TYPE_ROTATION_3D if property == "quaternion" else Animation.TYPE_SCALE_3D)
-		var track := animation.add_track(type)
-		animation.track_set_path(track, NodePath(target_path))
-		for key in keys: animation.track_insert_key(track, float(key.time), _quat(key.value) if property == "quaternion" else _vec(key.value))
+		ClipKeyCache.append_transform(animation, NodePath(target_path), type, channel)
 	return animation
 
 func _deferred_clip(model: Dictionary,name: String) -> Dictionary:
@@ -455,6 +475,33 @@ func clip_name(id: int, animation: int, side: int = -1) -> String:
 	var entry: Dictionary = entities[id]
 	var chosen := int(entry.side) if side < 0 else side
 	return str(entry.side_maps.get(str(chosen), entry.clip_map).get(str(animation), ""))
+
+func has_current_playback(id: int, animation: int, speed: float, loop: bool, side: int) -> bool:
+	if idle_suspended or not is_processing() or not is_finite(speed) or speed <= 0.0 or not entities.has(id):
+		return false
+	var entry: Dictionary = entities[id]
+	if (side >= 0 and int(entry.side) != side) or int(entry.get("animation", -1)) != animation:
+		return false
+	var name := clip_name(id, animation, side)
+	if name.is_empty():
+		return false
+	# AnimationPlayer stores speed_scale as a float32. Compare at the same
+	# precision as the setter while retaining the requested speed in the model.
+	var player_speed := Color(speed, 0.0, 0.0).r
+	var found := false
+	for model_index in entry.animated_models if entry.has("animated_models") else range(entry.models.size()):
+		var model: Dictionary = entry.models[int(model_index)]
+		if not model.get("follow", false):
+			continue
+		if model.has("native_owner") or model.clip != name or model.loop != loop or model.speed != speed or model.get("dormant_finished", false):
+			return false
+		var player: AnimationPlayer = model.player
+		# A currently playing, materialized clip also proves the clip-length
+		# validation. Godot clamps authored Animation lengths above zero.
+		if not is_instance_valid(player) or not player.is_playing() or player.current_animation != model.names.get(name, "") or player.speed_scale != player_speed:
+			return false
+		found = true
+	return found
 
 func set_playback(id: int, animation: int, speed: float = 1.0, loop_override: Variant = null, restart: bool = false, side: int = -1) -> void:
 	if not entities.has(id):
@@ -572,6 +619,7 @@ func _skin(mesh: MeshInstance3D, source: Dictionary, parts: Array) -> Dictionary
 	mesh.mesh = rebuilt
 	mesh.skin = bind
 	mesh.skeleton = mesh.get_path_to(skeleton)
+	preload("res://systems/native_render/actor_shadow_mesh.gd").invalidate(mesh)
 	mesh.custom_aabb = rebuilt.get_aabb().grow(maxf(1.0, rebuilt.get_aabb().size.length()))
 	stats.skin_meshes += 1
 	stats.skin_vertices += vertex_count

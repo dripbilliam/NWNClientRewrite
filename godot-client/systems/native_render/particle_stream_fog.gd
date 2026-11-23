@@ -6,11 +6,11 @@ static func environment_for(camera: Camera3D) -> Environment:
 	if camera.environment!=null: return camera.environment
 	var world:=camera.get_world_3d()
 	return world.environment if world!=null else null
-static func unsupported(camera: Camera3D) -> String:
+static func unsupported(camera: Camera3D,cx: bool=false) -> String:
 	var environment:=environment_for(camera)
 	if environment==null: return ""
 	if environment.volumetric_fog_enabled: return "volumetric fog"
-	if not environment.fog_enabled: return ""
+	if cx or not environment.fog_enabled: return ""
 	if absf(environment.fog_height_density)>=0.0001: return "height fog"
 	if environment.fog_aerial_perspective>0.0: return "sky fog scattering"
 	if environment.fog_sun_scatter>0.001: return "sun fog scattering"

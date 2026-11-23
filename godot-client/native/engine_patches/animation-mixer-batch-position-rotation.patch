@@ -1,0 +1,65 @@
+diff --git a/scene/animation/animation_mixer.cpp b/scene/animation/animation_mixer.cpp
+--- a/scene/animation/animation_mixer.cpp
++++ b/scene/animation/animation_mixer.cpp
+@@ -1929,6 +1929,9 @@ void AnimationMixer::_blend_process(double p_delta, bool p_update_only) {
+ }
+ 
+ void AnimationMixer::_blend_apply() {
++#ifndef _3D_DISABLED
++	const bool batch_node_pose = has_meta(SNAME("_nwn_rig_phase_player"));
++#endif
+ 	// Finally, set the tracks.
+ 	for (const KeyValue<Animation::TrackCacheID, TrackCache *> &K : track_cache) {
+ 		TrackCache *track = K.value;
+@@ -1975,7 +1978,8 @@ void AnimationMixer::_blend_apply() {
+ 					if (t->loc_used && t->rot_used && t->scale_used) {
+ 						Transform3D transform = Transform3D(Basis(t->rot).scaled(t->scale), t->loc);
+ 						t_node_3d->set_transform(transform);
+-					} else {
++					} else if (!(batch_node_pose && t->loc_used && t->rot_used && !t->scale_used &&
++										 t_node_3d->_try_set_animation_position_and_rotation(t->loc, t->rot))) {
+ 						if (t->loc_used) {
+ 							t_node_3d->set_position(t->loc);
+ 						}
+diff --git a/scene/3d/node_3d.cpp b/scene/3d/node_3d.cpp
+--- a/scene/3d/node_3d.cpp
++++ b/scene/3d/node_3d.cpp
+@@ -831,6 +831,19 @@ void Node3D::set_rotation(const Vector3 &p_euler_rad) {
+ 	fti_notify_node_changed();
+ }
+ 
++bool Node3D::_try_set_animation_position_and_rotation(const Vector3 &p_position, const Quaternion &p_rotation) {
++	if (!Thread::is_main_thread() || !is_inside_tree() || data.notify_local_transform ||
++			get_tree()->get_scene_tree_fti().is_enabled()) {
++		return false;
++	}
++
++	// Rotation publishes the same dirty subtree and queues its notifications once.
++	// Keep its normal Euler, basis and scale handling.
++	data.local_transform.origin = p_position;
++	set_rotation(p_rotation.get_euler());
++	return true;
++}
++
+ void Node3D::set_rotation_degrees(const Vector3 &p_euler_degrees) {
+ 	ERR_THREAD_GUARD;
+ 	Vector3 radians(Math::deg_to_rad(p_euler_degrees.x), Math::deg_to_rad(p_euler_degrees.y), Math::deg_to_rad(p_euler_degrees.z));
+diff --git a/scene/3d/node_3d.h b/scene/3d/node_3d.h
+--- a/scene/3d/node_3d.h
++++ b/scene/3d/node_3d.h
+@@ -50,6 +50,7 @@ public:
+ class Node3D : public Node {
+ 	GDCLASS(Node3D, Node);
+ 
++	friend class AnimationMixer;
+ 	friend class SceneTreeFTI;
+ 	friend class SceneTreeFTITests;
+ 
+@@ -182,6 +183,7 @@ private:
+ 	void _update_gizmos();
+ 	void _notify_dirty();
+ 	void _propagate_transform_changed(Node3D *p_origin);
++	bool _try_set_animation_position_and_rotation(const Vector3 &p_position, const Quaternion &p_rotation);
+ 
+ 	void _propagate_visibility_changed();
+ 

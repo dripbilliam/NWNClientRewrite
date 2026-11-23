@@ -285,6 +285,7 @@ func detach_competing(current: Dictionary) -> void:
 func _process(delta: float) -> void:
 	if closed:
 		return
+	var profiling := SelectionTiming.enabled
 	# Match the retained local presenter: active entries first, retiring entries
 	# second; select after each individual phase update, preserving list order.
 	for retiring in [false, true]:
@@ -292,26 +293,45 @@ func _process(delta: float) -> void:
 			if not entries.has(id): continue
 			var entry: Dictionary = entries[id]
 			if bool(entry.removed) != retiring: continue
+			var phase_started := SelectionTiming.begin() if profiling else 0
 			if entry.areaVisual:
 				_begin(entry)
+				if profiling:
+					SelectionTiming.finish("effect_visual_bindings_ms", phase_started)
+					phase_started = SelectionTiming.begin()
 				if entry.runtime == null: continue
-				entry.runtime.advance();_status(entry,"phase")
+				entry.runtime.advance()
+				if profiling:
+					SelectionTiming.finish("effect_visual_clock_ms", phase_started)
+					phase_started = SelectionTiming.begin()
+				_status(entry, "phase")
+				if profiling: SelectionTiming.finish("effect_visual_status_ms", phase_started)
 				if entry.runtime.state.destroyed: _forget(id,"retired")
 				continue
-			if (entry.privateToken != 0 and not _bound(entry)) or (entry.privateToken == 0 and client.removed_states.get(entry.actor, false)) or (entry.runtime != null and not _bound(entry)):
+			if (entry.privateToken == 0 and client.removed_states.get(entry.actor, false)) or ((entry.privateToken != 0 or entry.runtime != null) and not _bound(entry)):
+				if profiling: SelectionTiming.finish("effect_visual_bindings_ms", phase_started)
 				_forget(id, "retired")
 				continue
 			_begin(entry)
 			var runtime = entry.runtime
-			if runtime == null: continue
-			if entry.binding != host(entry.actor,entry.privateToken):
-				entry.binding = host(entry.actor,entry.privateToken)
+			if runtime == null:
+				if profiling: SelectionTiming.finish("effect_visual_bindings_ms", phase_started)
+				continue
+			var current_host := host(entry.actor,entry.privateToken)
+			if entry.binding != current_host:
+				entry.binding = current_host
 				if runtime.state.attached114: runtime.attach_models()
 				stats.rebound += 1
 			runtime.refresh_bindings()
+			if profiling:
+				SelectionTiming.finish("effect_visual_bindings_ms", phase_started)
+				phase_started = SelectionTiming.begin()
 			runtime.clock.advance(delta)
+			if profiling: SelectionTiming.finish("effect_visual_clock_ms", phase_started)
 			select_actor(entry.actor,entry.privateToken)
+			if profiling: phase_started = SelectionTiming.begin()
 			_status(entry, "phase")
+			if profiling: SelectionTiming.finish("effect_visual_status_ms", phase_started)
 			if (entry.transient or retiring) and runtime.phase.is_retired():
 				if entry.transient and runtime.state.durationFc == 0:
 					detach_competing(entry)

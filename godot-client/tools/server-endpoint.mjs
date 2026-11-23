@@ -13,3 +13,8 @@ export class ServerEndpointPolicy{
  require(value){const endpoint=serverEndpoint(value);if(!this.permits(endpoint))throw Error('This server is not enabled for this session. No connection was sent.');return endpoint;}
  get localOnly(){return !this.allowAny&&this.allowed.size===1;}
 }
+
+export function nativeSessionEndpointPolicy({isolated=false,loopbackEndpoint}={}){
+ if(!isolated)return new ServerEndpointPolicy({allowAny:true,internet:true});
+ return new ServerEndpointPolicy({allowed:loopbackEndpoint?[loopbackEndpoint]:[]});
+}

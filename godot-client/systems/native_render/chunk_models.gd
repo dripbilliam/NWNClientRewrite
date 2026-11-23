@@ -9,6 +9,8 @@ var retired:=false
 var failure:=""
 var bundle: Dictionary={}
 var no_model:=false
+var cx_records:=false
+var missing_source:=false
 var models: Array=[]
 var stats:={"created":0,"destroyed":0,"impact_requests":0,"detached":0,"missing_clips":0,"instance_ms":0.0,"max_instance_ms":0.0}
 func _ready() -> void:
@@ -26,7 +28,14 @@ func _ready() -> void:
 	if resource.is_empty() or resource in ancestors or depth>=16: reject("Original chunk model resource cycle/depth: "+resource); return
 	set_meta("native_chunk_origin",resource)
 	if not is_instance_valid(hub): reject("Native chunk catalog scope is unavailable: "+resource); return
-	hub.request_bundle(self,resource)
+	hub.request_bundle(self,resource,cx_records)
+func accept_missing_model(epoch: int) -> bool:
+	if not cx_records or retired or not is_inside_tree() or epoch!=generation or not bundle.is_empty(): return false
+	# The original Chunky constructor keeps the initialized particle when
+	# NewCAurObject returns null. There is no Gob to attach or render.
+	missing_source=true
+	no_model=true
+	return true
 func install_bundle(value: Dictionary,epoch: int) -> bool:
 	if retired or not is_inside_tree() or epoch!=generation or not bundle.is_empty(): return false
 	bundle=value; return true
@@ -67,7 +76,7 @@ func destroy_model(model,_flag: int) -> void:
 func services() -> Dictionary:
 	return {"createChunkModel":create_model,"chunkScene":scene,"chunkScale":scale_model,"chunkPlay":play,"chunkPosition":position_model,"chunkOrientation":orientation,"destroyChunkModel":destroy_model}
 func snapshot() -> Dictionary:
-	var value:=stats.duplicate(true); value.merge({"resource":resource,"ready":ready(),"failure":failure,"models":models.size(),"no_model":no_model}); return value
+	var value:=stats.duplicate(true); value.merge({"resource":resource,"ready":ready(),"failure":failure,"models":models.size(),"no_model":no_model,"missing_source":missing_source}); return value
 func retire() -> void:
 	if retired: return
 	retired=true

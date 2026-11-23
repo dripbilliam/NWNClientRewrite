@@ -163,7 +163,7 @@ EngineVar Var::publish(int depth)const{
 }
 struct ExternalCallCounts {uint64_t random=0,cosine=0,other=0;};
 thread_local ExternalCallCounts* external_call_counts=nullptr;
-struct Context {Var* state=nullptr;const EngineVar* providers=nullptr;Var pose;int64_t* allocations=nullptr;const V3* camera=nullptr;bool direct_scene=false,profile=false;uint64_t terrain_index=0,static_index=0,direct_queries=0,direct_hits=0,wind_token=0;double collision_ms=0;int64_t* missing_chunks=nullptr;const EnginePose* native_pose=nullptr;};
+struct Context {Var* state=nullptr;const EngineVar* providers=nullptr;Var pose;int64_t* allocations=nullptr;const V3* camera=nullptr;bool direct_scene=false,profile=false;uint64_t terrain_index=0,static_index=0,direct_queries=0,direct_hits=0,wind_token=0;double collision_ms=0;int64_t* missing_chunks=nullptr;const EnginePose* native_pose=nullptr;cx_particle::Random* cx_random=nullptr;};
 thread_local Context* context=nullptr;
 struct ContextScope {Context* prior;explicit ContextScope(Context& next):prior(context){context=&next;}~ContextScope(){context=prior;}};
 Var create_particle(const Var& e,float delta,const Var& p);
@@ -279,7 +279,8 @@ struct Owner {
  Var state,parameters=Var::dictionary();std::unordered_map<std::string,std::vector<Channel>> clips;
  compact_particle::Emitter compact_state;compact_particle::Pool compact_pool;std::unordered_map<compact_particle::Particle*,compact_particle::Bridge::Extra> compact_extras;bool compact_records=false,typed_frame=false,typed_source_pose=false,typed_simulated=false;
  ParticleStreams staging;int kind=-1;int64_t allocations=0,constant_hits=0,sampled_channels=0,missing_chunks=0;bool configured=false,use_parameters=false,cache_constants=true,field_keys=true;
- uint64_t pose_id=0,source_id=0;bool cache_engine_pose=true;particle_pose_cache::Conversion<EnginePose> pose_cache,source_cache;
+ uint64_t pose_id=0,source_id=0;bool cache_engine_pose=true,cx_target_motion=false;
+ particle_pose_cache::Conversion<EnginePose> pose_cache,source_cache,target_cache;
  bool skip_empty_clip_lookups=false,has_any_clip_channels=true,empty_clip_map_sealed=false;uint64_t clip_configure_depth=0;
  std::atomic<uint64_t> clip_sample_calls{0},clip_lookup_calls{0},empty_clip_lookup_skips{0},preconfigure_sample_calls{0};
  EngineVar empty_clip_info()const{
@@ -297,6 +298,35 @@ struct Owner {
  int64_t parameter_integer(hot_parameters::Key key)const{const auto value=parameter_get(key).number();if(!std::isfinite(value)||value<-2147483648.0||value>2147483647.0)throw std::runtime_error("Native owner signed field out of range");return static_cast<int64_t>(value);}
  EngineVar hot_parameter_info()const{auto out=EngineVar::dictionary();::set(out,"enabled",EngineVar::boolean(hot_bindings!=nullptr));auto rows=::array_empty();if(hot_bindings)for(size_t index=0;index<hot_parameters::COUNT;++index){const auto& field=hot_bindings->fields[index];auto row=EngineVar::dictionary();::set(row,"name",EngineVar::text(hot_parameters::names[index]));::set(row,"reads",EngineVar::integer(static_cast<int64_t>(field.reads)));::set(row,"hits",EngineVar::integer(static_cast<int64_t>(field.hits)));::set(row,"rebinds",EngineVar::integer(static_cast<int64_t>(field.rebinds)));::set(row,"absent",EngineVar::integer(static_cast<int64_t>(field.absent)));::set(row,"uncacheable",EngineVar::integer(static_cast<int64_t>(field.uncacheable)));::method(rows,"append",{row});}::set(out,"fields",rows);return out;}
  EnginePose read_pose(bool source=false){return read_engine_pose(source?source_id:pose_id,cache_engine_pose?(source?&source_cache:&pose_cache):nullptr);}
+ void update_cx_target(const EngineVar& provider,const EnginePose& pose){
+  auto callable=provider;
+  const auto identity=static_cast<uint64_t>(::method(callable,"call").integer());
+  auto& target=compact_state.target;
+  if(identity!=target.identity){target.bolt_ready=false;target.bolt_elapsed=0;}
+  target.identity=identity;
+  if(!identity)return;
+  const auto endpoint=read_engine_pose(identity,&target_cache);
+  target.position=endpoint.position;
+  target.orientation=endpoint.quaternion;
+  const auto parameter=[this](const char* name){
+   const auto value=field_value(parameters,name);
+   return value?static_cast<float>(value->number()):0.0f;
+  };
+  if(kind==3){
+   target.bolt_delay=parameter("lightningdelay");
+   target.bolt_radius=parameter("lightningradius");
+   target.zigzag=parameter("lightningscale");
+   target.part_scale=pose.scale;
+  }else if(compact_state.flags&2){
+   target.bezier2=parameter("p2p_bezier2");
+   target.bezier3=parameter("p2p_bezier3");
+   target.combine_time=parameter("combinetime");
+  }else{
+   target.drag=parameter("drag");
+   target.gravity=parameter("grav");
+   target.threshold=parameter("threshold");
+  }
+ }
  // Original CalculateRadius inspects current active chunk views BEFORE this
  // frame's simulation/spawns. Free/recycled children are not bound inputs.
  // 1=empty active,2=known native views/all nil child,3=missing metadata,
@@ -346,9 +376,10 @@ struct Owner {
   if(clip_configure_depth==UINT64_MAX)throw std::runtime_error("Native particle configure depth overflow");
   struct ConfigureScope {Owner& owner;explicit ConfigureScope(Owner& value):owner(value){++owner.clip_configure_depth;owner.empty_clip_map_sealed=false;}~ConfigureScope(){--owner.clip_configure_depth;}} configure_scope(*this);
   cache_engine_pose=!::has(config,"cacheEnginePose")||::get(config,"cacheEnginePose").boolean();
-  state=Var(::get(config,"state"));const auto update=engine_string(::get(config,"update"));kind=update=="fountain"?0:update=="explosion"?1:update=="single"?2:-1;
+  state=Var(::get(config,"state"));const auto update=engine_string(::get(config,"update"));kind=update=="fountain"?0:update=="explosion"?1:update=="single"?2:update=="lightning"?3:-1;
+  cx_target_motion=::has(config,"cxTargetMotion")&&::get(config,"cxTargetMotion").boolean();
   if(::has(config,"poseId")){pose_id=static_cast<uint64_t>(::get(config,"poseId").integer());source_id=static_cast<uint64_t>(::get(config,"sourceId").integer());if(!pose_id||!source_id)throw std::runtime_error("Native particle pose identity is invalid");read_engine_pose(pose_id);read_engine_pose(source_id);}
-  if(kind<0||(i(state,particle_field::flags)&1))throw std::runtime_error("Native particle owner requires supported emitter without point-to-point movement");
+  if(kind<0||(!cx_target_motion&&((i(state,particle_field::flags)&1)||kind==3)))throw std::runtime_error("Target-linked emitters require CX particle mode");
   use_parameters=::has(config,"parameters");if(use_parameters){parameters=Var(::get(config,"parameters"));prepare_parameters(state,parameters);}
   cache_constants=!::has(config,"cacheConstants")||::get(config,"cacheConstants").boolean();
   field_keys=!::has(config,"directFieldKeys")||::get(config,"directFieldKeys").boolean();
@@ -360,6 +391,7 @@ struct Owner {
   }
   compact_records=::has(config,"compactRecords")&&::get(config,"compactRecords").boolean();
   typed_frame=::has(config,"typedEmitter")&&::get(config,"typedEmitter").boolean();if(typed_frame&&!compact_records)throw std::runtime_error("Typed emitter frames require compact particle records");
+  if(cx_target_motion&&(!typed_frame||!pose_id||!use_parameters))throw std::runtime_error("CX target-linked particles require native poses, authored parameters and typed simulation");
   for(auto& clip:clips)for(auto& channel:clip.second)channel.target_index=field_index(channel.target.c_str());
   staging.instances=::has(config,"instanceStreams")&&::get(config,"instanceStreams").boolean();
   if(compact_records){compact_particle::read_emitter(compact_state,state);compact_particle::import_pool(compact_pool,compact_extras,state);for(const auto name:{particle_field::active188,particle_field::free130}){auto owner=get(state,name);set(owner,particle_field::records,array_empty());}}
@@ -398,6 +430,7 @@ struct Owner {
  EngineVar frame(const EngineVar& input,const EngineVar& providers){
   FieldKeyScope field_scope(field_keys);
   if(!configured)throw std::runtime_error("Native particle owner is not configured");
+  if(cx_target_motion)throw std::runtime_error("CX target-linked particles require shared presentation");
   const bool profile=::has(input,"profile")&&::get(input,"profile").boolean();using Clock=std::chrono::steady_clock;auto phase=profile?Clock::now():Clock::time_point{};double controls_ms=0,channels_ms=0,admission_ms=0,simulation_ms=0,vertices_ms=0,chunks_ms=0;
   const auto finish=[&](double& duration){if(profile){const auto now=Clock::now();duration=std::chrono::duration<double,std::milli>(now-phase).count();phase=now;}};
   sample(engine_string(::get(input,"clip")),::f(input,"time"));finish(controls_ms);

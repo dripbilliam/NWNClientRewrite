@@ -570,7 +570,7 @@ func publish_area_environment(data: Dictionary,generation_value: int) -> bool:
 	var minutes: Variant=data.module.get("minutesPerHour")
 	if not (minutes is int or minutes is float) or not is_finite(float(minutes)) or float(minutes)<=0:return false
 	var fields: Dictionary={}
-	for key in ["98","9c","a0","a4","a8","ac","b0","b4","b8","bc","c0","c4","c8","cc","d0","d4","d8","dc","e0","104","108"]:
+	for key in ["8","98","9c","a0","a4","a8","ac","b0","b4","b8","bc","c0","c4","c8","cc","d0","d4","d8","dc","e0","104","108"]:
 		if not data.area.fields.has(key):continue
 		var value: Variant=data.area.fields[key]
 		if value is bool:fields[key]=1 if value else 0
@@ -581,11 +581,14 @@ func publish_area_environment(data: Dictionary,generation_value: int) -> bool:
 	var state: Dictionary={"fields":fields,"time":phase,"minutesPerHour":float(minutes),"elapsed":environment.source.elapsed if same_phase else float(time.transition)/1000.0}
 	# source.elapsed is the last received origin, not the advancing GUI clock.
 	# Unchanged/full/calendar-only snapshots must not restart interpolation.
-	if environment.source==state:return true
-	if same_phase:state.elapsed=environment.elapsed
-	var accepted: bool=environment.receive({"revision":maxi(0,environment.revision)+1,"state":state})
-	if accepted:environment.set_meta("native_header_scope",owner_scope)
-	return accepted
+	if environment.source!=state:
+		if same_phase:state.elapsed=environment.elapsed
+		if not environment.receive({"revision":maxi(0,environment.revision)+1,"state":state}):return false
+		environment.set_meta("native_header_scope",owner_scope)
+	# Weather packets can change while the rest of the area header holds still.
+	if world.get_meta("native_cx_particles",false) and data.area.get("weather") is Dictionary:
+		environment.receive_cx_weather(data.area.weather)
+	return true
 func flush_combat() -> void:
 	flush_visuals()
 	flush_voices()

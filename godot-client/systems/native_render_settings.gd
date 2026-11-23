@@ -1,5 +1,6 @@
 extends "res://systems/draggable_panel.gd"
 signal particles_changed(value: bool)
+signal particle_shadows_changed(value: bool)
 signal tile_borders_changed(value: bool)
 signal show_blockers_changed(value: bool)
 signal gamma_changed(value: float)
@@ -61,6 +62,7 @@ var prework_clearing:=false
 var entity_inspector_button: Button
 var preference_path:="user://native-options.cfg"
 var particles_enabled:=false
+var particle_shadows_enabled:=true
 var tile_borders_enabled:=true
 var tile_borders_toggle: CheckBox
 var show_blockers_enabled:=false
@@ -76,6 +78,7 @@ var compact_scenery_toggle: CheckBox
 var gore_select: OptionButton
 var creature_toggle: CheckBox
 var particles_toggle: CheckBox
+var particle_shadows_toggle: CheckBox
 var particle_collision_toggle: CheckBox
 var profile_toggle: CheckBox
 var performance: RichTextLabel
@@ -98,6 +101,8 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 	radial_preferences.submenu_previews=int(radial_preferences.submenu_mode)!=0
 	var value: Variant=config.get_value("rendering","particles_enabled",false)
 	particles_enabled=value if value is bool else false
+	value=config.get_value("rendering","particle_shadows_enabled",true)
+	particle_shadows_enabled=value if value is bool else true
 	# Original graphics.tile-borders.enabled / Enable TileBorder defaults on.
 	# A server area's separate TileBorderDisabled state still takes priority.
 	value=config.get_value("rendering","tile_borders_enabled",true)
@@ -149,6 +154,7 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 		creature_shadow_detail=creature_shadow_select.get_item_id(index)
 		persist("creature_shadow_detail",creature_shadow_detail);creature_shadow_detail_changed.emit(creature_shadow_detail))
 	particles_toggle=built.nodes.particles_toggle
+	particle_shadows_toggle=built.nodes.particle_shadows_toggle
 	tile_borders_toggle=built.nodes.tile_borders_toggle
 	show_blockers_toggle=built.nodes.show_blockers_toggle
 	particle_collision_toggle=built.nodes.particle_collision_toggle
@@ -175,6 +181,7 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 	ui_preload_progress=built.nodes.ui_preload_progress
 	ui_preload_status=built.nodes.ui_preload_status
 	particles_toggle.set_pressed_no_signal(particles_enabled)
+	particle_shadows_toggle.set_pressed_no_signal(particle_shadows_enabled)
 	tile_borders_toggle.set_pressed_no_signal(tile_borders_enabled)
 	show_blockers_toggle.set_pressed_no_signal(show_blockers_enabled)
 	particle_collision_toggle.set_pressed_no_signal(particle_collision_enabled)
@@ -183,6 +190,10 @@ func setup(preferences: String="user://native-options.cfg",layout: String="user:
 	gore_select.select(gore); prework_workers.select(prework_workers.get_item_index(prework_worker_setting))
 	for control in [prework_clear,prework_folder]: control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	particles_toggle.toggled.connect(func(on): particles_enabled=on; persist("particles_enabled",on); particles_changed.emit(on))
+	particle_shadows_toggle.toggled.connect(func(on):
+		particle_shadows_enabled=on
+		persist("particle_shadows_enabled",on)
+		particle_shadows_changed.emit(on))
 	tile_borders_toggle.toggled.connect(func(on):tile_borders_enabled=on;persist("tile_borders_enabled",on);tile_borders_changed.emit(on))
 	show_blockers_toggle.toggled.connect(func(on):show_blockers_enabled=on;persist("show_blockers",on);show_blockers_changed.emit(on))
 	particle_collision_toggle.toggled.connect(func(on): particle_collision_enabled=on; persist("particle_collision_enabled",on); particle_collision_changed.emit(on))
@@ -287,14 +298,59 @@ func persist(key: String,value: Variant) -> void:
 func update_performance(profile: Dictionary) -> void:
 	if not visible: return
 	var lines: Array[String]=["Particles: "+("on" if particles_enabled else "off")]
+	lines.append("Particle shadows: "+("on" if particle_shadows_enabled else "off"))
 	lines.append("Particle collision: "+("on" if particle_collision_enabled else "off"))
 	if profile.is_empty() or not profile.get("enabled",true): lines.append("Detailed profiling is off.")
 	elif profile.get("pending",false): lines.append("Collecting frame statistics…")
 	else:
 		var metrics: Dictionary=profile.get("metrics",{})
-		for row in [["wall_ms","Frame interval"],["callback_envelope_ms","Frame callbacks"],["callback_particles","Particles (including bookkeeping)"],["callback_rigs","Creature/model animation"],["callback_assets","Asset completion / publication"],["callback_ui","UI presentation"],["callback_environment","Environment / weather"],["callback_lights","Light/shadow selection"],["profiler_record_ms","Profiler record overhead"],["profiler_summary_ms","Profiler summaries"],["unattributed_callback_ms","Unattributed callback time"],["outside_callback_ms","Outside callback interval"],["render_cpu_ms","Render CPU"],["render_gpu_ms","Render GPU"]]:
-			if metrics.has(row[0]): lines.append("%s: %.2f ms (p95 %.2f)"%[row[1],float(metrics[row[0]].mean),float(metrics[row[0]].p95)])
-		for row in [["render_setup_cpu_ms","Render setup CPU"],["postdraw_render_frame_wall_ms","Rendering frame interval"]]:
+		lines.append("Indented timings are included in their parent.")
+		for row in [
+			["wall_ms", "Frame interval"],
+			["callback_envelope_ms", "Frame callbacks"],
+			["callback_world", "World updates"],
+			["world_motion", "  Actor movement"],
+			["world_poses", "  Actor poses"],
+			["callback_particles", "Particles"],
+			["particle_frame_native_presentation_ms", "  Native particle preparation"],
+			["particle_native_simulation_ms", "    Simulation"],
+			["particle_native_geometry_ms", "    Geometry"],
+			["particle_cx_shadow_ms", "  CX sun shadows (main thread)"],
+			["particle_cx_shadow_fit_ms", "    Fit checks"],
+			["particle_cx_shadow_static_ms", "    Static caster rebuild"],
+			["particle_cx_shadow_roots_ms", "    Moving caster registration"],
+			["particle_cx_shadow_casters_ms", "    Moving caster scan and updates"],
+			["particle_cx_shadow_schedule_ms", "    Depth view scheduling"],
+			["callback_rigs", "Creature/model animation"],
+			["actor_animation", "  Animation updates"],
+			["callback_effects", "Other visual effects"],
+			["effect_cast_ms", "  Spell casts"],
+			["effect_blood_ms", "  Blood"],
+			["effect_parry_ms", "  Parries"],
+			["effect_special_attack_ms", "  Special attacks"],
+			["effect_equipped_attack_ms", "  Weapon attack effects"],
+			["effect_creature_voice_ms", "  Creature voices"],
+			["effect_sources_ms", "  Effect source tracking"],
+			["effect_queue_ms", "  Pending effects"],
+			["effect_records_ms", "  Effect records and model preparation"],
+			["effect_visual_update_ms", "  Active and retiring effects"],
+			["effect_visual_bindings_ms", "    Model and host bindings"],
+			["effect_visual_clock_ms", "    Effect clocks and phases"],
+			["effect_selection_total", "    Effect selection"],
+			["effect_visual_status_ms", "    Status bookkeeping"],
+			["callback_assets", "Asset completion / publication"],
+			["callback_ui", "UI presentation"],
+			["callback_environment", "Environment / weather"],
+			["callback_lights", "Light/shadow selection"],
+			["profiler_record_ms", "Profiler record overhead"],
+			["profiler_summary_ms", "Profiler summaries"],
+			["unattributed_callback_ms", "Unattributed callback time"],
+			["outside_callback_ms", "Outside callback interval"],
+			["render_cpu_ms", "Render CPU"],
+			["render_gpu_ms", "Render GPU"],
+			["render_setup_cpu_ms", "Render setup CPU"],
+			["postdraw_render_frame_wall_ms", "Rendering frame interval"],
+		]:
 			if metrics.has(row[0]): lines.append("%s: %.2f ms (p95 %.2f)"%[row[1],float(metrics[row[0]].mean),float(metrics[row[0]].p95)])
 		lines.append("Full breakdown, memory and queue counts are in the session log.")
 	performance.text="\n".join(lines)

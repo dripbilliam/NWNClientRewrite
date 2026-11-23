@@ -23,6 +23,9 @@ func set_animation(id: int,animation: int,speed: float=1.0) -> void:
 	if targets.has(id): targets[id].set_animation(id,animation,speed)
 func set_playback(id: int,animation: int,speed: float,loop: bool,restart: bool,side: int) -> void:
 	if targets.has(id): targets[id].set_playback(id,animation,speed,loop,restart,side)
+func has_current_playback(id: int, animation: int, speed: float, loop: bool, side: int) -> bool:
+	var target: Variant = targets.get(id)
+	return is_instance_valid(target) and target.has_method("has_current_playback") and target.has_current_playback(id, animation, speed, loop, side)
 func close() -> void:
 	for id in targets.keys(): forget(id)
 func _exit_tree() -> void: close()

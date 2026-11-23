@@ -248,6 +248,7 @@ func set_native_shadow(id: int,lifetime: Array,enabled: bool) -> Dictionary:
 		if _source(id,lifetime).is_empty() or world.get("instances").get(id)!=instance:return _unavailable("shadow-visual-retired-during-publication",id)
 		var mesh: MeshInstance3D=endpoint.mesh.get_ref()
 		mesh.cast_shadow=endpoint.setting if enabled else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		preload("res://systems/native_render/actor_shadow_mesh.gd").invalidate(mesh)
 	stats.shadow_publications+=1
 	return {"available":not _source(id,lifetime).is_empty(),"parts":record.parts.size(),"native_virtual":"CNWC+210/GobTurnOnShadows" if enabled else "CNWC+218/GobTurnOffShadows"}
 

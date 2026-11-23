@@ -17,6 +17,8 @@ var native_fade:=1.0
 # The separately selected history owner publishes admission/fade here; lens
 # flares and native static vertex baking remain separate owners.
 func configure(properties: Dictionary) -> void:
+	var previous_range:=float(native_state.get("range",0))
+	var changed:=native_properties!=properties
 	animation_cached=false
 	var color_value: Variant=properties.get("color",[1.0,1.0,1.0])
 	if not color_value is Array or color_value.size()<3: color_value=[1.0,1.0,1.0]
@@ -38,10 +40,18 @@ func configure(properties: Dictionary) -> void:
 	shadow_enabled=false
 	# Slot fades change rendered RGB, not the authored history inputs. Keep the
 	# immutable property snapshot/revision until a real source publication changes.
-	if native_properties!=properties:
+	if changed:
 		native_properties=properties.duplicate(true); native_properties_revision+=1
 		set_meta("native_model_light_properties",native_properties)
 	set_meta("native_shadow_requested",float(properties.get("shadow",0))>0 and float(properties.get("ambientonly",0))==0)
+	if changed or previous_range!=float(native_state.get("range",0)): _history_input_changed()
+func set_native_light_priority(priority: int) -> void:
+	if int(get_meta("native_light_priority",0))==priority: return
+	set_meta("native_light_priority",priority)
+	_history_input_changed()
+func _history_input_changed() -> void:
+	var owner=focus_owner.get_ref() if focus_owner!=null else null
+	if is_instance_valid(owner): owner.mark_light_input_changed(get_instance_id())
 func apply_native_admission(admitted: bool,fade: float) -> void:
 	if native_admitted==admitted and native_fade==fade: return
 	native_admitted=admitted; native_fade=fade; set_meta("native_light_fade",fade)
@@ -72,7 +82,9 @@ func _enter_tree() -> void:
 		native_slot=Palette.acquire(self); set_notify_transform(true)
 		configure(get_meta("native_model_light_properties",{}))
 func _notification(what: int) -> void:
-	if what==NOTIFICATION_TRANSFORM_CHANGED and native_slot>=0 and not native_state.is_empty() and is_inside_tree(): Palette.update(native_slot,global_position,native_state)
+	if what!=NOTIFICATION_TRANSFORM_CHANGED or not is_inside_tree(): return
+	if native_slot>=0 and not native_state.is_empty(): Palette.update(native_slot,global_position,native_state)
+	_history_input_changed()
 func _exit_tree() -> void:
 	var owner=focus_owner.get_ref() if focus_owner!=null else null
 	if is_instance_valid(owner): owner.unregister(self)

@@ -299,6 +299,7 @@ func run() -> void:
 	prework_sources_configured=ticket.has("preworkSources")
 	prework_discovery.start(ticket.get("preworkSources",{}))
 	render_settings.particles_changed.connect(particle_visibility.set_enabled)
+	render_settings.particle_shadows_changed.connect(particle_visibility.set_shadows_enabled)
 	render_settings.show_blockers_changed.connect(func(enabled):
 		if is_instance_valid(world):world.set_show_blockers(enabled))
 	render_settings.creature_shadow_detail_changed.connect(func(value):
@@ -311,6 +312,7 @@ func run() -> void:
 	render_settings.radial_preferences_changed.connect(func(value):
 		if is_instance_valid(gameplay_ui): gameplay_ui.set_radial_preferences(value))
 	particle_visibility.set_enabled(render_settings.particles_enabled)
+	particle_visibility.set_shadows_enabled(render_settings.particle_shadows_enabled)
 	particle_visibility.set_collision_enabled(render_settings.particle_collision_enabled)
 	render_settings.profiling_changed.connect(set_profiling)
 	entity_inspector=preload("res://systems/native_entity_inspector.gd").new(); render_settings_layer.add_child(entity_inspector)
@@ -405,10 +407,11 @@ func open_startup_menu() -> void:
 	if server_browser.wanted: server_browser.close()
 	character_lobby.panel.hide(); render_menu.open(false); label.text=""
 	var ui=render_menu.pregame; var deadline:=Time.get_ticks_msec()+10000
-	while not closing and Time.get_ticks_msec()<deadline and is_instance_valid(ui) and ui.failure.is_empty() and (not is_instance_valid(ui.main) or not ui.main.layout_ready or DisplayServer.get_name()!="headless" and not ui.main.art_ready()): await process_frame
+	var graphical := DisplayServer.get_name()!="headless"
+	while not closing and Time.get_ticks_msec()<deadline and is_instance_valid(ui) and ui.failure.is_empty() and (not is_instance_valid(ui.main) or not ui.main.layout_ready or graphical and (not ui.main.art_ready() or not ui.main.is_visible_in_tree())): await process_frame
 	if closing: return
 	if is_instance_valid(ui): ui.refresh()
-	var ready: bool=is_instance_valid(ui) and ui.failure.is_empty() and is_instance_valid(ui.main) and ui.main.layout_ready and (DisplayServer.get_name()=="headless" or ui.main.art_ready())
+	var ready: bool=is_instance_valid(ui) and ui.failure.is_empty() and is_instance_valid(ui.main) and ui.main.layout_ready and (not graphical or (ui.main.art_ready() and ui.main.is_visible_in_tree()))
 	report.startup_menu={"ready":ready,"mainVisible":ready and ui.main.is_visible_in_tree(),"browserHidden":not server_browser.wanted,"lobbyHidden":not character_lobby.panel.visible}
 	send({"kind":"main-menu-observed","ready":ready,"mainVisible":report.startup_menu.mainVisible,"browserHidden":report.startup_menu.browserHidden,"lobbyHidden":report.startup_menu.lobbyHidden,"runtimeFeatures":runtime_features_snapshot()})
 	if ready: print("NATIVE_STARTUP_MAIN_MENU_READY")

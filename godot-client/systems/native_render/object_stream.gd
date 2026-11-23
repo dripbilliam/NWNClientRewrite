@@ -119,6 +119,7 @@ var invisible_ids: Array=[]
 var snapshot_objects: Array=[]
 var area_id: int=-1
 var admission_parent: Node3D
+var entry_publication_allowed: Callable
 var done:=false
 var closed:=false
 # B1 retains only the table bank/service; per-wave templates and model jobs remain ordinary.
@@ -373,6 +374,7 @@ func _profile_process(_delta: float) -> void:
 		if id<0: model_failed(name,str(assets.failure))
 		else: model_requests[id]=name; stats.model_jobs+=1
 	Timing.finish("object_stream_requests_ms",phase_began)
+	if not queue.is_empty() and entry_publication_allowed.is_valid() and not entry_publication_allowed.call():return
 	if probe_base_templates:
 		var ready_priority_began:=Timing.begin();refresh_priority();Timing.finish("object_stream_ready_priority_ms",ready_priority_began)
 	_resume_clone_head()

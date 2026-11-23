@@ -106,7 +106,7 @@ func mount_nwsync(manifest_hash: String, cache_directory: String, native_directo
 	if not store.configure(cache_directory,native_directory,helper,raw_cache_directory): failure="Native NWSync store is unavailable"; return false
 	var manifest:=store.manifest(manifest_hash)
 	if manifest.has("error"): failure=manifest.error; store.close(); return false
-	layers.append({"kind":"nwsync","priority":priority,"serial":layers.size(),"storage_class":5,"store":store,"entries":manifest.entries,"binding_identity":"nwsync:"+manifest_hash})
+	layers.append({"kind":"nwsync","priority":priority,"serial":layers.size(),"storage_class":5,"store":store,"entries":manifest.entries,"binding_identity":"nwsync:"+str(manifest.identity)})
 	invalidate()
 	layers.sort_custom(func(a,b): return a.priority>b.priority or (a.priority==b.priority and a.serial<b.serial))
 	return true
@@ -152,6 +152,12 @@ func location(name: String, type: int) -> Dictionary:
 	stats.lookup_us+=Time.get_ticks_usec()-began
 	return {}
 func has_resource(name: String, type: int) -> bool: return not location(name, type).is_empty()
+func has_installed_model_binding(name: String) -> bool:
+	return has_installed_archive_binding(name,2002)
+func has_installed_archive_binding(name: String,type: int) -> bool:
+	if recording!=null: return false
+	var found:=location(name,type)
+	return not found.is_empty() and found.layer.kind=="key"
 func portrait_files() -> Array: return preload("res://systems/native_data/portrait_resources.gd").files(layers)
 func resource_names(type: int) -> Array:
 	var names: Dictionary={}; var suffix:=":"+str(type)

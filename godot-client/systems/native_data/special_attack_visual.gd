@@ -1,10 +1,13 @@
 extends RefCounted
 # Original7fdca0/803c50/8074b0 and unarmed7fd6b0 boundaries. Model handles
 # are opaque; the native scene owner supplies real resources/physical Parts.
+static func is_monk_class(cls: Dictionary) -> bool:
+	return (int(cls.get("type",cls.get("id",255)))&255)==5
+
 static func gate(classes: Array,feats: Array,mode: int) -> int:
 	var allowed:=0; var last_level:=0
 	for cls in classes:
-		if (int(cls.get("type",cls.get("id",255)))&255)!=5: continue
+		if not is_monk_class(cls): continue
 		last_level=int(cls.level)&255
 		if feats.any(func(list):return list.any(func(id):return (int(id)&65535)==213)): allowed=1
 	return int(last_level>=20) if mode==1 else allowed

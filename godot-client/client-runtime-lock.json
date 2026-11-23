@@ -1,0 +1,38 @@
+{
+  "id": "godot-4.7.2-rig-1",
+  "source": {
+    "file": "godot-source.tar.gz",
+    "url": "https://codeload.github.com/godotengine/godot/tar.gz/ed1daf0bf001b61586d9930840f2f1394092c079",
+    "sha256": "e607e9985e1c201bc9cdc1aec8a120f0c3f53b9603f1f828e2b748534a2471ef"
+  },
+  "compiler": {
+    "file": "w64devkit-x64-2.10.1.7z.exe",
+    "url": "https://github.com/skeeto/w64devkit/releases/download/v2.10.1/w64devkit-x64-2.10.1.7z.exe",
+    "sha256": "add1edf984ce4d473cfeb7c52e0ab38db73a855bba6c7f564d5e16648eb2896a"
+  },
+  "python": {
+    "file": "python-3.12.10-embed-amd64.zip",
+    "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+    "sha256": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3"
+  },
+  "scons": {
+    "file": "scons-4.11.1-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/8e/43/d6285848e893c19682c06e92679dc1a07d37ff7ea148747b1df681ec496c/scons-4.11.1-py3-none-any.whl",
+    "sha256": "454cef364348053422696e3d2ecb4fa593c96a624f955842eaaea64f95c8d11d"
+  },
+  "patches": [
+    {
+      "file": "tools/perf140/render/godot-rd-thread-return.patch",
+      "sha256": "b3264ef284fedb3700f8767cdae09d9d0b4d41466f60cb5b3187e29e80a60aff"
+    },
+    {
+      "file": "native/engine_patches/animation-mixer-batch-position-rotation.patch",
+      "sha256": "ff7ccfe8490511d76a879afe5cb10203ee10d705cf09e624cb6dbc5c47ad2f47"
+    }
+  ],
+  "buildArguments": [
+    "platform=windows", "target=template_release", "arch=x86_64", "use_mingw=yes",
+    "disable_path_overrides=no", "d3d12=no", "vulkan=yes", "opengl3=yes",
+    "accesskit=no", "angle=no", "debug_symbols=no", "optimize=speed", "lto=none", "profiler=none"
+  ]
+}

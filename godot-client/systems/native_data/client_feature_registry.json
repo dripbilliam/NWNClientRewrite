@@ -406,10 +406,12 @@
       "default": "editor",
       "choices": [
         "editor",
-        "release"
+        "release",
+        "review-cx",
+        "review-rig-apply"
       ],
       "owner": "tools/native-engine-runtime.cjs",
-      "description": "Existing editor or packaged release route, used when performance-runtime is standard.",
+      "description": "Editor, packaged release, or a pinned engine for local review.",
       "status": "selectable",
       "powershell": "EngineRuntime",
       "forwarder": "existing"
@@ -461,10 +463,11 @@
       "default": "shared",
       "choices": [
         "individual",
-        "shared"
+        "shared",
+        "cx"
       ],
       "owner": "tools/native-render-configuration.cjs",
-      "description": "Existing particle presentation route.",
+      "description": "Particle presentation route. CX requires native surface output.",
       "status": "selectable",
       "powershell": "SharedParticles",
       "forwarder": "render"
@@ -554,9 +557,9 @@
     "version": 1,
     "scope": "Applied by the ordinary launcher only; explicit selections win. Base feature defaults remain the direct/isolated/conservative policy.",
     "values": {
-      "performance-runtime": "verified-native",
+      "performance-runtime": "standard",
       "render-thread": "separate",
-      "light-input-registry": "builtin",
+      "light-input-registry": "script",
       "detailed-profiling": "off"
     },
     "acceptedRenderCore": "Accepted combined-b normal bundle; diagnostic timers OFF and explicit conservative selections preserved.",

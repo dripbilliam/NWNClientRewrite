@@ -2,7 +2,7 @@
 // Keep the room-validated lighting and particle options together so a normal
 // launch cannot accidentally revert to the older dark material/output path.
 const profiles=Object.freeze({
- gameplay:Object.freeze({lighting:'enhanced',history:'1',surface:'true',presentation:'shared',particleLighting:'pooled'}),
+ gameplay:Object.freeze({lighting:'enhanced',history:'1',surface:'true',presentation:'cx',particleLighting:'pooled'}),
  legacy:Object.freeze({lighting:'godot',history:'0',surface:'false',presentation:'individual',particleLighting:'scene'})
 });
 function resolveNativeRenderConfiguration({arg=()=>undefined,env={},isolated=false}={}){
@@ -26,9 +26,15 @@ function resolveNativeRenderConfiguration({arg=()=>undefined,env={},isolated=fal
  if(surface==='true'&&(lighting!=='enhanced'||history!=='1'))throw Error('Native surface output requires enhanced lighting and native light history');
  const presentation=arg('particle-presentation')??inherited.NWN_PARTICLE_PRESENTATION??defaults.presentation;
  const particleLighting=arg('particle-lighting')??inherited.NWN_PARTICLE_LIGHTING??defaults.particleLighting;
- if(!['individual','shared'].includes(presentation))throw Error('Invalid native particle presentation');
+ if(!['individual','shared','cx'].includes(presentation))throw Error('Invalid native particle presentation');
+ if(presentation==='cx'&&surface!=='true')throw Error('CX particles require native surface output');
  if(!['scene','pooled'].includes(particleLighting))throw Error('Invalid native particle lighting');
  const args=[];
+ const softParticleDepth=arg('particle-soft-depth');
+ if(softParticleDepth!==undefined){
+  if(!['on','off'].includes(softParticleDepth))throw Error('Invalid particle soft-depth switch');
+  args.push('--particle-soft-depth='+softParticleDepth);
+ }
  let maximumLights;
  const requestedShadows=arg('native-shadow-lights')??inherited.NWN_NATIVE_SHADOW_LIGHTS;
  const shadowLights=Number(requestedShadows??1);
@@ -71,7 +77,7 @@ function resolveNativeRenderConfiguration({arg=()=>undefined,env={},isolated=fal
  return {
   arguments:args,
   environment:{NWN_PARTICLE_PRESENTATION:presentation,NWN_PARTICLE_LIGHTING:particleLighting},
-  summary:{profile:effective,base_profile:profile,selection:explicit!==undefined?'explicit':lightingOverrides?'lighting overrides':isolated?'isolated check':'normal gameplay',engine:'godot-forward-plus',lighting,light_history:history==='1',...(maximumLights!==undefined?{maximum_lights:maximumLights}:{}),point_shadow_lights:shadowLights,shadow_selection:'player-focus original ranking/support within a scene-wide Godot map budget; original per-pass/stencil/fades pending',surface_output:surface==='true',particle_presentation:presentation,particle_lighting:particleLighting,postprocess,...(gammaValue!==undefined?{gamma:gammaValue}:{})}
+  summary:{profile:effective,base_profile:profile,selection:explicit!==undefined?'explicit':lightingOverrides?'lighting overrides':isolated?'isolated check':'normal gameplay',engine:'godot-forward-plus',lighting,light_history:history==='1',...(maximumLights!==undefined?{maximum_lights:maximumLights}:{}),point_shadow_lights:shadowLights,shadow_selection:'player-focus original ranking/support within a scene-wide Godot map budget; original per-pass/stencil/fades pending',surface_output:surface==='true',particle_presentation:presentation,particle_lighting:particleLighting,particle_soft_depth:surface==='true'&&presentation!=='individual'&&softParticleDepth!=='off',postprocess,...(gammaValue!==undefined?{gamma:gammaValue}:{})}
  };
 }
 module.exports={resolveNativeRenderConfiguration};

@@ -125,10 +125,21 @@ func prioritize(request_ids: Array) -> void:
 func _work(job: Dictionary) -> void:
 	var began := Time.get_ticks_usec()
 	var reader = job.catalog
-	var bytes: PackedByteArray = reader.get_resource(job.name, job.type)
-	var result := {"id": job.id, "epoch": job.epoch, "resource_name":str(job.name),"resource_error":reader.failure,"error": reader.failure, "thread": OS.get_thread_caller_id(), "bytes": bytes, "read_ms":(Time.get_ticks_usec()-began)/1000.0}
-	var digest_began:=Time.get_ticks_usec();var source_sha:=Cache.digest(bytes) if reader.failure.is_empty() else ""
-	var source_digest_ms:=(Time.get_ticks_usec()-digest_began)/1000.0
+	var named_key:=""
+	var named_bundle: Dictionary={}
+	# A mounted KEY binding has a catalog lifetime. A named alias shares the
+	# existing bundle's allocation and is detached with the catalog generation.
+	if job.memory_store!=null and not job.status_only and job.type==2002 and job.decoder in ["static-model","actor-model"] \
+			and not job.prework_write \
+			and reader.has_method("has_installed_model_binding") and reader.has_installed_model_binding(job.name):
+		named_key="model-name:"+Cache.digest(var_to_bytes([job.name,job.decoder,job.options,mesh_preparation_enabled,skin_preparation_enabled,shared_animation_preparation_enabled]))
+		named_bundle=job.memory_store.load_data(named_key,int(job.memory_epoch))
+	var named_hit:=named_bundle.has("bytes")
+	var bytes: PackedByteArray = named_bundle.bytes if named_hit else reader.get_resource(job.name, job.type)
+	var result := {"id": job.id, "epoch": job.epoch, "resource_name":str(job.name),"resource_error":reader.failure,"error": reader.failure, "thread": OS.get_thread_caller_id(), "bytes": bytes, "read_ms":0.0 if named_hit else (Time.get_ticks_usec()-began)/1000.0}
+	var digest_began:=Time.get_ticks_usec()
+	var source_sha:String=named_bundle.sha256 if named_hit else Cache.digest(bytes) if reader.failure.is_empty() else ""
+	var source_digest_ms:=0.0 if named_hit else (Time.get_ticks_usec()-digest_began)/1000.0
 	result.requested_ms=int(job.requested_us)/1000.0; result.started_ms=began/1000.0
 	var memory_key:=""
 	var phases:={"service_queue_ms":(int(job.dispatched_us)-int(job.requested_us))/1000.0,"worker_queue_ms":(began-int(job.dispatched_us))/1000.0,"source_digest_ms":source_digest_ms,"memory_lookup_ms":0.0,"model_ms":0.0,"rig_ms":0.0,"textures_ms":0.0,"memory_save_ms":0.0}
@@ -151,14 +162,16 @@ func _work(job: Dictionary) -> void:
 	var inputs=Prework.Inputs.new(reader) if eligible else null
 	if inputs!=null:inputs.remember(str(job.name),int(job.type),bytes,source_sha);reader=inputs
 	if reader.failure.is_empty() and job.memory_store!=null and job.decoder in ["2da","actor-model","static-model","gui-icon-v1"] and not (job.decoder=="2da" and job.options.get("immutable_source",false)):
-		var preparation_revision:="native-preparation-5-vertex-colors"
-		if job.decoder in ["actor-model","static-model"]:preparation_revision+=":"+Prework.MODEL_METADATA_REVISION
-		if shared_animation_preparation_enabled: preparation_revision+=":"+SharedAnimation.REVISION
-		memory_key=Cache.digest(var_to_bytes([preparation_revision,job.decoder,source_sha,job.options,mesh_preparation_enabled,skin_preparation_enabled]))
-		var saved: Dictionary=job.memory_store.load_data(memory_key,int(job.memory_epoch))
+		if not named_hit:
+			var preparation_revision:="native-preparation-5-vertex-colors"
+			if job.decoder in ["actor-model","static-model"]:preparation_revision+=":"+Prework.MODEL_METADATA_REVISION
+			if shared_animation_preparation_enabled: preparation_revision+=":"+SharedAnimation.REVISION
+			memory_key=Cache.digest(var_to_bytes([preparation_revision,job.decoder,source_sha,job.options,mesh_preparation_enabled,skin_preparation_enabled]))
+		var saved: Dictionary=named_bundle if named_hit else job.memory_store.load_data(memory_key,int(job.memory_epoch))
 		phases.memory_lookup_ms=(Time.get_ticks_usec()-phase_began)/1000.0
 		if not saved.is_empty():
 			result.merge(saved,true); result.cache_hit=true; result.memory_cache_hit=true; result.worker_ms=(Time.get_ticks_usec()-began)/1000.0; result.phases=phases
+			phases.named_model_hit=named_hit
 			attach_shared_rig(job,result,phases)
 			result.phases.resource_io=resource_metrics(reader)
 			if job.prework_write and not prework_key.is_empty() and result.has("prework_inputs"):
@@ -173,18 +186,20 @@ func _work(job: Dictionary) -> void:
 			result.merge(saved,true); result.prework_hit=true; result.cache_hit=true; result.prework_icon_key=icon_key
 			attach_shared_rig(job,result,phases)
 			if job.memory_store!=null and not memory_key.is_empty() and not job.status_only:
-				job.memory_store.save_data(memory_key,Cache.digest(var_to_bytes(saved.get("prework_inputs",[]))),saved,int(job.memory_epoch))
+				if not named_key.is_empty(): saved.bytes=bytes
+				job.memory_store.save_data(memory_key,Cache.digest(var_to_bytes(saved.get("prework_inputs",[]))),saved,int(job.memory_epoch),-1,false,named_key)
 			result.worker_ms=(Time.get_ticks_usec()-began)/1000.0; phases.prework_hit=true; result.phases=phases
 			publish_result(job,result); return
 		reader.failure=str(result.error)
 	if reader.failure.is_empty():
 		phase_began=Time.get_ticks_usec()
-		var decoded := actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{} if job.options.get("relevant_tracks",false) else null,source_sha) if job.decoder in ["actor-model","gui-icon-v1"] else decode(bytes,int(job.type),"mdl-original" if job.decoder == "static-model" else str(job.decoder),str(job.cache_directory),job.decoder_store,bool(job.options.get("immutable_source",false)),source_sha)
+		var decoder: String="mdl-static-render-v1" if job.decoder=="static-model" else str(job.decoder)
+		var decoded := actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{} if job.options.get("relevant_tracks",false) else null,source_sha) if job.decoder in ["actor-model","gui-icon-v1"] else decode(bytes,int(job.type),decoder,str(job.cache_directory),job.decoder_store,bool(job.options.get("immutable_source",false)),source_sha)
 		# Placeable/tile emitters can be driven by original pause/loop clips.
 		# Retain those channels on the static-world route too, without expanding
 		# inherited actor animation data for every non-animated static model.
-		if job.decoder=="static-model" and str(decoded.get("error","")).is_empty() and decoded.value.nodes.any(func(row):return row.has("emitter")):
-			decoded=actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{},source_sha)
+		if job.decoder=="static-model" and str(decoded.get("error","")).is_empty() and decoded.value.has("animations"):
+			decoded=actor_data(reader,str(job.name),bytes,str(job.cache_directory),[],{},source_sha,decoded)
 		phases.model_ms=(Time.get_ticks_usec()-phase_began)/1000.0
 		phases.model_sources=decoded.get("preparation_sources",[])
 		if decoded.has("ancestor_preparation"): phases.ancestor_preparation=decoded.ancestor_preparation
@@ -233,29 +248,25 @@ func _work(job: Dictionary) -> void:
 						if not reader.failure.is_empty():result.error=reader.failure;break
 						textures[name]=gui_palette;dependencies.append({"name":name,"replacement":replacement.resource,"sha256":gui_palette.sha256,"cache_hit":gui_palette.cache_hit,"palette":true,"selector":gui_palette.selector,"palette_source":gui_palette.palette_source});continue
 					var raster_name:=str(replacement)
-					var selected: Dictionary = {"name":name,"type":6} if job.options.has("palette_colors") and reader.has_resource(name,6) else reader.raster_location(raster_name)
-					if selected.is_empty():
+					var loaded: Dictionary={"palette":true} if job.options.has("palette_colors") and reader.has_resource(name,6) else model_raster(reader,job,raster_name)
+					if bool(loaded.get("palette",false)):
+						var palette:=Palette.new().prepare(reader,name,job.options.get("palette_colors",[]),str(job.cache_directory))
+						if not str(palette.get("error","")).is_empty(): result.error=palette.error; break
+						textures[name]=palette; dependencies.append({"name":name,"sha256":palette.sha256,"cache_hit":palette.cache_hit,"palette":true}); continue
+					if loaded.is_empty():
 						# An explicit original lookup failure is different from a
 						# capture gap. Retain the mesh's untextured material and
 						# expose the absence; never invent a replacement bitmap.
 						if reader.has_method("recorded_texture_miss") and reader.recorded_texture_miss(name):
 							textures[name]={}; missing_textures.append(name); dependencies.append({"name":name,"recorded_missing":true}); continue
 						result.error = "Original texture unavailable: " + name; break
-					if int(selected.type)==6:
-						var palette:=Palette.new().prepare(reader,name,job.options.get("palette_colors",[]),str(job.cache_directory))
-						if not str(palette.get("error","")).is_empty(): result.error=palette.error; break
-						textures[name]=palette; dependencies.append({"name":name,"sha256":palette.sha256,"cache_hit":palette.cache_hit,"palette":true}); continue
-					var read_began := Time.get_ticks_usec()
-					var read_pair: Dictionary=reader.get_resource_with_digest(raster_name,int(selected.type)) if reader is Prework.Inputs else {"bytes":reader.get_resource(raster_name,int(selected.type)),"sha256":""}
-					var raw: PackedByteArray=read_pair.bytes
-					var read_ms := (Time.get_ticks_usec()-read_began)/1000.0
 					if not reader.failure.is_empty(): result.error = reader.failure; break
-					var raster := decode(raw,int(selected.type),"raster",str(job.cache_directory),job.decoder_store,false,str(read_pair.sha256))
+					var raster: Dictionary=loaded.raster
 					if not str(raster.error).is_empty(): result.error = name + ": " + str(raster.error); break
 					if job.options.has("gui_texture_info"):
 						raster=GuiTextureInfo.attach(reader,raster_name,raster)
 						if not reader.failure.is_empty(): result.error=reader.failure; break
-					textures[name] = raster; dependencies.append({"name":name,"sha256":raster.sha256,"cache_hit":raster.cache_hit,"read_ms":read_ms,"timings":raster.timings})
+					textures[name] = raster; dependencies.append({"name":name,"sha256":raster.sha256,"cache_hit":raster.cache_hit,"read_ms":loaded.read_ms,"timings":raster.timings})
 				if not str(result.error).is_empty(): break
 			result.textures = textures; result.dependencies = dependencies; result.missing_textures=missing_textures
 			if str(result.error).is_empty():
@@ -279,12 +290,49 @@ func _work(job: Dictionary) -> void:
 		for name in result.get("emitter_textures",{}): identities.append(["emitter:"+str(name),result.emitter_textures[name].get("sha256","missing")])
 		identities.sort_custom(func(a,b): return str(a[0])<str(b[0]))
 		var identity:=Cache.digest(var_to_bytes([memory_key,result.get("animation_sources",[]),identities]))
-		job.memory_store.save_data(memory_key,identity,content,int(job.memory_epoch))
+		if not named_key.is_empty(): content.bytes=bytes
+		job.memory_store.save_data(memory_key,identity,content,int(job.memory_epoch),-1,false,named_key)
 	phases.memory_save_ms=(Time.get_ticks_usec()-phase_began)/1000.0
 	result.phases=phases
 	result.phases.resource_io=resource_metrics(reader)
 	result.worker_ms = (Time.get_ticks_usec()-began)/1000.0
 	publish_result(job,result)
+func model_raster(reader,job: Dictionary,name: String) -> Dictionary:
+	# The catalog epoch owns the winning installed name/type. The decoded store
+	# still owns the content and can evict it independently.
+	var bindings=job.memory_store if job.catalog.has_method("has_installed_archive_binding") and job.catalog.recording==null else null
+	var decoded=job.decoder_store
+	var named_key:="model-raster:"+name.to_lower()
+	var generation:=int(job.memory_epoch)
+	if bindings!=null and decoded!=null:
+		var binding: Dictionary=bindings.load_data(named_key,generation)
+		if not binding.is_empty():
+			var began:=Time.get_ticks_usec()
+			var key:=raster_decode_key(int(binding.type),str(binding.sha256))
+			var saved: Dictionary=decoded.load_data(key,decoded.generation())
+			if not saved.is_empty():
+				reader.failure=""
+				if reader is Prework.Inputs:
+					reader.remember_raster(name,{"name":name.to_lower(),"type":int(binding.type)})
+					reader.remember(name,int(binding.type),PackedByteArray(),str(binding.sha256))
+				var raster: Dictionary=saved.result
+				raster.memory_decode_hit=true
+				raster.timings={"named_raster_hit":true,"memory_decode_ms":(Time.get_ticks_usec()-began)/1000.0}
+				return {"raster":raster,"read_ms":0.0}
+	var selected: Dictionary=reader.raster_location(name)
+	if selected.is_empty(): return {}
+	var type:=int(selected.type)
+	if type==6: return {"palette":true}
+	var read_began:=Time.get_ticks_usec()
+	var pair: Dictionary=reader.get_resource_with_digest(name,type) if reader is Prework.Inputs else {"bytes":reader.get_resource(name,type),"sha256":""}
+	var read_ms:=(Time.get_ticks_usec()-read_began)/1000.0
+	if not reader.failure.is_empty(): return {"read_ms":read_ms}
+	var raster:=decode(pair.bytes,type,"raster",str(job.cache_directory),decoded,false,str(pair.sha256))
+	if bindings!=null and decoded!=null and str(raster.error).is_empty() and job.catalog.has_installed_archive_binding(name,type):
+		bindings.save_data(named_key,named_key,{"type":type,"sha256":raster.sha256},generation,256)
+	return {"raster":raster,"read_ms":read_ms}
+func raster_decode_key(type: int, source_sha: String) -> String:
+	return "decoded-native-v1:"+str(type)+":raster:"+source_sha
 func publish_result(job: Dictionary,result: Dictionary) -> void:
 	if not job.status_only and (bool(job.get("raster_upload_preparation",false)) or bool(job.get("worker_texture_creation",false))) and str(result.get("error","")).is_empty():
 		var upload_began:=Time.get_ticks_usec();var sidecar:=RasterUpload.sidecar_on_worker(result,bool(job.get("worker_texture_creation",false)))
@@ -371,19 +419,19 @@ func icon_textures(reader,model: Dictionary,layers: Array,cache_path: String) ->
 		for name in part.mesh.get("textures",[]):
 			if str(name) not in ["","null"] and not textures.has(str(name).to_lower()): return {"error":"Original GUI icon has an unmatched replacement texture: "+str(name)}
 	return {"textures":textures,"dependencies":dependencies}
-func actor_data(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="") -> Dictionary:
+func actor_data(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="",prepared_source: Dictionary={}) -> Dictionary:
 	# Only the required/high-priority actor can start helpers. Other sources may
 	# reuse its immutable decoded work, without spawning competing helper waves.
 	var prefetch: Dictionary={}
 	if ancestors.is_empty() and high_priority and ancestor_preparation_enabled: prefetch=Ancestors.start(reader,name,bytes,cache_path,decode)
-	var result:=actor_data_serial(reader,name,bytes,cache_path,ancestors,relevant_nodes,known_sha)
+	var result:=actor_data_serial(reader,name,bytes,cache_path,ancestors,relevant_nodes,known_sha,prepared_source)
 	# Join on every normal/error return before the asset owner can retire. Child
 	# results affect caching/timings only; authoritative parsing owns correctness.
 	if not prefetch.is_empty(): result.ancestor_preparation=Ancestors.finish(prefetch)
 	return result
-func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="") -> Dictionary:
+func actor_data_serial(reader, name: String, bytes: PackedByteArray, cache_path: String, ancestors: Array, relevant_nodes: Variant=null,known_sha: String="",prepared_source: Dictionary={}) -> Dictionary:
 	if ancestors.size()>=16 or ancestors.has(name.to_lower()): return {"error":"Original actor supermodel inheritance cycle/depth"}
-	var decoded:=decode(bytes,2002,ActorModel.SOURCE_DECODER,cache_path,decoded_store(reader),false,known_sha)
+	var decoded:=decode(bytes,2002,ActorModel.SOURCE_DECODER,cache_path,decoded_store(reader),false,known_sha) if prepared_source.is_empty() else prepared_source
 	if not str(decoded.error).is_empty(): return decoded
 	decoded.preparation_sources=[{"name":name,"source_bytes":bytes.size(),"memory_hit":decoded.get("memory_decode_hit",false),"timings":decoded.get("timings",{})}]
 	var model: Dictionary=decoded.value; var parent_name:=str(model.get("supermodel","")).to_lower()
@@ -483,6 +531,7 @@ func decode(bytes: PackedByteArray, type: int, decoder: String, cache_path: Stri
 	if store==null or decoder=="bytes":return decode_uncached(bytes,type,decoder,cache_path,known_sha)
 	var began:=Time.get_ticks_usec();var source_sha:=known_sha if not known_sha.is_empty() else Cache.digest(bytes)
 	var request_key:="decoded-native-v1:"+str(type)+":"+decoder+":"+source_sha+(":ambient-1:vertex-color-1:"+Prework.MODEL_METADATA_REVISION if decoder.begins_with("mdl-") else "")+(":"+mesh_revision() if mesh_preparation_enabled and decoder.begins_with("mdl-") else "")
+	if decoder=="raster": request_key=raster_decode_key(type,source_sha)
 	var immutable_model:=decoder in ["mdl-actor-v2","mdl-actor-packed-v1","mdl-actor-packed-v2","mdl-actor-packed-v3",ActorModel.SOURCE_DECODER]
 	var borrowed:=immutable_model or decoder=="2da" and immutable_source
 	var generation:=int(store.generation()); var lease: Dictionary=store.begin_data(request_key,generation,not borrowed)
@@ -567,6 +616,8 @@ func decode_uncached(bytes: PackedByteArray, type: int, decoder: String, cache_p
 			var parser := ActorModel.new(); result.value = parser.parse(bytes); result.error = parser.failure
 		"mdl-actor-packed-v1", "mdl-actor-packed-v2", "mdl-actor-packed-v3", "mdl-actor-packed-v4", ActorModel.SOURCE_DECODER:
 			var parser:=ActorModel.new(); parser.packed_keys=true; result.value=parser.parse(bytes); result.error=parser.failure
+		"mdl-static-render-v1":
+			var parser:=ActorModel.new(); parser.packed_keys=true; result.value=parser.parse(bytes,true); result.error=parser.failure
 		"mdl-original":
 			if bytes.size()>=4 and bytes.decode_u32(0)==0:
 				var parser := Model.new(); result.value = parser.parse(bytes); result.error = parser.failure

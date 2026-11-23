@@ -95,6 +95,7 @@ struct Bridge final:Services {
  std::unordered_map<Particle*,Extra>* extras;
  Bridge(Var& value,std::unordered_map<Particle*,Extra>& metadata):hit(get(value,particle_field::hit1f0)),state(&value),ctx(context),resource(&get(value,particle_field::chunkName)),chunk(nonempty_text(*resource)),extras(&metadata){if(!ctx)throw std::runtime_error("Compact particle frame context absent");}
  int64_t random()override{
+  if(ctx->cx_random)return ctx->cx_random->next();
   // Keep the provider lookup and Callable invocation at every RNG boundary:
   // a prior callback may replace the provider before the next draw. Only the
   // generic service-name dispatch and repeated StringName construction go.
@@ -108,7 +109,10 @@ struct Bridge final:Services {
  }
  V3 camera()override{return ctx->camera?*ctx->camera:values<3>(invoke(providers,"cameraPosition"));}
  double cosine(double angle)override{return invoke(providers,"cosineDouble",{Var::number(angle)}).number();}
- V3 wind(const V3& position,float delta)override{return scene_wind::owner(ctx->wind_token).sample(position,delta);}
+ V3 wind(const V3& position,float delta)override{
+  if(ctx->wind_token)return scene_wind::owner(ctx->wind_token).sample(position,delta);
+  return values<3>(invoke(providers,"wind",{array(position),Var::number(delta)}));
+ }
  void clear_hit()override{set(hit,particle_field::normal,array(V3{}));}
  bool collide(Particle* part,const V3& start,V3& end,V3& normal)override{
   if(chunk){invoke(providers,"resetIgnoredHits",{hit});const auto found=extras->find(part);if(found!=extras->end()&&!found->second.child.nil())invoke(providers,"addIgnoredHit",{hit,found->second.child});}

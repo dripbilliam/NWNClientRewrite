@@ -35,8 +35,7 @@ func receive(message: Dictionary) -> void:
 		pending.append({"row":row.duplicate(true),"received":Time.get_ticks_msec()}); stats.received+=1
 func base_frame(id: int,animation: int,speed: float,remaining_path: Variant=null) -> void:
 	if not closed:
-		engine.motion_frame(id,remaining_path)
-		engine.base_frame(id,animation,speed)
+		engine.base_frame(id,animation,speed,remaining_path,true)
 func visual_animation(id: int,fallback: int) -> int:
 	return int(engine.states[id].visual) if not closed and engine.states.has(id) else fallback
 func movement_cue(id: int,request: Dictionary) -> bool:

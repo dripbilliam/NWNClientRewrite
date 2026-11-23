@@ -37,7 +37,7 @@ function canonicalPerformanceArguments(argv=[],{env={}}={}){
  if(!Array.isArray(argv)||argv.some(value=>typeof value!=='string'))throw Error('Client arguments must be strings');
  const choices=argv.filter(value=>value==='--native-runtime'||value.startsWith('--native-runtime='));
  if(choices.length>1)throw Error('Repeated native client option --native-runtime');
- if(choices.length&&!/^--native-runtime=(editor|release)$/.test(choices[0]))throw Error('Invalid native engine runtime');
+ if(choices.length&&!/^--native-runtime=(editor|release|review-cx|review-rig-apply)$/.test(choices[0]))throw Error('Invalid native engine runtime');
  const choice=choices.length?undefined:env.NWN_GODOT_RUNTIME;
  if(choice!==undefined&&choice!==''&&!['editor','release'].includes(choice))throw Error('Invalid NWN_GODOT_RUNTIME');
  return choice?[...argv,'--native-runtime='+choice]:[...argv];
@@ -48,17 +48,24 @@ function resolvePerformanceOptions(argv=[],context={}){
  const names=new Set(argv.filter(a=>a.startsWith('--')).map(a=>a.slice(2).split('=',1)[0]));
  // Covers every declared host/bootstrap check, including composed action checks
  // and scalar prework-check-limit, plus the visual and particle-crowd routes.
- const isolated=[...names].some(name=>/(?:^|-)(?:check|visual|probe)(?:-|$)/.test(name)||['action-particle-crowd','local-stream-abort'].includes(name));
+ const isolated=[...names].some(name=>/(?:^|-)(?:check|visual|probe)(?:-|$)/.test(name)||['action-particle-crowd','local-stream-abort','native-headless'].includes(name));
  const runtimeChoice=argv.find(value=>value.startsWith('--native-runtime='))?.slice('--native-runtime='.length);
  const nativeRuntime={value:runtimeChoice??'editor',explicit:runtimeChoice!==undefined};
  const packaged=nativeRuntime.value==='release';
  if(nativeRuntime.explicit&&parsed.explicit.includes('performance-runtime')&&parsed.values['performance-runtime']==='verified-native')throw Error('Explicit editor/release runtime conflicts with --performance-runtime=verified-native');
  const explicitStandard=parsed.explicit.includes('performance-runtime')&&parsed.values['performance-runtime']==='standard';
- const normalGameplay=!isolated&&!nativeRuntime.explicit&&!explicitStandard;
+ if(runtimeChoice==='review-cx'&&!explicitStandard)throw Error('The CX review runtime requires explicit --performance-runtime=standard');
+ if(runtimeChoice==='review-rig-apply'&&!explicitStandard)throw Error('The rig review runtime requires explicit --performance-runtime=standard');
+ const interactiveGameplay=!isolated&&!packaged;
+ const normalGameplay=interactiveGameplay&&!nativeRuntime.explicit&&!explicitStandard;
  const preset=registry.normalGameplayDefaults;
- if(normalGameplay){
+ if(interactiveGameplay){
   if(!preset||preset.version!==1)throw Error('Normal gameplay performance policy is unavailable');
-  for(const [name,value]of Object.entries(preset.values))if(!parsed.explicit.includes(name))parsed.values[name]=validateValue(definitions.get(name),value);
+  if(normalGameplay){
+   for(const [name,value]of Object.entries(preset.values))if(!parsed.explicit.includes(name))parsed.values[name]=validateValue(definitions.get(name),value);
+   if(parsed.values['performance-runtime']==='verified-native'&&!parsed.explicit.includes('light-input-registry'))parsed.values['light-input-registry']='builtin';
+  }
+  if(!parsed.explicit.includes('render-thread'))parsed.values['render-thread']=validateValue(definitions.get('render-thread'),preset.values['render-thread']);
  }
  // The visible legacy Profile switch still selects logging. Only explicit,
  // conflicting detailed-profiling input rejects; implicit normal OFF yields.
@@ -75,7 +82,7 @@ function resolvePerformanceOptions(argv=[],context={}){
  nativeArguments.push(...renderCore.flags);
  const thread=parsed.values['render-thread'];
  return {runtime:parsed.values['performance-runtime'],nativeRuntime,renderThread:thread,engineArguments:thread==='default'?[]:['--render-thread',thread],nativeArguments,renderCore,
-  policy:{normalGameplay,isolated,packaged,explicitStandard,defaults:normalGameplay?'accepted-normal-gameplay':'conservative',explicitChoicesHonored:true},
+  policy:{normalGameplay,isolated,packaged,explicitStandard,defaults:normalGameplay?'accepted-normal-gameplay':interactiveGameplay?'interactive-rendering':'conservative',explicitChoicesHonored:true},
   requested:Object.fromEntries(registry.features.filter(row=>row.forwarder==='performance').map(row=>[row.name,{value:parsed.values[row.name],explicit:parsed.explicit.includes(row.name)}])),
   registry:{version:registry.version,file:registryFile,sha256:hash(fs.readFileSync(registryFile))},
   scope:'Resolved normal-gameplay policy plus explicit selections. Actual executable, render thread, light owner and feature use are independently verified.'};
@@ -95,6 +102,12 @@ function validateHostOptions(argv=[],project=path.resolve(__dirname,'..')){
   const form=inputMap.get(name)?.forms??[];
   if(!definitions.has(name)&&form.length===1&&form[0]==='switch'&&argument.includes('='))throw Error('--'+name+' is a bare switch; scalar values are unsupported');
   if(!definitions.has(name)&&form.length===1&&form[0]==='value'&&!argument.includes('='))throw Error('--'+name+' requires a value');
+ }
+ if(parsed.values['native-runtime']==='review-cx'){
+  const owned=argv.includes('--performance-runtime=standard')&&argv.includes('--local-only')&&argv.includes('--server=127.0.0.1:5133');
+  const display=argv.some(value=>/^--native-screen=(0|[1-9][0-9]*)$/.test(value));
+  const incompatible=[...seen].some(name=>/(?:^|-)(?:check|visual|probe)(?:-|$)/.test(name)||['public-servers','native-headless','native-debugger','native-runtime-package'].includes(name));
+  if(!owned||!display||incompatible||!argv.includes('--render-thread=separate'))throw Error('CX review requires standard performance, separate rendering, an explicit secondary screen and the owned local server 127.0.0.1:5133');
  }
  return parsed;
 }
@@ -128,7 +141,7 @@ function markdown(project){
  for(const row of data.features)lines.push('| `--'+row.name+'` | `'+row.default+'` | '+(row.choices?row.choices.map(value=>'`'+value+'`').join(', '):row.minimum+'..'+row.maximum)+' | `'+row.owner+'` |');
  lines.push('','## Research options outside normal launch','','These are visible so benchmark-only selections cannot be mistaken for production integrations.');
  for(const row of data.researchOnly)lines.push('','- `--'+row.name+'` ('+row.status+'): '+row.reason);
- lines.push('','Normal gameplay implicit policy: verified-native runtime, separate render thread, builtin typed light input and detailed profiling OFF. Explicit standard selects the conservative route; isolated/editor/package checks preserve their existing defaults.','','## Application ingress inventory','','These names are discovered from the current ordinary host/bootstrap parser declarations. Inclusion here is not normal-gameplay or performance acceptance; many are isolated test controls. Managed performance selections above have explicit validation and defaults.','',data.applicationIngress.map(row=>'`--'+row.name+'`').join(', '),'','## Native source option inventory','','Literal options found in current application GDScript/native source. An unregistered option may be internal, diagnostic, unreachable through the normal launcher, or absent from the loaded binary. Structured output includes exact source locations; this inventory does not invent defaults or capability claims.','',data.nativeSourceFlags.map(row=>'`--'+row.name+'`'+(row.managed?'':' (not managed)')).join(', '),'','## PowerShell launcher parameters','',data.powershellParameters.map(name=>'`-'+name+'`').join(', '),'','## Verification contract','','Startup manifests record requested selections, actual executable SHA, current-source signature, engine arguments, forwarded native arguments and native capability/thread/owner observations. Unavailable explicit capabilities must reject instead of silently falling back. World admission supplies collision/light owner evidence; that is distinct from startup class availability. Ordinary, streamed and merged loading do not themselves choose a render-thread mode or native engine.','');
+ lines.push('','Ordinary gameplay defaults to the standard runtime, separate rendering, CX particles and detailed profiling off. Isolated checks use the base defaults listed above.','','## Application ingress inventory','','These names are discovered from the current ordinary host/bootstrap parser declarations. Inclusion here is not normal-gameplay or performance acceptance; many are isolated test controls. Managed performance selections above have explicit validation and defaults.','',data.applicationIngress.map(row=>'`--'+row.name+'`').join(', '),'','## Native source option inventory','','Literal options found in current application GDScript/native source. An unregistered option may be internal, diagnostic, unreachable through the normal launcher, or absent from the loaded binary. Structured output includes exact source locations; this inventory does not invent defaults or capability claims.','',data.nativeSourceFlags.map(row=>'`--'+row.name+'`'+(row.managed?'':' (not managed)')).join(', '),'','## PowerShell launcher parameters','',data.powershellParameters.map(name=>'`-'+name+'`').join(', '),'','## Verification contract','','Startup manifests record requested selections, actual executable SHA, current-source signature, engine arguments, forwarded native arguments and native capability/thread/owner observations. Unavailable explicit capabilities must reject instead of silently falling back. World admission supplies collision/light owner evidence; that is distinct from startup class availability. Ordinary, streamed and merged loading do not themselves choose a render-thread mode or native engine.','');
  return lines.join('\n');
 }
 module.exports={catalogue,markdown,parseManagedOptions,resolvePerformanceOptions,canonicalPerformanceArguments,validateHostOptions,registryFile};

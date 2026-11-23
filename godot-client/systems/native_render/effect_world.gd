@@ -257,12 +257,25 @@ func observe_source(id: int) -> void:
 	elif known.has(id): removed_states[id]=true
 func advance(delta: float) -> void:
 	if closed: return
+	var phase:=Timing.begin()
 	casts.advance()
+	Timing.finish("effect_cast_ms",phase)
+	phase=Timing.begin()
 	blood.advance()
+	Timing.finish("effect_blood_ms",phase)
+	phase=Timing.begin()
 	parries.advance()
+	Timing.finish("effect_parry_ms",phase)
+	phase=Timing.begin()
 	special_attacks.advance(delta)
+	Timing.finish("effect_special_attack_ms",phase)
+	phase=Timing.begin()
 	equipped_attacks.advance()
+	Timing.finish("effect_equipped_attack_ms",phase)
+	phase=Timing.begin()
 	creature_voices.advance()
+	Timing.finish("effect_creature_voice_ms",phase)
+	phase=Timing.begin()
 	controlled_id=world.controlled_id; pivots=world.instances; owner_scene.camera=get_viewport().get_camera_3d()
 	# Only actors referenced by pending/active effects participate. Static scenery
 	# and unrelated creatures never acquire an extra per-frame registry scan.
@@ -272,6 +285,8 @@ func advance(delta: float) -> void:
 	for record in records.values():
 		if int(record.privateToken)==0: sources[int(record.actor)]=true
 	for id in sources: observe_source(int(id))
+	Timing.finish("effect_sources_ms",phase)
+	phase=Timing.begin()
 	var visual_tables_ready:=tables_ready()
 	if visual_tables_ready:
 		var waiting: Array=[]
@@ -284,6 +299,8 @@ func advance(delta: float) -> void:
 			if removed_states.get(id,false) or int(known[id])!=lifetime: delivery.stale+=1; continue
 			if not route(event): waiting.append(event)
 		queue=waiting
+	Timing.finish("effect_queue_ms",phase)
+	phase=Timing.begin()
 	var started:=0
 	for effect_id in records.keys():
 		if not entries.has(effect_id): records.erase(effect_id); continue
@@ -312,7 +329,10 @@ func advance(delta: float) -> void:
 				var model: Variant=row.definition.state.models88[index]
 				if model!=null and not str(bundles[model.resource].get("error","")).is_empty(): row.definition.state.models88[index]=null; row.definition.state.retiredDc[index]=1
 		entry.definition=row.definition; delivery.prepared+=1; started+=1
+	Timing.finish("effect_records_ms",phase)
+	phase=Timing.begin()
 	super._process(delta)
+	Timing.finish("effect_visual_update_ms",phase)
 func _forget(id: int,reason: String) -> void:
 	if entries.has(id) and reason=="failed": stats.failed+=1
 	if records.has(id) and records[id].area and is_instance_valid(client_dummies): client_dummies.remove(int(records[id].actor))

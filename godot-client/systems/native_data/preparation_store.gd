@@ -56,7 +56,7 @@ func load_data(request: String,expected: int) -> Dictionary:
 	if expected!=epoch or not requests.has(request) or not entries.has(requests[request]): misses+=1; mutex.unlock(); return {}
 	var value: Dictionary=entries[requests[request]].value; hits+=1; mutex.unlock()
 	return value.duplicate(true)
-func save_data(request: String,identity: String,value: Dictionary,expected: int,size_hint: int=-1,retain_immutable: bool=false) -> void:
+func save_data(request: String,identity: String,value: Dictionary,expected: int,size_hint: int=-1,retain_immutable: bool=false,alias: String="") -> void:
 	var began:=Time.get_ticks_usec(); var cost:=Accounting.retained_cost(value,maximum_bytes) if size_hint<0 else {}
 	var measured: bool=cost.has("estimated_bytes"); var size:=size_hint if size_hint>=0 else (int(cost.estimated_bytes) if measured else var_to_bytes(value).size())
 	mutex.lock(); accounting["hinted" if size_hint>=0 else ("native" if measured else "serialized")]+=1; accounting.usec+=Time.get_ticks_usec()-began; accounting.shared_storage+=int(cost.get("shared",0)); accounting.bounded+=int(cost.get("bounded",0)); mutex.unlock()
@@ -73,7 +73,9 @@ func save_data(request: String,identity: String,value: Dictionary,expected: int,
 			for key in requests.keys():
 				if requests[key]==old: requests.erase(key)
 		entries[identity]={"value":copy,"bytes":size}; order.append(identity); bytes+=size
-	requests[request]=identity; mutex.unlock()
+	requests[request]=identity
+	if not alias.is_empty(): requests[alias]=identity
+	mutex.unlock()
 	detached.clear() # Worker-owned data disposal, outside the presentation lock.
 func snapshot() -> Dictionary:
 	# Frame diagnostics cannot wait behind a resource worker. The last snapshot

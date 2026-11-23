@@ -3,6 +3,7 @@ extends "res://systems/area_sky.gd"
 # the inherited sky phase/material equations do not invoke its GLB installer.
 const Assets=preload("res://systems/native_data/asset_service.gd")
 const Profile=preload("res://systems/native_render/frame_profile.gd")
+const Raster=preload("res://systems/native_data/raster_upload_preparation.gd")
 var assets
 var pool
 var closed:=false
@@ -18,8 +19,11 @@ var table: Dictionary={}
 var failures: Array=[]
 var world_owner: WeakRef
 var sky_shader: Shader
+var cx_fog_enabled:=false
+var texture_means: Dictionary={}
 func configure(world: Node,source,shared_pool,cache_path: String="") -> void:
 	world_owner=weakref(world); pool=shared_pool; native_surface_output=world.get_meta("native_surface_output",false)
+	cx_fog_enabled=native_surface_output and world.get_meta("native_cx_particles",false)
 	sky_shader=_shader(native_surface_output)
 	assets=Assets.new(); add_child(assets); assets.maximum_workers=1; assets.configure(source); assets.cache_directory=cache_path; assets.completed.connect(completed)
 	# The phase owner is advanced by AreaEnvironment after camera/area updates.
@@ -87,6 +91,7 @@ func build_model(resource: String,bundle: Dictionary) -> Node3D:
 	var model:=Node3D.new(); model.name="sky_"+resource; model.hide(); add_child(model)
 	var parts: Array=[]; var rows: Array=[]; var source: Dictionary=bundle.value
 	var basis:=Quaternion(Vector3.RIGHT,-PI/2)
+	var fog_sum:=Vector4.ZERO
 	for index in source.nodes.size():
 		var row: Dictionary=source.nodes[index]; var parent:=int(row.parent)
 		if parent>=index or parent< -1: error="Invalid original sky hierarchy"; model.free(); return null
@@ -103,8 +108,13 @@ func build_model(resource: String,bundle: Dictionary) -> Node3D:
 		if not data.textures.is_empty() and str(data.textures[0]).to_lower() not in ["","null"]:
 			var name:=str(data.textures[0]).to_lower()
 			if not bundle.get("textures",{}).has(name): error="Original sky bitmap is unavailable: "+name; model.free(); return null
-			texture=pool.texture(bundle.textures[name])
+			var record: Dictionary=bundle.textures[name]
+			texture=pool.texture(record)
 			if texture==null: error=pool.failure; model.free(); return null
+			if cx_fog_enabled and resource!="skyfade1":
+				var key: String=record.sha256
+				if not texture_means.has(key): texture_means[key]=_fog_texture_mean(record.value)
+				fog_sum+=texture_means[key]
 		var geometry:=MeshInstance3D.new(); part.add_child(geometry); geometry.mesh=mesh; geometry.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; geometry.extra_cull_margin=1000
 		var pair: Array=[]
 		for overlay in [false,true]:
@@ -114,7 +124,29 @@ func build_model(resource: String,bundle: Dictionary) -> Node3D:
 			color_parameter(material,"original_color",Color(1,1,1,float(row.alpha)),native_surface_output); material.set_shader_parameter("vertex_tint",not data.get("vertex_colors",PackedByteArray()).is_empty())
 			pair.append(material)
 		rows.append({"mesh":geometry,"surface":0,"base":pair[0],"overlay":pair[1]})
-	model.set_meta("sky_materials",rows); model.set_meta("sky_sha256",str(bundle.sha256)); return model
+	model.set_meta("sky_materials",rows); model.set_meta("sky_sha256",str(bundle.sha256))
+	model.set_meta("cx_fog_sky_sum",fog_sum)
+	return model
+static func _fog_texture_mean(data: Dictionary) -> Vector4:
+	# Start with the smallest decoded image level. No texture readback or
+	# decompression of a large base level is needed for mipmapped sky textures.
+	if data.mips.is_empty() or not Raster.FORMATS.has(data.format): return Vector4.ZERO
+	var mip: Dictionary=data.mips.back()
+	var image:=Image.create_from_data(mip.width,mip.height,false,Raster.FORMATS[data.format],mip.data)
+	if image==null or image.is_empty() or (image.is_compressed() and image.decompress()!=OK): return Vector4.ZERO
+	if image.get_width()>1 or image.get_height()>1: image.resize(1,1,Image.INTERPOLATE_TRILINEAR)
+	var color:=image.get_pixel(0,0)
+	return Vector4(pow(maxf(0.0,color.r),2.2),pow(maxf(0.0,color.g),2.2),pow(maxf(0.0,color.b),2.2),1.0)
+func cx_fog_sky_color() -> Vector4:
+	if not configured or phases.is_empty(): return Vector4.ZERO
+	var base: Vector4=instances[phases[state.current]].get_meta("cx_fog_sky_sum")
+	var overlay: Vector4=instances[phases[state.target]].get_meta("cx_fog_sky_sum")
+	var sum:=base.lerp(overlay,state.alpha)
+	return Vector4(sum.x/sum.w,sum.y/sum.w,sum.z/sum.w,0.75) if sum.w>0.0 else Vector4.ZERO
+func cx_fog_horizon(color: Color) -> void:
+	if horizon.is_empty() or color==horizon_color: return
+	horizon_color=color
+	for row in materials[horizon]: color_parameter(row.base,"horizon_color",color,native_surface_output)
 func publish_set(prepared: Dictionary) -> void:
 	clear_models(false)
 	instances=prepared.duplicate(); materials={}

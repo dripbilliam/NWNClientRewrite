@@ -86,12 +86,13 @@ func finite(at: int) -> float:
 	var value: float=reader.f32(at)
 	if not is_finite(value): reject("Non-finite original actor value")
 	return value
-func parse(bytes: PackedByteArray) -> Dictionary:
+func parse(bytes: PackedByteArray,static_if_no_emitters: bool=false) -> Dictionary:
 	failure=""; reader=Binary.new(bytes); visited={}; physical=0
 	var model: Dictionary={}
 	if bytes.size()>=4 and bytes.decode_u32(0)==0:
 		var parser:=BinaryModel.new(); model=parser.parse(bytes)
 		if not parser.failure.is_empty(): reject(parser.failure); return {}
+		if static_if_no_emitters and not model.nodes.any(func(node):return node.has("emitter")): return model
 		model_end=12+reader.u32(4); raw_start=model_end
 		if not bounded(12,232): return {}
 		model.supermodel=reader.text(12+168,64,true).to_lower(); model.animation_scale=finite(12+164)
@@ -100,6 +101,7 @@ func parse(bytes: PackedByteArray) -> Dictionary:
 	else:
 		var parser:=AsciiModel.new(); var text: String=reader.text(0,bytes.size()); model=parser.parse(text)
 		if not parser.failure.is_empty(): reject(parser.failure); return {}
+		if static_if_no_emitters and not model.nodes.any(func(node):return node.has("emitter")): return model
 		ascii_skins(text,model,parser.source_nodes)
 		model.animations=ascii_animations(text)
 		model.native_ascii_preparation=AsciiNative.new().prepare(text,model,parser.source_nodes)

@@ -4,6 +4,7 @@ extends RefCounted
 const Store=preload("res://systems/native_data/preparation_store.gd")
 const Catalog=preload("res://systems/native_data/resource_catalog.gd")
 const Residency=preload("res://systems/native_data/resource_residency.gd")
+const SessionUiAssets=preload("res://systems/native_data/session_ui_asset_owner.gd")
 var directory:=""
 var manifest: Dictionary={}
 var failure:=""
@@ -11,6 +12,8 @@ var layers: Array=[]
 var prepared_store:=Store.new()
 var decoder_store:=Store.new()
 var packed_catalog
+var _ui_assets: RefCounted
+var _ui_asset_scope_permitted:=true
 # Explicit opaque source scope; no raw-source cache is invented for a recording.
 class SealedSourceScope:
 	extends RefCounted
@@ -60,6 +63,7 @@ func _seal_graph(value: Variant) -> int:
 func _detach_mount() -> void:
 	# Old worker forks keep their immutable namespace and old stores/handles.
 	invalidate_cache_source_scope();_source_scope=null
+	release_ui_assets();_ui_assets=null
 	directory="";manifest={"availability":{},"resources":{}};layers=[];packed_catalog=null
 	prepared_store=Store.new();decoder_store=Store.new();_init();_capture_scope_witness();failure=""
 func _payload_integrity_failure(reason: String) -> void:
@@ -181,10 +185,24 @@ func mount(path: String) -> bool:
 	_capture_scope_witness();_source_scope=SealedSourceScope.new()
 	return true
 func fork() -> RefCounted:
-	var copy=get_script().new(); copy.directory=directory; copy.manifest=manifest; copy.layers=layers; copy.prepared_store=prepared_store; copy.decoder_store=decoder_store; copy.packed_catalog=packed_catalog.fork() if packed_catalog!=null else null; copy._source_scope=_source_scope; copy._capture_scope_witness(); return copy
+	var copy=get_script().new(); copy.directory=directory; copy.manifest=manifest; copy.layers=layers; copy.prepared_store=prepared_store; copy.decoder_store=decoder_store; copy.packed_catalog=packed_catalog.fork() if packed_catalog!=null else null; copy._source_scope=_source_scope; copy._ui_asset_scope_permitted=false; copy._capture_scope_witness(); return copy
+func ui_asset_owner() -> RefCounted:
+	if not _ui_asset_scope_permitted: return null
+	if _ui_assets==null:
+		_ui_assets=SessionUiAssets.new()
+		_ui_assets.configure([directory])
+	return _ui_assets if not _ui_assets.closed else null
+func release_ui_assets() -> void:
+	if _ui_assets!=null: _ui_assets.close()
 func preparation_cache(): return prepared_store
 func decoded_cache(): return decoder_store
 func has_resource(name: String,type: int) -> bool: return manifest.get("availability",{}).has(name.to_lower()+":"+str(type))
+func location(name: String,type: int) -> Dictionary:
+	var key:=name.to_lower()+":"+str(type)
+	var recording: Dictionary=manifest.get("resources",{}).get(key,{})
+	var digest:=str(recording.get("sha256",""))
+	if digest.is_empty() or recording.has("error"): return {}
+	return {"layer":{"binding_identity":"recorded:"+digest},"entry":recording}
 func portrait_files() -> Array: return manifest.get("portraitFiles",[]).duplicate()
 func resource_names(type: int) -> Array:
 	var suffix:=":"+str(type); var output: Array=[]

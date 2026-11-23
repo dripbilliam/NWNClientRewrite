@@ -18,6 +18,8 @@ try{
   if(-not (Test-Path -LiteralPath $destination)){[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,$destination,$false)}
  }
 }finally{$zip.Dispose()}
+& (Join-Path $PSScriptRoot 'ensure-client-runtime.ps1') | Out-Host
+& (Join-Path $PSScriptRoot 'build-window-modes.ps1') -ProfileOnly | Out-Host
 Get-ChildItem -LiteralPath $tools -Filter '*.exe' | ForEach-Object {
  [pscustomobject]@{file=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant();signature=(Get-AuthenticodeSignature -LiteralPath $_.FullName).Status.ToString()}
 } | ConvertTo-Json

@@ -1,8 +1,10 @@
 extends Node
+signal shadows_changed(value: bool)
 # Presentation-only owner. Keeps existing emitters/resources alive while their
 # simulation and drawing are disabled; newly admitted emitters inherit the flag.
 var enabled:=false
 var collision_enabled:=true
+var shadows_enabled:=true
 var emitters: Dictionary={}
 func _enter_tree() -> void: get_parent().set_meta("native_particle_visibility",self)
 func register(emitter: Node) -> void:
@@ -22,7 +24,11 @@ func set_collision_enabled(value: bool) -> void:
 		var emitter: Object=emitters[id].get_ref()
 		if is_instance_valid(emitter): emitter.set_collision_enabled(value)
 		else: emitters.erase(id)
-func snapshot() -> Dictionary: return {"enabled":enabled,"collision_enabled":collision_enabled,"registered":emitters.size()}
+func set_shadows_enabled(value: bool) -> void:
+	if shadows_enabled==value: return
+	shadows_enabled=value
+	shadows_changed.emit(value)
+func snapshot() -> Dictionary: return {"enabled":enabled,"collision_enabled":collision_enabled,"shadows_enabled":shadows_enabled,"registered":emitters.size()}
 func _exit_tree() -> void:
 	if is_instance_valid(get_parent()) and get_parent().has_meta("native_particle_visibility"): get_parent().remove_meta("native_particle_visibility")
 	emitters.clear()

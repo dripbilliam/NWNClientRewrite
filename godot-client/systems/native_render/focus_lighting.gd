@@ -6,6 +6,7 @@ extends Node
 const Sample=preload("res://systems/native_render/focus_light_sample.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const InputRegistry=preload("res://systems/native_render/native_light_input_registry.gd")
+const LightPolicy=preload("res://systems/native_render/native_light_policy.gd")
 const DEFAULT_MAXIMUM:=32 # Original graphics.lighting.max-lights default, not its128-slot storage capacity.
 var world: Node3D
 var members: Dictionary={}
@@ -40,6 +41,9 @@ var history_draw_ids: Dictionary={}
 var history_static_ids: Dictionary={}
 var history_publication_owner: Variant=null
 var member_order_serial:=0
+var dirty_light_inputs: Dictionary={}
+var light_bounds: Dictionary={}
+var mobile_light_inputs: Dictionary={}
 var _input_registry
 func _init() -> void:
 	configure_input_registry(OS.get_cmdline_user_args())
@@ -89,6 +93,9 @@ func enable_history(maximum: int=DEFAULT_MAXIMUM) -> void:
 		if reset.has("error"):_input_registry_failure(str(reset.error));return
 	history=ClassDB.instantiate("NwnLightHistory"); history_maximum=clampi(maximum,0,128)
 	history_rows.clear()
+	light_bounds.clear(); mobile_light_inputs.clear()
+	if _input_registry.effective=="script":
+		for id in members: dirty_light_inputs[id]=true
 	history.dispatch(0,{"enhanced":true})
 func disable_history() -> void:
 	blind_light_owner=null
@@ -101,10 +108,52 @@ func disable_history() -> void:
 		var policy=preload("res://systems/native_render/native_light_policy.gd")
 		environment.apply_native_area_light(policy.linear_rgb(area.ambient.color),policy.linear_rgb(area.diffuse.color))
 	history_rows.clear(); history_result.clear()
+	light_bounds.clear(); mobile_light_inputs.clear()
 	history_draw_ids.clear(); history_static_ids.clear(); history_publication_owner=null
+func mark_light_input_changed(id: int) -> void:
+	if not closed and _input_registry.effective=="script" and members.has(id):
+		dirty_light_inputs[id]=true
+func _refresh_light_input(id: int,planes: Array,changed_rows: Dictionary,removed: Array) -> void:
+	var entry: Dictionary=members[id]
+	var light: Node3D=entry.light.get_ref()
+	var parent: Node3D=entry.parent.get_ref() if entry.parent!=null else null
+	if not is_instance_valid(light) or not light.is_inside_tree() or (is_instance_valid(parent) and not parent.is_visible_in_tree()):
+		if history_rows.erase(id): removed.append(id)
+		light_bounds.erase(id); mobile_light_inputs.erase(id)
+		return
+	var props: Dictionary=light.native_properties
+	# Area-radius lights belong to the area's separate ambient/diffuse channels.
+	if props.is_empty() or not light.get_meta("native_enhanced_light",false) or float(props.get("radius",0))>=1000:
+		if history_rows.erase(id): removed.append(id)
+		light_bounds.erase(id); mobile_light_inputs.erase(id)
+		return
+	var position:=light.global_position
+	var support:=float(light.native_state.get("range",0))
+	var bounds:=Vector4(position.x,position.y,position.z,support)
+	var row: Dictionary={
+		"id":id,"owner":entry.owner_id,"position":native_point(position),
+		"color":props.get("color",[0,0,0]),"radius":props.get("radius",0),
+		"multiplier":props.get("multiplier",1),"priority":props.get("lightpriority",4),
+		"dynamic":props.get("isdynamic",1),"affect":props.get("affectdynamic",1),
+		"fading":props.get("fadinglight",1),"override":int(light.get_meta("native_light_priority",0)),
+		"in_view":_light_in_view(bounds,planes)
+	}
+	light_bounds[id]=bounds
+	var source: Node3D=entry.source.get_ref() if entry.source!=null else null
+	if is_instance_valid(source) and source.has_meta("native_tile_index"): mobile_light_inputs.erase(id)
+	else: mobile_light_inputs[id]=entry.light
+	if history_rows.get(id)!=row:
+		history_rows[id]=row
+		changed_rows[id]=row
+func _light_in_view(bounds: Vector4,planes: Array) -> bool:
+	history_view_tests+=1
+	var center:=Vector3(bounds.x,bounds.y,bounds.z)
+	for plane: Plane in planes:
+		if plane.distance_to(center)>bounds.w: return false
+	return true
 func history_frame(delta: float) -> void:
 	if history==null or closed: return
-	var began:=Time.get_ticks_usec(); var rows: Array=[]; var removed: Array=[]; var next_rows: Dictionary={}
+	var began:=Time.get_ticks_usec(); var rows: Array=[]; var removed: Array=[]
 	var view_began:=Timing.begin()
 	var camera: Camera3D=history_camera.get_ref() if history_camera!=null else null
 	var planes: Array=camera.get_frustum() if is_instance_valid(camera) else []
@@ -124,48 +173,34 @@ func history_frame(delta: float) -> void:
 		Timing.finish("light_history_input_apply_ms",apply_began)
 	else:
 		var collect_began:=Timing.begin()
-		for id in members.keys():
-			var entry: Dictionary=members[id]; var light: Node3D=entry.light.get_ref()
-			if not is_instance_valid(light): members.erase(id); continue
-			var parent:=light.get_parent()
-			if not light.is_inside_tree() or (parent is Node3D and not parent.is_visible_in_tree()): continue
-			var props: Dictionary=light.native_properties
-			if props.is_empty() or not light.get_meta("native_enhanced_light",false): continue
-			# Original area-radius lamps are a separate channel, never finite slots.
-			if float(props.get("radius",0))>=1000: continue
-			var position: Vector3=light.global_position
-			var range_value:=float(light.native_state.get("range",0))
-			var row: Dictionary=entry.get("history_row",{})
-			var in_view: bool=bool(row.get("in_view",true))
-			# Reuse the exact same plane test only while all its inputs are equal.
-			# Focus/ranking/fades still advance; moving cameras/lamps and animated
-			# support radii invalidate this cache on the current frame.
-			if row.is_empty() or view_changed or entry.get("history_position")!=position or float(entry.get("history_range",-1))!=range_value:
-				in_view=true; history_view_tests+=1
-				for plane: Plane in planes:
-					if plane.distance_to(position)>range_value: in_view=false; break
-				entry.history_range=range_value
-			var source: Node3D=entry.source.get_ref() if entry.source!=null else null
-			var owner_id: int=source.get_instance_id() if is_instance_valid(source) else 0
-			# SetTileLights writes PartLight+90 independently of the MDL node's
-			# authored priority. Metadata-only changes must invalidate publication.
-			var priority_override:=int(light.get_meta("native_light_priority",0))
-			var changed: bool=not history_rows.has(id)
-			if row.is_empty() or int(entry.get("history_revision",-1))!=light.native_properties_revision:
-				row={"id":id,"owner":owner_id,"position":native_point(position),"color":props.get("color",[0,0,0]),"radius":props.get("radius",0),"multiplier":props.get("multiplier",1),"priority":props.get("lightpriority",4),"dynamic":props.get("isdynamic",1),"affect":props.get("affectdynamic",1),"fading":props.get("fadinglight",1),"in_view":in_view}
-				entry.history_row=row; entry.history_revision=light.native_properties_revision; entry.history_position=position; changed=true
-			if not row.has("override") or int(row.override)!=priority_override: row.override=priority_override; changed=true
-			if entry.history_position!=position: row.position=native_point(position); entry.history_position=position; changed=true
-			if int(row.owner)!=owner_id: row.owner=owner_id; changed=true
-			if bool(row.in_view)!=in_view: row.in_view=in_view; changed=true
-			# Retain all physical inputs in the native owner. Collection, original
-			# ordering and both fade channels still execute every rendered frame.
-			next_rows[id]=row
-			if changed: rows.append(row)
-			else: history_input_reused+=1
-		for id in history_rows:
-			if not next_rows.has(id): removed.append(id)
-		history_rows=next_rows; history_input_rows+=rows.size()
+		var changed_rows: Dictionary={}
+		var previous_count:=history_rows.size()
+		# Actor and placeable motion can be written earlier in this same process
+		# pass. Godot flushes its transform notifications after the pass.
+		for id in mobile_light_inputs:
+			if dirty_light_inputs.has(id): continue
+			var light: Node3D=mobile_light_inputs[id].get_ref()
+			var bounds: Vector4=light_bounds[id]
+			if not is_instance_valid(light) or light.global_position!=Vector3(bounds.x,bounds.y,bounds.z):
+				dirty_light_inputs[id]=true
+		for id in dirty_light_inputs: _refresh_light_input(id,planes,changed_rows,removed)
+		if view_changed:
+			# A moving camera changes the plane test, not the authored lamp data.
+			for id in light_bounds:
+				if dirty_light_inputs.has(id): continue
+				var row: Dictionary=history_rows[id]
+				var in_view:=_light_in_view(light_bounds[id],planes)
+				if in_view!=bool(row.in_view):
+					row.in_view=in_view
+					changed_rows[id]=row
+		dirty_light_inputs.clear()
+		rows=changed_rows.values()
+		# New solver rows retain physical registration order for equal ranks,
+		# even if visibility changes were delivered in a different order.
+		if history_rows.size()+removed.size()>previous_count:
+			rows.sort_custom(func(a,b):return int(members[int(a.id)].publication_order)<int(members[int(b.id)].publication_order))
+		history_input_rows+=rows.size()
+		history_input_reused+=history_rows.size()-rows.size()
 		Timing.finish("light_history_script_collect_ms",collect_began)
 	Timing.finish("light_history_registry",began); var solve_began:=Timing.begin()
 	if not removed.is_empty(): history.dispatch(3,{"ids":removed})
@@ -225,22 +260,38 @@ func history_frame(delta: float) -> void:
 	var elapsed:=(Time.get_ticks_usec()-began)/1000.0; history_peak_ms=maxf(history_peak_ms,elapsed); Timing.record("callback_light_history",elapsed)
 func register(light: Node3D) -> void:
 	if closed: return
-	var source:=light.get_parent()
+	var parent:=light.get_parent()
+	var source:=parent
 	while source!=null and source!=world and not source.get_meta("native_light_source",false): source=source.get_parent()
 	var id:=light.get_instance_id(); var order: int
 	if members.has(id): order=int(members[id].publication_order)
 	else: order=member_order_serial; member_order_serial+=1
-	members[id]={"light":weakref(light),"source":weakref(source) if source!=null and source!=world else null,"publication_order":order}
+	var owner_id:=source.get_instance_id() if source!=null and source!=world else 0
+	if members.has(id): _disconnect_light_parent(members[id])
+	var parent_3d:=parent as Node3D
+	var changed:=mark_light_input_changed.bind(id)
+	members[id]={"light":weakref(light),"source":weakref(source) if owner_id!=0 else null,"owner_id":owner_id,
+		"publication_order":order,"parent":weakref(parent_3d) if parent_3d!=null else null,"changed":changed}
+	light.focus_owner=weakref(self)
 	if _input_registry.effective=="builtin":
-		var result: Dictionary=_input_registry.register_light(id,source.get_instance_id() if source!=null and source!=world else 0)
+		var result: Dictionary=_input_registry.register_light(id,owner_id)
 		if result.has("error"):_input_registry_failure(str(result.error))
+	else:
+		if parent_3d!=null: parent_3d.visibility_changed.connect(changed)
+		mark_light_input_changed(id)
+func _disconnect_light_parent(entry: Dictionary) -> void:
+	var parent: Node3D=entry.parent.get_ref() if entry.parent!=null else null
+	if is_instance_valid(parent) and parent.visibility_changed.is_connected(entry.changed):
+		parent.visibility_changed.disconnect(entry.changed)
 func unregister(light: Node3D) -> void:
 	var id:=light.get_instance_id()
 	if not closed and _input_registry.effective=="builtin":
 		var result: Dictionary=_input_registry.erase_light(id)
 		if result.has("error"):_input_registry_failure(str(result.error))
 	if history!=null: history.dispatch(3,{"ids":[id]})
+	if members.has(id): _disconnect_light_parent(members[id])
 	members.erase(id)
+	dirty_light_inputs.erase(id); light_bounds.erase(id); mobile_light_inputs.erase(id); history_rows.erase(id)
 	history_draw_ids.erase(id); history_static_ids.erase(id)
 func set_controlled(owner: Node3D) -> void: controlled=weakref(owner) if is_instance_valid(owner) else null
 func set_blind_lights(owner: Node3D=null) -> bool:
@@ -299,6 +350,60 @@ func particle_lighting() -> Dictionary:
 			var name: String=["ambient","diffuse"][index]
 			if input.has(name): input[name].fade=history_result.area_fades[index][0]
 	return input
+func cx_particle_sun() -> DirectionalLight3D:
+	var environment=history_environment.get_ref() if history_environment!=null else null
+	return environment.sunlight if is_instance_valid(environment) else null
+func cx_particle_lighting() -> PackedByteArray:
+	var packed:=PackedFloat32Array()
+	var shadow_identities: Dictionary={}
+	var ids: Dictionary=members if history==null else history_draw_ids
+	packed.resize(12+12*ids.size())
+	var offset:=12
+	for id in ids:
+		if not members.has(id): continue
+		var light: Node3D=members[id].light.get_ref()
+		if not is_instance_valid(light) or not light.is_visible_in_tree(): continue
+		var state: Variant=light.get("native_state")
+		if not state is Dictionary or state.is_empty():
+			var properties: Dictionary=light.get_meta("native_model_light_properties",{})
+			if properties.is_empty(): continue
+			state=LightPolicy.point(properties,2.0,0.2,1.5,float(light.get_meta("native_light_fade",1.0)))
+		if not state.enabled: continue
+		var position:=light.global_position
+		var color: Vector3=state.color
+		packed[offset]=position.x
+		packed[offset+1]=position.y
+		packed[offset+2]=position.z
+		packed[offset+3]=state.range
+		packed[offset+4]=color.x
+		packed[offset+5]=color.y
+		packed[offset+6]=color.z
+		packed[offset+7]=1.0 if state.ambient else 0.0
+		packed[offset+8]=state.inverse
+		packed[offset+9]=state.factor
+		if light is OmniLight3D and light.shadow_enabled and not state.ambient:
+			shadow_identities[(offset+10)*4]=light.get_base().get_id()
+		offset+=12
+	if area.is_empty() and offset==12: return PackedByteArray()
+	packed.resize(offset)
+	packed[3]=1.0
+	packed[7]=float(shadow_identities.size())
+	packed[11]=float(offset-12)/12.0
+	var fades: Array=history_result.get("area_fades",[])
+	var sun:=cx_particle_sun()
+	var direction:=Vector3.ZERO
+	if is_instance_valid(sun) and sun.light_energy>0.0: direction=sun.global_basis.z.normalized()
+	packed[8]=direction.x
+	packed[9]=direction.y
+	packed[10]=direction.z
+	if not area.is_empty():
+		for index in 2:
+			var channel: Array=area.ambient.color if index==0 else area.diffuse.color
+			var fade: float=fades[index][0] if index<fades.size() else 1.0
+			for axis in 3: packed[index*4+axis]=LightPolicy.linear(float(channel[axis])*fade)
+	var bytes:=packed.to_byte_array()
+	for address in shadow_identities: bytes.encode_u64(int(address),int(shadow_identities[address]))
+	return bytes
 func refresh() -> void:
 	if closed or not is_instance_valid(world): return
 	var began:=Time.get_ticks_usec(); var actor: Node3D=controlled.get_ref() if controlled!=null else null
@@ -338,7 +443,9 @@ func snapshot() -> Dictionary:
 func close() -> void:
 	_input_registry.close()
 	if history!=null: history.dispatch(8,{}); history=null
+	for entry in members.values(): _disconnect_light_parent(entry)
 	closed=true; requested=false; members.clear(); controlled=null; blind_light_owner=null; set_process(false)
+	dirty_light_inputs.clear(); light_bounds.clear(); mobile_light_inputs.clear(); history_rows.clear()
 	history_draw_ids.clear(); history_static_ids.clear(); history_publication_owner=null
 	if is_instance_valid(world) and world.has_meta("native_focus_light_owner"): world.remove_meta("native_focus_light_owner")
 func _exit_tree() -> void: close()

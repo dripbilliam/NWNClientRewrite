@@ -20,11 +20,16 @@ const ChunkModels=preload("res://systems/native_render/chunk_models.gd")
 const Bounds=preload("res://systems/native_render/particle_bounds.gd")
 const FIELDS={"birthrate":"birthRate","lifeexp":"lifeExp","particlerot":"particleRot","blurlength":"blurLength","velocity":"velocity","randvel":"randomVelocity","framestart":"frameStart","frameend":"frameEnd","xsize":"xSize","ysize":"ySize","spread":"spread","mass":"mass","bounce_co":"bounceCoefficient","sizestart":"sizeStart","sizeend":"sizeEnd","sizestart_y":"sizeStartY","sizeend_y":"sizeEndY","alphastart":"alphaStart","alphaend":"alphaEnd","fps":"fps","deadspace":"deadspace","blastradius":"blastRadius","blastlength":"blastLength","lightningdelay":"lightningDelay","lightningradius":"lightningRadius","lightningscale":"lightningScale"}
 const MODES={"Normal":0,"Billboard_to_Local_Z":1,"Billboard_to_World_Z":2,"Linked":3,"Aligned_to_World_Z":4,"Aligned_to_Particle_Dir":5,"Motion_Blur":6}
+# Godot's Node delivers these two SceneTree notifications to scripts without
+# binding their names as script constants (scene/main/node.h).
+const TREE_SUSPENDED:=9003
+const TREE_UNSUSPENDED:=9004
 @export var original_properties: Dictionary={}
 @export var channel_asset: Dictionary={}
 @export var physical_part: int=-1
 @export var source_path: NodePath
 @export var original_texture: Texture2D
+@export var original_texture_absent:=false
 @export var origin_resource: String=""
 @export var source_model_flags: int=-1
 @export var reference_paths: Array[NodePath]=[]
@@ -67,6 +72,7 @@ var elapsed:=0.0
 var static_clip:=""
 var peak_active:=0
 var rng_scope:="instance"
+var cx_rng_draws:=0
 var target_signature: Array=[null]
 var target_status:=""
 var target_listener_active:=false
@@ -96,6 +102,8 @@ var direct_scene_queries:=0
 var direct_scene_hits:=0
 var native_surface_output:=false
 var strict_geometry_worker:=OS.get_cmdline_user_args().has("--particle-geometry-worker=on")
+var cx_required:=false
+var cx_target_motion:=false
 var native_surface_world: WeakRef
 var native_light_reference: WeakRef
 func _ready() -> void:
@@ -108,6 +116,12 @@ func _ready() -> void:
 			if lighting_ancestor.has_meta("native_focus_light_owner"): native_light_reference=lighting_ancestor.get_meta("native_focus_light_owner")
 			break
 		lighting_ancestor=lighting_ancestor.get_parent()
+	var backend_ancestor:=get_parent()
+	while backend_ancestor!=null:
+		if backend_ancestor.has_meta("native_cx_particles"):
+			cx_required=bool(backend_ancestor.get_meta("native_cx_particles"))
+			break
+		backend_ancestor=backend_ancestor.get_parent()
 	if native_surface_output: process_priority=110
 	var visibility_ancestor:=get_parent()
 	while visibility_ancestor!=null:
@@ -124,7 +138,8 @@ func _ready() -> void:
 	# The isolated C++ transfer is diagnostic-only: it did not improve the
 	# measured room while both sides still marshal per-field Dictionaries.
 	native_parameter_transfer=compiled_kernel and OS.get_cmdline_user_args().has("--particle-parameters=cpp")
-	fused_dispatch=compiled_kernel and Kernel.fused_enabled() and str(original_properties.get("update","")) in ["Fountain","Explosion","Single"] and not services.has("moveParticles") and not services.has("updateEmitter")
+	var update_mode:=str(original_properties.get("update",""))
+	fused_dispatch=compiled_kernel and Kernel.fused_enabled() and (update_mode in ["Fountain","Explosion","Single"] or (cx_required and update_mode=="Lightning")) and not services.has("moveParticles") and not services.has("updateEmitter")
 	if compiled_kernel and not Kernel.available(): fail("Compiled native particle kernel is unavailable"); return
 	var ancestor:=get_parent()
 	while ancestor!=null:
@@ -149,6 +164,7 @@ func _ready() -> void:
 	parameters=original_properties.duplicate(true); channels.configure(channel_asset,physical_part)
 	if not channels.failure.is_empty(): fail(channels.failure); return
 	var mode:=str(parameters.get("render","")); var update:=str(parameters.get("update","")); var flags:=int(parameters.get("flags",0)); var texture_name:=str(parameters.get("texture","")).to_lower()
+	cx_target_motion=cx_required and ((flags&1)!=0 or update=="Lightning")
 	# PartEmitter60420 creates CHitInfo(mode1, maskFFFFFFFFBFFFFFFF, box0).
 	# Only collision emitters acquire this boundary; other streams retain their
 	# fused native owner. Native membership/BSP completeness is a separate gap.
@@ -160,19 +176,25 @@ func _ready() -> void:
 				collision_indices_provider=ancestor.get_meta("native_particle_collision_indices",Callable()); break
 			ancestor=ancestor.get_parent()
 	var chunk_name:=str(parameters.get("chunkname",""))
-	if chunk_name.is_empty() and texture_name not in ["","null"] and original_texture==null: fail("Original particle bitmap unavailable: "+texture_name); return
+	if chunk_name.is_empty() and texture_name not in ["","null"] and original_texture==null:
+		if not cx_required or not original_texture_absent: fail("Original particle bitmap unavailable: "+texture_name); return
+		# An unresolved atlas produces no raster record in CX. Keep this
+		# emitter's clock, simulation and services on the same native backend.
+		limitations.append("No source bitmap for particle atlas "+texture_name)
 	if not MODES.has(mode) or update not in ["Fountain","Explosion","Single","Lightning"]: fail("Native particle update/render owner pending: "+update+"/"+mode); return
-	if flags&1 and update!="Lightning": fail("Native point-to-point particle movement is pending"); return
-	if str(parameters.get("blend",""))=="Punch-Through": fail("Native particle punch-through material is pending"); return
+	if flags&1 and update!="Lightning" and not cx_target_motion: fail("Native point-to-point particle movement is pending"); return
+	var punch_through:=str(parameters.get("blend",""))=="Punch-Through"
+	if punch_through and not cx_required: fail("Native particle punch-through material is pending"); return
 	if flags&4 and update!="Lightning" and not services.has("wind"): fail("Native scene wind sampling is pending"); return
 	if flags&16 and update!="Lightning" and not services.has("collide"): fail("Native particle scene intersection is pending"); return
 	if not chunk_name.is_empty() and not Chunks.REQUIRED.all(func(name):return services.has(name) and services[name] is Callable and services[name].is_valid()):
 		if Chunks.REQUIRED.any(func(name):return services.has(name)): fail("Native chunk model service set is incomplete"); return
-		chunk_models=ChunkModels.new(); chunk_models.resource=chunk_name; chunk_models.origin_resource=origin_resource; add_child(chunk_models)
+		chunk_models=ChunkModels.new(); chunk_models.resource=chunk_name; chunk_models.origin_resource=origin_resource; chunk_models.cx_records=cx_required; add_child(chunk_models)
 		if not chunk_models.failure.is_empty(): fail(chunk_models.failure); return
 		services.merge(chunk_models.services(),true)
 	state={"flags":flags,"chunkName":"","renderMode1a8":MODES[mode],"blendMode68":0 if str(parameters.get("blend",""))=="Normal" else 2,"spawnType":int(parameters.get("spawntype",0)),"loop":int(parameters.get("loop",0)),"xGrid":int(parameters.get("xgrid",0)),"yGrid":int(parameters.get("ygrid",0)),"ageMode1cc":1,"accumulator198":0.0,"remaining164":[0.0,0.0,0.0],"detonate108":0,"blastLatch1c8":0.0,"elevationThreshold":5.0,"hit1f0":{"normal":[0.0,0.0,0.0]},"twoSided":bool(parameters.get("twosidedtex",false)),"position1e0":[0.0,0.0,0.0],"quaternion1d0":[1.0,0.0,0.0,0.0],"previous19c":[0.0,0.0,0.0],"previousQuaternion178":[1.0,0.0,0.0,0.0],"reference10c":[0.0,0.0,0.0],"referenceQuaternion118":[1.0,0.0,0.0,0.0],"basis140":[1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0],"active188":{"records":[],"capacity":0},"free130":{"records":[],"capacity":0},"initialized208":0,"source50":{"position":[0.0,0.0,0.0],"quaternion":[1.0,0.0,0.0,0.0],"adjustedScale":1.0,"opacity108":1.0,"instance":null},"instance100":null}
 	providers={"random":rng.next,"cameraPosition":camera_position,"cosineDouble":func(value):return cos(value),"globalTransform":func(_e):return pose(get_parent()),"sourceFactor":func(value):return value.adjustedScale,"cameraQuaternion":camera_quaternion,"updateEmitter":update_emitter,"reserveActive":func(_capacity):pass,"reserveFree":func(_capacity):pass,"createParticle":create_particle,"initializeParticle":initialize_particle,"randomizeParticle":randomize_particle,"moveParticles":move_particles,"clearHit":func(hit):hit.normal=[0.0,0.0,0.0],"destroyParticle":func(_part,_flag):pass,"lightColor":light_color}
+	if punch_through: state.blendMode68=1
 	# Keep authored flags/services intact so the preference is reversible.
 	_state.flags=effective_flags()
 	providers.merge(services,true)
@@ -182,25 +204,32 @@ func _ready() -> void:
 		providers.detachChunk=func(child,_scene): Schedule.invoke(providers,"chunkScene",[child,false])
 	providers.targetPosition=func(target):return pose(target).position
 	providers.randomPosition=random_position
-	if update=="Lightning":
+	if update=="Lightning" and not cx_target_motion:
 		state.merge({"target1c0":null,"targetDistance20c":0.0,"targetListener128":0,"lightningElapsed":0.0,"lightningPreviousDirection":[0.0,0.0,0.0],"lightningPreviousPosition":[0.0,0.0,0.0],"partScale":1.0})
 		Target.initialize_lightning(state,{"baseInitialize":func(_e):pass,"listen":func(_source,_callback,_event,_owner):target_listener_active=true; return 1})
 		parameters.lifeexp=state.lifeExp
 		limitations.append("Reference target notification is projected after bounded native model publication; complete Gob event order/reattachment remain incomplete")
+	elif update=="Lightning" and not parameters.has("lifeexp"):
+		parameters.lifeexp=1.0
 	if flags&8 and not native_surface_output: limitations.append("Particle tint uses Godot scene lighting; original point-sampled tint/fog/soft depth remain incomplete")
-	limitations.append("Local visual RNG seed/draw ordering and instance opacity/fade bindings remain incomplete")
+	limitations.append("Instance opacity/fade bindings remain incomplete" if cx_required else "Local visual RNG seed/draw ordering and instance opacity/fade bindings remain incomplete")
 	for candidate in ["pause","default"]:
 		if channels.clips.has(candidate): static_clip=candidate; break
 	if not static_clip.is_empty(): limitations.append("Static pause/default channel clock lacks full authoritative object-animation/event binding")
-	surface=Surface.new(); surface.name="NativeParticleSurface"; surface.configure(original_texture,1,int(state.blendMode68)!=0,bool(state.twoSided),(flags&8)!=0,native_surface_output); add_child(surface)
-	if fused_dispatch and Kernel.streams_enabled() and (flags&1)==0 and not force_reference and not OS.get_cmdline_user_args().has("--particle-owner=reference") and services.keys().all(func(name):return name in ["addPointSourceWind","collide","wind"] or name in Chunks.REQUIRED) and (not services.has("wind") or is_instance_valid(native_wind_owner)):
+	surface=Surface.new(); surface.name="NativeParticleSurface"
+	if not cx_required: surface.configure(original_texture,1,int(state.blendMode68)!=0,bool(state.twoSided),(flags&8)!=0,native_surface_output)
+	add_child(surface)
+	if fused_dispatch and Kernel.streams_enabled() and ((flags&1)==0 or cx_target_motion) and not force_reference and not OS.get_cmdline_user_args().has("--particle-owner=reference") and services.keys().all(func(name):return name in ["addPointSourceWind","collide","wind"] or name in Chunks.REQUIRED) and (cx_required or not services.has("wind") or is_instance_valid(native_wind_owner)):
 		var owner: RefCounted=ClassDB.instantiate("NwnParticleOwner")
 		var instance_streams: bool=(OS.get_cmdline_user_args().has("--particle-streams=instances") or OS.get_environment("NWN_PARTICLE_STREAMS")=="instances") and RenderingServer.get_current_rendering_method()!="gl_compatibility"
+		if instance_streams and cx_required:
+			reject_cx_presentation("individual instance stream was explicitly selected"); return
 		if instance_streams:
 			surface.queue_free(); surface=InstanceSurface.new(); surface.name="NativeParticleInstances"; surface.configure(original_texture,1,int(state.blendMode68)!=0,bool(state.twoSided),(flags&8)!=0,native_surface_output); add_child(surface)
 		var configuration:={"state":_state,"parameters":parameters,"clips":channels.clips,"update":update.to_lower(),"cacheConstants":channels.cache_constants,"compactRecords":not OS.get_cmdline_user_args().has("--particle-records=legacy") and (OS.get_cmdline_user_args().has("--particle-records=compact") or OS.get_environment("NWN_PARTICLE_RECORDS")!="legacy")}
 		native_pose_bound=not OS.get_cmdline_user_args().has("--particle-poses=gd")
 		configuration.instanceStreams=instance_streams
+		configuration.cxTargetMotion=cx_target_motion
 		configuration.typedEmitter=configuration.compactRecords and not OS.get_cmdline_user_args().has("--particle-emitter=mirrored") and (OS.get_cmdline_user_args().has("--particle-emitter=typed") or OS.get_environment("NWN_PARTICLE_EMITTER")!="mirrored")
 		if native_pose_bound: configuration.poseId=get_parent().get_instance_id(); configuration.sourceId=source.get_instance_id()
 		var result: Dictionary=owner.call("dispatch",0,configuration,{})
@@ -209,7 +238,7 @@ func _ready() -> void:
 	set_particles_enabled(particles_enabled)
 	var group_ancestor:=get_parent()
 	while group_ancestor!=null:
-		if not strict_geometry_worker and not native_surface_output and group_ancestor.has_meta("native_particle_frame_group"):
+		if not cx_required and not strict_geometry_worker and not native_surface_output and group_ancestor.has_meta("native_particle_frame_group"):
 			var group=group_ancestor.get_meta("native_particle_frame_group")
 			if is_instance_valid(group): group.register(self)
 			break
@@ -223,7 +252,9 @@ func _ready() -> void:
 		stream_ancestor=stream_ancestor.get_parent()
 	# Opt-in is exclusive. Registration failures and emitters outside a shared
 	# world remain suppressed instead of silently resuming their private path.
-	if strict_geometry_worker and not is_instance_valid(native_stream_group):
+	if cx_required and not is_instance_valid(native_stream_group):
+		if failure.is_empty(): reject_cx_presentation("shared world owner is unavailable")
+	elif strict_geometry_worker and not is_instance_valid(native_stream_group):
 		if is_instance_valid(surface): surface.retire()
 		set_process(false)
 		limitations.append("Geometry worker opt-in suppressed an emitter outside the shared presentation")
@@ -304,6 +335,19 @@ func refresh_target() -> void:
 		var initial:=pose(get_parent()); state.position1e0=M.values(initial.position); state.quaternion1d0=M.values(initial.quaternion)
 	Target.set_target(state,{"children":func(_e):return children,"referenceView":func(child):return child,"globalPosition":func(_e):return pose(get_parent()).position,"targetPosition":providers.targetPosition,"lightningView":func(_e):return state,"removeListener":func(_source,_listener):target_listener_active=false})
 	target_status="Bound first direct referenced model" if is_instance_valid(state.target1c0) else "No direct reference endpoint"
+func cx_target_id() -> int:
+	# Alloy aims at the first live model among the emitter's authored direct
+	# reference children. Pending, retired and failed references can change
+	# independently of the animation clock and must never leave a stale ID.
+	for path in reference_paths:
+		var reference=get_node_or_null(path)
+		if not is_instance_valid(reference) or reference.retired or not str(reference.failure).is_empty(): continue
+		var target: Node3D=reference.model68
+		if is_instance_valid(target) and target.is_inside_tree() and not target.is_queued_for_deletion():
+			target_status="Bound first direct referenced model"
+			return target.get_instance_id()
+	target_status="No live direct reference endpoint"
+	return 0
 func detonate() -> void:
 	if not retired and not _state.is_empty():
 		if native_owner!=null: queued_detonate=true
@@ -311,11 +355,15 @@ func detonate() -> void:
 		if is_instance_valid(native_frame_group): native_frame_group.control(self,{"detonate":true})
 		if is_instance_valid(native_stream_group): native_stream_group.control(self,{"detonate":true})
 func fail(reason: String) -> void:
+	if cx_required and failure!=reason: push_error("CX particle "+origin_resource+"/"+str(name)+": "+reason)
 	failure=reason; set_process(false)
 	if is_instance_valid(native_frame_group): native_frame_group.control(self,{"enabled":false})
 	if is_instance_valid(native_stream_group): native_stream_group.control(self,{"enabled":false})
 	if is_instance_valid(surface): surface.visible=false
 	update_metrics()
+func reject_cx_presentation(reason: String) -> void:
+	fail(reason)
+	if is_instance_valid(surface): surface.retire()
 	push_warning(reason)
 func outside_view(camera: Camera3D) -> bool:
 	# Unknown classification, point impulses/custom movement, target beams and
@@ -523,16 +571,18 @@ func set_collision_enabled(value: bool) -> void:
 func set_particles_enabled(value: bool) -> void:
 	particles_enabled=value; visible=value
 	process_mode=Node.PROCESS_MODE_INHERIT if value else Node.PROCESS_MODE_DISABLED
-	set_process(value and not strict_geometry_worker and not retired and failure.is_empty() and (not is_instance_valid(native_frame_group) or native_frame_group.engine_ordered))
+	set_process(value and not cx_required and not strict_geometry_worker and not retired and failure.is_empty() and (not is_instance_valid(native_frame_group) or native_frame_group.engine_ordered))
 	if is_instance_valid(native_frame_group): native_frame_group.control(self,{"enabled":value})
 	if is_instance_valid(native_stream_group):
 		native_stream_group.control(self,{"enabled":value}); set_process(false)
-	if is_instance_valid(surface): surface.visible=value and not strict_geometry_worker and not last_culled
+	if is_instance_valid(surface): surface.visible=value and not cx_required and not strict_geometry_worker and not last_culled
 	if is_instance_valid(native_stream_group) and native_stream_group.members.get(get_instance_id(),{}).get("fast",false) and is_instance_valid(surface): surface.hide()
 func sync_stream_diagnostics() -> void:
 	if not is_instance_valid(native_stream_group): return
 	var value: Dictionary=native_stream_group.info(get_instance_id())
 	if value.is_empty(): return
+	if value.has("cx_rng_draws"):
+		rng_scope="cx-emitter"; cx_rng_draws=int(value.cx_rng_draws)
 	elapsed=float(value.elapsed); frames=int(value.frames); native_active=int(value.active); native_free=int(value.free); allocated=int(value.allocated); peak_active=int(value.peak_active)
 	native_stream_vertices=int(value.vertices); queued_detonate=bool(value.pending_detonate); collision_flags_pending=bool(value.pending_patch)
 	channels.constant_hits=int(value.constant_hits); channels.sampled_channels=int(value.sampled_channels); culling_checks=int(value.culling_checks); culled_frames=int(value.culled_frames); culling_fallbacks=int(value.culling_fallbacks); last_culled=bool(value.culled); last_radius=float(value.radius); direct_scene_queries=int(value.direct_scene_queries); direct_scene_hits=int(value.direct_scene_hits)
@@ -540,7 +590,7 @@ func snapshot() -> Dictionary:
 	# Native state exports only when explicitly requested, never in HUD totals.
 	sync_stream_diagnostics()
 	var shared: bool=is_instance_valid(native_stream_group) and native_stream_group.members.get(get_instance_id(),{}).get("fast",false)
-	return {"direct_scene_queries":direct_scene_queries,"direct_scene_hits":direct_scene_hits,"backend":"resident" if native_owner!=null else "compiled" if compiled_kernel else "gd","compact_records":native_compact_records,"instance_streams":native_instance_streams,"fused_dispatch":fused_dispatch,"native_parameter_transfer":native_parameter_transfer,"channel_cache":channels.snapshot(),"frustum_enabled":frustum_enabled,"source_model_flags":source_model_flags,"culling_checks":culling_checks,"culling_fallbacks":culling_fallbacks,"culled_frames":culled_frames,"culled":last_culled,"admission_radius":last_radius,"failure":failure,"frames":frames,"active":active_count(),"free":native_free if native_owner!=null else _state.get("free130",{}).get("records",[]).size(),"allocated":allocated,"peak_active":peak_active,"vertices":native_stream_vertices if shared else surface.vertex_count if is_instance_valid(surface) else 0,"missing_chunk_models":missing_chunk_models,"chunks":chunk_models.snapshot() if is_instance_valid(chunk_models) else {},"rng_draws":rng.draws,"rng_scope":rng_scope,"static_clip":static_clip,"available_clips":channels.clips.keys(),"target_status":target_status,"limitations":limitations.duplicate()}
+	return {"direct_scene_queries":direct_scene_queries,"direct_scene_hits":direct_scene_hits,"backend":"resident" if native_owner!=null else "compiled" if compiled_kernel else "gd","compact_records":native_compact_records,"instance_streams":native_instance_streams,"fused_dispatch":fused_dispatch,"native_parameter_transfer":native_parameter_transfer,"channel_cache":channels.snapshot(),"frustum_enabled":frustum_enabled,"source_model_flags":source_model_flags,"culling_checks":culling_checks,"culling_fallbacks":culling_fallbacks,"culled_frames":culled_frames,"culled":last_culled,"admission_radius":last_radius,"failure":failure,"frames":frames,"active":active_count(),"free":native_free if native_owner!=null else _state.get("free130",{}).get("records",[]).size(),"allocated":allocated,"peak_active":peak_active,"vertices":native_stream_vertices if shared else surface.vertex_count if is_instance_valid(surface) else 0,"missing_chunk_models":missing_chunk_models,"chunks":chunk_models.snapshot() if is_instance_valid(chunk_models) else {},"rng_draws":cx_rng_draws if rng_scope=="cx-emitter" else rng.draws,"rng_scope":rng_scope,"static_clip":static_clip,"available_clips":channels.clips.keys(),"target_status":target_status,"limitations":limitations.duplicate()}
 func retire() -> void:
 	if retired: return
 	if is_instance_valid(native_stream_group): native_stream_group.unregister(self)
@@ -559,4 +609,8 @@ func retire() -> void:
 	if is_instance_valid(chunk_models): chunk_models.retire()
 	retired=true; set_process(false); providers.clear(); services.clear(); clock_provider=Callable(); state.clear(); parameters.clear(); channels.clips.clear(); target_signature.clear(); target_listener_active=false
 	if is_instance_valid(surface): surface.retire()
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_VISIBILITY_CHANGED, NOTIFICATION_PAUSED, NOTIFICATION_UNPAUSED, NOTIFICATION_ENABLED, NOTIFICATION_DISABLED, TREE_SUSPENDED, TREE_UNSUSPENDED:
+			if is_instance_valid(native_stream_group) and native_stream_group.has_method("update_scene_status"): native_stream_group.update_scene_status(self)
 func _exit_tree() -> void: retire()

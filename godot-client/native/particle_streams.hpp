@@ -4,7 +4,7 @@ struct ParticleStreams {
  std::vector<uint8_t> positions,attributes;
  // A scene presentation pass may supply one exact, active-only slice of its
  // uniquely owned frame buffer. No per-emitter packed arrays or tail clears.
- struct DirectRange {uint8_t* data=nullptr;int64_t vertices=0,written=0;bool instances=false;};
+ struct DirectRange {uint8_t* data=nullptr;int64_t vertices=0,written=0;bool instances=false,cx_records=false;};
  DirectRange* direct=nullptr;
  struct DirectScope {ParticleStreams& owner;DirectRange* prior;DirectScope(ParticleStreams& value,DirectRange& range):owner(value),prior(value.direct){owner.direct=&range;}~DirectScope(){owner.direct=prior;}};
  // Experimental instance records retain all four exact corners. The shader
@@ -16,6 +16,30 @@ struct ParticleStreams {
  V3 minimum{},maximum{};
  int64_t capacity=0;
  bool first=true;
+ void include_bounds(const V3& lower,const V3& upper){
+  if(first){minimum=lower;maximum=upper;first=false;}
+  else for(size_t axis=0;axis<3;++axis){
+   minimum[axis]=std::min(minimum[axis],lower[axis]);
+   maximum[axis]=std::max(maximum[axis],upper[axis]);
+  }
+ }
+ void write_record(int64_t index,const cx_particle::Record& record){
+  if(!direct||!direct->cx_records||index<0||index>=direct->vertices/6)
+   throw std::runtime_error("CX particle record outside active range");
+  V3 lower{},upper{};
+  for(size_t axis=0;axis<3;++axis){
+   const auto near=record.near_center[axis],far=record.far_center[axis];
+   const auto x=std::abs(record.right[axis]),y=record.up[axis];
+   lower[axis]=std::min((near-x)+y,(far-x)-y);
+   upper[axis]=std::max((near+x)+y,(far+x)-y);
+   if(!std::isfinite(lower[axis])||!std::isfinite(upper[axis]))
+    throw std::runtime_error("Non-finite CX particle bounds");
+  }
+  for(float coordinate:record.uv)if(!std::isfinite(coordinate))
+   throw std::runtime_error("Non-finite CX particle UV");
+  std::memcpy(direct->data+static_cast<size_t>(index)*sizeof(record),&record,sizeof(record));
+  include_bounds(lower,upper);
+ }
  void begin(int64_t count,int64_t retained){
   if(direct){if(count<0||count%6||count!=direct->vertices||(count&&!direct->data))throw std::runtime_error("Particle shared range count mismatch");capacity=count;first=true;minimum={};maximum={};return;}
   if(retained<0||retained>196608||retained%6)throw std::runtime_error("Invalid retained particle surface capacity");
@@ -46,7 +70,7 @@ struct ParticleStreams {
   }else{
    const auto offset=static_cast<size_t>(index)*12;std::memcpy(positions.data()+offset,point.data(),12);std::memcpy(attributes.data()+offset,&color,4);std::memcpy(attributes.data()+offset+4,&u,4);std::memcpy(attributes.data()+offset+8,&v,4);
   }
-  if(first){minimum=maximum=point;first=false;}else for(size_t j=0;j<3;++j){minimum[j]=std::min(minimum[j],point[j]);maximum[j]=std::max(maximum[j],point[j]);}
+  include_bounds(point,point);
  }
  Var finish(int64_t count){
   if(direct){if(count!=direct->vertices)throw std::runtime_error("Particle shared range publication mismatch");direct->written=count;return {};}

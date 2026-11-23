@@ -20,16 +20,20 @@ func observe(object: Dictionary) -> void:
 	if closed: return
 	var id:=int(object.get("id",-1)); var host=manager.host(id)
 	if records.has(id) and not valid(records[id]): forget(id); stats.stale+=1
+	var feats: Variant=null
 	if is_instance_valid(host) and not host.retired and manager.world.desired.has(id) and str(manager.world.installed.get(id,""))==str(manager.world.desired[id].key):
-		var feats:=Rules.collect_feats(object); var classes: Array=object.get("replicated",{}).get("stats",{}).get("classes",[])
-		if records.has(id) or State.gate(classes,[feats],0)==1 or State.gate(classes,[feats],1)==1:
+		var classes: Array=object.get("replicated",{}).get("stats",{}).get("classes",[])
+		var existing:=records.has(id)
+		if existing or classes.any(State.is_monk_class): feats=Rules.collect_feats(object)
+		if feats!=null and (existing or State.gate(classes,[feats],0)==1 or State.gate(classes,[feats],1)==1):
 			if not records.has(id): records[id]=new_record(object,host)
 			var r: Dictionary=records[id]; r.source=object
 			var context: Dictionary=host.rigs.entities.get(id,{}).get("context",{})
 			var signature: Array=[classes,feats,object.get("appearance",{}).get("appearance",-1),object.get("appearance",{}).get("gender",0),object.get("appearance",{}).get("phenotype",0),object.get("replicated",{}).get("stats",{}).get("fieldDE4"),context.get("fieldDD",0),manager.tables.has("appearance")]
 			if r.initial_signature!=signature and initialize_record(r): r.initial_signature=signature.duplicate(true); r.initialize_elapsed=0.0
 	if id!=int(manager.world.controlled_id): return
-	var feats:=Rules.collect_feats(object); var signature: Array=[int(object.id),int(object.get("nativeLifetime",0)),feats.has(213),feats.has(39),feats.has(296)]
+	if feats==null: feats=Rules.collect_feats(object)
+	var signature: Array=[int(object.id),int(object.get("nativeLifetime",0)),feats.has(213),feats.has(39),feats.has(296)]
 	if signature==warm_signature: return
 	warm_signature=signature
 	# Warm immutable resources for disclosed owned abilities, without creating

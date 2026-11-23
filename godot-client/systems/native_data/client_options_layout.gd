@@ -11,6 +11,7 @@ static func definition() -> Array:
 			label("Applies when the next area loads."),
 			check("particles_toggle","Enable particles"),
 			label("Turns particle simulation and drawing on or off.\nApplies immediately, including effects loaded later.\nModels, lights and gameplay are unchanged."),
+			check("particle_shadows_toggle","Particle shadows"),
 			check("particle_collision_toggle","Particle collision and bouncing"),
 			label("When off, particles pass through scenery."),label("Blood effects"),
 			choice("gore_select",["Low","Normal","Full"]),

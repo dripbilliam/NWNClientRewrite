@@ -12,6 +12,7 @@ var raw_size := 0
 var declared_nodes := 0
 var nodes: Array = []
 var visited := {}
+var retain_shadow_topology := false
 func reject(message: String) -> void:
 	if failure.is_empty(): failure = message
 func model_range(offset: int, size: int) -> bool:
@@ -20,7 +21,8 @@ func model_range(offset: int, size: int) -> bool:
 func raw_range(offset: int, size: int) -> bool:
 	if offset < 0 or size < 0 or offset > raw_size or size > raw_size - offset: reject("MDL range exceeds raw-data section"); return false
 	return true
-func parse(bytes: PackedByteArray) -> Dictionary:
+func parse(bytes: PackedByteArray, include_shadow_topology: bool = false) -> Dictionary:
+	retain_shadow_topology = include_shadow_topology
 	failure = ""; nodes.clear(); visited.clear(); reader = Binary.new(bytes)
 	if not reader.contains(0, 108, "Binary MDL header"): failure = reader.failure; return {}
 	model_size = reader.u32(4); raw_size = reader.u32(8); raw_start = 12 + model_size; declared_nodes = reader.u32(88)
@@ -128,6 +130,13 @@ func read_mesh(at: int) -> Dictionary:
 	if face_count == 0 and vertex_count == 0 and texture_count == 0 and draw_count == 0: return result
 	if mode != 3 or vertex_count == 0 or face_count > 1000000 or (face_count == 0 and draw_count == 0): reject("Invalid MDL mesh mode/count"); return {}
 	if not raw_range(vertex_offset, vertex_count * 12) or not model_range(face_offset, face_count * 32): return {}
+	if retain_shadow_topology:
+		# Serialized d4/d8 become runtime 110/114 in the stock mesh loader.
+		var shadow: int = reader.u32(at + 100)
+		var beaming: int = reader.u32(at + 104)
+		if shadow != 0 or beaming != 0:
+			result.stock_shadow = {"casts_shadow": shadow != 0, "beaming": beaming != 0,
+				"faces": reader.bytes(12 + face_offset, face_count * 32)}
 	for index in vertex_count * 3: result.vertices.append(reader.f32(raw_start + vertex_offset + index * 4))
 	if normal_offset != 0xffffffff:
 		if not raw_range(normal_offset, vertex_count * 12): return {}

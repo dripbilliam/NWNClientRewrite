@@ -207,30 +207,75 @@ func _profile_process(_delta: float) -> void:
 		if Time.get_ticks_msec()-int(pending[id].at)>6000: pending.erase(id); signature=""; notice_text="The server has not confirmed that item action."
 	refresh()
 	if not retained_item_icons and icon_tables_ready(): prewarm_icons()
+
+func _text_context_key() -> Array:
+	# Item and container names use the controlled creature's named-token
+	# context. Movement and unrelated replication fields do not affect it.
+	var context: Dictionary = text_owner.objects.get(controlled_id, {})
+	var appearance: Dictionary = context.get("appearance", {})
+	var replicated: Dictionary = context.get("replicated", {})
+	var stats_row: Dictionary = replicated.get("stats", {})
+	var classes: Array = stats_row.get("classes", [])
+	var first_class: Dictionary = classes[0] if not classes.is_empty() else {}
+	return [context.get("objectType", 0), appearance.get("gender", 0), replicated.get("name", appearance.get("name", {})),
+		stats_row.has("racialType"), stats_row.get("racialType"), not classes.is_empty(), first_class.get("id"), first_class.get("level")]
+
 func refresh() -> void:
-	if closed or not ui.wanted or not rules_ready() or ui.native_icon_gate and not icon_tables_ready() or not objects.has(displayed_owner()): return
+	var owner_id := displayed_owner()
+	if closed or not ui.wanted or not rules_ready() or ui.native_icon_gate and not icon_tables_ready() or not objects.has(owner_id): return
 	var refresh_started:=Time.get_ticks_usec() if detailed_timings else 0
-	var actor: Dictionary=objects[displayed_owner()]; var rows: Array=[]; var sources: Array=[]
+	var actor: Dictionary = objects[owner_id]
+	var sources: Array = []
+	var bases: Array[Dictionary] = []
 	for channel in ["I","R","C","M"]:
 		for location in inventories.get(channel,{}).get("entries",[]):
+			# As in the stock repository, page selection gates presentation.
+			# The replicated item remains in objects for command validation.
+			if channel=="R" and floori(float(location.get("y",0))/6.0)!=page: continue
+			if channel=="C" and floori(float(location.get("y",0))/5.0)!=container_page: continue
 			var id:=int(location.id); var object: Dictionary=objects.get(id,{})
 			if object.get("replicationRemoved",false) or not object.get("item") is Dictionary: continue
 			var item: Dictionary=object.item; var base:=IconPlan.row(text_owner.tables,"baseitems",int(item.get("baseItem",-1)))
 			if base.is_empty(): continue
 			sources.append([channel,location,item,object.get("inventoryLocation")])
-			rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"tooltip":Tooltip.project(item,text_owner,controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
-	var rows_built_us: int=Time.get_ticks_usec() if detailed_timings else 0
+			bases.append(base)
+	var sources_ready_us: int=Time.get_ticks_usec() if detailed_timings else 0
+	var appearance: Dictionary = actor.get("appearance", {})
+	var gender := int(appearance.get("gender", 0))
+	var title_source: Variant = actor.get("replicated", {}).get("name", appearance.get("name"))
+	if title_source == null:
+		var fallback: Dictionary = text_owner.objects.get(owner_id, {})
+		title_source = fallback.get("replicated", {}).get("name",
+			fallback.get("appearance", {}).get("name", fallback.get("item", {}).get("name", fallback.get("staticState", {}).get("name", {}))))
+	var container_id := int(containers.get("C", INVALID))
+	var container: Dictionary = objects.get(container_id, {})
+	var container_title: Variant = container.get("item", {}).get("name", container.get("replicated", {}).get("name", {}))
+	var container_page_count: Variant = inventories.get("C", {}).get("pageCount", 1)
+	var store_page_count := int(inventories.get("M", {}).get("pageCount", 1)) if store.get("open", false) else 0
 	var scene_source: Variant=[icons.binding_scope(),icons.catalog.source_store.get_instance_id()] if retained_item_icons else null
-	var next:=Cache.digest(var_to_bytes([generation,controlled_id,displayed_owner(),page,container_page,container_serial,sources,actor.get("inventoryStats",{}),actor.get("playerState",{}).get("combat",{}),actor.get("playerState",{}).get("abilities",{}),pending.keys(),store,scene_source]))
+	var next := Cache.digest(var_to_bytes([generation, controlled_id, owner_id, page, container_page, container_serial, sources,
+		actor.get("inventoryStats", {}), actor.get("playerState", {}).get("combat", {}), actor.get("playerState", {}).get("abilities", {}),
+		pending.keys(), store, store_page_count, scene_source, text_owner.revision, text_owner.named_ready, _text_context_key(),
+		gender, title_source, container_id, container_title, container_page_count]))
 	var signature_ready_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	if next==signature and (not retained_item_icons or ui.scene_icon_sealed): return
+	var rows: Array = []
+	for index in sources.size():
+		var source: Array = sources[index]
+		var channel: String = source[0]
+		var location: Dictionary = source[1]
+		var item: Dictionary = source[2]
+		var base := bases[index]
+		var id := int(location.id)
+		rows.append({"entryId":id,"itemId":id,"channel":channel,"slot":int(location.get("slot",0)),"x":int(location.get("x",0)),"y":int(location.get("y",0)),"width":IconPlan.number(base.get("InvSlotWidth"))&255,"height":IconPlan.number(base.get("InvSlotHeight"))&255,"slotMask":IconPlan.number(base.get("EquipableSlots"))&4294967295,"stack":item.get("stackSize",item.get("field454",1)),"name":text_owner.resolve(item.get("name",{}),controlled_id),"tooltip":Tooltip.project(item,text_owner,controlled_id),"pending":pending.has(id),"price":store_price(item,channel=="M"),"canIdentify":not item.get("identified",true)})
+	var rows_built_us: int = Time.get_ticks_usec() if detailed_timings else 0
+	var rows_us := sources_ready_us - refresh_started + rows_built_us - signature_ready_us
 	var ready_icons: Dictionary={}
 	var waiting:=false
 	var attempted_icons:=0
 	for row in rows:
-		if row.channel=="R" and floori(float(row.y)/6)!=page or row.channel=="C" and floori(float(row.y)/5)!=container_page: continue
 		attempted_icons+=1
-		var key: String=icons.request(objects[int(row.itemId)].item,text_owner.tables,int(actor.get("appearance",{}).get("gender",0)))
+		var key: String=icons.request(objects[int(row.itemId)].item,text_owner.tables,gender)
 		if key.is_empty():
 			if ui.native_icon_gate:
 				if icons.last_request_error=="Native asset queue is full": waiting=true
@@ -241,21 +286,19 @@ func refresh() -> void:
 	var requests_done_us: int=Time.get_ticks_usec() if detailed_timings else 0
 	if waiting:
 		if detailed_timings and timing_rows.size()<512:
-			timing_rows.append({"phase":"native-icon-wait","mono_us":requests_done_us,"page":page,"view":view_serial,"rows":rows.size(),"attempted_icons":attempted_icons,"ready_icons":ready_icons.size(),"asset_pending":icons.assets.pending.size(),"asset_running":icons.assets.running.size(),"icon_pending":icons.pending.size(),"rows_us":rows_built_us-refresh_started,"signature_us":signature_ready_us-rows_built_us,"requests_us":requests_done_us-signature_ready_us,"refresh_us":requests_done_us-refresh_started})
+			timing_rows.append({"phase":"native-icon-wait","mono_us":requests_done_us,"page":page,"view":view_serial,"rows":rows.size(),"attempted_icons":attempted_icons,"ready_icons":ready_icons.size(),"asset_pending":icons.assets.pending.size(),"asset_running":icons.assets.running.size(),"icon_pending":icons.pending.size(),"rows_us":rows_us,"signature_us":signature_ready_us-sources_ready_us,"requests_us":requests_done_us-rows_built_us,"refresh_us":requests_done_us-refresh_started})
 		return
 	signature=next; view_serial+=1; views.clear()
 	for row in rows: views[int(row.entryId)]={"object":objects[int(row.itemId)].duplicate(true),"row":row.duplicate(true)}
-	var container_id:=int(containers.get("C",INVALID)); var container: Dictionary=objects.get(container_id,{})
 	if retained_item_icons and is_instance_valid(ui.scene_host): ui.scene_host.begin_batch()
-	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(actor.get("replicated",{}).get("name",actor.get("appearance",{}).get("name")),displayed_owner()),"page":page,"items":rows,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container.get("item",{}).get("name",container.get("replicated",{}).get("name",{})),controlled_id),"page":container_page,"pageCount":inventories.get("C",{}).get("pageCount",1)}})
+	ui.receive({"kind":"inventory-view","viewId":view_serial,"title":text_owner.name(title_source,owner_id),"page":page,"items":rows,"store":store_view(),"layout":layout(),"summary":summary(actor),"armorClass":actor.get("playerState",{}).get("combat",{}).get("armorClass",actor.get("inventoryStats",{}).get("field8c")),"container":{"ownerId":container_id,"serial":container_serial,"title":text_owner.resolve(container_title,controlled_id),"page":container_page,"pageCount":container_page_count}})
 	if detailed_timings and timing_rows.size()<512:
 		var committed:=Time.get_ticks_usec()
-		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"rows_us":rows_built_us-refresh_started,"signature_us":signature_ready_us-rows_built_us,"requests_us":requests_done_us-signature_ready_us,"ui_receive_us":committed-requests_done_us,"attempted_icons":attempted_icons,"role":window_role,"owner":displayed_owner(),"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
+		timing_rows.append({"phase":"native-row-controls-committed","mono_us":committed,"wall_ms":Time.get_unix_time_from_system()*1000.0,"data_received_us":data_received_us,"data_received_wall_ms":data_received_wall_ms,"data_to_controls_us":committed-data_received_us if data_received_us>0 else null,"refresh_us":committed-refresh_started,"rows_us":rows_us,"signature_us":signature_ready_us-sources_ready_us,"requests_us":requests_done_us-rows_built_us,"ui_receive_us":committed-requests_done_us,"attempted_icons":attempted_icons,"role":window_role,"owner":owner_id,"page":page,"view":view_serial,"wanted":ui.wanted,"visible":ui.is_visible_in_tree(),"frame_ready":frame_skin.layout_ready,"rows":rows.map(func(row):return {"id":row.itemId,"channel":row.channel,"slot":row.slot,"y":row.y}),"pixels_measured":false})
 	stats.views+=1; icon_bindings.clear()
 	if not notice_text.is_empty(): ui.notice.text=notice_text
 	var expected_scene_icons:=0
 	for row in rows:
-		if row.channel=="R" and floori(float(row.y)/6)!=page or row.channel=="C" and floori(float(row.y)/5)!=container_page: continue
 		if retained_item_icons: expected_scene_icons+=1
 		var key: String=str(ready_icons.get(int(row.entryId),""))
 		if key.is_empty(): continue

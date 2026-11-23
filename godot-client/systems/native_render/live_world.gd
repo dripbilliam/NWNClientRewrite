@@ -70,6 +70,8 @@ var cache_path:=""
 var area_id:=-1
 var generation:=-1
 var controlled_id:=-1
+var entry_terrain_published:=false
+var entry_player_placed:=false
 var focus_lighting
 var model_environment
 var native_sky
@@ -281,9 +283,15 @@ func _enter_tree() -> void:
 	set_meta("native_particle_collision",collide_particle)
 	set_meta("native_particle_collision_indices",particle_collision_indices)
 	point_wind=PointWind.new(); add_child(point_wind); set_meta("native_point_wind_owner",point_wind)
-	if OS.get_cmdline_user_args().has("--particle-presentation=shared") or OS.get_environment("NWN_PARTICLE_PRESENTATION")=="shared":
+	var particle_mode:=OS.get_environment("NWN_PARTICLE_PRESENTATION")
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--particle-presentation="): particle_mode=argument.get_slice("=",1)
+	if particle_mode in ["shared","cx"]:
+		set_meta("native_cx_particles",particle_mode=="cx")
 		particle_stream_group=preload("res://systems/native_render/particle_stream_group.gd").new(); add_child(particle_stream_group)
-		if not particle_stream_group.configure(self): stats.particle_stream_failure=particle_stream_group.failure
+		if not particle_stream_group.configure(self,particle_mode=="cx"):
+			stats.particle_stream_failure=particle_stream_group.failure
+			if particle_mode=="cx": push_error("CX particle presentation unavailable: "+str(particle_stream_group.failure))
 	combat=preload("res://systems/native_render/combat_presentation.gd").new(); add_child(combat)
 func particle_collision_indices() -> Array:
 	if closed or retiring or not direct_particle_collision_enabled or not is_instance_valid(terrain): return []
@@ -308,6 +316,7 @@ func open(source,area: Dictionary,epoch: int,cache_directory: String,shared_pool
 	pool.bind_publication_world(self)
 	set_meta("native_publication_pool",pool)
 	catalog=source; area_id=int(area.id); generation=epoch; cache_path=cache_directory
+	entry_terrain_published=false; entry_player_placed=false
 	if base_draw_merge_enabled:
 		base_draw_merge=preload("res://systems/native_render/base_static_draw_merge.gd").new();add_child(base_draw_merge)
 		var context: Variant=get_meta("native_static_draw_context_provider",Callable())
@@ -323,7 +332,7 @@ func open(source,area: Dictionary,epoch: int,cache_directory: String,shared_pool
 	# Selection shapes are lazy and instance eligibility is decided from the
 	# latest server state, independently of immutable shared render resources.
 	pool.picking=false
-	terrain=Terrain.new(); terrain.use_terrain_batches=false; add_child(terrain)
+	terrain=Terrain.new(); terrain.use_terrain_batches=false; terrain.native_tile_order=true; add_child(terrain)
 	var entry_position: Variant=entry.get("position")
 	if entry_position is Array and entry_position.size()==3:
 		set_priority_origin(Vector3(float(entry_position[0]),float(entry_position[2]),-float(entry_position[1])))
@@ -712,6 +721,8 @@ func _profile_process(delta: float) -> void:
 	update_stream_priority()
 	FrameProfile.finish("world_stream_priority_ms",priority_began)
 	FrameProfile.finish("world_motion",phase_began)
+	if not stats.has("terrain_admission_ms") and ready_for_admission():
+		stats.terrain_admission_ms=(Time.get_ticks_usec()-opened_at)/1000.0
 	phase_began=FrameProfile.begin()
 	var adoption_began:=Time.get_ticks_usec();var adoption_attempts:=0;var adopted:=0;var base_adopted:=0
 	var candidates: Array=[]
@@ -723,7 +734,7 @@ func _profile_process(delta: float) -> void:
 				if batch.keys.has(id):
 					consume_stream_failure(batch,int(id),owner.stats.object_failures[id])
 					owner.stats.object_failures.erase(id);release_base_reservation(batch,int(id))
-		if not actors:
+		if not actors and not owner.invisible_ids.is_empty() and can_publish_entry_object(-1):
 			for id in owner.invisible_ids:
 				if desired.has(id) and str(desired[id].key)==str(batch.keys.get(id,"")): remove_instance(id); installed[id]=batch.keys[id]; hidden[id]=true; note_base_scenery_publication(int(id))
 				release_base_reservation(batch,int(id))
@@ -738,6 +749,7 @@ func _profile_process(delta: float) -> void:
 	for index in candidates.size():
 		if int(candidates[index].id)==controlled_id: candidates.push_front(candidates.pop_at(index)); break
 	for candidate in candidates:
+		if not can_publish_entry_object(int(candidate.id)):continue
 		if adoption_attempts>0 and Time.get_ticks_usec()-adoption_began>=pool.publication_callback_budget_us(int(adoption_budget_ms*1000)):break
 		if pool.has_method("can_publish") and not pool.can_publish(int(candidate.id)==controlled_id):break
 		var current_base_admission:=base_admission_allowance and extra_base_admission_allowed(candidate,base_adopted)
@@ -773,6 +785,7 @@ func _profile_process(delta: float) -> void:
 		var pose_began:=Time.get_ticks_usec(); apply_pose(id); adoption_timing("pose",pose_began)
 		if instance.has_method("set_show_blockers"):instance.set_show_blockers(show_blockers_enabled)
 		instance.show()
+		if id==controlled_id:entry_player_placed=true
 		note_base_scenery_publication(id)
 		var registration_began:=Time.get_ticks_usec(); instance_ready.emit(id,desired[id].object,instance); adoption_timing("registration",registration_began)
 		admit_static_draw(id)
@@ -782,7 +795,7 @@ func _profile_process(delta: float) -> void:
 	for batch in batches.duplicate():
 		var owner=batch.owner; var actors: bool=batch.actors
 		var prepared: Dictionary=owner.actors if actors else owner.instances
-		if owner.done and prepared.is_empty():
+		if owner.done and prepared.is_empty() and (actors or owner.invisible_ids.is_empty()):
 			var stats_began:=Time.get_ticks_usec()
 			# Shared rules remain required. Independent visual failures retain their
 			# exact appearance binding; a remote creature cannot revoke player input.
@@ -822,7 +835,6 @@ func _profile_process(delta: float) -> void:
 	FrameProfile.finish("world_motion_finish_ms",motion_finish_began)
 	FrameProfile.finish("world_poses",phase_began)
 	var readiness_began:=FrameProfile.begin()
-	if ready_for_admission() and not stats.has("terrain_admission_ms"): stats.terrain_admission_ms=(Time.get_ticks_usec()-opened_at)/1000.0
 	if desired.has(controlled_id) and not stats.has("controlled_received_ms"): stats.controlled_received_ms=(Time.get_ticks_usec()-opened_at)/1000.0
 	if ready_for_control() and not stats.has("playable_ms"):
 		stats.playable_ms=(Time.get_ticks_usec()-opened_at)/1000.0
@@ -850,7 +862,10 @@ func _profile_process(delta: float) -> void:
 	for object in base_objects: base_keys[int(object.id)]=desired[int(object.id)].key
 	if not actor_objects.is_empty():
 		var owner_began:=FrameProfile.begin()
-		var owner:=Creatures.new();owner.publication_keys=actor_keys;owner.use_skeleton=use_skeleton;owner.admission_parent=self;add_child(owner);owner.configure(catalog,pool,actor_objects,area_id,cache_path,controlled_id);batches.append({"owner":owner,"actors":true,"keys":actor_keys})
+		var owner:=Creatures.new()
+		owner.publication_keys=actor_keys;owner.use_skeleton=use_skeleton;owner.admission_parent=self
+		owner.entry_publication_allowed=can_publish_entry_object
+		add_child(owner);owner.configure(catalog,pool,actor_objects,area_id,cache_path,controlled_id);batches.append({"owner":owner,"actors":true,"keys":actor_keys})
 		if has_priority_origin: owner.set_priority_origin(priority_origin)
 		FrameProfile.finish("world_actor_owner_setup_ms",owner_began)
 	if not base_objects.is_empty():
@@ -884,7 +899,9 @@ func _profile_process(delta: float) -> void:
 		if not ready_for_control():
 			stats.entry_prefetch_batches=int(stats.get("entry_prefetch_batches",0))+1
 			stats.entry_prefetch_objects=int(stats.get("entry_prefetch_objects",0))+static_objects.size()
-		var owner:=Objects.new();owner.publication_keys=static_keys; owner.admission_parent=self; add_child(owner); owner.configure(catalog,pool,static_objects,area_id,cache_path); batches.append({"owner":owner,"actors":false,"keys":static_keys})
+		var owner:=Objects.new();owner.publication_keys=static_keys;owner.admission_parent=self
+		owner.entry_publication_allowed=can_publish_entry_object.bind(-1)
+		add_child(owner);owner.configure(catalog,pool,static_objects,area_id,cache_path);batches.append({"owner":owner,"actors":false,"keys":static_keys})
 		if has_priority_origin: owner.set_priority_origin(priority_origin)
 		FrameProfile.finish("world_static_owner_setup_ms",static_owner_began)
 func consume_stream_failure(batch: Dictionary,id: int,error: Dictionary) -> void:
@@ -924,6 +941,7 @@ func base_scenery_stream(objects: Array,before_control: bool):
 		close_retained_base_owner()
 	var owner:=Objects.new()
 	if before_control:owner.maximum_asset_workers=entry_base_workers
+	owner.entry_publication_allowed=can_publish_entry_object.bind(-1)
 	owner.admission_parent=self;add_child(owner);owner.configure(catalog,pool,objects,area_id,cache_path)
 	if reuse_base_scenery_owner:retained_base_owner=owner;retained_base_generation=generation
 	stats.base_owner_creations=int(stats.get("base_owner_creations",0))+1
@@ -1187,10 +1205,22 @@ func base_scenery_snapshot() -> Dictionary:
 	return result
 func ready_for_control() -> bool:
 	return ready_for_admission() and instances.has(controlled_id) and (not is_instance_valid(references) or references.ready_for(instances[controlled_id]))
+func can_publish_entry_object(id: int) -> bool:
+	if closed or retiring:return false
+	# Standalone object fixtures can use a world without opening an area.
+	if not is_instance_valid(terrain):return true
+	if not entry_terrain_published:
+		entry_terrain_published=entry_terrain_ready()
+		if not entry_terrain_published:return false
+	# A failed player visual leaves the placed terrain and scenery available
+	# for inspection. Its existing control/readiness failure still applies.
+	return entry_player_placed or controlled_id<0 or id==controlled_id or failed_objects.has(controlled_id)
+func entry_terrain_ready() -> bool:
+	return is_instance_valid(terrain) and terrain.done and terrain.diagnostics.errors.is_empty() and is_instance_valid(surface) and surface.ready()
 func ready_for_admission() -> bool:
 	# Native 4/3 releases initial player replication. Waiting for the player
 	# before acknowledging the prepared area deadlocks a first admission.
-	return not closed and not retiring and is_instance_valid(terrain) and terrain.done and terrain.diagnostics.errors.is_empty() and is_instance_valid(surface) and surface.ready() and stats.errors.is_empty()
+	return not closed and not retiring and entry_terrain_ready() and stats.errors.is_empty()
 func asset_owners() -> Array:
 	var owners: Array=[]
 	for owner in [terrain,surface,references,drive_collision,effects,native_sky,placeable_lights,borders]:

@@ -105,7 +105,10 @@ func _install_part(bundle: Dictionary,pool,model: Dictionary,index: int,parents:
 		var emitter:=ParticleEmitter.new(); emitter.name="native_emitter"; emitter.original_properties=row.emitter; emitter.channel_asset=model.get("rig_asset",{}); emitter.physical_part=index
 		emitter.origin_resource=str(bundle.get("resource_name",model.name))
 		emitter.source_model_flags=int(model.get("classification_flags",-1))
-		var texture_name:=str(row.emitter.get("texture","")).to_lower(); var emitter_raster: Dictionary=bundle.get("emitter_textures",{}).get(texture_name,{})
+		var texture_name:=str(row.emitter.get("texture","")).to_lower()
+		var emitter_bitmaps: Dictionary=bundle.get("emitter_textures",{})
+		var emitter_raster: Dictionary=emitter_bitmaps.get(texture_name,{})
+		emitter.original_texture_absent=emitter_raster.is_empty() and emitter_bitmaps.has(texture_name)
 		if not emitter_raster.is_empty():
 			emitter.original_texture=pool.texture(emitter_raster)
 			if emitter.original_texture==null: emitter.free(); failure=pool.failure; _clear_parts(); return false

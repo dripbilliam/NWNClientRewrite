@@ -4,6 +4,7 @@ const ColourScopes=preload("res://systems/native_data/model_colour_scopes.gd")
 const Timing=preload("res://systems/native_render/frame_profile.gd")
 const SkinPreparation=preload("res://systems/native_data/skin_preparation.gd")
 const NameplateAnchor=preload("res://systems/native_data/nameplate_anchor.gd")
+const ShadowMesh=preload("res://systems/native_render/actor_shadow_mesh.gd")
 var use_prepared_skins:=SkinPreparation.configured_enabled()
 # Assemble original native model data into the existing Godot rig/skin owner.
 # The adapter itself performs no JS export, GLB import or asset transfer.
@@ -123,11 +124,14 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 			if row.features.has("light") and not row.get("light",{}).is_empty(): lights.append({"node":target,"data":row.light})
 			if row.has("reference"): references.append({"node":target,"data":row.reference,"origin":bundle.get("resource_name",model.name)})
 			if row.has("emitter"):
-				var emitter_raster: Dictionary=bundle.get("emitter_textures",{}).get(str(row.emitter.get("texture","")).to_lower(),{}); var texture: Texture2D=null
+				var texture_name:=str(row.emitter.get("texture","")).to_lower()
+				var emitter_bitmaps: Dictionary=bundle.get("emitter_textures",{})
+				var emitter_raster: Dictionary=emitter_bitmaps.get(texture_name,{})
+				var texture: Texture2D
 				if not emitter_raster.is_empty():
 					texture=shared_pool.texture(emitter_raster)
 					if texture==null: failure=shared_pool.failure; holder.free(); return false
-				emitters.append({"node":target,"root":root_index,"part":index,"model":model_index,"properties":row.emitter,"asset":converted,"texture":texture})
+				emitters.append({"node":target,"root":root_index,"part":index,"model":model_index,"properties":row.emitter,"asset":converted,"texture":texture,"texture_absent":emitter_raster.is_empty() and emitter_bitmaps.has(texture_name)})
 			var data: Dictionary=row.mesh
 			var source_facts: Dictionary=MeshProvenance.capture(bundle,row,index,model_index) if not data.is_empty() else {}
 			if not source_facts.is_empty(): provenance.append({"node":target,"facts":source_facts})
@@ -142,7 +146,7 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 				raster=bundle.textures[texture_name]
 			var material=shared_pool.material(row,raster)
 			if material==null: failure=shared_pool.failure; holder.free(); return false
-			var mesh:=MeshInstance3D.new(); mesh.name="actor_mesh_"+str(id)+"_"+str(bindings.size()); mesh.mesh=geometry; mesh.material_override=material; mesh.visible=float(row.get("alpha",1))>0
+			var mesh:=ShadowMesh.new(); mesh.name="actor_mesh_"+str(id)+"_"+str(bindings.size()); mesh.mesh=geometry; mesh.material_override=material; mesh.visible=float(row.get("alpha",1))>0
 			if actor_alpha!=null and not actor_alpha.enroll(mesh,model_index):
 				failure=actor_alpha.failure;mesh.free();holder.free();return false
 			# Animated meshes are children of one rig holder, unlike static Parts.
@@ -161,7 +165,11 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 		models.append({"asset":model_index,"parts":parts,"defaults":converted.defaults,"follow":bool(piece.get("follow",true)),"clip":requested if available else "","time":0.0,"speed":1.0,"loop":true,"playing":available})
 	var source:={"id":id,"nodes":nodes,"models":models,"attachments":attachments,"clipMap":maps.get("0",{}),"sideMaps":maps,"animationSource":0,"context":animation_context,"bodyType":int(animation_context.get("fieldDE",0)),"model18":pieces.any(func(piece):return int(piece.get("partIndex",-1))==18)}
 	Timing.finish("actor_install_bindings_ms",began); began=Timing.begin()
-	rigs=SkeletalRigs.new() if use_skeleton else Rigs.new(); add_child(rigs); rigs.configure(registry,{id:self},{"rigs":{"version":1,"assets":assets,"entities":[source]},"meshes":bindings})
+	rigs=SkeletalRigs.new() if use_skeleton else Rigs.new()
+	if not use_skeleton:
+		rigs.set_meta("_nwn_rig_phase_owner", true)
+	add_child(rigs)
+	rigs.configure(registry,{id:self},{"rigs":{"version":1,"assets":assets,"entities":[source]},"meshes":bindings})
 	Timing.finish("actor_install_rigs_ms",began); began=Timing.begin()
 	if not rigs.stats.failures.is_empty(): failure=str(rigs.stats.failures); holder.queue_free(); return false
 	for source_row in provenance:
@@ -173,6 +181,7 @@ func install(pieces: Array,shared_pool,id: int,maps: Dictionary,initial_animatio
 		var reference:=ModelReference.new(); reference.name="native_reference"; reference.original_header=row.data; reference.origin_resource=str(row.origin); rigs.node_at(id,int(row.node)).add_child(reference)
 	for row in emitters:
 		var emitter:=ParticleEmitter.new(); emitter.name="native_emitter"; emitter.original_properties=row.properties; emitter.channel_asset=row.asset; emitter.physical_part=int(row.part); emitter.original_texture=row.texture; emitter.clock_provider=rigs.playback_state.bind(id,int(row.model))
+		emitter.original_texture_absent=row.texture_absent
 		var target: Node3D=rigs.node_at(id,int(row.node)); var source_root: Node3D=rigs.node_at(id,int(row.root))
 		# Source path must be assigned before add_child invokes _ready.
 		var piece_model: Dictionary=pieces[int(row.model)].bundle.value
@@ -273,11 +282,14 @@ func _install_model_part(state: Dictionary) -> bool:
 	if row.features.has("light") and not row.get("light",{}).is_empty(): lights.append({"node":target,"data":row.light})
 	if row.has("reference"):state.reference_models[model_index]=true;references.append({"node":target,"data":row.reference,"origin":bundle.get("resource_name",model.name)})
 	if row.has("emitter"):
-		var emitter_raster: Dictionary=bundle.get("emitter_textures",{}).get(str(row.emitter.get("texture","")).to_lower(),{}); var texture: Texture2D=null
+		var texture_name:=str(row.emitter.get("texture","")).to_lower()
+		var emitter_bitmaps: Dictionary=bundle.get("emitter_textures",{})
+		var emitter_raster: Dictionary=emitter_bitmaps.get(texture_name,{})
+		var texture: Texture2D
 		if not emitter_raster.is_empty():
 			texture=shared_pool.texture(emitter_raster)
 			if texture==null: failure=shared_pool.failure; holder.free(); return false
-		emitters.append({"node":target,"root":root_index,"part":index,"model":model_index,"properties":row.emitter,"asset":converted,"texture":texture})
+		emitters.append({"node":target,"root":root_index,"part":index,"model":model_index,"properties":row.emitter,"asset":converted,"texture":texture,"texture_absent":emitter_raster.is_empty() and emitter_bitmaps.has(texture_name)})
 	var data: Dictionary=row.mesh
 	var source_facts: Dictionary=MeshProvenance.capture(bundle,row,index,model_index) if not data.is_empty() else {}
 	if not source_facts.is_empty(): provenance.append({"node":target,"facts":source_facts})
@@ -292,7 +304,7 @@ func _install_model_part(state: Dictionary) -> bool:
 		raster=bundle.textures[texture_name]
 	var material=shared_pool.material(row,raster)
 	if material==null: failure=shared_pool.failure; holder.free(); return false
-	var mesh:=MeshInstance3D.new(); mesh.name="actor_mesh_"+str(id)+"_"+str(bindings.size()); mesh.mesh=geometry; mesh.material_override=material; mesh.visible=float(row.get("alpha",1))>0
+	var mesh:=ShadowMesh.new(); mesh.name="actor_mesh_"+str(id)+"_"+str(bindings.size()); mesh.mesh=geometry; mesh.material_override=material; mesh.visible=float(row.get("alpha",1))>0
 	if actor_alpha!=null and not actor_alpha.enroll(mesh,model_index):
 		failure=actor_alpha.failure;mesh.free();holder.free();return false
 	# Animated meshes are children of one rig holder, unlike static Parts.
@@ -331,7 +343,10 @@ func _install_rigs_begin(state: Dictionary) -> bool:
 	var bindings: Array=state.bindings
 	var attachments: Array=state.attachments
 	var source:={"id":id,"nodes":nodes,"models":models,"attachments":attachments,"clipMap":maps.get("0",{}),"sideMaps":maps,"animationSource":0,"context":animation_context,"bodyType":int(animation_context.get("fieldDE",0)),"model18":pieces.any(func(piece):return int(piece.get("partIndex",-1))==18)}
-	rigs=SkeletalRigs.new() if use_skeleton else Rigs.new();add_child(rigs)
+	rigs=SkeletalRigs.new() if use_skeleton else Rigs.new()
+	if not use_skeleton:
+		rigs.set_meta("_nwn_rig_phase_owner", true)
+	add_child(rigs)
 	return rigs.begin_configure(registry,{id:self},{"rigs":{"version":1,"assets":assets,"entities":[source]},"meshes":bindings})
 func _install_helper_provenance(state: Dictionary) -> bool:
 	var id:=int(state.id)
@@ -357,6 +372,7 @@ func _install_helper_emitter(state: Dictionary) -> bool:
 	var emitters: Array=state.emitters
 	var row: Dictionary=state.emitters[int(state.index)]
 	var emitter:=ParticleEmitter.new(); emitter.name="native_emitter"; emitter.original_properties=row.properties; emitter.channel_asset=row.asset; emitter.physical_part=int(row.part); emitter.original_texture=row.texture; emitter.clock_provider=rigs.playback_state.bind(id,int(row.model))
+	emitter.original_texture_absent=row.texture_absent
 	var target: Node3D=rigs.node_at(id,int(row.node)); var source_root: Node3D=rigs.node_at(id,int(row.root))
 	# Source path must be assigned before add_child invokes _ready.
 	var piece_model: Dictionary=pieces[int(row.model)].bundle.value

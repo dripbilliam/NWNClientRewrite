@@ -3,10 +3,12 @@ extends RefCounted
 # or clear their successor. Raw native fog remains separate from Godot's color
 # properties, which must carry different values for its linear background path.
 const F=preload("res://systems/area_environment_state.gd")
+const CX_UNIFORMS: Array[String]=["nwn_cx_fog_origin","nwn_cx_fog_sky","nwn_cx_fog_layer","nwn_cx_fog_sun","nwn_cx_fog_sun_color"]
 static var registered:=false
 static var active_id:=0
 static var active_owner: WeakRef
 static var current: Array=[]
+static var cx_current: Array=[]
 static var area_source:=false
 static var publications:=0
 static var failure:=""
@@ -15,16 +17,34 @@ static func ensure() -> void:
 	RenderingServer.global_shader_parameter_add("nwn_native_fog_color",RenderingServer.GLOBAL_VAR_TYPE_VEC3,Vector3.ZERO)
 	RenderingServer.global_shader_parameter_add("nwn_native_fog_params",RenderingServer.GLOBAL_VAR_TYPE_VEC3,Vector3.ZERO)
 	RenderingServer.global_shader_parameter_add("nwn_native_fog_range",RenderingServer.GLOBAL_VAR_TYPE_VEC2,Vector2.ZERO)
+	for parameter in CX_UNIFORMS:
+		RenderingServer.global_shader_parameter_add(parameter,RenderingServer.GLOBAL_VAR_TYPE_VEC4,Vector4.ZERO)
 	registered=true
 static func bind(owner: Node) -> void:
 	ensure(); active_id=owner.get_instance_id(); active_owner=weakref(owner); current=[]; area_source=false; failure=""
 	RenderingServer.global_shader_parameter_set("nwn_native_fog_color",Vector3.ZERO)
 	RenderingServer.global_shader_parameter_set("nwn_native_fog_params",Vector3.ZERO)
 	RenderingServer.global_shader_parameter_set("nwn_native_fog_range",Vector2.ZERO)
+	_clear_cx()
 static func owns(owner: Node) -> bool:
 	return is_instance_valid(owner) and active_id==owner.get_instance_id() and active_owner!=null and active_owner.get_ref()==owner
 static func authoritative(owner: Node) -> bool: return owns(owner) and area_source
 static func packet(owner: Node) -> Array: return current.duplicate() if owns(owner) else []
+static func cx_packet(owner: Node) -> Array: return cx_current.duplicate() if owns(owner) else []
+static func publish_cx(owner: Node,origin: Vector4,sky: Vector4,layer: Vector4,sun: Vector4,sun_color: Vector4) -> void:
+	if not owns(owner): return
+	var values: Array[Vector4]=[origin,sky,layer,sun,sun_color]
+	var next: Array=[]
+	for value in values:
+		if not value.is_finite(): return
+		next.append_array([value.x,value.y,value.z,value.w])
+	if next==cx_current: return
+	cx_current=next
+	for index in values.size(): RenderingServer.global_shader_parameter_set(CX_UNIFORMS[index],values[index])
+static func _clear_cx() -> void:
+	if cx_current.is_empty(): return
+	cx_current.clear()
+	for parameter in CX_UNIFORMS: RenderingServer.global_shader_parameter_set(parameter,Vector4.ZERO)
 static func publish(owner: Node,color: Vector3,enabled: bool,begin: float,end: float,from_area: bool=true) -> bool:
 	if not owns(owner): return false
 	begin=F.f(begin); end=F.f(end)
@@ -49,5 +69,6 @@ static func retire(owner: Node) -> void:
 	RenderingServer.global_shader_parameter_set("nwn_native_fog_color",Vector3.ZERO)
 	RenderingServer.global_shader_parameter_set("nwn_native_fog_params",Vector3.ZERO)
 	RenderingServer.global_shader_parameter_set("nwn_native_fog_range",Vector2.ZERO)
+	_clear_cx()
 static func snapshot() -> Dictionary:
 	return {"owner":active_id,"area_source":area_source,"packet":current.duplicate(),"publications":publications,"failure":failure}

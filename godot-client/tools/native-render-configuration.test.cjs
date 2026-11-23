@@ -2,17 +2,37 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {spawnSync}=require('node:child_process');
 const {resolveNativeRenderConfiguration:resolve}=require('./native-render-configuration.cjs');
+const {resolvePerformanceOptions}=require('./native-client-flags.cjs');
 const select=(args={},env={},isolated=false)=>resolve({arg:name=>args[name],env,isolated});
-test('Normal gameplay keeps the user-validated lighting chain and shared particles together',()=>{
+test('Ordinary launches select separate rendering with the current standard runtime',()=>{
+ const expected=['--render-thread','separate'];
+ for(const args of [[],['--performance-runtime=standard'],['--native-runtime=editor'],['--performance-runtime=standard','--native-runtime=editor']]){
+  const options=resolvePerformanceOptions(args);
+  assert.equal(options.runtime,'standard');
+  assert.deepEqual(options.engineArguments,expected);
+  assert.equal(options.requested['render-thread'].explicit,false);
+  assert.equal(options.requested['light-input-registry'].value,'script');
+ }
+ assert.deepEqual(resolvePerformanceOptions(['--menu-check']).engineArguments,[]);
+ assert.deepEqual(resolvePerformanceOptions(['--native-headless']).engineArguments,[]);
+ assert.deepEqual(resolvePerformanceOptions(['--native-runtime=release']).engineArguments,[]);
+ assert.deepEqual(resolvePerformanceOptions(['--render-thread=safe']).engineArguments,['--render-thread','safe']);
+ const verified=resolvePerformanceOptions(['--performance-runtime=verified-native']);
+ assert.deepEqual(verified.engineArguments,expected);
+ assert.equal(verified.renderCore.typed,true);
+ assert.equal(verified.requested['light-input-registry'].value,'builtin');
+});
+test('Normal gameplay keeps the user-validated lighting chain and CX particles together',()=>{
  const config=select();
  assert.deepEqual(config.arguments,['--native-lighting=enhanced','--native-light-history','--native-max-lights=32','--native-surface-output=true','--native-postprocess-mask=28','--native-postprocess-midpoint=0.4','--native-postprocess-intensity=0.15','--native-postprocess-vibrance=0.7']);
- assert.deepEqual(config.environment,{NWN_PARTICLE_PRESENTATION:'shared',NWN_PARTICLE_LIGHTING:'pooled'});
+ assert.deepEqual(config.environment,{NWN_PARTICLE_PRESENTATION:'cx',NWN_PARTICLE_LIGHTING:'pooled'});
  assert.equal(config.summary.profile,'gameplay');assert.equal(config.summary.selection,'normal gameplay');
  assert.equal(config.summary.engine,'godot-forward-plus');
 });
 test('An explicit shared-particle inspection no longer loses normal lighting',()=>{
  const config=select({'particle-presentation':'shared','particle-lighting':'pooled'});
- assert.deepEqual(config.arguments,select().arguments);assert.equal(config.summary.profile,'gameplay');
+ assert.deepEqual(config.arguments,select().arguments);assert.equal(config.summary.profile,'custom');
+ assert.equal(config.summary.particle_presentation,'shared');
 });
 test('Isolated historical checks retain their declared baseline; this is not gameplay acceptance',()=>{
  const config=select({}, {}, true);
@@ -36,7 +56,7 @@ test('An explicit gameplay profile overrides stale inherited legacy lighting fla
 test('Normal child process receives all three lighting arguments and both particle choices',()=>{
  const config=select();
  const child=spawnSync(process.execPath,['-e','process.stdout.write(JSON.stringify([process.argv.slice(1),process.env.NWN_PARTICLE_PRESENTATION,process.env.NWN_PARTICLE_LIGHTING]))','--',...config.arguments],{env:{...process.env,...config.environment},encoding:'utf8',windowsHide:true});
- assert.equal(child.status,0,child.stderr);assert.deepEqual(JSON.parse(child.stdout),[config.arguments,'shared','pooled']);
+ assert.equal(child.status,0,child.stderr);assert.deepEqual(JSON.parse(child.stdout),[config.arguments,'cx','pooled']);
 });
 test('Previous explicit enhanced-only research is preserved and labelled custom',()=>{
  const config=select({'native-lighting':'enhanced'});
@@ -45,7 +65,7 @@ test('Previous explicit enhanced-only research is preserved and labelled custom'
 });
 test('Historical full-scene research keeps its original gamma-only tonal inputs',()=>{
  const config=select({}, {NWN_NATIVE_LIGHTING:'enhanced',NWN_NATIVE_LIGHT_HISTORY:'1',NWN_NATIVE_SURFACE_OUTPUT:'true',NWN_PARTICLE_PRESENTATION:'shared',NWN_PARTICLE_LIGHTING:'pooled'});
- assert.deepEqual(config.arguments,['--native-lighting=enhanced','--native-light-history','--native-max-lights=32','--native-surface-output=true']);assert.deepEqual(config.environment,select().environment);assert.equal(config.summary.postprocess.mask,16);
+ assert.deepEqual(config.arguments,['--native-lighting=enhanced','--native-light-history','--native-max-lights=32','--native-surface-output=true']);assert.deepEqual(config.environment,{NWN_PARTICLE_PRESENTATION:'shared',NWN_PARTICLE_LIGHTING:'pooled'});assert.equal(config.summary.postprocess.mask,16);
 });
 test('Explicit command arguments keep precedence over historical environment flags',()=>{
  const config=select({'native-lighting':'enhanced','native-light-history':'1','native-surface-output':'true'}, {NWN_NATIVE_LIGHTING:'godot',NWN_NATIVE_LIGHT_HISTORY:'0',NWN_NATIVE_SURFACE_OUTPUT:'false'});

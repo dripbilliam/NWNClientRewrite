@@ -13,6 +13,7 @@ const StaticSceneryBatches = preload("res://systems/native_render/static_scenery
 const StaticSceneryMerge = preload("res://systems/native_render/static_scenery_merge.gd")
 const TileLights = preload("res://systems/native_render/tile_lights.gd")
 const Priority=preload("res://systems/native_render/stream_priority.gd")
+const SupportCandidates=preload("res://systems/native_render/native_support_part_candidates.gd")
 var _template_pending: Dictionary={}
 var _template_entry: Dictionary={}
 var _clone_pending: Dictionary={}
@@ -280,6 +281,10 @@ func _profile_process(_delta: float) -> void:
 			model.position=tile.position; model.rotation.y=float(tile.rotation_y); model.set_meta("native_tile_index",int(row.index)); instances[int(row.index)]=model; completed_tiles+=1
 			if not diagnostics.has("first_tile_ms"): diagnostics.first_tile_ms=(Time.get_ticks_usec()-load_started)/1000.0
 			collision_index.put(model)
+			# Standalone terrain has no rig or received pose writer. Reference
+			# graphs can change physical descendants and use live Part checks.
+			if model.reference_graph==null and model.has_meta("native_scene_bounds"):
+				model.set_meta("native_support_fixed_parts",true)
 			diagnostics.tile_lights.append({"index":int(row.index),"model":row.model,"indices":tile.main_lights.duplicate(),"lights":TileLights.apply(model,str(row.model),TileLights.colors(tile.main_lights,light_table))})
 			tile_published.emit(int(row.index),model)
 			if native_order_active() and generation!=row_generation:return
@@ -326,6 +331,11 @@ func complete() -> void:
 	if done: return
 	done=true; diagnostics.complete_ms=(Time.get_ticks_usec()-load_started)/1000.0; finished.emit(snapshot())
 func collision_candidates(start: Vector3,end: Vector3) -> Array: return collision_index.query(start,end)
+func invalidate_support_tile(index: int) -> void:
+	# Before mutating a published tile's physical Parts, withdraw its fixed
+	# support view. Any root/bounds changes still need collision_index.put().
+	var model: Variant=instances.get(index)
+	if is_instance_valid(model):SupportCandidates.withdraw(model)
 func invalidate_static_scenery_tile(index: int,reason: String="authored-tile-draw-change") -> void:
 	# Required before any future caller mutates a tile's immutable draw bindings
 	# or enables per-instance fog/fade; physical/query owners stay unchanged.

@@ -2,7 +2,7 @@ extends RefCounted
 # Explicit input-polling backend only. The existing Focus owner/history solver
 # retain membership policy, native selection/fades and renderer publication.
 const CanonicalWriter=preload("res://systems/native_render/model_point_light.gd")
-const CANONICAL_WRITER_SHA:="e803135ef951ea13d3d83267f0d671d2072e2df4d676bdf320a98fd9b4d1b9f6"
+const CANONICAL_WRITER_SHA:="8053a0391cc31dc59b8cf70d1e4c039a9dca5c2ab3b5e7a54841bd7ae40c2b69"
 const REVISION:="production-light-input-selection-v1"
 const NATIVE_CLASS:=&"NwnBuiltinLightInputRegistry"
 const FLAG:="--light-input-registry="
@@ -66,7 +66,10 @@ func configure(arguments: PackedStringArray) -> bool:
 		native.call("dispatch",8,{});native=null;return _fail("Native light input registry constructor contract differs")
 	typed_requested=arguments.has("--light-input-read=typed")
 	if typed_requested:
-		var enrolled: Variant=native.call("dispatch",6,{"script":CanonicalWriter,"sha256":CANONICAL_WRITER_SHA})
+		var source: String=(CanonicalWriter as GDScript).source_code
+		if source.replace("\r\n","\n").sha256_text()!=CANONICAL_WRITER_SHA:
+			native.call("dispatch",8,{});native=null;return _fail("Typed light reader canonical source hash differs")
+		var enrolled: Variant=native.call("dispatch",6,{"script":CanonicalWriter,"sha256":source.sha256_text()})
 		if not enrolled is Dictionary or not bool(enrolled.get("accepted",false)):
 			native.call("dispatch",8,{});native=null;return _fail("Typed light reader canonical source/schema enrollment rejected")
 	effective="builtin";return true

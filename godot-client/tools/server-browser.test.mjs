@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {EventEmitter} from 'node:events';
-import {serverEndpoint,serverKey,parseAllowedServer,ServerEndpointPolicy} from './server-endpoint.mjs';
+import {serverEndpoint,serverKey,parseAllowedServer,ServerEndpointPolicy,nativeSessionEndpointPolicy} from './server-endpoint.mjs';
 import {ServerBrowserStore,browserRow} from './server-browser-store.mjs';
 import {ServerBrowserService} from './server-browser-service.mjs';
 import {NativeLobby} from './native-lobby.mjs';
@@ -229,6 +229,26 @@ test('canonical endpoint keys reject URLs, ambiguous numeric IPs, IPv6 and inval
  assert.deepEqual(parseAllowedServer('LOCALHOST:5121'),local);assert.throws(()=>parseAllowedServer('x:4:5'));
 });
 test('default endpoint policy blocks non-local destinations before any discovery or login work',()=>{const policy=new ServerEndpointPolicy();assert.ok(policy.permits(local));assert.ok(policy.localOnly);assert.throws(()=>policy.require(other),/No connection was sent/);const explicit=new ServerEndpointPolicy({allowed:[other]});assert.ok(explicit.permits(other));assert.equal(explicit.localOnly,false);});
+
+test('ordinary native browser discovers Internet servers and admits a manually chosen loopback port',async t=>{
+ const showcase={host:'127.0.0.1',port:5133};
+ const f=await fixture(t,{policy:nativeSessionEndpointPolicy(),discover:async()=>[{...other,serverName:'Listed server'}]});
+ await f.command('tab',{tab:'Internet'});
+ assert.equal(f.view().canDiscover,true);
+ assert.deepEqual(f.view().rows.map(row=>[row.host,row.allowed]),[[other.host,true]]);
+ await f.command('join',{direct:true,values:{...showcase,name:'Tester',cdKey:'',password:''}});
+ assert.equal(f.calls.length,1);
+ assert.deepEqual(serverEndpoint(f.calls[0].details),showcase);
+});
+
+test('isolated native checks keep discovery and unrelated endpoints disabled',()=>{
+ const loopbackEndpoint={host:'127.0.0.1',port:5129};
+ const policy=nativeSessionEndpointPolicy({isolated:true,loopbackEndpoint});
+ assert.equal(policy.internet,false);
+ assert.equal(policy.permits(loopbackEndpoint),true);
+ assert.equal(policy.permits({...loopbackEndpoint,port:5133}),false);
+ assert.equal(policy.permits(other),false);
+});
 test('catalog normalization strips credentials, paths, arbitrary objects and invalid count metadata',()=>{const row=browserRow({...local,password:'SECRET',cdKey:'SECRET',file:'private',playerCount:2.5,maximumPlayers:50,passwordRequired:0,allowLocalVaultCharacters:'false',advertisement:{hash:'manifest',url:'private'}});assert.equal(row.passwordRequired,false);assert.equal(row.sync,true);assert.equal(row.maximumPlayers,50);assert.equal(row.playerCount,undefined);assert.equal(row.allowLocalVaultCharacters,undefined);assert.equal(JSON.stringify(row).includes('SECRET'),false);assert.equal(row.advertisement,undefined);});
 test('history and favorites persist across store recreation and legacy import happens only without a file',async t=>{
  const file=await temporary(t);let imports=0;const importer=async()=>{imports++;return{favorites:[{...local,cdKey:'SECRET'},local,{host:'bad/url',port:1}],history:[other]};};
