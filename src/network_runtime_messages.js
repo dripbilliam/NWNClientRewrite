@@ -16,6 +16,18 @@ export function readDeviceEchoRequest(r){
 export function deviceEchoResponse(data,format=1){
  if(!(data instanceof Uint8Array))throw new Error('Native device echo data is unavailable');const w=new NativeMessageWriter(format);w.create(data.length+4,0xffffffff,1);w.writeDword(data.length);w.writeOpaqueBytes(data);w.setPrefix(Uint8Array.of(112,54,3));return Uint8Array.from(w.getWriteMessage().data);
 }
+const uiScaleProperty=encodeGffText('gui_scale');
+// Original client 1407bbac0 writes the property name, integer type, and value.
+export function uiScaleDeviceProperty(scalePercent){
+ if(!Number.isInteger(scalePercent)||scalePercent<0||scalePercent>1600)throw new Error('Invalid native UI scale property');
+ const w=new NativeMessageWriter(1);
+ w.create(uiScaleProperty.length+16,0xffffffff,1);
+ w.writeStringBytes(uiScaleProperty);
+ w.writeInt(1);
+ w.writeInt(scalePercent);
+ w.setPrefix(Uint8Array.of(112,54,1));
+ return Uint8Array.from(w.getWriteMessage().data);
+}
 // Native login1407a31b0 sends nothing when client waypoint478 is empty.
 // A configured waypoint is text passed to1407c21f0, never a guessed object ID.
 export function loginWaypointResponse(waypoint){

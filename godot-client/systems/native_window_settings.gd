@@ -26,7 +26,7 @@ func configure(owner: Window,path: String="user://native-options.cfg") -> void:
 	var saved:=ConfigFile.new(); saved.load(path)
 	var value: Variant=saved.get_value("interface","ui_scale",1.0)
 	fixed_scale=float(value) if (value is int or value is float) and is_finite(float(value)) and float(value)>=1.0 and float(value)<=16.0 else 1.0
-	written_scale=Policy.f(fixed_scale)
+	written_scale=fixed_scale
 	value=saved.get_value("interface","ui_scale_unconstrained",false); unconstrained=value if value is bool else false
 	apply_scale(fixed_scale,false)
 	window.size_changed.connect(window_resized)
@@ -82,7 +82,7 @@ func settle_resize() -> void:
 	apply_scale(fixed_scale,false)
 func apply_choice(value: float) -> bool:
 	if not is_finite(value) or value<1.0 or value>maximum_scale: return false
-	written_scale=Policy.f(value)
+	written_scale=value
 	return apply_scale(Policy.fixed_override(value,maximum_scale),false)
 func commit() -> void:
 	if closed or preference_path.is_empty(): return

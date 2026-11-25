@@ -1,11 +1,61 @@
 import fs from 'node:fs';
+import {EventEmitter} from 'node:events';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {NetworkGameSession} from '../electron/network_game_session.mjs';
 import {storeRequest,networkStorePrice} from '../src/network_store.js';
 import {decodeServerGameMessage} from '../src/network_game_messages.js';
 import {NetworkWorld} from '../src/network_world.js';
 import {NativeMessageWriter} from '../src/native_message.js';
 const build={number:8193,revision:37,postfix:17};
+test('merchant confirmations cannot survive committed changes to the controlled creature',async t=>{
+ const control=(world,objectId)=>world.apply({kind:'object-control',major:5,minor:2,playerId:0,objectId});
+ const playerState=id=>({action:'player-state',objectType:5,id,state:{}});
+ const applyState=(world,id)=>world.applyObjectUpdates([playerState(id)]);
+ for(const [name,changeControl] of [['direct control message',control],['committed player-state update',applyState]]){
+  await t.test(name,async()=>{
+   const sent=[];
+   const peer=new EventEmitter();
+   peer.sendGameMessage=async packet=>sent.push([...packet.subarray(0,3)]);
+   const session=new NetworkGameSession({peer,identity:{dispose(){}},build:{build,dispose(){}},resources:{},language:0});
+   Object.assign(session,{phase:'playing',areaReadySent:true,areaGeneration:7});
+   const world=session.world;
+   const areaId=0x80000107,firstActor=0x80000108,secondActor=0x80000109,itemId=0x80000110;
+   world.areaId=areaId;
+   for(const id of [firstActor,secondActor])world.registry.insert(id,{id,objectType:5,areaId});
+   const openStore=()=>{
+    world.apply({kind:'store-open',panel:0,gold:150});
+    world.applyObjectUpdates([{action:'inventory',channel:'M',operation:'A',id:itemId,x:0,y:0,item:{cost:3,field454:2}}]);
+    return world.store.generation;
+   };
+   const buy=(actorId,storeGeneration)=>session.storeInput({areaId,areaGeneration:7,actorId,storeGeneration,operation:'buy',itemId});
+
+   control(world,firstActor);
+   const oldGeneration=openStore();
+   changeControl(world,firstActor);
+   assert.throws(()=>world.applyObjectUpdates([
+    playerState(secondActor),{action:'create',objectType:6,id:secondActor,state:{}}
+   ]),/Conflicting replicated object type/);
+   assert.equal(world.localObjectId,firstActor);
+   assert.equal(world.store.open,true);
+   await buy(firstActor,oldGeneration);
+   assert.deepEqual(sent.splice(0),[[112,7,1]]);
+
+   changeControl(world,secondActor);
+   assert.equal(world.localObjectId,secondActor);
+   assert.equal(world.store.open,false);
+   assert.equal(world.inventories.has('M'),false);
+   await assert.rejects(buy(secondActor,oldGeneration),/Native store request is stale/);
+   assert.deepEqual(sent,[]);
+
+   const newGeneration=openStore();
+   assert.equal(newGeneration,oldGeneration+1);
+   await assert.rejects(buy(secondActor,oldGeneration),/Native store request is stale/);
+   await buy(secondActor,newGeneration);
+   assert.deepEqual(sent,[[112,7,1]]);
+  });
+ }
+});
 test('store request encoders and open/transaction decoding agree with complete original writers',()=>{
  const f=JSON.parse(fs.readFileSync(new URL('../backups/animations/native-network-store-observations.json',import.meta.url)));assert.equal(f.target,'3b7cb1252e0edb2ce22d7971f333aade027039ae30a45b4bc64732c3e6bec73a');assert.equal(f.cases.length,80);
  for(const c of f.cases.filter(c=>c.format===1)){

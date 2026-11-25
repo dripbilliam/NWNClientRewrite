@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {EventEmitter} from 'node:events';
 import {NativeMessageWriter,NativeMessageReader} from '../src/native_message.js';
 import {decodeServerGameMessage} from '../src/network_game_messages.js';
-import {deviceEchoResponse,loginWaypointResponse} from '../src/network_runtime_messages.js';
+import {deviceEchoResponse,loginWaypointResponse,uiScaleDeviceProperty} from '../src/network_runtime_messages.js';
 import {decodeGffText} from '../src/gff_text.js';
 import {NetworkWorld} from '../src/network_world.js';import {NetworkText} from '../src/network_text.js';import {NetworkGameSession} from '../electron/network_game_session.mjs';
 import {NetworkQuickbarView} from '../src/network_quickbar_view.js';import {parse2da} from '../src/area.js';
@@ -40,6 +40,48 @@ test('server override changes and removals invalidate cached base strings, inclu
 
 test('session echoes during startup, preserves exact bytes and does not forward opaque data or mutate world',async()=>{
  const h=session(),events=[];h.s.on('message',e=>events.push(e));const data=Uint8Array.of(0,255,128,1),p=packet(54,2,w=>{w.writeDword(data.length);w.writeOpaqueBytes(data);}),before=h.s.world.snapshot();await h.s.receive(p);assert.equal(h.sent.length,1);equalDefined(h.sent[0],deviceEchoResponse(data));assert.equal(h.s.state().deviceEchoReplies,1);assert.deepEqual(events,[]);assert.deepEqual(h.s.world.snapshot(),before);assert.deepEqual(h.diagnostics,[]);await h.s.receive(Uint8Array.of(80,2,12));assert.equal(h.s.state().loginWaypointRequests,1);assert.equal(h.sent.length,1);await h.s.disconnect();await h.s.receive(p);assert.equal(h.sent.length,1);
+});
+
+test('the admitted session sends the stock UI scale before module ready and resends after reconnect',async()=>{
+ const propertyHex='7036011c000000090000006775695f7363616c65010000007d00000060';
+ equalDefined(uiScaleDeviceProperty(125),bytes(propertyHex));
+ assert.throws(()=>uiScaleDeviceProperty(1.25));
+ assert.throws(()=>uiScaleDeviceProperty(1601));
+ const scales=h=>h.sent.filter(p=>p[1]===54&&p[2]===1).map(p=>{
+  const r=new NativeMessageReader(1);
+  r.setReadMessage(p.subarray(3),p.length-3,0xffffffff,1);
+  assert.equal(decodeGffText(r.readCExoString().bytes),'gui_scale');
+  assert.equal(r.readInt(),1);
+  const value=r.readInt();
+  assert.equal(r.messageReadUnderflow(),0);
+  assert.equal(r.messageReadOverflow(),0);
+  return value;
+ });
+ async function join(h,savedScale){
+  h.peer.connect=async()=>{assert.deepEqual(scales(h),[]);return{build};};
+  assert.equal(await h.s.setUiScalePercent(savedScale),true);
+  await h.s.connect({metadata:{connectionType:16}});
+  assert.equal(h.s.phase,'resources');
+  h.s.characterSubmitted=true;
+  await h.s.receive({kind:'character-confirmed'});
+  await h.s.receive({kind:'module-info'});
+  assert.deepEqual(h.sent.map(p=>[p[1],p[2]]),[[1,0],[54,1],[3,2]]);
+ }
+ const first=session({decodeMessage:p=>p});
+ await join(first,100);
+ assert.deepEqual(scales(first),[100]);
+ await first.s.setUiScalePercent(100);
+ await Promise.all([first.s.setUiScalePercent(123),first.s.setUiScalePercent(125),first.s.setUiScalePercent(125)]);
+ assert.deepEqual(scales(first),[100,125]);
+ await first.s.disconnect();
+ assert.equal(await first.s.setUiScalePercent(130),false);
+ assert.deepEqual(scales(first),[100,125]);
+ const second=session({decodeMessage:p=>p});
+ await join(second,125);
+ assert.deepEqual(scales(second),[125]);
+ await second.s.setUiScalePercent(130);
+ assert.deepEqual(scales(second),[125,130]);
+ await second.s.disconnect();
 });
 
 test('configured login waypoint sends native text only when explicitly configured; backend TLK uses authoritative overrides',async()=>{

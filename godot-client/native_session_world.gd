@@ -36,6 +36,7 @@ var character_preview_probe
 var chooser_ready_connection:=-1
 var fixture_filter_connection:=-1
 var session_connection:=0
+var last_ui_scale_report: Array[int]=[]
 var pending_creator: Dictionary={}
 var creation_request_serial:=0
 var loading_announced:=false
@@ -230,9 +231,22 @@ func entity_api_movement(message: Dictionary) -> void:
 	if not is_instance_valid(world) or int(message.get("generation",-1))!=epoch or int(message.get("areaId",-1))!=world.area_id: return
 	if world.closed or world.retiring: return
 	entity_api_binding.presentation_records(session_connection,epoch,world.area_id,message.get("records",[]))
+func configured_ui_scale_percent() -> int:
+	return int(float(window_settings.written_scale)*100.0)
+func publish_ui_scale() -> void:
+	if closing or not authenticated or args.get("offline-replay","")=="true" or not is_instance_valid(window_settings) or peer.get_status()!=StreamPeerTCP.STATUS_CONNECTED: return
+	var scale:=configured_ui_scale_percent()
+	var signature: Array[int]=[session_connection,scale]
+	if signature==last_ui_scale_report: return
+	send({"kind":"device-ui-scale","guiScalePercent":scale})
+	last_ui_scale_report=signature
 func send(value: Dictionary) -> void:
 	var scoped:=value.duplicate()
 	if not scoped.has("connection"): scoped.connection=session_connection
+	if scoped.get("kind")=="hello" and args.get("offline-replay","")!="true" and is_instance_valid(window_settings):
+		var scale:=configured_ui_scale_percent()
+		scoped.guiScalePercent=scale
+		last_ui_scale_report=[session_connection,scale]
 	if str(scoped.get("kind",""))=="observed":
 		scoped.nativeProcessId=OS.get_process_id()
 		if FrameProfile.enabled:
@@ -284,6 +298,7 @@ func run() -> void:
 	if not gamma_controller.bind_settings(render_settings,args.has("native-gamma")):
 		fail("Native gamma settings binding is unavailable"); return
 	window_settings=preload("res://systems/native_window_settings.gd").new(); host.add_child(window_settings); window_settings.configure(root,str(args.get("render-preferences","user://native-options.cfg")))
+	window_settings.changed.connect(publish_ui_scale)
 	asset_prework=preload("res://systems/native_prework_process.gd").new(); host.add_child(asset_prework); asset_prework.changed.connect(render_settings.update_prework)
 	ui_preload=preload("res://systems/native_ui_preload.gd").new(); host.add_child(ui_preload); ui_preload.changed.connect(render_settings.update_ui_preload)
 	render_settings.ui_preload_requested.connect(start_ui_preload)
@@ -749,7 +764,9 @@ func receive_profiled(message: Dictionary) -> void:
 			label.text="Character exported: "+str(message.get("name",""))
 			if is_instance_valid(gameplay_ui): gameplay_ui.chat.append_message({"system":true,"text":label.text})
 		"notice": label.text=str(message.text)
-		"session-reset": reset_session()
+		"session-reset":
+			reset_session()
+			publish_ui_scale()
 		"probe-session-disconnect":
 			if not is_instance_valid(world) or not world.ready_for_control() or character_lobby.disconnect_button.disabled: fail("Native local disconnect probe is unavailable"); return
 			if not report.has("session_disconnect_probes"): report.session_disconnect_probes=[]

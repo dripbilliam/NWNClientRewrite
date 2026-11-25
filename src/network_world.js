@@ -40,8 +40,9 @@ export class NetworkWorld {
  #clockLifecycle;
  #clockLifecycleRecords;
  #clockLifecycleFailures;
+ #primaryContainerReceipt;
  constructor({onDiagnostic=d=>runtimeDiagnostics.record(d.code,d.reason,d)}={}){this.onDiagnostic=onDiagnostic;this.reset();}
- reset(){this.#clockLifecycle=new NativeClientClockLifecycle({owner:this,recordHistoryComplete:true,externalRegistryHistoryComplete:true});this.#clockLifecycleRecords=new WeakMap();this.#clockLifecycleFailures=0;this.#actorNameStates=new WeakMap();this.#actorNameHistoryComplete=true;this.#actorNameSequence=0;this.playerRosterKnown=false;this.gameMasterPermission=null;this.inventoryWindows=new NetworkInventoryWindows();this.entityDisclosures??=new EntityDisclosureLifetimes();this.entityDisclosures.reset();this.guiPanelAccess=new GuiPanelAccess();this.partyListRevision=0;this.partyInviteNotice=null;this.spellTargetingOverrides=new Map();this.scriptTargeting=null;this.scriptTargetingData=null;this.scriptTargetVersion=0;this.nui=new NuiState();this.store=null;this.registry=new GameObjectArray({clientMode:true});this.module=null;this.areaId=OBJECT_INVALID;this.entry=null;this.time={};this.controls=new Map();this.players=new Map();this.party=[];this.inventories=new Map();this.containers=new Map();this.quickbar=Array.from({length:36},emptyQuickbarButton);this.presentationChanges=[];this.localObjectId=OBJECT_INVALID;this.journal={entries:new Map(),worldEntries:new Map(),loaded:false};this.customTokens={records:[]};this.tlkOverrides=new Map();this.tlkOverrideVersion=0;this.playerAttitudes=new Map();this.mapPins=new Map();this.timing=null;this.barter={open:false,serial:0};}
+ reset(){this.#primaryContainerReceipt=null;this.#clockLifecycle=new NativeClientClockLifecycle({owner:this,recordHistoryComplete:true,externalRegistryHistoryComplete:true});this.#clockLifecycleRecords=new WeakMap();this.#clockLifecycleFailures=0;this.#actorNameStates=new WeakMap();this.#actorNameHistoryComplete=true;this.#actorNameSequence=0;this.playerRosterKnown=false;this.gameMasterPermission=null;this.inventoryWindows=new NetworkInventoryWindows();this.entityDisclosures??=new EntityDisclosureLifetimes();this.entityDisclosures.reset();this.guiPanelAccess=new GuiPanelAccess();this.partyListRevision=0;this.partyInviteNotice=null;this.spellTargetingOverrides=new Map();this.scriptTargeting=null;this.scriptTargetingData=null;this.scriptTargetVersion=0;this.nui=new NuiState();this.store=null;this.registry=new GameObjectArray({clientMode:true});this.module=null;this.areaId=OBJECT_INVALID;this.entry=null;this.time={};this.controls=new Map();this.players=new Map();this.party=[];this.inventories=new Map();this.containers=new Map();this.quickbar=Array.from({length:36},emptyQuickbarButton);this.presentationChanges=[];this.localObjectId=OBJECT_INVALID;this.journal={entries:new Map(),worldEntries:new Map(),loaded:false};this.customTokens={records:[]};this.tlkOverrides=new Map();this.tlkOverrideVersion=0;this.playerAttitudes=new Map();this.mapPins=new Map();this.timing=null;this.barter={open:false,serial:0};}
  beginClientConnection(connectionType){
   const value=normalConnectionPermission(connectionType);if(!value)return false;
   // Native254ed0 resets normal16 permission on both connection-start paths.
@@ -79,7 +80,13 @@ export class NetworkWorld {
   if(message.kind==='sound-object')return this.applySoundObject(message);
   if(message.kind==='custom-token'){setCustomToken(this.customTokens,message.id,scriptStringBytes(message.text));return true;}
   if(message.kind==='tlk-overrides'){for(const {strRef,text}of message.entries){if(text.length)this.tlkOverrides.set(strRef,text);else this.tlkOverrides.delete(strRef);}if(message.entries.length)this.tlkOverrideVersion++;return true;}
-  if(message.kind==='container-status'){const channel=message.primary?'C':'c';this.containers.set(channel,message.targetId);this.inventories.set(channel,{entries:[],pageCount:1,ownerId:message.targetId});return true;}
+  if(message.kind==='container-status'){
+   const channel=message.primary?'C':'c';
+   if(message.primary)this.#primaryContainerReceipt=message.targetId===OBJECT_INVALID?null:Symbol();
+   this.containers.set(channel,message.targetId);
+   this.inventories.set(channel,{entries:[],pageCount:1,ownerId:message.targetId});
+   return true;
+  }
   if(message.kind==='examine'){if(message.type==='item'&&!message.close){const item=this.registry.get(message.targetId)?.item;if(item){item.identified=message.identified;if(message.canUse!==undefined)item.canUse=message.canUse;}}return true;}
   if(message.kind==='gui-timing'){this.timing={...message,version:(this.timing?.version??0)+1};return true;}
   if(message.kind==='player-attitude'){const old=this.playerAttitudes.get(message.playerId)??{ownLikes:1,incomingLikes:1};this.playerAttitudes.set(message.playerId,{...old,...message,[(message.own??message.clear)?'ownLikes':'incomingLikes']:message.likes});return true;}
@@ -111,7 +118,13 @@ export class NetworkWorld {
    // Original GameObjectUpdate/2 ->781380 sets the controlled ID through
    // 6acc50 before looking up the creature. Party/14 only updates a roster
    // entry: it must never steal local control or fabricate a creature proxy.
-   if(message.major===5&&message.minor===2){if(this.localObjectId!==message.objectId)this.scriptTargeting=null;this.localObjectId=message.objectId;}
+   if(message.major===5&&message.minor===2){
+    if(this.localObjectId!==message.objectId){
+     this.scriptTargeting=null;
+     this.apply({kind:'store-close'});
+    }
+    this.localObjectId=message.objectId;
+   }
    return true;
   }
   if(message.kind==='player-list-all'||message.kind==='player-list-add'){
@@ -153,6 +166,7 @@ export class NetworkWorld {
     const old=this.registry.get(record.id);
     if(old)Object.assign(old,record);else this.registry.addObjectAtPos(record.id,record);
    }
+   this.#primaryContainerReceipt=null;
    retireNetworkBarter(this);this.scriptTargeting=null;this.containers.clear();this.inventories.delete('C');this.inventories.delete('c');this.store=null;this.inventories.delete('M');this.mapPins=new Map(area.mapPins.map(pin=>[pin.id,{...pin}]));this.areaId=area.id;this.entry={loadingScreen:entry.loadingScreen,position:entry.position,facing:entry.facing,flag:entry.flag};this.time={...area.time};return true;
   }catch(error){this.onDiagnostic({code:'network.area-import-failed',reason:error.message});throw error;}
  }
@@ -176,6 +190,8 @@ export class NetworkWorld {
  // requesting the new panel. This is GUI membership, not item destruction:
  // canonical objects and their last replicated metadata remain cached.
  clearRepositoryView(self=true){const view=this.inventories.get(self?'R':'r');if(view)view.entries=[];}
+ // A primary opening survives inventory row refreshes and is replaced by status.
+ primaryContainerReceipt(){return this.#primaryContainerReceipt;}
  // Native855d00/855be0 clear GUI membership before sending a page command.
  // Cached canonical items and their last metadata/locations survive this clear.
  clearContainerView(primary=true){const view=this.inventories.get(primary?'C':'c');if(view)view.entries=[];}
@@ -398,7 +414,11 @@ export class NetworkWorld {
    }
    if(clockPrepared){const boundaries=this.#clockLifecycle.publish(staged);if(boundaries!==null)this.#clockLifecycleRecords.set(records,boundaries);else rejectClock();}
    this.#actorNameSequence=actorNameSequence;this.#actorNameHistoryComplete=historyComplete;
-   this.inventories=inventories;this.presentationChanges=events;if(this.localObjectId!==localObjectId){this.scriptTargeting=null;retireNetworkBarter(this);}this.localObjectId=localObjectId;
+   this.inventories=inventories;this.presentationChanges=events;
+   if(this.localObjectId!==localObjectId){
+    this.scriptTargeting=null;retireNetworkBarter(this);this.apply({kind:'store-close'});
+   }
+   this.localObjectId=localObjectId;
    for(const event of events)if(event.action==='inventory-owner-unavailable')this.onDiagnostic({code:'network.inventory-owner-unavailable',reason:'Native inventory GUI owner binding is unavailable',channel:event.channel});this.entityDisclosures.observeAccepted(records,this.registry);return true;
   }catch(error){if(clockTracked||clockPrepared)rejectClock();this.#actorNameHistoryComplete=false;this.onDiagnostic({code:'network.object-import-failed',reason:error.message});throw error;}
  }

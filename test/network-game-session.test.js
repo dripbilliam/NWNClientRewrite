@@ -36,6 +36,49 @@ test('store requests reject stale sessions/stock and leave authoritative gold/it
  for(const change of [{actorId:1},{areaGeneration:1},{storeGeneration:0},{itemId:0x80000003}])await assert.rejects(s.storeInput({...base,operation:'buy',itemId:0x80000002,...change}));await assert.rejects(s.storeInput({...base,operation:'sell',itemId:0x80000002}));await assert.rejects(s.storeInput({...base,operation:'panel',panel:5}));await assert.rejects(s.storeInput({...base,operation:'page',page:1}));assert.equal(h.sent.length,3);
  await s.storeInput({...base,operation:'close'});assert.equal(s.world.store.open,false);await assert.rejects(s.storeInput({...base,operation:'buy',itemId:0x80000002}));await assert.rejects(s.examine({...base,targetId:0x80000002}));assert.equal(h.sent.length,4);
 });
+test('deferred store controls do not change a replacement merchant',async t=>{
+ for(const [operation,parameters] of [['close',{}],['panel',{panel:1}],['page',{page:1}]]){
+  await t.test(operation,async()=>{
+   const h=harness(),s=h.session,actor={id:0x80000100,areaId:0x80000200,objectType:5};
+   s.phase='playing';s.areaReadySent=true;s.areaGeneration=2;
+   s.world.areaId=actor.areaId;s.world.localObjectId=actor.id;s.world.registry.addObjectAtPos(actor.id,actor);
+   await h.deliver({kind:'store-open',panel:0,gold:100});
+   const older=s.world.store;
+   s.world.inventories.get('M').pageCount=2;
+   const pending=deferred();
+   h.peer.sendGameMessage=()=>pending.promise;
+   const request={actorId:actor.id,areaId:actor.areaId,areaGeneration:2,operation,...parameters};
+   const completion=s.storeInput({...request,storeGeneration:older.generation});
+
+   await h.deliver({kind:'store-close'});
+   await h.deliver({kind:'store-open',panel:3,gold:95});
+   const replacement=s.world.store;
+   s.world.applyObjectUpdates([{action:'inventory',channel:'M',operation:'A',id:0x80000101,x:0,y:0,item:{cost:7}}]);
+   const stock=s.world.inventories.get('M');
+   stock.pageCount=2;
+   assert.equal(replacement.generation,older.generation+1);
+   assert.equal(stock.entries.length,1);
+   const replacementBefore=structuredClone(replacement),stockBefore=structuredClone(stock);
+   pending.resolve();
+   assert.deepEqual(await completion,{sent:true});
+   assert.equal(s.world.store,replacement);
+   assert.equal(s.world.inventories.get('M'),stock);
+   assert.deepEqual(replacement,replacementBefore);
+   assert.deepEqual(stock,stockBefore);
+
+   assert.deepEqual(await s.storeInput({...request,storeGeneration:replacement.generation}),{sent:true});
+   if(operation==='close'){
+    assert.equal(replacement.open,false);
+    assert.equal(s.world.inventories.has('M'),false);
+   }else{
+    assert.equal(replacement.open,true);
+    assert.deepEqual(stock.entries,[]);
+    assert.equal(replacement.panel,operation==='panel'?1:3);
+    assert.equal(replacement.page,operation==='page'?1:0);
+   }
+  });
+ }
+});
 test('stream resource reads reject paths/types and never complete after their session closes',async()=>{
  const h=harness(),s=h.session,pending=deferred(),calls=[];s.resolver={};s.resources.audioResource=async(resolver,ref,type)=>{calls.push({resolver,ref,type});return pending.promise;};
  for(const [ref,type]of [['../track',8],['C:\\track',4],['track',2002],['x'.repeat(17),4]])await assert.rejects(s.getAudioResource(ref,type));
@@ -104,6 +147,34 @@ test('container use, close/page and transfers preserve server ownership and reje
  await s.interact({...base,targetId:bag.id,action:'object.use'});assert.deepEqual(h.sent.at(-1).slice(0,3),[112,6,11]);assert.equal(s.world.containers.size,0);await assert.rejects(s.itemAction({...base,itemId:item.id,operation:'move',destinationId:bag.id}));
  s.world.apply({kind:'container-status',targetId:bag.id,primary:1});await s.itemAction({...base,itemId:item.id,operation:'move',destinationId:bag.id});assert.deepEqual(h.sent.at(-1).slice(0,3),[112,12,9]);assert.deepEqual(item,before);item.inventoryLocation={ownerId:bag.id,channel:'C'};await s.examine({...base,targetId:item.id});await s.itemAction({...base,itemId:item.id,operation:'move',destinationId:actor.id});assert.equal(item.inventoryLocation.ownerId,bag.id);
  await s.containerInput({...base,targetId:bag.id,operation:'next'});assert.deepEqual(h.sent.at(-1),[112,25,2]);await s.containerInput({...base,targetId:bag.id,operation:'close'});assert.equal(s.world.containers.get('C'),0x7f000000);assert.equal(item.inventoryLocation.ownerId,bag.id);for(const change of [{actorId:1},{areaGeneration:1},{targetId:123}])await assert.rejects(s.containerInput({...base,targetId:bag.id,operation:'next',...change}));s.world.apply({kind:'container-status',targetId:0x7f000000,primary:1});await assert.rejects(s.itemAction({...base,itemId:item.id,operation:'move'}));
+});
+
+test('deferred container close preserves a newer primary opening of the same object',async t=>{
+ const invalid=0x7f000000,areaId=0x80000001,actorId=0x80000002,targetId=0x80000003;
+ const oldItem=0x80000004,newItem=0x80000005,alternateId=0x80000006,alternateItem=0x80000007;
+ for(const reopen of [false,true])await t.test(reopen?'ordered same-ID reopen survives':'same opening closes through inventory refreshes',async()=>{
+  const {session,peer,deliver}=harness(),gate=deferred(),sent=[];
+  session.phase='playing';session.areaReadySent=true;session.areaGeneration=4;
+  session.world.areaId=areaId;session.world.localObjectId=actorId;
+  session.world.registry.addObjectAtPos(actorId,{id:actorId,areaId,objectType:5});
+  const status=(id,primary=1)=>deliver({kind:'container-status',targetId:id,primary});
+  const add=(id,channel='C')=>deliver({kind:'object-updates',records:[{action:'inventory',channel,operation:'A',id,x:2,y:6,item:{baseItem:0}}]});
+  await status(targetId);await add(oldItem);
+  const priorView=session.world.inventories.get('C');
+  peer.sendGameMessage=bytes=>{sent.push(Array.from(bytes));return gate.promise;};
+  const close=session.containerInput({areaId,areaGeneration:4,actorId,targetId,operation:'close'});
+  assert.equal(sent.length,1);assert.deepEqual(sent[0].slice(0,3),[112,25,1]);
+  if(reopen){await status(invalid);await status(targetId);}
+  await add(newItem);await status(alternateId,0);await add(alternateItem,'c');
+  const refreshed=session.world.inventories.get('C');
+  assert.notEqual(refreshed,priorView);
+  assert.deepEqual(refreshed.entries.map(row=>row.id),reopen?[newItem]:[oldItem,newItem]);
+  gate.resolve();assert.deepEqual(await close,{sent:true});
+  assert.equal(session.world.containers.get('C'),reopen?targetId:invalid);
+  assert.deepEqual(session.world.inventories.get('C').entries.map(row=>row.id),reopen?[newItem]:[]);
+  assert.equal(session.world.containers.get('c'),alternateId);
+  assert.deepEqual(session.world.inventories.get('c').entries.map(row=>row.id),[alternateItem]);
+ });
 });
 
 test('preparation uses typed server requests and never grants, readies or clears canonical spells locally',async()=>{

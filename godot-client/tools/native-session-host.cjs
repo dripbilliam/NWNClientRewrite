@@ -445,6 +445,8 @@ async function finish(reason){
  };
  const creationSelectionCodec=creationCheck?await import('../../src/network_character_selection.js'):null;
  const sessionConfigs=new WeakMap(),sessionPersistence=new WeakMap();
+ let uiScalePercent;
+ const validUiScalePercent=value=>Number.isInteger(value)&&value>=0&&value<=1600;
  const rememberVaultId=current=>{const state=sessionPersistence.get(current);if(state&&lobby.session===current&&lobby.connection===state.connection)state.vaultId=lobby.vaultId??state.vaultId;return state?.vaultId??null;};
  const retirePresentation=(current,connection)=>{
   if(current&&nativeClockOwner===current){nativeClockBridge.retire(current,nativeClockConnection);nativeClockOwner=null;nativeClockConnection=-1;}
@@ -544,7 +546,9 @@ async function finish(reason){
   // policy-checked coordinator; private credentials and source pins are absent.
   const config={};for(const key of ['install','name','userDirectory','cacheDirectory','modsDirectory','disabledMods','reuseInstalledNWSync'])if(options[key]!==undefined)config[key]=structuredClone(options[key]);
   sessionConfigs.set(created.session,Object.freeze(config));sessionPersistence.set(created.session,state);
-  created.session.deferNuiResources=true;return created;
+  created.session.deferNuiResources=true;
+  if(uiScalePercent!==undefined)await created.session.setUiScalePercent(uiScalePercent);
+  return created;
  };
  const {readCatalogCharacter}=await import('./native-local-character-files.mjs');
  lobby=new NativeLobby({listLocal:async()=>{localCatalog.clear();const status=await settings.status(),{discoverLocalCharacterFiles}=await import('./native-local-character-discovery.mjs');const discovered=await discoverLocalCharacterFiles({install,profileDirectory:userDirectory,modsDirectory:status.modsDirectory,disabledMods:status.disabledMods}),rows=discovered.rows;localCharacterRoots=[...discovered.roots,path.join(vault.directory,'blobs')];if(!localCheck)for(const entry of await vault.list())rows.push({key:'vault:'+entry.id,label:entry.name+' (saved)',source:'vault',vaultId:entry.id,file:path.join(vault.directory,'blobs',entry.sha256+'.bic'),catalogStem:entry.id});const {localCharacterFile}=await import('./native-local-character-files.mjs');for(const row of rows){row.nativeFile=await localCharacterFile(row.file);if(row.storageSource)row.nativeFile.storageSource=row.storageSource;localCatalog.set(row.key,row);}report.localDiscovery={rows:rows.length,roots:localCharacterRoots.length,profile:rows.filter(row=>row.source==='local').length,workshop:rows.filter(row=>row.source==='workshop').length};return rows;},readLocal:async (key,expectedFile)=>{const row=localCatalog.get(key);if(!row)throw Error('Unknown local character');if(directHandoffCheck){if(key!=='installed:wizard.bic'||path.resolve(row.file)!==path.join(install,'data/lcv/wizard.bic'))throw Error('Direct handoff installed character identity differs');const bytes=await fs.readFile(row.file);directHandoffHarness.readCharacter(session,lobby.connection,key,bytes);return bytes;}if(scriptFloatingOwned){if(key!=='installed:wizard.bic'||path.resolve(row.file)!==path.join(install,'data/lcv/wizard.bic'))throw Error('ScriptFloating installed Wizard identity differs');const bytes=await fs.readFile(row.file);report.scriptFloatingInstalledCharacter={sha256:crypto.createHash('sha256').update(bytes).digest('hex'),bytes:bytes.length,unchanged:true};return bytes;}if(levelSourceCheck){const recipe=levelSourceHarness.recipe;if(key!==checkedCharacterKey||path.resolve(row.file)!==path.join(install,'data/lcv',recipe.file)||!session?.resolver||session.closed)throw Error('Owned source level-up installed file/scope differs');const original=await fs.readFile(row.file),{parse2da}=await import('../../src/area.js'),{decodeResourceText}=await import('../../src/resource_archive.js'),xp=parse2da(decodeResourceText(await session.resolver.getResource('exptable',2017))),fixture=(await import('./native-level-up-source-fixture.mjs')).xpOnlyLevelSourceCharacter(original,xp,levelSourceName);report.levelUpSourceFixture=fixture.metadata;return fixture.bytes;}if(actionNpcCombatCheck){const fixture=require('./native-npc-combat-character.cjs').exactNpcCharacter(await fs.readFile(row.file));report.actionCharacter=fixture.metadata;return fixture.bytes;}if(actionCheck){const input=await fs.readFile(row.file),fixture=await(await import('./native-actions-fixture.mjs')).actionTestCharacter(input,{rangedWeapon});report.actionCharacter=fixture.metadata;
@@ -597,10 +601,21 @@ async function finish(reason){
   if(authenticated&&message.kind==='login-profile-input'){await loginProfiles.command(message);return;}
   if(!authenticated){
    if(message.kind!=='hello'||message.token!==token)throw Error('Native session handshake failed');
+   if(message.guiScalePercent!==undefined){
+    if(!validUiScalePercent(message.guiScalePercent))throw Error('Invalid native UI scale property');
+    uiScalePercent=message.guiScalePercent;
+   }
    authenticated=true;
    report.rawWorldAreaReuse=message.runtimeFeatures?.raw_world_area_reuse===true;
    if(startupFeatureManifest){startupFeatureManifest.nativeStartup=message.runtimeFeatures;startupFeatureManifest.verification=featureManifest.verifyNativeObservation(startupFeatureManifest,message.runtimeFeatures);await fs.writeFile(output.replace(/\.json$/,'.startup.json'),JSON.stringify(startupFeatureManifest,null,2)+'\n');if(startupFeatureManifest.verification.status==='rejected'){void finish('Native startup feature verification failed: '+startupFeatureManifest.verification.errors.join('; '));return;}}
    lobby.emit();report.startupSurface=localCheck?'browser':'main-menu';send({kind:localCheck?'browser-open':'main-menu-open'});return;
+  }
+  if(message.kind==='device-ui-scale'){
+   if(message.connection!==lobby.connection)return;
+   if(!validUiScalePercent(message.guiScalePercent))throw Error('Invalid native UI scale property');
+   uiScalePercent=message.guiScalePercent;
+   if(session===lobby.session&&session&&!session.closed)await session.setUiScalePercent(uiScalePercent);
+   return;
   }
   if(authenticated&&directHandoffHarness?.command(message,session,message.connection??lobby.connection))return;
   if(directHandoffCheck&&message.kind==='browser-observed'){report.browserReady=true;void directHandoffHarness.boot().catch(error=>directHandoffHarness.fail(error.message));return;}

@@ -16,7 +16,7 @@ import {RESOURCE_TYPE} from '../src/resource_archive.js';
 import {availableCreationPortraits} from '../src/creation_portraits.js';
 import {isNativeAudioResourceRef} from '../src/native_audio.js';
 import {networkDoorClickState} from '../src/network_door.js';
-import {deviceEchoResponse,loginWaypointResponse} from '../src/network_runtime_messages.js';
+import {deviceEchoResponse,loginWaypointResponse,uiScaleDeviceProperty} from '../src/network_runtime_messages.js';
 import {chatRequest} from '../src/network_chat_input.js';
 import {quickbarAssignmentRequest} from '../src/network_quickbar.js';
 import {emptyQuickbarButton} from '../src/quickbar.js';
@@ -52,6 +52,7 @@ const clientFailureText=value=>typeof value==='string'?value.replace(/\b[A-Z0-9]
 export class NetworkGameSession extends EventEmitter {
  constructor({peer,identity,build,resources,language,openModule,onDiagnostic=()=>{},decodeMessage=decodeServerGameMessage,loadRules=loadNetworkObjectRules,loginWaypoint='',persistCharacter=null,characterExportTimeoutMs=15000,serverInfo=null,localVaultAllowed=true,preparePortal=null,portalTimeoutMs=15000}){
   super();loginWaypointResponse(loginWaypoint);this.loginWaypoint=loginWaypoint;this.deviceEchoReplies=0;this.loginWaypointRequests=0;this.tlkOverrideMessages=0;Object.assign(this,{peer,identity,build,resources,language,openModule,onDiagnostic,decodeMessage,loadRules});
+  this.uiScaleDelivery=Promise.resolve();
   this.world=new NetworkWorld({onDiagnostic:d=>this.diagnose(d)});this.delivery=Promise.resolve();this.phase='new';this.closed=false;this.areaGeneration=0;this.objectRules={};this.movementSequences=new Map();this.persistCharacter=persistCharacter;this.characterExportTimeoutMs=characterExportTimeoutMs;
   resources.setProgress?.(progress=>{if(!this.closed){this.resourceProgress=progress;this.publish();}});
   this.serverInfo=serverInfo;this.localVaultAllowed=localVaultAllowed;this.serverCharacters=[];this.characterListGeneration=0;
@@ -76,7 +77,7 @@ export class NetworkGameSession extends EventEmitter {
   // connectionType is not an effective handshake input and must not set role.
   if(options?.metadata?.connectionType===16)this.world.beginClientConnection(16);
   this.phase='connecting';this.publish();
-  try{const remote=await this.peer.connect(this.identity,options);if(this.closed)throw new Error('Native game session is closed');this.serverBuild=remote.build;this.phase='resources';this.publish();await this.peer.sendGameMessage(serverStatusRequest());return remote;}
+  try{const remote=await this.peer.connect(this.identity,options);if(this.closed)throw new Error('Native game session is closed');this.serverBuild=remote.build;this.phase='resources';this.publish();await this.peer.sendGameMessage(serverStatusRequest());await this.flushUiScale();return remote;}
   catch(error){const failure=this.peer.connectionFailure??networkConnectionFailure(error,'session-connect');if(!this.peer.disconnecting)this.diagnose({code:'network.session-connect-failed',reason:'Native session connection failed',failure});await this.disconnect();throw new Error(networkConnectionFailureText(failure),{cause:error});}
  }
  async selectCharacter(bytes,{createOnServer=false}={}){
@@ -86,6 +87,26 @@ export class NetworkGameSession extends EventEmitter {
   parseGff(bytes,'BIC ');const owned=Uint8Array.from(bytes);this.character?.fill(0);this.character=owned;this.characterUploadSubtype=createOnServer?19:1;
   if(this.lobbyPlayersOpen)await this.lobbyPlayers(false);
   await this.uploadCharacter();
+ }
+ setUiScalePercent(value){
+  if(this.closed||!Number.isInteger(value)||value<0||value>1600)return Promise.resolve(false);
+  this.uiScalePercent=value;
+  if(this.phase==='new'||this.phase==='connecting')return Promise.resolve(true);
+  return this.flushUiScale();
+ }
+ flushUiScale(){
+  // As in the original connected-frame update, only dirty values go to the
+  // current peer. Snapshot the value actually sent before recording success.
+  const delivery=this.uiScaleDelivery.catch(()=>{}).then(async()=>{
+   const value=this.uiScalePercent;
+   if(this.closed||value===undefined||value===this.sentUiScalePercent)return false;
+   await this.peer.sendGameMessage(uiScaleDeviceProperty(value));
+   if(this.closed)return false;
+   this.sentUiScalePercent=value;
+   return true;
+  });
+  this.uiScaleDelivery=delivery;
+  return delivery;
  }
  acceptPortalCharacter(character){
   if(this.closed||this.phase!=='new')throw Error('Portal destination session is stale');
@@ -553,7 +574,7 @@ export class NetworkGameSession extends EventEmitter {
   if(voice!==65535)await this.peer.sendGameMessage(quickChatRequest({quickChat:voice}));return{sent:true};
  }
  async storeInput({areaId,areaGeneration,actorId,storeGeneration,operation,itemId,panel,page,x,y}){
-  const actor=this.controlledActor(areaId,areaGeneration),store=this.world.store,item=this.world.registry.get(itemId),location=item?.inventoryLocation;
+  const world=this.world,actor=this.controlledActor(areaId,areaGeneration),store=world.store,item=world.registry.get(itemId),location=item?.inventoryLocation;
   if(actor.id!==actorId||!store?.open||store.generation!==storeGeneration)throw new Error('Native store request is stale');
   if(['buy','sell','identify'].includes(operation)){
    const owned=location?.ownerId===actor.id&&['R','I'].includes(location.channel),stock=location?.channel==='M'&&this.world.inventories.get('M')?.entries.some(v=>v.id===itemId);
@@ -565,15 +586,32 @@ export class NetworkGameSession extends EventEmitter {
   // Original Identify callback140898d30 sends7/7 followed by a fresh6/5
   // examination. No local identification/property/gold prediction is made.
   if(operation==='identify')await this.examine({areaId,areaGeneration,actorId,targetId:itemId});
-  // Only GUI navigation is local. Gold, items and transaction outcomes remain
-  // server-owned. No store OBJECT_ID is fabricated from the speaking NPC.
-  if(operation==='close')this.world.apply({kind:'store-close'});
-  else if(operation==='panel'||operation==='page'){this.world.inventories.get('M').entries=[];if(operation==='panel'){store.panel=panel;store.page=0;}else store.page=page;}
+  if(operation!=='close'&&operation!=='panel'&&operation!=='page')return{sent:true};
+  // The send can complete after the received world has opened another store.
+  if(this.closed||this.world!==world||this.phase!=='playing'||!this.areaReadySent||
+     this.areaGeneration!==areaGeneration||world.areaId!==areaId||world.localObjectId!==actorId||
+     world.store!==store||!store.open)return{sent:true};
+  if(operation==='close')world.apply({kind:'store-close'});
+  else{
+   world.inventories.get('M').entries=[];
+   if(operation==='panel'){store.panel=panel;store.page=0;}
+   else store.page=page;
+  }
   return{sent:true};
  }
  async containerInput({areaId,areaGeneration,actorId,targetId,operation}){
-  const actor=this.controlledActor(areaId,areaGeneration);if(actor.id!==actorId||!Number.isInteger(targetId)||targetId!==this.world.containers.get('C')||targetId===OBJECT_INVALID)throw new Error('Native container request is stale');
-  const packet=containerRequest({operation});if(operation!=='close')this.world.clearContainerView();await this.peer.sendGameMessage(packet);if(operation==='close'&&this.world.containers.get('C')===targetId)this.world.apply({kind:'container-status',targetId:OBJECT_INVALID,primary:1});return{sent:true};
+  const actor=this.controlledActor(areaId,areaGeneration),world=this.world,peer=this.peer;
+  if(actor.id!==actorId||!Number.isInteger(targetId)||targetId!==world.containers.get('C')||targetId===OBJECT_INVALID)throw new Error('Native container request is stale');
+  const packet=containerRequest({operation}),receipt=world.primaryContainerReceipt();
+  if(operation!=='close')world.clearContainerView();
+  await peer.sendGameMessage(packet);
+  if(operation==='close'&&!this.closed&&this.world===world&&this.peer===peer&&this.phase==='playing'&&this.areaReadySent&&
+     this.areaGeneration===areaGeneration&&world.areaId===areaId&&world.localObjectId===actorId&&
+     world.registry.get(actorId)===actor&&actor.areaId===areaId&&!actor.replicationRemoved&&
+     world.containers.get('C')===targetId&&world.primaryContainerReceipt()===receipt){
+   world.apply({kind:'container-status',targetId:OBJECT_INVALID,primary:1});
+  }
+  return{sent:true};
  }
  async barterInput({areaId,areaGeneration,actorId,serial,operation,targetId=OBJECT_INVALID,itemId=OBJECT_INVALID,value=false,x=255,y=255}){
   const actor=this.controlledActor(areaId,areaGeneration),state=this.world.barter;
