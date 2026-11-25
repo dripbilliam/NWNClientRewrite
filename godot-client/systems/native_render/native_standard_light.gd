@@ -107,6 +107,8 @@ static func fragment_code() -> String:
  vec3 nwn_albedo=ALBEDO*native_diffuse;
  nwn_specular_color=vec3(min(1.0,max(nwn_albedo.r,max(nwn_albedo.g,nwn_albedo.b))/pow(0.5,2.2)));
 #ifdef NWN_REFLECTION_ALPHA
+ float nwn_metallicness=clamp(10.0*(nwn_specularity-0.04),0.0,1.0);
+ nwn_specular_color=mix(nwn_specular_color,nwn_albedo,nwn_metallicness);
  nwn_effective_alpha=native_alpha;
 #else
  nwn_effective_alpha=texel.a*native_alpha;
